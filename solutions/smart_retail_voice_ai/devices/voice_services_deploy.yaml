@@ -1,0 +1,185 @@
+version: "1.0"
+id: voice_services_deploy
+name: Voice Services
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). No device_class — voice
+# services are a generic Docker stack with no host-OS / hardware identity
+# probe (the reRouter is just a Debian-flavoured OpenWrt running Docker).
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /data-iot/respeaker
+
+  environment:
+    TZ: Asia/Shanghai
+    AUDIO_CARD_ID: "1"
+    AUDIO_DEVICE_ID: "0"
+
+  options:
+    project_name: sensecraft_voice
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: sensecraft-voice-client
+      port: 8090
+      health_check_endpoint: /
+      required: true
+    - name: sensecraft-asr-server
+      required: true
+    - name: watchtower
+      required: false
+
+  models:
+    - name: ASR Models
+      url: https://files.seeedstudio.com/wiki/solution/ai-sound/reRouter-firmware-backup/models.zip
+      sha256: 7b9e7606a2ddcad56f3f72a77b16eb2c60437ae4bfc3f1423bd33db177385c9d
+      target_dir: ./models
+      size: 500MB
+      required: true
+      name_i18n:
+        zh: 语音识别模型
+
+ssh:
+  port: 22
+  default_user: root
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1200  # Extended for model download
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: port_available
+    ports:
+      - 8090
+    description: Check if port 8090 is available
+  - type: disk_space
+    min_gb: 2
+    description: Check available disk space
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:8090"
+
+name_i18n:
+  zh: 语音服务
+
+remote_overrides:
+  compose_dir: assets/docker
+  environment:
+    TZ: Asia/Shanghai
+    AUDIO_CARD_ID: "1"
+    AUDIO_DEVICE_ID: "0"
+  # Remote models target_dir is absolute (legacy /data-iot/respeaker/models)
+  services:
+    - name: sensecraft-voice-client
+      port: 8090
+      health_check_endpoint: /
+      required: true
+    - name: sensecraft-asr-server
+      required: true
+    - name: watchtower
+      required: false
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: audio_device
+      device_path: /dev/snd
+      description: Check audio device availability
+  actions:
+    before:
+      - name: Create data directories
+        run: mkdir -p /data-iot/respeaker/recordings /data-iot/respeaker/models /data-iot/respeaker/voiceprints /data-iot/respeaker/logs
+        name_i18n:
+          zh: 创建数据目录
+      - name: Download default configuration
+        run: |
+          cd /data-iot/respeaker
+          wget -q -O config.yaml 'https://appstore.seeed-fleet.com/config.yaml'
+        ignore_error: true
+        name_i18n:
+          zh: 下载默认配置
+      - name: Set audio device permissions
+        run: chmod -R 666 /dev/snd/* || true
+        ignore_error: true
+        name_i18n:
+          zh: 设置音频设备权限
+    after:
+      - name: Configure reSpeaker audio output
+        run: |
+          docker run --rm --privileged \
+            -v /dev/bus/usb:/dev/bus/usb \
+            sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client:v0.0.2 \
+            python3 -c "
+          import sys, usb.core, usb.util
+          dev = usb.core.find(idVendor=0x2886, idProduct=0x001A)
+          if not dev:
+              print('reSpeaker not found, skipping configuration')
+              sys.exit(0)
+          print('Found reSpeaker, configuring audio output...')
+          dev.ctrl_transfer(0x40, 0, 10, 48, [1], 100000)
+          print('  CLEAR_CONFIGURATION: done')
+          dev.ctrl_transfer(0x40, 0, 19, 35, [8, 0], 100000)
+          print('  AUDIO_MGR_OP_R 8 0: done')
+          dev.ctrl_transfer(0x40, 0, 9, 48, [1], 100000)
+          print('  SAVE_CONFIGURATION: done')
+          usb.util.dispose_resources(dev)
+          print('reSpeaker configured successfully')
+          "
+        ignore_error: true
+        name_i18n:
+          zh: 配置 reSpeaker 音频输出
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      default: "192.168.49.1"
+      placeholder: "192.168.49.1"
+      description: IP address of reRouter (default OpenWrt gateway)
+      validation:
+        pattern: "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$"
+        message: Please enter a valid IP address
+      name_i18n:
+        zh: 设备 IP 地址
+      description_i18n:
+        zh: reRouter 的 IP 地址（默认 OpenWrt 网关）
+    - id: password
+      name: SSH Password
+      type: password
+      required: false
+      placeholder: "(leave empty if no password set)"
+      description: SSH password for root user (empty by default on OpenWrt)
+      name_i18n:
+        zh: SSH 密码
+      description_i18n:
+        zh: root 用户的 SSH 密码（OpenWrt 默认为空）
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8090"
+    reboot_recommended: true
+    reboot_message: Recommend rebooting the device to ensure all settings take effect
+    reboot_message_i18n:
+      zh: 建议重启设备以确保所有设置生效

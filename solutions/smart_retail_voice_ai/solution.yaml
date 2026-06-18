@@ -1,0 +1,111 @@
+version: '1.0'
+id: smart_retail_voice_ai
+name: Smart Retail Voice Collection
+intro:
+  summary: Capture and analyze in-store conversations to understand what customers are saying and what help they need
+  description_file: description.md
+  cover_image: gallery/cover.webp
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      caption: Hardware Setup
+      caption_i18n:
+        zh: 硬件组合
+    - type: image
+      src: gallery/rerouter.png
+      caption: reRouter CM4
+      caption_i18n:
+        zh: reRouter CM4
+    - type: image
+      src: gallery/respeaker.jpg
+      caption: reSpeaker XVF3800
+      caption_i18n:
+        zh: reSpeaker XVF3800
+  category: voice_ai
+  solution_type: solution
+
+
+  input_requirements:
+    - type: audio
+      description: 4-channel audio from reSpeaker XVF3800 microphone array
+      description_i18n:
+        zh: 来自 reSpeaker XVF3800 的 4 通道音频
+  tags:
+    - voice
+    - retail
+    - asr
+    - edge-ai
+    - rerouter
+    - respeaker
+  device_catalog:
+    rerouter_cm4:
+      sku: 110110205
+      name: reRouter CM4
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-110110110.png
+      product_url: https://www.seeedstudio.com/reRouter-CM4
+      description: Edge computing device with 4GB RAM, 32GB eMMC
+      name_i18n:
+        zh: reRouter CM4
+      description_i18n:
+        zh: 边缘计算设备，4GB 内存，32GB eMMC 存储
+    respeaker_xvf3800:
+      sku: 101991441
+      name: reSpeaker XVF3800
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-respeaker-xvf3800-4-mic-array.jpg
+      product_url: https://www.seeedstudio.com/ReSpeaker-XVF3800
+      description: 4-mic array with noise suppression, AEC, and beamforming
+      name_i18n:
+        zh: reSpeaker XVF3800 麦克风阵列
+      description_i18n:
+        zh: 4 麦克风阵列，支持噪声抑制、回声消除和波束成形
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: intermediate
+    estimated_time: 30min
+  links:
+    wiki: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+    purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
+  presets:
+    - id: default
+      name: Standard Deployment
+      device_groups:
+        - id: edge_device
+          name: Edge Computing Device
+          type: single
+          required: true
+          options:
+            - device_ref: rerouter_cm4
+          default: rerouter_cm4
+          name_i18n:
+            zh: 边缘计算设备
+        - id: microphone
+          name: Microphone Array
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800
+          default: respeaker_xvf3800
+          name_i18n:
+            zh: 麦克风阵列
+      links:
+        wiki: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+      name_i18n:
+        zh: 标准部署
+  summary_i18n:
+    zh: 门店顾客声音采集，听懂顾客在说什么、需要什么帮助
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  post_deployment:
+    autostart:
+      enabled: true
+      mode: fullscreen
+      url: http://localhost:8090
+  guide_file_i18n:
+    zh: guide_zh.md
+enabled: true
+name_i18n:
+  zh: 智慧零售语音采集

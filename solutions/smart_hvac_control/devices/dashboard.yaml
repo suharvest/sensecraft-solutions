@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open HVAC Control Dashboard
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:8280"
+  title: HVAC Control Dashboard
+  description: Monitor and control HVAC systems in real time
+  title_i18n:
+    zh: HVAC 控制面板
+  description_i18n:
+    zh: 实时监控并控制 HVAC 系统
+name_i18n:
+  zh: 打开 HVAC 控制面板

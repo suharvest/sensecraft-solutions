@@ -1,0 +1,58 @@
+version: "1.0"
+id: esp32
+name: XIAO ESP32 Motor Controller
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  usb_vendor_id: "0x303a"
+  usb_product_id: "0x1001"
+
+firmware:
+  source:
+    path: assets/firmware/firmware.bin
+  flash_config:
+    chip: auto
+    baud_rate: 921600
+    flash_mode: dio
+    flash_size: 8MB
+    partitions:
+      - name: bootloader
+        offset: "0x0"
+        file: lekiwi_motor_control.ino.bootloader.bin
+      - name: partitions
+        offset: "0x8000"
+        file: lekiwi_motor_control.ino.partitions.bin
+      - name: app
+        offset: "0x10000"
+        file: lekiwi_motor_control.ino.bin
+  variants:
+    esp32s3:
+      flash_config:
+        chip: esp32s3
+      partitions:
+        - name: bootloader
+          offset: "0x0"
+          file: assets/firmware/esp32s3/lekiwi_motor_control.ino.bootloader.bin
+        - name: partitions
+          offset: "0x8000"
+          file: assets/firmware/esp32s3/lekiwi_motor_control.ino.partitions.bin
+        - name: app
+          offset: "0x10000"
+          file: assets/firmware/esp32s3/lekiwi_motor_control.ino.bin
+    esp32c6:
+      flash_config:
+        chip: esp32c6
+        flash_size: 4MB
+      partitions:
+        - name: bootloader
+          offset: "0x0"
+          file: assets/firmware/esp32c6/lekiwi_motor_control.ino.bootloader.bin
+        - name: partitions
+          offset: "0x8000"
+          file: assets/firmware/esp32c6/lekiwi_motor_control.ino.partitions.bin
+        - name: app
+          offset: "0x10000"
+          file: assets/firmware/esp32c6/lekiwi_motor_control.ino.bin
+name_i18n:
+  zh: XIAO ESP32 电机控制器

@@ -1,0 +1,27 @@
+version: "1.0"
+id: preview_service
+name: Service URL Preview
+type: video_stream
+
+video:
+  type: external_url
+  rtsp_url_template: "http://{{host}}:8080"
+
+display:
+  aspect_ratio: "16:9"
+  auto_start: false
+  show_stats: false
+
+user_inputs:
+  - id: host
+    name: Jetson Host / IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: Jetson IP address used to build http://<jetson-ip>:8080
+    name_i18n:
+      zh: Jetson Host / IP
+    description_i18n:
+      zh: Jetson IP address used to build http://<jetson-ip>:8080
+name_i18n:
+  zh: Service URL Preview

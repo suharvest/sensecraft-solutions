@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2a2a4a"/>
+      <stop offset="100%" style="stop-color:#1a1a2e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#16213e"/>
+
+  <!-- Watcher Box -->
+  <rect x="50" y="180" width="160" height="140" rx="10" fill="url(#boxGrad)" stroke="#8CC63F" stroke-width="2"/>
+  <text x="130" y="220" font-family="Arial" font-size="14" fill="white" text-anchor="middle" font-weight="bold">SenseCAP</text>
+  <text x="130" y="240" font-family="Arial" font-size="14" fill="white" text-anchor="middle" font-weight="bold">Watcher</text>
+  <text x="130" y="270" font-family="Arial" font-size="11" fill="#888" text-anchor="middle">ESP32-S3</text>
+  <circle cx="130" cy="295" r="15" fill="#1a1a2e" stroke="#8CC63F"/>
+  <text x="130" y="300" font-family="Arial" font-size="10" fill="#8CC63F" text-anchor="middle">:)</text>
+
+  <!-- Arrow 1: Watcher to Server -->
+  <path d="M 220 250 L 300 250" stroke="#8CC63F" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="260" y="235" font-family="Arial" font-size="10" fill="#8CC63F" text-anchor="middle">WebSocket</text>
+  <text x="260" y="270" font-family="Arial" font-size="9" fill="#666" text-anchor="middle">UI State JSON</text>
+
+  <!-- Display Server Box -->
+  <rect x="310" y="160" width="180" height="180" rx="10" fill="url(#boxGrad)" stroke="#4a9eff" stroke-width="2"/>
+  <text x="400" y="200" font-family="Arial" font-size="14" fill="white" text-anchor="middle" font-weight="bold">Display Server</text>
+  <text x="400" y="225" font-family="Arial" font-size="11" fill="#888" text-anchor="middle">Docker Container</text>
+
+  <!-- Server components -->
+  <rect x="330" y="245" width="140" height="25" rx="4" fill="#1a1a2e" stroke="#4a9eff"/>
+  <text x="400" y="262" font-family="Arial" font-size="10" fill="#4a9eff" text-anchor="middle">HTTP + WebSocket</text>
+
+  <rect x="330" y="280" width="140" height="25" rx="4" fill="#1a1a2e" stroke="#4a9eff"/>
+  <text x="400" y="297" font-family="Arial" font-size="10" fill="#4a9eff" text-anchor="middle">Audio Decoder</text>
+
+  <rect x="330" y="315" width="140" height="25" rx="4" fill="#1a1a2e" stroke="#4a9eff"/>
+  <text x="400" y="332" font-family="Arial" font-size="10" fill="#4a9eff" text-anchor="middle">mDNS Service</text>
+
+  <!-- Arrow 2: Server to Browser -->
+  <path d="M 500 250 L 570 250" stroke="#4a9eff" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="535" y="235" font-family="Arial" font-size="10" fill="#4a9eff" text-anchor="middle">HTTP</text>
+  <text x="535" y="270" font-family="Arial" font-size="9" fill="#666" text-anchor="middle">Port 8765</text>
+
+  <!-- Browser/Display Box -->
+  <rect x="580" y="180" width="170" height="140" rx="10" fill="url(#boxGrad)" stroke="#ff6b6b" stroke-width="2"/>
+  <text x="665" y="220" font-family="Arial" font-size="14" fill="white" text-anchor="middle" font-weight="bold">Web Browser</text>
+  <text x="665" y="245" font-family="Arial" font-size="11" fill="#888" text-anchor="middle">Large Screen</text>
+
+  <!-- Screen preview -->
+  <rect x="610" y="260" width="110" height="50" rx="4" fill="#0f3460" stroke="#555"/>
+  <rect x="620" y="270" width="60" height="12" rx="3" fill="#8CC63F"/>
+  <rect x="650" y="288" width="50" height="10" rx="3" fill="#3a3a5e"/>
+
+  <!-- Audio output -->
+  <path d="M 400 350 L 400 400 L 300 400" stroke="#ff9f43" stroke-width="2" stroke-dasharray="5,5"/>
+  <text x="350" y="420" font-family="Arial" font-size="10" fill="#ff9f43" text-anchor="middle">HDMI Audio</text>
+
+  <!-- Speaker icon -->
+  <rect x="230" y="385" width="60" height="40" rx="5" fill="url(#boxGrad)" stroke="#ff9f43" stroke-width="2"/>
+  <text x="260" y="410" font-family="Arial" font-size="20" fill="#ff9f43" text-anchor="middle">🔊</text>
+
+  <!-- Title -->
+  <text x="400" y="50" font-family="Arial" font-size="24" fill="white" text-anchor="middle" font-weight="bold">System Architecture</text>
+  <text x="400" y="75" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">UI State Sync + Web Rendering</text>
+
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8CC63F"/>
+    </marker>
+  </defs>
+</svg>

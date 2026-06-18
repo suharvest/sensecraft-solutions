@@ -1,0 +1,330 @@
+version: "1.0"
+id: jetson_deploy
+name: NVIDIA Jetson
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in the shared iptables raw-table workaround
+# for JetPack 6.x (scope=remote) and the `/etc/nv_tegra_release`
+# detection probe from devices/profiles/jetson.yaml. The probe runs on
+# both views so a misconfigured local deploy (Mac, RPi) aborts before
+# any side effect.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  environment:
+    RESOLUTION: "{{resolution}}"
+    MODEL_ROOT: "{{model_root}}"
+    OUTPUT_DIR: "{{output_dir}}"
+  options:
+    project_name: z_image_turbo
+    remove_orphans: true
+  services:
+    - name: z-image-api
+      port: 8000
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: nvidia
+  auth_methods:
+    - password
+  command_timeout: 7200
+
+user_inputs:
+  - id: resolution
+    name: Resolution
+    type: select
+    default: "512"
+    required: false
+    options:
+      - value: "384"
+        label: "384x384 (~73s)"
+      - value: "512"
+        label: "512x512 (~100s)"
+    name_i18n:
+      zh: 分辨率
+  - id: model_root
+    name: Model Root
+    type: text
+    default: /home/nvidia/models
+    required: true
+    name_i18n:
+      zh: 模型根目录
+  - id: output_dir
+    name: Output Directory
+    type: text
+    default: /home/nvidia/z-image-output
+    required: false
+    name_i18n:
+      zh: 图片输出目录
+
+actions:
+  before:
+    - name: Resolve paths and patch compose
+      run: |
+        set -e  # fail-fast: any step below (HF download, compose patch, mkdir) failing must abort deploy
+        MODEL_ROOT='{{model_root}}'
+        OUTPUT_DIR='{{output_dir}}'
+        RES='{{resolution}}'
+
+        if [ "$RES" = "384" ]; then
+          ENGINE_SUBDIR="trt-engines-384-bf16"
+          CACHE_LAYERS="23"
+        else
+          ENGINE_SUBDIR="trt-engines-bf16"
+          CACHE_LAYERS="18"
+        fi
+
+        ENGINE_DIR="$MODEL_ROOT/axera-onnx/$ENGINE_SUBDIR"
+        TEXT_ENCODER_DIR="$MODEL_ROOT/axera-onnx/trt-text-encoder-split-g4"
+        UPLOAD_DIR="$OUTPUT_DIR/uploads"
+
+        # Auto-download missing weights/engines from HuggingFace
+        # (falls back to hf-mirror.com when huggingface.co is unreachable)
+        bash assets/scripts/download_hf_artifacts.sh "$MODEL_ROOT" "$RES"
+
+        mkdir -p "$OUTPUT_DIR" "$UPLOAD_DIR"
+
+        # Patch compose file defaults for derived paths not set via env
+        sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" assets/docker/docker-compose.yml
+        sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" assets/docker/docker-compose.yml
+
+        echo "Engine: $ENGINE_DIR"
+        echo "Output: $OUTPUT_DIR"
+      name_i18n:
+        zh: 解析路径并更新配置
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: At least 5GB for Docker image and runtime
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson
+
+remote_overrides:
+  remote_path: /home/{{username}}/z-image-turbo
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  actions:
+    before:
+      # Override the device-class profile's iptables fix so the embedded
+      # `sudo` calls actually receive the SSH password — orin-nano (and
+      # most JetPack 6.x stock images) require sudo password for systemd
+      # operations. Without `sudo: true`, the action_executor doesn't
+      # wrap with `_build_sudo_cmd(password, ...)` and we hit
+      # `sudo: a terminal is required`. Name MUST match the profile
+      # action name so derive_docker_views dedups the profile entry.
+      - name: Fix Docker iptables for JetPack 6.x
+        scope: remote
+        ignore_error: false
+        sudo: true
+        run: |
+          CONF="/etc/systemd/system/docker.service.d/disable-raw-table.conf"
+          if [ -f "$CONF" ] && grep -q "DOCKER_INSECURE_NO_IPTABLES_RAW=1" "$CONF" 2>/dev/null; then
+            echo "Docker iptables fix already applied"
+          else
+            echo "Applying Docker iptables raw table fix for JetPack 6.x..."
+            mkdir -p /etc/systemd/system/docker.service.d
+            printf '[Service]\nEnvironment="DOCKER_INSECURE_NO_IPTABLES_RAW=1"\n' > "$CONF"
+            systemctl daemon-reload
+            systemctl restart docker
+            sleep 2
+            echo "Docker iptables fix applied"
+          fi
+        name_i18n:
+          zh: 修复 JetPack 6.x Docker 网络问题
+      - name: Validate Jetson environment
+        run: |
+          set -e
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is not installed on this device."
+            echo "Install Docker first, then retry deployment."
+            exit 1
+          fi
+
+          if ! DOCKER_INFO="$(docker info 2>&1)"; then
+            if echo "$DOCKER_INFO" | grep -qi "permission denied"; then
+              CURRENT_USER="$(whoami)"
+              echo "Docker permission denied for user '$CURRENT_USER'."
+              echo "Run: sudo usermod -aG docker $CURRENT_USER && newgrp docker"
+            else
+              echo "Docker is not available: $DOCKER_INFO"
+            fi
+            exit 1
+          fi
+
+          echo "$DOCKER_INFO" | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+            echo "NVIDIA docker runtime is not detected"
+            exit 1
+          }
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 5 ] || {
+            echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+
+          echo "Jetson environment validated."
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+      # The deployer only uploads compose_dir contents (assets/docker/) into
+      # remote_dir. The HF download script + its _shared/ helper are NOT
+      # in compose_dir, so we SCP them explicitly here, side-by-side with
+      # docker-compose.yml. download_hf_artifacts.sh respects
+      # HF_DOWNLOAD_HELPER (see the export in the next action).
+      - name: Upload HF download script
+        copy:
+          src: assets/scripts/download_hf_artifacts.sh
+          dest: /home/{{username}}/z-image-turbo/jetson_deploy/download_hf_artifacts.sh
+          mode: "0755"
+        name_i18n:
+          zh: 上传 HF 下载脚本
+      - name: Upload shared HF helper
+        copy:
+          src: ../_shared/scripts/hf_download.sh
+          dest: /home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh
+          mode: "0755"
+        name_i18n:
+          zh: 上传共享 HF 辅助脚本
+      # NOTE: "Resolve paths and patch compose" lives in `after_upload`
+      # below, NOT in `before`. The sed step targets the remote
+      # docker-compose.yml that the deployer uploads in its own
+      # `upload` step (after all `before` actions finish). Running it
+      # in `before` fails because the file doesn't exist yet on the
+      # remote.
+    after_upload:
+      - name: Resolve paths and patch compose
+        # Downloads the TRT engines (~20GB for 512) from HF on first deploy.
+        # The default 300s action timeout is far too short — bump to 90min.
+        # curl uses -C - (resume) and the script skips existing files, so a
+        # re-deploy after a drop continues where it left off.
+        timeout: 5400
+        run: |
+          MODEL_ROOT='{{model_root}}'
+          OUTPUT_DIR='{{output_dir}}'
+          RES='{{resolution}}'
+
+          # Derive engine subdirectory and cache layers from resolution
+          if [ "$RES" = "384" ]; then
+            ENGINE_SUBDIR="trt-engines-384-bf16"
+            CACHE_LAYERS="23"
+          else
+            ENGINE_SUBDIR="trt-engines-bf16"
+            CACHE_LAYERS="18"
+          fi
+
+          ENGINE_DIR="$MODEL_ROOT/axera-onnx/$ENGINE_SUBDIR"
+          TEXT_ENCODER_DIR="$MODEL_ROOT/axera-onnx/trt-text-encoder-split-g4"
+          UPLOAD_DIR="$OUTPUT_DIR/uploads"
+
+          # Auto-download missing weights/engines from HuggingFace.
+          # Falls back to hf-mirror.com when huggingface.co is unreachable.
+          # The deployer uploads the compose_dir contents into
+          # /home/{{username}}/z-image-turbo/<device-yaml-id>/, and the
+          # `Upload HF download scripts` action above copies the script
+          # plus its shared helper alongside the compose file.
+          SCRIPT="/home/{{username}}/z-image-turbo/jetson_deploy/download_hf_artifacts.sh"
+          # Tell the script where to find hf_download.sh on the remote (no
+          # _shared/ tree on the device; both files sit next to each other).
+          export HF_DOWNLOAD_HELPER="/home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh"
+          bash "$SCRIPT" "$MODEL_ROOT" "$RES"
+
+          # Create output directories
+          mkdir -p "$OUTPUT_DIR" "$UPLOAD_DIR"
+
+          # Patch compose file defaults with resolved paths
+          COMPOSE_FILE="/home/{{username}}/z-image-turbo/jetson_deploy/docker-compose.yml"
+          sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" "$COMPOSE_FILE"
+          sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" "$COMPOSE_FILE"
+          sed -i "s|__MODEL_ROOT__|$MODEL_ROOT|g" "$COMPOSE_FILE"
+          sed -i "s|__OUTPUT_DIR__|$OUTPUT_DIR|g" "$COMPOSE_FILE"
+          sed -i "s|__UPLOAD_DIR__|$UPLOAD_DIR|g" "$COMPOSE_FILE"
+          sed -i "s|__TEXT_ENCODER_DIR__|$TEXT_ENCODER_DIR|g" "$COMPOSE_FILE"
+
+          echo "Engine: $ENGINE_DIR"
+          echo "Output: $OUTPUT_DIR"
+          echo "Cache layers: $CACHE_LAYERS"
+        name_i18n:
+          zh: 解析路径并更新配置
+    after:
+      - name: Verify API service
+        run: |
+          set -e
+          echo "Waiting for API to be ready..."
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8000/health >/dev/null 2>&1; then
+              echo "API service is healthy."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API service failed to become healthy within 120s."
+          docker logs --tail 30 z-image-api || true
+          exit 1
+        name_i18n:
+          zh: 验证 API 服务
+  user_inputs:
+    - id: host
+      name: Host / IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 主机 / IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: nvidia
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: resolution
+      name: Resolution
+      type: select
+      default: "512"
+      required: false
+      options:
+        - value: "384"
+          label: "384x384 (~73s)"
+        - value: "512"
+          label: "512x512 (~100s)"
+      name_i18n:
+        zh: 分辨率
+    - id: model_root
+      name: Model Root
+      type: text
+      default: /home/nvidia/models
+      required: true
+      description: Directory containing model weights and TRT engines (see requirements)
+      name_i18n:
+        zh: 模型根目录
+      description_i18n:
+        zh: 存放模型权重和 TRT 引擎的目录（见前提条件）
+    - id: output_dir
+      name: Output Directory
+      type: text
+      default: /home/nvidia/z-image-output
+      required: false
+      description: Generated images are saved here
+      name_i18n:
+        zh: 图片输出目录
+      description_i18n:
+        zh: 生成的图片保存在此目录

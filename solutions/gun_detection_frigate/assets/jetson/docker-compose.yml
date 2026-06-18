@@ -1,0 +1,36 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:0.16.0-beta4-tensorrt-jp6
+    privileged: true
+    runtime: nvidia
+    restart: unless-stopped
+    shm_size: "512mb"
+    depends_on:
+      - mosquitto
+    environment:
+      - YOLO_MODELS=yolov4-tiny-288_gun_v3
+    volumes:
+      - ./config:/config
+      - ./storage:/media/frigate
+      - ./download_yolo.sh:/usr/local/src/tensorrt_demos/yolo/download_yolo.sh
+    ports:
+      - "5000:5000"
+      - "8554:8554"
+    deploy:
+      resources:
+        limits:
+          memory: 4G

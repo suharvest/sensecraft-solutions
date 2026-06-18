@@ -1,0 +1,66 @@
+# Depth Anything V3 — Slim image (3.3 GB vs 27.2 GB original)
+#
+# Build requires these tarballs in context (extracted from fat image on Mac):
+#   slim-files.tar.gz   — ROS2, Python packages, workspace, ONNX model (~820 MB)
+#   opencv-deps.tar.gz  — OpenCV 4.5d C++ libs + gdal/boost/tinyxml2 transitive deps (~32 MB)
+#
+# Extraction command (run on Mac with fat image):
+#   docker run --rm --platform linux/arm64 -v /tmp/out:/output \
+#     chenduola6/depth_anything_v3:jp6.2 bash -c '
+#       rm -f /workspace/.../onnx/*.engine *.json
+#       rm -rf /usr/local/lib/python3.10/dist-packages/{cmake,pip,setuptools,wheel,torch,torchvision,torchaudio,Cython,pygments}
+#       tar czf /output/slim-files.tar.gz --ignore-failed-read \
+#         /opt/ros/humble/ /usr/local/lib/python3.10/dist-packages/ \
+#         /usr/local/lib/libopencv* /usr/lib/python3/dist-packages/ \
+#         /workspace/ros2-depth-anything-v3-trt/{install,depth_anything_v3,onnx,camera_publisher.py}
+#     '
+#   (opencv-deps.tar.gz: see project memory for full extraction script)
+#
+# TRT engine auto-compiled from ONNX on first start (~8 min on Orin NX).
+# CUDA/TRT runtime libs mounted from host at runtime.
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+
+# Runtime system deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip python3-gi python3-yaml libpython3.10 \
+    # GStreamer + RTSP server
+    gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x \
+    gir1.2-gstreamer-1.0 gir1.2-gst-rtsp-server-1.0 \
+    # Camera
+    v4l-utils \
+    # Libs needed by OpenCV and compiled ROS2 nodes
+    libopenblas0 libgomp1 \
+    libjpeg8 libpng16-16 libtiff5 libwebp7 \
+    libglib2.0-0 libsm6 libxext6 libxrender1 libgl1 \
+    libavcodec58 libavformat58 libswscale5 \
+    # ROS2 rclpy deps
+    libspdlog1 libfmt8 \
+    # Misc
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROS2 Humble + Python packages + workspace + ONNX model
+ADD slim-files.tar.gz /
+
+# C++ shared libs not in ubuntu base (OpenCV 4.5d, gdal, boost, tinyxml2, etc.)
+ADD opencv-deps.tar.gz /
+
+# Ensure shared libs are findable
+RUN ldconfig
+
+ENV NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=all \
+    CUDA_MODULE_LOADING=LAZY \
+    OPENBLAS_CORETYPE=ARMV8 \
+    LD_LIBRARY_PATH=/opt/ros/humble/lib:/usr/local/lib:/usr/lib/aarch64-linux-gnu:/usr/lib \
+    PYTHONPATH=/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages
+
+WORKDIR /workspace/ros2-depth-anything-v3-trt
+
+CMD ["bash"]

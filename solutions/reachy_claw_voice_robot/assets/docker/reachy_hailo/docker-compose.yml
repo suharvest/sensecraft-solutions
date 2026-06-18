@@ -1,0 +1,118 @@
+# Reachy Mini Voice Robot — R2000 / Pi 5 + Hailo-8 deployment stack.
+#
+# Services:
+#   docker compose up -d
+#
+# Data directory:
+#   All persistent data (captures, face DB, etc.) is stored under DATA_DIR.
+#   Default: ~/reachy-data   Override: DATA_DIR=/path/to/dir docker compose up -d
+
+services:
+  # ── Always-on services ────────────────────────────────────────────
+
+  reachy-daemon:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-daemon:v1.0
+    container_name: reachy-daemon
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    command: >-
+      reachy-mini-daemon
+      --serialport ${SERIAL_PORT:-auto}
+      --localhost-only
+      --deactivate-audio
+      --fastapi-port 38001
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:38001/', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  reachy-claw:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-claw:slv-v6
+    container_name: reachy-claw
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    volumes:
+      - ./reachy-claw.hailo.yaml:/app/reachy-claw.yaml:ro
+      - ${DATA_DIR:-~/reachy-data}/reachy-claw:/app/data
+      - /dev/shm:/dev/shm
+      - /run/udev:/run/udev:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATA_DIR=/app/data
+      - HOST_DATA_DIR=${DATA_DIR:-~/reachy-data}
+      - VISION_SERVICE_URL=tcp://127.0.0.1:8631
+      - LLM_ENDPOINT=${LLM_ENDPOINT:-http://${VOICE_ASSISTANT_HOST}:11435}
+      - SPEECH_SERVICE_URL=http://${VOICE_ASSISTANT_HOST}:8621
+      - VOICE_ASSISTANT_HOST=${VOICE_ASSISTANT_HOST}
+      - REACHY_MOTOR_ENABLED=true
+    depends_on:
+      reachy-daemon:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8640/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Vision (Hailo-8) ──────────────────────────────────────────────
+
+  vision-hailo:
+    image: sensecraft-missionpack.seeed.cn/solution/vision-hailo:v0.3
+    container_name: vision-hailo
+    restart: unless-stopped
+    network_mode: host
+    devices:
+      - /dev/hailo0:/dev/hailo0
+      - ${CAMERA_DEVICE:-/dev/video0}:${CAMERA_DEVICE:-/dev/video0}
+    volumes:
+      - ${DATA_DIR:-~/reachy-data}/vision:/var/lib/vision-hailo
+      - /run/udev:/run/udev:ro
+      - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
+      - /usr/lib/libhailort.so:/usr/lib/libhailort.so:ro
+    environment:
+      - ZMQ_PUB_PORT=8631
+      - HTTP_PORT=8630
+      - CAMERA_DEVICE=${CAMERA_DEVICE:-/dev/video0}
+      - HEF_DETECT=/app/models/scrfd_2.5g.hef
+      - HEF_EMOTION=/app/models/hsemotion_b0.hef
+      - CAPTURE_DIR=/var/lib/vision-hailo/captures
+      - FACE_DB_DIR=/var/lib/vision-hailo/faces
+      - REST_CTRL_URL=tcp://reachy:18791
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8630/', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

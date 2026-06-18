@@ -1,0 +1,89 @@
+version: "1.0"
+id: deploy
+name: HVAC Control System
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views() — no need to maintain
+# parallel local.yaml + remote.yaml files.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+
+  environment:
+    TZ: Asia/Shanghai
+    OPC_UA_SERVER: "{{opc_ua_server}}"
+
+  options:
+    project_name: missionpack_knn
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: app
+      port: 8280
+      health_check_endpoint: /api/v1/health
+      required: true
+
+# SSH defaults applied to the derived remote view.
+ssh:
+  default_user: recomputer
+
+user_inputs:
+  - id: opc_ua_server
+    name: OPC-UA Server Address
+    type: text
+    default: "opc.tcp://localhost:4841"
+    placeholder: "opc.tcp://192.168.1.100:4840"
+    description: OPC-UA server address (use default for built-in simulator)
+    required: false
+
+    name_i18n:
+      zh: OPC-UA 服务器地址
+    description_i18n:
+      zh: OPC-UA 服务器地址（使用默认值连接内置模拟器）
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: port_available
+    ports:
+      - 8280
+      - 4841
+    description: Check if ports are available
+  - type: disk_space
+    min_gb: 1
+    description: Check available disk space
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:8280"
+
+# Remote-specific overrides — applied when deriving the docker_remote view.
+remote_overrides:
+  # Required after derive schema tightening; previously fell back to
+  # solution_id automatically. Same value the old fallback produced.
+  remote_path: /home/{{username}}/smart_hvac_control
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: disk_space
+      min_gb: 1
+      description: At least 1GB for HVAC control Docker image
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8280"
+
+name_i18n:
+  zh: HVAC 控制系统

@@ -1,0 +1,123 @@
+version: "1.0"
+id: llm_rk3576_deploy
+name: reComputer RK3576
+type: docker_deploy
+
+# Single source-of-truth device YAML. Derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=rk3576 pulls in the shared RK3576 profile (iptables
+# nf_tables → legacy fix + device-tree probe). The iptables action is
+# scope=remote so docker_local previews on a Mac never trigger it.
+# The NPU+disk check stays in remote_overrides because the 5GB threshold
+# is specific to this DeepSeek image footprint.
+device_class: rk3576
+
+docker:
+  compose_file: assets/docker/llm-docker-compose.yml
+  remote_path: /home/{{username}}/ai-lab-llm-rk3576
+  environment:
+    MODEL_VARIANT: "{{model_variant}}"
+  options:
+    project_name: ai_lab_llm_rk3576
+    remove_orphans: true
+  services:
+    - name: deepseek-llm
+      required: true
+      health_check_endpoint: /v1/models
+      port: 8001
+
+ssh:
+  port: 22
+  default_user: cat
+  auth_methods:
+    - password
+  command_timeout: 600
+
+user_inputs:
+  - id: model_variant
+    name: Model
+    type: select
+    required: true
+    default: "1.5b-w4a16-latest"
+    options:
+      - value: "1.5b-w4a16-latest"
+        label: "DeepSeek-R1 1.5B W4A16 (1.2GB, recommended)"
+        label_i18n:
+          zh: "DeepSeek-R1 1.5B W4A16 (1.2GB, 推荐)"
+      - value: "1.5b-fp16-latest"
+        label: "DeepSeek-R1 1.5B FP16 (2.7GB, highest accuracy)"
+        label_i18n:
+          zh: "DeepSeek-R1 1.5B FP16 (2.7GB, 最高精度)"
+      - value: "1.5b-w4a16-g128-latest"
+        label: "DeepSeek-R1 1.5B W4A16-G128 (1.2GB, most compressed)"
+        label_i18n:
+          zh: "DeepSeek-R1 1.5B W4A16-G128 (1.2GB, 最高压缩)"
+      - value: "7b-w4a16-latest"
+        label: "DeepSeek-R1 7B W4A16 (4.1GB, stronger reasoning)"
+        label_i18n:
+          zh: "DeepSeek-R1 7B W4A16 (4.1GB, 更强推理)"
+      - value: "7b-w4a16-g128-latest"
+        label: "DeepSeek-R1 7B W4A16-G128 (4.1GB, compressed)"
+        label_i18n:
+          zh: "DeepSeek-R1 7B W4A16-G128 (4.1GB, 压缩版)"
+    name_i18n:
+      zh: 模型选择
+
+data_channels:
+  - type: http
+    name: Chat API
+    method: POST
+    url: "http://{{host}}:8001/v1/chat/completions"
+    name_i18n:
+      zh: 对话 API
+  - type: http_stream
+    name: Chat API (Stream)
+    method: POST
+    url: "http://{{host}}:8001/v1/chat/completions"
+    content_type: text/event-stream
+    name_i18n:
+      zh: 对话 API (流式)
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for LLM Docker image
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reComputer RK3576
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  actions:
+    before:
+      - name: Check NPU availability
+        run: |
+          set -e
+          if ! dmesg 2>/dev/null | grep -qi rknpu; then
+            echo "RKNPU kernel module not detected."
+            echo "This device may not support RK NPU inference."
+            exit 1
+          fi
+          echo "RKNPU detected."
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is not installed."
+            exit 1
+          fi
+          echo "Docker available."
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 5 ] || {
+            echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+          echo "Disk space OK: ${FREE_GB}GB free."
+        name_i18n:
+          zh: 检查 NPU 是否可用

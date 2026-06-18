@@ -1,0 +1,110 @@
+mqtt:
+  enabled: true
+  host: mosquitto
+  port: 1883
+
+go2rtc:
+  streams:
+    handgun_demo:
+      - "ffmpeg:/media/frigate/handgun.mp4#input=-stream_loop -1 -re"
+    machinegun_demo:
+      - "ffmpeg:/media/frigate/machinegun.mov#input=-stream_loop -1 -re"
+
+detectors:
+  hailo8l:
+    type: hailo8l
+    device: PCIe
+
+model:
+  width: 640
+  height: 640
+  input_tensor: nhwc
+  input_pixel_format: rgb
+  input_dtype: int
+  model_type: yolo-generic
+  path: /config/model_cache/yolov11s.hef
+  labelmap:
+    0: person
+    1: gun
+
+objects:
+  track:
+    - gun
+  filters:
+    gun:
+      threshold: 0.25
+      min_area: 10
+      max_area: 500000
+
+detect:
+  enabled: true
+
+record:
+  enabled: true
+  retain:
+    days: 3
+
+snapshots:
+  enabled: true
+  clean_copy: true
+  timestamp: true
+  bounding_box: true
+  crop: false
+  retain:
+    default: 14
+  quality: 95
+
+birdseye:
+  enabled: true
+  mode: objects
+
+auth:
+  enabled: false
+
+logger:
+  default: error
+
+version: 0.16-0
+
+cameras:
+  handgun_demo:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: /media/frigate/handgun.mp4
+          input_args: -stream_loop -1 -re
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - gun
+      filters:
+        gun:
+          threshold: 0.25
+          min_area: 10
+          max_area: 500000
+
+  machinegun_demo:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: /media/frigate/machinegun.mov
+          input_args: -stream_loop -1 -re
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 5
+    objects:
+      track:
+        - gun
+      filters:
+        gun:
+          threshold: 0.25
+          min_area: 10
+          max_area: 500000

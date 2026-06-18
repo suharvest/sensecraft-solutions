@@ -1,0 +1,11 @@
+{
+  "domain": "recamera",
+  "name": "reCamera AI",
+  "codeowners": ["@xr686"],
+  "config_flow": true,
+  "documentation": "https://github.com/xr686",
+  "iot_class": "local_polling",
+  "version": "1.0.0",
+  "requirements": [],
+  "dependencies": ["ffmpeg"]
+}

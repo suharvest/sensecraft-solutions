@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Warehouse System
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:2125"
+  title: Warehouse Management System
+  description: View real-time inventory, voice commands, and operations log
+  title_i18n:
+    zh: 仓库管理系统
+  description_i18n:
+    zh: 查看实时库存、语音指令与操作日志
+name_i18n:
+  zh: 打开仓库系统

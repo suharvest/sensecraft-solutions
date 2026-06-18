@@ -1,0 +1,138 @@
+{
+  "$id": "https://sensecraft.seeed.cc/spec/plugin.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
+  "contract_version": 1,
+  "properties": {
+    "author": {
+      "type": "string"
+    },
+    "backend": {
+      "additionalProperties": true,
+      "properties": {
+        "module": {
+          "description": "Python module path of the backend router.",
+          "type": "string"
+        },
+        "websocket": {
+          "description": "Whether the backend exposes a WebSocket.",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "description": {
+      "type": "string"
+    },
+    "description_zh": {
+      "type": "string"
+    },
+    "frontend": {
+      "additionalProperties": true,
+      "properties": {
+        "css": {
+          "type": "string"
+        },
+        "entry": {
+          "description": "Relative path to the JS entry module (default frontend/index.js).",
+          "type": "string"
+        },
+        "i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Locale -> relative i18n JSON path.",
+          "type": "object"
+        },
+        "type": {
+          "description": "Frontend mount mode, e.g. 'overlay'.",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "id": {
+      "description": "Unique plugin identifier (directory name). Required by plugin_manager (plugin_manager.py:240).",
+      "type": "string"
+    },
+    "min_app_version": {
+      "description": "Minimum host app version required to load this plugin.",
+      "type": "string"
+    },
+    "name": {
+      "description": "Display name (EN).",
+      "type": "string"
+    },
+    "name_zh": {
+      "description": "Display name (ZH).",
+      "type": "string"
+    },
+    "permissions": {
+      "description": "Requested capabilities, e.g. ['network', 'websocket'].",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "settings": {
+      "additionalProperties": true,
+      "properties": {
+        "schema": {
+          "description": "Declarative settings form fields.",
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "default": {},
+              "description": {
+                "type": "string"
+              },
+              "description_zh": {
+                "type": "string"
+              },
+              "key": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "label_zh": {
+                "type": "string"
+              },
+              "options": {
+                "type": "array"
+              },
+              "placeholder": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "type": {
+                "description": "Field control type (text/password/select/checkbox/...).",
+                "type": "string"
+              }
+            },
+            "required": [
+              "key",
+              "type"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "version": {
+      "description": "Plugin semantic version, e.g. 1.0.0.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "version"
+  ],
+  "title": "Plugin Manifest (plugin.json)",
+  "type": "object"
+}

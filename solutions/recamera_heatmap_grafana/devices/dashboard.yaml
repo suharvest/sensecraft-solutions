@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Grafana Dashboard
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:3000"
+  title: Grafana Heatmap Dashboard
+  description: View traffic trends and heatmap charts (login admin / admin)
+  title_i18n:
+    zh: Grafana 热力图面板
+  description_i18n:
+    zh: 查看人流趋势与热力图（登录 admin / admin）
+name_i18n:
+  zh: 打开 Grafana 面板

@@ -1,0 +1,25 @@
+version: "1.0"
+id: face_enroll
+name: Face Database Management
+type: serial_camera
+
+serial_camera:
+  camera_port:
+    port_from_device: face_himax
+    baudrate: 921600
+    protocol: sscma_json
+  display:
+    aspect_ratio: "4:3"
+    show_stats: true
+    show_landmarks: true
+  panels:
+    - type: face_database
+      database_port:
+        port_from_device: face_esp32
+        baudrate: 115200
+        protocol: jsonlines
+      enrollment_duration: 5.0
+      min_samples: 3
+      min_confidence: 0.5
+name_i18n:
+  zh: 人脸数据库管理

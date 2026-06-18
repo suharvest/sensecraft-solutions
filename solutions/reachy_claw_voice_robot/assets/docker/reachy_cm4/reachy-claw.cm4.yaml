@@ -1,0 +1,97 @@
+# Reachy Claw — CM4 deployment config (client-loop / slv; speech + LLM remote).
+#
+# reachy-claw runs locally on the CM4; the SLV speech engine (:8621) and the
+# edge-llm (:11435) run on the REMOTE voice-assistant host (${VOICE_ASSISTANT_HOST}).
+# Same reachy-claw:slv-v6 image as the Jetson preset — only the endpoints differ.
+
+# Conversation backend selection (the plugin, NOT the LLM).
+# backend: slv → reachy_claw.plugins.conversation_plugin_slv (client-loop): the
+# CLIENT drives turn detection (local VAD + pre-roll); the SLV engine does
+# ASR+TTS pass-through.
+conversation:
+  backend: slv          # → conversation_plugin_slv
+  mode: conversation    # listen + respond ("monologue" for idle self-talk)
+  monologue_interval: 30.0
+
+llm:
+  backend: edge_llm_v2v
+  # Remote TensorRT-Edge-LLM (OpenAI-compatible) on the voice-assistant host.
+  # From LLM_ENDPOINT env (compose default = http://<VOICE_ASSISTANT_HOST>:11435 edge-llm; user can override).
+  edge_llm_url: ${LLM_ENDPOINT}
+  edge_llm_model: ""   # empty = auto-discover
+  system_prompt: |
+    You are Reachy, a cute robot at an exhibition. Always reply in English. No emoji.
+    Reply in ONE short sentence (max 12 words). Be warm but brief — no filler, no lists, no follow-up questions unless asked.
+    Names in [Faces: ...] are people you see, not your name.
+    Never repeat or mention the [Faces: ...] tag in your reply.
+    End with exactly one tag: [happy] [sad] [thinking] [surprised] [curious]
+    Example: "Welcome! Glad you stopped by. [happy]"
+    /no_think
+  monologue_prompt: |
+    Your name is Reachy. You are a cheerful cute robot at an exhibition, mumbling happily to yourself. Always reply in English.
+    Reply with ONE short sentence (max 15 words), then exactly ONE emotion tag. Nothing else.
+    You love people and get excited when someone shows up. Stay upbeat and warm — find the bright side of everything.
+    Names in [Faces: ...] are people you see. Use their name or "you" when talking about someone.
+    Never repeat or mention the [Faces: ...] tag in your reply.
+    You MUST end with one of: [happy] [sad] [thinking] [surprised] [curious] [excited] [laugh]
+    /no_think
+
+# V2V (ASR + TTS pass-through) served by the REMOTE Jetson speech container at
+# ${VOICE_ASSISTANT_HOST}:8621. Client drives turn detection, so server VAD is
+# OFF (vad: none) and the plugin runs a local VAD with a pre-roll ring.
+v2v:
+  url: ws://${VOICE_ASSISTANT_HOST}:8621/v2v/stream
+  vad: none
+  client_vad_preroll_ms: 300 # audio retained ahead of speech onset
+  client_vad_silence_ms: 400 # trailing silence → client asr_eos
+  multi_utterance: true
+
+# Legacy fallback blocks (ignored at runtime when conversation.backend: slv).
+stt:
+  backend: paraformer-streaming
+  speech_service_url: http://${VOICE_ASSISTANT_HOST}:8621
+
+tts:
+  backend: matcha
+  speech_service_url: http://${VOICE_ASSISTANT_HOST}:8621
+  matcha:
+    speaker_id: 0
+    speed: 0.85
+
+vad:
+  backend: silero
+
+barge_in:
+  enabled: true
+  confirm_frames: 3
+  energy_threshold: 0.05
+  silero_threshold: 0.65
+  cooldown_ms: 300
+
+audio:
+  device: "Reachy Mini Audio"
+  volume: 3.5
+
+reachy:
+  serialport: auto
+  spawn_daemon: false
+  connection_mode: localhost_only
+  daemon_port: 38001
+  # no_media: the slv-v6 image lacks the unixfd GStreamer plugin, so the SDK's
+  # LOCAL backend fails when constructing unixfdsrc. NO_MEDIA skips it; motors
+  # work via the reachy-daemon FastAPI on :38001, and V2V TTS audio plays via a
+  # sounddevice duplex OutputStream (see conversation_plugin_slv._play_v2v_pcm).
+  media_backend: no_media
+
+vision:
+  tracker: remote
+  service_url: tcp://127.0.0.1:8631
+  emotion_threshold: 0.6
+  emotion_cooldown: 3.0
+
+dashboard:
+  enabled: true
+  port: 8640
+
+plugins:
+  face_tracker: true

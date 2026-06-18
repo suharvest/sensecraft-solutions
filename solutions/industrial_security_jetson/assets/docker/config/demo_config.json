@@ -1,0 +1,52 @@
+{
+  "camera": {
+    "name": "poe-camera-1",
+    "source": "__RTSP_URL__",
+    "use_gstreamer": true,
+    "notes": "use_gstreamer enables Jetson NVDEC hardware decode, set false to fall back to CPU"
+  },
+  "detector": {
+    "backend": "yolov5_trt",
+    "onnx_file": "yolo26n.onnx",
+    "conf_threshold": 0.35,
+    "iou_threshold": 0.45,
+    "fp16": true,
+    "infer_interval": 1,
+    "notes": "infer_interval=1 with TRT GPU is fast enough for every-frame inference"
+  },
+  "tracker": {
+    "max_distance": 90,
+    "max_age_seconds": 1.5
+  },
+  "rules": {
+    "event_cooldown_seconds": 8,
+    "zones": [
+      {
+        "name": "restricted_area",
+        "dwell_seconds": 10,
+        "color_bgr": [0, 255, 255],
+        "points": [[0.60, 0.22], [0.94, 0.22], [0.94, 0.88], [0.60, 0.88]]
+      }
+    ],
+    "lines": [
+      {
+        "name": "gate_line",
+        "color_bgr": [255, 0, 255],
+        "start": [0.20, 0.55],
+        "end": [0.78, 0.55]
+      }
+    ]
+  },
+  "output": {
+    "root": "/app/output",
+    "save_snapshots": true
+  },
+  "display": {
+    "show_window": false,
+    "window_name": "Industrial Security Demo",
+    "resize_width": 1280
+  },
+  "web": {
+    "port": 8080
+  }
+}

@@ -1,0 +1,71 @@
+version: "1.0"
+id: edge_llm_deploy
+name: Edge LLM Chat Service
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson injects the shared iptables raw-table workaround
+# and /etc/nv_tegra_release hardware detection probe from
+# devices/profiles/jetson.yaml.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/edge-llm/docker-compose.yml
+  options:
+    project_name: reachy-jetson-edge-llm
+  services:
+    - name: edge-llm
+      port: 11435
+      health_check_endpoint: /v1/models
+      health_check_timeout: 900
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: disk_space
+    min_gb: 15
+    description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3-4B weights
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: Edge LLM 对话服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/reachy-jetson-edge-llm
+  compose_dir: assets/docker/edge-llm
+  detection:
+    method: network_scan
+    manual_entry: true
+  pre_checks:
+    - type: disk_space
+      min_gb: 15
+      description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3-4B weights
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码

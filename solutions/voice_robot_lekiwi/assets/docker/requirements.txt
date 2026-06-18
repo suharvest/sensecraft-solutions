@@ -1,0 +1,5 @@
+groq
+openwakeword
+pyaudio
+numpy<2
+pyserial

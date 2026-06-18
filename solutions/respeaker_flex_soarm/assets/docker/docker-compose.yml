@@ -1,0 +1,229 @@
+# Fully-local voice + LLM stack for the SO-ARM voice control solution.
+#
+# Three containers on a shared bridge network:
+#   * seeed-voice : OpenVoiceStream — ASR (Paraformer/SenseVoice) + TTS
+#                   (Matcha) — port 8621 — Jetson zh_en profile (default).
+#   * edge-llm    : edge-llm-chat-service — OpenAI-compat chat completions
+#                   running Qwen3-4B-AWQ on TensorRT-Edge-LLM — port 8000.
+#   * voice-arm   : This solution's own container. Captures audio, runs the
+#                   wake word + dialogue loop, talks to seeed-voice and
+#                   edge-llm by service name, drives the SO-ARM serial port,
+#                   and serves the observation HTTP endpoint on port 8765.
+#
+# All three target the Jetson Orin NX 16GB (reComputer J4012). Memory budget:
+# seeed-voice ~3GB, edge-llm ~8GB (4B AWQ + KV), voice-arm ~1GB.
+
+services:
+  seeed-voice:
+    image: ${VOICE_SERVICE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:prod-unified-v8}
+    container_name: seeed-voice
+    runtime: nvidia
+    ipc: host
+    restart: unless-stopped
+    environment:
+      # OVS_PROFILE is the SINGLE source of truth for which ASR/TTS backends
+      # run — the image's create_asr_backend()/create_tts_backend() read
+      # current_profile()["asr_backend"|"tts_backend"], NOT these env vars.
+      #
+      # LANGUAGE_MODE does NOT pick the backend; it only scopes which models
+      # model_downloader fetches on first boot. It therefore MUST agree with
+      # the language mode the chosen profile expects, or the profile's engine
+      # artifacts never download and the backend silently degrades. The
+      # jetson-qwen3asr-matcha-nx profile declares LANGUAGE_MODE=multilanguage;
+      # setting zh_en here starves the Qwen3-ASR engine download → falls back
+      # to Paraformer (the 2026-05-28 regression this value fixes). Keep these
+      # two in lock-step. Proven config on recomputer-desktop (v1.14-hotswap):
+      # multilanguage + jetson-qwen3asr-matcha-nx → trt_edgellm (Qwen3-ASR) +
+      # matcha_trt.
+      #
+      # Valid profiles in the image:
+      #   jetson-zh-en              (Paraformer ASR + Matcha, zh+en; LANGUAGE_MODE=zh_en)
+      #   jetson-paraformer-kokoro  (Paraformer ASR + Kokoro TTS, en-leaning)
+      #   jetson-multilang-highperf (multilingual, larger models)
+      #   jetson-qwen3asr-matcha    (Qwen3-ASR + Matcha — Nano targets)
+      #   jetson-qwen3asr-matcha-nx (Qwen3-ASR + Matcha — Orin NX targets) ← default
+      # Qwen3-ASR is much more accurate on Chinese than Paraformer (Paraformer
+      # prefixes garbage chars on streaming, causing the LLM to refuse). The
+      # Qwen3 engine artifacts auto-download from HF on first boot (~GB);
+      # HF_ENDPOINT mirror is injected by mirror_resolver on CN networks.
+      - LANGUAGE_MODE=${LANGUAGE_MODE:-multilanguage}
+      - OVS_PROFILE=${OVS_PROFILE:-jetson-qwen3asr-matcha-nx}
+      - TTS_PROVIDER=${TTS_PROVIDER:-cuda}
+      - TTS_DEFAULT_SID=${TTS_DEFAULT_SID:-52}
+      - TTS_DEFAULT_SPEED=${TTS_DEFAULT_SPEED:-1.0}
+      - PARAFORMER_PREROLL_MS=${PARAFORMER_PREROLL_MS:-100}
+      - TTS_NUM_THREADS=4
+      - STREAMING_ASR_PROVIDER=cuda
+      - STREAMING_ASR_NUM_THREADS=4
+      - CUDA_MODULE_LOADING=LAZY
+      - LD_LIBRARY_PATH=/usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+      - PYTHONPATH=/opt/speech:/usr/lib/python3.10/dist-packages
+      - ORT_CUDA_ARENA_EXTEND_STRATEGY=kSameAsRequested
+    volumes:
+      - speech-models:/opt/models
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    ports:
+      - "8621:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+    deploy:
+      resources:
+        limits:
+          memory: ${OVS_MEMORY_LIMIT:-6G}
+
+  edge-llm:
+    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.3.0}
+    container_name: edge-llm
+    runtime: nvidia
+    privileged: true
+    restart: unless-stopped
+    shm_size: "512m"
+    environment:
+      EDGELLM_ENGINE_DIR: /workspace/Qwen3-4B-AWQ/engines-3072
+      EDGELLM_EXPECTED_TENSORRT: ${EDGELLM_EXPECTED_TENSORRT:-10.3.0.30}
+      EDGELLM_EXPECTED_ENGINE_COMMIT: ${EDGELLM_EXPECTED_ENGINE_COMMIT:-7d6579c8293c5cc62986238aa200ea9c7b57d50a}
+      EDGELLM_ENGINE_REPO: ${EDGELLM_ENGINE_REPO:-harvestsu/Qwen3-4B-AWQ-TensorRT-EdgeLLM-engine}
+      EDGELLM_ENGINE_REVISION: ${EDGELLM_ENGINE_REVISION:-main}
+      # HF_ENDPOINT is injected at deploy time by mirror_resolver when the
+      # device is on a CN network (→ https://hf-mirror.com). Verified working
+      # with huggingface_hub for the edge-llm engine artifacts (incl. the
+      # 778 MB embedding.safetensors) on orin-nx, 2026-05-27. Override here
+      # only if a specific service must talk to the official endpoint.
+      EDGELLM_MODEL_NAME: Qwen/Qwen3-4B-AWQ
+      PORT: "8000"
+      WARMUP_TIMEOUT: ${WARMUP_TIMEOUT:-180}
+      WARMUP_INFERENCE_TIMEOUT: ${WARMUP_INFERENCE_TIMEOUT:-300}
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ${EDGELLM_WORKSPACE:-/opt/seeed/edgellm-workspace}:/workspace
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/local/cuda/targets/aarch64-linux/lib:/host-cudla:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+    ports:
+      - "8000:8000"
+    # Healthcheck is shipped with the image (start_period 900s, accommodates
+    # first-run engine download + warmup inference).
+
+  voice-arm:
+    # Pull-only deploy: this image carries the full agent code but NO models —
+    # openWakeWord onnx are fetched at first boot from HF via HF_ENDPOINT
+    # (mirror_resolver injects hf-mirror.com on CN; entrypoint defaults to it
+    # otherwise). Override the source repo with OWW_HF_REPO if needed.
+    image: ${VOICE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/voice-arm:v6.5-autodetect-slim}
+    container_name: voice-arm
+    restart: unless-stopped
+    depends_on:
+      seeed-voice:
+        condition: service_healthy
+      edge-llm:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - VOICE_SERVICE_URL=http://seeed-voice:8000
+      - LLM_SERVICE_URL=http://edge-llm:8000
+      - CONFIG_DIR=/opt/seeed/voice_arm/config
+      - ARM_PORT=${ARM_PORT:-auto}
+      - ARM_ID=${ARM_ID:-voice_arm}
+      - ARM_MOVE_DELAY=${ARM_MOVE_DELAY:-1.5}
+      - ARM_GESTURE_DELAY=${ARM_GESTURE_DELAY:-0.4}
+      # Set to "true" to wipe LLM history whenever a new action is saved
+      # via the UI. Default false = multi-turn conversation continues.
+      - ARM_CLEAR_HISTORY_ON_TOOL_CHANGE=${ARM_CLEAR_HISTORY_ON_TOOL_CHANGE:-false}
+      # Single-turn mode: clear LLM history after every turn completes.
+      # Default true = workaround for Qwen3-4B-AWQ multi-turn tool-switching
+      # degradation (see KNOWN_ISSUES.md ISSUE-001). Set false to enable
+      # multi-turn conversation context at the cost of degraded tool calling
+      # after ~3 different actions.
+      - ARM_CLEAR_HISTORY_ON_TURN_END=${ARM_CLEAR_HISTORY_ON_TURN_END:-true}
+      - SERIAL_BAUD=${SERIAL_BAUD:-1000000}
+      - MIC_INDEX=${MIC_INDEX:-auto}
+      # 'auto' (default) → VoiceArmApp matches the connected reSpeaker against
+      # config/audio_profiles.yaml (by native channel count + name) and opens
+      # the right channel count. This survives swapping firmware variants
+      # (6ch Flex C16K6Ch ↔ 2ch 4-Mic Array) that would otherwise crash
+      # PortAudio with "Invalid number of channels [-9998]". Pin a concrete
+      # integer to force a count and bypass auto-detection.
+      - MIC_CHANNELS=${MIC_CHANNELS:-auto}
+      - MIC_CHANNEL=${MIC_CHANNEL:-0}
+      # Which channel feeds mono ASR. 'auto' lets the matched profile decide
+      # (ch0 for both known XVF3800 variants); pin 0-5 to override.
+      - MIC_CHANNEL_SELECT=${MIC_CHANNEL_SELECT:-auto}
+      # 'auto' → entrypoint resolves the reSpeaker output by NAME via
+      # audio_devices.resolve_output_index (mirrors the mic). A hardcoded
+      # PortAudio index is unsafe: indices shuffle across restarts on Jetson
+      # and a stale value (was 24) lands on the 0-output APE node → TTS plays
+      # silently into the void. Override with a concrete int only to pin it.
+      - SPEAKER_DEVICE=${SPEAKER_DEVICE:-auto}
+      - WAKEWORD_MODEL=${WAKEWORD_MODEL:-hey jarvis}
+      - WAKEWORD_CHANNEL=${WAKEWORD_CHANNEL:-all}
+      - WAKEWORD_THRESHOLD=${WAKEWORD_THRESHOLD:-0.5}
+      - WAKEWORD_VAD_THRESHOLD=${WAKEWORD_VAD_THRESHOLD:-0.0}
+      - WAKEWORD_COOLDOWN=${WAKEWORD_COOLDOWN:-2}
+      - WAKEWORD_DEBUG_INTERVAL=${WAKEWORD_DEBUG_INTERVAL:-0}
+      - RECORDING_SECONDS=${RECORDING_SECONDS:-3}
+      - LLM_MODEL=${LLM_MODEL:-Qwen/Qwen3-4B-AWQ}
+      - STT_LANGUAGE=${STT_LANGUAGE:-auto}
+      - TTS_SID=${TTS_SID:-52}
+      - TTS_SPEED=${TTS_SPEED:-1.0}
+      - TTS_OUTPUT_DEVICE=${TTS_OUTPUT_DEVICE:-auto}
+      - TTS_PLAY_CMD=${TTS_PLAY_CMD:-auto}
+      # v2: ovs-agent service URLs (entrypoint splits these into host+port
+      # for the agent.yaml template).
+      - VOICE_SERVICE_HOST=seeed-voice
+      - VOICE_SERVICE_PORT=8000
+      - LLM_SERVICE_HOST=edge-llm
+      - LLM_SERVICE_PORT=8000
+      # PulseAudio user-session socket (entrypoint probes this; if the
+      # host is headless the socket won't exist and we fall back to aplay).
+      - PULSE_SERVER=${PULSE_SERVER:-unix:/run/user/1000/pulse/native}
+      # PulseAudio cookie path inside container — entrypoint will copy
+      # the host user's cookie here if available, so root-in-container
+      # can authenticate against the user-session daemon.
+      - PULSE_COOKIE=${PULSE_COOKIE:-/tmp/pulse-cookie}
+      - OBSERVATION_PORT=${OBSERVATION_PORT:-8765}
+    volumes:
+      # NOTE: do NOT mount host /etc/asound.conf — on Jetson it routes the
+      # ALSA "default" PCM to the Tegra APE soundcard with channels=2, which
+      # then leaks through PyAudio's auto-selection and causes
+      # "Invalid number of channels" when wakeword tries to open the
+      # reSpeaker (6-channel USB mic). Verified on seeed-orin-nx 2026-05-25.
+      # Container's default minimal ALSA config is fine for our use — we
+      # always open devices via plughw:CARD=...,DEV=... by index.
+      - /dev:/dev
+      - /opt/seeed/voice_arm/config:/opt/seeed/voice_arm/config
+      # Mount the user-runtime tree so PulseAudio's `/run/user/1000/pulse/native`
+      # socket is visible inside the container. The directory always exists
+      # (systemd-logind creates it); the socket is only present on hosts with
+      # an active PulseAudio session — entrypoint probes accordingly.
+      - /run/user:/run/user:ro
+      # Host user's PulseAudio cookie (read-only). If the host has no
+      # PulseAudio session this path doesn't exist; Docker tolerates the
+      # missing source path only when we use a named-volume or bind that
+      # may be created — so we mount the parent directory and let
+      # entrypoint pick the cookie out of it.
+      - ${PULSE_HOST_HOME:-/home/seeed}/.config/pulse:/host-pulse-config:ro
+    devices:
+      - /dev/snd:/dev/snd
+    device_cgroup_rules:
+      # 166 = USB CDC ACM (SO-ARM serial port can renumber on replug)
+      - 'c 166:* rmw'
+      # 188 = ttyUSB if the SO-ARM presents as ttyUSB on some firmwares
+      - 'c 188:* rmw'
+    group_add:
+      - "20"   # dialout — serial port access
+      - "29"   # audio — sound card access
+    ports:
+      - "${OBSERVATION_PORT:-8765}:8765"
+
+volumes:
+  speech-models:
+    name: speech-models

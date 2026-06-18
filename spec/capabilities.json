@@ -1,0 +1,111 @@
+{
+  "contract_version": 1,
+  "deployers": {
+    "docker_deploy": {
+      "required": []
+    },
+    "docker_local": {
+      "required": [
+        "docker",
+        "docker.compose_file"
+      ]
+    },
+    "docker_remote": {
+      "required": [
+        "docker_remote",
+        "docker_remote.compose_file"
+      ]
+    },
+    "esp32_usb": {
+      "required": [
+        "firmware",
+        "firmware.flash_config"
+      ]
+    },
+    "ha_integration": {
+      "required": [
+        "ha_integration",
+        "ha_integration.domain",
+        "ha_integration.components_dir"
+      ]
+    },
+    "himax_usb": {
+      "required": [
+        "firmware",
+        "firmware.flash_config",
+        "firmware.source"
+      ]
+    },
+    "http_debug": {
+      "required": []
+    },
+    "image_predict": {
+      "required": []
+    },
+    "image_text_chat": {
+      "required": []
+    },
+    "image_text_to_image": {
+      "required": []
+    },
+    "manual": {
+      "required": [
+        "steps[]"
+      ]
+    },
+    "preview": {
+      "required": []
+    },
+    "recamera_cpp": {
+      "required": [
+        "binary"
+      ]
+    },
+    "recamera_nodered": {
+      "required": [
+        "nodered",
+        "nodered.flow_file"
+      ]
+    },
+    "robot_inspect": {
+      "required": []
+    },
+    "script": {
+      "required": [
+        "script"
+      ]
+    },
+    "serial_camera": {
+      "required": []
+    },
+    "serial_wizard": {
+      "required": [
+        "serial_wizard"
+      ]
+    },
+    "ssh_deb": {
+      "required": [
+        "ssh",
+        "package"
+      ]
+    },
+    "text_chat": {
+      "required": []
+    },
+    "verify": {
+      "required": []
+    },
+    "video_stream": {
+      "required": []
+    },
+    "voice_chat": {
+      "required": []
+    },
+    "voice_demo": {
+      "required": []
+    },
+    "web_dashboard": {
+      "required": []
+    }
+  }
+}

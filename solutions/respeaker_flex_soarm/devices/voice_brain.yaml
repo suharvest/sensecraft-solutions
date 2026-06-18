@@ -1,0 +1,131 @@
+version: "1.0"
+id: voice_brain
+name: Voice Arm Container
+type: docker_deploy
+
+# Single source-of-truth device YAML. SolutionManager derives docker_local
+# and docker_remote views via derive_docker_views(). The container runs on
+# any Linux host with /dev/snd + /dev/ttyACM*; the Jetson Orin NX is the
+# recommended target (the compose file ships TWO companion services —
+# seeed-voice and edge-llm — that require NVIDIA runtime + JetPack libs).
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/voice-arm
+  environment:
+    ARM_PORT: "auto"
+    ARM_ID: "{{arm_id}}"
+    ARM_MOVE_DELAY: "{{arm_move_delay}}"
+    ARM_GESTURE_DELAY: "0.4"
+    SERIAL_BAUD: "1000000"
+    MIC_INDEX: "auto"
+    MIC_CHANNELS: "6"
+    MIC_CHANNEL_SELECT: "0"
+    WAKEWORD_CHANNEL: "all"
+    WAKEWORD_THRESHOLD: "{{wakeword_threshold}}"
+    WAKEWORD_COOLDOWN: "{{wakeword_cooldown}}"
+    WAKEWORD_VAD_THRESHOLD: "0.0"
+    WAKEWORD_MODEL: "hey jarvis"
+    TTS_OUTPUT_DEVICE: "auto"
+    OBSERVATION_PORT: "8765"
+    CONFIG_DIR: "/opt/seeed/voice_arm/config"
+  options:
+    project_name: voice-arm
+    remove_orphans: true
+  services:
+    - name: voice-arm
+      port: 8765
+      health_check_endpoint: "/observation/schema"
+      required: true
+
+ssh:
+  port: 22
+  default_user: seeed
+
+user_inputs:
+  - id: wakeword_threshold
+    name: Wake Word Threshold
+    type: text
+    required: false
+    reconfigurable: true
+    default: "0.5"
+    description: Detection sensitivity (0.01-0.95). Lower = more sensitive, higher = stricter.
+    description_i18n:
+      zh: 唤醒灵敏度（0.01-0.95），数值越小越灵敏
+    name_i18n:
+      zh: 唤醒灵敏度
+  - id: wakeword_cooldown
+    name: Wake Word Cooldown (s)
+    type: text
+    required: false
+    reconfigurable: true
+    default: "2"
+    description: Seconds to ignore further wake events after a successful trigger.
+    description_i18n:
+      zh: 触发后忽略后续唤醒事件的秒数
+    name_i18n:
+      zh: 唤醒冷却（秒）
+  - id: arm_id
+    name: Arm ID
+    type: text
+    required: false
+    reconfigurable: true
+    default: my_awesome_follower_arm
+    description: Logical name LeRobot uses to locate this arm's calibration. Must match the name used when you calibrated the arm.
+    description_i18n:
+      zh: LeRobot 用来定位这条机械臂标定文件的逻辑名，需与标定时使用的名字一致
+    name_i18n:
+      zh: 机械臂 ID
+  - id: arm_move_delay
+    name: Pose Settle Delay (s)
+    type: text
+    required: false
+    reconfigurable: true
+    default: "1.5"
+    description: Seconds to wait after a single-pose send_action before continuing.
+    description_i18n:
+      zh: 单帧姿态发送后等待稳态的秒数
+    name_i18n:
+      zh: 姿态稳定延时（秒）
+  # NOTE: actions.yaml and prompt.yaml are NOT exposed as Step 1 inputs.
+  # The container seeds sensible defaults from assets/default_config/ on
+  # first boot (see entrypoint.sh). Users who want to add/edit gestures
+  # or tweak the system prompt do so after deploy via:
+  #   设备管理 → Voice Brain → ⚙ 配置 (uses the configure modal which loads
+  #   the live file from the container with CodeMirror + .bak rollback).
+  # The recommended path for quick action additions is the Step 2 verify
+  # panel's "动作录制" recorder; advanced edits go through the configure
+  # modal. Hiding these from Step 1 keeps the deploy form compact —
+  # CodeMirror in a narrow input row was unusable.
+
+name_i18n:
+  zh: 语音机械臂容器
+
+remote_overrides:
+  # Explicit empty `compose_dir` opts OUT of single-file → directory
+  # upload. derive_docker_views() auto-derives compose_dir from the
+  # compose_file's parent dir (assets/docker) UNLESS the key is present
+  # in remote_overrides — so we must set it explicitly (empty), not just
+  # omit it, to suppress the whole-directory SCP.
+  #
+  # Why opt out: voice-arm / seeed-voice / edge-llm images are
+  # self-contained (business code + default_config COPY'd in at build
+  # time). The compose file's volumes are all absolute system paths
+  # (/dev, /usr/local/cuda, /opt/seeed/...) or named volumes
+  # (speech-models, edgellm-workspace) — nothing under assets/docker/ is
+  # needed at runtime. Uploading the whole tree (tens of MB incl. the
+  # ovs_agent_src/ clone) was pure latency. Empty compose_dir →
+  # compose_file mode → uploads just docker-compose.yml.
+  compose_dir: ""
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running

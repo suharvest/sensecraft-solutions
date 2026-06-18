@@ -1,0 +1,89 @@
+version: "1.0"
+id: preview_ocr
+name: OCR Preview
+type: video_stream
+
+# 视频流配置
+video:
+  type: rtsp_proxy
+  rtsp_url_template: "{{rtsp_url}}"
+
+# MQTT 配置
+mqtt:
+  broker_template: "{{mqtt_broker}}"
+  port_template: "{{mqtt_port}}"
+  topic_template: "{{mqtt_topic}}"
+  username_template: "{{mqtt_username}}"
+  password_template: "{{mqtt_password}}"
+
+# 叠加层配置
+overlay:
+  renderer: custom
+  script_file: preview/draw_ocr.js
+  dependencies: []
+
+# 显示配置
+display:
+  aspect_ratio: "16:9"
+  auto_start: false
+  show_stats: true
+
+# 用户输入
+user_inputs:
+  - id: rtsp_url
+    name: RTSP URL
+    type: text
+    required: true
+    default: "rtsp://192.168.42.1:8554/live0"
+    placeholder: "rtsp://192.168.42.1:8554/live0"
+    description: Video stream address
+    name_i18n:
+      zh: RTSP 地址
+    description_i18n:
+      zh: 视频流地址
+  - id: mqtt_broker
+    name: MQTT Broker
+    type: text
+    required: true
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: MQTT broker address
+    name_i18n:
+      zh: MQTT 服务器
+    description_i18n:
+      zh: MQTT 服务器地址
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    required: false
+    default: "1883"
+    placeholder: "1883"
+
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_topic
+    name: MQTT Topic
+    type: text
+    required: false
+    default: "recamera/ppocr/texts"
+    placeholder: "recamera/ppocr/texts"
+
+    name_i18n:
+      zh: MQTT 主题
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    placeholder: "(optional)"
+
+    name_i18n:
+      zh: MQTT 用户名
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    placeholder: "(optional)"
+    name_i18n:
+      zh: MQTT 密码
+name_i18n:
+  zh: OCR 文字识别预览

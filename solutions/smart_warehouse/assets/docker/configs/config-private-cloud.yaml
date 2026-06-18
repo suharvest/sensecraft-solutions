@@ -1,0 +1,61 @@
+# 私有云方案配置模板
+# VAD/ASR 本地运行，LLM/TTS 使用云端 API
+
+server:
+  ip: 0.0.0.0
+  port: 8000
+  http_port: 8003
+  websocket: ws://{{R1100_IP}}:18000/xiaozhi/v1/
+
+selected_module:
+  VAD: SileroVAD
+  ASR: SherpaASR
+  LLM: CloudLLM        # 用户填写的云端 LLM
+  TTS: CloudTTS        # 用户填写的云端 TTS
+  Memory: nomem
+  Intent: function_call
+
+VAD:
+  SileroVAD:
+    type: silero
+    threshold: 0.5
+    model_dir: models/snakers4_silero-vad
+
+ASR:
+  SherpaASR:
+    type: sherpa_onnx_local
+    model_dir: models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17
+    output_dir: tmp/
+    model_type: sense_voice
+
+LLM:
+  CloudLLM:
+    type: openai
+    base_url: "{{LLM_BASE_URL}}"      # 用户填写：如 https://api.deepseek.com/v1
+    model_name: "{{LLM_MODEL_NAME}}"  # 用户填写：如 deepseek-chat
+    api_key: "{{LLM_API_KEY}}"        # 用户填写
+    max_tokens: 512
+    temperature: 0.7
+
+TTS:
+  CloudTTS:
+    type: "{{TTS_TYPE}}"              # 用户选择：openai / azure / volcengine / aliyun 等
+    base_url: "{{TTS_BASE_URL}}"      # 用户填写：TTS API 地址
+    api_key: "{{TTS_API_KEY}}"        # 用户填写：TTS API 密钥
+    voice: "{{TTS_VOICE}}"            # 用户填写：语音 ID
+    output_dir: tmp/
+
+Intent:
+  function_call:
+    type: function_call
+    functions:
+      - get_weather
+      - get_lunar
+
+mcp_endpoint: ws://mcp-endpoint:8004/mcp_endpoint/mcp/?token={{MCP_TOKEN}}
+delete_audio: true
+close_connection_no_voice_time: 120
+
+prompt: |
+  你是小智，一个智能仓库管理语音助手。你可以帮助用户查询库存、记录入库出库等操作。
+  请用简洁的语言回答问题。

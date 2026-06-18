@@ -1,0 +1,99 @@
+version: "1.0"
+id: vlm_rk3576_deploy
+name: reComputer RK3576
+type: docker_deploy
+
+# Single source-of-truth device YAML. Derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=rk3576 pulls in the shared RK3576 profile (iptables
+# nf_tables → legacy fix + device-tree probe). The NPU + memory + disk
+# check stays in remote_overrides because the 8GB-memory warning and
+# 5GB-disk threshold are specific to the Qwen2.5-VL image.
+device_class: rk3576
+
+docker:
+  compose_file: assets/docker/vlm-docker-compose.yml
+  remote_path: /home/{{username}}/ai-lab-vlm-rk3576
+  options:
+    project_name: ai_lab_vlm_rk3576
+    remove_orphans: true
+  services:
+    - name: qwen-vlm
+      required: true
+      health_check_endpoint: /v1/models
+      port: 8002
+
+ssh:
+  port: 22
+  default_user: cat
+  auth_methods:
+    - password
+  command_timeout: 600
+
+data_channels:
+  - type: http
+    name: Vision Chat API
+    method: POST
+    url: "http://{{host}}:8002/v1/chat/completions"
+    name_i18n:
+      zh: 视觉对话 API
+  - type: http
+    name: API Documentation
+    method: GET
+    url: "http://{{host}}:8002/docs"
+    name_i18n:
+      zh: API 文档
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for VLM Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8002
+
+name_i18n:
+  zh: reComputer RK3576
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  post_deployment:
+    open_browser: false
+  actions:
+    before:
+      - name: Check NPU and memory
+        run: |
+          set -e
+          if ! dmesg 2>/dev/null | grep -qi rknpu; then
+            echo "RKNPU kernel module not detected."
+            exit 1
+          fi
+          echo "RKNPU detected."
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is not installed."
+            exit 1
+          fi
+          echo "Docker available."
+
+          TOTAL_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+          TOTAL_MEM_GB=$((TOTAL_MEM_KB / 1024 / 1024))
+          if [ "$TOTAL_MEM_GB" -lt 7 ]; then
+            echo "Warning: VLM requires 8GB+ memory. This device has ${TOTAL_MEM_GB}GB."
+            echo "The model may fail to load or run very slowly."
+          fi
+          echo "Memory: ${TOTAL_MEM_GB}GB total."
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 5 ] || {
+            echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+          echo "Disk space OK: ${FREE_GB}GB free."
+        name_i18n:
+          zh: 检查 NPU 和内存

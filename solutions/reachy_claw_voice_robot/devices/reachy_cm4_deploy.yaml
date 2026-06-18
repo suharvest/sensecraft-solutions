@@ -1,0 +1,278 @@
+version: "1.0"
+id: reachy_cm4_deploy
+name: Reachy Voice Robot Stack (CM4)
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# No device_class — Reachy CM4 is a Raspberry Pi Compute Module 4 carrier
+# board with no Hailo/Jetson-style identity probe. It's just a generic
+# arm64 Linux Docker host from the deployer's perspective.
+
+docker:
+  compose_file: assets/docker/reachy_cm4/docker-compose.yml
+  remote_path: /home/{{username}}/reachy-cm4
+  options:
+    project_name: reachy-cm4
+  environment:
+    DATA_DIR: "{{DATA_DIR}}"
+    VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
+    LLM_ENDPOINT: "{{LLM_ENDPOINT}}"
+  services:
+    - name: reachy-daemon
+      port: 38001
+      health_check_endpoint: /
+      required: true
+    - name: reachy-claw
+      port: 8640
+      health_check_endpoint: /
+      required: true
+    - name: vision-cm4
+      port: 8630
+      health_check_endpoint: /
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: At least 5GB for Reachy Docker images
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8640
+
+name_i18n:
+  zh: Reachy 语音机器人栈（CM4）
+
+user_inputs:
+  - id: DATA_DIR
+    name: Data Directory
+    type: text
+    default: "~/reachy-data"
+    reconfigurable: true
+    description: "Directory for persistent data (captures, face DB, etc.). Example: /mnt/usb/reachy-data"
+    name_i18n:
+      zh: 数据存储目录
+    description_i18n:
+      zh: "持久化数据目录（截图、人脸库等）。示例：/mnt/usb/reachy-data"
+  - id: VOICE_ASSISTANT_HOST
+    name: Voice Assistant Host (speech)
+    type: text
+    required: true
+    description: "IP address of the Jetson running the speech service on port 8621 (e.g. 192.168.1.100)"
+    name_i18n:
+      zh: 语音助手主机（语音）
+    description_i18n:
+      zh: "运行语音服务（端口 8621）的 Jetson IP（例如 192.168.1.100）"
+  - id: LLM_ENDPOINT
+    name: LLM Endpoint
+    type: text
+    required: false
+    reconfigurable: true
+    placeholder: "http://192.168.1.100:11435"
+    description: "Base URL of the LLM API. Leave empty to default to the edge-llm service (http://<VOICE_ASSISTANT_HOST>:11435). Override with your own Ollama / OpenAI-compatible endpoint if desired."
+    name_i18n:
+      zh: LLM 服务地址
+    description_i18n:
+      zh: "LLM API 的基础地址。留空则默认使用 voice assistant 主机上的 edge-llm 服务 (http://<VOICE_ASSISTANT_HOST>:11435)。可自定义为自己的 Ollama / OpenClaw 网关 / DashScope 或任何 OpenAI 兼容端点。"
+  - id: ENABLE_KIOSK
+    name: Enable Kiosk Mode
+    type: select
+    default: "false"
+    reconfigurable: false
+    description: "Auto-launch dashboard in fullscreen on device boot (for exhibition/kiosk use)"
+    options:
+      - value: "true"
+        label: "Yes — auto-launch fullscreen dashboard on boot"
+        label_i18n:
+          zh: "是 — 开机自动全屏打开仪表盘"
+      - value: "false"
+        label: "No — manual access only"
+        label_i18n:
+          zh: "否 — 仅手动访问"
+    name_i18n:
+      zh: 启用全屏展示模式
+    description_i18n:
+      zh: "设备开机后自动全屏打开仪表盘（适用于展览/展示场景）"
+
+remote_overrides:
+  compose_dir: assets/docker/reachy_cm4
+  actions:
+    before:
+      - name: Check Speech service (port 8621)
+        run: |
+          if curl -sf http://{{VOICE_ASSISTANT_HOST}}:8621/health >/dev/null 2>&1; then
+            echo "Speech service is running on {{VOICE_ASSISTANT_HOST}}"
+          else
+            echo "ERROR: Speech service ({{VOICE_ASSISTANT_HOST}}:8621) is not reachable."
+            echo "Please deploy the 'Jetson Local Voice Assistant' solution first,"
+            echo "then re-run this deployment."
+            exit 1
+          fi
+        name_i18n:
+          zh: 检查语音服务（端口 8621）
+      - name: Check LLM endpoint
+        run: |
+          # LLM_ENDPOINT is optional; if blank, fall back to the edge-llm
+          # service on the voice assistant host. User can override to
+          # OpenClaw gateway, DashScope, or any OpenAI-compatible URL.
+          URL="{{LLM_ENDPOINT}}"
+          if [ -z "$URL" ]; then
+            URL="http://{{VOICE_ASSISTANT_HOST}}:11435"
+            echo "LLM_ENDPOINT not set — defaulting to ${URL}"
+          fi
+          echo "Probing LLM endpoint: $URL"
+          for path in "" "/api/tags" "/v1/models"; do
+            code=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 5 "${URL}${path}" 2>/dev/null || echo "")
+            if [ -n "$code" ] && [ "$code" -lt 500 ] 2>/dev/null; then
+              echo "LLM endpoint reachable (HTTP ${code} from ${URL}${path})"
+              exit 0
+            fi
+          done
+          echo "WARN: LLM endpoint $URL did not respond. Deployment will continue,"
+          echo "but reachy-claw will fail to chat until the endpoint is reachable."
+        name_i18n:
+          zh: 检查 LLM 服务地址
+      - name: Check Docker installation
+        run: |
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "ERROR: Docker is not installed."
+            echo "Install Docker: curl -fsSL https://get.docker.com | sh"
+            echo "Then add your user to the docker group: sudo usermod -aG docker $USER"
+            exit 1
+          fi
+          docker --version
+          echo "Docker is installed"
+        name_i18n:
+          zh: 检查 Docker 安装
+      - name: Configure USB power (disable autosuspend on Reachy devices)
+        run: |
+          RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
+          RULE_CONTENT='# Reachy Mini — keep USB peripherals powered (no autosuspend).
+          SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+          SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+          if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
+            echo "Installing udev rule: $RULE_FILE"
+            echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --subsystem-match=usb
+          fi
+          for dev in /sys/bus/usb/devices/*/idVendor; do
+            [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
+            devdir=$(dirname "$dev")
+            echo on | sudo tee "$devdir/power/control" > /dev/null 2>&1 || true
+          done
+          echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
+        name_i18n:
+          zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
+      - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
+        run: |
+          # Why: reachy-mini-daemon scans `--serialport auto` ONCE at container start.
+          # If the robot is plugged in / power-cycled AFTER the daemon is already
+          # running, it never picks up the new /dev/ttyACM*, the SDK handshake times
+          # out, and reachy-claw is stuck "Waiting for connection". This rule restarts
+          # the daemon the moment the Reachy servo serial (1a86:55d3 -> ttyACM0)
+          # enumerates, so plug/replug "just works" without a manual docker restart.
+          RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
+          RULE_CONTENT='# Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
+          # Managed by sensecraft provisioning. Do not edit by hand.
+          ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"'
+          if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
+            echo "Installing udev rule: $RULE_FILE"
+            echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --subsystem-match=tty
+          fi
+          # If the serial is already present but the daemon started before it, restart now.
+          if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
+            echo "Reachy serial present — restarting reachy-daemon to (re)scan the port..."
+            docker restart reachy-daemon >/dev/null 2>&1 || true
+          fi
+          echo "reachy-daemon auto-reconnect rule installed (serial VID 1a86/55d3)"
+        name_i18n:
+          zh: 机器人插入时自动重连 reachy-daemon（udev）
+      - name: Create data directories
+        run: |
+          DATA_DIR="${DATA_DIR:-~/reachy-data}"
+          mkdir -p "$DATA_DIR/reachy-claw" "$DATA_DIR/vision"
+          echo "Data directories ready: $DATA_DIR"
+        name_i18n:
+          zh: 创建数据目录
+    after:
+      - name: Install kiosk auto-start
+        when:
+          field: ENABLE_KIOSK
+          value: "true"
+        run: |
+          cat > ~/reachy-kiosk.sh << 'KIOSK_SCRIPT'
+          #!/usr/bin/env bash
+          DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8640}"
+          MAX_WAIT=300
+
+          echo "Waiting for dashboard at $DASHBOARD_URL ..."
+          for ((i=1; i<=MAX_WAIT/5; i++)); do
+              curl -s --max-time 2 "$DASHBOARD_URL/" > /dev/null 2>&1 && break
+              sleep 5
+          done
+
+          echo "Launching kiosk: $DASHBOARD_URL"
+          BROWSER=""
+          for cmd in chromium-browser chromium google-chrome firefox; do
+              if command -v "$cmd" > /dev/null 2>&1; then
+                  BROWSER="$cmd"
+                  break
+              fi
+          done
+
+          if [ -z "$BROWSER" ]; then
+              echo "ERROR: No browser found"
+              exit 1
+          fi
+
+          case "$BROWSER" in
+              *chromium*|*chrome*)
+                  exec "$BROWSER" --kiosk --no-first-run --disable-translate --disable-infobars \
+                      --disable-session-crashed-bubble --noerrdialogs \
+                      --disable-features=TranslateUI \
+                      "$DASHBOARD_URL"
+                  ;;
+              *firefox*)
+                  exec "$BROWSER" --kiosk "$DASHBOARD_URL"
+                  ;;
+          esac
+          KIOSK_SCRIPT
+          chmod +x ~/reachy-kiosk.sh
+
+          mkdir -p ~/.config/autostart
+          cat > ~/.config/autostart/reachy-kiosk.desktop << DESKTOP_EOF
+          [Desktop Entry]
+          Type=Application
+          Name=Reachy Dashboard Kiosk
+          Comment=Auto-launch Reachy dashboard in fullscreen on login
+          Exec=$HOME/reachy-kiosk.sh
+          X-GNOME-Autostart-enabled=true
+          X-GNOME-Autostart-Delay=10
+          DESKTOP_EOF
+
+          GDM_CONF="/etc/gdm3/custom.conf"
+          if [ -f "$GDM_CONF" ]; then
+            if ! grep -q "AutomaticLoginEnable" "$GDM_CONF"; then
+              sudo sed -i '/\[daemon\]/a AutomaticLoginEnable=true\nAutomaticLogin={{username}}' "$GDM_CONF"
+              echo "GDM auto-login enabled for {{username}}"
+            else
+              echo "GDM auto-login already configured"
+            fi
+          fi
+
+          echo "Kiosk auto-start installed"
+        ignore_error: true
+        name_i18n:
+          zh: 安装全屏展示模式自启动
+  post_deployment:
+    open_browser: true
+    url: http://{{host}}:8640

@@ -1,0 +1,137 @@
+# Reachy Mini Voice Robot — Jetson deployment stack.
+#
+# Base services (always started):
+#   docker compose up -d
+#
+# With vision (face detection + emotion + tracking):
+#   docker compose --profile vision up -d
+#
+# Data directory:
+#   All persistent data (captures, face DB, etc.) is stored under DATA_DIR.
+#   Default: ~/reachy-data   Override: DATA_DIR=/path/to/dir docker compose up -d
+
+services:
+  # ── Always-on services ────────────────────────────────────────────
+
+  reachy-daemon:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-daemon:v1.0
+    container_name: reachy-daemon
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    command: >-
+      reachy-mini-daemon
+      --serialport ${SERIAL_PORT:-auto}
+      --localhost-only
+      --deactivate-audio
+      --fastapi-port 38001
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:38001/', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # NOTE: cm4/hailo assets ship the SAME reachy-claw:slv-v6 image (reachy-claw is
+  # an arch-independent python agent). Only their config differs — cm4/hailo point
+  # speech/LLM at the remote Jetson via ${VOICE_ASSISTANT_HOST}, running daemon +
+  # vision locally; this jetson stack runs everything on-box.
+  reachy-claw:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-claw:slv-v6
+    container_name: reachy-claw
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    volumes:
+      - ./reachy-claw.jetson.yaml:/app/reachy-claw.yaml:ro
+      - ${DATA_DIR:-~/reachy-data}/reachy-claw:/app/data
+      - /dev/shm:/dev/shm
+      - /run/udev:/run/udev:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATA_DIR=/app/data
+      - HOST_DATA_DIR=${DATA_DIR:-~/reachy-data}
+      # Vision backend — default points at local vision-trt (profile=vision);
+      # set to a remote address when using the cloud vision option.
+      - VISION_SERVICE_URL=${VISION_SERVICE_URL:-tcp://127.0.0.1:8631}
+      # Enable motors on a real robot (slv app gates motion on this flag).
+      - REACHY_MOTOR_ENABLED=true
+    depends_on:
+      reachy-daemon:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8640/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ── Vision TRT (opt-in via --profile vision) ───────────────────────
+
+  vision-trt:
+    profiles: ["vision"]
+    image: sensecraft-missionpack.seeed.cn/solution/vision-trt:v2.1
+    container_name: vision-trt
+    restart: unless-stopped
+    network_mode: host
+    runtime: nvidia
+    devices:
+      - ${CAMERA_DEVICE:-/dev/video0}:${CAMERA_DEVICE:-/dev/video0}
+    volumes:
+      # Persistent TRT engine cache (avoid rebuild on restart)
+      - vision-trt-engines:/app/engines
+      # Persistent data (captures, face DB) — bind mount to host for easy access
+      - ${DATA_DIR:-~/reachy-data}/vision:/app/data
+      # Host GPU runtime libs (JetPack 6.x) — unified mount pattern
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      # Host TensorRT Python + GStreamer plugins
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0:/host-gst-plugins:ro
+      - /run/udev:/run/udev:ro
+    privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    environment:
+      - LD_LIBRARY_PATH=/host-nvidia-libs:/host-libs:/host-cuda
+      - GST_PLUGIN_PATH=/host-gst-plugins
+      - GST_V4L2_USE_LIBV4L2=1
+      - CAMERA_DEVICE=${CAMERA_DEVICE:-/dev/video0}
+      - ZMQ_PUB_PORT=8631
+      - HTTP_PORT=8630
+      - STREAM_PORT=8632
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8630/health', timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 300s  # TRT engine build can take 5+ min on first boot
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  vision-trt-engines:

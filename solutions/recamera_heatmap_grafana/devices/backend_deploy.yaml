@@ -1,0 +1,112 @@
+version: "1.0"
+id: backend_deploy
+name: InfluxDB + Grafana Backend
+type: docker_deploy
+
+# Unified docker_deploy YAML. Backend derives docker_local + docker_remote
+# views via derive_docker_views().
+
+detection:
+  method: local
+  requirements:
+    - docker
+
+docker:
+  compose_file: ../docker/docker-compose.yml
+  environment:
+    DOCKER_INFLUXDB_INIT_USERNAME: admin
+    DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
+    DOCKER_INFLUXDB_INIT_ORG: seeed
+    DOCKER_INFLUXDB_INIT_BUCKET: recamera
+  options:
+    project_name: recamera-heatmap
+    remove_orphans: true
+  services:
+    - name: influxdb
+      port: 8086
+      health_check_endpoint: /health
+      required: true
+    - name: grafana
+      port: 3000
+      health_check_endpoint: /api/health
+      required: true
+
+pre_checks:
+  - type: docker
+    description: Docker must be installed and running
+  - type: port_available
+    ports:
+      - 8086
+      - 3000
+  - type: disk_space
+    min_gb: 2
+    description: At least 2GB for InfluxDB + Grafana + Heatmap images
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:3000
+
+# SSH defaults applied to derived remote view.
+ssh:
+  default_user: root
+
+remote_overrides:
+  compose_dir: docker
+  remote_path: /home/{{username}}/recamera-heatmap
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: docker_compose_version
+      min_version: "2.0"
+      description: Check Docker Compose version
+    - type: disk_space
+      min_gb: 2
+      description: At least 2GB for InfluxDB + Grafana + Heatmap images
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:3000"
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: IP address of the target device (reComputer, Raspberry Pi, etc.)
+      validation:
+        pattern: "^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$"
+        message: Please enter a valid IP address
+
+      name_i18n:
+        zh: 设备 IP 地址
+      description_i18n:
+        zh: 目标设备的 IP 地址（reComputer、树莓派等）
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: SSH login username
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: SSH 登录用户名
+    - id: password
+      name: SSH Password
+      type: password
+      default: "12345678"
+      required: true
+      description: SSH login password
+      name_i18n:
+        zh: SSH 密码
+      description_i18n:
+        zh: SSH 登录密码
+
+name_i18n:
+  zh: InfluxDB + Grafana 后端

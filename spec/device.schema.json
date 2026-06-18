@@ -1,0 +1,3468 @@
+{
+  "$defs": {
+    "ActionConfig": {
+      "description": "Single action configuration",
+      "properties": {
+        "copy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionCopy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Env",
+          "type": "object"
+        },
+        "fail_fast": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Wrap multi-line shell scripts with `set -e` so any failed command aborts the action. Defaults to True for multi-line `run:` blocks; set to False to opt out (legacy behavior). Single-line commands ignore this field.",
+          "title": "Fail Fast"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "ignore_error": {
+          "default": false,
+          "title": "Ignore Error",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run"
+        },
+        "script": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Script"
+        },
+        "sudo": {
+          "default": false,
+          "title": "Sudo",
+          "type": "boolean"
+        },
+        "timeout": {
+          "default": 300,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionWhen"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ActionConfig",
+      "type": "object"
+    },
+    "ActionCopy": {
+      "description": "File copy action",
+      "properties": {
+        "dest": {
+          "title": "Dest",
+          "type": "string"
+        },
+        "mode": {
+          "default": "0644",
+          "title": "Mode",
+          "type": "string"
+        },
+        "src": {
+          "title": "Src",
+          "type": "string"
+        }
+      },
+      "required": [
+        "src",
+        "dest"
+      ],
+      "title": "ActionCopy",
+      "type": "object"
+    },
+    "ActionWhen": {
+      "description": "Conditional execution for an action or model deployment",
+      "properties": {
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "not_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Not Value"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "title": "ActionWhen",
+      "type": "object"
+    },
+    "ActionsConfig": {
+      "description": "Unified before/after action hooks",
+      "properties": {
+        "after": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ActionConfig"
+          },
+          "title": "After",
+          "type": "array"
+        },
+        "after_upload": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ActionConfig"
+          },
+          "title": "After Upload",
+          "type": "array"
+        },
+        "before": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ActionConfig"
+          },
+          "title": "Before",
+          "type": "array"
+        },
+        "custom": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ActionConfig"
+          },
+          "title": "Custom",
+          "type": "array"
+        }
+      },
+      "title": "ActionsConfig",
+      "type": "object"
+    },
+    "BinaryConfig": {
+      "description": "Binary/Package deployment configuration for reCamera C++ applications\n\nSupports:\n- .deb package installation via opkg\n- Model file deployment to /userdata/local/models\n- SysVinit init script deployment\n- MQTT external access configuration\n- Conflicting service management",
+      "properties": {
+        "auto_start": {
+          "default": true,
+          "title": "Auto Start",
+          "type": "boolean"
+        },
+        "conflict_services": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConflictServiceConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "daemon_args": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daemon Args"
+        },
+        "deb_package": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DebPackageConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "init_script": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InitScriptConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModelFileConfig"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "service_priority": {
+          "default": 92,
+          "title": "Service Priority",
+          "type": "integer"
+        }
+      },
+      "title": "BinaryConfig",
+      "type": "object"
+    },
+    "ConfigFileMapping": {
+      "description": "Configuration file mapping",
+      "properties": {
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "mode": {
+          "default": "0644",
+          "title": "Mode",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "ConfigFileMapping",
+      "type": "object"
+    },
+    "ConfigFlowField": {
+      "description": "A field to submit in the HA config flow form",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "default": "str",
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "value_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value From"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ConfigFlowField",
+      "type": "object"
+    },
+    "ConflictServiceConfig": {
+      "description": "Conflicting services to stop",
+      "properties": {
+        "stop": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stop",
+          "type": "array"
+        }
+      },
+      "title": "ConflictServiceConfig",
+      "type": "object"
+    },
+    "DebPackageConfig": {
+      "description": "Debian package configuration",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "includes_init_script": {
+          "default": true,
+          "title": "Includes Init Script",
+          "type": "boolean"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "DebPackageConfig",
+      "type": "object"
+    },
+    "DeploymentStep": {
+      "description": "A deployment step",
+      "properties": {
+        "default": {
+          "default": true,
+          "title": "Default",
+          "type": "boolean"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "optional": {
+          "default": false,
+          "title": "Optional",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "DeploymentStep",
+      "type": "object"
+    },
+    "DetectionConfig": {
+      "description": "Device detection configuration",
+      "properties": {
+        "fallback_ports": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Fallback Ports",
+          "type": "array"
+        },
+        "manual_entry": {
+          "default": false,
+          "title": "Manual Entry",
+          "type": "boolean"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "requirements": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "usb_product_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usb Product Id"
+        },
+        "usb_vendor_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Usb Vendor Id"
+        }
+      },
+      "required": [
+        "method"
+      ],
+      "title": "DetectionConfig",
+      "type": "object"
+    },
+    "DeviceDetectionFailure": {
+      "description": "User-facing remediation message when a hardware detection probe fails.",
+      "properties": {
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "message_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Message I18N",
+          "type": "object"
+        }
+      },
+      "required": [
+        "message"
+      ],
+      "title": "DeviceDetectionFailure",
+      "type": "object"
+    },
+    "DeviceDetectionProbe": {
+      "description": "A single hardware-identity probe injected by a device-class profile.\n\nProbes opt-in: profile authors add them when the wrong hardware would\ncause real damage (e.g. Jetson profile's iptables-raw fix would prompt\nsudo and bounce Docker on a developer's Mac). When a probe is present,\nthe deployer runs it before any pre_checks or `actions.before`, and\naborts with `on_failure.message` if the command's exit code is non-zero.\n\nToday only ``type: shell`` is supported — extending to ``http`` /\n``file_exists`` etc. is a future patch; keep the schema discriminated\nso we can add union variants without breaking existing profiles.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "on_failure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceDetectionFailure"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "default": "shell",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "DeviceDetectionProbe",
+      "type": "object"
+    },
+    "DockerConfig": {
+      "description": "Docker deployment configuration",
+      "properties": {
+        "compose_file": {
+          "title": "Compose File",
+          "type": "string"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Environment",
+          "type": "object"
+        },
+        "options": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Options",
+          "type": "object"
+        },
+        "services": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DockerService"
+          },
+          "title": "Services",
+          "type": "array"
+        }
+      },
+      "required": [
+        "compose_file"
+      ],
+      "title": "DockerConfig",
+      "type": "object"
+    },
+    "DockerRemoteConfig": {
+      "description": "Remote Docker deployment configuration via SSH",
+      "properties": {
+        "compose_dir": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Compose Dir"
+        },
+        "compose_file": {
+          "title": "Compose File",
+          "type": "string"
+        },
+        "environment": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Environment",
+          "type": "object"
+        },
+        "offline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OfflineDockerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "options": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Options",
+          "type": "object"
+        },
+        "remote_path": {
+          "default": "/opt/provisioning",
+          "title": "Remote Path",
+          "type": "string"
+        },
+        "services": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DockerService"
+          },
+          "title": "Services",
+          "type": "array"
+        }
+      },
+      "required": [
+        "compose_file"
+      ],
+      "title": "DockerRemoteConfig",
+      "type": "object"
+    },
+    "DockerService": {
+      "description": "Docker service definition",
+      "properties": {
+        "health_check_endpoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Health Check Endpoint"
+        },
+        "health_check_timeout": {
+          "default": 60,
+          "title": "Health Check Timeout",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "DockerService",
+      "type": "object"
+    },
+    "FileUploadConfig": {
+      "description": "File to download locally and upload to device via SFTP.\n\nUse this when the target device may not have internet access.\nThe provisioning station downloads the file first, then uploads via SSH.",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "remote_path": {
+          "title": "Remote Path",
+          "type": "string"
+        },
+        "sudo": {
+          "default": false,
+          "title": "Sudo",
+          "type": "boolean"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "remote_path"
+      ],
+      "title": "FileUploadConfig",
+      "type": "object"
+    },
+    "FirmwareConfig": {
+      "description": "ESP32 firmware configuration",
+      "properties": {
+        "flash_config": {
+          "$ref": "#/$defs/FlashConfig"
+        },
+        "source": {
+          "$ref": "#/$defs/FirmwareSource"
+        },
+        "variants": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/FirmwareVariant"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variants"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "FirmwareConfig",
+      "type": "object"
+    },
+    "FirmwareSource": {
+      "description": "Firmware source configuration",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "FirmwareSource",
+      "type": "object"
+    },
+    "FirmwareVariant": {
+      "description": "Per-chip firmware variant (e.g. esp32s3, esp32c6)",
+      "properties": {
+        "flash_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FlashConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "partitions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PartitionConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Partitions"
+        }
+      },
+      "title": "FirmwareVariant",
+      "type": "object"
+    },
+    "FlashConfig": {
+      "description": "Flash configuration for ESP32 and Himax devices",
+      "properties": {
+        "baud_rate": {
+          "default": 921600,
+          "title": "Baud Rate",
+          "type": "integer"
+        },
+        "baudrate": {
+          "default": 921600,
+          "title": "Baudrate",
+          "type": "integer"
+        },
+        "chip": {
+          "default": "esp32s3",
+          "title": "Chip",
+          "type": "string"
+        },
+        "flash_freq": {
+          "default": "80m",
+          "title": "Flash Freq",
+          "type": "string"
+        },
+        "flash_mode": {
+          "default": "dio",
+          "title": "Flash Mode",
+          "type": "string"
+        },
+        "flash_size": {
+          "default": "16MB",
+          "title": "Flash Size",
+          "type": "string"
+        },
+        "models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HimaxModelConfig"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "partitions": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PartitionConfig"
+          },
+          "title": "Partitions",
+          "type": "array"
+        },
+        "protocol": {
+          "default": "xmodem",
+          "title": "Protocol",
+          "type": "string"
+        },
+        "requires_esp32_reset_hold": {
+          "default": false,
+          "title": "Requires Esp32 Reset Hold",
+          "type": "boolean"
+        },
+        "requires_reset": {
+          "default": false,
+          "title": "Requires Reset",
+          "type": "boolean"
+        },
+        "timeout": {
+          "default": 60,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "title": "FlashConfig",
+      "type": "object"
+    },
+    "HAIntegrationConfig": {
+      "description": "Home Assistant custom integration deployment configuration",
+      "properties": {
+        "components_dir": {
+          "title": "Components Dir",
+          "type": "string"
+        },
+        "config_flow_data": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFlowField"
+          },
+          "title": "Config Flow Data",
+          "type": "array"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "include_patterns": {
+          "default": [
+            "*.py",
+            "manifest.json",
+            "strings.json"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Include Patterns",
+          "type": "array"
+        }
+      },
+      "required": [
+        "domain",
+        "components_dir"
+      ],
+      "title": "HAIntegrationConfig",
+      "type": "object"
+    },
+    "HimaxModelConfig": {
+      "description": "Himax AI model configuration for multi-model flashing",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "default": {
+          "default": true,
+          "title": "Default",
+          "type": "boolean"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "flash_address": {
+          "title": "Flash Address",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "offset": {
+          "default": "0x0",
+          "title": "Offset",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "size_hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Hint"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "path",
+        "flash_address"
+      ],
+      "title": "HimaxModelConfig",
+      "type": "object"
+    },
+    "HttpDebugConfig": {
+      "description": "HTTP debug configuration for endpoint verification",
+      "properties": {
+        "endpoints": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HttpEndpointConfig"
+          },
+          "title": "Endpoints",
+          "type": "array"
+        }
+      },
+      "title": "HttpDebugConfig",
+      "type": "object"
+    },
+    "HttpEndpointConfig": {
+      "description": "HTTP endpoint configuration for debugging/verification",
+      "properties": {
+        "body": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body"
+        },
+        "expected_status": {
+          "default": 200,
+          "title": "Expected Status",
+          "type": "integer"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Headers",
+          "type": "object"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "method": {
+          "default": "GET",
+          "title": "Method",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "url_template": {
+          "title": "Url Template",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "url_template"
+      ],
+      "title": "HttpEndpointConfig",
+      "type": "object"
+    },
+    "ImagePredictConfig": {
+      "description": "Configuration for image_predict verification type.",
+      "properties": {
+        "endpoint": {
+          "additionalProperties": true,
+          "title": "Endpoint",
+          "type": "object"
+        },
+        "overlay": {
+          "$ref": "#/$defs/ImagePredictOverlayConfig",
+          "default": {
+            "box_format": "xyxy",
+            "box_path": "predictions[].box",
+            "confidence_path": "predictions[].confidence",
+            "label_path": "predictions[].class",
+            "renderer": "bbox",
+            "script_file": null
+          }
+        }
+      },
+      "required": [
+        "endpoint"
+      ],
+      "title": "ImagePredictConfig",
+      "type": "object"
+    },
+    "ImagePredictOverlayConfig": {
+      "description": "Overlay configuration for image_predict results.",
+      "properties": {
+        "box_format": {
+          "default": "xyxy",
+          "title": "Box Format",
+          "type": "string"
+        },
+        "box_path": {
+          "default": "predictions[].box",
+          "title": "Box Path",
+          "type": "string"
+        },
+        "confidence_path": {
+          "default": "predictions[].confidence",
+          "title": "Confidence Path",
+          "type": "string"
+        },
+        "label_path": {
+          "default": "predictions[].class",
+          "title": "Label Path",
+          "type": "string"
+        },
+        "renderer": {
+          "default": "bbox",
+          "title": "Renderer",
+          "type": "string"
+        },
+        "script_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Script File"
+        }
+      },
+      "title": "ImagePredictOverlayConfig",
+      "type": "object"
+    },
+    "ImageTextChatConfig": {
+      "description": "Configuration for image_text_chat verification type.",
+      "properties": {
+        "endpoint": {
+          "additionalProperties": true,
+          "title": "Endpoint",
+          "type": "object"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "placeholder_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Placeholder I18N",
+          "type": "object"
+        },
+        "request_template": {
+          "title": "Request Template",
+          "type": "string"
+        },
+        "response_path": {
+          "title": "Response Path",
+          "type": "string"
+        },
+        "stream": {
+          "$ref": "#/$defs/StreamConfig",
+          "default": {
+            "enabled": false,
+            "event_path": "",
+            "request_override": null
+          }
+        }
+      },
+      "required": [
+        "endpoint",
+        "request_template",
+        "response_path"
+      ],
+      "title": "ImageTextChatConfig",
+      "type": "object"
+    },
+    "ImageTextToImageConfig": {
+      "description": "Configuration for image_text_to_image verification type.",
+      "properties": {
+        "endpoint": {
+          "additionalProperties": true,
+          "title": "Endpoint",
+          "type": "object"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "placeholder_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Placeholder I18N",
+          "type": "object"
+        },
+        "request_template": {
+          "title": "Request Template",
+          "type": "string"
+        },
+        "response_image_path": {
+          "title": "Response Image Path",
+          "type": "string"
+        },
+        "response_mime_type": {
+          "default": "image/png",
+          "title": "Response Mime Type",
+          "type": "string"
+        },
+        "upload_hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Upload Hint"
+        },
+        "upload_hint_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Upload Hint I18N",
+          "type": "object"
+        }
+      },
+      "required": [
+        "endpoint",
+        "request_template",
+        "response_image_path"
+      ],
+      "title": "ImageTextToImageConfig",
+      "type": "object"
+    },
+    "InitScriptConfig": {
+      "description": "Init script configuration for SysVinit",
+      "properties": {
+        "binary_path": {
+          "default": "/usr/local/bin",
+          "title": "Binary Path",
+          "type": "string"
+        },
+        "config_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config File"
+        },
+        "daemon_args": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Daemon Args"
+        },
+        "ld_library_path": {
+          "default": "/mnt/system/lib:/mnt/system/usr/lib:/mnt/system/usr/lib/3rd:/mnt/system/lib/3rd:/lib:/usr/lib",
+          "title": "Ld Library Path",
+          "type": "string"
+        },
+        "log_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Log File"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "priority": {
+          "default": 92,
+          "title": "Priority",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "InitScriptConfig",
+      "type": "object"
+    },
+    "ModelFileConfig": {
+      "description": "Model file configuration",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filename"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "target_path": {
+          "default": "/userdata/local/models",
+          "title": "Target Path",
+          "type": "string"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionWhen"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ModelFileConfig",
+      "type": "object"
+    },
+    "NodeRedConfig": {
+      "description": "Node-RED deployment configuration for reCamera",
+      "properties": {
+        "flow_file": {
+          "title": "Flow File",
+          "type": "string"
+        },
+        "influxdb_node_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Influxdb Node Id"
+        },
+        "modules": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/NodeRedModuleConfig"
+          },
+          "title": "Modules",
+          "type": "array"
+        },
+        "port": {
+          "default": 1880,
+          "title": "Port",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "flow_file"
+      ],
+      "title": "NodeRedConfig",
+      "type": "object"
+    },
+    "NodeRedModuleConfig": {
+      "description": "Node-RED module dependency",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "offline_package": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offline Package"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "NodeRedModuleConfig",
+      "type": "object"
+    },
+    "OfflineDockerConfig": {
+      "description": "Offline deployment configuration for Docker remote",
+      "properties": {
+        "arch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Arch"
+        },
+        "force_offline": {
+          "default": false,
+          "title": "Force Offline",
+          "type": "boolean"
+        },
+        "images": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Images",
+          "type": "array"
+        },
+        "skip_docker_install": {
+          "default": false,
+          "title": "Skip Docker Install",
+          "type": "boolean"
+        }
+      },
+      "title": "OfflineDockerConfig",
+      "type": "object"
+    },
+    "PackageConfig": {
+      "description": "Package installation configuration",
+      "properties": {
+        "config_files": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFileMapping"
+          },
+          "title": "Config Files",
+          "type": "array"
+        },
+        "install_commands": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Install Commands",
+          "type": "array"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ServiceConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source": {
+          "$ref": "#/$defs/PackageSource"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "PackageConfig",
+      "type": "object"
+    },
+    "PackageSource": {
+      "description": "Package source configuration",
+      "properties": {
+        "checksum": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checksum"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "PackageSource",
+      "type": "object"
+    },
+    "PartitionConfig": {
+      "description": "ESP32 partition configuration",
+      "properties": {
+        "file": {
+          "title": "File",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "offset": {
+          "title": "Offset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "offset",
+        "file"
+      ],
+      "title": "PartitionConfig",
+      "type": "object"
+    },
+    "PostDeploymentConfig": {
+      "description": "Post-deployment actions",
+      "properties": {
+        "open_browser": {
+          "default": false,
+          "title": "Open Browser",
+          "type": "boolean"
+        },
+        "reset_device": {
+          "default": false,
+          "title": "Reset Device",
+          "type": "boolean"
+        },
+        "service_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Name"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "verify_service": {
+          "default": false,
+          "title": "Verify Service",
+          "type": "boolean"
+        },
+        "wait_for_ready": {
+          "default": 0,
+          "title": "Wait For Ready",
+          "type": "integer"
+        }
+      },
+      "title": "PostDeploymentConfig",
+      "type": "object"
+    },
+    "PreCheck": {
+      "description": "Pre-deployment check",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "min_gb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Gb"
+        },
+        "min_mb": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Mb"
+        },
+        "min_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Version"
+        },
+        "ports": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Ports",
+          "type": "array"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "PreCheck",
+      "type": "object"
+    },
+    "PreviewBehaviorConfig": {
+      "description": "Behavior configuration for preview interactions",
+      "properties": {
+        "action": {
+          "default": "stop",
+          "title": "Action",
+          "type": "string"
+        },
+        "stop_on_disconnect": {
+          "default": false,
+          "title": "Stop On Disconnect",
+          "type": "boolean"
+        },
+        "target_device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Device Id"
+        }
+      },
+      "title": "PreviewBehaviorConfig",
+      "type": "object"
+    },
+    "PreviewDisplayConfig": {
+      "description": "Display configuration for preview",
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "type": "string"
+        },
+        "auto_start": {
+          "default": false,
+          "title": "Auto Start",
+          "type": "boolean"
+        },
+        "show_stats": {
+          "default": true,
+          "title": "Show Stats",
+          "type": "boolean"
+        }
+      },
+      "title": "PreviewDisplayConfig",
+      "type": "object"
+    },
+    "PreviewMqttConfig": {
+      "description": "MQTT configuration for preview",
+      "properties": {
+        "broker_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Broker Template"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Password"
+        },
+        "password_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Password Template"
+        },
+        "port": {
+          "default": 1883,
+          "title": "Port",
+          "type": "integer"
+        },
+        "port_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port Template"
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        },
+        "topic_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic Template"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Username"
+        },
+        "username_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Username Template"
+        }
+      },
+      "title": "PreviewMqttConfig",
+      "type": "object"
+    },
+    "PreviewOverlayConfig": {
+      "description": "Overlay configuration for preview",
+      "properties": {
+        "dependencies": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "renderer": {
+          "default": "auto",
+          "title": "Renderer",
+          "type": "string"
+        },
+        "script_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Script File"
+        }
+      },
+      "title": "PreviewOverlayConfig",
+      "type": "object"
+    },
+    "PreviewVideoConfig": {
+      "description": "Video stream configuration for preview",
+      "properties": {
+        "hls_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hls Url Template"
+        },
+        "mjpeg_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mjpeg Url Template"
+        },
+        "rtsp_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rtsp Url Template"
+        },
+        "type": {
+          "default": "rtsp_proxy",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "PreviewVideoConfig",
+      "type": "object"
+    },
+    "RobotInspectConfig": {
+      "description": "Configuration for the ``robot_inspect`` verify step.\n\nPlatform side is intentionally stateless — no Robot instances, no\nsessions, no long-lived connections. The platform only:\n\n1. Polls the user-supplied ``endpoint`` (typically the solution's main\n   container exposing ``GET /observation``) at ``poll_hz``.\n2. Renders the resulting JSON observation against the schema fetched\n   from ``schema_endpoint`` (typically ``GET /observation/schema``).\n3. Falls back to ``fallback_message`` when the endpoint is unreachable.\n\nBoth URLs may contain ``{{var}}`` template placeholders (e.g.\n``{{deploy.host}}`` / ``{{deploy.observation_port}}``); resolution\nhappens in the frontend before the URL is handed to the backend\nreverse proxy.",
+      "properties": {
+        "endpoint": {
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "fallback_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fallback Message"
+        },
+        "fallback_message_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Fallback Message I18N",
+          "type": "object"
+        },
+        "fields": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RobotInspectField"
+          },
+          "title": "Fields",
+          "type": "array"
+        },
+        "poll_hz": {
+          "default": 5,
+          "title": "Poll Hz",
+          "type": "integer"
+        },
+        "schema_endpoint": {
+          "title": "Schema Endpoint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "endpoint",
+        "schema_endpoint"
+      ],
+      "title": "RobotInspectConfig",
+      "type": "object"
+    },
+    "RobotInspectField": {
+      "description": "Optional per-field rendering hint for the robot_inspect verify panel.\n\nThe schema fetched at runtime from the device's\n``GET /observation/schema`` endpoint is the source of truth; this model\nonly provides solution-author overrides (display label, value range,\netc.) for fields the platform cannot infer from the live schema alone.",
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "label_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Label I18N",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "range": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "RobotInspectField",
+      "type": "object"
+    },
+    "SSHConfig": {
+      "description": "SSH connection configuration",
+      "properties": {
+        "auth_methods": {
+          "default": [
+            "password",
+            "key"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Auth Methods",
+          "type": "array"
+        },
+        "command_timeout": {
+          "default": 300,
+          "title": "Command Timeout",
+          "type": "integer"
+        },
+        "connection_timeout": {
+          "default": 30,
+          "title": "Connection Timeout",
+          "type": "integer"
+        },
+        "default_host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Host"
+        },
+        "default_user": {
+          "default": "root",
+          "title": "Default User",
+          "type": "string"
+        },
+        "port": {
+          "default": 22,
+          "title": "Port",
+          "type": "integer"
+        }
+      },
+      "title": "SSHConfig",
+      "type": "object"
+    },
+    "ScriptCommand": {
+      "description": "A command to run during script deployment",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "ScriptCommand",
+      "type": "object"
+    },
+    "ScriptConfigTemplate": {
+      "description": "Configuration file template",
+      "properties": {
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "file": {
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file",
+        "content"
+      ],
+      "title": "ScriptConfigTemplate",
+      "type": "object"
+    },
+    "ScriptDeploymentConfig": {
+      "description": "Script deployment configuration",
+      "properties": {
+        "config_template": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptConfigTemplate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "health_check": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptHealthCheck"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "setup_commands": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ScriptCommand"
+          },
+          "title": "Setup Commands",
+          "type": "array"
+        },
+        "start_command": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScriptStartCommand"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "working_dir": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Working Dir"
+        }
+      },
+      "title": "ScriptDeploymentConfig",
+      "type": "object"
+    },
+    "ScriptHealthCheck": {
+      "description": "Health check configuration for script deployment",
+      "properties": {
+        "pattern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pattern"
+        },
+        "timeout_seconds": {
+          "default": 30,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        },
+        "type": {
+          "default": "log_pattern",
+          "title": "Type",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "title": "ScriptHealthCheck",
+      "type": "object"
+    },
+    "ScriptStartCommand": {
+      "description": "Platform-specific start commands",
+      "properties": {
+        "env": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Env",
+          "type": "object"
+        },
+        "linux_macos": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Linux Macos"
+        },
+        "windows": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Windows"
+        }
+      },
+      "title": "ScriptStartCommand",
+      "type": "object"
+    },
+    "SerialCameraConfig": {
+      "description": "Serial camera preview and panel configuration",
+      "properties": {
+        "camera_port": {
+          "$ref": "#/$defs/SerialPortRef"
+        },
+        "display": {
+          "$ref": "#/$defs/SerialCameraDisplayConfig"
+        },
+        "panels": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SerialCameraPanelConfig"
+          },
+          "title": "Panels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "camera_port"
+      ],
+      "title": "SerialCameraConfig",
+      "type": "object"
+    },
+    "SerialCameraDisplayConfig": {
+      "description": "Display settings for serial camera preview",
+      "properties": {
+        "aspect_ratio": {
+          "default": "4:3",
+          "title": "Aspect Ratio",
+          "type": "string"
+        },
+        "show_landmarks": {
+          "default": true,
+          "title": "Show Landmarks",
+          "type": "boolean"
+        },
+        "show_stats": {
+          "default": true,
+          "title": "Show Stats",
+          "type": "boolean"
+        }
+      },
+      "title": "SerialCameraDisplayConfig",
+      "type": "object"
+    },
+    "SerialCameraPanelConfig": {
+      "description": "A panel attached to the serial camera step",
+      "properties": {
+        "database_port": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SerialPortRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "enrollment_duration": {
+          "default": 5.0,
+          "title": "Enrollment Duration",
+          "type": "number"
+        },
+        "min_confidence": {
+          "default": 0.5,
+          "title": "Min Confidence",
+          "type": "number"
+        },
+        "min_samples": {
+          "default": 3,
+          "title": "Min Samples",
+          "type": "integer"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "SerialCameraPanelConfig",
+      "type": "object"
+    },
+    "SerialPortRef": {
+      "description": "Reference to a serial port from another device step",
+      "properties": {
+        "baudrate": {
+          "default": 115200,
+          "title": "Baudrate",
+          "type": "integer"
+        },
+        "port_from_device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port From Device"
+        },
+        "protocol": {
+          "default": "sscma_json",
+          "title": "Protocol",
+          "type": "string"
+        }
+      },
+      "title": "SerialPortRef",
+      "type": "object"
+    },
+    "SerialWizardActionButton": {
+      "description": "A single action button shown in the serial wizard UI.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "label_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Label I18N",
+          "type": "object"
+        },
+        "send": {
+          "title": "Send",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "send"
+      ],
+      "title": "SerialWizardActionButton",
+      "type": "object"
+    },
+    "SerialWizardConfig": {
+      "description": "Configuration for serial_wizard verification type.",
+      "properties": {
+        "action_buttons": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SerialWizardActionButton"
+          },
+          "title": "Action Buttons",
+          "type": "array"
+        },
+        "baud": {
+          "default": 115200,
+          "title": "Baud",
+          "type": "integer"
+        },
+        "port_from_device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port From Device"
+        },
+        "port_hint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port Hint"
+        },
+        "welcome_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Welcome Text"
+        },
+        "welcome_text_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Welcome Text I18N",
+          "type": "object"
+        }
+      },
+      "title": "SerialWizardConfig",
+      "type": "object"
+    },
+    "ServiceConfig": {
+      "description": "Service configuration",
+      "properties": {
+        "enable": {
+          "default": true,
+          "title": "Enable",
+          "type": "boolean"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "start": {
+          "default": true,
+          "title": "Start",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ServiceConfig",
+      "type": "object"
+    },
+    "StreamConfig": {
+      "description": "SSE streaming configuration.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "event_path": {
+          "default": "",
+          "title": "Event Path",
+          "type": "string"
+        },
+        "request_override": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Override"
+        }
+      },
+      "title": "StreamConfig",
+      "type": "object"
+    },
+    "TextChatConfig": {
+      "description": "Configuration for text_chat verification type.",
+      "properties": {
+        "endpoint": {
+          "additionalProperties": true,
+          "title": "Endpoint",
+          "type": "object"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "placeholder_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Placeholder I18N",
+          "type": "object"
+        },
+        "request_template": {
+          "title": "Request Template",
+          "type": "string"
+        },
+        "response_path": {
+          "title": "Response Path",
+          "type": "string"
+        },
+        "stream": {
+          "$ref": "#/$defs/StreamConfig",
+          "default": {
+            "enabled": false,
+            "event_path": "",
+            "request_override": null
+          }
+        }
+      },
+      "required": [
+        "endpoint",
+        "request_template",
+        "response_path"
+      ],
+      "title": "TextChatConfig",
+      "type": "object"
+    },
+    "UserInputConfig": {
+      "description": "User input configuration for deployment",
+      "properties": {
+        "audio_probe_command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Audio Probe Command"
+        },
+        "audio_probe_image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Audio Probe Image"
+        },
+        "default": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default"
+        },
+        "default_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Default I18N",
+          "type": "object"
+        },
+        "default_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Template"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "options": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "reconfigurable": {
+          "default": false,
+          "title": "Reconfigurable",
+          "type": "boolean"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "row": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row"
+        },
+        "row_direction": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Row Direction"
+        },
+        "show_when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionWhen"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        },
+        "validation": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Validation"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "UserInputConfig",
+      "type": "object"
+    },
+    "VoiceDemoConfig": {
+      "description": "Voice demo configuration for ASR/TTS interactive steps",
+      "properties": {
+        "asr_ws_path": {
+          "default": "/asr/stream",
+          "title": "Asr Ws Path",
+          "type": "string"
+        },
+        "service_port": {
+          "default": 8621,
+          "title": "Service Port",
+          "type": "integer"
+        },
+        "tts_stream_path": {
+          "default": "/tts/stream",
+          "title": "Tts Stream Path",
+          "type": "string"
+        }
+      },
+      "title": "VoiceDemoConfig",
+      "type": "object"
+    },
+    "WebDashboardConfig": {
+      "description": "Configuration for web_dashboard verification type.\n\nVerifies a deployment succeeded by pointing the user to a web URL\nthey can open (Grafana, Frigate, Node-RED Dashboard, etc.). The\ndashboard itself IS the verification — if the page loads with data,\nthe deployment worked.\n\nFrontend behavior:\n    - Renders the URL as visible, copyable text (so the user can paste\n      it elsewhere or recover if the auto-open fails)\n    - Auto-opens via `openExternal()` in the user's default system\n      browser (Tauri shell.open in desktop app, window.open in dev)\n    - Never embedded in an iframe or in-app webview — heavy dashboards\n      like Grafana work better in a real browser with cookies/devtools\n\nSupports `{{var}}` templating against preceding step's user_inputs\n(e.g. `http://{{host}}:3000`).",
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "open_in": {
+          "default": "new_tab",
+          "title": "Open In",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "title_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Title I18N",
+          "type": "object"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "WebDashboardConfig",
+      "type": "object"
+    }
+  },
+  "contract_version": 1,
+  "description": "Complete device configuration",
+  "properties": {
+    "actions": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionsConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "base_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Path"
+    },
+    "behavior": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewBehaviorConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "binary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BinaryConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "detection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DetectionConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "device_detection": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DeviceDetectionProbe"
+      },
+      "title": "Device Detection",
+      "type": "array"
+    },
+    "display": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewDisplayConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "docker": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DockerConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "docker_remote": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DockerRemoteConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "files": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/FileUploadConfig"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "firmware": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FirmwareConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "ha_integration": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HAIntegrationConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "http_debug": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HttpDebugConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "image_predict": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImagePredictConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "image_text_chat": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageTextChatConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "image_text_to_image": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageTextToImageConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "influxdb": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Influxdb"
+    },
+    "inherit_host_from": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Inherit Host From"
+    },
+    "mqtt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewMqttConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "name_i18n": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Name I18N",
+      "type": "object"
+    },
+    "network_region": {
+      "default": "auto",
+      "enum": [
+        "auto",
+        "cn",
+        "global"
+      ],
+      "title": "Network Region",
+      "type": "string"
+    },
+    "nodered": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NodeRedConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "overlay": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewOverlayConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "package": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PackageConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "post_deployment": {
+      "$ref": "#/$defs/PostDeploymentConfig"
+    },
+    "pre_checks": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PreCheck"
+      },
+      "title": "Pre Checks",
+      "type": "array"
+    },
+    "robot_inspect": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RobotInspectConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "script": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ScriptDeploymentConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "serial_camera": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SerialCameraConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "serial_wizard": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SerialWizardConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "ssh": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SSHConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "steps": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/DeploymentStep"
+      },
+      "title": "Steps",
+      "type": "array"
+    },
+    "text_chat": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextChatConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "type": {
+      "title": "Type",
+      "type": "string"
+    },
+    "user_inputs": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/UserInputConfig"
+      },
+      "title": "User Inputs",
+      "type": "array"
+    },
+    "version": {
+      "default": "1.0",
+      "title": "Version",
+      "type": "string"
+    },
+    "video": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewVideoConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "voice_chat": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VoiceDemoConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "voice_demo": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VoiceDemoConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "web_dashboard": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WebDashboardConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "type"
+  ],
+  "title": "DeviceConfig",
+  "type": "object"
+}

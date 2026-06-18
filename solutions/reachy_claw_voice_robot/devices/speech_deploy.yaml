@@ -1,0 +1,124 @@
+version: "1.0"
+id: speech_deploy
+name: Speech Service
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson injects the shared iptables raw-table workaround
+# (scope=remote, ignore_error=false) and /etc/nv_tegra_release detection
+# probe from devices/profiles/jetson.yaml. The legacy speech.yaml hand-
+# wrote an iptables fix named "JetPack 6.2" — byte-equivalent to the
+# profile's "6.x" entry — and is removed here in favour of the profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/speech/docker-compose.yml
+  options:
+    project_name: reachy-jetson-voice
+  environment:
+    OVS_PROFILE: "jetson-qwen3asr-matcha-nx"
+    LANGUAGE_MODE: "zh_en"
+    TTS_DEFAULT_SID: "0"
+    TTS_DEFAULT_SPEED: "0.85"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for speech service Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8621
+
+name_i18n:
+  zh: 语音服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/reachy-jetson-voice
+  compose_dir: assets/docker/speech
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    OVS_PROFILE: "{{OVS_PROFILE}}"
+    LANGUAGE_MODE: "zh_en"
+    TTS_DEFAULT_SID: "{{TTS_DEFAULT_SID}}"
+    TTS_DEFAULT_SPEED: "{{TTS_DEFAULT_SPEED}}"
+  pre_checks:
+    - type: disk_space
+      min_gb: 3
+      description: At least 3GB for speech service Docker image
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: OVS_PROFILE
+      name: Speech Profile (ASR + TTS)
+      type: select
+      default: "jetson-qwen3asr-matcha-nx"
+      reconfigurable: true
+      description: "ASR + TTS engine combination. Both options handle Chinese + English (Qwen3/Paraformer ASR are multilingual)."
+      options:
+        - value: "jetson-qwen3asr-matcha-nx"
+          label: "Qwen3 ASR + Matcha TTS (Chinese + English) — recommended"
+          label_i18n:
+            zh: "Qwen3 ASR + Matcha TTS（中文 + 英文）— 推荐"
+        - value: "jetson-zh-en"
+          label: "Paraformer ASR + Matcha TTS (Chinese + English, lightweight)"
+          label_i18n:
+            zh: "Paraformer ASR + Matcha TTS（中文 + 英文，轻量）"
+      name_i18n:
+        zh: 语音方案（ASR + TTS）
+      description_i18n:
+        zh: "ASR + TTS 引擎组合。两个选项都支持中文 + 英文（Qwen3 / Paraformer ASR 均为多语种）。"
+      default_i18n:
+        zh: "jetson-qwen3asr-matcha-nx"
+    - id: TTS_DEFAULT_SID
+      name: TTS Speaker ID
+      type: text
+      default: "0"
+      reconfigurable: true
+      description: "Matcha TTS speaker: 0-9"
+      name_i18n:
+        zh: TTS 说话人 ID
+      description_i18n:
+        zh: "Matcha TTS 说话人：0-9"
+    - id: TTS_DEFAULT_SPEED
+      name: TTS Speed
+      type: text
+      default: "0.85"
+      reconfigurable: true
+      description: "0.5 = slow, 1.0 = normal, 1.5 = fast"
+      name_i18n:
+        zh: TTS 语速
+      description_i18n:
+        zh: "0.5 = 慢速, 1.0 = 正常, 1.5 = 快速"

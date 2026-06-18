@@ -1,0 +1,24 @@
+version: "1.0"
+id: servo_id_wizard
+name: Servo ID Setup Wizard
+type: serial_wizard
+
+serial_wizard:
+  baud: 115200
+  port_from_device: esp32_id
+  welcome_text: "Connect ONE servo at a time and press Enter when prompted.\n\nIDs: 1=front  2=rear-left  3=rear-right"
+  welcome_text_i18n:
+    zh: "逐个连接舵机，按提示按 Enter。\n\nID: 1=前轮  2=左后轮  3=右后轮"
+  action_buttons:
+    - id: enter
+      label: "Send Enter"
+      label_i18n:
+        zh: "发送回车"
+      send: "\n"
+    - id: retry
+      label: "Rescan"
+      label_i18n:
+        zh: "重新扫描"
+      send: "r"
+name_i18n:
+  zh: 舵机 ID 配置向导

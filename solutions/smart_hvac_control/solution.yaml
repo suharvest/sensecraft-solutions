@@ -1,0 +1,88 @@
+version: '1.0'
+id: smart_hvac_control
+name: HVAC Automation Control
+intro:
+  summary: Intelligently adjust air conditioning based on occupancy and environment, saving energy automatically
+  description_file: description.md
+  cover_image: gallery/cover.svg
+  gallery:
+    - type: image
+      src: gallery/dashboard.svg
+      caption: Control Dashboard
+      caption_i18n:
+        zh: 控制面板
+    - type: image
+      src: gallery/architecture.svg
+      caption: System Architecture
+      caption_i18n:
+        zh: 系统架构
+  category: industrial_iot
+  solution_type: solution
+
+
+  input_requirements:
+    - type: modbus
+      description: Temperature, humidity sensors via Modbus TCP/RTU
+      description_i18n:
+        zh: 通过 Modbus TCP/RTU 的温湿度传感器
+  tags:
+    - hvac
+    - knn
+    - opc-ua
+    - industrial
+    - automation
+    - recomputer
+  device_catalog:
+    recomputer_r1100:
+      sku: 113991374
+      name: reComputer R1100
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+      description: Edge computing device with Docker support
+      name_i18n:
+        zh: reComputer R1100
+      description_i18n:
+        zh: 边缘计算设备，内置 Docker
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: intermediate
+    estimated_time: 15min
+  links:
+    github: https://github.com/seeed-solution/missionpack-knn
+  presets:
+    - id: default
+      name: Standard Deployment
+      description: Deploy KNN-based HVAC optimization that learns from historical data
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: false
+          description: Only needed for remote deployment
+          options:
+            - device_ref: recomputer_r1100
+          default: recomputer_r1100
+          name_i18n:
+            zh: 边缘设备
+          description_i18n:
+            zh: 仅远程部署时需要
+      name_i18n:
+        zh: 标准部署
+      description_i18n:
+        zh: 部署基于 KNN 算法的暖通优化系统，从历史数据中学习最优参数
+  summary_i18n:
+    zh: 根据人流和环境智能调节空调温度，自动节省能耗
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  post_deployment:
+    autostart:
+      enabled: true
+      mode: fullscreen
+      url: http://localhost:8280
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 暖通自动化控制

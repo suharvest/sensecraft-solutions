@@ -1,0 +1,14 @@
+services:
+  qwen-vlm:
+    image: ghcr.io/seeed-projects/rk3576-qwen2.5-vl:3b-w4a16-latest
+    container_name: ai_lab_vlm
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/rknpu:/dev/rknpu
+      - /dev/mali0:/dev/mali0
+    volumes:
+      - /dev:/dev

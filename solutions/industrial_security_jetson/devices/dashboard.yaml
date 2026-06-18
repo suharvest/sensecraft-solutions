@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Security Dashboard
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:8080"
+  title: Industrial Security Dashboard
+  description: View live annotated video and configure zones / fence lines
+  title_i18n:
+    zh: 工业安全面板
+  description_i18n:
+    zh: 查看实时标注视频，配置警戒区与电子围栏
+name_i18n:
+  zh: 打开安全监控面板

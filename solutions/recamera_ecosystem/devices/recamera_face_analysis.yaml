@@ -1,0 +1,171 @@
+version: "1.0"
+id: recamera_face_analysis
+name: reCamera Face Analysis
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# C++ 应用部署配置
+binary:
+  # .deb 包安装（包含 init 脚本 S92face-analysis）
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/face-analysis_0.1.1_riscv64.deb
+    name: face-analysis
+    includes_init_script: true
+
+  # 模型文件部署（人脸检测 yolov8n + 年龄性别人种 FairFace + 表情 HSEmotion）
+    checksum:
+      sha256: 850d319f546dbabef383b0afeb01ce1f44d1bb2ccd68fc1b3981644ca9446add
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolov8n_face_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: yolov8n_face_cv181x_int8.cvimodel
+      checksum:
+        sha256: 5b9dc562c09d1dc30fe3d624d08bfe30fed16bf36cf4f6f36c64e694d0445e3a
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fairface_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: fairface_int8.cvimodel
+      checksum:
+        sha256: aac22ccb516abcf00f5749abd778dffc1ae355b33204b2d430d25a79d50d20ab
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/enet_b0_8_best_afew_cv181x_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: enet_b0_8_best_afew_cv181x_bf16.cvimodel
+
+  # 服务配置（deb 包已含 init 脚本）
+      checksum:
+        sha256: 7431ac03daa286ff044bbcd3c286f3dc5fcfa8bf36ba04a8d464f4b93ce54a26
+  service_name: face-analysis
+  service_priority: 92
+
+  auto_start: true
+
+actions:
+  after:
+    - name: Generate face-analysis config
+      run: |
+        set -e
+        CONF=/etc/face-analysis.conf
+        # In-place update of specific keys; preserves all other defaults shipped with the deb.
+        set_kv() {
+          key="$1"; val="$2"
+          if grep -qE "^[[:space:]]*${key}=" "$CONF" 2>/dev/null; then
+            sed -i "s|^[[:space:]]*${key}=.*|${key}=${val}|" "$CONF"
+          else
+            echo "${key}=${val}" >> "$CONF"
+          fi
+        }
+        [ -f "$CONF" ] || touch "$CONF"
+        if [ -n "{{mqtt_host}}" ]; then
+          set_kv MQTT_HOST "{{mqtt_host}}"
+        fi
+        if [ -n "{{mqtt_port}}" ]; then
+          set_kv MQTT_PORT "{{mqtt_port}}"
+        fi
+        if [ "{{enable_blur}}" = "false" ]; then
+          set_kv BLUR_ENABLED 0
+        else
+          set_kv BLUR_ENABLED 1
+        fi
+      sudo: true
+      name_i18n:
+        zh: 生成人脸分析配置
+    - name: Enable external MQTT access
+      # fail_fast: false — uses 'grep -q ... && exit 0' idempotent check; set -e would kill grep on first deploy
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+# 用户输入
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+user_inputs:
+  - id: mqtt_host
+    name: MQTT Broker Host
+    type: text
+    default: "localhost"
+    placeholder: "localhost"
+    description: MQTT broker address (default localhost = camera's local broker)
+    required: false
+
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: MQTT 服务器地址（默认 localhost = 摄像头本地）
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    placeholder: "1883"
+    description: MQTT broker port
+    required: false
+
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: MQTT 服务器端口
+  - id: enable_blur
+    name: Privacy Blur
+    type: select
+    default: "true"
+    description: Blur detected faces on the RTSP video stream for privacy
+    required: false
+    options:
+      - value: "true"
+        label: Enabled (blur faces)
+        label_i18n:
+          zh: 开启（打码）
+      - value: "false"
+        label: Disabled (show faces)
+        label_i18n:
+          zh: 关闭（不打码）
+    name_i18n:
+      zh: 人脸隐私遮罩
+    description_i18n:
+      zh: 在 RTSP 视频流中对检测到的人脸打码（保护隐私）
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+post_deployment:
+  open_browser: false
+name_i18n:
+  zh: reCamera 人脸分析

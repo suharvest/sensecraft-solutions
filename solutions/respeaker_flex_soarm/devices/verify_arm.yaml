@@ -1,0 +1,112 @@
+version: "1.0"
+id: verify_arm
+name: Verify Arm State
+type: robot_inspect
+# Explicit upstream binding — step-context follows voice_arm's
+# selected local/remote target and SSH host. Without this the
+# framework falls back to "nearest deploy step" with a console warn.
+inherit_host_from: voice_arm
+# Polls the voice-arm container's GET /observation endpoint at 5 Hz and
+# renders the joint positions. Backend whitelists ports in
+# [8765, 8766, 8767, 8768, 8769] for SSRF protection — keep 8765 here
+# in sync with OBSERVATION_PORT in devices/voice_brain.yaml and the
+# port mapping in assets/docker/docker-compose.yml.
+#
+# Host resolution is a 3-tier fallback (highest priority first):
+#   1. Current step's user_input.host (manual override)
+#   2. Upstream voice_arm step's connection.host (auto-inherited via
+#      renderUserInputs getInitialValue same-field-ID rule)
+#   3. Server-side deployment manifest written by deploy engine
+#      (~/.sensecraft/deployments/<solution>/voice_arm.json) — used when
+#      the frontend's in-memory state is gone (wizard reopened).
+robot_inspect:
+  endpoint: "http://{{deploy.host}}:8765/observation"
+  schema_endpoint: "http://{{deploy.host}}:8765/observation/schema"
+  poll_hz: 5
+  fallback_message: "Cannot reach the arm state service. Make sure the voice-arm container is running on the Jetson."
+  fallback_message_i18n:
+    zh: 无法连接到机械臂状态服务。请确认 voice-arm 容器已在 Jetson 上启动。
+  fields:
+    - name: shoulder_pan.pos
+      label: Shoulder Pan
+      label_i18n:
+        zh: 肩部旋转
+      range: [-1.0, 1.0]
+    - name: shoulder_lift.pos
+      label: Shoulder Lift
+      label_i18n:
+        zh: 肩部抬升
+      range: [-1.0, 1.0]
+    - name: elbow_flex.pos
+      label: Elbow Flex
+      label_i18n:
+        zh: 肘部弯曲
+      range: [-1.0, 1.0]
+    - name: wrist_flex.pos
+      label: Wrist Flex
+      label_i18n:
+        zh: 腕部弯曲
+      range: [-1.0, 1.0]
+    - name: wrist_roll.pos
+      label: Wrist Roll
+      label_i18n:
+        zh: 腕部旋转
+      range: [-1.0, 1.0]
+    - name: gripper.pos
+      label: Gripper
+      label_i18n:
+        zh: 夹爪
+      range: [0.0, 1.0]
+action_modules:
+  - id: torque
+    type: device_command
+    label_i18n:
+      en: Torque
+      zh: 扭矩
+    buttons:
+      - label_i18n:
+          en: Disable Torque
+          zh: 关扭矩
+        endpoint_template: "http://{{deploy.host}}:8765/torque/off"
+      - label_i18n:
+          en: Enable Torque
+          zh: 开扭矩
+        endpoint_template: "http://{{deploy.host}}:8765/torque/on"
+  - id: record
+    type: sequence_recorder
+    label_i18n:
+      en: Record Action
+      zh: 动作录制
+    observation_endpoint_template: "http://{{deploy.host}}:8765/observation"
+    list_endpoint_template: "http://{{deploy.host}}:8765/actions"
+    etag_endpoint_template: "http://{{deploy.host}}:8765/actions/etag"
+    save_endpoint_template: "http://{{deploy.host}}:8765/actions"
+    test_endpoint_template: "http://{{deploy.host}}:8765/actions/{name}/test"
+    preview_endpoint_template: "http://{{deploy.host}}:8765/actions/preview"
+    cancel_endpoint_template: "http://{{deploy.host}}:8765/actions/cancel"
+    # Test Action auto-enables torque first: posing the arm requires torque
+    # off, but preview/test reject when torque is off (409 torque_off). The
+    # recorder POSTs this then waits out the server's 500ms torque debounce
+    # before playing, so the operator never has to click Enable Torque.
+    torque_on_endpoint_template: "http://{{deploy.host}}:8765/torque/on"
+    name_pattern: "^[a-z][a-z0-9_]*$"
+    default_delay: 0.4
+    delay_range: [0.05, 5.0]
+    max_frames: 50
+user_inputs:
+  # Optional manual override of the upstream voice_arm host. Auto-populated
+  # from voice_arm step's connection.host via getInitialValue() rule 2
+  # (same field ID from previous step). Leave blank to let the server fall
+  # back to the deployment manifest.
+  - id: host
+    name: Jetson IP (override)
+    type: text
+    required: false
+    placeholder: "auto-detected from Step 1"
+    description: Leave blank to use the host from Step 1 (or the saved deployment manifest). Override only if pointing at a different running container.
+    name_i18n:
+      zh: Jetson IP（覆盖）
+    description_i18n:
+      zh: 留空将使用 Step 1 的地址（或保存的部署 manifest）。只在需要指向另一个运行中的容器时填写。
+name_i18n:
+  zh: 验证机械臂状态

@@ -1,0 +1,30 @@
+version: "1.0"
+id: vlm_chat
+name: Image Understanding
+type: image_text_chat
+
+image_text_chat:
+  endpoint:
+    method: POST
+    url_template: "http://{{host}}:8002/v1/chat/completions"
+    headers:
+      Content-Type: application/json
+  request_template: '{"model":"rkllm-vision","messages":[{"role":"user","content":[{"type":"text","text":"{{input}}"},{"type":"image_url","image_url":{"url":"{{image_base64}}"}}]}],"max_tokens":256,"stream":false}'
+  response_path: "choices.0.message.content"
+  stream:
+    enabled: true
+    request_override: '{"stream": true}'
+    event_path: "choices.0.delta.content"
+  placeholder: "What is in this image?"
+  placeholder_i18n:
+    zh: "这张图片里有什么？"
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: 设备 IP
+name_i18n:
+  zh: 图片理解

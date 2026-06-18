@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200">
+  <defs>
+    <linearGradient id="caseGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50"/>
+      <stop offset="100%" style="stop-color:#1a252f"/>
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#16213e"/>
+      <stop offset="100%" style="stop-color:#0f172a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="300" height="200" fill="#f0f0f0"/>
+
+  <!-- Device case -->
+  <rect x="50" y="30" width="200" height="130" rx="8" fill="url(#caseGrad)" stroke="#1a252f" stroke-width="2"/>
+
+  <!-- Screen area -->
+  <rect x="60" y="40" width="180" height="90" rx="4" fill="url(#screenGrad)"/>
+
+  <!-- Screen content -->
+  <g transform="translate(70, 50)">
+    <text x="0" y="15" fill="#8CC63F" font-family="Arial, sans-serif" font-size="10" font-weight="bold">HVAC Control</text>
+    <line x1="0" y1="25" x2="160" y2="25" stroke="#8CC63F" stroke-width="0.5" opacity="0.5"/>
+
+    <!-- Mini chart -->
+    <polyline points="0,60 30,50 60,55 90,40 120,45 150,35"
+              fill="none" stroke="#8CC63F" stroke-width="1.5"/>
+
+    <!-- Status indicators -->
+    <circle cx="150" cy="70" r="4" fill="#27ae60"/>
+    <text x="120" y="73" fill="#888888" font-family="Arial, sans-serif" font-size="8">Online</text>
+  </g>
+
+  <!-- Status LEDs -->
+  <g transform="translate(60, 140)">
+    <circle cx="5" cy="5" r="3" fill="#27ae60"/>
+    <circle cx="15" cy="5" r="3" fill="#f39c12"/>
+    <circle cx="25" cy="5" r="3" fill="#3498db"/>
+  </g>
+
+  <!-- Label -->
+  <text x="150" y="155" text-anchor="middle" fill="#cccccc" font-family="Arial, sans-serif" font-size="8">reComputer R</text>
+
+  <!-- Ports (bottom) -->
+  <g transform="translate(100, 160)">
+    <rect x="0" y="0" width="20" height="6" rx="1" fill="#34495e"/>
+    <rect x="30" y="0" width="20" height="6" rx="1" fill="#34495e"/>
+    <rect x="60" y="0" width="40" height="6" rx="1" fill="#34495e"/>
+  </g>
+
+  <!-- Product name -->
+  <text x="150" y="185" text-anchor="middle" fill="#666666" font-family="Arial, sans-serif" font-size="12" font-weight="bold">reComputer R Series</text>
+</svg>

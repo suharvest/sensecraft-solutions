@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    uid: influxdb-recamera
+    access: proxy
+    url: http://influxdb:8086
+    isDefault: true
+    jsonData:
+      version: Flux
+      organization: seeed
+      defaultBucket: recamera
+      tlsSkipVerify: true
+    secureJsonData:
+      token: recamera-heatmap-token
+    editable: true

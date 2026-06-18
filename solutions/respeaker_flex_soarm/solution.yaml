@@ -1,0 +1,144 @@
+version: "1.0"
+id: respeaker_flex_soarm
+name: Voice-Controlled SO-ARM Robotic Arm
+intro:
+  summary: Speak natural language commands to control a SO-ARM101 6-DoF robotic arm. Fully on-device voice stack — Paraformer/Matcha ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — running on Jetson Orin NX. Exposes a HTTP observation endpoint so other solutions can read live joint state.
+  description_file: description.md
+  cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/lerobot_flex.png
+  category: voice_ai
+  solution_type: technical
+  tags: [voice, robot, so-arm, lerobot, jetson, respeaker, local-llm, qwen3, edge-llm, asr, tts, offline]
+
+  output_interfaces:
+    - type: http
+      port: 8765
+      endpoint: /observation
+      method: GET
+      description: Latest robotic-arm observation (flat JSON map of joint positions and gripper state)
+      schema_type: json
+      payload_example: '{"shoulder_pan.pos":0.12,"shoulder_lift.pos":-0.34,"elbow_flex.pos":0.45,"wrist_flex.pos":0.0,"wrist_roll.pos":0.0,"gripper.pos":0.1}'
+      description_i18n:
+        zh: 机械臂最新观测值（关节位置 + 夹爪状态的扁平 JSON）
+    - type: http
+      port: 8765
+      endpoint: /observation/schema
+      method: GET
+      description: Field-type schema for the observation endpoint (drives the robot_inspect verify panel)
+      schema_type: json
+      payload_example: '{"shoulder_pan.pos":{"type":"float","range":[-1.0,1.0]}}'
+      description_i18n:
+        zh: 观测字段类型描述（供 robot_inspect 面板渲染使用）
+
+  input_requirements:
+    - type: audio
+      description: reSpeaker Flex XVF3800 USB microphone array for voice capture
+      description_i18n:
+        zh: reSpeaker Flex XVF3800 USB 麦克风阵列用于语音采集
+    - type: audio
+      description: Speaker for TTS voice feedback
+      description_i18n:
+        zh: 音箱用于语音回复
+    - type: usb
+      description: SO-ARM101 6-DoF follower arm connected via USB serial (typically /dev/ttyACM0)
+      description_i18n:
+        zh: SO-ARM101 六自由度从动机械臂通过 USB 串口连接（通常 /dev/ttyACM0）
+    - type: network
+      description: Internet on first boot to pull the voice + LLM container images and warm up the TensorRT engine. Online API access is NOT required at runtime — inference is fully local.
+      description_i18n:
+        zh: 首次启动需联网拉取语音 + LLM 容器镜像和预热 TensorRT 引擎。运行期间不依赖任何在线 API —— 推理全部在本地完成。
+
+  device_catalog:
+    so_arm101:
+      name: SO-ARM101 Follower Arm
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/1/-/1-114090065-lekiwi-kit_1.jpg
+      product_url: https://wiki.seeedstudio.com/respeaker_flex_soarm/
+      description: 6-DoF Feetech-servo robotic arm (LeRobot SOFollower compatible)
+      name_i18n:
+        zh: SO-ARM101 从动机械臂
+      description_i18n:
+        zh: 六自由度 Feetech 舵机机械臂（兼容 LeRobot SOFollower）
+    respeaker_xvf3800_circular_4:
+      sku: 107100122
+      name: reSpeaker Flex XVF3800 Circular 4
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/48035b5512857d0ab907b31a092da78f/1/-/1-100005504-respeaker-flex-xvf3800-circular-4_1_.jpg
+      product_url: https://www.seeedstudio.com/reSpeaker-Flex-XVF3800-Circular-4-p-6737.html
+      description: 4-microphone circular array with XMOS XVF3800 for far-field voice capture
+      name_i18n:
+        zh: reSpeaker Flex XVF3800 圆形 4 麦版
+      description_i18n:
+        zh: 4 麦克风圆形阵列，XMOS XVF3800 远场语音采集
+    recomputer_j4012:
+      sku: 110110145
+      name: reComputer Super J4012 (Jetson Orin NX 16GB)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-110110145-recomputer_j4012.jpg
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: NVIDIA Jetson Orin NX 16GB edge AI computer
+      name_i18n:
+        zh: reComputer Super J4012（Jetson Orin NX 16GB）
+      description_i18n:
+        zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 主机
+  presets:
+    - id: default
+      name: Voice Control Your SO-ARM
+      description: Deploy the voice-arm container to your Jetson and talk to your SO-ARM. Customize action poses and LLM prompt rules from device settings.
+      device_groups:
+        - id: arm
+          name: Robotic Arm
+          type: single
+          required: true
+          options:
+            - device_ref: so_arm101
+          default: so_arm101
+          name_i18n:
+            zh: 机械臂
+        - id: microphone
+          name: Microphone
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800_circular_4
+          default: respeaker_xvf3800_circular_4
+          name_i18n:
+            zh: 麦克风
+        - id: compute
+          name: Compute Unit
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j4012
+          default: recomputer_j4012
+          name_i18n:
+            zh: 计算单元
+        - id: voice_arm
+          name: Voice Brain
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j4012
+          default: recomputer_j4012
+          name_i18n:
+            zh: 软件大脑
+      name_i18n:
+        zh: 语音控制你的 SO-ARM
+      description_i18n:
+        zh: 将语音控制容器部署到 Jetson，然后对着 SO-ARM 说话。动作姿态和 LLM 提示词可以在设备配置里修改。
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+    deployed_count: 0
+    likes_count: 0
+
+  links:
+    wiki: https://wiki.seeedstudio.com/respeaker_flex_soarm/
+
+  summary_i18n:
+    zh: 用语音控制 SO-ARM101 六自由度机械臂。语音链路完全本地化 —— Paraformer/Matcha 语音识别合成 + Qwen3-4B-AWQ（TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。提供 HTTP 观测接口供其他方案集成读取机械臂实时状态。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 语音控制 SO-ARM 机械臂

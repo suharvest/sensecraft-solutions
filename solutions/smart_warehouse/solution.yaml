@@ -1,0 +1,303 @@
+version: '1.0'
+id: smart_warehouse
+name: Smart Warehouse Management
+intro:
+  summary: Voice-controlled warehouse - zero learning curve, real-time data, fully local deployment available.
+  description_file: description.md
+  cover_image: gallery/wms-watcher-scenario.png
+  gallery:
+    - type: image
+      src: gallery/wms-watcher-scenario.png
+      caption: Voice control warehouse system
+      caption_i18n:
+        zh: 语音控制仓库管理系统
+    - type: image
+      src: gallery/architecture.png
+      caption: System architecture diagram
+      caption_i18n:
+        zh: 系统架构图
+    - type: image
+      src: gallery/xiaozhi-stock-in.png
+      caption: Voice stock-in demo
+      caption_i18n:
+        zh: 语音入库演示
+  category: voice_ai
+  solution_type: solution
+
+  input_requirements:
+    - type: audio
+      description: Audio input from SenseCAP Watcher microphone
+      description_i18n:
+        zh: 来自 SenseCAP Watcher 麦克风的音频输入
+    - type: network
+      description: LAN or internet connectivity for cloud/private cloud services
+      description_i18n:
+        zh: 用于云服务或私有云服务的 LAN/互联网连接
+  tags:
+    - mcp
+    - voice
+    - watcher
+    - integration
+    - warehouse
+
+  includes_demos:
+    - jetson_voice_assistant
+
+  device_catalog:
+    sensecap_watcher:
+      sku: 113991275
+      name: SenseCAP Watcher
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/0/100051523.jpg
+      product_url: https://www.seeedstudio.com/sensecap-watcher
+      description: AI voice assistant, required for all deployment modes
+      name_i18n:
+        zh: SenseCAP Watcher
+      description_i18n:
+        zh: AI 语音助手，所有套餐必选
+    recomputer_r1125:
+      name: reComputer R1125-10
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-4-POE-ports-powered-by-Raspberry-Pi-CM4-p-6203.html
+      description: Edge gateway, runs warehouse management system
+      name_i18n:
+        zh: reComputer R1125-10
+      description_i18n:
+        zh: 边缘网关，运行仓库管理系统
+    recomputer_r2135:
+      name: reComputer R2135-12
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
+      product_url: https://www.seeedstudio.com/reComputer-R2000-4-POE-ports-powered-by-Raspberry-Pi-CM5-p-6621.html
+      description: Edge gateway, runs warehouse system + voice AI service, supports face recognition
+      name_i18n:
+        zh: reComputer R2135-12
+      description_i18n:
+        zh: 边缘网关，运行仓管系统 + 语音 AI 服务，支持人脸识别
+    recomputer_super_j4012:
+      name: reComputer Super J4012
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-110110232.jpg
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: AI compute unit, supports multi-channel concurrent voice processing
+      name_i18n:
+        zh: reComputer Super J4012
+      description_i18n:
+        zh: AI 算力单元，支持多路语音并发处理
+    recomputer_j50:
+      sku: 100076722
+      name: reComputer Robotics J5011 (AGX Orin)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100032662--recomputer-robotics-j5012-with-gmsl_1__1.jpg
+      product_url: https://www.seeedstudio.com/reComputer-Robotics-J5011-with-GMSL-extension-board-p-6681.html
+      description: Edge AI computer for local LLM/TTS, fully offline
+      name_i18n:
+        zh: reComputer Robotics J5011 (AGX Orin)
+      description_i18n:
+        zh: 边缘 AI 计算机，运行本地大模型，完全离线
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: beginner
+    estimated_time: 30min
+  links:
+    wiki: https://wiki.seeedstudio.com/cn/mcp_external_system_integration/
+    github: https://github.com/suharvest/warehouse_system
+  presets:
+    - id: trial
+      name: Trial · Starter
+      description: Watcher only, cloud-hosted by Seeed, no host required
+      device_groups:
+        - id: watcher
+          name: Voice Assistant
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手
+      name_i18n:
+        zh: 试用套餐 · 体验版
+      description_i18n:
+        zh: 只需一台 Watcher，无需主机，数据托管在 Seeed 云端，不支持人脸识别
+    - id: sensecraft_cloud
+      name: Tier 1 · Basic
+      badge: Recommended
+      description: Connect to SenseCraft cloud, quick setup and low cost, no face recognition
+      architecture_image: gallery/architecture-cloud.png
+      device_groups:
+        - id: watcher
+          name: Voice Assistant
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手
+        - id: edge_gateway
+          name: Edge Gateway
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r1125
+          default: recomputer_r1125
+          name_i18n:
+            zh: 边缘网关
+      name_i18n:
+        zh: 套餐一 · 基础版
+      badge_i18n:
+        zh: 推荐
+      description_i18n:
+        zh: 需要外网 · 连接 SenseCraft 云服务 · 快速部署、低成本起步，不支持人脸识别
+    - id: private_cloud
+      name: Tier 2A · Advanced (Single Site)
+      description: Self-hosted AI, supports face recognition, single voice channel
+      device_groups:
+        - id: watcher
+          name: Voice Assistant
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手
+        - id: edge_gateway
+          name: Edge Gateway
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r2135
+          default: recomputer_r2135
+          name_i18n:
+            zh: 边缘网关
+      name_i18n:
+        zh: 套餐二A · 升级版（单点位）
+      description_i18n:
+        zh: 需要外网 · 本地 AI 服务 · 支持人脸识别 · 单点位语音
+    - id: private_cloud_multi
+      name: Tier 2B · Advanced (Multi Site)
+      description: Self-hosted AI, supports face recognition, multi-channel concurrent voice
+      device_groups:
+        - id: watcher
+          name: Voice Assistant
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手
+        - id: edge_gateway
+          name: Edge Gateway
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r2135
+          default: recomputer_r2135
+          name_i18n:
+            zh: 边缘网关
+        - id: ai_compute
+          name: AI Compute
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_super_j4012
+          default: recomputer_super_j4012
+          name_i18n:
+            zh: AI 算力
+      name_i18n:
+        zh: 套餐二B · 升级版（多点位）
+      description_i18n:
+        zh: 需要外网 · 本地 AI 服务 · 支持人脸识别 · 多路语音并发
+    - id: edge_computing
+      name: Tier 3 · Premium
+      description: Pure LAN, fully offline, supports face recognition
+      device_groups:
+        - id: watcher
+          name: Voice Assistant
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手
+        - id: edge_gateway
+          name: Edge Gateway
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r2135
+          default: recomputer_r2135
+          name_i18n:
+            zh: 边缘网关
+        - id: ai_compute
+          name: AI Compute
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j50
+          default: recomputer_j50
+          name_i18n:
+            zh: AI 算力
+      name_i18n:
+        zh: 套餐三 · 顶配版
+      description_i18n:
+        zh: 纯局域网 · 数据不出厂区 · 完全离线 · 支持人脸识别
+  summary_i18n:
+    zh: 语音操控仓库管理——开口就会用，数据实时准确，支持纯本地部署保护数据安全。
+  description_file_i18n:
+    zh: description_zh.md
+partners:
+  - name: 深圳矽递科技
+    logo: intro/partners/seeed.png
+    contact: solutions@seeed.cc
+    website: https://www.seeedstudio.com.cn
+    regions_i18n:
+      en:
+        - Guangdong
+        - Remote (China)
+      zh:
+        - 广东省
+        - 全国远程
+    name_i18n:
+      zh: 深圳矽递科技
+  - name: 上海智联方案
+    logo: intro/partners/partner2.png
+    contact: contact@example.com
+    regions_i18n:
+      en:
+        - Shanghai
+        - Jiangsu
+        - Zhejiang
+      zh:
+        - 上海市
+        - 江苏省
+        - 浙江省
+    name_i18n:
+      zh: 上海智联方案
+  - name: 北京创智科技
+    logo: intro/partners/partner3.png
+    contact: info@example.com
+    regions_i18n:
+      en:
+        - Beijing
+        - Tianjin
+        - Hebei
+      zh:
+        - 北京市
+        - 天津市
+        - 河北省
+    name_i18n:
+      zh: 北京创智科技
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  post_deployment:
+    autostart:
+      enabled: true
+      mode: fullscreen
+      url: http://localhost:2125
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 智慧仓管方案

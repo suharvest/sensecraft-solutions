@@ -1,0 +1,58 @@
+version: "1.0"
+id: homeassistant_deploy
+name: Home Assistant
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). Pure application-layer
+# Docker stack — no device_class, runs on any Linux/Mac host with Docker.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/recamera-ha
+  options:
+    project_name: recamera-homeassistant
+    remove_orphans: true
+  services:
+    - name: homeassistant
+      port: 8123
+      health_check_endpoint: /api/
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: port_available
+    ports:
+      - 8123
+    description: Check if port 8123 is available
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8123
+
+name_i18n:
+  zh: Home Assistant
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8123"

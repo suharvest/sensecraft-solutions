@@ -1,0 +1,15 @@
+services:
+  yolo-cv:
+    image: ghcr.io/seeed-projects/recomputer-rk-cv/rk3576-yolo:latest
+    container_name: ai_lab_cv
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+      RKNN_LOG_LEVEL: "0"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - /proc/device-tree/compatible:/proc/device-tree/compatible
+    command: python web_detection.py --model_path model/${MODEL_VARIANT:-yolo11n}.rknn --host 0.0.0.0 --port 8000

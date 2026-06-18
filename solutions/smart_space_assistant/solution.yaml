@@ -1,0 +1,140 @@
+version: '1.0'
+id: smart_space_assistant
+name: Build Your Space AI Agent
+intro:
+  summary: Make your AI assistant see faces, remember people, and serve you proactively
+  description_file: description.md
+  cover_image: gallery/cover.svg
+  gallery:
+    - type: image
+      src: gallery/demo.svg
+      caption: Face Recognition Demo
+      caption_i18n:
+        zh: 人脸识别演示
+    - type: image
+      src: gallery/architecture.svg
+      caption: Display System Architecture
+      caption_i18n:
+        zh: 投屏系统架构
+  category: voice_ai
+  solution_type: technical
+  tags:
+    - watcher
+    - face_recognition
+    - display
+    - voice
+    - xiaozhi
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      description: Face recognition events
+      schema_type: json
+      payload_example: '{"event":"face_recognized","name":"John","confidence":0.92}'
+
+      description_i18n:
+        zh: 人脸识别事件
+  input_requirements:
+    - type: usb
+      description: SenseCAP Watcher connected via USB
+      description_i18n:
+        zh: 通过 USB 连接的 SenseCAP Watcher
+  device_catalog:
+    sensecap_watcher:
+      sku: 113991275
+      name: SenseCAP Watcher
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/0/100051523.jpg
+      product_url: https://www.seeedstudio.com/sensecap-watcher
+      description: AI voice assistant with camera
+      name_i18n:
+        zh: SenseCAP Watcher
+      description_i18n:
+        zh: 带摄像头的 AI 语音助手
+    recomputer_r1100:
+      sku: 113991374
+      name: reComputer R1100
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-CM4-4GB-RAM-32GB-eMMC-p-6254.html
+      description: Edge computing device for display service
+      name_i18n:
+        zh: reComputer R1100
+      description_i18n:
+        zh: 边缘计算设备，用于投屏服务
+    hdmi_display:
+      name: HDMI Display
+      description: Any HDMI-compatible TV or monitor
+      name_i18n:
+        zh: HDMI 显示器
+      description_i18n:
+        zh: 任何 HDMI 兼容的电视或显示器
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: intermediate
+    estimated_time: 40min
+  links:
+    github: https://github.com/78/xiaozhi-esp32
+  presets:
+    - id: display_cast
+      name: Display Cast
+      badge: Recommended
+      description: Cast Xiaozhi conversations to large display
+      architecture_image: gallery/architecture.svg
+      device_groups:
+        - id: voice_assistant
+          name: Voice Assistant Device
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手设备
+        - id: edge_device
+          name: Edge Computing Device
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r1100
+          default: recomputer_r1100
+          name_i18n:
+            zh: 边缘计算设备
+      links:
+        github: https://github.com/78/xiaozhi-esp32
+      name_i18n:
+        zh: 大屏投屏
+      badge_i18n:
+        zh: 推荐
+      description_i18n:
+        zh: 把小智对话投射到电视/大屏
+    - id: face_recognition
+      name: Face Recognition
+      description: Add face recognition to Xiaozhi - greet family by name
+      architecture_image: gallery/demo.svg
+      device_groups:
+        - id: voice_assistant
+          name: Voice Assistant Device
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音助手设备
+      links:
+        github: https://github.com/78/xiaozhi-esp32
+      name_i18n:
+        zh: 人脸识别
+      description_i18n:
+        zh: 给小智装上"眼睛"，认识家人朋友
+  summary_i18n:
+    zh: 让AI助手认识你、记住你、主动服务你——适用于家庭、办公室、展厅的空间智能化
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 打造空间AI智能体

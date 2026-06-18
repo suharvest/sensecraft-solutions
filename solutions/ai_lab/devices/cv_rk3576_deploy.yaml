@@ -1,0 +1,120 @@
+version: "1.0"
+id: cv_rk3576_deploy
+name: reComputer RK3576
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=rk3576 pulls in shared RK3576 pre-deploy fixes
+# (iptables nf_tables → legacy switch + docker restart) and the hardware
+# detection probe (/proc/device-tree/compatible match) from
+# devices/profiles/rk3576.yaml. The iptables action is scope=remote so
+# it never fires on a developer Mac running docker_local; the detection
+# probe runs on both views so misconfigured local deploys abort before
+# any side effect. NPU/disk checks stay solution-local (remote_overrides)
+# since they're coupled to this docker image's runtime needs.
+device_class: rk3576
+
+docker:
+  compose_file: assets/docker/cv-docker-compose.yml
+  remote_path: /home/{{username}}/ai-lab-cv-rk3576
+  environment:
+    MODEL_VARIANT: "{{model_variant}}"
+  options:
+    project_name: ai_lab_cv_rk3576
+    remove_orphans: true
+  services:
+    - name: yolo-cv
+      required: true
+      health_check_endpoint: /api/config
+      port: 8000
+
+ssh:
+  port: 22
+  default_user: cat
+  auth_methods:
+    - password
+  command_timeout: 600
+
+user_inputs:
+  - id: model_variant
+    name: Model
+    type: select
+    required: true
+    default: "yolo11n"
+    options:
+      - value: "yolo11n"
+        label: "YOLO 11n (Nano - fastest, ~5MB)"
+        label_i18n:
+          zh: "YOLO 11n (极速版, ~5MB)"
+      - value: "yolo11s"
+        label: "YOLO 11s (Small - balanced, ~10MB)"
+        label_i18n:
+          zh: "YOLO 11s (均衡版, ~10MB)"
+      - value: "yolo11m"
+        label: "YOLO 11m (Medium - most accurate, ~20MB)"
+        label_i18n:
+          zh: "YOLO 11m (精确版, ~20MB)"
+    name_i18n:
+      zh: 模型选择
+
+data_channels:
+  - type: http
+    name: Predict API
+    method: POST
+    url: "http://{{host}}:8000/api/models/yolo11/predict"
+    name_i18n:
+      zh: 推理 API
+  - type: http_stream
+    name: Video Feed (MJPEG)
+    method: GET
+    url: "http://{{host}}:8000/api/video_feed"
+    content_type: multipart/x-mixed-replace
+    name_i18n:
+      zh: 视频流 (MJPEG)
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: At least 5GB for Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8000
+
+name_i18n:
+  zh: reComputer RK3576
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  post_deployment:
+    open_browser: false
+  actions:
+    before:
+      - name: Check NPU availability
+        run: |
+          set -e
+          if ! dmesg 2>/dev/null | grep -qi rknpu; then
+            echo "RKNPU kernel module not detected."
+            exit 1
+          fi
+          echo "RKNPU detected."
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is not installed."
+            exit 1
+          fi
+          echo "Docker available."
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 3 ] || {
+            echo "Need at least 3GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+          echo "Disk space OK: ${FREE_GB}GB free."
+        name_i18n:
+          zh: 检查 NPU 是否可用

@@ -1,0 +1,219 @@
+version: "1.0"
+id: llm_jetson_deploy
+name: LLM & TTS Service (Jetson)
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from devices/profiles/jetson.yaml.
+# The iptables action is scope=remote so it never fires on a developer
+# Mac running docker_local; the detection probe runs on both views so
+# misconfigured local deploys abort before any side effect.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose-llm-tts.yml
+  environment:
+    MODEL_NAME: "{{model_name}}"
+    TTS_DEFAULT_SID: "{{tts_speaker}}"
+  options:
+    project_name: smart_warehouse_llm
+    remove_orphans: true
+  services:
+    - name: mlc-llm-tts
+      port: 8000
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 1800
+
+user_inputs:
+  - id: model_name
+    name: LLM Model
+    type: select
+    required: true
+    options:
+      - value: qwen3:8b
+        label: Qwen3-8B (Recommended)
+        description: Best quality, ~4.3GB VRAM
+        label_i18n:
+          zh: Qwen3-8B（推荐）
+        description_i18n:
+          zh: 最佳质量，约 4.3GB 显存
+      - value: qwen3:4b
+        label: Qwen3-4B (Faster)
+        description: Good quality, ~2.5GB VRAM
+        label_i18n:
+          zh: Qwen3-4B（更快）
+        description_i18n:
+          zh: 较好质量，约 2.5GB 显存
+      - value: qwen3:1.7b
+        label: Qwen3-1.7B (Lightweight)
+        description: Basic quality, ~1.2GB VRAM
+        label_i18n:
+          zh: Qwen3-1.7B（轻量）
+        description_i18n:
+          zh: 基础质量，约 1.2GB 显存
+    default: qwen3:8b
+    description: Choose LLM model based on your Jetson memory
+    name_i18n:
+      zh: LLM 模型
+    description_i18n:
+      zh: 根据 Jetson 显存选择 LLM 模型
+  - id: tts_speaker
+    name: TTS Speaker
+    type: select
+    required: false
+    options:
+      - value: "50"
+        label: Chinese Female (Default)
+        label_i18n:
+          zh: 中文女声（默认）
+      - value: "0"
+        label: English Female
+        label_i18n:
+          zh: 英文女声
+      - value: "1"
+        label: English Male
+        label_i18n:
+          zh: 英文男声
+    default: "50"
+    description: Choose TTS speaker voice
+    name_i18n:
+      zh: TTS 说话人
+    description_i18n:
+      zh: 选择语音合成说话人
+  - id: deploy_method
+    name: Deployment Method
+    type: select
+    required: true
+    options:
+      - value: offline
+        label: Offline Package (Recommended)
+        description: Use pre-downloaded images and models
+        label_i18n:
+          zh: 离线包部署（推荐）
+        description_i18n:
+          zh: 使用预下载的镜像和模型
+      - value: online
+        label: Online Download
+        description: Download from registry (requires internet)
+        label_i18n:
+          zh: 在线下载
+        description_i18n:
+          zh: 从镜像仓库下载（需要网络）
+    default: offline
+    description: Choose how to deploy images and models
+    name_i18n:
+      zh: 部署方式
+    description_i18n:
+      zh: 选择镜像和模型的部署方式
+
+actions:
+  before:
+    - name: Import Docker image (offline)
+      when:
+        field: deploy_method
+        value: offline
+      run: |
+        set -e
+        gunzip -c dist/mlc-qwen3-fs.tar.gz | docker import \
+          --change 'CMD ["/app/proxy/start.sh"]' \
+          --change 'ENV MLC_BACKEND_URL=http://localhost:8001' \
+          --change 'ENV MODEL_ALIAS={{model_name}}' \
+          --change 'ENV PROXY_PORT=8000' \
+          --change 'ENV TTS_MODEL_DIR=/data/models/kokoro-multi-lang-v1_1' \
+          --change 'ENV TTS_DEFAULT_SID={{tts_speaker}}' \
+          --change 'ENV WARMUP_ENABLED=true' \
+          --change 'WORKDIR /app' \
+          --change 'EXPOSE 8000' \
+          - mlc-qwen3-proxy:v1.0
+      name_i18n:
+        zh: 导入 Docker 镜像（离线）
+    - name: Restore model files (offline)
+      when:
+        field: deploy_method
+        value: offline
+      run: |
+        set -e
+        docker volume create mlc_models
+        docker run --rm -v mlc_models:/data -v $(pwd)/dist:/backup alpine \
+          tar xzf /backup/models-backup.tar.gz -C /data
+
+      name_i18n:
+        zh: 恢复模型文件（离线）
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: nvidia_runtime
+    description: Check NVIDIA container runtime is available
+  - type: disk_space
+    min_gb: 15
+    description: Check available disk space (model ~5GB + runtime)
+
+post_deployment:
+  message: "LLM & TTS service is running. Model: {{model_name}}"
+  exports:
+    - key: JETSON_LLM_URL
+      value: "http://{{host}}:8000/v1"
+    - key: JETSON_TTS_URL
+      value: "http://{{host}}:8000"
+  message_i18n:
+    zh: "LLM 和 TTS 服务已部署。模型: {{model_name}}"
+
+name_i18n:
+  zh: LLM 与 TTS 服务（Jetson）
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_llm
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+      - nvidia_runtime
+  actions:
+    before:
+      - name: Import Docker image (offline)
+        when:
+          field: deploy_method
+          value: offline
+        run: |
+          gunzip -c mlc-qwen3-fs.tar.gz | docker import \
+            --change 'CMD ["/app/proxy/start.sh"]' \
+            --change 'ENV MLC_BACKEND_URL=http://localhost:8001' \
+            --change 'ENV MODEL_ALIAS={{model_name}}' \
+            --change 'ENV PROXY_PORT=8000' \
+            --change 'ENV TTS_MODEL_DIR=/data/models/kokoro-multi-lang-v1_1' \
+            --change 'ENV TTS_DEFAULT_SID={{tts_speaker}}' \
+            --change 'ENV WARMUP_ENABLED=true' \
+            --change 'WORKDIR /app' \
+            --change 'EXPOSE 8000' \
+            - mlc-qwen3-proxy:v1.0
+        name_i18n:
+          zh: 导入 Docker 镜像（离线）
+      - name: Restore model files (offline)
+        when:
+          field: deploy_method
+          value: offline
+        run: |
+          docker volume create mlc_models
+          docker run --rm -v mlc_models:/data -v $(pwd):/backup alpine \
+            tar xzf /backup/models-backup.tar.gz -C /data
+
+        name_i18n:
+          zh: 恢复模型文件（离线）

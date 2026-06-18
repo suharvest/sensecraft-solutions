@@ -1,0 +1,119 @@
+version: "1.0"
+id: jetson_deploy
+name: NVIDIA Jetson
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from devices/profiles/jetson.yaml.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  remote_path: /home/{{username}}/gun-detection-frigate
+  options:
+    project_name: gun-detection-frigate
+    remove_orphans: true
+  services:
+    - name: frigate
+      port: 5000
+      health_check_endpoint: /api/version
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+
+user_inputs:
+  - id: rtsp_url_1
+    name: "Camera 1 RTSP URL (optional)"
+    type: text
+    required: false
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    name_i18n:
+      zh: "摄像头 1 RTSP 地址（可选）"
+  - id: rtsp_url_2
+    name: "Camera 2 RTSP URL (optional)"
+    type: text
+    required: false
+    placeholder: "rtsp://admin:password@192.168.1.65:554/Streaming/Channels/101"
+    name_i18n:
+      zh: "摄像头 2 RTSP 地址（可选）"
+
+pre_checks:
+  - type: disk_space
+    min_gb: 4
+    description: At least 4GB for Frigate TensorRT Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:5000
+
+name_i18n:
+  zh: NVIDIA Jetson
+
+remote_overrides:
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+  post_deployment:
+    open_browser: true
+    url: http://{{host}}:5000
+  actions:
+    after:
+      - name: Configure RTSP cameras
+        ignore_error: true
+        run: |
+          URL1="{{rtsp_url_1}}"
+          URL2="{{rtsp_url_2}}"
+          CONFIG="/home/{{username}}/gun-detection-frigate/config/config.yml"
+          ADDED=0
+
+          add_camera() {
+            local name="$1" url="$2"
+            cat >> "$CONFIG" << 'ENDCAM'
+
+            __CAMERA_NAME__:
+              enabled: true
+              ffmpeg:
+                inputs:
+                  - path: __CAMERA_URL__
+                    roles:
+                      - detect
+                      - record
+              detect:
+                width: 1920
+                height: 1080
+                fps: 5
+              objects:
+                track:
+                  - gun
+                filters:
+                  gun:
+                    threshold: 0.3
+                    min_area: 10
+                    max_area: 500000
+          ENDCAM
+            sed -i "s|__CAMERA_NAME__|$name|" "$CONFIG"
+            sed -i "s|__CAMERA_URL__|$url|" "$CONFIG"
+            ADDED=1
+          }
+
+          [ -n "$URL1" ] && add_camera "rtsp_camera_1" "$URL1"
+          [ -n "$URL2" ] && add_camera "rtsp_camera_2" "$URL2"
+
+          if [ "$ADDED" -eq 1 ]; then
+            cd /home/{{username}}/gun-detection-frigate
+            docker compose restart
+            echo "RTSP cameras configured and Frigate restarted"
+          else
+            echo "No RTSP cameras configured, using demo videos only"
+          fi
+        name_i18n:
+          zh: 配置 RTSP 摄像头

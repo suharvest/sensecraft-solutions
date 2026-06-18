@@ -1,0 +1,128 @@
+version: "1.0"
+id: reachy_claw_voice_robot
+name: Conversational Desktop Robot
+intro:
+  summary: "Turn a desktop robot into a voice companion — listens, thinks, speaks, and expresses emotions in under 1 second. Works with Reachy Mini. Three deployment options: Jetson all-in-one, R2000 with Hailo-8 NPU, or CM4 wireless."
+  description_file: description.md
+  cover_image: gallery/cover.png
+  category: voice_ai
+  tags: [voice, jetson, robot, reachy, ollama, local, hailo, rpi, cm4]
+  solution_type: solution
+
+
+  input_requirements:
+    - type: audio
+      description: Microphone input for voice interaction
+      description_i18n:
+        zh: 用于语音交互的麦克风输入
+  includes_demos:
+    - jetson_voice_assistant
+
+  device_catalog:
+    recomputer_j40:
+      sku: 110110144
+      name: reComputer J40
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration
+      name_i18n:
+        zh: reComputer J40
+      description_i18n:
+        zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉
+    r2000_hailo:
+      sku: 114993595
+      name: reComputer R2000 + Hailo
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
+      product_url: https://www.seeedstudio.com/reComputer-R2000-Series.html
+      description: Industrial Raspberry Pi 5 + Hailo-8 NPU for low-power vision inference
+      name_i18n:
+        zh: reComputer R2000 + Hailo
+      description_i18n:
+        zh: 工业级树莓派 5 + Hailo-8 NPU，低功耗视觉推理
+    reachy_mini:
+      name: Reachy Mini Desktop Robot
+      product_url: https://www.pollen-robotics.com/reachy-mini
+      description: Desktop robot with arms, head, antennas, and camera
+      name_i18n:
+        zh: Reachy Mini 桌面机器人
+      description_i18n:
+        zh: 带双臂、头部、天线和摄像头的桌面机器人
+    reachy_mini_wireless:
+      name: Reachy Mini Wireless (CM4)
+      product_url: https://www.pollen-robotics.com/reachy-mini
+      description: Wireless Reachy Mini with onboard CM4 (Compute Module 4) for self-contained edge deployment
+      name_i18n:
+        zh: Reachy Mini Wireless（CM4 版）
+      description_i18n:
+        zh: Reachy Mini Wireless 版本，自带 CM4（计算模块 4），实现一体化边缘部署
+  presets:
+    - id: jetson
+      name: Jetson All-in-One
+      description: Speech, vision, and robot control all run on one Jetson — simplest setup
+      device_groups:
+        - id: jetson
+          name: Jetson Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+          default: recomputer_j40
+
+          name_i18n:
+            zh: Jetson 设备
+      name_i18n:
+        zh: Jetson 一体化部署
+      description_i18n:
+        zh: 语音、视觉和机器人控制全部跑在同一台 Jetson 上——最简部署
+    - id: r2000_hailo
+      name: R2000 + Hailo-8 (Vision on NPU)
+      description: Everything on one R2000 (Pi 5 + Hailo-8) with vision on the NPU — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
+      device_groups:
+        - id: hailo_device
+          name: R2000 Device (Hailo)
+          type: single
+          required: true
+          options:
+            - device_ref: r2000_hailo
+          default: r2000_hailo
+
+          name_i18n:
+            zh: R2000 设备（Hailo）
+      name_i18n:
+        zh: R2000 + Hailo-8（NPU 视觉）
+      description_i18n:
+        zh: 所有服务运行在 R2000（树莓派 5 + Hailo-8）上，视觉跑在 NPU——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
+    - id: cm4
+      name: Reachy Mini Wireless (CM4)
+      description: Self-contained deployment on the Reachy Mini Wireless CM4 — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
+      device_groups:
+        - id: cm4_device
+          name: CM4 Device
+          type: single
+          required: true
+          options:
+            - device_ref: reachy_mini_wireless
+          default: reachy_mini_wireless
+
+          name_i18n:
+            zh: CM4 设备
+      name_i18n:
+        zh: Reachy Mini Wireless（CM4 版）
+      description_i18n:
+        zh: Reachy Mini Wireless CM4 一体化部署——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+  links:
+    wiki: https://github.com/Seeed-Projects/reachy-claw
+
+  summary_i18n:
+    zh: "让桌面机器人成为语音伙伴——听、想、说、表达情绪，响应不到 1 秒。支持 Reachy Mini，三种部署方案：Jetson 一体化、R2000 + Hailo-8 NPU、或 CM4 无线版。"
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 对话式桌面机器人

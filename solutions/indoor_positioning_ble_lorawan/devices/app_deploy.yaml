@@ -1,0 +1,58 @@
+version: "1.0"
+id: app_deploy
+name: Indoor Positioning Application
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). Pure application-layer
+# Docker stack — no device_class, runs on any Linux/Mac host with Docker.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+
+  options:
+    project_name: indoor_positioning
+    remove_orphans: true
+
+  services:
+    - name: indoor-positioning
+      port: 5173
+      health_check_endpoint: /
+      required: true
+
+ssh:
+  default_user: root
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 1
+    description: At least 1GB for indoor positioning Docker image
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:5173"
+
+name_i18n:
+  zh: 室内定位应用程序
+
+remote_overrides:
+  remote_path: /home/{{username}}/indoor-positioning
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:5173"

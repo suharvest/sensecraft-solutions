@@ -1,0 +1,26 @@
+version: "1.0"
+id: vlm_text
+name: Text Chat
+type: text_chat
+
+text_chat:
+  endpoint:
+    method: POST
+    url_template: "http://{{host}}:8002/v1/chat/completions"
+    headers:
+      Content-Type: application/json
+  request_template: '{"model":"rkllm-vision","messages":[{"role":"user","content":"{{input}}"}],"max_tokens":256,"stream":false}'
+  response_path: "choices.0.message.content"
+  placeholder: "Ask me anything..."
+  placeholder_i18n:
+    zh: "问我任何问题..."
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: 设备 IP
+name_i18n:
+  zh: 文本对话

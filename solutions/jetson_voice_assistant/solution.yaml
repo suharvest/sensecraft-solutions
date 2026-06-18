@@ -1,0 +1,125 @@
+version: "1.0"
+id: jetson_voice_assistant
+name: Local Voice Service
+intro:
+  summary: Streaming ASR + TTS on edge hardware — sub-180ms latency on Jetson, fully offline, no cloud dependency. Supports Jetson Orin, RK3576, RK3588, and Raspberry Pi.
+  description_file: description.md
+  cover_image: gallery/cover.png
+  category: voice_ai
+  solution_type: technical
+  tags: [voice, jetson, asr, tts, local, rk3576, rk3588, raspberry-pi]
+
+  output_interfaces:
+    - type: websocket
+      port: 8621
+      endpoint: /asr/stream
+      description: Real-time streaming speech recognition (int16 PCM in, JSON out)
+      schema_type: json
+      payload_example: '{"text":"hello world","is_final":true,"is_stable":true}'
+      description_i18n:
+        zh: 实时流式语音识别（int16 PCM 输入，JSON 输出）
+    - type: http_stream
+      port: 8621
+      endpoint: /tts/stream
+      method: POST
+      description: Streaming text-to-speech (JSON in, raw PCM stream out)
+      schema_type: binary
+      description_i18n:
+        zh: 流式文字转语音（JSON 输入，原始 PCM 音频流输出）
+    - type: http
+      port: 8621
+      endpoint: /tts
+      method: POST
+      description: Batch text-to-speech (JSON in, WAV out)
+      schema_type: binary
+      description_i18n:
+        zh: 批量文字转语音（JSON 输入，WAV 文件输出）
+    - type: http
+      port: 8621
+      endpoint: /health
+      method: GET
+      description: Service health check (returns ASR and TTS readiness)
+      schema_type: json
+      payload_example: '{"asr":true,"tts":true,"streaming_asr":true}'
+      description_i18n:
+        zh: 服务健康检查（返回 ASR 和 TTS 就绪状态）
+
+  input_requirements: []
+
+  device_catalog:
+    recomputer_j40:
+      sku: 110110144
+      name: reComputer J40
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: NVIDIA Jetson Orin NX 16GB edge AI computer with TensorRT GPU acceleration
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-110110145-recomputer_j4012.jpg
+      name_i18n:
+        zh: reComputer J40
+      description_i18n:
+        zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 计算机，TensorRT GPU 加速
+    recomputer_rk3576:
+      name: reComputer RK3576
+      product_url: https://www.seeedstudio.com/reComputer-RK3576-Mini-PC-p-6266.html
+      description: Runs streaming ASR and TTS locally with RK3576 NPU acceleration
+      image: https://media-cdn.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      name_i18n:
+        zh: reComputer RK3576
+      description_i18n:
+        zh: 使用 RK3576 NPU 本地运行流式语音识别和语音合成
+    recomputer_rk3588:
+      name: reComputer RK3588
+      product_url: https://www.seeedstudio.com/reComputer-RK3588-Mini-PC-p-6267.html
+      description: Runs streaming ASR and TTS locally with RK3588 NPU acceleration
+      image: https://media-cdn.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      name_i18n:
+        zh: reComputer RK3588
+      description_i18n:
+        zh: 使用 RK3588 NPU 本地运行流式语音识别和语音合成
+    raspberry_pi:
+      name: Raspberry Pi
+      product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
+      description: Runs streaming ASR and TTS on CPU — low-cost Chinese + English voice I/O
+      name_i18n:
+        zh: 树莓派
+      description_i18n:
+        zh: CPU 运行流式语音识别和语音合成——低成本中英文语音输入输出
+
+  presets:
+    - id: default
+      name: Deploy Speech Service
+      description: Deploy streaming ASR + TTS service to your edge device via SSH
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_rk3576
+            - device_ref: recomputer_rk3588
+            - device_ref: raspberry_pi
+          default: recomputer_j40
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: 部署语音服务
+      description_i18n:
+        zh: 通过 SSH 将流式语音识别 + 语音合成服务部署到边缘设备
+  links:
+    github: https://github.com/suharvest/openvoicestream
+
+  stats:
+    difficulty: beginner
+    estimated_time: 15min
+
+  summary_i18n:
+    zh: 在 Jetson Orin、RK3576、RK3588 和树莓派上运行流式语音识别和语音合成——Jetson 上延迟低于 180ms，完全离线，无需云端。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 本地语音服务

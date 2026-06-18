@@ -1,0 +1,58 @@
+version: "1.0"
+id: watcher
+name: SenseCAP Watcher
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  # Watcher uses WCH USB-UART chip
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x55d2"
+  # Fallback patterns for different platforms
+  fallback_ports:
+    - "/dev/tty.wchusbserial*"
+    - "/dev/cu.wchusbserial*"
+    - "/dev/tty.usbserial-*"
+    - "/dev/cu.usbserial-*"
+    - "/dev/ttyUSB*"
+    - "/dev/ttyACM*"
+
+firmware:
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+    checksum:
+      sha256: f2a24c1a2063583026a97a03d0c8f00797f632ba50a39a5e612bcc6b752141de
+  flash_config:
+    chip: esp32s3
+    baud_rate: 921600
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 16MB
+    partitions:
+      - name: merged_firmware
+        offset: "0x0"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: Select the USB serial port connected to Watcher
+    auto_detect: true
+
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: 选择连接到 Watcher 的 USB 串口
+pre_checks:
+  - type: serial_port_available
+    description: Check if serial port is accessible
+  - type: esptool_available
+    description: Check if esptool is installed
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 3
+name_i18n:
+  zh: SenseCAP Watcher

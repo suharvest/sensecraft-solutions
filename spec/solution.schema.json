@@ -1,0 +1,1865 @@
+{
+  "$defs": {
+    "AutostartConfig": {
+      "description": "Auto-start browser configuration for the deployed solution.\n\nWhen enabled and the target is a desktop-capable Linux device (RPi OS Desktop /\nUbuntu Desktop), deploy completion will install a `~/.config/autostart/*.desktop`\nentry on the remote host so the configured URL opens in a fullscreen/kiosk\nbrowser on every boot.\n\nNot applicable to headless devices (reCamera, server-only Ubuntu, etc.) — those\nwill be skipped with a warning rather than failing the deployment.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "mode": {
+          "default": "fullscreen",
+          "title": "Mode",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "user": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "User"
+        }
+      },
+      "title": "AutostartConfig",
+      "type": "object"
+    },
+    "DeviceCatalogItem": {
+      "description": "Device definition in catalog (local overrides for global catalog)",
+      "properties": {
+        "category": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Category"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "product_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Url"
+        },
+        "wiki_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wiki Url"
+        }
+      },
+      "title": "DeviceCatalogItem",
+      "type": "object"
+    },
+    "DeviceGroup": {
+      "description": "Device selection group",
+      "properties": {
+        "default": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default"
+        },
+        "default_count": {
+          "default": 1,
+          "title": "Default Count",
+          "type": "integer"
+        },
+        "default_selections": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Default Selections",
+          "type": "array"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "device_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Ref"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "max_count": {
+          "default": 10,
+          "title": "Max Count",
+          "type": "integer"
+        },
+        "min_count": {
+          "default": 0,
+          "title": "Min Count",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "options": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DeviceGroupOption"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceGroupSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "type": {
+          "default": "single",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "DeviceGroup",
+      "type": "object"
+    },
+    "DeviceGroupOption": {
+      "description": "Option within a device group",
+      "properties": {
+        "device_ref": {
+          "title": "Device Ref",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "label_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Label I18N",
+          "type": "object"
+        }
+      },
+      "required": [
+        "device_ref"
+      ],
+      "title": "DeviceGroupOption",
+      "type": "object"
+    },
+    "DeviceGroupSection": {
+      "description": "Section with template variables for device group deployment instructions",
+      "properties": {
+        "description_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description File"
+        },
+        "description_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description File I18N",
+          "type": "object"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "title_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Title I18N",
+          "type": "object"
+        },
+        "variables": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "default": {},
+          "title": "Variables",
+          "type": "object"
+        }
+      },
+      "title": "DeviceGroupSection",
+      "type": "object"
+    },
+    "DeviceRef": {
+      "description": "Device reference in solution",
+      "properties": {
+        "config_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config File"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "preview": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PreviewConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "show_when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceShowWhen"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "targets": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/DeviceTarget"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Targets"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        },
+        "user_inputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/UserInput"
+          },
+          "title": "User Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "title": "DeviceRef",
+      "type": "object"
+    },
+    "DeviceSection": {
+      "description": "Device section in deployment page",
+      "properties": {
+        "description_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description File"
+        },
+        "description_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description File I18N",
+          "type": "object"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "title_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Title I18N",
+          "type": "object"
+        },
+        "troubleshoot_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Troubleshoot File"
+        },
+        "troubleshoot_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Troubleshoot File I18N",
+          "type": "object"
+        },
+        "wiring": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WiringInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "DeviceSection",
+      "type": "object"
+    },
+    "DeviceShowWhen": {
+      "description": "Conditional display rules for devices",
+      "properties": {
+        "preset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preset"
+        }
+      },
+      "title": "DeviceShowWhen",
+      "type": "object"
+    },
+    "DeviceTarget": {
+      "description": "A deployment target variant (e.g., local/remote, or model A/B)",
+      "properties": {
+        "config_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config File"
+        },
+        "default": {
+          "default": false,
+          "title": "Default",
+          "type": "boolean"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "DeviceTarget",
+      "type": "object"
+    },
+    "InputRequirement": {
+      "description": "Input requirement for solutions needing external data",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "description"
+      ],
+      "title": "InputRequirement",
+      "type": "object"
+    },
+    "IntroDownload": {
+      "description": "Downloadable package info for intro page",
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "platform": {
+          "title": "Platform",
+          "type": "string"
+        },
+        "size": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "platform",
+        "label",
+        "url"
+      ],
+      "title": "IntroDownload",
+      "type": "object"
+    },
+    "MediaItem": {
+      "description": "Media item (image or video) in gallery",
+      "properties": {
+        "caption": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Caption"
+        },
+        "caption_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Caption I18N",
+          "type": "object"
+        },
+        "src": {
+          "title": "Src",
+          "type": "string"
+        },
+        "src_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Src I18N",
+          "type": "object"
+        },
+        "thumbnail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thumbnail"
+        },
+        "thumbnail_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Thumbnail I18N",
+          "type": "object"
+        },
+        "type": {
+          "pattern": "^(image|video)$",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "src"
+      ],
+      "title": "MediaItem",
+      "type": "object"
+    },
+    "OutputInterface": {
+      "description": "Output interface for technical demos",
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "endpoint": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Endpoint"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Method"
+        },
+        "payload_example": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Payload Example"
+        },
+        "port": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port"
+        },
+        "schema_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Schema Type"
+        },
+        "topic": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Topic"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "description"
+      ],
+      "title": "OutputInterface",
+      "type": "object"
+    },
+    "Partner": {
+      "description": "Deployment partner who can provide on-site service",
+      "properties": {
+        "contact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Contact"
+        },
+        "logo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Logo"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "regions_i18n": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "title": "Regions I18N",
+          "type": "object"
+        },
+        "website": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Website"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Partner",
+      "type": "object"
+    },
+    "PostDeployment": {
+      "description": "Post-deployment configuration",
+      "properties": {
+        "autostart": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AutostartConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "next_steps": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/PostDeploymentStep"
+          },
+          "title": "Next Steps",
+          "type": "array"
+        },
+        "success_message_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Success Message File"
+        },
+        "success_message_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Success Message File I18N",
+          "type": "object"
+        }
+      },
+      "title": "PostDeployment",
+      "type": "object"
+    },
+    "PostDeploymentStep": {
+      "description": "Post-deployment step",
+      "properties": {
+        "action": {
+          "default": "guide",
+          "title": "Action",
+          "type": "string"
+        },
+        "content_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content File"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "title_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Title I18N",
+          "type": "object"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "PostDeploymentStep",
+      "type": "object"
+    },
+    "Preset": {
+      "description": "Pre-defined device configuration",
+      "properties": {
+        "architecture_image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Architecture Image"
+        },
+        "architecture_image_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Architecture Image I18N",
+          "type": "object"
+        },
+        "badge": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Badge"
+        },
+        "badge_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Badge I18N",
+          "type": "object"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "device_groups": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DeviceGroup"
+          },
+          "title": "Device Groups",
+          "type": "array"
+        },
+        "devices": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DeviceRef"
+          },
+          "title": "Devices",
+          "type": "array"
+        },
+        "disabled": {
+          "default": false,
+          "title": "Disabled",
+          "type": "boolean"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "links": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetLinks"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DeviceGroupSection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "Preset",
+      "type": "object"
+    },
+    "PresetLinks": {
+      "description": "Links specific to a preset",
+      "properties": {
+        "github": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github"
+        },
+        "wiki": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wiki"
+        }
+      },
+      "title": "PresetLinks",
+      "type": "object"
+    },
+    "PreviewConfig": {
+      "description": "Complete preview configuration for a deployment step",
+      "properties": {
+        "display": {
+          "$ref": "#/$defs/PreviewDisplayConfig"
+        },
+        "mqtt": {
+          "$ref": "#/$defs/PreviewMqttConfig"
+        },
+        "overlay": {
+          "$ref": "#/$defs/PreviewOverlayConfig"
+        },
+        "user_inputs": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/UserInput"
+          },
+          "title": "User Inputs",
+          "type": "array"
+        },
+        "video": {
+          "$ref": "#/$defs/PreviewVideoConfig"
+        }
+      },
+      "title": "PreviewConfig",
+      "type": "object"
+    },
+    "PreviewDisplayConfig": {
+      "description": "Display settings for preview",
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "type": "string"
+        },
+        "auto_start": {
+          "default": false,
+          "title": "Auto Start",
+          "type": "boolean"
+        },
+        "show_stats": {
+          "default": true,
+          "title": "Show Stats",
+          "type": "boolean"
+        }
+      },
+      "title": "PreviewDisplayConfig",
+      "type": "object"
+    },
+    "PreviewMqttConfig": {
+      "description": "MQTT configuration for preview",
+      "properties": {
+        "broker_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Broker Template"
+        },
+        "password": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Password"
+        },
+        "port": {
+          "default": 1883,
+          "title": "Port",
+          "type": "integer"
+        },
+        "topic_template": {
+          "default": "inference/results",
+          "title": "Topic Template",
+          "type": "string"
+        },
+        "username": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Username"
+        }
+      },
+      "title": "PreviewMqttConfig",
+      "type": "object"
+    },
+    "PreviewOverlayConfig": {
+      "description": "Overlay rendering configuration",
+      "properties": {
+        "renderer": {
+          "default": "custom",
+          "title": "Renderer",
+          "type": "string"
+        },
+        "script_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Script File"
+        }
+      },
+      "title": "PreviewOverlayConfig",
+      "type": "object"
+    },
+    "PreviewVideoConfig": {
+      "description": "Video source configuration for preview",
+      "properties": {
+        "hls_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hls Url Template"
+        },
+        "mjpeg_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mjpeg Url Template"
+        },
+        "rtsp_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rtsp Url Template"
+        },
+        "type": {
+          "default": "rtsp_proxy",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "PreviewVideoConfig",
+      "type": "object"
+    },
+    "SolutionDeployment": {
+      "description": "Deployment page content",
+      "properties": {
+        "devices": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/DeviceRef"
+          },
+          "title": "Devices",
+          "type": "array"
+        },
+        "guide_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guide File"
+        },
+        "guide_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Guide File I18N",
+          "type": "object"
+        },
+        "order": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        },
+        "post_deployment": {
+          "$ref": "#/$defs/PostDeployment"
+        },
+        "selection_mode": {
+          "default": "sequential",
+          "title": "Selection Mode",
+          "type": "string"
+        }
+      },
+      "title": "SolutionDeployment",
+      "type": "object"
+    },
+    "SolutionIntro": {
+      "description": "Intro page content",
+      "properties": {
+        "category": {
+          "default": "general",
+          "title": "Category",
+          "type": "string"
+        },
+        "cover_image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cover Image"
+        },
+        "description_file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description File"
+        },
+        "description_file_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description File I18N",
+          "type": "object"
+        },
+        "device_catalog": {
+          "additionalProperties": {
+            "$ref": "#/$defs/DeviceCatalogItem"
+          },
+          "default": {},
+          "title": "Device Catalog",
+          "type": "object"
+        },
+        "downloads": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/IntroDownload"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Downloads"
+        },
+        "gallery": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/MediaItem"
+          },
+          "title": "Gallery",
+          "type": "array"
+        },
+        "includes_demos": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Includes Demos",
+          "type": "array"
+        },
+        "input_requirements": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/InputRequirement"
+          },
+          "title": "Input Requirements",
+          "type": "array"
+        },
+        "links": {
+          "$ref": "#/$defs/SolutionLinks"
+        },
+        "output_interfaces": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/OutputInterface"
+          },
+          "title": "Output Interfaces",
+          "type": "array"
+        },
+        "partners": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Partner"
+          },
+          "title": "Partners",
+          "type": "array"
+        },
+        "presets": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Preset"
+          },
+          "title": "Presets",
+          "type": "array"
+        },
+        "solution_type": {
+          "default": "solution",
+          "title": "Solution Type",
+          "type": "string"
+        },
+        "stats": {
+          "$ref": "#/$defs/SolutionStats"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "summary_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Summary I18N",
+          "type": "object"
+        },
+        "tags": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "SolutionIntro",
+      "type": "object"
+    },
+    "SolutionLinks": {
+      "description": "External links for solution",
+      "properties": {
+        "docs": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Docs"
+        },
+        "github": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Github"
+        },
+        "wiki": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wiki"
+        }
+      },
+      "title": "SolutionLinks",
+      "type": "object"
+    },
+    "SolutionStats": {
+      "description": "Solution statistics",
+      "properties": {
+        "deployed_count": {
+          "default": 0,
+          "title": "Deployed Count",
+          "type": "integer"
+        },
+        "difficulty": {
+          "default": "beginner",
+          "title": "Difficulty",
+          "type": "string"
+        },
+        "estimated_time": {
+          "default": "30min",
+          "title": "Estimated Time",
+          "type": "string"
+        },
+        "likes_count": {
+          "default": 0,
+          "title": "Likes Count",
+          "type": "integer"
+        }
+      },
+      "title": "SolutionStats",
+      "type": "object"
+    },
+    "UserInput": {
+      "description": "User input field for deployment",
+      "properties": {
+        "default": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default"
+        },
+        "default_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Template"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "name_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Name I18N",
+          "type": "object"
+        },
+        "placeholder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Placeholder"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "default": "text",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "title": "UserInput",
+      "type": "object"
+    },
+    "WiringInfo": {
+      "description": "Wiring instructions for device",
+      "properties": {
+        "image": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image"
+        },
+        "steps": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "steps_i18n": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "default": {},
+          "title": "Steps I18N",
+          "type": "object"
+        }
+      },
+      "title": "WiringInfo",
+      "type": "object"
+    }
+  },
+  "contract_version": 1,
+  "description": "Complete solution configuration",
+  "properties": {
+    "base_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Path"
+    },
+    "deployment": {
+      "$ref": "#/$defs/SolutionDeployment"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "flags_base_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Flags Base Path"
+    },
+    "has_description": {
+      "default": false,
+      "title": "Has Description",
+      "type": "boolean"
+    },
+    "has_description_i18n": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "default": {},
+      "title": "Has Description I18N",
+      "type": "object"
+    },
+    "has_guide": {
+      "default": false,
+      "title": "Has Guide",
+      "type": "boolean"
+    },
+    "has_guide_i18n": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "default": {},
+      "title": "Has Guide I18N",
+      "type": "object"
+    },
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "intro": {
+      "$ref": "#/$defs/SolutionIntro"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "name_i18n": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "title": "Name I18N",
+      "type": "object"
+    },
+    "version": {
+      "default": "1.0",
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "intro",
+    "deployment"
+  ],
+  "title": "Solution",
+  "type": "object"
+}

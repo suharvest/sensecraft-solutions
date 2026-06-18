@@ -1,0 +1,87 @@
+version: "1.0"
+id: rpi_deploy
+name: Raspberry Pi Speech Service
+type: docker_deploy
+
+docker:
+  compose_file: assets/docker/docker-compose.rpi.yml
+  options:
+    project_name: openvoicestream
+  environment:
+    SEEED_LOCAL_VOICE_PROFILE: "rpi5-default"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for speech service image and models
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8621
+
+name_i18n:
+  zh: 树莓派语音服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/openvoicestream
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    SEEED_LOCAL_VOICE_PROFILE: "{{VOICE_PROFILE}}"
+  pre_checks:
+    - type: disk_space
+      min_gb: 5
+      description: At least 5GB for speech service Docker image
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: VOICE_PROFILE
+      name: Voice Profile
+      type: select
+      default: "rpi5-default"
+      reconfigurable: true
+      options:
+        - value: "rpi5-default"
+          label: "Raspberry Pi 5 (Paraformer + Matcha, Chinese+English)"
+          label_i18n:
+            zh: "树莓派 5（Paraformer + Matcha，中文+英文）"
+        - value: "rpi4-default"
+          label: "Raspberry Pi 4 (Paraformer + Matcha, Chinese+English)"
+          label_i18n:
+            zh: "树莓派 4（Paraformer + Matcha，中文+英文）"
+        - value: "rpi4-asr-zh-en"
+          label: "Raspberry Pi 4 ASR Only (Chinese+English, no TTS)"
+          label_i18n:
+            zh: "树莓派 4 仅 ASR（中文+英文，无 TTS）"
+      name_i18n:
+        zh: 语音配置文件

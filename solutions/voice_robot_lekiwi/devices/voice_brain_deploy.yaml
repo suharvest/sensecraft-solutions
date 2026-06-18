@@ -1,0 +1,197 @@
+version: "1.0"
+id: voice_brain_deploy
+name: Voice Brain (Raspberry Pi)
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). No device_class — the
+# voice brain runs on any Linux host with /dev/snd; the Raspberry Pi is
+# just the most common target, no Pi-specific identity probe is performed.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/lekiwi-voice
+  environment:
+    GROQ_API_KEY: "{{groq_api_key}}"
+    SERIAL_PORT: "auto"
+    MIC_INDEX: "auto"
+    MIC_CHANNELS: "6"
+    MIC_CHANNEL: "0"
+    WAKEWORD_CHANNEL: "all"
+    WAKEWORD_THRESHOLD: "{{wakeword_threshold}}"
+    WAKEWORD_COOLDOWN: "{{wakeword_cooldown}}"
+    WAKEWORD_VAD_THRESHOLD: "0.0"
+    WAKEWORD_MODEL: "{{wakeword_model}}"
+    TTS_VOICE: "{{tts_voice}}"
+    TTS_OUTPUT_DEVICE: "auto"
+    LLM_MODEL: "{{llm_model}}"
+  options:
+    project_name: lekiwi-voice
+    remove_orphans: true
+  services:
+    - name: voice-brain
+      port: 0
+      health_check_endpoint: ""
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+
+actions:
+  before:
+    - name: Reserve microphone for LeKiwi container
+      run: |
+        set -e
+
+        if [ "$(uname -s)" != "Linux" ]; then
+          echo "LeKiwi voice deployment requires Linux with /dev/snd; skipping audio service changes on this host."
+          exit 0
+        fi
+
+        USER_RUNTIME_DIR="/run/user/$(id -u)"
+        if [ -d "$USER_RUNTIME_DIR" ]; then
+          export XDG_RUNTIME_DIR="$USER_RUNTIME_DIR"
+        fi
+
+        if command -v systemctl >/dev/null 2>&1 && systemctl --user list-unit-files >/dev/null 2>&1; then
+          echo "Stopping and masking user audio services so Docker can own /dev/snd..."
+          systemctl --user mask --now \
+            pipewire.service pipewire.socket \
+            pipewire-pulse.service pipewire-pulse.socket \
+            wireplumber.service \
+            pulseaudio.service pulseaudio.socket 2>/dev/null || true
+        else
+          echo "No user systemd audio stack detected; skipping PipeWire/WirePlumber disable."
+        fi
+
+        if [ ! -d /dev/snd ]; then
+          echo "ERROR: /dev/snd is missing. Connect the reSpeaker audio device."
+          exit 1
+        fi
+
+        if command -v fuser >/dev/null 2>&1 && fuser /dev/snd/* >/tmp/lekiwi_snd_users 2>/dev/null; then
+          echo "WARN: /dev/snd is still in use by: $(cat /tmp/lekiwi_snd_users)"
+          echo "Continuing; Docker compose will fail if the microphone cannot be opened."
+        else
+          echo "Audio device is available for the LeKiwi container."
+        fi
+      timeout: 30
+      ignore_error: false
+      name_i18n:
+        zh: 为 LeKiwi 容器预留麦克风
+
+user_inputs:
+  - id: groq_api_key
+    name: Groq API Key
+    type: password
+    required: true
+    reconfigurable: true
+    description: Get a free API key at console.groq.com
+    name_i18n:
+      zh: Groq API 密钥
+    description_i18n:
+      zh: 在 console.groq.com 免费注册获取
+  - id: wakeword_model
+    name: Wake Word
+    type: select
+    required: false
+    reconfigurable: true
+    default: hey jarvis
+    description: Phrase used to wake the assistant. Changing this swaps the loaded openWakeWord model.
+    description_i18n:
+      zh: 唤醒助手的短语，切换后会加载对应的 openWakeWord 模型
+    options:
+      - label: Hey Jarvis
+        value: hey jarvis
+      - label: Alexa
+        value: alexa
+      - label: Hey Mycroft
+        value: hey mycroft
+      - label: Hey Rhasspy
+        value: hey rhasspy
+      - label: Timer
+        value: timer
+      - label: Weather
+        value: weather
+    name_i18n:
+      zh: 唤醒词
+  - id: wakeword_threshold
+    name: Wake Word Threshold
+    type: text
+    required: false
+    reconfigurable: true
+    default: "0.03"
+    description: Detection sensitivity (0.01-0.5). Lower = more sensitive, higher = stricter.
+    description_i18n:
+      zh: 唤醒灵敏度（0.01-0.5）。数值越小越灵敏，越大越严格。
+    name_i18n:
+      zh: 唤醒灵敏度
+  - id: wakeword_cooldown
+    name: Wake Word Cooldown (s)
+    type: text
+    required: false
+    reconfigurable: true
+    default: "2"
+    description: Seconds to ignore further wake events after a successful trigger.
+    description_i18n:
+      zh: 触发后忽略后续唤醒事件的秒数
+    name_i18n:
+      zh: 唤醒冷却（秒）
+  - id: tts_voice
+    name: TTS Voice
+    type: select
+    required: false
+    reconfigurable: true
+    default: autumn
+    options:
+      - label: Autumn
+        value: autumn
+      - label: Tara
+        value: tara
+      - label: Leah
+        value: leah
+      - label: Dan
+        value: dan
+      - label: Mia
+        value: mia
+      - label: Zac
+        value: zac
+    name_i18n:
+      zh: TTS 语音
+  - id: llm_model
+    name: LLM Model
+    type: select
+    required: false
+    reconfigurable: true
+    default: llama-3.1-8b-instant
+    description: Groq-hosted model used to interpret commands. Larger models are smarter but slower.
+    description_i18n:
+      zh: 用于理解指令的 Groq 模型，大模型更聪明但延迟更高
+    options:
+      - label: Llama 3.1 8B Instant (fast)
+        value: llama-3.1-8b-instant
+      - label: Llama 3.3 70B Versatile (smart)
+        value: llama-3.3-70b-versatile
+      - label: Mixtral 8x7B
+        value: mixtral-8x7b-32768
+    name_i18n:
+      zh: LLM 模型
+
+name_i18n:
+  zh: 语音大脑（树莓派）
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running

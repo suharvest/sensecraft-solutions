@@ -1,0 +1,31 @@
+version: "1.0"
+id: verify_api
+name: Generate Images
+type: image_text_to_image
+
+image_text_to_image:
+  endpoint:
+    method: POST
+    url_template: "http://{{host}}:8000/generate_json"
+    headers:
+      Content-Type: application/json
+  request_template: '{"prompt":"{{input}}","num_steps":4,"seed":42}'
+  response_image_path: "image_url"
+  response_mime_type: image/png
+  placeholder: "Describe the image you want to generate..."
+  upload_hint: "Optional: add a reference image"
+  placeholder_i18n:
+    zh: "描述你想生成的图片..."
+  upload_hint_i18n:
+    zh: "可选：添加参考图"
+user_inputs:
+  - id: host
+    name: Jetson IP
+    type: text
+    default: ""
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: Jetson IP
+name_i18n:
+  zh: 生成图片

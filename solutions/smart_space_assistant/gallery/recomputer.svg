@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="rcGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a4a6a"/>
+      <stop offset="100%" style="stop-color:#2a2a4a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="200" height="200" fill="#16213e"/>
+
+  <!-- reComputer body -->
+  <rect x="25" y="50" width="150" height="100" rx="8" fill="url(#rcGrad)" stroke="#4a9eff" stroke-width="2"/>
+
+  <!-- Ventilation lines -->
+  <line x1="35" y1="70" x2="165" y2="70" stroke="#333" stroke-width="2"/>
+  <line x1="35" y1="80" x2="165" y2="80" stroke="#333" stroke-width="2"/>
+  <line x1="35" y1="90" x2="165" y2="90" stroke="#333" stroke-width="2"/>
+
+  <!-- Status LEDs -->
+  <circle cx="45" cy="120" r="5" fill="#8CC63F">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="65" cy="120" r="5" fill="#4a9eff"/>
+  <circle cx="85" cy="120" r="5" fill="#ff9f43"/>
+
+  <!-- Ports -->
+  <rect x="140" y="110" width="25" height="20" rx="2" fill="#1a1a2e" stroke="#555"/>
+  <text x="152" y="124" font-family="Arial" font-size="8" fill="#888" text-anchor="middle">HDMI</text>
+
+  <!-- Label -->
+  <text x="100" y="170" font-family="Arial" font-size="12" fill="white" text-anchor="middle" font-weight="bold">reComputer</text>
+  <text x="100" y="185" font-family="Arial" font-size="10" fill="#888" text-anchor="middle">R Series</text>
+</svg>

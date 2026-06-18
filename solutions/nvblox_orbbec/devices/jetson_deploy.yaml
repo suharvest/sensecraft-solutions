@@ -1,0 +1,469 @@
+version: "1.0"
+id: jetson_deploy
+name: NVIDIA Jetson
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from devices/profiles/jetson.yaml.
+# The iptables action is scope=remote so it never fires on a developer
+# Mac running docker_local; the detection probe runs on both views so
+# misconfigured local deploys abort before any side effect.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  options:
+    project_name: nvblox_orbbec
+    remove_orphans: true
+  services:
+    - name: nvblox-orbbec
+      required: true
+
+ssh:
+  default_user: recomputer
+  auth_methods:
+    - password
+  command_timeout: 14400
+
+user_inputs:
+  - id: base_image_local_path
+    name: Local Base Image Tar Path (Fastest, optional)
+    type: text
+    default: ""
+    required: false
+    placeholder: "D:\\downloads\\nvblox_images.tar"
+    description: "Absolute path on the provisioning-station host. If set, the tar is copied directly to the Jetson over SSH and remote OneDrive download is skipped."
+    name_i18n:
+      zh: 本机基础镜像 tar 路径（最快，可选）
+    description_i18n:
+      zh: "Provisioning Station 所在主机上的绝对路径。填写后会直接通过 SSH 将 tar 复制到 Jetson，并跳过 Jetson 端的 OneDrive 下载。"
+  - id: base_image_url
+    name: Mirror URL (optional)
+    type: text
+    default: ""
+    required: false
+    placeholder: "https://your-mirror.local/nvblox_images.tar"
+    description: "Optional alternative download URL. Used only when no local tar path is provided and the Jetson does not already have the file."
+    name_i18n:
+      zh: 镜像直链（可选）
+    description_i18n:
+      zh: "可选的替代下载地址。仅在未提供本机 tar 路径且 Jetson 本地还没有该文件时使用。"
+
+pre_checks:
+  - type: disk_space
+    min_gb: 20
+    description: At least 20GB for NVBlox Docker image and workspace build artifacts
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson
+
+remote_overrides:
+  remote_path: /home/{{username}}/nvblox-orbbec
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    MANAGED_ROOT: /home/{{username}}/nvblox_demo
+    ROS_DISTRO: humble
+    EXPECTED_WORKSPACE_SPEC_VERSION: nvblox-orbbec-v1
+    NVBLOX_LAUNCH_FILE: orbbec_debug.launch.py
+    RMW_IMPLEMENTATION: rmw_fastrtps_cpp
+    FASTDDS_DEFAULT_PROFILES_FILE: /home/{{username}}/nvblox_demo/.runtime/fastdds/udp_only.xml
+    FASTRTPS_DEFAULT_PROFILES_FILE: /home/{{username}}/nvblox_demo/.runtime/fastdds/udp_only.xml
+  actions:
+    before:
+      - name: Copy common helpers
+        copy:
+          src: assets/jetson/nvblox_common.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy common helpers
+      - name: Reclaim cached base image tar
+        sudo: true
+        run: |
+          bash -lc '
+            set -euo pipefail
+            source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+
+            MANAGED_ROOT="/home/{{username}}/nvblox_demo"
+            TARGET_IMAGE="isaac_ros_dev-aarch64:latest"
+
+            ensure_docker_access
+
+            if docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1; then
+              echo "Base image already exists locally: $TARGET_IMAGE"
+              cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+              FREE_GB="$(df -BG / | awk '\''NR==2{gsub(/G/,"",$4); print $4}'\'')"
+              echo "Free disk after cache cleanup: ${FREE_GB:-0}GB"
+            else
+              echo "Base image not present locally yet; keeping download cache."
+            fi
+          '
+        name_i18n:
+          zh: Reclaim cached base image tar
+      - name: Validate Jetson runtime
+        sudo: true
+        run: |
+          bash -lc '
+            set -euo pipefail
+            source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+
+            [ -f /etc/nv_tegra_release ] || {
+              echo "Not a Jetson device: /etc/nv_tegra_release is missing"
+              exit 1
+            }
+
+            assert_supported_platform
+            echo "Detected runtime: $(describe_jetpack_runtime || echo unknown)"
+
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Docker is not installed on this device."
+              exit 1
+            fi
+
+            ensure_docker_access
+
+            if ! DOCKER_INFO="$(docker_cmd info 2>&1)"; then
+              echo "Docker is not available: $DOCKER_INFO"
+              exit 1
+            fi
+
+            echo "$DOCKER_INFO" | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+              echo "NVIDIA docker runtime is not detected."
+              exit 1
+            }
+
+            cleanup_cached_base_image_downloads_if_image_present \
+              "/home/{{username}}/nvblox_demo" \
+              "isaac_ros_dev-aarch64:latest" || true
+
+            [ -f /usr/bin/tegrastats ] || {
+              echo "Missing Jetson runtime binary: /usr/bin/tegrastats"
+              exit 1
+            }
+
+            [ -d /usr/lib/aarch64-linux-gnu/tegra ] || {
+              echo "Missing Jetson runtime directory: /usr/lib/aarch64-linux-gnu/tegra"
+              exit 1
+            }
+
+            FREE_GB="$(df -BG / | awk '\''NR==2{gsub(/G/,"",$4); print $4}'\'')"
+            [ "${FREE_GB:-0}" -ge 30 ] || {
+              echo "Need at least 30GB free disk, current: ${FREE_GB:-0}GB"
+              exit 1
+            }
+          '
+        name_i18n:
+          zh: Validate Jetson runtime
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          bash -lc '
+            set -euo pipefail
+            source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+
+            compose_ready() {
+              docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1
+            }
+
+            if compose_ready; then
+              exit 0
+            fi
+
+            if command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_BIN="$(command -v docker-compose)"
+              for d in /usr/local/lib/docker/cli-plugins /usr/lib/docker/cli-plugins /usr/libexec/docker/cli-plugins; do
+                mkdir -p "$d"
+                ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+              done
+            fi
+
+            if ! compose_ready && command -v apt-get >/dev/null 2>&1; then
+              export DEBIAN_FRONTEND=noninteractive
+              run_apt_with_lock_retry apt-get update
+              for pkg in docker-compose-plugin docker-compose-v2 docker-compose; do
+                if run_apt_with_lock_retry apt-get install -y "$pkg"; then
+                  break
+                fi
+              done
+            fi
+
+            if ! compose_ready && command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_BIN="$(command -v docker-compose)"
+              for d in /usr/local/lib/docker/cli-plugins /usr/lib/docker/cli-plugins /usr/libexec/docker/cli-plugins; do
+                mkdir -p "$d"
+                ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+              done
+            fi
+
+            compose_ready || {
+              echo "Docker Compose is unavailable. Need either '\''docker compose'\'' or '\''docker-compose'\''."
+              exit 1
+            }
+          '
+        name_i18n:
+          zh: Ensure docker compose command
+      - name: Install bootstrap dependencies
+        sudo: true
+        run: |
+          bash -lc '
+            set -euo pipefail
+            source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+            export DEBIAN_FRONTEND=noninteractive
+            run_apt_with_lock_retry apt-get update
+            run_apt_with_lock_retry apt-get install -y --no-install-recommends \
+              aria2 \
+              python3 \
+              python3-pip \
+              python3-setuptools \
+              python3-wheel \
+              python3-requests \
+              build-essential \
+              git \
+              curl \
+              ca-certificates \
+              gnupg \
+              lsb-release \
+              software-properties-common \
+              locales \
+              psmisc
+          '
+        name_i18n:
+          zh: Install bootstrap dependencies
+      - name: Copy downloader
+        copy:
+          src: assets/jetson/onedrive_downloader.py
+          dest: /home/{{username}}/nvblox-orbbec/jetson/onedrive_downloader.py
+          mode: "0755"
+        name_i18n:
+          zh: Copy downloader
+      - name: Copy Dockerfile
+        copy:
+          src: assets/jetson/Dockerfile.nvblox_orbbec
+          dest: /home/{{username}}/nvblox-orbbec/jetson/Dockerfile.nvblox_orbbec
+          mode: "0644"
+        name_i18n:
+          zh: Copy Dockerfile
+      - name: Copy container workspace bootstrap
+        copy:
+          src: assets/jetson/prepare_container_workspace.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/prepare_container_workspace.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy container workspace bootstrap
+      - name: Copy container launch script
+        copy:
+          src: assets/jetson/launch_nvblox.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/launch_nvblox.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy container launch script
+      - name: Copy host prepare script
+        copy:
+          src: assets/jetson/prepare_host.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/prepare_host.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy host prepare script
+      - name: Copy container prepare script
+        copy:
+          src: assets/jetson/prepare_container.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/prepare_container.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy container prepare script
+      - name: Copy host camera script
+        copy:
+          src: assets/jetson/start_host_camera.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/start_host_camera.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy host camera script
+      - name: Copy runtime verification script
+        copy:
+          src: assets/jetson/verify_runtime.sh
+          dest: /home/{{username}}/nvblox-orbbec/jetson/verify_runtime.sh
+          mode: "0755"
+        name_i18n:
+          zh: Copy runtime verification script
+      - name: Copy base image tar from provisioning station
+        when:
+          field: base_image_local_path
+          not_value: ""
+        copy:
+          src: "{{base_image_local_path}}"
+          dest: /home/{{username}}/nvblox_demo/downloads/nvblox_images.tar
+          mode: "0644"
+        name_i18n:
+          zh: 从 provisioning station 复制基础镜像 tar
+      - name: Download base image tar from mirror URL
+        when:
+          field: base_image_url
+          not_value: ""
+        timeout: 14400
+        run: |
+          set -e
+          source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+          MANAGED_ROOT="/home/{{username}}/nvblox_demo"
+          DOWNLOAD_DIR="${MANAGED_ROOT}/downloads"
+          TARGET_IMAGE="isaac_ros_dev-aarch64:latest"
+          ensure_docker_access
+          if docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1; then
+            echo "Base image already exists: $TARGET_IMAGE; skipping tar download."
+            cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+            exit 0
+          fi
+          mkdir -p "$DOWNLOAD_DIR"
+          python3 -u "/home/{{username}}/nvblox-orbbec/jetson/onedrive_downloader.py" \
+            "{{base_image_url}}" \
+            --output-dir "$DOWNLOAD_DIR" \
+            --backend auto \
+            --aria2-split 8 \
+            --aria2-max-connection-per-server 8 \
+            --aria2-min-split-size 32M \
+            --progress-mode line \
+            --progress-interval 5 \
+            --filename nvblox_images.tar
+        name_i18n:
+          zh: 从镜像 URL 下载基础镜像 tar
+      - name: Download base image tar
+        timeout: 14400
+        run: |
+          set -e
+          source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+          MANAGED_ROOT="/home/{{username}}/nvblox_demo"
+          DOWNLOAD_DIR="${MANAGED_ROOT}/downloads"
+          TARGET_IMAGE="isaac_ros_dev-aarch64:latest"
+          ensure_docker_access
+          if docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1; then
+            echo "Base image already exists: $TARGET_IMAGE; skipping tar download."
+            cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+            exit 0
+          fi
+          mkdir -p "$DOWNLOAD_DIR"
+          python3 -u "/home/{{username}}/nvblox-orbbec/jetson/onedrive_downloader.py" \
+            --output-dir "$DOWNLOAD_DIR" \
+            --backend auto \
+            --aria2-split 8 \
+            --aria2-max-connection-per-server 8 \
+            --aria2-min-split-size 32M \
+            --progress-mode line \
+            --progress-interval 5 \
+            --filename nvblox_images.tar
+        name_i18n:
+          zh: Download base image tar
+      - name: Load base image tar if needed
+        sudo: true
+        timeout: 7200
+        run: |
+          bash -lc '
+            set -euo pipefail
+            source "/home/{{username}}/nvblox-orbbec/jetson/nvblox_common.sh"
+            MANAGED_ROOT="/home/{{username}}/nvblox_demo"
+            TARGET_IMAGE="isaac_ros_dev-aarch64:latest"
+            TAR_PATH="${MANAGED_ROOT}/downloads/nvblox_images.tar"
+            ensure_docker_access
+
+            if docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1; then
+              echo "Base image already exists: $TARGET_IMAGE"
+              cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+              exit 0
+            fi
+
+            [ -f "$TAR_PATH" ] || {
+              echo "Image tar not found: $TAR_PATH"
+              exit 1
+            }
+
+            echo "Loading base image from $TAR_PATH ..."
+            set +e
+            LOAD_OUTPUT="$(docker_cmd load -i "$TAR_PATH" 2>&1)"
+            LOAD_EXIT=$?
+            set -e
+            printf "%s\n" "$LOAD_OUTPUT"
+            [ "$LOAD_EXIT" -eq 0 ] || {
+              echo "docker load failed with exit code $LOAD_EXIT"
+              exit "$LOAD_EXIT"
+            }
+
+            if docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1; then
+              echo "Loaded expected base image: $TARGET_IMAGE"
+              cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+              exit 0
+            fi
+
+            LOADED_REFS="$(printf "%s\n" "$LOAD_OUTPUT" | sed -n "s/^Loaded image: //p" | sed "/^$/d" | sort -u)"
+            LOADED_IDS="$(printf "%s\n" "$LOAD_OUTPUT" | sed -n "s/^Loaded image ID: //p" | sed "/^$/d" | sort -u)"
+
+            REF_COUNT="$(printf "%s\n" "$LOADED_REFS" | sed "/^$/d" | wc -l | tr -d " ")"
+            ID_COUNT="$(printf "%s\n" "$LOADED_IDS" | sed "/^$/d" | wc -l | tr -d " ")"
+
+            if [ "$REF_COUNT" = "1" ]; then
+              SOURCE_REF="$(printf "%s\n" "$LOADED_REFS")"
+              docker_cmd tag "$SOURCE_REF" "$TARGET_IMAGE"
+              echo "Retagged loaded image '\''$SOURCE_REF'\'' to '\''$TARGET_IMAGE'\''."
+            elif [ "$ID_COUNT" = "1" ]; then
+              SOURCE_ID="$(printf "%s\n" "$LOADED_IDS")"
+              docker_cmd tag "$SOURCE_ID" "$TARGET_IMAGE"
+              echo "Retagged loaded image '\''$SOURCE_ID'\'' to '\''$TARGET_IMAGE'\''."
+            else
+              echo "Loaded image does not expose the expected tag '\''$TARGET_IMAGE'\''."
+              echo "Please inspect '\''docker images'\'' on the Jetson and update the tar contents if needed."
+              exit 1
+            fi
+
+            docker_cmd image inspect "$TARGET_IMAGE" >/dev/null 2>&1 || {
+              echo "Failed to verify expected base image after load: $TARGET_IMAGE"
+              exit 1
+            }
+            cleanup_cached_base_image_downloads_if_image_present "$MANAGED_ROOT" "$TARGET_IMAGE" || true
+          '
+        name_i18n:
+          zh: Load base image tar if needed
+      - name: Prepare host workspace
+        timeout: 14400
+        run: |
+          set -e
+          bash "/home/{{username}}/nvblox-orbbec/jetson/prepare_host.sh" \
+            --managed-root "/home/{{username}}/nvblox_demo"
+        name_i18n:
+          zh: Prepare host workspace
+      - name: Prepare container workspace
+        sudo: true
+        timeout: 14400
+        run: |
+          set -e
+          bash "/home/{{username}}/nvblox-orbbec/jetson/prepare_container.sh" \
+            --managed-root "/home/{{username}}/nvblox_demo"
+        name_i18n:
+          zh: Prepare container workspace
+      - name: Start host camera driver
+        timeout: 1800
+        run: |
+          set -e
+          bash "/home/{{username}}/nvblox-orbbec/jetson/start_host_camera.sh" \
+            --managed-root "/home/{{username}}/nvblox_demo"
+
+        name_i18n:
+          zh: Start host camera driver
+    after:
+      - name: Verify NVBlox runtime
+        sudo: true
+        timeout: 1200
+        run: |
+          set -e
+          bash "/home/{{username}}/nvblox-orbbec/jetson/verify_runtime.sh" \
+            --managed-root "/home/{{username}}/nvblox_demo" \
+            --container-name "isaac_ros_nvblox_orbbec"
+
+        name_i18n:
+          zh: Verify NVBlox runtime

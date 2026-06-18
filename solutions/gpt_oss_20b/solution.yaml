@@ -1,0 +1,67 @@
+version: "1.0"
+id: gpt_oss_20b
+name: GPT OSS 20B on Jetson
+intro:
+  summary: One-click SSH deployment of GPT OSS 20B on NVIDIA Jetson with a prebuilt Docker image.
+  description_file: description.md
+  cover_image: gallery/gpt-oss.gif
+  category: llm
+  solution_type: technical
+  tags: [jetson, llm, docker, edge-ai]
+
+  output_interfaces:
+    - type: http
+      port: 8080
+      endpoint: /v1/chat/completions
+      method: POST
+      description: OpenAI-compatible chat completion API
+      schema_type: json
+      payload_example: '{"choices":[{"message":{"content":"response text"}}]}'
+
+      description_i18n:
+        zh: 兼容 OpenAI 格式的对话补全 API
+  input_requirements: []
+
+  device_catalog:
+    recomputer_j40:
+      name: reComputer J40
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: NVIDIA Jetson edge AI computer for local LLM serving
+      name_i18n:
+        zh: reComputer J40
+      description_i18n:
+        zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理
+  presets:
+    - id: jetson_got_oss
+      name: Jetson GPT OSS 20B Service
+      description: Deploy GPT OSS 20B inference service to Jetson with one click.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+          default: recomputer_j40
+
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: Jetson GPT OSS 20B 推理服务
+      description_i18n:
+        zh: 一键将 GPT OSS 20B 推理服务部署到 Jetson。
+  stats:
+    difficulty: beginner
+    estimated_time: 10min
+
+  summary_i18n:
+    zh: 一键通过 SSH 在 NVIDIA Jetson 上部署 GPT OSS 20B，使用预构建 Docker 镜像，自动启动推理服务。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: Jetson 部署 GPT OSS 20B

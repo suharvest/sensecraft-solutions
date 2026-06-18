@@ -1,0 +1,34 @@
+# voice-arm v2 — ovs-agent based pipeline.
+# openvoicestream-agent + sounddevice replace pyaudio, openai, httpx, and
+# the hand-written pipeline.py / stt.py / tts.py / llm.py / wakeword.py.
+#
+# NOTE: openvoicestream-agent is installed from the local source tree
+# COPYed into /opt/openvoicestream during Docker build — not from PyPI.
+# See Dockerfile.slim for the install step.
+openwakeword
+sounddevice
+# pyaudio: used by audio_devices.py for PortAudio device enumeration at
+# entrypoint time (MIC_INDEX=auto resolution). sounddevice could replace it
+# but audio_devices.py predates the v2 migration and still imports pyaudio.
+# Pre-built aarch64 wheel is on PyPI / Tsinghua mirror, no system -dev pkg
+# needed (libportaudio2 from apt is sufficient at runtime).
+pyaudio
+numpy<3
+pyserial
+PyYAML
+fastapi
+uvicorn[standard]
+# feetech-servo-sdk: low-level serial SDK for Feetech STS3215 servos.
+# Replaces the heavy `lerobot[feetech]` dependency — see
+# voice_arm/minimal_so_follower.py for the ~250-line drop-in replacement
+# (P0 image-slim: -1.3 GB layer, no scipy/wandb/transformers/etc).
+feetech-servo-sdk
+pysbd
+websockets>=12
+aiohttp>=3.9
+openai>=1.40
+# NOTE: silero-vad + torchaudio (+ torch) intentionally dropped — server-loop
+# runs VAD server-side (client_vad_backend=off), so the agent never imports
+# them (ovs_agent/vad.py silero path is a late import, never hit). ~570 MB
+# saved. Re-add + restore the Dockerfile torch layer only if a deployment
+# turns client-side silero VAD back on.

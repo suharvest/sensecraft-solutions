@@ -1,0 +1,50 @@
+services:
+  sensecraft-asr-server:
+    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-asr-server:latest
+    container_name: sensecraft-asr-server
+    restart: always
+    network_mode: host
+    volumes:
+      - /data-iot/respeaker/models:/app/models
+      - /data-iot/respeaker/voiceprints:/app/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  sensecraft-voice-client:
+    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client:v0.0.2
+    container_name: sensecraft-voice-client
+    restart: always
+    depends_on:
+      sensecraft-asr-server:
+        condition: service_healthy
+    privileged: true
+    network_mode: host
+    devices:
+      - /dev/snd
+    environment:
+      - TZ=Asia/Shanghai
+      - AUDIO_CARD_ID=1
+      - AUDIO_DEVICE_ID=0
+    volumes:
+      - /data-iot/respeaker/recordings:/app/recordings
+      - /data-iot/respeaker/voiceprints:/app/voiceprints
+      - /data-iot/respeaker/logs:/app/logs
+      - /dev:/dev
+    group_add:
+      - audio
+      - video
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RAWIO
+
+  watchtower:
+    image: sensecraft-missionpack.seeed.cn/respeaker/containrrr/watchtower:latest
+    container_name: watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --cleanup -i 60 sensecraft-asr-server sensecraft-voice-client

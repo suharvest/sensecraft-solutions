@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Frigate Dashboard
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:5000"
+  title: Frigate Dashboard
+  description: View live video, detection events, and recordings
+  title_i18n:
+    zh: Frigate 面板
+  description_i18n:
+    zh: 查看实时视频、检测事件和录像
+name_i18n:
+  zh: 打开 Frigate 面板

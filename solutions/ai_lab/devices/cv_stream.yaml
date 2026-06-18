@@ -1,0 +1,24 @@
+version: "1.0"
+id: cv_stream
+name: Live Video
+type: video_stream
+
+video:
+  type: mjpeg_direct
+  mjpeg_url_template: "http://{{host}}:8000/api/video_feed"
+
+display:
+  aspect_ratio: "16:9"
+  auto_start: false
+  show_stats: true
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: 设备 IP
+name_i18n:
+  zh: 实时视频

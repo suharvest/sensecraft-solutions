@@ -1,0 +1,724 @@
+version: "1.0"
+id: openclaw_deploy
+name: OpenClaw (Local or Jetson)
+type: docker_deploy
+
+# Single source-of-truth device YAML for openclaw_deploy `openclaw_basic`
+# preset. Derives docker_local (any Docker host: Mac, x86 Linux, Jetson
+# in local mode) and docker_remote (SSH into a remote Jetson with NVIDIA
+# runtime) via derive_docker_views().
+#
+# NOTE: We deliberately DO NOT set `device_class: jetson` here. The local
+# target supports any Docker host — including developer Macs — and the
+# Jetson profile's `test -f /etc/nv_tegra_release` detection probe runs
+# on BOTH views, which would block legitimate non-Jetson local deploys.
+# Jetson-specific behaviour (memory limits, GPU Ollama path, runtime
+# validation) is expressed via `remote_overrides` instead.
+
+docker:
+  compose_file: assets/local/docker-compose.yml
+  environment:
+    OPENCLAW_WORKSPACE_VOLUME: "{{workspace_dir}}"
+  options:
+    project_name: openclaw
+    remove_orphans: true
+  services:
+    - name: openclaw-gateway
+      port: 18789
+      health_check_endpoint: /healthz
+      health_check_timeout: 600
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+
+user_inputs:
+  - id: workspace_dir
+    name: Local File Access (optional)
+    type: text
+    default: "~/openclaw_docs"
+    placeholder: "/home/user/documents"
+    description: "Let OpenClaw read files from this directory. Useful for letting AI reference local documents. Leave empty to skip."
+    name_i18n:
+      zh: 本地文件访问（可选）
+    description_i18n:
+      zh: "让 OpenClaw 能读取此目录中的文件，方便 AI 参考本地文档。留空则跳过。"
+  - id: enable_ollama
+    name: Enable Ollama (Local LLM)
+    type: checkbox
+    default: "false"
+    row: 1
+    description: "Start Ollama alongside OpenClaw for local AI inference"
+    name_i18n:
+      zh: 启用 Ollama（本地大模型）
+    description_i18n:
+      zh: "在 OpenClaw 旁启动 Ollama，用于本地 AI 推理"
+  - id: ollama_model
+    name: Ollama Model
+    type: select
+    default: "qwen3.5:2b-q4_K_M"
+    row: 1
+    description: "Model to pull and use with Ollama"
+    show_when:
+      field: enable_ollama
+      value: "true"
+    options:
+      - value: "qwen3.5:2b-q4_K_M"
+        label: "Qwen3.5 2B Q4 (1.9GB, fast)"
+        label_i18n:
+          zh: "Qwen3.5 2B Q4（1.9GB，快速）"
+      - value: "qwen3.5:2b"
+        label: "Qwen3.5 2B (2.7GB)"
+        label_i18n:
+          zh: "Qwen3.5 2B（2.7GB）"
+      - value: "qwen3.5:4b"
+        label: "Qwen3.5 4B (3.4GB)"
+        label_i18n:
+          zh: "Qwen3.5 4B（3.4GB）"
+    name_i18n:
+      zh: Ollama 模型
+    description_i18n:
+      zh: "Ollama 使用的模型"
+
+actions:
+  before:
+    - name: Validate workspace directory
+      run: |
+        set -e
+        WORKSPACE="{{workspace_dir}}"
+        # Skip if empty (will use default named volume)
+        if [ -z "$WORKSPACE" ]; then
+          echo "No workspace directory specified, using default Docker volume"
+          exit 0
+        fi
+        # Expand ~ to home directory
+        case "$WORKSPACE" in
+          "~"/*) WORKSPACE="$HOME/${WORKSPACE#\~/}" ;;
+          "~") WORKSPACE="$HOME" ;;
+        esac
+        # Check if path is absolute
+        case "$WORKSPACE" in
+          /*) ;;
+          *) echo "ERROR: Workspace path must be absolute (start with /): $WORKSPACE"; exit 1 ;;
+        esac
+        echo "RESOLVED_WORKSPACE=$WORKSPACE"
+        # If directory doesn't exist, create it
+        if [ ! -d "$WORKSPACE" ]; then
+          echo "WARNING: Directory does not exist: $WORKSPACE"
+          echo "Creating directory..."
+          mkdir -p "$WORKSPACE" || {
+            echo "ERROR: Failed to create directory: $WORKSPACE"
+            echo "Please create it manually or choose a different path."
+            exit 1
+          }
+          echo "Directory created: $WORKSPACE"
+        else
+          echo "Workspace directory exists: $WORKSPACE"
+        fi
+      timeout: 10
+      name_i18n:
+        zh: 校验工作目录
+  after:
+    - name: Start Ollama
+      when:
+        field: enable_ollama
+        value: "true"
+      run: |
+        set -e
+        # Check if Ollama is already running (native install)
+        if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+          echo "Ollama is already running on port 11434, skipping Docker start"
+          exit 0
+        fi
+        COMPOSE_FILE="{{solution_dir}}/assets/local/docker-compose-ollama.yml"
+        echo "Pulling Ollama image (this may take a few minutes on first run)..."
+        docker compose -f "$COMPOSE_FILE" pull
+        echo "Starting Ollama container..."
+        docker compose -f "$COMPOSE_FILE" -p openclaw up -d
+        echo "Waiting for Ollama to be ready..."
+        for i in $(seq 1 30); do
+          if docker exec ollama ollama list >/dev/null 2>&1; then
+            echo "Ollama is ready"
+            break
+          fi
+          sleep 2
+        done
+      timeout: 600
+
+      name_i18n:
+        zh: 启动 Ollama
+    - name: Pull Ollama model
+      when:
+        field: enable_ollama
+        value: "true"
+      run: |
+        set -e
+        echo "Pulling model {{ollama_model}}..."
+        docker exec ollama ollama pull {{ollama_model}}
+        echo "Model {{ollama_model}} pulled successfully"
+      timeout: 600
+
+      name_i18n:
+        zh: 拉取 Ollama 模型
+    - name: Configure Ollama provider in OpenClaw
+      when:
+        field: enable_ollama
+        value: "true"
+      run: |
+        set -e
+        echo "Configuring Ollama provider in OpenClaw..."
+        docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const home = "/home/node/.openclaw";
+
+          // 1. Global config (openclaw.json)
+          const p = home + "/openclaw.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          if (!cfg.models) cfg.models = {};
+          if (!cfg.models.providers) cfg.models.providers = {};
+          cfg.models.providers.ollama = {
+            baseUrl: "http://localhost:11434/v1",
+            apiKey: "ollama",
+            api: "openai-completions",
+            models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+          };
+          if (!cfg.agents) cfg.agents = {};
+          if (!cfg.agents.defaults) cfg.agents.defaults = {};
+          cfg.agents.defaults.model = "ollama/{{ollama_model}}";
+          fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+
+          // 2. Agent-level config (takes precedence over global)
+          const agentDir = home + "/agents/main/agent";
+          fs.mkdirSync(agentDir, { recursive: true });
+          const mp = agentDir + "/models.json";
+          let mcfg = {};
+          try { mcfg = JSON.parse(fs.readFileSync(mp, "utf8")); } catch {}
+          if (!mcfg.providers) mcfg.providers = {};
+          mcfg.providers.ollama = {
+            baseUrl: "http://localhost:11434/v1",
+            apiKey: "ollama",
+            api: "openai-completions",
+            models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+          };
+          fs.writeFileSync(mp, JSON.stringify(mcfg, null, 2));
+
+          console.log("Ollama provider configured (global + agent-level), default model: ollama/{{ollama_model}}");
+        '
+      timeout: 30
+
+      name_i18n:
+        zh: 在 OpenClaw 中配置 Ollama
+    - name: Enable execution permissions
+      run: |
+        set -e
+        docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const p = "/home/node/.openclaw/openclaw.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          let changed = false;
+          // Commands config
+          if (!cfg.commands) cfg.commands = {};
+          if (cfg.commands.native !== "auto") { cfg.commands.native = "auto"; changed = true; }
+          if (cfg.commands.nativeSkills !== "auto") { cfg.commands.nativeSkills = "auto"; changed = true; }
+          // Tools config: coding profile + only exec/bash to keep token count low for small models
+          const wantTools = {
+            profile: "coding",
+            allow: ["exec", "bash"],
+            deny: [],
+            exec: { host: "gateway", security: "full", ask: "off" }
+          };
+          if (JSON.stringify(cfg.tools) !== JSON.stringify(wantTools)) {
+            cfg.tools = wantTools;
+            changed = true;
+          }
+          if (changed) {
+            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+            console.log("Execution permissions and tools configured");
+          } else {
+            console.log("Execution permissions already configured");
+          }
+        '
+      timeout: 30
+
+      name_i18n:
+        zh: 启用执行权限
+    - name: Optimize workspace for small models
+      when:
+        field: enable_ollama
+        value: "true"
+      run: |
+        set -e
+        echo "Injecting minimal workspace files to reduce system prompt size..."
+        docker exec openclaw-gateway sh -c '
+          WS="/home/node/.openclaw/workspace"
+          mkdir -p "$WS"
+
+          cat > "$WS/AGENTS.md" << "EOF"
+        You are a helpful AI assistant running on this device.
+        You can execute shell commands using the exec tool.
+        Keep responses concise.
+        EOF
+
+          cat > "$WS/SOUL.md" << "EOF"
+        Be helpful and direct. Execute commands when asked.
+        EOF
+
+          cat > "$WS/BOOTSTRAP.md" << "EOF"
+        You have access to shell command execution via the exec tool.
+        EOF
+
+          cat > "$WS/TOOLS.md" << "EOF"
+        Use the exec tool to run shell commands on this device.
+        EOF
+
+          cat > "$WS/IDENTITY.md" << "EOF"
+        Assistant on edge device.
+        EOF
+
+          cat > "$WS/USER.md" << "EOF"
+        Respond in the same language as the user.
+        EOF
+
+          cat > "$WS/HEARTBEAT.md" << "EOF"
+        Reply HEARTBEAT_OK when you receive a heartbeat check.
+        EOF
+
+          chown -R 1000:1000 "$WS"
+          echo "Workspace files optimized for small model"
+        '
+      timeout: 30
+
+      name_i18n:
+        zh: 优化 Workspace（适配小模型）
+    - name: Restart OpenClaw to apply configuration
+      run: |
+        set -e
+        echo "Restarting OpenClaw gateway to apply configuration changes..."
+        docker restart openclaw-gateway
+        echo "Waiting for gateway to be ready..."
+        for i in $(seq 1 60); do
+          if curl -sf http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
+            echo "Gateway is ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "WARNING: Gateway may still be starting up"
+      timeout: 180
+
+      name_i18n:
+        zh: 重启 OpenClaw 使配置生效
+    - name: Display gateway access token
+      run: |
+        set -e
+        TOKEN=$(docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const p = "/home/node/.openclaw/openclaw.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
+          if (token) process.stdout.write(token);
+          else process.stdout.write("NOT_FOUND");
+        ')
+        if [ "$TOKEN" = "NOT_FOUND" ]; then
+          echo "WARNING: Could not read gateway token from config"
+        else
+          echo ""
+          echo "=========================================="
+          echo "  OpenClaw Gateway Token / 网关访问令牌"
+          echo "=========================================="
+          echo ""
+          echo "  Token: $TOKEN"
+          echo ""
+          echo "=========================================="
+          echo ""
+          echo "  URL: http://localhost:18789"
+          echo ""
+        fi
+      timeout: 30
+
+      name_i18n:
+        zh: 显示网关访问令牌
+
+pre_checks:
+  - type: disk_space
+    min_gb: 2
+    description: At least 2GB for OpenClaw Docker image
+
+post_deployment:
+  open_browser: true
+  browser_url: "http://localhost:18789"
+
+name_i18n:
+  zh: OpenClaw（本机或 Jetson）
+
+remote_overrides:
+  remote_path: /home/{{username}}/openclaw
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+  actions:
+    before:
+      - name: Validate Jetson runtime
+        run: |
+          set -e
+
+          [ -f /etc/nv_tegra_release ] || {
+            echo "Not a Jetson device: /etc/nv_tegra_release is missing"
+            exit 1
+          }
+
+          docker info >/dev/null 2>&1 || {
+            echo "Docker is not available"
+            exit 1
+          }
+
+          docker info | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+            echo "NVIDIA docker runtime is not detected"
+            exit 1
+          }
+
+          # Disk/memory thresholds depend on whether Ollama is enabled
+          # OpenClaw alone: ~12GB disk, 4GB RAM
+          # OpenClaw + Ollama: ~20GB disk, 8GB RAM
+          if [ "{{enable_ollama}}" = "true" ]; then
+            MIN_DISK=20
+            MIN_MEM=8
+          else
+            MIN_DISK=12
+            MIN_MEM=4
+          fi
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge "$MIN_DISK" ] || {
+            echo "Need at least ${MIN_DISK}GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+
+          MEM_GB=$(awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+          [ "${MEM_GB:-0}" -ge "$MIN_MEM" ] || {
+            echo "Need at least ${MIN_MEM}GB system memory, current: ${MEM_GB:-0}GB"
+            exit 1
+          }
+          echo "System resources OK: ${FREE_GB}GB disk free, ${MEM_GB}GB RAM"
+        name_i18n:
+          zh: 验证 Jetson 环境
+      - name: Validate workspace directory
+        run: |
+          set -e
+          WORKSPACE="{{workspace_dir}}"
+          if [ -z "$WORKSPACE" ]; then
+            echo "No workspace directory specified, using default Docker volume"
+            exit 0
+          fi
+          # Expand ~ to home directory
+          case "$WORKSPACE" in
+            "~"/*) WORKSPACE="$HOME/${WORKSPACE#\~/}" ;;
+            "~") WORKSPACE="$HOME" ;;
+          esac
+          # Check if path is absolute
+          case "$WORKSPACE" in
+            /*) ;;
+            *) echo "ERROR: Workspace path must be absolute (start with /): $WORKSPACE"; exit 1 ;;
+          esac
+          echo "RESOLVED_WORKSPACE=$WORKSPACE"
+          if [ ! -d "$WORKSPACE" ]; then
+            echo "WARNING: Directory does not exist: $WORKSPACE"
+            echo "Creating directory..."
+            mkdir -p "$WORKSPACE" || {
+              echo "ERROR: Failed to create directory: $WORKSPACE"
+              echo "Please create it manually or choose a different path."
+              exit 1
+            }
+            echo "Directory created: $WORKSPACE"
+          else
+            echo "Workspace directory exists: $WORKSPACE"
+          fi
+        timeout: 10
+        name_i18n:
+          zh: 校验工作目录
+      - name: Ensure docker compose command
+        run: |
+          set -e
+          docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1 || {
+            echo "Docker Compose is unavailable. Need either 'docker compose' (v2 plugin) or 'docker-compose' (standalone)."
+            echo "Install it: sudo apt-get install -y docker-compose-plugin"
+            exit 1
+          }
+          echo "Docker Compose is available"
+        name_i18n:
+          zh: 确保 docker compose 可用
+      - name: Initialize OpenClaw config
+        run: |
+          set -e
+          VOL="openclaw_openclaw-config"
+          docker volume create "$VOL" 2>/dev/null || true
+          WS_VOL="openclaw_openclaw-workspace"
+          docker volume create "$WS_VOL" 2>/dev/null || true
+          docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws alpine sh -c '
+            chown 1000:1000 /data /ws
+            if [ ! -f /data/openclaw.json ]; then
+              cat > /data/openclaw.json <<VOLCFG
+          {"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}},"commands":{"native":"auto","nativeSkills":"auto"},"tools":{"profile":"coding","allow":["exec","bash"],"deny":[],"exec":{"host":"gateway","security":"full","ask":"off"}}}
+          VOLCFG
+              chown 1000:1000 /data/openclaw.json
+              echo "Initial config written"
+            else
+              echo "Config exists, skipping"
+            fi
+          '
+
+        name_i18n:
+          zh: 初始化 OpenClaw 配置
+    after:
+      - name: Start Ollama with GPU
+        when:
+          field: enable_ollama
+          value: "true"
+        sudo: true
+        run: |
+          set -e
+          COMPOSE_FILE="/home/{{username}}/openclaw/jetson/docker-compose-ollama.yml"
+
+          # Always prefer the deployment-managed container so model/runtime behavior
+          # stays consistent across Jetson devices.
+          if docker exec ollama ollama list >/dev/null 2>&1; then
+            echo "Managed Ollama container is already running"
+            exit 0
+          fi
+
+          if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+            echo "Native Ollama detected on port 11434; stopping it so the deployment-managed container can take over"
+            systemctl stop ollama 2>/dev/null || true
+            systemctl disable ollama 2>/dev/null || true
+            pkill -f '[o]llama serve' 2>/dev/null || true
+            pkill -x ollama 2>/dev/null || true
+            sleep 2
+          fi
+
+          if curl -sf http://127.0.0.1:11434/api/tags >/dev/null 2>&1; then
+            echo "ERROR: Port 11434 is still occupied by another Ollama instance"
+            echo "Stop the existing Ollama service/process on the Jetson, then retry deployment"
+            exit 1
+          fi
+
+          echo "Pulling Ollama image (this may take a few minutes on first run)..."
+          docker compose -f "$COMPOSE_FILE" pull
+          echo "Starting Ollama container..."
+          docker compose -f "$COMPOSE_FILE" -p openclaw up -d
+          echo "Waiting for Ollama to be ready..."
+          for i in $(seq 1 30); do
+            if docker exec ollama ollama list >/dev/null 2>&1; then
+              echo "Managed Ollama container is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "ERROR: Managed Ollama container did not become ready in time"
+          exit 1
+        timeout: 600
+
+        name_i18n:
+          zh: 启动 Ollama（GPU 加速）
+      - name: Pull Ollama model
+        when:
+          field: enable_ollama
+          value: "true"
+        sudo: true
+        run: |
+          set -e
+          echo "Pulling model {{ollama_model}}..."
+          if ! docker exec ollama true >/dev/null 2>&1; then
+            echo "ERROR: No Ollama instance available"
+            exit 1
+          fi
+          docker exec ollama ollama pull {{ollama_model}}
+          echo "Model {{ollama_model}} pulled successfully"
+        timeout: 600
+
+        name_i18n:
+          zh: 拉取 Ollama 模型
+      - name: Configure Ollama provider in OpenClaw
+        when:
+          field: enable_ollama
+          value: "true"
+        run: |
+          set -e
+          echo "Configuring Ollama provider in OpenClaw..."
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const home = "/home/node/.openclaw";
+
+            // 1. Global config (openclaw.json)
+            const p = home + "/openclaw.json";
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            if (!cfg.models) cfg.models = {};
+            if (!cfg.models.providers) cfg.models.providers = {};
+            cfg.models.providers.ollama = {
+              baseUrl: "http://localhost:11434/v1",
+              apiKey: "ollama",
+              api: "openai-completions",
+              models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+            };
+            if (!cfg.agents) cfg.agents = {};
+            if (!cfg.agents.defaults) cfg.agents.defaults = {};
+            cfg.agents.defaults.model = "ollama/{{ollama_model}}";
+            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+
+            // 2. Agent-level config (takes precedence over global)
+            const agentDir = home + "/agents/main/agent";
+            fs.mkdirSync(agentDir, { recursive: true });
+            const mp = agentDir + "/models.json";
+            let mcfg = {};
+            try { mcfg = JSON.parse(fs.readFileSync(mp, "utf8")); } catch {}
+            if (!mcfg.providers) mcfg.providers = {};
+            mcfg.providers.ollama = {
+              baseUrl: "http://localhost:11434/v1",
+              apiKey: "ollama",
+              api: "openai-completions",
+              models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+            };
+            fs.writeFileSync(mp, JSON.stringify(mcfg, null, 2));
+
+            console.log("Ollama provider configured (global + agent-level), default model: ollama/{{ollama_model}}");
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 在 OpenClaw 中配置 Ollama
+      - name: Enable execution permissions
+        run: |
+          set -e
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            let changed = false;
+            // Commands config
+            if (!cfg.commands) cfg.commands = {};
+            if (cfg.commands.native !== "auto") { cfg.commands.native = "auto"; changed = true; }
+            if (cfg.commands.nativeSkills !== "auto") { cfg.commands.nativeSkills = "auto"; changed = true; }
+            // Tools config: coding profile + only exec/bash to keep token count low for small models
+            const wantTools = {
+              profile: "coding",
+              allow: ["exec", "bash"],
+              deny: [],
+              exec: { host: "gateway", security: "full", ask: "off" }
+            };
+            if (JSON.stringify(cfg.tools) !== JSON.stringify(wantTools)) {
+              cfg.tools = wantTools;
+              changed = true;
+            }
+            if (changed) {
+              fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+              console.log("Execution permissions and tools configured");
+            } else {
+              console.log("Execution permissions already configured");
+            }
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 启用执行权限
+      - name: Optimize workspace for small models
+        when:
+          field: enable_ollama
+          value: "true"
+        run: |
+          set -e
+          echo "Injecting minimal workspace files to reduce system prompt size..."
+          docker exec openclaw-gateway sh -c '
+            WS="/home/node/.openclaw/workspace"
+            mkdir -p "$WS"
+
+            cat > "$WS/AGENTS.md" << "EOF"
+          You are a helpful AI assistant running on a Jetson device.
+          You can execute shell commands using the exec tool.
+          Keep responses concise.
+          EOF
+
+            cat > "$WS/SOUL.md" << "EOF"
+          Be helpful and direct. Execute commands when asked.
+          EOF
+
+            cat > "$WS/BOOTSTRAP.md" << "EOF"
+          You have access to shell command execution via the exec tool.
+          EOF
+
+            cat > "$WS/TOOLS.md" << "EOF"
+          Use the exec tool to run shell commands on this device.
+          EOF
+
+            cat > "$WS/IDENTITY.md" << "EOF"
+          Assistant on Jetson edge device.
+          EOF
+
+            cat > "$WS/USER.md" << "EOF"
+          Respond in the same language as the user.
+          EOF
+
+            cat > "$WS/HEARTBEAT.md" << "EOF"
+          Reply HEARTBEAT_OK when you receive a heartbeat check.
+          EOF
+
+            chown -R 1000:1000 "$WS"
+            echo "Workspace files optimized for small model"
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 优化 Workspace（适配小模型）
+      - name: Restart OpenClaw to apply configuration
+        run: |
+          set -e
+          echo "Restarting OpenClaw gateway to apply configuration changes..."
+          docker restart openclaw-gateway
+          echo "Waiting for gateway to be ready..."
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
+              echo "Gateway is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "WARNING: Gateway may still be starting up"
+        timeout: 180
+
+        name_i18n:
+          zh: 重启 OpenClaw 使配置生效
+      - name: Display gateway access token
+        run: |
+          set -e
+          TOKEN=$(docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
+            if (token) process.stdout.write(token);
+            else process.stdout.write("NOT_FOUND");
+          ')
+          if [ "$TOKEN" = "NOT_FOUND" ]; then
+            echo "WARNING: Could not read gateway token from config"
+          else
+            echo ""
+            echo "=========================================="
+            echo "  OpenClaw Gateway Token / 网关访问令牌"
+            echo "=========================================="
+            echo ""
+            echo "  Token: $TOKEN"
+            echo ""
+            echo "=========================================="
+            echo ""
+            echo "  URL: http://{{host}}:18789"
+            echo ""
+          fi
+        timeout: 30
+
+        name_i18n:
+          zh: 显示网关访问令牌
+  post_deployment:
+    open_browser: false

@@ -1,0 +1,14 @@
+services:
+  deepseek-llm:
+    image: ghcr.io/seeed-projects/rk3576-deepseek-r1-distill-qwen:${MODEL_VARIANT:-1.5b-w4a16-latest}
+    container_name: ai_lab_llm
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/rknpu:/dev/rknpu
+      - /dev/mali0:/dev/mali0
+    volumes:
+      - /dev:/dev

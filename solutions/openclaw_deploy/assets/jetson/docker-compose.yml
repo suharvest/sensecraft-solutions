@@ -1,0 +1,38 @@
+services:
+  openclaw-gateway:
+    image: ghcr.io/phioranex/openclaw-docker:20260328
+    container_name: openclaw-gateway
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    privileged: true
+    network_mode: host
+    volumes:
+      - openclaw-config:/home/node/.openclaw
+      - ${OPENCLAW_WORKSPACE_VOLUME:-openclaw-workspace}:/home/node/.openclaw/workspace
+      - /dev:/dev
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - NODE_ENV=production
+      - OPENCLAW_GATEWAY_BIND=lan
+      - OPENCLAW_SKIP_SERVICE_CHECK=true
+    command: ["gateway", "--bind", "lan", "--allow-unconfigured"]
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  openclaw-config:
+  openclaw-workspace:

@@ -1,0 +1,85 @@
+version: "1.0"
+id: rk3576_deploy
+name: RK3576 Speech Service
+type: docker_deploy
+
+device_class: rk3576
+
+docker:
+  compose_file: assets/docker/docker-compose.rk.yml
+  options:
+    project_name: openvoicestream
+  environment:
+    SEEED_LOCAL_VOICE_PROFILE: "rk3576-default"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: cat
+
+pre_checks:
+  - type: disk_space
+    min_gb: 15
+    description: At least 15GB for speech service image and models
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8621
+
+name_i18n:
+  zh: RK3576 语音服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/openvoicestream
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    SEEED_LOCAL_VOICE_PROFILE: "{{VOICE_PROFILE}}"
+  pre_checks:
+    - type: disk_space
+      min_gb: 8
+      description: At least 8GB for speech service Docker image
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: cat
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: VOICE_PROFILE
+      name: Voice Profile
+      type: select
+      default: "rk3576-default"
+      reconfigurable: true
+      options:
+        - value: "rk3576-default"
+          label: "Default (Qwen3 ASR + Matcha TTS, Chinese+English)"
+          label_i18n:
+            zh: "默认（Qwen3 ASR + Matcha TTS，中文+英文）"
+        - value: "rk3576-multilang"
+          label: "Multilingual (Qwen3 ASR + Matcha TTS, 52 languages)"
+          label_i18n:
+            zh: "多语言（Qwen3 ASR + Matcha TTS，52 种语言）"
+      name_i18n:
+        zh: 语音配置文件

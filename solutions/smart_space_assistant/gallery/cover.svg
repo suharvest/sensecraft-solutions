@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="faceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffeaa7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fdcb6e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="600" fill="url(#bgGrad)"/>
+
+  <!-- Watcher Device -->
+  <rect x="280" y="120" width="240" height="240" rx="35" fill="#2a2a4a" stroke="#8CC63F" stroke-width="3"/>
+  <circle cx="400" cy="240" r="80" fill="#1a1a2e" stroke="#555" stroke-width="2"/>
+
+  <!-- Watcher face (scanning animation) -->
+  <circle cx="370" cy="225" r="12" fill="#8CC63F"/>
+  <circle cx="430" cy="225" r="12" fill="#8CC63F"/>
+  <path d="M 365 260 Q 400 290 435 260" stroke="#8CC63F" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  <!-- Scanning lines -->
+  <line x1="320" y1="180" x2="480" y2="180" stroke="#8CC63F" stroke-width="2" stroke-opacity="0.5">
+    <animate attributeName="y1" values="180;300;180" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="y2" values="180;300;180" dur="2s" repeatCount="indefinite"/>
+  </line>
+
+  <!-- Person being recognized -->
+  <circle cx="620" cy="200" r="60" fill="url(#faceGrad)"/>
+  <!-- Simple face features -->
+  <circle cx="600" cy="190" r="6" fill="#333"/>
+  <circle cx="640" cy="190" r="6" fill="#333"/>
+  <path d="M 605 215 Q 620 230 635 215" stroke="#333" stroke-width="3" fill="none"/>
+
+  <!-- Recognition label -->
+  <rect x="560" y="280" width="120" height="35" rx="5" fill="#8CC63F"/>
+  <text x="620" y="303" font-family="Arial" font-size="16" fill="white" text-anchor="middle" font-weight="bold">Mike</text>
+
+  <!-- Connection dots -->
+  <circle cx="520" cy="200" r="4" fill="#8CC63F">
+    <animate attributeName="opacity" values="1;0.3;1" dur="0.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="540" cy="200" r="4" fill="#8CC63F">
+    <animate attributeName="opacity" values="0.3;1;0.3" dur="0.5s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="560" cy="200" r="4" fill="#8CC63F">
+    <animate attributeName="opacity" values="1;0.3;1" dur="0.5s" repeatCount="indefinite" begin="0.2s"/>
+  </circle>
+
+  <!-- Speech bubble -->
+  <path d="M 200 380 L 200 420 Q 200 440 220 440 L 380 440 Q 400 440 400 420 L 400 380 Q 400 360 380 360 L 220 360 Q 200 360 200 380 Z" fill="#8CC63F"/>
+  <path d="M 350 440 L 380 470 L 370 440" fill="#8CC63F"/>
+  <text x="300" y="408" font-family="Arial" font-size="16" fill="white" text-anchor="middle">Welcome home, Mike!</text>
+
+  <!-- Title -->
+  <text x="400" y="520" font-family="Arial" font-size="32" fill="white" text-anchor="middle" font-weight="bold">Xiaozhi Face Recognition</text>
+  <text x="400" y="560" font-family="Arial" font-size="18" fill="#8CC63F" text-anchor="middle">Give your AI assistant the ability to see</text>
+</svg>

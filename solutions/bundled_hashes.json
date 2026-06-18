@@ -1,0 +1,21 @@
+{
+  "ai_lab": "sha256:e88bb8c9518f85a72e1f34145c654f57fc93149af3dcff3d1a8c861e3921dbe7",
+  "depth_anything_v3": "sha256:fa40bf6df80430b86c7860e45c31a6a43bb73626750e455ddeb65373f9be7278",
+  "gpt_oss_20b": "sha256:ddc01352293bede4aef879bea80ee0d3a3e50cf2976375ee36ac168499e7ea67",
+  "gun_detection_frigate": "sha256:d6ce5ae039377def09445a8a51b84b2eef69a852d346a897774f6661a2da78c2",
+  "indoor_positioning_ble_lorawan": "sha256:da7574d432c4c0b3ba15200ba0c94cdff91f3e1dd855d4036e97fd41cb3f6a15",
+  "industrial_security_jetson": "sha256:754fc808da55cf26cd341fae3ac48acebb865edcbbc143c03181a5372ba6fc31",
+  "jetson_voice_assistant": "sha256:a91535c6d3911b73d7382488a68dd5000de0aff78d352fe2d81515909f3dff4f",
+  "openclaw_deploy": "sha256:aaead62ec1ded4dbdb4acd6c11eab4fed611fe170d04ab86edcfba20035d590c",
+  "reachy_claw_voice_robot": "sha256:237aadd91efbe02ec6702ae8cc53039de3ac1d7018606968b11ed882802f477f",
+  "recamera_ecosystem": "sha256:8f28d6e5cbdadc9099f381ce8ba5503a251e2407c6233f63b40ae7c3aa15c948",
+  "recamera_heatmap_grafana": "sha256:1faf083ad880ff0b8ff93fa053611c87e719128ebfbada07f6d8f80d3831f9d2",
+  "recamera_parking_monitor": "sha256:9de5be1e6398cd9a2334d95abb4072540f298539f4f6d2840a3e3a26488e8e72",
+  "respeaker_flex_soarm": "sha256:4e13656828ccd62fdb770ac169c3ef1a905d6c59a5328badb672bbafa8df9e52",
+  "smart_hvac_control": "sha256:b4599a58f0e94fc23b1ac773f618f30be332f7d1c0b31d6ef46469e47f6aff18",
+  "smart_retail_voice_ai": "sha256:563187822fe18cf31b22e758d6b2943fbdd694e85935c847d025dec59e33916c",
+  "smart_space_assistant": "sha256:c62d24ff80ba9bf41072c0e893b1ce6d3aedb7a505e94705123998bb4a3e3b17",
+  "smart_warehouse": "sha256:4ef2c526fe3253aea766db661eb1a7351589d53a25733b2fcf31db9a5b182c90",
+  "voice_robot_lekiwi": "sha256:a4f681c222347a534e90a34fb7361c9b4b00e0d4e9acc8402b449cd5cbc4ec32",
+  "z_image_turbo": "sha256:76201fcdf8cbf9ba399767c6fa0f0e7a4e5f6b38d5cdabb0721783744b599400"
+}

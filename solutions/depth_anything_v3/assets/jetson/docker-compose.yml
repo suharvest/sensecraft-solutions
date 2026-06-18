@@ -1,0 +1,125 @@
+services:
+  depth-anything-v3:
+    image: sensecraft-missionpack.seeed.cn/solution/depth-anything-v3:slim
+    container_name: depth_anything_v3
+    restart: unless-stopped
+    runtime: nvidia
+    network_mode: host
+    ipc: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    working_dir: /workspace/ros2-depth-anything-v3-trt
+    environment:
+      - DISPLAY=${DISPLAY:-}
+      - XAUTHORITY=/root/.Xauthority
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1
+      - GST_DEBUG=1
+      - TZ=${TZ:-Asia/Shanghai}
+      - CAMERA_ID=${CAMERA_ID:-auto}
+      - ENCODER=${ENCODER:-x264enc}
+      - STREAM_FPS=${STREAM_FPS:-6}
+      - BITRATE_KBPS=${BITRATE_KBPS:-1500}
+      - PANEL_WIDTH=${PANEL_WIDTH:-480}
+      - PANEL_HEIGHT=${PANEL_HEIGHT:-360}
+      - MAX_POINTS=${MAX_POINTS:-8000}
+      - POINT_RADIUS=${POINT_RADIUS:-1}
+      - LD_LIBRARY_PATH=/host-libs:/host-cuda:/host-syslibs:/usr/lib/aarch64-linux-gnu/nvidia:/opt/ros/humble/lib:/usr/local/lib:/usr/lib/aarch64-linux-gnu:/usr/lib
+      - PYTHONPATH=/opt/ros/humble/lib/python3.10/site-packages:/opt/ros/humble/local/lib/python3.10/dist-packages
+      - RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOST_XAUTHORITY_FILE:-/tmp/depth_anything_v3.xauth}:/root/.Xauthority:ro
+      - ./run_camera_depth_rtsp.sh:/workspace/ros2-depth-anything-v3-trt/run_camera_depth_rtsp.sh:ro
+      - /dev:/dev
+      - /etc/localtime:/etc/localtime:ro
+      - /run/jtop.sock:/run/jtop.sock
+      - /tmp/argus_socket:/tmp/argus_socket
+      - /etc/enctune.conf:/etc/enctune.conf:ro
+      # Persistent TRT engine cache (device-specific, avoid rebuild on restart)
+      - depth-anything-v3-engines:/workspace/ros2-depth-anything-v3-trt/onnx
+      # Host GPU + TensorRT libs (TRT not injected by runtime: nvidia)
+      - /usr/lib/aarch64-linux-gnu:/host-libs:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/usr/lib/aarch64-linux-gnu/nvidia:ro
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /lib/aarch64-linux-gnu:/host-syslibs:ro
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        source /opt/ros/humble/setup.bash
+        cd /workspace/ros2-depth-anything-v3-trt
+
+        echo "Available video devices:"
+        ls -1 /dev/video* 2>/dev/null || true
+
+        # Camera auto-detection is handled inside run_camera_depth_rtsp.sh.
+        REQUESTED_CAMERA_ID="$${CAMERA_ID:-auto}"
+        case "$$REQUESTED_CAMERA_ID" in
+          ''|auto|AUTO)
+            export CAMERA_ID="auto"
+            echo "CAMERA_ID is set to auto (detection will run in script)."
+            ;;
+          *[!0-9]*)
+            echo "Invalid CAMERA_ID='$$REQUESTED_CAMERA_ID' (must be numeric or 'auto')."
+            exit 1
+            ;;
+          *)
+            CAMERA_ID="$$REQUESTED_CAMERA_ID"
+            if [ ! -e "/dev/video$${CAMERA_ID}" ]; then
+              echo "Configured CAMERA_ID=$$CAMERA_ID but /dev/video$${CAMERA_ID} does not exist."
+              ls -1 /dev/video* 2>/dev/null || true
+              exit 1
+            fi
+            export CAMERA_ID="$$CAMERA_ID"
+            ;;
+        esac
+
+        REQUESTED_ENCODER="$${ENCODER:-x264enc}"
+        if ! command -v gst-inspect-1.0 >/dev/null 2>&1; then
+          echo "gst-inspect-1.0 not found in container; cannot validate encoder."
+          exit 1
+        fi
+
+        if gst-inspect-1.0 "$$REQUESTED_ENCODER" >/dev/null 2>&1; then
+          export ENCODER="$$REQUESTED_ENCODER"
+        elif gst-inspect-1.0 x264enc >/dev/null 2>&1; then
+          echo "Encoder '$$REQUESTED_ENCODER' not available, falling back to x264enc."
+          export ENCODER="x264enc"
+        else
+          echo "No usable H.264 encoder found (requested: '$$REQUESTED_ENCODER', fallback: x264enc)."
+          exit 1
+        fi
+
+        # x264 path works headless and avoids Jetson EGL/X11 authorization issues.
+        if [ "$$ENCODER" = "x264enc" ]; then
+          unset DISPLAY XAUTHORITY GST_GL_WINDOW GST_GL_PLATFORM
+          echo "Headless x264 mode: DISPLAY/XAUTHORITY/GST_GL_* unset."
+        else
+          export DISPLAY="$${DISPLAY:-:0}"
+          export XAUTHORITY="$${XAUTHORITY:-/root/.Xauthority}"
+          export GST_GL_WINDOW="$${GST_GL_WINDOW:-dummy}"
+          export GST_GL_PLATFORM="$${GST_GL_PLATFORM:-egl}"
+          echo "NVIDIA encoder mode: DISPLAY=$$DISPLAY XAUTHORITY=$$XAUTHORITY"
+        fi
+
+        echo "Using camera device: /dev/video$$CAMERA_ID"
+        echo "Using RTSP encoder: $$ENCODER"
+        export STREAM_FPS="$${STREAM_FPS:-6}"
+        export BITRATE_KBPS="$${BITRATE_KBPS:-1500}"
+        export PANEL_WIDTH="$${PANEL_WIDTH:-480}"
+        export PANEL_HEIGHT="$${PANEL_HEIGHT:-360}"
+        export MAX_POINTS="$${MAX_POINTS:-8000}"
+        export POINT_RADIUS="$${POINT_RADIUS:-1}"
+        exec bash ./run_camera_depth_rtsp.sh
+
+volumes:
+  depth-anything-v3-engines:

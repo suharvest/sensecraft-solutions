@@ -1,0 +1,9 @@
+[tool.uv.workspace]
+members = ["packages/*"]
+
+# This repository hosts open SenseCraft solution content plus the authoring /
+# validation tooling. The two workspace packages below are published to PyPI:
+#   - sensecraft-solution-spec : guide.md parser + spec primitives
+#   - solutionctl              : offline validator + thin client to the engine
+# There are no closed-engine dependencies here by design (CI enforces it via
+# scripts/public-repo-guard.sh).

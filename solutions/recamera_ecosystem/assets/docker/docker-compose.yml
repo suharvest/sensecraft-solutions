@@ -1,0 +1,14 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: recamera-homeassistant
+    ports:
+      - "8123:8123"
+    volumes:
+      - ha-config:/config
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+
+volumes:
+  ha-config:

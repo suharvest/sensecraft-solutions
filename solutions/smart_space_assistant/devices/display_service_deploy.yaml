@@ -1,0 +1,81 @@
+version: "1.0"
+id: display_service_deploy
+name: Display Service
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). No device_class — the
+# Xiaozhi display service is a generic Docker app that runs anywhere with
+# Docker installed.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/xiaozhi_display
+
+  environment:
+    TZ: Asia/Shanghai
+    RD_DEVICE_NAME: "{{device_name}}"
+
+  options:
+    project_name: xiaozhi_display
+    remove_orphans: true
+
+  services:
+    - name: xiaozhi-display
+      port: 8765
+      health_check_endpoint: /
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 1
+    description: At least 1GB for display service Docker image
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:8765"
+
+name_i18n:
+  zh: 投屏服务
+
+user_inputs:
+  - id: device_name
+    name: Display Name
+    type: text
+    default: "Xiaozhi Display"
+    required: false
+    placeholder: "Living Room Display"
+    description: Device name shown in mDNS discovery and Web UI
+    name_i18n:
+      zh: 显示名称
+    description_i18n:
+      zh: 在 mDNS 设备发现和 Web 界面显示的名称
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8765"

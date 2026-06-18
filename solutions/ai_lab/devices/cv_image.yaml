@@ -1,0 +1,28 @@
+version: "1.0"
+id: cv_image
+name: Image Detection
+type: image_predict
+
+image_predict:
+  endpoint:
+    method: POST
+    url_template: "http://{{host}}:8000/api/models/yolo11/predict"
+    content_type: multipart
+    file_field: file
+  overlay:
+    renderer: bbox
+    label_path: "predictions[].class"
+    confidence_path: "predictions[].confidence"
+    box_path: "predictions[].box"
+    box_format: xyxy
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: 设备 IP
+name_i18n:
+  zh: 图片检测

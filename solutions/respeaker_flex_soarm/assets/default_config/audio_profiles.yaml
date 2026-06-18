@@ -1,0 +1,58 @@
+# reSpeaker mic auto-profile table.
+#
+# Active when MIC_CHANNELS=auto (the default). At startup VoiceArmApp queries
+# the connected input device's native channel count + ALSA name and applies
+# the FIRST profile whose every `match` key holds (so put specific entries
+# first, the empty-match `fallback` last).
+#
+# Why this exists: different reSpeaker XVF3800 firmware variants expose a
+# different USB-UAC channel count. A value pinned to one variant makes
+# PortAudio reject the other with "Invalid number of channels [-9998]" and the
+# mic pump crash-loops. Auto-profiling picks the right count per connected unit.
+#
+# To add a new reSpeaker variant: plug it in, read its `lsusb` id + channel
+# count (`cat /proc/asound/card<N>/stream0` → Capture Channels), add a block.
+# No image rebuild needed — this file is bind-mounted into the config dir.
+#
+# match keys (all declared keys must hold):
+#   input_channels : exact native input-channel count (most reliable key —
+#                    firmware changes change this)
+#   name_regex     : Python regex against the ALSA device name (refinement)
+# applied values:
+#   mic_channels       : channels to open; `auto` = device native count
+#   mic_channel_select : which channel feeds mono ASR (0-based); `mean` to mix
+#   mic_makeup_gain    : linear gain on the mic audio for THIS firmware. The
+#                        variants differ a lot (quiet 6ch ch0 wants ~12x; the
+#                        louder 2ch firmware clips at 12x → garbled ASR, wants
+#                        ~2x), so gain belongs per-profile. Applied only when
+#                        the rendered agent.yaml leaves mic_makeup_gain at the
+#                        1.0 no-op default; an explicit non-1.0 there wins.
+#
+# An explicit numeric MIC_CHANNELS env still overrides everything here.
+
+profiles:
+  # Original firmware — USB 2886:001e, 6 in, "reSpeaker Flex XVF3800 C16K6Ch".
+  - name: xvf3800-flex-6ch
+    match:
+      input_channels: 6
+      name_regex: "(?i)C16K6Ch|Flex XVF3800"
+    mic_channels: 6
+    mic_channel_select: 0   # field-verified working channel on the 6ch unit
+    mic_makeup_gain: 12.0    # quiet ch0 needs heavy makeup for the server VAD
+
+  # Newer firmware — USB 2886:001a, 2 in, "reSpeaker XVF3800 4-Mic Array".
+  # The 2ch UAC output is already AEC/beamform-processed, so ch0 feeds ASR.
+  - name: xvf3800-4mic-2ch
+    match:
+      input_channels: 2
+      name_regex: "(?i)4-Mic Array|XVF3800"
+    mic_channels: 2
+    mic_channel_select: 0
+    mic_makeup_gain: 2.0     # louder firmware; 12x clips → garbled ASR (field-tuned)
+
+  # Anything else: open the device's native channel count, pick ch0.
+  - name: fallback
+    match: {}
+    mic_channels: auto
+    mic_channel_select: 0
+    mic_makeup_gain: 1.0     # unknown mic → no makeup; tune per deployment

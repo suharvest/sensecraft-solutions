@@ -1,0 +1,89 @@
+version: "1.0"
+id: depth_anything_v3
+name: Depth Anything V3 on Jetson
+intro:
+  summary: One-click SSH deployment of Depth Anything V3 on NVIDIA Jetson with a prebuilt Docker image.
+  description_file: description.md
+  cover_image: gallery/da3.png
+  gallery:
+    - type: image
+      src: gallery/da3.png
+      caption: Depth Anything V3 demo view
+      caption_i18n:
+        zh: Depth Anything V3 演示画面
+    - type: image
+      src: gallery/engine.png
+      caption: TensorRT engine generation
+      caption_i18n:
+        zh: TensorRT 引擎生成过程
+  category: vision
+  solution_type: technical
+  tags: [jetson, depth-estimation, docker, edge-ai]
+
+  output_interfaces:
+    - type: rtsp
+      port: 8554
+      description: Depth estimation video stream processed by TensorRT
+      schema_type: binary
+      description_i18n:
+        zh: 经 TensorRT 加速的深度估计视频流
+    - type: http
+      port: 80
+      endpoint: /api/depth
+      method: GET
+      description: Depth map image via REST API
+      schema_type: binary
+
+      description_i18n:
+        zh: 通过 REST API 获取深度图
+  input_requirements:
+    - type: rtsp
+      description: Any camera RTSP stream or USB camera
+      description_i18n:
+        zh: 任意摄像头 RTSP 流或 USB 摄像头
+  device_catalog:
+    recomputer_j40:
+      name: reComputer J40
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: NVIDIA Jetson edge AI computer for real-time depth estimation
+      name_i18n:
+        zh: reComputer J40
+      description_i18n:
+        zh: 用于实时深度估计的 NVIDIA Jetson 边缘 AI 计算机
+  presets:
+    - id: jetson_depth
+      name: Jetson One-Click Depth Demo
+      description: Deploy Depth Anything V3 to Jetson via SSH without manual command input.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+          default: recomputer_j40
+
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: Jetson 一键深度估计演示
+      description_i18n:
+        zh: 通过 SSH 一键部署 Depth Anything V3，无需用户手动输入命令。
+  stats:
+    difficulty: beginner
+    estimated_time: 10min
+
+  links:
+    github: https://github.com/Seeed-Projects/jetson-examples
+
+  summary_i18n:
+    zh: 基于预构建 Docker 镜像，通过 SSH 一键部署 Depth Anything V3 到 NVIDIA Jetson。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: Jetson 一键部署 Depth Anything V3

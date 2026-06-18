@@ -1,0 +1,163 @@
+version: "1.0"
+id: jetson_deploy
+name: NVIDIA Jetson YOLO11 Detector
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) and hardware detection probe
+# (test -f /etc/nv_tegra_release) from devices/profiles/jetson.yaml.
+# The iptables action is scope=remote so it never fires on a developer
+# Mac running docker_local; the detection probe runs on both views so
+# misconfigured local deploys abort before any side effect.
+device_class: jetson
+
+detection:
+  method: local
+  requirements:
+    - docker
+    - nvidia_runtime
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+
+  environment:
+    DOCKER_INFLUXDB_INIT_MODE: setup
+    DOCKER_INFLUXDB_INIT_USERNAME: admin
+    DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
+    DOCKER_INFLUXDB_INIT_ORG: seeed
+    DOCKER_INFLUXDB_INIT_BUCKET: recamera
+    DOCKER_INFLUXDB_INIT_RETENTION: 7d
+    DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: recamera-heatmap-token
+
+  options:
+    project_name: recamera-heatmap-jetson
+    remove_orphans: true
+
+  services:
+    - name: influxdb
+      port: 8086
+      health_check_endpoint: /health
+      required: true
+    - name: grafana
+      port: 3000
+      health_check_endpoint: /api/health
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: yolo11-app
+      port: 5001
+      required: true
+
+ssh:
+  default_user: seeed
+
+user_inputs:
+  - id: camera_type
+    name: Camera Type
+    type: select
+    default: "rtsp"
+    required: true
+    options:
+      - value: rtsp
+        label: IP Camera (RTSP)
+        label_i18n:
+          zh: IP 摄像头（RTSP）
+      - value: usb
+        label: USB Camera
+        label_i18n:
+          zh: USB 摄像头
+    name_i18n:
+      zh: 摄像头类型
+  - id: rtsp_url
+    name: RTSP Camera URL
+    type: text
+    placeholder: "rtsp://192.168.1.50:554/stream"
+    description: RTSP stream URL of your IP camera
+    required: true
+    show_when:
+      field: camera_type
+      value: rtsp
+
+    name_i18n:
+      zh: RTSP 摄像头地址
+    description_i18n:
+      zh: IP 摄像头的 RTSP 流地址
+  - id: usb_device
+    name: USB Camera Device
+    type: text
+    default: "auto"
+    placeholder: "auto"
+    description: Device path (/dev/video0) or "auto" to scan all USB cameras
+    required: true
+    show_when:
+      field: camera_type
+      value: usb
+
+    name_i18n:
+      zh: USB 摄像头设备
+    description_i18n:
+      zh: 设备路径（/dev/video0）或 "auto" 自动扫描所有 USB 摄像头
+
+pre_checks:
+  - type: docker
+    description: Docker must be installed and running
+  - type: port_available
+    ports:
+      - 8086
+      - 3000
+      - 1883
+      - 5001
+  - type: disk_space
+    min_gb: 4
+    description: At least 4GB for InfluxDB + Grafana + YOLO + MQTT images
+
+actions:
+  before:
+    - name: Set video source
+      run: |
+        set -e
+        if [ "{{camera_type}}" = "rtsp" ]; then
+          VIDEO_SRC="{{rtsp_url}}"
+        else
+          VIDEO_SRC="{{usb_device}}"
+        fi
+        sed -i.bak "s|VIDEO_SOURCE=.*|VIDEO_SOURCE=${VIDEO_SRC}|" "assets/jetson/docker-compose.yml" 2>/dev/null || true
+
+      name_i18n:
+        zh: 设置视频源
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:3000"
+
+name_i18n:
+  zh: NVIDIA Jetson YOLO11 检测器
+
+remote_overrides:
+  remote_path: /home/{{username}}/recamera-heatmap-jetson
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+  pre_checks: []
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:3000"
+  actions:
+    before:
+      - name: Set video source
+        run: |
+          COMPOSE_DIR="{{remote_path}}"
+          if [ "{{camera_type}}" = "rtsp" ]; then
+            VIDEO_SRC="{{rtsp_url}}"
+          else
+            VIDEO_SRC="{{usb_device}}"
+          fi
+          sed -i "s|VIDEO_SOURCE=.*|VIDEO_SOURCE=${VIDEO_SRC}|" "${COMPOSE_DIR}/docker-compose.yml" 2>/dev/null || true
+
+        name_i18n:
+          zh: 设置视频源

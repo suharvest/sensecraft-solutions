@@ -1,0 +1,309 @@
+[
+    {
+        "id": "flow-heatmap",
+        "type": "tab",
+        "label": "Heatmap Flow",
+        "disabled": false,
+        "info": "Person detection with heatmap data collection via InfluxDB"
+    },
+    {
+        "id": "{{sscma_client_id}}",
+        "type": "sscma",
+        "host": "localhost",
+        "mqttport": "1883",
+        "apiport": "80",
+        "clientid": "recamera",
+        "username": "",
+        "password": ""
+    },
+    {
+        "id": "069087e0ad1b172e",
+        "type": "influxdb",
+        "hostname": "{{influxdb_host}}",
+        "port": "8086",
+        "protocol": "http",
+        "database": "recamera",
+        "name": "InfluxDB 2.x",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://{{influxdb_host}}:8086",
+        "rejectUnauthorized": false
+    },
+    {
+        "id": "9ab1ee429e233a80",
+        "type": "ui-base",
+        "name": "My Dashboard",
+        "path": "/dashboard",
+        "appIcon": "",
+        "includeClientData": true,
+        "acceptsClientConfig": [
+            "ui-notification",
+            "ui-control"
+        ],
+        "showPathInSidebar": false,
+        "navigationStyle": "default",
+        "titleBarStyle": "default",
+        "showReconnectNotification": true,
+        "notificationDisplayTime": 1,
+        "showDisconnectNotification": true
+    },
+    {
+        "id": "234998f63c55af55",
+        "type": "ui-theme",
+        "name": "Default Theme",
+        "colors": {
+            "surface": "#ffffff",
+            "primary": "#0094ce",
+            "bgPage": "#eeeeee",
+            "groupBg": "#ffffff",
+            "groupOutline": "#cccccc"
+        },
+        "sizes": {
+            "density": "default",
+            "pagePadding": "12px",
+            "groupGap": "12px",
+            "groupBorderRadius": "4px",
+            "widgetGap": "12px"
+        }
+    },
+    {
+        "id": "eb4ea4ad231b87b6",
+        "type": "ui-page",
+        "name": "Preview",
+        "ui": "9ab1ee429e233a80",
+        "path": "/preview",
+        "icon": "home",
+        "layout": "grid",
+        "theme": "234998f63c55af55",
+        "breakpoints": [
+            {
+                "name": "Default",
+                "px": "0",
+                "cols": "3"
+            },
+            {
+                "name": "Tablet",
+                "px": "576",
+                "cols": "6"
+            },
+            {
+                "name": "Small Desktop",
+                "px": "768",
+                "cols": "9"
+            },
+            {
+                "name": "Desktop",
+                "px": "1024",
+                "cols": "12"
+            }
+        ],
+        "order": 1,
+        "className": "",
+        "visible": "true",
+        "disabled": "false"
+    },
+    {
+        "id": "53a493606ee6d430",
+        "type": "ui-group",
+        "name": "Preview",
+        "page": "eb4ea4ad231b87b6",
+        "width": "6",
+        "height": "1",
+        "order": 1,
+        "showTitle": true,
+        "className": "",
+        "visible": "true",
+        "disabled": "false",
+        "groupType": "default"
+    },
+    {
+        "id": "167e60b1b2138fb8",
+        "type": "camera",
+        "z": "flow-heatmap",
+        "name": "",
+        "client": "{{sscma_client_id}}",
+        "audio": false,
+        "volume": "50",
+        "option": "0",
+        "fps": "30",
+        "mirror": true,
+        "flip": false,
+        "x": 320,
+        "y": 140,
+        "wires": [
+            [
+                "b78e65063c9797bc"
+            ]
+        ]
+    },
+    {
+        "id": "ce6e1e1731ab355c",
+        "type": "ui-template",
+        "z": "flow-heatmap",
+        "group": "53a493606ee6d430",
+        "page": "",
+        "ui": "",
+        "name": "Preview Page",
+        "order": 1,
+        "width": "0",
+        "height": "0",
+        "head": "",
+        "format": "<template>\n    <div :id=\"containerId\" style=\"position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; background-color: #000;\">\n        \n        <svg :id=\"svgId\" ref=\"svgEl\" style=\"width: 100%; height: 100%; display: block; position: absolute; top: 0; left: 0;\" preserveAspectRatio=\"none\"></svg>\n        \n        <canvas ref=\"heatmapCanvas\" :id=\"canvasId\" style=\"width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none;\"></canvas>\n        \n        <p v-if=\"connectionStatus\" :style=\"{ color: connectionStatus === 'Connected' ? '#0f0' : '#f00' }\" \n           style=\"position: absolute; bottom: 20px; left: 20px; margin: 0; padding: 8px 15px; background-color: rgba(0, 0, 0, 0.6); border-radius: 4px; font-family: monospace; font-size: 14px; pointer-events: none;\">\n            WebSocket: {{ connectionStatus }} | Unique Persons: {{ uniquePersonCount }} | Current Frame: {{ currentFrameCount }}\n        </p>\n    </div>\n</template>\n\n<script>\nexport default {\n  data() {\n    return {\n      ws: null,\n      connectionStatus: \"Disconnected\",\n      socketURL: `ws://${window.location.hostname}:8090`,\n      previewData: null,\n      svgWidth: 1920,\n      svgHeight: 1080,\n      reconnectTimer: null,\n      isDestroyed: false,\n      currentFrameCount: 0,\n      trackedPersons: [],\n      nextPersonId: 1,\n      maxDistance: 100,\n      maxFramesLost: 30,\n      frameCount: 0,\n      heatmapGrid: null,\n      gridWidth: 192,\n      gridHeight: 108,\n      heatmapDecay: 0.98,\n      heatmapRadius: 25,\n      blurIntensity: 15,\n    };\n  },\n  computed: {\n    containerId() { return `container-fullscreen`; }, // 修改ID避免冲突\n    svgId() { return `svg-fullscreen`; },\n    canvasId() { return `heatmap-canvas-fullscreen`; },\n    uniquePersonCount() { return this.trackedPersons.length; }\n  },\n  methods: {\n    updateSvgViewBox() {\n      const svg = this.$refs?.svgEl;\n      if (svg) {\n        svg.setAttribute(\"viewBox\", `0 0 ${this.svgWidth} ${this.svgHeight}`);\n        // 强制拉伸，确保坐标对齐\n        svg.setAttribute(\"preserveAspectRatio\", \"none\");\n      }\n    },\n    initHeatmapGrid() {\n      this.heatmapGrid = Array(this.gridHeight).fill(0).map(() => \n        Array(this.gridWidth).fill(0)\n      );\n    },\n    updateCanvasSize() {\n      const canvas = this.$refs?.heatmapCanvas;\n      if (canvas) {\n        const container = document.getElementById(this.containerId);\n        if (container) {\n          // 直接获取窗口大小，确保全屏\n          canvas.width = window.innerWidth;\n          canvas.height = window.innerHeight;\n        }\n      }\n    },\n    addHeatPoints(boxes, labels) {\n      if (!boxes || !Array.isArray(boxes) || !this.heatmapGrid) return;\n      \n      boxes.forEach((box, i) => {\n        if (box?.length === 6) {\n          const [x, y, w, h, score, tar] = box;\n          const label = labels?.[i];\n          \n          if (label && String(label).toLowerCase() === 'person') {\n            const gridX = Math.floor((x / this.svgWidth) * this.gridWidth);\n            const gridY = Math.floor((y / this.svgHeight) * this.gridHeight);\n            \n            const radiusGrid = Math.ceil((this.heatmapRadius / this.svgWidth) * this.gridWidth);\n            \n            for (let dy = -radiusGrid; dy <= radiusGrid; dy++) {\n              for (let dx = -radiusGrid; dx <= radiusGrid; dx++) {\n                const gx = gridX + dx;\n                const gy = gridY + dy;\n                \n                if (gx >= 0 && gx < this.gridWidth && gy >= 0 && gy < this.gridHeight) {\n                  const distance = Math.sqrt(dx * dx + dy * dy);\n                  if (distance <= radiusGrid) {\n                    const intensity = Math.exp(-(distance * distance) / (2 * (radiusGrid / 2) * (radiusGrid / 2)));\n                    this.heatmapGrid[gy][gx] = Math.min(1.0, this.heatmapGrid[gy][gx] + intensity * 0.1);\n                  }\n                }\n              }\n            }\n          }\n        }\n      });\n    },\n    decayHeatmap() {\n      if (!this.heatmapGrid) return;\n      \n      for (let y = 0; y < this.gridHeight; y++) {\n        for (let x = 0; x < this.gridWidth; x++) {\n          this.heatmapGrid[y][x] *= this.heatmapDecay;\n          if (this.heatmapGrid[y][x] < 0.01) {\n            this.heatmapGrid[y][x] = 0;\n          }\n        }\n      }\n    },\n    renderHeatmap() {\n      const canvas = this.$refs?.heatmapCanvas;\n      if (!canvas || !this.heatmapGrid) return;\n      \n      const ctx = canvas.getContext('2d');\n      if (!ctx) return;\n      \n      ctx.clearRect(0, 0, canvas.width, canvas.height);\n      \n      const cellWidth = canvas.width / this.gridWidth;\n      const cellHeight = canvas.height / this.gridHeight;\n      \n      for (let y = 0; y < this.gridHeight; y++) {\n        for (let x = 0; x < this.gridWidth; x++) {\n          const value = this.heatmapGrid[y][x];\n          \n          if (value > 0.01) {\n            const color = this.getHeatmapColor(value);\n            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${Math.min(0.7, value * 0.8)})`;\n            ctx.fillRect(\n              Math.floor(x * cellWidth), \n              Math.floor(y * cellHeight), \n              Math.ceil(cellWidth) + 1, \n              Math.ceil(cellHeight) + 1\n            );\n          }\n        }\n      }\n      \n      if (canvas.width > 0 && canvas.height > 0) {\n        ctx.filter = 'blur(8px)';\n        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);\n        ctx.filter = 'none';\n        ctx.putImageData(imageData, 0, 0);\n      }\n    },\n    getHeatmapColor(value) {\n      value = Math.max(0, Math.min(1, value));\n      const colors = [\n        { r: 53, g: 42, b: 135 }, { r: 15, g: 92, b: 221 }, { r: 18, g: 125, b: 216 },\n        { r: 7, g: 156, b: 207 }, { r: 21, g: 177, b: 180 }, { r: 89, g: 189, b: 140 },\n        { r: 165, g: 190, b: 107 }, { r: 225, g: 185, b: 82 }, { r: 252, g: 206, b: 46 },\n        { r: 249, g: 251, b: 14 }\n      ];\n      const scaledValue = value * (colors.length - 1);\n      const lowerIndex = Math.floor(scaledValue);\n      const upperIndex = Math.min(lowerIndex + 1, colors.length - 1);\n      const t = scaledValue - lowerIndex;\n      const lowerColor = colors[lowerIndex];\n      const upperColor = colors[upperIndex];\n      return {\n        r: Math.round(lowerColor.r * (1 - t) + upperColor.r * t),\n        g: Math.round(lowerColor.g * (1 - t) + upperColor.g * t),\n        b: Math.round(lowerColor.b * (1 - t) + upperColor.b * t)\n      };\n    },\n    trackPersonsByPosition(boxes, labels) {\n      if (!boxes || !Array.isArray(boxes)) return [];\n      this.frameCount++;\n      let currentCount = 0;\n      const currentDetections = [];\n      boxes.forEach((box, i) => {\n        if (box?.length === 6) {\n          const [x, y, w, h, score, tar] = box;\n          const label = labels?.[i];\n          if (label && String(label).toLowerCase() === 'person') {\n            currentCount++;\n            currentDetections.push({ x, y, w, h, score, matched: false, id: null });\n          }\n        }\n      });\n      this.currentFrameCount = currentCount;\n      const matched = new Set();\n      currentDetections.forEach(detection => {\n        let bestMatch = null;\n        let bestDistance = this.maxDistance;\n        this.trackedPersons.forEach((tracked, idx) => {\n          if (matched.has(idx)) return;\n          const distance = Math.sqrt(Math.pow(detection.x - tracked.x, 2) + Math.pow(detection.y - tracked.y, 2));\n          if (distance < bestDistance) {\n            bestDistance = distance;\n            bestMatch = idx;\n          }\n        });\n        if (bestMatch !== null) {\n          this.trackedPersons[bestMatch].x = detection.x;\n          this.trackedPersons[bestMatch].y = detection.y;\n          this.trackedPersons[bestMatch].lastSeen = this.frameCount;\n          detection.matched = true;\n          detection.id = this.trackedPersons[bestMatch].id;\n          matched.add(bestMatch);\n        }\n      });\n      currentDetections.forEach(detection => {\n        if (!detection.matched) {\n          const newPerson = { id: this.nextPersonId++, x: detection.x, y: detection.y, lastSeen: this.frameCount };\n          this.trackedPersons.push(newPerson);\n          detection.id = newPerson.id;\n        }\n      });\n      this.trackedPersons = this.trackedPersons.filter(person => (this.frameCount - person.lastSeen) <= this.maxFramesLost);\n      return currentDetections;\n    },\n    sendStatsToNodeRED() {\n      try {\n        const personIds = this.trackedPersons.map(p => p.id);\n        if (typeof this.scope !== 'undefined' && this.scope.send) {\n          this.scope.send({\n            payload: {\n              data: this.previewData,\n              uniquePersonIds: personIds,\n              uniqueCount: this.trackedPersons.length,\n              currentFrameCount: this.currentFrameCount,\n              timestamp: Date.now()\n            }\n          });\n        }\n      } catch (e) { console.error(\"Error sending stats:\", e); }\n    },\n    initializeWebSocket() {\n      if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n      if (this.ws) { this.ws.close(); }\n      if (this.isDestroyed) { return; }\n      this.ws = new WebSocket(this.socketURL);\n      this.ws.binaryType = \"arraybuffer\";\n      this.ws.addEventListener(\"open\", () => {\n        if (!this.isDestroyed) { this.connectionStatus = \"Connected\"; }\n      });\n      this.ws.addEventListener(\"message\", (event) => {\n        if (this.isDestroyed) return;\n        try {\n          const buffer = event.data;\n          const uint8Array = new Uint8Array(buffer);\n          const string = new TextDecoder().decode(uint8Array);\n          const obj = JSON.parse(string);\n          this.previewData = obj.data || obj;\n          const resolution = obj.data?.resolution;\n          if (resolution) {\n            const width = resolution[0];\n            const height = resolution[1];\n            if (Number.isFinite(width) && Number.isFinite(height)) {\n              this.svgWidth = width;\n              this.svgHeight = height;\n              this.updateSvgViewBox();\n              this.updateCanvasSize();\n            }\n          }\n          if (this.previewData?.boxes && this.previewData?.labels) {\n            const trackedDetections = this.trackPersonsByPosition(this.previewData.boxes, this.previewData.labels);\n            this.previewData.trackedIds = trackedDetections.map(d => d.id);\n          }\n          this.decayHeatmap();\n          if (this.previewData?.boxes && this.previewData?.labels) {\n            this.addHeatPoints(this.previewData.boxes, this.previewData.labels);\n          }\n          this.$nextTick(() => {\n            this.renderAll();\n            this.renderHeatmap();\n            this.sendStatsToNodeRED();\n          });\n        } catch (e) { console.error(\"Error processing data:\", e); }\n      });\n      this.ws.addEventListener(\"error\", (e) => {\n        console.error(\"WebSocket Error:\", e);\n        if (!this.isDestroyed) { this.connectionStatus = \"Error\"; }\n      });\n      this.ws.addEventListener(\"close\", () => {\n        if (!this.isDestroyed) {\n          this.connectionStatus = \"Disconnected\";\n          this.reconnectTimer = setTimeout(() => {\n            if (!this.isDestroyed) { this.initializeWebSocket(); }\n          }, 5000);\n        }\n      });\n    },\n    createSVGElement(type, attributes = {}) {\n      const element = document.createElementNS(\"http://www.w3.org/2000/svg\", type);\n      Object.keys(attributes).forEach((attr) => element.setAttribute(attr, attributes[attr]));\n      return element;\n    },\n    getColor(index, opacity = 1) {\n        // ... (保持原样) ...\n      const COLORS = [\"#FF0000\", \"#FF4500\", \"#FF6347\", \"#FF8C00\", \"#FFA500\", \"#FFD700\", \"#32CD32\", \"#006400\", \"#4169E1\", \"#0000FF\", \"#1E90FF\", \"#00FFFF\", \"#00CED1\", \"#20B2AA\", \"#FF1493\", \"#FF69B4\", \"#800080\", \"#8A2BE2\", \"#9400D3\", \"#9932CC\"];\n      const color = COLORS[index % COLORS.length];\n      if (opacity < 1 && opacity >= 0) {\n        const r = parseInt(color.slice(1, 3), 16);\n        const g = parseInt(color.slice(3, 5), 16);\n        const b = parseInt(color.slice(5, 7), 16);\n        return `rgba(${r}, ${g}, ${b}, ${opacity})`;\n      }\n      return color;\n    },\n    renderImage(container, group, data) {\n      if (data.image) {\n        let img = document.getElementById(`image-output-img`);\n        if (!img) {\n          img = this.createSVGElement(\"image\", {\n            id: `image-output-img`,\n            x: \"0\", y: \"0\",\n            width: this.svgWidth, height: this.svgHeight,\n            preserveAspectRatio: \"none\" // 关键：图片也必须拉伸\n          });\n          container.prepend(img);\n        }\n        img.setAttribute(\"href\", `data:image/jpeg;base64,${data.image}`);\n        img.setAttribute(\"width\", this.svgWidth);\n        img.setAttribute(\"height\", this.svgHeight);\n      } else if (data?.resolution) {\n        // ... (黑色背景矩形逻辑，一般用不到图片) ...\n         let rect = document.getElementById(`image-output-rect`);\n        if (!rect) {\n          rect = this.createSVGElement(\"rect\", {\n            id: `image-output-rect`,\n            x: \"0\", y: \"0\", width: this.svgWidth, height: this.svgHeight, fill: \"black\"\n          });\n          container.prepend(rect);\n        }\n        rect.setAttribute(\"width\", this.svgWidth);\n        rect.setAttribute(\"height\", this.svgHeight);\n      }\n    },\n    createBlurFilter(svg) {\n        // ... (保持原样) ...\n      const defs = svg.querySelector('defs') || this.createSVGElement('defs');\n      if (!svg.querySelector('defs')) { svg.insertBefore(defs, svg.firstChild); }\n      let blurFilter = defs.querySelector('#blurFilter');\n      if (!blurFilter) {\n        blurFilter = this.createSVGElement('filter', { id: 'blurFilter', x: '-20%', y: '-20%', width: '140%', height: '140%', filterUnits: 'userSpaceOnUse' });\n        const feGaussianBlur = this.createSVGElement('feGaussianBlur', { 'in': 'SourceGraphic', 'stdDeviation': this.blurIntensity.toString() });\n        blurFilter.appendChild(feGaussianBlur);\n        defs.appendChild(blurFilter);\n      } else {\n        const feGaussianBlur = blurFilter.querySelector('feGaussianBlur');\n        if (feGaussianBlur) { feGaussianBlur.setAttribute('stdDeviation', this.blurIntensity.toString()); }\n      }\n      return defs;\n    },\n    renderBoxes(group, data) {\n        // ... (代码逻辑不变，只是SVG属性变化) ...\n      if (!data?.boxes || !data?.labels) return;\n      const svg = this.$refs?.svgEl;\n      if (!svg) return;\n      const defs = this.createBlurFilter(svg);\n      \n      data.boxes.forEach((box, i) => {\n        if (box?.length === 6) {\n          const [x, y, w, h, score, tar] = box;\n          const label = data.labels?.[i];\n          const trackId = data.trackedIds?.[i];\n          \n          if (label && String(label).toLowerCase() === 'person') {\n            const color = \"#00FF00\";\n            const fontSize = data.resolution[1] / 24;\n            let pt_topleft = { x: x - w / 2, y: y - h / 2 };\n            const clipId = `clip-${i}`;\n            let clipPath = defs.querySelector(`#${clipId}`);\n            if (!clipPath) {\n              clipPath = this.createSVGElement('clipPath', { id: clipId, clipPathUnits: 'userSpaceOnUse' });\n              defs.appendChild(clipPath);\n            } else { clipPath.innerHTML = ''; }\n            const clipRect = this.createSVGElement('rect', { x: pt_topleft.x.toString(), y: pt_topleft.y.toString(), width: w.toString(), height: h.toString() });\n            clipPath.appendChild(clipRect);\n            const originalImg = document.getElementById(`image-output-img`);\n            if (originalImg) {\n              const blurredImg = this.createSVGElement('image', {\n                href: originalImg.getAttribute('href'),\n                x: '0', y: '0', width: this.svgWidth.toString(), height: this.svgHeight.toString(),\n                'clip-path': `url(#${clipId})`, filter: 'url(#blurFilter)',\n                preserveAspectRatio: 'none' // 模糊层也需要拉伸\n              });\n              group.appendChild(blurredImg);\n            }\n            const rect = this.createSVGElement(\"rect\", { x: pt_topleft.x, y: pt_topleft.y, width: w, height: h, fill: \"none\", stroke: color, \"stroke-width\": \"2\", \"stroke-opacity\": \"1\" });\n            group.appendChild(rect);\n            const labelWidth = w;\n            const labelHeight = fontSize + 4;\n            const labelX = pt_topleft.x;\n            const labelY = (pt_topleft.y < labelHeight) ? pt_topleft.y : (pt_topleft.y - labelHeight);\n            const rectText = this.createSVGElement(\"rect\", { x: labelX, y: labelY, width: labelWidth, height: labelHeight, fill: color, stroke: color, \"stroke-width\": \"2\", opacity: \"0.8\" });\n            group.appendChild(rectText);\n            const textX = labelX + 5;\n            const textY = labelY + labelHeight - 4;\n            const text = this.createSVGElement(\"text\", { x: textX, y: textY, \"font-size\": fontSize, fill: \"black\", \"font-weight\": \"bold\", \"font-family\": \"Arial\" });\n            const idText = trackId !== undefined ? ` ID:${trackId}` : '';\n            text.textContent = `Person${idText} (${score.toFixed(2)})`;\n            group.appendChild(text);\n          }\n        }\n      });\n    },\n    renderAll() {\n      const container = document.getElementById(this.containerId);\n      const svg = this.$refs?.svgEl || document.getElementById(this.svgId);\n      if (!container || !svg) return;\n      let group = document.getElementById(`image-output-group`);\n      if (!group) {\n        group = this.createSVGElement(\"g\", { id: `image-output-group` });\n        svg.appendChild(group);\n      }\n      group.innerHTML = \"\";\n      if (!this.previewData) return;\n      this.renderImage(svg, group, this.previewData);\n      this.renderBoxes(group, this.previewData);\n    },\n  },\n  mounted() {\n    this.isDestroyed = false;\n    this.initHeatmapGrid();\n    this.updateCanvasSize();\n    this.initializeWebSocket();\n    window.addEventListener('resize', () => {\n      this.updateCanvasSize();\n      this.renderHeatmap();\n    });\n  },\n  unmounted() {\n    this.isDestroyed = true;\n    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n    if (this.ws) { this.ws.close(); this.ws = null; }\n    window.removeEventListener('resize', this.updateCanvasSize);\n  },\n};\n</script>\n\n<style>\n    /* 因为我们使用了 fixed 强制全屏，这里的样式主要为了防止 Node-RED 默认样式干扰 */\n    svg {\n        background-color: #000;\n    }\n</style>",
+        "storeOutMessages": true,
+        "passthru": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "className": "",
+        "x": 780,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b78e65063c9797bc",
+        "type": "model",
+        "z": "flow-heatmap",
+        "name": "YOLO11n Detection",
+        "uri": "/usr/share/supervisor/models/yolo11n_detection_cv181x_int8.cvimodel",
+        "model": "YOLO11n Detection",
+        "tscore": "0.5",
+        "tiou": "0.4",
+        "debug": false,
+        "trace": false,
+        "counting": false,
+        "draw": false,
+        "classes": "person",
+        "splitter": "0,0,0,0",
+        "previewResolution": "1280x720",
+        "previewFps": "30",
+        "client": "{{sscma_client_id}}",
+        "x": 590,
+        "y": 260,
+        "wires": [
+            [
+                "5bc1c0341631ddcc"
+            ]
+        ]
+    },
+    {
+        "id": "5bc1c0341631ddcc",
+        "type": "delay",
+        "z": "flow-heatmap",
+        "name": "",
+        "pauseType": "rate",
+        "timeout": "3",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": true,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 590,
+        "y": 400,
+        "wires": [
+            [
+                "b3df5c75101b4c81"
+            ]
+        ]
+    },
+    {
+        "id": "b3df5c75101b4c81",
+        "type": "function",
+        "z": "flow-heatmap",
+        "name": "Model Info Handle",
+        "func": "// --- 1. Initialize variables ---\nlet trackedPersons = context.get('trackedPersons') || [];\nlet nextPersonId = context.get('nextPersonId') || 1;\nlet frameCount = context.get('frameCount') || 0;\n\nconst maxDistance = 100;\nconst maxFramesLost = 30;\n\n// --- 2. Get and validate data ---\nconst data = msg.payload?.data || msg.payload;\nconst boxes = data?.boxes;\nconst labels = data?.labels;\nconst resolution = data?.resolution || [1920, 1080];\n\nif (!boxes || !Array.isArray(boxes) || !labels || !Array.isArray(labels)) {\n    return null;\n}\n\nframeCount++;\n\n// --- 3. Extract person detections ---\nconst currentDetections = [];\nboxes.forEach((box, i) => {\n    if (box?.length === 6) {\n        const [x, y, w, h, score, tar] = box;\n        const label = labels[i];\n        if (label && String(label).toLowerCase() === 'person') {\n            currentDetections.push({ x, y, w, h, score, matched: false, id: null });\n        }\n    }\n});\n\n// --- 4. Tracking algorithm (ID matching) ---\nconst matched = new Set();\n\ncurrentDetections.forEach(detection => {\n    let bestMatch = null;\n    let bestDistance = maxDistance;\n    trackedPersons.forEach((tracked, idx) => {\n        if (matched.has(idx)) return;\n        const distance = Math.sqrt(\n            Math.pow(detection.x - tracked.x, 2) +\n            Math.pow(detection.y - tracked.y, 2)\n        );\n        if (distance < bestDistance) {\n            bestDistance = distance;\n            bestMatch = idx;\n        }\n    });\n    if (bestMatch !== null) {\n        trackedPersons[bestMatch].x = detection.x;\n        trackedPersons[bestMatch].y = detection.y;\n        trackedPersons[bestMatch].lastSeen = frameCount;\n        detection.matched = true;\n        detection.id = trackedPersons[bestMatch].id;\n        matched.add(bestMatch);\n    }\n});\n\ncurrentDetections.forEach(detection => {\n    if (!detection.matched) {\n        const newPerson = {\n            id: nextPersonId++,\n            x: detection.x,\n            y: detection.y,\n            lastSeen: frameCount\n        };\n        trackedPersons.push(newPerson);\n        detection.id = newPerson.id;\n    }\n});\n\ntrackedPersons = trackedPersons.filter(\n    person => (frameCount - person.lastSeen) <= maxFramesLost\n);\n\ncontext.set('trackedPersons', trackedPersons);\ncontext.set('nextPersonId', nextPersonId);\ncontext.set('frameCount', frameCount);\n\n// --- 5. Build output messages ---\nlet messages = [];\nconst timestamp = new Date();\nconst personIds = trackedPersons.map(p => p.id);\nconst maxPersonId = personIds.length > 0 ? Math.max(...personIds) : 0;\n\nmessages.push({\n    measurement: \"people_count\",\n    tags: { device: \"recamera\", model: \"Detection with Heatmap\" },\n    payload: {\n        unique_count: trackedPersons.length,\n        current_frame_count: currentDetections.length,\n        max_person_id: maxPersonId,\n        total_visitors: nextPersonId - 1\n    },\n    timestamp: timestamp\n});\n\ncurrentDetections.forEach(detection => {\n    messages.push({\n        measurement: \"heatmap_raw\",\n        tags: { device: \"recamera\" },\n        payload: {\n            x_pct: Math.round((detection.x / resolution[0]) * 100),\n            y_pct: Math.round((detection.y / resolution[1]) * 100),\n            value: 1\n        },\n        timestamp: timestamp\n    });\n});\n\nreturn [messages];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 400,
+        "wires": [
+            [
+                "daa3e79fff8091f9",
+                "mqtt_format_func"
+            ]
+        ]
+    },
+    {
+        "id": "daa3e79fff8091f9",
+        "type": "influxdb out",
+        "z": "flow-heatmap",
+        "influxdb": "069087e0ad1b172e",
+        "name": "Write to InfluxDB",
+        "measurement": "",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "seeed",
+        "bucket": "recamera",
+        "x": 1110,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "mqtt_broker_heatmap",
+        "type": "mqtt-broker",
+        "name": "Heatmap MQTT",
+        "broker": "{{mqtt_host}}",
+        "port": "1883",
+        "clientid": "recamera-nodered",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "closeTopic": "",
+        "willTopic": ""
+    },
+    {
+        "id": "mqtt_format_func",
+        "type": "function",
+        "z": "flow-heatmap",
+        "name": "Format MQTT",
+        "func": "// Convert tracking data to MQTT messages\nconst msgs = msg.payload || msg;\nif (!Array.isArray(msgs)) return null;\n\nconst mqttMessages = [];\nmsgs.forEach(m => {\n    if (m.measurement === 'people_count') {\n        mqttMessages.push({\n            topic: 'heatmap/recamera/people_count',\n            payload: JSON.stringify({\n                unique_count: m.payload.unique_count,\n                total_visitors: m.payload.total_visitors\n            })\n        });\n    } else if (m.measurement === 'heatmap_raw') {\n        mqttMessages.push({\n            topic: 'heatmap/recamera/detections',\n            payload: JSON.stringify({\n                x_pct: m.payload.x_pct,\n                y_pct: m.payload.y_pct,\n                value: 1\n            })\n        });\n    }\n});\n\nreturn [mqttMessages];",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 500,
+        "wires": [
+            [
+                "mqtt_out_heatmap"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out_heatmap",
+        "type": "mqtt out",
+        "z": "flow-heatmap",
+        "name": "MQTT Publish",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "application/json",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "mqtt_broker_heatmap",
+        "x": 1290,
+        "y": 500,
+        "wires": []
+    }
+]

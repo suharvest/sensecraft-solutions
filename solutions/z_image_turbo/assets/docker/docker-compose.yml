@@ -1,0 +1,29 @@
+services:
+  z-image-api:
+    image: sensecraft-missionpack.seeed.cn/solution/z-image-jetson-no-torch:latest
+    container_name: z-image-api
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    environment:
+      - RESOLUTION=${RESOLUTION:-512}
+      - MODEL_DIR=/models/z-image-turbo-fp8-diffusers
+      - ENGINE_DIR=/engines
+      - TEXT_ENCODER_ENGINE_DIR=/text-encoder-engines
+      - VAE_ENGINE_DIR=/engines
+      - OUTPUT_DIR=/output
+      - UPLOAD_DIR=/uploads
+      - MAX_CACHED_LAYERS=${MAX_CACHED_LAYERS:-__CACHE_LAYERS__}
+      - PYTHONPATH=/workspace:/usr/local/trt-py
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/targets/aarch64-linux/lib:/usr/local/cuda/nvvm/lib64:/host-libs:/host-libs/tegra:/host-libs/openblas-pthread
+    volumes:
+      - /usr/lib/aarch64-linux-gnu:/host-libs:ro
+      - /etc/alternatives:/etc/alternatives:ro
+      - /usr/local/cuda-12.6:/usr/local/cuda:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/local/trt-py:ro
+      - ${MODEL_ROOT:-__MODEL_ROOT__}:/models:ro
+      - ${ENGINE_DIR:-__MODEL_ROOT__/axera-onnx/__ENGINE_SUBDIR__}:/engines:ro
+      - ${TEXT_ENCODER_DIR:-__TEXT_ENCODER_DIR__}:/text-encoder-engines:ro
+      - ${OUTPUT_DIR:-__OUTPUT_DIR__}:/output
+      - ${UPLOAD_DIR:-__UPLOAD_DIR__}:/uploads
+    command: uvicorn api_server_no_torch:app --host 0.0.0.0 --port 8000 --workers 1

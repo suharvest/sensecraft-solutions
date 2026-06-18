@@ -1,0 +1,154 @@
+version: "1.0"
+id: ai_lab
+name: "AI Lab — Edge AI Model Hub on Rockchip"
+intro:
+  summary: One place to try popular AI models on reComputer RK3576/RK3588 — object detection, chat, and image understanding, all running locally.
+  description_file: intro/description.md
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+  category: ai
+  solution_type: technical
+  tags: [rk3576, rk3588, edge-ai, npu, yolo, object-detection, llm, deepseek, vlm, qwen, multimodal]
+
+  output_interfaces:
+    - type: http
+      port: 8000
+      endpoint: /api/models/yolo11/predict
+      method: POST
+      description: "Object Detection preset — image upload prediction"
+      schema_type: json
+      payload_example: '{"predictions":[{"class":"person","confidence":0.92,"box":{"x1":100,"y1":200,"x2":300,"y2":500}}]}'
+      description_i18n:
+        zh: "目标检测预设——上传图片推理"
+    - type: http_stream
+      port: 8000
+      endpoint: /api/video_feed
+      method: GET
+      description: "Object Detection preset — MJPEG video stream with detection boxes overlay"
+      schema_type: binary
+      description_i18n:
+        zh: "目标检测预设——MJPEG 视频流，带检测框叠加"
+    - type: http
+      port: 8001
+      endpoint: /v1/chat/completions
+      method: POST
+      description: "LLM Chat preset — OpenAI-compatible chat completion API"
+      schema_type: json
+      payload_example: '{"model":"rkllm-model","messages":[{"role":"user","content":"Hello"}],"max_tokens":512,"stream":false}'
+      description_i18n:
+        zh: "LLM 对话预设——OpenAI 兼容的对话补全 API"
+    - type: http
+      port: 8002
+      endpoint: /v1/chat/completions
+      method: POST
+      description: "Vision Chat preset — OpenAI-compatible vision API (text + image input)"
+      schema_type: json
+      payload_example: '{"model":"rkllm-vision","messages":[{"role":"user","content":[{"type":"text","text":"Describe this image"},{"type":"image_url","image_url":{"url":"https://example.com/photo.jpg"}}]}]}'
+
+      description_i18n:
+        zh: "视觉对话预设——OpenAI 兼容的视觉 API（文本 + 图片输入）"
+  input_requirements:
+    - type: network
+      description: Network connection for Docker image pull
+      description_i18n:
+        zh: 拉取 Docker 镜像需要网络连接
+    - type: rtsp
+      description: USB camera (optional, only needed for Object Detection live video)
+      description_i18n:
+        zh: USB 摄像头（可选，仅目标检测预设的实时视频功能需要）
+  device_catalog:
+    recomputer_rk3576:
+      name: reComputer RK3576
+      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      product_url: https://www.seeedstudio.com/reComputer-RK3576-Mini-PC-p-6266.html
+      description: Rockchip RK3576 edge AI computer — runs object detection, LLM, and vision models locally
+      name_i18n:
+        zh: reComputer RK3576
+      description_i18n:
+        zh: 搭载 RK3576 NPU 的边缘 AI 计算机——本地运行目标检测、大模型和视觉模型
+    recomputer_rk3588:
+      name: reComputer RK3588
+      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      product_url: ""
+      description: Rockchip RK3588 edge AI computer — runs object detection with stronger NPU performance
+      name_i18n:
+        zh: reComputer RK3588
+      description_i18n:
+        zh: 搭载 RK3588 NPU 的边缘 AI 计算机——以更强 NPU 算力运行目标检测
+  presets:
+    - id: object_detection
+      name: "Object Detection (YOLO 11)"
+      description: Run YOLO 11 on RK3576 or RK3588 to detect 80 common objects. Choose model size (Nano / Small / Medium) at deploy time.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+              label: RK3576 (reComputer)
+              label_i18n:
+                zh: RK3576 (reComputer)
+            - device_ref: recomputer_rk3588
+              label: RK3588 (reComputer / ROCK 5T)
+              label_i18n:
+                zh: RK3588 (reComputer / ROCK 5T)
+          default: recomputer_rk3576
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: "目标检测（YOLO 11）"
+      description_i18n:
+        zh: 在 RK3576 或 RK3588 上运行 YOLO 11，识别 80 种常见物体。部署时可选模型大小（极速版 / 均衡版 / 精确版）。
+    - id: llm_chat
+      name: "LLM Chat (DeepSeek-R1)"
+      description: Run DeepSeek-R1 locally on RK3576 with NPU acceleration. Choose between 1.5B and 7B variants with different quantization.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: "大模型对话（DeepSeek-R1）"
+      description_i18n:
+        zh: 在 RK3576 上利用 NPU 加速本地运行 DeepSeek-R1，支持 1.5B 和 7B 多种量化变体。
+    - id: vlm_chat
+      name: "Vision Chat (Qwen2.5-VL)"
+      description: Run Qwen2.5-VL on RK3576 for image understanding and visual Q&A. OpenAI-compatible vision API.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+
+          name_i18n:
+            zh: 边缘设备
+      name_i18n:
+        zh: "视觉对话（Qwen2.5-VL）"
+      description_i18n:
+        zh: 在 RK3576 上运行 Qwen2.5-VL，实现图片理解和视觉问答。提供 OpenAI 兼容的视觉 API。
+  stats:
+    difficulty: beginner
+    estimated_time: 15min
+
+  links:
+    wiki: https://sensecraft.seeed.cc/ai-lab/models
+
+  summary_i18n:
+    zh: 在 reComputer RK3576/RK3588 上一站式试用主流 AI 模型——目标检测、对话、图片理解，全部本地运行。
+  description_file_i18n:
+    zh: intro/description_zh.md
+deployment:
+  guide_file: deploy/guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: deploy/guide_zh.md
+name_i18n:
+  zh: "AI Lab — Rockchip 边缘 AI 模型库"

@@ -1,0 +1,18 @@
+version: "1.0"
+id: voice_demo
+name: Voice Demo
+type: voice_chat
+voice_chat:
+  service_port: 8621
+  asr_ws_path: /asr/stream
+  tts_stream_path: /tts/stream
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    name_i18n:
+      zh: 设备 IP 地址
+name_i18n:
+  zh: 语音演示

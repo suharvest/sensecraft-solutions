@@ -1,0 +1,557 @@
+version: "1.0"
+id: jetson_deploy
+name: NVIDIA Jetson
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from devices/profiles/jetson.yaml.
+# The iptables action is scope=remote so it never fires on a developer
+# Mac running docker_local; the detection probe runs on both views so
+# misconfigured local deploys abort before any side effect.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  options:
+    project_name: depth_anything_v3
+    remove_orphans: true
+  services:
+    - name: depth-anything-v3
+      required: true
+
+ssh:
+  default_user: recomputer
+  auth_methods:
+    - password
+  command_timeout: 7200
+
+user_inputs:
+  - id: display
+    name: X11 DISPLAY
+    type: text
+    default: ""
+    required: false
+    row: 1
+    description: Leave empty for headless/x264 mode. Use :0 only if you need NVIDIA EGL/X11 pipeline.
+    name_i18n:
+      zh: X11 DISPLAY
+    description_i18n:
+      zh: 无显示器时建议留空（headless/x264）。仅在需要 NVIDIA EGL/X11 管线时填写 :0。
+  - id: camera_id
+    name: Camera ID
+    type: text
+    default: auto
+    required: false
+    row: 1
+    description: Camera index for /dev/videoX. Use auto to detect, or set 0/1 manually.
+    name_i18n:
+      zh: 摄像头 ID
+    description_i18n:
+      zh: 摄像头设备索引（对应 /dev/videoX）。可用 auto 自动检测，或手动填 0/1。
+  - id: encoder
+    name: Encoder
+    type: text
+    default: x264enc
+    required: false
+    row: 1
+    description: GStreamer encoder used by RTSP pipeline
+    name_i18n:
+      zh: 编码器
+    description_i18n:
+      zh: RTSP 推流使用的 GStreamer 编码器
+  - id: stream_fps
+    name: Stream FPS
+    type: text
+    default: "6"
+    required: false
+    row: 1
+    name_i18n:
+      zh: 推流帧率
+  - id: bitrate_kbps
+    name: Bitrate (kbps)
+    type: text
+    default: "1500"
+    required: false
+    row: 1
+    name_i18n:
+      zh: 码率 (kbps)
+  - id: panel_width
+    name: Panel Width
+    type: text
+    default: "480"
+    required: false
+    row: 2
+    name_i18n:
+      zh: 画面宽度
+  - id: panel_height
+    name: Panel Height
+    type: text
+    default: "360"
+    required: false
+    row: 2
+    name_i18n:
+      zh: 画面高度
+  - id: max_points
+    name: Max Points
+    type: text
+    default: "8000"
+    required: false
+    row: 2
+    name_i18n:
+      zh: 最大点数
+  - id: point_radius
+    name: Point Radius
+    type: text
+    default: "1"
+    required: false
+    row: 2
+
+    name_i18n:
+      zh: 点半径
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: At least 5GB for Docker image
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson
+
+remote_overrides:
+  remote_path: /home/{{username}}/depth-anything-v3
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    DISPLAY: "{{display}}"
+    HOST_XAUTHORITY_FILE: /tmp/depth_anything_v3.xauth
+    TZ: Asia/Shanghai
+    CAMERA_ID: "{{camera_id}}"
+    ENCODER: "{{encoder}}"
+    STREAM_FPS: "{{stream_fps}}"
+    BITRATE_KBPS: "{{bitrate_kbps}}"
+    PANEL_WIDTH: "{{panel_width}}"
+    PANEL_HEIGHT: "{{panel_height}}"
+    MAX_POINTS: "{{max_points}}"
+    POINT_RADIUS: "{{point_radius}}"
+  actions:
+    before:
+      - name: Validate Jetson runtime
+        run: |
+          set -e
+
+          [ -f /etc/nv_tegra_release ] || {
+            echo "Not a Jetson device: /etc/nv_tegra_release is missing"
+            exit 1
+          }
+
+          if ! command -v docker >/dev/null 2>&1; then
+            echo "Docker is not installed on this device."
+            echo "Install Docker first, then retry deployment."
+            exit 1
+          fi
+
+          if ! DOCKER_INFO="$(docker info 2>&1)"; then
+            if echo "$DOCKER_INFO" | grep -qi "permission denied"; then
+              CURRENT_USER="$(whoami)"
+              echo "Docker permission denied for user '$CURRENT_USER'."
+              echo "Run these commands on Jetson, then retry deployment:"
+              echo "  sudo usermod -aG docker $CURRENT_USER"
+              echo "  newgrp docker    # or log out and log back in"
+              echo "  docker info"
+            else
+              echo "Docker is not available: $DOCKER_INFO"
+            fi
+            exit 1
+          fi
+
+          echo "$DOCKER_INFO" | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+            echo "NVIDIA docker runtime is not detected"
+            exit 1
+          }
+
+          L4T=$(sed -n 's/^# R\([0-9]\+\) (release), REVISION: \([0-9]\+\)\.\([0-9]\+\).*/\1.\2.\3/p' /etc/nv_tegra_release)
+          case "$L4T" in
+            36.4.0|36.4.3|36.4.4|"")
+              ;;
+            *)
+              echo "Unsupported L4T version: $L4T (expected 36.4.0/36.4.3/36.4.4)"
+              exit 1
+              ;;
+          esac
+
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 5 ] || {
+            echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+      - name: Configure X11 permissions
+        run: |
+          # Prepare X11 auth for container EGL/GStreamer path.
+          set +e
+
+          HOST_XAUTH="${HOST_XAUTHORITY_FILE:-/tmp/depth_anything_v3.xauth}"
+          mkdir -p "$(dirname "$HOST_XAUTH")"
+
+          # In default headless mode (x264enc + empty DISPLAY), X11 ACL is unnecessary.
+          if [ "${ENCODER:-x264enc}" = "x264enc" ] && [ -z "${DISPLAY:-}" ]; then
+            touch "$HOST_XAUTH"
+            chmod 644 "$HOST_XAUTH" 2>/dev/null || true
+            echo "Headless mode detected (x264enc + empty DISPLAY), skipped xhost."
+            exit 0
+          fi
+
+          export DISPLAY="${DISPLAY:-:0}"
+
+          USER_HOME="$(eval echo ~$(whoami))"
+          if [ -n "${XAUTHORITY:-}" ] && [ -f "${XAUTHORITY}" ]; then
+            cp -f "${XAUTHORITY}" "$HOST_XAUTH" 2>/dev/null || true
+            echo "Prepared Xauthority from \$XAUTHORITY: $HOST_XAUTH"
+          elif [ -f "$USER_HOME/.Xauthority" ]; then
+            cp -f "$USER_HOME/.Xauthority" "$HOST_XAUTH" 2>/dev/null || true
+            echo "Prepared Xauthority from $USER_HOME/.Xauthority -> $HOST_XAUTH"
+          else
+            # Keep file present to avoid compose bind-mount failure.
+            touch "$HOST_XAUTH"
+            echo "No Xauthority source found; created placeholder: $HOST_XAUTH"
+          fi
+          chmod 644 "$HOST_XAUTH" 2>/dev/null || true
+
+          # Best-effort X11 permission update for container root.
+          if command -v xhost >/dev/null 2>&1; then
+            if xhost +SI:localuser:root >/dev/null 2>&1; then
+              echo "xhost permission updated: +SI:localuser:root"
+            elif xhost + >/dev/null 2>&1; then
+              echo "xhost fallback applied: +"
+            else
+              echo "Warning: xhost update failed; EGL path may still fail."
+            fi
+          else
+            echo "Info: xhost not found; skipped X11 ACL update."
+          fi
+
+          # Never block deployment only because X11 prep failed.
+          exit 0
+        name_i18n:
+          zh: 自动配置 X11 权限
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          set -e
+
+          compose_ready() {
+            docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1
+          }
+
+          if compose_ready; then
+            exit 0
+          fi
+
+          # If docker-compose binary already exists, try exposing it as a CLI plugin.
+          if command -v docker-compose >/dev/null 2>&1; then
+            COMPOSE_BIN="$(command -v docker-compose)"
+            for d in \
+              /usr/local/lib/docker/cli-plugins \
+              /usr/lib/docker/cli-plugins \
+              /usr/libexec/docker/cli-plugins
+            do
+              mkdir -p "$d"
+              ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+            done
+          fi
+
+          # Try distro packages with multiple known names across Ubuntu / Docker repos.
+          if ! compose_ready && command -v apt-get >/dev/null 2>&1; then
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            for pkg in docker-compose-plugin docker-compose-v2 docker-compose; do
+              if apt-get install -y "$pkg"; then
+                break
+              fi
+            done
+          fi
+
+          # Re-link after package install if docker-compose command exists.
+          if ! compose_ready && command -v docker-compose >/dev/null 2>&1; then
+            COMPOSE_BIN="$(command -v docker-compose)"
+            for d in \
+              /usr/local/lib/docker/cli-plugins \
+              /usr/lib/docker/cli-plugins \
+              /usr/libexec/docker/cli-plugins
+            do
+              mkdir -p "$d"
+              ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+            done
+            fi
+
+          compose_ready || {
+            echo "Docker Compose is unavailable. Need either 'docker compose' (v2 plugin) or 'docker-compose' (standalone)."
+            exit 1
+          }
+        name_i18n:
+          zh: 确保 docker compose 可用
+    after:
+      - name: Verify RTSP stream
+        run: |
+          set -e
+
+          echo "Checking container status..."
+          if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3 2>/dev/null)" != "true" ]; then
+            echo "Container depth_anything_v3 is not running."
+            docker logs --tail 120 depth_anything_v3 || true
+            exit 1
+          fi
+
+          echo "Waiting for TRT engine init (first run may take ~8 min)..."
+          STARTUP_MARKER_READY=0
+          for i in $(seq 1 120); do
+            # Check for depth estimator ready (appears after TRT engine load/build)
+            if docker logs --since 15m depth_anything_v3 2>&1 | grep -qE 'Depth estimator initialized|Using camera device:|Video depth node started'; then
+              STARTUP_MARKER_READY=1
+              break
+            fi
+            # Early exit if container crashed
+            if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3 2>/dev/null)" != "true" ]; then
+              echo "Container stopped during TRT init."
+              docker logs --tail 60 depth_anything_v3 || true
+              exit 1
+            fi
+            # Show progress every 30s
+            if [ $((i % 15)) -eq 0 ]; then
+              echo "  Still waiting... (${i}x5s elapsed)"
+              docker logs --since 2m depth_anything_v3 2>&1 | grep -E 'Engine|TRT|engine|Building' | tail -1 || true
+            fi
+            sleep 5
+          done
+          if [ "$STARTUP_MARKER_READY" -ne 1 ]; then
+            echo "TRT engine init timed out after 10 minutes."
+            docker logs --tail 60 depth_anything_v3 || true
+            exit 1
+          fi
+          echo "TRT engine ready."
+
+          echo "Waiting for RTSP port 8554 to become available..."
+          RTSP_READY=0
+          for i in $(seq 1 30); do
+            if command -v ss >/dev/null 2>&1; then
+              if ss -ltn | grep -q ':8554 '; then
+                RTSP_READY=1
+                break
+              fi
+            elif command -v netstat >/dev/null 2>&1; then
+              if netstat -ltn 2>/dev/null | grep -q ':8554 '; then
+                RTSP_READY=1
+                break
+              fi
+            fi
+            sleep 2
+          done
+
+          if [ "$RTSP_READY" -ne 1 ]; then
+            NO_VIDEO_NODE_COUNT="$(docker logs --tail 260 depth_anything_v3 2>&1 | grep -Ec 'No usable /dev/video\* capture device detected' || true)"
+            if [ "${NO_VIDEO_NODE_COUNT:-0}" -ge 1 ]; then
+              echo "Camera device is not available inside container."
+              echo "No usable /dev/video* node was detected."
+              echo "Suggested checks on Jetson host:"
+              echo "  ls -l /dev/video*"
+              echo "  v4l2-ctl --list-devices"
+              echo "  sudo fuser -v /dev/video0 /dev/video1"
+              echo "If host has /dev/video* but container doesn't, check Docker runtime mode and /dev bind mount."
+              echo "Recent container logs:"
+              docker logs --tail 160 depth_anything_v3 || true
+              exit 1
+            fi
+            echo "RTSP stream check failed: port 8554 is not listening."
+            if command -v ss >/dev/null 2>&1; then
+              echo "Current listeners on host port 8554:"
+              ss -ltnp '( sport = :8554 )' || true
+            fi
+            echo "Recent container logs:"
+            docker logs --tail 120 depth_anything_v3 || true
+            exit 1
+          fi
+
+          if command -v ss >/dev/null 2>&1; then
+            HOST_8554_LISTENERS="$(ss -ltnp '( sport = :8554 )' 2>/dev/null || true)"
+            if echo "$HOST_8554_LISTENERS" | grep -q 'launch_vst'; then
+              echo "Port 8554 is occupied by process 'launch_vst'."
+              echo "Stop that process (or change RTSP port) before deploying depth_anything_v3."
+              echo "$HOST_8554_LISTENERS"
+              docker logs --tail 160 depth_anything_v3 || true
+              exit 1
+            fi
+          fi
+
+          # Port may be open while camera capture is failing; detect this explicitly.
+          sleep 4
+          CAMERA_OPEN_FAIL_COUNT="$(docker logs --tail 260 depth_anything_v3 2>&1 | grep -Ec "can't open camera by index|Cannot open camera|Failed to initialize camera|No usable /dev/video\* capture device detected" || true)"
+          if [ "${CAMERA_OPEN_FAIL_COUNT:-0}" -ge 1 ]; then
+            echo "Camera open failed inside container."
+            echo "Likely causes:"
+            echo "  1) Wrong camera index (try Camera ID=1)"
+            echo "  2) Camera already occupied by another process"
+            echo "Suggested checks on Jetson host:"
+            echo "  ls /dev/video*"
+            echo "  sudo fuser -v /dev/video0 /dev/video1"
+            echo "Recent container logs:"
+            docker logs --tail 180 depth_anything_v3 || true
+            exit 1
+          fi
+
+          CAMERA_FAIL_COUNT="$(docker logs --tail 220 depth_anything_v3 2>&1 | grep -c 'Failed to read frame from camera' || true)"
+          if [ "${CAMERA_FAIL_COUNT:-0}" -ge 5 ]; then
+            echo "RTSP service is up, but camera capture is failing (${CAMERA_FAIL_COUNT} frame-read errors)."
+            echo "Hint: set Camera ID to another index (for example 1 if /dev/video1 is the real capture device)."
+            echo "Recent container logs:"
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+
+          RTSP_ATTACH_FAIL_COUNT="$(docker logs --tail 220 depth_anything_v3 2>&1 | grep -c 'Failed to attach RTSP server to default GLib main context' || true)"
+          if [ "${RTSP_ATTACH_FAIL_COUNT:-0}" -ge 1 ]; then
+            echo "RTSP server attach failed inside container."
+            echo "Hint: use headless mode (display empty + encoder=x264enc), then redeploy."
+            echo "Recent container logs:"
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+
+          echo "Probing RTSP endpoint /depth with DESCRIBE..."
+          RTSP_STATUS_LINE="$(
+            timeout 8 bash -lc 'exec 3<>/dev/tcp/127.0.0.1/8554 || exit 5; printf "DESCRIBE rtsp://127.0.0.1:8554/depth RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: depth-anything-healthcheck\r\nAccept: application/sdp\r\n\r\n" >&3; IFS= read -r line <&3 || true; echo "$line"' \
+              2>/tmp/depth_rtsp_describe.err || true
+          )"
+          RTSP_STATUS_LINE="$(echo "$RTSP_STATUS_LINE" | tr -d '\r')"
+          if [ -z "$RTSP_STATUS_LINE" ]; then
+            echo "RTSP probe failed: no response from rtsp://127.0.0.1:8554/depth"
+            [ -f /tmp/depth_rtsp_describe.err ] && cat /tmp/depth_rtsp_describe.err || true
+            if command -v ss >/dev/null 2>&1; then
+              echo "Current listeners on host port 8554:"
+              ss -ltnp '( sport = :8554 )' || true
+            fi
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+          if ! echo "$RTSP_STATUS_LINE" | grep -q '^RTSP/1.0 '; then
+            echo "RTSP probe failed: invalid response line: $RTSP_STATUS_LINE"
+            if command -v ss >/dev/null 2>&1; then
+              echo "Current listeners on host port 8554:"
+              ss -ltnp '( sport = :8554 )' || true
+            fi
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+          if echo "$RTSP_STATUS_LINE" | grep -q ' 404 '; then
+            echo "RTSP path /depth is not served (status: $RTSP_STATUS_LINE)."
+            echo "Port 8554 may be occupied by another RTSP service."
+            if command -v ss >/dev/null 2>&1; then
+              echo "Current listeners on host port 8554:"
+              ss -ltnp '( sport = :8554 )' || true
+            fi
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+          if ! echo "$RTSP_STATUS_LINE" | grep -Eq ' (200|401) '; then
+            echo "Unexpected RTSP DESCRIBE status: $RTSP_STATUS_LINE"
+            if command -v ss >/dev/null 2>&1; then
+              ss -ltnp '( sport = :8554 )' || true
+            fi
+            docker logs --tail 160 depth_anything_v3 || true
+            exit 1
+          fi
+
+          # Optional deeper probe: if ffprobe exists on Jetson, verify stream has video frames.
+          if command -v ffprobe >/dev/null 2>&1; then
+            if ! timeout 8 ffprobe -v error -rtsp_transport tcp \
+              -select_streams v:0 \
+              -show_entries stream=codec_name,width,height \
+              -of default=noprint_wrappers=1 \
+              rtsp://127.0.0.1:8554/depth >/tmp/depth_rtsp_probe.log 2>&1; then
+              echo "RTSP endpoint exists but ffprobe could not read video stream."
+              echo "ffprobe output:"
+              cat /tmp/depth_rtsp_probe.log || true
+              docker logs --tail 160 depth_anything_v3 || true
+              exit 1
+            fi
+          fi
+
+          echo "RTSP stream is ready on port 8554."
+
+        name_i18n:
+          zh: 验证 RTSP 推流
+    custom:
+      - id: fix_and_restart
+        name: Fix & Restart RTSP
+        description: Auto-configure permissions and restart service
+        run: |
+          echo "Starting auto-fix sequence..."
+
+          # 1. Try to fix X11 permissions
+          export DISPLAY=:0
+          if command -v xhost >/dev/null 2>&1; then
+            xhost + || true
+            # Try with .Xauthority
+            USER_HOME=$(eval echo ~$(whoami))
+            if [ -f "$USER_HOME/.Xauthority" ]; then
+              export XAUTHORITY="$USER_HOME/.Xauthority"
+              xhost + || true
+            fi
+          fi
+
+          # 2. Restart container to apply changes
+          echo "Restarting container..."
+          docker restart depth_anything_v3
+
+          # 3. Wait for it to start
+          echo "Waiting for service to start..."
+          sleep 5
+
+          # 4. Check status
+          if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3)" = "true" ]; then
+            echo "Service is RUNNING."
+            echo "Please try to reconnect Preview now."
+          else
+            echo "Service failed to start. Check logs."
+            docker logs --tail 10 depth_anything_v3
+          fi
+
+        name_i18n:
+          zh: 一键修复推流
+        description_i18n:
+          zh: 自动配置权限并重启服务（黑屏请点此）
+      - id: stop_service
+        name: Stop Service
+        description: Stop the container and release camera
+        run: |
+          docker stop depth_anything_v3
+          echo "Service stopped. Camera released."
+
+        name_i18n:
+          zh: 停止服务
+        description_i18n:
+          zh: 停止容器并释放摄像头资源
+      - id: check_status
+        name: Check Status
+        description: Check if the container is running and healthy
+        run: |
+          if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3 2>/dev/null)" = "true" ]; then
+            echo "Status: RUNNING"
+            docker logs --tail 20 depth_anything_v3
+          else
+            echo "Status: STOPPED"
+          fi
+
+        name_i18n:
+          zh: 检查运行状态
+        description_i18n:
+          zh: 检查容器是否正在运行且健康

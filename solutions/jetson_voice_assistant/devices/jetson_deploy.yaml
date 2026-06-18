@@ -1,0 +1,151 @@
+version: "1.0"
+id: jetson_deploy
+name: Jetson Speech Service
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson injects the shared iptables raw-table workaround
+# (scope=remote — fires on remote Jetson only, not on a developer Mac
+# previewing locally) plus the /etc/nv_tegra_release detection probe.
+# The legacy local file had no actions of its own; the legacy remote
+# file's hand-written "Fix Docker iptables for JetPack 6.2" action was
+# byte-for-byte equivalent to the profile's "JetPack 6.x" entry, so
+# dropping it here is safe — the profile is the single source of truth.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  options:
+    project_name: openvoicestream
+  environment:
+    OVS_PROFILE: "jetson-zh-en"
+    LANGUAGE_MODE: "zh_en"
+    TTS_DEFAULT_SID: "0"
+    TTS_DEFAULT_SPEED: "0.85"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /health
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for speech service Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8621
+
+name_i18n:
+  zh: Jetson 语音服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/openvoicestream
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    OVS_PROFILE: "{{VOICE_PROFILE}}"
+    LANGUAGE_MODE: "{{LANGUAGE_MODE}}"
+    TTS_DEFAULT_SID: "{{TTS_DEFAULT_SID}}"
+    TTS_DEFAULT_SPEED: "{{TTS_DEFAULT_SPEED}}"
+  pre_checks:
+    - type: disk_space
+      min_gb: 3
+      description: At least 3GB for speech service Docker image
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: VOICE_PROFILE
+      name: Voice Profile
+      type: select
+      default: "jetson-zh-en"
+      reconfigurable: true
+      options:
+        - value: "jetson-zh-en"
+          label: "Chinese + English (Paraformer ASR + Matcha TTS, fast)"
+          label_i18n:
+            zh: "中文 + 英文（Paraformer ASR + Matcha TTS，快速）"
+        - value: "jetson-multilang-highperf"
+          label: "Multilingual HighPerf (Qwen3 ASR+TTS, 52 languages, Orin Nano)"
+          label_i18n:
+            zh: "多语言高性能（Qwen3 ASR+TTS，52 种语言，Orin Nano）"
+        - value: "jetson-multilang-highperf-nx"
+          label: "Multilingual HighPerf NX (Qwen3 ASR+TTS, 52 languages, Orin NX)"
+          label_i18n:
+            zh: "多语言高性能 NX（Qwen3 ASR+TTS，52 种语言，Orin NX）"
+        - value: "jetson-qwen3asr-matcha"
+          label: "Qwen3 ASR + Matcha TTS (multilingual ASR, fast TTS, Orin Nano)"
+          label_i18n:
+            zh: "Qwen3 ASR + Matcha TTS（多语言 ASR，快速 TTS，Orin Nano）"
+        - value: "jetson-qwen3asr-matcha-nx"
+          label: "Qwen3 ASR + Matcha TTS NX (multilingual ASR, fast TTS, Orin NX)"
+          label_i18n:
+            zh: "Qwen3 ASR + Matcha TTS NX（多语言 ASR，快速 TTS，Orin NX）"
+      name_i18n:
+        zh: 语音配置文件
+    - id: LANGUAGE_MODE
+      name: Language Mode
+      type: select
+      default: "en"
+      reconfigurable: true
+      options:
+        - value: "zh_en"
+          label: "Chinese + English (Matcha TTS + Paraformer ASR)"
+          label_i18n:
+            zh: "中文 + 英文（Matcha TTS + Paraformer ASR）"
+        - value: "en"
+          label: "English Only (Kokoro TTS + Zipformer ASR)"
+          label_i18n:
+            zh: "仅英文（Kokoro TTS + Zipformer ASR）"
+      name_i18n:
+        zh: 语言模式
+      default_i18n:
+        zh: "zh_en"
+    - id: TTS_DEFAULT_SID
+      name: TTS Speaker ID
+      type: text
+      default: "0"
+      reconfigurable: true
+      description: "zh_en mode: 0-9, en mode: 0-10 (default 8 = bf_isabella)"
+      name_i18n:
+        zh: TTS 说话人 ID
+      description_i18n:
+        zh: "中英文模式: 0-9，纯英文模式: 0-10（默认 8 = bf_isabella）"
+    - id: TTS_DEFAULT_SPEED
+      name: TTS Speed
+      type: text
+      default: "0.85"
+      reconfigurable: true
+      description: "0.5 = slow, 1.0 = normal, 1.5 = fast"
+      name_i18n:
+        zh: TTS 语速
+      description_i18n:
+        zh: "0.5 = 慢速, 1.0 = 正常, 1.5 = 快速"

@@ -1,0 +1,98 @@
+version: "1.0"
+id: homeassistant_existing
+name: Existing Home Assistant
+type: ha_integration
+
+ha_integration:
+  domain: recamera
+  components_dir: assets/docker/custom_components/recamera
+  config_flow_data:
+    - name: host
+      value_from: recamera_ip
+    - name: port
+      value_from: recamera_port
+      type: int
+
+user_inputs:
+  - id: host
+    name: HA Address
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: Home Assistant IP address or hostname
+    row: 1
+
+    name_i18n:
+      zh: HA 地址
+    description_i18n:
+      zh: Home Assistant 的 IP 地址或主机名
+  - id: username
+    name: HA Username
+    type: text
+    required: true
+    description: Home Assistant login username
+    row: 2
+
+    name_i18n:
+      zh: HA 用户名
+    description_i18n:
+      zh: Home Assistant 登录用户名
+  - id: password
+    name: HA Password
+    type: password
+    required: true
+    description: Home Assistant login password
+    row: 2
+
+    name_i18n:
+      zh: HA 密码
+    description_i18n:
+      zh: Home Assistant 登录密码
+  - id: recamera_ip
+    name: reCamera IP
+    type: text
+    required: true
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: "reCamera IP (USB: 192.168.42.1, or WiFi IP)"
+    row: 3
+
+    name_i18n:
+      zh: reCamera IP 地址
+    description_i18n:
+      zh: "reCamera IP 地址（USB 连接用 192.168.42.1，或 WiFi IP）"
+  - id: recamera_port
+    name: reCamera Port
+    type: text
+    required: false
+    default: "1880"
+    description: "reCamera Node-RED port (default 1880)"
+    row: 3
+
+    name_i18n:
+      zh: reCamera 端口
+    description_i18n:
+      zh: "reCamera Node-RED 端口（默认 1880）"
+  - id: ssh_username
+    name: SSH Username (Docker only)
+    type: text
+    required: false
+    description: "Leave empty for HA OS — SSH will be set up automatically"
+    row: 4
+
+    name_i18n:
+      zh: SSH 用户名（仅 Docker 需要）
+    description_i18n:
+      zh: "HA OS 用户留空 — SSH 会自动安装配置"
+  - id: ssh_password
+    name: SSH Password (Docker only)
+    type: password
+    required: false
+    description: "Leave empty for HA OS"
+    row: 4
+    name_i18n:
+      zh: SSH 密码（仅 Docker 需要）
+    description_i18n:
+      zh: "HA OS 用户留空"
+name_i18n:
+  zh: 已有 Home Assistant

@@ -1,0 +1,133 @@
+# SO-ARM action library — edit from device settings or from the host
+# at /opt/seeed/voice_arm/config/actions.yaml on the Jetson.
+#
+# Schema (preferred — gives LLM context for function calling):
+#   sequences:
+#     <action_name>:
+#       description: "When to trigger this — used as the LLM tool's docstring."
+#       frames:
+#         - joints: {<joint.pos>: <float>}
+#           delay: <seconds>
+#
+# Legacy schema (still loaded, no LLM description):
+#   sequences:
+#     <action_name>:
+#       - joints: {...}
+#         delay: 0.4
+#
+# Adding a new action? Only edit this file — the description IS the
+# trigger phrase the LLM learns from. No need to also edit prompt.yaml.
+#
+# Joint positions use the LeRobot RANGE_M100_100 convention: body joints
+# are normalized to [-100, 100] (0 = mid), the gripper to [0, 100]
+# (0 = closed, 100 = open). This matches what GET /observation returns
+# (the recorder writes back in the same scale, so recorded and hand-authored
+# gestures stay consistent). Tune empirically — there is no safety envelope
+# here other than the arm's hardware limits.
+
+sequences:
+  home:
+    description: "Return the arm to the neutral home position. Trigger when the user says 'go home', 'reset', '回到原位', '复位'."
+    frames:
+      - joints:
+          shoulder_pan.pos: 0.0
+          shoulder_lift.pos: 0.0
+          elbow_flex.pos: 0.0
+          wrist_flex.pos: 0.0
+          wrist_roll.pos: 0.0
+          gripper.pos: 0.0
+        delay: 1.5
+
+  pick_ready:
+    description: "Move into a ready-to-grab posture above the workspace. Trigger when the user says 'get ready to pick', 'pick position', '准备抓取'."
+    frames:
+      - joints:
+          shoulder_pan.pos: 0.0
+          shoulder_lift.pos: -50.0
+          elbow_flex.pos: 60.0
+          wrist_flex.pos: -30.0
+          wrist_roll.pos: 0.0
+          gripper.pos: 80.0
+        delay: 1.5
+
+  open_gripper:
+    description: "Open the gripper jaws. Trigger when the user says 'open gripper', 'open the hand', '张开', '松开'."
+    frames:
+      - joints: {gripper.pos: 90.0}
+        delay: 0.4
+
+  close_gripper:
+    description: "Close the gripper jaws. Trigger when the user says 'close gripper', 'grab', 'hold', '闭合', '抓紧'."
+    frames:
+      - joints: {gripper.pos: 0.0}
+        delay: 0.4
+
+  look_up:
+    description: "Tilt the wrist upward. Trigger when the user says 'look up', '抬头', '向上看'."
+    frames:
+      - joints: {wrist_flex.pos: 70.0}
+        delay: 0.4
+
+  look_down:
+    description: "Tilt the wrist downward. Trigger when the user says 'look down', '低头', '向下看'."
+    frames:
+      - joints: {wrist_flex.pos: -70.0}
+        delay: 0.4
+
+  wave:
+    description: "Wave the arm side to side in greeting. Trigger when the user says 'wave', 'say hi', '打招呼', '挥手'."
+    frames:
+      - joints: {shoulder_pan.pos: 60.0, shoulder_lift.pos: 40.0, elbow_flex.pos: -20.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: -60.0, shoulder_lift.pos: 40.0, elbow_flex.pos: -20.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: 60.0, shoulder_lift.pos: 40.0, elbow_flex.pos: -20.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: -60.0, shoulder_lift.pos: 40.0, elbow_flex.pos: -20.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: 0.0, shoulder_lift.pos: 0.0, elbow_flex.pos: 0.0}
+        delay: 0.4
+
+  nod:
+    description: "Nod the wrist up-and-down to indicate 'yes'. Trigger when the user says 'nod', 'say yes', '点头', '同意'."
+    frames:
+      - joints: {wrist_flex.pos: -50.0}
+        delay: 0.4
+      - joints: {wrist_flex.pos: 30.0}
+        delay: 0.4
+      - joints: {wrist_flex.pos: -50.0}
+        delay: 0.4
+      - joints: {wrist_flex.pos: 0.0}
+        delay: 0.4
+
+  shake_head:
+    description: "Shake the wrist side-to-side to indicate 'no'. Trigger when the user says 'shake head', 'say no', '摇头', '不行'."
+    frames:
+      - joints: {wrist_roll.pos: 60.0}
+        delay: 0.4
+      - joints: {wrist_roll.pos: -60.0}
+        delay: 0.4
+      - joints: {wrist_roll.pos: 60.0}
+        delay: 0.4
+      - joints: {wrist_roll.pos: -60.0}
+        delay: 0.4
+      - joints: {wrist_roll.pos: 0.0}
+        delay: 0.4
+
+  dance:
+    description: "Do a playful little dance — sway side to side and wiggle the wrist. Trigger when the user says 'dance', 'do a dance', '跳舞', '跳个舞', '来段舞'."
+    frames:
+      - joints: {shoulder_pan.pos: 50.0, shoulder_lift.pos: 30.0, wrist_roll.pos: 40.0}
+        delay: 0.45
+      - joints: {shoulder_pan.pos: -50.0, shoulder_lift.pos: 30.0, wrist_roll.pos: -40.0}
+        delay: 0.45
+      - joints: {shoulder_pan.pos: 50.0, shoulder_lift.pos: 10.0, wrist_flex.pos: 40.0, wrist_roll.pos: 40.0}
+        delay: 0.45
+      - joints: {shoulder_pan.pos: -50.0, shoulder_lift.pos: 10.0, wrist_flex.pos: -40.0, wrist_roll.pos: -40.0}
+        delay: 0.45
+      - joints: {shoulder_pan.pos: 30.0, wrist_roll.pos: 50.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: -30.0, wrist_roll.pos: -50.0}
+        delay: 0.4
+      - joints: {shoulder_pan.pos: 0.0, shoulder_lift.pos: 0.0, elbow_flex.pos: 0.0, wrist_flex.pos: 0.0, wrist_roll.pos: 0.0}
+        delay: 0.5

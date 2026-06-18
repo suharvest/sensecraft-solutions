@@ -1,0 +1,41 @@
+services:
+  voice-brain:
+    image: ${VOICE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/lekiwi-voice:latest}
+    container_name: lekiwi-voice
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - SERIAL_PORT=${SERIAL_PORT:-auto}
+      - SERIAL_BAUD=${SERIAL_BAUD:-115200}
+      - MIC_INDEX=${MIC_INDEX:-auto}
+      - MIC_CHANNELS=${MIC_CHANNELS:-6}
+      - MIC_CHANNEL=${MIC_CHANNEL:-0}
+      - WAKEWORD_MODEL=${WAKEWORD_MODEL:-hey jarvis}
+      - WAKEWORD_CHANNEL=${WAKEWORD_CHANNEL:-all}
+      - WAKEWORD_THRESHOLD=${WAKEWORD_THRESHOLD:-0.03}
+      - WAKEWORD_VAD_THRESHOLD=${WAKEWORD_VAD_THRESHOLD:-0.0}
+      - WAKEWORD_COOLDOWN=${WAKEWORD_COOLDOWN:-2}
+      - WAKEWORD_DEBUG_INTERVAL=${WAKEWORD_DEBUG_INTERVAL:-0}
+      - RECORDING_SECONDS=${RECORDING_SECONDS:-3}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.1-8b-instant}
+      - STT_MODEL=${STT_MODEL:-whisper-large-v3-turbo}
+      - TTS_VOICE=${TTS_VOICE:-autumn}
+      - TTS_OUTPUT_DEVICE=${TTS_OUTPUT_DEVICE:-auto}
+    volumes:
+      - /etc/asound.conf:/etc/asound.conf:ro
+      - /dev:/dev
+      - ./config.py:/app/config.py:ro
+      - ./audio_devices.py:/app/audio_devices.py:ro
+      - ./wakeword.py:/app/wakeword.py:ro
+      - ./audio_recorder.py:/app/audio_recorder.py:ro
+      - ./robot_serial.py:/app/robot_serial.py:ro
+      - ./tts.py:/app/tts.py:ro
+    devices:
+      - /dev/snd:/dev/snd
+    device_cgroup_rules:
+      - 'c 166:* rmw'  # ttyACM* serial devices can renumber after USB replug
+    group_add:
+      - "20"   # dialout — serial port access
+      - "29"   # audio — sound card access
+    network_mode: host

@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Home Assistant
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Host IP
+    default: localhost
+    default_template: "{{host}}"
+    name_i18n:
+      zh: 主机 IP
+web_dashboard:
+  url: "http://{{host}}:8123"
+  title: Home Assistant
+  description: View reCamera entities, automations, and live alerts
+  title_i18n:
+    zh: Home Assistant 面板
+  description_i18n:
+    zh: 查看 reCamera 设备、自动化与实时告警
+name_i18n:
+  zh: 打开 Home Assistant

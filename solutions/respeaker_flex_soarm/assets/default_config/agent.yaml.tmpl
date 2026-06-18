@@ -1,0 +1,211 @@
+# voice_arm agent config — rendered by entrypoint.sh via envsubst.
+# Lives at /opt/seeed/voice_arm/config/agent.yaml after rendering.
+#
+# Anything ${...} is substituted from environment at container start.
+# Anything not listed here falls back to the openvoicestream_agent
+# Config dataclass defaults (see openvoicestream_agent/config.py).
+
+slv_url: "ws://${VOICE_SERVICE_HOST}:${VOICE_SERVICE_PORT}/v2v/stream"
+
+slv_config:
+  asr_language: "${STT_LANGUAGE}"
+  tts_language: "zh"
+  tts_speaker_id: ${TTS_SID}
+  tts_speed: ${TTS_SPEED}
+  sample_rate: 16000
+  vad: "silero"
+  # Server VAD silence-to-end threshold. Platform default 400ms; we use
+  # 600ms as a compromise: long enough not to cut the tail between a wake
+  # word and its command, short enough that back-to-back commands in a
+  # continuous-dialogue window each endpoint promptly. NOTE: this only
+  # helps once the mic actually reaches sub-threshold silence between
+  # utterances — see the client-side energy gate (zero-PCM below an RMS
+  # floor) that gives the server clean silence despite echo/room noise.
+  vad_silence_ms: 600
+  multi_utterance: true
+
+# Wake-word pipeline; OpenWakeWordSource fires app.wake() from local
+# audio. We DISABLE the framework's stock wake_sources list (HTTP /
+# MQTT / serial / local_keyword) because we register our own source
+# directly from VoiceArmApp.__init__.
+pipeline_mode: "wake_word"
+default_mode: "chat"
+wake_sources: []
+sleep_timeout_s: 30.0
+
+# VAD: server-only. SLV server runs silero VAD on /v2v/stream and emits
+# asr_final once the speech segment ends — we used to double-VAD with
+# client_vad_backend=auto+drive_eos=true, but Qwen3-ASR streaming on
+# Orin NX returns EMPTY text when the client trims the speech segment
+# under it (the streaming model expects unbroken framing). Turning off
+# client VAD makes the agent forward raw mic audio and lets the server
+# segment + finalise. Tested 2026-05-26 with jetson-qwen3asr-matcha-nx.
+client_vad_backend: "off"
+# These thresholds still apply if a later config flips backend back to
+# silero/auto, but are inert with backend=none.
+client_vad_threshold: 0.012
+client_vad_speech_min_ms: 200
+client_vad_silence_ms: 600
+client_vad_drive_eos: false
+
+# ── continuous-dialogue mic-pump (calibrated for reSpeaker Flex XVF3800
+# ch0 on seeed-orin-nx, validated 2026-05-29). Framework defaults are all
+# OFF/no-op; these enable + tune them for THIS hardware. Background:
+#   - ch0 speech RMS ~0.005-0.013, idle gaps ~0.0005 (clean 10-30x margin)
+#   - server silero needs louder audio than raw ch0 → makeup_gain lifts
+#     speech into its trained range (gaps stay zero-filled by the gate)
+#   - gate zero-fills sub-threshold chunks so the server endpoints; the
+#     open->close edge drives an explicit asr_eos so the server finalizes
+#     each command immediately instead of relying on its silero (which
+#     wedges after a few turns) + the 30s watchdog
+#   - drop mic while SPEAKING/THINKING so our own TTS echo can't wedge VAD
+energy_gate_enabled: true
+energy_gate_open_rms: 0.002
+energy_gate_close_rms: 0.001
+energy_gate_hangover_ms: 300
+# Mic makeup gain is firmware-specific (quiet 6ch ch0 wants ~12x; the louder
+# 2ch firmware clips at 12x → garbled ASR, wants ~2x), so it is resolved per
+# reSpeaker profile in audio_profiles.yaml. Leaving this at the 1.0 no-op
+# default lets the auto-profile fill it; set an explicit non-1.0 here to pin.
+mic_makeup_gain: 1.0
+# silero-primary endpointing: the server silero VAD owns end-of-command (it
+# handles word-internal dips that the energy-gate edge cut short → empty
+# finals on 4-char commands like 张开夹爪). The gate still zero-fills silence.
+gate_drive_eos: false
+gate_eos_min_speech_ms: 250
+# Stall fallback: force one asr_eos if silero goes quiet for this long with no
+# asr_partial (wedge guard). Reset by each partial → never cuts a long
+# sentence, only catches a true stall.
+vad_stall_eos_ms: 1500
+mic_drop_while_speaking: true
+# reconnect_on_wake tears down the persistent multi_utterance session on every
+# wake → slow/cold first utterance. Field testing (10.8.0.170, 2026-06-10) on
+# the 2ch firmware showed continuous dialogue stays healthy across many turns
+# without it, and first-utterance latency drops sharply. The stale-session
+# health reconnect (long idle) still recovers a wedged worker. Keep this false;
+# flip to true only if a device shows the "empty finals after ~4 turns" decay.
+reconnect_on_wake: false
+
+# LLM — points at the edge-llm container by service name.
+llm_backend: "edge_llm"
+llm_base_url: "http://${LLM_SERVICE_HOST}:${LLM_SERVICE_PORT}/v1"
+llm_api_key: "EMPTY"
+llm_model: "${LLM_MODEL}"
+llm_first_token_timeout_s: 15.0
+llm_stream_idle_timeout_s: 30.0
+
+# Tool calling — required for arm-action dispatch.
+tools_enabled: true
+# Empty allowlist means "expose every tool registered by plugins" — this
+# is the right default for voice-arm: ArmPlugin registers exactly the
+# actions present in actions.yaml, and we want all of them callable.
+# Requires ovs-agent >= 219d26c (commit that made empty=all explicit).
+tools_default_allowlist: []
+tools_max_iterations: 3
+
+# System prompt baked into the chat mode. Keep ``/no_think`` verbatim —
+# Qwen3 uses it as a soft toggle.
+system_prompt: |
+  You are a voice controller for a 6-DoF robotic arm called SO-ARM.
+  The user speaks commands aloud and you reply via TTS.
+
+  Behaviour:
+  - When the user clearly requests a motion, FIRST emit a brief
+    spoken acknowledgement, THEN call the matching tool function.
+    The acknowledgement is ONE OR TWO words in the user's language
+    ("好的，" / "OK," / "Sure,") and gets spoken immediately while
+    the robot executes the motion — without it the user thinks the
+    system didn't hear them during the 2-5 second motion. Examples:
+      User: "挥手"     → Emit "好的" → call wave()
+      User: "wave"     → Emit "OK"   → call wave()
+      User: "回到原位" → Emit "好的" → call home()
+    AFTER the tool returns, emit a short confirmation ("已挥手" /
+    "Done" / "已回到原位"), 1 short sentence max.
+  - To pick the right tool, read each tool's description and match the
+    user's exact phrase against the trigger words listed there. Chinese
+    triggers are LITERAL: '摇头' MUST call shake_head, NOT wave;
+    '挥手' MUST call wave, NOT shake_head; '点头' MUST call nod, NOT
+    look_down. Never substitute a semantically-similar tool — if no
+    description literally contains the user's phrase, reply that you
+    don't have that action.
+  - HARD RULE — only call a tool when the user's text contains the
+    EXACT trigger phrase listed in that tool's description. If the
+    phrase is not literally present, DO NOT call any tool — reply
+    "没听清，请再说一次。" / "Sorry, I didn't catch that." instead.
+    The user's transcription is from ASR which often garbles audio
+    into the wrong characters; you MUST refuse those rather than
+    guess. Examples (input → correct response):
+      "挥手"                → call wave()                ✓
+      "回到原位"            → call home()                ✓
+      "摇头"                → call shake_head()          ✓
+      "回首"                → "没听清"  (NOT look_up — '回首' is not a trigger)
+      "这角没抬头"          → call look_up()  (has '抬头' substring)
+      "后几个动作不按实际"  → "没听清"  (no trigger phrase)
+      "This is"             → "Sorry, I didn't catch that."  (not a trigger)
+      "什么"                → "没听清"  (a question, not a motion)
+      "你好"                → "你好！"  (chitchat, no tool)
+  - NEVER include reasoning, chain-of-thought, planning, or phrases
+    like "Okay, the user said…" / "I will call…" / "Now I need to…".
+    Those are internal — strip them entirely. The TTS speaks every
+    character you emit, so only emit user-facing words.
+
+  /no_think
+
+# Per-mode temperature: 0 forces deterministic tool selection. With
+# Qwen3-4B-AWQ at temp=0.7 (server default) the model would sometimes
+# pick a semantically-near tool (wave instead of shake_head) even with
+# explicit trigger phrases in the description.
+mode_overrides:
+  chat:
+    temperature: 0.0
+
+# Audio devices — entrypoint resolves the reSpeaker index, output device
+# defaults to the system speaker (PortAudio handles routing). Sample rate
+# is fixed at 16 kHz on both sides to match Matcha TTS native output.
+# Unquoted: PortAudio device indices are integers. Quoting them makes
+# sounddevice treat them as name substrings → "2" matches hw:1,2 /
+# hw:1,12 / hw:2,0 simultaneously and raises "Multiple ... devices
+# found".
+audio_input_device: ${MIC_INDEX}
+audio_output_device: ${SPEAKER_DEVICE}
+audio_input_sample_rate: 16000
+audio_output_sample_rate: 16000
+
+log_level: "INFO"
+
+# Our extension blocks live under metadata so the upstream Config
+# dataclass accepts the YAML without schema changes.
+metadata:
+  wakeword:
+    model: "${WAKEWORD_MODEL}"
+    threshold: ${WAKEWORD_THRESHOLD}
+    cooldown_s: ${WAKEWORD_COOLDOWN}
+    vad_threshold: ${WAKEWORD_VAD_THRESHOLD}
+    # reSpeaker XVF3800 is a 6-channel USB exclusive device that refuses
+    # channels=1 (PaErrorCode -9998). VoiceArmApp opens it with this
+    # native count and picks ONE channel as the mono signal.
+    mic_channels: ${MIC_CHANNELS}
+    # XVF3800 6-channel USB layout (per Seeed wiki):
+    #   ch 0 = Processed audio (Conference)
+    #   ch 1 = Processed audio (ASR)   ← recommended (clean voice for ASR)
+    #   ch 2-5 = Raw mics 0-3
+    # Mean-downmix is wrong because raw mics + processed channels add up
+    # to noise garbage. Pick ch 1 for best ASR quality.
+    mic_channel_select: ${MIC_CHANNEL_SELECT}
+  arm:
+    arm_port: "${ARM_PORT}"
+    arm_id: "${ARM_ID}"
+    move_delay: ${ARM_MOVE_DELAY}
+    gesture_delay: ${ARM_GESTURE_DELAY}
+    actions_yaml_path: "${CONFIG_DIR}/actions.yaml"
+    observation_port: ${OBSERVATION_PORT}
+    # When true, recording a new action via the UI also wipes the
+    # multi-turn conversation history so old turns referencing renamed
+    # / deleted actions cannot bias the LLM. Off = preserve dialogue
+    # continuity (recommended; the model handles new tool lists fine).
+    clear_history_on_tool_change: ${ARM_CLEAR_HISTORY_ON_TOOL_CHANGE}
+    # Single-turn mode (default true): clear conversation history after
+    # every turn. voice-arm is a command interface, not a chatbot — and
+    # Qwen3-4B-AWQ's tool-calling reliability degrades sharply once
+    # history accumulates 2+ turns (see KNOWN_ISSUES.md ISSUE-001).
+    clear_history_on_turn_end: ${ARM_CLEAR_HISTORY_ON_TURN_END}

@@ -1,0 +1,134 @@
+version: "1.0"
+id: voice_robot_lekiwi
+name: Voice-Controlled LeKiwi Robot
+intro:
+  summary: Control a 3-wheeled Kiwi-drive robot with your voice using Groq AI. Say "Hey Jarvis" and give natural language commands to drive, steer, and move hands-free.
+  description_file: description.md
+  cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/banner_javis.png
+  category: voice_ai
+  solution_type: solution
+  tags: [voice, robot, lekiwi, esp32, raspberry-pi, respeaker, groq, llm, asr, tts]
+
+  input_requirements:
+    - type: audio
+      description: reSpeaker Flex XVF3800 USB microphone array for voice capture
+      description_i18n:
+        zh: reSpeaker Flex XVF3800 USB 麦克风阵列用于语音采集
+    - type: audio
+      description: Speaker for TTS voice output
+      description_i18n:
+        zh: 音箱用于语音合成输出
+    - type: usb
+      description: XIAO ESP32S3 connected to Raspberry Pi via USB-C for serial motor control
+      description_i18n:
+        zh: XIAO ESP32S3 通过 USB-C 连接树莓派，用于串口电机控制
+    - type: network
+      description: Internet access for Groq API (Whisper STT, Llama 3 LLM, Orpheus TTS)
+      description_i18n:
+        zh: 网络连接用于访问 Groq API（Whisper 语音识别、Llama 3 推理、Orpheus 语音合成）
+  device_catalog:
+    xiao_esp32s3:
+      sku: 102010634
+      name: Seeed Studio XIAO ESP32S3
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/2/-/2-102010634-seeed-studio-xiao-esp32s3-_pre-soldered_-45font_1.jpg
+      product_url: https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html
+      description: Compact ESP32-S3 board with Wi-Fi, used as robot motor controller
+      name_i18n:
+        zh: Seeed Studio XIAO ESP32S3
+      description_i18n:
+        zh: 紧凑型 ESP32-S3 开发板，用作机器人电机控制器
+    lekiwi_kit:
+      sku: 114090065
+      name: LeKiwi Kit
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/1/-/1-114090065-lekiwi-kit_1.jpg
+      product_url: https://www.seeedstudio.com/Lekiwi-Kit-p-6501.html
+      description: 3-wheeled Kiwi-drive robot chassis with 3× STS3215 smart servos
+      name_i18n:
+        zh: LeKiwi 套件
+      description_i18n:
+        zh: 三轮 Kiwi-drive 机器人底盘，含 3 个 STS3215 智能舵机
+    respeaker_xvf3800_circular_4:
+      sku: 107100122
+      name: reSpeaker Flex XVF3800 Circular 4
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/48035b5512857d0ab907b31a092da78f/1/-/1-100005504-respeaker-flex-xvf3800-circular-4_1_.jpg
+      product_url: https://www.seeedstudio.com/reSpeaker-Flex-XVF3800-Circular-4-p-6737.html
+      description: 4-microphone circular array with XMOS XVF3800 for high-quality far-field voice capture
+      name_i18n:
+        zh: reSpeaker Flex XVF3800 圆形 4 麦版
+      description_i18n:
+        zh: 4 麦克风圆形阵列，采用 XMOS XVF3800 实现高质量远场语音采集
+    raspberry_pi:
+      name: Raspberry Pi 5
+      product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
+      description: Single-board computer hosting the voice AI brain (wake word + STT + LLM + TTS)
+      name_i18n:
+        zh: 树莓派 5
+      description_i18n:
+        zh: 单板计算机，承载语音 AI 大脑（唤醒词、语音识别、LLM、语音合成）
+  presets:
+    - id: default
+      name: Voice Control Your LeKiwi
+      description: Assemble the robot, set servo IDs, flash the motor controller firmware, and deploy the voice AI brain to your Raspberry Pi.
+      device_groups:
+        - id: lekiwi_kit
+          name: Robot Chassis
+          type: single
+          required: true
+          options:
+            - device_ref: lekiwi_kit
+          default: lekiwi_kit
+          name_i18n:
+            zh: 机器人底盘
+        - id: motor_controller
+          name: Motor Controller
+          type: single
+          required: true
+          options:
+            - device_ref: xiao_esp32s3
+          default: xiao_esp32s3
+          name_i18n:
+            zh: 电机控制器
+        - id: voice_brain
+          name: Voice Brain
+          type: single
+          required: true
+          options:
+            - device_ref: raspberry_pi
+          default: raspberry_pi
+          name_i18n:
+            zh: 语音大脑
+        - id: microphone
+          name: Microphone
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800_circular_4
+          default: respeaker_xvf3800_circular_4
+
+          name_i18n:
+            zh: 麦克风
+      name_i18n:
+        zh: 语音控制你的 LeKiwi
+      description_i18n:
+        zh: 完成机器人组装和舵机 ID 配置，烧录电机控制器固件，并将语音 AI 大脑部署到树莓派。
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+    deployed_count: 0
+    likes_count: 0
+
+  links:
+    github: https://github.com/KasunThushara/Lekiwi-voice
+    wiki: https://wiki.seeedstudio.com/respeaker_flex_lekiwi/
+
+  summary_i18n:
+    zh: 用语音控制三轮 Kiwi 机器人的运动，基于 Groq AI。说"Hey Jarvis"然后用自然语言指挥机器人前进、转向和移动。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 语音控制 LeKiwi 机器人

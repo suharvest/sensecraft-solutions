@@ -1,0 +1,277 @@
+version: "1.0"
+id: deploy
+name: Industrial Security
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson pulls in shared Jetson pre-deploy fixes (iptables
+# raw-table workaround for JetPack 6.x) from
+# devices/profiles/jetson.yaml — no need to copy the shell into this
+# file or into remote_overrides.actions.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  # compose_dir uploads the WHOLE assets/docker/ tree so the
+  # config/demo_config.json (mounted at /app/config inside the
+  # container) ships alongside docker-compose.yml.
+  compose_dir: assets/docker
+  options:
+    project_name: industrial-security
+    remove_orphans: true
+  services:
+    - name: industrial-security-demo
+      port: 8080
+      health_check_endpoint: /
+      required: true
+
+pre_checks:
+  - type: disk_space
+    min_gb: 6
+    description: At least 6GB for the industrial-security-demo image and TensorRT engine cache
+
+actions:
+  before:
+    - name: Check Docker installation
+      ignore_error: false
+      run: |
+        set -e
+        if ! command -v docker >/dev/null 2>&1; then
+          cat <<'EOF' >&2
+        ERROR: Docker is not installed on this Jetson device.
+        JetPack 6.x 默认不带 Docker。请先在设备上运行：
+          curl -fsSL https://raw.githubusercontent.com/Zhang-zu-hao/Industrial-security-demo/main/install-docker-jetson.sh | sudo bash
+        然后重新部署。
+        EOF
+          exit 1
+        fi
+        if ! docker info 2>/dev/null | grep -qi nvidia; then
+          echo "WARNING: nvidia runtime missing — TensorRT will fail" >&2
+          echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+        fi
+        echo "Docker OK: $(docker version --format '{{.Server.Version}}')"
+      name_i18n:
+        zh: 检查 Docker 是否已安装
+    # Fix Docker iptables for JetPack 6.x: provided by device_class=jetson
+    # profile (devices/profiles/jetson.yaml). Prepended automatically.
+    - name: Inject RTSP URL into demo_config.json
+      ignore_error: false
+      run: |
+        set -e
+        CONFIG="assets/docker/config/demo_config.json"
+        # Escape forward slashes in URL for sed
+        URL=$(printf '%s' '{{rtsp_url}}' | sed 's/[\/&]/\\&/g')
+        sed -i "s|__RTSP_URL__|$URL|g" "$CONFIG"
+        echo "Camera source set in $CONFIG:"
+        grep '"source"' "$CONFIG"
+        # Ensure output directory exists
+        mkdir -p assets/docker/output
+      name_i18n:
+        zh: 将 RTSP 地址写入 demo_config.json
+  after:
+    - name: Wait for web dashboard
+      ignore_error: true
+      run: |
+        set -e
+        echo "Waiting for dashboard on http://localhost:8080 ..."
+        for i in $(seq 1 30); do
+          if curl -fsS --max-time 2 "http://localhost:8080/" >/dev/null 2>&1; then
+            echo "Dashboard is up after ${i}0s"
+            exit 0
+          fi
+          sleep 10
+        done
+        echo "Dashboard did not respond within 5 minutes — check 'docker logs industrial-security-demo'"
+
+      name_i18n:
+        zh: 等待 Web 面板启动
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8080
+
+data_channels:
+  - type: http
+    name: Realtime Stats
+    method: GET
+    url: "http://localhost:8080/api/stats"
+    name_i18n:
+      zh: 实时统计
+  - type: http
+    name: Events List
+    method: GET
+    url: "http://localhost:8080/api/events"
+    name_i18n:
+      zh: 事件列表
+  - type: http
+    name: Runtime Config
+    method: GET
+    url: "http://localhost:8080/api/config"
+    name_i18n:
+      zh: 运行时配置
+  - type: http_stream
+    name: Live MJPEG Stream
+    method: GET
+    url: "http://localhost:8080/api/stream"
+
+    name_i18n:
+      zh: 实时 MJPEG 视频流
+
+user_inputs:
+  - id: rtsp_url
+    name: Camera RTSP URL
+    type: text
+    required: true
+    default: "rtsp://admin:@192.168.1.108/Streaming/Channels/101"
+    placeholder: "rtsp://admin:password@192.168.1.108/Streaming/Channels/101"
+    description: "Test the URL with VLC or `ffprobe` first to confirm it works"
+    name_i18n:
+      zh: 摄像头 RTSP 地址
+    description_i18n:
+      zh: "建议先用 VLC 或 ffprobe 测试 URL 是否可访问"
+
+# SSH defaults applied to the derived remote view.
+ssh:
+  default_user: nvidia
+  auth_methods:
+    - password
+
+# Remote-specific overrides — applied when deriving the docker_remote view.
+remote_overrides:
+  remote_path: /home/{{username}}/industrial-security-demo
+  detection:
+    method: network_scan
+    manual_entry: true
+  actions:
+    before:
+      - name: Check Docker installation
+        ignore_error: false
+        run: |
+          if ! command -v docker >/dev/null 2>&1; then
+            cat <<'EOF' >&2
+          ERROR: Docker is not installed on this Jetson device.
+          JetPack 6.x 默认不带 Docker。请先在设备上运行：
+            curl -fsSL https://raw.githubusercontent.com/Zhang-zu-hao/Industrial-security-demo/main/install-docker-jetson.sh | sudo bash
+          然后重新部署。
+          EOF
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — TensorRT will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Docker OK: $(docker version --format '{{.Server.Version}}')"
+        name_i18n:
+          zh: 检查 Docker 是否已安装
+      # Fix Docker iptables for JetPack 6.x: also provided by
+      # device_class=jetson profile. Profile actions are applied to the
+      # BASE before remote_overrides.actions replaces the list, so the
+      # remote view's final actions.before still gets the iptables fix
+      # prepended — provided this override list is in the same order
+      # the base produces.
+      # NOTE: "Inject RTSP URL into demo_config.json" lives in
+      # `after_upload` below, NOT in `before`. The deployer uploads
+      # assets/docker/ (incl. config/demo_config.json) in its own
+      # `upload` step AFTER all `before` actions finish, so sed has to
+      # wait until after_upload — otherwise the target file doesn't
+      # exist yet.
+    after_upload:
+      - name: Inject RTSP URL into demo_config.json
+        ignore_error: false
+        run: |
+          # remote_path/<device-yaml-id> = /home/<user>/industrial-security-demo/deploy
+          CONFIG="/home/{{username}}/industrial-security-demo/deploy/config/demo_config.json"
+          # Escape forward slashes in URL for sed
+          URL=$(printf '%s' '{{rtsp_url}}' | sed 's/[\/&]/\\&/g')
+          sed -i "s|__RTSP_URL__|$URL|g" "$CONFIG"
+          echo "Camera source set in $CONFIG:"
+          grep '"source"' "$CONFIG"
+          # Ensure output directory exists with correct ownership
+          mkdir -p /home/{{username}}/industrial-security-demo/deploy/output
+        name_i18n:
+          zh: 将 RTSP 地址写入 demo_config.json
+    after:
+      - name: Wait for web dashboard
+        ignore_error: true
+        run: |
+          echo "Waiting for dashboard on http://{{host}}:8080 ..."
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 2 "http://localhost:8080/" >/dev/null 2>&1; then
+              echo "Dashboard is up after ${i}0s"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Dashboard did not respond within 5 minutes — check 'docker logs industrial-security-demo'"
+
+        name_i18n:
+          zh: 等待 Web 面板启动
+  post_deployment:
+    open_browser: true
+    url: http://{{host}}:8080
+  data_channels:
+    - type: http
+      name: Realtime Stats
+      method: GET
+      url: "http://{{host}}:8080/api/stats"
+      name_i18n:
+        zh: 实时统计
+    - type: http
+      name: Events List
+      method: GET
+      url: "http://{{host}}:8080/api/events"
+      name_i18n:
+        zh: 事件列表
+    - type: http
+      name: Runtime Config
+      method: GET
+      url: "http://{{host}}:8080/api/config"
+      name_i18n:
+        zh: 运行时配置
+    - type: http_stream
+      name: Live MJPEG Stream
+      method: GET
+      url: "http://{{host}}:8080/api/stream"
+
+      name_i18n:
+        zh: 实时 MJPEG 视频流
+  user_inputs:
+    - id: host
+      name: Jetson IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: Jetson IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: nvidia
+      required: true
+      description: "Common defaults: nvidia (Seeed reComputer Industrial), seeed, or ubuntu. SenseCraft internal fleet devices use harvest."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：nvidia（Seeed reComputer Industrial）、seeed 或 ubuntu。SenseCraft 内部 fleet 设备使用 harvest。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      default: "rtsp://admin:@192.168.1.108/Streaming/Channels/101"
+      placeholder: "rtsp://admin:password@192.168.1.108/Streaming/Channels/101"
+      description: "Test the URL with VLC or `ffprobe` first to confirm it works"
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: "建议先用 VLC 或 ffprobe 测试 URL 是否可访问"
+
+name_i18n:
+  zh: 工业安防

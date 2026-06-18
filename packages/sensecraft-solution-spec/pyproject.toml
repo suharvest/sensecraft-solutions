@@ -1,0 +1,24 @@
+[project]
+name = "sensecraft-solution-spec"
+version = "0.1.0"
+description = "Markdown parsing primitives for SenseCraft solution guides (multilingual guide.md parser + mistune-AST structure helpers)"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Seeed Studio", email = "support@seeedstudio.com"}
+]
+keywords = ["markdown", "parser", "solution", "seeed", "sensecraft"]
+
+dependencies = [
+    "markdown>=3.5.0",
+    # <4 pin: md_ast relies on mistune-internal token shape (pre-render
+    # heading text field captured via before_render_hooks).
+    "mistune>=3.2.1,<4",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sensecraft_solution_spec"]

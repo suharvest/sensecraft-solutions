@@ -1,0 +1,42 @@
+# Jetson 上运行的 LLM + TTS 服务
+
+services:
+  mlc-llm:
+    image: ghcr.nju.edu.cn/xinnan-tech/mlc-llm-serve:jetson
+    container_name: mlc-llm
+    restart: unless-stopped
+    runtime: nvidia
+    ports:
+      - "8000:8000"
+    volumes:
+      - mlc_models:/root/.cache/mlc_llm
+    environment:
+      - MODEL_NAME=qwen3-8b-instruct-q4f16_1-MLC
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+  kokoro-tts:
+    image: ghcr.nju.edu.cn/xinnan-tech/kokoro-tts:jetson
+    container_name: kokoro-tts
+    restart: unless-stopped
+    runtime: nvidia
+    ports:
+      - "8001:8000"
+    volumes:
+      - kokoro_models:/app/models
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
+volumes:
+  mlc_models:
+  kokoro_models:

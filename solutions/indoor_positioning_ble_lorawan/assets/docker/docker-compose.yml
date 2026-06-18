@@ -1,0 +1,17 @@
+services:
+  app:
+    image: seeedcloud/sensecraft-indoor-positioning
+    container_name: indoor-positioning
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+    volumes:
+      - ./db:/app/db/
+      - ./config:/app/server/config/json
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

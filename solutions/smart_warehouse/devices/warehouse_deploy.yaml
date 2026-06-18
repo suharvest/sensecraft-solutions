@@ -1,0 +1,125 @@
+version: "1.0"
+id: warehouse_deploy
+name: Warehouse System
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). No device_class — the
+# warehouse all-in-one image is a generic Docker app, runs on any Linux/Mac
+# host with Docker.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/mcp_warehouse
+
+  environment:
+    DB_PATH: /opt/provisioning-station/data/warehouse
+    INIT_MOCK_DATA: "false"
+    ENABLE_SECURITY_HEADERS: "true"
+    CORS_ORIGINS: "*"
+
+  options:
+    project_name: mcp_warehouse
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: warehouse
+      port: 2125
+      health_check_endpoint: /api/dashboard/stats
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: port_available
+    ports:
+      - 2125
+    description: Check if ports are available
+  - type: disk_space
+    min_gb: 2
+    description: Check available disk space
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:2125"
+
+name_i18n:
+  zh: 仓库管理系统
+
+remote_overrides:
+  compose_dir: assets/docker
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: IP address of the target device
+      name_i18n:
+        zh: 设备 IP 地址
+      description_i18n:
+        zh: 目标设备的 IP 地址
+    - id: port
+      name: SSH Port
+      type: text
+      default: "22"
+      required: false
+      description: SSH port (default 22; change only for non-standard setups)
+      name_i18n:
+        zh: SSH 端口
+      description_i18n:
+        zh: "SSH 端口（默认 22，仅在非标准配置时修改）"
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: SSH login username
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: SSH 登录用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      description: SSH login password
+      name_i18n:
+        zh: SSH 密码
+      description_i18n:
+        zh: SSH 登录密码
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: docker_compose_version
+      min_version: "2.0"
+      description: Check Docker Compose version
+    - type: disk_space
+      min_gb: 2
+      description: At least 2GB for warehouse all-in-one image
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:2125"

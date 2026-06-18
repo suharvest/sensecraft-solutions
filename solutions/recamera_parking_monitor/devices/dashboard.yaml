@@ -1,0 +1,21 @@
+version: "1.0"
+id: dashboard
+name: Open Parking Monitor
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: reCamera IP
+    default: 192.168.42.1
+    default_template: "{{host}}"
+    name_i18n:
+      zh: reCamera IP
+web_dashboard:
+  url: "http://{{host}}:1880/dashboard/preview"
+  title: Parking Monitor Dashboard
+  description: View live parking slot status (green = free, red = occupied)
+  title_i18n:
+    zh: 停车监控面板
+  description_i18n:
+    zh: 查看实时车位状态（绿色 = 空闲，红色 = 占用）
+name_i18n:
+  zh: 打开停车监控

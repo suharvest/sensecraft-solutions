@@ -1,0 +1,15 @@
+# Keep the build context (esp. agent/) lean + reproducible. Without this,
+# COPY agent/ drags in a multi-hundred-MB .venv + bytecode caches and bloats
+# the image (and can shadow the installed package). The agent/ tree is rsync'd
+# from the seeed checkout before build — these are dev-only artifacts.
+agent/.venv
+agent/dist
+agent/.pytest_cache
+agent/uv.lock
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/.DS_Store
+**/.pytest_cache
+# build/deploy artifacts that are never needed inside the image
+**/*.tar.gz

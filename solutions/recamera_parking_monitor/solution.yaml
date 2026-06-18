@@ -1,0 +1,87 @@
+version: "1.0"
+id: recamera_parking_monitor
+name: AI Parking Slot Monitor
+intro:
+  summary: See which parking spots are taken and which are free — real-time detection with reCamera, no server needed
+  description_file: description.md
+  cover_image: https://files.seeedstudio.com/wiki/reCamera/Applications/Wifi_HaLow/test1.jpg
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/wiki/reCamera/Applications/Wifi_HaLow/test2.jpg
+      caption: Parking slot detection with occupancy indicators
+      caption_i18n:
+        zh: 停车位检测与占用状态标识
+    - type: image
+      src: https://files.seeedstudio.com/wiki/reCamera/Applications/Wifi_HaLow/test3.jpg
+      caption: Multi-slot monitoring view
+      caption_i18n:
+        zh: 多车位监控视图
+    - type: image
+      src: https://files.seeedstudio.com/wiki/reCamera/dashboarddownload5.png
+      caption: Node-RED Dashboard Interface
+      caption_i18n:
+        zh: Node-RED 控制面板界面
+  category: sensing
+  solution_type: solution
+
+
+  tags:
+    - recamera
+    - parking
+    - yolo
+    - ai
+    - detection
+
+  input_requirements:
+    - type: rtsp
+      description: reCamera with view of parking area
+      description_i18n:
+        zh: 对准停车区域的 reCamera
+  device_catalog:
+    recamera:
+      sku: 102991894
+      name: reCamera
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
+      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+      description: AI camera with built-in parking detection model
+      name_i18n:
+        zh: reCamera
+      description_i18n:
+        zh: AI 摄像头，内置停车位检测模型
+  presets:
+    - id: default
+      name: Parking Monitor
+      description: Deploy parking slot detection to reCamera
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+
+          name_i18n:
+            zh: AI 摄像头
+      name_i18n:
+        zh: 停车位监控
+      description_i18n:
+        zh: 部署停车位检测到 reCamera
+  stats:
+    difficulty: beginner
+    estimated_time: 5min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/cn/ai_parking_slot_monitoring_demo_with_recamera/
+
+  summary_i18n:
+    zh: 实时看到哪些车位有车、哪些空闲——一台 reCamera 即可运行，无需额外服务器
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: AI 停车位监控

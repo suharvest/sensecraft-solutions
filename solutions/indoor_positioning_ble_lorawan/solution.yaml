@@ -1,0 +1,297 @@
+version: '1.0'
+id: indoor_positioning_ble_lorawan
+name: Campus-level BLE Beacon Positioning System
+intro:
+  summary: Know where your assets and people are in real-time. Battery-powered tags last 2 years, no wiring needed, works across large facilities.
+  description_file: description.md
+  cover_image: gallery/cover.png
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      caption: System Architecture
+      caption_i18n:
+        zh: 系统架构
+    - type: image
+      src: gallery/app-preview.png
+      caption: Application Dashboard
+      caption_i18n:
+        zh: 应用仪表板
+    - type: image
+      src: gallery/map-view.png
+      caption: Map Visualization
+      caption_i18n:
+        zh: 地图可视化
+  category: smart_building
+  solution_type: solution
+
+
+  input_requirements:
+    - type: lorawan
+      description: LoRaWAN network connectivity (US915/EU868/AS923)
+      description_i18n:
+        zh: LoRaWAN 网络连接 (US915/EU868/AS923)
+  tags:
+    - iot
+    - lorawan
+    - bluetooth
+    - indoor-positioning
+    - asset-tracking
+    - sensecap
+  device_catalog:
+    t1000_tracker:
+      sku: 114993073
+      name: SenseCAP T1000 Tracker
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-114993073-sensecap-card-tracker-t1000-a.jpg
+      product_url: https://www.seeedstudio.com/SenseCAP-Card-Tracker-T1000-B-p-5698.html
+      description: LoRaWAN mobile tracker with BLE scanning, motion detection, and SOS button
+      name_i18n:
+        zh: SenseCAP T1000 追踪器
+      description_i18n:
+        zh: LoRaWAN 移动追踪器，支持 BLE 扫描、运动检测和 SOS 按钮
+    bc01_beacon:
+      sku: 100085893
+      name: SenseCAP BC03 Indoor Bluetooth Beacon
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-bc03-bluetooth-beacon.jpg
+      product_url: https://www.seeedstudio.com/Indoor-Bluetooth-Beacon-BC03-p-6732.html
+      description: Bluetooth LE 5.0 beacon with iBeacon/Eddystone support, up to 2 years battery life
+      name_i18n:
+        zh: SenseCAP BC03 室内蓝牙信标
+      description_i18n:
+        zh: 蓝牙 LE 5.0 信标，支持 iBeacon/Eddystone，电池寿命长达 2 年
+    gateway_us915:
+      sku: "114992982"
+      name: SenseCAP M2 Gateway (US915)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_us915_1.jpg
+      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-US915-p-5472.html
+      description: LoRaWAN gateway for Americas region (US915), 2km indoor coverage
+      name_i18n:
+        zh: SenseCAP M2 网关 (US915)
+      description_i18n:
+        zh: 美洲地区 LoRaWAN 网关 (US915)，室内覆盖半径 2km
+    gateway_eu868:
+      sku: "114992981"
+      name: SenseCAP M2 Gateway (EU868)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_eu868_1.jpg
+      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-EU868-p-5471.html
+      description: LoRaWAN gateway for Europe region (EU868), 2km indoor coverage
+      name_i18n:
+        zh: SenseCAP M2 网关 (EU868)
+      description_i18n:
+        zh: 欧洲地区 LoRaWAN 网关 (EU868)，室内覆盖半径 2km
+    gateway_as923:
+      sku: "114992983"
+      name: SenseCAP M2 Gateway (AS923)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_as923_1.jpg
+      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-AS923-p-5473.html
+      description: LoRaWAN gateway for Asia-Pacific region (AS923), 2km indoor coverage
+      name_i18n:
+        zh: SenseCAP M2 网关 (AS923)
+      description_i18n:
+        zh: 亚太地区 LoRaWAN 网关 (AS923)，室内覆盖半径 2km
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: intermediate
+    estimated_time: 60min
+  links:
+    wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+    wiki_en: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+    github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
+    demo: https://indoorpositioning-demo.seeed.cc/
+    purchase: https://www.seeedstudio.com/Indoor-Outdoor-Integrated-Positioning.html
+  presets:
+    - id: starter
+      name: Starter Kit
+      description: Small office (up to 500 sqm)
+      badge: Popular
+      device_groups:
+        - id: gateway
+          name: LoRaWAN Gateway
+          type: single
+          required: true
+          description: Select the gateway for your region
+          options:
+            - device_ref: gateway_us915
+              label: Americas (US915)
+              label_i18n:
+                zh: 美洲 (US915)
+            - device_ref: gateway_eu868
+              label: Europe (EU868)
+              label_i18n:
+                zh: 欧洲 (EU868)
+            - device_ref: gateway_as923
+              label: Asia-Pacific (AS923)
+              label_i18n:
+                zh: 亚太 (AS923)
+          default: gateway_us915
+          name_i18n:
+            zh: LoRaWAN 网关
+          description_i18n:
+            zh: 选择您所在地区的网关
+        - id: beacons
+          name: BLE Beacons
+          type: quantity
+          required: true
+          device_ref: bc01_beacon
+          min_count: 3
+          max_count: 100
+          default_count: 6
+          description: 'Recommended: 3-5 per zone for accurate positioning'
+          name_i18n:
+            zh: BLE 信标
+          description_i18n:
+            zh: 建议：每个区域 3-5 个，以获得准确定位
+        - id: tracker
+          name: T1000 Tracker
+          type: quantity
+          required: true
+          device_ref: t1000_tracker
+          min_count: 1
+          max_count: 50
+          default_count: 1
+          description: Mobile asset tracker with BLE scanning
+          name_i18n:
+            zh: T1000 追踪器
+          description_i18n:
+            zh: 带 BLE 扫描的移动资产追踪器
+      links:
+        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
+      name_i18n:
+        zh: 入门套件
+      description_i18n:
+        zh: 小型办公室（500平方米以内）
+      badge_i18n:
+        zh: 热门
+    - id: standard
+      name: Standard Setup
+      description: Medium facility (500-2000 sqm)
+      device_groups:
+        - id: gateway
+          name: LoRaWAN Gateway
+          type: single
+          required: true
+          description: Select the gateway for your region
+          options:
+            - device_ref: gateway_us915
+              label: Americas (US915)
+              label_i18n:
+                zh: 美洲 (US915)
+            - device_ref: gateway_eu868
+              label: Europe (EU868)
+              label_i18n:
+                zh: 欧洲 (EU868)
+            - device_ref: gateway_as923
+              label: Asia-Pacific (AS923)
+              label_i18n:
+                zh: 亚太 (AS923)
+          default: gateway_us915
+          name_i18n:
+            zh: LoRaWAN 网关
+          description_i18n:
+            zh: 选择您所在地区的网关
+        - id: beacons
+          name: BLE Beacons
+          type: quantity
+          required: true
+          device_ref: bc01_beacon
+          min_count: 3
+          max_count: 100
+          default_count: 15
+          description: 'Recommended: 3-5 per zone for accurate positioning'
+          name_i18n:
+            zh: BLE 信标
+          description_i18n:
+            zh: 建议：每个区域 3-5 个，以获得准确定位
+        - id: tracker
+          name: T1000 Tracker
+          type: quantity
+          required: true
+          device_ref: t1000_tracker
+          min_count: 1
+          max_count: 50
+          default_count: 3
+          description: Mobile asset tracker with BLE scanning
+          name_i18n:
+            zh: T1000 追踪器
+          description_i18n:
+            zh: 带 BLE 扫描的移动资产追踪器
+      links:
+        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
+      name_i18n:
+        zh: 标准配置
+      description_i18n:
+        zh: 中型设施（500-2000平方米）
+    - id: enterprise
+      name: Enterprise
+      description: Large facility (2000+ sqm)
+      device_groups:
+        - id: gateway
+          name: LoRaWAN Gateway
+          type: single
+          required: true
+          description: Select the gateway for your region
+          options:
+            - device_ref: gateway_us915
+              label: Americas (US915)
+              label_i18n:
+                zh: 美洲 (US915)
+            - device_ref: gateway_eu868
+              label: Europe (EU868)
+              label_i18n:
+                zh: 欧洲 (EU868)
+            - device_ref: gateway_as923
+              label: Asia-Pacific (AS923)
+              label_i18n:
+                zh: 亚太 (AS923)
+          default: gateway_us915
+          name_i18n:
+            zh: LoRaWAN 网关
+          description_i18n:
+            zh: 选择您所在地区的网关
+        - id: beacons
+          name: BLE Beacons
+          type: quantity
+          required: true
+          device_ref: bc01_beacon
+          min_count: 3
+          max_count: 100
+          default_count: 30
+          description: 'Recommended: 3-5 per zone for accurate positioning'
+          name_i18n:
+            zh: BLE 信标
+          description_i18n:
+            zh: 建议：每个区域 3-5 个，以获得准确定位
+        - id: tracker
+          name: T1000 Tracker
+          type: quantity
+          required: true
+          device_ref: t1000_tracker
+          min_count: 1
+          max_count: 50
+          default_count: 10
+          description: Mobile asset tracker with BLE scanning
+          name_i18n:
+            zh: T1000 追踪器
+          description_i18n:
+            zh: 带 BLE 扫描的移动资产追踪器
+      links:
+        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
+      name_i18n:
+        zh: 企业版
+      description_i18n:
+        zh: 大型设施（2000平方米以上）
+  summary_i18n:
+    zh: 实时掌握人员和物品位置，定位标签电池可用2年，无需布线，覆盖整个园区
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+enabled: true
+name_i18n:
+  zh: 园区级蓝牙信标定位系统

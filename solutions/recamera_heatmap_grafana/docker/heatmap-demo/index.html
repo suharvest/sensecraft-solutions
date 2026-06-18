@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reCamera Heatmap</title>
+    <script src="./heatmap.min.js"></script>
+    <style>
+        /* ---- Base ---- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1a2e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+        /* ---- Main Heatmap View ---- */
+        #heatmapContainer { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        #floorPlan { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; object-fit: fill !important; z-index: 1; display: block; }
+        #heatmapLayer { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; z-index: 2; }
+        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 12px; font-family: monospace; font-size: 13px; z-index: 3; border-radius: 6px; pointer-events: none; }
+
+        /* ---- Settings Button ---- */
+        #settingsBtn {
+            position: absolute; top: 10px; right: 10px; z-index: 10;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        #settingsBtn:hover { background: rgba(0,0,0,0.8); color: #fff; }
+        #settingsBtn.has-config { border-color: #4ade80; color: #4ade80; }
+
+        /* ---- Calibration Overlay ---- */
+        #calOverlay {
+            display: none; position: fixed; inset: 0; z-index: 100;
+            background: rgba(0,0,0,0.85); overflow-y: auto;
+            justify-content: center; align-items: flex-start; padding: 20px;
+        }
+        #calOverlay.active { display: flex; }
+
+        .cal-panel {
+            background: #fff; border-radius: 12px; max-width: 1100px; width: 100%;
+            padding: 28px; margin-top: 10px;
+        }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .cal-header h2 { font-size: 18px; color: #1a1a1a; font-weight: 600; }
+        .cal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; padding: 4px 8px; border-radius: 4px; }
+        .cal-close:hover { color: #333; background: #f1f5f9; }
+
+        .cal-tip {
+            background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
+            padding: 12px 16px; margin-bottom: 20px; color: #0c4a6e; font-size: 13px; line-height: 1.6;
+        }
+
+        .cal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media (max-width: 768px) { .cal-grid { grid-template-columns: 1fr; } }
+
+        .cal-col-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .cal-col-title { font-weight: 600; font-size: 14px; color: #333; }
+        .cal-point-badge { font-size: 12px; color: #666; background: #f1f5f9; padding: 2px 8px; border-radius: 10px; }
+        .cal-point-badge.complete { background: #dcfce7; color: #166534; }
+
+        .cal-upload-label {
+            display: inline-block; padding: 5px 12px; margin-bottom: 8px;
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+            font-size: 12px; color: #64748b; cursor: pointer; transition: all 0.15s;
+        }
+        .cal-upload-label:hover { background: #f1f5f9; border-color: #cbd5e1; }
+
+        .cal-canvas-box {
+            position: relative; background: #f8fafc; border: 2px dashed #d1d5db; border-radius: 8px;
+            min-height: 260px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .cal-canvas-box.has-image { border-style: solid; border-color: #e2e8f0; }
+        .cal-canvas-box canvas { display: none; max-width: 100%; cursor: crosshair; }
+        .cal-canvas-box.has-image canvas { display: block; }
+        .cal-canvas-box .drop-hint { color: #94a3b8; font-size: 13px; text-align: center; padding: 20px; user-select: none; }
+        .cal-canvas-box.has-image .drop-hint { display: none; }
+
+        .cal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .cal-btn {
+            padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500;
+            cursor: pointer; border: none; transition: all 0.15s;
+        }
+        .cal-btn-primary { background: #2563eb; color: #fff; }
+        .cal-btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+        .cal-btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+        .cal-btn-ghost { background: transparent; color: #64748b; border: 1px solid #e2e8f0; }
+        .cal-btn-ghost:hover { background: #f8fafc; }
+        .cal-btn-danger { background: transparent; color: #dc2626; border: 1px solid #fecaca; }
+        .cal-btn-danger:hover { background: #fef2f2; }
+    </style>
+</head>
+<body>
+
+<!-- Main Heatmap View -->
+<div id="heatmapContainer">
+    <img id="floorPlan" src="R2.png">
+    <div id="heatmapLayer"></div>
+</div>
+<div id="status">Loading config...</div>
+
+<!-- Settings Button -->
+<button id="settingsBtn" title="Calibration / &#26657;&#20934;">&#9881;</button>
+
+<!-- Calibration Overlay -->
+<div id="calOverlay">
+    <div class="cal-panel">
+        <div class="cal-header">
+            <h2>Heatmap Calibration / 热力图校准</h2>
+            <button class="cal-close" id="calCloseBtn">&times;</button>
+        </div>
+
+        <div class="cal-tip" id="calTip">
+            Upload a camera screenshot and your floor plan, then click 4 matching reference points on each image.<br>
+            上传摄像头截图和平面图，然后在两张图上各点 4 个对应的参考点。
+        </div>
+
+        <div class="cal-grid">
+            <!-- Camera -->
+            <div>
+                <div class="cal-col-header">
+                    <span class="cal-col-title">Camera View / 摄像头画面</span>
+                    <span class="cal-point-badge" id="camBadge">0 / 4</span>
+                </div>
+                <label class="cal-upload-label">
+                    Upload / 上传 <input type="file" id="camFileInput" accept="image/*" hidden>
+                </label>
+                <div class="cal-canvas-box" id="camBox">
+                    <canvas id="camCanvas"></canvas>
+                    <div class="drop-hint">Drop image here / 拖入图片</div>
+                </div>
+            </div>
+            <!-- Floor Plan -->
+            <div>
+                <div class="cal-col-header">
+                    <span class="cal-col-title">Floor Plan / 平面图</span>
+                    <span class="cal-point-badge" id="fpBadge">0 / 4</span>
+                </div>
+                <label class="cal-upload-label">
+                    Upload / 上传 <input type="file" id="fpFileInput" accept="image/*" hidden>
+                </label>
+                <div class="cal-canvas-box" id="fpBox">
+                    <canvas id="fpCanvas"></canvas>
+                    <div class="drop-hint">Drop image here / 拖入图片</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cal-actions">
+            <button class="cal-btn cal-btn-danger" id="calResetBtn">Reset / 重置</button>
+            <button class="cal-btn cal-btn-ghost" id="calUndoBtn">Undo / 撤销</button>
+            <button class="cal-btn cal-btn-ghost" id="calCancelBtn">Cancel / 取消</button>
+            <button class="cal-btn cal-btn-primary" id="calSaveBtn" disabled>Save / 保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. Perspective Transform
+    // ==========================================
+    class PerspectiveTransform {
+        constructor(src, dst) {
+            this.matrix = this._computeMatrix(src, dst);
+        }
+        _computeMatrix(src, dst) {
+            const t = [];
+            for (let i = 0; i < 4; i++) {
+                const a = src[i], b = dst[i];
+                t.push([a.x, a.y, 1, 0, 0, 0, -a.x * b.x, -a.y * b.x]);
+                t.push([0, 0, 0, a.x, a.y, 1, -a.x * b.y, -a.y * b.y]);
+            }
+            const A = [], B = [];
+            for (let i = 0; i < 8; i++) {
+                A.push(t[i]);
+                B.push(dst[Math.floor(i / 2)][i % 2 === 0 ? 'x' : 'y']);
+            }
+            const h = this._solve(A, B);
+            h.push(1);
+            return h;
+        }
+        _solve(A, B) {
+            const n = A.length;
+            for (let i = 0; i < n; i++) {
+                let maxEl = Math.abs(A[i][i]), maxRow = i;
+                for (let k = i + 1; k < n; k++) {
+                    if (Math.abs(A[k][i]) > maxEl) { maxEl = Math.abs(A[k][i]); maxRow = k; }
+                }
+                for (let k = i; k < n; k++) { const tmp = A[maxRow][k]; A[maxRow][k] = A[i][k]; A[i][k] = tmp; }
+                const tmp = B[maxRow]; B[maxRow] = B[i]; B[i] = tmp;
+                for (let k = i + 1; k < n; k++) {
+                    const c = -A[k][i] / A[i][i];
+                    for (let j = i; j < n; j++) { if (i === j) A[k][j] = 0; else A[k][j] += c * A[i][j]; }
+                    B[k] += c * B[i];
+                }
+            }
+            const x = new Array(n).fill(0);
+            for (let i = n - 1; i >= 0; i--) {
+                let sum = 0;
+                for (let j = i + 1; j < n; j++) sum += A[i][j] * x[j];
+                x[i] = (B[i] - sum) / A[i][i];
+            }
+            return x;
+        }
+        transformPoint(x, y) {
+            const h = this.matrix;
+            const X = h[0]*x + h[1]*y + h[2];
+            const Y = h[3]*x + h[4]*y + h[5];
+            const W = h[6]*x + h[7]*y + h[8];
+            return { x: X / W, y: Y / W };
+        }
+    }
+
+    // ==========================================
+    // 2. Server-side Config API
+    // ==========================================
+    async function loadServerConfig() {
+        try {
+            const resp = await fetch('/api/config');
+            if (!resp.ok) return null;
+            return await resp.json();
+        } catch { return null; }
+    }
+
+    async function saveServerConfig(cfg) {
+        await fetch('/api/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cfg)
+        });
+    }
+
+    async function deleteServerConfig() {
+        await fetch('/api/config', { method: 'DELETE' });
+    }
+
+    // ==========================================
+    // 3. Constants
+    // ==========================================
+    const INFLUX_URL = window.location.protocol + '//' + window.location.hostname + ':8086';
+    const INFLUX_ORG = 'seeed';
+    const INFLUX_BUCKET = 'recamera';
+    const INFLUX_TOKEN = 'recamera-heatmap-token';
+    const REFRESH_INTERVAL = 3000;
+    const DATA_RANGE = '-1h';
+    const CAM_WIDTH = 1920;
+    const CAM_HEIGHT = 1080;
+
+    const DEFAULT_CALIBRATION = {
+        srcPoints: [
+            {x: 0, y: 0}, {x: CAM_WIDTH, y: 0},
+            {x: CAM_WIDTH, y: CAM_HEIGHT}, {x: 0, y: CAM_HEIGHT}
+        ],
+        dstPoints: [
+            {x: 0, y: 0}, {x: 100, y: 0},
+            {x: 100, y: 100}, {x: 0, y: 100}
+        ]
+    };
+
+    // Global — set during init
+    let transformer = null;
+
+    // ==========================================
+    // 4. Heatmap Logic
+    // ==========================================
+    let heatmapInstance = null;
+    let containerWidth = 0;
+    let containerHeight = 0;
+
+    function initHeatmap() {
+        const container = document.getElementById('heatmapLayer');
+        containerWidth = container.clientWidth;
+        containerHeight = container.clientHeight;
+
+        heatmapInstance = h337.create({
+            container, radius: 40, maxOpacity: 0.8, minOpacity: 0.0, blur: 0.85
+        });
+
+        new ResizeObserver(entries => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                if (width && height && (containerWidth !== width || containerHeight !== height)) {
+                    containerWidth = width;
+                    containerHeight = height;
+                    heatmapInstance._renderer.setDimensions(width, height);
+                }
+            }
+        }).observe(document.getElementById('heatmapContainer'));
+
+        updateStatus('Ready, waiting for data...');
+        fetchData();
+        setInterval(fetchData, REFRESH_INTERVAL);
+    }
+
+    async function fetchData() {
+        const query = `
+            from(bucket: "${INFLUX_BUCKET}")
+            |> range(start: ${DATA_RANGE})
+            |> filter(fn: (r) => r["_measurement"] == "heatmap_raw")
+            |> filter(fn: (r) => r["_field"] == "x_pct" or r["_field"] == "y_pct")
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+            |> keep(columns: ["x_pct", "y_pct"])
+        `;
+        try {
+            const resp = await fetch(`${INFLUX_URL}/api/v2/query?org=${INFLUX_ORG}&nocache=${Date.now()}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${INFLUX_TOKEN}`,
+                    'Content-Type': 'application/vnd.flux',
+                    'Accept': 'application/csv'
+                },
+                body: query
+            });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            processCSV(await resp.text());
+        } catch (err) {
+            console.error(err);
+            updateStatus(`Query failed: ${err.message}`);
+        }
+    }
+
+    function processCSV(csv) {
+        const lines = csv.trim().split('\n');
+        if (lines.length < 2) {
+            heatmapInstance.setData({ max: 2, data: [] });
+            updateStatus(`No data (${new Date().toLocaleTimeString()})`);
+            return;
+        }
+        const header = lines[0].split(',');
+        const xi = header.findIndex(h => h.trim() === 'x_pct');
+        const yi = header.findIndex(h => h.trim() === 'y_pct');
+        if (xi === -1 || yi === -1) return;
+
+        const points = [];
+        for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(',');
+            if (cols.length <= Math.max(xi, yi)) continue;
+            const xPct = parseFloat(cols[xi]);
+            const yPct = parseFloat(cols[yi]);
+            if (isNaN(xPct) || isNaN(yPct)) continue;
+
+            const mapPt = transformer.transformPoint((xPct / 100) * CAM_WIDTH, (yPct / 100) * CAM_HEIGHT);
+            if (mapPt.x >= -50 && mapPt.x <= 150 && mapPt.y >= -50 && mapPt.y <= 150) {
+                points.push({
+                    x: Math.round((Math.max(0, Math.min(100, mapPt.x)) / 100) * containerWidth),
+                    y: Math.round((Math.max(0, Math.min(100, mapPt.y)) / 100) * containerHeight),
+                    value: 1
+                });
+            }
+        }
+
+        heatmapInstance.setData({ max: 2, data: points });
+        updateStatus(points.length > 0
+            ? `${points.length} points (${new Date().toLocaleTimeString()})`
+            : `No data (${new Date().toLocaleTimeString()})`);
+    }
+
+    function updateStatus(msg) {
+        document.getElementById('status').textContent = msg;
+    }
+
+    // ==========================================
+    // 5. Calibration UI
+    // ==========================================
+    function initCalibrationUI() {
+        const overlay   = document.getElementById('calOverlay');
+        const tip       = document.getElementById('calTip');
+        const camCanvas = document.getElementById('camCanvas');
+        const fpCanvas  = document.getElementById('fpCanvas');
+        const camBox    = document.getElementById('camBox');
+        const fpBox     = document.getElementById('fpBox');
+        const camInput  = document.getElementById('camFileInput');
+        const fpInput   = document.getElementById('fpFileInput');
+        const camBadge  = document.getElementById('camBadge');
+        const fpBadge   = document.getElementById('fpBadge');
+        const saveBtn   = document.getElementById('calSaveBtn');
+
+        let camImg = null, fpImg = null;
+        let camPts = [], fpPts = [];
+        const COLORS = { cam: '#ef4444', fp: '#3b82f6' };
+
+        // --- Open / Close ---
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            camImg = null; fpImg = null;
+            camPts = []; fpPts = [];
+            camBox.classList.remove('has-image');
+            fpBox.classList.remove('has-image');
+            camCanvas.style.display = 'none';
+            fpCanvas.style.display = 'none';
+            refreshUI();
+            overlay.classList.add('active');
+        });
+
+        function close() { overlay.classList.remove('active'); }
+        document.getElementById('calCloseBtn').addEventListener('click', close);
+        document.getElementById('calCancelBtn').addEventListener('click', close);
+
+        // --- Image helpers ---
+        function readFile(file, cb) {
+            const r = new FileReader();
+            r.onload = e => {
+                const img = new Image();
+                img.onload = () => cb(img, e.target.result);
+                img.src = e.target.result;
+            };
+            r.readAsDataURL(file);
+        }
+
+        function drawOnCanvas(canvas, box, img) {
+            const maxW = box.clientWidth - 4;
+            const ratio = img.naturalHeight / img.naturalWidth;
+            const w = Math.min(maxW, img.naturalWidth);
+            const h = Math.round(w * ratio);
+            canvas.width = w; canvas.height = h;
+            canvas.style.display = 'block';
+            box.classList.add('has-image');
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        }
+
+        function redraw(canvas, box, img, pts, color) {
+            if (!img) return;
+            drawOnCanvas(canvas, box, img);
+            const ctx = canvas.getContext('2d');
+            const sw = canvas.width / img.naturalWidth;
+            const sh = canvas.height / img.naturalHeight;
+            pts.forEach((p, i) => {
+                const x = p.ix * sw, y = p.iy * sh;
+                ctx.beginPath(); ctx.arc(x, y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = color; ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1;
+                ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = color; ctx.fill();
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(i + 1, x, y);
+            });
+        }
+
+        function resizeToDataUrl(img, maxW, maxH, quality) {
+            let w = img.naturalWidth, h = img.naturalHeight;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            return c.toDataURL('image/jpeg', quality);
+        }
+
+        // --- File inputs ---
+        camInput.addEventListener('change', e => {
+            if (!e.target.files[0]) return;
+            readFile(e.target.files[0], img => { camImg = img; camPts = []; redraw(camCanvas, camBox, img, [], COLORS.cam); refreshUI(); });
+        });
+        fpInput.addEventListener('change', e => {
+            if (!e.target.files[0]) return;
+            readFile(e.target.files[0], img => { fpImg = img; fpPts = []; redraw(fpCanvas, fpBox, img, [], COLORS.fp); refreshUI(); });
+        });
+
+        // --- Drag & drop ---
+        function setupDrop(box, input) {
+            box.addEventListener('dragover', e => { e.preventDefault(); box.style.borderColor = '#3b82f6'; });
+            box.addEventListener('dragleave', () => { box.style.borderColor = ''; });
+            box.addEventListener('drop', e => {
+                e.preventDefault(); box.style.borderColor = '';
+                if (e.dataTransfer.files[0]) {
+                    const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+                    input.files = dt.files; input.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+        setupDrop(camBox, camInput);
+        setupDrop(fpBox, fpInput);
+
+        // --- Canvas clicks ---
+        camCanvas.addEventListener('click', e => {
+            if (!camImg || camPts.length >= 4) return;
+            const r = camCanvas.getBoundingClientRect();
+            const cx = e.clientX - r.left, cy = e.clientY - r.top;
+            camPts.push({ ix: cx * (camImg.naturalWidth / camCanvas.width), iy: cy * (camImg.naturalHeight / camCanvas.height) });
+            redraw(camCanvas, camBox, camImg, camPts, COLORS.cam);
+            refreshUI();
+        });
+
+        fpCanvas.addEventListener('click', e => {
+            if (!fpImg || fpPts.length >= 4) return;
+            const r = fpCanvas.getBoundingClientRect();
+            const cx = e.clientX - r.left, cy = e.clientY - r.top;
+            fpPts.push({ ix: cx * (fpImg.naturalWidth / fpCanvas.width), iy: cy * (fpImg.naturalHeight / fpCanvas.height) });
+            redraw(fpCanvas, fpBox, fpImg, fpPts, COLORS.fp);
+            refreshUI();
+        });
+
+        // --- UI state ---
+        function refreshUI() {
+            camBadge.textContent = `${camPts.length} / 4`;
+            camBadge.classList.toggle('complete', camPts.length === 4);
+            fpBadge.textContent = `${fpPts.length} / 4`;
+            fpBadge.classList.toggle('complete', fpPts.length === 4);
+            saveBtn.disabled = !(camPts.length === 4 && fpPts.length === 4 && fpImg);
+
+            if (!camImg && !fpImg) {
+                tip.innerHTML = 'Upload a camera screenshot and your floor plan, then click 4 matching reference points on each image.<br>上传摄像头截图和平面图，然后在两张图上各点 4 个对应的参考点。';
+            } else if (camPts.length < 4) {
+                const n = camPts.length + 1;
+                tip.innerHTML = `Click point <strong>${n}/4</strong> on the <b>camera view</b>. Pick visible landmarks (corners, pillars, doorways).<br>在<b>摄像头画面</b>上点击第 <strong>${n}</strong> 个参考点。选择柱子、门口等明显标志物。`;
+            } else if (fpPts.length < 4) {
+                const n = fpPts.length + 1;
+                tip.innerHTML = `Now click the matching point <strong>${n}/4</strong> on the <b>floor plan</b>.<br>现在在<b>平面图</b>上点击对应的第 <strong>${n}</strong> 个位置。`;
+            } else {
+                tip.innerHTML = 'All points set! Click <b>Save</b> to apply.<br>全部标记完成！点击<b>保存</b>应用校准。';
+            }
+        }
+
+        // --- Save (server-side) ---
+        saveBtn.addEventListener('click', async () => {
+            const srcPoints = camPts.map(p => ({ x: p.ix, y: p.iy }));
+            const dstPoints = fpPts.map(p => ({
+                x: (p.ix / fpImg.naturalWidth) * 100,
+                y: (p.iy / fpImg.naturalHeight) * 100
+            }));
+            const floorPlanImage = resizeToDataUrl(fpImg, 1200, 900, 0.75);
+
+            await saveServerConfig({ srcPoints, dstPoints, floorPlanImage });
+            location.reload();
+        });
+
+        // --- Reset (server-side) ---
+        document.getElementById('calResetBtn').addEventListener('click', async () => {
+            if (!confirm('Reset to default calibration?\n重置为默认校准？')) return;
+            await deleteServerConfig();
+            location.reload();
+        });
+
+        // --- Undo ---
+        document.getElementById('calUndoBtn').addEventListener('click', () => {
+            if (fpPts.length > 0) { fpPts.pop(); redraw(fpCanvas, fpBox, fpImg, fpPts, COLORS.fp); }
+            else if (camPts.length > 0) { camPts.pop(); redraw(camCanvas, camBox, camImg, camPts, COLORS.cam); }
+            refreshUI();
+        });
+    }
+
+    // ==========================================
+    // 6. Boot — load config from server, then start
+    // ==========================================
+    (async function boot() {
+        const saved = await loadServerConfig();
+
+        const cal = saved || DEFAULT_CALIBRATION;
+        transformer = new PerspectiveTransform(cal.srcPoints, cal.dstPoints);
+
+        if (saved) document.getElementById('settingsBtn').classList.add('has-config');
+
+        const floorPlan = document.getElementById('floorPlan');
+
+        // Set floor plan image (saved or default R2.png)
+        const imgSrc = (saved && saved.floorPlanImage) ? saved.floorPlanImage : 'R2.png';
+
+        // Wait for image load, then start heatmap
+        if (floorPlan.src.endsWith(imgSrc) && floorPlan.complete) {
+            initHeatmap();
+        } else {
+            floorPlan.onload = () => initHeatmap();
+            floorPlan.src = imgSrc;
+        }
+
+        initCalibrationUI();
+    })();
+</script>
+</body>
+</html>

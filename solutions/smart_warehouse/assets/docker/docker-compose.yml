@@ -1,0 +1,25 @@
+services:
+  warehouse:
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
+    container_name: mcp_warehouse
+    ports:
+      - "2125:2125"
+    environment:
+      - PORT=2125
+      - DATABASE_PATH=/data/warehouse.db
+      - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
+      - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+    volumes:
+      - warehouse_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2125/healthz', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  warehouse_data:
+    driver: local

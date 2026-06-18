@@ -1,0 +1,156 @@
+version: '1.0'
+id: recamera_heatmap_grafana
+name: Smart Retail People Flow Heatmap
+intro:
+  summary: See which shelves attract customers, which aisles get ignored — works with reCamera, IP cameras + AI boxes, pick the best fit for your store
+  description_file: description.md
+  cover_image: gallery/cover.svg
+  gallery:
+    - type: image
+      src: gallery/grafana-dashboard.png
+      caption: Grafana Dashboard with Live Feed
+      caption_i18n:
+        zh: Grafana 数据看板（含实时画面）
+    - type: image
+      src: gallery/heatmap-demo.png
+      caption: Spatial Heatmap Visualization
+      caption_i18n:
+        zh: 空间热力图可视化
+    - type: image
+      src: gallery/architecture.svg
+      caption: System Architecture
+      caption_i18n:
+        zh: 系统架构
+  category: sensing
+  solution_type: solution
+
+
+  tags:
+    - recamera
+    - jetson
+    - heatmap
+    - grafana
+    - influxdb
+    - yolo
+    - privacy
+    - analytics
+    - retail
+
+  input_requirements:
+    - type: rtsp
+      description: reCamera or IP camera with RTSP stream
+      description_i18n:
+        zh: 带 RTSP 视频流的 reCamera 或 IP 摄像头
+  device_catalog:
+    recamera:
+      sku: 102991894
+      name: reCamera
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
+      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+      description: AI camera that detects people and automatically protects privacy
+      name_i18n:
+        zh: reCamera
+      description_i18n:
+        zh: AI 摄像头，自动识别人员位置并打码保护隐私
+    recomputer_r1100:
+      sku: 113991374
+      name: reComputer R1100
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+      description: Edge computing device for running Grafana dashboard
+      name_i18n:
+        zh: reComputer R1100
+      description_i18n:
+        zh: 边缘计算设备，运行 Grafana 看板
+    recomputer_j40:
+      sku: 110110144
+      name: reComputer J40
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/110110144.jpg
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: GPU-accelerated edge AI device for multi-camera detection
+      name_i18n:
+        zh: reComputer J40
+      description_i18n:
+        zh: GPU 加速边缘 AI 设备，支持多摄像头检测
+    recomputer_j50:
+      sku: 100076722
+      name: reComputer Robotics J5011 (AGX Orin)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100032662--recomputer-robotics-j5012-with-gmsl_1__1.jpg
+      product_url: https://www.seeedstudio.com/reComputer-Robotics-J5011-with-GMSL-extension-board-p-6681.html
+      description: High-performance edge AI for multi-camera detection
+      name_i18n:
+        zh: reComputer Robotics J5011 (AGX Orin)
+      description_i18n:
+        zh: 高性能边缘 AI 设备，支持多摄像头检测
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: beginner
+    estimated_time: 15min
+  links: {}
+  presets:
+    - id: recamera
+      name: AI Camera Direct
+      description: Plug in a reCamera and start tracking — built-in AI, no extra hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+        - id: server
+          name: Backend Server
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r1100
+          default: recomputer_r1100
+          name_i18n:
+            zh: 后端服务器
+      links:
+        wiki: https://wiki.seeedstudio.com/cn/integration_of_real-time_heat_map_with_grafana_data_dashboard/
+        github: https://github.com/xr686/reCamera-with-Heatmap
+      name_i18n:
+        zh: AI 摄像头直连
+      description_i18n:
+        zh: 接上 reCamera 就能用，摄像头自带 AI 识别，不需要额外设备
+    - id: jetson
+      name: Upgrade Existing Cameras
+      description: Keep your current IP cameras, add an AI box to enable heatmap analytics
+      device_groups:
+        - id: jetson_device
+          name: Jetson Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j50
+          default: recomputer_j40
+          name_i18n:
+            zh: Jetson 边缘设备
+      links:
+        github: https://github.com/bleaaach/yolo11-grafana-influxdb
+      name_i18n:
+        zh: 传统摄像头改造
+      description_i18n:
+        zh: 保留现有 IP 摄像头，加一台 AI 盒子就能开启热力图分析
+  summary_i18n:
+    zh: 看清哪个货架前人多、哪条过道没人走——支持 reCamera、IP 摄像头 + AI 盒子，按需选设备
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  post_deployment:
+    autostart:
+      enabled: true
+      mode: fullscreen
+      url: http://localhost:3000
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 智慧零售人流热力图

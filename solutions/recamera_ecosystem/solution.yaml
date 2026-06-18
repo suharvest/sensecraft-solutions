@@ -1,0 +1,200 @@
+version: '1.0'
+id: recamera_ecosystem
+name: Plug & Play AI Camera
+intro:
+  summary: A plug-and-play AI camera with one-click apps — object detection, text reading, face analysis, smart home, and more
+  description_file: description.md
+  cover_image: gallery/recamera.svg
+  category: automation
+  solution_type: technical
+  tags:
+    - recamera
+    - home-assistant
+    - yolo
+    - ocr
+    - text-recognition
+    - face-analysis
+    - emotion
+    - age-gender
+    - drowsiness-detection
+    - smart-home
+    - rtsp
+    - privacy
+
+  output_interfaces:
+    - type: rtsp
+      port: 554
+      description: AI-processed camera video stream (YOLO/OCR/Face)
+      schema_type: binary
+      description_i18n:
+        zh: AI 处理后的摄像头视频流（YOLO/OCR/人脸）
+    - type: mqtt
+      port: 1883
+      description: Detection results JSON via MQTT
+      schema_type: json
+      payload_example: '{"type":"detection","objects":[{"class":"person","confidence":0.95}]}'
+
+      description_i18n:
+        zh: 通过 MQTT 发送的检测结果 JSON
+  input_requirements: []
+
+  device_catalog:
+    recamera:
+      sku: 102991894
+      name: reCamera
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
+      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+      description: AI camera with YOLO detection and RTSP streaming
+      name_i18n:
+        zh: reCamera
+      description_i18n:
+        zh: AI 摄像头，支持 YOLO 识别和 RTSP 视频流
+    recomputer_r1100:
+      sku: 113991374
+      name: reComputer R1100
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+      description: Edge computing device for running Home Assistant
+      name_i18n:
+        zh: reComputer R1100
+      description_i18n:
+        zh: 边缘计算设备，运行 Home Assistant
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: beginner
+    estimated_time: 20min
+  links:
+    github: https://github.com/xr686/reCamer_HA
+  presets:
+    - id: simple
+      name: Retail People Flow Heatmap
+      badge: Quick Start
+      description: Just reCamera - see where shoppers gather and which areas are ignored, on a live people-flow heatmap
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        wiki: https://wiki.seeedstudio.com/
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 零售人流热力图
+      badge_i18n:
+        zh: 快速上手
+      description_i18n:
+        zh: 只需 reCamera，直接在网页上看顾客聚集区和冷区的人流热力图
+    - id: ha_integration
+      name: Home Assistant Integration
+      badge: Smart Home
+      description: Connect reCamera to Home Assistant — live RTSP stream + AI detection sensor in HA dashboard
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+        - id: server
+          name: Home Assistant Server
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r1100
+          default: recomputer_r1100
+          name_i18n:
+            zh: Home Assistant 服务器
+      links:
+        github: https://github.com/xr686/reCamer_HA
+      name_i18n:
+        zh: Home Assistant 集成
+      badge_i18n:
+        zh: 智能家居
+      description_i18n:
+        zh: 将 reCamera 接入 Home Assistant，实时 RTSP 画面 + AI 识别传感器一站式显示
+    - id: ocr_reader
+      name: OCR Text Reader
+      badge: New
+      description: Read text from camera feed with PP-OCRv3 — supports Chinese and English
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: OCR 文字识别
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 使用 PP-OCRv3 从摄像头画面中识别文字——支持中文和英文
+    - id: face_analysis
+      name: Face Analysis
+      badge: New
+      description: Detect faces and analyze age, gender, and emotion — all on-device, with privacy blur on the video stream
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 人脸分析
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 检测人脸并分析年龄、性别、表情——全部在设备上处理，视频流中自动打码保护隐私
+    - id: facemesh_drowsiness
+      name: Drowsiness Detection
+      badge: New
+      description: Monitor driver alertness with FaceMesh — tracks eye closure, PERCLOS, and yawn frequency in real-time, all on-device
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 困倦检测
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 通过 FaceMesh 监测驾驶员警觉状态——实时跟踪闭眼时长、PERCLOS 和哈欠频率，全部在设备上处理
+  summary_i18n:
+    zh: 即插即用的 AI 摄像头，一键安装各种应用——物体检测、文字识别、人脸分析、智能家居联动
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 即插即用 AI 摄像头

@@ -1,0 +1,360 @@
+version: "1.0"
+id: recomputer_r_deploy
+name: reComputer R (Local or Remote)
+type: docker_deploy
+
+# Single source-of-truth device YAML for the `openclaw_recomputer_r`
+# preset. Derives docker_local and docker_remote views via
+# derive_docker_views().
+#
+# No `device_class` is set: reComputer R is positioned as a generic
+# ARM64 Linux Docker host (no Hailo identity check, no RK iptables
+# workaround, no NPU-specific actions in the legacy YAMLs). Any docker
+# host can run the local target; remote SSH targets are validated via
+# the docker_remote `requirements` block.
+
+docker:
+  compose_file: assets/recomputer_r/docker-compose.yml
+  environment:
+    OPENCLAW_WORKSPACE_VOLUME: "{{workspace_dir}}"
+  options:
+    project_name: openclaw_recomputer_r
+    remove_orphans: true
+  services:
+    - name: openclaw-gateway
+      port: 18789
+      health_check_endpoint: /healthz
+      health_check_timeout: 600
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+
+user_inputs:
+  - id: workspace_dir
+    name: Local File Access (optional)
+    type: text
+    default: "~/openclaw_docs"
+    placeholder: "/home/user/documents"
+    description: "Let OpenClaw read files from this directory. Useful for letting AI reference local documents. Leave empty to skip."
+    name_i18n:
+      zh: 本地文件访问（可选）
+    description_i18n:
+      zh: "让 OpenClaw 能读取此目录中的文件，方便 AI 参考本地文档。留空则跳过。"
+
+actions:
+  before:
+    - name: Validate workspace directory
+      run: |
+        set -e
+        WORKSPACE="{{workspace_dir}}"
+        if [ -z "$WORKSPACE" ]; then
+          echo "No workspace directory specified, using default Docker volume"
+          exit 0
+        fi
+        # Expand ~ to home directory
+        case "$WORKSPACE" in
+          "~"/*) WORKSPACE="$HOME/${WORKSPACE#\~/}" ;;
+          "~") WORKSPACE="$HOME" ;;
+        esac
+        # Check if path is absolute
+        case "$WORKSPACE" in
+          /*) ;;
+          *) echo "ERROR: Workspace path must be absolute (start with /): $WORKSPACE"; exit 1 ;;
+        esac
+        echo "RESOLVED_WORKSPACE=$WORKSPACE"
+        if [ ! -d "$WORKSPACE" ]; then
+          echo "WARNING: Directory does not exist: $WORKSPACE"
+          echo "Creating directory..."
+          mkdir -p "$WORKSPACE" || {
+            echo "ERROR: Failed to create directory: $WORKSPACE"
+            echo "Please create it manually or choose a different path."
+            exit 1
+          }
+          echo "Directory created: $WORKSPACE"
+        else
+          echo "Workspace directory exists: $WORKSPACE"
+        fi
+      timeout: 10
+      name_i18n:
+        zh: 校验工作目录
+  after:
+    - name: Enable execution permissions
+      run: |
+        set -e
+        docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const p = "/home/node/.openclaw/openclaw.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          let changed = false;
+          // Commands config
+          if (!cfg.commands) cfg.commands = {};
+          if (cfg.commands.native !== "auto") { cfg.commands.native = "auto"; changed = true; }
+          if (cfg.commands.nativeSkills !== "auto") { cfg.commands.nativeSkills = "auto"; changed = true; }
+          // Tools config: coding profile + only exec/bash to keep token count low for small models
+          const wantTools = {
+            profile: "coding",
+            allow: ["exec", "bash"],
+            deny: [],
+            exec: { host: "gateway", security: "full", ask: "off" }
+          };
+          if (JSON.stringify(cfg.tools) !== JSON.stringify(wantTools)) {
+            cfg.tools = wantTools;
+            changed = true;
+          }
+          if (changed) {
+            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+            console.log("Execution permissions and tools configured");
+          } else {
+            console.log("Execution permissions already configured");
+          }
+        '
+      timeout: 30
+
+      name_i18n:
+        zh: 启用执行权限
+    - name: Restart OpenClaw to apply configuration
+      run: |
+        set -e
+        echo "Restarting OpenClaw gateway to apply configuration changes..."
+        docker restart openclaw-gateway
+        echo "Waiting for gateway to be ready..."
+        for i in $(seq 1 60); do
+          if curl -sf http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
+            echo "Gateway is ready"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "WARNING: Gateway may still be starting up"
+      timeout: 180
+
+      name_i18n:
+        zh: 重启 OpenClaw 使配置生效
+    - name: Display gateway access token
+      run: |
+        set -e
+        TOKEN=$(docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const p = "/home/node/.openclaw/openclaw.json";
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
+          if (token) process.stdout.write(token);
+          else process.stdout.write("NOT_FOUND");
+        ')
+        if [ "$TOKEN" = "NOT_FOUND" ]; then
+          echo "WARNING: Could not read gateway token from config"
+        else
+          echo ""
+          echo "=========================================="
+          echo "  OpenClaw Gateway Token / 网关访问令牌"
+          echo "=========================================="
+          echo ""
+          echo "  Token: $TOKEN"
+          echo ""
+          echo "=========================================="
+          echo ""
+          echo "  URL: http://localhost:18789"
+          echo ""
+        fi
+      timeout: 30
+
+      name_i18n:
+        zh: 显示网关访问令牌
+
+pre_checks:
+  - type: disk_space
+    min_gb: 2
+    description: At least 2GB for OpenClaw Docker image
+
+post_deployment:
+  open_browser: true
+  browser_url: "http://localhost:18789"
+
+name_i18n:
+  zh: reComputer R（本机或远程）
+
+remote_overrides:
+  remote_path: /home/{{username}}/openclaw_recomputer_r
+  compose_dir: assets/recomputer_r
+  detection:
+    method: network_scan
+    manual_entry: true
+  pre_checks:
+    - type: disk_space
+      min_gb: 4
+      description: At least 4GB for OpenClaw Docker image and workspace
+  actions:
+    before:
+      - name: Validate workspace directory
+        run: |
+          set -e
+          WORKSPACE="{{workspace_dir}}"
+          if [ -z "$WORKSPACE" ]; then
+            echo "No workspace directory specified, using default Docker volume"
+            exit 0
+          fi
+          # Expand ~ to home directory
+          case "$WORKSPACE" in
+            "~"/*) WORKSPACE="$HOME/${WORKSPACE#\~/}" ;;
+            "~") WORKSPACE="$HOME" ;;
+          esac
+          # Check if path is absolute
+          case "$WORKSPACE" in
+            /*) ;;
+            *) echo "ERROR: Workspace path must be absolute (start with /): $WORKSPACE"; exit 1 ;;
+          esac
+          echo "RESOLVED_WORKSPACE=$WORKSPACE"
+          if [ ! -d "$WORKSPACE" ]; then
+            echo "WARNING: Directory does not exist: $WORKSPACE"
+            echo "Creating directory..."
+            mkdir -p "$WORKSPACE" || {
+              echo "ERROR: Failed to create directory: $WORKSPACE"
+              echo "Please create it manually or choose a different path."
+              exit 1
+            }
+            echo "Directory created: $WORKSPACE"
+          else
+            echo "Workspace directory exists: $WORKSPACE"
+          fi
+        timeout: 10
+        name_i18n:
+          zh: 校验工作目录
+      - name: Ensure docker compose command
+        run: |
+          set -e
+          docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1 || {
+            echo "Docker Compose is unavailable. Need either 'docker compose' (v2 plugin) or 'docker-compose' (standalone)."
+            echo "Install it: sudo apt-get install -y docker-compose-plugin"
+            exit 1
+          }
+          echo "Docker Compose is available"
+        name_i18n:
+          zh: 确保 docker compose 可用
+      - name: Check system resources
+        run: |
+          set -e
+          FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+          [ "${FREE_GB:-0}" -ge 4 ] || {
+            echo "Need at least 4GB free disk, current: ${FREE_GB:-0}GB"
+            exit 1
+          }
+
+          MEM_GB=$(awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+          [ "${MEM_GB:-0}" -ge 2 ] || {
+            echo "Need at least 2GB system memory, current: ${MEM_GB:-0}GB"
+            exit 1
+          }
+          echo "System resources OK: ${FREE_GB}GB disk free, ${MEM_GB}GB RAM"
+        name_i18n:
+          zh: 检查系统资源
+      - name: Initialize OpenClaw config
+        run: |
+          set -e
+          VOL="openclaw_openclaw-config"
+          docker volume create "$VOL" 2>/dev/null || true
+          WS_VOL="openclaw_openclaw-workspace"
+          docker volume create "$WS_VOL" 2>/dev/null || true
+          docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws alpine sh -c '
+            chown 1000:1000 /data /ws
+            if [ ! -f /data/openclaw.json ]; then
+              cat > /data/openclaw.json <<VOLCFG
+          {"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}},"commands":{"native":"auto","nativeSkills":"auto"},"tools":{"profile":"coding","allow":["exec","bash"],"deny":[],"exec":{"host":"gateway","security":"full","ask":"off"}}}
+          VOLCFG
+              chown 1000:1000 /data/openclaw.json
+              echo "Initial config written"
+            else
+              echo "Config exists, skipping"
+            fi
+          '
+
+        name_i18n:
+          zh: 初始化 OpenClaw 配置
+    after:
+      - name: Enable execution permissions
+        run: |
+          set -e
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            let changed = false;
+            // Commands config
+            if (!cfg.commands) cfg.commands = {};
+            if (cfg.commands.native !== "auto") { cfg.commands.native = "auto"; changed = true; }
+            if (cfg.commands.nativeSkills !== "auto") { cfg.commands.nativeSkills = "auto"; changed = true; }
+            // Tools config: coding profile + only exec/bash to keep token count low for small models
+            const wantTools = {
+              profile: "coding",
+              allow: ["exec", "bash"],
+              deny: [],
+              exec: { host: "gateway", security: "full", ask: "off" }
+            };
+            if (JSON.stringify(cfg.tools) !== JSON.stringify(wantTools)) {
+              cfg.tools = wantTools;
+              changed = true;
+            }
+            if (changed) {
+              fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+              console.log("Execution permissions and tools configured");
+            } else {
+              console.log("Execution permissions already configured");
+            }
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 启用执行权限
+      - name: Restart OpenClaw to apply configuration
+        run: |
+          set -e
+          echo "Restarting OpenClaw gateway to apply configuration changes..."
+          docker restart openclaw-gateway
+          echo "Waiting for gateway to be ready..."
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:18789/healthz >/dev/null 2>&1; then
+              echo "Gateway is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "WARNING: Gateway may still be starting up"
+        timeout: 180
+
+        name_i18n:
+          zh: 重启 OpenClaw 使配置生效
+      - name: Display gateway access token
+        run: |
+          set -e
+          TOKEN=$(docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
+            if (token) process.stdout.write(token);
+            else process.stdout.write("NOT_FOUND");
+          ')
+          if [ "$TOKEN" = "NOT_FOUND" ]; then
+            echo "WARNING: Could not read gateway token from config"
+          else
+            echo ""
+            echo "=========================================="
+            echo "  OpenClaw Gateway Token / 网关访问令牌"
+            echo "=========================================="
+            echo ""
+            echo "  Token: $TOKEN"
+            echo ""
+            echo "=========================================="
+            echo ""
+            echo "  URL: http://{{host}}:18789"
+            echo ""
+          fi
+        timeout: 30
+
+        name_i18n:
+          zh: 显示网关访问令牌
+  post_deployment:
+    open_browser: false

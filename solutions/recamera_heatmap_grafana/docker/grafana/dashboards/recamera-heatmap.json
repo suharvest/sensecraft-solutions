@@ -1,0 +1,416 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-recamera"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-recamera"
+          },
+          "query": "from(bucket: \"recamera\")\n  |> range(start: today())\n  |> filter(fn: (r) =>\n    r._measurement == \"people_count\" and\n    r._field == \"unique_count\"\n  )\n  |> aggregateWindow(every: 1h, fn: max, createEmpty: false)\n  |> yield(name: \"peak_hourly\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Peak Hours",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-recamera"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 5,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {
+          "exponent": 0.5,
+          "fill": "dark-orange",
+          "mode": "scheme",
+          "reverse": false,
+          "scale": "exponential",
+          "scheme": "Oranges",
+          "steps": 64
+        },
+        "filterValues": {
+          "le": 1e-9
+        },
+        "legend": {
+          "show": true
+        },
+        "rowsFrame": {
+          "layout": "auto"
+        },
+        "tooltip": {
+          "mode": "single",
+          "showColorScale": false,
+          "yHistogram": false
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "reverse": false
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-recamera"
+          },
+          "query": "from(bucket: \"recamera\")\n  |> range(start: today())\n  |> filter(fn: (r) =>\n    r._measurement == \"people_count\" and\n    r._field == \"unique_count\"\n  )\n  |> aggregateWindow(every: 1h, fn: max, createEmpty: false)\n  |> yield(name: \"peak_hourly\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Hourly Heatmap",
+      "type": "heatmap"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-recamera"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 6
+      },
+      "id": 4,
+      "options": {
+        "minVizHeight": 75,
+        "minVizWidth": 75,
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-recamera"
+          },
+          "query": "from(bucket: \"recamera\")\n  |> range(start: -5m)\n  |> filter(fn: (r) =>\n    r._measurement == \"people_count\" and\n    r._field == \"unique_count\"\n  )\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Current Count",
+      "type": "gauge"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-recamera"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 6
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-recamera"
+          },
+          "query": "from(bucket: \"recamera\")\n  |> range(start: -5m)\n  |> filter(fn: (r) =>\n    r._measurement == \"people_count\" and\n    r._field == \"total_visitors\"\n  )\n  |> last()",
+          "refId": "A"
+        }
+      ],
+      "title": "Today's Visitors",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "influxdb-recamera"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "dtdhms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 6
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb-recamera"
+          },
+          "query": "from(bucket: \"recamera\")\n  |> range(start: 0)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"people_count\")\n  |> filter(fn: (r) => r[\"_field\"] == \"unique_count\")\n  |> first()\n  |> map(fn: (r) => ({\n      _time: now(),\n      _value: float(v: uint(v: now()) - uint(v: r._time)) / 1000000000.0\n  }))\n  |> yield(name: \"uptime_seconds\")",
+          "refId": "A"
+        }
+      ],
+      "title": "Uptime",
+      "type": "stat"
+    },
+    {
+      "gridPos": {
+        "h": 19,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "id": 6,
+      "options": {
+        "content": "<div id=\"heatmap-container\" style=\"width:100%;height:100%\"></div><script>document.getElementById('heatmap-container').innerHTML='<iframe src=\"'+location.protocol+'//'+location.hostname+':8080/index.html\" width=\"100%\" height=\"100%\" frameborder=\"0\" style=\"border:none;display:block;\"></iframe>';</script>",
+        "mode": "html"
+      },
+      "title": "Spatial Heatmap",
+      "type": "text"
+    },
+    {
+      "gridPos": {
+        "h": 23,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 7,
+      "options": {
+        "content": "<iframe \n    src=\"http://${recamera_ip}:1880/dashboard\" \n    width=\"100%\" \n    height=\"100%\" \n    frameborder=\"0\"\n    style=\"border:0; width:100%; height:100%; min-height: 600px;\">\n</iframe>",
+        "mode": "html"
+      },
+      "title": "reCamera Live Feed",
+      "type": "text"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["recamera", "heatmap", "iot"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "192.168.42.1",
+          "value": "192.168.42.1"
+        },
+        "hide": 0,
+        "label": "reCamera IP",
+        "name": "recamera_ip",
+        "options": [
+          {
+            "selected": true,
+            "text": "192.168.42.1",
+            "value": "192.168.42.1"
+          }
+        ],
+        "query": "192.168.42.1",
+        "skipUrlSync": false,
+        "type": "textbox"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "reCamera Heatmap Dashboard",
+  "uid": "recamera-heatmap",
+  "version": 1,
+  "weekStart": ""
+}

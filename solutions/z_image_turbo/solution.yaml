@@ -1,0 +1,107 @@
+version: "1.0"
+id: z_image_turbo
+name: Z-Image-Turbo on Jetson
+intro:
+  summary: Run Z-Image-Turbo (6B) locally on Jetson Orin NX — text-to-image and img2img via HTTP API, fully offline.
+  description_file: description.md
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/z-image-turbo-jetson/cover-095ab529.png
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/z-image-turbo-jetson/img2img_comparison-b5efe0d8.png
+      caption: image-to-image comparison — reference (left) vs output with red collar prompt (right)
+      caption_i18n:
+        zh: 图生图对比——左为参考图，右为加上红色项圈提示词的输出
+  category: generative_ai
+  solution_type: technical
+  tags: [jetson, image-generation, tensorrt, docker, edge-ai]
+
+  output_interfaces:
+    - type: http
+      port: 8000
+      endpoint: /generate
+      method: POST
+      description: Text-to-image and img2img generation via multipart form upload
+      schema_type: json
+      payload_example: '{"success":true,"mode":"text2img","resolution":512,"elapsed_seconds":100.2,"image_url":"/outputs/cat_512.png"}'
+      description_i18n:
+        zh: 通过 multipart 表单上传进行文生图和图生图
+    - type: http
+      port: 8000
+      endpoint: /generate_json
+      method: POST
+      description: Text-to-image and img2img generation via JSON request
+      schema_type: json
+      payload_example: '{"success":true,"mode":"img2img","resolution":512,"strength":0.65,"elapsed_seconds":129.7,"image_url":"/outputs/img2img_result.png"}'
+      description_i18n:
+        zh: 通过 JSON 请求进行文生图和图生图
+    - type: http
+      port: 8000
+      endpoint: /outputs/{filename}
+      method: GET
+      description: Static file serving for generated images
+      schema_type: binary
+
+      description_i18n:
+        zh: 生成的图片静态文件服务
+  input_requirements:
+    - type: network
+      description: Network access to Jetson device for API calls (the model runs fully offline once deployed)
+      description_i18n:
+        zh: 通过网络访问 Jetson 设备上的 API（部署后模型完全离线运行）
+  device_catalog:
+    recomputer_j4012:
+      name: reComputer J4012
+      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+      description: NVIDIA Jetson Orin NX 16GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
+      name_i18n:
+        zh: reComputer J4012
+      description_i18n:
+        zh: NVIDIA Jetson Orin NX 16GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
+    recomputer_j501:
+      name: reComputer J501
+      product_url: https://www.seeedstudio.com/reComputer-J501-p-6511.html
+      description: NVIDIA Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
+      name_i18n:
+        zh: reComputer J501
+      description_i18n:
+        zh: NVIDIA Jetson AGX Orin 64GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
+  presets:
+    - id: jetson_image_gen
+      name: Deploy Image Generation Service
+      description: Deploy Z-Image-Turbo HTTP API to Jetson Orin NX via SSH
+      device_groups:
+        - id: jetson
+          name: Jetson Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j4012
+            - device_ref: recomputer_j501
+          default: recomputer_j4012
+
+          name_i18n:
+            zh: Jetson 设备
+      name_i18n:
+        zh: 部署图片生成服务
+      description_i18n:
+        zh: 通过 SSH 将 Z-Image-Turbo HTTP API 部署到 Jetson Orin NX
+  stats:
+    difficulty: intermediate
+    estimated_time: 15min
+    deployed_count: 0
+    likes_count: 0
+
+  links:
+    github: https://github.com/suharvest/z-image-turbo-jetson-trt
+
+  summary_i18n:
+    zh: 在 Jetson Orin NX 上本地运行 Z-Image-Turbo（6B）——通过 HTTP API 实现文生图和图生图，完全离线。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: Jetson 一键部署 Z-Image-Turbo

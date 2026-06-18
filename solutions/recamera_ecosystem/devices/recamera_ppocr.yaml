@@ -1,0 +1,259 @@
+version: "1.0"
+id: recamera_ppocr
+name: reCamera PP-OCRv3 Reader
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# C++ 应用部署配置
+binary:
+  # .deb 包安装（包含 init 脚本 S92ppocr-reader）
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr-reader_0.3.0_riscv64.deb
+    name: ppocr-reader
+    includes_init_script: true
+
+  # 模型文件部署（检测模型 + 中英文识别模型 + 字典文件）
+    checksum:
+      sha256: a146ccbe84b454e0140636d6c576a3a77e715e95a5ea7dd2729f54423a569c8b
+  models:
+    # Detection model (shared, always needed)
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr_det_cv181x_mix.cvimodel
+      target_path: /userdata/local/models
+      filename: ppocr_det_cv181x_mix.cvimodel
+      checksum:
+        sha256: 99bf6d7ea16b9ce98f7c2babb8e0ff73bf7f4c96e0a4919612e762f66451026b
+    # Chinese recognition model
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr_rec_cv181x_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: ppocr_rec_cv181x_bf16.cvimodel
+      when:
+        field: language
+        value: chinese
+      checksum:
+        sha256: 38be839889d0dbf1cf436dad551b97f4281181cdef67c2bb9ee59f5736d22261
+    # Chinese dictionary
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr_keys_v1.txt
+      target_path: /userdata/local/dict
+      filename: ppocr_keys_v1.txt
+      when:
+        field: language
+        value: chinese
+      checksum:
+        sha256: a1c84d9bdb9ab29043c58896224d32941783eb821629618416dcb08f12886492
+    # English recognition model
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr_rec_en_cv181x_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: ppocr_rec_en_cv181x_bf16.cvimodel
+      when:
+        field: language
+        value: english
+      checksum:
+        sha256: 92ac0064a8361ae6085b4368bd7a4874b7f2cab86f98f162cc18dcb1d8715393
+    # English dictionary
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/en_dict.txt
+      target_path: /userdata/local/dict
+      filename: en_dict.txt
+      when:
+        field: language
+        value: english
+      checksum:
+        sha256: 23d40abd395f6f95309602e038d7a5c7e8c5ff2fb06b48b21783cce1b983abf0
+
+  # 服务配置（deb 包已含 init 脚本）
+  service_name: ppocr-reader
+  service_priority: 92
+
+  auto_start: true
+
+actions:
+  after:
+    - name: Configure English OCR models
+      when:
+        field: language
+        value: english
+      run: |
+        set -e
+        OPTS="--det-model /userdata/local/models/ppocr_det_cv181x_mix.cvimodel --rec-model /userdata/local/models/ppocr_rec_en_cv181x_bf16.cvimodel --dict /userdata/local/dict/en_dict.txt"
+        if [ -n "{{enhance}}" ] && [ "{{enhance}}" != "none" ]; then
+          OPTS="$OPTS --enhance {{enhance}}"
+        fi
+        if [ -n "{{mqtt_host}}" ] && [ "{{mqtt_host}}" != "localhost" ]; then
+          OPTS="$OPTS --mqtt-host {{mqtt_host}}"
+        fi
+        if [ -n "{{mqtt_port}}" ] && [ "{{mqtt_port}}" != "1883" ]; then
+          OPTS="$OPTS --mqtt-port {{mqtt_port}}"
+        fi
+        cat > /etc/ppocr-reader.conf << EOF
+        DAEMON_OPTS="$OPTS"
+        EOF
+      sudo: true
+      name_i18n:
+        zh: 配置英文 OCR 模型
+    - name: Configure Chinese OCR models (default)
+      when:
+        field: language
+        value: chinese
+      run: |
+        set -e
+        OPTS=""
+        if [ -n "{{enhance}}" ] && [ "{{enhance}}" != "none" ]; then
+          OPTS="$OPTS --enhance {{enhance}}"
+        fi
+        if [ -n "{{mqtt_host}}" ] && [ "{{mqtt_host}}" != "localhost" ]; then
+          OPTS="$OPTS --mqtt-host {{mqtt_host}}"
+        fi
+        if [ -n "{{mqtt_port}}" ] && [ "{{mqtt_port}}" != "1883" ]; then
+          OPTS="$OPTS --mqtt-port {{mqtt_port}}"
+        fi
+        if [ -n "$OPTS" ]; then
+          cat > /etc/ppocr-reader.conf << EOF
+        DAEMON_OPTS="$OPTS"
+        EOF
+        else
+          rm -f /etc/ppocr-reader.conf
+        fi
+      sudo: true
+      name_i18n:
+        zh: 配置中文 OCR 模型（默认）
+    - name: Enable external MQTT access
+      # fail_fast: false — uses 'grep -q ... && exit 0' idempotent check; set -e would kill grep on first deploy
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+    - name: Disable Node-RED autostart
+      # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
+      fail_fast: false
+      run: |
+        for svc in node-red sscma-node sscma-supervisor; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
+
+# 用户输入
+      name_i18n:
+        zh: 禁用 Node-RED 自启动
+user_inputs:
+  - id: language
+    name: Recognition Language
+    type: select
+    default: "chinese"
+    description: Choose the OCR recognition language
+    required: true
+    options:
+      - value: chinese
+        label: Chinese (中文)
+        label_i18n:
+          zh: 中文
+      - value: english
+        label: English
+        label_i18n:
+          zh: 英文
+    name_i18n:
+      zh: 识别语言
+    description_i18n:
+      zh: 选择文字识别语言
+  - id: enhance
+    name: Image Enhancement
+    type: select
+    default: "none"
+    description: Enhance image before OCR for better accuracy
+    required: false
+    options:
+      - value: "none"
+        label: None (default)
+        label_i18n:
+          zh: 无（默认）
+      - value: "adaptive"
+        label: Adaptive (auto-select based on image)
+        label_i18n:
+          zh: 自适应（根据图像自动选择）
+      - value: "clahe"
+        label: CLAHE (enhance contrast)
+        label_i18n:
+          zh: CLAHE（增强对比度）
+      - value: "gray"
+        label: Grayscale (remove color noise)
+        label_i18n:
+          zh: 灰度（去除颜色噪声）
+    name_i18n:
+      zh: 图像增强
+    description_i18n:
+      zh: OCR 前增强图像以提高识别准确率
+  - id: mqtt_host
+    name: MQTT Broker Host
+    type: text
+    default: "localhost"
+    placeholder: "localhost"
+    description: MQTT broker address (default localhost = camera's local broker)
+    required: false
+
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: MQTT 服务器地址（默认 localhost = 摄像头本地）
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    placeholder: "1883"
+    description: MQTT broker port
+    required: false
+
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: MQTT 服务器端口
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+post_deployment:
+  open_browser: false
+name_i18n:
+  zh: reCamera PP-OCRv3 文字识别

@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>voice-arm · ASR Live</title>
+<style>
+  :root {
+    --seeed-green: #8CC63F;
+    --seeed-green-soft: #c4dd83;
+    --seeed-green-bg: #f3f9e6;
+    --text-strong: #1f2a1c;
+    --text-mid: #5a6457;
+    --text-soft: #98a08f;
+    --border: #e3e8da;
+    --card-bg: #ffffff;
+    --bg: #fafdf3;
+    --error: #d9534f;
+    --tool: #6f86d6;
+    --tool-bg: #ecf0fb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+      "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--text-strong);
+    line-height: 1.6;
+  }
+  header {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header .logo {
+    width: 32px; height: 32px;
+    background: var(--seeed-green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 16px;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+  }
+  header .subtitle {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-left: 2px;
+  }
+  header .status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-mid);
+  }
+  header .status .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--error);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  header .status.connected .dot {
+    background: var(--seeed-green);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+  header .config {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  header .config input {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    width: 240px;
+    color: var(--text-strong);
+  }
+  header .config button {
+    background: var(--seeed-green);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  header .config button:hover { filter: brightness(0.95); }
+  main {
+    max-width: 1280px;
+    margin: 28px auto;
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 24px;
+  }
+  .panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+  }
+  .panel-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--seeed-green-bg);
+  }
+  .panel-header .tag {
+    background: var(--seeed-green);
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .panel-header h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .panel-header .meta {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-soft);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .panel-body {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+    max-height: 60vh;
+  }
+  .bubble {
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    font-size: 15px;
+    line-height: 1.55;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    word-break: break-word;
+    transition: background-color 0.18s ease;
+  }
+  .bubble.partial {
+    background: var(--seeed-green-bg);
+    border-color: var(--seeed-green-soft);
+  }
+  .bubble.partial::after {
+    content: "▍";
+    color: var(--seeed-green);
+    animation: blink 1s infinite;
+    margin-left: 2px;
+  }
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+  .bubble.final {
+    background: var(--card-bg);
+    border-color: var(--border);
+  }
+  .bubble.tool-call {
+    background: var(--tool-bg);
+    border-color: #d3dbef;
+    color: var(--text-mid);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 13px;
+  }
+  .bubble.tool-call .tool-name {
+    color: var(--tool);
+    font-weight: 600;
+  }
+  .bubble-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-soft);
+    margin-bottom: 6px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .empty {
+    color: var(--text-soft);
+    font-size: 14px;
+    text-align: center;
+    padding: 40px 20px;
+    font-style: italic;
+  }
+  /* Event log at bottom */
+  .log-panel {
+    grid-column: 1 / -1;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .log-panel .panel-body {
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12px;
+    color: var(--text-mid);
+    max-height: 200px;
+    padding: 12px 20px;
+  }
+  .log-row {
+    display: flex;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: 1px dashed transparent;
+  }
+  .log-row .ts {
+    color: var(--text-soft);
+    flex-shrink: 0;
+    width: 70px;
+  }
+  .log-row .event {
+    color: var(--seeed-green);
+    flex-shrink: 0;
+    width: 200px;
+    font-weight: 500;
+  }
+  .log-row .payload {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-mid);
+  }
+  .log-row.error .event { color: var(--error); }
+  .log-row.tool .event { color: var(--tool); }
+  /* Pure scrollbar styling */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-soft); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">VA</div>
+  <div>
+    <h1>voice-arm · 实时 ASR</h1>
+    <div class="subtitle">流式语音识别 + LLM 工具调用监视器</div>
+  </div>
+  <div class="status" id="status">
+    <span class="dot"></span>
+    <span id="status-text">未连接</span>
+  </div>
+  <div class="config">
+    <input id="ws-url" type="text" value="ws://100.111.134.124:18000/ws" />
+    <button id="reconnect-btn">连接</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-header">
+      <span class="tag">用户</span>
+      <h2>你说的话</h2>
+      <span class="meta" id="user-count">0 turns</span>
+    </div>
+    <div class="panel-body" id="user-pane">
+      <div class="empty">等待 ASR partial / final 事件…</div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <span class="tag" style="background:#6f86d6;">助手</span>
+      <h2>SO-ARM 回应</h2>
+      <span class="meta" id="asst-count">0 turns</span>
+    </div>
+    <div class="panel-body" id="asst-pane">
+      <div class="empty">等待 LLM token 流 + tool_call…</div>
+    </div>
+  </section>
+
+  <section class="log-panel">
+    <div class="panel-header">
+      <span class="tag" style="background:#5a6457;">事件流</span>
+      <h2>原始 WS 日志</h2>
+      <span class="meta" id="log-count">0 events</span>
+    </div>
+    <div class="panel-body" id="log-pane">
+      <div class="empty">…</div>
+    </div>
+  </section>
+</main>
+
+<script>
+'use strict';
+
+const $ = (id) => document.getElementById(id);
+const userPane = $('user-pane');
+const asstPane = $('asst-pane');
+const logPane = $('log-pane');
+const statusEl = $('status');
+const statusText = $('status-text');
+
+let ws = null;
+let userCount = 0;
+let asstCount = 0;
+let logCount = 0;
+// Active streaming partials: a partial gets a single DOM node we keep updating
+let currentUserPartial = null;   // { node, textNode, finalized: bool }
+let currentAsstBubble = null;    // bubble being filled by on_assistant_token
+
+function clearEmpty(pane) {
+  const empty = pane.querySelector('.empty');
+  if (empty) empty.remove();
+}
+
+function fmtTs(ms) {
+  const d = new Date(ms || Date.now());
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  const ms3 = String(d.getMilliseconds()).padStart(3, '0');
+  return `${hh}:${mm}:${ss}.${ms3}`;
+}
+
+function addLog(event, data, ts) {
+  clearEmpty(logPane);
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  if (event.toLowerCase().includes('error')) row.classList.add('error');
+  if (event.toLowerCase().includes('tool')) row.classList.add('tool');
+  let payloadText = '';
+  try {
+    payloadText = typeof data === 'string' ? data : JSON.stringify(data);
+  } catch (_) {
+    payloadText = String(data);
+  }
+  row.innerHTML = `
+    <span class="ts">${fmtTs(ts).slice(0, 8)}</span>
+    <span class="event">${event}</span>
+    <span class="payload" title="${escapeHtml(payloadText)}">${escapeHtml(payloadText.slice(0, 200))}</span>
+  `;
+  logPane.appendChild(row);
+  logPane.scrollTop = logPane.scrollHeight;
+  logCount += 1;
+  $('log-count').textContent = `${logCount} events`;
+  // Cap at 500 rows
+  while (logPane.children.length > 500) logPane.removeChild(logPane.firstChild);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function newBubble(pane, classes = '', metaLabel = '') {
+  clearEmpty(pane);
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble ' + classes;
+  if (metaLabel) {
+    const meta = document.createElement('div');
+    meta.className = 'bubble-meta';
+    meta.textContent = metaLabel;
+    wrap.appendChild(meta);
+  }
+  const text = document.createElement('div');
+  text.className = 'bubble-text';
+  wrap.appendChild(text);
+  pane.appendChild(wrap);
+  pane.scrollTop = pane.scrollHeight;
+  return { node: wrap, textNode: text };
+}
+
+function handleEvent(event, data, ts) {
+  addLog(event, data, ts);
+
+  if (event === 'on_user_partial') {
+    if (!currentUserPartial || currentUserPartial.finalized) {
+      currentUserPartial = newBubble(userPane, 'partial', `ASR ${fmtTs(ts).slice(0, 8)}`);
+      currentUserPartial.finalized = false;
+    }
+    currentUserPartial.textNode.textContent = String(data || '');
+    userPane.scrollTop = userPane.scrollHeight;
+    return;
+  }
+
+  if (event === 'on_user_utterance' || event === 'on_user_speech_end_client') {
+    if (currentUserPartial && !currentUserPartial.finalized) {
+      currentUserPartial.node.classList.remove('partial');
+      currentUserPartial.node.classList.add('final');
+      const text = String(data || currentUserPartial.textNode.textContent || '');
+      currentUserPartial.textNode.textContent = text;
+      currentUserPartial.finalized = true;
+    } else if (data) {
+      const bubble = newBubble(userPane, 'final', `FINAL ${fmtTs(ts).slice(0, 8)}`);
+      bubble.textNode.textContent = String(data);
+    }
+    userCount += 1;
+    $('user-count').textContent = `${userCount} turns`;
+    return;
+  }
+
+  if (event === 'on_assistant_token') {
+    if (!currentAsstBubble) {
+      currentAsstBubble = newBubble(asstPane, 'partial', `LLM ${fmtTs(ts).slice(0, 8)}`);
+    }
+    currentAsstBubble.textNode.textContent += String(data || '');
+    asstPane.scrollTop = asstPane.scrollHeight;
+    return;
+  }
+
+  if (event === 'on_tool_call_started') {
+    const d = data || {};
+    const name = d.name || d.tool || '?';
+    const args = d.arguments_json || d.arguments || '{}';
+    const bubble = newBubble(asstPane, 'tool-call', `TOOL CALL ${fmtTs(ts).slice(0, 8)}`);
+    bubble.textNode.innerHTML = `→ <span class="tool-name">${escapeHtml(name)}</span> (${escapeHtml(args)})`;
+    return;
+  }
+
+  if (event === 'on_tool_call_completed') {
+    const d = data || {};
+    const name = d.name || '?';
+    const ok = d.ok;
+    const dur = d.duration_ms;
+    const bubble = newBubble(asstPane, 'tool-call', `TOOL RESULT ${fmtTs(ts).slice(0, 8)}`);
+    bubble.textNode.innerHTML = `✓ <span class="tool-name">${escapeHtml(name)}</span> · ok=${ok} · ${dur ?? '?'}ms`;
+    return;
+  }
+
+  if (event === 'on_assistant_done') {
+    if (currentAsstBubble) {
+      currentAsstBubble.node.classList.remove('partial');
+      currentAsstBubble.node.classList.add('final');
+      currentAsstBubble = null;
+    }
+    asstCount += 1;
+    $('asst-count').textContent = `${asstCount} turns`;
+    return;
+  }
+
+  if (event === 'on_assistant_sentence') {
+    // sentence-level fallback in case token stream is empty (some backends)
+    if (!currentAsstBubble) {
+      currentAsstBubble = newBubble(asstPane, 'final', `SENTENCE ${fmtTs(ts).slice(0, 8)}`);
+      currentAsstBubble.textNode.textContent = String(data || '');
+    }
+    return;
+  }
+}
+
+function connect() {
+  if (ws) {
+    try { ws.close(); } catch (_) {}
+    ws = null;
+  }
+  const url = $('ws-url').value.trim();
+  if (!url) return;
+  statusText.textContent = '连接中…';
+  statusEl.classList.remove('connected');
+  try {
+    ws = new WebSocket(url);
+  } catch (e) {
+    statusText.textContent = '连接失败: ' + e.message;
+    return;
+  }
+  ws.onopen = () => {
+    statusEl.classList.add('connected');
+    statusText.textContent = `已连接 · ${url.replace(/^ws[s]?:\/\//, '')}`;
+  };
+  ws.onclose = (ev) => {
+    statusEl.classList.remove('connected');
+    statusText.textContent = `已断开 (code ${ev.code})`;
+  };
+  ws.onerror = () => {
+    statusEl.classList.remove('connected');
+    statusText.textContent = '错误';
+  };
+  ws.onmessage = (ev) => {
+    let parsed;
+    try {
+      parsed = JSON.parse(ev.data);
+    } catch (_) {
+      addLog('raw', ev.data, Date.now());
+      return;
+    }
+    const { event, data, ts } = parsed;
+    if (!event) {
+      addLog('snapshot', parsed, Date.now());
+      return;
+    }
+    handleEvent(event, data, ts);
+  };
+}
+
+$('reconnect-btn').addEventListener('click', connect);
+$('ws-url').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') connect();
+});
+// auto-connect on load
+window.addEventListener('load', connect);
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+
+  frigate-hailo:
+    container_name: frigate-hailo
+    image: ghcr.io/blakeblackshear/frigate:0.16.0-standard-arm64
+    privileged: true
+    restart: unless-stopped
+    shm_size: "512mb"
+    stop_grace_period: 30s
+    depends_on:
+      - mosquitto
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config:/config
+      - ./storage:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1g
+    ports:
+      - "5000:5000"
+      - "8554:8554"
+    environment:
+      - FRIGATE_RTSP_PASSWORD=password
+      - LIBVA_DRIVER_NAME=i965
+    group_add:
+      - "44"

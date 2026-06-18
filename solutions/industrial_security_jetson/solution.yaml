@@ -1,0 +1,120 @@
+version: "1.0"
+id: industrial_security_jetson
+name: Industrial Security on Jetson
+replaces: industrial_security
+
+intro:
+  summary: TensorRT-accelerated person detection on Jetson — multi-camera RTSP support, restricted-zone / line-cross / dwell rules, real-time browser dashboard with SQLite event persistence.
+  description_file: description.md
+  cover_image: gallery/cover.png
+  category: vision_ai
+  solution_type: solution
+  tags: [jetson, security, intrusion-detection, edge-ai, tensorrt, rtsp, multi-camera, yolo26]
+
+  gallery:
+    - type: image
+      src: gallery/demo.gif
+      caption: Live person detection with restricted-zone intrusion event
+      caption_i18n:
+        zh: 实时人员检测，禁区入侵事件实时触发
+    - type: image
+      src: gallery/demo1.gif
+      caption: Industrial Security Demo - Real-time person detection with intrusion alert
+      caption_i18n:
+        zh: 工业安防演示 - 实时人员检测与入侵告警
+  input_requirements:
+    - type: rtsp
+      description: IP camera RTSP stream (Hikvision / Dahua / ONVIF). Multi-camera supported.
+      description_i18n:
+        zh: IP 摄像头 RTSP 视频流（海康 / 大华 / 通用 ONVIF）。支持多摄像头。
+  output_interfaces:
+    - type: http
+      port: 8080
+      endpoint: /api/stats
+      method: GET
+      description: Realtime FPS / detection count / recent events
+      schema_type: json
+      description_i18n:
+        zh: 实时 FPS / 检测数量 / 最新事件
+    - type: http
+      port: 8080
+      endpoint: /api/events
+      method: GET
+      description: Historical event list (filter by ?date=YYYYMMDD)
+      schema_type: json
+      description_i18n:
+        zh: 历史事件列表（可用 ?date=YYYYMMDD 过滤）
+    - type: http
+      port: 8080
+      endpoint: /api/config
+      method: GET
+      description: Read or update zones / lines / detector thresholds
+      schema_type: json
+      description_i18n:
+        zh: 读取或修改区域 / 线段 / 检测器阈值
+    - type: http_stream
+      port: 8080
+      endpoint: /api/stream
+      method: GET
+      description: Annotated MJPEG video stream
+      schema_type: binary
+
+      description_i18n:
+        zh: 带标注的 MJPEG 视频流
+  device_catalog:
+    recomputer_industrial_j4012:
+      sku: 110110144
+      name: reComputer Industrial J4012 (Orin NX 16GB)
+      product_url: https://www.seeedstudio.com/reComputer-Industrial-J4012-p-5684.html
+      description: Ruggedized Jetson Orin NX edge box — runs TensorRT FP16 detection at 30+ FPS
+      name_i18n:
+        zh: reComputer Industrial J4012（Orin NX 16GB）
+      description_i18n:
+        zh: 加固型 Jetson Orin NX 边缘盒——TensorRT FP16 检测 30+ FPS
+    recomputer_industrial_j3010:
+      sku: 110110145
+      name: reComputer Industrial J3010 (Orin Nano 8GB)
+      product_url: https://www.seeedstudio.com/reComputer-Industrial-J3010-p-5683.html
+      description: Compact Jetson Orin Nano edge box — entry-level, ~15 FPS detection
+      name_i18n:
+        zh: reComputer Industrial J3010（Orin Nano 8GB）
+      description_i18n:
+        zh: 紧凑型 Jetson Orin Nano 边缘盒——入门级，约 15 FPS
+  presets:
+    - id: default
+      name: Deploy to Jetson
+      description: Deploy industrial security service to a Jetson Orin device via SSH
+      device_groups:
+        - id: jetson
+          name: Jetson Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_industrial_j4012
+            - device_ref: recomputer_industrial_j3010
+          default: recomputer_industrial_j4012
+
+          name_i18n:
+            zh: Jetson 边缘设备
+      name_i18n:
+        zh: 部署到 Jetson
+      description_i18n:
+        zh: 通过 SSH 将工业安防服务部署到 Jetson Orin 设备
+  stats:
+    difficulty: intermediate
+    estimated_time: 15min
+
+  links:
+    github: https://github.com/Zhang-zu-hao/Industrial-security-demo
+
+  summary_i18n:
+    zh: Jetson 上 TensorRT 加速的人员检测——接入 RTSP 摄像头，支持禁区入侵、越线、徘徊检测，实时 Web 面板查看。
+  description_file_i18n:
+    zh: description_zh.md
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+name_i18n:
+  zh: 工业安防（Jetson 边缘部署）

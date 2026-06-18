@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16213e;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="alertGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff4444;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#ff6b35;stop-opacity:0.6" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softGlow">
+      <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="450" fill="url(#bgGrad)"/>
+
+  <!-- Grid pattern -->
+  <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+    <line x1="0" y1="75" x2="800" y2="75"/>
+    <line x1="0" y1="150" x2="800" y2="150"/>
+    <line x1="0" y1="225" x2="800" y2="225"/>
+    <line x1="0" y1="300" x2="800" y2="300"/>
+    <line x1="0" y1="375" x2="800" y2="375"/>
+    <line x1="133" y1="0" x2="133" y2="450"/>
+    <line x1="266" y1="0" x2="266" y2="450"/>
+    <line x1="400" y1="0" x2="400" y2="450"/>
+    <line x1="533" y1="0" x2="533" y2="450"/>
+    <line x1="666" y1="0" x2="666" y2="450"/>
+  </g>
+
+  <!-- Camera feed panel 1 -->
+  <g transform="translate(40, 75)">
+    <rect x="0" y="0" width="340" height="220" rx="8" fill="#0f0f23" stroke="#3a3a5c" stroke-width="2"/>
+    <!-- Video area -->
+    <rect x="8" y="8" width="324" height="180" rx="4" fill="#1a1a3a"/>
+    <!-- Detection bounding box -->
+    <rect x="100" y="40" width="80" height="120" rx="2" fill="none" stroke="#ff4444" stroke-width="2" filter="url(#glow)"/>
+    <!-- Confidence label -->
+    <rect x="100" y="28" width="80" height="16" rx="2" fill="#ff4444" fill-opacity="0.8"/>
+    <text x="140" y="40" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="10" font-weight="bold">GUN 93.8%</text>
+    <!-- Person silhouette -->
+    <circle cx="140" cy="65" r="12" fill="#555577"/>
+    <rect x="125" y="80" width="30" height="55" rx="6" fill="#555577"/>
+    <rect x="118" y="85" width="14" height="40" rx="4" fill="#555577" transform="rotate(-15,125,85)"/>
+    <rect x="148" y="85" width="14" height="40" rx="4" fill="#555577" transform="rotate(15,155,85)"/>
+    <!-- Object in hand -->
+    <rect x="152" y="95" width="28" height="8" rx="2" fill="#666688" transform="rotate(-25,166,99)"/>
+    <!-- Camera label -->
+    <circle cx="20" cy="200" r="4" fill="#ff4444"/>
+    <text x="30" y="204" fill="#aaaacc" font-family="Arial, sans-serif" font-size="11">Camera 1 - Entrance</text>
+    <text x="290" y="204" fill="#666688" font-family="Arial, sans-serif" font-size="10">LIVE</text>
+  </g>
+
+  <!-- Camera feed panel 2 -->
+  <g transform="translate(420, 75)">
+    <rect x="0" y="0" width="340" height="220" rx="8" fill="#0f0f23" stroke="#3a3a5c" stroke-width="2"/>
+    <!-- Video area -->
+    <rect x="8" y="8" width="324" height="180" rx="4" fill="#1a1a3a"/>
+    <!-- Safe scene - no detection -->
+    <circle cx="100" cy="100" r="12" fill="#555577"/>
+    <rect x="85" y="115" width="30" height="50" rx="6" fill="#555577"/>
+    <circle cx="220" cy="110" r="12" fill="#555577"/>
+    <rect x="205" y="125" width="30" height="50" rx="6" fill="#555577"/>
+    <!-- Status indicator -->
+    <circle cx="20" cy="200" r="4" fill="#8CC63F"/>
+    <text x="30" y="204" fill="#aaaacc" font-family="Arial, sans-serif" font-size="11">Camera 2 - Lobby</text>
+    <text x="290" y="204" fill="#666688" font-family="Arial, sans-serif" font-size="10">LIVE</text>
+  </g>
+
+  <!-- Alert notification -->
+  <g transform="translate(40, 310)">
+    <rect x="0" y="0" width="340" height="60" rx="8" fill="#2a1a1a" stroke="#ff4444" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- Alert icon -->
+    <g transform="translate(20, 18)">
+      <polygon points="12,0 24,22 0,22" fill="none" stroke="#ff4444" stroke-width="2"/>
+      <text x="12" y="18" text-anchor="middle" fill="#ff4444" font-family="Arial, sans-serif" font-size="14" font-weight="bold">!</text>
+    </g>
+    <text x="55" y="25" fill="#ff6b6b" font-family="Arial, sans-serif" font-size="13" font-weight="bold">Gun Detected - Camera 1</text>
+    <text x="55" y="45" fill="#888899" font-family="Arial, sans-serif" font-size="11">Recording started | MQTT alert sent | 2s ago</text>
+  </g>
+
+  <!-- Stats panel -->
+  <g transform="translate(420, 310)">
+    <rect x="0" y="0" width="340" height="60" rx="8" fill="#0f0f23" stroke="#3a3a5c" stroke-width="1.5"/>
+    <!-- Stat items -->
+    <text x="25" y="25" fill="#8CC63F" font-family="Arial, sans-serif" font-size="20" font-weight="bold">2</text>
+    <text x="25" y="45" fill="#666688" font-family="Arial, sans-serif" font-size="10">Cameras</text>
+    <line x1="85" y1="10" x2="85" y2="50" stroke="#3a3a5c" stroke-width="1"/>
+    <text x="110" y="25" fill="#ff6b35" font-family="Arial, sans-serif" font-size="20" font-weight="bold">3</text>
+    <text x="110" y="45" fill="#666688" font-family="Arial, sans-serif" font-size="10">Events</text>
+    <line x1="170" y1="10" x2="170" y2="50" stroke="#3a3a5c" stroke-width="1"/>
+    <text x="195" y="25" fill="#ffffff" font-family="Arial, sans-serif" font-size="20" font-weight="bold">5.9ms</text>
+    <text x="195" y="45" fill="#666688" font-family="Arial, sans-serif" font-size="10">Inference</text>
+    <line x1="275" y1="10" x2="275" y2="50" stroke="#3a3a5c" stroke-width="1"/>
+    <text x="300" y="25" fill="#8CC63F" font-family="Arial, sans-serif" font-size="20" font-weight="bold">24/7</text>
+    <text x="300" y="45" fill="#666688" font-family="Arial, sans-serif" font-size="10">Monitoring</text>
+  </g>
+
+  <!-- Title -->
+  <text x="400" y="40" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="24" font-weight="bold">AI Gun Detection with Frigate NVR</text>
+  <text x="400" y="430" text-anchor="middle" fill="#888888" font-family="Arial, sans-serif" font-size="14">Real-time Detection + Auto Recording + MQTT Alerts</text>
+
+  <!-- Frigate logo hint -->
+  <g transform="translate(365, 55)" opacity="0.4">
+    <rect x="0" y="0" width="70" height="14" rx="3" fill="#3a3a5c"/>
+    <text x="35" y="11" text-anchor="middle" fill="#aaaacc" font-family="Arial, sans-serif" font-size="9">FRIGATE NVR</text>
+  </g>
+</svg>
