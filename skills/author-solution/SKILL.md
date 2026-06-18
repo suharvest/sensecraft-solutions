@@ -248,7 +248,7 @@ Your service is now running.
 **Step 12**：用离线工具 `solutionctl` 校验方案符合公开契约：
 
 ```bash
-uv run --package solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
 ```
 
 `solutionctl validate` 离线检查：solution.yaml / device YAML 是否符合 `spec/*.json` schema、guide.md Step/Target 语法、每个 preset 是否有 verify step、孤儿 H2、target 命名等。**必须全绿**才算合格。
@@ -279,7 +279,7 @@ uv run --package solutionctl solutionctl validate solutions/<solution_id> --spec
 **Step 16**：跑校验 —— 失败必须修复后再交付。
 
 ```bash
-uv run --package solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
 ```
 
 **人眼自检清单**（工具查不到的）：

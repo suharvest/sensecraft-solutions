@@ -25,10 +25,10 @@ closed-source and distributed as a signed binary. This repository is the open
 uv sync
 
 # Validate a solution offline (no engine needed):
-uv run --package solutionctl solutionctl validate solutions/<id>
+uv run --package sensecraft-solutionctl solutionctl validate solutions/<id>
 
 # With the SenseCraft desktop app installed, deploy headlessly:
-uv run --package solutionctl solutionctl deploy <id> --connection '{...}'
+uv run --package sensecraft-solutionctl solutionctl deploy <id> --connection '{...}'
 ```
 
 `solutionctl` locates the installed engine binary automatically (env override →

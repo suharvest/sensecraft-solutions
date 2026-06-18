@@ -1,5 +1,5 @@
 [project]
-name = "solutionctl"
+name = "sensecraft-solutionctl"
 version = "0.1.0"
 description = "Thin public-side client for the SenseCraft Solution engine binary"
 readme = "README.md"
@@ -20,6 +20,10 @@ dependencies = [
 
 [project.scripts]
 solutionctl = "solutionctl.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/suharvest/sensecraft-solutions"
+Repository = "https://github.com/suharvest/sensecraft-solutions"
 
 [build-system]
 requires = ["hatchling"]

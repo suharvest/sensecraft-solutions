@@ -16,6 +16,10 @@ dependencies = [
     "mistune>=3.2.1,<4",
 ]
 
+[project.urls]
+Homepage = "https://github.com/suharvest/sensecraft-solutions"
+Repository = "https://github.com/suharvest/sensecraft-solutions"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

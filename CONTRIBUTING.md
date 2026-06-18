@@ -15,7 +15,7 @@ Thanks for contributing SenseCraft solutions and tooling improvements!
 
 ```bash
 uv sync
-uv run --package solutionctl solutionctl validate solutions/<your_solution>
+uv run --package sensecraft-solutionctl solutionctl validate solutions/<your_solution>
 ```
 
 Read `spec/CONTRACT.md` for the field rules, `docker_deploy` view-derivation,

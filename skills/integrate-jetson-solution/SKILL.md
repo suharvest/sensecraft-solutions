@@ -206,7 +206,7 @@ a mirror.
 5. Run the offline validation command:
 
 ```bash
-uv run --package solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
 ```
 
 `solutionctl validate` checks the generated solution.yaml / device YAML against
