@@ -1,0 +1,45 @@
+version: "1.0"
+id: {{SOLUTION_ID}}
+name: {{SOLUTION_NAME}}
+name_zh: {{SOLUTION_NAME_ZH}}
+
+intro:
+  summary: {{SUMMARY_EN}}
+  summary_zh: {{SUMMARY_ZH}}
+  description_file: description.md
+  description_file_zh: description_zh.md
+  category: vision
+  tags: [jetson, docker, edge-ai]
+
+  device_catalog:
+    jetson_device:
+      name: NVIDIA Jetson
+      name_zh: NVIDIA Jetson
+      description: Jetson edge device for containerized AI workloads
+      description_zh: Jetson edge device for containerized AI workloads
+
+  presets:
+    - id: jetson_default
+      name: Jetson Default Preset
+      name_zh: Jetson Default Preset
+      description: One-click deployment to Jetson over SSH.
+      description_zh: One-click deployment to Jetson over SSH.
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          name_zh: Edge Device
+          type: single
+          required: true
+          options:
+            - device_ref: jetson_device
+          default: jetson_device
+
+  stats:
+    difficulty: beginner
+    estimated_time: 10min
+
+deployment:
+  guide_file: guide.md
+  guide_file_zh: guide_zh.md
+  selection_mode: sequential
+

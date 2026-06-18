@@ -1,0 +1,44 @@
+services:
+  {{SOLUTION_ID}}:
+    image: {{DOCKER_IMAGE}}
+    container_name: {{SOLUTION_ID}}
+    restart: unless-stopped
+    runtime: nvidia
+    network_mode: host
+    ipc: host
+    privileged: {{PRIVILEGED_FLAG}}
+    stdin_open: true
+    tty: true
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_X11_NO_MITSHM=1
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - TZ=${TZ:-Asia/Shanghai}
+{{CAMERA_VOLUME_BLOCK}}
+{{EXTRA_VOLUME_BLOCK}}
+    command:
+      - bash
+      - -lc
+      - |
+{{APP_START_COMMAND_BLOCK}}
+
+# Rendering rules:
+# 1) camera.mode=required|optional:
+#    - PRIVILEGED_FLAG=true
+#    - CAMERA_VOLUME_BLOCK includes:
+#        volumes:
+#          - /dev:/dev
+#          - /tmp/.X11-unix:/tmp/.X11-unix
+# 2) camera.mode=none:
+#    - PRIVILEGED_FLAG=false
+#    - CAMERA_VOLUME_BLOCK includes only:
+#        volumes:
+#          - /tmp/.X11-unix:/tmp/.X11-unix
+# 3) APP_START_COMMAND_BLOCK must be indented to match YAML block scalar.
+# 4) CONTAINER_WORKDIR handling:
+#    - if set, prepend:
+#        cd <workdir>
+#      before app command.
+# 5) EXTRA_VOLUME_BLOCK is optional and may be blank.
+

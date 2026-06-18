@@ -34,7 +34,7 @@ if find . -path ./.git -prune -o -type d -name dist -print | grep . >/dev/null; 
 fi
 
 # 5. No non-whitelisted (internal) skills.
-for s in solution-validation integrate-jetson-solution solution-assets solution \
+for s in solution-validation solution-assets solution \
          test-tauri-windows debug-frontend release-notes; do
   if [ -d "skills/$s" ]; then fail "internal skill '$s' present"; fi
 done
