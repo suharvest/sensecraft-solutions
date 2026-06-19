@@ -28,6 +28,9 @@ jobs:
             id=$(basename "$s")
             # solutionctl validate auto-skips non-solution dirs (e.g. _shared)
             # that have no solution.yaml.
-            uv run --package sensecraft-solutionctl solutionctl validate "$s" --spec-dir spec || rc=1
+            # --check-urls flags dead (4xx) http(s) references; transient /
+            # 5xx / network errors are tolerated by design, so this is safe to
+            # run in CI without flakiness.
+            uv run --package sensecraft-solutionctl solutionctl validate "$s" --spec-dir spec --check-urls || rc=1
           done
           exit $rc

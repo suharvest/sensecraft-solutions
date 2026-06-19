@@ -196,8 +196,14 @@ def _format_jsonschema_errors(validator_cls, instance, schema, label: str) -> li
     return errors
 
 
-def run(solution_path: str, spec_dir: str | None = None) -> int:
-    """Validate a single solution offline. Returns 0 on success, 1 on errors."""
+def run(
+    solution_path: str, spec_dir: str | None = None, check_urls: bool = False
+) -> int:
+    """Validate a single solution offline. Returns 0 on success, 1 on errors.
+
+    When ``check_urls`` is True, also verifies every ``http(s)://`` reference is
+    reachable (4xx → error; transient/5xx/network failures are tolerated).
+    """
     import jsonschema
     import yaml
 
@@ -323,6 +329,18 @@ def run(solution_path: str, spec_dir: str | None = None) -> int:
             if not consistency.valid:
                 for cerr in consistency.errors:
                     errors.append(f"EN/ZH structure mismatch: {cerr}")
+
+    # --- 5. shared engine-free static checks (referenced files, i18n, dup ids,
+    #        device-ref integrity) + semantics (compose/flow parseability) -----
+    #        These are the single source of truth shared with the private
+    #        compliance pytest suite (sensecraft_solution_spec.checks).
+    if isinstance(sol_data, dict):
+        from sensecraft_solution_spec import checks
+
+        errors.extend(checks.run_static_checks(sol_path, sol_data))
+        errors.extend(checks.check_semantics(sol_path, sol_data))
+        if check_urls:
+            errors.extend(checks.check_urls_reachable(sol_path, sol_data))
 
     # --- report --------------------------------------------------------------
     if errors:

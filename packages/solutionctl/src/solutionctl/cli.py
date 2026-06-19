@@ -51,7 +51,11 @@ def _cmd_manage(args: argparse.Namespace) -> int:
 def _cmd_validate(args: argparse.Namespace) -> int:
     from .commands import validate
 
-    return validate.run(solution_path=args.solution_path, spec_dir=args.spec_dir)
+    return validate.run(
+        solution_path=args.solution_path,
+        spec_dir=args.spec_dir,
+        check_urls=args.check_urls,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -87,6 +91,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         dest="spec_dir",
         help="Path to the spec/ directory (auto-discovered if omitted)",
+    )
+    p_validate.add_argument(
+        "--check-urls",
+        action="store_true",
+        dest="check_urls",
+        help="Also check that http(s):// references are reachable (4xx → fail; "
+        "transient/5xx/network errors are tolerated)",
     )
     p_validate.set_defaults(func=_cmd_validate)
 
