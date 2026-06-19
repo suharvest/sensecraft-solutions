@@ -297,4 +297,3 @@ In short: there is currently **no schema in `models/` that forbids extra
 fields**. Treat unknown keys as best-effort and verify a model's `model_config`
 before assuming round-trip fidelity.
 <!-- AUTHORED:extra_field_handling END -->
-

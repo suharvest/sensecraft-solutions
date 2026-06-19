@@ -1152,6 +1152,11 @@
             }
           ],
           "default": null
+        },
+        "verify_exempt": {
+          "default": false,
+          "title": "Verify Exempt",
+          "type": "boolean"
         }
       },
       "required": [

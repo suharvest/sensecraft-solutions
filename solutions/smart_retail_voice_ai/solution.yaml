@@ -68,6 +68,7 @@ intro:
     purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
   presets:
     - id: default
+      verify_exempt: true
       name: Standard Deployment
       device_groups:
         - id: edge_device

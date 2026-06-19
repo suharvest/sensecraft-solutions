@@ -56,6 +56,7 @@ intro:
         zh: Reachy Mini Wireless 版本，自带 CM4（计算模块 4），实现一体化边缘部署
   presets:
     - id: jetson
+      verify_exempt: true
       name: Jetson All-in-One
       description: Speech, vision, and robot control all run on one Jetson — simplest setup
       device_groups:
@@ -74,6 +75,7 @@ intro:
       description_i18n:
         zh: 语音、视觉和机器人控制全部跑在同一台 Jetson 上——最简部署
     - id: r2000_hailo
+      verify_exempt: true
       name: R2000 + Hailo-8 (Vision on NPU)
       description: Everything on one R2000 (Pi 5 + Hailo-8) with vision on the NPU — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
       device_groups:
@@ -92,6 +94,7 @@ intro:
       description_i18n:
         zh: 所有服务运行在 R2000（树莓派 5 + Hailo-8）上，视觉跑在 NPU——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
     - id: cm4
+      verify_exempt: true
       name: Reachy Mini Wireless (CM4)
       description: Self-contained deployment on the Reachy Mini Wireless CM4 — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
       device_groups:

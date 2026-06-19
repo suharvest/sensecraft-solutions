@@ -76,6 +76,7 @@ intro:
     github: https://github.com/78/xiaozhi-esp32
   presets:
     - id: display_cast
+      verify_exempt: true
       name: Display Cast
       badge: Recommended
       description: Cast Xiaozhi conversations to large display

@@ -42,6 +42,7 @@ intro:
         zh: GPU 加速本地模型
   presets:
     - id: openclaw_basic
+      verify_exempt: true
       name: OpenClaw AI Compute Gateway
       description: Deploy OpenClaw gateway with local AI model powered by Jetson GPU — conversations stay on your device.
       device_groups:
@@ -59,6 +60,7 @@ intro:
       description_i18n:
         zh: 部署 OpenClaw 网关，利用 Jetson GPU 运行本地模型，对话数据不出设备。
     - id: openclaw_recomputer_r
+      verify_exempt: true
       name: OpenClaw Gateway
       description: Deploy OpenClaw gateway on reComputer R — lightweight deployment, connect cloud AI providers for conversations.
       device_groups:

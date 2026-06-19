@@ -51,23 +51,11 @@ from pathlib import Path
 # the deployers whose ``category == "verify"`` (see run()). No static list to
 # drift out of sync with the engine registry.
 
-# Presets grandfathered out of the "≥1 verify step" rule — hardware-only or
-# cloud-only solutions with no local web dashboard to point a verify step at.
-# Mirrors ``_LEGACY_NO_VERIFY`` in the private compliance test. Entries are
-# "solution_id/preset_id". Do NOT add new entries — new solutions must include
-# a verify step.
-_LEGACY_NO_VERIFY: frozenset[str] = frozenset(
-    {
-        "nvblox_orbbec/jetson_nvblox",
-        "openclaw_deploy/openclaw_basic",
-        "openclaw_deploy/openclaw_recomputer_r",
-        "reachy_claw_voice_robot/jetson",
-        "reachy_claw_voice_robot/r2000_hailo",
-        "reachy_claw_voice_robot/cm4",
-        "smart_retail_voice_ai/default",
-        "smart_space_assistant/display_cast",
-    }
-)
+# Presets exempt from the "≥1 verify step" rule (hardware-only / cloud-only
+# with no local dashboard to point a verify step at) are flagged
+# ``verify_exempt: true`` in their own solution.yaml — read in run() and passed
+# down. The flag lives with the solution, so this validator and the private
+# compliance test read the same source instead of mirroring an allowlist.
 
 # A markdown Target name must not be a bare direction word — the live UI label
 # is resolved from i18n.deploy.methodLabels based on ``type=`` + ``device_name=``,
@@ -124,23 +112,29 @@ def _target_name_text(raw_name, lang: str) -> str:
 
 
 def _check_verify_and_target_naming(
-    result, sol_id: str, fname: str, lang: str, verify_types: frozenset[str]
+    result,
+    sol_id: str,
+    fname: str,
+    lang: str,
+    verify_types: frozenset[str],
+    verify_exempt: frozenset[str],
 ) -> list[str]:
     """Verify-step presence per preset + non-direction-word target names.
 
     ``result`` is a single-language ``ParseResult``. ``verify_types`` is the
     set of deployer types whose ``category == "verify"`` (from capabilities.json).
+    ``verify_exempt`` is the set of preset ids flagged ``verify_exempt: true``
+    in solution.yaml.
     """
     errors: list[str] = []
     for preset in result.presets:
         # Verify step presence.
-        key = f"{sol_id}/{preset.id}"
         verify_count = sum(
             1
             for s in preset.steps
             if s.type in verify_types or getattr(s, "verify_override", False)
         )
-        if verify_count == 0 and key not in _LEGACY_NO_VERIFY:
+        if verify_count == 0 and preset.id not in verify_exempt:
             errors.append(
                 f"{fname}: preset '{preset.id}' has no verify step — every preset "
                 f"needs ≥1 verify-category step (e.g. type=web_dashboard / "
@@ -295,6 +289,12 @@ def run(solution_path: str, spec_dir: str | None = None) -> int:
             guide_rel = (sol_data.get("deployment") or {}).get("guide_file") or "guide.md"
         zh_rel = guide_rel[:-3] + "_zh.md" if guide_rel.endswith(".md") else guide_rel + "_zh.md"
         guide_files = [(guide_rel, "en"), (zh_rel, "zh")]
+        # Presets that opt out of the verify-step rule via solution.yaml.
+        verify_exempt = frozenset(
+            p["id"]
+            for p in ((sol_data or {}).get("intro") or {}).get("presets") or []
+            if isinstance(p, dict) and p.get("verify_exempt") is True and p.get("id")
+        )
         any_guide = False
         parsed: dict[str, object] = {}
         for fname, lang in guide_files:
@@ -311,7 +311,7 @@ def run(solution_path: str, spec_dir: str | None = None) -> int:
             errors.extend(_check_orphan_h2(content, fname))
             errors.extend(
                 _check_verify_and_target_naming(
-                    result, sol_id, fname, lang, verify_types
+                    result, sol_id, fname, lang, verify_types, verify_exempt
                 )
             )
         if not any_guide:
