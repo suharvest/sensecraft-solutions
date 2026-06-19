@@ -1,4 +1,4 @@
-## 预设: 目标检测 {#object_detection}
+## 套餐: 目标检测 {#object_detection}
 
 一键将 YOLO 11 目标检测部署到 reComputer RK3576 或 RK3588。
 
@@ -146,7 +146,7 @@
 | 无视频流 | 检查 MJPEG 地址是否正确 |
 
 
-## 预设: 大模型对话 {#llm_chat}
+## 套餐: 大模型对话 {#llm_chat}
 
 一键将 DeepSeek-R1 大语言模型部署到 reComputer RK3576。
 
@@ -230,7 +230,7 @@
 | 空响应 | 查看容器日志：`docker logs ai_lab_llm` |
 
 
-## 预设: 视觉对话 {#vlm_chat}
+## 套餐: 视觉对话 {#vlm_chat}
 
 一键将 Qwen2.5-VL 视觉语言模型部署到 reComputer RK3576。
 

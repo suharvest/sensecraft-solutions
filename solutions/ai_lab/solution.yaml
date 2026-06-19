@@ -3,7 +3,7 @@ id: ai_lab
 name: "AI Lab — Edge AI Model Hub on Rockchip"
 intro:
   summary: One place to try popular AI models on reComputer RK3576/RK3588 — object detection, chat, and image understanding, all running locally.
-  description_file: intro/description.md
+  description_file: description.md
   cover_image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
   category: ai
   solution_type: technical
@@ -144,11 +144,11 @@ intro:
   summary_i18n:
     zh: 在 reComputer RK3576/RK3588 上一站式试用主流 AI 模型——目标检测、对话、图片理解，全部本地运行。
   description_file_i18n:
-    zh: intro/description_zh.md
+    zh: description_zh.md
 deployment:
-  guide_file: deploy/guide.md
+  guide_file: guide.md
   selection_mode: sequential
   guide_file_i18n:
-    zh: deploy/guide_zh.md
+    zh: guide_zh.md
 name_i18n:
   zh: "AI Lab — Rockchip 边缘 AI 模型库"

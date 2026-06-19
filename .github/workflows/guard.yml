@@ -26,10 +26,8 @@ jobs:
           rc=0
           for s in solutions/*/; do
             id=$(basename "$s")
-            # ai_lab is a legacy solution (pre-flat layout, no type= steps);
-            # tracked for migration. solutionctl validate auto-skips non-solution
-            # dirs (e.g. _shared) that have no solution.yaml.
-            if [ "$id" = "ai_lab" ]; then echo "skip (legacy): $id"; continue; fi
+            # solutionctl validate auto-skips non-solution dirs (e.g. _shared)
+            # that have no solution.yaml.
             uv run --package sensecraft-solutionctl solutionctl validate "$s" --spec-dir spec || rc=1
           done
           exit $rc
