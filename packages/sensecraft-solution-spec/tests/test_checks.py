@@ -313,6 +313,81 @@ def test_semantics_bad_flow_json(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# check_verification_claims
+# ---------------------------------------------------------------------------
+
+
+def _verified_solution(base: Path, *, ci_smoke: bool) -> Path:
+    """Build a solution where preset ``p`` has a docker_deploy step pointing at
+    ``devices/dep.yaml``. ``ci_smoke`` controls whether that device backs the
+    deploy-smoke badge.
+    """
+    docker_block = (
+        "type: docker_deploy\n"
+        "id: dep\n"
+        "docker:\n"
+        "  compose_file: assets/c.yml\n"
+    )
+    if ci_smoke:
+        docker_block += "  ci_smoke: true\n"
+    guide = (
+        "## Preset: P {#p}\n\n"
+        "Intro.\n\n"
+        "## Step 1: Deploy {#dep type=docker_deploy required=true "
+        "config=devices/dep.yaml}\n\n"
+        "Deploy it.\n"
+    )
+    return _make_solution(
+        base,
+        files={
+            "guide.md": guide,
+            "devices/dep.yaml": docker_block,
+            "assets/c.yml": "services:\n  a: {}\n",
+        },
+    )
+
+
+def test_verification_claims_good(tmp_path):
+    """deploy-smoke claim backed by a ci_smoke device → no errors."""
+    sol = _verified_solution(tmp_path / "s", ci_smoke=True)
+    data = {
+        "deployment": {"guide_file": "guide.md"},
+        "intro": {"presets": [{"id": "p", "verified": ["deploy-smoke"]}]},
+    }
+    assert checks.check_verification_claims(sol, data) == []
+
+
+def test_verification_claims_bad_not_backed(tmp_path):
+    """deploy-smoke claimed but device has no ci_smoke → not-backed error."""
+    sol = _verified_solution(tmp_path / "s", ci_smoke=False)
+    data = {
+        "deployment": {"guide_file": "guide.md"},
+        "intro": {"presets": [{"id": "p", "verified": ["deploy-smoke"]}]},
+    }
+    errs = checks.check_verification_claims(sol, data)
+    assert len(errs) == 1
+    assert "not backed by ci_smoke" in errs[0]
+    assert "preset=p" in errs[0]
+
+
+def test_verification_claims_illegal_value(tmp_path):
+    """A verified value outside the allowed enum → illegal-claim error."""
+    sol = _make_solution(tmp_path / "s")
+    data = {"intro": {"presets": [{"id": "p", "verified": ["bogus"]}]}}
+    errs = checks.check_verification_claims(sol, data)
+    assert len(errs) == 1
+    assert "illegal verified claim" in errs[0]
+    assert "bogus" in errs[0]
+
+
+def test_verification_claims_hardware_not_checked(tmp_path):
+    """hardware is an attestation — not machine-checkable, never errors."""
+    sol = _make_solution(tmp_path / "s")
+    data = {"intro": {"presets": [{"id": "p", "verified": ["hardware"]}]}}
+    assert checks.check_verification_claims(sol, data) == []
+
+
+# ---------------------------------------------------------------------------
 # check_urls_reachable (status policy — no network: test _url_status logic via
 # the public function with a monkeypatched probe)
 # ---------------------------------------------------------------------------

@@ -92,6 +92,8 @@ intro:
     - id: recamera
       name: AI Camera Direct
       description: Plug in a reCamera and start tracking — built-in AI, no extra hardware
+      verified:
+        - deploy-smoke
       device_groups:
         - id: camera
           name: AI Camera

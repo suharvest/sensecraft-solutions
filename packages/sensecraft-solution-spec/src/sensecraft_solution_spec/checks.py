@@ -26,6 +26,8 @@ from pathlib import Path
 
 import yaml
 
+from . import markdown_parser as mp
+
 # Field is a remote reference (URL) rather than an on-disk path when it starts
 # with one of these schemes — such references are skipped by local-existence
 # checks (and validated separately by ``check_urls_reachable``).
@@ -322,6 +324,100 @@ def check_device_ref_integrity(sol_data: dict) -> list[str]:
 # ---------------------------------------------------------------------------
 
 
+_ALLOWED_VERIFIED = {"deploy-smoke", "hardware"}
+
+
+def check_verification_claims(sol_dir: Path, sol_data: dict) -> list[str]:
+    """Guard against fake verification badges.
+
+    A preset may declare attained verification levels in ``verified`` (a list of
+    strings). Only ``deploy-smoke`` and ``hardware`` are legal. When a preset
+    claims ``deploy-smoke`` it MUST be backed by at least one ``docker_deploy``
+    device YAML carrying ``docker.ci_smoke: true`` (the CI compose smoke gate),
+    otherwise the badge would be unearned. ``hardware`` is a maintainer
+    attestation and is not machine-checkable here.
+    """
+    errors: list[str] = []
+    presets = (sol_data.get("intro") or {}).get("presets") or []
+
+    # Pass 1: flag illegal verified values
+    for preset in presets:
+        if not isinstance(preset, dict):
+            continue
+        preset_id = preset.get("id")
+        verified = preset.get("verified") or []
+        if not isinstance(verified, list):
+            errors.append(
+                f"preset={preset_id} verified must be a list of strings, got {type(verified).__name__}"
+            )
+            continue
+        for i, claim in enumerate(verified):
+            if claim not in _ALLOWED_VERIFIED:
+                errors.append(
+                    f"illegal verified claim: preset={preset_id} verified[{i}]={claim!r} "
+                    f"(allowed: deploy-smoke, hardware)"
+                )
+
+    # Pass 2: deploy-smoke claims must be backed by a ci_smoke device
+    deploy_smoke_ids = {
+        p.get("id")
+        for p in presets
+        if isinstance(p, dict)
+        and isinstance(p.get("verified"), list)
+        and "deploy-smoke" in p.get("verified")
+        and p.get("id")
+    }
+    if not deploy_smoke_ids:
+        return errors
+
+    guide_rel = (sol_data.get("deployment") or {}).get("guide_file") or "guide.md"
+    guide_path = sol_dir / guide_rel
+    if not guide_path.is_file():
+        for preset_id in sorted(deploy_smoke_ids):
+            errors.append(
+                f"verification claim not backed by ci_smoke: preset={preset_id} "
+                f"verified='deploy-smoke' (guide not found: {guide_rel})"
+            )
+        return errors
+
+    result = mp.parse_single_language_guide(
+        guide_path.read_text(encoding="utf-8"), "en"
+    )
+    presets_by_id = {p.id: p for p in result.presets}
+
+    for preset_id in sorted(deploy_smoke_ids):
+        guide_preset = presets_by_id.get(preset_id)
+        has_ci_smoke = False
+        if guide_preset:
+            config_paths = []
+            for step in guide_preset.steps:
+                if step.type != "docker_deploy":
+                    continue
+                if step.config_file:
+                    config_paths.append(step.config_file)
+                for target in (step.targets or []):
+                    if target.config_file:
+                        config_paths.append(target.config_file)
+            for rel in dict.fromkeys(config_paths):
+                dev_path = sol_dir / rel
+                if not dev_path.is_file():
+                    continue
+                data = yaml.safe_load(dev_path.read_text(encoding="utf-8")) or {}
+                if (
+                    isinstance(data, dict)
+                    and data.get("type") == "docker_deploy"
+                    and (data.get("docker") or {}).get("ci_smoke") is True
+                ):
+                    has_ci_smoke = True
+                    break
+        if not has_ci_smoke:
+            errors.append(
+                f"verification claim not backed by ci_smoke: preset={preset_id} "
+                f"verified='deploy-smoke'"
+            )
+    return errors
+
+
 def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     """Run all engine-free static checks and return a flat list of errors,
     each prefixed with the originating check name.
@@ -338,6 +434,10 @@ def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
         f"[i18n_completeness] {e}" for e in check_i18n_completeness(sol_dir, sol_data)
     )
     errors.extend(f"[duplicate_ids] {e}" for e in check_duplicate_ids(sol_data))
+    errors.extend(
+        f"[verification_claims] {e}"
+        for e in check_verification_claims(sol_dir, sol_data)
+    )
     errors.extend(
         f"[device_ref_integrity] {e}" for e in check_device_ref_integrity(sol_data)
     )

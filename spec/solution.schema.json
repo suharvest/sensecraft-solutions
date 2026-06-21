@@ -1153,6 +1153,14 @@
           ],
           "default": null
         },
+        "verified": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Verified",
+          "type": "array"
+        },
         "verify_exempt": {
           "default": false,
           "title": "Verify Exempt",
