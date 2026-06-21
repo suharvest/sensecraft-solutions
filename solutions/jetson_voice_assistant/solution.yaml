@@ -61,7 +61,7 @@ intro:
       name: reComputer RK3576
       product_url: https://www.seeedstudio.com/reComputer-RK3576-Mini-PC-p-6266.html
       description: Runs streaming ASR and TTS locally with RK3576 NPU acceleration
-      image: https://media-cdn.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
       name_i18n:
         zh: reComputer RK3576
       description_i18n:
@@ -70,7 +70,7 @@ intro:
       name: reComputer RK3588
       product_url: https://www.seeedstudio.com/reComputer-RK3588-Mini-PC-p-6267.html
       description: Runs streaming ASR and TTS locally with RK3588 NPU acceleration
-      image: https://media-cdn.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
+      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
       name_i18n:
         zh: reComputer RK3588
       description_i18n:
