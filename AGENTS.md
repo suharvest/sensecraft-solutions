@@ -10,7 +10,7 @@ This open-source repository contains the **solution content** (YAML / Markdown /
 |---|---|---|---|
 | **A** | Non-technical user (operations, AE, marketing) | Edit copy, add images, tweak intro/guide, then **preview** in the app | Solution import API (preview flow) |
 | **C** | End user with the app installed | "One-click deploy a solution" | HTTP API `/api/solutions/*` boost flow |
-| **D** | DevOps / CI / scripted | Headless batch deploy, CI automation, single-device debugging | **headless engine binary** (`provisioning-station deploy …` / `serve --headless`) |
+| **D** | DevOps / CI / scripted | Headless batch deploy, CI automation, single-device debugging | **`solutionctl` CLI** (`solutionctl deploy …`) + **headless engine binary** (`provisioning-station serve --headless`) |
 | **E** | DevOps / agent operating deployed devices | List deployed apps, start/stop/update, firmware OTA, factory restore, content updates, Docker ops | **headless engine binary** `serve --headless` + device-management endpoints |
 
 > Note: a fifth role — second-development of the engine itself (adding deployers / frontend handlers / plugins) — lives in the closed-source engine repository and is intentionally out of scope here.
@@ -274,22 +274,22 @@ If the user's need exceeds deployment / device operations, stop and guide them t
 
 ## Two usages
 
-The engine binary (released as the `provisioning-station` artifact) has two GUI-less usages:
+Drive the engine through **`solutionctl`** — the thin CLI client in `packages/solutionctl/`. **`solutionctl` auto-locates the engine binary** (env `$SENSECRAFT_ENGINE_BIN` → `~/.sensecraft/engine.json` handshake → platform-native lookup), so the agent never needs to know the binary's path. Calling the bare `provisioning-station <cmd>` directly still works if you already know the path, but `solutionctl` is recommended.
+
+The engine has two GUI-less usages:
 
 | Usage | Command | Good for |
 |---|---|---|
-| ① One-shot in-process deploy | `provisioning-station deploy <id> --connection '<json>' --json [--skip-verify]` | CI, batch deploy, run-once-and-exit |
-| ② Headless REST service | `provisioning-station serve --headless` then hit endpoints | Full device management (start/stop/update/OTA/restore/…), see **Part E** |
-
-> Locating the binary: env `SENSECRAFT_ENGINE_BIN` → `~/.sensecraft/engine.json` → platform-native lookup.
+| ① One-shot in-process deploy | `solutionctl deploy <id> --connection '<json>' --json [--skip-verify]` | CI, batch deploy, run-once-and-exit |
+| ② Headless REST service | `provisioning-station serve --headless` (or `solutionctl manage`, which internally starts `serve --headless`) then hit endpoints | Full device management (start/stop/update/OTA/restore/…), see **Part E** |
 
 ## Usage ① — One-shot in-process deploy
 
 ### 1. Locate solution + pick preset/device
 
 ```bash
-provisioning-station solution list
-provisioning-station solution show <solution_id>
+solutionctl solution list
+solutionctl solution show <solution_id> [--lang en|zh]
 ```
 
 `solution show` lists every preset and each preset's steps + associated device YAML. **Look before you choose** — don't guess preset names.
@@ -307,7 +307,7 @@ Note it is a **nested** dict, not flat. `device_id` must match what `solution sh
 ### 3. Run the deployment
 
 ```bash
-provisioning-station deploy <solution_id> \
+solutionctl deploy <solution_id> \
     --preset <preset_id> \
     --device <device_id> \
     --connection '<json>' \
@@ -341,7 +341,7 @@ Process exit code 0 = success, non-zero = failure; the last line prints a result
   env:
     DEPLOY_PWD: ${{ secrets.JETSON_PWD }}
   run: |
-    provisioning-station deploy smart_warehouse \
+    solutionctl deploy smart_warehouse \
       --preset sensecraft_cloud --device warehouse \
       --connection "{\"warehouse\":{\"host\":\"$JETSON_HOST\",\"username\":\"jetson\",\"password\":\"$DEPLOY_PWD\",\"port\":22,\"target\":\"warehouse_remote\",\"target_type\":\"remote\"}}" \
       --json --skip-verify --replace-existing --yes
@@ -351,6 +351,7 @@ Process exit code 0 = success, non-zero = failure; the last line prints a result
 
 ```bash
 provisioning-station serve --headless
+# or: solutionctl manage   # internally starts `serve --headless`
 ```
 
 - Binds `127.0.0.1`; auto-selects a free port if `--port` is not given.

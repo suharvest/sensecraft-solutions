@@ -1,6 +1,7 @@
 """solutionctl command-line entry point.
 
-Thin dispatcher: ``deploy`` / ``manage`` / ``meta``. Contains zero engine code;
+Thin dispatcher: ``solution`` / ``deploy`` / ``manage`` / ``meta`` / ``validate``.
+Contains zero engine code;
 each command resolves the engine binary and drives it via subprocess.
 """
 
@@ -27,6 +28,21 @@ def _cmd_meta(_args: argparse.Namespace) -> int:
     else:
         sys.stdout.write(proc.stdout)
     return proc.returncode
+
+
+def _cmd_solution(args: argparse.Namespace) -> int:
+    from .commands import solution
+
+    if args.solution_command == "list":
+        return solution.run_list(solutions_dir=args.solutions_dir)
+    if args.solution_command == "show":
+        return solution.run_show(
+            solution_id=args.solution_id,
+            lang=args.lang,
+            solutions_dir=args.solutions_dir,
+        )
+    # argparse enforces required=True on the subcommand, so this is unreachable.
+    return 2
 
 
 def _cmd_deploy(args: argparse.Namespace) -> int:
@@ -67,6 +83,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_meta = sub.add_parser("meta", help="Print engine metadata (meta --json)")
     p_meta.set_defaults(func=_cmd_meta)
+
+    p_solution = sub.add_parser(
+        "solution", help="Discover solutions via the engine (list / show)"
+    )
+    sol_sub = p_solution.add_subparsers(dest="solution_command", required=True)
+
+    p_sol_list = sol_sub.add_parser("list", help="List available solutions")
+    p_sol_list.add_argument("--solutions-dir", default=None)
+    p_sol_list.set_defaults(func=_cmd_solution)
+
+    p_sol_show = sol_sub.add_parser(
+        "show", help="Show a solution's detail incl. presets"
+    )
+    p_sol_show.add_argument("solution_id", help="Solution ID to show")
+    p_sol_show.add_argument(
+        "--lang", default=None, choices=["en", "zh"], help="Content language"
+    )
+    p_sol_show.add_argument("--solutions-dir", default=None)
+    p_sol_show.set_defaults(func=_cmd_solution)
 
     p_deploy = sub.add_parser("deploy", help="Deploy a solution via the engine")
     p_deploy.add_argument("solution_id", help="Solution ID to deploy")
