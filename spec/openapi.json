@@ -4368,26 +4368,10 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.5.10"
+    "version": "0.6.0"
   },
   "openapi": "3.1.0",
   "paths": {
-    "/": {
-      "get": {
-        "operationId": "serve_frontend__get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Serve Frontend"
-      }
-    },
     "/api/ai/activity": {
       "get": {
         "description": "Get current page state and recent navigation history.",
@@ -9970,7 +9954,7 @@
     },
     "/api/solutions/{solution_id}/deploy-info": {
       "get": {
-        "description": "AI-friendly deployment info endpoint.\n\nReturns all parameters needed to start a deployment, plus a ready-to-fill\nrequest template for POST /api/deployments/start.",
+        "description": "AI-friendly deployment info endpoint.\n\nReturns all parameters needed to start a deployment, plus a ready-to-fill\nrequest template for POST /api/deployments/start. Thin wrapper around the\nFastAPI-independent :func:`compute_deploy_info` (shared with headless CLI).",
         "operationId": "get_deploy_info_api_solutions__solution_id__deploy_info_get",
         "parameters": [
           {
