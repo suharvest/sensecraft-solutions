@@ -7,6 +7,9 @@ requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Seeed Studio" }]
 keywords = ["sensecraft", "solution", "iot", "cli"]
+# Run this from a clone of the repo (`uv run --package sensecraft-solutionctl`),
+# not from PyPI. This classifier makes PyPI reject an accidental upload.
+classifiers = ["Private :: Do Not Upload"]
 
 # Networking uses the stdlib (urllib) so the thin client has no third-party
 # runtime dependency for the engine-driven commands. The offline ``validate``

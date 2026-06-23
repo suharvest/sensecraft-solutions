@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml/badge.svg)](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![PyPI - solutionctl](https://img.shields.io/pypi/v/sensecraft-solutionctl?label=solutionctl)](https://pypi.org/project/sensecraft-solutionctl/)
-[![PyPI - spec](https://img.shields.io/pypi/v/sensecraft-solution-spec?label=sensecraft-solution-spec)](https://pypi.org/project/sensecraft-solution-spec/)
 
 **18+ ready-to-deploy edge AI solutions for NVIDIA Jetson, RK3576/RK3588, and Raspberry Pi** — plus the open tooling to author and validate your own.
 
@@ -87,8 +85,8 @@ uv run --package sensecraft-solutionctl solutionctl deploy jetson_voice_assistan
 |------|------|
 | `solutions/` | Solution packages — `solution.yaml`, bilingual `guide.md`/`description.md`, device configs, assets |
 | `spec/` | Generated contract: JSON Schema + `CONTRACT.md` (field rules, `docker_deploy` derivation, guide syntax) |
-| `packages/sensecraft-solution-spec/` | `guide.md` parser primitives (PyPI) |
-| `packages/solutionctl/` | Offline validator + thin client to the engine binary (PyPI) |
+| `packages/sensecraft-solution-spec/` | `guide.md` parser primitives — run from the clone via `uv run` |
+| `packages/solutionctl/` | Offline validator + thin client to the engine binary — run from the clone via `uv run` |
 | `skills/` | Authoring playbooks (copywriting, docker/firmware prep) |
 | `scripts/` | CI boundary guard (`public-repo-guard.sh`) |
 

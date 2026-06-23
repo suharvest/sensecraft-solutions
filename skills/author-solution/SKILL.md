@@ -261,15 +261,10 @@ Your service is now running.
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
 ```
 
-也可以**独立安装**（包已发布到 PyPI），在任意位置校验，只需指向本仓库的 `spec/` 目录：
+校验工具从本仓库内运行（clone-first，不依赖 PyPI 发布）。如果要在仓库外的位置校验某个 solution，指向本仓库的 `spec/` 即可：
 
 ```bash
-# 方式 A：装到环境里
-pip install sensecraft-solutionctl
-solutionctl validate <solution_path> --spec-dir <repo>/spec
-
-# 方式 B：免安装，一次性运行
-uvx sensecraft-solutionctl validate <solution_path> --spec-dir <repo>/spec
+uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --spec-dir <repo>/spec
 ```
 
 `solutionctl validate` **完全离线**（零引擎依赖），检查：

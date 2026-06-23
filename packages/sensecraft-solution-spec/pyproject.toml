@@ -8,6 +8,9 @@ authors = [
     {name = "Seeed Studio", email = "support@seeedstudio.com"}
 ]
 keywords = ["markdown", "parser", "solution", "seeed", "sensecraft"]
+# Consumed from the clone / uv workspace, not from PyPI (the engine pins the
+# workspace copy). This classifier makes PyPI reject an accidental upload.
+classifiers = ["Private :: Do Not Upload"]
 
 dependencies = [
     "markdown>=3.5.0",
