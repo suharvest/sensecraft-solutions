@@ -1,0 +1,30 @@
+name: link-check
+
+# Periodic dead-link sweep. URLs in solution metadata (cover/gallery images,
+# device images, asset/model URLs) can rot AFTER a PR merges — the per-PR
+# `validate --check-urls` only sees the diff at merge time. This re-runs the
+# full URL reachability check across every solution on a schedule so rot is
+# caught proactively. 4xx = dead (fails); transient / 5xx / network errors are
+# tolerated by the checker, so a red run means a genuinely broken link.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # every Monday 06:00 UTC
+  workflow_dispatch: {}   # allow manual runs
+
+jobs:
+  check-urls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Sweep all solution URLs
+        run: |
+          uv sync
+          rc=0
+          for s in solutions/*/; do
+            uv run --package sensecraft-solutionctl solutionctl validate "$s" \
+              --spec-dir spec --check-urls || rc=1
+          done
+          exit $rc

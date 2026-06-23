@@ -32,6 +32,14 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 - **部署 + 验证完整闭环**：部署完不算完，要让用户立刻看到效果
 
 **每个 preset 必须至少有一个 verify 步骤**（让用户立刻看到结果）。`solutionctl validate` 强制检查 verify step 存在。solution 类用 `type=web_dashboard`；technical 类用交互式 verify（`image_predict` / `text_chat` / `voice_chat` / `http_debug` 等）。可用的 verify/step 类型见 `spec/CONTRACT.md`「Deployer capabilities」表。
+- 极少数纯硬件/纯云方案没有本地 dashboard 可指 → 在该 preset 上标 `verify_exempt: true` 豁免（CI 会接受）。
+
+**校验现在查得更全**：`solutionctl validate --check-urls` 会查 schema、引用文件存在、i18n 完整、重复 id、device-ref、**死链（4xx）**、compose/flow 可解析、EN/ZH 结构一致。本地提交前自己跑一遍即可和 CI 一致。
+
+**诚实标注验证等级（可选但推荐）**：在 preset 上加 `verified:` 列表对用户透明——
+- `deploy-smoke`：声明它能在 CI 里起得来。**前提**：该 preset 有一个 `type: docker_deploy` 的 device YAML 在 `docker:` 块里标了 `ci_smoke: true`（仅限轻量 x86 栈；GPU/Jetson/烧固件的别标，CI 起不来）。validate 会强制这个一致性，标了 deploy-smoke 却没 ci_smoke gate 会报错。
+- `hardware`：你（或维护者）在真设备上跑过。
+- 结果对不对（模型准不准等）永远不自动验证，靠人。
 
 ---
 
