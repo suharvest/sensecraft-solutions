@@ -77,6 +77,16 @@ def _cmd_deploy_info(args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_export(args: argparse.Namespace) -> int:
+    from .commands import export
+
+    return export.run(
+        solution_id=args.solution_id,
+        solutions_dir=args.solutions_dir,
+        output_dir=args.output_dir,
+    )
+
+
 def _cmd_manage(args: argparse.Namespace) -> int:
     from .commands import manage
 
@@ -165,6 +175,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_deploy_info.add_argument("--solutions-dir", default=None)
     p_deploy_info.set_defaults(func=_cmd_deploy_info)
+
+    p_export = sub.add_parser(
+        "export",
+        help="Package a solution into an import-ready zip (for app preview)",
+    )
+    p_export.add_argument("solution_id", help="Solution ID (directory under solutions/)")
+    p_export.add_argument("--solutions-dir", default=None)
+    p_export.add_argument(
+        "--output-dir", default=None, help="Where to write <id>.zip (default: ./dist)"
+    )
+    p_export.set_defaults(func=_cmd_export)
 
     p_manage = sub.add_parser("manage", help="Drive headless device-management REST")
     p_manage.add_argument("subcommand", help="e.g. list-apps")

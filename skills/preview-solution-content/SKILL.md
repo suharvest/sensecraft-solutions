@@ -60,7 +60,7 @@ If unreachable, stop and ask the user to confirm the app is running.
 If the user didn't specify a `solution_id`:
 
 ```bash
-uv run python scripts/export_solution.py --list
+uv run --package sensecraft-solutionctl solutionctl solution list
 ```
 
 Show the list, ask the user to pick.
@@ -68,7 +68,7 @@ Show the list, ask the user to pick.
 ### Step 3 — Export the zip
 
 ```bash
-uv run python scripts/export_solution.py <solution_id>
+uv run --package sensecraft-solutionctl solutionctl export <solution_id>
 # → produces dist/<solution_id>.zip
 ZIP="$(pwd)/dist/<solution_id>.zip"
 ```
