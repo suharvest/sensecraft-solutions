@@ -17,6 +17,27 @@ This open-source repository contains the **solution content** (YAML / Markdown /
 
 The agent should **identify the user role first, then pick the Part** — don't mix them.
 
+## Available skills
+
+Detailed, loadable playbooks live under `skills/<name>/SKILL.md`. **Claude Code**
+auto-discovers them via the `.claude/skills` symlink (just clone and they appear).
+**Other agents (e.g. Codex)** should read the relevant `SKILL.md` directly. Load
+a skill when its job comes up:
+
+| Skill | Load it when… |
+|---|---|
+| `solution-cli` | Driving the engine from the command line / CI — `solutionctl` for deploy, validate, discover solutions, device ops (Part D). |
+| `deploy-solution` | Deploying via the running backend's REST API (Part C boost flow). |
+| `author-solution` | Creating a new solution from source material (reproduce → validate → document). |
+| `solution-copywriting` | Polishing a solution's intro / guide copy. |
+| `preview-solution-content` | Previewing locally-edited content in the installed app (Part A). |
+| `prepare-docker-images` / `prepare-deb-package` / `prepare-esp32-firmware` / `prepare-himax-firmware` / `prepare-recamera-nodered` | Preparing the deploy artifacts for the matching deployer type. |
+| `integrate-jetson-solution` | Building a Jetson `docker_remote` solution package. |
+
+> Windows note: the `.claude/skills` symlink needs `git config core.symlinks true`
+> (and Developer Mode) to clone as a real link; otherwise point your agent at
+> `skills/` directly.
+
 ---
 
 # Part A — Assisting non-technical users: edit copy / preview
