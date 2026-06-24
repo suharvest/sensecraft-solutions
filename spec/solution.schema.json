@@ -934,6 +934,25 @@
       "title": "Partner",
       "type": "object"
     },
+    "PluginRequirement": {
+      "description": "A plugin a solution depends on for plugin-contributed deploy/verify types.\n\nMinimal lockfile entry: which plugin (id) and at what version must be\ninstalled for this solution's plugin-namespaced ``type=<plugin-id>/<type>``\nsteps to be deployable. Recorded so ``solutionctl validate`` can cross-check\ndeclared plugin types against declared requirements offline, and so a future\ndeploy-time resolver can report \"needs plugin X@version\" precisely.\n\nPlugin-typed solutions are NOT eligible for the public catalog until the\ntype is graduated into the core contract.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ],
+      "title": "PluginRequirement",
+      "type": "object"
+    },
     "PostDeployment": {
       "description": "Post-deployment configuration",
       "properties": {
@@ -1860,6 +1879,21 @@
       "default": {},
       "title": "Name I18N",
       "type": "object"
+    },
+    "requires_plugins": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/PluginRequirement"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Requires Plugins"
     },
     "version": {
       "default": "1.0",
