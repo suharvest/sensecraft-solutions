@@ -64,7 +64,9 @@ services:
       # Speech + LLM on the remote Jetson; vision is local (default 127.0.0.1:8631).
       - VOICE_ASSISTANT_HOST=${VOICE_ASSISTANT_HOST}
       - REACHY_V2V_URL=ws://${VOICE_ASSISTANT_HOST}:8621/v2v/stream
-      - REACHY_EDGE_LLM_URL=http://${VOICE_ASSISTANT_HOST}:11435/v1
+      # LLM_ENDPOINT (optional) overrides the LLM base URL; must be an
+      # OpenAI-compatible base INCLUDING /v1. Empty → the bundled edge-llm.
+      - REACHY_EDGE_LLM_URL=${LLM_ENDPOINT:-http://${VOICE_ASSISTANT_HOST}:11435/v1}
     depends_on:
       reachy-daemon:
         condition: service_healthy

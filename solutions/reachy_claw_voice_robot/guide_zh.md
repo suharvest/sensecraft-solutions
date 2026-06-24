@@ -435,7 +435,7 @@ http://localhost:8042
 | 服务 | 主机 | 端口 | 作用 |
 |------|------|------|------|
 | 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen/Qwen3-4B-AWQ） |
+| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
 | 机器人控制 | R2000 | 38001 | Reachy daemon（电机） |
 | 对话引擎 | R2000 | 8042 | 对话 + 仪表盘 |
 | 视觉（Hailo） | R2000 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
@@ -627,7 +627,7 @@ http://localhost:8042
 | 服务 | 主机 | 端口 | 作用 |
 |------|------|------|------|
 | 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen/Qwen3-4B-AWQ） |
+| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
 | 机器人控制 | CM4 | 38001 | Reachy daemon（电机） |
 | 对话引擎 | CM4 | 8042 | 对话 + 仪表盘 |
 | 视觉（CM4） | CM4 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |

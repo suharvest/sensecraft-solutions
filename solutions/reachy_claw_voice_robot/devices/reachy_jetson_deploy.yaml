@@ -163,7 +163,7 @@ remote_overrides:
         timeout: 900
         run: |
           # Edge LLM container takes a long time on first boot: it downloads
-          # the prebuilt TensorRT engine + Qwen3-4B weights and runs warmup
+          # the prebuilt TensorRT engine + Qwen3.5-4B weights and runs warmup
           # inference (~10 min). Subsequent restarts are fast.
           if curl -sf http://localhost:11435/v1/models >/dev/null 2>&1; then
             echo "Edge LLM service is running"

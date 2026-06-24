@@ -78,12 +78,12 @@ user_inputs:
     type: text
     required: false
     reconfigurable: true
-    placeholder: "http://192.168.1.100:11435"
-    description: "Base URL of the LLM API. Leave empty to default to the edge-llm service (http://<VOICE_ASSISTANT_HOST>:11435). Override with your own Ollama / OpenAI-compatible endpoint if desired."
+    placeholder: "http://192.168.1.100:11435/v1"
+    description: "OpenAI-compatible LLM base URL — MUST include the /v1 path. Leave empty to use the bundled edge-llm (http://<VOICE_ASSISTANT_HOST>:11435/v1). Override with your own endpoint, e.g. http://host:11435/v1."
     name_i18n:
       zh: LLM 服务地址
     description_i18n:
-      zh: "LLM API 的基础地址。留空则默认使用 voice assistant 主机上的 edge-llm 服务 (http://<VOICE_ASSISTANT_HOST>:11435)。可自定义为自己的 Ollama / OpenClaw 网关 / DashScope 或任何 OpenAI 兼容端点。"
+      zh: "LLM API 的基础地址。OpenAI 兼容的 LLM 基础地址，必须包含 /v1 路径。留空则使用内置 edge-llm (http://<VOICE_ASSISTANT_HOST>:11435/v1)。可自定义为自己的 Ollama / OpenClaw 网关 / DashScope 或任何 OpenAI 兼容端点。"
   - id: ENABLE_KIOSK
     name: Enable Kiosk Mode
     type: select

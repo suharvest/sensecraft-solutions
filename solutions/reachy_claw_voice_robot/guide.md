@@ -435,7 +435,7 @@ http://localhost:8042
 | Service | Host | Port | Purpose |
 |---------|------|------|---------|
 | Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen/Qwen3-4B-AWQ) |
+| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
 | Robot Control | R2000 | 38001 | Reachy daemon (motors) |
 | Conversation Engine | R2000 | 8042 | Dialogue + dashboard |
 | Vision (Hailo) | R2000 | 8630 / 8631 | Face detection + emotion + tracking |
@@ -627,7 +627,7 @@ http://localhost:8042
 | Service | Host | Port | Purpose |
 |---------|------|------|---------|
 | Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen/Qwen3-4B-AWQ) |
+| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
 | Robot Control | CM4 | 38001 | Reachy daemon (motors) |
 | Conversation Engine | CM4 | 8042 | Dialogue + dashboard |
 | Vision (CM4) | CM4 | 8630 / 8631 | Face detection + emotion + tracking |
