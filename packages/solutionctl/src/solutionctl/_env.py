@@ -73,4 +73,19 @@ def engine_env(solutions_dir: Optional[str] = None) -> Dict[str, str]:
         if devices is not None:
             env["PS_DEVICES_DIR"] = str(devices)
 
+    # The engine writes its logs/cache/runtime state under ``<data_dir>``, which
+    # defaults to ``_internal/data`` *inside the frozen PyInstaller payload*. The
+    # GUI App sidesteps this by copying ``_internal`` to a writable cache before
+    # launch; when ``solutionctl`` drives the *installed* engine in place, that
+    # payload is read-only — ``/usr/lib/<App>/...`` on a .deb install, or the
+    # read-only ``.app`` bundle on macOS — so any command that writes a cache or
+    # log entry (``solution``/``deploy``/``deploy-info``) crashes with EACCES or
+    # ENOENT. Redirect all three writable dirs to a per-user location. (The
+    # defaults are independent fields baked at engine-class definition, so
+    # ``PS_DATA_DIR`` alone does not move logs/cache — set each explicitly.)
+    runtime_base = Path.home() / ".sensecraft" / "engine-runtime"
+    for var, sub in (("PS_DATA_DIR", None), ("PS_LOGS_DIR", "logs"), ("PS_CACHE_DIR", "cache")):
+        if var not in env:
+            env[var] = str(runtime_base / sub if sub else runtime_base)
+
     return env

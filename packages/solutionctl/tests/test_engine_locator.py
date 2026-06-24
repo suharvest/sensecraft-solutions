@@ -154,3 +154,62 @@ def test_invalid_not_executable(tmp_path):
 def test_invalid_missing_file(tmp_path):
     assert el._is_valid_engine(tmp_path / "does-not-exist") is False
     assert el._is_valid_engine(None) is False
+
+
+def test_unstattable_internal_soft_passes(tmp_path, monkeypatch):
+    """A sibling _internal that raises on stat (e.g. Windows WinError 448
+    "untrusted mount point" on a junction) must not hard-fail an
+    already-validated binary — treat it as an unreadable soft signal."""
+    binp = _make_engine(tmp_path, with_internal=False)
+    real_exists = Path.exists
+
+    def fake_exists(self):
+        if self.name == "_internal":
+            raise OSError(448, "untrusted mount point")
+        return real_exists(self)
+
+    monkeypatch.setattr(Path, "exists", fake_exists)
+    assert el._is_valid_engine(binp) is True
+
+
+# --------------------------------------------------------------------------- #
+# Level 3: Linux dpkg discovery tries every known package name
+# --------------------------------------------------------------------------- #
+class _FakeProc:
+    def __init__(self, returncode: int, stdout: str):
+        self.returncode = returncode
+        self.stdout = stdout
+
+
+def test_linux_tries_both_deb_names(tmp_path, monkeypatch):
+    """Tauri ships the deb as ``sense-craft-solution``; if the first name isn't
+    installed, discovery must fall through to the next candidate name."""
+    binp = _make_engine(tmp_path)
+    calls = []
+
+    def fake_run(cmd, **kw):
+        pkg = cmd[2]
+        calls.append(pkg)
+        if pkg == "sense-craft-solution":
+            return _FakeProc(1, "")  # not installed under this name
+        return _FakeProc(0, f"/usr/share/doc/x\n{binp}\n")
+
+    monkeypatch.setattr(el.subprocess, "run", fake_run)
+    cands = el._native_candidates_linux()
+    assert binp in cands
+    assert calls == ["sense-craft-solution", "sensecraft-solution"]
+
+
+def test_linux_first_deb_name_wins(tmp_path, monkeypatch):
+    """A match under the first package name stops the search (no extra dpkg)."""
+    binp = _make_engine(tmp_path)
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd[2])
+        return _FakeProc(0, f"{binp}\n")
+
+    monkeypatch.setattr(el.subprocess, "run", fake_run)
+    cands = el._native_candidates_linux()
+    assert cands == [binp]
+    assert calls == ["sense-craft-solution"]

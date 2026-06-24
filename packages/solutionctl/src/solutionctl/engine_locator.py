@@ -22,7 +22,13 @@ from typing import List, Optional
 
 IDENTIFIER = "com.seeedstudio.sensecraft-solution"
 DISPLAY_NAME = "SenseCraft Solution"
-DEB_PACKAGE = "sensecraft-solution"
+# The Tauri deb bundler derives the Debian package name from ``productName``
+# ("SenseCraft Solution") via kebab-case, which splits the camel-cased word →
+# ``sense-craft-solution`` (NOT ``sensecraft-solution`` like the macOS bundle id
+# / Windows binary). Try that real name first, then the unhyphenated form, so a
+# future ``productName``/packaging tweak can't silently break ``dpkg`` discovery.
+DEB_PACKAGES = ("sense-craft-solution", "sensecraft-solution")
+DEB_PACKAGE = DEB_PACKAGES[0]  # back-compat alias; primary package name
 ENGINE_BASENAME = "provisioning-station"
 
 HANDSHAKE_PATH = Path.home() / ".sensecraft" / "engine.json"
@@ -80,7 +86,15 @@ def _is_valid_engine(candidate: Optional[Path]) -> bool:
         return False
 
     sibling = candidate.parent / "_internal"
-    if sibling.exists() or sibling.is_symlink():
+    try:
+        present = sibling.exists() or sibling.is_symlink()
+    except OSError:
+        # Windows can raise (e.g. WinError 448 "untrusted mount point") when the
+        # _internal Tauri junction is flagged untrusted. The binary itself is
+        # already validated above; treat an un-stattable sibling as a soft
+        # signal we simply can't read, not as a hard failure.
+        return True
+    if present:
         # Something named _internal is present — it must resolve to a directory.
         # A dangling junction (exists() False but is_symlink() True) is invalid.
         if not _has_internal_sibling(candidate):
@@ -173,6 +187,11 @@ def _native_candidates_windows() -> List[Path]:
                             loc, _ = winreg.QueryValueEx(k, "InstallLocation")
                         except OSError:
                             continue
+                        # NSIS writes InstallLocation wrapped in literal double
+                        # quotes (e.g. '"C:\\...\\SenseCraft Solution"'); strip
+                        # surrounding quotes/whitespace before building the path.
+                        if loc:
+                            loc = str(loc).strip().strip('"').strip()
                         if loc:
                             candidates.append(Path(loc) / f"{ENGINE_BASENAME}.exe")
                 except OSError:
@@ -184,19 +203,24 @@ def _native_candidates_windows() -> List[Path]:
 
 def _native_candidates_linux() -> List[Path]:
     candidates: List[Path] = []
-    try:
-        out = subprocess.run(
-            ["dpkg", "-L", DEB_PACKAGE],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
+    for pkg in DEB_PACKAGES:
+        try:
+            out = subprocess.run(
+                ["dpkg", "-L", pkg],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if out.returncode != 0:
+            continue  # package not installed under this name; try the next
         for line in out.stdout.splitlines():
             p = line.strip()
             if p.endswith(f"/{ENGINE_BASENAME}"):
                 candidates.append(Path(p))
-    except (OSError, subprocess.SubprocessError):
-        pass
+        if candidates:
+            break
     return candidates
 
 
