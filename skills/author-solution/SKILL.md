@@ -59,6 +59,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 3. **标记任意步**：`{#id type=... verify=true}` 把任意步骤当成 verify 步。
 4. **以上都不满足**（需要一个全新的交互式 verify 类型 / 新 UI 控件）：这是**引擎（闭源）侧能力**，本仓库加不了 —— 向维护者提 issue 说明你要的交互形态。
 
+> **关于插件**：App 还有一套**插件机制**（`spec/plugin.schema.json`，如内置的 AI 助手）——用户可自己做插件给 App 加**功能面板**（后端 router + 前端 overlay），无需改引擎。但插件目前**只能加 App 级功能面板，注册不了方案步骤里的 `type=`（deploy/verify 类型）**。「用插件原型化自定义 verify/deploy 类型、好的再收编成官方类型」这条流水线还在设计中。
+
 **校验现在查得更全**：`solutionctl validate --check-urls` 会查 schema、引用文件存在、i18n 完整、重复 id、device-ref、**死链（404/410）**、compose/flow 可解析、EN/ZH 结构一致。本地提交前自己跑一遍即可和 CI 一致。
 > 说明：`--check-urls` 把 401/403/408/429 当「资源在、只是挡爬虫/限流」放过（如 `files.seeedstudio.com` 套了 Cloudflare，对脚本返回 403 但浏览器/App 正常显示）——这些图片**可放心用**，只有 404/410 这种真死链才报错。
 
