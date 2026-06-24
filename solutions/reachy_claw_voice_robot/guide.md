@@ -11,7 +11,7 @@ Deploy the full voice conversation stack on a single Jetson device. The robot wi
 - **Robot Control** — motor, camera, and sensor management
 - **Conversation Engine** — AI dialogue + emotion system + web dashboard
 - **Vision Analysis** — face detection, emotion recognition, and person tracking (GPU-accelerated)
-- **Edge LLM Chat Service** — Qwen3-4B TensorRT runtime that powers the robot's thinking ability
+- **Edge LLM Chat Service** — Qwen3.5-4B-AWQ (GDN+MTP) TensorRT runtime that powers the robot's thinking ability
 
 **Prerequisites:**
 - Reachy Mini connected to Jetson via USB
@@ -82,7 +82,7 @@ curl http://localhost:8621/health
 
 ## Step 2: Deploy Edge LLM Chat Service {#edge_llm_service type=docker_deploy required=true config=devices/edge_llm_deploy.yaml target_inherit_from=speech_service}
 
-Deploy the TensorRT-accelerated Qwen3-4B chat service on the same Jetson.
+Deploy the TensorRT-accelerated Qwen3.5-4B chat service on the same Jetson.
 
 ### Target {#edge_llm_remote type=remote config=devices/edge_llm_deploy.yaml default=true}
 
@@ -93,7 +93,7 @@ Deploy to your Jetson over SSH (credentials inherited from Step 1).
 1. Reuse the SSH credentials from Step 1 (the deployer inherits them)
 2. Click **Deploy** — the system will pull the prebuilt image and start the container
 
-> **Note:** First startup takes ~10 minutes — the container downloads a prebuilt TensorRT engine and the Qwen3-4B AWQ weights, then runs warmup inference. Subsequent restarts are fast.
+> **Note:** First startup takes ~10 minutes — the container downloads a prebuilt TensorRT engine and the Qwen3.5-4B AWQ weights, then runs warmup inference. Subsequent restarts are fast.
 
 ### Deployment Complete
 
@@ -156,22 +156,21 @@ The robot runs in **Conversation Mode** by default — it listens and responds. 
 | Service | Port | Purpose |
 |---------|------|---------|
 | Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8640 | AI dialogue + emotion system + dashboard |
+| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
 | Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM Chat Service | 11435 | Qwen3-4B-AWQ TensorRT — powers the robot's thinking ability |
+| Edge LLM Chat Service | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
 | Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
 
 #### Next Steps
 
-- Open the **Dashboard** at `http://<jetson-ip>:8640` to see conversation logs and robot status
-- To tune the robot's personality and behaviour, edit `llm.system_prompt` in the config on the Jetson:
+- Open the **Settings Dashboard** at `http://<jetson-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
+- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
   ```bash
   ssh user@<jetson-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # Edit llm.system_prompt to change how the robot talks
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- To enable optional idle chatter (monologue), set `conversation.mode: monologue` in the same config, then `docker restart reachy-claw`.
+- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
 
 ### Target {#reachy_remote type=remote config=devices/reachy_jetson_deploy.yaml default=true}
 
@@ -191,10 +190,10 @@ Deploy to your Jetson over SSH with one click.
 The robot is ready within 30 seconds after deployment. Open the dashboard to monitor activity:
 
 ```
-http://<jetson-ip>:8640
+http://<jetson-ip>:8042
 ```
 
-**Default mode:** Conversation — the robot listens and responds. Talk to it and it replies in one short sentence with a matching emotion and head/antenna motion. (Optional idle chatter is available via `conversation.mode: monologue`, which makes the robot self-talk roughly every 30 seconds.)
+**Default mode:** Conversation — the robot listens and responds. Talk to it and it replies in one short sentence with a matching emotion and head/antenna motion.
 
 To check all services are running:
 ```bash
@@ -208,7 +207,7 @@ ssh user@<jetson-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 | Slow reply (>10 s) | Edge LLM container is degraded. Check: `docker logs edge-llm-chat-service` and `curl http://<jetson-ip>:11435/v1/models` |
 | Robot not moving | Check USB connection. A udev rule now auto-reconnects the daemon when the robot is plugged in; if it still won't move, replug the USB cable and restart: `docker restart reachy-daemon` |
 | No audio output | Verify Reachy Mini's built-in speaker is working. Check `audio.device` in config |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://<jetson-ip>:8640/health` |
+| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://<jetson-ip>:8042/health` |
 | No camera feed | Vision service builds TRT engines on first boot (~5 min). Check: `docker logs vision-trt` |
 | Camera not found on boot | USB camera takes 15-30s to enumerate. Vision service retries automatically (~90s) |
 | Camera drops after hours | USB power-management regression. A udev rule disabling autosuspend is installed by the deployer; if it recurs, physically replug the Reachy USB cable |
@@ -230,7 +229,7 @@ Deploy directly on the current machine (requires NVIDIA Jetson with Reachy Mini 
 The robot should start talking within 30 seconds after deployment. Open the dashboard to monitor activity:
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### Troubleshooting
@@ -239,7 +238,7 @@ http://localhost:8640
 |-------|----------|
 | NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | Robot not moving | Check USB connection. Try replugging the USB cable and restart: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8640/health` |
+| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 | No camera feed | Vision service builds TRT engines on first boot (~5 min). Check: `docker logs vision-trt` |
 
 ## Preset: R2000 + Hailo-8 {#r2000_hailo}
@@ -344,23 +343,22 @@ The robot runs in **Conversation Mode** by default — it listens and responds. 
 | Service | Port | Purpose |
 |---------|------|---------|
 | Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8640 | AI dialogue + emotion system + dashboard |
+| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
 | Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM (remote Jetson) | 11435 | Qwen3-4B-AWQ TensorRT — powers the robot's thinking ability |
+| Edge LLM (remote Jetson) | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
 | Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
 
 #### Next Steps
 
-- Open the **Dashboard** at `http://<r2000-ip>:8640` to see conversation logs and robot status
-- To tune the robot's personality and behaviour, edit `llm.system_prompt` in the config:
+- Open the **Settings Dashboard** at `http://<r2000-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
+- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
   ```bash
   ssh pi@<r2000-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # Edit llm.system_prompt to change how the robot talks
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit `llm.system_prompt` above rather than swapping the model.
-- To enable optional idle chatter (monologue), set `conversation.mode: monologue` in the same config, then `docker restart reachy-claw`.
+- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ — Qwen3.5-4B) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit its `instructions.txt` persona rather than swapping the model.
+- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
 
 ### Target {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
@@ -384,7 +382,7 @@ Deploy to your R2000 over SSH with one click.
 The robot should start talking within 30 seconds. Open the dashboard:
 
 ```
-http://<r2000-ip>:8640
+http://<r2000-ip>:8042
 ```
 
 To verify all services:
@@ -421,7 +419,7 @@ Deploy directly on the current machine (requires R2000 with Hailo-8 and Reachy M
 The robot should start talking within 30 seconds. Open the dashboard:
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### Troubleshooting
@@ -430,16 +428,16 @@ http://localhost:8640
 |-------|----------|
 | `/dev/hailo0` not found | Reseat the Hailo HAT in the M.2 slot, reboot, retry |
 | Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8640/health` |
+| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 
 # Service Overview (R2000 preset)
 
 | Service | Host | Port | Purpose |
 |---------|------|------|---------|
 | Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen/Qwen3-4B-AWQ) |
+| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
 | Robot Control | R2000 | 38001 | Reachy daemon (motors) |
-| Conversation Engine | R2000 | 8640 | Dialogue + dashboard |
+| Conversation Engine | R2000 | 8042 | Dialogue + dashboard |
 | Vision (Hailo) | R2000 | 8630 / 8631 | Face detection + emotion + tracking |
 
 ---
@@ -544,23 +542,22 @@ The robot runs in **Conversation Mode** by default — it listens and responds. 
 | Service | Port | Purpose |
 |---------|------|---------|
 | Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8640 | AI dialogue + emotion system + dashboard |
+| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
 | Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM (remote Jetson) | 11435 | Qwen3-4B-AWQ TensorRT — powers the robot's thinking ability |
+| Edge LLM (remote Jetson) | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
 | Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
 
 #### Next Steps
 
-- Open the **Dashboard** at `http://<cm4-ip>:8640` to see conversation logs and robot status
-- To tune the robot's personality and behaviour, edit `llm.system_prompt` in the config:
+- Open the **Settings Dashboard** at `http://<cm4-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
+- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
   ```bash
   ssh pi@<cm4-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # Edit llm.system_prompt to change how the robot talks
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit `llm.system_prompt` above rather than swapping the model.
-- To enable optional idle chatter (monologue), set `conversation.mode: monologue` in the same config, then `docker restart reachy-claw`.
+- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ — Qwen3.5-4B) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit its `instructions.txt` persona rather than swapping the model.
+- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
 
 ### Target {#reachy_cm4_remote type=remote config=devices/reachy_cm4_deploy.yaml default=true}
 
@@ -580,7 +577,7 @@ Deploy to your CM4 over SSH with one click.
 The robot should start talking within 30 seconds. Open the dashboard:
 
 ```
-http://<cm4-ip>:8640
+http://<cm4-ip>:8042
 ```
 
 To verify all services:
@@ -596,7 +593,7 @@ ssh pi@<cm4-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 | Speech not working | Verify VOICE_ASSISTANT_HOST is reachable: `curl http://<jetson-ip>:8621/health` |
 | No camera feed | Check: `ls /dev/video*`. If empty, replug the USB camera |
 | Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8640/health` |
+| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 
 ### Target {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
@@ -614,7 +611,7 @@ Deploy directly on the Reachy Mini Wireless CM4.
 The robot should start talking within 30 seconds. Open the dashboard:
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### Troubleshooting
@@ -623,14 +620,14 @@ http://localhost:8640
 |-------|----------|
 | Docker not installed | Install via the official script from get.docker.com |
 | Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8640/health` |
+| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 
 # Service Overview (CM4 preset)
 
 | Service | Host | Port | Purpose |
 |---------|------|------|---------|
 | Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen/Qwen3-4B-AWQ) |
+| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
 | Robot Control | CM4 | 38001 | Reachy daemon (motors) |
-| Conversation Engine | CM4 | 8640 | Dialogue + dashboard |
+| Conversation Engine | CM4 | 8042 | Dialogue + dashboard |
 | Vision (CM4) | CM4 | 8630 / 8631 | Face detection + emotion + tracking |

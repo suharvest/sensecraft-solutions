@@ -11,7 +11,7 @@
 - **机器人控制** — 电机、摄像头、传感器管理
 - **对话引擎** — AI 对话 + 情绪系统 + 网页仪表盘
 - **视觉分析** — 人脸检测、情绪识别、人物追踪（GPU 加速）
-- **Edge LLM 对话服务** — Qwen3-4B TensorRT 运行时，驱动机器人的思考能力
+- **Edge LLM 对话服务** — Qwen3.5-4B-AWQ (GDN+MTP) TensorRT 运行时，驱动机器人的思考能力
 
 **前置条件：**
 - Reachy Mini 通过 USB 连接到 Jetson
@@ -82,7 +82,7 @@ curl http://localhost:8621/health
 
 ## 步骤 2: 部署 Edge LLM 对话服务 {#edge_llm_service type=docker_deploy required=true config=devices/edge_llm_deploy.yaml target_inherit_from=speech_service}
 
-在同一台 Jetson 上部署 TensorRT 加速的 Qwen3-4B 对话服务。
+在同一台 Jetson 上部署 TensorRT 加速的 Qwen3.5-4B 对话服务。
 
 ### 部署目标 {#edge_llm_remote type=remote config=devices/edge_llm_deploy.yaml default=true}
 
@@ -93,7 +93,7 @@ curl http://localhost:8621/health
 1. 复用步骤 1 的 SSH 凭据（部署器会自动继承）
 2. 点击 **部署** — 系统会拉取预构建镜像并启动容器
 
-> **注意：** 首次启动约需 10 分钟 — 容器会下载预构建 TensorRT engine、Qwen3-4B AWQ 权重，并运行预热推理。后续重启会很快。
+> **注意：** 首次启动约需 10 分钟 — 容器会下载预构建 TensorRT engine、Qwen3.5-4B AWQ 权重，并运行预热推理。后续重启会很快。
 
 ### 部署完成
 
@@ -156,22 +156,21 @@ curl http://localhost:11435/v1/models
 | 服务 | 端口 | 用途 |
 |------|------|------|
 | 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8640 | AI 对话 + 情绪系统 + 仪表盘 |
+| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
 | 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM 对话服务 | 11435 | Qwen3-4B-AWQ TensorRT — 驱动机器人的思考能力 |
+| Edge LLM 对话服务 | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
 | 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
 
 #### 后续操作
 
-- 打开**仪表盘** `http://<jetson-ip>:8640` 查看对话日志和机器人状态
-- 调整机器人的人格和行为，在 Jetson 上编辑配置中的 `llm.system_prompt`：
+- 打开**设置仪表盘** `http://<jetson-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
+- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
   ```bash
   ssh user@<jetson-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # 编辑 llm.system_prompt 改变机器人的说话方式
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- 如需启用可选的待机自言自语（自白模式），在同一配置中设置 `conversation.mode: monologue`，然后 `docker restart reachy-claw`。
+- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
 
 ### 部署目标 {#reachy_remote type=remote config=devices/reachy_jetson_deploy.yaml default=true}
 
@@ -191,10 +190,10 @@ curl http://localhost:11435/v1/models
 部署完成后约 30 秒，机器人即可就绪。打开仪表盘监控状态：
 
 ```
-http://<jetson-ip>:8640
+http://<jetson-ip>:8042
 ```
 
-**默认模式：** 对话模式 — 机器人聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。（如需可选的待机自言自语，可设置 `conversation.mode: monologue`，机器人会每隔约 30 秒自言自语一次。）
+**默认模式：** 对话模式 — 机器人聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。
 
 检查所有服务是否运行：
 ```bash
@@ -208,7 +207,7 @@ ssh user@<jetson-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 | 对话响应慢（>10 秒） | Edge LLM 容器状态异常。检查：`docker logs edge-llm-chat-service` 与 `curl http://<jetson-ip>:11435/v1/models` |
 | 机器人不动 | 检查 USB 连接。现在已有 udev 规则在机器人插入时自动重连 daemon；如仍不动，重新插拔 USB 线后重启：`docker restart reachy-daemon` |
 | 没有声音 | 检查 Reachy Mini 内置扬声器是否正常。检查配置中的 `audio.device` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://<jetson-ip>:8640/health` |
+| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://<jetson-ip>:8042/health` |
 | 没有摄像头画面 | 视觉服务首次启动需构建 TRT 引擎（约 5 分钟）。检查：`docker logs vision-trt` |
 | 开机后摄像头未找到 | USB 摄像头枚举需要 15-30 秒，视觉服务会自动重试（约 90 秒） |
 | 摄像头运行一段时间后失联 | USB 电源管理问题。部署已通过 udev 规则禁用自动挂起，如仍然复发请物理拔插 Reachy USB 线 |
@@ -230,7 +229,7 @@ ssh user@<jetson-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 部署完成后约 30 秒，机器人就会开始说话。打开仪表盘监控状态：
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### 故障排查
@@ -239,7 +238,7 @@ http://localhost:8640
 |------|----------|
 | 未找到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | 机器人不动 | 检查 USB 连接。尝试重新插拔 USB 线后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8640/health` |
+| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 | 没有摄像头画面 | 视觉服务首次启动需构建 TRT 引擎（约 5 分钟）。检查：`docker logs vision-trt` |
 
 ## 套餐: R2000 + Hailo-8 {#r2000_hailo}
@@ -344,23 +343,22 @@ curl http://localhost:8621/health
 | 服务 | 端口 | 用途 |
 |------|------|------|
 | 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8640 | AI 对话 + 情绪系统 + 仪表盘 |
+| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
 | 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM（远程 Jetson） | 11435 | Qwen3-4B-AWQ TensorRT — 驱动机器人的思考能力 |
+| Edge LLM（远程 Jetson） | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
 | 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
 
 #### 后续操作
 
-- 打开**仪表盘** `http://<r2000-ip>:8640` 查看对话日志和机器人状态
-- 调整机器人的人格和行为，编辑配置中的 `llm.system_prompt`：
+- 打开**设置仪表盘** `http://<r2000-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
+- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
   ```bash
   ssh pi@<r2000-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # 编辑 llm.system_prompt 改变机器人的说话方式
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ）提供，不再使用 Ollama。要改变机器人的行为，请编辑上面的 `llm.system_prompt`，而不是更换模型。
-- 如需启用可选的待机自言自语（自白模式），在同一配置中设置 `conversation.mode: monologue`，然后 `docker restart reachy-claw`。
+- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ —— 即 Qwen3.5-4B）提供，不再使用 Ollama。要改变机器人的行为，请编辑其 `instructions.txt` 人格，而不是更换模型。
+- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
 
 ### 部署目标 {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
@@ -384,7 +382,7 @@ curl http://localhost:8621/health
 部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
 
 ```
-http://<r2000-ip>:8640
+http://<r2000-ip>:8042
 ```
 
 验证所有服务：
@@ -421,7 +419,7 @@ ssh pi@<r2000-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### 故障排查
@@ -430,16 +428,16 @@ http://localhost:8640
 |------|----------|
 | `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo HAT，重启后重试 |
 | 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8640/health` |
+| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 
 # 服务总览（R2000 套餐）
 
 | 服务 | 主机 | 端口 | 作用 |
 |------|------|------|------|
 | 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen/Qwen3-4B-AWQ） |
+| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
 | 机器人控制 | R2000 | 38001 | Reachy daemon（电机） |
-| 对话引擎 | R2000 | 8640 | 对话 + 仪表盘 |
+| 对话引擎 | R2000 | 8042 | 对话 + 仪表盘 |
 | 视觉（Hailo） | R2000 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
 
 ---
@@ -544,23 +542,22 @@ curl http://localhost:8621/health
 | 服务 | 端口 | 用途 |
 |------|------|------|
 | 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8640 | AI 对话 + 情绪系统 + 仪表盘 |
+| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
 | 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM（远程 Jetson） | 11435 | Qwen3-4B-AWQ TensorRT — 驱动机器人的思考能力 |
+| Edge LLM（远程 Jetson） | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
 | 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
 
 #### 后续操作
 
-- 打开**仪表盘** `http://<cm4-ip>:8640` 查看对话日志和机器人状态
-- 调整机器人的人格和行为，编辑配置中的 `llm.system_prompt`：
+- 打开**设置仪表盘** `http://<cm4-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
+- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
   ```bash
   ssh pi@<cm4-ip>
-  nano ~/reachy-jetson-llm/reachy-claw.jetson.yaml
-  # 编辑 llm.system_prompt 改变机器人的说话方式
-  docker restart reachy-claw
+  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
+  docker restart reachy-voice
   ```
-- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ）提供，不再使用 Ollama。要改变机器人的行为，请编辑上面的 `llm.system_prompt`，而不是更换模型。
-- 如需启用可选的待机自言自语（自白模式），在同一配置中设置 `conversation.mode: monologue`，然后 `docker restart reachy-claw`。
+- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ —— 即 Qwen3.5-4B）提供，不再使用 Ollama。要改变机器人的行为，请编辑其 `instructions.txt` 人格，而不是更换模型。
+- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
 
 ### 部署目标 {#reachy_cm4_remote type=remote config=devices/reachy_cm4_deploy.yaml default=true}
 
@@ -580,7 +577,7 @@ curl http://localhost:8621/health
 部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
 
 ```
-http://<cm4-ip>:8640
+http://<cm4-ip>:8042
 ```
 
 验证所有服务：
@@ -596,7 +593,7 @@ ssh pi@<cm4-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 | 语音不工作 | 验证 VOICE_ASSISTANT_HOST 可访问：`curl http://<jetson-ip>:8621/health` |
 | 没有摄像头画面 | 检查：`ls /dev/video*`。如果为空，重新插拔 USB 摄像头 |
 | 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8640/health` |
+| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 
 ### 部署目标 {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
@@ -614,7 +611,7 @@ ssh pi@<cm4-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
 
 ```
-http://localhost:8640
+http://localhost:8042
 ```
 
 ### 故障排查
@@ -623,14 +620,14 @@ http://localhost:8640
 |------|----------|
 | Docker 未安装 | 通过 get.docker.com 官方脚本安装 |
 | 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8640/health` |
+| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 
 # 服务总览（CM4 套餐）
 
 | 服务 | 主机 | 端口 | 作用 |
 |------|------|------|------|
 | 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen/Qwen3-4B-AWQ） |
+| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
 | 机器人控制 | CM4 | 38001 | Reachy daemon（电机） |
-| 对话引擎 | CM4 | 8640 | 对话 + 仪表盘 |
+| 对话引擎 | CM4 | 8042 | 对话 + 仪表盘 |
 | 视觉（CM4） | CM4 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |

@@ -59,7 +59,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 3. **标记任意步**：`{#id type=... verify=true}` 把任意步骤当成 verify 步。
 4. **以上都不满足**（需要一个全新的交互式 verify 类型 / 新 UI 控件）：这是**引擎（闭源）侧能力**，本仓库加不了 —— 向维护者提 issue 说明你要的交互形态。
 
-> **关于插件**：App 还有一套**插件机制**（`spec/plugin.schema.json`，如内置的 AI 助手）——用户可自己做插件给 App 加**功能面板**（后端 router + 前端 overlay），无需改引擎。但插件目前**只能加 App 级功能面板，注册不了方案步骤里的 `type=`（deploy/verify 类型）**。「用插件原型化自定义 verify/deploy 类型、好的再收编成官方类型」这条流水线还在设计中。
+> **关于插件（原型化自定义 verify 类型）**：App 的**插件机制**（`spec/plugin.schema.json` 的 `contributes.deployers[]`）现在可以**给方案步骤注册新 `type=`**。用法约定：
+> - **命名空间**：插件类型写成 `<plugin-id>/<type>`（如 `type=myplugin/robot_arm`），一眼看出来源、不和内置/其他插件撞名。
+> - **声明依赖（最小 lockfile）**：在 `solution.yaml` 顶层加 `requires_plugins:`，列出 `- {id: <plugin-id>, version: <ver>}`，把这个方案依赖的插件钉死。
+> - **verify 步要标 `verify=true`**：`validate` 离线、不知道插件类型的 category，所以插件做的 verify 步必须显式标 `{#id type=<plugin-id>/<type> verify=true}` 才算「该 preset 的 verify 步」。
+> - **validate 对插件类型只 WARN 不 ERROR**：用了命名空间插件类型的方案能离线自检通过（给 WARNING 提示其来源 + 是否漏了 requires_plugins）；但**非命名空间的真未知类型（没有 `/`）仍然 ERROR**——那是拼写错误，不是插件。
+> - **插件类型方案不进公开 catalog**：直到该类型被「收编」成官方内置类型之前，带插件类型的方案只在装了对应插件的本地/私有环境可部署，**不收进公开仓库**。
 
 **校验现在查得更全**：`solutionctl validate --check-urls` 会查 schema、引用文件存在、i18n 完整、重复 id、device-ref、**死链（404/410）**、compose/flow 可解析、EN/ZH 结构一致。本地提交前自己跑一遍即可和 CI 一致。
 > 说明：`--check-urls` 把 401/403/408/429 当「资源在、只是挡爬虫/限流」放过（如 `files.seeedstudio.com` 套了 Cloudflare，对脚本返回 403 但浏览器/App 正常显示）——这些图片**可放心用**，只有 404/410 这种真死链才报错。

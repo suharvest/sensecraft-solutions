@@ -65,6 +65,15 @@ _FORBIDDEN_TARGET_NAMES: frozenset[str] = frozenset(
     {"Local", "Remote", "local", "remote", "本地", "远程", "本机", "远端"}
 )
 
+# A plugin-contributed step type is namespaced ``<plugin-id>/<type>`` (it
+# contains a ``/``). Such types are NOT in the core contract: a solution that
+# uses one is deployable only where the named plugin is installed, and is not
+# eligible for the public catalog until the type is graduated into the core
+# contract. ``validate`` treats these as WARNINGS (not ERRORS) so plugin-typed
+# solutions can be self-checked offline. A non-namespaced unknown type (no
+# ``/``) stays a hard ERROR — that's a real typo, not a plugin.
+_PLUGIN_TYPE_RE = re.compile(r"\{#\w+[^}]*\btype=([\w.-]+/[\w.-]+)")
+
 # Strip fenced code blocks before scanning for orphan H2 so a literal
 # ``## ...`` inside a code example doesn't trip the lint.
 _FENCE_RE = re.compile(r"```[^\n]*\n.*?\n```", re.DOTALL)
@@ -155,6 +164,82 @@ def _check_verify_and_target_naming(
     return errors
 
 
+def _scan_plugin_types(guide_texts: list[str]) -> set[str]:
+    """Return the set of namespaced ``<plugin-id>/<type>`` step types used.
+
+    Scans raw guide text (across languages) for ``type=`` values that contain a
+    ``/`` — the plugin-contributed namespace form. These are seeded into the
+    parser's valid step-type set so the parser accepts them instead of rejecting
+    them as unknown; ``validate`` then surfaces them as WARNINGs separately.
+    """
+    found: set[str] = set()
+    for text in guide_texts:
+        stripped = _FENCE_RE.sub("", text)
+        for m in _PLUGIN_TYPE_RE.finditer(stripped):
+            found.add(m.group(1))
+    return found
+
+
+def _plugin_type_warnings(
+    plugin_types: set[str],
+    parsed: dict,
+    required_plugin_ids: set[str],
+) -> list[str]:
+    """Build WARN strings for plugin-contributed step types.
+
+    * Every plugin type → an advisory that it's outside the core contract and
+      not catalog-eligible until graduated.
+    * If the type's ``<plugin-id>`` is not in the solution's ``requires_plugins``
+      → advise adding it (minimal lockfile).
+    * If a preset's only steps are plugin-typed and none is marked
+      ``verify=true`` → advise marking a plugin verify step ``verify=true`` so it
+      satisfies the "≥1 verify step per preset" rule (validate is offline and
+      can't know a plugin type's category).
+    """
+    warnings: list[str] = []
+    for ptype in sorted(plugin_types):
+        plugin_id = ptype.split("/", 1)[0]
+        warnings.append(
+            f"plugin-contributed type '{ptype}' — not in the core contract; "
+            f"deployable only where plugin '{plugin_id}' is installed; not "
+            f"eligible for the public catalog until graduated"
+        )
+        if plugin_id not in required_plugin_ids:
+            warnings.append(
+                f"plugin type '{ptype}' is used but plugin '{plugin_id}' is not "
+                f"declared in requires_plugins — add "
+                f"{{id: {plugin_id}, version: <ver>}} to solution.yaml's "
+                f"requires_plugins so the dependency is locked"
+            )
+
+    # Per-preset: a preset whose verify coverage rests entirely on plugin-typed
+    # steps must mark at least one of them verify=true (validate can't derive a
+    # plugin type's category offline).
+    seen_presets: set[str] = set()
+    for result in parsed.values():
+        for preset in result.presets:
+            if preset.id in seen_presets:
+                continue
+            steps = list(preset.steps)
+            if not steps:
+                continue
+            plugin_steps = [s for s in steps if "/" in (s.type or "")]
+            non_plugin_steps = [s for s in steps if "/" not in (s.type or "")]
+            if not plugin_steps or non_plugin_steps:
+                # Either no plugin steps, or there are core-typed steps that can
+                # carry verify coverage on their own — no plugin-specific advice.
+                continue
+            if any(getattr(s, "verify_override", False) for s in plugin_steps):
+                continue
+            seen_presets.add(preset.id)
+            warnings.append(
+                f"preset '{preset.id}' relies on plugin-typed steps for verify "
+                f"coverage but none is marked verify=true — mark a plugin verify "
+                f"step verify=true so it counts toward the ≥1 verify-step rule"
+            )
+    return warnings
+
+
 def _find_spec_dir(solution_path: Path, explicit: str | None) -> Path | None:
     """Locate the ``spec/`` directory holding ``solution.schema.json``.
 
@@ -226,6 +311,7 @@ def run(
         return 1
 
     errors: list[str] = []
+    warnings: list[str] = []
     validator_cls = jsonschema.Draft202012Validator
 
     # --- 1. solution.yaml against solution.schema.json -----------------------
@@ -284,8 +370,6 @@ def run(
         verify_types = frozenset(
             t for t, info in deployers_info.items() if info.get("category") == "verify"
         )
-        # Seed the parser's valid step-type set from the contract (engine-free).
-        mp.register_step_type_provider(lambda: deployer_keys)
 
         # Resolve the guide path from solution.yaml's deployment.guide_file so
         # legacy solutions (e.g. guide under deploy/) validate correctly; fall
@@ -295,20 +379,43 @@ def run(
             guide_rel = (sol_data.get("deployment") or {}).get("guide_file") or "guide.md"
         zh_rel = guide_rel[:-3] + "_zh.md" if guide_rel.endswith(".md") else guide_rel + "_zh.md"
         guide_files = [(guide_rel, "en"), (zh_rel, "zh")]
+
+        # Pre-read guide contents so we can scan for plugin-contributed
+        # ``<plugin-id>/<type>`` step types BEFORE parsing. Those namespaced
+        # types aren't in the core contract; seed them into the parser's valid
+        # set so the parser accepts them (no INVALID_STEP_TYPE error) and we
+        # surface them as WARNINGs instead. Non-namespaced unknown types still
+        # ERROR via the parser.
+        guide_contents: dict[str, str] = {}
+        for fname, lang in guide_files:
+            gpath = sol_path / fname
+            if gpath.is_file():
+                guide_contents[lang] = gpath.read_text(encoding="utf-8")
+        plugin_types = _scan_plugin_types(list(guide_contents.values()))
+
+        # Seed the parser's valid step-type set from the contract (engine-free)
+        # plus any plugin-namespaced types found in the guide.
+        mp.register_step_type_provider(lambda: deployer_keys | plugin_types)
+
         # Presets that opt out of the verify-step rule via solution.yaml.
         verify_exempt = frozenset(
             p["id"]
             for p in ((sol_data or {}).get("intro") or {}).get("presets") or []
             if isinstance(p, dict) and p.get("verify_exempt") is True and p.get("id")
         )
+        # Plugin ids declared in the solution's minimal lockfile.
+        required_plugin_ids = {
+            r["id"]
+            for r in ((sol_data or {}).get("requires_plugins") or [])
+            if isinstance(r, dict) and r.get("id")
+        }
         any_guide = False
         parsed: dict[str, object] = {}
         for fname, lang in guide_files:
-            gpath = sol_path / fname
-            if not gpath.is_file():
+            content = guide_contents.get(lang)
+            if content is None:
                 continue
             any_guide = True
-            content = gpath.read_text(encoding="utf-8")
             result = mp.parse_single_language_guide(content, lang)
             parsed[lang] = result
             for perr in result.errors:
@@ -330,6 +437,12 @@ def run(
                 for cerr in consistency.errors:
                     errors.append(f"EN/ZH structure mismatch: {cerr}")
 
+        # --- 4c. plugin-contributed type advisories (WARN, never ERROR) ------
+        if plugin_types:
+            warnings.extend(
+                _plugin_type_warnings(plugin_types, parsed, required_plugin_ids)
+            )
+
     # --- 5. shared engine-free static checks (referenced files, i18n, dup ids,
     #        device-ref integrity) + semantics (compose/flow parseability) -----
     #        These are the single source of truth shared with the private
@@ -343,6 +456,11 @@ def run(
             errors.extend(checks.check_urls_reachable(sol_path, sol_data))
 
     # --- report --------------------------------------------------------------
+    if warnings:
+        print(f"⚠ {sol_id} ({len(warnings)} warning(s)):", file=sys.stderr)
+        for w in warnings:
+            print(f"  - {w}", file=sys.stderr)
+
     if errors:
         print(f"✗ {sol_id} invalid ({len(errors)} error(s)):", file=sys.stderr)
         for e in errors:

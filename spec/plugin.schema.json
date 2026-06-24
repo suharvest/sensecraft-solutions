@@ -21,6 +21,69 @@
       },
       "type": "object"
     },
+    "contributes": {
+      "additionalProperties": true,
+      "description": "Extension points a plugin contributes to the host engine. Registered at runtime by plugin_manager on enable.",
+      "properties": {
+        "deployers": {
+          "description": "Custom deploy/verify step types contributed by this plugin. Registered as '<plugin-id>/<type>' in the plugin deployer view (NOT in the built-in contract). See services/plugin_manager.py registration hook.",
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "category": {
+                "description": "Step category. verify = no-op backend + interactive frontend renderer.",
+                "enum": [
+                  "deploy",
+                  "verify"
+                ],
+                "type": "string"
+              },
+              "module": {
+                "description": "Importable deployer class, e.g. 'backend.deployer:MyDeployer'. Must subclass BaseDeployer and expose category/ui_traits.",
+                "type": "string"
+              },
+              "renderer": {
+                "description": "Frontend renderer name (P2). Optional; verify types without a renderer fall back to the generic auto UI.",
+                "type": "string"
+              },
+              "type": {
+                "description": "Bare step type, namespaced to '<plugin-id>/<type>' on registration.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "module",
+              "category"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "renderers": {
+          "description": "Frontend step renderers contributed by this plugin (P2; not yet consumed by the host).",
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "entry": {
+                "description": "Relative path to the renderer JS module.",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "entry"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "description": {
       "type": "string"
     },

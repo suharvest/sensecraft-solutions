@@ -222,3 +222,147 @@ def test_validate_en_zh_mismatch_fails(tmp_path, capsys):
     assert rc == 1
     err = capsys.readouterr().err
     assert "EN/ZH structure mismatch" in err
+
+
+# ---------------------------------------------------------------------------
+# Plugin-contributed step types (P3b): WARN, never ERROR
+# ---------------------------------------------------------------------------
+
+
+def _write_solution_with_yaml(base: Path, sol_yaml: str, guide_en: str) -> None:
+    """Write a solution with a custom solution.yaml + guide.
+
+    Also drops the referenced ``description.md`` and ``devices/x.yaml`` so the
+    shared static checks (referenced-file existence, device-ref integrity) don't
+    fail on missing fixtures — keeping each test focused on the behaviour under
+    test rather than incidental scaffolding.
+    """
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "solution.yaml").write_text(sol_yaml, encoding="utf-8")
+    (base / "guide.md").write_text(guide_en, encoding="utf-8")
+    (base / "description.md").write_text("# Desc\n", encoding="utf-8")
+    devices = base / "devices"
+    devices.mkdir(exist_ok=True)
+    (devices / "x.yaml").write_text(
+        "id: x\nname: X\ntype: docker_local\n", encoding="utf-8"
+    )
+
+
+_PLUGIN_GUIDE = (
+    "## Preset: Demo {#default}\n\n"
+    "## Step 1: Teleop {#teleop type=myplugin/robot_arm required=true verify=true "
+    "config=devices/x.yaml}\n\n"
+    "Drive the arm to confirm it deployed.\n"
+)
+
+
+def test_validate_plugin_type_warns_not_errors(tmp_path, capsys):
+    """A namespaced plugin type with verify=true validates (exit 0) with a WARN."""
+    base = tmp_path / "plugin_ok"
+    _write_solution_with_yaml(
+        base,
+        'version: "1.0"\n'
+        "id: plugin_ok\n"
+        "name: Plugin Solution\n"
+        "intro:\n"
+        "  summary: Uses a plugin type.\n"
+        "  description_file: description.md\n"
+        "requires_plugins:\n"
+        "  - id: myplugin\n"
+        "    version: 1.0.0\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        _PLUGIN_GUIDE,
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    err = capsys.readouterr().err
+    # Not an error: the plugin type must not be rejected as unknown.
+    assert rc == 0
+    assert "Invalid step type" not in err
+    assert "error(s)" not in err
+    # It IS surfaced as a warning.
+    assert "warning(s)" in err
+    assert "plugin-contributed type 'myplugin/robot_arm'" in err
+    assert "not eligible for the public catalog until graduated" in err
+
+
+def test_validate_plugin_type_missing_requires_plugins_warns(tmp_path, capsys):
+    """Plugin type used but not declared in requires_plugins → WARN, still exit 0."""
+    base = tmp_path / "plugin_no_req"
+    _write_solution_with_yaml(
+        base,
+        'version: "1.0"\n'
+        "id: plugin_no_req\n"
+        "name: Plugin Solution\n"
+        "intro:\n"
+        "  summary: Uses a plugin type.\n"
+        "  description_file: description.md\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        _PLUGIN_GUIDE,
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    err = capsys.readouterr().err
+    assert rc == 0
+    assert "warning(s)" in err
+    assert "not declared in requires_plugins" in err
+    assert "myplugin" in err
+
+
+def test_validate_plugin_verify_not_marked_warns(tmp_path, capsys):
+    """A preset relying on a plugin step that isn't verify=true → verify WARN.
+
+    The preset has no core-typed verify step, so it also fails the ≥1-verify
+    rule (ERROR); the plugin advisory tells the author to mark verify=true.
+    """
+    base = tmp_path / "plugin_no_verify"
+    _write_solution_with_yaml(
+        base,
+        'version: "1.0"\n'
+        "id: plugin_no_verify\n"
+        "name: Plugin Solution\n"
+        "intro:\n"
+        "  summary: Uses a plugin type.\n"
+        "  description_file: description.md\n"
+        "requires_plugins:\n"
+        "  - id: myplugin\n"
+        "    version: 1.0.0\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        "## Preset: Demo {#default}\n\n"
+        "## Step 1: Teleop {#teleop type=myplugin/robot_arm required=true "
+        "config=devices/x.yaml}\n\n"
+        "Drive the arm.\n",
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    err = capsys.readouterr().err
+    # No core-typed verify step → the ≥1-verify rule still ERRORs (exit 1)…
+    assert rc == 1
+    assert "no verify step" in err
+    # …and the plugin advisory tells the author how to satisfy it.
+    assert "warning(s)" in err
+    assert "mark a plugin verify step verify=true" in err
+
+
+def test_validate_non_namespaced_unknown_type_still_errors(tmp_path, capsys):
+    """A non-namespaced unknown type (no '/') is still a hard ERROR."""
+    base = tmp_path / "bogus_type"
+    _write_solution_with_yaml(
+        base,
+        'version: "1.0"\n'
+        "id: bogus_type\n"
+        "name: Bogus\n"
+        "intro:\n"
+        "  summary: x\n"
+        "  description_file: description.md\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        "## Preset: Demo {#default}\n\n"
+        "## Step 1: Bad {#bad type=totally_bogus required=true config=devices/x.yaml}\n\n"
+        "hi\n",
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "totally_bogus" in err
+    assert "Invalid step type" in err

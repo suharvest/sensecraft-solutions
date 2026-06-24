@@ -3,25 +3,31 @@ services:
     # Unified slim speech image: serves both server-loop and client-loop modes.
     # For reachy (client-loop / V2V pass-through), keep the V2V flags UNSET
     # (OVS_V2V_SERVER_LOOP / OVS_V2V_ENGINE absent = flag OFF = ASR+TTS pass-through).
-    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:prod-unified-v8
+    # moss-enabled slim speech image: Qwen3 ASR + MOSS-TTS-Nano (MIX1 engines:
+    # fp32 global prefill/decode + bf16 local), default voice Yuewen. Client-loop
+    # / V2V pass-through (keep V2V flags UNSET). moss has no native speed knob —
+    # speech rate is driven by the reachy-voice client's slv_config `tts_speed`.
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:prod-unified-v8-moss
     runtime: nvidia
     ipc: host
     ports:
       - "8621:8000"
     environment:
       - LANGUAGE_MODE=${LANGUAGE_MODE:-zh_en}
-      - OVS_PROFILE=${OVS_PROFILE:-jetson-qwen3asr-matcha-nx}
+      - OVS_PROFILE=${OVS_PROFILE:-jetson-qwen3asr-moss-nx}
       - OVS_PROFILE_JSON=${OVS_PROFILE_JSON:-}
       - OVS_VAD_BACKEND=${OVS_VAD_BACKEND:-silero}
       - OVS_ADMIN_KEY=${OVS_ADMIN_KEY:-}
       - OVS_VAD_SILENCE_MS=${OVS_VAD_SILENCE_MS:-400}
+      # moss MIX1 engines + Yuewen manifest are pulled into the speech-models
+      # volume on first boot. NOTE: the HF artifacts repo must carry the MIX1
+      # (fp32-global) engines — the older fp16 set collapses on long text.
+      - MOSS_ARTIFACT_AUTO_DOWNLOAD=${MOSS_ARTIFACT_AUTO_DOWNLOAD:-1}
       - QWEN3_EDGELLM_JETSON_ROOT=${QWEN3_EDGELLM_JETSON_ROOT:-/opt/qwen3-edgellm-jetson}
       - QWEN3_ARTIFACT_ROOT=${QWEN3_ARTIFACT_ROOT:-/opt/models/qwen3-edgellm}
       - QWEN3_HF_REVISION=${QWEN3_HF_REVISION:-main}
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
       - TTS_PROVIDER=${TTS_PROVIDER:-cuda}
-      - TTS_DEFAULT_SID=${TTS_DEFAULT_SID:-0}
-      - TTS_DEFAULT_SPEED=${TTS_DEFAULT_SPEED:-0.85}
       - PARAFORMER_PREROLL_MS=${PARAFORMER_PREROLL_MS:-100}
       - TTS_NUM_THREADS=4
       - STREAMING_ASR_PROVIDER=cuda

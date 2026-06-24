@@ -29,7 +29,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 15
-    description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3-4B weights
+    description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3.5-4B GDN+MTP engine weights
 
 post_deployment:
   open_browser: false
@@ -46,7 +46,7 @@ remote_overrides:
   pre_checks:
     - type: disk_space
       min_gb: 15
-      description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3-4B weights
+      description: At least 15GB for Edge LLM image + TensorRT engine + Qwen3.5-4B GDN+MTP engine weights
   post_deployment:
     open_browser: false
   user_inputs:

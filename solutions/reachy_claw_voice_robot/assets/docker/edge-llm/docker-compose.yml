@@ -1,17 +1,26 @@
 services:
   edge-llm:
-    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.3.0
+    # Qwen3.5-4B-AWQ with GDN (Gated DeltaNet) + MTP (eagle spec-decode).
+    # int4 FFN, vocab 248320. Engine auto-downloads from HF on first boot
+    # (flat repo → EDGELLM_ENGINE_DIR). Leaner than Qwen3-4B (more free RAM).
+    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-merged
     container_name: edge-llm-chat-service
     runtime: nvidia
     privileged: true
     restart: unless-stopped
     shm_size: "512m"
     environment:
-      EDGELLM_ENGINE_DIR: /workspace/Qwen3-4B-AWQ/engines-3072
-      EDGELLM_EXPECTED_TENSORRT: ${EDGELLM_EXPECTED_TENSORRT:-10.3.0.30}
-      EDGELLM_EXPECTED_ENGINE_COMMIT: ${EDGELLM_EXPECTED_ENGINE_COMMIT:-7d6579c8293c5cc62986238aa200ea9c7b57d50a}
-      EDGELLM_ENGINE_REPO: ${EDGELLM_ENGINE_REPO:-harvestsu/Qwen3-4B-AWQ-TensorRT-EdgeLLM-engine}
+      EDGELLM_ENGINE_REPO: ${EDGELLM_ENGINE_REPO:-harvestsu/Qwen3.5-4B-AWQ-GDN-MTP-TensorRT-EdgeLLM-engine}
       EDGELLM_ENGINE_REVISION: ${EDGELLM_ENGINE_REVISION:-main}
+      EDGELLM_ENGINE_DIR: ${EDGELLM_ENGINE_DIR:-/workspace/qwen35-4b-awq-gdn-mtp}
+      # GDN-MTP engine commit isn't pinned for provenance; skip the strict check.
+      EDGELLM_SKIP_ENGINE_PROVENANCE_CHECK: "1"
+      # MTP (Multi-Token Prediction) eagle speculative decoding.
+      EDGELLM_MTP_ENABLED: "1"
+      EDGELLM_SPEC_DECODE_ENGINE_DIR: ${EDGELLM_ENGINE_DIR:-/workspace/qwen35-4b-awq-gdn-mtp}
+      EDGELLM_DRAFT_TOP_K: "1"
+      EDGELLM_DRAFT_STEP: "3"
+      EDGELLM_VERIFY_TREE_SIZE: "4"
       HF_ENDPOINT: ${HF_ENDPOINT:-}
       EDGELLM_MODEL_NAME: Qwen/Qwen3-4B-AWQ
       PORT: "8000"

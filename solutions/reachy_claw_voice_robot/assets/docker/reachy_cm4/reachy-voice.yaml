@@ -1,0 +1,18 @@
+# Reachy Voice runtime overrides (operator-tunable; mounted at /data/reachy-voice.yaml
+# via REACHY_VOICE_CONFIG). load_config keeps only keys that match a Config field,
+# so unknown/extra keys are silently ignored — safe to leave commented hints here.
+
+# Client-side VAD speech threshold (silero score 0.0-1.0). Raise it in a noisy
+# room so ambient noise / room tone doesn't false-trigger barge-in; lower it if
+# the robot is slow to notice speech. Booth-tested value: 0.72 (quiet room: ~0.5).
+client_vad_threshold: 0.72
+
+# MIC makeup gain (NOT speaker volume). The Reachy USB mic captures quietly;
+# this boosts it before VAD/ASR. Validated value: 3.5.
+# (Speaker volume is the ALSA 'PCM' mixer — tune it in entrypoint.sh.)
+audio_volume: 3.5
+
+# TTS speech rate (keepPitch) forwarded to MOSS via the SLV slv_config — the SLV
+# time-stretches the streamed PCM (MOSS has no native speed knob). 1.0 = off.
+# (Wired into the image since reachy-voice:v0.5.0.)
+tts_speed: 1.2

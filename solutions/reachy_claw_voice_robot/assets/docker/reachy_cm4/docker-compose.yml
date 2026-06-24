@@ -38,26 +38,35 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  reachy-claw:
-    image: sensecraft-missionpack.seeed.cn/solution/reachy-claw:slv-v6
-    container_name: reachy-claw
+  # Reachy Voice app (client-loop). Wireless CM4 preset: speech (SLV) + LLM run
+  # on a REMOTE Jetson (set VOICE_ASSISTANT_HOST); vision runs locally (vision-cm4
+  # :8631, config.py's default). The app drives the robot via reachy-daemon :38001.
+  reachy-voice:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-voice:v0.5.0
+    container_name: reachy-voice
     restart: unless-stopped
     network_mode: host
-    privileged: true
+    privileged: true            # ALSA audio device + udev
     volumes:
-      - ./reachy-claw.cm4.yaml:/app/reachy-claw.yaml:ro
-      - ${DATA_DIR:-~/reachy-data}/reachy-claw:/app/data
       - /dev/shm:/dev/shm
       - /run/udev:/run/udev:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${DATA_DIR:-~/reachy-data}/reachy-voice:/data
+      - ./reachy-voice.yaml:/data/reachy-voice.yaml:ro
+      - ./entrypoint.sh:/opt/reachy-voice/entrypoint.sh:ro
+      - ./instructions.txt:/opt/reachy-voice/reachy_voice/profiles/exhibition/instructions.txt:ro
     environment:
-      - DATA_DIR=/app/data
-      - HOST_DATA_DIR=${DATA_DIR:-~/reachy-data}
-      - VISION_SERVICE_URL=tcp://127.0.0.1:8631
-      - LLM_ENDPOINT=${LLM_ENDPOINT:-http://${VOICE_ASSISTANT_HOST}:11435}
-      - SPEECH_SERVICE_URL=http://${VOICE_ASSISTANT_HOST}:8621
+      - NO_PROXY=localhost,127.0.0.1
+      - REACHY_DAEMON_PORT=38001
+      - REACHY_VOICE_CONFIG=/data/reachy-voice.yaml
+      - REACHY_VOICE_DATA_DIR=/data
+      - REACHY_LOG_LEVEL=INFO
+      # Speech + LLM on the remote Jetson; vision is local (default 127.0.0.1:8631).
       - VOICE_ASSISTANT_HOST=${VOICE_ASSISTANT_HOST}
-      - REACHY_MOTOR_ENABLED=true
+      - REACHY_V2V_URL=ws://${VOICE_ASSISTANT_HOST}:8621/v2v/stream
+      # LLM_ENDPOINT (optional) overrides the LLM base URL; must be an
+      # OpenAI-compatible base INCLUDING /v1. Empty → the bundled edge-llm.
+      - REACHY_EDGE_LLM_URL=${LLM_ENDPOINT:-http://${VOICE_ASSISTANT_HOST}:11435/v1}
     depends_on:
       reachy-daemon:
         condition: service_healthy
@@ -65,12 +74,6 @@ services:
       resources:
         limits:
           memory: 2G
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8640/health', timeout=2)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     logging:
       driver: json-file
       options:
