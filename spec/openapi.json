@@ -4368,7 +4368,7 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.6.1"
+    "version": "0.6.2"
   },
   "openapi": "3.1.0",
   "paths": {

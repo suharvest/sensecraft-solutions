@@ -35,6 +35,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `enabled` | boolean | no | True |  |
 | `intro` | SolutionIntro | yes |  |  |
 | `deployment` | SolutionDeployment | yes |  |  |
+| `requires_plugins` | array<PluginRequirement> \| null | no | None |  |
 | `base_path` | string \| null | no | None |  |
 | `has_description` | boolean | no | False |  |
 | `has_description_i18n` | object | no | {} |  |
