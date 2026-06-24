@@ -1,42 +1,44 @@
+[English](README_en.md) | **中文**
+
 # SenseCraft Solutions
 
 [![CI](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml/badge.svg)](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-**18+ ready-to-deploy edge AI solutions for NVIDIA Jetson, RK3576/RK3588, and Raspberry Pi** — plus the open tooling to author and validate your own.
+**面向 NVIDIA Jetson、RK3576/RK3588 与 Raspberry Pi 的 18+ 个开箱即用边缘 AI 方案** —— 还附带用来创作和校验你自己方案的开源工具链。
 
 <!-- TODO: Add a hero screenshot or architecture diagram here (e.g. the SenseCraft app deploying a solution, or a diagram of the open/closed layers) -->
 
-Deploy offline voice AI, computer vision, smart retail, robotics, and more — directly from the [SenseCraft desktop app](https://sensecraft.seeed.cc) or via the `solutionctl` CLI. No cloud dependency required.
+离线语音 AI、计算机视觉、智慧零售、机器人等方案，均可直接从 [SenseCraft 桌面应用](https://www.seeed.cc/category/reference-designs) 或通过 `solutionctl` 命令行部署，无需依赖云端。
 
 ---
 
-## Solutions
+## 方案列表
 
-| Solution | Hardware | Category |
-|----------|----------|----------|
-| [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | Voice AI (ASR + TTS, ≤180ms, offline) |
-| [Smart Retail Voice AI](solutions/smart_retail_voice_ai/) | Jetson | Retail / Voice |
-| [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | Voice AI |
-| [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | Local LLM |
-| [AI Lab](solutions/ai_lab/) | Jetson | AI development environment |
-| [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | Depth estimation |
-| [Industrial Security](solutions/industrial_security_jetson/) | Jetson | Security / Vision |
-| [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | Security / Vision |
-| [NVBlox + Orbbec](solutions/nvblox_orbbec/) | Jetson | 3D reconstruction |
-| [reCamera Heatmap (Grafana)](solutions/recamera_heatmap_grafana/) | reCamera | Analytics / Dashboard |
-| [reCamera Parking Monitor](solutions/recamera_parking_monitor/) | reCamera | Smart Parking |
-| [reCamera Ecosystem](solutions/recamera_ecosystem/) | reCamera | Platform tools |
-| [Reachy Claw Voice Robot](solutions/reachy_claw_voice_robot/) | Reachy Mini + Jetson | Robotics + Voice |
-| [ReSpeaker Flex + SO-ARM100](solutions/respeaker_flex_soarm/) | ReSpeaker + ARM | Robotics + Audio |
-| [OpenClaw Deploy](solutions/openclaw_deploy/) | Jetson | Robotics |
-| [Smart Warehouse](solutions/smart_warehouse/) | Jetson | Logistics / Vision |
-| [Smart HVAC Control](solutions/smart_hvac_control/) | Jetson | Building automation |
-| [Indoor Positioning (BLE + LoRaWAN)](solutions/indoor_positioning_ble_lorawan/) | Edge | Location / IoT |
+| Solution | Hardware | 分类 |
+|----------|----------|------|
+| [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | 语音 AI（ASR + TTS，≤180ms，离线） |
+| [Smart Retail Voice AI](solutions/smart_retail_voice_ai/) | Jetson | 零售 / 语音 |
+| [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | 语音 AI |
+| [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | 本地大模型 |
+| [AI Lab](solutions/ai_lab/) | Jetson | AI 开发环境 |
+| [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | 深度估计 |
+| [Industrial Security](solutions/industrial_security_jetson/) | Jetson | 安防 / 视觉 |
+| [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | 安防 / 视觉 |
+| [NVBlox + Orbbec](solutions/nvblox_orbbec/) | Jetson | 三维重建 |
+| [reCamera Heatmap (Grafana)](solutions/recamera_heatmap_grafana/) | reCamera | 分析 / 看板 |
+| [reCamera Parking Monitor](solutions/recamera_parking_monitor/) | reCamera | 智慧停车 |
+| [reCamera Ecosystem](solutions/recamera_ecosystem/) | reCamera | 平台工具 |
+| [Reachy Claw Voice Robot](solutions/reachy_claw_voice_robot/) | Reachy Mini + Jetson | 机器人 + 语音 |
+| [ReSpeaker Flex + SO-ARM100](solutions/respeaker_flex_soarm/) | ReSpeaker + ARM | 机器人 + 音频 |
+| [OpenClaw Deploy](solutions/openclaw_deploy/) | Jetson | 机器人 |
+| [Smart Warehouse](solutions/smart_warehouse/) | Jetson | 物流 / 视觉 |
+| [Smart HVAC Control](solutions/smart_hvac_control/) | Jetson | 楼宇自动化 |
+| [Indoor Positioning (BLE + LoRaWAN)](solutions/indoor_positioning_ble_lorawan/) | Edge | 定位 / IoT |
 
 ---
 
-## How it works
+## 工作原理
 
 ```
 ┌─────────────────────────────────────────────────────┐
@@ -56,57 +58,57 @@ Deploy offline voice AI, computer vision, smart retail, robotics, and more — d
 └─────────────────────────────────────────────────────┘
 ```
 
-Each solution is a self-contained directory: a `solution.yaml` (hardware catalog, deploy presets, bilingual metadata), bilingual `guide.md` + `description.md`, Docker Compose config, and assets. The engine validates solutions against the published JSON Schema contract in `spec/` before deployment.
+每个方案都是一个自包含的目录：一份 `solution.yaml`（硬件目录、部署预设、双语元数据）、双语的 `guide.md` + `description.md`、Docker Compose 配置以及资源文件。引擎在部署前会根据 `spec/` 中发布的 JSON Schema 契约对方案进行校验。
 
-`solutionctl` is the CLI face of the engine for headless use — it locates the installed binary and drives it via subprocess / local REST.
+`solutionctl` 是引擎面向无界面（headless）使用的命令行入口 —— 它定位已安装的二进制文件，并通过子进程 / 本地 REST 驱动它。
 
 ---
 
-## Quick start
+## 快速开始
 
 ```bash
-# Install dependencies
+# 安装依赖
 uv sync
 
-# Validate a solution offline (no engine / app needed):
+# 离线校验方案（无需引擎 / App）：
 uv run --package sensecraft-solutionctl solutionctl validate solutions/jetson_voice_assistant
 
-# Package a solution into an import-ready zip (to preview in the desktop app):
+# 打包方案为可导入的 zip（用于在桌面应用中预览）：
 uv run --package sensecraft-solutionctl solutionctl export jetson_voice_assistant
 
-# Deploy via the installed SenseCraft desktop app (headless):
+# 通过已安装的 SenseCraft 桌面应用部署（无界面）：
 uv run --package sensecraft-solutionctl solutionctl deploy jetson_voice_assistant --connection '{...}'
 ```
 
-`solutionctl` auto-locates the engine binary: `$SENSECRAFT_ENGINE_BIN` env → `~/.sensecraft/engine.json` handshake → platform-native discovery (macOS `mdfind`, Windows registry, Linux `dpkg`).
+`solutionctl` 会自动定位引擎二进制：先看 `$SENSECRAFT_ENGINE_BIN` 环境变量 → 再走 `~/.sensecraft/engine.json` 握手 → 最后按平台原生方式发现（macOS `mdfind`、Windows 注册表、Linux `dpkg`）。
 
 ---
 
-## Repository layout
+## 仓库结构
 
-| Path | What |
+| Path | 说明 |
 |------|------|
-| `solutions/` | Solution packages — `solution.yaml`, bilingual `guide.md`/`description.md`, device configs, assets |
-| `spec/` | Generated contract: JSON Schema + `CONTRACT.md` (field rules, `docker_deploy` derivation, guide syntax) |
-| `packages/sensecraft-solution-spec/` | `guide.md` parser primitives — run from the clone via `uv run` |
-| `packages/solutionctl/` | Offline validator + thin client to the engine binary — run from the clone via `uv run` |
-| `skills/` | Authoring playbooks (copywriting, docker/firmware prep) |
-| `scripts/` | CI boundary guard (`public-repo-guard.sh`) |
+| `solutions/` | 方案包 —— `solution.yaml`、双语 `guide.md`/`description.md`、设备配置、资源文件 |
+| `spec/` | 生成的契约：JSON Schema + `CONTRACT.md`（字段规则、`docker_deploy` 派生、guide 语法） |
+| `packages/sensecraft-solution-spec/` | `guide.md` 解析原语 —— 从 clone 中通过 `uv run` 运行 |
+| `packages/solutionctl/` | 离线校验器 + 引擎二进制的轻量客户端 —— 从 clone 中通过 `uv run` 运行 |
+| `skills/` | 创作手册（文案、docker/固件准备） |
+| `scripts/` | CI 边界守卫（`public-repo-guard.sh`） |
 
 ---
 
-## Writing a solution
+## 编写方案
 
-The fastest path is to let an AI agent drive it: open this repo in an agent (Claude Code auto-loads the skills) and ask it to use the **`author-solution`** skill — it reproduces the project, scaffolds the solution, validates, and helps you preview & submit. Non-developers / AEs have a step-by-step companion: **[the AE submission guide](docs/AE-提交指南.md)**.
+最快的方式是让 AI agent 来驱动：在 agent 中打开本仓库（Claude Code 会自动加载这些 skills），让它使用 **`author-solution`** skill —— 它会复现项目、搭建方案骨架、完成校验，并协助你预览与提交。非开发者 / AE 有一份手把手的配套指南：**[AE 提交指南](docs/AE-提交指南.md)**。
 
-Reference docs: [`spec/CONTRACT.md`](spec/CONTRACT.md) for field/syntax rules, `docker_deploy` view derivation, and `guide.md` Step/Target syntax; [`CONTRIBUTING.md`](CONTRIBUTING.md) for the authoring & PR workflow; AI agents: [`AGENTS.md`](AGENTS.md) (**Part F** is the author-and-submit flow).
+参考文档：[`spec/CONTRACT.md`](spec/CONTRACT.md) 讲字段/语法规则、`docker_deploy` 视图派生以及 `guide.md` 的 Step/Target 语法；[`CONTRIBUTING.md`](CONTRIBUTING.md) 讲创作与 PR 流程；AI agent 请看 [`AGENTS.md`](AGENTS.md)（**Part F** 是创作并提交的完整流程）。
 
-## Notes
+## 须知
 
-- Solution `docker-compose` files use **demo default credentials** (e.g. local InfluxDB tokens). These are not secrets; change them for production.
-- Container images are pulled from public registries.
-- The provisioning engine (deployers, device communication, desktop app) is closed-source. Only the content + contract + tooling layer in this repo is Apache-2.0.
+- 方案的 `docker-compose` 文件使用 **演示用默认凭据**（例如本地 InfluxDB token）。这些并非机密，生产环境请自行更换。
+- 容器镜像均从公共 registry 拉取。
+- 分发引擎（部署器、设备通信、桌面应用）是闭源的。本仓库中只有内容 + 契约 + 工具链这一层是 Apache-2.0。
 
-## License
+## 许可证
 
-[Apache-2.0](LICENSE).
+[Apache-2.0](LICENSE)。
