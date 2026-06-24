@@ -29,8 +29,8 @@ docker:
       port: 38001
       health_check_endpoint: /
       required: true
-    - name: reachy-claw
-      port: 8640
+    - name: reachy-voice
+      port: 8042
       health_check_endpoint: /
       required: true
     - name: vision-trt
@@ -71,7 +71,7 @@ pre_checks:
 
 post_deployment:
   open_browser: true
-  url: http://localhost:8640
+  url: http://localhost:8042
 
 name_i18n:
   zh: Reachy 语音机器人栈
@@ -85,7 +85,7 @@ remote_overrides:
     VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
   post_deployment:
     open_browser: true
-    url: http://{{host}}:8640
+    url: http://{{host}}:8042
   user_inputs:
     - id: host
       name: Jetson IP
@@ -206,7 +206,7 @@ remote_overrides:
           # Why: reachy-mini-daemon scans `--serialport auto` ONCE at container start.
           # If the robot is plugged in / power-cycled AFTER the daemon is already
           # running, it never picks up the new /dev/ttyACM*, the SDK handshake times
-          # out, and reachy-claw is stuck "Waiting for connection". This rule restarts
+          # out, and reachy-voice is stuck "Waiting for connection". This rule restarts
           # the daemon the moment the Reachy servo serial (1a86:55d3 -> ttyACM0)
           # enumerates, so plug/replug "just works" without a manual docker restart.
           RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
@@ -230,7 +230,7 @@ remote_overrides:
       - name: Create data directories
         run: |
           DATA_DIR="${DATA_DIR:-~/reachy-data}"
-          mkdir -p "$DATA_DIR/reachy-claw" "$DATA_DIR/vision"
+          mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
           echo "Data directories ready: $DATA_DIR"
         name_i18n:
           zh: 创建数据目录
@@ -244,7 +244,7 @@ remote_overrides:
           # Install kiosk launch script
           cat > ~/reachy-kiosk.sh << 'KIOSK_SCRIPT'
           #!/usr/bin/env bash
-          DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8640}"
+          DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"
           MAX_WAIT=300
 
           echo "Waiting for dashboard at $DASHBOARD_URL ..."

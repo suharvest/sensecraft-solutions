@@ -41,30 +41,38 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # NOTE: cm4/hailo assets ship the SAME reachy-claw:slv-v6 image (reachy-claw is
-  # an arch-independent python agent). Only their config differs — cm4/hailo point
-  # speech/LLM at the remote Jetson via ${VOICE_ASSISTANT_HOST}, running daemon +
-  # vision locally; this jetson stack runs everything on-box.
-  reachy-claw:
-    image: sensecraft-missionpack.seeed.cn/solution/reachy-claw:slv-v6
-    container_name: reachy-claw
+  # Reachy Voice app (client-loop architecture): mic → Qwen3 ASR (SLV :8621)
+  # → Qwen3.5-4B LLM (edge-llm :11435) → MOSS-TTS-Nano (Yuewen) → emotion/motion.
+  # Drives the robot via reachy-daemon :38001. The app owns the turn loop; the
+  # SLV speech backend is pure ASR+TTS pass-through over the /v2v WebSocket.
+  # cm4/hailo presets point speech/LLM at a remote Jetson via ${VOICE_ASSISTANT_HOST}.
+  reachy-voice:
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-voice:v0.5.0
+    container_name: reachy-voice
     restart: unless-stopped
     network_mode: host
-    privileged: true
+    privileged: true            # ALSA audio device + udev
     volumes:
-      - ./reachy-claw.jetson.yaml:/app/reachy-claw.yaml:ro
-      - ${DATA_DIR:-~/reachy-data}/reachy-claw:/app/data
       - /dev/shm:/dev/shm
       - /run/udev:/run/udev:ro
+      # Dashboard "restart services" drives the Docker Engine API over this socket.
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${DATA_DIR:-~/reachy-data}/reachy-voice:/data
+      # Operator overrides (client VAD threshold / mic makeup gain / TTS speed /
+      # language). load_config keeps only known fields, so unknown keys are safe.
+      - ./reachy-voice.yaml:/data/reachy-voice.yaml:ro
+      # Daemon-readiness wait (cold-boot race fix) + exhibition persona prompt.
+      - ./entrypoint.sh:/opt/reachy-voice/entrypoint.sh:ro
+      - ./instructions.txt:/opt/reachy-voice/reachy_voice/profiles/exhibition/instructions.txt:ro
     environment:
-      - DATA_DIR=/app/data
-      - HOST_DATA_DIR=${DATA_DIR:-~/reachy-data}
-      # Vision backend — default points at local vision-trt (profile=vision);
-      # set to a remote address when using the cloud vision option.
-      - VISION_SERVICE_URL=${VISION_SERVICE_URL:-tcp://127.0.0.1:8631}
-      # Enable motors on a real robot (slv app gates motion on this flag).
-      - REACHY_MOTOR_ENABLED=true
+      - NO_PROXY=localhost,127.0.0.1
+      - REACHY_DAEMON_PORT=38001
+      - REACHY_VOICE_CONFIG=/data/reachy-voice.yaml
+      - REACHY_VOICE_DATA_DIR=/data
+      - REACHY_LOG_LEVEL=INFO
+      # Speech (SLV) + LLM endpoints. Default localhost (jetson all-in-one).
+      # cm4/hailo presets set VOICE_ASSISTANT_HOST to the remote Jetson.
+      - VOICE_ASSISTANT_HOST=${VOICE_ASSISTANT_HOST:-127.0.0.1}
     depends_on:
       reachy-daemon:
         condition: service_healthy
@@ -72,12 +80,6 @@ services:
       resources:
         limits:
           memory: 2G
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8640/health', timeout=2)"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     logging:
       driver: json-file
       options:

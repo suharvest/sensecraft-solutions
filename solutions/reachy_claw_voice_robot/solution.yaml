@@ -6,7 +6,7 @@ intro:
   description_file: description.md
   cover_image: gallery/cover.png
   category: voice_ai
-  tags: [voice, jetson, robot, reachy, ollama, local, hailo, rpi, cm4]
+  tags: [voice, jetson, robot, reachy, qwen, moss-tts, edge-ai, local, hailo, rpi, cm4]
   solution_type: solution
 
 

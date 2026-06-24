@@ -18,10 +18,8 @@ docker:
   options:
     project_name: reachy-jetson-voice
   environment:
-    OVS_PROFILE: "jetson-qwen3asr-matcha-nx"
+    OVS_PROFILE: "jetson-qwen3asr-moss-nx"
     LANGUAGE_MODE: "zh_en"
-    TTS_DEFAULT_SID: "0"
-    TTS_DEFAULT_SPEED: "0.85"
   services:
     - name: speech
       port: 8621
@@ -53,8 +51,6 @@ remote_overrides:
   environment:
     OVS_PROFILE: "{{OVS_PROFILE}}"
     LANGUAGE_MODE: "zh_en"
-    TTS_DEFAULT_SID: "{{TTS_DEFAULT_SID}}"
-    TTS_DEFAULT_SPEED: "{{TTS_DEFAULT_SPEED}}"
   pre_checks:
     - type: disk_space
       min_gb: 3
@@ -84,14 +80,18 @@ remote_overrides:
     - id: OVS_PROFILE
       name: Speech Profile (ASR + TTS)
       type: select
-      default: "jetson-qwen3asr-matcha-nx"
+      default: "jetson-qwen3asr-moss-nx"
       reconfigurable: true
-      description: "ASR + TTS engine combination. Both options handle Chinese + English (Qwen3/Paraformer ASR are multilingual)."
+      description: "ASR + TTS engine combination. All options handle Chinese + English (Qwen3/Paraformer ASR are multilingual). moss gives the most natural, expressive voice (default voice: Yuewen); Matcha is a lighter fallback."
       options:
-        - value: "jetson-qwen3asr-matcha-nx"
-          label: "Qwen3 ASR + Matcha TTS (Chinese + English) — recommended"
+        - value: "jetson-qwen3asr-moss-nx"
+          label: "Qwen3 ASR + MOSS-TTS-Nano (Yuewen voice) — recommended"
           label_i18n:
-            zh: "Qwen3 ASR + Matcha TTS（中文 + 英文）— 推荐"
+            zh: "Qwen3 ASR + MOSS-TTS-Nano（Yuewen 音色）— 推荐"
+        - value: "jetson-qwen3asr-matcha-nx"
+          label: "Qwen3 ASR + Matcha TTS (lighter fallback)"
+          label_i18n:
+            zh: "Qwen3 ASR + Matcha TTS（轻量备选）"
         - value: "jetson-zh-en"
           label: "Paraformer ASR + Matcha TTS (Chinese + English, lightweight)"
           label_i18n:
@@ -99,26 +99,6 @@ remote_overrides:
       name_i18n:
         zh: 语音方案（ASR + TTS）
       description_i18n:
-        zh: "ASR + TTS 引擎组合。两个选项都支持中文 + 英文（Qwen3 / Paraformer ASR 均为多语种）。"
+        zh: "ASR + TTS 引擎组合。所有选项都支持中文 + 英文（Qwen3 / Paraformer ASR 均为多语种）。moss 音色最自然、表现力最强（默认音色 Yuewen）；Matcha 为轻量备选。"
       default_i18n:
-        zh: "jetson-qwen3asr-matcha-nx"
-    - id: TTS_DEFAULT_SID
-      name: TTS Speaker ID
-      type: text
-      default: "0"
-      reconfigurable: true
-      description: "Matcha TTS speaker: 0-9"
-      name_i18n:
-        zh: TTS 说话人 ID
-      description_i18n:
-        zh: "Matcha TTS 说话人：0-9"
-    - id: TTS_DEFAULT_SPEED
-      name: TTS Speed
-      type: text
-      default: "0.85"
-      reconfigurable: true
-      description: "0.5 = slow, 1.0 = normal, 1.5 = fast"
-      name_i18n:
-        zh: TTS 语速
-      description_i18n:
-        zh: "0.5 = 慢速, 1.0 = 正常, 1.5 = 快速"
+        zh: "jetson-qwen3asr-moss-nx"
