@@ -99,7 +99,7 @@ uv run --package sensecraft-solutionctl solutionctl deploy jetson_voice_assistan
 
 ## 编写方案
 
-最快的方式是让 AI agent 来驱动：在 agent 中打开本仓库（Claude Code 会自动加载这些 skills），让它使用 **`author-solution`** skill —— 它会复现项目、搭建方案骨架、完成校验，并协助你预览与提交。非开发者 / AE 有一份手把手的配套指南：**[AE 提交指南](docs/AE-提交指南.md)**。内置的验证 / 部署类型不满足时，可用通用兜底（`http_debug` 调任意接口 / `web_dashboard` 打开任意页面）或在设备配置里用 `actions` 自定义检查，详见 `skills/author-solution`。
+最快的方式是让 AI agent 来驱动：在 agent 中打开本仓库（Claude Code 会自动加载这些 skills），让它使用 **`author-solution`** skill —— 它会复现项目、搭建方案骨架、完成校验，并协助你预览与提交。非开发者 / AE 有一份手把手的配套指南：**[AE 提交指南](docs/AE-提交指南.md)**。内置的验证 / 部署类型不满足时，可用通用兜底（`http_debug` 调任意接口 / `web_dashboard` 打开任意页面）或在设备配置里用 `actions` 自定义检查，详见 `skills/author-solution`。需要一个**全新的交互形态**？可用插件原型化，或向维护者提需求 —— 见 [插件开发指南](docs/plugin-development.md)。
 
 参考文档：[`spec/CONTRACT.md`](spec/CONTRACT.md) 讲字段/语法规则、`docker_deploy` 视图派生以及 `guide.md` 的 Step/Target 语法；[`CONTRIBUTING.md`](CONTRIBUTING.md) 讲创作与 PR 流程；AI agent 请看 [`AGENTS.md`](AGENTS.md)（**Part F** 是创作并提交的完整流程）。
 

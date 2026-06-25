@@ -161,7 +161,7 @@ git push   # 然后在 GitHub 上开 Pull Request
 - **校验报「referenced file not found」** → 你引用了不存在的文件，让 AI 检查路径。
 - **校验报死链（4xx）** → 引用的图片/链接失效了，换成有效的。
 - **每个套餐必须有「验证步骤」** → 让用户立刻看到效果。solution 类用看板(web_dashboard)，技术类用交互式验证（拍照预测 / 语音对话等）。AI 会提醒你。
-- **内置验证方式不够用怎么办** → 大多数情况能兜底：服务有接口就用「任意接口调试器」(`http_debug`)，只是要打开个页面就用「打开网址」(`web_dashboard`)。要做自定义检查（比如部署前/后跑个健康检查脚本），可以让 AI 在设备配置里加 `actions` 脚本。实在需要全新的交互形态，联系维护者提需求。细节让 AI 看 `skills/author-solution`。
+- **内置验证方式不够用怎么办** → 大多数情况能兜底：服务有接口就用「任意接口调试器」(`http_debug`)，只是要打开个页面就用「打开网址」(`web_dashboard`)。要做自定义检查（比如部署前/后跑个健康检查脚本），可以让 AI 在设备配置里加 `actions` 脚本。实在需要全新的交互形态，[提一个能力需求 issue](https://github.com/suharvest/sensecraft-solutions/issues/new?template=new-capability-request.md)（开发者可用插件原型化，见 `docs/plugin-development.md`）。细节让 AI 看 `skills/author-solution`。
 - **二进制大文件怎么办** → 不放仓库，传 CDN 用链接引用（参考 `solution-assets`，或直接问维护者）。
 - **不会写中英文文案** → 让 AI 用 `solution-copywriting` skill 帮你写/润色。
 - **不会用 git / 开 PR** → 直接让 AI 助手帮你做，或把方案目录给维护者代提。
