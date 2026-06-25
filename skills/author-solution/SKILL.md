@@ -57,9 +57,9 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 1. **先用通用兜底**：服务暴露 HTTP API 但不是 chat/vision → 用 `http_debug`（任意请求/响应）；只是要打开个页面 → `web_dashboard`（任意 URL）。这俩能覆盖绝大多数「没有专门类型」的情况。
 2. **自定义校验 / 健康检查**：在 device YAML 的 `actions.before` / `actions.after` 写 `run:` 脚本（设备上跑任意 shell，可 `sudo: true`）—— 做部署前预检、部署后健康检查。参考 `solutions/gpt_oss_20b/devices/jetson_deploy.yaml` 的 "Validate Jetson runtime"。**这是不改引擎就能拓展的主力。** 字段名（`actions` / `before` / `after` / `run` / `sudo`）以 `spec/device.schema.json` 为准。
 3. **标记任意步**：`{#id type=... verify=true}` 把任意步骤当成 verify 步。
-4. **以上都不满足**（需要一个全新的交互式 verify 类型 / 新 UI 控件）：这是**引擎（闭源）侧能力**，本仓库加不了 —— 向维护者提 issue 说明你要的交互形态。
+4. **以上都不满足**（需要一个全新的交互式 verify 类型 / 新 UI 控件）：这是**引擎（闭源）侧能力**，本仓库加不了 —— 要么用插件原型化（见 `docs/plugin-development.md`），要么提一个[能力需求 issue](https://github.com/suharvest/sensecraft-solutions/issues/new?template=new-capability-request.md)说明你要的交互形态。
 
-> **关于插件（原型化自定义 verify 类型）**：App 的**插件机制**（`spec/plugin.schema.json` 的 `contributes.deployers[]`）现在可以**给方案步骤注册新 `type=`**。用法约定：
+> **关于插件（原型化自定义 verify 类型）**：完整开发指南见 [`docs/plugin-development.md`](../../docs/plugin-development.md)。App 的**插件机制**（`spec/plugin.schema.json` 的 `contributes.deployers[]`）现在可以**给方案步骤注册新 `type=`**。用法约定：
 > - **命名空间**：插件类型写成 `<plugin-id>/<type>`（如 `type=myplugin/robot_arm`），一眼看出来源、不和内置/其他插件撞名。
 > - **声明依赖（最小 lockfile）**：在 `solution.yaml` 顶层加 `requires_plugins:`，列出 `- {id: <plugin-id>, version: <ver>}`，把这个方案依赖的插件钉死。
 > - **verify 步要标 `verify=true`**：`validate` 离线、不知道插件类型的 category，所以插件做的 verify 步必须显式标 `{#id type=<plugin-id>/<type> verify=true}` 才算「该 preset 的 verify 步」。

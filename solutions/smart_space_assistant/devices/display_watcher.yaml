@@ -21,7 +21,7 @@ firmware:
   source:
     path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
     checksum:
-      sha256: f2a24c1a2063583026a97a03d0c8f00797f632ba50a39a5e612bcc6b752141de
+      sha256: 263ab5fc52b8b2b96c5870b155a0753d3acfbb8bf8398655d10d964c41c47103
   flash_config:
     chip: esp32s3
     baud_rate: 921600

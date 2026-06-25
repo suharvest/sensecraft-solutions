@@ -99,7 +99,7 @@ uv run --package sensecraft-solutionctl solutionctl deploy jetson_voice_assistan
 
 ## Writing a solution
 
-The fastest path is to let an AI agent drive it: open this repo in an agent (Claude Code auto-loads the skills) and ask it to use the **`author-solution`** skill — it reproduces the project, scaffolds the solution, validates, and helps you preview & submit. Non-developers / AEs have a step-by-step companion: **[the AE submission guide](docs/AE-提交指南.md)**. When the built-in verify/deploy types don't fit, use the generic fallbacks (`http_debug` for any HTTP API, `web_dashboard` for any URL) or a custom `actions` check in the device config — see `skills/author-solution`.
+The fastest path is to let an AI agent drive it: open this repo in an agent (Claude Code auto-loads the skills) and ask it to use the **`author-solution`** skill — it reproduces the project, scaffolds the solution, validates, and helps you preview & submit. Non-developers / AEs have a step-by-step companion: **[the AE submission guide](docs/AE-提交指南.md)**. When the built-in verify/deploy types don't fit, use the generic fallbacks (`http_debug` for any HTTP API, `web_dashboard` for any URL) or a custom `actions` check in the device config — see `skills/author-solution`. Need a **brand-new interaction type**? Prototype it as a plugin, or file a capability request — see the [plugin development guide](docs/plugin-development.md).
 
 Reference docs: [`spec/CONTRACT.md`](spec/CONTRACT.md) for field/syntax rules, `docker_deploy` view derivation, and `guide.md` Step/Target syntax; [`CONTRIBUTING.md`](CONTRIBUTING.md) for the authoring & PR workflow; AI agents: [`AGENTS.md`](AGENTS.md) (**Part F** is the author-and-submit flow).
 
