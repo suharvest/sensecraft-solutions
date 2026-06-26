@@ -1,6 +1,6 @@
 services:
   sensecraft-asr-server:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-asr-server:latest
+    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-asr-server:v0.1
     container_name: sensecraft-asr-server
     restart: always
     network_mode: host
@@ -15,7 +15,7 @@ services:
       start_period: 60s
 
   sensecraft-voice-client:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client:v0.0.2
+    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client:v0.1
     container_name: sensecraft-voice-client
     restart: always
     depends_on:
