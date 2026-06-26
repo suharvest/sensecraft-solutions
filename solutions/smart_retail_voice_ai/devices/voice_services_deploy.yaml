@@ -150,7 +150,7 @@ remote_overrides:
         run: |
           docker run --rm --privileged \
             -v /dev/bus/usb:/dev/bus/usb \
-            sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client:v0.1 \
+            sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client:v0.2 \
             python3 -c "
           import sys, usb.core, usb.util
           dev = usb.core.find(idVendor=0x2886, idProduct=0x001A)
