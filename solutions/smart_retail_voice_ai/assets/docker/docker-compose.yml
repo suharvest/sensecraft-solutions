@@ -15,7 +15,7 @@ services:
       start_period: 60s
 
   sensecraft-voice-client:
-    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client:v0.2
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client:v0.3
     container_name: sensecraft-voice-client
     restart: always
     depends_on:
