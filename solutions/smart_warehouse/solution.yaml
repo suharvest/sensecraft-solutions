@@ -120,7 +120,7 @@ intro:
     - id: sensecraft_cloud
       name: Tier 1 · Basic
       badge: Recommended
-      description: Connect to SenseCraft cloud, quick setup and low cost, no face recognition
+      description: Connect to SenseCraft cloud, quick setup and low cost, no high-accuracy face recognition
       architecture_image: gallery/architecture-cloud.png
       device_groups:
         - id: watcher
@@ -146,7 +146,7 @@ intro:
       badge_i18n:
         zh: 推荐
       description_i18n:
-        zh: 需要外网 · 连接 SenseCraft 云服务 · 快速部署、低成本起步，不支持人脸识别
+        zh: 需要外网 · 连接 SenseCraft 云服务 · 快速部署、低成本起步，不支持高精度人脸识别
     - id: private_cloud
       name: Tier 2A · Advanced (Single Site)
       description: Self-hosted AI, supports face recognition, single voice channel

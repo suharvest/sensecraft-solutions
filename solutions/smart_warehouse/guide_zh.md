@@ -122,13 +122,14 @@ SenseCraft 体验版已就绪！
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
 | reComputer R1125-10 | 运行仓库管理系统 |
+| USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
 - 语音操控库存（说"入库 10 箱苹果"就能录入）
 - 网页实时查看库存数据
 - 开箱即用，无需额外配置
 
-❌ 不支持人脸识别
+❌ 不支持高精度人脸识别
 
 **前提条件：** 需要联网 · [SenseCraft 账号](https://sensecraft.seeed.cc/ai/)（免费注册）
 
@@ -194,7 +195,53 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 配置 Watcher 设备 {#sensecraft type=manual required=true}
+## 步骤 3: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+将支持人脸识别的语音助手程序写入 Watcher。
+
+### 接线
+
+![连接设备](gallery/watcher.svg)
+
+1. 用 USB-C 线连接 Watcher 到电脑
+2. 在上方选择串口（选 wchusbserial 开头的）
+3. 点击烧录按钮
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
+| 烧录失败 | 重新插拔设备再试 |
+
+---
+
+## 步骤 4: 烧录人脸识别固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+将人脸识别程序写入 Watcher 的 AI 芯片（含人脸检测、人脸特征、人体检测模型）。
+
+### 接线
+
+![连接设备](gallery/watcher.svg)
+
+1. 确保 Watcher 已连接到电脑
+2. 在上方选择串口（选 usbmodem 开头的）
+3. 点击烧录按钮
+4. 点击烧录后，按一下设备的重启按钮进入烧录模式
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 设备无响应 | 重新插拔 USB 线 |
+| 烧录卡住或失败 | 按重启按钮重试 |
+| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
+| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+
+---
+
+## 步骤 5: 配置 Watcher 设备 {#sensecraft type=manual required=true}
 
 ![Agent 配置](gallery/configure_agent.gif)
 
@@ -219,7 +266,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 联动智能体 {#mcp_bridge type=manual required=true}
+## 步骤 6: 联动智能体 {#mcp_bridge type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
@@ -240,7 +287,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: 效果体验 {#demo type=manual required=false}
+## 步骤 7: 效果体验 {#demo type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -262,7 +309,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 6: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 8: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 

@@ -1,0 +1,72 @@
+version: "1.0"
+id: watcher_esp32
+name: Xiaozhi ESP32 Firmware
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  # Watcher uses WCH USB-UART chip
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x55d2"
+  # Fallback patterns for different platforms
+  fallback_ports:
+    - "/dev/tty.wchusbserial*"
+    - "/dev/cu.wchusbserial*"
+    - "/dev/tty.usbserial-*"
+    - "/dev/cu.usbserial-*"
+    - "/dev/ttyUSB*"
+    - "/dev/ttyACM*"
+
+firmware:
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+    checksum:
+      sha256: 263ab5fc52b8b2b96c5870b155a0753d3acfbb8bf8398655d10d964c41c47103
+  flash_config:
+    chip: esp32s3
+    baud_rate: 921600
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 16MB
+    partitions:
+      - name: merged_firmware
+        offset: "0x0"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+  # 按 App 界面语言选择小智固件（部署时引擎按当前语言挑对应变体，缺省回退到上面的 source）。
+  # TODO: 目前 zh/en 都指向同一基础固件 merged-binary.bin；待真正的中/英文固件就绪后，
+  #       仅替换对应 file（必要时补 source.checksum）即可，无需改引擎代码。
+  language_variants:
+    zh:
+      partitions:
+        - name: merged_firmware
+          offset: "0x0"
+          file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+    en:
+      partitions:
+        - name: merged_firmware
+          offset: "0x0"
+          file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/merged-binary.bin
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: Select the USB serial port (wchusbserial)
+    auto_detect: true
+
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: 选择 USB 串口（wchusbserial 开头）
+pre_checks:
+  - type: serial_port_available
+    description: Check if serial port is accessible
+  - type: esptool_available
+    description: Check if esptool is installed
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 3
+name_i18n:
+  zh: 小智 ESP32 固件

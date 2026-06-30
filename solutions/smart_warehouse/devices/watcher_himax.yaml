@@ -1,0 +1,120 @@
+version: "1.0"
+id: watcher_himax
+name: Himax WE2 Face Recognition
+type: himax_usb
+
+# Auto-detection configuration
+detection:
+  method: usb_serial
+  # Watcher Himax WE2 USB identifiers (WCH chip)
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x55d2"
+  # Fallback port patterns
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+
+firmware:
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/face_recognition.img
+    checksum:
+      sha256: d921681437ca531b4952a4dc8946238f868f8335fdc7e4f9b444eb707844f160
+  flash_config:
+    baudrate: 921600
+    requires_reset: false  # No manual reset needed - ESP32 hold triggers Himax bootloader
+    timeout: 60
+    # SenseCAP Watcher specific: ESP32 firmware monitors Himax and resets it
+    # when detecting anomalies. Holding ESP32 in reset allows Himax to enter bootloader automatically.
+    requires_esp32_reset_hold: true
+    protocol: xmodem  # xmodem (128B) or xmodem1k (1024B)
+
+    # Multi-model configuration
+    # These AI models are flashed after the base firmware at specified flash addresses
+    models:
+      - id: face_detection
+        name: Face Detection (SCRFD 500M KPS)
+        path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/scrfd_500m_kps_int8_vela.tflite
+        flash_address: "0x400000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: Face detection with 5-point landmarks (QAT Vela 5.0)
+        size_hint: "648KB"
+        checksum:
+          sha256: 86296f513339ecf83e4f7a97e388cbb7331d478ab6b40824ebf9f50e54578e7b
+        name_i18n:
+          zh: 人脸检测模型 (SCRFD 500M KPS)
+        description_i18n:
+          zh: 人脸检测 + 5点关键点模型 (QAT Vela 5.0)
+      - id: face_embedding
+        name: Face Embedding (MobileFaceNet Distilled QAT 128D)
+        path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/mobilefacenet_distilled_128d_qat_int8_vela.tflite
+        flash_address: "0x510000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: Face recognition embedding model (Distilled QAT, Vela 100% NPU)
+        size_hint: "1.26MB"
+        checksum:
+          sha256: bd1ccc83a9e8bf854a0bf47ce21d415c901338831d6105e182d78c10f0651874
+        name_i18n:
+          zh: 人脸特征模型 (MobileFaceNet 蒸馏 QAT 128D)
+        description_i18n:
+          zh: 人脸识别特征提取模型 (蒸馏 QAT，Vela 全 NPU)
+      - id: face_detection_2
+        name: Face Detection 2 (SCRFD 500M KPS)
+        path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/scrfd_500m_kps_int8_vela.tflite
+        flash_address: "0x600000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: Secondary face detection model instance
+        size_hint: "648KB"
+        checksum:
+          sha256: 86296f513339ecf83e4f7a97e388cbb7331d478ab6b40824ebf9f50e54578e7b
+        name_i18n:
+          zh: 人脸检测模型 2 (SCRFD 500M KPS)
+        description_i18n:
+          zh: 人脸检测模型第二实例
+      - id: person_detection
+        name: Person Detection (Swift YOLO)
+        path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/swift_yolo_nano_person_192_int8_vela.tflite
+        flash_address: "0x700000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: Person detection model for identifying human presence
+        size_hint: "1.6MB"
+        checksum:
+          sha256: 67621369cae06a0b661d4491111b2b5eec90fc4c397da9230554b003038c1049
+        name_i18n:
+          zh: 人体检测模型 (Swift YOLO)
+        description_i18n:
+          zh: 人体检测模型，用于识别人体存在
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: Select the USB port for Himax WE2 (usbmodem)
+    auto_detect: true
+
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: 选择 Himax WE2 的串口（usbmodem 开头）
+  - id: model_selection
+    name: Models to Flash
+    type: model_select
+    required: false
+    description: Select AI models to flash with the base firmware
+    name_i18n:
+      zh: 选择要烧录的模型
+    description_i18n:
+      zh: 选择要与基础固件一起烧录的 AI 模型
+post_deployment:
+  reset_device: false
+  wait_for_ready: 5
+name_i18n:
+  zh: Himax WE2 人脸识别

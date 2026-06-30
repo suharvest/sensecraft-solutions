@@ -122,13 +122,14 @@ Use [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service for voice AI. Si
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
 | reComputer R1125-10 | Runs warehouse management system |
+| USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
 - Voice-controlled inventory management (stock in/out by speaking)
 - Real-time inventory dashboard
 - Works with SenseCAP Watcher out of the box
 
-❌ Face recognition not supported
+❌ High-accuracy face recognition not supported
 
 **Requirements:** Internet connection · [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free)
 
@@ -194,7 +195,53 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 3: Configure Watcher Device {#sensecraft type=manual required=true}
+## Step 3: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+Write the face-recognition-capable voice assistant program to the Watcher.
+
+### Wiring
+
+![Connect Device](gallery/watcher.svg)
+
+1. Connect Watcher to computer via USB-C cable
+2. Select the serial port above (choose one starting with wchusbserial)
+3. Click the Flash button
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Serial port not found | Try a different USB cable or USB port |
+| No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
+| Flash failed | Unplug and reconnect the device |
+
+---
+
+## Step 4: Flash Face Recognition Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+Write the face recognition program to the Watcher's AI chip (includes face detection, face embedding, and person detection models).
+
+### Wiring
+
+![Connect Device](gallery/watcher.svg)
+
+1. Ensure Watcher is connected to computer
+2. Select the serial port above (choose one starting with usbmodem)
+3. Click the Flash button
+4. After clicking Flash, press the reset button on the device to enter flash mode
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Device not responding | Unplug and reconnect the USB cable |
+| Flash stuck or fails | Press the reset button and try again |
+| Flash fails repeatedly | Use a different USB cable or port |
+| Flash fails at 99% or restarts mid-flash | Close other apps using serial ports, reconnect USB and retry |
+
+---
+
+## Step 5: Configure Watcher Device {#sensecraft type=manual required=true}
 
 ![Agent Setup](gallery/configure_agent.gif)
 
@@ -219,7 +266,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ---
 
-## Step 4: Connect to Agent {#mcp_bridge type=manual required=true}
+## Step 6: Connect to Agent {#mcp_bridge type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
@@ -240,7 +287,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 5: Demo & Testing {#demo type=manual required=false}
+## Step 7: Demo & Testing {#demo type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -262,7 +309,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 6: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 8: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
