@@ -48,7 +48,7 @@
 2. 点击右上角「登录」→「Watcher 设备用户可自助注册」
 3. 对 Watcher 说「你的设备 ID 是什么」，Watcher 会回报一串 ID
 4. 将设备 ID 填入注册页面，完成注册后登录
-5. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](assets/inventory_import.xlsx)）
+5. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx)）
 
 ### 故障排除
 
@@ -182,7 +182,7 @@ SenseCraft 体验版已就绪！
 
 1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
 2. 首次访问会弹出「设置管理员」窗口，填写信息后点击确定
-3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](assets/inventory_import.xlsx)）
+3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx)）
 
 ### 故障排除
 
@@ -352,7 +352,7 @@ SenseCraft 体验版已就绪！
 
 1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
 2. 首次访问会弹出「设置管理员」窗口，填写信息后点击确定
-3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](assets/inventory_import.xlsx)）
+3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx)）
 
 ### 故障排除
 
@@ -550,7 +550,7 @@ SenseCraft 体验版已就绪！
 
 1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
 2. 首次访问会弹出「设置管理员」窗口，填写信息后点击确定
-3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](assets/inventory_import.xlsx)）
+3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx)）
 
 ### 故障排除
 
@@ -749,7 +749,7 @@ SenseCraft 体验版已就绪！
 
 1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
 2. 首次访问会弹出「设置管理员」窗口，填写信息后点击确定
-3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](assets/inventory_import.xlsx)）
+3. 进入系统后，点击左侧「库存列表」导入现有库存（[下载 Excel 模板](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx)）
 
 ### 故障排除
 

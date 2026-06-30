@@ -48,7 +48,7 @@ The warehouse system is hosted on Seeed cloud - no deployment needed. Open the c
 2. Click "Login" in the top right → "Watcher device users can self-register"
 3. Ask your Watcher "What is your device ID?" — Watcher will reply with an ID string
 4. Enter the device ID in the registration form, complete registration and log in
-5. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](assets/inventory_import.xlsx))
+5. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx))
 
 ### Troubleshooting
 
@@ -182,7 +182,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 1. Open browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
 2. First visit will show "Set Administrator" dialog, fill in details and confirm
-3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](assets/inventory_import.xlsx))
+3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx))
 
 ### Troubleshooting
 
@@ -352,7 +352,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 1. Open browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
 2. First visit will show "Set Administrator" dialog, fill in details and confirm
-3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](assets/inventory_import.xlsx))
+3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx))
 
 ### Troubleshooting
 
@@ -550,7 +550,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 1. Open browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
 2. First visit will show "Set Administrator" dialog, fill in details and confirm
-3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](assets/inventory_import.xlsx))
+3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx))
 
 ### Troubleshooting
 
@@ -749,7 +749,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 1. Open browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
 2. First visit will show "Set Administrator" dialog, fill in details and confirm
-3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](assets/inventory_import.xlsx))
+3. Click "Inventory List" on the left to import existing inventory ([Download Excel Template](https://files.seeedstudio.com/Solution/landpage_asset/smart-warehouse-management/warehouse_import-9e6e51d1.xlsx))
 
 ### Troubleshooting
 
