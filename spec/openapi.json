@@ -3464,6 +3464,17 @@
             "title": "Device Connections",
             "type": "object"
           },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
           "options": {
             "additionalProperties": true,
             "default": {},

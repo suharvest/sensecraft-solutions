@@ -837,6 +837,21 @@
         "flash_config": {
           "$ref": "#/$defs/FlashConfig"
         },
+        "language_variants": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/FirmwareVariant"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language Variants"
+        },
         "source": {
           "$ref": "#/$defs/FirmwareSource"
         },
@@ -892,7 +907,7 @@
       "type": "object"
     },
     "FirmwareVariant": {
-      "description": "Per-chip firmware variant (e.g. esp32s3, esp32c6)",
+      "description": "A firmware override variant.\n\nUsed in two places, with identical semantics:\n\n* ``FirmwareConfig.variants`` — keyed by chip (e.g. ``esp32s3``,\n  ``esp32c6``); the esp32 deployer swaps in the matching variant once the\n  chip is detected.\n* ``FirmwareConfig.language_variants`` — keyed by App-UI language code\n  (e.g. ``zh`` / ``en``); the esp32 deployer swaps in the matching variant\n  based on the language passed through from the App, *after* the chip\n  variant so language overrides win on shared fields.\n\nAll fields are optional and additive: a variant overrides only the fields\nit sets. ``source`` lets a variant point at a different base firmware file\nentirely (generic — not tied to any one solution).",
       "properties": {
         "flash_config": {
           "anyOf": [
@@ -919,6 +934,17 @@
           ],
           "default": null,
           "title": "Partitions"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FirmwareSource"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "FirmwareVariant",
