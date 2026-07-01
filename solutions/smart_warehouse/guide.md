@@ -197,7 +197,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 3: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-Write the face-recognition-capable voice assistant program to the Watcher.
+Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Wiring
 
@@ -217,9 +217,9 @@ Write the face-recognition-capable voice assistant program to the Watcher.
 
 ---
 
-## Step 4: Flash Face Recognition Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+## Step 4: Update Vision Detection Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
-Write the face recognition program to the Watcher's AI chip (includes face detection, face embedding, and person detection models).
+Write the vision detection program to the Watcher's AI chip.
 
 ### Wiring
 

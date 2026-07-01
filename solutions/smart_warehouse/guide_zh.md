@@ -197,7 +197,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 3: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-将支持人脸识别的语音助手程序写入 Watcher。
+将语音助手程序写入 Watcher 以启用语音交互。
 
 ### 接线
 
@@ -217,9 +217,9 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 烧录人脸识别固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+## 步骤 4: 更新视觉检测固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
-将人脸识别程序写入 Watcher 的 AI 芯片（含人脸检测、人脸特征、人体检测模型）。
+将视觉检测程序写入 Watcher 的 AI 芯片。
 
 ### 接线
 
