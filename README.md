@@ -1,5 +1,9 @@
 [English](README_en.md) | **中文**
 
+<p align="center">
+  <img src="media/logo.png" alt="SenseCraft Solutions" width="120" />
+</p>
+
 # SenseCraft Solutions
 
 [![CI](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml/badge.svg)](https://github.com/suharvest/sensecraft-solutions/actions/workflows/guard.yml)
@@ -7,7 +11,9 @@
 
 **面向 NVIDIA Jetson、RK3576/RK3588 与 Raspberry Pi 的 18+ 个开箱即用边缘 AI 方案** —— 还附带用来创作和校验你自己方案的开源工具链。
 
-<!-- TODO: Add a hero screenshot or architecture diagram here (e.g. the SenseCraft app deploying a solution, or a diagram of the open/closed layers) -->
+<p align="center">
+  <img src="media/solution_demo.gif" alt="SenseCraft Solutions demo" width="720" />
+</p>
 
 离线语音 AI、计算机视觉、智慧零售、机器人等方案，均可直接从 [SenseCraft 桌面应用](https://www.seeed.cc/category/reference-designs) 或通过 `solutionctl` 命令行部署，无需依赖云端。
 
