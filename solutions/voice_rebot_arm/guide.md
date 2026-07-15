@@ -4,13 +4,14 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 
 | Device | Purpose |
 |--------|---------|
-| reBot B601-DM | 6-DoF arm with parallel gripper (0.088 m max jaw) — USB serial |
+| reBot B601-DM | 6-DoF arm with parallel gripper (0.100 m max jaw) — USB serial |
 | Orbbec Gemini 2 | wrist-mounted RGB-D camera (eye-in-hand) — USB 3.0 |
 | reComputer Super J4012 | Jetson Orin NX 16GB — runs all four containers |
 | reSpeaker USB mic + speaker | far-field voice in, TTS reply out |
 
 **What you'll get:**
-- Voice-commanded grasping of boxes, cups and standing (opaque) bottles — verified on real hardware
+- Voice-commanded grasping of boxes, standing (opaque) bottles, bananas, cups and oranges — all verified on real hardware
+- GPU object detection (TensorRT): scene capture in 0.6–1.6 s, a full grasp cycle in ~11 s (falls back to CPU automatically if GPU memory is tight)
 - Open-vocabulary detection (YOLOE): the object list is a model re-export away from extending, no retraining
 - Live dashboard with the wrist-camera view and arm state (`:8776`)
 - Cartesian observation API (`:8775/observation`) for integration with other solutions
@@ -30,7 +31,7 @@ Deploy the voice, LLM, arm-control and inventory services to the Jetson.
 
 ### Services
 
-One compose file starts four services — `rebot-arm` (the agent), `seeed-voice` (ASR/TTS), `edge-llm` (Qwen3-4B TensorRT) and `warehouse` (MCP inventory) — plus a one-shot `model-init` that downloads the grasp detector into `/opt/rebot-models/`.
+One compose file starts four services — `rebot-arm` (the agent), `seeed-voice` (ASR/TTS), `edge-llm` (Qwen3-4B TensorRT) and `warehouse` (MCP inventory) — plus a one-shot `model-init` that downloads the grasp detector into `/opt/rebot-models/`. The detector runs on the GPU via TensorRT (host CUDA libraries are mounted in); if GPU memory is tight at startup the agent demotes itself to CPU inference automatically and keeps working.
 
 ### Troubleshooting
 
@@ -95,11 +96,11 @@ Grasping converts camera pixels into arm coordinates through a transform that is
 
 ### First grasp
 
-Place a small cardboard box (each face under 8.5 cm) about 25–30 cm in front of the arm, roughly centered, and say:
+Place a small cardboard box (each face under 9.5 cm) about 25–30 cm in front of the arm, roughly centered, and say:
 
 > **"Hey Jarvis, grab the box"**
 
-The arm scans, announces what it found, grasps, lifts and carries it home. Then try a cup, then an opaque bottle (standing).
+The arm scans, announces what it found, grasps, lifts and carries it home. Then try a cup, a banana, an orange, then an opaque bottle (standing).
 
 **Known-good placements**: straight ahead or moderately left/right of center. **Use opaque objects** — transparent bottles are invisible to the depth camera (stereo-depth physics, not a bug).
 
@@ -108,7 +109,9 @@ The arm scans, announces what it found, grasps, lifts and carries it home. Then 
 | Symptom | Cause / fix |
 |---|---|
 | "I couldn't find the …" occasionally | Detection confidence is marginal at some angles — repeat the command; move the object toward the center |
-| "The box is too big for me to grip" | Every visible face exceeds the 0.088 m jaw — expected; use a smaller object or turn a narrow face toward the arm |
-| First attempt fails, retry works | Known scan-pose IK flakiness — retry is the workaround |
+| "The box is too big for me to grip" | Every visible face exceeds the 0.100 m jaw — expected; use a smaller object or turn a narrow face toward the arm |
+| First attempt fails, retry works | Rare scan-pose IK flakiness — mostly fixed by the built-in IK fallback; a retry covers the rest |
 | Grasp lands centimeters off | Recalibrate — and re-measure the printed marker size (step 1 above) |
-| Arm joints fault (`status_code=12`) | Power-cycle the arm (torque toggle is not enough) |
+| Arm joints fault (`status_code=12`) | The stack clears this latched fault automatically at startup; if it persists after a container restart, power-cycle the arm |
+| Arm was power-cycled and now ignores commands | The container's motor state is stale — `docker restart voice-rebot-arm` after any arm power cycle |
+| First `rebot-arm` start pauses ~6 min | One-time TensorRT engine build for the detector; cached afterwards (reload ~6 s) |

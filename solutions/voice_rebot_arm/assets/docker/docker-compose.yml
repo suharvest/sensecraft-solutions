@@ -101,7 +101,7 @@ services:
   # if missing (idempotent). Reuses the main image — no extra pull. On China
   # networks set HF_ENDPOINT=https://hf-mirror.com in .env.
   model-init:
-    image: ddandadan/voice-rebot-arm:v1.0.0
+    image: ddandadan/voice-rebot-arm:v1.1.0
     entrypoint: ["python3", "-c"]
     command:
       - |
@@ -122,9 +122,11 @@ services:
     restart: "no"
 
   rebot-arm:
-    image: ddandadan/voice-rebot-arm:v1.0.0
+    image: ddandadan/voice-rebot-arm:v1.1.0
     container_name: voice-rebot-arm
     privileged: true            # arm serial + camera USB + audio devices
+    runtime: nvidia             # detector runs on TensorRT (falls back to CPU
+                                # automatically if GPU libs/RAM are unavailable)
     depends_on:
       model-init:
         condition: service_completed_successfully
@@ -155,16 +157,22 @@ services:
       - MIC_CHANNELS=6
       - MIC_CHANNEL_SELECT=0
       - WAKEWORD_MODEL=hey jarvis
-      # ── arm + grasp (verified device state, 2026-07-07) ──
+      # ── arm + grasp (verified device state, 2026-07-14) ──
       - REBOT_CHANNEL=auto
       - REBOT_REPO_ROOT=/opt/rebot
       - REBOT_GRASP_MODEL=/opt/rebot-models/yoloe-26s-seg-multi.onnx
       - REBOT_GRASP_CONF=0.06
-      - REBOT_GRASP_FWD_M=0
-      - REBOT_SIDE_INSERT=0.058
+      - REBOT_GRASP_FWD_M=0.013
+      - REBOT_SIDE_INSERT=0.068
       - REBOT_GRASP_INSERT=0.040
-      - REBOT_GRASP_OPEN_DIST=0.09
+      - REBOT_GRASP_OPEN_DIST=0.100
+      - REBOT_OPEN_DIST=0.100
+      - REBOT_GRASP_FORCE=1.0
       - REBOT_GRASP_FORCE_BOTTLE=0.8
+      # ── GPU inference (TensorRT EP; engine cache persists in trt-cache) ──
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/host-libs
       - REBOT_FORCE_FIXED_CLASSES=["box","cardboard box","carton","package","water bottle"]
       - REBOT_WIDEBOX_ORBIT=0
       - REBOT_SCAN_POSES=[[0.24,0.00,0.20,0.0,-0.22,0.0],[0.24,0.10,0.20,0.0,-0.22,0.30],[0.24,-0.10,0.20,0.0,-0.22,-0.30]]
@@ -177,6 +185,10 @@ services:
       - ${PULSE_COOKIE_PATH:-~/.config/pulse/cookie}:/tmp/pulse-cookie:ro
       - /opt/seeed/voice_rebot_arm/config:/opt/seeed/voice_rebot_arm/config
       - /opt/rebot-models:/opt/rebot-models                         # ONNX + hand-eye
+      # ── GPU inference: host CUDA + TensorRT/cuDNN libs (JetPack 6) ──
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/lib/aarch64-linux-gnu:/host-libs:ro
+      - trt-cache:/trt-cache          # TensorRT engine cache (~6 min first build)
     restart: unless-stopped
 
 volumes:
@@ -185,3 +197,4 @@ volumes:
   edgellm-workspace:
   warehouse_data:
     driver: local
+  trt-cache:
