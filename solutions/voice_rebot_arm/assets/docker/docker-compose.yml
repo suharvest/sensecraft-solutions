@@ -121,6 +121,25 @@ services:
       - /opt/rebot-models:/opt/rebot-models
     restart: "no"
 
+  # One-shot init: curate the TensorRT/cuDNN libraries the detector's GPU
+  # path needs from the host's JetPack install into the trt-libs volume.
+  # Mounting all of /usr/lib/aarch64-linux-gnu directly would shadow the
+  # container's own libs and segfault the loader (verified) — copying just
+  # this set is the safe pattern. Idempotent; ~1.4 GB once.
+  gpu-libs-init:
+    image: ddandadan/voice-rebot-arm:v1.1.0
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        if [ -e /trt-libs/libnvinfer.so.10 ]; then echo "trt-libs present, skipping"; exit 0; fi
+        cp -a /host-libs/libnvinfer*.so* /host-libs/libnvonnxparser*.so* /host-libs/libcudnn*.so* /trt-libs/ \
+          && echo "trt-libs curated: $(ls /trt-libs | wc -l) files" \
+          || { echo "WARN: TensorRT/cuDNN libs not found on host — detector will run on CPU"; exit 0; }
+    volumes:
+      - /usr/lib/aarch64-linux-gnu:/host-libs:ro
+      - trt-libs:/trt-libs
+    restart: "no"
+
   rebot-arm:
     image: ddandadan/voice-rebot-arm:v1.1.0
     container_name: voice-rebot-arm
@@ -129,6 +148,8 @@ services:
                                 # automatically if GPU libs/RAM are unavailable)
     depends_on:
       model-init:
+        condition: service_completed_successfully
+      gpu-libs-init:
         condition: service_completed_successfully
       edge-llm:
         condition: service_started
@@ -172,8 +193,10 @@ services:
       # ── GPU inference (TensorRT EP; engine cache persists in trt-cache) ──
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
-      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/host-libs
-      - REBOT_FORCE_FIXED_CLASSES=["box","cardboard box","carton","package","water bottle"]
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/trt-libs:/usr/lib/aarch64-linux-gnu/nvidia
+      - REBOT_FORCE_FIXED_CLASSES=["box","cardboard box","carton","package","water bottle","yellow banana"]
+      - REBOT_SIDE_ONLY_CLASSES=["box","cardboard box","carton","package","small cardboard box","brown box","orange","water bottle","cup"]
+      - REBOT_TABLE_Z=-0.01
       - REBOT_WIDEBOX_ORBIT=0
       - REBOT_SCAN_POSES=[[0.24,0.00,0.20,0.0,-0.22,0.0],[0.24,0.10,0.20,0.0,-0.22,0.30],[0.24,-0.10,0.20,0.0,-0.22,-0.30]]
       - OBSERVATION_PORT=8775
@@ -185,9 +208,9 @@ services:
       - ${PULSE_COOKIE_PATH:-~/.config/pulse/cookie}:/tmp/pulse-cookie:ro
       - /opt/seeed/voice_rebot_arm/config:/opt/seeed/voice_rebot_arm/config
       - /opt/rebot-models:/opt/rebot-models                         # ONNX + hand-eye
-      # ── GPU inference: host CUDA + TensorRT/cuDNN libs (JetPack 6) ──
+      # ── GPU inference: host CUDA + curated TensorRT/cuDNN libs (JetPack 6) ──
       - /usr/local/cuda:/usr/local/cuda:ro
-      - /usr/lib/aarch64-linux-gnu:/host-libs:ro
+      - trt-libs:/trt-libs:ro         # curated by gpu-libs-init
       - trt-cache:/trt-cache          # TensorRT engine cache (~6 min first build)
     restart: unless-stopped
 
@@ -198,3 +221,4 @@ volumes:
   warehouse_data:
     driver: local
   trt-cache:
+  trt-libs:
