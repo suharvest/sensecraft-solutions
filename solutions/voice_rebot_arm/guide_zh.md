@@ -80,6 +80,7 @@
 | 没有相机画面 | Gemini 2 插在 USB 2 口，或相机被其他进程占用 —— 换 USB 3.0 口并重启 `rebot-arm` 容器 |
 | 完全没有语音响应 | `docker logs voice-rebot-arm \| grep -i wake`；确认音频用户 ID 与 `id -u` 一致 |
 | `edge-llm` 长时间 unhealthy | 引擎还在下载/预热 —— 首次启动属正常 |
+| 磁盘被 `tegra-xusb: buffer overrun` 内核日志慢慢填满 | 已知的 JetPack 驱动噪声，来自相机的 USB 3 数据流 —— 无害但几周内可让 `/var/log` 膨胀数 GB。只丢弃这些行：`echo ':msg, contains, "buffer overrun event for slot" stop' \| sudo tee /etc/rsyslog.d/30-tegra-xusb-spam.conf && sudo systemctl restart rsyslog` |
 
 ## 步骤 3: 手眼标定 —— 解锁抓取 {#handeye type=manual required=false}
 

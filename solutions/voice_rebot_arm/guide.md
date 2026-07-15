@@ -80,6 +80,7 @@ The arm waves and the speaker confirms. Voice + LLM + arm control all work now. 
 | No camera image | Gemini 2 on a USB 2 port, or another process holds the camera — replug into USB 3.0, restart the `rebot-arm` container |
 | No voice response | `docker logs voice-rebot-arm \| grep -i wake`; check the audio uid input matches `id -u` |
 | `edge-llm` unhealthy for long | Engine still downloading/warming — normal on first boot |
+| Disk slowly fills with `tegra-xusb: buffer overrun` kernel logs | Known JetPack driver noise from the camera's USB 3 stream — harmless but can bloat `/var/log` by gigabytes over weeks. Drop just those lines: `echo ':msg, contains, "buffer overrun event for slot" stop' \| sudo tee /etc/rsyslog.d/30-tegra-xusb-spam.conf && sudo systemctl restart rsyslog` |
 
 ## Step 3: Hand-Eye Calibration — unlocks grasping {#handeye type=manual required=false}
 
