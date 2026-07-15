@@ -1,0 +1,32 @@
+version: "1.0"
+id: ha_dashboard
+name: Home Assistant — Sheep Counter Dashboard
+name_i18n:
+  zh: Home Assistant——绵羊计数看板
+type: web_dashboard
+
+user_inputs:
+  - id: ha_host
+    name: Home Assistant IP Address
+    name_i18n:
+      zh: Home Assistant IP 地址
+    type: text
+    placeholder: "192.168.1.100"
+    description: IP address of your Home Assistant server.
+    description_i18n:
+      zh: Home Assistant 服务器的 IP 地址。
+    required: true
+    validation:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+
+web_dashboard:
+  url: "http://{{ha_host}}:8123"
+  title: Home Assistant Sheep Counter
+  description: Opens the Home Assistant dashboard showing live IN / OUT / INSIDE sheep counts and daily history.
+  title_i18n:
+    zh: Home Assistant 绵羊计数看板
+  description_i18n:
+    zh: 打开 Home Assistant 看板，实时显示绵羊的进/出/在栏数量及当日历史。
+
+post_deployment:
+  open_browser: true

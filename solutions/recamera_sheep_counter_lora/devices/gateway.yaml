@@ -1,0 +1,68 @@
+version: "1.0"
+id: gateway
+name: Gateway Bridge (reComputer / Raspberry Pi)
+name_i18n:
+  zh: 网关桥接服务（reComputer / 树莓派）
+type: script
+device_class: linux
+
+ssh:
+  port: 22
+  default_user: recomputer
+  default_host: ""
+  connection_timeout: 30
+  command_timeout: 300
+
+script:
+  start_command:
+    command: |
+      MQTT_HOST={{mqtt_host}} MQTT_PORT=1883 SERIAL_PORT={{serial_port}} \
+        bash assets/gateway/install.sh
+    sudo: true
+    timeout: 300
+  health_check:
+    type: log_pattern
+    pattern: "active"
+    timeout_seconds: 30
+
+user_inputs:
+  - id: gateway_host
+    name: Gateway IP Address
+    name_i18n:
+      zh: 网关设备 IP 地址
+    type: text
+    placeholder: "192.168.1.50"
+    description: IP address of your reComputer or Raspberry Pi gateway host.
+    description_i18n:
+      zh: reComputer 或树莓派网关主机的 IP 地址。
+    required: true
+    validation:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+  - id: mqtt_host
+    name: Local MQTT Broker IP
+    name_i18n:
+      zh: 本地 MQTT Broker IP
+    type: text
+    placeholder: "192.168.1.100"
+    description: IP address of your MQTT broker (often same as Home Assistant).
+    description_i18n:
+      zh: MQTT Broker 的 IP 地址（通常与 Home Assistant 在同一主机）。
+    required: true
+    validation:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+  - id: serial_port
+    name: Meshtastic Serial Port
+    name_i18n:
+      zh: Meshtastic 串口
+    type: text
+    default: /dev/ttyACM0
+    placeholder: /dev/ttyACM0
+    description: Serial device path of the USB-connected Meshtastic receiver.
+    description_i18n:
+      zh: 连接到网关的 Meshtastic USB 接收器串口路径。
+    required: true
+    validation:
+      pattern: '^/dev/[A-Za-z0-9._/-]+$'
+
+post_deployment:
+  open_browser: false

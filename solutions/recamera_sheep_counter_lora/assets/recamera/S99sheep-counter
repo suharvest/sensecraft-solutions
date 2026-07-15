@@ -1,0 +1,61 @@
+#!/bin/sh
+# reCamera boot init for the lean sheep counter.
+# Install on the camera as /etc/init.d/S99sheep-counter (chmod +x) with the binary at $DAEMON.
+# It starts after the sscma inference daemon (S91/S93), so the model is up when we send invoke.
+
+DAEMON=/usr/bin/sheep_counter
+NAME=sheep_counter
+PIDFILE=/var/run/$NAME.pid
+LOGFILE=/var/log/$NAME.log
+
+# GPIO trigger for Meshtastic DetectionSensor
+GPIO=490
+GPIO_PIDFILE=/var/run/gpio-trigger.pid
+
+_gpio_start() {
+  echo $GPIO > /sys/class/gpio/export 2>/dev/null
+  echo out > /sys/class/gpio/gpio${GPIO}/direction 2>/dev/null
+  echo 0 > /sys/class/gpio/gpio${GPIO}/value 2>/dev/null
+  tail -F "$LOGFILE" 2>/dev/null | while read line; do
+    case "$line" in EVT*)
+      echo 1 > /sys/class/gpio/gpio${GPIO}/value
+      sleep 0.5
+      echo 0 > /sys/class/gpio/gpio${GPIO}/value
+    ;; esac
+  done &
+  echo $! > "$GPIO_PIDFILE"
+}
+
+_gpio_stop() {
+  if [ -f "$GPIO_PIDFILE" ]; then
+    kill "$(cat "$GPIO_PIDFILE")" 2>/dev/null
+    rm -f "$GPIO_PIDFILE"
+  fi
+  echo 0 > /sys/class/gpio/gpio${GPIO}/value 2>/dev/null
+}
+
+case "$1" in
+  start)
+    printf "Starting %s: " "$NAME"
+    start-stop-daemon -S -q -b -m -p "$PIDFILE" \
+      -x /bin/sh -- -c "exec $DAEMON >> $LOGFILE 2>&1"
+    echo "OK"
+    _gpio_start
+    printf "gpio-trigger: started\n"
+    ;;
+  stop)
+    printf "Stopping %s: " "$NAME"
+    start-stop-daemon -K -q -p "$PIDFILE"
+    rm -f "$PIDFILE"
+    echo "OK"
+    _gpio_stop
+    ;;
+  restart)
+    "$0" stop; sleep 1; "$0" start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+    ;;
+esac
+exit 0

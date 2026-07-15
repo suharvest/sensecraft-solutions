@@ -1,0 +1,134 @@
+version: "1.0"
+id: recamera_sheep_counter_lora
+name: Sheep Counter with LoRa / Meshtastic
+name_i18n:
+  zh: 基于 LoRa/Meshtastic 的绵羊计数器
+
+intro:
+  summary: Count sheep moving through a gate and send live IN / OUT / INSIDE totals over LoRa — all the way to your phone and a Home Assistant dashboard, no WiFi needed in the field.
+  summary_i18n:
+    zh: 计数穿越围栏的绵羊，通过 LoRa 将 进/出/在栏 数据实时发送到您的手机和 Home Assistant 看板——无需现场 WiFi。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: https://files.seeedstudio.com/wiki/reCamera/Applications/sheep_counter/cover.jpg
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/wiki/reCamera/Applications/sheep_counter/ha_dashboard.png
+      caption: Home Assistant dashboard showing real-time sheep counts
+      caption_i18n:
+        zh: Home Assistant 看板实时显示羊群计数
+    - type: image
+      src: https://files.seeedstudio.com/wiki/reCamera/Applications/sheep_counter/system_architecture.png
+      caption: System architecture — reCamera + LoRa + Home Assistant
+      caption_i18n:
+        zh: 系统架构——reCamera + LoRa + Home Assistant
+  category: sensing
+  solution_type: solution
+
+  tags:
+    - recamera
+    - lora
+    - meshtastic
+    - sheep
+    - livestock
+    - yolo
+    - counting
+    - home-assistant
+    - off-grid
+
+  input_requirements:
+    - type: rtsp
+      description: reCamera 2002 with YOLO sheep-detection model pointing at the gate
+      description_i18n:
+        zh: 对准围栏出入口的 reCamera 2002（内置 YOLO 绵羊检测模型）
+
+  device_catalog:
+    recamera:
+      sku: 102991894
+      name: reCamera 2002 HQ PoE
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
+      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+      description: Edge AI camera running the sheep detector and gate-crossing counter
+      name_i18n:
+        zh: reCamera 2002 HQ PoE
+      description_i18n:
+        zh: 运行绵羊检测和穿越计数的边缘 AI 摄像头
+    xiao_esp32s3:
+      name: XIAO ESP32-S3 + Wio-SX1262 (Meshtastic LoRa node)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-102010673-seeed-studio-xiao-esp32s3_1.jpg
+      product_url: https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html
+      description: Meshtastic LoRa node — receives UART events from reCamera and broadcasts over LoRa
+      name_i18n:
+        zh: XIAO ESP32-S3 + Wio-SX1262（Meshtastic LoRa 节点）
+      description_i18n:
+        zh: Meshtastic LoRa 节点——接收来自 reCamera 的 UART 事件并通过 LoRa 广播
+    recomputer:
+      sku: 113991374
+      name: reComputer R1100 (or Raspberry Pi)
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
+      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+      description: Local gateway — receives LoRa messages and forwards counts to Home Assistant via MQTT
+      name_i18n:
+        zh: reComputer R1100（或树莓派）
+      description_i18n:
+        zh: 本地网关——接收 LoRa 消息，通过 MQTT 将计数转发到 Home Assistant
+
+  presets:
+    - id: lora_gateway
+      name: LoRa Gateway (Full System)
+      name_i18n:
+        zh: LoRa 网关（完整系统）
+      description: Deploy the sheep counter to reCamera, flash the LoRa transmitter node, then set up the gateway bridge and Home Assistant dashboard.
+      description_i18n:
+        zh: 将绵羊计数器部署到 reCamera，刷写 LoRa 发射节点固件，然后设置网关桥接服务和 Home Assistant 看板。
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+        - id: lora_node
+          name: LoRa Node
+          name_i18n:
+            zh: LoRa 节点
+          type: single
+          required: true
+          options:
+            - device_ref: xiao_esp32s3
+          default: xiao_esp32s3
+        - id: gateway
+          name: Gateway Computer
+          name_i18n:
+            zh: 网关计算机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer
+          default: recomputer
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+
+  links:
+    github: https://github.com/biancayoung/recamera-sheep-counter-lora
+
+has_description: true
+has_description_i18n:
+  zh: true
+has_guide: true
+has_guide_i18n:
+  zh: true
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

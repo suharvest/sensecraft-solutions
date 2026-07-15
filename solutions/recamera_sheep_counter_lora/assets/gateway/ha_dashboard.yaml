@@ -1,0 +1,64 @@
+title: "🐑 Sheep Gate Counter"
+views:
+  - title: "🐑 Sheep Gate"
+    path: sheep
+    badges: []
+    cards:
+      - type: grid
+        columns: 3
+        square: false
+        cards:
+          - type: entity
+            entity: sensor.sheep_in
+            name: "IN"
+            icon: "mdi:door-open"
+            state_color: true
+          - type: entity
+            entity: sensor.sheep_out
+            name: "OUT"
+            icon: "mdi:door-closed"
+            state_color: true
+          - type: entity
+            entity: sensor.sheep_inside
+            name: "Inside Pen"
+            icon: "mdi:fence"
+            state_color: true
+
+      - type: horizontal-stack
+        cards:
+          - type: gauge
+            entity: sensor.sheep_inside
+            name: "Pen Headcount"
+            icon: "mdi:sheep"
+            min: 0
+            max: 100
+            severity:
+              green: 0
+              yellow: 40
+              red: 80
+          - type: button
+            name: "Reset Counts"
+            icon: "mdi:restart-alert"
+            tap_action:
+              action: call-service
+              service: mqtt.publish
+              target: {}
+              data:
+                topic: "sheep/ha/reset_counts/set"
+                payload: "RESET_COUNTS"
+
+      - type: entities
+        title: "Last Crossing"
+        entities:
+          - entity: sensor.sheep_last_event
+            name: "Last Event"
+            icon: "mdi:sheep"
+
+      - type: history-graph
+        title: "Count History (24h)"
+        entities:
+          - sensor.sheep_in
+          - sensor.sheep_out
+          - sensor.sheep_inside
+        hours_to_show: 24
+        refresh_interval: 60
