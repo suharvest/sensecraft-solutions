@@ -12,13 +12,14 @@
   "recamera_heatmap_grafana": "sha256:74452bfefee2c4424e803ae27050f34ad5990b8d6a879bba3b91ca870e9ee411",
   "recamera_parking_monitor": "sha256:6e04ed22e4dcb4cb3e3fa3c833097a6bc8555b7051e93c08a8d8ec2758e0642e",
   "recamera_qrcode_rec": "sha256:272f9980d452dc5c14dc9379b8bee0a948aeb3a517e9b0037eb3a646135bfc14",
+  "recamera_sheep_counter_lora": "sha256:045df690cff39aca9d388d1380b05dae57d3d196c452635bc64efa4c85d02481",
   "respeaker_flex_soarm": "sha256:80474dd6dcf9b0f2a36f6a0e278ce83e0a6d3cb96955fca8c74dbfaf52e884ae",
   "sensecraft_data_mcp": "sha256:e58c9bf63caae1775d209b506f3da414ec05ba38c47ca0085ee1e69436cf5180",
   "smart_hvac_control": "sha256:8c6b649095e0a76d0f4665a2981243e5f0b210a2c0f9148e27f91de1dd2ea7fa",
   "smart_retail_voice_ai": "sha256:48a52f8869dbf674fce29a4e9e9748085633dc68e7f6af92ffe83894ab705226",
   "smart_space_assistant": "sha256:a92a913cb4e21f89c8433097f7da08562a4b6f7603719f26d6a1a5f3c2407fd7",
   "smart_warehouse": "sha256:85d36268716c1bd7cfd36cf408969eeded7b8bd61297426ea17cfccbf1a97577",
-  "voice_rebot_arm": "sha256:a8973194826a1f78b86edcbff2bb64b189785132d9019915edb1ba09729524f2",
+  "voice_rebot_arm": "sha256:96fc801c5820e675409b95e88f8a97b29bad362293cf5c323df810ca85ac10dd",
   "voice_robot_lekiwi": "sha256:8f9733abb95b5d6f09614e572e06a44e690c3c1413682ce320fc5883dd6f621b",
   "z_image_turbo": "sha256:bac506205707ea82eb51f539b399dbd4b49f7729e45039f005189ac8993044cd"
 }
