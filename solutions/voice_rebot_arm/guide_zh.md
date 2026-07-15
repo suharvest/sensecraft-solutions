@@ -4,13 +4,14 @@
 
 | 设备 | 用途 |
 |--------|---------|
-| reBot B601-DM | 六自由度机械臂，平行夹爪（最大开口 0.088 m）—— USB 串口 |
+| reBot B601-DM | 六自由度机械臂，平行夹爪（最大开口 0.100 m）—— USB 串口 |
 | Orbbec Gemini 2 | 腕装 RGB-D 相机（眼在手）—— USB 3.0 |
 | reComputer Super J4012 | Jetson Orin NX 16GB —— 运行全部四个容器 |
 | reSpeaker USB 麦克风 + 音箱 | 远场语音输入，TTS 回复输出 |
 
 **你将获得：**
-- 语音指挥抓取纸盒、水杯、直立（不透明）瓶子 —— 已在真机验证
+- 语音指挥抓取纸盒、直立（不透明）瓶子、香蕉、水杯、橙子 —— 全部已在真机验证
+- GPU 目标检测（TensorRT）：单帧感知 0.6–1.6 秒，完整抓取周期约 11 秒（GPU 内存不足时自动回退 CPU）
 - 开放词表检测（YOLOE）：扩展可识别物体只需重新导出模型，无需重新训练
 - 实时面板：腕部相机画面 + 机械臂状态（`:8776`）
 - 笛卡尔观测 API（`:8775/observation`），供其他方案集成
@@ -30,7 +31,7 @@
 
 ### 服务内容
 
-一个 compose 文件启动四个服务 —— `rebot-arm`（agent）、`seeed-voice`（ASR/TTS）、`edge-llm`（Qwen3-4B TensorRT）、`warehouse`（MCP 库存）—— 外加一次性的 `model-init`，把抓取检测模型下载到 `/opt/rebot-models/`。
+一个 compose 文件启动四个服务 —— `rebot-arm`（agent）、`seeed-voice`（ASR/TTS）、`edge-llm`（Qwen3-4B TensorRT）、`warehouse`（MCP 库存）—— 外加一次性的 `model-init`，把抓取检测模型下载到 `/opt/rebot-models/`。检测模型通过 TensorRT 跑在 GPU 上（compose 挂载宿主机 CUDA 库）；启动时若 GPU 内存不足，agent 会自动降级为 CPU 推理并继续工作。
 
 ### 故障排查
 
@@ -79,6 +80,7 @@
 | 没有相机画面 | Gemini 2 插在 USB 2 口，或相机被其他进程占用 —— 换 USB 3.0 口并重启 `rebot-arm` 容器 |
 | 完全没有语音响应 | `docker logs voice-rebot-arm \| grep -i wake`；确认音频用户 ID 与 `id -u` 一致 |
 | `edge-llm` 长时间 unhealthy | 引擎还在下载/预热 —— 首次启动属正常 |
+| 磁盘被 `tegra-xusb: buffer overrun` 内核日志慢慢填满 | 已知的 JetPack 驱动噪声，来自相机的 USB 3 数据流 —— 无害但几周内可让 `/var/log` 膨胀数 GB。只丢弃这些行：`echo ':msg, contains, "buffer overrun event for slot" stop' \| sudo tee /etc/rsyslog.d/30-tegra-xusb-spam.conf && sudo systemctl restart rsyslog` |
 
 ## 步骤 3: 手眼标定 —— 解锁抓取 {#handeye type=manual required=false}
 
@@ -95,11 +97,11 @@
 
 ### 第一次抓取
 
-把一个小纸盒（每个面都小于 8.5 cm）放在机械臂正前方约 25–30 cm、大致居中的位置，说：
+把一个小纸盒（每个面都小于 9.5 cm）放在机械臂正前方约 25–30 cm、大致居中的位置，说：
 
 > **"Hey Jarvis, grab the box"**
 
-机械臂会扫描、播报找到的目标、抓取、抬起并带回。然后可以试水杯、再试直立的不透明瓶子。
+机械臂会扫描、播报找到的目标、抓取、抬起并带回。然后可以试水杯、香蕉、橙子，再试直立的不透明瓶子。
 
 **已验证的摆放**：正前方或中线左右适度偏移。**请用不透明物体** —— 透明瓶子对深度相机不可见（双目深度的物理限制，不是 bug）。
 
@@ -108,7 +110,9 @@
 | 现象 | 原因 / 处理 |
 |---|---|
 | 偶尔提示找不到目标 | 某些角度下检测置信度偏低 —— 重复指令；把物体往中间挪。英文播报可能是 "I couldn't find the ..." |
-| 播报物体太大、夹不住 | 所有可见面都超过 0.088 m 开口 —— 属预期行为，换小物体或把窄面转向机械臂。英文播报可能是 "too big for me to grip" |
-| 第一次失败，重试就好 | 已知的扫描位姿 IK 抖动 —— 重试即可 |
+| 播报物体太大、夹不住 | 所有可见面都超过 0.100 m 开口 —— 属预期行为，换小物体或把窄面转向机械臂。英文播报可能是 "too big for me to grip" |
+| 第一次失败，重试就好 | 罕见的扫描位姿 IK 抖动 —— 内置 IK 兜底已基本修复；偶发时重试即可 |
 | 抓取偏差几厘米 | 重新标定 —— 并重新实测打印标记边长（见上面第 1 条） |
-| 机械臂关节报错（`status_code=12`） | 给机械臂断电重启（只切扭矩无效） |
+| 机械臂关节报错（`status_code=12`） | 启动时会自动清除这个锁存故障；若容器重启后仍持续报错，再给机械臂断电重启 |
+| 机械臂断电重启后不响应指令 | 容器内的电机状态已过期 —— 机械臂每次断电重启后都要 `docker restart voice-rebot-arm` |
+| `rebot-arm` 首次启动多等约 6 分钟 | 检测器一次性 TensorRT 引擎编译；之后走缓存（约 6 秒加载） |

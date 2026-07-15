@@ -6,13 +6,14 @@ Say **"Hey Jarvis, grab the water bottle"** — the arm looks at the table throu
 
 | Object | Strategy | Status |
 |---|---|---|
-| Cardboard boxes | side-face geometric grasp (multi-frame median, force 0.8 N·m) | verified |
+| Cardboard boxes | side-face geometric grasp (multi-frame median, force 1.0 N·m) | verified |
 | Cups (opaque, short) | side-face grasp, adaptive force | verified |
 | Standing bottles (opaque) | cylinder route: level side approach, mid-body grip, fixed 0.8 N·m | verified |
-| Fruit (orange/apple) | round route (grip past the equator) | code-ready, not yet field-tested |
+| Bananas | elongated route (grip across the long axis) | verified |
+| Oranges | round route: level approach, equator-height grip | verified |
 | Transparent bottles | — | not possible: stereo depth cannot see clear plastic + water |
 
-Objects too wide for the 0.088 m jaw get a spoken decline ("The box is too big for me to grip").
+Objects too wide for the 0.100 m jaw get a spoken decline ("The box is too big for me to grip"). Detection runs on the GPU (TensorRT): scene capture takes 0.6–1.6 s and a full voice-to-carry grasp cycle about 11 s.
 
 ## How it works
 

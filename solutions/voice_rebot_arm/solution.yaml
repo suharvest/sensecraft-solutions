@@ -2,7 +2,7 @@ version: "1.0"
 id: voice_rebot_arm
 name: Voice-Controlled Grasping Arm (reBot B601-DM)
 intro:
-  summary: Say "Hey Jarvis, grab the water bottle" and a reBot B601-DM arm finds the object with an RGB-D wrist camera and picks it up. Grasps boxes, cups and standing bottles via an open-vocabulary detector (YOLOE) + 3D shape-descriptor grasp planner. Fully on-device voice stack — streaming ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — on Jetson Orin NX.
+  summary: Say "Hey Jarvis, grab the water bottle" and a reBot B601-DM arm finds the object with an RGB-D wrist camera and picks it up in ~11 s. Grasps boxes, bottles, bananas, cups and oranges via an open-vocabulary detector (YOLOE on TensorRT GPU) + 3D shape-descriptor grasp planner. Fully on-device voice stack — streaming ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — on Jetson Orin NX.
   description_file: description.md
   cover_image: gallery/cover.jpg
   category: voice_ai
@@ -58,11 +58,11 @@ intro:
   device_catalog:
     rebot_b601dm:
       name: reBot B601-DM Robotic Arm
-      description: 6-DoF robotic arm with Damiao motors and a parallel gripper (0.088 m max jaw)
+      description: 6-DoF robotic arm with Damiao motors and a parallel gripper (0.100 m max jaw)
       name_i18n:
         zh: reBot B601-DM 机械臂
       description_i18n:
-        zh: 六自由度达妙电机机械臂，平行夹爪（最大开口 0.088 m）
+        zh: 六自由度达妙电机机械臂，平行夹爪（最大开口 0.100 m）
     orbbec_gemini2:
       name: Orbbec Gemini 2 RGB-D Camera
       product_url: https://www.orbbec.com/products/stereo-vision-camera/gemini-2/
@@ -146,7 +146,7 @@ intro:
     repository: https://github.com/suharvest/openvoicestream
 
   summary_i18n:
-    zh: 对着麦克风说 "Hey Jarvis, grab the water bottle"，reBot B601-DM 机械臂用腕部 RGB-D 相机找到目标并抓起来。开放词表检测器（YOLOE）+ 3D 形状描述子抓取规划，可抓纸盒、水杯与直立的瓶子。语音链路完全本地化 —— 流式 ASR/TTS + Qwen3-4B-AWQ（TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。
+    zh: 对着麦克风说 "Hey Jarvis, grab the water bottle"，reBot B601-DM 机械臂用腕部 RGB-D 相机找到目标并在约 11 秒内抓起来。开放词表检测器（YOLOE，TensorRT GPU 推理）+ 3D 形状描述子抓取规划，可抓纸盒、瓶子、香蕉、水杯与橙子。语音链路完全本地化 —— 流式 ASR/TTS + Qwen3-4B-AWQ（TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。
   description_file_i18n:
     zh: description_zh.md
 deployment:
