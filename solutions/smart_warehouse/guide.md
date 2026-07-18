@@ -22,7 +22,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
-3. Your browser should pop up the setup page automatically (if not, visit http://192.168.4.1 manually)
+3. Your browser should pop up the setup page automatically (if not, visit http://192.168.42.1 manually)
 4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
 5. The device reboots automatically and shows a 6-digit verification code on the screen
 6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
@@ -133,7 +133,79 @@ Use [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service for voice AI. Si
 
 **Requirements:** Internet connection · [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free)
 
-## Step 1: Warehouse System {#warehouse type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## Step 1: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+Write the voice assistant program to the Watcher to enable voice interaction.
+
+### Wiring
+
+![Connect Device](gallery/watcher_usb.png)
+
+1. Connect Watcher to computer via USB-C cable
+2. Select the serial port above (choose one starting with wchusbserial)
+3. Click the Flash button
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Serial port not found | Try a different USB cable or USB port |
+| No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
+| Flash failed | Unplug and reconnect the device |
+
+---
+
+## Step 2: Update Vision Detection Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+Write the vision detection program to the Watcher's AI chip.
+
+### Wiring
+
+![Connect Device](gallery/watcher_usb.png)
+
+1. Keep the Watcher connected to your computer via the USB-C cable (same as the previous step)
+2. Select the serial port above (choose one starting with usbmodem)
+3. Click the Flash button
+4. After clicking Flash, press the reset button on the device to enter flash mode
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Device not responding | Unplug and reconnect the USB cable |
+| Flash stuck or fails | Press the reset button and try again |
+| Flash fails repeatedly | Use a different USB cable or port |
+| Flash fails at 99% or restarts mid-flash | Close other apps using serial ports, reconnect USB and retry |
+
+---
+
+## Step 3: Configure Watcher Device {#watcher_setup type=manual required=true}
+
+![Agent Setup](gallery/configure_agent.gif)
+
+Connect your Watcher to SenseCraft cloud platform:
+
+1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
+2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
+3. Your browser should pop up the setup page automatically (if not, visit http://192.168.42.1 manually)
+4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
+5. The device reboots automatically and shows a 6-digit verification code on the screen
+6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
+7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
+8. Say "Enable face recognition mode" to the Watcher to switch it to face recognition detection
+9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL" (you'll need it in Step 6)
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
+| WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
+| Can't find Watcher Agent | Confirm you're logged in to SenseCraft, refresh the page |
+
+---
+
+## Step 4: Warehouse System {#warehouse type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
 
 Deploy the inventory management service with voice control and web dashboard.
 
@@ -175,7 +247,7 @@ Deploy to reComputer R1125-10 edge device.
 
 ---
 
-## Step 2: Configure Warehouse System {#warehouse_config type=manual required=true}
+## Step 5: Configure Warehouse System {#warehouse_config type=manual required=true}
 
 ![Setup Demo](gallery/setup_warehous.gif)
 
@@ -195,88 +267,16 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 3: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
-
-Write the voice assistant program to the Watcher to enable voice interaction.
-
-### Wiring
-
-![Connect Device](gallery/watcher.svg)
-
-1. Connect Watcher to computer via USB-C cable
-2. Select the serial port above (choose one starting with wchusbserial)
-3. Click the Flash button
-
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Serial port not found | Try a different USB cable or USB port |
-| No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
-| Flash failed | Unplug and reconnect the device |
-
----
-
-## Step 4: Update Vision Detection Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
-
-Write the vision detection program to the Watcher's AI chip.
-
-### Wiring
-
-![Connect Device](gallery/watcher.svg)
-
-1. Ensure Watcher is connected to computer
-2. Select the serial port above (choose one starting with usbmodem)
-3. Click the Flash button
-4. After clicking Flash, press the reset button on the device to enter flash mode
-
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| Device not responding | Unplug and reconnect the USB cable |
-| Flash stuck or fails | Press the reset button and try again |
-| Flash fails repeatedly | Use a different USB cable or port |
-| Flash fails at 99% or restarts mid-flash | Close other apps using serial ports, reconnect USB and retry |
-
----
-
-## Step 5: Configure Watcher Device {#sensecraft type=manual required=true}
-
-![Agent Setup](gallery/configure_agent.gif)
-
-Connect your Watcher to SenseCraft cloud platform:
-
-1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
-2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
-3. Your browser should pop up the setup page automatically (if not, visit http://192.168.4.1 manually)
-4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
-5. The device reboots automatically and shows a 6-digit verification code on the screen
-6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
-7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
-8. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL"
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
-| WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
-| Can't find Watcher Agent | Confirm you're logged in to SenseCraft, refresh the page |
-
----
-
 ## Step 6: Connect to Agent {#mcp_bridge type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
 Add an agent in the warehouse system to let Watcher control inventory:
 
-1. Open your browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
-2. Go to "Agent Configuration" on the left sidebar, click "Add Agent", fill in the name
-3. Paste the endpoint URL copied from MCP Setting in the previous step
-4. Click "Save and Start"
-5. Click "MCP Endpoint" on the agent card, refresh status - "Connected" means success
+1. Go to "Agent Configuration" on the left sidebar, click "Add Agent", fill in the name
+2. Paste the endpoint URL copied from MCP Setting in Step 3
+3. Click "Save and Start"
+4. Click "MCP Endpoint" on the agent card, refresh status - "Connected" means success
 
 ### Troubleshooting
 
@@ -287,7 +287,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 7: Demo & Testing {#demo type=manual required=false}
+## Step 7: Demo & Testing {#voice_demo_test type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -309,7 +309,25 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 8: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+---
+
+## Step 8: Test Face Recognition {#face_test type=manual required=false}
+
+Configure face recognition in the warehouse system and verify it works:
+
+1. Open your browser and visit `http://server-ip:2125`, go to "System Settings" → "Face Recognition"
+2. Follow the on-page instructions to enroll the faces you want to recognize
+3. Make sure you've said "Enable face recognition mode" to the Watcher (see Step 3)
+4. Face the Watcher camera - successful recognitions appear in the warehouse system records
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Face not detected | Confirm the vision detection firmware is flashed and face recognition mode is enabled |
+| Inaccurate recognition | Re-enroll well-lit, front-facing photos in "System Settings → Face Recognition" |
+
+## Step 9: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
@@ -338,60 +356,152 @@ Self-host the voice AI server while using cloud APIs (DeepSeek, OpenAI, etc.) fo
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 | Runs warehouse system + voice AI service |
+| reComputer R2135-12 (Hailo-8) or Jetson device | Runs warehouse system + face recognition service + voice AI service |
+| USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
 - Full control over your data - inventory stays on your network
 - Flexible AI model choices (DeepSeek, GPT-4, Qwen, etc.)
 - Customize voice assistant prompts and behavior
 
-✅ Face recognition supported
+✅ High-accuracy face recognition (with liveness detection) — the Hailo / TensorRT inference image is selected automatically by detected device model
 
 **Requirements:** Internet connection · LLM API keys required
 
-## Step 1: Warehouse System {#warehouse_2a type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## Step 1: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-Deploy the inventory management service with voice control and web dashboard.
-
-### Target {#warehouse_2a_local type=local config=devices/warehouse_deploy.yaml}
-
-Run the warehouse system on this computer.
+Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Wiring
 
-1. Ensure Docker is installed and running
-2. Click Deploy button to start services
+![Connect Device](gallery/watcher_usb.png)
+
+1. Connect Watcher to computer via USB-C cable
+2. Select the serial port above (choose one starting with wchusbserial)
+3. Click the Flash button
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Serial port not found | Try a different USB cable or USB port |
+| No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
+| Flash failed | Unplug and reconnect the device |
+
+---
+
+## Step 2: Update Vision Detection Firmware {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+Write the vision detection program to the Watcher's AI chip.
+
+### Wiring
+
+![Connect Device](gallery/watcher_usb.png)
+
+1. Keep the Watcher connected to your computer via the USB-C cable (same as the previous step)
+2. Select the serial port above (choose one starting with usbmodem)
+3. Click the Flash button
+4. After clicking Flash, press the reset button on the device to enter flash mode
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Device not responding | Unplug and reconnect the USB cable |
+| Flash stuck or fails | Press the reset button and try again |
+| Flash fails repeatedly | Use a different USB cable or port |
+| Flash fails at 99% or restarts mid-flash | Close other apps using serial ports, reconnect USB and retry |
+
+---
+
+## Step 3: Configure Watcher Device {#watcher_config type=manual required=true}
+
+![Agent Setup](gallery/configure_agent.gif)
+
+Connect your Watcher to SenseCraft cloud platform:
+
+1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
+2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
+3. Your browser should pop up the setup page automatically (if not, visit http://192.168.42.1 manually)
+4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
+5. The device reboots automatically and shows a 6-digit verification code on the screen
+6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
+7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
+8. Say "Enable face recognition mode" to the Watcher to switch it to face recognition detection
+9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL" (you'll need it in Step 7)
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Port in use | Check if port 2125 is used by another service |
-| Docker not running | Start Docker Desktop and retry |
+| Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
+| WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
+| Can't find Watcher Agent | Confirm you're logged in to SenseCraft, refresh the page |
 
-### Target {#warehouse_2a_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+---
 
-Deploy to reComputer R2135-12 edge device.
+## Step 4: Warehouse System {#warehouse_2a type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
+
+Deploy the warehouse system together with the high-accuracy face recognition service — one device, one Compose file, two containers. The device model is auto-detected and the matching face recognition image is pre-selected (Hailo image for Hailo-8 accelerators, TensorRT image for Jetson); you can also switch it manually.
+
+### Target {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
+
+Deploy to a device with a Hailo-8 accelerator (reComputer R2135-12 or Raspberry Pi + Hailo-8).
 
 ### Wiring
 
 ![Wiring](gallery/R1100_connected.png)
 
-1. Connect R2135-12 to power and ethernet, ensure it's on the same network as your computer
-2. Enter IP address `reComputer-R110x.local` (or check your router)
-3. Enter username `recomputer`, password `12345678`
+1. Connect the device to power and ethernet, ensure it's on the same network as your computer
+2. Enter the device IP address (or check your router)
+3. Enter the SSH username and password
 4. Click Deploy and wait for installation to complete
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Connection timeout | Check ethernet cable, test with ping reComputer-R110x.local |
-| SSH auth failed | Verify credentials, first-time setup requires monitor connection |
+| Connection timeout | Check ethernet cable, ping the device IP |
+| Face service won't start | Confirm the Hailo driver is installed (`ls /dev/hailo0` should exist) |
+
+### Target {#warehouse_2a_jetson_remote type=remote device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
+
+Deploy to a Jetson device (Orin series); face recognition runs on TensorRT.
+
+### Wiring
+
+1. Connect the Jetson to power and ethernet, ensure it's on the same network as your computer
+2. Enter the device IP address and SSH credentials
+3. Click Deploy and wait for installation to complete
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check ethernet cable, ping the device IP |
+| Face service won't start | Confirm JetPack is installed (the container bind-mounts host CUDA/TensorRT) and the model engines are in place |
+
+### Target {#warehouse_2a_hailo_local type=local device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml}
+
+Run directly on this machine (a device with Hailo-8).
+
+### Wiring
+
+1. Ensure Docker is installed and running
+2. Click Deploy button to start services
+
+### Target {#warehouse_2a_jetson_local type=local device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
+
+Run directly on this machine (a Jetson device).
+
+### Wiring
+
+1. Ensure Docker is installed and running
+2. Click Deploy button to start services
 
 ---
 
-## Step 2: Configure Warehouse System {#warehouse_config type=manual required=true}
+## Step 5: Configure Warehouse System {#warehouse_config_private_cloud type=manual required=true}
 
 ![Setup Demo](gallery/setup_warehous.gif)
 
@@ -411,7 +521,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 3: Voice AI Service {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## Step 6: Voice AI Service {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 Deploy the voice AI service to enable voice interaction with Watcher. Select "Private Cloud" mode and fill in your LLM API details.
 
@@ -439,32 +549,7 @@ Deploy the voice AI service to enable voice interaction with Watcher. Select "Pr
 
 ---
 
-## Step 4: Configure Watcher Device {#watcher_config type=manual required=true}
-
-![Agent Setup](gallery/configure_agent.gif)
-
-Connect your Watcher to SenseCraft cloud platform:
-
-1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
-2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
-3. Your browser should pop up the setup page automatically (if not, visit http://192.168.4.1 manually)
-4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
-5. The device reboots automatically and shows a 6-digit verification code on the screen
-6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
-7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
-8. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL"
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
-| WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
-| Can't find Watcher Agent | Confirm you're logged in to SenseCraft, refresh the page |
-
----
-
-## Step 5: Connect to Agent {#agent_config type=manual required=true}
+## Step 7: Connect to Agent {#agent_config type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
@@ -472,7 +557,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 1. Open your browser and visit `http://server-ip:2125` (use `localhost` for local deployment)
 2. Go to "Agent Configuration" on the left sidebar, click "Add Agent", fill in the name
-3. Paste the endpoint URL copied from MCP Setting in the previous step
+3. Paste the endpoint URL copied from MCP Setting in Step 3
 4. Click "Save and Start"
 5. Click "MCP Endpoint" on the agent card, refresh status - "Connected" means success
 
@@ -485,7 +570,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 6: Demo & Testing {#demo type=manual required=false}
+## Step 8: Demo & Testing {#demo_private_cloud type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -507,7 +592,24 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 7: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 9: Test Face Recognition {#face_test_2a type=manual required=false}
+
+Configure face recognition in the warehouse system and verify it works (this tier is high-accuracy, with liveness detection):
+
+1. Open your browser and visit `http://server-ip:2125`, go to "System Settings" → "Face Recognition"
+2. Follow the on-page instructions to enroll the faces you want to recognize
+3. Make sure you've said "Enable face recognition mode" to the Watcher (see Step 3)
+4. Face the Watcher camera - successful recognitions appear in the warehouse system records; holding up a photo should be rejected by liveness detection
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Face not detected | Confirm the vision detection firmware is flashed and face recognition mode is enabled |
+| Face service not responding | Check `http://server-ip:8001/health` and confirm the face-rec container started in the deploy step |
+| Inaccurate recognition | Re-enroll well-lit, front-facing photos in "System Settings → Face Recognition" |
+
+## Step 10: Open Dashboard {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
@@ -523,6 +625,7 @@ Your private cloud warehouse system is ready!
 
 **Access points:**
 - Warehouse System: http://\<server-ip\>:2125
+- Face Recognition Service: http://\<server-ip\>:8001/health
 - Voice Service Console: http://\<server-ip\>:18003
 
 Your data stays on your network. Try saying "How many apples left?" to test.
@@ -589,7 +692,7 @@ Deploy to reComputer Super J4012 edge device.
 
 ---
 
-## Step 2: Configure Warehouse System {#warehouse_config type=manual required=true}
+## Step 2: Configure Warehouse System {#warehouse_config_private_cloud_multi type=manual required=true}
 
 ![Setup Demo](gallery/setup_warehous.gif)
 
@@ -609,7 +712,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 3: Voice AI Service {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## Step 3: Voice AI Service {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 Deploy the voice AI service to enable voice interaction with Watcher. Select "Private Cloud" mode and fill in your LLM API details.
 
@@ -637,7 +740,7 @@ Deploy the voice AI service to enable voice interaction with Watcher. Select "Pr
 
 ---
 
-## Step 4: Configure Watcher Device {#watcher_config type=manual required=true}
+## Step 4: Configure Watcher Device {#watcher_config_private_cloud_multi type=manual required=true}
 
 ![Agent Setup](gallery/configure_agent.gif)
 
@@ -645,7 +748,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
-3. Your browser should pop up the setup page automatically (if not, visit http://192.168.4.1 manually)
+3. Your browser should pop up the setup page automatically (if not, visit http://192.168.42.1 manually)
 4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
 5. The device reboots automatically and shows a 6-digit verification code on the screen
 6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
@@ -662,7 +765,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ---
 
-## Step 5: Connect to Agent {#agent_config type=manual required=true}
+## Step 5: Connect to Agent {#agent_config_private_cloud_multi type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
@@ -683,7 +786,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 6: Demo & Testing {#demo type=manual required=false}
+## Step 6: Demo & Testing {#demo_private_cloud_multi type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -705,7 +808,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 7: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 7: Open Dashboard {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
@@ -788,7 +891,7 @@ Deploy to reComputer R2135-12 edge device.
 
 ---
 
-## Step 2: Configure Warehouse System {#warehouse_config type=manual required=true}
+## Step 2: Configure Warehouse System {#warehouse_config_edge_computing type=manual required=true}
 
 ![Setup Demo](gallery/setup_warehous.gif)
 
@@ -836,7 +939,7 @@ Deploy directly on this Jetson (the same device running SenseCraft Solution). Fi
 
 ---
 
-## Step 4: Voice AI Service {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## Step 4: Voice AI Service {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 Deploy voice AI service on R2135-12, connecting to Jetson for inference. Select "Edge Computing" mode and enter the Jetson IP address (auto-filled if Jetson was deployed in previous step).
 
@@ -863,7 +966,7 @@ Deploy voice AI service on R2135-12, connecting to Jetson for inference. Select 
 
 ---
 
-## Step 5: Configure Watcher Device {#watcher_config type=manual required=true}
+## Step 5: Configure Watcher Device {#watcher_config_edge_computing type=manual required=true}
 
 ![Agent Setup](gallery/configure_agent.gif)
 
@@ -871,7 +974,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
-3. Your browser should pop up the setup page automatically (if not, visit http://192.168.4.1 manually)
+3. Your browser should pop up the setup page automatically (if not, visit http://192.168.42.1 manually)
 4. Wait about 5 seconds for the WiFi scan to complete, pick a 2.4GHz network, enter the password, then tap "Connect"
 5. The device reboots automatically and shows a 6-digit verification code on the screen
 6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
@@ -888,7 +991,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ---
 
-## Step 6: Connect to Agent {#agent_config type=manual required=true}
+## Step 6: Connect to Agent {#agent_config_edge_computing type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
@@ -909,7 +1012,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 7: Demo & Testing {#demo type=manual required=false}
+## Step 7: Demo & Testing {#demo_edge_computing type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -931,7 +1034,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 8: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 8: Open Dashboard {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 

@@ -22,7 +22,7 @@
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.4.1）
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
 4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
 5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
 6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
@@ -133,7 +133,79 @@ SenseCraft 体验版已就绪！
 
 **前提条件：** 需要联网 · [SenseCraft 账号](https://sensecraft.seeed.cc/ai/)（免费注册）
 
-## 步骤 1: 仓库管理系统 {#warehouse type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 1: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+将语音助手程序写入 Watcher 以启用语音交互。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 用 USB-C 线连接 Watcher 到电脑
+2. 在上方选择串口（选 wchusbserial 开头的）
+3. 点击烧录按钮
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
+| 烧录失败 | 重新插拔设备再试 |
+
+---
+
+## 步骤 2: 更新视觉检测固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+将视觉检测程序写入 Watcher 的 AI 芯片。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
+2. 在上方选择串口（选 usbmodem 开头的）
+3. 点击烧录按钮
+4. 点击烧录后，按一下设备的重启按钮进入烧录模式
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 设备无响应 | 重新插拔 USB 线 |
+| 烧录卡住或失败 | 按重启按钮重试 |
+| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
+| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+
+---
+
+## 步骤 3: 配置 Watcher 设备 {#watcher_setup type=manual required=true}
+
+![Agent 配置](gallery/configure_agent.gif)
+
+将 Watcher 连接到 SenseCraft 云平台：
+
+1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
+2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
+4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
+5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
+6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
+7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
+8. 对 Watcher 说「开启人脸识别模式」，让设备切换到人脸识别检测
+9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」（步骤 6 联动智能体会用到）
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|--------|
+| 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
+| 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
+| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
+
+---
+
+## 步骤 4: 仓库管理系统 {#warehouse type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
@@ -175,7 +247,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config type=manual required=true}
+## 步骤 5: 配置仓库系统 {#warehouse_config type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -195,88 +267,16 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
-
-将语音助手程序写入 Watcher 以启用语音交互。
-
-### 接线
-
-![连接设备](gallery/watcher.svg)
-
-1. 用 USB-C 线连接 Watcher 到电脑
-2. 在上方选择串口（选 wchusbserial 开头的）
-3. 点击烧录按钮
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 找不到串口 | 换一条 USB 线或换个 USB 口 |
-| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
-| 烧录失败 | 重新插拔设备再试 |
-
----
-
-## 步骤 4: 更新视觉检测固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
-
-将视觉检测程序写入 Watcher 的 AI 芯片。
-
-### 接线
-
-![连接设备](gallery/watcher.svg)
-
-1. 确保 Watcher 已连接到电脑
-2. 在上方选择串口（选 usbmodem 开头的）
-3. 点击烧录按钮
-4. 点击烧录后，按一下设备的重启按钮进入烧录模式
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 设备无响应 | 重新插拔 USB 线 |
-| 烧录卡住或失败 | 按重启按钮重试 |
-| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
-| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
-
----
-
-## 步骤 5: 配置 Watcher 设备 {#sensecraft type=manual required=true}
-
-![Agent 配置](gallery/configure_agent.gif)
-
-将 Watcher 连接到 SenseCraft 云平台：
-
-1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
-2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.4.1）
-4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
-5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
-6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
-7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
-8. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」
-
-### 故障排除
-
-| 问题 | 解决方法 |
-|------|--------|
-| 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
-| 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
-| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
-
----
-
 ## 步骤 6: 联动智能体 {#mcp_bridge type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
 在仓库系统中添加智能体，让 Watcher 能够操作库存：
 
-1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
-2. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
-3. 在 Endpoint 中粘贴上一步从 MCP Setting 复制的端点地址
-4. 点击「保存并启动」
-5. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 Connected 即连接成功
+1. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
+2. 在 Endpoint 中粘贴步骤 3 从 MCP Setting 复制的端点地址
+3. 点击「保存并启动」
+4. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 Connected 即连接成功
 
 ### 故障排除
 
@@ -287,7 +287,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 7: 效果体验 {#demo type=manual required=false}
+## 步骤 7: 效果体验 {#voice_demo_test type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -309,7 +309,25 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 8: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+---
+
+## 步骤 8: 测试人脸识别 {#face_test type=manual required=false}
+
+在仓管系统中配置人脸识别并验证效果：
+
+1. 浏览器访问 `http://服务器IP:2125`，进入「系统设置」→「人脸识别」
+2. 按页面指引完成配置，录入需要识别的人员人脸
+3. 确认已对 Watcher 说过「开启人脸识别模式」（见步骤 3）
+4. 面对 Watcher 摄像头，识别成功后可在仓管系统中查看识别记录
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|----------|
+| 识别不到人脸 | 确认视觉检测固件已烧录，且已对 Watcher 说「开启人脸识别模式」 |
+| 识别结果不准 | 在「系统设置 → 人脸识别」重新录入光线充足、正面清晰的人脸照片 |
+
+## 步骤 9: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -338,60 +356,152 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12 | 运行仓管系统 + 语音 AI 服务 |
+| reComputer R2135-12（Hailo-8）或 Jetson 设备 | 运行仓管系统 + 人脸识别服务 + 语音 AI 服务 |
+| USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
 - 完全掌控数据——库存信息留在自己网络内
 - 自由选择 AI 模型（DeepSeek、GPT-4、通义千问等）
 - 自定义语音助手的提示词和行为
 
-✅ 支持人脸识别
+✅ 支持高精度人脸识别（含活体检测），按设备型号自动选择 Hailo / TensorRT 推理镜像
 
 **前提条件：** 需要联网 · 需要 LLM API 密钥
 
-## 步骤 1: 仓库管理系统 {#warehouse_2a type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 1: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-部署库存管理服务，支持语音操控和网页看板。
-
-### 部署目标 {#warehouse_2a_local type=local config=devices/warehouse_deploy.yaml}
-
-在本机运行仓库管理服务。
+将语音助手程序写入 Watcher 以启用语音交互。
 
 ### 接线
 
-1. 确保本机 Docker 已安装并运行
-2. 点击部署按钮启动服务
+![连接设备](gallery/watcher_usb.png)
+
+1. 用 USB-C 线连接 Watcher 到电脑
+2. 在上方选择串口（选 wchusbserial 开头的）
+3. 点击烧录按钮
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
+| 烧录失败 | 重新插拔设备再试 |
+
+---
+
+## 步骤 2: 更新视觉检测固件 {#warehouse_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+将视觉检测程序写入 Watcher 的 AI 芯片。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
+2. 在上方选择串口（选 usbmodem 开头的）
+3. 点击烧录按钮
+4. 点击烧录后，按一下设备的重启按钮进入烧录模式
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 设备无响应 | 重新插拔 USB 线 |
+| 烧录卡住或失败 | 按重启按钮重试 |
+| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
+| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+
+---
+
+## 步骤 3: 配置 Watcher 设备 {#watcher_config type=manual required=true}
+
+![Agent 配置](gallery/configure_agent.gif)
+
+将 Watcher 连接到 SenseCraft 云平台：
+
+1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
+2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
+4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
+5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
+6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
+7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
+8. 对 Watcher 说「开启人脸识别模式」，让设备切换到人脸识别检测
+9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」（步骤 7 联动智能体会用到）
 
 ### 故障排除
 
 | 问题 | 解决方法 |
-|------|----------|
-| 端口被占用 | 检查 2125 端口是否被其他服务使用 |
-| Docker 未运行 | 启动 Docker Desktop 后重试 |
+|------|--------|
+| 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
+| 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
+| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
 
-### 部署目标 {#warehouse_2a_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+---
 
-部署到 reComputer R2135-12 边缘计算设备。
+## 步骤 4: 仓库管理系统 {#warehouse_2a type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
+
+部署仓管系统和高精度人脸识别服务——同一台设备、一个 Compose 管两个容器。系统会探测设备型号并默认选中对应的人脸识别镜像（Hailo-8 加速卡用 Hailo 镜像，Jetson 用 TensorRT 镜像），也可手动切换。
+
+### 部署目标 {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
+
+部署到带 Hailo-8 加速卡的设备（reComputer R2135-12 或 Raspberry Pi + Hailo-8）。
 
 ### 接线
 
 ![接线图](gallery/R1100_connected.png)
 
-1. 将 R2135-12 接上电源和网线，确保与电脑在同一网络
-2. 输入 IP 地址 `reComputer-R110x.local`（或从路由器查询）
-3. 输入用户名 `recomputer`，密码 `12345678`
+1. 将设备接上电源和网线，确保与电脑在同一网络
+2. 输入设备 IP 地址（或从路由器查询）
+3. 输入 SSH 用户名和密码
 4. 点击部署，等待安装完成
 
 ### 故障排除
 
 | 问题 | 解决方法 |
 |------|----------|
-| 连接超时 | 检查网线是否插好，用 ping reComputer-R110x.local 测试 |
-| SSH 认证失败 | 确认用户名密码正确，首次使用需接显示器完成初始设置 |
+| 连接超时 | 检查网线是否插好，用 ping 测试设备 IP |
+| 人脸服务启动失败 | 确认设备已安装 Hailo 驱动（`ls /dev/hailo0` 应存在） |
+
+### 部署目标 {#warehouse_2a_jetson_remote type=remote device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
+
+部署到 Jetson 设备（Orin 系列），人脸识别使用 TensorRT 推理。
+
+### 接线
+
+1. 将 Jetson 接上电源和网线，确保与电脑在同一网络
+2. 输入设备 IP 地址和 SSH 凭据
+3. 点击部署，等待安装完成
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|----------|
+| 连接超时 | 检查网线是否插好，用 ping 测试设备 IP |
+| 人脸服务启动失败 | 确认 JetPack 已安装（容器挂载宿主 CUDA/TensorRT），且模型引擎已就位 |
+
+### 部署目标 {#warehouse_2a_hailo_local type=local device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml}
+
+在本机（带 Hailo-8 的设备）直接运行。
+
+### 接线
+
+1. 确保本机 Docker 已安装并运行
+2. 点击部署按钮启动服务
+
+### 部署目标 {#warehouse_2a_jetson_local type=local device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
+
+在本机（Jetson 设备）直接运行。
+
+### 接线
+
+1. 确保本机 Docker 已安装并运行
+2. 点击部署按钮启动服务
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config type=manual required=true}
+## 步骤 5: 配置仓库系统 {#warehouse_config_private_cloud type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -411,7 +521,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 语音 AI 服务 {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## 步骤 6: 语音 AI 服务 {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 部署语音 AI 服务，为 Watcher 提供语音交互能力。部署时选择「私有云方案」，需要填写 LLM API 信息。
 
@@ -439,32 +549,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 配置 Watcher 设备 {#watcher_config type=manual required=true}
-
-![Agent 配置](gallery/configure_agent.gif)
-
-将 Watcher 连接到 SenseCraft 云平台：
-
-1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
-2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.4.1）
-4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
-5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
-6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
-7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
-8. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」
-
-### 故障排除
-
-| 问题 | 解决方法 |
-|------|--------|
-| 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
-| 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
-| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
-
----
-
-## 步骤 5: 联动智能体 {#agent_config type=manual required=true}
+## 步骤 7: 联动智能体 {#agent_config type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
@@ -472,7 +557,7 @@ SenseCraft 体验版已就绪！
 
 1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
 2. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
-3. 在 Endpoint 中粘贴上一步从 MCP Setting 复制的端点地址
+3. 在 Endpoint 中粘贴步骤 3 从 MCP Setting 复制的端点地址
 4. 点击「保存并启动」
 5. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 Connected 即连接成功
 
@@ -485,7 +570,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 6: 效果体验 {#demo type=manual required=false}
+## 步骤 8: 效果体验 {#demo_private_cloud type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -507,7 +592,24 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 7: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 9: 测试人脸识别 {#face_test_2a type=manual required=false}
+
+在仓管系统中配置人脸识别并验证效果（本套餐为高精度识别，含活体检测）：
+
+1. 浏览器访问 `http://服务器IP:2125`，进入「系统设置」→「人脸识别」
+2. 按页面指引完成配置，录入需要识别的人员人脸
+3. 确认已对 Watcher 说过「开启人脸识别模式」（见步骤 3）
+4. 面对 Watcher 摄像头，识别成功后可在仓管系统中查看识别记录；用照片对着摄像头应被活体检测拒绝
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|----------|
+| 识别不到人脸 | 确认视觉检测固件已烧录，且已对 Watcher 说「开启人脸识别模式」 |
+| 人脸服务无响应 | 访问 `http://服务器IP:8001/health` 检查服务状态，确认部署步骤中 face-rec 容器已启动 |
+| 识别结果不准 | 在「系统设置 → 人脸识别」重新录入光线充足、正面清晰的人脸照片 |
+
+## 步骤 10: 打开面板 {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -523,6 +625,7 @@ SenseCraft 体验版已就绪！
 
 **访问入口：**
 - 仓库系统：http://\<服务器IP\>:2125
+- 人脸识别服务：http://\<服务器IP\>:8001/health
 - 语音服务控制台：http://\<服务器IP\>:18003
 
 数据留在自己网络内。试着说「苹果还有多少」测试。
@@ -589,7 +692,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config type=manual required=true}
+## 步骤 2: 配置仓库系统 {#warehouse_config_private_cloud_multi type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -609,7 +712,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 语音 AI 服务 {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## 步骤 3: 语音 AI 服务 {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 部署语音 AI 服务，为 Watcher 提供语音交互能力。部署时选择「私有云方案」，需要填写 LLM API 信息。
 
@@ -637,7 +740,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 配置 Watcher 设备 {#watcher_config type=manual required=true}
+## 步骤 4: 配置 Watcher 设备 {#watcher_config_private_cloud_multi type=manual required=true}
 
 ![Agent 配置](gallery/configure_agent.gif)
 
@@ -645,7 +748,7 @@ SenseCraft 体验版已就绪！
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.4.1）
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
 4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
 5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
 6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
@@ -662,7 +765,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: 联动智能体 {#agent_config type=manual required=true}
+## 步骤 5: 联动智能体 {#agent_config_private_cloud_multi type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
@@ -683,7 +786,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 6: 效果体验 {#demo type=manual required=false}
+## 步骤 6: 效果体验 {#demo_private_cloud_multi type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -705,7 +808,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 7: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 7: 打开面板 {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -788,7 +891,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config type=manual required=true}
+## 步骤 2: 配置仓库系统 {#warehouse_config_edge_computing type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -836,7 +939,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 语音 AI 服务 {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## 步骤 4: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
 
 在 R2135-12 上部署语音 AI 服务，连接 Jetson 进行推理。部署时选择「边缘计算方案」，并输入 Jetson IP 地址（如已在上一步部署则自动填充）。
 
@@ -863,7 +966,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: 配置 Watcher 设备 {#watcher_config type=manual required=true}
+## 步骤 5: 配置 Watcher 设备 {#watcher_config_edge_computing type=manual required=true}
 
 ![Agent 配置](gallery/configure_agent.gif)
 
@@ -871,7 +974,7 @@ SenseCraft 体验版已就绪！
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.4.1）
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
 4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
 5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
 6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
@@ -888,7 +991,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 6: 联动智能体 {#agent_config type=manual required=true}
+## 步骤 6: 联动智能体 {#agent_config_edge_computing type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
@@ -909,7 +1012,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 7: 效果体验 {#demo type=manual required=false}
+## 步骤 7: 效果体验 {#demo_edge_computing type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -931,7 +1034,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 8: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 8: 打开面板 {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
