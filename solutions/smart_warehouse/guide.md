@@ -351,22 +351,21 @@ Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
 ## Preset: Tier 2A · Advanced (Single Site) {#private_cloud}
 
-Self-host the voice AI server while using cloud APIs (DeepSeek, OpenAI, etc.) for LLM and TTS. Your data stays on your network - only API calls go to the cloud.
+Tier 1 plus local high-accuracy face recognition: voice AI runs on the [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service, while face recognition inference runs on your local device — inventory and face data stay on your network.
 
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 (Hailo-8) or Jetson device | Runs warehouse system + face recognition service + voice AI service |
+| reComputer R2135-12 (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
 | USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
-- Full control over your data - inventory stays on your network
-- Flexible AI model choices (DeepSeek, GPT-4, Qwen, etc.)
-- Customize voice assistant prompts and behavior
+- Voice-controlled inventory with a real-time web dashboard
+- High-accuracy face recognition with records kept locally
 
 ✅ High-accuracy face recognition (with liveness detection) — the Hailo / TensorRT inference image is selected automatically by detected device model
 
-**Requirements:** Internet connection · LLM API keys required
+**Requirements:** Internet connection · [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free)
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -428,7 +427,7 @@ Connect your Watcher to SenseCraft cloud platform:
 6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
 7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
 8. Say "Enable face recognition mode" to the Watcher to switch it to face recognition detection
-9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL" (you'll need it in Step 7)
+9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL" (you'll need it in Step 6)
 
 ### Troubleshooting
 
@@ -521,35 +520,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 6: Voice AI Service {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
-
-Deploy the voice AI service to enable voice interaction with Watcher. Select "Private Cloud" mode and fill in your LLM API details.
-
-### Target {#voice_local type=local config=devices/xiaozhi_deploy.yaml}
-
-### Wiring
-
-1. Ensure Docker is installed and running
-2. Click Deploy button to start services
-
-### Target {#voice_remote type=remote config=devices/xiaozhi_deploy.yaml default=true}
-
-### Wiring
-
-1. Enter R2135-12 IP address and SSH credentials
-2. Click Deploy and wait for installation to complete
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Image pull failed | Check network connection, or configure Docker mirror |
-| Port in use | Check if ports 18000, 18003, 18004 are used by other services |
-| API call failed | Verify API key is correct and has sufficient balance |
-
----
-
-## Step 7: Connect to Agent {#agent_config type=manual required=true}
+## Step 6: Connect to Agent {#agent_config type=manual required=true}
 
 ![MCP Endpoint](gallery/mcp-endpoint.png)
 
@@ -570,7 +541,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ---
 
-## Step 8: Demo & Testing {#demo_private_cloud type=manual required=false}
+## Step 7: Demo & Testing {#demo_private_cloud type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -592,7 +563,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 9: Test Face Recognition {#face_test_2a type=manual required=false}
+## Step 8: Test Face Recognition {#face_test_2a type=manual required=false}
 
 Configure face recognition in the warehouse system and verify it works (this tier is high-accuracy, with liveness detection):
 
@@ -609,7 +580,7 @@ Configure face recognition in the warehouse system and verify it works (this tie
 | Face service not responding | Check `http://server-ip:8001/health` and confirm the face-rec container started in the deploy step |
 | Inaccurate recognition | Re-enroll well-lit, front-facing photos in "System Settings → Face Recognition" |
 
-## Step 10: Open Dashboard {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 9: Open Dashboard {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
@@ -626,9 +597,8 @@ Your private cloud warehouse system is ready!
 **Access points:**
 - Warehouse System: http://\<server-ip\>:2125
 - Face Recognition Service: http://\<server-ip\>:8001/health
-- Voice Service Console: http://\<server-ip\>:18003
 
-Your data stays on your network. Try saying "How many apples left?" to test.
+Inventory and face data stay on your network. Try saying "How many apples left?" to test.
 
 ---
 

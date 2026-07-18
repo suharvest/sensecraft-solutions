@@ -351,22 +351,21 @@ SenseCraft 体验版已就绪！
 
 ## 套餐: 套餐二A · 升级版（单点位）{#private_cloud}
 
-自建语音 AI 服务器，调用云端 API（DeepSeek、OpenAI 等）处理语音。数据不经过第三方平台，只有 API 调用。
+在套餐一的基础上增加本地高精度人脸识别：语音 AI 使用 [SenseCraft](https://sensecraft.seeed.cc/ai/) 云服务，人脸识别在本地设备上推理，库存与人脸数据留在自己网络内。
 
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12（Hailo-8）或 Jetson 设备 | 运行仓管系统 + 人脸识别服务 + 语音 AI 服务 |
+| reComputer R2135-12（Hailo-8）或 Jetson 设备 | 运行仓管系统 + 人脸识别服务 |
 | USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
-- 完全掌控数据——库存信息留在自己网络内
-- 自由选择 AI 模型（DeepSeek、GPT-4、通义千问等）
-- 自定义语音助手的提示词和行为
+- 语音操控库存，网页实时查看数据
+- 高精度人脸识别，识别记录留在本地
 
 ✅ 支持高精度人脸识别（含活体检测），按设备型号自动选择 Hailo / TensorRT 推理镜像
 
-**前提条件：** 需要联网 · 需要 LLM API 密钥
+**前提条件：** 需要联网 · [SenseCraft 账号](https://sensecraft.seeed.cc/ai/)（免费注册）
 
 ## 步骤 1: 更新小智固件 {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -428,7 +427,7 @@ SenseCraft 体验版已就绪！
 6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
 7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
 8. 对 Watcher 说「开启人脸识别模式」，让设备切换到人脸识别检测
-9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」（步骤 7 联动智能体会用到）
+9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」（步骤 6 联动智能体会用到）
 
 ### 故障排除
 
@@ -521,35 +520,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 6: 语音 AI 服务 {#voice_service type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
-
-部署语音 AI 服务，为 Watcher 提供语音交互能力。部署时选择「私有云方案」，需要填写 LLM API 信息。
-
-### 部署目标 {#voice_local type=local config=devices/xiaozhi_deploy.yaml}
-
-### 接线
-
-1. 确保 Docker 已安装并运行
-2. 点击部署按钮启动服务
-
-### 部署目标 {#voice_remote type=remote config=devices/xiaozhi_deploy.yaml default=true}
-
-### 接线
-
-1. 输入 R2135-12 的 IP 地址和 SSH 凭据
-2. 点击部署，等待安装完成
-
-### 故障排除
-
-| 问题 | 解决方法 |
-|------|----------|
-| 镜像拉取失败 | 检查网络连接，或配置 Docker 镜像加速 |
-| 端口被占用 | 检查 18000、18003、18004 端口是否被其他服务使用 |
-| API 调用失败 | 检查 API 密钥是否正确，余额是否充足 |
-
----
-
-## 步骤 7: 联动智能体 {#agent_config type=manual required=true}
+## 步骤 6: 联动智能体 {#agent_config type=manual required=true}
 
 ![MCP 端点](gallery/mcp-endpoint.png)
 
@@ -570,7 +541,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 8: 效果体验 {#demo_private_cloud type=manual required=false}
+## 步骤 7: 效果体验 {#demo_private_cloud type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -592,7 +563,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 9: 测试人脸识别 {#face_test_2a type=manual required=false}
+## 步骤 8: 测试人脸识别 {#face_test_2a type=manual required=false}
 
 在仓管系统中配置人脸识别并验证效果（本套餐为高精度识别，含活体检测）：
 
@@ -609,7 +580,7 @@ SenseCraft 体验版已就绪！
 | 人脸服务无响应 | 访问 `http://服务器IP:8001/health` 检查服务状态，确认部署步骤中 face-rec 容器已启动 |
 | 识别结果不准 | 在「系统设置 → 人脸识别」重新录入光线充足、正面清晰的人脸照片 |
 
-## 步骤 10: 打开面板 {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 9: 打开面板 {#dashboard_private_cloud type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -626,9 +597,8 @@ SenseCraft 体验版已就绪！
 **访问入口：**
 - 仓库系统：http://\<服务器IP\>:2125
 - 人脸识别服务：http://\<服务器IP\>:8001/health
-- 语音服务控制台：http://\<服务器IP\>:18003
 
-数据留在自己网络内。试着说「苹果还有多少」测试。
+库存与人脸数据留在自己网络内。试着说「苹果还有多少」测试。
 
 ---
 
