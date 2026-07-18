@@ -33,7 +33,7 @@ docker:
   services:
     - name: warehouse
       port: 2125
-      health_check_endpoint: /api/dashboard/stats
+      health_check_endpoint: /health
       required: true
 
 ssh:
