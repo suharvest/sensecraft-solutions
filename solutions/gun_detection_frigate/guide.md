@@ -303,7 +303,7 @@ docker compose restart
 | Port 5000 already in use | Stop existing services: `docker stop $(docker ps -q --filter publish=5000)` |
 | Container keeps restarting | Check logs: `docker logs frigate-hailo` — likely Hailo driver issue |
 
-## Step 3: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 3: Open Dashboard {#dashboard_r2000_hailo type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The Frigate dashboard is now live. Click below to open it in your browser.
 

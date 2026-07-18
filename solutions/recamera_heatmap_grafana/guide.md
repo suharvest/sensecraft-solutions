@@ -159,7 +159,7 @@ By default, the heatmap shows the camera's perspective. To display it on your st
 
 You only want to see the camera-view heatmap without mapping to a floor plan.
 
-## Step 4: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 4: Open Dashboard {#dashboard_recamera type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The Grafana dashboard is now live. Click below to open it in your browser.
 

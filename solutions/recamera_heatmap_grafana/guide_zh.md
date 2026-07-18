@@ -159,7 +159,7 @@ Jetson 热力图系统已运行！
 
 如果只想看摄像头视角的热力图，不需要映射到平面图，可以跳过。
 
-## 步骤 4: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 4: 打开面板 {#dashboard_recamera type=web_dashboard required=true config=devices/dashboard.yaml}
 
 Grafana 面板已经运行。点击下方按钮在浏览器中打开。
 

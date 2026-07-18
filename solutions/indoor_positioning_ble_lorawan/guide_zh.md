@@ -207,7 +207,7 @@
 
 **覆盖范围：** 约 2000 平方米 · 支持多个房间/楼层
 
-## 步骤 1: 部署 BLE 信标 {#beacons type=manual required=true}
+## 步骤 1: 部署 BLE 信标 {#beacons_standard type=manual required=true}
 
 在室内各处安装 BLE 信标作为定位参考点。
 
@@ -239,7 +239,7 @@
 
 ---
 
-## 步骤 2: 设置 LoRaWAN 网关 {#gateway type=manual required=true}
+## 步骤 2: 设置 LoRaWAN 网关 {#gateway_standard type=manual required=true}
 
 连接网关，建立追踪器与定位应用之间的通信。
 
@@ -266,7 +266,7 @@
 
 ---
 
-## 步骤 3: 部署定位应用程序 {#app_server type=docker_deploy required=true config=devices/app_deploy.yaml}
+## 步骤 3: 部署定位应用程序 {#app_server_standard type=docker_deploy required=true config=devices/app_deploy.yaml}
 
 ### 部署目标 {#app_server_local type=local config=devices/app_deploy.yaml default=true}
 
@@ -318,7 +318,7 @@
 
 ---
 
-## 步骤 4: 配置并激活追踪器 {#tracker type=manual required=true}
+## 步骤 4: 配置并激活追踪器 {#tracker_standard type=manual required=true}
 
 配置追踪器，在信标附近走动测试定位是否正常。
 
@@ -344,7 +344,7 @@
 
 ---
 
-## 步骤 5: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 5: 打开面板 {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 定位面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -399,7 +399,7 @@
 
 **覆盖范围：** 2000+ 平方米 · 增加网关可覆盖多栋建筑
 
-## 步骤 1: 部署 BLE 信标 {#beacons type=manual required=true}
+## 步骤 1: 部署 BLE 信标 {#beacons_enterprise type=manual required=true}
 
 在室内各处安装 BLE 信标作为定位参考点。
 
@@ -431,7 +431,7 @@
 
 ---
 
-## 步骤 2: 设置 LoRaWAN 网关 {#gateway type=manual required=true}
+## 步骤 2: 设置 LoRaWAN 网关 {#gateway_enterprise type=manual required=true}
 
 连接网关，建立追踪器与定位应用之间的通信。
 
@@ -458,7 +458,7 @@
 
 ---
 
-## 步骤 3: 部署定位应用程序 {#app_server type=docker_deploy required=true config=devices/app_deploy.yaml}
+## 步骤 3: 部署定位应用程序 {#app_server_enterprise type=docker_deploy required=true config=devices/app_deploy.yaml}
 
 ### 部署目标 {#app_server_local type=local config=devices/app_deploy.yaml default=true}
 
@@ -510,7 +510,7 @@
 
 ---
 
-## 步骤 4: 配置并激活追踪器 {#tracker type=manual required=true}
+## 步骤 4: 配置并激活追踪器 {#tracker_enterprise type=manual required=true}
 
 配置追踪器，在信标附近走动测试定位是否正常。
 
@@ -536,7 +536,7 @@
 
 ---
 
-## 步骤 5: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 5: 打开面板 {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
 
 定位面板已经运行。点击下方按钮在浏览器中打开。
 

@@ -185,7 +185,7 @@ Best for medium facilities (500-2000 sqm) like warehouses, offices, or retail st
 
 **Coverage:** Up to 2000 sqm · Multiple rooms/floors supported
 
-## Step 1: Deploy BLE Beacons {#beacons type=manual required=true}
+## Step 1: Deploy BLE Beacons {#beacons_standard type=manual required=true}
 
 Place BLE beacons at fixed locations around your space as position reference points.
 
@@ -205,7 +205,7 @@ Place BLE beacons at fixed locations around your space as position reference poi
 
 ---
 
-## Step 2: Setup LoRaWAN Gateway {#gateway type=manual required=true}
+## Step 2: Setup LoRaWAN Gateway {#gateway_standard type=manual required=true}
 
 Connect the gateway to enable wireless communication between tracker and positioning app.
 
@@ -226,7 +226,7 @@ Connect the gateway to enable wireless communication between tracker and positio
 
 ---
 
-## Step 3: Deploy Positioning Application {#app_server type=docker_deploy required=true config=devices/app_deploy.yaml}
+## Step 3: Deploy Positioning Application {#app_server_standard type=docker_deploy required=true config=devices/app_deploy.yaml}
 
 ### Target {#app_server_local type=local config=devices/app_deploy.yaml default=true}
 
@@ -278,7 +278,7 @@ Deploy the indoor positioning application to a remote server via SSH.
 
 ---
 
-## Step 4: Configure and Activate Tracker {#tracker type=manual required=true}
+## Step 4: Configure and Activate Tracker {#tracker_standard type=manual required=true}
 
 Set up the tracker and test positioning accuracy by walking near the installed beacons.
 
@@ -300,7 +300,7 @@ Set up the tracker and test positioning accuracy by walking near the installed b
 
 ---
 
-## Step 5: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 5: Open Dashboard {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The positioning dashboard is now live. Click below to open it in your browser.
 
@@ -355,7 +355,7 @@ Best for large facilities (2000+ sqm) like factories, hospitals, or campus build
 
 **Coverage:** 2000+ sqm · Add gateways for multi-building coverage
 
-## Step 1: Deploy BLE Beacons {#beacons type=manual required=true}
+## Step 1: Deploy BLE Beacons {#beacons_enterprise type=manual required=true}
 
 Place BLE beacons at fixed locations around your space as position reference points.
 
@@ -375,7 +375,7 @@ Place BLE beacons at fixed locations around your space as position reference poi
 
 ---
 
-## Step 2: Setup LoRaWAN Gateway {#gateway type=manual required=true}
+## Step 2: Setup LoRaWAN Gateway {#gateway_enterprise type=manual required=true}
 
 Connect the gateway to enable wireless communication between tracker and positioning app.
 
@@ -396,7 +396,7 @@ Connect the gateway to enable wireless communication between tracker and positio
 
 ---
 
-## Step 3: Deploy Positioning Application {#app_server type=docker_deploy required=true config=devices/app_deploy.yaml}
+## Step 3: Deploy Positioning Application {#app_server_enterprise type=docker_deploy required=true config=devices/app_deploy.yaml}
 
 ### Target {#app_server_local type=local config=devices/app_deploy.yaml default=true}
 
@@ -448,7 +448,7 @@ Deploy the indoor positioning application to a remote server via SSH.
 
 ---
 
-## Step 4: Configure and Activate Tracker {#tracker type=manual required=true}
+## Step 4: Configure and Activate Tracker {#tracker_enterprise type=manual required=true}
 
 Set up the tracker and test positioning accuracy by walking near the installed beacons.
 
@@ -470,7 +470,7 @@ Set up the tracker and test positioning accuracy by walking near the installed b
 
 ---
 
-## Step 5: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 5: Open Dashboard {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The positioning dashboard is now live. Click below to open it in your browser.
 

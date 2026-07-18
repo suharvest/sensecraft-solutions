@@ -303,7 +303,7 @@ docker compose restart
 | 端口 5000 被占用 | 停止占用服务：`docker stop $(docker ps -q --filter publish=5000)` |
 | 容器反复重启 | 查看日志：`docker logs frigate-hailo`——可能是 Hailo 驱动问题 |
 
-## 步骤 3: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 3: 打开面板 {#dashboard_r2000_hailo type=web_dashboard required=true config=devices/dashboard.yaml}
 
 Frigate 面板已经运行。点击下方按钮在浏览器中打开。
 
