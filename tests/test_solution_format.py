@@ -995,3 +995,46 @@ class TestTargetHeadingDeclaresType:
         )
         m = self._HEADING_RE.search(zh_good)
         assert m and self._TYPE_ATTR_RE.search(m.group(2))
+
+
+class TestDuplicateStepIdsAcrossPresets:
+    """Step ids reused across presets must have byte-identical content.
+
+    The engine resolves step content by id with first-preset-wins semantics:
+    a later preset reusing an id renders the earlier preset's step content.
+    Identical reuse (intentional shared step) is fine; divergent content is
+    a silent wrong-content bug and must be rejected by `solutionctl validate`.
+    """
+
+    STEP = (
+        "## 步骤 {n}: 打开面板 {{#dashboard type=docker_deploy required=true "
+        "config=devices/dashboard.yaml}}\n\n"
+        "面板已经运行。点击下方按钮打开。{extra}\n\n"
+        "### 故障排查\n"
+        "| 问题 | 解决方法 |\n"
+        "|------|----------|\n"
+        "| 页面无法加载 | 稍后重试 |\n\n"
+    )
+
+    def _guide(self, extra_b: str, n_b: int = 2) -> str:
+        return (
+            "## 套餐: 甲 {#preset_a}\n\n介绍 A。\n\n"
+            + self.STEP.format(n=1, extra="")
+            + "## 套餐: 乙 {#preset_b}\n\n介绍 B。\n\n"
+            + self.STEP.format(n=n_b, extra=extra_b)
+        )
+
+    def _run_check(self, guide_text: str) -> list[str]:
+        validate = pytest.importorskip("solutionctl.commands.validate")
+        result = parse_single_language_guide(guide_text, "zh")
+        return validate._check_duplicate_step_ids(result, "guide_zh.md", "zh")
+
+    def test_identical_reuse_allowed(self):
+        # Same content, different step numbers → intentional shared step, OK.
+        assert self._run_check(self._guide(extra_b="", n_b=5)) == []
+
+    def test_divergent_reuse_rejected(self):
+        errors = self._run_check(self._guide(extra_b="（乙套餐多了一句）"))
+        assert len(errors) == 1
+        assert "DIFFERENT content" in errors[0]
+        assert "#dashboard" in errors[0]

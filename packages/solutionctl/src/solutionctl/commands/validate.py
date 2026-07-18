@@ -108,6 +108,70 @@ def _check_orphan_h2(content: str, fname: str) -> list[str]:
     return errors
 
 
+def _localized_text(loc, lang: str) -> str:
+    """Plain-text value of a ``Localized`` for one language ('' when absent)."""
+    if loc is None:
+        return ""
+    getter = getattr(loc, "get", None)
+    val = getter(lang) if callable(getter) else None
+    if isinstance(val, list):
+        return "\n".join(str(v) for v in val)
+    return str(val) if val is not None else ""
+
+
+def _step_fingerprint(step, lang: str) -> tuple:
+    """Content identity of a parsed step, for duplicate-id comparison."""
+    sec = step.section
+    wiring = ("", "")
+    if sec.wiring is not None:
+        wiring = (sec.wiring.image or "", _localized_text(sec.wiring.steps, lang))
+    return (
+        step.type,
+        step.required,
+        step.config_file or "",
+        _localized_text(step.title, lang),
+        _localized_text(sec.subtitle, lang),
+        _localized_text(sec.description, lang),
+        _localized_text(sec.troubleshoot, lang),
+        _localized_text(sec.post_deploy, lang),
+        wiring,
+        tuple(t.id for t in (step.targets or [])),
+    )
+
+
+def _check_duplicate_step_ids(result, fname: str, lang: str) -> list[str]:
+    """Duplicate step ids are allowed ONLY when the step content is identical.
+
+    The engine app resolves step content by id with first-preset-wins
+    semantics: a later preset reusing an id renders the earlier preset's
+    step content. Reusing an id as a deliberate "shared step" (identical
+    content in both presets) is therefore harmless and permitted. But if
+    the two definitions diverge — even by one list item — the later preset
+    silently shows the earlier preset's version, which is a wrong-content
+    bug the author can't see. That divergence is what this check rejects.
+    """
+    errors: list[str] = []
+    seen: dict[str, tuple[str, tuple]] = {}
+    for preset in result.presets:
+        for step in preset.steps:
+            fp = _step_fingerprint(step, lang)
+            if step.id in seen:
+                first_preset, first_fp = seen[step.id]
+                if fp != first_fp:
+                    errors.append(
+                        f"{fname}: step id '#{step.id}' in preset '{preset.id}' "
+                        f"is already used in preset '{first_preset}' with "
+                        f"DIFFERENT content — the app resolves steps by id "
+                        f"(first preset wins), so this preset would silently "
+                        f"render '{first_preset}''s version. Either make both "
+                        f"definitions byte-identical (intentional shared step) "
+                        f"or rename this one, e.g. '#{step.id}_{preset.id}'."
+                    )
+            else:
+                seen[step.id] = (preset.id, fp)
+    return errors
+
+
 def _target_name_text(raw_name, lang: str) -> str:
     """Extract a plain target-name string from a str or ``Localized`` value."""
     if isinstance(raw_name, str):
@@ -237,6 +301,115 @@ def _plugin_type_warnings(
                 f"coverage but none is marked verify=true — mark a plugin verify "
                 f"step verify=true so it counts toward the ≥1 verify-step rule"
             )
+    return warnings
+
+
+def _required_field_present(dev_data: dict, spec_field: str) -> bool:
+    """True when a capabilities.json required-field spec is satisfied.
+
+    ``a.b.c`` walks nested mappings; ``key[]`` requires a non-empty list.
+    """
+    if spec_field.endswith("[]"):
+        val = dev_data.get(spec_field[:-2])
+        return isinstance(val, list) and len(val) > 0
+    node = dev_data
+    for part in spec_field.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return node is not None
+
+
+def _iter_step_config_refs(result):
+    """Yield (step, config_path, origin) for every config= pointer in a parsed
+    guide: the step's own config plus per-target / per-mode overrides."""
+    for preset in result.presets:
+        for step in preset.steps:
+            if step.config_file:
+                yield step, step.config_file, f"step '#{step.id}'"
+            for target in step.targets or []:
+                if target.config_file:
+                    yield step, target.config_file, (
+                        f"target '#{target.id}' in step '#{step.id}'"
+                    )
+            for mode in step.modes or []:
+                if mode.config_file:
+                    yield step, mode.config_file, (
+                        f"mode '#{mode.id}' in step '#{step.id}'"
+                    )
+
+
+def _check_step_config_pointers(
+    result, fname: str, sol_path: Path, deployers_info: dict
+) -> tuple[list[str], set[str]]:
+    """Every ``config=`` pointer must resolve to an existing YAML whose content
+    satisfies the required fields of the step's deployer type.
+
+    The guide heading defines the step's existence and prose; the device YAML
+    is the executable payload. A dangling pointer (or a payload missing the
+    deployer's required fields, e.g. ``firmware.flash_config`` for
+    ``esp32_usb``) means the step renders fine but cannot actually deploy.
+
+    Returns (errors, referenced_relative_paths) — the latter feeds the orphan
+    device-YAML warning.
+    """
+    import yaml
+
+    errors: list[str] = []
+    referenced: set[str] = set()
+    for step, cfg_rel, origin in _iter_step_config_refs(result):
+        referenced.add(cfg_rel)
+        cfg_path = sol_path / cfg_rel
+        if not cfg_path.is_file():
+            errors.append(
+                f"{fname}: {origin} points at config='{cfg_rel}' which does "
+                f"not exist — the step will render but has no executable "
+                f"payload. Fix the path or add the device YAML."
+            )
+            continue
+        # Required-field check only for the step's own config: target/mode
+        # configs are partial overrides merged by the engine.
+        if cfg_rel != step.config_file:
+            continue
+        required = (deployers_info.get(step.type) or {}).get("required") or []
+        if not required:
+            continue
+        try:
+            dev_data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+        except yaml.YAMLError:
+            continue  # parse error already reported by the schema pass
+        if not isinstance(dev_data, dict):
+            continue
+        missing = [f for f in required if not _required_field_present(dev_data, f)]
+        if missing:
+            errors.append(
+                f"{fname}: {origin} (type={step.type}) config '{cfg_rel}' is "
+                f"missing required field(s) {missing} — capabilities.json "
+                f"requires them for this deployer, so deployment would fail "
+                f"at runtime."
+            )
+    return errors, referenced
+
+
+def _check_orphan_device_yamls(
+    sol_path: Path, referenced: set[str], sol_yaml_text: str
+) -> list[str]:
+    """Warn about devices/*.yaml not referenced by any guide step or by
+    solution.yaml — usually a stale file, or an author editing a config that
+    nothing actually points at."""
+    devices_dir = sol_path / "devices"
+    if not devices_dir.is_dir():
+        return []
+    warnings: list[str] = []
+    for dev_file in sorted(devices_dir.glob("*.yaml")):
+        rel = f"devices/{dev_file.name}"
+        if rel in referenced or rel in sol_yaml_text:
+            continue
+        warnings.append(
+            f"{rel}: not referenced by any guide step (config=) nor by "
+            f"solution.yaml — editing it has no effect; delete it or wire "
+            f"it to a step."
+        )
     return warnings
 
 
@@ -411,6 +584,7 @@ def run(
         }
         any_guide = False
         parsed: dict[str, object] = {}
+        referenced_configs: set[str] = set()
         for fname, lang in guide_files:
             content = guide_contents.get(lang)
             if content is None:
@@ -422,6 +596,12 @@ def run(
                 errors.append(f"{fname}: {perr}")
             # --- 4. parser-based structure/format rules (engine-free) --------
             errors.extend(_check_orphan_h2(content, fname))
+            errors.extend(_check_duplicate_step_ids(result, fname, lang))
+            cfg_errors, cfg_refs = _check_step_config_pointers(
+                result, fname, sol_path, deployers_info
+            )
+            errors.extend(cfg_errors)
+            referenced_configs |= cfg_refs
             errors.extend(
                 _check_verify_and_target_naming(
                     result, sol_id, fname, lang, verify_types, verify_exempt
@@ -441,6 +621,16 @@ def run(
         if plugin_types:
             warnings.extend(
                 _plugin_type_warnings(plugin_types, parsed, required_plugin_ids)
+            )
+
+        # --- 4d. orphan device YAMLs (WARN) ----------------------------------
+        if any_guide:
+            warnings.extend(
+                _check_orphan_device_yamls(
+                    sol_path,
+                    referenced_configs,
+                    sol_yaml.read_text(encoding="utf-8") if sol_yaml.is_file() else "",
+                )
             )
 
     # --- 5. shared engine-free static checks (referenced files, i18n, dup ids,

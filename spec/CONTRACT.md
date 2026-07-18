@@ -136,6 +136,18 @@ Canonical heading keywords are defined in [`docs/guide-heading-keywords.md`](../
 | `###` | Prerequisites | `Prerequisites` | `前置条件` |
 | `###` | Deployment Complete | `Deployment Complete` | `部署完成` |
 
+### Step id uniqueness across presets
+
+Step ids (`{#id}`) are resolved **globally per guide file, first preset
+wins** — a later preset reusing an id renders the earlier preset's step
+content, regardless of what is written under the later heading. Therefore:
+
+- Reusing a step id across presets is allowed **only when both step
+  definitions are byte-identical** (an intentional "shared step").
+- If the definitions diverge at all, the later preset silently shows the
+  wrong content. `solutionctl validate` rejects this as an error — rename
+  one of the ids (e.g. `#dashboard_edge_computing`).
+
 
 ## Derived rules (human-authored)
 

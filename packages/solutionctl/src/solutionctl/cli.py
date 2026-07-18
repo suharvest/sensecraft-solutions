@@ -103,6 +103,16 @@ def _cmd_validate(args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_steps(args: argparse.Namespace) -> int:
+    from .commands import steps
+
+    return steps.run(
+        solution_path=args.solution_path,
+        lang=args.lang,
+        spec_dir=args.spec_dir,
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="solutionctl",
@@ -190,6 +200,22 @@ def build_parser() -> argparse.ArgumentParser:
     p_manage = sub.add_parser("manage", help="Drive headless device-management REST")
     p_manage.add_argument("subcommand", help="e.g. list-apps")
     p_manage.set_defaults(func=_cmd_manage)
+
+    p_steps = sub.add_parser(
+        "steps",
+        help="Print the assembled preset → step → payload view of a solution "
+        "(guide heading + its devices/*.yaml payload joined; zero engine)",
+    )
+    p_steps.add_argument("solution_path", help="Path to the solution directory")
+    p_steps.add_argument(
+        "--lang", default="en", choices=["en", "zh"], help="Guide language (default en)"
+    )
+    p_steps.add_argument(
+        "--spec-dir",
+        default=None,
+        help="Path to the contract spec/ directory (auto-detected when omitted)",
+    )
+    p_steps.set_defaults(func=_cmd_steps)
 
     p_validate = sub.add_parser(
         "validate",

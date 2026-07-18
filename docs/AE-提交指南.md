@@ -92,6 +92,20 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/你的方
 
 它会检查：字段对不对、引用的文件在不在、中英文齐不齐、**链接有没有失效**、能不能部署起来等。**有红色报错就让 AI 帮你修，改到全绿**。
 
+其中几条容易踩的规则，报错时会解释原因，这里提前说明白：
+
+- **步骤 id 不能跨套餐撞车**：`## 步骤 N: …… {#id}` 里的 `#id` 是全文件级别的。两个套餐用同一个 id，引擎会"先到先得"——后面那个套餐显示的是前面套餐的内容。同 id 仅在**两处内容逐字一致**（有意共享）时允许；内容有差异必须改名（如 `#dashboard_edge_computing`）。
+- **`config=` 指针要能干活**：步骤标题里的 `config=devices/xxx.yaml` 指向真正执行的配置（固件地址、sha256、烧录参数都在那里，guide 正文只是给用户看的说明）。指针指向不存在的文件、或 YAML 缺少该步骤类型的必填字段（如 `esp32_usb` 缺 `firmware.flash_config`），都会报错。
+- **孤儿 YAML 会警告**：`devices/` 下没被任何步骤引用的 YAML——改它不会有任何效果，通常说明指针写错了或文件该删。
+
+想直观看到「每一步到底部署什么」，用装配视图：
+
+```bash
+uv run --package sensecraft-solutionctl solutionctl steps solutions/你的方案 --lang zh
+```
+
+它把每个套餐的步骤和背后的载荷（固件 URL/sha256、compose 文件等）拼在一起打印，发布前核对固件校验值也用它。
+
 ### 2.2 在 App 里预览（看长啥样）
 
 让 AI 助手用 **`preview-solution-content` skill** 把你的方案导进**本机已装的 App** 预览（不影响别人，只在你电脑上看）：
