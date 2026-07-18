@@ -149,7 +149,7 @@ intro:
         zh: 需要外网 · 连接 SenseCraft 云服务 · 快速部署、低成本起步，不支持高精度人脸识别
     - id: private_cloud
       name: Tier 2A · Advanced (Single Site)
-      description: Self-hosted AI, supports face recognition, single voice channel
+      description: Self-hosted AI, high-accuracy face recognition with liveness, single voice channel
       device_groups:
         - id: watcher
           name: Voice Assistant
@@ -166,13 +166,14 @@ intro:
           required: true
           options:
             - device_ref: recomputer_r2135
+            - device_ref: recomputer_super_j4012
           default: recomputer_r2135
           name_i18n:
             zh: 边缘网关
       name_i18n:
         zh: 套餐二A · 升级版（单点位）
       description_i18n:
-        zh: 需要外网 · 本地 AI 服务 · 支持人脸识别 · 单点位语音
+        zh: 需要外网 · 本地 AI 服务 · 高精度人脸识别（含活体检测）· 单点位语音
     - id: private_cloud_multi
       name: Tier 2B · Advanced (Multi Site)
       description: Self-hosted AI, supports face recognition, multi-channel concurrent voice

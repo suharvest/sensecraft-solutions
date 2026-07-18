@@ -1,0 +1,55 @@
+services:
+  warehouse:
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
+    container_name: mcp_warehouse
+    ports:
+      - "2125:2125"
+    environment:
+      - PORT=2125
+      - DATABASE_PATH=/data/warehouse.db
+      - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
+      - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - FACE_REC_API_URL=http://face-rec:8001
+    volumes:
+      - warehouse_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2125/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  face-rec:
+    image: sensecraft-missionpack.seeed.cn/solution/face-rec-api:v1.0-jetson
+    container_name: mcp_face_rec
+    runtime: nvidia
+    ports:
+      - "8001:8001"
+    environment:
+      - FACE_BACKEND=jetson
+      - LIVENESS_ENABLED=true
+    volumes:
+      # TensorRT / CUDA come from the host JetPack (not baked in the image).
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_dispatch:/usr/lib/python3.10/dist-packages/tensorrt_dispatch:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_lean:/usr/lib/python3.10/dist-packages/tensorrt_lean:ro
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - ./face/models:/models:ro
+      - face_rec_data:/data
+      - ./face/photos:/photos
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  warehouse_data:
+    driver: local
+  face_rec_data:
+    driver: local
