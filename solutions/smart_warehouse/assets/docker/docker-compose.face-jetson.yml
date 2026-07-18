@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
   face-rec:
-    image: sensecraft-missionpack.seeed.cn/solution/face-rec-api:v1.0-jetson
+    image: sensecraft-missionpack.seeed.cn/solution/face-rec-api:v1.1-jetson
     container_name: mcp_face_rec
     runtime: nvidia
     ports:
@@ -37,7 +37,9 @@ services:
       - /usr/lib/python3.10/dist-packages/tensorrt_lean:/usr/lib/python3.10/dist-packages/tensorrt_lean:ro
       - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
       - /usr/local/cuda:/usr/local/cuda:ro
-      - ./face/models:/models:ro
+      # Default JetPack 6.2 .engine files + .onnx sources are baked into the
+      # image at /models (since v1.1-jetson). On a different JetPack the
+      # backend rebuilds engines from ONNX at first start (takes minutes).
       - face_rec_data:/data
       - ./face/photos:/photos
     healthcheck:
