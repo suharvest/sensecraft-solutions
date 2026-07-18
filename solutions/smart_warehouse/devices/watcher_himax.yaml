@@ -17,9 +17,9 @@ detection:
 
 firmware:
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/face_recognition-8f75fb27.img
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/face_recognition-ddeff02c.img
     checksum:
-      sha256: 8f75fb27b3f2c10640a897ebed8795b5909ee37d4805a513859670bf0d362d41
+      sha256: 31bf0e9754c1f08f649433763197e4e45c16066ba27736a2fda3053573c0689b
   flash_config:
     baudrate: 921600
     requires_reset: false  # No manual reset needed - ESP32 hold triggers Himax bootloader
