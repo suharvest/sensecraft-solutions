@@ -21,6 +21,7 @@ intro:
 
   output_interfaces:
     - type: websocket
+      endpoint: "{{mcp_endpoint}} (user-supplied XiaoZhi/MCP access-point URL, set during deployment)"
       description: Outbound MCP (Model Context Protocol) JSON-RPC bridge. Dials out to a XiaoZhi voice-assistant MCP access point (or any MCP-compatible host) and exposes 9 tools — get_farm_overview, get_device_reading, register_device, get_device_key, view_latest_telemetry_data, list_telemetry_data, aggregate_chart_points, list_all_code, read_code_file.
       schema_type: json
       payload_example: '{"method":"tools/call","params":{"name":"get_farm_overview","arguments":{}}}'

@@ -183,7 +183,9 @@ SenseCraft 体验版已就绪！
 
 ![Agent 配置](gallery/configure_agent.gif)
 
-将 Watcher 连接到 SenseCraft 云平台：
+先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址（步骤 6 会用到）。
+
+### 接线
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
@@ -193,7 +195,7 @@ SenseCraft 体验版已就绪！
 6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
 7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
 8. 对 Watcher 说「开启人脸识别模式」，让设备切换到人脸识别检测
-9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」（步骤 6 联动智能体会用到）
+9. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」
 
 ### 故障排除
 
@@ -714,7 +716,9 @@ SenseCraft 体验版已就绪！
 
 ![Agent 配置](gallery/configure_agent.gif)
 
-将 Watcher 连接到 SenseCraft 云平台：
+先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址。
+
+### 接线
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
@@ -940,7 +944,9 @@ SenseCraft 体验版已就绪！
 
 ![Agent 配置](gallery/configure_agent.gif)
 
-将 Watcher 连接到 SenseCraft 云平台：
+先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址。
+
+### 接线
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
