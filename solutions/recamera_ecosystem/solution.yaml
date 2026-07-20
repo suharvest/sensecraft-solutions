@@ -204,7 +204,7 @@ intro:
           name_i18n:
             zh: AI 摄像头
       links:
-        github: https://github.com/yyling0101-a11y/weather_classification_recamera
+        github: https://github.com/Love4yzp/weather_classification_recamera
       name_i18n:
         zh: 天气识别
       badge_i18n:

@@ -5,8 +5,12 @@ Both build artifacts are complete and wired into `devices/recamera_weather.yaml`
 ## Artifacts
 
 - `weather-classifier_0.1.0_riscv64.deb` — committed in this directory. Cross-compiled
-  against reCamera-OS SDK 0.2.2 (matches the test device's firmware date) with the
-  RTSP+MQTT patch from `weather_classification_main.cpp.patch.md` applied.
+  against reCamera-OS SDK 0.2.2 (matches the test device's firmware date) from
+  [`Love4yzp/weather_classification_recamera`](https://github.com/Love4yzp/weather_classification_recamera)
+  — a fork of the upstream demo with the RTSP+MQTT patch applied and committed directly
+  (`main.cpp`, `main/mqtt_publisher.h/.cpp`, `main/rtsp_demo.h/.c`), replacing the
+  earlier prose patch doc that used to live in this directory. To rebuild: clone that fork
+  and cross-compile as-is, no patch to apply by hand.
 - `weather_mobilenetv3_small_bf16.cvimodel` — hosted at
   `https://files.seeedstudio.com/Solution/models/weather_mobilenetv3_small_bf16.cvimodel`
   (not committed to this repo — referenced by URL in `devices/recamera_weather.yaml`,
@@ -69,13 +73,12 @@ the pidfile is stale, and loading `/etc/recamera.conf` (global) before
 
 ## Reference
 
-- `weather_classification_main.cpp.patch.md` — the applied source patch (main.cpp,
-  mqtt_publisher.h/.cpp, rtsp_demo.h/.c). One gap found during the real build not covered
-  by the original draft: `cvi_rtsp` only provides the low-level `CVI_RTSP_*` API, not the
-  `initRtsp`/`deinitRtsp`/`fpStreamingSendToRtsp` wrapper functions — those had to be
-  vendored from `sscma-example-sg200x`'s own `solutions/video_demo/main/rtsp_demo.c`
-  (verified byte-for-byte reusable, same call pattern already assumed in the patch); the
-  patch doc has since been updated with the real content and a status note.
+- Source: [`Love4yzp/weather_classification_recamera`](https://github.com/Love4yzp/weather_classification_recamera)
+  (fork of `yyling0101-a11y/weather_classification_recamera`), commit `992c23e` — this is
+  the actual patched source, not a prose description of it. `cvi_rtsp` only provides the
+  low-level `CVI_RTSP_*` API, not the `initRtsp`/`deinitRtsp`/`fpStreamingSendToRtsp`
+  wrapper functions — those were vendored from `sscma-example-sg200x`'s own
+  `solutions/video_demo/main/rtsp_demo.c` (verified byte-for-byte reusable).
 - Toolchain: `sophgo/host-tools` repo, `gcc/riscv64-linux-musl-x86_64` directory
   (Xuantie-900 gcc 10.2.0, Toolchain V2.6.1 B-20220906 — confirmed to exactly match the
   test device's `/proc/version` toolchain string). SDK libs/headers: reCamera-OS release
@@ -88,5 +91,6 @@ the pidfile is stale, and loading `/etc/recamera.conf` (global) before
 ## License note
 
 The upstream demo repo (https://github.com/yyling0101-a11y/weather_classification_recamera)
-has no LICENSE file (all rights reserved by default). Confirm reuse rights with the author
-before shipping the ported binary publicly, if not already an internal/authorized resource.
+has no LICENSE file (all rights reserved by default), and neither does the fork above.
+Confirm reuse rights with the author before shipping the ported binary or the fork's source
+publicly, if not already an internal/authorized resource.
