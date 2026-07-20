@@ -5,11 +5,11 @@ name: Publish Content to CDN
 # pull_request/pull_request_target triggers are deliberately absent so a
 # fork PR can never see OSS_ACCESS_KEY_ID/OSS_ACCESS_KEY_SECRET.
 #
-# NOTE: workflow_dispatch still lets anyone with write access run this on an
-# arbitrary branch/ref (not just main) — a write collaborator running a
-# modified generator on a feature branch could still reach the secrets. If
-# that's a real threat model here, gate this job behind a GitHub
-# "environment" scoped to main with required reviewers.
+# OSS_ACCESS_KEY_ID/OSS_ACCESS_KEY_SECRET live in the "cdn-publish" GitHub
+# Environment, which has a deployment-branch policy restricting it to `main`
+# only — dispatching this workflow on any other ref makes the job fail to
+# resolve the secrets before the credentials are ever touched, closing the
+# "write collaborator runs a modified generator on a feature branch" hole.
 on:
   workflow_dispatch:
     inputs:
@@ -21,6 +21,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: cdn-publish
     permissions:
       contents: write
       pull-requests: write
