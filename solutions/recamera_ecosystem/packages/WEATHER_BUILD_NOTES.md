@@ -4,7 +4,10 @@ Both build artifacts are complete and wired into `devices/recamera_weather.yaml`
 
 ## Artifacts
 
-- `weather-classifier_0.1.0_riscv64.deb` — committed in this directory. Cross-compiled
+- `weather-classifier_0.1.0_riscv64.deb` — hosted at
+  `https://files.seeedstudio.com/Solution/landpage_asset/recamera-ecosystem/weather-classifier_0.1.0_riscv64-7e53a545.deb`
+  (not committed to this repo; sha256
+  `d7ea50ac3c16309d3c230f1a32a6894b1cda1f28451e43a83980434b7e199f7f`). Cross-compiled
   against reCamera-OS SDK 0.2.2 (matches the test device's firmware date) from
   [`Love4yzp/weather_classification_recamera`](https://github.com/Love4yzp/weather_classification_recamera)
   — a fork of the upstream demo with the RTSP+MQTT patch applied and committed directly

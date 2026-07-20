@@ -187,8 +187,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:

@@ -31,7 +31,7 @@ binary:
   # 给绕开 App、直接 SSH/reboot 场景兜底。反向（其余旧 preset 的 init 脚本主动认识
   # weather-classifier）不在本仓库控制范围内，因为它们的 .deb 由远程 CDN 托管。
   deb_package:
-    path: packages/weather-classifier_0.1.0_riscv64.deb
+    path: https://files.seeedstudio.com/Solution/landpage_asset/recamera-ecosystem/weather-classifier_0.1.0_riscv64-7e53a545.deb
     name: weather-classifier
     includes_init_script: true
     checksum:
