@@ -33,14 +33,8 @@ intro:
     - automation
     - recomputer
   device_catalog:
-    recomputer_r1100:
-      sku: 113991374
-      name: reComputer R1100
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+    recomputer_r11:
       description: Edge computing device with Docker support
-      name_i18n:
-        zh: reComputer R1100
       description_i18n:
         zh: 边缘计算设备，内置 Docker
   stats:
@@ -61,8 +55,8 @@ intro:
           required: false
           description: Only needed for remote deployment
           options:
-            - device_ref: recomputer_r1100
-          default: recomputer_r1100
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: 边缘设备
           description_i18n:

@@ -38,18 +38,11 @@ intro:
     - asset-tracking
     - sensecap
   device_catalog:
-    t1000_tracker:
-      sku: 114993073
-      name: SenseCAP T1000 Tracker
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-114993073-sensecap-card-tracker-t1000-a.jpg
-      product_url: https://www.seeedstudio.com/SenseCAP-Card-Tracker-T1000-B-p-5698.html
+    sensecap_t1000_tracker:
       description: LoRaWAN mobile tracker with BLE scanning, motion detection, and SOS button
-      name_i18n:
-        zh: SenseCAP T1000 追踪器
       description_i18n:
         zh: LoRaWAN 移动追踪器，支持 BLE 扫描、运动检测和 SOS 按钮
-    bc01_beacon:
-      sku: 100085893
+    external_bc03_beacon:
       name: SenseCAP BC03 Indoor Bluetooth Beacon
       image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-bc03-bluetooth-beacon.jpg
       product_url: https://www.seeedstudio.com/Indoor-Bluetooth-Beacon-BC03-p-6732.html
@@ -58,36 +51,10 @@ intro:
         zh: SenseCAP BC03 室内蓝牙信标
       description_i18n:
         zh: 蓝牙 LE 5.0 信标，支持 iBeacon/Eddystone，电池寿命长达 2 年
-    gateway_us915:
-      sku: "114992982"
-      name: SenseCAP M2 Gateway (US915)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_us915_1.jpg
-      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-US915-p-5472.html
-      description: LoRaWAN gateway for Americas region (US915), 2km indoor coverage
-      name_i18n:
-        zh: SenseCAP M2 网关 (US915)
+    sensecap_m2_gateway:
+      description: LoRaWAN gateway for indoor positioning; choose the regional frequency variant when purchasing
       description_i18n:
-        zh: 美洲地区 LoRaWAN 网关 (US915)，室内覆盖半径 2km
-    gateway_eu868:
-      sku: "114992981"
-      name: SenseCAP M2 Gateway (EU868)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_eu868_1.jpg
-      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-EU868-p-5471.html
-      description: LoRaWAN gateway for Europe region (EU868), 2km indoor coverage
-      name_i18n:
-        zh: SenseCAP M2 网关 (EU868)
-      description_i18n:
-        zh: 欧洲地区 LoRaWAN 网关 (EU868)，室内覆盖半径 2km
-    gateway_as923:
-      sku: "114992983"
-      name: SenseCAP M2 Gateway (AS923)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/1/114992981_as923_1.jpg
-      product_url: https://www.seeedstudio.com/SenseCAP-Multi-Platform-LoRaWAN-Indoor-Gateway-SX1302-AS923-p-5473.html
-      description: LoRaWAN gateway for Asia-Pacific region (AS923), 2km indoor coverage
-      name_i18n:
-        zh: SenseCAP M2 网关 (AS923)
-      description_i18n:
-        zh: 亚太地区 LoRaWAN 网关 (AS923)，室内覆盖半径 2km
+        zh: 用于室内定位的 LoRaWAN 网关；购买时选择所在地区对应的频段版本
   stats:
     deployed_count: 0
     likes_count: 0
@@ -109,30 +76,19 @@ intro:
           name: LoRaWAN Gateway
           type: single
           required: true
-          description: Select the gateway for your region
+          description: The purchase profile provides the regional frequency variants
           options:
-            - device_ref: gateway_us915
-              label: Americas (US915)
-              label_i18n:
-                zh: 美洲 (US915)
-            - device_ref: gateway_eu868
-              label: Europe (EU868)
-              label_i18n:
-                zh: 欧洲 (EU868)
-            - device_ref: gateway_as923
-              label: Asia-Pacific (AS923)
-              label_i18n:
-                zh: 亚太 (AS923)
-          default: gateway_us915
+            - device_ref: sensecap_m2_gateway
+          default: sensecap_m2_gateway
           name_i18n:
             zh: LoRaWAN 网关
           description_i18n:
-            zh: 选择您所在地区的网关
+            zh: 具体地区频段版本由产品资料提供
         - id: beacons
           name: BLE Beacons
           type: quantity
           required: true
-          device_ref: bc01_beacon
+          device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
           default_count: 6
@@ -145,7 +101,7 @@ intro:
           name: T1000 Tracker
           type: quantity
           required: true
-          device_ref: t1000_tracker
+          device_ref: sensecap_t1000_tracker
           min_count: 1
           max_count: 50
           default_count: 1
@@ -171,30 +127,19 @@ intro:
           name: LoRaWAN Gateway
           type: single
           required: true
-          description: Select the gateway for your region
+          description: The purchase profile provides the regional frequency variants
           options:
-            - device_ref: gateway_us915
-              label: Americas (US915)
-              label_i18n:
-                zh: 美洲 (US915)
-            - device_ref: gateway_eu868
-              label: Europe (EU868)
-              label_i18n:
-                zh: 欧洲 (EU868)
-            - device_ref: gateway_as923
-              label: Asia-Pacific (AS923)
-              label_i18n:
-                zh: 亚太 (AS923)
-          default: gateway_us915
+            - device_ref: sensecap_m2_gateway
+          default: sensecap_m2_gateway
           name_i18n:
             zh: LoRaWAN 网关
           description_i18n:
-            zh: 选择您所在地区的网关
+            zh: 具体地区频段版本由产品资料提供
         - id: beacons
           name: BLE Beacons
           type: quantity
           required: true
-          device_ref: bc01_beacon
+          device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
           default_count: 15
@@ -207,7 +152,7 @@ intro:
           name: T1000 Tracker
           type: quantity
           required: true
-          device_ref: t1000_tracker
+          device_ref: sensecap_t1000_tracker
           min_count: 1
           max_count: 50
           default_count: 3
@@ -231,30 +176,19 @@ intro:
           name: LoRaWAN Gateway
           type: single
           required: true
-          description: Select the gateway for your region
+          description: The purchase profile provides the regional frequency variants
           options:
-            - device_ref: gateway_us915
-              label: Americas (US915)
-              label_i18n:
-                zh: 美洲 (US915)
-            - device_ref: gateway_eu868
-              label: Europe (EU868)
-              label_i18n:
-                zh: 欧洲 (EU868)
-            - device_ref: gateway_as923
-              label: Asia-Pacific (AS923)
-              label_i18n:
-                zh: 亚太 (AS923)
-          default: gateway_us915
+            - device_ref: sensecap_m2_gateway
+          default: sensecap_m2_gateway
           name_i18n:
             zh: LoRaWAN 网关
           description_i18n:
-            zh: 选择您所在地区的网关
+            zh: 具体地区频段版本由产品资料提供
         - id: beacons
           name: BLE Beacons
           type: quantity
           required: true
-          device_ref: bc01_beacon
+          device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
           default_count: 30
@@ -267,7 +201,7 @@ intro:
           name: T1000 Tracker
           type: quantity
           required: true
-          device_ref: t1000_tracker
+          device_ref: sensecap_t1000_tracker
           min_count: 1
           max_count: 50
           default_count: 10

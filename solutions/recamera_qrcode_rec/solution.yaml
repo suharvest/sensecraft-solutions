@@ -25,11 +25,7 @@ intro:
       description_i18n:
         zh: reCamera 2002 系列设备，并能清晰拍摄二维码
   device_catalog:
-    recamera:
-      sku: 102991897
-      name: reCamera 2002 Series
-      name_i18n:
-        zh: reCamera 2002 系列
+    recamera_2002:
       description: AI camera running local QR code recognition
       description_i18n:
         zh: 在本地运行二维码识别的 AI 摄像头
@@ -49,8 +45,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-              default: recamera
+            - device_ref: recamera_2002
+              default: recamera_2002
   stats:
     difficulty: beginner
     estimated_time: 5min

@@ -39,24 +39,12 @@ intro:
   input_requirements: []
 
   device_catalog:
-    recamera:
-      sku: 102991894
-      name: reCamera
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
-      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+    recamera_2002:
       description: AI camera with YOLO detection and RTSP streaming
-      name_i18n:
-        zh: reCamera
       description_i18n:
         zh: AI 摄像头，支持 YOLO 识别和 RTSP 视频流
-    recomputer_r1100:
-      sku: 113991374
-      name: reComputer R1100
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+    recomputer_r11:
       description: Edge computing device for running Home Assistant
-      name_i18n:
-        zh: reComputer R1100
       description_i18n:
         zh: 边缘计算设备，运行 Home Assistant
   stats:
@@ -77,8 +65,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -100,8 +88,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
         - id: server
@@ -109,8 +97,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r1100
-          default: recomputer_r1100
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: Home Assistant 服务器
       links:
@@ -131,8 +119,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -153,8 +141,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -175,8 +163,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:

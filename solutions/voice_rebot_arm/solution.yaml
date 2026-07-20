@@ -56,14 +56,11 @@ intro:
         zh: 首次启动需联网拉取容器镜像并下载模型（LLM 引擎、语音模型、抓取检测模型，共约 4GB）。运行期间推理全部本地完成，不依赖在线 API。
 
   device_catalog:
-    rebot_b601dm:
-      name: reBot B601-DM Robotic Arm
+    rebot_arm_b601:
       description: 6-DoF robotic arm with Damiao motors and a parallel gripper (0.100 m max jaw)
-      name_i18n:
-        zh: reBot B601-DM 机械臂
       description_i18n:
         zh: 六自由度达妙电机机械臂，平行夹爪（最大开口 0.100 m）
-    orbbec_gemini2:
+    external_orbbec_gemini2:
       name: Orbbec Gemini 2 RGB-D Camera
       product_url: https://www.orbbec.com/products/stereo-vision-camera/gemini-2/
       description: Stereo-depth RGB-D camera, wrist-mounted (eye-in-hand)
@@ -71,22 +68,12 @@ intro:
         zh: 奥比中光 Gemini 2 RGB-D 相机
       description_i18n:
         zh: 双目深度 RGB-D 相机，装于手腕（眼在手）
-    respeaker_mic:
-      name: reSpeaker USB Mic Array
-      product_url: https://www.seeedstudio.com/reSpeaker-Flex-XVF3800-Circular-4-p-6737.html
+    respeaker_flex:
       description: USB microphone array for far-field voice capture
-      name_i18n:
-        zh: reSpeaker USB 麦克风阵列
       description_i18n:
         zh: USB 麦克风阵列，远场语音采集
-    recomputer_j4012:
-      sku: 110110145
-      name: reComputer Super J4012 (Jetson Orin NX 16GB)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-110110145-recomputer_j4012.jpg
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+    recomputer_j40:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer (JetPack 6)
-      name_i18n:
-        zh: reComputer Super J4012（Jetson Orin NX 16GB）
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 主机（JetPack 6）
 
@@ -100,8 +87,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: rebot_b601dm
-          default: rebot_b601dm
+            - device_ref: rebot_arm_b601
+          default: rebot_arm_b601
           name_i18n:
             zh: 机械臂
         - id: camera
@@ -109,8 +96,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: orbbec_gemini2
-          default: orbbec_gemini2
+            - device_ref: external_orbbec_gemini2
+          default: external_orbbec_gemini2
           name_i18n:
             zh: 深度相机
         - id: microphone
@@ -118,8 +105,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: respeaker_mic
-          default: respeaker_mic
+            - device_ref: respeaker_flex
+          default: respeaker_flex
           name_i18n:
             zh: 麦克风
         - id: rebot_stack
@@ -127,8 +114,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j4012
-          default: recomputer_j4012
+            - device_ref: recomputer_j40
+          default: recomputer_j40
           name_i18n:
             zh: 计算单元
       name_i18n:

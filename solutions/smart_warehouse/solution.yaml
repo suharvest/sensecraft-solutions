@@ -45,50 +45,23 @@ intro:
 
   device_catalog:
     sensecap_watcher:
-      sku: 113991275
-      name: SenseCAP Watcher
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/0/100051523.jpg
-      product_url: https://www.seeedstudio.com/sensecap-watcher
       description: AI voice assistant, required for all deployment modes
-      name_i18n:
-        zh: SenseCAP Watcher
       description_i18n:
         zh: AI 语音助手，所有套餐必选
-    recomputer_r1125:
-      name: reComputer R1125-10
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-4-POE-ports-powered-by-Raspberry-Pi-CM4-p-6203.html
+    recomputer_r11:
       description: Edge gateway, runs warehouse management system
-      name_i18n:
-        zh: reComputer R1125-10
       description_i18n:
         zh: 边缘网关，运行仓库管理系统
-    recomputer_r2135:
-      name: reComputer R2135-12
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
-      product_url: https://www.seeedstudio.com/reComputer-R2000-4-POE-ports-powered-by-Raspberry-Pi-CM5-p-6621.html
+    recomputer_r21_industrial:
       description: Edge gateway, runs warehouse system + voice AI service, supports face recognition
-      name_i18n:
-        zh: reComputer R2135-12
       description_i18n:
         zh: 边缘网关，运行仓管系统 + 语音 AI 服务，支持人脸识别
-    recomputer_super_j4012:
-      name: reComputer Super J4012
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-110110232.jpg
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+    recomputer_j40:
       description: AI compute unit, supports multi-channel concurrent voice processing
-      name_i18n:
-        zh: reComputer Super J4012
       description_i18n:
         zh: AI 算力单元，支持多路语音并发处理
     recomputer_j50:
-      sku: 100076722
-      name: reComputer Robotics J5011 (AGX Orin)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100032662--recomputer-robotics-j5012-with-gmsl_1__1.jpg
-      product_url: https://www.seeedstudio.com/reComputer-Robotics-J5011-with-GMSL-extension-board-p-6681.html
       description: Edge AI computer for local LLM/TTS, fully offline
-      name_i18n:
-        zh: reComputer Robotics J5011 (AGX Orin)
       description_i18n:
         zh: 边缘 AI 计算机，运行本地大模型，完全离线
   stats:
@@ -137,8 +110,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r1125
-          default: recomputer_r1125
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: 边缘网关
       name_i18n:
@@ -165,9 +138,9 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r2135
-            - device_ref: recomputer_super_j4012
-          default: recomputer_r2135
+            - device_ref: recomputer_r21_industrial
+            - device_ref: recomputer_j40
+          default: recomputer_r21_industrial
           name_i18n:
             zh: 边缘网关
       name_i18n:
@@ -192,8 +165,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r2135
-          default: recomputer_r2135
+            - device_ref: recomputer_r21_industrial
+          default: recomputer_r21_industrial
           name_i18n:
             zh: 边缘网关
         - id: ai_compute
@@ -201,8 +174,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_super_j4012
-          default: recomputer_super_j4012
+            - device_ref: recomputer_j40
+          default: recomputer_j40
           name_i18n:
             zh: AI 算力
       name_i18n:
@@ -227,8 +200,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r2135
-          default: recomputer_r2135
+            - device_ref: recomputer_r21_industrial
+          default: recomputer_r21_industrial
           name_i18n:
             zh: 边缘网关
         - id: ai_compute

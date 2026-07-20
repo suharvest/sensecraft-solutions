@@ -39,23 +39,11 @@ intro:
     - respeaker
   device_catalog:
     rerouter_cm4:
-      sku: 110110205
-      name: reRouter CM4
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-110110110.png
-      product_url: https://www.seeedstudio.com/reRouter-CM4
       description: Edge computing device with 4GB RAM, 32GB eMMC
-      name_i18n:
-        zh: reRouter CM4
       description_i18n:
         zh: 边缘计算设备，4GB 内存，32GB eMMC 存储
     respeaker_xvf3800:
-      sku: 101991441
-      name: reSpeaker XVF3800
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-respeaker-xvf3800-4-mic-array.jpg
-      product_url: https://www.seeedstudio.com/ReSpeaker-XVF3800
       description: 4-mic array with noise suppression, AEC, and beamforming
-      name_i18n:
-        zh: reSpeaker XVF3800 麦克风阵列
       description_i18n:
         zh: 4 麦克风阵列，支持噪声抑制、回声消除和波束成形
   stats:

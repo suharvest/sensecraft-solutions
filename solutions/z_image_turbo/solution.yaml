@@ -49,20 +49,12 @@ intro:
       description_i18n:
         zh: 通过网络访问 Jetson 设备上的 API（部署后模型完全离线运行）
   device_catalog:
-    recomputer_j4012:
-      name: reComputer J4012
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+    recomputer_j40:
       description: NVIDIA Jetson Orin NX 16GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
-      name_i18n:
-        zh: reComputer J4012
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
-    recomputer_j501:
-      name: reComputer J501
-      product_url: https://www.seeedstudio.com/reComputer-J501-p-6511.html
+    recomputer_j50:
       description: NVIDIA Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
-      name_i18n:
-        zh: reComputer J501
       description_i18n:
         zh: NVIDIA Jetson AGX Orin 64GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
   presets:
@@ -75,10 +67,9 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j4012
-            - device_ref: recomputer_j501
-          default: recomputer_j4012
-
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j50
+          default: recomputer_j40
           name_i18n:
             zh: Jetson 设备
       name_i18n:

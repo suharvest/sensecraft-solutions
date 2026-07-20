@@ -20,40 +20,17 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      sku: 110110144
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
       description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration
-      name_i18n:
-        zh: reComputer J40
       description_i18n:
         zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉
-    r2000_hailo:
-      sku: 114993595
-      name: reComputer R2000 + Hailo
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
-      product_url: https://www.seeedstudio.com/reComputer-R2000-Series.html
+    recomputer_r21_industrial_ai:
       description: Industrial Raspberry Pi 5 + Hailo-8 NPU for low-power vision inference
-      name_i18n:
-        zh: reComputer R2000 + Hailo
       description_i18n:
         zh: 工业级树莓派 5 + Hailo-8 NPU，低功耗视觉推理
     reachy_mini:
-      name: Reachy Mini Desktop Robot
-      product_url: https://www.pollen-robotics.com/reachy-mini
       description: Desktop robot with arms, head, antennas, and camera
-      name_i18n:
-        zh: Reachy Mini 桌面机器人
       description_i18n:
         zh: 带双臂、头部、天线和摄像头的桌面机器人
-    reachy_mini_wireless:
-      name: Reachy Mini Wireless (CM4)
-      product_url: https://www.pollen-robotics.com/reachy-mini
-      description: Wireless Reachy Mini with onboard CM4 (Compute Module 4) for self-contained edge deployment
-      name_i18n:
-        zh: Reachy Mini Wireless（CM4 版）
-      description_i18n:
-        zh: Reachy Mini Wireless 版本，自带 CM4（计算模块 4），实现一体化边缘部署
   presets:
     - id: jetson
       verify_exempt: true
@@ -84,9 +61,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: r2000_hailo
-          default: r2000_hailo
-
+            - device_ref: recomputer_r21_industrial_ai
+          default: recomputer_r21_industrial_ai
           name_i18n:
             zh: R2000 设备（Hailo）
       name_i18n:
@@ -103,9 +79,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: reachy_mini_wireless
-          default: reachy_mini_wireless
-
+            - device_ref: reachy_mini
+          default: reachy_mini
           name_i18n:
             zh: CM4 设备
       name_i18n:

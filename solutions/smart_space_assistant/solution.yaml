@@ -41,26 +41,14 @@ intro:
         zh: 通过 USB 连接的 SenseCAP Watcher
   device_catalog:
     sensecap_watcher:
-      sku: 113991275
-      name: SenseCAP Watcher
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/0/100051523.jpg
-      product_url: https://www.seeedstudio.com/sensecap-watcher
       description: AI voice assistant with camera
-      name_i18n:
-        zh: SenseCAP Watcher
       description_i18n:
         zh: 带摄像头的 AI 语音助手
-    recomputer_r1100:
-      sku: 113991374
-      name: reComputer R1100
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-CM4-4GB-RAM-32GB-eMMC-p-6254.html
+    recomputer_r11:
       description: Edge computing device for display service
-      name_i18n:
-        zh: reComputer R1100
       description_i18n:
         zh: 边缘计算设备，用于投屏服务
-    hdmi_display:
+    generic_hdmi_display:
       name: HDMI Display
       description: Any HDMI-compatible TV or monitor
       name_i18n:
@@ -96,8 +84,8 @@ intro:
           type: single
           required: false
           options:
-            - device_ref: recomputer_r1100
-          default: recomputer_r1100
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: 边缘计算设备
       links:

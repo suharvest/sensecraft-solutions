@@ -28,36 +28,18 @@ intro:
         zh: 网络连接用于访问 Groq API（Whisper 语音识别、Llama 3 推理、Orpheus 语音合成）
   device_catalog:
     xiao_esp32s3:
-      sku: 102010634
-      name: Seeed Studio XIAO ESP32S3
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/2/-/2-102010634-seeed-studio-xiao-esp32s3-_pre-soldered_-45font_1.jpg
-      product_url: https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html
       description: Compact ESP32-S3 board with Wi-Fi, used as robot motor controller
-      name_i18n:
-        zh: Seeed Studio XIAO ESP32S3
       description_i18n:
         zh: 紧凑型 ESP32-S3 开发板，用作机器人电机控制器
-    lekiwi_kit:
-      sku: 114090065
-      name: LeKiwi Kit
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/1/-/1-114090065-lekiwi-kit_1.jpg
-      product_url: https://www.seeedstudio.com/Lekiwi-Kit-p-6501.html
+    lekiwi:
       description: 3-wheeled Kiwi-drive robot chassis with 3× STS3215 smart servos
-      name_i18n:
-        zh: LeKiwi 套件
       description_i18n:
         zh: 三轮 Kiwi-drive 机器人底盘，含 3 个 STS3215 智能舵机
-    respeaker_xvf3800_circular_4:
-      sku: 107100122
-      name: reSpeaker Flex XVF3800 Circular 4
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/48035b5512857d0ab907b31a092da78f/1/-/1-100005504-respeaker-flex-xvf3800-circular-4_1_.jpg
-      product_url: https://www.seeedstudio.com/reSpeaker-Flex-XVF3800-Circular-4-p-6737.html
+    respeaker_flex:
       description: 4-microphone circular array with XMOS XVF3800 for high-quality far-field voice capture
-      name_i18n:
-        zh: reSpeaker Flex XVF3800 圆形 4 麦版
       description_i18n:
         zh: 4 麦克风圆形阵列，采用 XMOS XVF3800 实现高质量远场语音采集
-    raspberry_pi:
+    external_raspberry_pi:
       name: Raspberry Pi 5
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
       description: Single-board computer hosting the voice AI brain (wake word + STT + LLM + TTS)
@@ -75,8 +57,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: lekiwi_kit
-          default: lekiwi_kit
+            - device_ref: lekiwi
+          default: lekiwi
           name_i18n:
             zh: 机器人底盘
         - id: motor_controller
@@ -93,8 +75,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: raspberry_pi
-          default: raspberry_pi
+            - device_ref: external_raspberry_pi
+          default: external_raspberry_pi
           name_i18n:
             zh: 语音大脑
         - id: microphone
@@ -102,9 +84,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: respeaker_xvf3800_circular_4
-          default: respeaker_xvf3800_circular_4
-
+            - device_ref: respeaker_flex
+          default: respeaker_flex
           name_i18n:
             zh: 麦克风
       name_i18n:

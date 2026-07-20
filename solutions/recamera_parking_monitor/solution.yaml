@@ -38,14 +38,8 @@ intro:
       description_i18n:
         zh: 对准停车区域的 reCamera
   device_catalog:
-    recamera:
-      sku: 102991894
-      name: reCamera
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
-      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+    recamera_2002:
       description: AI camera with built-in parking detection model
-      name_i18n:
-        zh: reCamera
       description_i18n:
         zh: AI 摄像头，内置停车位检测模型
   presets:
@@ -58,9 +52,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
-
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       name_i18n:
