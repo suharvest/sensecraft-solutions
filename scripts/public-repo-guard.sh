@@ -19,8 +19,11 @@ if grep -rnE '^[[:space:]]*(import|from)[[:space:]]+provisioning_station' --incl
 fi
 
 # 3. No internal infra hostnames / credential markers.
-#    (Device default passwords like 'recamera' are NOT internal infra.)
-if grep -rniE '100\.(7[0-9]|8[0-9])\.[0-9]+\.[0-9]+|34\.219\.208\.30|AC_PASSWORD|ossutil|docker[[:space:]]+login[[:space:]]+sensecraft-missionpack' . \
+#    (Device default passwords like 'recamera' are NOT internal infra.
+#    ossutil itself is allowed: scripts/generate_solution_manifest.py and the
+#    publish-content workflow run it here deliberately, authenticated only via
+#    GitHub Actions secrets — never a hardcoded key/endpoint.)
+if grep -rniE '100\.(7[0-9]|8[0-9])\.[0-9]+\.[0-9]+|34\.219\.208\.30|AC_PASSWORD|docker[[:space:]]+login[[:space:]]+sensecraft-missionpack' . \
      --include='*.md' --include='*.py' --include='*.yaml' --include='*.yml' >/dev/null; then
   fail "internal infra/credential marker found"
 fi

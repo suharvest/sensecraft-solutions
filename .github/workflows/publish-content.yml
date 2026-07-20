@@ -1,0 +1,73 @@
+name: Publish Content to CDN
+
+# Manual only, on purpose: this uploads solution content straight to the CDN
+# (independent of any app release). It must never be reachable from a PR —
+# pull_request/pull_request_target triggers are deliberately absent so a
+# fork PR can never see OSS_ACCESS_KEY_ID/OSS_ACCESS_KEY_SECRET.
+on:
+  workflow_dispatch:
+    inputs:
+      no_upload:
+        description: "Dry run: generate manifest/zips but skip the OSS upload"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ossutil v2
+        if: ${{ !inputs.no_upload }}
+        run: |
+          curl -fSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/v2/2.2.1/ossutil-2.2.1-linux-amd64.zip
+          unzip -q ossutil.zip -d ossutil-tmp
+          chmod +x ossutil-tmp/*/ossutil && sudo mv ossutil-tmp/*/ossutil /usr/local/bin/
+          rm -rf ossutil.zip ossutil-tmp
+
+      - name: Generate manifest and publish
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+        run: |
+          FLAG=""
+          if [ "${{ inputs.no_upload }}" = "true" ]; then
+            FLAG="--no-upload"
+          fi
+          python3 scripts/generate_solution_manifest.py \
+            --solutions-dir solutions \
+            --output-dir dist \
+            $FLAG
+
+      # main is protected (required "guard"/"validate" checks) so this opens
+      # a PR rather than pushing straight to main — the bump still goes
+      # through the same checks as any other change, and gives one last
+      # manual look before it becomes the baseline for the next app build.
+      - name: Open PR to refresh bundled_hashes.json
+        if: ${{ !inputs.no_upload }}
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: refresh bundled_hashes.json after content publish"
+          title: "chore: refresh bundled_hashes.json after content publish"
+          body: |
+            Auto-generated after a manual `Publish Content to CDN` run
+            (${{ github.run_id }}). Reflects the content that was just
+            uploaded — safe to merge once CI is green.
+          branch: chore/bundled-hashes-refresh
+          add-paths: solutions/bundled_hashes.json
+          delete-branch: true
+
+      - name: Upload dry-run artifacts
+        if: ${{ inputs.no_upload }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: solution-manifest-dry-run
+          path: dist/
