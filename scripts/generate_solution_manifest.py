@@ -85,8 +85,20 @@ def create_solution_zip(solution_dir: Path, output_path: Path) -> None:
     entries by hand with a fixed timestamp, fixed permissions, and a pinned
     compression level. The hash then depends only on path + content.
     """
+    # Symlinks are rejected outright (not just excluded from the zip): a
+    # committed solution symlinking to something like /proc/self/environ
+    # would otherwise have is_file()/read_bytes() follow it and bake the
+    # publishing process's environment (incl. any injected secrets) into
+    # the uploaded zip. Solutions have no legitimate reason to contain one.
+    symlinks = [p for p in solution_dir.rglob("*") if p.is_symlink()]
+    if symlinks:
+        raise ValueError(
+            f"{solution_dir.name}: refusing to publish — contains symlink(s): "
+            + ", ".join(str(p.relative_to(solution_dir)) for p in symlinks)
+        )
+
     all_files = sorted(
-        p for p in solution_dir.rglob("*") if p.is_file()
+        p for p in solution_dir.rglob("*") if p.is_file() and not p.is_symlink()
     )
     all_files = _filter_gitignored(all_files, solution_dir)
 
