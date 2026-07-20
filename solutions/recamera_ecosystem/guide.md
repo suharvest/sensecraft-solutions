@@ -415,11 +415,14 @@ Click **Connect** to see the live video with the weather classification overlay.
 
 **Tip:** Point the camera outside — the overlay updates with the current weather label and confidence as conditions change.
 
+**Note:** The weather label and confidence usually appear a few seconds before the video frame does — MQTT connects faster than the RTSP stream stabilizes. If you see the label but not the video yet, just wait a bit longer; this is expected, not an error.
+
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
 | Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Label shows but video doesn't | Normal — RTSP takes a bit longer to start than MQTT; wait a few more seconds |
 | No overlay data | Check Step 1 completed and MQTT is reachable on the camera |
 
 ### Deployment Complete
