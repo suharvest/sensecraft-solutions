@@ -10,6 +10,8 @@ services:
       - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
       - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - FACE_ENABLED=true
+      - FACE_WE2_SIMULATOR_ENABLED=1
     volumes:
       - warehouse_data:/data
     healthcheck:

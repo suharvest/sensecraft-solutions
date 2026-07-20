@@ -11,6 +11,8 @@ services:
       - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - FACE_REC_API_URL=http://face-rec:8001
+      - FACE_ENABLED=true
+      - FACE_WE2_SIMULATOR_ENABLED=1
     volumes:
       - warehouse_data:/data
     healthcheck:
