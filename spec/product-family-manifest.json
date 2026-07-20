@@ -1,0 +1,2776 @@
+{
+  "families": {
+    "amazing_hand": {
+      "axes": {
+        "side": {
+          "type": "enum",
+          "values": [
+            "left",
+            "right"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "side": "left"
+        },
+        {
+          "side": "right"
+        }
+      ]
+    },
+    "card_tracker_t1000": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "t1000_a",
+            "t1000_b"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "t1000_a"
+        },
+        {
+          "variant": "t1000_b"
+        }
+      ]
+    },
+    "deptheye": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "classic",
+            "s2",
+            "turbo"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "s2"
+        },
+        {
+          "model": "classic"
+        },
+        {
+          "model": "turbo"
+        }
+      ]
+    },
+    "dragino_lds02": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        }
+      ]
+    },
+    "dragino_lht65n": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "eu868"
+        }
+      ]
+    },
+    "dragino_lt22222": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "eu868"
+        }
+      ]
+    },
+    "dragino_lwl02": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        }
+      ]
+    },
+    "edgebox_rpi200": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            1,
+            2,
+            4,
+            8
+          ]
+        },
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_16",
+            "emmc_32",
+            "emmc_8"
+          ]
+        },
+        "ups": {
+          "type": "enum",
+          "values": [
+            "none",
+            "with_ups"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 4,
+          "storage": "emmc_16",
+          "ups": "none"
+        },
+        {
+          "ram_gb": 2,
+          "storage": "emmc_8",
+          "ups": "none"
+        },
+        {
+          "ram_gb": 1,
+          "storage": "emmc_8",
+          "ups": "none"
+        },
+        {
+          "ram_gb": 4,
+          "storage": "emmc_32",
+          "ups": "none"
+        },
+        {
+          "ram_gb": 8,
+          "storage": "emmc_32",
+          "ups": "none"
+        },
+        {
+          "ram_gb": 2,
+          "storage": "emmc_8",
+          "ups": "with_ups"
+        }
+      ]
+    },
+    "epaper_raw_panel": {
+      "axes": {
+        "color": {
+          "type": "enum",
+          "values": [
+            "mono",
+            "quad",
+            "seven",
+            "spectra6",
+            "threecolor"
+          ]
+        },
+        "form": {
+          "type": "enum",
+          "values": [
+            "flexible",
+            "standard"
+          ]
+        },
+        "size": {
+          "type": "enum",
+          "values": [
+            "s10_3",
+            "s13_3",
+            "s1_02",
+            "s1_54",
+            "s2_13",
+            "s2_9",
+            "s4_2",
+            "s4_26",
+            "s7_3",
+            "s7_5"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "color": "spectra6",
+          "form": "standard",
+          "size": "s7_3"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s10_3"
+        },
+        {
+          "color": "spectra6",
+          "form": "standard",
+          "size": "s13_3"
+        },
+        {
+          "color": "threecolor",
+          "form": "standard",
+          "size": "s4_2"
+        },
+        {
+          "color": "mono",
+          "form": "flexible",
+          "size": "s1_02"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s1_54"
+        },
+        {
+          "color": "mono",
+          "form": "flexible",
+          "size": "s1_54"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s2_13"
+        },
+        {
+          "color": "quad",
+          "form": "standard",
+          "size": "s2_13"
+        },
+        {
+          "color": "mono",
+          "form": "flexible",
+          "size": "s2_9"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s2_9"
+        },
+        {
+          "color": "quad",
+          "form": "standard",
+          "size": "s2_9"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s4_2"
+        },
+        {
+          "color": "seven",
+          "form": "standard",
+          "size": "s7_3"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s7_5"
+        },
+        {
+          "color": "mono",
+          "form": "standard",
+          "size": "s4_26"
+        }
+      ]
+    },
+    "fashionstar_atom": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "atom_s",
+            "atom_x"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "atom_s"
+        },
+        {
+          "model": "atom_x"
+        }
+      ]
+    },
+    "grove_vision_ai": {
+      "axes": {
+        "version": {
+          "type": "enum",
+          "values": [
+            "v1",
+            "v2"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "version": "v2"
+        },
+        {
+          "version": "v1"
+        }
+      ]
+    },
+    "home_assistant_connect_zbt": {
+      "axes": {
+        "generation": {
+          "type": "enum",
+          "values": [
+            "zbt1",
+            "zbt2"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "generation": "zbt1"
+        },
+        {
+          "generation": "zbt2"
+        }
+      ]
+    },
+    "home_assistant_connect_zwa": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "home_assistant_green": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "home_assistant_voice": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "home_assistant_yellow": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "poe_kit",
+            "psu_kit",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "psu_kit"
+        },
+        {
+          "variant": "poe_kit"
+        },
+        {
+          "variant": "standard"
+        }
+      ]
+    },
+    "industrial_air_th_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_ec_tds_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_leaf_wetness_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_light_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_par_sensor": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "analog_25v",
+            "rs485_connector",
+            "rs485_standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "rs485_standard"
+        },
+        {
+          "variant": "analog_25v"
+        },
+        {
+          "variant": "rs485_connector"
+        }
+      ]
+    },
+    "industrial_ph_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_soil_mt_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "industrial_soil_mtec_sensor": {
+      "axes": {
+        "connector": {
+          "type": "enum",
+          "values": [
+            "aviation_connector",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "connector": "standard"
+        },
+        {
+          "connector": "aviation_connector"
+        }
+      ]
+    },
+    "lekiwi": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "linkstar_h28k": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            2,
+            4
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 4
+        },
+        {
+          "ram_gb": 2
+        }
+      ]
+    },
+    "linkstar_h68k": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "r0232",
+            "r1432",
+            "r1432_v2"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "r0232"
+        },
+        {
+          "variant": "r1432"
+        },
+        {
+          "variant": "r1432_v2"
+        }
+      ]
+    },
+    "lr2021_evk": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "cn490",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "cn490"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "eu868"
+        }
+      ]
+    },
+    "nextion_hmi": {
+      "axes": {
+        "size": {
+          "type": "enum",
+          "values": [
+            "s2_4",
+            "s3_5",
+            "s4_3"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "size": "s2_4"
+        },
+        {
+          "size": "s3_5"
+        },
+        {
+          "size": "s4_3"
+        }
+      ]
+    },
+    "optical_rain_gauge": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "rg15",
+            "rg9"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "rg9"
+        },
+        {
+          "model": "rg15"
+        }
+      ]
+    },
+    "portable_monitor_156": {
+      "axes": {
+        "resolution": {
+          "type": "enum",
+          "values": [
+            "fhd_1080p",
+            "uhd_4k"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "resolution": "fhd_1080p"
+        },
+        {
+          "resolution": "uhd_4k"
+        }
+      ]
+    },
+    "reachy_mini": {
+      "axes": {
+        "version": {
+          "type": "enum",
+          "values": [
+            "lite",
+            "wireless"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "version": "lite"
+        },
+        {
+          "version": "wireless"
+        }
+      ]
+    },
+    "rebot_arm_b601": {
+      "axes": {
+        "actuator": {
+          "type": "enum",
+          "values": [
+            "dm",
+            "rs"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "actuator": "rs"
+        },
+        {
+          "actuator": "dm"
+        }
+      ]
+    },
+    "recamera_2002": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "2002",
+            "2002w"
+          ]
+        },
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_64",
+            "emmc_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "2002",
+          "storage": "emmc_8"
+        },
+        {
+          "model": "2002",
+          "storage": "emmc_64"
+        },
+        {
+          "model": "2002w",
+          "storage": "emmc_8"
+        },
+        {
+          "model": "2002w",
+          "storage": "emmc_64"
+        }
+      ]
+    },
+    "recamera_2002_hq_poe": {
+      "axes": {
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_64",
+            "emmc_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "storage": "emmc_64"
+        },
+        {
+          "storage": "emmc_8"
+        }
+      ]
+    },
+    "recamera_gimbal": {
+      "axes": {
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_64",
+            "emmc_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "storage": "emmc_8"
+        },
+        {
+          "storage": "emmc_64"
+        }
+      ]
+    },
+    "recomputer_j20": {
+      "axes": {
+        "form": {
+          "type": "enum",
+          "values": [
+            "classical",
+            "industrial"
+          ]
+        },
+        "module": {
+          "type": "enum",
+          "values": [
+            "xavier_nx_16",
+            "xavier_nx_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "form": "classical",
+          "module": "xavier_nx_8"
+        },
+        {
+          "form": "classical",
+          "module": "xavier_nx_16"
+        },
+        {
+          "form": "industrial",
+          "module": "xavier_nx_8"
+        },
+        {
+          "form": "industrial",
+          "module": "xavier_nx_16"
+        }
+      ]
+    },
+    "recomputer_j30": {
+      "axes": {
+        "expansion": {
+          "type": "enum",
+          "values": [
+            "extension",
+            "gmsl",
+            "none"
+          ]
+        },
+        "form": {
+          "type": "enum",
+          "values": [
+            "classical",
+            "industrial",
+            "mini",
+            "robotics",
+            "super"
+          ]
+        },
+        "module": {
+          "type": "enum",
+          "values": [
+            "orin_nano_4",
+            "orin_nano_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "expansion": "gmsl",
+          "form": "robotics",
+          "module": "orin_nano_8"
+        },
+        {
+          "expansion": "none",
+          "form": "mini",
+          "module": "orin_nano_8"
+        },
+        {
+          "expansion": "none",
+          "form": "classical",
+          "module": "orin_nano_4"
+        },
+        {
+          "expansion": "none",
+          "form": "classical",
+          "module": "orin_nano_8"
+        },
+        {
+          "expansion": "none",
+          "form": "industrial",
+          "module": "orin_nano_4"
+        },
+        {
+          "expansion": "none",
+          "form": "industrial",
+          "module": "orin_nano_8"
+        },
+        {
+          "expansion": "none",
+          "form": "super",
+          "module": "orin_nano_4"
+        },
+        {
+          "expansion": "none",
+          "form": "super",
+          "module": "orin_nano_8"
+        },
+        {
+          "expansion": "extension",
+          "form": "mini",
+          "module": "orin_nano_8"
+        }
+      ]
+    },
+    "recomputer_j40": {
+      "axes": {
+        "expansion": {
+          "type": "enum",
+          "values": [
+            "extension",
+            "none"
+          ]
+        },
+        "form": {
+          "type": "enum",
+          "values": [
+            "classical",
+            "industrial",
+            "mini",
+            "robotics",
+            "super"
+          ]
+        },
+        "module": {
+          "type": "enum",
+          "values": [
+            "orin_nx_16",
+            "orin_nx_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "expansion": "none",
+          "form": "mini",
+          "module": "orin_nx_16"
+        },
+        {
+          "expansion": "none",
+          "form": "classical",
+          "module": "orin_nx_8"
+        },
+        {
+          "expansion": "none",
+          "form": "classical",
+          "module": "orin_nx_16"
+        },
+        {
+          "expansion": "none",
+          "form": "industrial",
+          "module": "orin_nx_8"
+        },
+        {
+          "expansion": "none",
+          "form": "industrial",
+          "module": "orin_nx_16"
+        },
+        {
+          "expansion": "none",
+          "form": "robotics",
+          "module": "orin_nx_8"
+        },
+        {
+          "expansion": "none",
+          "form": "super",
+          "module": "orin_nx_8"
+        },
+        {
+          "expansion": "none",
+          "form": "super",
+          "module": "orin_nx_16"
+        },
+        {
+          "expansion": "extension",
+          "form": "mini",
+          "module": "orin_nx_16"
+        }
+      ]
+    },
+    "recomputer_j50": {
+      "axes": {
+        "form": {
+          "type": "enum",
+          "values": [
+            "mini",
+            "robotics"
+          ]
+        },
+        "module": {
+          "type": "enum",
+          "values": [
+            "agx_orin_32",
+            "agx_orin_64"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "form": "mini",
+          "module": "agx_orin_32"
+        },
+        {
+          "form": "robotics",
+          "module": "agx_orin_64"
+        },
+        {
+          "form": "robotics",
+          "module": "agx_orin_32"
+        },
+        {
+          "form": "mini",
+          "module": "agx_orin_64"
+        }
+      ]
+    },
+    "recomputer_r10": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            2,
+            4,
+            8
+          ]
+        },
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_16",
+            "emmc_32",
+            "emmc_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 4,
+          "storage": "emmc_32"
+        },
+        {
+          "ram_gb": 4,
+          "storage": "emmc_16"
+        },
+        {
+          "ram_gb": 2,
+          "storage": "emmc_8"
+        },
+        {
+          "ram_gb": 8,
+          "storage": "emmc_32"
+        }
+      ]
+    },
+    "recomputer_r11": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            2,
+            4
+          ]
+        },
+        "storage": {
+          "type": "enum",
+          "values": [
+            "emmc_16",
+            "emmc_32",
+            "emmc_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 4,
+          "storage": "emmc_32"
+        },
+        {
+          "ram_gb": 4,
+          "storage": "emmc_16"
+        },
+        {
+          "ram_gb": 2,
+          "storage": "emmc_8"
+        }
+      ]
+    },
+    "recomputer_r12": {
+      "axes": {
+        "cellular": {
+          "type": "enum",
+          "values": [
+            "4g",
+            "none"
+          ]
+        },
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "EU868",
+            "US915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "cellular": "4g",
+          "frequency_band": "EU868"
+        },
+        {
+          "cellular": "4g",
+          "frequency_band": "US915"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "US915"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "EU868"
+        }
+      ]
+    },
+    "recomputer_r20_industrial": {
+      "axes": {
+        "ai_accelerator": {
+          "type": "enum",
+          "values": [
+            "hailo-8",
+            "none"
+          ]
+        },
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ai_accelerator": "hailo-8",
+          "ram_gb": 8
+        },
+        {
+          "ai_accelerator": "none",
+          "ram_gb": 16
+        },
+        {
+          "ai_accelerator": "none",
+          "ram_gb": 8
+        },
+        {
+          "ai_accelerator": "hailo-8",
+          "ram_gb": 16
+        }
+      ]
+    },
+    "recomputer_r21_ai": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 8
+        },
+        {
+          "ram_gb": 16
+        }
+      ]
+    },
+    "recomputer_r21_industrial": {
+      "axes": {
+        "ai_accelerator": {
+          "type": "enum",
+          "values": [
+            "hailo-8",
+            "none"
+          ]
+        },
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ai_accelerator": "hailo-8",
+          "ram_gb": 8
+        },
+        {
+          "ai_accelerator": "none",
+          "ram_gb": 16
+        },
+        {
+          "ai_accelerator": "hailo-8",
+          "ram_gb": 16
+        },
+        {
+          "ai_accelerator": "none",
+          "ram_gb": 8
+        }
+      ]
+    },
+    "recomputer_r21_industrial_ai": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 16
+        },
+        {
+          "ram_gb": 8
+        }
+      ]
+    },
+    "recomputer_r22_industrial": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 16
+        },
+        {
+          "ram_gb": 8
+        }
+      ]
+    },
+    "recomputer_rk3576": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            4,
+            8
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 8
+        },
+        {
+          "ram_gb": 4
+        }
+      ]
+    },
+    "recomputer_rk3588": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            8,
+            16
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 8
+        },
+        {
+          "ram_gb": 16
+        }
+      ]
+    },
+    "rerouter_cm4": {
+      "axes": {
+        "ram_gb": {
+          "type": "number",
+          "values": [
+            2,
+            4
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "ram_gb": 4
+        },
+        {
+          "ram_gb": 2
+        }
+      ]
+    },
+    "reserver_industrial_nvr": {
+      "axes": {
+        "jetson_module": {
+          "type": "enum",
+          "values": [
+            "orin_nano_4",
+            "orin_nano_8",
+            "orin_nx_16",
+            "orin_nx_8"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "jetson_module": "orin_nx_16"
+        },
+        {
+          "jetson_module": "orin_nx_8"
+        },
+        {
+          "jetson_module": "orin_nano_8"
+        },
+        {
+          "jetson_module": "orin_nano_4"
+        }
+      ]
+    },
+    "respeaker_2mics_pi_hat": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "respeaker_clip": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "respeaker_core_v2": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "respeaker_flex": {
+      "axes": {
+        "geometry": {
+          "type": "enum",
+          "values": [
+            "circular",
+            "linear"
+          ]
+        },
+        "mcu": {
+          "type": "enum",
+          "values": [
+            "none",
+            "xiao_esp32s3"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "geometry": "circular",
+          "mcu": "none"
+        },
+        {
+          "geometry": "linear",
+          "mcu": "xiao_esp32s3"
+        },
+        {
+          "geometry": "circular",
+          "mcu": "xiao_esp32s3"
+        },
+        {
+          "geometry": "linear",
+          "mcu": "none"
+        }
+      ]
+    },
+    "respeaker_lite": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "usb_mic_array",
+            "voice_kit"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "usb_mic_array"
+        },
+        {
+          "variant": "voice_kit"
+        }
+      ]
+    },
+    "respeaker_mic_array_7pdm": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "respeaker_xvf3000": {
+      "axes": {
+        "enclosure": {
+          "type": "enum",
+          "values": [
+            "case",
+            "none"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "enclosure": "none"
+        },
+        {
+          "enclosure": "case"
+        }
+      ]
+    },
+    "respeaker_xvf3800": {
+      "axes": {
+        "enclosure": {
+          "type": "enum",
+          "values": [
+            "case",
+            "none"
+          ]
+        },
+        "mcu": {
+          "type": "enum",
+          "values": [
+            "none",
+            "xiao_esp32s3"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "enclosure": "none",
+          "mcu": "none"
+        },
+        {
+          "enclosure": "none",
+          "mcu": "xiao_esp32s3"
+        },
+        {
+          "enclosure": "case",
+          "mcu": "none"
+        },
+        {
+          "enclosure": "case",
+          "mcu": "xiao_esp32s3"
+        }
+      ]
+    },
+    "reterminal": {
+      "axes": {
+        "cm4_module": {
+          "type": "enum",
+          "values": [
+            "cm4104032",
+            "cm4108032"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "cm4_module": "cm4104032"
+        },
+        {
+          "cm4_module": "cm4108032"
+        }
+      ]
+    },
+    "reterminal_dm": {
+      "axes": {
+        "camera_poe": {
+          "type": "enum",
+          "values": [
+            "included",
+            "none"
+          ]
+        },
+        "cm4_module": {
+          "type": "enum",
+          "values": [
+            "cm4104032",
+            "cm4108032"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "camera_poe": "none",
+          "cm4_module": "cm4108032"
+        },
+        {
+          "camera_poe": "included",
+          "cm4_module": "cm4108032"
+        },
+        {
+          "camera_poe": "none",
+          "cm4_module": "cm4104032"
+        }
+      ]
+    },
+    "reterminal_e_series": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "e1001",
+            "e1002",
+            "e1003",
+            "e1004"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "e1002"
+        },
+        {
+          "model": "e1004"
+        },
+        {
+          "model": "e1001"
+        },
+        {
+          "model": "e1003"
+        }
+      ]
+    },
+    "rs485_ultrasonic_level_sensor": {
+      "axes": {
+        "range": {
+          "type": "enum",
+          "values": [
+            "cm500",
+            "cm750"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "range": "cm750"
+        },
+        {
+          "range": "cm500"
+        }
+      ]
+    },
+    "sensecap_combo_4g": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "sensecap_indicator": {
+      "axes": {
+        "edition": {
+          "type": "enum",
+          "values": [
+            "d1",
+            "d1l",
+            "d1pro",
+            "d1s",
+            "meshtastic"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "edition": "d1"
+        },
+        {
+          "edition": "d1s"
+        },
+        {
+          "edition": "d1l"
+        },
+        {
+          "edition": "d1pro"
+        },
+        {
+          "edition": "meshtastic"
+        }
+      ]
+    },
+    "sensecap_m2_gateway": {
+      "axes": {
+        "cellular": {
+          "type": "enum",
+          "values": [
+            "4g",
+            "none"
+          ]
+        },
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "as923_jp",
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "cellular": "none",
+          "frequency_band": "eu868"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "us915"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "as923"
+        },
+        {
+          "cellular": "4g",
+          "frequency_band": "eu868"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "as923_jp"
+        },
+        {
+          "cellular": "none",
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_outdoor_gateway": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "as923"
+        },
+        {
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_s2100_data_logger": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "sensecap_s2120_weather": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "sensecap_s21xx_sensor": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "s2101",
+            "s2102",
+            "s2103",
+            "s2105",
+            "s2106",
+            "s2107",
+            "s2108"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "s2106"
+        },
+        {
+          "model": "s2108"
+        },
+        {
+          "model": "s2101"
+        },
+        {
+          "model": "s2102"
+        },
+        {
+          "model": "s2103"
+        },
+        {
+          "model": "s2105"
+        },
+        {
+          "model": "s2107"
+        }
+      ]
+    },
+    "sensecap_s700_weather": {
+      "axes": {
+        "sensor_config": {
+          "type": "enum",
+          "values": [
+            "radar_rain",
+            "solar_radiation",
+            "solar_radiation_radar_rain",
+            "standard"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "sensor_config": "standard"
+        },
+        {
+          "sensor_config": "radar_rain"
+        },
+        {
+          "sensor_config": "solar_radiation"
+        },
+        {
+          "sensor_config": "solar_radiation_radar_rain"
+        }
+      ]
+    },
+    "sensecap_sensor_hub_4g": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "sensecap_solar_node_p1": {
+      "axes": {
+        "firmware": {
+          "type": "enum",
+          "values": [
+            "meshcore",
+            "meshtastic"
+          ]
+        },
+        "model": {
+          "type": "enum",
+          "values": [
+            "p1",
+            "p1_pro"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "firmware": "meshcore",
+          "model": "p1_pro"
+        },
+        {
+          "firmware": "meshtastic",
+          "model": "p1_pro"
+        },
+        {
+          "firmware": "meshtastic",
+          "model": "p1"
+        }
+      ]
+    },
+    "sensecap_t1000_tracker": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "t1000_a",
+            "t1000_b"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "t1000_a"
+        },
+        {
+          "variant": "t1000_b"
+        }
+      ]
+    },
+    "sensecap_t1000e": {
+      "axes": {
+        "firmware": {
+          "type": "enum",
+          "values": [
+            "lorawan",
+            "meshtastic"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "firmware": "meshtastic"
+        },
+        {
+          "firmware": "lorawan"
+        }
+      ]
+    },
+    "sensecap_t2000_tracker": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "t2000_a",
+            "t2000_b",
+            "t2000_c"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "t2000_b"
+        },
+        {
+          "variant": "t2000_a"
+        },
+        {
+          "variant": "t2000_c"
+        }
+      ]
+    },
+    "sensecap_vision_ai": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "a1101",
+            "a1102"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "a1101"
+        },
+        {
+          "model": "a1102"
+        }
+      ]
+    },
+    "sensecap_watcher": {
+      "axes": {
+        "enclosure": {
+          "type": "enum",
+          "values": [
+            "clear",
+            "white"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "enclosure": "white"
+        },
+        {
+          "enclosure": "clear"
+        }
+      ]
+    },
+    "sensecap_watcher_xiaozhi": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ]
+    },
+    "sensecap_wireless_airth_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "as923"
+        },
+        {
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_wireless_co2_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "as923"
+        },
+        {
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_wireless_light_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "as923"
+        },
+        {
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_wireless_pressure_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "as923"
+        }
+      ]
+    },
+    "sensecap_wireless_soil_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "au915",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "au915"
+        }
+      ]
+    },
+    "sensecap_wireless_soil_vwc_ec_sensor": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "eu868",
+            "us915"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "eu868"
+        },
+        {
+          "frequency_band": "us915"
+        },
+        {
+          "frequency_band": "as923"
+        }
+      ]
+    },
+    "so_arm": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "so_arm100_kit",
+            "so_arm100_kit_pro",
+            "so_arm101_assembled_pro",
+            "so_arm101_kit",
+            "so_arm101_kit_pro"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "so_arm101_assembled_pro"
+        },
+        {
+          "variant": "so_arm100_kit"
+        },
+        {
+          "variant": "so_arm100_kit_pro"
+        },
+        {
+          "variant": "so_arm101_kit"
+        },
+        {
+          "variant": "so_arm101_kit_pro"
+        }
+      ]
+    },
+    "sonoff_snzb_sensor": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "snzb_01p",
+            "snzb_02p",
+            "snzb_03",
+            "snzb_04p"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "snzb_02p"
+        },
+        {
+          "model": "snzb_01p"
+        },
+        {
+          "model": "snzb_04p"
+        },
+        {
+          "model": "snzb_03"
+        }
+      ]
+    },
+    "starai_arm": {
+      "axes": {
+        "config": {
+          "type": "enum",
+          "values": [
+            "cello",
+            "cello_violin",
+            "viola",
+            "viola_violin",
+            "violin"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "config": "viola"
+        },
+        {
+          "config": "violin"
+        },
+        {
+          "config": "cello"
+        },
+        {
+          "config": "cello_violin"
+        },
+        {
+          "config": "viola_violin"
+        }
+      ]
+    },
+    "wio_tracker_l1": {
+      "axes": {
+        "firmware": {
+          "type": "enum",
+          "values": [
+            "meshcore",
+            "meshtastic"
+          ]
+        },
+        "model": {
+          "type": "enum",
+          "values": [
+            "eink",
+            "lite",
+            "pro"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "firmware": "meshcore",
+          "model": "pro"
+        },
+        {
+          "firmware": "meshtastic",
+          "model": "pro"
+        },
+        {
+          "firmware": "meshtastic",
+          "model": "lite"
+        },
+        {
+          "firmware": "meshtastic",
+          "model": "eink"
+        }
+      ]
+    },
+    "wio_wm1302": {
+      "axes": {
+        "frequency_band": {
+          "type": "enum",
+          "values": [
+            "as923",
+            "eu868",
+            "us915"
+          ]
+        },
+        "interface": {
+          "type": "enum",
+          "values": [
+            "spi",
+            "usb"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "frequency_band": "as923",
+          "interface": "spi"
+        },
+        {
+          "frequency_band": "eu868",
+          "interface": "spi"
+        },
+        {
+          "frequency_band": "eu868",
+          "interface": "usb"
+        },
+        {
+          "frequency_band": "us915",
+          "interface": "spi"
+        },
+        {
+          "frequency_band": "us915",
+          "interface": "usb"
+        }
+      ]
+    },
+    "xiao_epaper_board": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "ee02",
+            "ee03",
+            "ee04",
+            "ee05",
+            "en05"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "ee05"
+        },
+        {
+          "model": "ee02"
+        },
+        {
+          "model": "ee04"
+        },
+        {
+          "model": "ee03"
+        },
+        {
+          "model": "en05"
+        }
+      ]
+    },
+    "xiao_esp32c3": {
+      "axes": {
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single",
+            "tape_reel"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "pack": "single",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_esp32c5": {
+      "axes": {
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "soldering": "plain"
+        },
+        {
+          "soldering": "presoldered"
+        }
+      ]
+    },
+    "xiao_esp32c6": {
+      "axes": {
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single",
+            "tape_reel"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "pack": "single",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_esp32s3": {
+      "axes": {
+        "edition": {
+          "type": "enum",
+          "values": [
+            "plus",
+            "sense",
+            "standard"
+          ]
+        },
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single",
+            "tape_reel"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "edition": "standard",
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "plus",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_meshtastic_kit": {
+      "axes": {
+        "soc": {
+          "type": "enum",
+          "values": [
+            "esp32s3",
+            "nrf52840"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "soc": "nrf52840"
+        },
+        {
+          "soc": "esp32s3"
+        }
+      ]
+    },
+    "xiao_mg24": {
+      "axes": {
+        "edition": {
+          "type": "enum",
+          "values": [
+            "sense",
+            "standard"
+          ]
+        },
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "standard",
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "pack3",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_mmwave": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "breath_60ghz",
+            "fall_60ghz",
+            "presence_24ghz"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "presence_24ghz"
+        },
+        {
+          "model": "breath_60ghz"
+        },
+        {
+          "model": "fall_60ghz"
+        }
+      ]
+    },
+    "xiao_nrf52840": {
+      "axes": {
+        "edition": {
+          "type": "enum",
+          "values": [
+            "plus",
+            "sense",
+            "sense_plus",
+            "standard"
+          ]
+        },
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single",
+            "tape_reel"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "edition": "standard",
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "sense",
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "plus",
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense_plus",
+          "pack": "single",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_nrf54l15": {
+      "axes": {
+        "edition": {
+          "type": "enum",
+          "values": [
+            "sense",
+            "standard"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "edition": "standard",
+          "soldering": "plain"
+        },
+        {
+          "edition": "sense",
+          "soldering": "plain"
+        },
+        {
+          "edition": "standard",
+          "soldering": "presoldered"
+        },
+        {
+          "edition": "sense",
+          "soldering": "presoldered"
+        }
+      ]
+    },
+    "xiao_ra4m1": {
+      "axes": {
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "pack": "pack3",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_rp2040": {
+      "axes": {
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single",
+            "tape_reel"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "pack": "tape_reel",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "pack": "pack3",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "presoldered"
+        }
+      ]
+    },
+    "xiao_rp2350": {
+      "axes": {
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "soldering": "plain"
+        },
+        {
+          "soldering": "presoldered"
+        }
+      ]
+    },
+    "xiao_samd21": {
+      "axes": {
+        "pack": {
+          "type": "enum",
+          "values": [
+            "pack3",
+            "single"
+          ]
+        },
+        "soldering": {
+          "type": "enum",
+          "values": [
+            "plain",
+            "presoldered"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "pack": "single",
+          "soldering": "plain"
+        },
+        {
+          "pack": "single",
+          "soldering": "presoldered"
+        },
+        {
+          "pack": "pack3",
+          "soldering": "plain"
+        }
+      ]
+    },
+    "xiao_wifi_relay": {
+      "axes": {
+        "variant": {
+          "type": "enum",
+          "values": [
+            "ac_2ch",
+            "dc_6ch"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "variant": "ac_2ch"
+        },
+        {
+          "variant": "dc_6ch"
+        }
+      ]
+    }
+  },
+  "family_count": 106,
+  "schema_version": 1
+}

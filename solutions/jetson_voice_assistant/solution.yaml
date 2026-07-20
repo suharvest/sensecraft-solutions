@@ -51,6 +51,9 @@ intro:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer with TensorRT GPU acceleration
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 计算机，TensorRT GPU 加速
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_rk3576:
       description: Runs streaming ASR and TTS locally with RK3576 NPU acceleration
       description_i18n:

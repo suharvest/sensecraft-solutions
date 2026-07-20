@@ -42,7 +42,7 @@
       "type": "object"
     },
     "DeviceCatalogItem": {
-      "description": "Device definition in catalog (local overrides for global catalog)",
+      "description": "Family-keyed device definition (local overrides for global catalog).",
       "properties": {
         "category": {
           "anyOf": [
@@ -119,6 +119,17 @@
           ],
           "default": null,
           "title": "Product Url"
+        },
+        "purchase": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DevicePurchaseConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "wiki_url": {
           "anyOf": [
@@ -349,6 +360,47 @@
         }
       },
       "title": "DeviceGroupSection",
+      "type": "object"
+    },
+    "DevicePurchaseConfig": {
+      "description": "Purchase-profile constraints for selecting a concrete family member.",
+      "properties": {
+        "require": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ]
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "default": {},
+          "title": "Require",
+          "type": "object"
+        }
+      },
+      "title": "DevicePurchaseConfig",
       "type": "object"
     },
     "DeviceRef": {
@@ -1254,28 +1306,6 @@
       "title": "PreviewConfig",
       "type": "object"
     },
-    "PreviewDisplayConfig": {
-      "description": "Display settings for preview",
-      "properties": {
-        "aspect_ratio": {
-          "default": "16:9",
-          "title": "Aspect Ratio",
-          "type": "string"
-        },
-        "auto_start": {
-          "default": false,
-          "title": "Auto Start",
-          "type": "boolean"
-        },
-        "show_stats": {
-          "default": true,
-          "title": "Show Stats",
-          "type": "boolean"
-        }
-      },
-      "title": "PreviewDisplayConfig",
-      "type": "object"
-    },
     "PreviewDataConfig": {
       "description": "HTTP polling data source for preview overlays",
       "properties": {
@@ -1298,6 +1328,28 @@
         }
       },
       "title": "PreviewDataConfig",
+      "type": "object"
+    },
+    "PreviewDisplayConfig": {
+      "description": "Display settings for preview",
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "type": "string"
+        },
+        "auto_start": {
+          "default": false,
+          "title": "Auto Start",
+          "type": "boolean"
+        },
+        "show_stats": {
+          "default": true,
+          "title": "Show Stats",
+          "type": "boolean"
+        }
+      },
+      "title": "PreviewDisplayConfig",
       "type": "object"
     },
     "PreviewMqttConfig": {

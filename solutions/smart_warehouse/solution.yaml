@@ -60,6 +60,9 @@ intro:
       description: AI compute unit, supports multi-channel concurrent voice processing
       description_i18n:
         zh: AI 算力单元，支持多路语音并发处理
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_j50:
       description: Edge AI computer for local LLM/TTS, fully offline
       description_i18n:

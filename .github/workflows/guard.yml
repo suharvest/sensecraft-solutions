@@ -23,6 +23,7 @@ jobs:
       - name: Validate all solutions against the contract
         run: |
           uv sync
+          uv run python scripts/ci/validate_product_families.py
           rc=0
           for s in solutions/*/; do
             id=$(basename "$s")

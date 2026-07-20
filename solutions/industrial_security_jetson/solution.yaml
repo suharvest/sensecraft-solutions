@@ -66,6 +66,9 @@ intro:
       description: Ruggedized Jetson Orin NX edge box — runs TensorRT FP16 detection at 30+ FPS
       description_i18n:
         zh: 加固型 Jetson Orin NX 边缘盒——TensorRT FP16 检测 30+ FPS
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_j30:
       description: Compact Jetson Orin Nano edge box — entry-level, ~15 FPS detection
       description_i18n:

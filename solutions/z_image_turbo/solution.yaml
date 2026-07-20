@@ -53,6 +53,9 @@ intro:
       description: NVIDIA Jetson Orin NX 16GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_j50:
       description: NVIDIA Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
       description_i18n:

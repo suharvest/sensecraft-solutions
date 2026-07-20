@@ -60,6 +60,9 @@ intro:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 主机
+      purchase:
+        require:
+          module: [orin_nx_16]
   presets:
     - id: default
       name: Voice Control Your SO-ARM
