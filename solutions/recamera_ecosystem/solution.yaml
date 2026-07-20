@@ -20,6 +20,8 @@ intro:
     - smart-home
     - rtsp
     - privacy
+    - weather
+    - classification
 
   output_interfaces:
     - type: rtsp
@@ -187,6 +189,28 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 通过 FaceMesh 监测驾驶员警觉状态——实时跟踪闭眼时长、PERCLOS 和哈欠频率，全部在设备上处理
+    - id: weather_classification
+      name: Weather Classification
+      badge: New
+      description: Classify the current weather (clear/cloudy/foggy/rainy/snowy) from the camera feed — all on-device, with results published to MQTT
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera
+          default: recamera
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/yyling0101-a11y/weather_classification_recamera
+      name_i18n:
+        zh: 天气识别
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
   summary_i18n:
     zh: 即插即用的 AI 摄像头，一键安装各种应用——物体检测、文字识别、人脸分析、智能家居联动
   description_file_i18n:

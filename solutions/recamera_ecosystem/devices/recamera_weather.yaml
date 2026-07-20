@@ -1,0 +1,169 @@
+version: "1.0"
+id: recamera_weather
+name: reCamera Weather Classification
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# C++ 应用部署配置
+binary:
+  # .deb 包安装（包含 init 脚本 S92weather-classifier）
+  # 已在真机（reCamera, firmware 0.2.2）验证：opkg install 成功，RTSP(8554)+MQTT(1883) 均正常。
+  # init 脚本已对齐 face-analysis/yolo-detector/ppocr-reader/facemesh-reader 真实 .deb 的写法
+  # （拆包比对确认）：二进制装在 /usr/local/bin、start/stop 走 start-stop-daemon、status 带
+  # ps-aux 兜底、先加载全局 /etc/recamera.conf 再加载 solution 自己的 conf、start 前调用
+  # stop_conflicting_services() 停掉 node-red/sscma-node/sscma-supervisor 及其余已知同类
+  # preset 二进制。注意：这段 kill 逻辑对走 SenseCraft Solution App 部署的路径是次要防线——
+  # App 的 recamera_cpp_deployer 本身会在跑这个脚本之前，通用扫描 /etc/init.d/S9* 探测并停掉
+  # 任何正在跑的 cpp 服务（不需要认识具体名字，已用真实部署日志验证），这里的硬编码名单只是
+  # 给绕开 App、直接 SSH/reboot 场景兜底。反向（其余旧 preset 的 init 脚本主动认识
+  # weather-classifier）不在本仓库控制范围内，因为它们的 .deb 由远程 CDN 托管。
+  deb_package:
+    path: packages/weather-classifier_0.1.0_riscv64.deb
+    name: weather-classifier
+    includes_init_script: true
+    checksum:
+      sha256: d7ea50ac3c16309d3c230f1a32a6894b1cda1f28451e43a83980434b7e199f7f
+
+  # 模型文件部署（MobileNetV3-Small 天气分类，5 类：clear/cloudy/foggy/rainy/snowy）
+  # 已在真机验证过的同一份模型文件（sha256 一致）。
+  models:
+    - path: https://files.seeedstudio.com/Solution/models/weather_mobilenetv3_small_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: weather_mobilenetv3_small_bf16.cvimodel
+      checksum:
+        sha256: 1b33bf4097c7b5a1543d845c1a71568dedcdf8458c8d88deb7f0ef504e65965c
+
+  # 服务配置（deb 包已含 init 脚本）
+  service_name: weather-classifier
+  service_priority: 92
+
+  # 部署时立即停止冲突服务（不止是禁用自启动），确保天气识别程序能拿到摄像头
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+      - S93sscma-supervisor
+
+  auto_start: true
+
+actions:
+  after:
+    - name: Generate weather-classifier config
+      run: |
+        set -e
+        CONF=/etc/weather-classifier.conf
+        # In-place update of specific keys; preserves all other defaults shipped with the deb.
+        set_kv() {
+          key="$1"; val="$2"
+          if grep -qE "^[[:space:]]*${key}=" "$CONF" 2>/dev/null; then
+            sed -i "s|^[[:space:]]*${key}=.*|${key}=${val}|" "$CONF"
+          else
+            echo "${key}=${val}" >> "$CONF"
+          fi
+        }
+        [ -f "$CONF" ] || touch "$CONF"
+        if [ -n "{{mqtt_host}}" ]; then
+          set_kv MQTT_HOST "{{mqtt_host}}"
+        fi
+        if [ -n "{{mqtt_port}}" ]; then
+          set_kv MQTT_PORT "{{mqtt_port}}"
+        fi
+      sudo: true
+      name_i18n:
+        zh: 生成天气识别配置
+    - name: Enable external MQTT access
+      # fail_fast: false — uses 'grep -q ... && exit 0' idempotent check; set -e would kill grep on first deploy
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+    - name: Disable Node-RED autostart
+      # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
+      fail_fast: false
+      run: |
+        for svc in node-red sscma-node sscma-supervisor; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
+      name_i18n:
+        zh: 禁用 Node-RED 自启动
+
+# 用户输入
+user_inputs:
+  - id: mqtt_host
+    name: MQTT Broker Host
+    type: text
+    default: "localhost"
+    placeholder: "localhost"
+    description: MQTT broker address (default localhost = camera's local broker)
+    required: false
+
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: MQTT 服务器地址（默认 localhost = 摄像头本地）
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    placeholder: "1883"
+    description: MQTT broker port
+    required: false
+
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: MQTT 服务器端口
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+post_deployment:
+  open_browser: false
+name_i18n:
+  zh: reCamera 天气识别
