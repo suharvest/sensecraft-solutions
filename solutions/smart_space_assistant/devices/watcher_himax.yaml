@@ -17,9 +17,9 @@ detection:
 
 firmware:
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/face_recognition.img
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/face_recognition-ddeff02c.img
     checksum:
-      sha256: 43ca71b81b4e7f83ea0dac6a5283e5a717610aa6943448da5853e1167dba503b
+      sha256: 31bf0e9754c1f08f649433763197e4e45c16066ba27736a2fda3053573c0689b
   flash_config:
     baudrate: 921600
     requires_reset: false  # No manual reset needed - ESP32 hold triggers Himax bootloader
@@ -48,16 +48,16 @@ firmware:
         description_i18n:
           zh: 人脸检测 + 5点关键点模型 (QAT Vela 5.0)
       - id: face_embedding
-        name: Face Embedding (MobileFaceNet Distilled QAT 128D)
+        name: Face Embedding (MobileFaceNet Distilled QAT v2 ReLU6 128D)
         path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/mobilefacenet_distilled_128d_qat_int8_vela.tflite
         flash_address: "0x510000"
         offset: "0x0"
         required: true
         default: true
-        description: Face recognition embedding model (Distilled QAT, Vela 100% NPU)
-        size_hint: "1.26MB"
+        description: Face recognition embedding model (Distilled QAT v2 ReLU6, Vela 100% NPU)
+        size_hint: "1.02MB"
         checksum:
-          sha256: bd1ccc83a9e8bf854a0bf47ce21d415c901338831d6105e182d78c10f0651874
+          sha256: 6e994e8d42882336d2ac3bb6e0aef99a40804c871a13d7ee44c5c84200af3618
         name_i18n:
           zh: 人脸特征模型 (MobileFaceNet 蒸馏 QAT 128D)
         description_i18n:
@@ -65,7 +65,7 @@ firmware:
       - id: face_detection_2
         name: Face Detection 2 (SCRFD 500M KPS)
         path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/scrfd_500m_kps_int8_vela.tflite
-        flash_address: "0x600000"
+        flash_address: "0x650000"
         offset: "0x0"
         required: true
         default: true
