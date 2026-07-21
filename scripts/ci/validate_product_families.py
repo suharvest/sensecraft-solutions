@@ -14,6 +14,7 @@ import yaml
 
 LOCAL_PREFIXES = ("generic_", "external_")
 PRODUCT_DUPLICATE_FIELDS = {"family_id", "sku", "name", "name_i18n", "image", "product_url"}
+ALLOWED_PURCHASE_FIELDS = {"require"}
 RANGE_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)?\.\.(-?\d+(?:\.\d+)?)?\s*$")
 
 
@@ -87,6 +88,12 @@ def validate_solution(path: Path, families: dict[str, dict]) -> list[str]:
         if not isinstance(purchase, dict):
             errors.append(f"{label}: purchase must be an object")
             continue
+        unknown_purchase_fields = sorted(set(purchase).difference(ALLOWED_PURCHASE_FIELDS))
+        if unknown_purchase_fields:
+            errors.append(
+                f"{label}: purchase only supports 'require'; product data must come "
+                f"from purchase_profile: {unknown_purchase_fields}"
+            )
         require = purchase.get("require") or {}
         if not isinstance(require, dict):
             errors.append(f"{label}: purchase.require must be an object")

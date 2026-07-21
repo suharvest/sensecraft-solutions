@@ -104,7 +104,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 
 ```
 ## 方案概述
-- 名称 / 解决什么问题 / 核心硬件 / 核心软件
+- 名称 / 解决什么问题 / 核心硬件（产品族 + 能力要求）/ 核心软件
 
 ## 部署步骤（原始）
 1. ...
@@ -114,6 +114,34 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 
 ## 方案类型判定（solution / technical）
 ```
+
+**核心硬件必须先对照离线产品族快照（强制）**：
+
+```bash
+# 按 family id、英文标题或中文标题搜索
+jq --arg q 'J40' '
+  ($q | ascii_downcase) as $needle
+  | .families | to_entries[]
+  | select(
+      ([.key, .value.title.en // "", .value.title["zh-hans"] // ""]
+       | join(" ") | ascii_downcase | contains($needle))
+    )
+  | {family_id: .key, title: .value.title}
+' spec/product-family-manifest.json
+
+# 查看选中产品族可以约束的 axes / values
+jq --arg id 'recomputer_j40' \
+  '.families[$id] | {title, axes}' spec/product-family-manifest.json
+```
+
+- 找到产品族：记录其 `family_id`，后续直接用作 `device_catalog` key、
+  `device_ref` 和 default；需要 16 GB、特定模组等能力时，记录 manifest
+  中的 axis/value，后续写入 `purchase.require`。
+- **禁止**按页面产品名自造 key，也禁止记录或写入具体 SKU、具体产品名、
+  产品图或购买链接。运行时 App 会从 Typesense `purchase_profile` 获取这些数据。
+- 只有快照确实找不到该硬件时，才能使用 `generic_` / `external_` 前缀，并在
+  结构化摘要中说明为什么没有可用的 `purchase_profile` family。
+- 完整规则和更多查询示例见 `docs/product-family-contract.md`。
 
 ### 方案类型判定（必须做）
 
@@ -326,6 +354,13 @@ Your service is now running.
 - technical 类需声明输出接口（含路由标识 port/endpoint/topic/path/url）
 - 需要外部输入的方案声明输入要求
 - `device_ref` 必须能在 `intro.device_catalog` 中找到
+- 产品硬件必须先检索 `spec/product-family-manifest.json`：选中的 `family_id`
+  直接作为 `device_catalog` key、`device_ref` 和 device group 的 `default`，
+  不再建立第二层映射
+- 能力要求只用 manifest 中声明的 axis/value 写到 `purchase.require`；禁止写
+  具体 SKU，也禁止在产品族 entry 重复具体产品名、图片和购买 URL
+- 只有 manifest 中确实没有对应产品族，才使用 `generic_` / `external_` key，
+  并在交付说明中写明原因；禁止凭产品名自造 key
 - 设备/封面图片用稳定可达的源：方案自带本地图（`gallery/cover.png`，相对路径）或公共 CDN（`files.seeedstudio.com`、`media-cdn.seeedstudio.com`、`sensecraft-statics.seeed.cc` 都行）。`--check-urls` 只把 404/410 当死链；`files.seeedstudio.com` 的 Cloudflare 403 会被放过，可放心用。
 
 #### 最小可复制的 `solution.yaml` 骨架（solution 类型）
@@ -352,12 +387,11 @@ intro:
   tags: [demo, dashboard]
 
   device_catalog:                        # 介绍页展示的设备（device_ref 来源）
-    server:
+    generic_edge_server:                 # 无 purchase_profile 时才使用 generic_
       name: Edge Server
       name_i18n:
         zh: 边缘服务器
       image: gallery/cover.png
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
       description: Runs the dashboard container
       description_i18n:
         zh: 运行看板容器
@@ -380,8 +414,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: server
-          default: server
+            - device_ref: generic_edge_server
+          default: generic_edge_server
 
   stats:
     difficulty: beginner
@@ -429,6 +463,7 @@ user_inputs:
 
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run python scripts/ci/validate_product_families.py
 ```
 
 校验工具从本仓库内运行（clone-first，不依赖 PyPI 发布）。如果要在仓库外的位置校验某个 solution，指向本仓库的 `spec/` 即可：
@@ -444,6 +479,10 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 - **孤儿 H2**：每个 `##` 必须是 `## Preset:` / `## 套餐:` 或 `## Step N:` / `## 步骤 N:`，其它顶层 H2 报错；
 - **target 命名**：`### Target` 名不得是方向词（Local / Remote / 本地 / 远程 / 本机 / 远端）；
 - **中英文结构一致**：guide.md 与 guide_zh.md 的 preset / step / target ID 必须一一对应。
+
+`validate_product_families.py` 同样完全离线，使用
+`spec/product-family-manifest.json` 检查产品族 key、`device_ref` / default、
+`purchase.require` 以及是否误写具体 SKU/产品名/图片/购买链接。
 
 **必须全绿**才算合格。
 
@@ -474,6 +513,7 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run python scripts/ci/validate_product_families.py
 ```
 
 **人眼自检清单**（工具查不到的）：
@@ -484,6 +524,8 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution
 - [ ] `### Wiring` 段确实只放接线说明
 - [ ] description 风格匹配类型（solution: 四段式 / technical: 能力产物 → 集成场景 → 接口详情）
 - [ ] technical 首屏不是端口表或 curl；首段专业缩写不超过 2 个，并有通俗解释
+- [ ] 产品硬件已从 `spec/product-family-manifest.json` 选择 family；能力要求只写 `purchase.require`，没有具体 SKU
+- [ ] `device_catalog` key、`device_ref` 和 default 使用同一 `family_id`；只有确无 family 时才使用并说明 `generic_` / `external_`
 
 ---
 
@@ -500,6 +542,7 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution
 - [ ] `assets/` — 部署产物
 - [ ] 手动部署通过（Phase 2）
 - [ ] `solutionctl validate solutions/<id> --spec-dir spec` 全绿（Phase 4 / Phase 7）
+- [ ] `uv run python scripts/ci/validate_product_families.py` 全绿（Phase 4 / Phase 7）
 - [ ] 文案优化完成（Phase 6）
 
 ---
@@ -510,6 +553,8 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution
 |---|---|
 | `spec/CONTRACT.md` | 机器可读契约：device/solution schema 字段、guide.md Step/Target 语法、docker_deploy 派生规则、heading 关键字 |
 | `spec/*.json` | solution / device / capabilities / plugin schema |
+| `spec/product-family-manifest.json` | 产品族 family id、标题、能力轴与离线 SKU 属性快照 |
+| `docs/product-family-contract.md` | 产品族选型、`purchase.require` 与快照刷新流程 |
 | `skills/solution-copywriting` | 文案优化规范（介绍页四段式、术语通俗化、质量检查） |
 | `skills/prepare-docker-images` | 准备 Docker 镜像与 compose 文件 |
 | `skills/prepare-recamera-nodered` | 准备 reCamera Node-RED flow |

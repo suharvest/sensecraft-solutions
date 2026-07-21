@@ -17,7 +17,12 @@
         {
           "side": "right"
         }
-      ]
+      ],
+      "title": {
+        "en": "Amazing Hand Series",
+        "ja": "Amazing Hand シリーズ",
+        "zh-hans": "Amazing Hand 灵巧手系列"
+      }
     },
     "card_tracker_t1000": {
       "axes": {
@@ -36,7 +41,12 @@
         {
           "variant": "t1000_b"
         }
-      ]
+      ],
+      "title": {
+        "en": "Card Tracker White Label T1000",
+        "ja": "Card Trackerホワイトラベル T1000",
+        "zh-hans": "Card Tracker 白标 T1000"
+      }
     },
     "deptheye": {
       "axes": {
@@ -59,7 +69,12 @@
         {
           "model": "turbo"
         }
-      ]
+      ],
+      "title": {
+        "en": "DepthEye ToF Camera",
+        "ja": "DepthEye ToFカメラ",
+        "zh-hans": "DepthEye ToF 深度相机"
+      }
     },
     "dragino_lds02": {
       "axes": {
@@ -78,7 +93,12 @@
         {
           "frequency_band": "us915"
         }
-      ]
+      ],
+      "title": {
+        "en": "Dragino LDS02 Door & Window Sensor",
+        "ja": "Dragino LDS02ドア・窓センサー",
+        "zh-hans": "Dragino LDS02 门窗传感器"
+      }
     },
     "dragino_lht65n": {
       "axes": {
@@ -97,7 +117,12 @@
         {
           "frequency_band": "eu868"
         }
-      ]
+      ],
+      "title": {
+        "en": "Dragino LHT65N Temperature & Humidity Sensor",
+        "ja": "Dragino LHT65N温湿度センサー",
+        "zh-hans": "Dragino LHT65N 温湿度传感器"
+      }
     },
     "dragino_lt22222": {
       "axes": {
@@ -116,7 +141,12 @@
         {
           "frequency_band": "eu868"
         }
-      ]
+      ],
+      "title": {
+        "en": "Dragino LT-22222-L I/O Controller",
+        "ja": "Dragino LT-22222-L I/Oコントローラー",
+        "zh-hans": "Dragino LT-22222-L I/O 控制器"
+      }
     },
     "dragino_lwl02": {
       "axes": {
@@ -135,7 +165,12 @@
         {
           "frequency_band": "us915"
         }
-      ]
+      ],
+      "title": {
+        "en": "Dragino LWL02 Water Leak Sensor",
+        "ja": "Dragino LWL02水漏れセンサー",
+        "zh-hans": "Dragino LWL02 漏水传感器"
+      }
     },
     "edgebox_rpi200": {
       "axes": {
@@ -195,7 +230,12 @@
           "storage": "emmc_8",
           "ups": "with_ups"
         }
-      ]
+      ],
+      "title": {
+        "en": "EdgeBox RPi 200 Series",
+        "ja": "EdgeBox RPi 200シリーズ",
+        "zh-hans": "EdgeBox RPi 200 系列"
+      }
     },
     "epaper_raw_panel": {
       "axes": {
@@ -313,7 +353,12 @@
           "form": "standard",
           "size": "s4_26"
         }
-      ]
+      ],
+      "title": {
+        "en": "eInk / ePaper Raw Panels",
+        "ja": "eInk / 電子ペーパー素子パネル",
+        "zh-hans": "eInk / 电子纸裸屏"
+      }
     },
     "fashionstar_atom": {
       "axes": {
@@ -332,7 +377,12 @@
         {
           "model": "atom_x"
         }
-      ]
+      ],
+      "title": {
+        "en": "Fashionstar Atom Robot Kits",
+        "ja": "Fashionstar Atom ロボットキット",
+        "zh-hans": "Fashionstar Atom 机器人套件"
+      }
     },
     "grove_vision_ai": {
       "axes": {
@@ -351,7 +401,12 @@
         {
           "version": "v1"
         }
-      ]
+      ],
+      "title": {
+        "en": "Grove Vision AI Module",
+        "ja": "Grove Vision AIモジュール",
+        "zh-hans": "Grove Vision AI 模组"
+      }
     },
     "home_assistant_connect_zbt": {
       "axes": {
@@ -370,25 +425,45 @@
         {
           "generation": "zbt2"
         }
-      ]
+      ],
+      "title": {
+        "en": "Home Assistant Connect ZBT Series",
+        "ja": "Home Assistant Connect ZBT シリーズ",
+        "zh-hans": "Home Assistant Connect ZBT 系列"
+      }
     },
     "home_assistant_connect_zwa": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "Home Assistant Connect ZWA-2",
+        "ja": "Home Assistant Connect ZWA-2",
+        "zh-hans": "Home Assistant Connect ZWA-2"
+      }
     },
     "home_assistant_green": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "Home Assistant Green",
+        "ja": "Home Assistant Green",
+        "zh-hans": "Home Assistant Green"
+      }
     },
     "home_assistant_voice": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "Home Assistant Voice Preview Edition",
+        "ja": "Home Assistant Voice プレビュー版",
+        "zh-hans": "Home Assistant Voice 预览版"
+      }
     },
     "home_assistant_yellow": {
       "axes": {
@@ -411,7 +486,12 @@
         {
           "variant": "standard"
         }
-      ]
+      ],
+      "title": {
+        "en": "Home Assistant Yellow Series",
+        "ja": "Home Assistant Yellow シリーズ",
+        "zh-hans": "Home Assistant Yellow 系列"
+      }
     },
     "industrial_air_th_sensor": {
       "axes": {
@@ -430,7 +510,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial Air Temperature & Humidity Sensor (RS485)",
+        "ja": "産業用気温・湿度センサー（RS485）",
+        "zh-hans": "工业空气温湿度传感器（RS485）"
+      }
     },
     "industrial_ec_tds_sensor": {
       "axes": {
@@ -449,7 +534,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial EC & TDS Sensor (RS485)",
+        "ja": "産業用EC & TDSセンサー（RS485）",
+        "zh-hans": "工业 EC & TDS 传感器（RS485）"
+      }
     },
     "industrial_leaf_wetness_sensor": {
       "axes": {
@@ -468,7 +558,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial Leaf Wetness & Temperature Sensor (RS485)",
+        "ja": "産業用葉面湿度・温度センサー（RS485）",
+        "zh-hans": "工业叶面湿度温度传感器（RS485）"
+      }
     },
     "industrial_light_sensor": {
       "axes": {
@@ -487,7 +582,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial Light Intensity Sensor (RS485)",
+        "ja": "産業用照度センサー（RS485）",
+        "zh-hans": "工业光照强度传感器（RS485）"
+      }
     },
     "industrial_par_sensor": {
       "axes": {
@@ -510,7 +610,12 @@
         {
           "variant": "rs485_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial PAR Sensor",
+        "ja": "産業用PARセンサー",
+        "zh-hans": "工业光合有效辐射（PAR）传感器"
+      }
     },
     "industrial_ph_sensor": {
       "axes": {
@@ -529,7 +634,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial pH Sensor (RS485)",
+        "ja": "産業用pHセンサー（RS485）",
+        "zh-hans": "工业 pH 传感器（RS485）"
+      }
     },
     "industrial_soil_mt_sensor": {
       "axes": {
@@ -548,7 +658,12 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial Soil Moisture & Temperature Sensor (RS485)",
+        "ja": "産業用土壌水分・温度センサー（RS485）",
+        "zh-hans": "工业土壤温湿度传感器（RS485）"
+      }
     },
     "industrial_soil_mtec_sensor": {
       "axes": {
@@ -567,13 +682,23 @@
         {
           "connector": "aviation_connector"
         }
-      ]
+      ],
+      "title": {
+        "en": "Industrial Soil Moisture & Temperature & EC Sensor (RS485)",
+        "ja": "産業用土壌水分・温度・ECセンサー（RS485）",
+        "zh-hans": "工业土壤温湿度电导率传感器（RS485）"
+      }
     },
     "lekiwi": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "LeKiwi Mobile Base",
+        "ja": "LeKiwi モバイルベース",
+        "zh-hans": "LeKiwi 移动底盘"
+      }
     },
     "linkstar_h28k": {
       "axes": {
@@ -592,7 +717,12 @@
         {
           "ram_gb": 2
         }
-      ]
+      ],
+      "title": {
+        "en": "LinkStar H28K Travel Router",
+        "ja": "LinkStar H28Kトラベルルーター",
+        "zh-hans": "LinkStar H28K 旅行路由器"
+      }
     },
     "linkstar_h68k": {
       "axes": {
@@ -615,7 +745,12 @@
         {
           "variant": "r1432_v2"
         }
-      ]
+      ],
+      "title": {
+        "en": "LinkStar H68K Router",
+        "ja": "LinkStar H68Kルーター",
+        "zh-hans": "LinkStar H68K 路由器"
+      }
     },
     "lr2021_evk": {
       "axes": {
@@ -638,7 +773,12 @@
         {
           "frequency_band": "eu868"
         }
-      ]
+      ],
+      "title": {
+        "en": "Semtech LR2021 LoRa Plus Evaluation Kit",
+        "ja": "Semtech LR2021 LoRa Plus評価キット",
+        "zh-hans": "Semtech LR2021 LoRa Plus 评估套件"
+      }
     },
     "nextion_hmi": {
       "axes": {
@@ -661,7 +801,12 @@
         {
           "size": "s4_3"
         }
-      ]
+      ],
+      "title": {
+        "en": "Nextion Basic HMI Display",
+        "ja": "Nextion Basic HMIディスプレイ",
+        "zh-hans": "Nextion Basic HMI 显示屏"
+      }
     },
     "optical_rain_gauge": {
       "axes": {
@@ -680,7 +825,12 @@
         {
           "model": "rg15"
         }
-      ]
+      ],
+      "title": {
+        "en": "Optical Rain Gauge (RG series)",
+        "ja": "光学式雨量計（RGシリーズ）",
+        "zh-hans": "光学雨量计（RG 系列）"
+      }
     },
     "portable_monitor_156": {
       "axes": {
@@ -699,7 +849,12 @@
         {
           "resolution": "uhd_4k"
         }
-      ]
+      ],
+      "title": {
+        "en": "15.6\" Portable Monitor",
+        "ja": "15.6インチポータブルモニター",
+        "zh-hans": "15.6 英寸便携显示器"
+      }
     },
     "reachy_mini": {
       "axes": {
@@ -718,7 +873,12 @@
         {
           "version": "wireless"
         }
-      ]
+      ],
+      "title": {
+        "en": "Reachy Mini Series",
+        "ja": "Reachy Mini シリーズ",
+        "zh-hans": "Reachy Mini 系列"
+      }
     },
     "rebot_arm_b601": {
       "axes": {
@@ -737,7 +897,12 @@
         {
           "actuator": "dm"
         }
-      ]
+      ],
+      "title": {
+        "en": "reBot Arm B601 Series",
+        "ja": "reBot Arm B601 シリーズ",
+        "zh-hans": "reBot Arm B601 系列"
+      }
     },
     "recamera_2002": {
       "axes": {
@@ -773,7 +938,12 @@
           "model": "2002w",
           "storage": "emmc_64"
         }
-      ]
+      ],
+      "title": {
+        "en": "reCamera 2002",
+        "ja": "reCamera 2002",
+        "zh-hans": "reCamera 2002"
+      }
     },
     "recamera_2002_hq_poe": {
       "axes": {
@@ -792,7 +962,12 @@
         {
           "storage": "emmc_8"
         }
-      ]
+      ],
+      "title": {
+        "en": "reCamera 2002 HQ PoE",
+        "ja": "reCamera 2002 HQ PoE",
+        "zh-hans": "reCamera 2002 HQ PoE"
+      }
     },
     "recamera_gimbal": {
       "axes": {
@@ -811,7 +986,12 @@
         {
           "storage": "emmc_64"
         }
-      ]
+      ],
+      "title": {
+        "en": "reCamera Gimbal 2002w",
+        "ja": "reCamera Gimbal 2002w",
+        "zh-hans": "reCamera Gimbal 2002w 云台"
+      }
     },
     "recomputer_j20": {
       "axes": {
@@ -847,7 +1027,12 @@
           "form": "industrial",
           "module": "xavier_nx_16"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer J20 Series (Jetson Xavier NX)",
+        "ja": "reComputer J20 シリーズ（Jetson Xavier NX）",
+        "zh-hans": "reComputer J20 系列（Jetson Xavier NX）"
+      }
     },
     "recomputer_j30": {
       "axes": {
@@ -923,7 +1108,12 @@
           "form": "mini",
           "module": "orin_nano_8"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer J30 Series (Jetson Orin Nano)",
+        "ja": "reComputer J30 シリーズ（Jetson Orin Nano）",
+        "zh-hans": "reComputer J30 系列（Jetson Orin Nano）"
+      }
     },
     "recomputer_j40": {
       "axes": {
@@ -998,7 +1188,12 @@
           "form": "mini",
           "module": "orin_nx_16"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer J40 Series (Jetson Orin NX)",
+        "ja": "reComputer J40 シリーズ（Jetson Orin NX）",
+        "zh-hans": "reComputer J40 系列（Jetson Orin NX）"
+      }
     },
     "recomputer_j50": {
       "axes": {
@@ -1034,7 +1229,12 @@
           "form": "mini",
           "module": "agx_orin_64"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer J50 Series (Jetson AGX Orin)",
+        "ja": "reComputer J50 シリーズ（Jetson AGX Orin）",
+        "zh-hans": "reComputer J50 系列（Jetson AGX Orin）"
+      }
     },
     "recomputer_r10": {
       "axes": {
@@ -1072,7 +1272,12 @@
           "ram_gb": 8,
           "storage": "emmc_32"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer R1000 Series",
+        "ja": "reComputer R1000 シリーズ",
+        "zh-hans": "reComputer R1000 系列"
+      }
     },
     "recomputer_r11": {
       "axes": {
@@ -1105,7 +1310,12 @@
           "ram_gb": 2,
           "storage": "emmc_8"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer R1100 Series",
+        "ja": "reComputer R1100 シリーズ",
+        "zh-hans": "reComputer R1100 系列"
+      }
     },
     "recomputer_r12": {
       "axes": {
@@ -1141,7 +1351,12 @@
           "cellular": "none",
           "frequency_band": "EU868"
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer R1225 LoRaWAN Gateway Series",
+        "ja": "reComputer R1225 LoRaWANゲートウェイシリーズ",
+        "zh-hans": "reComputer R1225 LoRaWAN 网关系列"
+      }
     },
     "recomputer_r20_industrial": {
       "axes": {
@@ -1177,7 +1392,12 @@
           "ai_accelerator": "hailo-8",
           "ram_gb": 16
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer Industrial R20 Series",
+        "ja": "reComputer Industrial R20 シリーズ",
+        "zh-hans": "reComputer Industrial R20 系列"
+      }
     },
     "recomputer_r21_ai": {
       "axes": {
@@ -1196,7 +1416,12 @@
         {
           "ram_gb": 16
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer R21 Series",
+        "ja": "reComputer R21 シリーズ",
+        "zh-hans": "reComputer R21 系列"
+      }
     },
     "recomputer_r21_industrial": {
       "axes": {
@@ -1232,7 +1457,12 @@
           "ai_accelerator": "none",
           "ram_gb": 8
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer Industrial R21 Series",
+        "ja": "reComputer Industrial R21 シリーズ",
+        "zh-hans": "reComputer Industrial R21 系列"
+      }
     },
     "recomputer_r21_industrial_ai": {
       "axes": {
@@ -1251,7 +1481,12 @@
         {
           "ram_gb": 8
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer AI Industrial R21 Series",
+        "ja": "reComputer AI Industrial R21 シリーズ",
+        "zh-hans": "reComputer AI Industrial R21 系列"
+      }
     },
     "recomputer_r22_industrial": {
       "axes": {
@@ -1270,7 +1505,12 @@
         {
           "ram_gb": 8
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer Industrial R22 NVR Series",
+        "ja": "reComputer Industrial R22 NVR シリーズ",
+        "zh-hans": "reComputer Industrial R22 NVR 系列"
+      }
     },
     "recomputer_rk3576": {
       "axes": {
@@ -1289,7 +1529,12 @@
         {
           "ram_gb": 4
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer RK3576 Series",
+        "ja": "reComputer RK3576 シリーズ",
+        "zh-hans": "reComputer RK3576 系列"
+      }
     },
     "recomputer_rk3588": {
       "axes": {
@@ -1308,7 +1553,12 @@
         {
           "ram_gb": 16
         }
-      ]
+      ],
+      "title": {
+        "en": "reComputer RK3588 Series",
+        "ja": "reComputer RK3588 シリーズ",
+        "zh-hans": "reComputer RK3588 系列"
+      }
     },
     "rerouter_cm4": {
       "axes": {
@@ -1327,7 +1577,12 @@
         {
           "ram_gb": 2
         }
-      ]
+      ],
+      "title": {
+        "en": "reRouter CM4 Series",
+        "ja": "reRouter CM4 シリーズ",
+        "zh-hans": "reRouter CM4 系列"
+      }
     },
     "reserver_industrial_nvr": {
       "axes": {
@@ -1354,25 +1609,45 @@
         {
           "jetson_module": "orin_nano_4"
         }
-      ]
+      ],
+      "title": {
+        "en": "reServer Industrial NVR Series",
+        "ja": "reServer Industrial NVRシリーズ",
+        "zh-hans": "reServer Industrial NVR 系列"
+      }
     },
     "respeaker_2mics_pi_hat": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker 2-Mics Pi HAT",
+        "ja": "reSpeaker 2-Mics Pi HAT",
+        "zh-hans": "reSpeaker 2-Mics Pi HAT"
+      }
     },
     "respeaker_clip": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker Clip",
+        "ja": "reSpeaker Clip",
+        "zh-hans": "reSpeaker Clip"
+      }
     },
     "respeaker_core_v2": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "ReSpeaker Core v2.0",
+        "ja": "ReSpeaker Core v2.0",
+        "zh-hans": "ReSpeaker Core v2.0"
+      }
     },
     "respeaker_flex": {
       "axes": {
@@ -1408,7 +1683,12 @@
           "geometry": "linear",
           "mcu": "none"
         }
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker Flex XVF3800",
+        "ja": "reSpeaker Flex XVF3800",
+        "zh-hans": "reSpeaker Flex XVF3800"
+      }
     },
     "respeaker_lite": {
       "axes": {
@@ -1427,13 +1707,23 @@
         {
           "variant": "voice_kit"
         }
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker Lite",
+        "ja": "reSpeaker Lite",
+        "zh-hans": "reSpeaker Lite"
+      }
     },
     "respeaker_mic_array_7pdm": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "ReSpeaker Mic Array Far-field (7 PDM Microphones)",
+        "ja": "ReSpeaker 遠距離マイクアレイ（7 PDMマイク）",
+        "zh-hans": "ReSpeaker 远场麦克风阵列（7 PDM 麦克风）"
+      }
     },
     "respeaker_xvf3000": {
       "axes": {
@@ -1452,7 +1742,12 @@
         {
           "enclosure": "case"
         }
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker XVF3000 4-Mic Array",
+        "ja": "reSpeaker XVF3000 4マイクアレイ",
+        "zh-hans": "reSpeaker XVF3000 四麦阵列"
+      }
     },
     "respeaker_xvf3800": {
       "axes": {
@@ -1488,7 +1783,12 @@
           "enclosure": "case",
           "mcu": "xiao_esp32s3"
         }
-      ]
+      ],
+      "title": {
+        "en": "reSpeaker XVF3800 4-Mic Array",
+        "ja": "reSpeaker XVF3800 4マイクアレイ",
+        "zh-hans": "reSpeaker XVF3800 四麦阵列"
+      }
     },
     "reterminal": {
       "axes": {
@@ -1507,7 +1807,12 @@
         {
           "cm4_module": "cm4108032"
         }
-      ]
+      ],
+      "title": {
+        "en": "reTerminal 5\" HMI",
+        "ja": "reTerminal 5インチ HMI",
+        "zh-hans": "reTerminal 5 英寸 HMI"
+      }
     },
     "reterminal_dm": {
       "axes": {
@@ -1539,7 +1844,12 @@
           "camera_poe": "none",
           "cm4_module": "cm4104032"
         }
-      ]
+      ],
+      "title": {
+        "en": "reTerminal DM Series",
+        "ja": "reTerminal DM シリーズ",
+        "zh-hans": "reTerminal DM 系列"
+      }
     },
     "reterminal_e_series": {
       "axes": {
@@ -1566,7 +1876,12 @@
         {
           "model": "e1003"
         }
-      ]
+      ],
+      "title": {
+        "en": "reTerminal E Series ePaper",
+        "ja": "reTerminal Eシリーズ電子ペーパー",
+        "zh-hans": "reTerminal E 系列电子纸"
+      }
     },
     "rs485_ultrasonic_level_sensor": {
       "axes": {
@@ -1585,13 +1900,23 @@
         {
           "range": "cm500"
         }
-      ]
+      ],
+      "title": {
+        "en": "RS485 Ultrasonic Level Sensor",
+        "ja": "RS485超音波レベルセンサー",
+        "zh-hans": "RS485 超声波液位传感器"
+      }
     },
     "sensecap_combo_4g": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Combo 5-in-1 Sensor with 4G",
+        "ja": "SenseCAP Combo 5-in-1 4Gセンサー",
+        "zh-hans": "SenseCAP Combo 5 合 1 4G 传感器"
+      }
     },
     "sensecap_indicator": {
       "axes": {
@@ -1622,7 +1947,12 @@
         {
           "edition": "meshtastic"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Indicator",
+        "ja": "SenseCAP Indicator",
+        "zh-hans": "SenseCAP Indicator"
+      }
     },
     "sensecap_m2_gateway": {
       "axes": {
@@ -1669,7 +1999,12 @@
           "cellular": "none",
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP M2 Multi-Platform LoRaWAN Indoor Gateway",
+        "ja": "SenseCAP M2 マルチプラットフォーム LoRaWAN 室内ゲートウェイ",
+        "zh-hans": "SenseCAP M2 多平台 LoRaWAN 室内网关"
+      }
     },
     "sensecap_outdoor_gateway": {
       "axes": {
@@ -1696,19 +2031,34 @@
         {
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP LoRaWAN Outdoor Gateway",
+        "ja": "SenseCAP LoRaWAN 屋外ゲートウェイ",
+        "zh-hans": "SenseCAP LoRaWAN 户外网关"
+      }
     },
     "sensecap_s2100_data_logger": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP S2100 LoRaWAN Data Logger",
+        "ja": "SenseCAP S2100 LoRaWANデータロガー",
+        "zh-hans": "SenseCAP S2100 LoRaWAN 数据采集器"
+      }
     },
     "sensecap_s2120_weather": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP S2120 LoRaWAN Weather Station",
+        "ja": "SenseCAP S2120 LoRaWAN気象ステーション",
+        "zh-hans": "SenseCAP S2120 LoRaWAN 气象站"
+      }
     },
     "sensecap_s21xx_sensor": {
       "axes": {
@@ -1747,7 +2097,12 @@
         {
           "model": "s2107"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP S21xx LoRaWAN Sensor Series",
+        "ja": "SenseCAP S21xx LoRaWANセンサーシリーズ",
+        "zh-hans": "SenseCAP S21xx LoRaWAN 传感器系列"
+      }
     },
     "sensecap_s700_weather": {
       "axes": {
@@ -1774,13 +2129,23 @@
         {
           "sensor_config": "solar_radiation_radar_rain"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP S700 Compact Weather Station",
+        "ja": "SenseCAP S700コンパクト気象ステーション",
+        "zh-hans": "SenseCAP S700 紧凑型气象站"
+      }
     },
     "sensecap_sensor_hub_4g": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Sensor Hub 4G Data Logger",
+        "ja": "SenseCAP Sensor Hub 4Gデータロガー",
+        "zh-hans": "SenseCAP Sensor Hub 4G 数据采集器"
+      }
     },
     "sensecap_solar_node_p1": {
       "axes": {
@@ -1812,7 +2177,12 @@
           "firmware": "meshtastic",
           "model": "p1"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Solar Node P1 Series",
+        "ja": "SenseCAP ソーラーノード P1 シリーズ",
+        "zh-hans": "SenseCAP 太阳能节点 P1 系列"
+      }
     },
     "sensecap_t1000_tracker": {
       "axes": {
@@ -1831,7 +2201,12 @@
         {
           "variant": "t1000_b"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP T1000 LoRaWAN Card Tracker",
+        "ja": "SenseCAP T1000 LoRaWANカード型トラッカー",
+        "zh-hans": "SenseCAP T1000 LoRaWAN 卡片追踪器"
+      }
     },
     "sensecap_t1000e": {
       "axes": {
@@ -1850,7 +2225,12 @@
         {
           "firmware": "lorawan"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP T1000-E Tracker",
+        "ja": "SenseCAP T1000-Eトラッカー",
+        "zh-hans": "SenseCAP T1000-E 追踪器"
+      }
     },
     "sensecap_t2000_tracker": {
       "axes": {
@@ -1873,7 +2253,12 @@
         {
           "variant": "t2000_c"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP T2000 Asset Tracker",
+        "ja": "SenseCAP T2000アセットトラッカー",
+        "zh-hans": "SenseCAP T2000 资产追踪器"
+      }
     },
     "sensecap_vision_ai": {
       "axes": {
@@ -1892,7 +2277,12 @@
         {
           "model": "a1102"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP LoRaWAN Vision AI Sensor",
+        "ja": "SenseCAP LoRaWANビジョンAIセンサー",
+        "zh-hans": "SenseCAP LoRaWAN 视觉 AI 传感器"
+      }
     },
     "sensecap_watcher": {
       "axes": {
@@ -1911,13 +2301,23 @@
         {
           "enclosure": "clear"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Watcher",
+        "ja": "SenseCAP Watcher",
+        "zh-hans": "SenseCAP Watcher"
+      }
     },
     "sensecap_watcher_xiaozhi": {
       "axes": {},
       "sku_attrs": [
         {}
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Watcher for XiaoZhi",
+        "ja": "SenseCAP Watcher for XiaoZhi",
+        "zh-hans": "SenseCAP Watcher 小智版"
+      }
     },
     "sensecap_wireless_airth_sensor": {
       "axes": {
@@ -1944,7 +2344,12 @@
         {
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless Air Temp & Humidity Sensor (Gen 1)",
+        "ja": "SenseCAP ワイヤレス温湿度センサー（第1世代）",
+        "zh-hans": "SenseCAP 无线空气温湿度传感器（一代）"
+      }
     },
     "sensecap_wireless_co2_sensor": {
       "axes": {
@@ -1971,7 +2376,12 @@
         {
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless CO2 Sensor (Gen 1)",
+        "ja": "SenseCAP ワイヤレスCO2センサー（第1世代）",
+        "zh-hans": "SenseCAP 无线 CO2 传感器（一代）"
+      }
     },
     "sensecap_wireless_light_sensor": {
       "axes": {
@@ -1998,7 +2408,12 @@
         {
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless Light Intensity Sensor (Gen 1)",
+        "ja": "SenseCAP ワイヤレス照度センサー（第1世代）",
+        "zh-hans": "SenseCAP 无线光照强度传感器（一代）"
+      }
     },
     "sensecap_wireless_pressure_sensor": {
       "axes": {
@@ -2013,7 +2428,12 @@
         {
           "frequency_band": "as923"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless Barometric Pressure Sensor (Gen 1)",
+        "ja": "SenseCAP ワイヤレス気圧センサー（第1世代）",
+        "zh-hans": "SenseCAP 无线大气压传感器（一代）"
+      }
     },
     "sensecap_wireless_soil_sensor": {
       "axes": {
@@ -2036,7 +2456,12 @@
         {
           "frequency_band": "au915"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless Soil Moisture & Temp Sensor (Gen 1)",
+        "ja": "SenseCAP ワイヤレス土壌水分・温度センサー（第1世代）",
+        "zh-hans": "SenseCAP 无线土壤水分温度传感器（一代）"
+      }
     },
     "sensecap_wireless_soil_vwc_ec_sensor": {
       "axes": {
@@ -2059,7 +2484,12 @@
         {
           "frequency_band": "as923"
         }
-      ]
+      ],
+      "title": {
+        "en": "SenseCAP Wireless Soil Temperature, VWC & EC Sensor",
+        "ja": "SenseCAPワイヤレス土壌温度・VWC・ECセンサー",
+        "zh-hans": "SenseCAP 无线土壤温度、VWC 与 EC 传感器"
+      }
     },
     "so_arm": {
       "axes": {
@@ -2090,7 +2520,12 @@
         {
           "variant": "so_arm101_kit_pro"
         }
-      ]
+      ],
+      "title": {
+        "en": "SO-ARM100/101 Series (LeRobot)",
+        "ja": "SO-ARM100/101 シリーズ（LeRobot）",
+        "zh-hans": "SO-ARM100/101 系列（LeRobot）"
+      }
     },
     "sonoff_snzb_sensor": {
       "axes": {
@@ -2117,7 +2552,12 @@
         {
           "model": "snzb_03"
         }
-      ]
+      ],
+      "title": {
+        "en": "Sonoff SNZB Zigbee Sensor",
+        "ja": "Sonoff SNZB Zigbeeセンサー",
+        "zh-hans": "Sonoff SNZB Zigbee 传感器"
+      }
     },
     "starai_arm": {
       "axes": {
@@ -2148,7 +2588,12 @@
         {
           "config": "viola_violin"
         }
-      ]
+      ],
+      "title": {
+        "en": "Fashionstar StarAI Arm Series",
+        "ja": "Fashionstar StarAI アームシリーズ",
+        "zh-hans": "Fashionstar StarAI 机械臂系列"
+      }
     },
     "wio_tracker_l1": {
       "axes": {
@@ -2185,7 +2630,12 @@
           "firmware": "meshtastic",
           "model": "eink"
         }
-      ]
+      ],
+      "title": {
+        "en": "Wio Tracker L1 Series",
+        "ja": "Wio Tracker L1シリーズ",
+        "zh-hans": "Wio Tracker L1 系列"
+      }
     },
     "wio_wm1302": {
       "axes": {
@@ -2226,7 +2676,12 @@
           "frequency_band": "us915",
           "interface": "usb"
         }
-      ]
+      ],
+      "title": {
+        "en": "Wio-WM1302 LoRaWAN Gateway Module",
+        "ja": "Wio-WM1302 LoRaWANゲートウェイモジュール",
+        "zh-hans": "Wio-WM1302 LoRaWAN 网关模组"
+      }
     },
     "xiao_epaper_board": {
       "axes": {
@@ -2257,7 +2712,12 @@
         {
           "model": "en05"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO ePaper Display Board",
+        "ja": "XIAO 電子ペーパードライバーボード",
+        "zh-hans": "XIAO 电子纸驱动板"
+      }
     },
     "xiao_esp32c3": {
       "axes": {
@@ -2294,7 +2754,12 @@
           "pack": "single",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO ESP32-C3",
+        "ja": "XIAO ESP32-C3",
+        "zh-hans": "XIAO ESP32-C3"
+      }
     },
     "xiao_esp32c5": {
       "axes": {
@@ -2313,7 +2778,12 @@
         {
           "soldering": "presoldered"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO ESP32-C5",
+        "ja": "XIAO ESP32-C5",
+        "zh-hans": "XIAO ESP32-C5"
+      }
     },
     "xiao_esp32c6": {
       "axes": {
@@ -2350,7 +2820,12 @@
           "pack": "single",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO ESP32-C6",
+        "ja": "XIAO ESP32-C6",
+        "zh-hans": "XIAO ESP32-C6"
+      }
     },
     "xiao_esp32s3": {
       "axes": {
@@ -2414,7 +2889,12 @@
           "pack": "single",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO ESP32-S3",
+        "ja": "XIAO ESP32-S3",
+        "zh-hans": "XIAO ESP32-S3"
+      }
     },
     "xiao_meshtastic_kit": {
       "axes": {
@@ -2433,7 +2913,12 @@
         {
           "soc": "esp32s3"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO Meshtastic Kit (Wio-SX1262)",
+        "ja": "XIAO Meshtasticキット（Wio-SX1262）",
+        "zh-hans": "XIAO Meshtastic 套件（Wio-SX1262）"
+      }
     },
     "xiao_mg24": {
       "axes": {
@@ -2490,7 +2975,12 @@
           "pack": "pack3",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO MG24",
+        "ja": "XIAO MG24",
+        "zh-hans": "XIAO MG24"
+      }
     },
     "xiao_mmwave": {
       "axes": {
@@ -2513,7 +3003,12 @@
         {
           "model": "fall_60ghz"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO mmWave Human Sensor",
+        "ja": "XIAO ミリ波人感センサー",
+        "zh-hans": "XIAO 毫米波人体传感器"
+      }
     },
     "xiao_nrf52840": {
       "axes": {
@@ -2593,7 +3088,12 @@
           "pack": "single",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO nRF52840",
+        "ja": "XIAO nRF52840",
+        "zh-hans": "XIAO nRF52840"
+      }
     },
     "xiao_nrf54l15": {
       "axes": {
@@ -2629,7 +3129,12 @@
           "edition": "sense",
           "soldering": "presoldered"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO nRF54L15",
+        "ja": "XIAO nRF54L15",
+        "zh-hans": "XIAO nRF54L15"
+      }
     },
     "xiao_ra4m1": {
       "axes": {
@@ -2661,7 +3166,12 @@
           "pack": "pack3",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO RA4M1",
+        "ja": "XIAO RA4M1",
+        "zh-hans": "XIAO RA4M1"
+      }
     },
     "xiao_rp2040": {
       "axes": {
@@ -2698,7 +3208,12 @@
           "pack": "single",
           "soldering": "presoldered"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO RP2040",
+        "ja": "XIAO RP2040",
+        "zh-hans": "XIAO RP2040"
+      }
     },
     "xiao_rp2350": {
       "axes": {
@@ -2717,7 +3232,12 @@
         {
           "soldering": "presoldered"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO RP2350",
+        "ja": "XIAO RP2350",
+        "zh-hans": "XIAO RP2350"
+      }
     },
     "xiao_samd21": {
       "axes": {
@@ -2749,7 +3269,12 @@
           "pack": "pack3",
           "soldering": "plain"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO SAMD21",
+        "ja": "XIAO SAMD21",
+        "zh-hans": "XIAO SAMD21"
+      }
     },
     "xiao_wifi_relay": {
       "axes": {
@@ -2768,7 +3293,12 @@
         {
           "variant": "dc_6ch"
         }
-      ]
+      ],
+      "title": {
+        "en": "XIAO Wi-Fi Smart Relay",
+        "ja": "XIAO Wi-Fiスマートリレー",
+        "zh-hans": "XIAO Wi-Fi 智能继电器"
+      }
     }
   },
   "family_count": 106,
