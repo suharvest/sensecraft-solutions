@@ -37,7 +37,7 @@ Four containers, one compose file:
 
 - **rebot-arm** — the agent: wake word, camera, detection, grasp pipeline, arm control, dashboard (`:8776`) and observation API (`:8775`)
 - **seeed-voice** — streaming Qwen3 ASR + MOSS-TTS-Nano speech synthesis (`:8621`)
-- **edge-llm** — Qwen3.5-4B-AWQ with MTP speculative decoding on TensorRT-Edge-LLM (`:8000`)
+- **edge-llm** — Qwen3.5-4B-AWQ on TensorRT-Edge-LLM with MTP speculative decoding, ~45 tok/s (`:8000`)
 - **warehouse** — an MCP inventory service the agent can consult (`:2125`)
 
 The detector takes its class vocabulary as a runtime input rather than baking it into the weights, so extending the recognizable object list is a config edit — no model re-export, no retraining.

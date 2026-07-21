@@ -118,3 +118,4 @@
 | 机械臂关节报错（`status_code=12`） | 启动时会自动清除这个锁存故障；若容器重启后仍持续报错，再给机械臂断电重启 |
 | 机械臂断电重启后不响应指令 | 容器内的电机状态已过期 —— 机械臂每次断电重启后都要 `docker restart voice-rebot-arm` |
 | 检测速度比标称值慢 | 预编译 engine 未能加载，已回退到 ONNX Runtime。先看 `docker logs voice-rebot-arm` 第一行，再看 `docker logs voice-rebot-arm-model-init-1` 里的原因 |
+| 重启后又重新下载好几 GB | 有人删掉了 named volume —— `docker compose down -v` 会删。用不带 `-v` 的 `down`（或 `restart`）；引擎存在 `speech-models` 和 `edgellm-v090` 两个卷里，卷还在就只做校验不重下 |

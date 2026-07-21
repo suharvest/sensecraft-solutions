@@ -12,7 +12,7 @@
 #      Orbbec Gemini2 on USB, reSpeaker mic + speaker via PulseAudio
 #
 # First start downloads ~8.5 GB of models on top of ~1.4 GB of images:
-#   ~4.9 GB  Qwen3.5-4B-AWQ GDN+MTP engine   -> edgellm-workspace
+#   ~4.6 GB  Qwen3.5-4B-AWQ GDN+MTP engine   -> edgellm-workspace
 #            (llm.engine + eagle_base/eagle_draft for MTP + int4 FFN weights)
 #   ~1.9 GB  MOSS-TTS-Nano engines + weights -> speech-models
 #   ~1.3 GB  edgellm v0.9.0 ASR engines       -> edgellm-v090
@@ -23,7 +23,7 @@
 
 services:
   edge-llm:
-    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-merged
+    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-fixdl
     container_name: edge-llm
     privileged: true            # TensorRT needs full GPU device access
     ports:
@@ -43,13 +43,21 @@ services:
       # Qwen3-4B-AWQ one), so the provenance gate must be skipped or startup
       # aborts before warmup.
       - EDGELLM_SKIP_ENGINE_PROVENANCE_CHECK=1
-      # MTP speculative decoding — lowers first-token latency, which the
-      # voice→tool-call path is sensitive to.
+      # MTP speculative decoding. Not optional: this bundle's config.json sets
+      # isSpecDecodeBase, so the plain decode path dies at prefill with
+      # "intermediate_recurrent_state_* not in tensorMap".
       - EDGELLM_MTP_ENABLED=1
       - EDGELLM_SPEC_DECODE_ENGINE_DIR=/workspace/qwen35-4b-awq-gdn-mtp
+      # DRAFT_STEP x DRAFT_TOP_K <= maxDraftTreeSize, which is baked into the
+      # engine at 4 -- VERIFY_TREE_SIZE does not raise it, and 4/4/1 dies at
+      # engine init anyway. Within that ceiling, throughput is monotonically
+      # better as the draft shrinks: measured on an Orin NX at 300 tokens,
+      # step=1 gives 45.2 tok/s, step=2 41.1, step=3 32.7, against 34.8 for
+      # plain decode. The draft forward cost dominates, not the acceptance
+      # rate, so proposing less wins.
       - EDGELLM_DRAFT_TOP_K=1
-      - EDGELLM_DRAFT_STEP=3
-      - EDGELLM_VERIFY_TREE_SIZE=4
+      - EDGELLM_DRAFT_STEP=1
+      - EDGELLM_VERIFY_TREE_SIZE=2
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
       - WARMUP_TIMEOUT=180
       - WARMUP_INFERENCE_TIMEOUT=300
@@ -74,7 +82,7 @@ services:
     # briefly built with --bf16, which TRT 10.3 silently ignored on sm87 (every
     # weight stayed fp32, +439 MB); rebuilding with --fp16 restored the size and
     # produces frame-identical audio.
-    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260721
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260721c
     container_name: seeed-voice
     runtime: nvidia
     ipc: host

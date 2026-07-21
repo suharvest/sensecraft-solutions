@@ -35,7 +35,7 @@ reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3.5-4B（Tenso
 
 - **rebot-arm** —— agent：唤醒词、相机、检测、抓取流水线、臂控、面板（`:8776`）与观测 API（`:8775`）
 - **seeed-voice** —— 流式 ASR + TTS（CUDA）
-- **edge-llm** —— Qwen3.5-4B-AWQ，带 MTP 投机解码，TensorRT-Edge-LLM（`:8000`）
+- **edge-llm** —— Qwen3.5-4B-AWQ，TensorRT-Edge-LLM，带 MTP 投机解码，约 45 token/s（`:8000`）
 - **warehouse** —— agent 可查询的 MCP 库存服务（`:2125`）
 
 检测器把类别词表作为运行时输入，而不是烤进权重 —— 想扩展可识别物体清单，改配置即可，无需重导模型，更无需重新训练。
