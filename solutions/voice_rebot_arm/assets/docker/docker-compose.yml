@@ -1,8 +1,7 @@
 # voice_rebot_arm — full voice-controlled grasping stack (Jetson Orin NX).
 #
-# Four services, one network. Container names are load-bearing: the agent
-# resolves its peers as http://edge-llm:8000 / http://seeed-voice:8000 and
-# reaches the warehouse MCP at http://mcp_warehouse:2125.
+# Three services, one network. Container names are load-bearing: the agent
+# resolves its peers as http://edge-llm:8000 and http://seeed-voice:8000.
 #
 # Prerequisites on the host (see the solution guide):
 #   1. /opt/rebot-models/hand_eye.npz — per-device hand-eye calibration
@@ -120,27 +119,6 @@ services:
       resources:
         limits:
           memory: 6G
-
-  warehouse:
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
-    container_name: mcp_warehouse
-    ports:
-      - "2125:2125"
-    environment:
-      - PORT=2125
-      - DATABASE_PATH=/data/warehouse.db
-      - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
-      - ENABLE_SECURITY_HEADERS=true
-      - CORS_ORIGINS=*
-    volumes:
-      - warehouse_data:/data
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2125/healthz', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
 
   # One-shot init: fetch the embin (vocabulary-decoupled) detector into
   # /opt/rebot-models and decide which backend the arm will use.
@@ -284,8 +262,6 @@ services:
         condition: service_started
       seeed-voice:
         condition: service_started
-      warehouse:
-        condition: service_started
     ports:
       - "8775:8775"             # action/observation HTTP server
       - "8776:8776"             # read-only camera/arm dashboard
@@ -366,7 +342,5 @@ volumes:
     name: speech-models
   edgellm-v090:
   edgellm-workspace:
-  warehouse_data:
-    driver: local
   trt-cache:
   trt-libs:

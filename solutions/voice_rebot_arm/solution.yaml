@@ -7,7 +7,7 @@ intro:
   cover_image: gallery/cover.jpg
   category: voice_ai
   solution_type: technical
-  tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, moss, offline, mcp]
+  tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, moss, offline]
 
   output_interfaces:
     - type: http
@@ -83,7 +83,7 @@ intro:
   presets:
     - id: default
       name: Voice Grasping on Jetson
-      description: Deploy the full 4-service stack (voice, LLM, warehouse MCP, arm agent) to a Jetson Orin NX with one compose file, then verify via the live dashboard. Hand-eye calibration (one-time, on-site) unlocks grasping.
+      description: Deploy the full 3-service stack (voice, LLM, arm agent) to a Jetson Orin NX with one compose file, then verify via the live dashboard. Hand-eye calibration (one-time, on-site) unlocks grasping.
       device_groups:
         - id: arm
           name: Robotic Arm
@@ -124,7 +124,7 @@ intro:
       name_i18n:
         zh: Jetson 上的语音抓取
       description_i18n:
-        zh: 一个 compose 文件将 4 个服务（语音、LLM、仓储 MCP、机械臂 agent）整体部署到 Jetson Orin NX，随后通过实时面板验证。完成一次性的手眼标定后即可解锁抓取。
+        zh: 一个 compose 文件将 3 个服务（语音、LLM、机械臂 agent）整体部署到 Jetson Orin NX，随后通过实时面板验证。完成一次性的手眼标定后即可解锁抓取。
 
   stats:
     difficulty: advanced

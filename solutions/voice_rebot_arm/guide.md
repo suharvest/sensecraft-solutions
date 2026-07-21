@@ -31,7 +31,7 @@ Deploy the voice, LLM, arm-control and inventory services to the Jetson.
 
 ### Services
 
-One compose file starts four services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano), `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) and `warehouse` (MCP inventory) — plus two one-shot init services that curate the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
+One compose file starts three services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano) and `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) — plus two one-shot init services that curate the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
 
 The detector ships as a prebuilt native TensorRT engine. `model-init` deserializes it to check it loads on your GPU; if it does not (different Jetson generation, different JetPack), it silently switches to the ONNX Runtime build of the same model — same detections, slower. `docker logs voice-rebot-arm | head -1` prints which one is active.
 

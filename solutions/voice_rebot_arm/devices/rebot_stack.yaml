@@ -8,7 +8,6 @@ device_class: jetson
 # derived). Deploys the FULL 4-service stack via one compose file:
 #   edge-llm (Qwen3.5-4B-AWQ GDN+MTP, TensorRT-Edge-LLM)
 #   + seeed-voice (Qwen3 ASR + MOSS-TTS-Nano, edgellm v0.9.0)
-#   + warehouse (MCP)
 #   + rebot-arm (voice_rebot_arm agent: detection → grasp pipeline)
 # plus two one-shot init services: gpu-libs-init (curates host TensorRT/cuDNN
 # libraries) and model-init (fetches the embin detector + text encoder, and
@@ -58,10 +57,6 @@ docker:
       required: true
     - name: seeed-voice
       port: 8621
-      required: true
-    - name: warehouse
-      port: 2125
-      health_check_endpoint: "/healthz"
       required: true
 
 ssh:
