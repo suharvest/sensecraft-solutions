@@ -21,7 +21,7 @@
 2. Gemini 2 接 **USB 3.0** 口（蓝色接口 —— USB 2 带宽不够，深度流异常）
 3. reSpeaker 麦克风 + 音箱已接好；记下桌面用户 uid（`id -u`，通常 `1000`）
 4. Docker + NVIDIA runtime（JetPack 6 标配）；磁盘剩余 ≥10 GB
-5. 首次启动需联网（容器镜像之外还需下载约 7 GB 模型：LLM 引擎 4.9 GB、语音引擎 1.6 GB、检测器 0.3 GB）
+5. 首次启动需联网（约 1.4 GB 容器镜像之外，还需下载约 8.5 GB 模型：LLM 引擎 4.9 GB、语音引擎 3.2 GB、检测器 0.3 GB）
 
 > **中国大陆网络**：Step 1 的 *HuggingFace 端点* 请填 `https://hf-mirror.com` —— LLM 引擎、语音模型、抓取检测模型都从这里下载。
 

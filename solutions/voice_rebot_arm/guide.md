@@ -21,7 +21,7 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 2. Gemini 2 on a **USB 3.0** port (blue connector — USB 2 starves the depth stream)
 3. reSpeaker mic + speaker connected; note your desktop user's uid (`id -u`, usually `1000`)
 4. Docker + NVIDIA runtime (standard on JetPack 6); ~10 GB free disk
-5. Internet on first boot (~7 GB of models on top of the container images: LLM engine 4.9 GB, speech engines 1.6 GB, detector 0.3 GB)
+5. Internet on first boot (~8.5 GB of models on top of ~1.4 GB of container images: LLM engine 4.9 GB, speech engines 3.2 GB, detector 0.3 GB)
 
 > **China networks**: set the *HuggingFace Endpoint* input to `https://hf-mirror.com` in Step 1 — the LLM engine, speech models and grasp detector all download through it.
 

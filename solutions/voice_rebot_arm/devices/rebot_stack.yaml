@@ -17,9 +17,11 @@ device_class: jetson
 # Target: reComputer J4012 (Jetson Orin NX 16GB, JetPack 6). The compose
 # mounts host CUDA/TensorRT libraries — other hosts are unsupported.
 #
-# First boot downloads ~7 GB (LLM engine 4.9 GB, MOSS TTS engines 1.6 GB,
-# detector + text encoder 330 MB) and warms up TensorRT. Budget 30-45 min on a
-# fast link before the stack answers; health checks below allow for it.
+# First boot downloads ~8.5 GB of models (LLM engine 4.9 GB, MOSS TTS 1.9 GB,
+# ASR engines 1.3 GB, detector + text encoder 330 MB) on top of ~1.4 GB of
+# container images, then warms up TensorRT. Budget 30-45 min on a fast link
+# before the stack answers; health checks below allow for it. Engines live in
+# named volumes, so recreating a container re-verifies rather than re-downloads.
 #
 # Detector backend: the prebuilt TensorRT engine is bound to sm87 / TRT 10.3 /
 # JetPack 6.2. model-init deserializes it to prove it loads here; if it does
@@ -73,9 +75,9 @@ user_inputs:
     required: false
     reconfigurable: true
     default: "https://huggingface.co"
-    description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~7 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano speech engines, and the grasp detector."
+    description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~8.5 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano and ASR speech engines, and the grasp detector."
     description_i18n:
-      zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 7 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音引擎、抓取检测模型
+      zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
     name_i18n:
       zh: HuggingFace 端点
   - id: rebot_serial
@@ -157,9 +159,9 @@ remote_overrides:
       required: false
       reconfigurable: true
       default: "https://huggingface.co"
-      description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~7 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano speech engines, and the grasp detector."
+      description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~8.5 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano and ASR speech engines, and the grasp detector."
       description_i18n:
-        zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 7 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音引擎、抓取检测模型
+        zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
       name_i18n:
         zh: HuggingFace 端点
     - id: rebot_serial
