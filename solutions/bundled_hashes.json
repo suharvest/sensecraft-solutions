@@ -17,9 +17,9 @@
   "sensecraft_data_mcp": "sha256:4d1211aafdf58964148f1ccd9943b74adf9860b2662b5e5cc6fa7cd26971229f",
   "smart_hvac_control": "sha256:d9d03077d5d29c8e510c639cca1f078905e483a58d46061a9c832df77eca9f98",
   "smart_retail_voice_ai": "sha256:5381b90f2d3c57b48c7f2f463ef02e8cfa174757ede98b8c07683834ac1c3eec",
-  "smart_space_assistant": "sha256:490dbbaea5134e878c70688cee3f830f2cca26715a0d35d90eaa7aade5f0a684",
-  "smart_warehouse": "sha256:4629aad3a878a9b7c1ab451b656d78cf21d8b860d4e025aae43ea5d8534c6270",
-  "voice_rebot_arm": "sha256:7f60d34d2985085ac09cc3584efaea9208140398cc834a5bcb2febb58f9800a0",
+  "smart_space_assistant": "sha256:f3c347c88e417418c3eeb516b89397d4a1c14ba45d54711a996588d9acf471ae",
+  "smart_warehouse": "sha256:3e5ddc701e55fc74f75b23282fcf72deb6fdc652cb948dc2bfc44306733a1af0",
+  "voice_rebot_arm": "sha256:9ad2f0814097efb9eb44ac0aa9e7ec373fa1ea75685753917815c63c5bd895b5",
   "voice_robot_lekiwi": "sha256:264e3617044a25bfd9917ab4d3a6f3413f52bd56684501bc81a0e9bd41c33a22",
   "z_image_turbo": "sha256:c0c68c388cea2a395943701b6622affe8a6d6b5dd36b86b722303bbb9a9709b2"
 }
