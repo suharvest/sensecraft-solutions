@@ -13,12 +13,12 @@
 | 橙子 | 圆球路线：水平接近、赤道高度抓取 | 已验证 |
 | 透明瓶子 | — | 无法实现：双目深度看不见透明塑料和水 |
 
-超过 0.100 m 开口的物体会语音播报拒绝：物体太大，夹不住（英文提示类似 "The box is too big for me to grip"）。检测跑在 GPU（TensorRT）上：单帧感知 0.6–1.6 秒，从语音指令到带回的完整抓取周期约 11 秒。
+超过 0.100 m 开口的物体会语音播报拒绝：物体太大，夹不住（英文提示类似 "The box is too big for me to grip"）。检测通过预编译的原生 TensorRT engine 跑在 GPU 上：单帧感知 0.6–1.6 秒，从语音指令到带回的完整抓取周期约 11 秒。
 
 ## 工作原理
 
 ```
-reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3-4B（TensorRT-Edge-LLM）
+reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3.5-4B（TensorRT-Edge-LLM）
                                               │  grasp_object("water bottle")
                                               ▼
                       Orbbec Gemini2 ─▶ YOLOE 开放词表检测器（10 类）
@@ -35,10 +35,10 @@ reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3-4B（TensorR
 
 - **rebot-arm** —— agent：唤醒词、相机、检测、抓取流水线、臂控、面板（`:8776`）与观测 API（`:8775`）
 - **seeed-voice** —— 流式 ASR + TTS（CUDA）
-- **edge-llm** —— Qwen3-4B-AWQ，TensorRT-Edge-LLM（`:8000`）
+- **edge-llm** —— Qwen3.5-4B-AWQ，带 MTP 投机解码，TensorRT-Edge-LLM（`:8000`）
 - **warehouse** —— agent 可查询的 MCP 库存服务（`:2125`）
 
-多类别检测器由开放词表 YOLOE 权重导出 —— 想扩展可识别物体清单，重新导出即可，无需重新训练。
+检测器把类别词表作为运行时输入，而不是烤进权重 —— 想扩展可识别物体清单，改配置即可，无需重导模型，更无需重新训练。
 
 ## 唯一的手动步骤
 
@@ -49,4 +49,4 @@ reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3-4B（TensorR
 - reComputer J4012 / Jetson Orin NX 16 GB（JetPack 6）—— compose 文件挂载宿主机 CUDA/TensorRT
 - reBot B601-DM 机械臂（USB 串口）+ 腕装 Orbbec Gemini 2（USB 3.0）
 - reSpeaker USB 麦克风 + 任意音箱
-- 首次启动需下载约 4 GB 模型（LLM 引擎、语音模型、检测器）
+- 首次启动需下载约 7 GB 模型（LLM 引擎、语音引擎、检测器）

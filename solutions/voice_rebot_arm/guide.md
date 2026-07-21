@@ -1,6 +1,6 @@
 ## Preset: Voice Grasping on Jetson {#default}
 
-Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle"** and the reBot B601-DM finds the object with its wrist RGB-D camera and picks it up. One compose file runs the whole stack on the Jetson — wake word, streaming ASR, Qwen3-4B LLM, object detection, grasp planning, arm control and TTS reply. Fully local, no online API.
+Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle"** and the reBot B601-DM finds the object with its wrist RGB-D camera and picks it up. One compose file runs the whole stack on the Jetson — wake word, streaming ASR, a Qwen3.5-4B LLM, object detection, grasp planning, arm control and TTS reply. Fully local, no online API.
 
 | Device | Purpose |
 |--------|---------|
@@ -11,8 +11,8 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 
 **What you'll get:**
 - Voice-commanded grasping of boxes, standing (opaque) bottles, bananas, cups and oranges — all verified on real hardware
-- GPU object detection (TensorRT): scene capture in 0.6–1.6 s, a full grasp cycle in ~11 s (falls back to CPU automatically if GPU memory is tight)
-- Open-vocabulary detection (YOLOE): the object list is a model re-export away from extending, no retraining
+- Native TensorRT object detection: scene capture in 0.6–1.6 s, a full grasp cycle in ~11 s
+- Open-vocabulary detection (YOLOE, embeddings-as-input): the object list is editable config — no re-export, no retraining
 - Live dashboard with the wrist-camera view and arm state (`:8776`)
 - Cartesian observation API (`:8775/observation`) for integration with other solutions
 
@@ -21,7 +21,7 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 2. Gemini 2 on a **USB 3.0** port (blue connector — USB 2 starves the depth stream)
 3. reSpeaker mic + speaker connected; note your desktop user's uid (`id -u`, usually `1000`)
 4. Docker + NVIDIA runtime (standard on JetPack 6); ~10 GB free disk
-5. Internet on first boot (~4 GB: container images + LLM engine + speech models + detector)
+5. Internet on first boot (~7 GB of models on top of the container images: LLM engine 4.9 GB, speech engines 1.6 GB, detector 0.3 GB)
 
 > **China networks**: set the *HuggingFace Endpoint* input to `https://hf-mirror.com` in Step 1 — the LLM engine, speech models and grasp detector all download through it.
 
@@ -31,7 +31,9 @@ Deploy the voice, LLM, arm-control and inventory services to the Jetson.
 
 ### Services
 
-One compose file starts four services — `rebot-arm` (the agent), `seeed-voice` (ASR/TTS), `edge-llm` (Qwen3-4B TensorRT) and `warehouse` (MCP inventory) — plus a one-shot `model-init` that downloads the grasp detector into `/opt/rebot-models/`. The detector runs on the GPU via TensorRT (host CUDA libraries are mounted in); if GPU memory is tight at startup the agent demotes itself to CPU inference automatically and keeps working.
+One compose file starts four services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano), `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) and `warehouse` (MCP inventory) — plus two one-shot init services that curate the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
+
+The detector ships as a prebuilt native TensorRT engine. `model-init` deserializes it to check it loads on your GPU; if it does not (different Jetson generation, different JetPack), it silently switches to the ONNX Runtime build of the same model — same detections, slower. `docker logs voice-rebot-arm | head -1` prints which one is active.
 
 ### Troubleshooting
 
@@ -115,4 +117,4 @@ The arm scans, announces what it found, grasps, lifts and carries it home. Then 
 | Grasp lands centimeters off | Recalibrate — and re-measure the printed marker size (step 1 above) |
 | Arm joints fault (`status_code=12`) | The stack clears this latched fault automatically at startup; if it persists after a container restart, power-cycle the arm |
 | Arm was power-cycled and now ignores commands | The container's motor state is stale — `docker restart voice-rebot-arm` after any arm power cycle |
-| First `rebot-arm` start pauses ~6 min | One-time TensorRT engine build for the detector; cached afterwards (reload ~6 s) |
+| Detection slower than the quoted numbers | The prebuilt engine did not load and the stack fell back to ONNX Runtime. Check the first line of `docker logs voice-rebot-arm`, then `docker logs voice-rebot-arm-model-init-1` for the reason |

@@ -2,12 +2,12 @@ version: "1.0"
 id: voice_rebot_arm
 name: Voice-Controlled Grasping Arm (reBot B601-DM)
 intro:
-  summary: Say "Hey Jarvis, grab the water bottle" and a reBot B601-DM arm finds the object with an RGB-D wrist camera and picks it up in ~11 s. Grasps boxes, bottles, bananas, cups and oranges via an open-vocabulary detector (YOLOE on TensorRT GPU) + 3D shape-descriptor grasp planner. Fully on-device voice stack — streaming ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — on Jetson Orin NX.
+  summary: Say "Hey Jarvis, grab the water bottle" and a reBot B601-DM arm finds the object with an RGB-D wrist camera and picks it up in ~11 s. Grasps boxes, bottles, bananas, cups and oranges via an open-vocabulary detector (YOLOE on TensorRT GPU) + 3D shape-descriptor grasp planner. Fully on-device voice stack — Qwen3 streaming ASR + MOSS-TTS-Nano speech synthesis + Qwen3.5-4B-AWQ with MTP speculative decoding on TensorRT-Edge-LLM — on Jetson Orin NX.
   description_file: description.md
   cover_image: gallery/cover.jpg
   category: voice_ai
   solution_type: technical
-  tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, offline, mcp]
+  tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, moss, offline, mcp]
 
   output_interfaces:
     - type: http
@@ -136,7 +136,7 @@ intro:
     repository: https://github.com/suharvest/openvoicestream
 
   summary_i18n:
-    zh: 对着麦克风说 "Hey Jarvis, grab the water bottle"，reBot B601-DM 机械臂用腕部 RGB-D 相机找到目标并在约 11 秒内抓起来。开放词表检测器（YOLOE，TensorRT GPU 推理）+ 3D 形状描述子抓取规划，可抓纸盒、瓶子、香蕉、水杯与橙子。语音链路完全本地化 —— 流式 ASR/TTS + Qwen3-4B-AWQ（TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。
+    zh: 对着麦克风说 "Hey Jarvis, grab the water bottle"，reBot B601-DM 机械臂用腕部 RGB-D 相机找到目标并在约 11 秒内抓起来。开放词表检测器（YOLOE，TensorRT GPU 推理）+ 3D 形状描述子抓取规划，可抓纸盒、瓶子、香蕉、水杯与橙子。语音链路完全本地化 —— Qwen3 流式语音识别 + MOSS-TTS-Nano 语音合成 + Qwen3.5-4B-AWQ（带 MTP 投机解码，TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。
   description_file_i18n:
     zh: description_zh.md
 deployment:

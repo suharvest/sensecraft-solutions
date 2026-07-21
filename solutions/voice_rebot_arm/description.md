@@ -13,12 +13,12 @@ Say **"Hey Jarvis, grab the water bottle"** — the arm looks at the table throu
 | Oranges | round route: level approach, equator-height grip | verified |
 | Transparent bottles | — | not possible: stereo depth cannot see clear plastic + water |
 
-Objects too wide for the 0.100 m jaw get a spoken decline ("The box is too big for me to grip"). Detection runs on the GPU (TensorRT): scene capture takes 0.6–1.6 s and a full voice-to-carry grasp cycle about 11 s.
+Objects too wide for the 0.100 m jaw get a spoken decline ("The box is too big for me to grip"). Detection runs on the GPU through a prebuilt native TensorRT engine: scene capture takes 0.6–1.6 s and a full voice-to-carry grasp cycle about 11 s.
 
 ## How it works
 
 ```
-reSpeaker mic ─▶ wake word ─▶ streaming ASR ─▶ Qwen3-4B (TensorRT-Edge-LLM)
+reSpeaker mic ─▶ wake word ─▶ streaming ASR ─▶ Qwen3.5-4B (TensorRT-Edge-LLM)
                                                     │  grasp_object("water bottle")
                                                     ▼
                             Orbbec Gemini2 ─▶ YOLOE open-vocab detector (10 classes)
@@ -36,11 +36,11 @@ reSpeaker mic ─▶ wake word ─▶ streaming ASR ─▶ Qwen3-4B (TensorRT-Ed
 Four containers, one compose file:
 
 - **rebot-arm** — the agent: wake word, camera, detection, grasp pipeline, arm control, dashboard (`:8776`) and observation API (`:8775`)
-- **seeed-voice** — streaming ASR + TTS (CUDA)
-- **edge-llm** — Qwen3-4B-AWQ on TensorRT-Edge-LLM (`:8000`)
+- **seeed-voice** — streaming Qwen3 ASR + MOSS-TTS-Nano speech synthesis (`:8621`)
+- **edge-llm** — Qwen3.5-4B-AWQ with MTP speculative decoding on TensorRT-Edge-LLM (`:8000`)
 - **warehouse** — an MCP inventory service the agent can consult (`:2125`)
 
-The multi-class detector was exported from open-vocabulary YOLOE weights, so the recognizable object list is a re-export away from being extended — no retraining.
+The detector takes its class vocabulary as a runtime input rather than baking it into the weights, so extending the recognizable object list is a config edit — no model re-export, no retraining.
 
 ## The one manual step
 
@@ -51,4 +51,4 @@ The multi-class detector was exported from open-vocabulary YOLOE weights, so the
 - reComputer J4012 / Jetson Orin NX 16 GB (JetPack 6) — the compose file mounts host CUDA/TensorRT
 - reBot B601-DM arm (USB serial) + Orbbec Gemini 2 on the wrist (USB 3.0)
 - reSpeaker USB mic + any speaker
-- ~4 GB of model downloads on first boot (LLM engine, speech models, detector)
+- ~7 GB of model downloads on first boot (LLM engine, speech engines, detector)
