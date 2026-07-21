@@ -113,6 +113,30 @@ def create_solution_zip(solution_dir: Path, output_path: Path) -> None:
             zf.writestr(info, file_path.read_bytes())
 
 
+def _dirty_paths(solutions_dir: Path) -> list[str]:
+    """Return uncommitted paths under ``solutions_dir``, worktree or index.
+
+    Zips are built from files on disk, not from a git revision, so whatever is
+    sitting in the working tree is what gets published — including a
+    colleague's half-finished edit or an untracked image that has not been
+    reviewed. Returns an empty list when git is unavailable, since a source
+    tarball has nothing to compare against.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "status", "--porcelain", "--", str(solutions_dir)],
+            cwd=solutions_dir,
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return []
+    if proc.returncode != 0:
+        return []
+    # Porcelain v1: two status columns, a space, then the path.
+    return [line[3:] for line in proc.stdout.splitlines() if line.strip()]
+
+
 def discover_solutions(solutions_dir: Path) -> list[Path]:
     """Return sorted list of solution directories that contain solution.yaml."""
     results = []
@@ -166,6 +190,15 @@ def main() -> None:
         default="0.2.0",
         help="Minimum app version recorded in manifest (default: 0.2.0)",
     )
+    parser.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help=(
+            "Package the working tree even when it has uncommitted changes. "
+            "Off by default: zips are built from files on disk, so a dirty "
+            "tree publishes work in progress"
+        ),
+    )
     args = parser.parse_args()
 
     # Resolve solutions directory
@@ -184,6 +217,25 @@ def main() -> None:
     print(f"Solutions dir : {solutions_dir}")
     print(f"Output dir    : {output_dir}")
     print()
+
+    dirty = _dirty_paths(solutions_dir)
+    if dirty and not args.allow_dirty:
+        print(
+            f"Error: {len(dirty)} uncommitted path(s) under {solutions_dir}.",
+            file=sys.stderr,
+        )
+        for path in dirty[:10]:
+            print(f"  {path}", file=sys.stderr)
+        if len(dirty) > 10:
+            print(f"  ... and {len(dirty) - 10} more", file=sys.stderr)
+        print(
+            "\nZips are built from the working tree, so these would ship as-is. "
+            "Commit or stash them, or pass --allow-dirty if that is intended.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if dirty:
+        print(f"WARNING: packaging {len(dirty)} uncommitted path(s) (--allow-dirty)\n")
 
     solutions = discover_solutions(solutions_dir)
     if not solutions:
@@ -249,6 +301,8 @@ def main() -> None:
 
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    publishing = args.upload and not args.no_upload
+
     print(f"\nWrote {manifest_path}")
 
     # Write bundled_hashes.json (to output_dir AND solutions_dir so runtime can find it)
@@ -257,13 +311,19 @@ def main() -> None:
     hashes_path.write_text(hashes_content, encoding="utf-8")
     print(f"Wrote {hashes_path}")
 
+    # The in-repo copy is the runtime source of truth and gets committed, so it
+    # is only refreshed on a real publish. A --no-upload run is a dry run and
+    # must leave the checkout untouched: it used to rewrite this file anyway,
+    # which on a dirty tree silently staged someone else's work for release.
     solutions_hashes_path = solutions_dir / "bundled_hashes.json"
-    if solutions_hashes_path != hashes_path:
+    if publishing and solutions_hashes_path != hashes_path:
         solutions_hashes_path.write_text(hashes_content, encoding="utf-8")
         print(f"Wrote {solutions_hashes_path}")
+    elif not publishing:
+        print(f"Dry run: left {solutions_hashes_path} untouched")
 
     # Upload unless --no-upload
-    if args.upload and not args.no_upload:
+    if publishing:
         oss_prefix = "oss://sensecraft-statics/solution-app/solutions"
         print("\nUploading to OSS ...")
 
