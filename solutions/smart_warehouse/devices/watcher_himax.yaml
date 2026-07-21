@@ -48,16 +48,16 @@ firmware:
         description_i18n:
           zh: 人脸检测 + 5点关键点模型 (QAT Vela 5.0)
       - id: face_embedding
-        name: Face Embedding (MobileFaceNet Distilled QAT 128D)
+        name: Face Embedding (MobileFaceNet Distilled QAT v2 ReLU6 128D)
         path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/models/mobilefacenet_distilled_128d_qat_int8_vela.tflite
         flash_address: "0x510000"
         offset: "0x0"
         required: true
         default: true
-        description: Face recognition embedding model (Distilled QAT, Vela 100% NPU)
-        size_hint: "1.26MB"
+        description: Face recognition embedding model (Distilled QAT v2 ReLU6, Vela 100% NPU)
+        size_hint: "1.02MB"
         checksum:
-          sha256: bd1ccc83a9e8bf854a0bf47ce21d415c901338831d6105e182d78c10f0651874
+          sha256: 6e994e8d42882336d2ac3bb6e0aef99a40804c871a13d7ee44c5c84200af3618
         name_i18n:
           zh: 人脸特征模型 (MobileFaceNet 蒸馏 QAT 128D)
         description_i18n:

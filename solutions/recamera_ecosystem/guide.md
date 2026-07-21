@@ -370,3 +370,76 @@ Click **Connect** to see the live video with drowsiness detection overlay.
 Camera is ready! Click **Connect** above to view the live drowsiness detection overlay.
 
 Each detected face will show EAR/MAR values and a color-coded drowsiness state — all analyzed on-device in real-time.
+
+---
+
+## Preset: Weather Classification {#weather_classification}
+
+Point reCamera outside — it classifies the current weather (clear/cloudy/foggy/rainy/snowy) in real-time. All processing happens on the camera, no cloud needed.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that classifies weather conditions in the video |
+
+**What you'll get:**
+- Live video with the current weather label and confidence overlay
+- Per-class confidence scores (clear/cloudy/foggy/rainy/snowy)
+- Results published to MQTT for downstream automation
+- All processing on-device — no cloud, no extra hardware
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install Weather Classification {#deploy_weather type=recamera_cpp required=true config=devices/recamera_weather.yaml}
+
+Install the weather classification program on reCamera so it can classify the current weather condition.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+
+---
+
+## Step 2: View Weather Classification Results {#preview_weather type=preview required=false config=devices/preview_weather.yaml}
+
+Click **Connect** to see the live video with the weather classification overlay.
+
+**Tip:** Point the camera outside — the overlay updates with the current weather label and confidence as conditions change.
+
+**Note:** The weather label and confidence usually appear a few seconds before the video frame does — MQTT connects faster than the RTSP stream stabilizes. If you see the label but not the video yet, just wait a bit longer; this is expected, not an error.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Label shows but video doesn't | Normal — RTSP takes a bit longer to start than MQTT; wait a few more seconds |
+| No overlay data | Check Step 1 completed and MQTT is reachable on the camera |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to view the live weather classification overlay.
+
+The overlay shows the current weather label, confidence, and per-class scores — all analyzed on-device in real-time.
+
+---
+
+## Step 3: Restore Default Camera Services {#restore_defaults type=recamera_cpp required=false config=devices/restore_defaults.yaml}
+
+Optional — switch the camera back to its stock services (Node-RED, sscma-node) and stop the weather classification program.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |

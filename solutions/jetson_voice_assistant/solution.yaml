@@ -48,34 +48,21 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      sku: 110110144
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
       description: NVIDIA Jetson Orin NX 16GB edge AI computer with TensorRT GPU acceleration
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-110110145-recomputer_j4012.jpg
-      name_i18n:
-        zh: reComputer J40
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 计算机，TensorRT GPU 加速
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_rk3576:
-      name: reComputer RK3576
-      product_url: https://www.seeedstudio.com/reComputer-RK3576-Mini-PC-p-6266.html
       description: Runs streaming ASR and TTS locally with RK3576 NPU acceleration
-      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
-      name_i18n:
-        zh: reComputer RK3576
       description_i18n:
         zh: 使用 RK3576 NPU 本地运行流式语音识别和语音合成
     recomputer_rk3588:
-      name: reComputer RK3588
-      product_url: https://www.seeedstudio.com/reComputer-RK3588-Mini-PC-p-6267.html
       description: Runs streaming ASR and TTS locally with RK3588 NPU acceleration
-      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
-      name_i18n:
-        zh: reComputer RK3588
       description_i18n:
         zh: 使用 RK3588 NPU 本地运行流式语音识别和语音合成
-    raspberry_pi:
+    external_raspberry_pi:
       name: Raspberry Pi
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
       description: Runs streaming ASR and TTS on CPU — low-cost Chinese + English voice I/O
@@ -97,7 +84,7 @@ intro:
             - device_ref: recomputer_j40
             - device_ref: recomputer_rk3576
             - device_ref: recomputer_rk3588
-            - device_ref: raspberry_pi
+            - device_ref: external_raspberry_pi
           default: recomputer_j40
           name_i18n:
             zh: 边缘设备

@@ -48,35 +48,21 @@ intro:
         zh: 首次启动需联网拉取语音 + LLM 容器镜像和预热 TensorRT 引擎。运行期间不依赖任何在线 API —— 推理全部在本地完成。
 
   device_catalog:
-    so_arm101:
-      name: SO-ARM101 Follower Arm
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/bb49d3ec4ee05b6f018e93f896b8a25d/1/-/1-114090065-lekiwi-kit_1.jpg
-      product_url: https://wiki.seeedstudio.com/respeaker_flex_soarm/
+    so_arm:
       description: 6-DoF Feetech-servo robotic arm (LeRobot SOFollower compatible)
-      name_i18n:
-        zh: SO-ARM101 从动机械臂
       description_i18n:
         zh: 六自由度 Feetech 舵机机械臂（兼容 LeRobot SOFollower）
-    respeaker_xvf3800_circular_4:
-      sku: 107100122
-      name: reSpeaker Flex XVF3800 Circular 4
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/48035b5512857d0ab907b31a092da78f/1/-/1-100005504-respeaker-flex-xvf3800-circular-4_1_.jpg
-      product_url: https://www.seeedstudio.com/reSpeaker-Flex-XVF3800-Circular-4-p-6737.html
+    respeaker_flex:
       description: 4-microphone circular array with XMOS XVF3800 for far-field voice capture
-      name_i18n:
-        zh: reSpeaker Flex XVF3800 圆形 4 麦版
       description_i18n:
         zh: 4 麦克风圆形阵列，XMOS XVF3800 远场语音采集
-    recomputer_j4012:
-      sku: 110110145
-      name: reComputer Super J4012 (Jetson Orin NX 16GB)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/7f7f32ef807b8c2c2215b49801c56084/1/-/1-110110145-recomputer_j4012.jpg
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+    recomputer_j40:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer
-      name_i18n:
-        zh: reComputer Super J4012（Jetson Orin NX 16GB）
       description_i18n:
         zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 主机
+      purchase:
+        require:
+          module: [orin_nx_16]
   presets:
     - id: default
       name: Voice Control Your SO-ARM
@@ -87,8 +73,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: so_arm101
-          default: so_arm101
+            - device_ref: so_arm
+          default: so_arm
           name_i18n:
             zh: 机械臂
         - id: microphone
@@ -96,8 +82,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: respeaker_xvf3800_circular_4
-          default: respeaker_xvf3800_circular_4
+            - device_ref: respeaker_flex
+          default: respeaker_flex
           name_i18n:
             zh: 麦克风
         - id: compute
@@ -105,8 +91,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j4012
-          default: recomputer_j4012
+            - device_ref: recomputer_j40
+          default: recomputer_j40
           name_i18n:
             zh: 计算单元
         - id: voice_arm
@@ -114,8 +100,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j4012
-          default: recomputer_j4012
+            - device_ref: recomputer_j40
+          default: recomputer_j40
           name_i18n:
             zh: 软件大脑
       name_i18n:

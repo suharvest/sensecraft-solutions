@@ -20,6 +20,8 @@ intro:
     - smart-home
     - rtsp
     - privacy
+    - weather
+    - classification
 
   output_interfaces:
     - type: rtsp
@@ -39,24 +41,12 @@ intro:
   input_requirements: []
 
   device_catalog:
-    recamera:
-      sku: 102991894
-      name: reCamera
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
-      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+    recamera_2002:
       description: AI camera with YOLO detection and RTSP streaming
-      name_i18n:
-        zh: reCamera
       description_i18n:
         zh: AI 摄像头，支持 YOLO 识别和 RTSP 视频流
-    recomputer_r1100:
-      sku: 113991374
-      name: reComputer R1100
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+    recomputer_r11:
       description: Edge computing device for running Home Assistant
-      name_i18n:
-        zh: reComputer R1100
       description_i18n:
         zh: 边缘计算设备，运行 Home Assistant
   stats:
@@ -77,8 +67,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -100,8 +90,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
         - id: server
@@ -109,8 +99,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r1100
-          default: recomputer_r1100
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: Home Assistant 服务器
       links:
@@ -131,8 +121,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -153,8 +143,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -175,8 +165,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002
+          default: recamera_2002
           name_i18n:
             zh: AI 摄像头
       links:
@@ -187,6 +177,28 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 通过 FaceMesh 监测驾驶员警觉状态——实时跟踪闭眼时长、PERCLOS 和哈欠频率，全部在设备上处理
+    - id: weather_classification
+      name: Weather Classification
+      badge: New
+      description: Classify the current weather (clear/cloudy/foggy/rainy/snowy) from the camera feed — all on-device, with results published to MQTT
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/Love4yzp/weather_classification_recamera
+      name_i18n:
+        zh: 天气识别
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
   summary_i18n:
     zh: 即插即用的 AI 摄像头，一键安装各种应用——物体检测、文字识别、人脸分析、智能家居联动
   description_file_i18n:

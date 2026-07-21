@@ -62,22 +62,15 @@ intro:
       description_i18n:
         zh: 带标注的 MJPEG 视频流
   device_catalog:
-    recomputer_industrial_j4012:
-      sku: 110110144
-      name: reComputer Industrial J4012 (Orin NX 16GB)
-      product_url: https://www.seeedstudio.com/reComputer-Industrial-J4012-p-5684.html
+    recomputer_j40:
       description: Ruggedized Jetson Orin NX edge box — runs TensorRT FP16 detection at 30+ FPS
-      name_i18n:
-        zh: reComputer Industrial J4012（Orin NX 16GB）
       description_i18n:
         zh: 加固型 Jetson Orin NX 边缘盒——TensorRT FP16 检测 30+ FPS
-    recomputer_industrial_j3010:
-      sku: 110110145
-      name: reComputer Industrial J3010 (Orin Nano 8GB)
-      product_url: https://www.seeedstudio.com/reComputer-Industrial-J3010-p-5683.html
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j30:
       description: Compact Jetson Orin Nano edge box — entry-level, ~15 FPS detection
-      name_i18n:
-        zh: reComputer Industrial J3010（Orin Nano 8GB）
       description_i18n:
         zh: 紧凑型 Jetson Orin Nano 边缘盒——入门级，约 15 FPS
   presets:
@@ -90,10 +83,9 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_industrial_j4012
-            - device_ref: recomputer_industrial_j3010
-          default: recomputer_industrial_j4012
-
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
           name_i18n:
             zh: Jetson 边缘设备
       name_i18n:

@@ -22,22 +22,12 @@ intro:
   input_requirements: []
 
   device_catalog:
-    recomputer_r:
-      sku: 113991374
-      name: reComputer R1100 / R2000
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-5900.html
+    recomputer_r11:
       description: Runs OpenClaw gateway services
-      name_i18n:
-        zh: reComputer R1100 / R2000
       description_i18n:
         zh: 运行 OpenClaw 网关服务
-    recomputer_jetson:
-      name: reComputer Jetson Series
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
+    recomputer_j40:
       description: GPU-accelerated local AI model
-      name_i18n:
-        zh: reComputer Jetson 系列
       description_i18n:
         zh: GPU 加速本地模型
   presets:
@@ -51,8 +41,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_jetson
-          default: recomputer_jetson
+            - device_ref: recomputer_j40
+          default: recomputer_j40
           name_i18n:
             zh: 部署目标
       name_i18n:
@@ -69,9 +59,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r
-          default: recomputer_r
-
+            - device_ref: recomputer_r11
+          default: recomputer_r11
           name_i18n:
             zh: 部署目标
       name_i18n:

@@ -17,32 +17,15 @@ intro:
         zh: 用于监控的 IP 摄像头 RTSP 视频流
   device_catalog:
     recomputer_j40:
-      sku: 110110144
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
       description: Edge AI computing device with TensorRT GPU acceleration
-      name_i18n:
-        zh: reComputer J40
       description_i18n:
         zh: 支持 TensorRT GPU 加速的边缘 AI 计算设备
     recomputer_j50:
-      sku: 100076722
-      name: reComputer Robotics J5011 (AGX Orin)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100032662--recomputer-robotics-j5012-with-gmsl_1__1.jpg
-      product_url: https://www.seeedstudio.com/reComputer-Robotics-J5011-with-GMSL-extension-board-p-6681.html
       description: High-performance edge AI with TensorRT GPU acceleration
-      name_i18n:
-        zh: reComputer Robotics J5011 (AGX Orin)
       description_i18n:
         zh: 高性能边缘 AI 设备，支持 TensorRT GPU 加速
-    r2000_hailo:
-      sku: 114993595
-      name: reComputer R2000 + Hailo
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
-      product_url: https://www.seeedstudio.com/reComputer-R2000-Series.html
+    recomputer_r21_industrial_ai:
       description: Industrial edge AI with Hailo NPU acceleration
-      name_i18n:
-        zh: reComputer R2000 + Hailo
       description_i18n:
         zh: 搭载 Hailo NPU 加速的工业边缘 AI 设备
   presets:
@@ -74,9 +57,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: r2000_hailo
-          default: r2000_hailo
-
+            - device_ref: recomputer_r21_industrial_ai
+          default: recomputer_r21_industrial_ai
           name_i18n:
             zh: 边缘 AI 设备
       name_i18n:

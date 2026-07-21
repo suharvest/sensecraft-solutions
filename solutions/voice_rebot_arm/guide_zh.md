@@ -1,6 +1,6 @@
 ## 套餐: Jetson 上的语音抓取 {#default}
 
-部署一套语音控制的抓取机械臂：说 **"Hey Jarvis, grab the water bottle"**，reBot B601-DM 用腕部 RGB-D 相机找到目标并抓起来。一个 compose 文件在 Jetson 上跑起整套链路 —— 唤醒词、流式语音识别、Qwen3-4B LLM、目标检测、抓取规划、臂控与语音回复。完全本地，无在线 API。
+部署一套语音控制的抓取机械臂：说 **"Hey Jarvis, grab the water bottle"**，reBot B601-DM 用腕部 RGB-D 相机找到目标并抓起来。一个 compose 文件在 Jetson 上跑起整套链路 —— 唤醒词、流式语音识别、Qwen3.5-4B LLM、目标检测、抓取规划、臂控与语音回复。完全本地，无在线 API。
 
 | 设备 | 用途 |
 |--------|---------|
@@ -11,8 +11,8 @@
 
 **你将获得：**
 - 语音指挥抓取纸盒、直立（不透明）瓶子、香蕉、水杯、橙子 —— 全部已在真机验证
-- GPU 目标检测（TensorRT）：单帧感知 0.6–1.6 秒，完整抓取周期约 11 秒（GPU 内存不足时自动回退 CPU）
-- 开放词表检测（YOLOE）：扩展可识别物体只需重新导出模型，无需重新训练
+- 原生 TensorRT 目标检测：单帧感知 0.6–1.6 秒，完整抓取周期约 11 秒
+- 开放词表检测（YOLOE，词向量作为运行时输入）：扩展可识别物体只需改配置，无需重导模型，更无需重新训练
 - 实时面板：腕部相机画面 + 机械臂状态（`:8776`）
 - 笛卡尔观测 API（`:8775/observation`），供其他方案集成
 
@@ -21,7 +21,7 @@
 2. Gemini 2 接 **USB 3.0** 口（蓝色接口 —— USB 2 带宽不够，深度流异常）
 3. reSpeaker 麦克风 + 音箱已接好；记下桌面用户 uid（`id -u`，通常 `1000`）
 4. Docker + NVIDIA runtime（JetPack 6 标配）；磁盘剩余 ≥10 GB
-5. 首次启动需联网（约 4 GB：容器镜像 + LLM 引擎 + 语音模型 + 检测器）
+5. 首次启动需联网（约 1.4 GB 容器镜像之外，还需下载约 8.5 GB 模型：LLM 引擎 4.9 GB、语音引擎 3.2 GB、检测器 0.3 GB）
 
 > **中国大陆网络**：Step 1 的 *HuggingFace 端点* 请填 `https://hf-mirror.com` —— LLM 引擎、语音模型、抓取检测模型都从这里下载。
 
@@ -31,7 +31,9 @@
 
 ### 服务内容
 
-一个 compose 文件启动四个服务 —— `rebot-arm`（agent）、`seeed-voice`（ASR/TTS）、`edge-llm`（Qwen3-4B TensorRT）、`warehouse`（MCP 库存）—— 外加一次性的 `model-init`，把抓取检测模型下载到 `/opt/rebot-models/`。检测模型通过 TensorRT 跑在 GPU 上（compose 挂载宿主机 CUDA 库）；启动时若 GPU 内存不足，agent 会自动降级为 CPU 推理并继续工作。
+一个 compose 文件启动三个服务 —— `rebot-arm`（agent）、`seeed-voice`（Qwen3 语音识别 + MOSS-TTS-Nano 语音合成）、`edge-llm`（Qwen3.5-4B-AWQ，TensorRT-Edge-LLM）—— 外加两个一次性初始化服务，分别整理宿主机 TensorRT 库、以及把抓取检测模型下载到 `/opt/rebot-models/`。
+
+检测模型以**预编译的原生 TensorRT engine** 形式分发。`model-init` 会实际反序列化它，确认能在你的 GPU 上加载；若不行（不同 Jetson 世代、不同 JetPack 版本），会自动改用同一模型的 ONNX Runtime 版本 —— 检测结果一致，只是慢些。用 `docker logs voice-rebot-arm | head -1` 可看到实际用的是哪个。
 
 ### 故障排查
 
@@ -115,4 +117,5 @@
 | 抓取偏差几厘米 | 重新标定 —— 并重新实测打印标记边长（见上面第 1 条） |
 | 机械臂关节报错（`status_code=12`） | 启动时会自动清除这个锁存故障；若容器重启后仍持续报错，再给机械臂断电重启 |
 | 机械臂断电重启后不响应指令 | 容器内的电机状态已过期 —— 机械臂每次断电重启后都要 `docker restart voice-rebot-arm` |
-| `rebot-arm` 首次启动多等约 6 分钟 | 检测器一次性 TensorRT 引擎编译；之后走缓存（约 6 秒加载） |
+| 检测速度比标称值慢 | 预编译 engine 未能加载，已回退到 ONNX Runtime。先看 `docker logs voice-rebot-arm` 第一行，再看 `docker logs voice-rebot-arm-model-init-1` 里的原因 |
+| 重启后又重新下载好几 GB | 有人删掉了 named volume —— `docker compose down -v` 会删。用不带 `-v` 的 `down`（或 `restart`）；引擎存在 `speech-models` 和 `edgellm-v090` 两个卷里，卷还在就只做校验不重下 |

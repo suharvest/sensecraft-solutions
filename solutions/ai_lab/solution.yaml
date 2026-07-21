@@ -57,21 +57,11 @@ intro:
         zh: USB 摄像头（可选，仅目标检测预设的实时视频功能需要）
   device_catalog:
     recomputer_rk3576:
-      name: reComputer RK3576
-      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
-      product_url: https://www.seeedstudio.com/reComputer-RK3576-Mini-PC-p-6266.html
       description: Rockchip RK3576 edge AI computer — runs object detection, LLM, and vision models locally
-      name_i18n:
-        zh: reComputer RK3576
       description_i18n:
         zh: 搭载 RK3576 NPU 的边缘 AI 计算机——本地运行目标检测、大模型和视觉模型
     recomputer_rk3588:
-      name: reComputer RK3588
-      image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
-      product_url: ""
       description: Rockchip RK3588 edge AI computer — runs object detection with stronger NPU performance
-      name_i18n:
-        zh: reComputer RK3588
       description_i18n:
         zh: 搭载 RK3588 NPU 的边缘 AI 计算机——以更强 NPU 算力运行目标检测
   presets:

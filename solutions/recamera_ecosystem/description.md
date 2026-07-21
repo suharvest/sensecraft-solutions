@@ -19,6 +19,7 @@ A small AI camera that you plug in, pick an app, and it just works. Object detec
 | Smart Home | Add the camera to Home Assistant for live video + AI-triggered automations |
 | Text Reading | Point at signs, labels, or displays — recognized text appears on screen in real-time |
 | Face Analysis | Detect faces and see age, gender, and emotion — all processed on-device with privacy in mind |
+| Weather Classification | Point the camera outside to classify current weather conditions — results published to MQTT for automation |
 | Mix & Match | Use heatmap for analytics AND Home Assistant for automations — both from the same camera |
 
 ## Requirements
@@ -49,5 +50,6 @@ By application:
 | **Home Assistant Integration** 🏠 | reCamera + reComputer R1100 | RTSP stream + AI sensors in HA | Smart home users, existing HA setup |
 | **OCR Text Reader** 🆕 | reCamera | Read Chinese/English text | Meter readings, label scanning, document processing |
 | **Face Analysis** 🆕 | reCamera | Age/gender/emotion + privacy blur | Traffic analysis, smart reception |
+| **Weather Classification** 🆕 | reCamera | Clear/cloudy/foggy/rainy/snowy, MQTT results | Outdoor monitoring, automation triggers |
 
 All options run fully local with no cloud fees.

@@ -44,33 +44,16 @@ intro:
         zh: 对准围栏出入口的 reCamera 2002（内置 YOLO 绵羊检测模型）
 
   device_catalog:
-    recamera:
-      sku: 102991894
-      name: reCamera 2002 HQ PoE
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100029708-recamera-2002-hq-poe-8gb_1.jpg
-      product_url: https://www.seeedstudio.com/reCamera-2002w-8GB-p-6250.html
+    recamera_2002_hq_poe:
       description: Edge AI camera running the sheep detector and gate-crossing counter
-      name_i18n:
-        zh: reCamera 2002 HQ PoE
       description_i18n:
         zh: 运行绵羊检测和穿越计数的边缘 AI 摄像头
     xiao_esp32s3:
-      name: XIAO ESP32-S3 + Wio-SX1262 (Meshtastic LoRa node)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-102010673-seeed-studio-xiao-esp32s3_1.jpg
-      product_url: https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html
       description: Meshtastic LoRa node — receives UART events from reCamera and broadcasts over LoRa
-      name_i18n:
-        zh: XIAO ESP32-S3 + Wio-SX1262（Meshtastic LoRa 节点）
       description_i18n:
         zh: Meshtastic LoRa 节点——接收来自 reCamera 的 UART 事件并通过 LoRa 广播
-    recomputer:
-      sku: 113991374
-      name: reComputer R1100 (or Raspberry Pi)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
+    recomputer_r11:
       description: Local gateway — receives LoRa messages and forwards counts to Home Assistant via MQTT
-      name_i18n:
-        zh: reComputer R1100（或树莓派）
       description_i18n:
         zh: 本地网关——接收 LoRa 消息，通过 MQTT 将计数转发到 Home Assistant
 
@@ -92,8 +75,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera
-          default: recamera
+            - device_ref: recamera_2002_hq_poe
+          default: recamera_2002_hq_poe
         - id: lora_node
           name: LoRa Node
           name_i18n:
@@ -110,9 +93,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer
-          default: recomputer
-
+            - device_ref: recomputer_r11
+          default: recomputer_r11
   stats:
     difficulty: intermediate
     estimated_time: 30min

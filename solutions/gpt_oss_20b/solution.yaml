@@ -24,11 +24,7 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
       description: NVIDIA Jetson edge AI computer for local LLM serving
-      name_i18n:
-        zh: reComputer J40
       description_i18n:
         zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理
   presets:
