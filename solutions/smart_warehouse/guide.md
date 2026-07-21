@@ -183,7 +183,9 @@ Write the vision detection program to the Watcher's AI chip.
 
 ![Agent Setup](gallery/configure_agent.gif)
 
-Connect your Watcher to SenseCraft cloud platform:
+Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL (you'll need it in Step 6).
+
+### Wiring
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
@@ -193,7 +195,7 @@ Connect your Watcher to SenseCraft cloud platform:
 6. Login to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/), click "SenseCraft Watcher" in Models, select "Watcher Agent" → "Bind Device", and enter the 6-digit code to complete binding
 7. Click "Create" to make a new Agent, click the ⚙ settings icon on the Agent card, select the "Inventory Manager" role template, adjust name and language as needed, then save
 8. Say "Enable face recognition mode" to the Watcher to switch it to face recognition detection
-9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL" (you'll need it in Step 6)
+9. In the ⚙ settings page, scroll to the bottom, click "MCP Setting" → "Get MCP Endpoint" → "Copy Endpoint URL"
 
 ### Troubleshooting
 
@@ -714,7 +716,9 @@ Deploy the voice AI service to enable voice interaction with Watcher. Select "Pr
 
 ![Agent Setup](gallery/configure_agent.gif)
 
-Connect your Watcher to SenseCraft cloud platform:
+Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL.
+
+### Wiring
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
@@ -940,7 +944,9 @@ Deploy voice AI service on R2135-12, connecting to Jetson for inference. Select 
 
 ![Agent Setup](gallery/configure_agent.gif)
 
-Connect your Watcher to SenseCraft cloud platform:
+Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL.
+
+### Wiring
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
