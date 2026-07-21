@@ -6,13 +6,25 @@ device_class: jetson
 
 # Single source-of-truth device YAML (docker_local / docker_remote views are
 # derived). Deploys the FULL 4-service stack via one compose file:
-#   edge-llm (Qwen3-4B TensorRT) + seeed-voice (ASR/TTS) + warehouse (MCP)
+#   edge-llm (Qwen3.5-4B-AWQ GDN+MTP, TensorRT-Edge-LLM)
+#   + seeed-voice (Qwen3 ASR + MOSS-TTS-Nano, edgellm v0.9.0)
+#   + warehouse (MCP)
 #   + rebot-arm (voice_rebot_arm agent: detection → grasp pipeline)
-# plus a one-shot model-init service that downloads the multi-class detector
-# ONNX from HuggingFace into /opt/rebot-models on first boot.
+# plus two one-shot init services: gpu-libs-init (curates host TensorRT/cuDNN
+# libraries) and model-init (fetches the embin detector + text encoder, and
+# picks the native-TensorRT or onnxruntime backend for THIS host).
 #
 # Target: reComputer J4012 (Jetson Orin NX 16GB, JetPack 6). The compose
 # mounts host CUDA/TensorRT libraries — other hosts are unsupported.
+#
+# First boot downloads ~7 GB (LLM engine 4.9 GB, MOSS TTS engines 1.6 GB,
+# detector + text encoder 330 MB) and warms up TensorRT. Budget 30-45 min on a
+# fast link before the stack answers; health checks below allow for it.
+#
+# Detector backend: the prebuilt TensorRT engine is bound to sm87 / TRT 10.3 /
+# JetPack 6.2. model-init deserializes it to prove it loads here; if it does
+# not, the stack silently continues on onnxruntime (slower, same detections).
+# Which one won is printed by rebot-arm at startup as "detector backend: ...".
 #
 # NOTE the one step one-click cannot do: hand-eye calibration. The arm grasps
 # only after /opt/rebot-models/hand_eye.npz exists for THIS unit (printed
@@ -61,9 +73,9 @@ user_inputs:
     required: false
     reconfigurable: true
     default: "https://huggingface.co"
-    description: "Model download endpoint. On China networks use https://hf-mirror.com (the LLM engine, speech models and grasp detector all download from here on first boot)."
+    description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~7 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano speech engines, and the grasp detector."
     description_i18n:
-      zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com（LLM 引擎、语音模型、抓取检测模型首次启动都从这里下载）
+      zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 7 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音引擎、抓取检测模型
     name_i18n:
       zh: HuggingFace 端点
   - id: rebot_serial
@@ -145,9 +157,9 @@ remote_overrides:
       required: false
       reconfigurable: true
       default: "https://huggingface.co"
-      description: "Model download endpoint. On China networks use https://hf-mirror.com (the LLM engine, speech models and grasp detector all download from here on first boot)."
+      description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~7 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano speech engines, and the grasp detector."
       description_i18n:
-        zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com（LLM 引擎、语音模型、抓取检测模型首次启动都从这里下载）
+        zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 7 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音引擎、抓取检测模型
       name_i18n:
         zh: HuggingFace 端点
     - id: rebot_serial
