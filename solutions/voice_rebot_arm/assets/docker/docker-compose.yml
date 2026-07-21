@@ -1,34 +1,62 @@
 # voice_rebot_arm — full voice-controlled grasping stack (Jetson Orin NX).
 #
-# Four services, one network. Container names are load-bearing: the agent
-# resolves its peers as http://edge-llm:8000 / http://seeed-voice:8000 and
-# reaches the warehouse MCP at http://mcp_warehouse:2125.
+# Three services, one network. Container names are load-bearing: the agent
+# resolves its peers as http://edge-llm:8000 and http://seeed-voice:8000.
 #
 # Prerequisites on the host (see the solution guide):
-#   1. /opt/rebot-models/yoloe-26s-seg-multi.onnx  — multi-class detector
-#      (downloaded from HuggingFace; guide step does this)
-#   2. /opt/rebot-models/hand_eye.npz              — per-device hand-eye
-#      calibration (MANUAL, one-time; printed ArUco board required)
-#   3. reBot B601-DM arm on ${REBOT_SERIAL} (default /dev/ttyACM0),
+#   1. /opt/rebot-models/hand_eye.npz — per-device hand-eye calibration
+#      (MANUAL, one-time; printed ArUco board required). Everything else in
+#      that directory is fetched by the model-init service.
+#   2. reBot B601-DM arm on ${REBOT_SERIAL} (default /dev/ttyACM0),
 #      Orbbec Gemini2 on USB, reSpeaker mic + speaker via PulseAudio
 #
-# China networks: set HF_ENDPOINT=https://hf-mirror.com in .env (the edge-llm
-# engine and speech models auto-download from HuggingFace on first start).
+# First start downloads ~8.5 GB of models on top of ~1.4 GB of images:
+#   ~4.6 GB  Qwen3.5-4B-AWQ GDN+MTP engine   -> edgellm-workspace
+#            (llm.engine + eagle_base/eagle_draft for MTP + int4 FFN weights)
+#   ~1.9 GB  MOSS-TTS-Nano engines + weights -> speech-models
+#   ~1.3 GB  edgellm v0.9.0 ASR engines       -> edgellm-v090
+#   ~330 MB  embin detector + text encoder   -> /opt/rebot-models
+# Every one of these is md5-verified and skipped when already present, so a
+# recreated container re-verifies rather than re-downloads.
+# China networks: set HF_ENDPOINT=https://hf-mirror.com in .env.
 
 services:
   edge-llm:
-    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.3.0
+    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-fixdl
     container_name: edge-llm
     privileged: true            # TensorRT needs full GPU device access
     ports:
       - "8000:8000"
     environment:
       - PORT=8000
+      # Served model id kept as Qwen3-4B-AWQ: it is the OpenAI-API model name
+      # the engine repo's config declares, not the weight generation.
       - EDGELLM_MODEL_NAME=Qwen/Qwen3-4B-AWQ
-      # TensorRT engine auto-downloads from HF into /workspace on first boot
-      - EDGELLM_ENGINE_REPO=harvestsu/Qwen3-4B-AWQ-TensorRT-EdgeLLM-engine
+      # TensorRT engine auto-downloads from HF into /workspace on first boot.
+      # Qwen3.5-4B-AWQ with GDN + MTP speculative decoding (eagle_base.engine +
+      # eagle_draft.engine + draft_config.json in the repo).
+      - EDGELLM_ENGINE_REPO=harvestsu/Qwen3.5-4B-AWQ-GDN-MTP-TensorRT-EdgeLLM-engine
       - EDGELLM_ENGINE_REVISION=main
-      - EDGELLM_ENGINE_DIR=/workspace/Qwen3-4B-AWQ/engines-3072
+      - EDGELLM_ENGINE_DIR=/workspace/qwen35-4b-awq-gdn-mtp
+      # This engine repo ships no build_provenance.txt (unlike the older
+      # Qwen3-4B-AWQ one), so the provenance gate must be skipped or startup
+      # aborts before warmup.
+      - EDGELLM_SKIP_ENGINE_PROVENANCE_CHECK=1
+      # MTP speculative decoding. Not optional: this bundle's config.json sets
+      # isSpecDecodeBase, so the plain decode path dies at prefill with
+      # "intermediate_recurrent_state_* not in tensorMap".
+      - EDGELLM_MTP_ENABLED=1
+      - EDGELLM_SPEC_DECODE_ENGINE_DIR=/workspace/qwen35-4b-awq-gdn-mtp
+      # DRAFT_STEP x DRAFT_TOP_K <= maxDraftTreeSize, which is baked into the
+      # engine at 4 -- VERIFY_TREE_SIZE does not raise it, and 4/4/1 dies at
+      # engine init anyway. Within that ceiling, throughput is monotonically
+      # better as the draft shrinks: measured on an Orin NX at 300 tokens,
+      # step=1 gives 45.2 tok/s, step=2 41.1, step=3 32.7, against 34.8 for
+      # plain decode. The draft forward cost dominates, not the acceptance
+      # rate, so proposing less wins.
+      - EDGELLM_DRAFT_TOP_K=1
+      - EDGELLM_DRAFT_STEP=1
+      - EDGELLM_VERIFY_TREE_SIZE=2
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
       - WARMUP_TIMEOUT=180
       - WARMUP_INFERENCE_TIMEOUT=300
@@ -42,18 +70,31 @@ services:
     restart: unless-stopped
 
   seeed-voice:
-    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:prod-unified-v8
+    # v0.9.0 voice stack (edgellm v090 ASR) with MOSS-TTS-Nano TTS. Engines are
+    # NOT baked: the ASR pair + worker + plugin (1.3 GB) and the MOSS engines
+    # (1.9 GB) are fetched on first boot and md5-verified, which keeps the image
+    # at 1.2 GB instead of 6.2 GB and stops shipping the 1.4 GB of qwen3-TTS
+    # engines this profile never loads.
+    #
+    # MOSS global prefill/decode engines are fp32 by design — an all-fp16 set
+    # collapsed on long text. The three local engines are fp16: they were
+    # briefly built with --bf16, which TRT 10.3 silently ignored on sm87 (every
+    # weight stayed fp32, +439 MB); rebuilding with --fp16 restored the size and
+    # produces frame-identical audio.
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260721c
     container_name: seeed-voice
     runtime: nvidia
     ipc: host
     ports:
       - "8621:8000"
     environment:
-      - OVS_PROFILE=jetson-qwen3asr-matcha-nx
+      - OVS_PROFILE=jetson-edgellm-v090-moss
       - LANGUAGE_MODE=multilanguage
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
+      # MOSS artifacts (~1.9 GB) are provisioned into the speech-models volume
+      # on first boot; md5s are verified against the baked manifest.
+      - MOSS_ARTIFACT_AUTO_DOWNLOAD=${MOSS_ARTIFACT_AUTO_DOWNLOAD:-1}
       - TTS_PROVIDER=cuda
-      - TTS_DEFAULT_SID=52
       - TTS_DEFAULT_SPEED=1.0
       - TTS_NUM_THREADS=4
       - STREAMING_ASR_PROVIDER=cuda
@@ -65,6 +106,9 @@ services:
       - PYTHONPATH=/opt/speech:/usr/lib/python3.10/dist-packages
     volumes:
       - speech-models:/opt/models
+      # The ASR engines land here on first boot. Without a persistent volume
+      # every `compose up` that recreates the container re-downloads 1.3 GB.
+      - edgellm-v090:/opt/edgellm-v090
       - /usr/local/cuda/lib64:/host-cuda:ro
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
@@ -76,49 +120,99 @@ services:
         limits:
           memory: 6G
 
-  warehouse:
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
-    container_name: mcp_warehouse
-    ports:
-      - "2125:2125"
-    environment:
-      - PORT=2125
-      - DATABASE_PATH=/data/warehouse.db
-      - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
-      - ENABLE_SECURITY_HEADERS=true
-      - CORS_ORIGINS=*
-    volumes:
-      - warehouse_data:/data
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:2125/healthz', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-
-  # One-shot init: fetch the multi-class detector ONNX into /opt/rebot-models
-  # if missing (idempotent). Reuses the main image — no extra pull. On China
-  # networks set HF_ENDPOINT=https://hf-mirror.com in .env.
+  # One-shot init: fetch the embin (vocabulary-decoupled) detector into
+  # /opt/rebot-models and decide which backend the arm will use.
+  #
+  # Two artifacts are always fetched — the ONNX detector and the PE text
+  # encoder — plus, when the host matches, the prebuilt native TensorRT engine.
+  # perception/yolo_onnx.py picks its backend purely from the model path's
+  # SUFFIX (.engine/.plan -> native TRT, else onnxruntime) and has NO automatic
+  # fallback: if a .engine fails to load, its retry feeds the same .engine to
+  # onnxruntime and raises again. So the choice must be made here, before the
+  # arm starts, and handed over via /opt/rebot-models/.active_detector, which
+  # the rebot-arm entrypoint reads.
+  #
+  # The engine is bound to the GPU arch + TensorRT version it was built on
+  # (sm87 / TRT 10.3 / JetPack 6.2). Rather than string-matching that
+  # signature, this actually deserializes the engine — that also catches a
+  # truncated download or a TRT patch-level incompatibility.
+  #
+  # NOTE: the HF repo also holds yoloe-26s-seg.onnx and yoloe-26s-seg-grasp7.onnx
+  # at its root. Those are NOT embin models (single-input, baked vocabulary);
+  # loading one would fail silently at inference. Always keep the embin/ prefix.
   model-init:
     image: ddandadan/voice-rebot-arm:v1.1.0
+    runtime: nvidia            # needed to actually deserialize the engine
     entrypoint: ["python3", "-c"]
     command:
       - |
-        import os, sys, urllib.request
-        dst = "/opt/rebot-models/yoloe-26s-seg-multi.onnx"
-        if os.path.exists(dst) and os.path.getsize(dst) == 41803496:
-            print("model present, skipping"); sys.exit(0)
-        base = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
-        url = base + "/Dan-Da-Dan/yoloe-26s-seg-multi/resolve/main/yoloe-26s-seg-multi.onnx"
-        print("downloading", url)
-        urllib.request.urlretrieve(url, dst + ".part")
-        os.replace(dst + ".part", dst)
-        print("done:", os.path.getsize(dst), "bytes")
+        import json, os, sys, urllib.request
+        BASE = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
+        REPO = "harvestsu/yoloe-26s-seg-onnx"
+        DST  = "/opt/rebot-models"
+        ONNX    = f"{DST}/yoloe-26s-seg-embin.onnx"
+        ENCODER = f"{DST}/text_encoder_pe.onnx"
+        ENGINE  = f"{DST}/yoloe-26s-seg-embin.engine"
+
+        def fetch(rel, dst, size):
+            if os.path.exists(dst) and os.path.getsize(dst) == size:
+                print(f"present, skipping: {os.path.basename(dst)}"); return True
+            url = f"{BASE}/{REPO}/resolve/main/{rel}"
+            print("downloading", url)
+            try:
+                urllib.request.urlretrieve(url, dst + ".part")
+                os.replace(dst + ".part", dst)
+                print("  done:", os.path.getsize(dst), "bytes"); return True
+            except Exception as exc:
+                print(f"  FAILED: {exc}")
+                if os.path.exists(dst + ".part"): os.remove(dst + ".part")
+                return False
+
+        # Detector + text encoder are mandatory.
+        if not fetch("embin/yoloe-26s-seg-embin.onnx", ONNX, 42586589): sys.exit(1)
+        if not fetch("embin/text_encoder_pe.onnx", ENCODER, 260440358): sys.exit(1)
+
+        # Engine is best-effort: fetch, then prove it loads on THIS host.
+        active = ONNX
+        if fetch("embin/engines/sm87-trt10.3-jp6.2/yoloe-26s-seg-embin.engine",
+                 ENGINE, 25003204):
+            try:
+                import tensorrt as trt
+                logger = trt.Logger(trt.Logger.WARNING)
+                trt.init_libnvinfer_plugins(logger, "")
+                with open(ENGINE, "rb") as fh:
+                    eng = trt.Runtime(logger).deserialize_cuda_engine(fh.read())
+                if eng is None:
+                    raise RuntimeError("deserialize returned None")
+                ctx = eng.create_execution_context()
+                if ctx is None:
+                    raise RuntimeError("create_execution_context failed")
+                active = ENGINE
+                print("native TensorRT engine verified on this host")
+            except Exception as exc:
+                print(f"WARNING: engine unusable here ({exc}) -- "
+                      f"falling back to onnxruntime. Expect slower detection.")
+        else:
+            print("WARNING: engine not fetched -- using onnxruntime.")
+
+        with open(f"{DST}/.active_detector", "w") as fh:
+            fh.write(active)
+        print("active detector:", active)
     environment:
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/trt-libs:/usr/lib/aarch64-linux-gnu/nvidia
+      - PYTHONPATH=/opt/slv/agent:/usr/lib/python3.10/dist-packages
+    depends_on:
+      gpu-libs-init:
+        condition: service_completed_successfully
     volumes:
       - /opt/rebot-models:/opt/rebot-models
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - trt-libs:/trt-libs:ro
+      # Host TensorRT python bindings — `import tensorrt` resolves here.
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
     restart: "no"
 
   # One-shot init: curate the TensorRT/cuDNN libraries the detector's GPU
@@ -144,8 +238,21 @@ services:
     image: ddandadan/voice-rebot-arm:v1.1.0
     container_name: voice-rebot-arm
     privileged: true            # arm serial + camera USB + audio devices
-    runtime: nvidia             # detector runs on TensorRT (falls back to CPU
-                                # automatically if GPU libs/RAM are unavailable)
+    runtime: nvidia
+    # REBOT_GRASP_MODEL is deliberately NOT set in `environment` below: the
+    # backend is chosen by the model path's suffix, and model-init decides at
+    # deploy time whether the native TensorRT engine loads on this host. It
+    # records the winner in .active_detector; this wrapper hands it to the app.
+    # The fallback path keeps the stack alive if that file is ever missing.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        REBOT_GRASP_MODEL=$$(cat /opt/rebot-models/.active_detector 2>/dev/null \
+          || echo /opt/rebot-models/yoloe-26s-seg-embin.onnx)
+        export REBOT_GRASP_MODEL
+        echo "detector backend: $$REBOT_GRASP_MODEL"
+        exec /entrypoint.sh
     depends_on:
       model-init:
         condition: service_completed_successfully
@@ -154,8 +261,6 @@ services:
       edge-llm:
         condition: service_started
       seeed-voice:
-        condition: service_started
-      warehouse:
         condition: service_started
     ports:
       - "8775:8775"             # action/observation HTTP server
@@ -181,7 +286,15 @@ services:
       # ── arm + grasp (verified device state, 2026-07-14) ──
       - REBOT_CHANNEL=auto
       - REBOT_REPO_ROOT=/opt/rebot
-      - REBOT_GRASP_MODEL=/opt/rebot-models/yoloe-26s-seg-multi.onnx
+      # REBOT_GRASP_MODEL: set by the entrypoint from .active_detector (above).
+      # embin (vocabulary-decoupled) mode: class embeddings are a runtime input,
+      # so REBOT_GRASP_CLASSES can change without re-exporting the detector.
+      # Slots are padded to 16 and the list ORDER is the cls_id order that the
+      # box-first / over-wide policies rely on — keep box-like classes first.
+      - REBOT_TEXT_ENCODER=/opt/rebot-models/text_encoder_pe.onnx
+      - REBOT_EMBIN_PAD_SLOTS=16
+      # Text-PE cache must be writable; /opt/rebot-models may be read-only.
+      - REBOT_TEXT_PE_CACHE=/tmp/rebot_text_pe_cache
       - REBOT_GRASP_CONF=0.06
       - REBOT_GRASP_FWD_M=0.013
       - REBOT_SIDE_INSERT=0.068
@@ -190,10 +303,15 @@ services:
       - REBOT_OPEN_DIST=0.100
       - REBOT_GRASP_FORCE=1.0
       - REBOT_GRASP_FORCE_BOTTLE=0.8
-      # ── GPU inference (TensorRT EP; engine cache persists in trt-cache) ──
+      # ── GPU inference ──
+      # Native TRT (.engine) runs the detector directly; the onnxruntime
+      # fallback uses the TensorRT EP and caches its build in trt-cache.
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=all
       - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/trt-libs:/usr/lib/aarch64-linux-gnu/nvidia
+      # `import tensorrt` (native-TRT path) resolves from the host bindings
+      # bind-mounted below; the image default PYTHONPATH is /opt/slv/agent only.
+      - PYTHONPATH=/opt/slv/agent:/usr/lib/python3.10/dist-packages
       - REBOT_FORCE_FIXED_CLASSES=["box","cardboard box","carton","package","water bottle","yellow banana"]
       - REBOT_SIDE_ONLY_CLASSES=["box","cardboard box","carton","package","small cardboard box","brown box","orange","water bottle","cup"]
       - REBOT_TABLE_Z=-0.01
@@ -207,18 +325,22 @@ services:
       - /run/user/${PULSE_UID:-1000}/pulse/native:/run/pulse/native  # host audio
       - ${PULSE_COOKIE_PATH:-~/.config/pulse/cookie}:/tmp/pulse-cookie:ro
       - /opt/seeed/voice_rebot_arm/config:/opt/seeed/voice_rebot_arm/config
-      - /opt/rebot-models:/opt/rebot-models                         # ONNX + hand-eye
+      - /opt/rebot-models:/opt/rebot-models   # detector + encoder + hand-eye
       # ── GPU inference: host CUDA + curated TensorRT/cuDNN libs (JetPack 6) ──
       - /usr/local/cuda:/usr/local/cuda:ro
       - trt-libs:/trt-libs:ro         # curated by gpu-libs-init
-      - trt-cache:/trt-cache          # TensorRT engine cache (~6 min first build)
+      - trt-cache:/trt-cache          # onnxruntime TRT-EP engine cache
+      # Host TensorRT python bindings. Without this the native-TRT path dies at
+      # `import tensorrt` in _TrtSession.__init__ — the .onnx path never needed
+      # it because onnxruntime ships its own wheel inside the image.
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
     restart: unless-stopped
 
 volumes:
   speech-models:
     name: speech-models
+  edgellm-v090:
   edgellm-workspace:
-  warehouse_data:
-    driver: local
   trt-cache:
   trt-libs:
