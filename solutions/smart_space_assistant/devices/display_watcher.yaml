@@ -19,19 +19,19 @@ detection:
 
 firmware:
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-01c69c62.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-b96789aa.bin
     checksum:
-      sha256: 3faf2c35ee126b30e3b4429129d381420aaf99a36496717dcfa2a19839ce17fe
+      sha256: eb045ae8d24e656a199115801f4f2abfb63d2eeb2999737d11172a7a716e7ed3
   flash_config:
     chip: esp32s3
     baud_rate: 921600
     flash_mode: dio
     flash_freq: 80m
-    flash_size: 16MB
+    flash_size: 32MB
     partitions:
       - name: merged_firmware
         offset: "0x0"
-        file: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-01c69c62.bin
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-b96789aa.bin
 
 user_inputs:
   - id: serial_port
