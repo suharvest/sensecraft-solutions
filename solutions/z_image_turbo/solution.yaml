@@ -60,6 +60,10 @@ intro:
       description: NVIDIA Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
       description_i18n:
         zh: NVIDIA Jetson AGX Orin 64GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
+      purchase:
+        require:
+          module:
+            - agx_orin_32
   presets:
     - id: jetson_image_gen
       name: Deploy Image Generation Service

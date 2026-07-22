@@ -46,6 +46,10 @@ intro:
       description: NVIDIA Jetson edge AI computer for real-time depth estimation
       description_i18n:
         zh: 用于实时深度估计的 NVIDIA Jetson 边缘 AI 计算机
+      purchase:
+        require:
+          module:
+            - orin_nx_8
   presets:
     - id: jetson_depth
       name: Jetson One-Click Depth Demo

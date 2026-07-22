@@ -56,6 +56,10 @@ intro:
       description: 4-microphone circular array with XMOS XVF3800 for far-field voice capture
       description_i18n:
         zh: 4 麦克风圆形阵列，XMOS XVF3800 远场语音采集
+      purchase:
+        require:
+          geometry:
+            - circular
     recomputer_j40:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer
       description_i18n:

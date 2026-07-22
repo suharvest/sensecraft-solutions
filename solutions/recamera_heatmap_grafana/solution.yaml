@@ -46,6 +46,12 @@ intro:
       description: AI camera that detects people and automatically protects privacy
       description_i18n:
         zh: AI 摄像头，自动识别人员位置并打码保护隐私
+      purchase:
+        require:
+          model:
+            - '2002'
+          storage:
+            - emmc_8
     recomputer_r11:
       description: Edge computing device for running Grafana dashboard
       description_i18n:
@@ -54,10 +60,18 @@ intro:
       description: GPU-accelerated edge AI device for multi-camera detection
       description_i18n:
         zh: GPU 加速边缘 AI 设备，支持多摄像头检测
+      purchase:
+        require:
+          module:
+            - orin_nx_8
     recomputer_j50:
       description: High-performance edge AI for multi-camera detection
       description_i18n:
         zh: 高性能边缘 AI 设备，支持多摄像头检测
+      purchase:
+        require:
+          module:
+            - agx_orin_32
   stats:
     deployed_count: 0
     likes_count: 0

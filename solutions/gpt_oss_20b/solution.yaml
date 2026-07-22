@@ -27,6 +27,10 @@ intro:
       description: NVIDIA Jetson edge AI computer for local LLM serving
       description_i18n:
         zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理
+      purchase:
+        require:
+          module:
+            - orin_nx_8
   presets:
     - id: jetson_got_oss
       name: Jetson GPT OSS 20B Service

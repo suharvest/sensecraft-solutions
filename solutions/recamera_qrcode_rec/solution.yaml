@@ -29,6 +29,12 @@ intro:
       description: AI camera running local QR code recognition
       description_i18n:
         zh: 在本地运行二维码识别的 AI 摄像头
+      purchase:
+        require:
+          model:
+            - 2002w
+          storage:
+            - emmc_64
   presets:
     - id: default
       name: Install QR Recognition Service

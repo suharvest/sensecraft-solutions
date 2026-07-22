@@ -42,6 +42,12 @@ intro:
       description: AI camera with built-in parking detection model
       description_i18n:
         zh: AI 摄像头，内置停车位检测模型
+      purchase:
+        require:
+          model:
+            - '2002'
+          storage:
+            - emmc_8
   presets:
     - id: default
       name: Parking Monitor

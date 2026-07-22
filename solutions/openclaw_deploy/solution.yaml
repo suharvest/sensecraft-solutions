@@ -30,6 +30,10 @@ intro:
       description: GPU-accelerated local AI model
       description_i18n:
         zh: GPU 加速本地模型
+      purchase:
+        require:
+          module:
+            - orin_nx_16
   presets:
     - id: openclaw_basic
       verify_exempt: true

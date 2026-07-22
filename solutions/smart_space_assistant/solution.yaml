@@ -44,6 +44,10 @@ intro:
       description: AI voice assistant with camera
       description_i18n:
         zh: 带摄像头的 AI 语音助手
+      purchase:
+        require:
+          enclosure:
+            - white
     recomputer_r11:
       description: Edge computing device for display service
       description_i18n:

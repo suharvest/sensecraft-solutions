@@ -23,6 +23,10 @@ intro:
       description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration
       description_i18n:
         zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉
+      purchase:
+        require:
+          module:
+            - orin_nx_8
     recomputer_r21_industrial_ai:
       description: Industrial Raspberry Pi 5 + Hailo-8 NPU for low-power vision inference
       description_i18n:

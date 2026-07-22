@@ -45,6 +45,12 @@ intro:
       description: AI camera with YOLO detection and RTSP streaming
       description_i18n:
         zh: AI 摄像头，支持 YOLO 识别和 RTSP 视频流
+      purchase:
+        require:
+          model:
+            - '2002'
+          storage:
+            - emmc_8
     recomputer_r11:
       description: Edge computing device for running Home Assistant
       description_i18n:

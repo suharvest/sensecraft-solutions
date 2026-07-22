@@ -31,6 +31,10 @@ intro:
       description: Compact ESP32-S3 board with Wi-Fi, used as robot motor controller
       description_i18n:
         zh: 紧凑型 ESP32-S3 开发板，用作机器人电机控制器
+      purchase:
+        require:
+          soldering:
+            - presoldered
     lekiwi:
       description: 3-wheeled Kiwi-drive robot chassis with 3× STS3215 smart servos
       description_i18n:
@@ -39,6 +43,10 @@ intro:
       description: 4-microphone circular array with XMOS XVF3800 for high-quality far-field voice capture
       description_i18n:
         zh: 4 麦克风圆形阵列，采用 XMOS XVF3800 实现高质量远场语音采集
+      purchase:
+        require:
+          geometry:
+            - circular
     external_raspberry_pi:
       name: Raspberry Pi 5
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html

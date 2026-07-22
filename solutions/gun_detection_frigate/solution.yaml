@@ -20,10 +20,18 @@ intro:
       description: Edge AI computing device with TensorRT GPU acceleration
       description_i18n:
         zh: 支持 TensorRT GPU 加速的边缘 AI 计算设备
+      purchase:
+        require:
+          module:
+            - orin_nx_8
     recomputer_j50:
       description: High-performance edge AI with TensorRT GPU acceleration
       description_i18n:
         zh: 高性能边缘 AI 设备，支持 TensorRT GPU 加速
+      purchase:
+        require:
+          module:
+            - agx_orin_32
     recomputer_r21_industrial_ai:
       description: Industrial edge AI with Hailo NPU acceleration
       description_i18n:

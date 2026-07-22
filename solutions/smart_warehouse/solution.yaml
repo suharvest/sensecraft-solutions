@@ -48,6 +48,10 @@ intro:
       description: AI voice assistant, required for all deployment modes
       description_i18n:
         zh: AI 语音助手，所有套餐必选
+      purchase:
+        require:
+          enclosure:
+            - white
     recomputer_r11:
       description: Edge gateway, runs warehouse management system
       description_i18n:
@@ -67,6 +71,10 @@ intro:
       description: Edge AI computer for local LLM/TTS, fully offline
       description_i18n:
         zh: 边缘 AI 计算机，运行本地大模型，完全离线
+      purchase:
+        require:
+          module:
+            - agx_orin_32
   stats:
     deployed_count: 0
     likes_count: 0
