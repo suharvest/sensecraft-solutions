@@ -22,10 +22,13 @@ services:
       # ── Server-loop: the gateway owns the LLM + tool loop ──────────────
       # Both keys are required — one without the other does NOT close the v2v
       # spoken-reply loop. The reachy-voice client mirrors this with
-      # REACHY_SERVER_LOOP=1. Services run host-net, so the LLM is on localhost.
+      # REACHY_SERVER_LOOP=1. This service is bridge-networked (ports below),
+      # and edge-llm publishes 11435 on the host from its own compose project,
+      # so reach it via the docker bridge gateway, NOT localhost (which would be
+      # this container). Override EDGE_LLM_BASE_URL if your topology differs.
       - OVS_V2V_ENGINE=${OVS_V2V_ENGINE:-voxedge}
       - OVS_V2V_SERVER_LOOP=${OVS_V2V_SERVER_LOOP:-1}
-      - EDGE_LLM_BASE_URL=${EDGE_LLM_BASE_URL:-http://localhost:11435/v1}
+      - EDGE_LLM_BASE_URL=${EDGE_LLM_BASE_URL:-http://172.17.0.1:11435/v1}
       - EDGE_LLM_MODEL=${EDGE_LLM_MODEL:-Qwen/Qwen3-4B-AWQ}
       - OVS_VAD_BACKEND=${OVS_VAD_BACKEND:-silero}
       - OVS_ADMIN_KEY=${OVS_ADMIN_KEY:-}
