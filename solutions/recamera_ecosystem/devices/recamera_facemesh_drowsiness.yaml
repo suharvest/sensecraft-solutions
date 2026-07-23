@@ -21,19 +21,19 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 S92facemesh-reader）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/facemesh-reader_0.1.1_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/facemesh-reader_0.3.0_riscv64.deb
     name: facemesh-reader
     includes_init_script: true
 
   # 模型文件部署（人脸检测 + FaceMesh 地标）
     checksum:
-      sha256: 78023c12ab6667bf7cc63e6aaf008a849ccc7a3317e6ffe3801184168ce2e12b
+      sha256: 965ba14a2659fdb2d698c97d2d3a685e343294d624bce55f72d441e0e17530ff
   models:
-    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-face_mixfp16.cvimodel
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolov8n_face_cv181x_int8.cvimodel
       target_path: /userdata/local/models
-      filename: yolo-face_mixfp16.cvimodel
+      filename: yolov8n_face_cv181x_int8.cvimodel
       checksum:
-        sha256: 87c2abff56a83d45179cb97cccd4fc0f3fd17845a0b243a3c3a286ad4501705f
+        sha256: 5b9dc562c09d1dc30fe3d624d08bfe30fed16bf36cf4f6f36c64e694d0445e3a
     - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/face_landmark_cv181x_bf16.cvimodel
       target_path: /userdata/local/models
       filename: face_landmark_cv181x_bf16.cvimodel
