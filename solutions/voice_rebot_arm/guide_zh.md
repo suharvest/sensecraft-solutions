@@ -33,12 +33,11 @@
 
 一个 compose 文件启动三个服务 —— `rebot-arm`（agent）、`seeed-voice`（Qwen3 语音识别 + MOSS-TTS-Nano 语音合成）、`edge-llm`（Qwen3.5-4B-AWQ，TensorRT-Edge-LLM）—— 外加两个一次性初始化服务，分别整理宿主机 TensorRT 库、以及把抓取检测模型下载到 `/opt/rebot-models/`。
 
-检测模型以**预编译的原生 TensorRT engine** 形式分发。`model-init` 会实际反序列化它，确认能在你的 GPU 上加载；若不行（不同 Jetson 世代、不同 JetPack 版本），会自动改用同一模型的 ONNX Runtime 版本 —— 检测结果一致，只是慢些。用 `docker logs voice-rebot-arm | head -1` 可看到实际用的是哪个。
-
 ### 故障排查
 
 | 现象 | 原因 / 处理 |
 |---|---|
+| 抓取检测速度慢 | 预编译的 TensorRT engine 在这台 Jetson/JetPack 上加载失败，`model-init` 自动改用了同一模型的 ONNX Runtime 版本 —— 检测结果一致，只是慢些。`docker logs voice-rebot-arm` 第一行会显示实际用的是哪个。 |
 | SSH 连接失败 | 检查 Jetson IP、SSH 用户名/密码，并确认 `22` 端口可以访问。 |
 | 找不到机械臂串口 | 在 Jetson 上确认 `ls /dev/ttyACM*` 的结果，并更新机械臂串口字段。 |
 | 首次启动时 `edge-llm` 长时间 unhealthy | TensorRT 引擎仍在下载或预热；可查看 `docker logs edge-llm`。 |

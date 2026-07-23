@@ -31,14 +31,13 @@ Deploy the voice, LLM, arm-control and inventory services to the Jetson.
 
 ### Services
 
-One compose file starts three services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano) and `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) — plus two one-shot init services that curate the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
-
-The detector ships as a prebuilt native TensorRT engine. `model-init` deserializes it to check it loads on your GPU; if it does not (different Jetson generation, different JetPack), it silently switches to the ONNX Runtime build of the same model — same detections, slower. `docker logs voice-rebot-arm | head -1` prints which one is active.
+One compose file starts three services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano) and `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) — plus two one-shot init services that stage the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
 
 ### Troubleshooting
 
 | Symptom | Cause / fix |
 |---|---|
+| Grasp detection is slow | The prebuilt TensorRT engine did not load on this Jetson/JetPack, so `model-init` fell back to the ONNX Runtime build of the same model — same detections, slower. The first line of `docker logs voice-rebot-arm` shows which one is active. |
 | SSH connection fails | Check the Jetson IP address, SSH username/password and that port `22` is reachable. |
 | Arm serial device is missing | Confirm `ls /dev/ttyACM*` on the Jetson and update the Arm Serial Device field. |
 | `edge-llm` stays unhealthy on first boot | The TensorRT engine is still downloading or warming up; watch `docker logs edge-llm`. |
