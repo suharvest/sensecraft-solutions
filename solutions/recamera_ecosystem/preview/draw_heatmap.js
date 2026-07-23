@@ -4,24 +4,21 @@
  * Renders people flow heatmap and tracking visualization on canvas.
  * Depends on: simpleheat (https://github.com/mourner/simpleheat)
  *
- * Input (data): YOLO MQTT tracking message
+ * Input (data): yolo-detector >= 0.4.0 results message
  * {
  *   timestamp: 1768969602957,
  *   frame_id: 107,
- *   inference_time_ms: 308.0,
- *   frame_width: 1,
- *   frame_height: 1,
- *   zone_occupancy: { total: 1, browsing: 0, engaged: 1, assistance: 0 },
- *   persons: [{
- *     track_id: 1,
- *     confidence: 0.363,
- *     bbox: [0.3, 0.15, 0.2, 0.5],  // array [x, y, w, h], top-left coords, normalized
- *     speed_px_s: 0.2,
- *     speed_normalized: 0.2,
- *     state: "engaged",  // transient | dwelling | engaged | assistance
- *     dwell_duration_sec: 8.9
- *   }]
+ *   inference_time_ms: 49.0,
+ *   detection_count: 1,
+ *   detections: [{
+ *     class_id: 0, class_name: "person", confidence: 0.93,
+ *     x: 0.4, y: 0.4, w: 0.2, h: 0.5,   // normalized CENTER coords
+ *     track_id: 7                        // optional, present when tracking is on
+ *   }],
+ *   tracking: { active_tracks: 1 }       // optional
  * }
+ * Legacy (< 0.4.0) tracking payloads (persons[] with top-left bbox +
+ * zone_occupancy) are still accepted as a fallback.
  *
  * Variables: ctx, data, canvas, img (provided by PreviewWindow)
  */
@@ -140,8 +137,42 @@ if (!state.initialized) {
 }
 
 // ========== Parse Data ==========
-const persons = data?.persons || [];
-const zoneOccupancy = data?.zone_occupancy || { total: 0, browsing: 0, engaged: 0, assistance: 0 };
+// Normalize both payload generations into one shape:
+// { key, cx, cy, w, h (normalized center), label, confidence }
+function parsePersons(d) {
+  const out = [];
+  if (Array.isArray(d?.detections)) {
+    // New schema (>= 0.4.0): flat normalized CENTER coords, class-filtered here
+    d.detections.forEach((det, i) => {
+      if (det.class_name !== 'person') return;
+      out.push({
+        key: det.track_id !== undefined ? det.track_id : `i${i}`,
+        cx: det.x, cy: det.y, w: det.w, h: det.h,
+        label: det.track_id !== undefined ? `#${det.track_id}` : `${Math.round((det.confidence || 0) * 100)}%`,
+        confidence: det.confidence || 0,
+      });
+    });
+  } else if (Array.isArray(d?.persons)) {
+    // Legacy schema (< 0.4.0): bbox is TOP-LEFT, array or object form
+    for (const p of d.persons) {
+      const b = p.bbox;
+      if (!b) continue;
+      const [bx, by, bw, bh] = Array.isArray(b) ? b : [b.x, b.y, b.w, b.h];
+      out.push({
+        key: p.track_id,
+        cx: bx + bw / 2, cy: by + bh / 2, w: bw, h: bh,
+        label: p.dwell_duration_sec > 1 ? `#${p.track_id} ${p.dwell_duration_sec.toFixed(1)}s` : `#${p.track_id}`,
+        confidence: p.confidence || 0,
+      });
+    }
+  }
+  return out;
+}
+const persons = parsePersons(data);
+const totalCount = data?.detection_count !== undefined
+  ? persons.length
+  : (data?.zone_occupancy?.total || persons.length);
+const activeTracks = data?.tracking?.active_tracks;
 const inferenceTime = data?.inference_time_ms || 0;
 
 // ========== Update Heatmap Points ==========
@@ -155,46 +186,23 @@ state.points.forEach((point, trackId) => {
 
 // Update/add current frame persons
 for (const person of persons) {
-  const { bbox, track_id, state: personState, dwell_duration_sec = 0 } = person;
-  if (!bbox) continue;
-
-  // Parse bbox: support both array [x, y, w, h] and object {x, y, w, h} formats
-  let bboxX, bboxY, bboxW, bboxH;
-  if (Array.isArray(bbox)) {
-    [bboxX, bboxY, bboxW, bboxH] = bbox;
-  } else {
-    ({ x: bboxX, y: bboxY, w: bboxW, h: bboxH } = bbox);
-  }
-
-  // Convert top-left coordinates to center coordinates for heatmap
-  // Hardware sends top-left, we need center for heat point
-  const centerX = bboxX + bboxW / 2;
-  const centerY = bboxY + bboxH / 2;
-
   // Convert normalized center coordinates to canvas pixels
-  const x = centerX * canvas.width;
-  const y = centerY * canvas.height;
+  const x = person.cx * canvas.width;
+  const y = person.cy * canvas.height;
 
-  // Calculate heat increment based on state and dwell time
-  const baseWeight = CONFIG.stateWeights[personState] || 1.0;
-  const dwellBonus = Math.min(dwell_duration_sec / 10, 2.0);  // Bonus up to 2x for dwell
-  const heatIncrement = baseWeight * (1 + dwellBonus);
+  const heatIncrement = CONFIG.stateWeights.dwelling;
 
   // Update or create point
-  const existing = state.points.get(track_id);
+  const existing = state.points.get(person.key);
   if (existing) {
     // Smooth position update
     existing.x = existing.x * 0.7 + x * 0.3;
     existing.y = existing.y * 0.7 + y * 0.3;
     existing.heat = Math.min(existing.heat + heatIncrement, CONFIG.maxHeatValue);
-    existing.state = personState;
-    existing.dwell = dwell_duration_sec;
   } else {
-    state.points.set(track_id, {
+    state.points.set(person.key, {
       x, y,
       heat: heatIncrement * 2,  // Initial boost
-      state: personState,
-      dwell: dwell_duration_sec,
     });
   }
 }
@@ -215,24 +223,13 @@ if (state.heat && state.points.size > 0) {
 
 // ========== Render Person Bounding Boxes to Buffer ==========
 for (const person of persons) {
-  const { bbox, track_id, state: personState, dwell_duration_sec = 0, confidence = 0 } = person;
-  if (!bbox) continue;
+  const color = CONFIG.stateColors.dwelling;
 
-  const color = CONFIG.stateColors[personState] || '#FFFFFF';
-
-  // Parse bbox: support both array [x, y, w, h] and object {x, y, w, h} formats
-  let bboxX, bboxY, bboxW, bboxH;
-  if (Array.isArray(bbox)) {
-    [bboxX, bboxY, bboxW, bboxH] = bbox;
-  } else {
-    ({ x: bboxX, y: bboxY, w: bboxW, h: bboxH } = bbox);
-  }
-
-  // Calculate box coordinates (bbox is top-left based from hardware)
-  const bx = bboxX * canvas.width;
-  const by = bboxY * canvas.height;
-  const bw = bboxW * canvas.width;
-  const bh = bboxH * canvas.height;
+  // Box top-left from normalized CENTER coords
+  const bx = (person.cx - person.w / 2) * canvas.width;
+  const by = (person.cy - person.h / 2) * canvas.height;
+  const bw = person.w * canvas.width;
+  const bh = person.h * canvas.height;
 
   // Draw bounding box with glow effect for visibility
   bufferCtx.save();
@@ -252,9 +249,7 @@ for (const person of persons) {
   bufferCtx.globalAlpha = 1.0;
 
   // Draw label background
-  const labelText = dwell_duration_sec > 1
-    ? `#${track_id} ${dwell_duration_sec.toFixed(1)}s`
-    : `#${track_id}`;
+  const labelText = person.label;
 
   bufferCtx.font = CONFIG.labelFont;
   const textWidth = bufferCtx.measureText(labelText).width;
@@ -295,24 +290,21 @@ bufferCtx.fillText('People Flow Stats', panelX + 12, panelY + 24);
 bufferCtx.font = CONFIG.statsFont;
 let statY = panelY + 48;
 
-// Total count
+// Person count in frame
 bufferCtx.fillStyle = '#FFFFFF';
-bufferCtx.fillText(`Total: ${zoneOccupancy.total || 0}`, panelX + 12, statY);
+bufferCtx.fillText(`People: ${totalCount}`, panelX + 12, statY);
 statY += 20;
 
-// Browsing
-bufferCtx.fillStyle = CONFIG.stateColors.browsing;
-bufferCtx.fillText(`Browsing: ${zoneOccupancy.browsing || 0}`, panelX + 12, statY);
-statY += 20;
+// Active tracks (new payloads only)
+if (activeTracks !== undefined) {
+  bufferCtx.fillStyle = CONFIG.stateColors.dwelling;
+  bufferCtx.fillText(`Tracks: ${activeTracks}`, panelX + 12, statY);
+  statY += 20;
+}
 
-// Engaged
+// Heat spots currently alive on the map
 bufferCtx.fillStyle = CONFIG.stateColors.engaged;
-bufferCtx.fillText(`Engaged: ${zoneOccupancy.engaged || 0}`, panelX + 12, statY);
-statY += 20;
-
-// Assistance
-bufferCtx.fillStyle = CONFIG.stateColors.assistance;
-bufferCtx.fillText(`Need Help: ${zoneOccupancy.assistance || 0}`, panelX + 12, statY);
+bufferCtx.fillText(`Heat spots: ${state.points.size}`, panelX + 12, statY);
 
 // Inference time (bottom right of panel)
 if (inferenceTime > 0) {
@@ -323,10 +315,9 @@ if (inferenceTime > 0) {
 
 // ========== Render Legend to Buffer ==========
 const legendItems = [
-  { label: 'Moving', color: CONFIG.stateColors.transient },
-  { label: 'Browsing', color: CONFIG.stateColors.browsing },
-  { label: 'Engaged', color: CONFIG.stateColors.engaged },
-  { label: 'Need Help', color: CONFIG.stateColors.assistance },
+  { label: 'Person', color: CONFIG.stateColors.dwelling },
+  { label: 'Low traffic', color: 'cyan' },
+  { label: 'High traffic', color: 'red' },
 ];
 const legendW = 138;
 const legendH = legendItems.length * 18 + 16;
