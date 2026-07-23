@@ -21,11 +21,11 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 S92yolo-detector）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.3.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.4.0_riscv64.deb
     name: yolo-detector
     includes_init_script: true
     checksum:
-      sha256: 39b96858239fda15666a62561972324326393d87309a4347814dd97b0388e4cb
+      sha256: ed44d8024a2c4c84397d0e5559406c1accdd6c1f7f82aaa30bca1595ac9bbc87
 
   # 模型文件部署（根据用户选择的模型下载对应文件）
   models:
