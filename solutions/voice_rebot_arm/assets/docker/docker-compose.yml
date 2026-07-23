@@ -89,6 +89,10 @@ services:
       - "8621:8000"
     environment:
       - OVS_PROFILE=jetson-edgellm-v090-moss
+      # Half-open v2v slot watchdog (upstream PR #40). Code default is 90s;
+      # 45s frees a wedged session ~2x faster while staying above the 30s LLM
+      # stream-idle so a slow-but-alive thinking turn is never cut.
+      - OVS_V2V_IDLE_TIMEOUT_S=45
       - LANGUAGE_MODE=multilanguage
       - HF_ENDPOINT=${HF_ENDPOINT:-https://huggingface.co}
       # MOSS artifacts (~1.9 GB) are provisioned into the speech-models volume
@@ -141,7 +145,7 @@ services:
   # at its root. Those are NOT embin models (single-input, baked vocabulary);
   # loading one would fail silently at inference. Always keep the embin/ prefix.
   model-init:
-    image: ddandadan/voice-rebot-arm:v1.1.0
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:v1.2.0
     runtime: nvidia            # needed to actually deserialize the engine
     entrypoint: ["python3", "-c"]
     command:
@@ -221,7 +225,7 @@ services:
   # container's own libs and segfault the loader (verified) — copying just
   # this set is the safe pattern. Idempotent; ~1.4 GB once.
   gpu-libs-init:
-    image: ddandadan/voice-rebot-arm:v1.1.0
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:v1.2.0
     entrypoint: ["sh", "-c"]
     command:
       - |
@@ -235,7 +239,7 @@ services:
     restart: "no"
 
   rebot-arm:
-    image: ddandadan/voice-rebot-arm:v1.1.0
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:v1.2.0
     container_name: voice-rebot-arm
     privileged: true            # arm serial + camera USB + audio devices
     runtime: nvidia
