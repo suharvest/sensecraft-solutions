@@ -18,8 +18,8 @@
   "smart_hvac_control": "sha256:d9d03077d5d29c8e510c639cca1f078905e483a58d46061a9c832df77eca9f98",
   "smart_retail_voice_ai": "sha256:5381b90f2d3c57b48c7f2f463ef02e8cfa174757ede98b8c07683834ac1c3eec",
   "smart_space_assistant": "sha256:91e33b8751a2f7723624b6bff5e98c453af26e35e07f18e8fa9810320f1f1605",
-  "smart_warehouse": "sha256:eac37045c5326160d26e573b09fde1ff2414e4735b6dc5a59c5dc7d546035bea",
-  "voice_rebot_arm": "sha256:e60720936119d6b656e0eb8fd168b16a49e06033309dfe3efa3a7604e2072abc",
+  "smart_warehouse": "sha256:988b40b206d62509b0bbec5bc361d552b2ff3390d4d429e199715aab6027f47e",
+  "voice_rebot_arm": "sha256:13f1af981fd13ebe5bd8356eaa3431656cb22dce25c07e4e9f6641a9f5167c55",
   "voice_robot_lekiwi": "sha256:264e3617044a25bfd9917ab4d3a6f3413f52bd56684501bc81a0e9bd41c33a22",
   "z_image_turbo": "sha256:c0c68c388cea2a395943701b6622affe8a6d6b5dd36b86b722303bbb9a9709b2"
 }
