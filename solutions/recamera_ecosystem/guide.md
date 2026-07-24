@@ -443,3 +443,64 @@ Optional — switch the camera back to its stock services (Node-RED, sscma-node)
 |-------|----------|
 | Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
 | Wrong password | Default is `recamera`, use your new password if changed |
+
+---
+
+## Preset: Retail People Counting {#retail_vision}
+
+Point reCamera at your entrance or aisle — it counts customers in and out, tracks where they linger, and flags who has been waiting long enough to need help. All processing happens on the camera, no cloud needed.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that detects, tracks and counts people, and analyzes dwell states |
+
+**What you'll get:**
+- Live video with per-person tracking, dwell state (browsing / engaged / assistance) and footfall counters
+- Automatic entry / exit counting and rolling footfall statistics, published to MQTT
+- All processing on-device — no cloud, no extra hardware
+
+**Tip:** The counting zone and directional entry/exit line are drawn afterwards in the camera's own web console (Apps → Retail People Counting → Configure). Until you draw them, the app counts people across the whole frame.
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install Retail People Counting {#deploy_retail type=recamera_cpp required=true config=devices/recamera_retail_vision.yaml}
+
+Install the retail people-counting program on reCamera so it can detect, track and count shoppers in the video.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+
+---
+
+## Step 2: View Retail Analytics {#preview_retail type=preview required=false config=devices/preview_retail_vision.yaml}
+
+Click **Connect** to see the live video with per-person tracking and footfall counters.
+
+**Tip:** For entry/exit counts, draw the directional line in the camera web console first; without it the preview still shows tracking and dwell states across the whole frame.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| No overlay data | Make sure Step 1 completed and MQTT is reachable on the camera |
+| Counters stay at zero | Draw the entry/exit line in the camera web console, or wait for people to enter the frame |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to view the live retail analytics.
+
+Per-person tracking, dwell states and footfall counters are analyzed on-device in real-time. Draw a counting zone and entry/exit line in the camera's web console to turn the whole-frame counts into zone-scoped, directional footfall.
+
+---

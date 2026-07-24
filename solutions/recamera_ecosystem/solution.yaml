@@ -199,6 +199,28 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
+    - id: retail_vision
+      name: Retail People Counting
+      badge: New
+      description: Count customers in and out, see where they linger, and spot who needs help — automatic entry/exit counting plus browsing / engaged / assistance states, all on-device
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 零售人流分析
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 自动统计进出客流、区分浏览/驻足/求助状态，看清顾客在哪儿停留、谁正需要帮助——全部在设备上处理
   summary_i18n:
     zh: 即插即用的 AI 摄像头，一键安装各种应用——物体检测、文字识别、人脸分析、智能家居联动
   description_file_i18n:

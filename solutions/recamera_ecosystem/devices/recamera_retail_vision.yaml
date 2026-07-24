@@ -1,0 +1,194 @@
+version: "1.0"
+id: recamera_retail_vision
+name: reCamera Retail People Counting
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# C++ 应用部署配置（retail-vision 人流分析，person 检测跑在 yolo11n）
+binary:
+  # .deb 包安装（包含 init 脚本 K92retail-vision）
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/retail-vision_1.3.1_riscv64.deb
+    name: retail-vision
+    includes_init_script: true
+    checksum:
+      sha256: a80017c09355950874af124dc8bbb47303f84b2cbc93280a517c274f1da069ef
+
+  # 模型文件部署（复用通用 person 检测模型 yolo11n）
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo11n_detection_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: yolo11n_detection_cv181x_int8.cvimodel
+      checksum:
+        sha256: bf8a6ffaec83c512c497384b922ba292f4005f2c7dc1424c905c683d01e3bb40
+
+  # 服务配置
+  service_name: retail-vision
+  service_priority: 92
+  auto_start: true
+
+actions:
+  after:
+    - name: Generate retail analytics config
+      run: |
+        set -e
+        {
+          if [ -n "{{mqtt_host}}" ] && [ "{{mqtt_host}}" != "localhost" ]; then
+            echo "MQTT_HOST={{mqtt_host}}"
+          fi
+          if [ -n "{{mqtt_port}}" ] && [ "{{mqtt_port}}" != "1883" ]; then
+            echo "MQTT_PORT={{mqtt_port}}"
+          fi
+          OPTS="--conf-threshold {{conf_threshold}}"
+          OPTS="$OPTS --window-duration {{window_duration}}"
+          OPTS="$OPTS --person-height {{person_height}}"
+          OPTS="$OPTS --dwell-engaged {{dwell_engaged}}"
+          OPTS="$OPTS --dwell-assist {{dwell_assist}}"
+          echo "DAEMON_OPTS=\"\$DAEMON_OPTS $OPTS\""
+        } > /etc/retail-vision.conf
+      sudo: true
+      name_i18n:
+        zh: 生成人流分析配置
+    - name: Enable external MQTT access
+      # fail_fast: false — uses 'grep -q ... && exit 0' idempotent check; set -e would kill grep on first deploy
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+    - name: Disable Node-RED autostart
+      # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
+      fail_fast: false
+      run: |
+        for svc in node-red sscma-node sscma-supervisor; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
+      name_i18n:
+        zh: 禁用 Node-RED 自启动
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: mqtt_host
+    name: MQTT Host
+    type: text
+    default: "localhost"
+    placeholder: "localhost"
+    required: false
+    row: 1
+    name_i18n:
+      zh: MQTT 地址
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    placeholder: "1883"
+    required: false
+    row: 1
+    name_i18n:
+      zh: MQTT 端口
+  - id: conf_threshold
+    name: Confidence
+    type: text
+    default: "0.5"
+    placeholder: "0.5"
+    required: false
+    row: 2
+    description: Person detection confidence threshold
+    name_i18n:
+      zh: 置信度
+    description_i18n:
+      zh: 人体检测置信度阈值
+  - id: window_duration
+    name: Rolling Window (s)
+    type: text
+    default: "60"
+    placeholder: "60"
+    required: false
+    row: 2
+    description: Rolling window for footfall statistics
+    name_i18n:
+      zh: 统计窗口（秒）
+    description_i18n:
+      zh: 客流统计的滚动时间窗口
+  - id: person_height
+    name: Avg Person Height (m)
+    type: text
+    default: "1.7"
+    placeholder: "1.7"
+    required: false
+    row: 2
+    name_i18n:
+      zh: 平均身高（米）
+  - id: dwell_engaged
+    name: Engaged Threshold (s)
+    type: text
+    default: "1.5"
+    placeholder: "1.5"
+    required: false
+    row: 3
+    description: Dwell time before a shopper counts as "engaged"
+    name_i18n:
+      zh: 驻足阈值（秒）
+    description_i18n:
+      zh: 顾客停留多久算“驻足”
+  - id: dwell_assist
+    name: Assistance Threshold (s)
+    type: text
+    default: "20"
+    placeholder: "20"
+    required: false
+    row: 3
+    description: Dwell time before a shopper is flagged as needing help
+    name_i18n:
+      zh: 求助阈值（秒）
+    description_i18n:
+      zh: 顾客停留多久判定为需要帮助
+post_deployment:
+  open_browser: false
+name_i18n:
+  zh: reCamera 零售人流分析
