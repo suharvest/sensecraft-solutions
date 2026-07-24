@@ -1,185 +1,79 @@
 /**
- * Face Analysis Overlay Renderer
+ * Face Analysis Overlay — ADAPTER
  *
- * Renders face detection + age/gender/emotion/race results on canvas.
- * No external dependencies required.
+ * Maps the face-analysis MQTT payload to a RecameraOverlay `model` and
+ * delegates all drawing to the shared renderer (window.RecameraOverlay). This
+ * file contains ONLY app-specific field mapping — no drawing primitives.
  *
- * Input (data): face-analysis MQTT message
+ * Input (data): face-analysis MQTT message (see main/mqtt_payload.cpp)
  * {
- *   face_count: 2,
- *   inference_time_ms: 125.5,
+ *   timestamp, frame_id, inference_time_ms, face_count,
  *   faces: [{
- *     bbox: { x: 0.25, y: 0.3, w: 0.15, h: 0.2 },
+ *     id: 0,
+ *     bbox: { x, y, w, h },        // NORMALIZED TOP-LEFT (main.cpp: "x/y are top-left")
  *     confidence: 0.95,
- *     age_label: "20-29",
- *     gender: "male",
- *     gender_confidence: 0.88,
- *     emotion: "happy",
- *     emotion_confidence: 0.91,
- *     emotion_probs: { angry: 0.02, disgust: 0.01, fear: 0.0, happy: 0.91, sad: 0.01, surprise: 0.05, neutral: 0.0 },
- *     race: "East_Asian",
- *     race_confidence: 0.82
+ *     age_label: "20-29",          // FairFace bin string, or "age": 28 (InsightFace int)
+ *     gender: "male" | "female", gender_confidence,
+ *     emotion: "happy", emotion_confidence, emotion_probs: {...},
+ *     race: "East_Asian", race_confidence   // FairFace only, optional
  *   }]
  * }
  *
- * Supports both FairFace format (age_bin/age_label/race) and
- * InsightFace format (age as integer, no race).
+ * Each face → one box (color hashed per gender) with a compact attribute label
+ * "F·28·Happy". A metrics card (top-right) shows face count + inference time.
  *
- * Coordinates are normalized (0-1).
- * Variables: ctx, data, canvas, img (provided by PreviewWindow)
+ * bbox is TOP-LEFT here (unlike facemesh which is CENTER) — verified against
+ * face_detector.cpp (center→top-left done device-side) so NO conversion.
+ *
+ * Variables: ctx, data, canvas, img (provided by the preview host).
  */
 
-// ========== Polyfill ==========
-if (typeof ctx.roundRect !== 'function') {
-  ctx.roundRect = function(x, y, w, h, radii) {
-    const r = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 0);
-    this.moveTo(x + r, y);
-    this.arcTo(x + w, y, x + w, y + h, r);
-    this.arcTo(x + w, y + h, x, y + h, r);
-    this.arcTo(x, y + h, x, y, r);
-    this.arcTo(x, y, x + w, y, r);
-    this.closePath();
+var R = (typeof window !== 'undefined') && window.RecameraOverlay;
+if (!R || typeof R.render !== 'function') {
+  ctx.fillStyle = 'rgba(200,0,0,0.8)';
+  ctx.fillRect(10, 10, 320, 26);
+  ctx.fillStyle = '#fff';
+  ctx.font = '12px monospace';
+  ctx.fillText('RecameraOverlay not loaded', 16, 28);
+} else if (data) {
+  var EMOTION_LABELS = {
+    happy: 'Happy', sad: 'Sad', angry: 'Angry', surprise: 'Surprised',
+    fear: 'Fear', disgust: 'Disgust', neutral: 'Neutral', contempt: 'Contempt',
   };
-}
+  var GENDER_COLOR = { male: '#4A90D9', female: '#E0518A' };
 
-// ========== Configuration ==========
-const CONFIG = {
-  // Box styling
-  boxColor: '#FF6B9D',
-  boxLineWidth: 2,
-  boxGlowBlur: 6,
+  var faces = data.faces || [];
+  var boxItems = [];
 
-  // Label styling
-  labelFont: 'bold 12px Inter, sans-serif',
-  labelBgColor: 'rgba(200, 50, 100, 0.85)',
-  labelTextColor: '#FFFFFF',
-  labelLineHeight: 18,
-  labelPadding: 6,
+  for (var i = 0; i < faces.length; i++) {
+    var face = faces[i];
+    var bb = face.bbox;
+    if (!bb) continue;
 
-  // Stats panel
-  statsFont: '12px Inter, sans-serif',
-  statsHeaderFont: 'bold 14px Inter, sans-serif',
-};
+    // Compact attribute label: gender initial · age · emotion  (e.g. "F·28·Happy")
+    var parts = [];
+    if (face.gender != null) parts.push(face.gender === 'male' ? 'M' : 'F');
+    var ageStr = face.age_label || (face.age != null ? String(face.age) : null);
+    if (ageStr) parts.push(ageStr);
+    if (face.emotion) parts.push(EMOTION_LABELS[face.emotion] || face.emotion);
+    var label = parts.join('·') || 'face';
 
-// Emotion display names
-const EMOTION_LABELS = {
-  happy: 'Happy',
-  sad: 'Sad',
-  angry: 'Angry',
-  surprise: 'Surprised',
-  fear: 'Fear',
-  disgust: 'Disgust',
-  neutral: 'Neutral',
-};
-
-// ========== Parse Data ==========
-const faces = data?.faces || [];
-const faceCount = data?.face_count ?? faces.length;
-const inferenceMs = data?.inference_time_ms;
-
-// ========== Render Face Boxes ==========
-for (const face of faces) {
-  const { bbox, confidence, gender, gender_confidence, emotion, emotion_confidence } = face;
-  if (!bbox) continue;
-
-  // Normalized coords (0-1) → canvas pixels
-  // Canvas is already sized and positioned to match the video content area
-  const x = bbox.x * canvas.width;
-  const y = bbox.y * canvas.height;
-  const w = bbox.w * canvas.width;
-  const h = bbox.h * canvas.height;
-
-  // Draw bounding box with glow
-  ctx.save();
-  ctx.shadowColor = CONFIG.boxColor;
-  ctx.shadowBlur = CONFIG.boxGlowBlur;
-  ctx.strokeStyle = CONFIG.boxColor;
-  ctx.lineWidth = CONFIG.boxLineWidth;
-  ctx.strokeRect(x, y, w, h);
-  ctx.restore();
-
-  // Build label lines
-  const lines = [];
-
-  // Line 1: Gender + Age
-  if (gender != null) {
-    const genderLabel = gender === 'male' ? 'M' : 'F';
-    // Support both FairFace (age_label: "20-29") and InsightFace (age: 28)
-    const ageStr = face.age_label || (face.age != null ? `${face.age}` : null);
-    if (ageStr) {
-      lines.push(`${genderLabel}, ${ageStr}`);
-    } else {
-      lines.push(genderLabel);
-    }
+    boxItems.push({
+      bbox: { x: bb.x, y: bb.y, w: bb.w, h: bb.h },  // top-left, no conversion
+      label: label,
+      color: GENDER_COLOR[face.gender] || undefined,  // else hashed
+    });
   }
 
-  // Line 2: Emotion
-  if (emotion) {
-    const emotionLabel = EMOTION_LABELS[emotion] || emotion;
-    const conf = emotion_confidence != null ? ` ${(emotion_confidence * 100).toFixed(0)}%` : '';
-    lines.push(`${emotionLabel}${conf}`);
-  }
+  var layers = [];
+  if (boxItems.length) layers.push({ type: 'boxes', items: boxItems });
 
-  // Line 3: Race (FairFace only)
-  if (face.race) {
-    const raceLabel = face.race.replace(/_/g, ' ');
-    lines.push(raceLabel);
-  }
+  // Metrics card (top-right): face count + inference time.
+  var metrics = [];
+  var faceCount = data.face_count != null ? data.face_count : faces.length;
+  metrics.push({ k: 'Faces', v: String(faceCount) });
+  if (data.inference_time_ms != null) metrics.push({ k: 'Inference', v: data.inference_time_ms + 'ms' });
+  layers.push({ type: 'card', variant: 'metrics', anchor: 'tr', data: { title: 'Face Analysis', metrics: metrics } });
 
-  // Draw label above bounding box
-  if (lines.length > 0) {
-    ctx.font = CONFIG.labelFont;
-    const maxWidth = Math.max(...lines.map(l => ctx.measureText(l).width));
-    const labelX = x;
-    const labelH = lines.length * CONFIG.labelLineHeight + CONFIG.labelPadding;
-    const labelY = y - labelH - 4;
-
-    // Background
-    ctx.fillStyle = CONFIG.labelBgColor;
-    ctx.fillRect(labelX, labelY, maxWidth + CONFIG.labelPadding * 2, labelH);
-
-    // Text lines
-    ctx.fillStyle = CONFIG.labelTextColor;
-    for (let i = 0; i < lines.length; i++) {
-      ctx.fillText(lines[i], labelX + CONFIG.labelPadding, labelY + CONFIG.labelPadding + 12 + i * CONFIG.labelLineHeight);
-    }
-  }
-}
-
-// ========== Render Stats Panel ==========
-const panelWidth = 180;
-const lineCount = 2 + (inferenceMs != null ? 1 : 0);
-const panelHeight = 28 + lineCount * 20;
-const panelX = 10;
-const panelY = 10;
-
-// Panel background
-ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-ctx.beginPath();
-ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 8);
-ctx.fill();
-
-// Panel border
-ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-ctx.lineWidth = 1;
-ctx.stroke();
-
-// Title
-ctx.fillStyle = '#FFFFFF';
-ctx.font = CONFIG.statsHeaderFont;
-ctx.fillText('Face Analysis', panelX + 12, panelY + 24);
-
-// Stats
-ctx.font = CONFIG.statsFont;
-let statY = panelY + 48;
-
-// Face count
-ctx.fillStyle = '#FFFFFF';
-ctx.fillText(`Faces detected: ${faceCount}`, panelX + 12, statY);
-statY += 20;
-
-// Inference time
-if (inferenceMs != null) {
-  ctx.fillStyle = '#9CA3AF';
-  ctx.fillText(`Inference: ${inferenceMs}ms`, panelX + 12, statY);
+  R.render(ctx, { layers: layers }, { width: canvas.width, height: canvas.height });
 }
