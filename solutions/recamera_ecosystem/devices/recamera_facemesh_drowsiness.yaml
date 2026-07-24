@@ -21,13 +21,13 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 S92facemesh-reader）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/facemesh-reader_0.3.1_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/facemesh-reader_0.3.2_riscv64.deb
     name: facemesh-reader
     includes_init_script: true
 
   # 模型文件部署（人脸检测 + FaceMesh 地标）
     checksum:
-      sha256: fe8aceac3a289ce1118848f46c1e5181224c36717dde8f6566ed97583556f58f
+      sha256: c03dd018d7b010b6872c4d19e1d7c62452b8ec43fd6a799871f6d1577f4bbc30
   models:
     - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolov8n_face_cv181x_int8.cvimodel
       target_path: /userdata/local/models
