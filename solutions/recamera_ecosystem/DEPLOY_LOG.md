@@ -357,3 +357,33 @@ Docker 部署方式完全可行，且比 HAOS 简单——`docker-compose.yml` �
 1. **504 Gateway Timeout**：`_restart_ha()` 现在忽略 502/503/504 和连接重置错误
 2. **等待超时**：`_wait_for_ha()` 默认 180s（原 120s），检查根 URL 而非 `/api/`
 3. **SSH 插件发现**：按名称扫描（`*_ssh` + name 包含 "ssh" 或 "terminal"），不再硬编码 slug
+
+---
+
+# Console preset 真机验证
+
+> 日期：2026-07-25
+> 环境：reCamera 192.168.42.1（USB），SG2002
+> 方式：`solutionctl deploy recamera_ecosystem --preset console --device deploy_console`（走引擎 recamera_cpp deployer，非手工 opkg）
+> 产物：`supervisor_0.2.23_riscv64.deb`，sha256 `f0283b9b…07c0b60`
+
+## 部署前后对照
+
+| 项 | 部署前 | 部署后 |
+|---|---|---|
+| supervisor 二进制 md5 | `834b5108…` | `03af2752…`（与 deb 内二进制逐字节一致） |
+| opkg 登记 | 无 | `Package: supervisor / Version: 0.2.23 / Status: install user installed` |
+| 80 口 | LISTEN（旧面板） | LISTEN，`GET /` → 200 `text/html`，返回新 SPA |
+| 9x 段 init 脚本 | 仅 `S93sscma-supervisor` | 仅 `S93sscma-supervisor`（唯一 S 前缀编排者） |
+| node-red / sscma-node | `K03` / `K91` | `K03` / `K91`（保持停用） |
+| 六个相机应用 | 全 `K92*` | 全 `K92*`（由画廊接管） |
+| `/etc/recamera.conf` | 目录 | 目录（引擎备份为 `.factory.bak` 后由 after action 重建） |
+| `/userdata/local/apps/mode` | — | `console` |
+| 前端文件数 | — | 39（`index.html` 在位） |
+
+引擎 9 个阶段全部 completed。系统服务（`S10udev` … `S80dnsmasq`）无一丢失。face-analysis 在部署中被停止后由 supervisor 重新拉起，验证了「已装应用被画廊收编而非破坏」。
+
+## 已知非致命现象
+
+- **收尾显示「Deployment complete (verification skipped)」而非「verified」**：`recamera_cpp_deployer._verify_service` 的兜底是 `ps aux | grep <service_name>`，而 `service_name` 是 init 脚本名 `sscma-supervisor`，真实进程名却是 `supervisor`，grep 不中。该函数返回 False 不阻断部署（`recamera_cpp_deployer.py:535-545`），属引擎侧措辞问题。
+- **查 opkg / `/userdata/local/apps/` 必须用 sudo**：非 root 时 `opkg` 报 `opkg_lock: Permission denied`、apps 目录报 `Permission denied`，容易被误读成「包没装上」「目录不存在」。
