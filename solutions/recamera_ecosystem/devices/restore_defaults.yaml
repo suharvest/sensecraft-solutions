@@ -26,13 +26,23 @@ actions:
       # fail_fast: false — pidof/glob no-match returns non-zero/literal string, set -e would abort the loop
       fail_fast: false
       run: |
-        # 1) Kill whichever custom preset binary is currently running and disable its autostart
+        # 1) Stop whichever custom preset is running and disable its autostart.
+        #    Prefer the init script's own `stop` — it sends SIGTERM and polls until the
+        #    process exits, so the camera/VPSS pipeline is released cleanly before the
+        #    stock camera services restart (a bare kill races VPSS teardown and can wedge
+        #    the pipeline). The pidof kill stays as a fallback for a missing/renamed script.
         for svc in yolo-detector yolo11-detector yolo26-detector face-analysis facemesh-reader ppocr-reader detection-blur retail-vision weather-classifier; do
+          for f in /etc/init.d/[SK]*${svc}*; do
+            [ -x "$f" ] && "$f" stop 2>/dev/null
+          done
           pid=$(pidof "$svc" 2>/dev/null) && kill "$pid" 2>/dev/null
           for f in /etc/init.d/S*${svc}*; do
             [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
           done
         done
+
+        # Let VPSS fully release before the stock camera services grab it again.
+        sleep 2
 
         # 2) Re-enable stock services' autostart (K* -> S*) so they start again on next boot
         for svc in node-red sscma-node sscma-supervisor; do
