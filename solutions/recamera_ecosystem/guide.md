@@ -1,3 +1,66 @@
+## Preset: reCamera Console {#console}
+
+Replace the camera's built-in control panel with the reCamera Console — one web page to browse and switch AI apps, watch the live view, and manage network and system settings. Start here: the console is how you run everything else.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera whose built-in control panel is upgraded to the console |
+
+**What you'll get:**
+- An app gallery — install, switch and configure AI apps from the browser, no SSH needed
+- Live view with detection overlays, plus camera orientation and focus controls
+- Wi-Fi / HaLow / static IP setup, Home Assistant integration and system settings in one place
+
+**Good to know:** The console takes over the camera pipeline, so the built-in Node-RED editor is switched off during install. You can switch back to Node-RED any time from the console's system settings — nothing is uninstalled.
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
+
+Upgrade the camera's control panel to the console. The camera goes offline for about a minute while it restarts.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### What to check
+
+- The install finishes with the service started — the camera's web page reloads on its own within about a minute
+- Any AI app you installed earlier is kept and reappears in the console's app gallery
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+| Want the original panel back | Hold the **User** button while plugging in power, release when the red LED stops blinking and stays on — this factory-resets the camera |
+
+---
+
+## Step 2: Open reCamera Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+
+Open the console in your browser and sign in with your camera's username and password.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page won't load | Wait a minute for the camera to finish restarting, then refresh |
+| Login rejected | Use the camera's own credentials, default `recamera` / `recamera` |
+| Live view is black | Open the app gallery and start an app first — the live view shows the running app's output |
+
+### Deployment Complete
+
+The console is live at `http://<camera-ip>/`. Everything else on this camera is now managed from here.
+
+Open the app gallery to install or switch AI apps, use the live view to check what the camera sees, and set up Wi-Fi, static IP or Home Assistant from the settings pages. The other presets in this solution install apps that show up in this same gallery.
+
+---
+
 ## Preset: Retail People Flow Heatmap {#simple}
 
 Just one reCamera - view a live retail people-flow heatmap directly in its web interface, see where shoppers gather and which areas are ignored.

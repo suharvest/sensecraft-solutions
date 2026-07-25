@@ -1,0 +1,25 @@
+version: "1.0"
+id: console_dashboard
+name: Open reCamera Console
+type: web_dashboard
+user_inputs:
+  - id: host
+    name: Device IP Address
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+web_dashboard:
+  # 控制台就是设备的 80 口 Web 服务，无需额外端口
+  url: "http://{{host}}/"
+  title: reCamera Console
+  description: Browse and switch apps, watch the live view, and manage network and system settings
+  title_i18n:
+    zh: reCamera 控制台
+  description_i18n:
+    zh: 浏览和切换应用、查看实时画面、管理网络与系统设置
+name_i18n:
+  zh: 打开 reCamera 控制台

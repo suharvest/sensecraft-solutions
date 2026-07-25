@@ -22,6 +22,9 @@ intro:
     - privacy
     - weather
     - classification
+    - console
+    - device-management
+    - app-gallery
 
   output_interfaces:
     - type: rtsp
@@ -57,6 +60,30 @@ intro:
   links:
     github: https://github.com/xr686/reCamer_HA
   presets:
+    - id: console
+      name: reCamera Console
+      badge: Start Here
+      description: Replace the camera's built-in control panel with the reCamera Console — browse and switch AI apps, watch the live view, and set up network, Home Assistant and system options from one web page
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: reCamera 控制台
+      badge_i18n:
+        zh: 从这里开始
+      description_i18n:
+        zh: 把摄像头自带的控制面板升级为 reCamera 控制台——在一个网页里浏览和切换 AI 应用、查看实时画面，并配置网络、Home Assistant 和系统选项
     - id: simple
       name: Retail People Flow Heatmap
       badge: Quick Start

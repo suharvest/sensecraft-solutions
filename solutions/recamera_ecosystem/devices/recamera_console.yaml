@@ -1,0 +1,110 @@
+version: "1.0"
+id: recamera_console
+name: reCamera Console
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# 控制台（supervisor）部署配置
+#
+# 与其他 preset 的本质区别：这里装的不是「又一个相机应用」，而是设备自带控制
+# 面板的升级版——同一个包名 supervisor、同一个二进制 /usr/local/bin/supervisor、
+# 同一个 init 脚本 S93sscma-supervisor。装完设备的运行范式会变：
+#
+#   之前：ecosystem 逐个装 C++ 应用，每个应用带 S92 自启脚本，一次只能跑一个
+#   之后：控制台是唯一的 S 前缀编排者，其余应用降级为 K92 由画廊 appMgr 管理
+#
+# 停/起的服务分三类（全部由 deb 自己的 postinst 和引擎完成，此处无需重复）：
+#   - 永久停用：S03node-red、S91sscma-node（postinst 在 console 模式下 S→K）
+#   - 引擎降级：其余 S92* 生态应用 → K92*（recamera_cpp_deployer 通用扫描）
+#   - 先停后起：S93sscma-supervisor 自身（引擎 DEFAULT_CONFLICT_SERVICES 先 stop，
+#     postinst 再 start；全程 stop→start，不用 restart，避开 download 态竞态）
+binary:
+  # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
+  # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.2.23_riscv64.deb
+    name: supervisor
+    includes_init_script: true
+    checksum:
+      sha256: f0283b9bf99012daaf0c041fa42ba9b04d5f703ccb9dbb052e9799f4407c0b60
+
+  # 服务配置
+  #
+  # service_name 是 init 脚本名 S93sscma-supervisor 去掉 S93 的部分，
+  # 与 deb 包名 supervisor 不同，因此必须显式写出（否则会回落到包名，
+  # 拼出不存在的 /etc/init.d/S93supervisor）。
+  #
+  # auto_start: true → 引擎 mv K93→S93（deb 本就装 S93，此步为空操作）后再
+  # 执行一次 start。init 脚本 start() 有 pidof 幂等保护，postinst 已启动的
+  # 情况下只会打印 "already running" 并返回 0，重复 start 无害。
+  service_name: sscma-supervisor
+  service_priority: 93
+  auto_start: true
+
+actions:
+  after:
+    # 控制台把 /etc/recamera.conf 当作目录用（在线固件升级的下载暂存区，
+    # 见 main.sh 的 CONFIG_DIR）。早期的 reCamera 方案曾把同一路径写成共享
+    # MQTT 配置文件，两种约定撞车会让「检查更新」失效。
+    #
+    # 放在 after 而不是 before：引擎在 opkg install 前会无条件把该路径的目录
+    # 备份走再 rm -rf（为装 conf 文件的方案让路），before 建的目录会被它清掉。
+    #
+    # 对现有 preset 无副作用：六个相机应用的 MQTT 配置都写在各自的
+    # /etc/<service>.conf，对全局文件只做 `[ -f ... ] && . ...` 的可选加载，
+    # 路径变成目录时守卫为假，直接跳过。
+    - name: Restore console config directory
+      run: |
+        set -e
+        if [ -f /etc/recamera.conf ]; then
+          mv -f /etc/recamera.conf /etc/recamera.conf.solution.bak
+        fi
+        [ -d /etc/recamera.conf ] || mkdir -p /etc/recamera.conf
+        true
+      sudo: true
+      name_i18n:
+        zh: 恢复控制台配置目录
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 控制台
