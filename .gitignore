@@ -6,3 +6,8 @@ build/
 *.egg-info/
 .DS_Store
 uv.lock
+
+# Local scratch: deleted solutions parked before removal, and
+# playwright-cli run logs. Neither is repository content.
+solutions/.trash/
+.playwright-cli/
