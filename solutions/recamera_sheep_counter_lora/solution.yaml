@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: https://files.seeedstudio.com/wiki/reCamera/Applications/sheep_counter/cover.jpg
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/recamera-sheep-counter-lora/codex-clipboard-a1465eea-6baf-47d1-a979-bbb7296d290e-a5068389.png
   gallery:
     - type: image
       src: https://files.seeedstudio.com/wiki/reCamera/Applications/sheep_counter/ha_dashboard.png
