@@ -1,0 +1,23 @@
+## Step 2: Preview Stream {#preview_stream type=preview required=false config=devices/preview.yaml}
+
+Use this step to preview the RTSP stream in the platform UI.
+
+### Wiring
+
+1. Ensure the Jetson app is already running from Step 1.
+2. Enter RTSP URL in this step.
+3. Click **Connect**.
+
+### Deployment Complete
+
+1. Live stream is visible in the preview window.
+2. You can disconnect and reconnect without redeploying Step 1.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Preview black screen | Verify RTSP URL with VLC/ffplay first |
+| Connection timeout | Confirm RTSP port is reachable from this machine |
+| ffmpeg not found | Install ffmpeg on the machine running this platform |
+

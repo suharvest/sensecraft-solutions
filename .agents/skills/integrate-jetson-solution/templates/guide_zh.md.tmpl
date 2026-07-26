@@ -1,0 +1,49 @@
+## Preset: Jetson Default Preset {#jetson_default}
+
+Deploy `{{SOLUTION_NAME_ZH}}` to your Jetson device with one click.
+
+| Device | Purpose |
+|--------|---------|
+| NVIDIA Jetson | Runs the containerized workload |
+| USB Camera | {{CAMERA_GUIDE_ROW_ZH}} |
+
+## Step 1: Deploy Application {#deploy_jetson_app type=docker_deploy required=true config=devices/jetson.yaml}
+
+Deploy the containerized runtime to your Jetson over SSH.
+
+### Target: Remote Deployment (Jetson) {#jetson_remote type=remote config=devices/jetson.yaml default=true}
+
+### Wiring
+
+1. Connect Jetson and your computer to the same network.
+2. {{CAMERA_WIRING_STEP_ZH}}
+3. Fill in Jetson IP, SSH username, and password.
+4. Click **Deploy**.
+
+### Deployment Complete
+
+1. The container is running on your Jetson.
+2. The app command is executed inside the container.
+3. {{STREAM_DEPLOY_COMPLETE_ZH}}
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| SSH connection failed | Verify IP, username, password, and SSH service status |
+| Docker runtime check failed | Ensure Docker is installed and NVIDIA runtime is available |
+| Docker Compose unavailable | Install compose plugin or docker-compose binary |
+| App start failed | Check container logs: `docker logs {{SOLUTION_ID}}` |
+
+{{PREVIEW_STEP_ZH_BLOCK}}
+
+# Deployment Complete
+
+The solution has been deployed successfully.
+
+## Validation Checklist
+
+1. Deployment status shows success.
+2. Container remains running on Jetson.
+3. {{VALIDATION_STREAM_ZH}}
+

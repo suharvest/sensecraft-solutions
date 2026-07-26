@@ -1,0 +1,139 @@
+version: "1.0"
+id: jetson
+name: NVIDIA Jetson
+name_zh: NVIDIA Jetson
+type: docker_remote
+
+detection:
+  method: network_scan
+  manual_entry: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+
+docker_remote:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  remote_path: /home/{{username}}/{{SOLUTION_ID}}
+
+  environment:
+    DISPLAY: "{{display}}"
+    TZ: Asia/Shanghai
+
+  options:
+    project_name: {{SOLUTION_ID}}
+    remove_orphans: true
+
+  services:
+    - name: {{SOLUTION_ID}}
+      required: true
+
+user_inputs:
+  - id: host
+    name: Host / IP
+    name_zh: Host / IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+
+  - id: username
+    name: SSH Username
+    name_zh: SSH Username
+    type: text
+    default: recomputer
+    required: true
+
+  - id: password
+    name: SSH Password
+    name_zh: SSH Password
+    type: password
+    required: true
+
+  - id: display
+    name: X11 DISPLAY
+    name_zh: X11 DISPLAY
+    type: text
+    default: ":0"
+    required: false
+
+actions:
+  before:
+    - name: Validate Jetson runtime
+      name_zh: Validate Jetson runtime
+      run: |
+        set -e
+
+        [ -f /etc/nv_tegra_release ] || {
+          echo "Not a Jetson device: /etc/nv_tegra_release is missing"
+          exit 1
+        }
+
+        docker info >/dev/null 2>&1 || {
+          echo "Docker is not available"
+          exit 1
+        }
+
+        docker info | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+          echo "NVIDIA docker runtime is not detected"
+          exit 1
+        }
+
+    - name: Ensure docker compose command
+      name_zh: Ensure docker compose command
+      sudo: true
+      run: |
+        set -e
+
+        compose_ready() {
+          docker compose version >/dev/null 2>&1 || docker-compose --version >/dev/null 2>&1
+        }
+
+        if compose_ready; then
+          exit 0
+        fi
+
+        if command -v docker-compose >/dev/null 2>&1; then
+          COMPOSE_BIN="$(command -v docker-compose)"
+          for d in \
+            /usr/local/lib/docker/cli-plugins \
+            /usr/lib/docker/cli-plugins \
+            /usr/libexec/docker/cli-plugins
+          do
+            mkdir -p "$d"
+            ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+          done
+        fi
+
+        if ! compose_ready && command -v apt-get >/dev/null 2>&1; then
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          for pkg in docker-compose-plugin docker-compose-v2 docker-compose; do
+            if apt-get install -y "$pkg"; then
+              break
+            fi
+          done
+        fi
+
+        if ! compose_ready && command -v docker-compose >/dev/null 2>&1; then
+          COMPOSE_BIN="$(command -v docker-compose)"
+          for d in \
+            /usr/local/lib/docker/cli-plugins \
+            /usr/lib/docker/cli-plugins \
+            /usr/libexec/docker/cli-plugins
+          do
+            mkdir -p "$d"
+            ln -sf "$COMPOSE_BIN" "$d/docker-compose" || true
+          done
+        fi
+
+        compose_ready || {
+          echo "Docker Compose is unavailable. Need either 'docker compose' (v2 plugin) or 'docker-compose' (standalone)."
+          exit 1
+        }
+
+post_deployment:
+  open_browser: false
+
