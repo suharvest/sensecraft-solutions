@@ -11,6 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+  cover_image: gallery/cover.jpg
   category: vision
   solution_type: solution
   tags:
