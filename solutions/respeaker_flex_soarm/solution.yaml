@@ -116,6 +116,8 @@ intro:
 
   links:
     wiki: https://wiki.seeedstudio.com/respeaker_flex_soarm/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/respeaker_flex_soarm/
 
   summary_i18n:
     zh: 用语音控制 SO-ARM101 六自由度机械臂。语音链路完全本地化 —— Paraformer/Matcha 语音识别合成 + Qwen3-4B-AWQ（TensorRT-Edge-LLM）—— 跑在 Jetson Orin NX。提供 HTTP 观测接口供其他方案集成读取机械臂实时状态。

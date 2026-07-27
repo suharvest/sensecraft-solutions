@@ -61,7 +61,9 @@ intro:
     difficulty: intermediate
     estimated_time: 60min
   links:
-    wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+    wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
     wiki_en: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
     github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
     demo: https://indoorpositioning-demo.seeed.cc/
@@ -111,7 +113,9 @@ intro:
           description_i18n:
             zh: 带 BLE 扫描的移动资产追踪器
       links:
-        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki_i18n:
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 入门套件
@@ -162,7 +166,9 @@ intro:
           description_i18n:
             zh: 带 BLE 扫描的移动资产追踪器
       links:
-        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki_i18n:
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 标准配置
@@ -211,7 +217,9 @@ intro:
           description_i18n:
             zh: 带 BLE 扫描的移动资产追踪器
       links:
-        wiki: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+        wiki_i18n:
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 企业版

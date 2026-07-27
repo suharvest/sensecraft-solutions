@@ -73,7 +73,9 @@ intro:
     difficulty: beginner
     estimated_time: 30min
   links:
-    wiki: https://wiki.seeedstudio.com/cn/mcp_external_system_integration/
+    wiki: https://wiki.seeedstudio.com/mcp_external_system_integration/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/mcp_external_system_integration/
     github: https://github.com/suharvest/warehouse_system
   presets:
     - id: trial

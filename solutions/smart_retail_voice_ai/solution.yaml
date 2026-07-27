@@ -52,7 +52,9 @@ intro:
     difficulty: intermediate
     estimated_time: 30min
   links:
-    wiki: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+    wiki: https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
     purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
   presets:
     - id: default
@@ -78,7 +80,9 @@ intro:
           name_i18n:
             zh: 麦克风阵列
       links:
-        wiki: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+        wiki: https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/
+        wiki_i18n:
+          zh: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
       name_i18n:
         zh: 标准部署
   summary_i18n:

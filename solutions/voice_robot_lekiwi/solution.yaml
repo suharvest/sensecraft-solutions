@@ -101,6 +101,8 @@ intro:
   links:
     github: https://github.com/KasunThushara/Lekiwi-voice
     wiki: https://wiki.seeedstudio.com/respeaker_flex_lekiwi/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/respeaker_flex_lekiwi/
 
   summary_i18n:
     zh: 用语音控制三轮 Kiwi 机器人的运动，基于 Groq AI。说"Hey Jarvis"然后用自然语言指挥机器人前进、转向和移动。
