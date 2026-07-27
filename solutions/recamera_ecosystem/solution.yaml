@@ -25,6 +25,8 @@ intro:
     - console
     - device-management
     - app-gallery
+    - onvif
+    - nvr
 
   output_interfaces:
     - type: rtsp
@@ -33,6 +35,13 @@ intro:
       schema_type: binary
       description_i18n:
         zh: AI 处理后的摄像头视频流（YOLO/OCR/人脸）
+    - type: onvif
+      port: 8000
+      endpoint: /onvif/device_service
+      description: ONVIF Device and Media2 services — add the camera to an NVR or VMS by discovery, no manual RTSP URL needed (WS-Discovery answers on UDP 3702)
+      schema_type: xml
+      description_i18n:
+        zh: ONVIF Device 与 Media2 服务——NVR / 监控平台可自动发现并接入，无需手填 RTSP 地址（WS-Discovery 监听 UDP 3702）
     - type: mqtt
       port: 1883
       description: Detection results JSON via MQTT

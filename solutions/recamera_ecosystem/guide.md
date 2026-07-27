@@ -52,12 +52,17 @@ Open the console in your browser and sign in with your camera's username and pas
 | Page won't load | Wait a minute for the camera to finish restarting, then refresh |
 | Login rejected | Use the camera's own credentials, default `recamera` / `recamera` |
 | Live view is black | Open the app gallery and start an app first — the live view shows the running app's output |
+| Camera won't start after enabling privacy blur | That setting swaps a video kernel module and needs a full power cycle — unplug the camera and plug it back in rather than using a software reboot |
 
 ### Deployment Complete
 
 The console is live at `http://<camera-ip>/`. Everything else on this camera is now managed from here.
 
 Open the app gallery to install or switch AI apps, use the live view to check what the camera sees, and set up Wi-Fi, static IP or Home Assistant from the settings pages. The other presets in this solution install apps that show up in this same gallery.
+
+The apps also answer ONVIF, so an NVR or video management system can discover the camera on the network and pull its stream without you typing an RTSP address.
+
+**If you turn on device-level privacy blur** in the settings: it replaces a video kernel module, so the console will tell you a restart is needed. Power the camera off and on again at the plug — a software reboot does not reset the video hardware and can leave the camera unable to start.
 
 ---
 
