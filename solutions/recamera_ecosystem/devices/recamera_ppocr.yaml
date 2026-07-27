@@ -145,8 +145,14 @@ actions:
     - name: Disable Node-RED autostart
       # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
       fail_fast: false
+      # sscma-supervisor is deliberately NOT in this list. On a console device
+      # S93sscma-supervisor is the sole boot-time orchestrator: it keeps every
+      # gallery app K-prefixed and starts the selected one via app_restore.
+      # Demoting it to K93 leaves the device with nothing to start at boot —
+      # neither the console nor this app, whose script the engine now also
+      # leaves disabled on gallery devices.
       run: |
-        for svc in node-red sscma-node sscma-supervisor; do
+        for svc in node-red sscma-node; do
           for f in /etc/init.d/S*${svc}*; do
             [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
           done

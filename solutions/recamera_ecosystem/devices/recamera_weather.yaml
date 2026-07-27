@@ -24,8 +24,9 @@ binary:
   # init 脚本已对齐 face-analysis/yolo-detector/ppocr-reader/facemesh-reader 真实 .deb 的写法
   # （拆包比对确认）：二进制装在 /usr/local/bin、start/stop 走 start-stop-daemon、status 带
   # ps-aux 兜底、先加载全局 /etc/recamera.conf 再加载 solution 自己的 conf、start 前调用
-  # stop_conflicting_services() 停掉 node-red/sscma-node/sscma-supervisor 及其余已知同类
-  # preset 二进制。注意：这段 kill 逻辑对走 SenseCraft Solution App 部署的路径是次要防线——
+  # stop_conflicting_services() 停掉 node-red/sscma-node 及其余已知同类
+  # preset 二进制（新版应用已不再停 sscma-supervisor，以便与画廊 console 共存）。
+  # 注意：这段 kill 逻辑对走 SenseCraft Solution App 部署的路径是次要防线——
   # App 的 recamera_cpp_deployer 本身会在跑这个脚本之前，通用扫描 /etc/init.d/S9* 探测并停掉
   # 任何正在跑的 cpp 服务（不需要认识具体名字，已用真实部署日志验证），这里的硬编码名单只是
   # 给绕开 App、直接 SSH/reboot 场景兜底。反向（其余旧 preset 的 init 脚本主动认识
@@ -50,12 +51,15 @@ binary:
   service_name: weather-classifier
   service_priority: 92
 
-  # 部署时立即停止冲突服务（不止是禁用自启动），确保天气识别程序能拿到摄像头
+  # 部署时立即停止冲突服务（不止是禁用自启动），确保天气识别程序能拿到摄像头。
+  # 不含 sscma-supervisor：引擎的画廊过滤只作用于 DEFAULT_CONFLICT_SERVICES，
+  # 这里显式列出的名字会在过滤之后被 extend 进去（recamera_cpp_deployer.py:855-860），
+  # 写上就会在画廊设备上把 console 停掉。而且也没必要——占摄像头的是 console
+  # 启动的那个应用，它已被引擎的第三方服务扫描覆盖。
   conflict_services:
     stop:
       - S03node-red
       - S91sscma-node
-      - S93sscma-supervisor
 
   auto_start: true
 
@@ -101,8 +105,14 @@ actions:
     - name: Disable Node-RED autostart
       # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
       fail_fast: false
+      # sscma-supervisor is deliberately NOT in this list. On a console device
+      # S93sscma-supervisor is the sole boot-time orchestrator: it keeps every
+      # gallery app K-prefixed and starts the selected one via app_restore.
+      # Demoting it to K93 leaves the device with nothing to start at boot —
+      # neither the console nor this app, whose script the engine now also
+      # leaves disabled on gallery devices.
       run: |
-        for svc in node-red sscma-node sscma-supervisor; do
+        for svc in node-red sscma-node; do
           for f in /etc/init.d/S*${svc}*; do
             [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
           done
