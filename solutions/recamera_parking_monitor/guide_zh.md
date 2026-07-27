@@ -82,5 +82,5 @@
 
 #### 后续步骤
 
-- [查看 Wiki 文档](https://wiki.seeedstudio.com/cn/ai_parking_slot_monitoring_demo_with_recamera/)
+- [查看 Wiki 文档](https://wiki.seeedstudio.com/cn/ai_parking_slot_monitoring_demo_with_recamera_bak/)
 - [报告问题](https://github.com/Seeed-Studio/wiki-documents/issues)
