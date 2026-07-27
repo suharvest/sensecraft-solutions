@@ -1678,7 +1678,7 @@
       "type": "object"
     },
     "SolutionLinks": {
-      "description": "External links for solution",
+      "description": "External links for solution\n\n`wiki` and `docs` take per-language overrides because the same page\nusually exists once per locale (the Seeed wiki serves Chinese under a\n/cn/ prefix). They follow the `<field>` + `<field>_i18n` convention used\neverywhere else here: the base field is the default, `_i18n[lang]` wins\nwhen present, and a language with no entry falls back to the base — so a\nsolution may declare only `wiki` and stay correct in every locale.\n\n`github` has no `_i18n` counterpart on purpose: a repository URL is the\nsame in every language.",
       "properties": {
         "docs": {
           "anyOf": [
@@ -1691,6 +1691,14 @@
           ],
           "default": null,
           "title": "Docs"
+        },
+        "docs_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Docs I18N",
+          "type": "object"
         },
         "github": {
           "anyOf": [
@@ -1715,6 +1723,14 @@
           ],
           "default": null,
           "title": "Wiki"
+        },
+        "wiki_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Wiki I18N",
+          "type": "object"
         }
       },
       "title": "SolutionLinks",
