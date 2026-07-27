@@ -2,6 +2,12 @@ version: "1.0"
 id: console_dashboard
 name: Open reCamera Console
 type: web_dashboard
+
+# 显式声明上游部署步骤（guide.md 里 `## Step 1 {#deploy_console ...}` 的 step id，
+# 不是 device id）。App 据此判断「面板是否可以打开」，也据此解析 {{host}}。
+# 不声明就会退回启发式：向前找最近的 docker 步，而本套餐没有 docker 步，
+# 会误钉到别的套餐上去。
+inherit_host_from: deploy_console
 user_inputs:
   - id: host
     name: Device IP Address
