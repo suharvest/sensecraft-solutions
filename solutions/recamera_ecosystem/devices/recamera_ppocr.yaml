@@ -21,13 +21,13 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 S92ppocr-reader）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr-reader_0.5.6_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr-reader_0.6.0_riscv64.deb
     name: ppocr-reader
     includes_init_script: true
 
   # 模型文件部署（检测模型 + 中英文识别模型 + 字典文件）
     checksum:
-      sha256: 552eef1e126e7bf7688a98f805b80a712e516c5fdbd35002037851ed1172332b
+      sha256: 58f01c54e897a5508d6c632b83c13f0a09d19b02caeac883b13fed22a5a8a801
   models:
     # Detection model (shared, always needed)
     - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/ppocr_det_cv181x_mix.cvimodel

@@ -32,11 +32,11 @@ binary:
   # 给绕开 App、直接 SSH/reboot 场景兜底。反向（其余旧 preset 的 init 脚本主动认识
   # weather-classifier）不在本仓库控制范围内，因为它们的 .deb 由远程 CDN 托管。
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/weather-classifier_0.2.4_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/weather-classifier_0.3.0_riscv64.deb
     name: weather-classifier
     includes_init_script: true
     checksum:
-      sha256: ddc273aa70337127628f2c19b2c9c0e25c646a562bb7477d1f975a29ec662513
+      sha256: 90c43cb392ce07c548ec2f9efaacb4174269061fb22ada1233eeb6149181f040
 
   # 模型文件部署（MobileNetV3-Small 天气分类，5 类：clear/cloudy/foggy/rainy/snowy）
   # 已在真机验证过的同一份模型文件（sha256 一致）。
