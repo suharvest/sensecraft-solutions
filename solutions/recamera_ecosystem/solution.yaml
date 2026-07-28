@@ -235,6 +235,28 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
+    - id: fitness_trainer
+      name: Fitness Trainer
+      badge: New
+      description: Count your reps and flag sloppy form — squats, push-ups or hammer curls, tracked by the camera alone with no phone and no wearable
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 健身教练
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 数你的组数、提示动作不到位——深蹲、俯卧撑或哑铃弯举，只靠摄像头，不用手机也不戴手环
     - id: retail_vision
       name: Retail People Counting
       badge: New

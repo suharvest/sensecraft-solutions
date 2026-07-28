@@ -572,3 +572,71 @@ Camera is ready! Click **Connect** above to view the live retail analytics.
 Per-person tracking, dwell states and footfall counters are analyzed on-device in real-time. Draw a counting zone and entry/exit line in the camera's web console to turn the whole-frame counts into zone-scoped, directional footfall.
 
 ---
+
+## Preset: Fitness Trainer {#fitness_trainer}
+
+Point reCamera at your workout spot — it counts your reps and tells you when a rep was too shallow. Squats, push-ups or hammer curls, all counted on the camera itself.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that tracks your joints and counts repetitions |
+
+**What you'll get:**
+- Live video with your skeleton drawn on and a rep counter pinned to the corner
+- Automatic set tracking — reps roll over into sets, with a "workout complete" signal
+- Form hints: a partial squat or a drifting elbow is called out, not silently counted
+- Counts published to MQTT, ready for Home Assistant workout logging
+- All processing on-device — no phone, no wearable, no video leaving the camera
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install Fitness Trainer {#deploy_fitness_trainer type=recamera_cpp required=true config=devices/recamera_fitness_trainer.yaml}
+
+Pick your exercise and install the rep counter on reCamera.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### What to check
+
+The pose model ships with the reCamera Console, so nothing extra is downloaded. On firmware older than Console 0.3.x the model may be missing — the installer prints a warning and you can point `MODEL_PATH` in `/etc/fitness-trainer.conf` at any YOLO pose cvimodel.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+| Warning about a missing pose model | Update the reCamera Console, or set `MODEL_PATH` in `/etc/fitness-trainer.conf` |
+
+---
+
+## Step 2: View Your Reps {#preview_fitness_trainer type=preview required=false config=devices/preview_fitness_trainer.yaml}
+
+Click **Connect**, then stand in frame and do a few reps — the counter moves as you come back up.
+
+**Camera placement matters, and differs per exercise:** squats need your whole body from the side or at 45°, with the **ankles in frame** — a view cropped at the knee gives no reading. Push-ups want a side view near floor height. Hammer curls want a front or side view from the waist up.
+
+**Note:** The counter and skeleton usually appear a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. Seeing the overlay before the picture is expected, not an error.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
+| Stage stuck on "out of frame" | The joints this exercise needs are not visible — for squats, get the ankles in frame |
+| Reps not counting | A rep is counted on the way back **up**, when the movement completes; half a rep counts as nothing |
+| Counter jumps by two | Slow down slightly — very fast reps can cross both thresholds within the de-bounce window |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to watch the skeleton and rep counter.
+
+Change the exercise, reps and sets any time from the reCamera Console's app page — no redeploy needed. Counts are also published to `recamera/fitness-trainer/results`, and Home Assistant picks up reps, set, exercise and a workout-complete flag automatically via MQTT discovery.
+
+---
