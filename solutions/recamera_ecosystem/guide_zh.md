@@ -604,6 +604,8 @@ reCamera 已成功接入 Home Assistant！
 
 姿态模型随 reCamera Console 一起安装，所以不需要额外下载。如果固件里的 Console 早于 0.3.x，可能没有这个模型——安装时会打印一条警告，此时在 `/etc/fitness-trainer.conf` 里把 `MODEL_PATH` 指向任意一个 YOLO pose cvimodel 即可。
 
+这个应用画的是骨架而不是检测框，而摄像头自带的网页控制台从 **Console 0.3.3 起**才认得骨架；在更旧的控制台上，它的调试画面会是空白的。想在那里看的话，请先安装（或升级）「reCamera 控制台」套餐。下面的步骤 2 不受影响——它自己会画骨架。
+
 ### 故障排查
 
 | 现象 | 解决办法 |

@@ -604,6 +604,8 @@ Pick your exercise and install the rep counter on reCamera.
 
 The pose model ships with the reCamera Console, so nothing extra is downloaded. On firmware older than Console 0.3.x the model may be missing — the installer prints a warning and you can point `MODEL_PATH` in `/etc/fitness-trainer.conf` at any YOLO pose cvimodel.
 
+This app draws a skeleton instead of a detection box, which the camera's own web console only knows how to render from **Console 0.3.3 onward**; on an older console its debug view stays blank. Install the "reCamera Console" preset first (or update it) if you want to watch it there. Step 2 below is unaffected — it renders the skeleton itself.
+
 ### Troubleshooting
 
 | Issue | Solution |
