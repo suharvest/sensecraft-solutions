@@ -67,4 +67,5 @@ services:
 volumes:
   speech-models:
     name: speech-models
+    external: true
   edgellm-v090:
