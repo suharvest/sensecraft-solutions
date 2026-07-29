@@ -20,17 +20,24 @@ ssh:
 binary:
   # .deb 包安装（内含 init 脚本 K92fitness-trainer）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fitness-trainer_0.2.1_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fitness-trainer_0.2.2_riscv64.deb
     name: fitness-trainer
     includes_init_script: true
     checksum:
-      sha256: f5dcb7c81b6a4f224c1942544c0aed6ca5d508e2eb25a7b955dbf4495d674b76
+      sha256: 470c5fb5bd98722e2fe2f9e0043ad1d1c6499e0813439c0bcd2c3625c32ddb5f
 
-  # models: 故意为空。姿态模型 yolo11n_pose_cv181x_int8.cvimodel 随 supervisor
-  # 一起装在 /usr/share/supervisor/models/，是官方 Ultralytics 那一份，应用直接
-  # 引用绝对路径。再从 CDN 拉一份只会多占 3.5MB 存储并带来两份不同步的风险。
-  # 老固件（supervisor 早于 0.3.x）可能没有这个文件，deb 的 postinst 会打印警告，
-  # 届时在 /etc/fitness-trainer.conf 里设 MODEL_PATH 指向任意 YOLO pose cvimodel 即可。
+  # 姿态模型：应用优先用 reCamera 控制台自带的那一份
+  # (/usr/share/supervisor/models/)，那是官方 Ultralytics 构建。这里再下发一份
+  # 到 /userdata/local/models/ 作为兜底——控制台早于 0.3.x 的设备上没有那个文件，
+  # 而这个应用是画廊里唯一不自带模型的，缺了就只会「启动后立即退出」，用户看不出
+  # 是缺模型。应用按候选列表查找，两个位置任一存在即可，所以多这一份不会让它
+  # 跑上错误的模型，只是多占 3.5MB。
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/models/yolo11n_pose_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: yolo11n_pose_cv181x_int8.cvimodel
+      checksum:
+        sha256: 44db2898e2b4b90f0fed0c7fcb4ebfac8cdd61808d74726d95731e3a6e93a8ef
 
   service_name: fitness-trainer
   service_priority: 92
