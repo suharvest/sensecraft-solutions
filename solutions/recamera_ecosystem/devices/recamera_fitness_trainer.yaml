@@ -20,11 +20,11 @@ ssh:
 binary:
   # .deb 包安装（内含 init 脚本 K92fitness-trainer）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fitness-trainer_0.2.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fitness-trainer_0.2.1_riscv64.deb
     name: fitness-trainer
     includes_init_script: true
     checksum:
-      sha256: b34a9c2eace22adf048cc5751f7a2280ed60968766b38e86521e3420266ef8ad
+      sha256: f5dcb7c81b6a4f224c1942544c0aed6ca5d508e2eb25a7b955dbf4495d674b76
 
   # models: 故意为空。姿态模型 yolo11n_pose_cv181x_int8.cvimodel 随 supervisor
   # 一起装在 /usr/share/supervisor/models/，是官方 Ultralytics 那一份，应用直接
