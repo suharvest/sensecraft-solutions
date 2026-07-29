@@ -66,7 +66,7 @@ The apps also answer ONVIF, so an NVR or video management system can discover th
 
 ---
 
-## Preset: Retail People Flow Heatmap {#simple}
+## Preset: Object Detection {#simple}
 
 Just one reCamera - view a live retail people-flow heatmap directly in its web interface, see where shoppers gather and which areas are ignored.
 
@@ -570,5 +570,141 @@ Click **Connect** to see the live video with per-person tracking and footfall co
 Camera is ready! Click **Connect** above to view the live retail analytics.
 
 Per-person tracking, dwell states and footfall counters are analyzed on-device in real-time. Draw a counting zone and entry/exit line in the camera's web console to turn the whole-frame counts into zone-scoped, directional footfall.
+
+---
+
+## Preset: QR Code Reader {#qrcode_reader}
+
+Point reCamera at a workbench, a conveyor or a counter and it decodes every QR code in view — all of them in the same pass, not one at a time like a handheld gun.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that decodes QR codes and publishes their contents |
+
+**What you'll get:**
+- Live video with every decoded code outlined and its payload shown
+- All codes in a frame decoded together — useful over a conveyor or a full tray
+- Contents published to MQTT, ready to drive check-in, inventory or automation flows
+- No model to download and no TPU used — the decoder runs on the CPU
+- All processing on-device — no cloud, no handheld scanner
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install QR Code Reader {#deploy_qrcode type=recamera_cpp required=true config=devices/recamera_qrcode.yaml}
+
+Install the QR decoder on reCamera.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### What to check
+
+Nothing is downloaded beyond the package itself — this decoder is classical computer vision (quirc) running on the CPU, so there is no model and no TPU contention with other applications.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+
+---
+
+## Step 2: Scan a Code {#preview_qrcode type=preview required=false config=devices/preview_qrcode.yaml}
+
+Click **Connect**, then hold a QR code up to the camera — it gets outlined and its contents appear.
+
+**Make the code bigger than feels necessary.** Below roughly one sixth of the frame width it stops decoding reliably. Even, diffuse light matters more than bright light: glare on a phone screen or a laminated label destroys the finder patterns faster than dim lighting does.
+
+**Note:** The overlay usually appears a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. That is expected, not an error.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
+| Card says "No code" with a code in view | Move closer, or light it more evenly — glare and small codes are the two common causes |
+| Barcode not read | 1D barcodes are not supported, QR only |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to watch codes being decoded.
+
+Contents are published to `recamera/qrcode-reader/results`, with each code's four corners included so downstream tooling can tell where in frame it was.
+
+---
+
+## Preset: Fitness Trainer {#fitness_trainer}
+
+Point reCamera at your workout spot — it counts your reps and tells you when a rep was too shallow. Squats, push-ups or hammer curls, all counted on the camera itself.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that tracks your joints and counts repetitions |
+
+**What you'll get:**
+- Live video with your skeleton drawn on and a rep counter pinned to the corner
+- Automatic set tracking — reps roll over into sets, with a "workout complete" signal
+- Form hints: a partial squat or a drifting elbow is called out, not silently counted
+- Counts published to MQTT, ready for Home Assistant workout logging
+- All processing on-device — no phone, no wearable, no video leaving the camera
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install Fitness Trainer {#deploy_fitness_trainer type=recamera_cpp required=true config=devices/recamera_fitness_trainer.yaml}
+
+Pick your exercise and install the rep counter on reCamera.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### What to check
+
+The pose model ships with the reCamera Console, so nothing extra is downloaded. On firmware older than Console 0.3.x the model may be missing — the installer prints a warning and you can point `MODEL_PATH` in `/etc/fitness-trainer.conf` at any YOLO pose cvimodel.
+
+This app draws a skeleton instead of a detection box, which the camera's own web console only knows how to render from **Console 0.3.3 onward**; on an older console its debug view stays blank. Install the "reCamera Console" preset first (or update it) if you want to watch it there. Step 2 below is unaffected — it renders the skeleton itself.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+| Warning about a missing pose model | Update the reCamera Console, or set `MODEL_PATH` in `/etc/fitness-trainer.conf` |
+
+---
+
+## Step 2: View Your Reps {#preview_fitness_trainer type=preview required=false config=devices/preview_fitness_trainer.yaml}
+
+Click **Connect**, then stand in frame and do a few reps — the counter moves as you come back up.
+
+**Camera placement matters, and differs per exercise:** squats need your whole body from the side or at 45°, with the **ankles in frame** — a view cropped at the knee gives no reading. Push-ups want a side view near floor height. Hammer curls want a front or side view from the waist up.
+
+**Note:** The counter and skeleton usually appear a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. Seeing the overlay before the picture is expected, not an error.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
+| Stage stuck on "out of frame" | The joints this exercise needs are not visible — for squats, get the ankles in frame |
+| Reps not counting | A rep is counted on the way back **up**, when the movement completes; half a rep counts as nothing |
+| Counter jumps by two | Slow down slightly — very fast reps can cross both thresholds within the de-bounce window |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to watch the skeleton and rep counter.
+
+Change the exercise, reps and sets any time from the reCamera Console's app page — no redeploy needed. Counts are also published to `recamera/fitness-trainer/results`, and Home Assistant picks up reps, set, exercise and a workout-complete flag automatically via MQTT discovery.
 
 ---

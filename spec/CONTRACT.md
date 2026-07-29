@@ -65,7 +65,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `ha_integration` | HAIntegrationConfig \| null | no | None |  |
 | `video` | PreviewVideoConfig \| null | no | None |  |
 | `mqtt` | PreviewMqttConfig \| null | no | None |  |
-| `data` | PreviewDataConfig \| null | no | None | HTTP polling source for preview overlays |
+| `data` | PreviewDataConfig \| null | no | None |  |
 | `overlay` | PreviewOverlayConfig \| null | no | None |  |
 | `display` | PreviewDisplayConfig \| null | no | None |  |
 | `behavior` | PreviewBehaviorConfig \| null | no | None |  |
@@ -135,18 +135,6 @@ Canonical heading keywords are defined in [`docs/guide-heading-keywords.md`](../
 | `###` | Wiring | `Wiring` | `接线` |
 | `###` | Prerequisites | `Prerequisites` | `前置条件` |
 | `###` | Deployment Complete | `Deployment Complete` | `部署完成` |
-
-### Step id uniqueness across presets
-
-Step ids (`{#id}`) are resolved **globally per guide file, first preset
-wins** — a later preset reusing an id renders the earlier preset's step
-content, regardless of what is written under the later heading. Therefore:
-
-- Reusing a step id across presets is allowed **only when both step
-  definitions are byte-identical** (an intentional "shared step").
-- If the definitions diverge at all, the later preset silently shows the
-  wrong content. `solutionctl validate` rejects this as an error — rename
-  one of the ids (e.g. `#dashboard_edge_computing`).
 
 
 ## Derived rules (human-authored)
@@ -284,6 +272,20 @@ Other recognized `###` sub-sections within a Step — `Prerequisites` (`前置�
 (`部署完成`) — are matched by `SUBSECTION_PATTERNS` (`:299-312`) and folded into
 the Step's section content.
 <!-- AUTHORED:guide_step_target_syntax END -->
+
+### Step id uniqueness across presets
+
+<!-- AUTHORED:step_id_uniqueness BEGIN -->
+Step ids (`{#id}`) are resolved **globally per guide file, first preset
+wins** — a later preset reusing an id renders the earlier preset's step
+content, regardless of what is written under the later heading. Therefore:
+
+- Reusing a step id across presets is allowed **only when both step
+  definitions are byte-identical** (an intentional "shared step").
+- If the definitions diverge at all, the later preset silently shows the
+  wrong content. `solutionctl validate` rejects this as an error — rename
+  one of the ids (e.g. `#dashboard_edge_computing`).
+<!-- AUTHORED:step_id_uniqueness END -->
 
 ### extra 字段处理
 

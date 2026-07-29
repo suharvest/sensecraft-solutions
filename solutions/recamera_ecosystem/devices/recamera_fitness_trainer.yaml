@@ -1,0 +1,218 @@
+version: "1.0"
+id: recamera_fitness_trainer
+name: reCamera Fitness Trainer
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  # .deb 包安装（内含 init 脚本 K92fitness-trainer）
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/fitness-trainer_0.2.2_riscv64.deb
+    name: fitness-trainer
+    includes_init_script: true
+    checksum:
+      sha256: 470c5fb5bd98722e2fe2f9e0043ad1d1c6499e0813439c0bcd2c3625c32ddb5f
+
+  # 姿态模型：应用优先用 reCamera 控制台自带的那一份
+  # (/usr/share/supervisor/models/)，那是官方 Ultralytics 构建。这里再下发一份
+  # 到 /userdata/local/models/ 作为兜底——控制台早于 0.3.x 的设备上没有那个文件，
+  # 而这个应用是画廊里唯一不自带模型的，缺了就只会「启动后立即退出」，用户看不出
+  # 是缺模型。应用按候选列表查找，两个位置任一存在即可，所以多这一份不会让它
+  # 跑上错误的模型，只是多占 3.5MB。
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/models/yolo11n_pose_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: yolo11n_pose_cv181x_int8.cvimodel
+      checksum:
+        sha256: 44db2898e2b4b90f0fed0c7fcb4ebfac8cdd61808d74726d95731e3a6e93a8ef
+
+  service_name: fitness-trainer
+  service_priority: 92
+
+  # 部署时立即停掉占摄像头的服务。不含 sscma-supervisor：占摄像头的是 console
+  # 启动的那个应用，引擎的第三方服务扫描已覆盖；显式列出反而会把画廊 console 停掉。
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+
+  auto_start: true
+
+actions:
+  after:
+    - name: Apply workout settings
+      # 运动模式、次数、组数写进应用的配置文件（console 管理的同一个文件）。
+      # 应用轮询它的 mtime，所以这一步无需重启就能生效；写在这里是为了让部署
+      # 结束时设备已经处于用户选的模式。
+      run: |
+        set -e
+        DIR=/userdata/local/apps
+        mkdir -p "$DIR"
+        cat > "$DIR/fitness-trainer.config.json" <<EOF
+        {"mode":"{{exercise_mode}}","target_reps":{{target_reps}},"target_sets":{{target_sets}}}
+        EOF
+      sudo: true
+      name_i18n:
+        zh: 写入训练设置
+    - name: Generate fitness-trainer config
+      run: |
+        set -e
+        CONF=/etc/fitness-trainer.conf
+        set_kv() {
+          key="$1"; val="$2"
+          if grep -qE "^[[:space:]]*${key}=" "$CONF" 2>/dev/null; then
+            sed -i "s|^[[:space:]]*${key}=.*|${key}=${val}|" "$CONF"
+          else
+            echo "${key}=${val}" >> "$CONF"
+          fi
+        }
+        [ -f "$CONF" ] || touch "$CONF"
+        if [ -n "{{mqtt_host}}" ]; then
+          set_kv MQTT_HOST "{{mqtt_host}}"
+        fi
+        if [ -n "{{mqtt_port}}" ]; then
+          set_kv MQTT_PORT "{{mqtt_port}}"
+        fi
+      sudo: true
+      name_i18n:
+        zh: 生成健身教练配置
+    - name: Enable external MQTT access
+      # fail_fast: false —— 用 'grep -q ... && exit 0' 做幂等判断，set -e 会在首次部署时被 grep 干掉
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+    - name: Disable Node-RED autostart
+      # fail_fast: false —— glob 无匹配时会原样返回字符串，set -e 会打断循环
+      fail_fast: false
+      # 同样不含 sscma-supervisor：在画廊设备上它是唯一的开机编排者，
+      # 降级成 K93 会导致开机什么都不启动。
+      run: |
+        for svc in node-red sscma-node; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
+      name_i18n:
+        zh: 禁用 Node-RED 自启动
+
+user_inputs:
+  - id: exercise_mode
+    name: Exercise
+    type: select
+    default: "squat"
+    required: true
+    options:
+      - value: "squat"
+        label: Squat
+        label_i18n:
+          zh: 深蹲
+      - value: "push_up"
+        label: Push-up
+        label_i18n:
+          zh: 俯卧撑
+      - value: "hammer_curl"
+        label: Hammer Curl
+        label_i18n:
+          zh: 哑铃弯举
+    description: Which movement to count. Changeable later from the reCamera console.
+    name_i18n:
+      zh: 运动模式
+    description_i18n:
+      zh: 要统计哪个动作。之后也可以在 reCamera console 里随时更换。
+  - id: target_reps
+    name: Reps per set
+    type: text
+    default: "12"
+    placeholder: "12"
+    required: false
+    description: Reps counted before a set is complete
+    name_i18n:
+      zh: 每组次数
+    description_i18n:
+      zh: 数满多少次算完成一组
+  - id: target_sets
+    name: Sets
+    type: text
+    default: "3"
+    placeholder: "3"
+    required: false
+    description: Sets before the workout is complete
+    name_i18n:
+      zh: 组数
+    description_i18n:
+      zh: 做满多少组算完成训练
+  - id: mqtt_host
+    name: MQTT Broker Host
+    type: text
+    default: "localhost"
+    placeholder: "localhost"
+    description: MQTT broker address (default localhost = camera's local broker)
+    required: false
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: MQTT 服务器地址（默认 localhost = 摄像头本地）
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    placeholder: "1883"
+    description: MQTT broker port
+    required: false
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: MQTT 服务器端口
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 健身教练
