@@ -142,7 +142,7 @@ SenseCraft 体验版已就绪！
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
-2. 在上方选择串口（选 wchusbserial 开头的）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
 3. 点击烧录按钮
 
 ### 故障排查
@@ -150,6 +150,7 @@ SenseCraft 体验版已就绪！
 | 问题 | 解决方法 |
 |------|----------|
 | 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
 | 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
 | 烧录失败 | 重新插拔设备再试 |
 
@@ -164,7 +165,7 @@ SenseCraft 体验版已就绪！
 ![连接设备](gallery/watcher_usb.png)
 
 1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
-2. 在上方选择串口（选 usbmodem 开头的）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-A** 的 COM 口，macOS / Linux 选编号较小的那个（如 `...51` / `ttyACM0`）—— 和上一步不是同一个口
 3. 点击烧录按钮
 4. 点击烧录后，按一下设备的重启按钮进入烧录模式
 
@@ -378,7 +379,7 @@ SenseCraft 体验版已就绪！
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
-2. 在上方选择串口（选 wchusbserial 开头的）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
 3. 点击烧录按钮
 
 ### 故障排查
@@ -386,6 +387,7 @@ SenseCraft 体验版已就绪！
 | 问题 | 解决方法 |
 |------|----------|
 | 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
 | 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
 | 烧录失败 | 重新插拔设备再试 |
 
@@ -400,7 +402,7 @@ SenseCraft 体验版已就绪！
 ![连接设备](gallery/watcher_usb.png)
 
 1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
-2. 在上方选择串口（选 usbmodem 开头的）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-A** 的 COM 口，macOS / Linux 选编号较小的那个（如 `...51` / `ttyACM0`）—— 和上一步不是同一个口
 3. 点击烧录按钮
 4. 点击烧录后，按一下设备的重启按钮进入烧录模式
 

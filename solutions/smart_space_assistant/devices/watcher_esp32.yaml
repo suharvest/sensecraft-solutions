@@ -52,13 +52,13 @@ user_inputs:
     name: Serial Port
     type: serial_port
     required: true
-    description: Select the USB serial port (wchusbserial)
+    description: 'Watcher ESP32 port — Windows: name contains SERIAL-B; macOS: ends with 3'
     auto_detect: true
 
     name_i18n:
       zh: 串口
     description_i18n:
-      zh: 选择 USB 串口（wchusbserial 开头）
+      zh: Watcher 的 ESP32 串口 —— Windows 选带 SERIAL-B 的，macOS 选结尾是 3 的
 pre_checks:
   - type: serial_port_available
     description: Check if serial port is accessible

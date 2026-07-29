@@ -97,13 +97,13 @@ user_inputs:
     name: Serial Port
     type: serial_port
     required: true
-    description: Select the USB port for Himax WE2 (usbmodem)
+    description: 'Watcher Himax WE2 port — Windows: name contains SERIAL-A; macOS: ends with 1'
     auto_detect: true
 
     name_i18n:
       zh: 串口
     description_i18n:
-      zh: 选择 Himax WE2 的串口（usbmodem 开头）
+      zh: Watcher 的 Himax WE2 串口 —— Windows 选带 SERIAL-A 的，macOS 选结尾是 1 的
   - id: model_selection
     name: Models to Flash
     type: model_select

@@ -142,7 +142,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
-2. Select the serial port above (choose one starting with wchusbserial)
+2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-B** on Windows, or the higher-numbered one on macOS / Linux (`...53` / `ttyACM1`)
 3. Click the Flash button
 
 ### Troubleshooting
@@ -150,6 +150,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 | Problem | Solution |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
+| Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
 | No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
 | Flash failed | Unplug and reconnect the device |
 
@@ -164,7 +165,7 @@ Write the vision detection program to the Watcher's AI chip.
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Keep the Watcher connected to your computer via the USB-C cable (same as the previous step)
-2. Select the serial port above (choose one starting with usbmodem)
+2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-A** on Windows, or the lower-numbered one on macOS / Linux (`...51` / `ttyACM0`) — not the same port as the previous step
 3. Click the Flash button
 4. After clicking Flash, press the reset button on the device to enter flash mode
 
@@ -378,7 +379,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
-2. Select the serial port above (choose one starting with wchusbserial)
+2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-B** on Windows, or the higher-numbered one on macOS / Linux (`...53` / `ttyACM1`)
 3. Click the Flash button
 
 ### Troubleshooting
@@ -386,6 +387,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 | Problem | Solution |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
+| Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
 | No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
 | Flash failed | Unplug and reconnect the device |
 
@@ -400,7 +402,7 @@ Write the vision detection program to the Watcher's AI chip.
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Keep the Watcher connected to your computer via the USB-C cable (same as the previous step)
-2. Select the serial port above (choose one starting with usbmodem)
+2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-A** on Windows, or the lower-numbered one on macOS / Linux (`...51` / `ttyACM0`) — not the same port as the previous step
 3. Click the Flash button
 4. After clicking Flash, press the reset button on the device to enter flash mode
 
