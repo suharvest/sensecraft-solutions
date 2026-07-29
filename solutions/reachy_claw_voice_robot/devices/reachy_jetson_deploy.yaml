@@ -149,7 +149,7 @@ remote_overrides:
     before:
       - name: Check Speech service (port 8621)
         run: |
-          if curl -sf http://localhost:8621/health >/dev/null 2>&1; then
+          if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:8621/health", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
             echo "Speech service is running"
           else
             echo "ERROR: Speech service (port 8621) is not running."
@@ -165,7 +165,7 @@ remote_overrides:
           # Edge LLM container takes a long time on first boot: it downloads
           # the prebuilt TensorRT engine + Qwen3.5-4B weights and runs warmup
           # inference (~10 min). Subsequent restarts are fast.
-          if curl -sf http://localhost:11435/v1/models >/dev/null 2>&1; then
+          if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:11435/v1/models", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
             echo "Edge LLM service is running"
           else
             echo "ERROR: Edge LLM service (port 11435) is not running."
@@ -176,6 +176,7 @@ remote_overrides:
         name_i18n:
           zh: 检查 Edge LLM 服务（端口 11435）
       - name: Configure USB power (disable autosuspend on Reachy devices)
+        sudo: true
         run: |
           # Why: Linux USB autosuspend can leave the Reachy UVC camera (38fb:1002)
           # in a half-open state after wake — symptoms are "/dev/video0 busy",
@@ -188,20 +189,21 @@ remote_overrides:
           SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
           if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
             echo "Installing udev rule: $RULE_FILE"
-            echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --subsystem-match=usb
+            printf '%s\n' "$RULE_CONTENT" > "$RULE_FILE"
+            udevadm control --reload-rules
+            udevadm trigger --subsystem-match=usb
           fi
           # Apply immediately to currently-attached Reachy USB devices
           for dev in /sys/bus/usb/devices/*/idVendor; do
             [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
             devdir=$(dirname "$dev")
-            echo on | sudo tee "$devdir/power/control" > /dev/null 2>&1 || true
+            printf 'on\n' > "$devdir/power/control" 2>/dev/null || true
           done
           echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
         name_i18n:
           zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
       - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
+        sudo: true
         run: |
           # Why: reachy-mini-daemon scans `--serialport auto` ONCE at container start.
           # If the robot is plugged in / power-cycled AFTER the daemon is already
@@ -215,9 +217,9 @@ remote_overrides:
           ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"'
           if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
             echo "Installing udev rule: $RULE_FILE"
-            echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
-            sudo udevadm control --reload-rules
-            sudo udevadm trigger --subsystem-match=tty
+            printf '%s\n' "$RULE_CONTENT" > "$RULE_FILE"
+            udevadm control --reload-rules
+            udevadm trigger --subsystem-match=tty
           fi
           # If the serial is already present but the daemon started before it, restart now.
           if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
@@ -234,6 +236,14 @@ remote_overrides:
           echo "Data directories ready: $DATA_DIR"
         name_i18n:
           zh: 创建数据目录
+    after_upload:
+      - name: Make Reachy voice entrypoint executable
+        run: |
+          ENTRYPOINT="$HOME/reachy-jetson-llm/reachy_jetson_deploy/entrypoint.sh"
+          chmod +x "$ENTRYPOINT"
+          echo "Entrypoint executable: $ENTRYPOINT"
+        name_i18n:
+          zh: 设置 Reachy voice 启动脚本可执行
     after:
       - name: Install kiosk auto-start
         when:
