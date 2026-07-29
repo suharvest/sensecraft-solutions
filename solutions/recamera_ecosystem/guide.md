@@ -66,7 +66,7 @@ The apps also answer ONVIF, so an NVR or video management system can discover th
 
 ---
 
-## Preset: Retail People Flow Heatmap {#simple}
+## Preset: Object Detection {#simple}
 
 Just one reCamera - view a live retail people-flow heatmap directly in its web interface, see where shoppers gather and which areas are ignored.
 

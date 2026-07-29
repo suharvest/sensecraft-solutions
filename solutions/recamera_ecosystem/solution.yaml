@@ -94,9 +94,9 @@ intro:
       description_i18n:
         zh: 把摄像头自带的控制面板升级为 reCamera 控制台——在一个网页里浏览和切换 AI 应用、查看实时画面，并配置网络、Home Assistant 和系统选项
     - id: simple
-      name: Retail People Flow Heatmap
+      name: Object Detection
       badge: Quick Start
-      description: Just reCamera - see where shoppers gather and which areas are ignored, on a live people-flow heatmap
+      description: Just reCamera - spot people, vehicles and 80 other everyday objects, with a live heatmap showing where they gather
       device_groups:
         - id: camera
           name: AI Camera
@@ -111,11 +111,11 @@ intro:
         wiki: https://wiki.seeedstudio.com/
         github: https://github.com/suharvest/sscma-example-sg200x
       name_i18n:
-        zh: 零售人流热力图
+        zh: 通用目标检测
       badge_i18n:
         zh: 快速上手
       description_i18n:
-        zh: 只需 reCamera，直接在网页上看顾客聚集区和冷区的人流热力图
+        zh: 只需 reCamera，识别人、车等 80 类常见目标，并用热力图看清他们聚集在哪儿
     - id: ha_integration
       name: Home Assistant Integration
       badge: Smart Home
