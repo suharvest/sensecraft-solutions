@@ -573,6 +573,72 @@ Per-person tracking, dwell states and footfall counters are analyzed on-device i
 
 ---
 
+## Preset: QR Code Reader {#qrcode_reader}
+
+Point reCamera at a workbench, a conveyor or a counter and it decodes every QR code in view — all of them in the same pass, not one at a time like a handheld gun.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | AI camera that decodes QR codes and publishes their contents |
+
+**What you'll get:**
+- Live video with every decoded code outlined and its payload shown
+- All codes in a frame decoded together — useful over a conveyor or a full tray
+- Contents published to MQTT, ready to drive check-in, inventory or automation flows
+- No model to download and no TPU used — the decoder runs on the CPU
+- All processing on-device — no cloud, no handheld scanner
+
+**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+
+## Step 1: Install QR Code Reader {#deploy_qrcode type=recamera_cpp required=true config=devices/recamera_qrcode.yaml}
+
+Install the QR decoder on reCamera.
+
+### Wiring
+
+1. USB connection: IP address `192.168.42.1`, plug and play
+2. Network/WiFi: Find reCamera's IP in your router admin page
+3. Username `recamera`, default password `recamera` (use your own if changed)
+
+### What to check
+
+Nothing is downloaded beyond the package itself — this decoder is classical computer vision (quirc) running on the CPU, so there is no model and no TPU contention with other applications.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
+| Wrong password | Default is `recamera`, use your new password if changed |
+| Install failed | Restart the camera and try again |
+
+---
+
+## Step 2: Scan a Code {#preview_qrcode type=preview required=false config=devices/preview_qrcode.yaml}
+
+Click **Connect**, then hold a QR code up to the camera — it gets outlined and its contents appear.
+
+**Make the code bigger than feels necessary.** Below roughly one sixth of the frame width it stops decoding reliably. Even, diffuse light matters more than bright light: glare on a phone screen or a laminated label destroys the finder patterns faster than dim lighting does.
+
+**Note:** The overlay usually appears a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. That is expected, not an error.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
+| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
+| Card says "No code" with a code in view | Move closer, or light it more evenly — glare and small codes are the two common causes |
+| Barcode not read | 1D barcodes are not supported, QR only |
+
+### Deployment Complete
+
+Camera is ready! Click **Connect** above to watch codes being decoded.
+
+Contents are published to `recamera/qrcode-reader/results`, with each code's four corners included so downstream tooling can tell where in frame it was.
+
+---
+
 ## Preset: Fitness Trainer {#fitness_trainer}
 
 Point reCamera at your workout spot — it counts your reps and tells you when a rep was too shallow. Squats, push-ups or hammer curls, all counted on the camera itself.

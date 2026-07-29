@@ -235,6 +235,28 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
+    - id: qrcode_reader
+      name: QR Code Reader
+      badge: New
+      description: Turn the camera into a hands-free scanner — every QR code in view is decoded at once and pushed straight into your workflow, no model and no handheld gun needed
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 二维码识别
+      badge_i18n:
+        zh: 新功能
+      description_i18n:
+        zh: 把摄像头变成免手持扫码枪——一次识别画面里的所有二维码，结果直接推进业务流程，不需要模型，也不需要手持设备
     - id: fitness_trainer
       name: Fitness Trainer
       badge: New

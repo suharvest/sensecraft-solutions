@@ -11,7 +11,6 @@
   "recamera_ecosystem": "sha256:97894456d68bed48689d78542b2b238010fbf631750340205063e5204883fc04",
   "recamera_heatmap_grafana": "sha256:3cc638fb087f7ce0f7b417c21c49dd3338fbb57309c1a562d20007f5f130df66",
   "recamera_parking_monitor": "sha256:b1de35f55c378d572a6a6128c3cc0520af9c6e5788ce177364d99df33a6929de",
-  "recamera_qrcode_rec": "sha256:50c183bff80bb94476eb0b4f503b8f0ea3867cd4839f8f6102265874ebedb1fd",
   "recamera_sheep_counter_lora": "sha256:255d97464dcc17dc86b46a74ca9adfe7b0a74347d59ffdb2410d9b6835e82cd9",
   "respeaker_flex_soarm": "sha256:6b0807688e8adc4efd42a73fb4724382f7feb7210c1a3f169c6931409d8db2f9",
   "sensecraft_data_mcp": "sha256:8df397401ab9509c46a494108ee61a19138e2dc03d8ab7f13750c4bceb9eefce",
