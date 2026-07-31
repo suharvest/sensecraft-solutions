@@ -147,7 +147,7 @@ actions:
       run: |
         set -e
         docker volume create mlc_models
-        docker run --rm -v mlc_models:/data -v $(pwd)/dist:/backup alpine \
+        docker run --rm -v mlc_models:/data -v $(pwd)/dist:/backup ${DOCKER_REGISTRY_PREFIX}alpine \
           tar xzf /backup/models-backup.tar.gz -C /data
 
       name_i18n:
@@ -212,7 +212,7 @@ remote_overrides:
           value: offline
         run: |
           docker volume create mlc_models
-          docker run --rm -v mlc_models:/data -v $(pwd):/backup alpine \
+          docker run --rm -v mlc_models:/data -v $(pwd):/backup ${DOCKER_REGISTRY_PREFIX}alpine \
             tar xzf /backup/models-backup.tar.gz -C /data
 
         name_i18n:
