@@ -366,3 +366,96 @@ def test_validate_non_namespaced_unknown_type_still_errors(tmp_path, capsys):
     err = capsys.readouterr().err
     assert "totally_bogus" in err
     assert "Invalid step type" in err
+
+
+# --- action image-reference lint ------------------------------------------ #
+
+# The exact shape that shipped broken: the image sits on a `docker run` line
+# that ends in `sh -c '`, with the quoted body spanning many lines. Any
+# tokenizer that splits on newlines before tracking quotes drops this one.
+_OPENCLAW_ACTION = """\
+set -e
+VOL="openclaw_openclaw-config"
+docker volume create "$VOL" 2>/dev/null || true
+WS_VOL="openclaw_openclaw-workspace"
+docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws alpine sh -c '
+  chown 1000:1000 /data /ws
+  if [ ! -f /data/openclaw.json ]; then
+    cat > /data/openclaw.json <<VOLCFG
+{"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}}}
+VOLCFG
+    echo "Initial config written"
+  fi
+'
+"""
+
+
+def _device_with_action(script: str) -> dict:
+    return {"actions": {"before": [{"name": "step", "run": script}]}}
+
+
+def test_action_image_without_mirror_prefix_errors():
+    errors = validate._check_action_image_refs(
+        _device_with_action(_OPENCLAW_ACTION), "devices/d.yaml"
+    )
+    assert len(errors) == 1
+    assert "'alpine'" in errors[0]
+    assert "DOCKER_REGISTRY_PREFIX" in errors[0]
+
+
+def test_action_image_with_mirror_prefix_passes():
+    fixed = _OPENCLAW_ACTION.replace(" alpine ", " ${DOCKER_REGISTRY_PREFIX}alpine ")
+    assert validate._check_action_image_refs(_device_with_action(fixed), "d") == []
+
+
+def test_private_registry_image_is_not_flagged():
+    # The mirror only fronts Docker Hub; prefixing a self-hosted registry
+    # would break the pull.
+    script = (
+        "docker run --rm --privileged \\\n"
+        "  -v /dev/bus/usb:/dev/bus/usb \\\n"
+        "  sensecraft-missionpack.seeed.cn/solution/voice-client:v0.4 \\\n"
+        "  python3 -c 'print(1)'\n"
+    )
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
+    assert validate._extract_docker_images(script) == [
+        "sensecraft-missionpack.seeed.cn/solution/voice-client:v0.4"
+    ]
+
+
+def test_variable_image_reference_is_not_flagged():
+    script = "docker pull $IMAGE\ndocker run --rm ${IMG}:${TAG} sh\n"
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
+
+
+def test_flag_values_are_not_mistaken_for_images():
+    # `none` (value of --network) and `mlc:/data` (value of -v) must not be
+    # reported as the image.
+    script = "docker run --rm --network none -v mlc:/data -e A=B alpine sh\n"
+    assert validate._extract_docker_images(script) == ["alpine"]
+
+
+def test_docker_pull_form_is_checked():
+    errors = validate._check_action_image_refs(
+        _device_with_action("docker pull redis:7-alpine\n"), "devices/d.yaml"
+    )
+    assert len(errors) == 1
+    assert "'redis:7-alpine'" in errors[0]
+
+
+def test_non_docker_commands_are_ignored():
+    script = "echo 'docker run something' > /tmp/doc.txt\ndockerize --rm foo\n"
+    assert validate._extract_docker_images(script) == []
+
+
+def test_shipped_solutions_have_no_unprefixed_hub_images():
+    """Corpus guard: every device YAML in the repo must already comply."""
+    import yaml
+
+    findings = []
+    for dev in sorted((REPO_ROOT / "solutions").glob("*/devices/*.yaml")):
+        data = yaml.safe_load(dev.read_text(encoding="utf-8"))
+        findings += validate._check_action_image_refs(
+            data, f"{dev.parent.parent.name}/{dev.name}"
+        )
+    assert findings == []

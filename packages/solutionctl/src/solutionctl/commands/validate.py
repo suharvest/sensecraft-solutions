@@ -413,6 +413,213 @@ def _check_orphan_device_yamls(
     return warnings
 
 
+# --- Action image-reference lint ------------------------------------------ #
+#
+# The engine exports ``DOCKER_REGISTRY_PREFIX`` into every action step's
+# environment (SSHActionExecutor / LocalActionExecutor apply
+# ``MirrorContext.as_env()``), but only compose ``image:`` fields are rewritten
+# automatically. A ``docker run``/``docker pull`` inside an action ``run:``
+# script has to opt in by writing ``${DOCKER_REGISTRY_PREFIX}<image>`` itself.
+# Forgetting it deploys fine abroad and fails on CN-restricted networks with an
+# opaque ``dial tcp ...: i/o timeout`` against registry-1.docker.io, so it is
+# caught here instead of at deploy time.
+
+# Boolean ``docker run`` flags — every *other* ``-``-prefixed token is assumed
+# to consume the following value. Erring that way can only make us miss an
+# image (false negative); the opposite default would mistake a flag value for
+# an image name and fire spuriously.
+_DOCKER_BOOLEAN_FLAGS: frozenset[str] = frozenset(
+    {
+        "-d", "--detach", "-i", "--interactive", "-t", "--tty", "-it", "-ti",
+        "--rm", "--privileged", "--init", "--read-only", "--no-healthcheck",
+        "--sig-proxy", "--oom-kill-disable", "--publish-all", "-P",
+        "--disable-content-trust", "--quiet", "-q",
+    }
+)
+
+def _quoted_spans(text: str) -> list[tuple[int, int]]:
+    """Return ``(start, end)`` character spans of quoted regions in ``text``.
+
+    Used to ignore ``docker run`` occurrences that are merely quoted prose
+    (``echo "try: docker run foo"``). Unterminated quotes are treated as
+    running to end-of-string, which is the conservative choice: it suppresses
+    a finding rather than inventing one.
+    """
+    spans: list[tuple[int, int]] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "\\":
+            i += 2
+            continue
+        if ch in "'\"":
+            start = i
+            i += 1
+            while i < n:
+                if ch == '"' and text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == ch:
+                    break
+                i += 1
+            spans.append((start, min(i + 1, n)))
+            i += 1
+            continue
+        i += 1
+    return spans
+
+
+def _shell_tokens(text: str):
+    """Yield shell words from ``text``, stopping at the first unquoted command
+    separator (``;`` ``|`` ``&`` newline).
+
+    Written by hand rather than with ``shlex`` because an action's ``docker
+    run`` frequently ends in ``sh -c '`` with the quoted body spanning many
+    lines. Splitting on newlines first (or handing the truncated line to
+    ``shlex.split``) breaks on the unbalanced quote and silently drops exactly
+    the invocations this lint exists to catch. Quotes are tracked here, so a
+    newline *inside* them is not a separator.
+    """
+    token: list[str] = []
+    have_token = False
+    i, n = 0, len(text)
+
+    while i < n:
+        ch = text[i]
+        if ch == "'":
+            end = text.find("'", i + 1)
+            if end == -1:  # unterminated — stop, emit what we have
+                break
+            token.append(text[i + 1 : end])
+            have_token = True
+            i = end + 1
+        elif ch == '"':
+            i += 1
+            buf: list[str] = []
+            closed = False
+            while i < n:
+                if text[i] == "\\" and i + 1 < n:
+                    buf.append(text[i + 1])
+                    i += 2
+                    continue
+                if text[i] == '"':
+                    closed = True
+                    i += 1
+                    break
+                buf.append(text[i])
+                i += 1
+            if not closed:
+                break
+            token.append("".join(buf))
+            have_token = True
+        elif ch == "\\" and i + 1 < n:
+            # Line continuation joins words; any other escape is literal.
+            if text[i + 1] == "\n":
+                i += 2
+                continue
+            token.append(text[i + 1])
+            have_token = True
+            i += 2
+        elif ch in ";|&\n":
+            break
+        elif ch.isspace():
+            if have_token:
+                yield "".join(token)
+                token, have_token = [], False
+            i += 1
+        else:
+            token.append(ch)
+            have_token = True
+            i += 1
+
+    if have_token:
+        yield "".join(token)
+
+
+def _is_registry_qualified(image: str) -> bool:
+    """True when ``image`` already names an explicit registry host.
+
+    ``sensecraft-missionpack.seeed.cn/solution/foo`` or ``localhost:5000/bar``
+    must NOT be prefixed — the mirror only fronts Docker Hub.
+
+    Docker's own rule: a name with no ``/`` is *always* ``docker.io/library/*``
+    — so ``alpine:latest`` is Hub, and the ``:`` there is a tag, not a registry
+    port. Only when a ``/`` is present is the first segment a registry, and
+    only if it contains a ``.`` or ``:`` or is exactly ``localhost``.
+    """
+    head, sep, _ = image.partition("/")
+    if not sep:
+        return False
+    return "." in head or ":" in head or head == "localhost"
+
+
+def _extract_docker_images(script: str) -> list[str]:
+    """Return image references pulled by ``docker run``/``docker pull`` in ``script``."""
+    images: list[str] = []
+    quoted = _quoted_spans(script)
+
+    for match in re.finditer(r"(?<![\w./-])docker\s+(?:run|pull)(?![\w-])", script):
+        # ``echo "Run: docker run foo"`` in a help message is documentation,
+        # not a pull. Only an occurrence outside quotes is a real command.
+        if any(start <= match.start() < end for start, end in quoted):
+            continue
+        tokens = list(_shell_tokens(script[match.end():]))
+        idx = 0
+        while idx < len(tokens):
+            tok = tokens[idx]
+            if not tok.startswith("-"):
+                images.append(tok)
+                break
+            if tok in _DOCKER_BOOLEAN_FLAGS or "=" in tok:
+                idx += 1
+                continue
+            # Value-taking flag: consume its argument too, unless the next
+            # token is itself a flag (then this one was boolean after all).
+            if idx + 1 < len(tokens) and not tokens[idx + 1].startswith("-"):
+                idx += 2
+            else:
+                idx += 1
+    return images
+
+
+def _iter_action_scripts(node, path: str = ""):
+    """Yield ``(json_path, script)`` for every ``run:`` string in a device YAML."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            child = f"{path}.{key}" if path else str(key)
+            if key == "run" and isinstance(value, str):
+                yield child, value
+            else:
+                yield from _iter_action_scripts(value, child)
+    elif isinstance(node, list):
+        for i, value in enumerate(node):
+            yield from _iter_action_scripts(value, f"{path}[{i}]")
+
+
+def _check_action_image_refs(dev_data, label: str) -> list[str]:
+    """Error on Docker Hub images pulled by an action without the mirror prefix."""
+    errors: list[str] = []
+    for json_path, script in _iter_action_scripts(dev_data):
+        for image in _extract_docker_images(script):
+            if "DOCKER_REGISTRY_PREFIX" in image:
+                continue
+            # A fully variable-driven reference (``$IMAGE``, ``${IMG}:$TAG``)
+            # is resolved at runtime — the author may already be prefixing it
+            # where the variable is set, so we cannot judge it here.
+            if image.startswith("$"):
+                continue
+            if _is_registry_qualified(image):
+                continue
+            errors.append(
+                f"{label}: at '{json_path}': action pulls Docker Hub image "
+                f"'{image}' without the mirror prefix — write "
+                f"'${{DOCKER_REGISTRY_PREFIX}}{image}' instead. The engine "
+                f"exports DOCKER_REGISTRY_PREFIX into every action step; "
+                f"without it this pull fails on CN-restricted networks."
+            )
+    return errors
+
+
 def _find_spec_dir(solution_path: Path, explicit: str | None) -> Path | None:
     """Locate the ``spec/`` directory holding ``solution.schema.json``.
 
@@ -528,6 +735,7 @@ def run(
                 errors.extend(
                     _format_jsonschema_errors(validator_cls, dev_data, dev_schema, label)
                 )
+                errors.extend(_check_action_image_refs(dev_data, label))
 
     # --- 3. guide step-type validation via the parser subpackage -------------
     caps_path = spec / "capabilities.json"
