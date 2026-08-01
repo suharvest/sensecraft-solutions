@@ -51,13 +51,9 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署完成
 
-1. 复制部署日志中显示的 **网关访问令牌（Token）**
-2. 在浏览器打开 **http://localhost:18789**
-3. 进入 **概览** 页面（左侧菜单 → "控制" 下的 **概览**）
-4. 在 **网关访问** 区域，将 Token 粘贴到 **网关令牌** 输入框中
-5. 点击 **连接** 完成认证
-6. 连接你的第一个消息平台（微信、Telegram、Discord 等）
-7. 如果启用了本地模型，已自动配置好——创建智能体时选择本地模型即可
+1. 在浏览器打开 **http://localhost:18789**（网关仅绑定本机，无需访问令牌）
+2. 连接你的第一个消息平台（微信、Telegram、Discord 等）
+3. 如果启用了本地模型，已自动配置好——创建智能体时选择本地模型即可
 
 ### 故障排除
 
@@ -79,7 +75,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 3. 可选勾选 **启用本地模型** 并选择模型
 4. 点击 **部署** 启动服务
 
-> 资源要求：仅 OpenClaw 需要 12GB 磁盘 + 4GB 内存；加 Ollama 需要 20GB 磁盘 + 8GB 内存。
+> 资源要求：仅 OpenClaw 需要 4GB 磁盘 + 4GB 内存；加 Ollama 需要 12GB 磁盘 + 8GB 内存。
 
 ### 部署完成
 
@@ -99,7 +95,8 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 | 未检测到 NVIDIA 运行时 | 确保已安装 NVIDIA 容器运行时：`nvidia-smi` 应能正常执行 |
 | Docker Compose 不可用 | 安装：`sudo apt-get install -y docker-compose-plugin` |
 | 模型下载慢 | 首次下载需要获取完整模型，后续使用缓存 |
-| 磁盘空间不足 | 仅部署 OpenClaw 至少需要 12GB 空闲磁盘；启用 Ollama 后需要 20GB。用 `df -h /` 检查 |
+| 磁盘空间不足 | 仅部署 OpenClaw 至少需要 4GB 空闲磁盘；启用 Ollama 后需要 12GB。用 `df -h /` 检查 |
+| 部署日志已关闭，找不到 Token | 在设备上执行 `cat ~/openclaw/*/.env`（文件权限 600，仅部署用户可读） |
 | 系统内存不足 | 仅部署 OpenClaw 至少需要 4GB 内存；启用 Ollama 后需要 8GB。用 `awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576) "GB"}' /proc/meminfo` 检查 |
 | 端口 11434 被占用 | 可能已有本地 AI 服务在运行，部署器会自动使用它 |
 
@@ -155,12 +152,8 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署完成
 
-1. 复制部署日志中显示的 **网关访问令牌（Token）**
-2. 在浏览器打开 **http://localhost:18789**
-3. 进入 **概览** 页面（左侧菜单 → "控制" 下的 **概览**）
-4. 在 **网关访问** 区域，将 Token 粘贴到 **网关令牌** 输入框中
-5. 点击 **连接** 完成认证
-6. 连接你的第一个消息平台（微信、Telegram、Discord 等）
+1. 在浏览器打开 **http://localhost:18789**（网关仅绑定本机，无需访问令牌）
+2. 连接你的第一个消息平台（微信、Telegram、Discord 等）
 
 ### 故障排除
 
@@ -197,3 +190,4 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 | Docker Compose 不可用 | 安装：`sudo apt-get install -y docker-compose-plugin` |
 | 磁盘空间不足 | 至少需要 4GB 空闲空间，用 `df -h /` 检查 |
 | OpenClaw 容器反复重启 | 查看日志：`docker logs openclaw-gateway` |
+| 部署日志已关闭，找不到 Token | 在设备上执行 `cat ~/openclaw_recomputer_r/*/.env`（文件权限 600，仅部署用户可读） |

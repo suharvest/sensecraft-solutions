@@ -51,13 +51,9 @@ Deploy on your reComputer Jetson device (running this software locally on the Je
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
-2. Open **http://localhost:18789** in your browser
-3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
-4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
-5. Click **Connect** to authenticate
-6. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
-7. If local AI model is enabled, it's already configured — select it when creating an agent
+1. Open **http://localhost:18789** in your browser (the gateway binds to loopback only — no token needed)
+2. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
+3. If local AI model is enabled, it's already configured — select it when creating an agent
 
 ### Troubleshooting
 
@@ -79,7 +75,7 @@ Deploy to a reComputer Jetson device over SSH, with GPU-accelerated local AI mod
 3. Optionally check **Enable Local AI Model** and select a model
 4. Click **Deploy** to start services
 
-> Resource requirements: OpenClaw only needs 12GB disk + 4GB RAM; with Ollama needs 20GB disk + 8GB RAM.
+> Resource requirements: OpenClaw only needs 4GB disk + 4GB RAM; with Ollama needs 12GB disk + 8GB RAM.
 
 ### Deployment Complete
 
@@ -99,7 +95,8 @@ Deploy to a reComputer Jetson device over SSH, with GPU-accelerated local AI mod
 | NVIDIA runtime not detected | Ensure NVIDIA container runtime is installed: `nvidia-smi` should work |
 | Docker Compose unavailable | Install it: `sudo apt-get install -y docker-compose-plugin` |
 | Model download slow | First download gets the full model; subsequent runs use cache |
-| Not enough disk space | OpenClaw only needs at least 12GB free disk; enabling Ollama raises that to 20GB. Check with `df -h /` |
+| Not enough disk space | OpenClaw only needs at least 4GB free disk; enabling Ollama raises that to 12GB. Check with `df -h /` |
+| Closed the deployment log, token lost | On the device run `cat ~/openclaw/*/.env` (mode 600, readable only by the deploying user) |
 | Not enough system memory | OpenClaw only needs at least 4GB RAM; enabling Ollama raises that to 8GB. Check with `awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576) "GB"}' /proc/meminfo` |
 | Port 11434 already in use | The deployer prefers its own Docker-managed Ollama runtime. It will try to stop a native Ollama first; if the port is still occupied, stop the other Ollama service/process on the Jetson and retry |
 
@@ -155,12 +152,8 @@ Deploy on the machine you're currently using.
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
-2. Open **http://localhost:18789** in your browser
-3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
-4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
-5. Click **Connect** to authenticate
-6. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
+1. Open **http://localhost:18789** in your browser (the gateway binds to loopback only — no token needed)
+2. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
 
 ### Troubleshooting
 
@@ -197,3 +190,4 @@ Deploy to a reComputer R device over SSH.
 | Docker Compose unavailable | Install it: `sudo apt-get install -y docker-compose-plugin` |
 | Not enough disk space | Need at least 4GB free; check with `df -h /` |
 | OpenClaw container keeps restarting | Check logs: `docker logs openclaw-gateway` |
+| Closed the deployment log, token lost | On the device run `cat ~/openclaw_recomputer_r/*/.env` (mode 600, readable only by the deploying user) |
