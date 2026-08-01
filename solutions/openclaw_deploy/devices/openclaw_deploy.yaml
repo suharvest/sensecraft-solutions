@@ -510,7 +510,17 @@ remote_overrides:
         sudo: true
         run: |
           set -e
-          COMPOSE_FILE="/home/{{username}}/openclaw/jetson/docker-compose-ollama.yml"
+          # Locate the uploaded compose_dir rather than assuming it keeps the
+          # asset directory's name: the deployer lands `assets/jetson/` under
+          # remote_path as `openclaw_deploy/` (the device id), so the old
+          # hardcoded `.../openclaw/jetson/...` never existed on disk and this
+          # step would have failed the moment anyone enabled Ollama.
+          COMPOSE_FILE=$(find "/home/{{username}}/openclaw" -maxdepth 2 \
+            -name docker-compose-ollama.yml 2>/dev/null | head -1)
+          if [ -z "$COMPOSE_FILE" ]; then
+            echo "ERROR: docker-compose-ollama.yml not found under /home/{{username}}/openclaw"
+            exit 1
+          fi
 
           # Always prefer the deployment-managed container so model/runtime behavior
           # stays consistent across Jetson devices.
