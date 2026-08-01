@@ -1,6 +1,6 @@
 services:
   openclaw-gateway:
-    image: ghcr.io/phioranex/openclaw-docker:20260328
+    image: openclaw/openclaw:2026.6.34-slim
     container_name: openclaw-gateway
     restart: unless-stopped
     stdin_open: true
@@ -14,9 +14,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
-      - OPENCLAW_GATEWAY_BIND=lan
       - OPENCLAW_SKIP_SERVICE_CHECK=true
-    command: ["gateway", "--allow-unconfigured"]
+    # `openclaw` prefix is required: the official image's entrypoint is
+    # `tini -s --`, so a bare "gateway" would be exec'd as a program name.
+    # Loopback bind: for a local deploy the browser is on this same machine,
+    # and the upstream gateway refuses any wider bind without a token.
+    command: ["openclaw", "gateway", "--bind", "loopback", "--allow-unconfigured"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s

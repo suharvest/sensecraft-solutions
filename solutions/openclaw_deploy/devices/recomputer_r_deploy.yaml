@@ -134,36 +134,26 @@ actions:
 
       name_i18n:
         zh: 重启 OpenClaw 使配置生效
-    - name: Display gateway access token
+    - name: Display gateway address
       run: |
         set -e
-        TOKEN=$(docker exec openclaw-gateway node -e '
-          const fs = require("fs");
-          const p = "/home/node/.openclaw/openclaw.json";
-          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
-          const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
-          if (token) process.stdout.write(token);
-          else process.stdout.write("NOT_FOUND");
-        ')
-        if [ "$TOKEN" = "NOT_FOUND" ]; then
-          echo "WARNING: Could not read gateway token from config"
-        else
-          echo ""
-          echo "=========================================="
-          echo "  OpenClaw Gateway Token / 网关访问令牌"
-          echo "=========================================="
-          echo ""
-          echo "  Token: $TOKEN"
-          echo ""
-          echo "=========================================="
-          echo ""
-          echo "  URL: http://localhost:18789"
-          echo ""
-        fi
+        # No token on the local view: the gateway binds loopback only, so it
+        # is reachable from this machine's browser and nowhere else. The
+        # upstream image only demands a token for wider binds.
+        echo ""
+        echo "=========================================="
+        echo "  OpenClaw / 访问地址"
+        echo "=========================================="
+        echo ""
+        echo "  URL: http://localhost:18789"
+        echo ""
+        echo "  Gateway is bound to loopback — no token required."
+        echo "  网关仅绑定本机回环地址，无需访问令牌。"
+        echo ""
       timeout: 30
 
       name_i18n:
-        zh: 显示网关访问令牌
+        zh: 显示访问地址
 
 pre_checks:
   - type: disk_space
@@ -273,6 +263,44 @@ remote_overrides:
 
         name_i18n:
           zh: 初始化 OpenClaw 配置
+    after_upload:
+      - name: Generate gateway access token
+        run: |
+          set -e
+          # The upstream image refuses to bind anything wider than loopback
+          # without a token, and — unlike the third-party image this solution
+          # used before — it does NOT write one into its own config. It only
+          # accepts OPENCLAW_GATEWAY_TOKEN / --token, so the token has to come
+          # from compose interpolation, i.e. an .env beside the compose file.
+          #
+          # Locate that file rather than hardcoding the layout: the deployer
+          # decides where compose_dir lands under remote_path.
+          BASE="/home/{{username}}/openclaw_recomputer_r"
+          COMPOSE=$(find "$BASE" -maxdepth 2 -name docker-compose.yml 2>/dev/null | head -1)
+          if [ -z "$COMPOSE" ]; then
+            echo "ERROR: could not locate docker-compose.yml under $BASE"
+            exit 1
+          fi
+          ENV_FILE="$(dirname "$COMPOSE")/.env"
+
+          # Reuse an existing token so a redeploy doesn't invalidate the one
+          # the user already pasted into the control UI.
+          if [ -f "$ENV_FILE" ] && grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE"; then
+            echo "Reusing existing gateway token from $ENV_FILE"
+            exit 0
+          fi
+
+          TOKEN=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: failed to generate a gateway token"
+            exit 1
+          fi
+          umask 077
+          printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$TOKEN" > "$ENV_FILE"
+          echo "Generated a new gateway token in $ENV_FILE"
+        timeout: 30
+        name_i18n:
+          zh: 生成网关访问令牌
     after:
       - name: Enable execution permissions
         run: |
@@ -329,16 +357,22 @@ remote_overrides:
       - name: Display gateway access token
         run: |
           set -e
-          TOKEN=$(docker exec openclaw-gateway node -e '
-            const fs = require("fs");
-            const p = "/home/node/.openclaw/openclaw.json";
-            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
-            const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
-            if (token) process.stdout.write(token);
-            else process.stdout.write("NOT_FOUND");
-          ')
-          if [ "$TOKEN" = "NOT_FOUND" ]; then
-            echo "WARNING: Could not read gateway token from config"
+          # Read the token back from the .env the after_upload step wrote.
+          # The upstream image keeps the token in its environment only — it
+          # never persists one into openclaw.json, which is where the previous
+          # third-party image put it.
+          BASE="/home/{{username}}/openclaw_recomputer_r"
+          COMPOSE=$(find "$BASE" -maxdepth 2 -name docker-compose.yml 2>/dev/null | head -1)
+          ENV_FILE=""
+          [ -n "$COMPOSE" ] && ENV_FILE="$(dirname "$COMPOSE")/.env"
+
+          TOKEN=""
+          if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
+            TOKEN=$(sed -n 's/^OPENCLAW_GATEWAY_TOKEN=//p' "$ENV_FILE" | head -1)
+          fi
+
+          if [ -z "$TOKEN" ]; then
+            echo "WARNING: Could not read gateway token from $ENV_FILE"
           else
             echo ""
             echo "=========================================="

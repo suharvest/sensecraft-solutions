@@ -1,6 +1,6 @@
 services:
   openclaw-gateway:
-    image: ghcr.io/phioranex/openclaw-docker:20260328
+    image: openclaw/openclaw:2026.6.34-slim
     container_name: openclaw-gateway
     restart: unless-stopped
     stdin_open: true
@@ -14,9 +14,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - NODE_ENV=production
-      - OPENCLAW_GATEWAY_BIND=lan
       - OPENCLAW_SKIP_SERVICE_CHECK=true
-    command: ["gateway", "--bind", "lan", "--allow-unconfigured"]
+      # Written to .env next to this file by the "Generate gateway access
+      # token" after_upload action. The upstream gateway refuses to bind
+      # anything wider than loopback without it, and unlike the previous
+      # third-party image it does NOT auto-populate a token in its config.
+      - OPENCLAW_GATEWAY_TOKEN=${OPENCLAW_GATEWAY_TOKEN}
+    # `openclaw` prefix is required: the official image's entrypoint is
+    # `tini -s --`, so a bare "gateway" would be exec'd as a program name.
+    # No explicit --bind: inside a container the gateway already defaults to
+    # 0.0.0.0, while passing "lan" trips its refuse-without-auth check.
+    command: ["openclaw", "gateway", "--allow-unconfigured"]
     deploy:
       resources:
         limits:
