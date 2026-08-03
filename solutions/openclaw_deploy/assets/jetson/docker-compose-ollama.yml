@@ -1,6 +1,6 @@
 services:
   ollama:
-    image: ollama/ollama
+    image: ${DOCKER_REGISTRY_PREFIX}ollama/ollama
     container_name: ollama
     restart: unless-stopped
     runtime: nvidia
