@@ -1,6 +1,6 @@
 services:
   openclaw-gateway:
-    image: openclaw/openclaw:2026.6.34-slim
+    image: openclaw/openclaw:2026.6.33-slim
     container_name: openclaw-gateway
     restart: unless-stopped
     stdin_open: true
