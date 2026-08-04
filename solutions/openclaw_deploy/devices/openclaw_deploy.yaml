@@ -562,24 +562,12 @@ remote_overrides:
 
         name_i18n:
           zh: 启动 Ollama（GPU 加速）
-      - name: Pull Ollama model
-        when:
-          field: enable_ollama
-          value: "true"
-        sudo: true
-        run: |
-          set -e
-          echo "Pulling model {{ollama_model}}..."
-          if ! docker exec ollama true >/dev/null 2>&1; then
-            echo "ERROR: No Ollama instance available"
-            exit 1
-          fi
-          docker exec ollama ollama pull {{ollama_model}}
-          echo "Model {{ollama_model}} pulled successfully"
-        timeout: 600
-
-        name_i18n:
-          zh: 拉取 Ollama 模型
+      # Deliberately ordered before "Pull Ollama model": writing the provider
+      # config does not need the model to exist, and pulling a multi-GB model
+      # over a slow link routinely overruns the step timeout. When it did, this
+      # step never ran and the deployment ended with Ollama serving happily
+      # while the gateway still pointed at its previous provider — everything
+      # up, nothing wired together, and no error naming the real cause.
       - name: Configure Ollama provider in OpenClaw
         when:
           field: enable_ollama
@@ -628,6 +616,24 @@ remote_overrides:
 
         name_i18n:
           zh: 在 OpenClaw 中配置 Ollama
+      - name: Pull Ollama model
+        when:
+          field: enable_ollama
+          value: "true"
+        sudo: true
+        run: |
+          set -e
+          echo "Pulling model {{ollama_model}}..."
+          if ! docker exec ollama true >/dev/null 2>&1; then
+            echo "ERROR: No Ollama instance available"
+            exit 1
+          fi
+          docker exec ollama ollama pull {{ollama_model}}
+          echo "Model {{ollama_model}} pulled successfully"
+        timeout: 600
+
+        name_i18n:
+          zh: 拉取 Ollama 模型
       - name: Enable execution permissions
         run: |
           set -e
@@ -710,6 +716,43 @@ remote_overrides:
 
         name_i18n:
           zh: 优化 Workspace（适配小模型）
+      # The .env token only reaches the gateway process as an environment
+      # variable. A config volume carried over from an older deployment can
+      # still hold a gateway.auth.token of its own — the third-party image this
+      # solution used before wrote one — and that stale value wins, so the CLI
+      # authenticates with the .env token and is rejected by the config's. The
+      # symptom is a bare "unauthorized: gateway token mismatch" followed by a
+      # silent fall back to the embedded agent. Fresh installs never hit it;
+      # upgrades always do.
+      - name: Align gateway token in config
+        run: |
+          set -e
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const tok = process.env.OPENCLAW_GATEWAY_TOKEN;
+            if (!tok) {
+              console.error("ERROR: container has no OPENCLAW_GATEWAY_TOKEN");
+              process.exit(1);
+            }
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            cfg.gateway = cfg.gateway || {};
+            cfg.gateway.auth = cfg.gateway.auth || {};
+            cfg.gateway.remote = cfg.gateway.remote || {};
+            if (cfg.gateway.auth.token === tok && cfg.gateway.remote.token === tok) {
+              console.log("Gateway token already aligned");
+            } else {
+              cfg.gateway.auth.mode = "token";
+              cfg.gateway.auth.token = tok;
+              cfg.gateway.remote.token = tok;
+              fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+              console.log("Aligned gateway.auth.token and gateway.remote.token with the deployment token");
+            }
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 对齐网关令牌配置
       - name: Restart OpenClaw to apply configuration
         run: |
           set -e
