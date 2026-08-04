@@ -90,9 +90,9 @@ intro:
           name_i18n:
             zh: 后端服务器
       links:
-        wiki: https://wiki.seeedstudio.com/integration_of_real-time_heat_map_with_grafana_data_dashboard_bak/
+        wiki: https://wiki.seeedstudio.com/integration_of_real-time_heat_map_with_grafana_data_dashboard/
         wiki_i18n:
-          zh: https://wiki.seeedstudio.com/cn/integration_of_real-time_heat_map_with_grafana_data_dashboard_bak/
+          zh: https://wiki.seeedstudio.com/cn/integration_of_real-time_heat_map_with_grafana_data_dashboard/
         github: https://github.com/xr686/reCamera-with-Heatmap
       name_i18n:
         zh: AI 摄像头直连
