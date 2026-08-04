@@ -336,6 +336,43 @@ remote_overrides:
 
         name_i18n:
           zh: 启用执行权限
+      # The .env token only reaches the gateway process as an environment
+      # variable. A config volume carried over from an older deployment can
+      # still hold a gateway.auth.token of its own — the third-party image this
+      # solution used before wrote one — and that stale value wins, so the CLI
+      # authenticates with the .env token and is rejected by the config's. The
+      # symptom is a bare "unauthorized: gateway token mismatch" followed by a
+      # silent fall back to the embedded agent. Fresh installs never hit it;
+      # upgrades always do.
+      - name: Align gateway token in config
+        run: |
+          set -e
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const tok = process.env.OPENCLAW_GATEWAY_TOKEN;
+            if (!tok) {
+              console.error("ERROR: container has no OPENCLAW_GATEWAY_TOKEN");
+              process.exit(1);
+            }
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            cfg.gateway = cfg.gateway || {};
+            cfg.gateway.auth = cfg.gateway.auth || {};
+            cfg.gateway.remote = cfg.gateway.remote || {};
+            if (cfg.gateway.auth.token === tok && cfg.gateway.remote.token === tok) {
+              console.log("Gateway token already aligned");
+            } else {
+              cfg.gateway.auth.mode = "token";
+              cfg.gateway.auth.token = tok;
+              cfg.gateway.remote.token = tok;
+              fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+              console.log("Aligned gateway.auth.token and gateway.remote.token with the deployment token");
+            }
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 对齐网关令牌配置
       - name: Restart OpenClaw to apply configuration
         run: |
           set -e
