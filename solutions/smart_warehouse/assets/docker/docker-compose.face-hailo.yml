@@ -11,6 +11,10 @@ services:
       - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - FACE_REC_API_URL=http://face-rec:8001
+      # lan 模式下发给摄像头设备的识别代理地址。容器内自动探测只能拿到 docker
+      # 网络地址（如 172.18.0.3），局域网设备永远连不到 —— 必须由部署流程注入
+      # 宿主机局域网 IP。留空时后端会在下发人脸库时直接报错并提示如何设置。
+      - WAREHOUSE_DEVICE_BASE_URL=${WAREHOUSE_DEVICE_BASE_URL:-}
       - FACE_ENABLED=true
       - FACE_WE2_SIMULATOR_ENABLED=1
     volumes:

@@ -132,6 +132,32 @@ remote_overrides:
     url: "http://{{host}}:2125"
   actions:
     before:
+      - name: Configure device-facing base URL for face recognition
+        timeout: 60
+        run: |
+          # lan 模式下发给摄像头设备的识别代理地址。warehouse 跑在容器里，
+          # 后端自动探测只能拿到 docker 网络地址（172.x），局域网设备连不到。
+          # 这里在目标机上算出它自己的局域网 IP 写进 .env，compose 会替换
+          # ${WAREHOUSE_DEVICE_BASE_URL}。
+          COMPOSE_DIR="/home/{{username}}/mcp_warehouse"
+          HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
+          if [ -z "$HOST_IP" ]; then
+            echo "WARN: could not determine LAN IP; skipping."
+            echo "Set WAREHOUSE_DEVICE_BASE_URL manually if you use LAN face mode."
+            exit 0
+          fi
+          mkdir -p "$COMPOSE_DIR"
+          ENV_FILE="$COMPOSE_DIR/.env"
+          touch "$ENV_FILE"
+          # 幂等：已有该键就整行替换，避免重复部署后 .env 里堆多份
+          if grep -q '^WAREHOUSE_DEVICE_BASE_URL=' "$ENV_FILE"; then
+            sed -i "s|^WAREHOUSE_DEVICE_BASE_URL=.*|WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device|" "$ENV_FILE"
+          else
+            echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device" >> "$ENV_FILE"
+          fi
+          echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device"
+        name_i18n:
+          zh: 配置人脸识别的设备回调地址
       # face-rec-api:v1.1-hailo 容器内是 HailoRT 4.21.0 用户态。HailoRT 要求
       # 宿主机驱动/固件与容器用户态**版本完全一致**，否则 VDevice.create() 直接
       # 抛 HAILO_INVALID_DRIVER_VERSION(76)，face-rec 起不来、出入库人脸门全挂。
