@@ -130,3 +130,48 @@ remote_overrides:
   post_deployment:
     open_browser: true
     url: "http://{{host}}:2125"
+  actions:
+    before:
+      # face-rec-api:v1.1-hailo 容器内是 HailoRT 4.21.0 用户态。HailoRT 要求
+      # 宿主机驱动/固件与容器用户态**版本完全一致**，否则 VDevice.create() 直接
+      # 抛 HAILO_INVALID_DRIVER_VERSION(76)，face-rec 起不来、出入库人脸门全挂。
+      # 树莓派官方源的 hailo-all 只到 4.20.0，装完仍然对不上，所以这里必须跟
+      # gun_detection_frigate 一样显式装 4.21.0 驱动。
+      - name: Check and install HailoRT 4.21.0 driver
+        sudo: true
+        timeout: 600
+        run: |
+          REQUIRED="4.21.0"
+
+          MODVER=$(modinfo -F version hailo_pci 2>/dev/null || echo "none")
+          if echo "$MODVER" | grep -q "^${REQUIRED}"; then
+            echo "HailoRT ${REQUIRED} driver already installed"
+            exit 0
+          fi
+
+          echo "hailo_pci driver version: ${MODVER} (need ${REQUIRED})"
+          echo "Installing HailoRT ${REQUIRED} using Frigate's official script..."
+          echo "This may take 5-10 minutes (compiling kernel module)..."
+
+          curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh -o /tmp/install_hailort.sh
+          chmod +x /tmp/install_hailort.sh
+          bash /tmp/install_hailort.sh
+          rm -f /tmp/install_hailort.sh
+
+          if ! lsmod | grep -q hailo_pci; then
+            echo "HailoRT installed but kernel module not loaded."
+            echo "Please reboot the device and retry deployment."
+            exit 1
+          fi
+
+          # 新固件要重启才会真正加载；版本没对上就直接要求重启，
+          # 否则容器还是会拿到 76 号错误。
+          NEWVER=$(modinfo -F version hailo_pci 2>/dev/null || echo "none")
+          if ! echo "$NEWVER" | grep -q "^${REQUIRED}"; then
+            echo "Driver built but running module is still ${NEWVER}."
+            echo "Please reboot the device and retry deployment."
+            exit 1
+          fi
+          echo "HailoRT ${REQUIRED} installed and loaded successfully"
+        name_i18n:
+          zh: 检查并安装 HailoRT 4.21.0 驱动

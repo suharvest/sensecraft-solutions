@@ -466,6 +466,7 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | 连接超时 | 检查网线是否插好，用 ping 测试设备 IP |
 | 人脸服务启动失败 | 确认设备已安装 Hailo 驱动（`ls /dev/hailo0` 应存在） |
+| 人脸服务反复重启，日志报 `HAILO_INVALID_DRIVER_VERSION` | 宿主机驱动与容器用户态版本不一致。本方案镜像需要 HailoRT **4.21.0**（树莓派官方源的 `hailo-all` 只到 4.20.0）。查看版本：`modinfo -F version hailo_pci`；安装：`curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash`，然后**重启设备** |
 
 ### 部署目标 {#warehouse_2a_jetson_remote type=remote device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
 
