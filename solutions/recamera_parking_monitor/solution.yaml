@@ -65,9 +65,9 @@ intro:
     estimated_time: 5min
 
   links:
-    wiki: https://wiki.seeedstudio.com/ai_parking_slot_monitoring_demo_with_recamera_bak/
+    wiki: https://wiki.seeedstudio.com/ai_parking_slot_monitoring_demo_with_recamera/
     wiki_i18n:
-      zh: https://wiki.seeedstudio.com/cn/ai_parking_slot_monitoring_demo_with_recamera_bak/
+      zh: https://wiki.seeedstudio.com/cn/ai_parking_slot_monitoring_demo_with_recamera/
 
   summary_i18n:
     zh: 实时看到哪些车位有车、哪些空闲——一台 reCamera 即可运行，无需额外服务器

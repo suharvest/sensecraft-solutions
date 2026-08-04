@@ -82,5 +82,5 @@ Your AI parking monitor is now running.
 
 #### Next Steps
 
-- [View Wiki Documentation](https://wiki.seeedstudio.com/ai_parking_slot_monitoring_demo_with_recamera_bak/)
+- [View Wiki Documentation](https://wiki.seeedstudio.com/ai_parking_slot_monitoring_demo_with_recamera/)
 - [Report Issues](https://github.com/Seeed-Studio/wiki-documents/issues)
