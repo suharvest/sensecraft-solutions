@@ -466,6 +466,7 @@ Deploy to a device with a Hailo-8 accelerator (reComputer R2135-12 or Raspberry 
 |-------|----------|
 | Connection timeout | Check ethernet cable, ping the device IP |
 | Face service won't start | Confirm the Hailo driver is installed (`ls /dev/hailo0` should exist) |
+| Face service restarts in a loop with `HAILO_INVALID_DRIVER_VERSION` | Host driver and container userspace versions must match exactly. This solution's image needs HailoRT **4.21.0** (the Raspberry Pi repo's `hailo-all` only ships 4.20.0). Check: `modinfo -F version hailo_pci`. Install: `curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash` then **reboot the device** |
 
 ### Target {#warehouse_2a_jetson_remote type=remote device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
 
