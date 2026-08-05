@@ -761,6 +761,7 @@ The service listens on **8621**. When the next step asks for the Voice Service A
 | First deploy seems stuck | Normal. The first start downloads ~5GB of models via the hf-mirror endpoint; this can take 10+ minutes |
 | Not enough disk space | This step needs at least 15GB free |
 | NVIDIA runtime unavailable | Install nvidia-container-toolkit and restart Docker |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service, or the other tier's voice step. Both claim the same container name and port 8621 and cannot coexist. `docker rm -f` the existing containers as instructed and retry — volumes are untouched |
 | Deployed but 8621 unreachable | Models still loading. Check `docker logs seeed-voice-v091`; ready when `curl localhost:8621/readyz` returns 200 |
 
 ---
@@ -1100,6 +1101,7 @@ Two containers come up: voice service on **8621**, LLM on **8000**. **Note this 
 | First deploy seems stuck | Normal. The first start downloads ~10GB of models and inference engines via the hf-mirror endpoint; this can take 10+ minutes |
 | Not enough disk space | This step needs at least 25GB free |
 | NVIDIA runtime unavailable | Install nvidia-container-toolkit on the Jetson and restart Docker |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service (e.g. via openvoicestream's install.sh). Both claim the same container name and port 8621 and cannot coexist. `docker rm -f` the existing containers as instructed and retry — volumes are untouched, so models are not re-downloaded |
 
 ---
 ## Step 6: Voice AI Service {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}

@@ -39,6 +39,40 @@ ssh:
   connection_timeout: 30
   command_timeout: 3600
 
+actions:
+  before:
+    - name: Check for conflicting containers
+      run: |
+        # container_name 是固定的（与上游一致，便于文档里直接 docker logs）。
+        # 但如果设备上已经有同名容器属于**别的 compose project**（例如手工
+        # 用 openvoicestream 仓库的 install.sh 装过），up -d 会因名字冲突失败，
+        # 且 remove_orphans 跨 project 不起作用。这里提前拦下并说清怎么处理，
+        # 不自动删 —— 删掉别人的容器不是本步骤该做的决定。
+        CONFLICT=""
+        for NAME in seeed-voice-v091; do
+          EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null)
+          if [ -n "$EXIST" ]; then
+            PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
+            if [ "$PROJ" != "smart_warehouse_voice" ]; then
+              CONFLICT="$CONFLICT $NAME(project=${PROJ:-无})"
+            fi
+          fi
+        done
+        if [ -n "$CONFLICT" ]; then
+          echo "部署中止：以下容器已存在且属于其它 compose project：$CONFLICT" >&2
+          echo "" >&2
+          echo "这台设备上可能已经手工装过语音服务（例如用 openvoicestream 仓库的" >&2
+          echo "deploy/install.sh）。两者会抢同一个容器名和 8621 端口，不能共存。" >&2
+          echo "" >&2
+          echo "处理：先停掉原有部署，再重新执行本步骤 —— " >&2
+          echo "  docker rm -f$CONFLICT" >&2
+          echo "数据卷不会被删除，模型无需重新下载。" >&2
+          exit 1
+        fi
+        echo "容器名检查通过"
+      name_i18n:
+        zh: 检查容器名冲突
+
 pre_checks:
   - type: docker_version
     min_version: "20.0"

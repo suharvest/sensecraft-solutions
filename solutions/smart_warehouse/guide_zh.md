@@ -761,6 +761,7 @@ SenseCraft 体验版已就绪！
 | 首次部署很久没反应 | 正常。首次启动要下载约 5GB 模型，走 hf-mirror 镜像站，视网络可能要十几分钟 |
 | 磁盘空间不足 | 该步骤需要至少 15GB 可用空间 |
 | 提示 NVIDIA runtime 不可用 | 确认已安装 nvidia-container-toolkit 并重启 Docker |
+| 部署中止，提示容器名冲突 | 设备上已手工装过语音服务，或装了另一个套餐的语音步骤。两者抢同一个容器名和 8621 端口，不能共存。按提示 `docker rm -f` 掉原有容器再重试，数据卷不受影响 |
 | 部署完但 8621 不通 | 模型仍在加载。`docker logs seeed-voice-v091` 查看进度，`curl localhost:8621/readyz` 返回 200 才算就绪 |
 
 ---
@@ -1099,6 +1100,7 @@ SenseCraft 体验版已就绪！
 | 首次部署很久没反应 | 正常。首次启动要下载约 10GB 的模型与推理引擎，走 hf-mirror 镜像站，视网络可能要十几分钟 |
 | 磁盘空间不足 | 该步骤需要至少 25GB 可用空间 |
 | 提示 NVIDIA runtime 不可用 | 在 Jetson 上确认已安装 nvidia-container-toolkit 并重启 Docker |
+| 部署中止，提示容器名冲突 | 设备上已手工装过语音服务（如用 openvoicestream 的 install.sh）。两者抢同一个容器名和 8621 端口，不能共存。按提示 `docker rm -f` 掉原有容器再重试，数据卷不受影响，模型无需重新下载 |
 
 ---
 ## 步骤 6: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
