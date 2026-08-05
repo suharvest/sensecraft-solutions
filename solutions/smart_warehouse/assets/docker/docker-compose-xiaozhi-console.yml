@@ -8,8 +8,6 @@
 #   18003 HTTP（OTA / 视觉分析）    18004 MCP 接入点
 #   注意 3306/6379 不对外发布，只在容器网络内互通。
 
-version: '3.8'
-
 services:
   # 智控台：manager-api(Java) + manager-web(Vue)，nginx 托管前端并反代 /xiaozhi
   xiaozhi-esp32-server-web:
