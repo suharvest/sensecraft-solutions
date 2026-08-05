@@ -141,13 +141,22 @@ remote_overrides:
           # ${WAREHOUSE_DEVICE_BASE_URL}。
           COMPOSE_DIR="/home/{{username}}/mcp_warehouse"
           HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
+          ENV_FILE="$COMPOSE_DIR/.env"
           if [ -z "$HOST_IP" ]; then
-            echo "WARN: could not determine LAN IP; skipping."
-            echo "Set WAREHOUSE_DEVICE_BASE_URL manually if you use LAN face mode."
+            # 探测不出 IP 时**必须把旧值作废**：直接跳过会让上一次部署写下的地址留在
+            # .env 里，换了网络之后设备仍按旧 IP 回调，而且全程没有任何报错——正是
+            # 这个改动要消灭的那类静默失败。注释掉而不是删掉，运维还能看到原值。
+            if [ -f "$ENV_FILE" ] && grep -q '^WAREHOUSE_DEVICE_BASE_URL=' "$ENV_FILE"; then
+              sed -i 's|^WAREHOUSE_DEVICE_BASE_URL=|# STALE (IP detection failed, see deploy log) WAREHOUSE_DEVICE_BASE_URL=|' "$ENV_FILE"
+              echo "WARN: could not determine LAN IP; invalidated the previous value in .env."
+            else
+              echo "WARN: could not determine LAN IP."
+            fi
+            echo "LAN face mode will refuse to push an unreachable address and tell you"
+            echo "to set WAREHOUSE_DEVICE_BASE_URL=http://<host-lan-ip>:2125/api/face/device"
             exit 0
           fi
           mkdir -p "$COMPOSE_DIR"
-          ENV_FILE="$COMPOSE_DIR/.env"
           touch "$ENV_FILE"
           # 幂等：已有该键就整行替换，避免重复部署后 .env 里堆多份
           if grep -q '^WAREHOUSE_DEVICE_BASE_URL=' "$ENV_FILE"; then
