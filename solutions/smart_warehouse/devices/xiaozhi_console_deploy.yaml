@@ -302,9 +302,18 @@ remote_overrides:
           # （Sm2DecryptUtil:47-54 把验证码和密码一起加密），脚本解不了图。
           # 模型配置的缓存在 Redis 里且是懒加载（ModelConfigServiceImpl:232-242），
           # 部署刚完成时没人读过、缓存本来就是空的；末尾再清一次 key 做保险。
+          # stderr 只过滤 mysql 的「命令行给密码不安全」警告，其余错误必须让它冒出来 ——
+          # 早期版本这里是裸 2>/dev/null，SQL 写错也静默成功，排查时毫无线索。
+          # 不用 `2> >(grep ...)`：那是 bash 专属的进程替换，引擎若用 sh 跑就是语法错误。
+          # 这种写法 sh / bash 都成立，且保留了 mysql 的真实退出码。
           run_sql() {
+            SQLERR=$(mktemp)
             docker exec -i $DB mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-123456}" \
-              --default-character-set=utf8mb4 xiaozhi_esp32_server 2>/dev/null
+              --default-character-set=utf8mb4 xiaozhi_esp32_server 2>"$SQLERR"
+            RC=$?
+            grep -v 'Using a password on the command line' "$SQLERR" >&2 || true
+            rm -f "$SQLERR"
+            return $RC
           }
 
           # server.secret：manager-api 启动时调 initServerSecret() 生成并写入数据库
@@ -315,8 +324,13 @@ remote_overrides:
           SQL
           )
           SECRET=$(echo "$SECRET" | tail -1 | tr -d '\r\n ')
-          if [ -n "$SECRET" ] && [ "$SECRET" != "null" ] && [ "$SECRET" != "param_value" ]; then
-            sed -i "s|^  secret: .*|  secret: \"$SECRET\"|" "$WORKDIR/data/.config.yaml"
+          # 路径必须是 $COMPOSE_DIR/data —— compose 的相对挂载按 compose 文件所在目录
+          # 解析，不是 $WORKDIR。写错这里 sed 会失败，secret 留在占位符上，
+          # xiaozhi-server 直接崩在「无效的服务器密钥」。真机实测踩过。
+          CONFIG_FILE="$COMPOSE_DIR/data/.config.yaml"
+          if [ -n "$SECRET" ] && [ "$SECRET" != "null" ] && [ "$SECRET" != "param_value" ] \
+             && sed -i "s|^  secret: .*|  secret: \"$SECRET\"|" "$CONFIG_FILE"; then
+            # 判 sed 的退出码，不是判 $SECRET 非空 —— 否则 sed 失败了还照样打印「已回填」
             echo "已回填 server.secret"
           else
             echo "未能从数据库读到 server.secret，xiaozhi-server 将无法读取配置。"
@@ -349,7 +363,10 @@ remote_overrides:
           run_sql <<SQL
           UPDATE sys_params SET param_value = 'ws://$DEVICE_HOST:18000/xiaozhi/v1/'
            WHERE param_code = 'server.websocket';
-          UPDATE sys_params SET param_value = 'http://$DEVICE_HOST:18003/xiaozhi/ota/'
+          -- 18002 不是 18003：智控台模式下 xiaozhi-server 不注册 /xiaozhi/ota/
+          -- （http_server.py:49-53 仅在 read_config_from_api=false 时注册），
+          -- 该路由由 manager-api 提供。写 18003 会 404。
+          UPDATE sys_params SET param_value = 'http://$DEVICE_HOST:18002/xiaozhi/ota/'
            WHERE param_code = 'server.ota';
           SQL
 
@@ -369,9 +386,13 @@ remote_overrides:
             echo "请执行 docker logs mcp-endpoint-server 查看后手工填写。"
           fi
 
-          # 清掉可能已被读入的模型配置缓存（懒加载，正常情况下此时为空）
-          docker exec xiaozhi-esp32-server-redis redis-cli --scan --pattern 'model_config*' 2>/dev/null \
-            | xargs -r -n50 docker exec -i xiaozhi-esp32-server-redis redis-cli DEL >/dev/null 2>&1 || true
+          # 清掉已被读入的配置缓存。真实 key 前缀是 model:data:* / server:config / sys:params ——
+          # 早期版本扫的是 'model_config*'，一个都匹配不到，导致种子数据里的
+          # ws://127.0.0.1:8621 存活下来，全新安装会静默指向 localhost。真机实测踩过。
+          for PAT in 'model:data:*' 'server:config' 'sys:params'; do
+            docker exec xiaozhi-esp32-server-redis redis-cli --scan --pattern "$PAT" 2>/dev/null \
+              | xargs -r -n50 docker exec -i xiaozhi-esp32-server-redis redis-cli DEL >/dev/null 2>&1 || true
+          done
 
           # 让 xiaozhi-server 重新拉一次配置
           docker restart xiaozhi-server >/dev/null 2>&1 || true

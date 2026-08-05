@@ -94,7 +94,9 @@ services:
       - TZ=Asia/Shanghai
     healthcheck:
       # 该镜像既无 curl 也无 wget，只有 python3（真机实测）
-      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8003/xiaozhi/ota/')"]
+      # 不能打 /xiaozhi/ota/ —— 智控台模式下 xiaozhi-server 不注册该路由（由
+      # manager-api 提供），打了永远 404、容器永远 unhealthy。真机实测踩过。
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8003/voiceprint/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
