@@ -1,0 +1,114 @@
+# 智控台模式的语音 AI 服务（套餐二B / 套餐三共用）
+#
+# 与 docker-compose-xiaozhi.yml（单模块）的区别：多了智控台三件套
+# （manager-api+web / MySQL / Redis），模型配置从数据库读而不是从 .config.yaml。
+#
+# 端口占用（宿主侧）：
+#   18000 WebSocket（设备连这里）   18002 智控台网页
+#   18003 HTTP（OTA / 视觉分析）    18004 MCP 接入点
+#   注意 3306/6379 不对外发布，只在容器网络内互通。
+
+version: '3.8'
+
+services:
+  # 智控台：manager-api(Java) + manager-web(Vue)，nginx 托管前端并反代 /xiaozhi
+  xiaozhi-esp32-server-web:
+    # 我们自建的镜像。含 OpenVoiceStream/EdgeLLM 供应商、「仓库智能助手」角色模板、
+    # /models/probe 设备探测端点、本地模型置顶排序等全部 changeset。
+    # 上游的 xinnan-tech/xiaozhi-esp32-server:web_latest 一个都没有，不要换回去。
+    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-manager:arm64
+    container_name: xiaozhi-esp32-server-web
+    restart: unless-stopped
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
+    ports:
+      - "${XIAOZHI_CONSOLE_PORT:-18002}:8002"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+      - SPRING_DATASOURCE_DRUID_USERNAME=root
+      - SPRING_DATASOURCE_DRUID_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=
+    volumes:
+      - ./uploadfile:/uploadfile
+    healthcheck:
+      # 首次启动要跑 110 个 liquibase changeset，给足 start_period
+      test: ["CMD", "curl", "-f", "http://localhost:8002/xiaozhi/user/pub-config"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  xiaozhi-esp32-server-db:
+    image: mysql:latest
+    container_name: xiaozhi-esp32-server-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - xiaozhi-mysql-data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+
+  xiaozhi-esp32-server-redis:
+    image: redis:8.0
+    container_name: xiaozhi-esp32-server-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 语音服务本体：WebSocket 接设备，配置从智控台拉
+  xiaozhi-server:
+    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-server:arm64
+    container_name: xiaozhi-server
+    restart: unless-stopped
+    depends_on:
+      xiaozhi-esp32-server-web:
+        condition: service_healthy
+    ports:
+      - "${XIAOZHI_WS_PORT:-18000}:8000"
+      - "${XIAOZHI_HTTP_PORT:-18003}:8003"
+    volumes:
+      - ./data:/opt/xiaozhi-esp32-server/data
+      # models/ 仍需挂载：VAD(SileroVAD) 在 xiaozhi-server 本地跑，OVS 不负责这个。
+      # 但 ASR 模型（sherpa-onnx-sense-voice，约 1GB）不再需要——识别已搬到 OVS 上。
+      - ./models:/opt/xiaozhi-esp32-server/models
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/xiaozhi/ota/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP 接入点：外部 MCP server（仓管系统 mcp_pipe.py）连进来，按 agent 挂载工具
+  mcp-endpoint:
+    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:latest
+    container_name: mcp-endpoint-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_ENDPOINT_PORT:-18004}:8004"
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  xiaozhi-mysql-data:

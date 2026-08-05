@@ -625,7 +625,54 @@ SenseCraft 体验版已就绪！
 
 **前提条件：** 需要联网 · 需要 LLM API 密钥
 
-## 步骤 1: 仓库管理系统 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 1: 更新小智固件 {#warehouse_esp32_2b type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+将语音助手程序写入 Watcher 以启用语音交互。本套餐的语音识别与合成由本地服务器处理，固件需要指向自建服务器（步骤 6 会做绑定）。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 用 USB-C 线连接 Watcher 到电脑
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
+3. 点击烧录按钮
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
+| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
+| 烧录失败 | 重新插拔设备再试 |
+
+---
+
+## 步骤 2: 更新视觉检测固件 {#warehouse_himax_2b type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+将视觉检测程序写入 Watcher 的 AI 芯片，用于人脸识别和物体检测。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-A** 的 COM 口，macOS / Linux 选编号较小的那个（如 `...51` / `ttyACM0`）—— 和上一步不是同一个口
+3. 点击烧录按钮
+4. 点击烧录后，按一下设备的重启按钮进入烧录模式
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 设备无响应 | 重新插拔 USB 线 |
+| 烧录卡住或失败 | 按重启按钮重试 |
+| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
+| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+
+---
+
+## 步骤 3: 仓库管理系统 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
@@ -667,7 +714,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config_private_cloud_multi type=manual required=true}
+## 步骤 4: 配置仓库系统 {#warehouse_config_private_cloud_multi type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -687,18 +734,27 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 语音 AI 服务 {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## 步骤 5: 语音 AI 服务 {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
-部署语音 AI 服务，为 Watcher 提供语音交互能力。部署时选择「私有云方案」，需要填写 LLM API 信息。
+![模型配置](gallery/console-tts-list.jpg)
 
-### 部署目标 {#voice_local type=local config=devices/xiaozhi_deploy.yaml}
+本地模型会排在各列表最前面，无需翻页。
+
+部署语音 AI 服务与智控台，为 Watcher 提供语音交互能力。部署时选择「**私有云方案**」，填写：
+
+- **语音服务地址**：运行 OpenVoiceStream 的设备 IP（语音识别 + 语音合成 + 声纹，端口 8621）。本套餐全部跑在 J4012 上，填 `127.0.0.1` 即可
+- **LLM API 地址 / 模型名称 / 密钥**：云端大模型的信息（如 DeepSeek、通义千问）
+
+语音识别与合成在本地运行，只有大模型调用云端 API。部署完成后会自动配好地址与 MCP 接入点。
+
+### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### 接线
 
 1. 确保 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
-### 部署目标 {#voice_remote type=remote config=devices/xiaozhi_deploy.yaml default=true}
+### 部署目标 {#voice_remote type=remote config=devices/xiaozhi_console_deploy.yaml default=true}
 
 ### 接线
 
@@ -715,22 +771,27 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 配置 Watcher 设备 {#watcher_config_private_cloud_multi type=manual required=true}
+## 步骤 6: 配置 Watcher 连接本地服务器 {#watcher_config_private_cloud_multi type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+把 Watcher 配上 WiFi，并让它连到刚部署的本地语音服务器。
 
-先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址。
+> 语音识别与合成都在本地运行，Watcher **不需要**绑定 SenseCraft 云平台。
 
 ### 接线
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
-2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
-4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
-5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
-6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
-7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
-8. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」
+2. 手机搜索名为 `Watcher-XXXX` 的 WiFi 热点并连接
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 `http://192.168.42.1`）
+4. **先别急着连 WiFi** —— 在页面顶部点击「**高级选项**」，在 OTA 地址栏填入：
+
+   ```
+   http://<J4012 的 IP>:18003/xiaozhi/ota/
+   ```
+
+   点击保存。这一步决定了设备连哪台服务器，漏了就会去连默认的公有服务器。
+5. 回到配网页面，等待约 5 秒完成 WiFi 扫描，从列表中选择 **2.4GHz** 网络，输入密码，点击「连接」
+6. 连接成功后设备自动重启
+7. 用浏览器打开 `http://<J4012 的 IP>:18003/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
 ### 故障排除
 
@@ -738,32 +799,78 @@ SenseCraft 体验版已就绪！
 |------|--------|
 | 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
 | 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
-| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
+| OTA 地址页面显示「运行不正常」 | 说明智控台里的 `server.websocket` 没配好。部署脚本会自动写入，若仍异常请登录智控台「参数管理」检查该项 |
+| 设备重启后没反应 | 确认 OTA 地址填的是**服务器 IP**而不是 localhost，且设备与服务器在同一网络 |
+| 想改回默认服务器 | 重新进入配网模式，在高级选项里清空 OTA 地址 |
 
 ---
 
-## 步骤 5: 联动智能体 {#agent_config_private_cloud_multi type=manual required=true}
+## 步骤 7: 创建智能体并联动仓库 {#agent_config_private_cloud_multi type=manual required=true}
 
-![MCP 端点](gallery/mcp-endpoint.png)
+![智控台登录](gallery/console-login.png)
 
-在仓库系统中添加智能体，让 Watcher 能够操作库存：
+> **模型地址部署时已自动填好**，如需改到别的设备，在「模型配置 → 语音合成 →
+> OpenVoiceStream → 修改」里改红框处的基础 URL：
+>
+> ![模型配置项](gallery/console-ovs-form-annotated.png)
+>
+> - 🔴 **基础 URL**：语音服务地址，格式 `http://<设备IP>:8621`
+> - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
+> - 🔵 **API Key**：仅当语音服务开启了 `OVS_API_KEYS` 时才需要填，否则留空
 
-1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
-2. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
-3. 在 Endpoint 中粘贴上一步从 MCP Setting 复制的端点地址
-4. 点击「保存并启动」
-5. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 Connected 即连接成功
+在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
+
+### 接线
+
+**A. 登录智控台**
+
+1. 浏览器访问 `http://<J4012 的 IP>:18002`
+2. 用户名 `admin`，初始密码 `Seeed@2026`
+3. ⚠️ **首次登录后请立即修改密码**（右上角账号菜单 → 修改密码）
+
+   ![修改密码](gallery/console-change-password.jpg)
+
+**B. 配置云端大模型**
+
+4. 进入「模型配置 → 大语言模型」，找到部署时填写的模型，确认 API 地址、模型名称、密钥无误
+
+**C. 创建智能体**
+
+5. 点击「新建智能体」，角色模板选择「**仓库智能助手**」——该模板已预置仓库场景的提示词与本地语音模型
+6. 保存后进入该智能体的「角色配置」页，把「主语言模型」切换成上一步配好的云端模型
+7. 如需调整音色：点击「OVS Speaker」下拉，会实时从语音服务拉取可用音色
+
+**D. 取 MCP 接入点地址**
+
+8. 在角色配置页点击「**编辑功能**」按钮
+9. 在弹窗中找到「MCP 接入点」，点击复制该智能体的专属地址
+
+   > 每个智能体的地址不同（地址里的 token 是按智能体身份加密生成的），多点位部署时别复制混了。
+
+**E. 填进仓库系统**
+
+10. 浏览器访问 `http://<J4012 的 IP>:2125`
+11. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
+12. 在 Endpoint 中粘贴刚才复制的接入点地址
+13. 点击「保存并启动」
+14. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 **Connected** 即连接成功
+
+> **多点位提示**：每台 Watcher 对应一个智能体，重复 C~E 即可。各智能体的 MCP 接入点地址互不相同。
 
 ### 故障排除
 
 | 问题 | 解决方法 |
 |------|----------|
-| 连接失败 | 检查端点地址是否完整复制，不要包含多余空格 |
-| 状态一直显示 Disconnected | 确认 Watcher 已正确绑定到 SenseCraft 平台 |
+| 打不开智控台 | 首次启动要跑数据库迁移，等 1~2 分钟后重试 |
+| 忘记 admin 密码 | 重新部署语音 AI 服务并勾选清除数据，密码会恢复默认 |
+| 角色模板里没有「仓库智能助手」 | 说明用的不是本方案的镜像，检查语音 AI 服务是否部署成功 |
+| MCP 接入点是空的 | 智控台「参数管理」里检查 `server.mcp_endpoint`，部署脚本会自动填写 |
+| 状态一直显示 Disconnected | 检查端点地址是否完整复制（含 token，不要有多余空格） |
+| 大模型不响应 | 检查 API 密钥是否有效、账户是否欠费 |
 
 ---
 
-## 步骤 6: 效果体验 {#demo_private_cloud_multi type=manual required=false}
+## 步骤 8: 效果体验 {#demo_private_cloud_multi type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -785,7 +892,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 7: 打开面板 {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 9: 打开面板 {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 
@@ -826,7 +933,54 @@ SenseCraft 体验版已就绪！
 
 **前提条件：** 需要 reComputer Robotics J5011 · 首次部署需要网络下载镜像
 
-## 步骤 1: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 1: 更新小智固件 {#warehouse_esp32_t3 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+将语音助手程序写入 Watcher 以启用语音交互。本套餐的语音全部由本地服务器处理，固件需要指向自建服务器（步骤 7 会做绑定）。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 用 USB-C 线连接 Watcher 到电脑
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
+3. 点击烧录按钮
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 找不到串口 | 换一条 USB 线或换个 USB 口 |
+| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
+| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
+| 烧录失败 | 重新插拔设备再试 |
+
+---
+
+## 步骤 2: 更新视觉检测固件 {#warehouse_himax_t3 type=himax_usb required=true config=devices/watcher_himax.yaml}
+
+将视觉检测程序写入 Watcher 的 AI 芯片，用于人脸识别和物体检测。
+
+### 接线
+
+![连接设备](gallery/watcher_usb.png)
+
+1. 确保 Watcher 仍通过 USB-C 线连接到电脑（与上一步相同）
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-A** 的 COM 口，macOS / Linux 选编号较小的那个（如 `...51` / `ttyACM0`）—— 和上一步不是同一个口
+3. 点击烧录按钮
+4. 点击烧录后，按一下设备的重启按钮进入烧录模式
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 设备无响应 | 重新插拔 USB 线 |
+| 烧录卡住或失败 | 按重启按钮重试 |
+| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
+| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+
+---
+
+## 步骤 3: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
@@ -868,7 +1022,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 2: 配置仓库系统 {#warehouse_config_edge_computing type=manual required=true}
+## 步骤 4: 配置仓库系统 {#warehouse_config_edge_computing type=manual required=true}
 
 ![配置演示](gallery/setup_warehous.gif)
 
@@ -888,7 +1042,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: Jetson 本地 AI {#jetson_ai type=docker_deploy required=true config=devices/llm_jetson_deploy.yaml}
+## 步骤 5: Jetson 本地 AI {#jetson_ai type=docker_deploy required=true config=devices/llm_jetson_deploy.yaml}
 
 在 Jetson 设备上部署本地大模型和语音合成服务。
 
@@ -916,18 +1070,27 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 4: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_deploy.yaml}
+## 步骤 6: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
-在 R2135-12 上部署语音 AI 服务，连接 Jetson 进行推理。部署时选择「边缘计算方案」，并输入 Jetson IP 地址（如已在上一步部署则自动填充）。
+![模型配置](gallery/console-tts-list.jpg)
 
-### 部署目标 {#voice_local type=local config=devices/xiaozhi_deploy.yaml}
+本地模型会排在各列表最前面，无需翻页。
+
+在 R2135-12 上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
+
+- **语音服务地址**：运行 OpenVoiceStream 的设备 IP（语音识别 + 语音合成 + 声纹，端口 8621）。若与本机同一台，填 `127.0.0.1`
+- **本地 LLM 地址**：运行 EdgeLLM 的 Jetson IP（端口 8000）。如已在上一步部署会自动填充；留空表示与语音服务同一台
+
+部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点，无需手工填写。
+
+### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### 接线
 
 1. 确保 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
-### 部署目标 {#voice_remote type=remote config=devices/xiaozhi_deploy.yaml default=true}
+### 部署目标 {#voice_remote type=remote config=devices/xiaozhi_console_deploy.yaml default=true}
 
 ### 接线
 
@@ -943,22 +1106,27 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: 配置 Watcher 设备 {#watcher_config_edge_computing type=manual required=true}
+## 步骤 7: 配置 Watcher 连接本地服务器 {#watcher_config_edge_computing type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+把 Watcher 配上 WiFi，并让它连到刚部署的本地语音服务器（而不是云端）。
 
-先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址。
+> 本套餐是纯局域网方案，Watcher **不需要**绑定 SenseCraft 云平台。
 
 ### 接线
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
-2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
-3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 http://192.168.42.1）
-4. 等待约 5 秒完成 WiFi 扫描，从列表中选择 2.4GHz 网络，输入密码，点击"连接"
-5. 连接成功后设备自动重启，重启后屏幕显示 6 位验证码
-6. 登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)，点击模型里的「SenseCraft Watcher」选择「Watcher Agent」→「Bind Device」，输入 6 位验证码完成绑定
-7. 点击「Create」新建一个 Agent，点击 Agent 卡片上的 ⚙ 设置图标，在「角色模板」中选择「库存管理员」，按需调整名称和语言后保存
-8. 在 ⚙ 设置页下滑到最底部，点击「MCP Setting」→「获取 MCP 端点」→「复制端点地址」
+2. 手机搜索名为 `Watcher-XXXX` 的 WiFi 热点并连接
+3. 连接后浏览器会自动弹出配网页面（如未弹出，手动访问 `http://192.168.42.1`）
+4. **先别急着连 WiFi** —— 在页面顶部点击「**高级选项**」，在 OTA 地址栏填入上一步部署完成后显示的地址：
+
+   ```
+   http://<语音服务器IP>:18003/xiaozhi/ota/
+   ```
+
+   点击保存。这一步决定了设备连哪台服务器，漏了就会去连默认的公有服务器。
+5. 回到配网页面，等待约 5 秒完成 WiFi 扫描，从列表中选择 **2.4GHz** 网络，输入密码，点击「连接」
+6. 连接成功后设备自动重启
+7. 用浏览器打开 `http://<语音服务器IP>:18003/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
 ### 故障排除
 
@@ -966,32 +1134,72 @@ SenseCraft 体验版已就绪！
 |------|--------|
 | 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
 | 配网失败 | Watcher 仅支持 2.4GHz WiFi，检查路由器是否开启 2.4GHz 频段 |
-| 找不到 Watcher Agent | 确认已登录 SenseCraft 账号，刷新页面 |
+| OTA 地址页面显示「运行不正常」 | 说明智控台里的 `server.websocket` 没配好。部署脚本会自动写入，若仍异常请登录智控台「参数管理」检查该项 |
+| 设备重启后没反应 | 确认 OTA 地址填的是**服务器 IP**而不是 localhost，且设备与服务器在同一网络 |
+| 想改回默认服务器 | 重新进入配网模式，在高级选项里清空 OTA 地址 |
 
 ---
 
-## 步骤 6: 联动智能体 {#agent_config_edge_computing type=manual required=true}
+## 步骤 8: 创建智能体并联动仓库 {#agent_config_edge_computing type=manual required=true}
 
-![MCP 端点](gallery/mcp-endpoint.png)
+![智控台登录](gallery/console-login.png)
 
-在仓库系统中添加智能体，让 Watcher 能够操作库存：
+> **模型地址部署时已自动填好**，如需改到别的设备，在「模型配置 → 语音合成 →
+> OpenVoiceStream → 修改」里改红框处的基础 URL：
+>
+> ![模型配置项](gallery/console-ovs-form-annotated.png)
+>
+> - 🔴 **基础 URL**：语音服务地址，格式 `http://<设备IP>:8621`
+> - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
+> - 🔵 **API Key**：仅当语音服务开启了 `OVS_API_KEYS` 时才需要填，否则留空
 
-1. 浏览器访问 `http://服务器IP:2125`（本机部署用 `localhost`）
-2. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
-3. 在 Endpoint 中粘贴上一步从 MCP Setting 复制的端点地址
-4. 点击「保存并启动」
-5. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 Connected 即连接成功
+在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
+
+### 接线
+
+**A. 登录智控台**
+
+1. 浏览器访问 `http://<语音服务器IP>:18002`
+2. 用户名 `admin`，初始密码 `Seeed@2026`
+3. ⚠️ **首次登录后请立即修改密码**（右上角账号菜单 → 修改密码）
+
+   ![修改密码](gallery/console-change-password.jpg)
+
+**B. 创建智能体**
+
+4. 点击「新建智能体」，角色模板选择「**仓库智能助手**」——该模板已预置仓库场景的提示词，并已选好本地的语音识别、语音合成、大语言模型
+5. 保存后进入该智能体的「角色配置」页
+6. 如需调整音色：点击「OVS Speaker」下拉，会实时从语音服务器拉取可用音色
+
+**C. 取 MCP 接入点地址**
+
+7. 在角色配置页点击「**编辑功能**」按钮
+8. 在弹窗中找到「MCP 接入点」，点击复制该智能体的专属地址
+
+   > 每个智能体的地址不同（地址里的 token 是按智能体身份加密生成的），别复制错。
+
+**D. 填进仓库系统**
+
+9. 浏览器访问 `http://<仓库服务器IP>:2125`
+10. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
+11. 在 Endpoint 中粘贴刚才复制的接入点地址
+12. 点击「保存并启动」
+13. 点击智能体卡片上的「MCP 接入点」，刷新状态显示 **Connected** 即连接成功
 
 ### 故障排除
 
 | 问题 | 解决方法 |
 |------|----------|
-| 连接失败 | 检查端点地址是否完整复制，不要包含多余空格 |
-| 状态一直显示 Disconnected | 确认 Watcher 已正确绑定到 SenseCraft 平台 |
+| 打不开智控台 | 首次启动要跑数据库迁移，等 1~2 分钟后重试 |
+| 忘记 admin 密码 | 重新部署语音 AI 服务并勾选清除数据，密码会恢复默认 |
+| 角色模板里没有「仓库智能助手」 | 说明用的不是本方案的镜像，检查语音 AI 服务是否部署成功 |
+| MCP 接入点是空的 | 智控台「参数管理」里检查 `server.mcp_endpoint`，部署脚本会自动填写 |
+| 状态一直显示 Disconnected | 检查端点地址是否完整复制（含 token，不要有多余空格），并确认仓库系统与语音服务器网络互通 |
+| 音色下拉拉不到内容 | 检查「模型配置 → 语音合成」里的地址是否指向真实的语音服务设备 |
 
 ---
 
-## 步骤 7: 效果体验 {#demo_edge_computing type=manual required=false}
+## 步骤 9: 效果体验 {#demo_edge_computing type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -1013,7 +1221,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 8: 打开面板 {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 10: 打开面板 {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 

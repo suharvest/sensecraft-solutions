@@ -1,0 +1,529 @@
+version: "1.0"
+id: xiaozhi_console_deploy
+name: Xiaozhi Voice Server (Console)
+type: docker_deploy
+
+# 智控台模式的语音 AI 服务，套餐二B（多点位）与套餐三（顶配）共用。
+#
+# 与 xiaozhi_deploy.yaml（单模块）的区别：多部署一套智控台（manager-api + MySQL +
+# Redis），模型配置从数据库读、在网页上改，而不是写死在 .config.yaml 里。
+#
+# 两个套餐的差别只有 LLM 一项：
+#   private_cloud （二B）：ASR/TTS 用本机 OVS，LLM 走云端 API
+#   edge_computing（三） ：ASR/TTS 用 OVS 设备，LLM 用另一台设备上的 EdgeLLM
+# 语音链路两者完全一致，都是 OpenVoiceStream。
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose-xiaozhi-console.yml
+
+  environment:
+    TZ: Asia/Shanghai
+
+  options:
+    project_name: xiaozhi_voice
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: xiaozhi-esp32-server-web
+      port: 18002
+      health_check_endpoint: /xiaozhi/user/pub-config
+      health_check_port: 18002
+      required: true
+    - name: xiaozhi-server
+      port: 18000
+      health_check_endpoint: /xiaozhi/ota/
+      health_check_port: 18003
+      required: true
+    - name: mcp-endpoint
+      port: 18004
+      required: true
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: port_available
+    ports:
+      - 18000
+      - 18002
+      - 18003
+      - 18004
+    description: Check if ports are available
+  - type: disk_space
+    # 智控台镜像约 570MB + MySQL 约 600MB + xiaozhi-server，留足余量
+    min_gb: 6
+    description: Check available disk space
+
+post_deployment:
+  message: "Console: http://localhost:18002 | WebSocket: ws://localhost:18000/xiaozhi/v1/"
+  message_i18n:
+    zh: "智控台: http://localhost:18002 ｜ 设备接入: ws://localhost:18000/xiaozhi/v1/"
+
+ssh:
+  default_user: recomputer
+
+# ---------------------------------------------------------------------------
+# 本地部署视图的用户输入
+# ⚠️ remote_overrides 里必须原样重复一遍——那边是完整替换而非合并。
+# ---------------------------------------------------------------------------
+user_inputs:
+  - id: deploy_mode
+    name: Deployment Mode
+    type: select
+    required: true
+    row: 1
+    options:
+      - value: private_cloud
+        label: Private Cloud (Cloud LLM)
+        label_i18n:
+          zh: 私有云方案（云端 LLM）
+      - value: edge_computing
+        label: Edge Computing (Local LLM)
+        label_i18n:
+          zh: 边缘计算方案（本地 LLM）
+    default: edge_computing
+    description: Choose deployment architecture
+    name_i18n:
+      zh: 部署方案
+    description_i18n:
+      zh: 选择部署架构
+
+  # --- 语音服务地址（两个方案都要，ASR/TTS/声纹 同一个服务同一个端口）---
+  - id: voice_ai_host
+    name: Voice AI Host
+    type: text
+    required: true
+    row: 2
+    default: "127.0.0.1"
+    placeholder: "127.0.0.1"
+    description: "IP of the OpenVoiceStream service (ASR + TTS + voiceprint, port 8621). Use 127.0.0.1 if it runs on this machine."
+    name_i18n:
+      zh: 语音服务地址
+    description_i18n:
+      zh: "运行 OpenVoiceStream 的设备 IP（ASR + TTS + 声纹，端口 8621）。与本机同一台时填 127.0.0.1"
+
+  # --- 边缘计算方案：本地 LLM 地址 ---
+  - id: llm_host
+    name: Local LLM Host
+    type: text
+    required: false
+    row: 2
+    placeholder: "留空表示与语音服务同一台"
+    description: "IP of the EdgeLLM service (port 8000). Leave empty to reuse the voice AI host."
+    show_when:
+      field: deploy_mode
+      value: edge_computing
+    import_from: JETSON_IP
+    name_i18n:
+      zh: 本地 LLM 地址
+    description_i18n:
+      zh: "运行 EdgeLLM 的设备 IP（端口 8000）。留空则与语音服务同一台"
+
+  # --- 私有云方案：云端 LLM ---
+  - id: llm_base_url
+    name: LLM API Base URL
+    type: text
+    required: false
+    row: 3
+    placeholder: "https://api.deepseek.com/v1"
+    description: "OpenAI-compatible API endpoint"
+    show_when:
+      field: deploy_mode
+      value: private_cloud
+    name_i18n:
+      zh: LLM API 地址
+    description_i18n:
+      zh: "兼容 OpenAI 的 API 端点"
+  - id: llm_model_name
+    name: LLM Model Name
+    type: text
+    required: false
+    row: 3
+    placeholder: "deepseek-chat"
+    description: "Model name to use"
+    show_when:
+      field: deploy_mode
+      value: private_cloud
+    name_i18n:
+      zh: LLM 模型名称
+    description_i18n:
+      zh: "使用的模型名称"
+  - id: llm_api_key
+    name: LLM API Key
+    type: password
+    required: false
+    row: 3
+    placeholder: "sk-..."
+    description: "API key for LLM service"
+    show_when:
+      field: deploy_mode
+      value: private_cloud
+    name_i18n:
+      zh: LLM API 密钥
+    description_i18n:
+      zh: "LLM 服务的 API 密钥"
+
+# ---------------------------------------------------------------------------
+# 远程部署视图
+# ---------------------------------------------------------------------------
+remote_overrides:
+  remote_path: /home/{{username}}/xiaozhi_voice
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: docker_compose_version
+      min_version: "2.0"
+      description: Check Docker Compose version
+    - type: disk_space
+      min_gb: 6
+      description: Check available disk space
+  post_deployment:
+    message: "Console: http://{{host}}:18002 | WebSocket: ws://{{host}}:18000/xiaozhi/v1/"
+    message_i18n:
+      zh: "智控台: http://{{host}}:18002 ｜ 设备接入: ws://{{host}}:18000/xiaozhi/v1/"
+
+  # -------------------------------------------------------------------------
+  # actions —— 只写在这里。
+  # remote_overrides.actions 是**整体替换**而非合并（spec/CONTRACT.md:169-175），
+  # 顶层再写一份的话远程视图会用不到、纯属误导。套餐二B/三 默认都走远程部署。
+  #
+  # 引擎语义（app_collaboration/provisioning_station 已核实）：
+  #   - run 正文支持 {{变量}} 替换（action_executor.py:264）
+  #   - 远程部署时 before/after_upload/after 全部经 SSH 在**目标设备**上执行
+  #     （docker_remote_deployer.py:688/752/1149 共用 SSHActionExecutor）
+  #   - 未命中的 {{xxx}} 会**静默替换成空串**（utils/template.py:22-25）→ 脚本里自检
+  #   - SSH 下 cwd 被忽略（action_executor.py:281-283）→ 全部用绝对路径
+  #   - after 在健康检查通过之后才跑（:1145-1149）
+  # -------------------------------------------------------------------------
+  actions:
+    before:
+      - name: xiaozhi-console-prepare-dirs
+        description: 准备工作目录
+        description_i18n:
+          zh: 准备工作目录
+        timeout: 120
+        run: |
+          WORKDIR="/home/{{username}}/xiaozhi_voice"
+          mkdir -p "$WORKDIR/data" "$WORKDIR/models" "$WORKDIR/uploadfile"
+
+          # 未命中的 {{}} 会被静默替换成空串，这里显式自检，避免后续拼出畸形地址
+          if [ -z "{{host}}" ]; then
+            echo "host 为空：无法确定设备地址，设备将连不上语音服务"
+            exit 1
+          fi
+          echo "工作目录就绪：$WORKDIR"
+
+    after_upload:
+      - name: xiaozhi-console-render-config
+        description: 渲染 .config.yaml（secret 稍后以数据库为准补上）
+        description_i18n:
+          zh: 渲染 .config.yaml
+        timeout: 60
+        run: |
+          WORKDIR="/home/{{username}}/xiaozhi_voice"
+          TPL="$WORKDIR/docker/configs/config-console.yaml"
+          [ -f "$TPL" ] || TPL="$WORKDIR/assets/docker/configs/config-console.yaml"
+          if [ ! -f "$TPL" ]; then
+            echo "找不到配置模板 config-console.yaml"
+            exit 1
+          fi
+          # secret 此刻还不存在：manager-api 要启动后才会 initServerSecret() 写进数据库。
+          # 这里先占位，after 阶段再以数据库里的值为准回填并重启 xiaozhi-server。
+          sed -e "s|{{DEVICE_HOST}}|{{host}}|g" \
+              -e "s|{{SERVER_SECRET}}|PENDING|g" \
+              "$TPL" > "$WORKDIR/data/.config.yaml"
+          echo "已生成 data/.config.yaml（secret 待回填）"
+
+    after:
+      - name: xiaozhi-console-apply-settings
+        description: 写入服务地址与 MCP 接入点
+        description_i18n:
+          zh: 写入服务地址与 MCP 接入点
+        timeout: 300
+        # curl/docker 单条失败不要中断整段，脚本内部自己判断并给出可读的错误
+        fail_fast: false
+        run: |
+          WORKDIR="/home/{{username}}/xiaozhi_voice"
+          VOICE_HOST="{{voice_ai_host}}"
+          LLM_HOST="{{llm_host}}"
+          DEPLOY_MODE="{{deploy_mode}}"
+          DEVICE_HOST="{{host}}"
+
+          # 未命中的模板变量会被静默替换成空串（utils/template.py:22-25），逐个自检，
+          # 否则会拼出 ws://:8621/... 这种畸形地址、且失败得莫名其妙。
+          if [ -z "$VOICE_HOST" ]; then
+            echo "语音服务地址为空，跳过自动配置。请登录智控台在「模型配置」里手工填写。"
+            exit 0
+          fi
+          # 边缘计算方案下 LLM 地址留空 = 与语音服务同机
+          [ -n "$LLM_HOST" ] || LLM_HOST="$VOICE_HOST"
+
+          # 智控台首启要跑 110+ 个 liquibase changeset。健康检查虽已通过，
+          # 这里再确认一次数据库可写，避免迁移收尾阶段就动手。
+          DB=xiaozhi-esp32-server-db
+          for i in $(seq 1 30); do
+            docker exec $DB mysqladmin ping -h localhost --silent >/dev/null 2>&1 && break
+            sleep 5
+          done
+          if ! docker exec $DB mysqladmin ping -h localhost --silent >/dev/null 2>&1; then
+            echo "数据库未就绪，跳过自动配置。部署本身已完成，请登录智控台手工填写地址。"
+            exit 0
+          fi
+
+          # 为什么直写数据库而不是调 API：登录接口要求 SM2 加密 + **图形验证码**
+          # （Sm2DecryptUtil:47-54 把验证码和密码一起加密），脚本解不了图。
+          # 模型配置的缓存在 Redis 里且是懒加载（ModelConfigServiceImpl:232-242），
+          # 部署刚完成时没人读过、缓存本来就是空的；末尾再清一次 key 做保险。
+          run_sql() {
+            docker exec -i $DB mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-123456}" \
+              --default-character-set=utf8mb4 xiaozhi_esp32_server 2>/dev/null
+          }
+
+          # server.secret：manager-api 启动时调 initServerSecret() 生成并写入数据库
+          # （SysParamsServiceImpl:204-211），此刻一定已有值。以数据库为准回填到
+          # .config.yaml —— 不去覆盖数据库里的值，避免动这个安全凭据。
+          SECRET=$(run_sql <<SQL
+          SELECT param_value FROM sys_params WHERE param_code='server.secret';
+          SQL
+          )
+          SECRET=$(echo "$SECRET" | tail -1 | tr -d '\r\n ')
+          if [ -n "$SECRET" ] && [ "$SECRET" != "null" ] && [ "$SECRET" != "param_value" ]; then
+            sed -i "s|^  secret: .*|  secret: \"$SECRET\"|" "$WORKDIR/data/.config.yaml"
+            echo "已回填 server.secret"
+          else
+            echo "未能从数据库读到 server.secret，xiaozhi-server 将无法读取配置。"
+            echo "请检查智控台是否正常启动。"
+          fi
+
+          echo "写入语音服务地址：$VOICE_HOST:8621"
+          run_sql <<SQL
+          UPDATE ai_model_config
+             SET config_json = JSON_SET(config_json, '\$.ws_url', 'ws://$VOICE_HOST:8621/asr/stream')
+           WHERE id = 'ASR_OpenVoiceStream' AND JSON_VALID(config_json);
+          UPDATE ai_model_config
+             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$VOICE_HOST:8621')
+           WHERE id = 'TTS_OpenVoiceStream' AND JSON_VALID(config_json);
+          SQL
+
+          if [ "$DEPLOY_MODE" = "edge_computing" ]; then
+            echo "写入本地 LLM 地址：$LLM_HOST:8000"
+            run_sql <<SQL
+            UPDATE ai_model_config
+               SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$LLM_HOST:8000/v1')
+             WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
+          SQL
+          else
+            echo "私有云方案：LLM 走云端 API，请登录智控台在「模型配置 → 大语言模型」里填写"
+          fi
+
+          # 设备接入地址：下发给设备的 WebSocket / OTA 地址，必须是设备能路由到的
+          echo "写入设备接入地址：$DEVICE_HOST"
+          run_sql <<SQL
+          UPDATE sys_params SET param_value = 'ws://$DEVICE_HOST:18000/xiaozhi/v1/'
+           WHERE param_code = 'server.websocket';
+          UPDATE sys_params SET param_value = 'http://$DEVICE_HOST:18003/xiaozhi/ota/'
+           WHERE param_code = 'server.ota';
+          SQL
+
+          # MCP 接入点：key 是接入点容器首次启动时随机生成的，只出现在它的日志里。
+          # 智控台对该参数有硬校验（SysParamsController:214-225）：
+          # 不能含 localhost/127.0.0.1，且 URL 里必须含 key。
+          MCP_KEY=$(docker logs mcp-endpoint-server 2>&1 | grep -oE 'key=[a-f0-9]+' | head -1 | cut -d= -f2)
+          if [ -n "$MCP_KEY" ]; then
+            echo "写入 MCP 接入点参数"
+            run_sql <<SQL
+            UPDATE sys_params
+               SET param_value = 'http://$DEVICE_HOST:18004/mcp_endpoint/health?key=$MCP_KEY'
+             WHERE param_code = 'server.mcp_endpoint';
+          SQL
+          else
+            echo "未能从接入点容器日志里读到 key，server.mcp_endpoint 未配置。"
+            echo "请执行 docker logs mcp-endpoint-server 查看后手工填写。"
+          fi
+
+          # 清掉可能已被读入的模型配置缓存（懒加载，正常情况下此时为空）
+          docker exec xiaozhi-esp32-server-redis redis-cli --scan --pattern 'model_config*' 2>/dev/null \
+            | xargs -r -n50 docker exec -i xiaozhi-esp32-server-redis redis-cli DEL >/dev/null 2>&1 || true
+
+          # 让 xiaozhi-server 重新拉一次配置
+          docker restart xiaozhi-server >/dev/null 2>&1 || true
+
+          echo ""
+          echo "======================================================"
+          echo " 部署完成，已自动配置完毕"
+          echo "======================================================"
+          echo " 智控台:   http://$DEVICE_HOST:18002"
+          echo " 用户名:   admin"
+          echo " 初始密码: Seeed@2026   ← 请登录后立即修改"
+          echo ""
+          echo " 已自动写入："
+          echo "   语音服务(ASR/TTS/声纹)  $VOICE_HOST:8621"
+          if [ "$DEPLOY_MODE" = "edge_computing" ]; then
+            echo "   本地 LLM                $LLM_HOST:8000"
+          fi
+          echo "   设备接入地址            ws://$DEVICE_HOST:18000/xiaozhi/v1/"
+          echo "   MCP 接入点              已配置"
+          echo ""
+          echo " 还需手工完成："
+          echo "   1. 新建智能体，角色模板选「仓库智能助手」"
+          echo "   2. 在「编辑功能」里复制该智能体的 MCP 接入点地址"
+          echo "   3. 粘贴到仓管系统的「智能体配置」里"
+          echo "======================================================"
+
+  # -------------------------------------------------------------------------
+  # 远程视图的用户输入（与顶层完全一致，外加 SSH 连接项）
+  # -------------------------------------------------------------------------
+  user_inputs:
+    - id: host
+      name: Host / IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: Hostname or IP address of the edge device
+      name_i18n:
+        zh: 主机 / IP 地址
+      description_i18n:
+        zh: 边缘计算设备的主机名或 IP 地址
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: SSH login username
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: SSH 登录用户名
+    - id: password
+      name: SSH Password
+      type: password
+      default: "12345678"
+      required: true
+      description: SSH login password
+      name_i18n:
+        zh: SSH 密码
+      description_i18n:
+        zh: SSH 登录密码
+    - id: port
+      name: SSH Port
+      type: text
+      default: "22"
+      required: false
+      description: SSH port (default 22)
+      name_i18n:
+        zh: SSH 端口
+      description_i18n:
+        zh: SSH 端口（默认 22）
+
+    - id: deploy_mode
+      name: Deployment Mode
+      type: select
+      required: true
+      row: 1
+      options:
+        - value: private_cloud
+          label: Private Cloud (Cloud LLM)
+          label_i18n:
+            zh: 私有云方案（云端 LLM）
+        - value: edge_computing
+          label: Edge Computing (Local LLM)
+          label_i18n:
+            zh: 边缘计算方案（本地 LLM）
+      default: edge_computing
+      description: Choose deployment architecture
+      name_i18n:
+        zh: 部署方案
+      description_i18n:
+        zh: 选择部署架构
+
+    - id: voice_ai_host
+      name: Voice AI Host
+      type: text
+      required: true
+      row: 2
+      placeholder: "192.168.1.200"
+      description: "IP of the OpenVoiceStream service (ASR + TTS + voiceprint, port 8621)"
+      name_i18n:
+        zh: 语音服务地址
+      description_i18n:
+        zh: "运行 OpenVoiceStream 的设备 IP（ASR + TTS + 声纹，端口 8621）。与本机同一台时填本机 IP"
+
+    - id: llm_host
+      name: Local LLM Host
+      type: text
+      required: false
+      row: 2
+      placeholder: "留空表示与语音服务同一台"
+      description: "IP of the EdgeLLM service (port 8000). Leave empty to reuse the voice AI host."
+      show_when:
+        field: deploy_mode
+        value: edge_computing
+      import_from: JETSON_IP
+      name_i18n:
+        zh: 本地 LLM 地址
+      description_i18n:
+        zh: "运行 EdgeLLM 的设备 IP（端口 8000）。留空则与语音服务同一台"
+
+    - id: llm_base_url
+      name: LLM API Base URL
+      type: text
+      required: false
+      row: 3
+      placeholder: "https://api.deepseek.com/v1"
+      description: "OpenAI-compatible API endpoint"
+      show_when:
+        field: deploy_mode
+        value: private_cloud
+      name_i18n:
+        zh: LLM API 地址
+      description_i18n:
+        zh: "兼容 OpenAI 的 API 端点"
+    - id: llm_model_name
+      name: LLM Model Name
+      type: text
+      required: false
+      row: 3
+      placeholder: "deepseek-chat"
+      description: "Model name to use"
+      show_when:
+        field: deploy_mode
+        value: private_cloud
+      name_i18n:
+        zh: LLM 模型名称
+      description_i18n:
+        zh: "使用的模型名称"
+    - id: llm_api_key
+      name: LLM API Key
+      type: password
+      required: false
+      row: 3
+      placeholder: "sk-..."
+      description: "API key for LLM service"
+      show_when:
+        field: deploy_mode
+        value: private_cloud
+      name_i18n:
+        zh: LLM API 密钥
+      description_i18n:
+        zh: "LLM 服务的 API 密钥"
+
+name_i18n:
+  zh: 小智语音服务（智控台）
