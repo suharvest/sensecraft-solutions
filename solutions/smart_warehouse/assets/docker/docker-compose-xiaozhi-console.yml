@@ -1,0 +1,122 @@
+# 智控台模式的语音 AI 服务（套餐二B / 套餐三共用）
+#
+# 含智控台三件套（manager-api+web / MySQL / Redis），模型配置从数据库读而不是
+# 从 .config.yaml。（早期的单模块 compose 已移除，见 git 历史。）
+#
+# 端口占用（宿主侧）：
+#   18000 WebSocket（设备连这里）   18002 智控台网页
+#   18003 HTTP（OTA / 视觉分析）    18004 MCP 接入点
+#   注意 3306/6379 不对外发布，只在容器网络内互通。
+
+version: '3.8'
+
+services:
+  # 智控台：manager-api(Java) + manager-web(Vue)，nginx 托管前端并反代 /xiaozhi
+  xiaozhi-esp32-server-web:
+    # 我们自建的镜像。含 OpenVoiceStream/EdgeLLM 供应商、「仓库智能助手」角色模板、
+    # /models/probe 设备探测端点、本地模型置顶排序等全部 changeset。
+    # 上游的 xinnan-tech/xiaozhi-esp32-server:web_latest 一个都没有，不要换回去。
+    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-manager:arm64
+    container_name: xiaozhi-esp32-server-web
+    restart: unless-stopped
+    depends_on:
+      xiaozhi-esp32-server-db:
+        condition: service_healthy
+      xiaozhi-esp32-server-redis:
+        condition: service_healthy
+    ports:
+      - "${XIAOZHI_CONSOLE_PORT:-18002}:8002"
+    environment:
+      - TZ=Asia/Shanghai
+      - SPRING_DATASOURCE_DRUID_URL=jdbc:mysql://xiaozhi-esp32-server-db:3306/xiaozhi_esp32_server?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&connectTimeout=30000&socketTimeout=30000&autoReconnect=true&failOverReadOnly=false&maxReconnects=10
+      - SPRING_DATASOURCE_DRUID_USERNAME=root
+      - SPRING_DATASOURCE_DRUID_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+      - SPRING_DATA_REDIS_HOST=xiaozhi-esp32-server-redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=
+    volumes:
+      - ./uploadfile:/uploadfile
+    healthcheck:
+      # 首次启动要跑 110 个 liquibase changeset，给足 start_period
+      # 该镜像**没有 curl**（真机实测），只有 wget。用 curl 会让健康检查永不通过，
+      # 而 xiaozhi-server 的 depends_on: service_healthy 会因此永久卡在 Created，
+      # 最终 up -d 报 "dependency failed to start"，整个部署失败。
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8002/xiaozhi/user/pub-config"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  xiaozhi-esp32-server-db:
+    image: mysql:latest
+    container_name: xiaozhi-esp32-server-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 45s
+      interval: 10s
+      retries: 10
+    volumes:
+      - xiaozhi-mysql-data:/var/lib/mysql
+    environment:
+      - TZ=Asia/Shanghai
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-123456}
+      - MYSQL_DATABASE=xiaozhi_esp32_server
+      - MYSQL_INITDB_ARGS="--character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci"
+
+  xiaozhi-esp32-server-redis:
+    image: redis:8.0
+    container_name: xiaozhi-esp32-server-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 语音服务本体：WebSocket 接设备，配置从智控台拉
+  xiaozhi-server:
+    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-server:arm64
+    container_name: xiaozhi-server
+    restart: unless-stopped
+    depends_on:
+      xiaozhi-esp32-server-web:
+        condition: service_healthy
+    ports:
+      - "${XIAOZHI_WS_PORT:-18000}:8000"
+      - "${XIAOZHI_HTTP_PORT:-18003}:8003"
+    volumes:
+      - ./data:/opt/xiaozhi-esp32-server/data
+      # 不要挂 models/：VAD 模型（silero_vad.onnx）镜像里自带，
+      # 挂一个空目录会把它整个遮蔽，xiaozhi-server 启动即
+      # NO_SUCHFILE 崩溃。真机实测踩过，别加回来。
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      # 该镜像既无 curl 也无 wget，只有 python3（真机实测）
+      # 不能打 /xiaozhi/ota/ —— 智控台模式下 xiaozhi-server 不注册该路由（由
+      # manager-api 提供），打了永远 404、容器永远 unhealthy。真机实测踩过。
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8003/voiceprint/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MCP 接入点：外部 MCP server（仓管系统 mcp_pipe.py）连进来，按 agent 挂载工具
+  mcp-endpoint:
+    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:latest
+    container_name: mcp-endpoint-server
+    restart: unless-stopped
+    ports:
+      - "${MCP_ENDPOINT_PORT:-18004}:8004"
+    environment:
+      - TZ=Asia/Shanghai
+    healthcheck:
+      # 该镜像无 curl/wget，只有 python3；且 /health 是 404，
+      # 正确路径是 /mcp_endpoint/health（真机实测）
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8004/mcp_endpoint/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  xiaozhi-mysql-data:

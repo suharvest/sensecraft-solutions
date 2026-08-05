@@ -1,0 +1,43 @@
+# 智控台模式配置模板（套餐二B / 套餐三共用）
+#
+# 「智控台」模式的配置模板（早期的单模块模板已移除，见 git 历史）：
+# xiaozhi-server 启动后从 manager-api 拉配置，模型选什么、地址是多少都在网页上改，
+# 所以这里只留连接信息。
+#
+# VAD/ASR/TTS/LLM/Intent/prompt 各段一律不要写回来——写了也不生效，只会让人误以为
+# 改这里有用。角色提示词由智控台的「仓库智能助手」模板提供。
+#
+# __SERVER_SECRET__ 由 actions.after 以数据库里的 server.secret 为准回填。
+# 不要手填，也不要留 null——留 null 会让 xiaozhi-server 拉配置时静默拿不到东西。
+#
+# ⚠️ 占位符必须用 __XXX__，不能用 {{XXX}}：部署引擎会把 run 脚本里所有 {{\w+}}
+# 统统替换，未命中的变成空串（provisioning_station/utils/template.py:20-25）。
+# 于是 sed -e "s|{{DEVICE_HOST}}|...|g" 会变成 s||...|g（空正则），sed 直接失败。
+# 真机实测踩过这个坑，别改回去。
+
+server:
+  ip: 0.0.0.0
+  port: 8000
+  # http 服务端口：OTA 接口、视觉分析接口
+  http_port: 8003
+  # 下发给设备的 WebSocket 地址。必须是设备能路由到的地址，
+  # 不能是 127.0.0.1/localhost。
+  websocket: ws://__DEVICE_HOST__:18000/xiaozhi/v1/
+
+# 从智控台读取配置
+read_config_from_api: true
+
+manager-api:
+  # docker 部署时用服务名，容器间走内部网络
+  url: http://xiaozhi-esp32-server-web:8002/xiaozhi
+  # 与数据库里的 server.secret 一致，由 actions.before 生成并注入两边
+  # 加引号：值以 { 开头时 YAML 会当成流式映射，模板本身就解析不了
+  secret: "__SERVER_SECRET__"
+
+# MCP 接入点：外部 MCP server（仓管系统的 mcp_pipe.py）连进来的地址。
+# 智控台模式下每个 agent 有各自的接入点地址，在「角色配置 → 编辑功能」里查看，
+# 这里的 mcp_endpoint 留空即可——它是单模块模式才用的全局接入点。
+mcp_endpoint: null
+
+delete_audio: true
+close_connection_no_voice_time: 120
