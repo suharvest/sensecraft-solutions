@@ -38,7 +38,10 @@ services:
       - ./uploadfile:/uploadfile
     healthcheck:
       # 首次启动要跑 110 个 liquibase changeset，给足 start_period
-      test: ["CMD", "curl", "-f", "http://localhost:8002/xiaozhi/user/pub-config"]
+      # 该镜像**没有 curl**（真机实测），只有 wget。用 curl 会让健康检查永不通过，
+      # 而 xiaozhi-server 的 depends_on: service_healthy 会因此永久卡在 Created，
+      # 最终 up -d 报 "dependency failed to start"，整个部署失败。
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8002/xiaozhi/user/pub-config"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -84,13 +87,14 @@ services:
       - "${XIAOZHI_HTTP_PORT:-18003}:8003"
     volumes:
       - ./data:/opt/xiaozhi-esp32-server/data
-      # models/ 仍需挂载：VAD(SileroVAD) 在 xiaozhi-server 本地跑，OVS 不负责这个。
-      # 但 ASR 模型（sherpa-onnx-sense-voice，约 1GB）不再需要——识别已搬到 OVS 上。
-      - ./models:/opt/xiaozhi-esp32-server/models
+      # 不要挂 models/：VAD 模型（silero_vad.onnx）镜像里自带，
+      # 挂一个空目录会把它整个遮蔽，xiaozhi-server 启动即
+      # NO_SUCHFILE 崩溃。真机实测踩过，别加回来。
     environment:
       - TZ=Asia/Shanghai
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8003/xiaozhi/ota/"]
+      # 该镜像既无 curl 也无 wget，只有 python3（真机实测）
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8003/xiaozhi/ota/')"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -105,7 +109,9 @@ services:
     environment:
       - TZ=Asia/Shanghai
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      # 该镜像无 curl/wget，只有 python3；且 /health 是 404，
+      # 正确路径是 /mcp_endpoint/health（真机实测）
+      test: ["CMD", "python3", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8004/mcp_endpoint/health')"]
       interval: 30s
       timeout: 10s
       retries: 3

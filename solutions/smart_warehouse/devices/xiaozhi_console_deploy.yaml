@@ -222,7 +222,12 @@ remote_overrides:
         timeout: 120
         run: |
           WORKDIR="/home/{{username}}/xiaozhi_voice"
-          mkdir -p "$WORKDIR/data" "$WORKDIR/models" "$WORKDIR/uploadfile"
+          # compose 里的相对挂载（./data 等）按 **compose 文件所在目录** 解析，
+          # 而 compose 被上传到 remote_path/assets/docker/ 下。目录必须建在那儿，
+          # 建在 remote_path 根下会错位、配置永远读不到。真机实测踩过。
+          # （引擎不支持 project_directory 选项，只能脚本这边对齐。）
+          COMPOSE_DIR="$WORKDIR/assets/docker"
+          mkdir -p "$COMPOSE_DIR/data" "$COMPOSE_DIR/uploadfile"
 
           # 未命中的 {{}} 会被静默替换成空串，这里显式自检，避免后续拼出畸形地址
           if [ -z "{{host}}" ]; then
@@ -239,17 +244,19 @@ remote_overrides:
         timeout: 60
         run: |
           WORKDIR="/home/{{username}}/xiaozhi_voice"
-          TPL="$WORKDIR/docker/configs/config-console.yaml"
-          [ -f "$TPL" ] || TPL="$WORKDIR/assets/docker/configs/config-console.yaml"
+          COMPOSE_DIR="$WORKDIR/assets/docker"
+          TPL="$COMPOSE_DIR/configs/config-console.yaml"
           if [ ! -f "$TPL" ]; then
-            echo "找不到配置模板 config-console.yaml"
+            echo "找不到配置模板：$TPL"
             exit 1
           fi
-          # secret 此刻还不存在：manager-api 要启动后才会 initServerSecret() 写进数据库。
-          # 这里先占位，after 阶段再以数据库里的值为准回填并重启 xiaozhi-server。
-          sed -e "s|{{DEVICE_HOST}}|{{host}}|g" \
-              -e "s|{{SERVER_SECRET}}|PENDING|g" \
-              "$TPL" > "$WORKDIR/data/.config.yaml"
+          mkdir -p "$COMPOSE_DIR/data"
+          # 占位符用 __XXX__ 形式。原因：引擎会把 run 脚本里所有双花括号变量都替换，
+          # 未命中的变成空串，sed 会成为 s||...|g（空正则）直接失败。真机实测踩过。
+          # secret 此刻还不存在（manager-api 启动后才 initServerSecret 写库），
+          # 留 __SERVER_SECRET__ 原样，由 after 阶段以数据库值回填。
+          sed -e "s|__DEVICE_HOST__|{{host}}|g" \
+              "$TPL" > "$COMPOSE_DIR/data/.config.yaml"
           echo "已生成 data/.config.yaml（secret 待回填）"
 
     after:
@@ -257,11 +264,13 @@ remote_overrides:
         description: 写入服务地址与 MCP 接入点
         description_i18n:
           zh: 写入服务地址与 MCP 接入点
-        timeout: 300
+        # 脚本内含最长 150s 的 DB 等待循环 + SQL + docker restart，300 余量偏薄
+        timeout: 600
         # curl/docker 单条失败不要中断整段，脚本内部自己判断并给出可读的错误
         fail_fast: false
         run: |
           WORKDIR="/home/{{username}}/xiaozhi_voice"
+          COMPOSE_DIR="$WORKDIR/assets/docker"
           VOICE_HOST="{{voice_ai_host}}"
           LLM_HOST="{{llm_host}}"
           DEPLOY_MODE="{{deploy_mode}}"
