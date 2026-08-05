@@ -609,7 +609,7 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 
 ## Preset: Tier 2B · Advanced (Multi Site) {#private_cloud_multi}
 
-Self-host the voice AI server while using cloud APIs (DeepSeek, OpenAI, etc.) for LLM and TTS. Supports concurrent voice processing across multiple sites. Your data stays on your network - only API calls go to the cloud.
+Self-host the voice AI server, using a cloud API (DeepSeek, OpenAI, etc.) for the LLM only — speech recognition and synthesis run locally. Supports concurrent voice processing across multiple sites. Your data stays on your network; only LLM calls go to the cloud.
 
 | Device | Purpose |
 |--------|---------|
@@ -826,6 +826,11 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 5. Go back to the setup page, wait about 5 seconds for the WiFi scan to finish, pick a **2.4GHz** network, enter the password, then tap "Connect"
 6. The device reboots automatically once connected
 7. Open `http://<J4012 IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
+
+> **Enabling face recognition (optional)**: face recognition runs on the Watcher itself
+> (suitable for up to ~20 people). After Wi-Fi setup, say "**开启人脸识别模式**" to the
+> Watcher to turn it on, then enrol photos under Settings → Face Recognition in the
+> warehouse system. Without saying it, the feature stays off.
 
 ### Troubleshooting
 
@@ -1115,7 +1120,7 @@ Local models are pinned to the top of every list — no paging needed.
 Deploy the voice AI service and its management console on the R2135-12. Select "**Edge Computing**" mode and fill in two addresses:
 
 - **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1` — the value is read from inside a container)
-- **Local LLM Address**: the Jetson running EdgeLLM, port 8000 (auto-filled from the previous step)
+- **Local LLM Address**: the same Jetson's LAN IP, port 8000 (leave empty if co-located)
 
 Model addresses, the device access address and the MCP endpoint are then configured automatically.
 
@@ -1163,6 +1168,11 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 5. Go back to the setup page, wait about 5 seconds for the WiFi scan to finish, pick a **2.4GHz** network, enter the password, then tap "Connect"
 6. The device reboots automatically once connected
 7. Open `http://<Voice Server IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
+
+> **Enabling face recognition (optional)**: face recognition runs on the Watcher itself
+> (suitable for up to ~20 people). After Wi-Fi setup, say "**开启人脸识别模式**" to the
+> Watcher to turn it on, then enrol photos under Settings → Face Recognition in the
+> warehouse system. Without saying it, the feature stays off.
 
 ### Troubleshooting
 

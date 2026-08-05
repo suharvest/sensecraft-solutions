@@ -132,7 +132,6 @@ user_inputs:
     show_when:
       field: deploy_mode
       value: edge_computing
-    import_from: JETSON_IP
     name_i18n:
       zh: 本地 LLM 地址
     description_i18n:
@@ -477,9 +476,16 @@ remote_overrides:
           echo "   语音服务(ASR/TTS/声纹)  $VOICE_HOST:8621"
           if [ "$DEPLOY_MODE" = "edge_computing" ]; then
             echo "   本地 LLM                $LLM_HOST:8000"
+          else
+            echo "   云端 LLM                ${LLM_MODEL_NAME:-（未填写，需在智控台补充）}"
           fi
           echo "   设备接入地址            ws://$DEVICE_HOST:18000/xiaozhi/v1/"
           echo "   MCP 接入点              已配置"
+          echo ""
+          # 下一步（配置 Watcher）要用这个地址，引导里让用户来这里取，
+          # 所以必须真的打印出来。注意是 18002 不是 18003。
+          echo " 烧录固件时要填的 OTA 地址："
+          echo "   http://$DEVICE_HOST:18002/xiaozhi/ota/"
           echo ""
           echo " 还需手工完成："
           echo "   1. 新建智能体，角色模板选「仓库智能助手」"
@@ -575,7 +581,6 @@ remote_overrides:
       show_when:
         field: deploy_mode
         value: edge_computing
-      import_from: JETSON_IP
       name_i18n:
         zh: 本地 LLM 地址
       description_i18n:

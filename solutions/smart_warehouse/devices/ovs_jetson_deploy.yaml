@@ -95,11 +95,6 @@ pre_checks:
 
 post_deployment:
   message: "Voice AI stack is running: OpenVoiceStream on 8621, EdgeLLM (Qwen3.5-4B) on 8000."
-  exports:
-    - key: VOICE_AI_URL
-      value: "http://{{host}}:8621"
-    - key: JETSON_LLM_URL
-      value: "http://{{host}}:8000/v1"
   message_i18n:
     zh: "语音 AI 栈已部署：OpenVoiceStream 在 8621，EdgeLLM（Qwen3.5-4B）在 8000。"
 

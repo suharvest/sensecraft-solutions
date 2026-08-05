@@ -85,9 +85,6 @@ pre_checks:
 
 post_deployment:
   message: "Speech service is running on port 8621 (ASR + TTS + voiceprint)."
-  exports:
-    - key: VOICE_AI_URL
-      value: "http://{{host}}:8621"
   message_i18n:
     zh: "语音服务已部署，端口 8621（语音识别 + 语音合成 + 声纹）。"
 
