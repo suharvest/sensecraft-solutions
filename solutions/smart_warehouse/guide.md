@@ -740,11 +740,11 @@ Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and
 
 This tier runs speech locally and calls a cloud LLM, so no local large model is deployed.
 
-### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml default=true}
+### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
 Deploy directly on this machine (the J4012 running SenseCraft Solution). Models download automatically — no offline package needed.
 
-### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml}
+### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
 ### Wiring
 
@@ -752,7 +752,9 @@ Deploy directly on this machine (the J4012 running SenseCraft Solution). Models 
 2. If deploying to another device, enter its IP address and SSH credentials
 3. Click Deploy and wait for the models to download and the service to start
 
-The service listens on **8621**. When the next step asks for the Voice Service Address, use `127.0.0.1` if it runs on this same machine.
+The service listens on **8621**. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
+
+> Even when the voice service and the next step land on the same machine, do **not** use `127.0.0.1` — that address is read from inside a container, where `127.0.0.1` points at the container itself and never reaches the host.
 
 ### Troubleshooting
 
@@ -774,7 +776,7 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console, which give the Watcher its voice interaction capability. Select "**Private Cloud**" mode and fill in:
 
-- **Voice Service Address**: the device running OpenVoiceStream, port 8621 (everything runs on the J4012, so `127.0.0.1`)
+- **Voice Service Address**: the J4012's own LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
 - **LLM API URL / model name / API key**: your cloud LLM (DeepSeek, Qwen, etc.)
 
 Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
@@ -798,7 +800,7 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 | Issue | Solution |
 |-------|----------|
 | Image pull failed | Check network connection, or configure Docker mirror |
-| Port in use | Check if ports 18000, 18003, 18004 are used by other services |
+| Port in use | Check if ports 18000, 18002, 18003, 18004 are used by other services |
 | API call failed | Verify API key is correct and has sufficient balance |
 
 ---
@@ -817,13 +819,13 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 4. **Don't join WiFi yet** — tap "**Advanced Options**" at the top of the page and enter this OTA address:
 
    ```
-   http://<J4012 IP>:18003/xiaozhi/ota/
+   http://<J4012 IP>:18002/xiaozhi/ota/
    ```
 
    Tap Save. This is what decides which server the device talks to — skip it and the Watcher falls back to the default public server.
 5. Go back to the setup page, wait about 5 seconds for the WiFi scan to finish, pick a **2.4GHz** network, enter the password, then tap "Connect"
 6. The device reboots automatically once connected
-7. Open `http://<J4012 IP>:18003/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
+7. Open `http://<J4012 IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
 ### Troubleshooting
 
@@ -941,7 +943,7 @@ Your multi-site private cloud warehouse system is ready!
 
 **Access points:**
 - Warehouse System: http://\<server-ip\>:2125
-- Voice Service Console: http://\<server-ip\>:18003
+- Console: http://\<server-ip\>:18002
 
 Your data stays on your network. Try saying "How many apples left?" to test.
 
@@ -1079,11 +1081,11 @@ After deployment, open the warehouse system to complete initial setup:
 
 Deploy OpenVoiceStream (speech recognition + synthesis + voiceprint) and EdgeLLM (Qwen3.5-4B) on the Jetson. The next step's voice service connects to both.
 
-### Target {#local type=local config=devices/ovs_jetson_deploy.yaml default=true}
+### Target {#jetson_ai_local type=local config=devices/ovs_jetson_deploy.yaml}
 
 Deploy directly on this Jetson (the same device running SenseCraft Solution). Models download automatically — no offline package needed.
 
-### Target {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml}
+### Target {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml default=true}
 
 ### Wiring
 
@@ -1112,7 +1114,7 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console on the R2135-12. Select "**Edge Computing**" mode and fill in two addresses:
 
-- **Voice Service Address**: the device running OpenVoiceStream, port 8621 (`127.0.0.1` if local)
+- **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1` — the value is read from inside a container)
 - **Local LLM Address**: the Jetson running EdgeLLM, port 8000 (auto-filled from the previous step)
 
 Model addresses, the device access address and the MCP endpoint are then configured automatically.
@@ -1136,7 +1138,7 @@ Model addresses, the device access address and the MCP endpoint are then configu
 | Issue | Solution |
 |-------|----------|
 | Cannot connect to Jetson | Check if R2135-12 and Jetson are on the same network |
-| Response is slow | Confirm Jetson service is running, visit `http://Jetson-IP:8000/health` to check |
+| Response is slow | Confirm Jetson service is running, visit `http://Jetson-IP:8000/v1/models` to check |
 
 ---
 
@@ -1154,13 +1156,13 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 4. **Don't join WiFi yet** — tap "**Advanced Options**" at the top of the page and enter the OTA address shown after the previous deployment step:
 
    ```
-   http://<Voice Server IP>:18003/xiaozhi/ota/
+   http://<Voice Server IP>:18002/xiaozhi/ota/
    ```
 
    Tap Save. This is what decides which server the device talks to — skip it and the Watcher falls back to the default public server.
 5. Go back to the setup page, wait about 5 seconds for the WiFi scan to finish, pick a **2.4GHz** network, enter the password, then tap "Connect"
 6. The device reboots automatically once connected
-7. Open `http://<Voice Server IP>:18003/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
+7. Open `http://<Voice Server IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
 ### Troubleshooting
 
@@ -1272,7 +1274,7 @@ Your fully offline warehouse system is ready!
 
 **Access points:**
 - Warehouse System: http://\<server-ip\>:2125
-- Voice Service Console: http://\<server-ip\>:18003
-- LLM Health Check: http://\<jetson-ip\>:8000/health
+- Console: http://\<server-ip\>:18002
+- LLM endpoint: http://\<jetson-ip\>:8000/v1/models
 
 100% offline operation - no internet required after deployment.

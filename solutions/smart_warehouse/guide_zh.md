@@ -740,11 +740,11 @@ SenseCraft 体验版已就绪！
 
 本套餐只在本地跑语音，大模型调用云端 API，所以不部署本地大模型。
 
-### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml default=true}
+### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
 直接在本机（运行 SenseCraft Solution 的这台 J4012）上部署。模型会自动下载，无需准备离线包。
 
-### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml}
+### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
 ### 接线
 
@@ -752,7 +752,9 @@ SenseCraft 体验版已就绪！
 2. 若部署到另一台设备，输入其 IP 地址和 SSH 凭据
 3. 点击部署，等待模型下载与服务启动
 
-部署完成后服务监听 **8621**。下一步填「语音服务地址」时，与本步骤同机就填 `127.0.0.1`。
+部署完成后服务监听 **8621**。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
+
+> 即使语音服务与下一步装在同一台机器上，也**不能填 `127.0.0.1`** —— 该地址由容器读取，容器里的 `127.0.0.1` 指向容器自己，连不到宿主服务。
 
 ### 故障排除
 
@@ -774,7 +776,7 @@ SenseCraft 体验版已就绪！
 
 部署语音 AI 服务与智控台，为 Watcher 提供语音交互能力。部署时选择「**私有云方案**」，填写：
 
-- **语音服务地址**：运行 OpenVoiceStream 的设备 IP，端口 8621（全部跑在 J4012 上，填 `127.0.0.1`）
+- **语音服务地址**：上一步部署 OpenVoiceStream 的设备局域网 IP，端口 8621。本套餐全部跑在 J4012 上，填 **J4012 自己的局域网 IP**（不能填 `127.0.0.1`，该地址由容器读取）
 - **LLM API 地址 / 模型名称 / 密钥**：云端大模型信息（如 DeepSeek、通义千问）
 
 语音识别与合成在本地，只有大模型走云端。部署完成后会自动配好地址与 MCP 接入点。
@@ -798,7 +800,7 @@ SenseCraft 体验版已就绪！
 | 问题 | 解决方法 |
 |------|----------|
 | 镜像拉取失败 | 检查网络连接，或配置 Docker 镜像加速 |
-| 端口被占用 | 检查 18000、18003、18004 端口是否被其他服务使用 |
+| 端口被占用 | 检查 18000、18002、18003、18004 端口是否被其他服务使用 |
 | API 调用失败 | 检查 API 密钥是否正确，余额是否充足 |
 
 ---
@@ -817,13 +819,13 @@ SenseCraft 体验版已就绪！
 4. **先别急着连 WiFi** —— 在页面顶部点击「**高级选项**」，在 OTA 地址栏填入：
 
    ```
-   http://<J4012 的 IP>:18003/xiaozhi/ota/
+   http://<J4012 的 IP>:18002/xiaozhi/ota/
    ```
 
    点击保存。这一步决定了设备连哪台服务器，漏了就会去连默认的公有服务器。
 5. 回到配网页面，等待约 5 秒完成 WiFi 扫描，从列表中选择 **2.4GHz** 网络，输入密码，点击「连接」
 6. 连接成功后设备自动重启
-7. 用浏览器打开 `http://<J4012 的 IP>:18003/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
+7. 用浏览器打开 `http://<J4012 的 IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
 ### 故障排除
 
@@ -940,7 +942,7 @@ SenseCraft 体验版已就绪！
 
 **访问入口：**
 - 仓库系统：http://\<服务器IP\>:2125
-- 语音服务控制台：http://\<服务器IP\>:18003
+- 智控台：http://\<服务器IP\>:18002
 
 数据留在自己网络内。试着说「苹果还有多少」测试。
 
@@ -1078,11 +1080,11 @@ SenseCraft 体验版已就绪！
 
 在 Jetson 上部署 OpenVoiceStream（语音识别 + 语音合成 + 声纹）和 EdgeLLM（对话大模型 Qwen3.5-4B）。下一步的语音服务会连接到这两个地址。
 
-### 部署目标 {#local type=local config=devices/ovs_jetson_deploy.yaml default=true}
+### 部署目标 {#jetson_ai_local type=local config=devices/ovs_jetson_deploy.yaml}
 
 直接在本机 Jetson（运行 SenseCraft Solution 的这台设备）上部署。模型会自动下载，无需准备离线包。
 
-### 部署目标 {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml}
+### 部署目标 {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml default=true}
 
 ### 接线
 
@@ -1111,7 +1113,7 @@ SenseCraft 体验版已就绪！
 
 在 R2135-12 上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
 
-- **语音服务地址**：运行 OpenVoiceStream 的设备 IP，端口 8621（同机填 `127.0.0.1`）
+- **语音服务地址**：上一步部署 OpenVoiceStream 的 Jetson 局域网 IP，端口 8621（不能填 `127.0.0.1`，该地址由容器读取）
 - **本地 LLM 地址**：运行 EdgeLLM 的 Jetson IP，端口 8000（上一步部署过会自动填充）
 
 部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点。
@@ -1135,7 +1137,7 @@ SenseCraft 体验版已就绪！
 | 问题 | 解决方法 |
 |------|----------|
 | 无法连接 Jetson | 检查 R2135-12 和 Jetson 是否在同一网络 |
-| 响应很慢 | 确认 Jetson 服务已启动，访问 `http://Jetson-IP:8000/health` 检查 |
+| 响应很慢 | 确认 Jetson 服务已启动，访问 `http://Jetson-IP:8000/v1/models` 检查 |
 
 ---
 
@@ -1153,13 +1155,13 @@ SenseCraft 体验版已就绪！
 4. **先别急着连 WiFi** —— 在页面顶部点击「**高级选项**」，在 OTA 地址栏填入上一步部署完成后显示的地址：
 
    ```
-   http://<语音服务器IP>:18003/xiaozhi/ota/
+   http://<语音服务器IP>:18002/xiaozhi/ota/
    ```
 
    点击保存。这一步决定了设备连哪台服务器，漏了就会去连默认的公有服务器。
 5. 回到配网页面，等待约 5 秒完成 WiFi 扫描，从列表中选择 **2.4GHz** 网络，输入密码，点击「连接」
 6. 连接成功后设备自动重启
-7. 用浏览器打开 `http://<语音服务器IP>:18003/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
+7. 用浏览器打开 `http://<语音服务器IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
 ### 故障排除
 
@@ -1270,7 +1272,7 @@ SenseCraft 体验版已就绪！
 
 **访问入口：**
 - 仓库系统：http://\<服务器IP\>:2125
-- 语音服务控制台：http://\<服务器IP\>:18003
-- 大模型健康检查：http://\<Jetson-IP\>:8000/health
+- 智控台：http://\<服务器IP\>:18002
+- 大模型接口：http://\<Jetson-IP\>:8000/v1/models
 
 部署完成后 100% 离线运行，无需联网。
