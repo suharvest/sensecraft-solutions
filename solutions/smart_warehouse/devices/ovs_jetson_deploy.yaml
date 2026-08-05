@@ -59,12 +59,17 @@ actions:
         # 且 remove_orphans 跨 project 不起作用。这里提前拦下并说清怎么处理，
         # 不自动删 —— 删掉别人的容器不是本步骤该做的决定。
         CONFLICT=""
+        CONFLICT_NAMES=""
         for NAME in seeed-voice-v091 edge-llm-chat-service-v091; do
           EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null)
           if [ -n "$EXIST" ]; then
             PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
             if [ "$PROJ" != "smart_warehouse_voice_ai" ]; then
+              # 两个串分开：CONFLICT 带 project 供人读，CONFLICT_NAMES 是纯容器名，
+              # 供下面拼 docker rm 命令。混用会打印出
+              # `docker rm -f name(project=xxx)`，用户照抄进 shell 直接语法报错。
               CONFLICT="$CONFLICT $NAME(project=${PROJ:-无})"
+              CONFLICT_NAMES="$CONFLICT_NAMES $NAME"
             fi
           fi
         done
@@ -75,7 +80,7 @@ actions:
           echo "deploy/install.sh）。两者会抢同一个容器名和 8621 端口，不能共存。" >&2
           echo "" >&2
           echo "处理：先停掉原有部署，再重新执行本步骤 —— " >&2
-          echo "  docker rm -f$CONFLICT" >&2
+          echo "  docker rm -f$CONFLICT_NAMES" >&2
           echo "数据卷不会被删除，模型无需重新下载。" >&2
           exit 1
         fi
