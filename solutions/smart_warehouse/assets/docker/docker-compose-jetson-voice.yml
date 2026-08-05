@@ -1,0 +1,65 @@
+# Jetson Orin NX 语音栈：仅 OpenVoiceStream（ASR + TTS + 声纹）
+#
+# 用于「私有云方案」（套餐二B）：语音识别与合成在本地跑，大模型调用云端 API，
+# 因此不部署 EdgeLLM。需要本地大模型的方案请用 docker-compose-jetson-voice-ai.yml。
+#
+# 本文件的 speech 段与 docker-compose-jetson-voice-ai.yml 完全一致，取自
+# openvoicestream 仓库的 deploy/docker-compose.edgellm-v091-voice.yml。
+# 镜像 tag、环境变量、挂载路径**不要自行调整** —— TensorRT 库路径与镜像内的
+# 引擎产物强绑定，改任何一项都会导致启动失败。
+#
+# 端口：8621（容器内 8000）。要求 NVIDIA container runtime。
+
+services:
+  # ASR + TTS + 声纹，同一进程同一端口
+  speech:
+    container_name: seeed-voice-v091
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-20260804-r5}
+    runtime: nvidia
+    ipc: host
+    restart: unless-stopped
+    environment:
+      # 边缘设备上模型下载绝不能回落到 huggingface.co。即使宿主 shell 已经导出，
+      # compose 也不会继承未声明的变量，所以这里必须显式写。
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      LANGUAGE_MODE: multilanguage
+      OVS_PROFILE: ${OVS_PROFILE:-jetson-edgellm-v091-matcha}
+      OVS_WORKER_IO_QUEUE_WHEN_SATURATED: "0"
+      HF_MODEL_CACHE_ROOT: /opt/models
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+      TTS_PROVIDER: cuda
+      # 运行时注册的音色与 SparkTTS VoiceProfile 属于用户数据，不是模型产物，
+      # 两个路径都刻意显式声明，避免升级镜像时被一起清掉。
+      OVS_TTS_SPEAKERS_FILE: /opt/seeed-local-voice/data/speakers.json
+      SPARKTTS_VOICES_DIR: /opt/seeed-local-voice/data/sparktts_voices
+      STREAMING_ASR_PROVIDER: cuda
+      CUDA_MODULE_LOADING: LAZY
+      OVS_LOG_FORMAT: text
+      PYTHONPATH: /opt/edgellm-v091/python:/opt/speech:/usr/lib/python3.10/dist-packages
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+    ports:
+      - "8621:8000"
+    volumes:
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - speech-models:/opt/models
+      - seeed-local-voice-data:/opt/seeed-local-voice/data
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+    mem_limit: 8g
+    memswap_limit: 14g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/readyz >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # 首次启动要下载模型权重，15 分钟宽限期是上游实测值，别调小
+      start_period: 15m
+
+
+volumes:
+  speech-models:
+    name: ${SPEECH_MODEL_VOLUME:-speech-models-v091}
+  seeed-local-voice-data:
+    name: seeed-local-voice-data

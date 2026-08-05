@@ -627,7 +627,7 @@ Self-host the voice AI server while using cloud APIs (DeepSeek, OpenAI, etc.) fo
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32_2b type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-Write the voice assistant program to the Watcher to enable voice interaction. In this tier speech recognition and synthesis run on your own server, so the firmware needs to point at it (you'll bind it in Step 6).
+Write the voice assistant program to the Watcher to enable voice interaction. In this tier speech recognition and synthesis run on your own server, so the firmware needs to point at it (you'll bind it in Step 7).
 
 ### Wiring
 
@@ -734,7 +734,38 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 5: Voice AI Service {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
+## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
+
+Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The next step's voice AI service connects to it.
+
+This tier runs speech locally and calls a cloud LLM, so no local large model is deployed.
+
+### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml default=true}
+
+Deploy directly on this machine (the J4012 running SenseCraft Solution). Models download automatically — no offline package needed.
+
+### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml}
+
+### Wiring
+
+1. Connect the J4012 to power and ethernet
+2. If deploying to another device, enter its IP address and SSH credentials
+3. Click Deploy and wait for the models to download and the service to start
+
+The service listens on **8621**. When the next step asks for the Voice Service Address, use `127.0.0.1` if it runs on this same machine.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| First deploy seems stuck | Normal. The first start downloads ~5GB of models via the hf-mirror endpoint; this can take 10+ minutes |
+| Not enough disk space | This step needs at least 15GB free |
+| NVIDIA runtime unavailable | Install nvidia-container-toolkit and restart Docker |
+| Deployed but 8621 unreachable | Models still loading. Check `docker logs seeed-voice-v091`; ready when `curl localhost:8621/readyz` returns 200 |
+
+---
+
+## Step 6: Voice AI Service {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
 ![Model configuration](gallery/console-tts-list.jpg)
 
@@ -771,7 +802,7 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 
 ---
 
-## Step 6: Connect Watcher to Your Local Server {#watcher_config_private_cloud_multi type=manual required=true}
+## Step 7: Connect Watcher to Your Local Server {#watcher_config_private_cloud_multi type=manual required=true}
 
 Put the Watcher on WiFi and point it at the local voice server you just deployed.
 
@@ -805,7 +836,7 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 
 ---
 
-## Step 7: Create an Agent and Link It to the Warehouse {#agent_config_private_cloud_multi type=manual required=true}
+## Step 8: Create an Agent and Link It to the Warehouse {#agent_config_private_cloud_multi type=manual required=true}
 
 ![Console login](gallery/console-login.png)
 
@@ -871,7 +902,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ---
 
-## Step 8: Demo & Testing {#demo_private_cloud_multi type=manual required=false}
+## Step 9: Demo & Testing {#demo_private_cloud_multi type=manual required=false}
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
@@ -893,7 +924,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
 
-## Step 9: Open Dashboard {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 10: Open Dashboard {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 

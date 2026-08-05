@@ -627,7 +627,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 1: 更新小智固件 {#warehouse_esp32_2b type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-将语音助手程序写入 Watcher 以启用语音交互。本套餐的语音识别与合成由本地服务器处理，固件需要指向自建服务器（步骤 6 会做绑定）。
+将语音助手程序写入 Watcher 以启用语音交互。本套餐的语音识别与合成由本地服务器处理，固件需要指向自建服务器（步骤 7 会做绑定）。
 
 ### 接线
 
@@ -734,7 +734,38 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: 语音 AI 服务 {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
+## 步骤 5: 语音服务 {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
+
+在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步的语音 AI 服务会连接到它。
+
+本套餐只在本地跑语音，大模型调用云端 API，所以不部署本地大模型。
+
+### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml default=true}
+
+直接在本机（运行 SenseCraft Solution 的这台 J4012）上部署。模型会自动下载，无需准备离线包。
+
+### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml}
+
+### 接线
+
+1. 将 J4012 接上电源和网线
+2. 若部署到另一台设备，输入其 IP 地址和 SSH 凭据
+3. 点击部署，等待模型下载与服务启动
+
+部署完成后服务监听 **8621**。下一步填「语音服务地址」时，与本步骤同机就填 `127.0.0.1`。
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|----------|
+| 首次部署很久没反应 | 正常。首次启动要下载约 5GB 模型，走 hf-mirror 镜像站，视网络可能要十几分钟 |
+| 磁盘空间不足 | 该步骤需要至少 15GB 可用空间 |
+| 提示 NVIDIA runtime 不可用 | 确认已安装 nvidia-container-toolkit 并重启 Docker |
+| 部署完但 8621 不通 | 模型仍在加载。`docker logs seeed-voice-v091` 查看进度，`curl localhost:8621/readyz` 返回 200 才算就绪 |
+
+---
+
+## 步骤 6: 语音 AI 服务 {#voice_service_private_cloud_multi type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
 ![模型配置](gallery/console-tts-list.jpg)
 
@@ -771,7 +802,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 6: 配置 Watcher 连接本地服务器 {#watcher_config_private_cloud_multi type=manual required=true}
+## 步骤 7: 配置 Watcher 连接本地服务器 {#watcher_config_private_cloud_multi type=manual required=true}
 
 把 Watcher 配上 WiFi，并让它连到刚部署的本地语音服务器。
 
@@ -805,7 +836,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 7: 创建智能体并联动仓库 {#agent_config_private_cloud_multi type=manual required=true}
+## 步骤 8: 创建智能体并联动仓库 {#agent_config_private_cloud_multi type=manual required=true}
 
 ![智控台登录](gallery/console-login.png)
 
@@ -870,7 +901,7 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 8: 效果体验 {#demo_private_cloud_multi type=manual required=false}
+## 步骤 9: 效果体验 {#demo_private_cloud_multi type=manual required=false}
 
 ![语音入库演示](gallery/xiaozhi-stock-in.png)
 
@@ -892,7 +923,7 @@ SenseCraft 体验版已就绪！
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
 
-## 步骤 9: 打开面板 {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 10: 打开面板 {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 仓库管理面板已经运行。点击下方按钮在浏览器中打开。
 

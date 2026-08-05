@@ -1,0 +1,72 @@
+version: "1.0"
+id: ovs_voice_deploy
+name: Speech Service (OpenVoiceStream)
+type: docker_deploy
+
+# 私有云方案（套餐二B）用：只部署 OpenVoiceStream，不部署 EdgeLLM。
+#
+# 该套餐语音识别与合成在本地跑、大模型走云端 API，所以不需要本地大模型。
+# 需要本地大模型的边缘计算方案（套餐三）用 ovs_jetson_deploy.yaml。
+#
+# 本步骤此前是缺失的：语音服务步骤要求填「语音服务地址」指向 OpenVoiceStream，
+# 但没有任何一步把它装起来。
+#
+# device_class=jetson 引入共享的 Jetson 预部署修复与硬件检测探针，
+# 见 devices/profiles/jetson.yaml。
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose-jetson-voice.yml
+  options:
+    project_name: smart_warehouse_voice
+    remove_orphans: true
+  services:
+    # 首次启动要下载模型产物，健康检查默认只有 90 秒远远不够 ——
+    # 上游 compose 自己的 start_period 就写了 15 分钟。
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_port: 8621
+      health_check_timeout: 1800
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: nvidia_runtime
+    description: Check NVIDIA container runtime is available
+  - type: disk_space
+    min_gb: 15
+    description: Check available disk space (speech model artifacts ~5GB)
+
+post_deployment:
+  message: "Speech service is running on port 8621 (ASR + TTS + voiceprint)."
+  exports:
+    - key: VOICE_AI_URL
+      value: "http://{{host}}:8621"
+  message_i18n:
+    zh: "语音服务已部署，端口 8621（语音识别 + 语音合成 + 声纹）。"
+
+name_i18n:
+  zh: 语音服务（OpenVoiceStream）
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_voice
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+      - nvidia_runtime
