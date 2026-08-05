@@ -672,11 +672,11 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 仓库管理系统 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 3: 仓库管理系统 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
-### 部署目标 {#warehouse_2b_local type=local config=devices/warehouse_deploy.yaml}
+### 部署目标 {#warehouse_2b_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
 
 在本机运行仓库管理服务。
 
@@ -692,7 +692,7 @@ SenseCraft 体验版已就绪！
 | 端口被占用 | 检查 2125 端口是否被其他服务使用 |
 | Docker 未运行 | 启动 Docker Desktop 后重试 |
 
-### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
 部署到 reComputer Super J4012 边缘计算设备。
 
@@ -827,9 +827,9 @@ SenseCraft 体验版已就绪！
 6. 连接成功后设备自动重启
 7. 用浏览器打开 `http://<J4012 的 IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
-> **启用人脸识别（可选）**：本套餐的人脸识别由 Watcher 端完成（适合 20 人以内）。
-> 配网完成后对 Watcher 说「**开启人脸识别模式**」即可启用，然后到仓管系统
-> 「系统设置 → 人脸识别」录入人员照片。不说这句话，人脸功能不会生效。
+> **启用人脸识别**：人脸识别服务已随步骤 3 的仓管系统一并部署（独立容器，
+> 监听 8001）。配网完成后对 Watcher 说「**开启人脸识别模式**」，再到仓管系统
+> 「系统设置 → 人脸识别」录入人员照片即可。不说这句话，Watcher 不会上送人脸帧。
 
 ### 故障排除
 
@@ -1018,11 +1018,11 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## 步骤 3: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
-### 部署目标 {#warehouse_t3_local type=local config=devices/warehouse_deploy.yaml}
+### 部署目标 {#warehouse_t3_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
 
 在本机运行仓库管理服务。
 
@@ -1038,7 +1038,7 @@ SenseCraft 体验版已就绪！
 | 端口被占用 | 检查 2125 端口是否被其他服务使用 |
 | Docker 未运行 | 启动 Docker Desktop 后重试 |
 
-### 部署目标 {#warehouse_t3_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+### 部署目标 {#warehouse_t3_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
 部署到 reComputer R2135-12 边缘计算设备。
 
@@ -1167,9 +1167,9 @@ SenseCraft 体验版已就绪！
 6. 连接成功后设备自动重启
 7. 用浏览器打开 `http://<语音服务器IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
-> **启用人脸识别（可选）**：本套餐的人脸识别由 Watcher 端完成（适合 20 人以内）。
-> 配网完成后对 Watcher 说「**开启人脸识别模式**」即可启用，然后到仓管系统
-> 「系统设置 → 人脸识别」录入人员照片。不说这句话，人脸功能不会生效。
+> **启用人脸识别**：人脸识别服务已随步骤 3 的仓管系统一并部署（独立容器，
+> 监听 8001）。配网完成后对 Watcher 说「**开启人脸识别模式**」，再到仓管系统
+> 「系统设置 → 人脸识别」录入人员照片即可。不说这句话，Watcher 不会上送人脸帧。
 
 ### 故障排除
 

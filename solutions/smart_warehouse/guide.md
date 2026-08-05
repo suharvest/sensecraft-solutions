@@ -672,11 +672,11 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ---
 
-## Step 3: Warehouse System {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## Step 3: Warehouse System {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
 
 Deploy the inventory management service with voice control and web dashboard.
 
-### Target {#warehouse_2b_local type=local config=devices/warehouse_deploy.yaml}
+### Target {#warehouse_2b_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
 
 Run the warehouse system on this computer.
 
@@ -692,7 +692,7 @@ Run the warehouse system on this computer.
 | Port in use | Check if port 2125 is used by another service |
 | Docker not running | Start Docker Desktop and retry |
 
-### Target {#warehouse_2b_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
 Deploy to reComputer Super J4012 edge device.
 
@@ -827,10 +827,10 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 6. The device reboots automatically once connected
 7. Open `http://<J4012 IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
-> **Enabling face recognition (optional)**: face recognition runs on the Watcher itself
-> (suitable for up to ~20 people). After Wi-Fi setup, say "**开启人脸识别模式**" to the
-> Watcher to turn it on, then enrol photos under Settings → Face Recognition in the
-> warehouse system. Without saying it, the feature stays off.
+> **Enabling face recognition**: the recognition service was deployed alongside the
+> warehouse system in Step 3 (its own container on port 8001). After Wi-Fi setup, say
+> "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face
+> Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
 
 ### Troubleshooting
 
@@ -1020,11 +1020,11 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ---
 
-## Step 3: Warehouse System {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_deploy.yaml}
+## Step 3: Warehouse System {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
 Deploy the inventory management service with voice control and web dashboard.
 
-### Target {#warehouse_t3_local type=local config=devices/warehouse_deploy.yaml}
+### Target {#warehouse_t3_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
 
 Run the warehouse system on this computer.
 
@@ -1040,7 +1040,7 @@ Run the warehouse system on this computer.
 | Port in use | Check if port 2125 is used by another service |
 | Docker not running | Start Docker Desktop and retry |
 
-### Target {#warehouse_t3_remote type=remote config=devices/warehouse_deploy.yaml default=true}
+### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
 Deploy to reComputer R2135-12 edge device.
 
@@ -1169,10 +1169,10 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 6. The device reboots automatically once connected
 7. Open `http://<Voice Server IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
-> **Enabling face recognition (optional)**: face recognition runs on the Watcher itself
-> (suitable for up to ~20 people). After Wi-Fi setup, say "**开启人脸识别模式**" to the
-> Watcher to turn it on, then enrol photos under Settings → Face Recognition in the
-> warehouse system. Without saying it, the feature stays off.
+> **Enabling face recognition**: the recognition service was deployed alongside the
+> warehouse system in Step 3 (its own container on port 8001). After Wi-Fi setup, say
+> "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face
+> Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
 
 ### Troubleshooting
 
