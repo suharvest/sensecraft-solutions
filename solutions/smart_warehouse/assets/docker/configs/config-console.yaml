@@ -1,7 +1,6 @@
 # 智控台模式配置模板（套餐二B / 套餐三共用）
 #
-# 与旧的 config-private-cloud.yaml / config-edge-computing.yaml 的区别：
-# 那两份是「单模块」模式，模型配置全写在本文件里；本文件是「智控台」模式，
+# 「智控台」模式的配置模板（早期的单模块模板已移除，见 git 历史）：
 # xiaozhi-server 启动后从 manager-api 拉配置，模型选什么、地址是多少都在网页上改，
 # 所以这里只留连接信息。
 #

@@ -5,8 +5,9 @@ type: docker_deploy
 
 # 智控台模式的语音 AI 服务，套餐二B（多点位）与套餐三（顶配）共用。
 #
-# 与 xiaozhi_deploy.yaml（单模块）的区别：多部署一套智控台（manager-api + MySQL +
-# Redis），模型配置从数据库读、在网页上改，而不是写死在 .config.yaml 里。
+# 智控台模式：除语音服务外，另起一套智控台（manager-api + MySQL + Redis），
+# 模型配置从数据库读、在网页上改，而不是写死在 .config.yaml 里。
+# （早期的单模块方案 xiaozhi_deploy.yaml 已移除，见 git 历史。）
 #
 # 两个套餐的差别只有 LLM 一项：
 #   private_cloud （二B）：ASR/TTS 用本机 OVS，LLM 走云端 API

@@ -1,7 +1,7 @@
 # 智控台模式的语音 AI 服务（套餐二B / 套餐三共用）
 #
-# 与 docker-compose-xiaozhi.yml（单模块）的区别：多了智控台三件套
-# （manager-api+web / MySQL / Redis），模型配置从数据库读而不是从 .config.yaml。
+# 含智控台三件套（manager-api+web / MySQL / Redis），模型配置从数据库读而不是
+# 从 .config.yaml。（早期的单模块 compose 已移除，见 git 历史。）
 #
 # 端口占用（宿主侧）：
 #   18000 WebSocket（设备连这里）   18002 智控台网页
