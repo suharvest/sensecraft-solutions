@@ -742,10 +742,10 @@ SenseCraft 体验版已就绪！
 
 部署语音 AI 服务与智控台，为 Watcher 提供语音交互能力。部署时选择「**私有云方案**」，填写：
 
-- **语音服务地址**：运行 OpenVoiceStream 的设备 IP（语音识别 + 语音合成 + 声纹，端口 8621）。本套餐全部跑在 J4012 上，填 `127.0.0.1` 即可
-- **LLM API 地址 / 模型名称 / 密钥**：云端大模型的信息（如 DeepSeek、通义千问）
+- **语音服务地址**：运行 OpenVoiceStream 的设备 IP，端口 8621（全部跑在 J4012 上，填 `127.0.0.1`）
+- **LLM API 地址 / 模型名称 / 密钥**：云端大模型信息（如 DeepSeek、通义千问）
 
-语音识别与合成在本地运行，只有大模型调用云端 API。部署完成后会自动配好地址与 MCP 接入点。
+语音识别与合成在本地，只有大模型走云端。部署完成后会自动配好地址与 MCP 接入点。
 
 ### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
@@ -1078,10 +1078,10 @@ SenseCraft 体验版已就绪！
 
 在 R2135-12 上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
 
-- **语音服务地址**：运行 OpenVoiceStream 的设备 IP（语音识别 + 语音合成 + 声纹，端口 8621）。若与本机同一台，填 `127.0.0.1`
-- **本地 LLM 地址**：运行 EdgeLLM 的 Jetson IP（端口 8000）。如已在上一步部署会自动填充；留空表示与语音服务同一台
+- **语音服务地址**：运行 OpenVoiceStream 的设备 IP，端口 8621（同机填 `127.0.0.1`）
+- **本地 LLM 地址**：运行 EdgeLLM 的 Jetson IP，端口 8000（上一步部署过会自动填充）
 
-部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点，无需手工填写。
+部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点。
 
 ### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 

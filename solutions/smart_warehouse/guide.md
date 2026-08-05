@@ -742,10 +742,10 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console, which give the Watcher its voice interaction capability. Select "**Private Cloud**" mode and fill in:
 
-- **Voice Service Address**: IP of the device running OpenVoiceStream (speech recognition + synthesis + voiceprint, port 8621). Everything in this tier runs on the J4012, so `127.0.0.1` works
-- **LLM API URL / model name / API key**: details of your cloud LLM (DeepSeek, Qwen, etc.)
+- **Voice Service Address**: the device running OpenVoiceStream, port 8621 (everything runs on the J4012, so `127.0.0.1`)
+- **LLM API URL / model name / API key**: your cloud LLM (DeepSeek, Qwen, etc.)
 
-Speech recognition and synthesis run locally; only the LLM calls go to the cloud. Once deployment finishes, the server addresses and the MCP endpoint are configured automatically.
+Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
 
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
@@ -1079,10 +1079,10 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console on the R2135-12. Select "**Edge Computing**" mode and fill in two addresses:
 
-- **Voice Service Address**: IP of the device running OpenVoiceStream (speech recognition + synthesis + voiceprint, port 8621). Use `127.0.0.1` if it runs on the same machine
-- **Local LLM Address**: IP of the Jetson running EdgeLLM (port 8000). Auto-filled if you deployed it in the previous step; leave it empty to use the same machine as the voice service
+- **Voice Service Address**: the device running OpenVoiceStream, port 8621 (`127.0.0.1` if local)
+- **Local LLM Address**: the Jetson running EdgeLLM, port 8000 (auto-filled from the previous step)
 
-Once deployment finishes, the model addresses, the device access address and the MCP endpoint are all configured automatically — nothing to fill in by hand.
+Model addresses, the device access address and the MCP endpoint are then configured automatically.
 
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
