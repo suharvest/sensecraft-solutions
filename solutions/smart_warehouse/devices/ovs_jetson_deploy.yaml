@@ -53,6 +53,7 @@ actions:
   before:
     - name: Check for conflicting containers
       run: |
+        set -e
         # container_name 是固定的（与上游一致，便于文档里直接 docker logs）。
         # 但如果设备上已经有同名容器属于**别的 compose project**（例如手工
         # 用 openvoicestream 仓库的 install.sh 装过），up -d 会因名字冲突失败，
@@ -61,9 +62,12 @@ actions:
         CONFLICT=""
         CONFLICT_NAMES=""
         for NAME in seeed-voice-v091 edge-llm-chat-service-v091; do
-          EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null)
+          # `|| true`：set -e 下命令替换失败会直接中断脚本。容器不存在、
+          # 或 docker 短暂不可用，都应该当作「无冲突」继续，而不是让整个
+          # 部署炸在检查环节。
+          EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null || true)
           if [ -n "$EXIST" ]; then
-            PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null)
+            PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || true)
             if [ "$PROJ" != "smart_warehouse_voice_ai" ]; then
               # 两个串分开：CONFLICT 带 project 供人读，CONFLICT_NAMES 是纯容器名，
               # 供下面拼 docker rm 命令。混用会打印出
