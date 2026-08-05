@@ -614,7 +614,8 @@ Self-host the voice AI server, using a cloud API (DeepSeek, OpenAI, etc.) for th
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer Super J4012 | Runs warehouse system + voice AI service, supports multi-channel concurrent voice processing |
+| reComputer R2135-12 (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
+| reComputer Super J4012 | Runs speech recognition and synthesis (OpenVoiceStream), multi-channel concurrent |
 
 **What you'll get:**
 - Full control over your data - inventory stays on your network
@@ -694,7 +695,7 @@ Run the warehouse system on this computer.
 
 ### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to reComputer Super J4012 edge device.
+Deploy to the reComputer R2135-12 edge gateway (Hailo-8, required for face recognition).
 
 ### Wiring
 
@@ -736,13 +737,13 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The next step's voice AI service connects to it.
+Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The voice AI service deployed on the R2135-12 in the next step connects to it.
 
 This tier runs speech locally and calls a cloud LLM, so no local large model is deployed.
 
 ### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
-Deploy directly on this machine (the J4012 running SenseCraft Solution). Models download automatically — no offline package needed.
+Deploy directly on this machine — only applicable when it is the J4012 itself. Models download automatically — no offline package needed.
 
 ### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
@@ -776,7 +777,7 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console, which give the Watcher its voice interaction capability. Select "**Private Cloud**" mode and fill in:
 
-- **Voice Service Address**: the J4012's own LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
+- **Voice Service Address**: the **J4012's** LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
 - **LLM API URL / model name / API key**: your cloud LLM (DeepSeek, Qwen, etc.)
 
 Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
@@ -961,7 +962,7 @@ Run everything locally including LLM and TTS - no internet required after deploy
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 | Runs warehouse system + voice AI service |
+| reComputer R2135-12 (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
 | reComputer Robotics J5011 | Runs local LLM and TTS, fully offline |
 
 **What you'll get:**
@@ -1020,11 +1021,11 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ---
 
-## Step 3: Warehouse System {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
+## Step 3: Warehouse System {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
 
 Deploy the inventory management service with voice control and web dashboard.
 
-### Target {#warehouse_t3_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
+### Target {#warehouse_t3_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
 
 Run the warehouse system on this computer.
 
@@ -1040,7 +1041,7 @@ Run the warehouse system on this computer.
 | Port in use | Check if port 2125 is used by another service |
 | Docker not running | Start Docker Desktop and retry |
 
-### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
+### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
 Deploy to reComputer R2135-12 edge device.
 

@@ -614,7 +614,8 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer Super J4012 | 运行仓管系统 + 语音 AI 服务，支持多路语音并发 |
+| reComputer R2135-12（Hailo-8） | 运行仓管系统 + 人脸识别 + 语音 AI 服务 |
+| reComputer Super J4012 | 运行语音识别与合成（OpenVoiceStream），支持多路语音并发 |
 
 **部署完成后你可以：**
 - 完全掌控数据——库存信息留在自己网络内
@@ -694,7 +695,7 @@ SenseCraft 体验版已就绪！
 
 ### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-部署到 reComputer Super J4012 边缘计算设备。
+部署到 reComputer R2135-12 边缘网关（带 Hailo-8，人脸识别需要它）。
 
 ### 接线
 
@@ -736,13 +737,13 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 5: 语音服务 {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步的语音 AI 服务会连接到它。
+在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步在 R2135-12 上部署的语音 AI 服务会连接到它。
 
 本套餐只在本地跑语音，大模型调用云端 API，所以不部署本地大模型。
 
 ### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
-直接在本机（运行 SenseCraft Solution 的这台 J4012）上部署。模型会自动下载，无需准备离线包。
+直接在本机（运行 SenseCraft Solution 的这台设备）上部署，仅当本机就是 J4012 时适用。模型会自动下载，无需准备离线包。
 
 ### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
@@ -776,7 +777,7 @@ SenseCraft 体验版已就绪！
 
 部署语音 AI 服务与智控台，为 Watcher 提供语音交互能力。部署时选择「**私有云方案**」，填写：
 
-- **语音服务地址**：上一步部署 OpenVoiceStream 的设备局域网 IP，端口 8621。本套餐全部跑在 J4012 上，填 **J4012 自己的局域网 IP**（不能填 `127.0.0.1`，该地址由容器读取）
+- **语音服务地址**：上一步部署 OpenVoiceStream 的 **J4012 局域网 IP**，端口 8621（不能填 `127.0.0.1`，该地址由容器读取）
 - **LLM API 地址 / 模型名称 / 密钥**：云端大模型信息（如 DeepSeek、通义千问）
 
 语音识别与合成在本地，只有大模型走云端。部署完成后会自动配好地址与 MCP 接入点。
@@ -959,7 +960,7 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12 | 运行仓管系统 + 语音 AI 服务 |
+| reComputer R2135-12（Hailo-8） | 运行仓管系统 + 人脸识别 + 语音 AI 服务 |
 | reComputer Robotics J5011 | 运行本地大模型，完全离线 |
 
 **部署完成后你可以：**
@@ -1018,11 +1019,11 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
+## 步骤 3: 仓库管理系统 {#warehouse_t3 type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
 
 部署库存管理服务，支持语音操控和网页看板。
 
-### 部署目标 {#warehouse_t3_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
+### 部署目标 {#warehouse_t3_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
 
 在本机运行仓库管理服务。
 
@@ -1038,7 +1039,7 @@ SenseCraft 体验版已就绪！
 | 端口被占用 | 检查 2125 端口是否被其他服务使用 |
 | Docker 未运行 | 启动 Docker Desktop 后重试 |
 
-### 部署目标 {#warehouse_t3_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
+### 部署目标 {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
 部署到 reComputer R2135-12 边缘计算设备。
 
