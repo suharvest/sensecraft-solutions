@@ -1042,34 +1042,34 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 5: Jetson 本地 AI {#jetson_ai type=docker_deploy required=true config=devices/llm_jetson_deploy.yaml}
+## 步骤 5: 语音 AI 栈 {#jetson_ai type=docker_deploy required=true config=devices/ovs_jetson_deploy.yaml}
 
-在 Jetson 设备上部署本地大模型和语音合成服务。
+在 Jetson 上部署 OpenVoiceStream（语音识别 + 语音合成 + 声纹）和 EdgeLLM（对话大模型 Qwen3.5-4B）。下一步的语音服务会连接到这两个地址。
 
-### 部署目标 {#local type=local config=devices/llm_jetson_deploy.yaml default=true}
+### 部署目标 {#local type=local config=devices/ovs_jetson_deploy.yaml default=true}
 
-直接在本机 Jetson（运行 SenseCraft Solution 的这台设备）上部署。请先把 `mlc-qwen3-fs.tar.gz` 和 `models-backup.tar.gz` 放到方案目录的 `dist/` 文件夹下。
+直接在本机 Jetson（运行 SenseCraft Solution 的这台设备）上部署。模型会自动下载，无需准备离线包。
 
-### 部署目标 {#jetson_remote type=remote config=devices/llm_jetson_deploy.yaml}
+### 部署目标 {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml}
 
 ### 接线
 
 1. 将 Jetson（reComputer Robotics J5011）接上电源和网线
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
-3. 选择模型（推荐 Qwen3-8B，需约 4.3GB 显存）
-4. 选择部署方式（推荐离线包部署）
-5. 点击部署，等待镜像导入和服务启动
+3. 点击部署，等待模型下载与服务启动
+
+部署完成后会起两个容器：语音服务在 **8621**，大模型在 **8000**。**记下这台 Jetson 的 IP，下一步要填。**
 
 ### 故障排除
 
 | 问题 | 解决方法 |
 |------|----------|
 | SSH 连接失败 | 确认 Jetson 已开机，检查 IP 地址是否正确 |
-| 显存不足 | 选择更小的模型（Qwen3-4B 约 2.5GB，Qwen3-1.7B 约 1.2GB） |
-| 部署时间很长 | 离线包较大（约 5GB），耐心等待 |
+| 首次部署很久没反应 | 正常。首次启动要下载约 10GB 的模型与推理引擎，走 hf-mirror 镜像站，视网络可能要十几分钟 |
+| 磁盘空间不足 | 该步骤需要至少 25GB 可用空间 |
+| 提示 NVIDIA runtime 不可用 | 在 Jetson 上确认已安装 nvidia-container-toolkit 并重启 Docker |
 
 ---
-
 ## 步骤 6: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
 ![模型配置](gallery/console-tts-list.jpg)

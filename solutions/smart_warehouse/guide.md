@@ -1043,34 +1043,34 @@ After deployment, open the warehouse system to complete initial setup:
 
 ---
 
-## Step 5: Jetson Local AI {#jetson_ai type=docker_deploy required=true config=devices/llm_jetson_deploy.yaml}
+## Step 5: Voice AI Stack {#jetson_ai type=docker_deploy required=true config=devices/ovs_jetson_deploy.yaml}
 
-Deploy local LLM and TTS services on the Jetson device.
+Deploy OpenVoiceStream (speech recognition + synthesis + voiceprint) and EdgeLLM (Qwen3.5-4B) on the Jetson. The next step's voice service connects to both.
 
-### Target {#local type=local config=devices/llm_jetson_deploy.yaml default=true}
+### Target {#local type=local config=devices/ovs_jetson_deploy.yaml default=true}
 
-Deploy directly on this Jetson (the same device running SenseCraft Solution). First place `mlc-qwen3-fs.tar.gz` and `models-backup.tar.gz` in the solution's `dist/` folder.
+Deploy directly on this Jetson (the same device running SenseCraft Solution). Models download automatically — no offline package needed.
 
-### Target {#jetson_remote type=remote config=devices/llm_jetson_deploy.yaml}
+### Target {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml}
 
 ### Wiring
 
 1. Connect Jetson (reComputer Robotics J5011) to power and ethernet
 2. Enter Jetson IP address and SSH credentials
-3. Select model (Qwen3-8B recommended, requires ~4.3GB VRAM)
-4. Choose deployment method (offline package recommended)
-5. Click Deploy and wait for image import and service startup
+3. Click Deploy and wait for the models to download and services to start
+
+Two containers come up: voice service on **8621**, LLM on **8000**. **Note this Jetson's IP — the next step needs it.**
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
 | SSH connection failed | Confirm Jetson is powered on, verify IP address |
-| Insufficient VRAM | Choose smaller model (Qwen3-4B ~2.5GB, Qwen3-1.7B ~1.2GB) |
-| Deployment takes long | Offline package is large (~5GB), please be patient |
+| First deploy seems stuck | Normal. The first start downloads ~10GB of models and inference engines via the hf-mirror endpoint; this can take 10+ minutes |
+| Not enough disk space | This step needs at least 25GB free |
+| NVIDIA runtime unavailable | Install nvidia-container-toolkit on the Jetson and restart Docker |
 
 ---
-
 ## Step 6: Voice AI Service {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
 ![Model configuration](gallery/console-tts-list.jpg)

@@ -1,0 +1,84 @@
+version: "1.0"
+id: ovs_jetson_deploy
+name: Voice AI Stack (Jetson)
+type: docker_deploy
+
+# 取代旧的 llm_jetson_deploy（mlc-llm + kokoro-tts）。
+#
+# 换栈的原因：语音服务端（步骤 6）现在通过智控台对接 OpenVoiceStream，
+# 由它统一提供 ASR + TTS + 声纹；对话大模型换成 EdgeLLM。旧栈的 kokoro-tts
+# 与 OVS 的 TTS 重复，mlc-llm 又与 EdgeLLM 抢同一个 8000 端口，两者不能共存。
+#
+# 模型不再走离线包：镜像启动时按 HF 镜像站自动拉取并校验产物完整性
+# （EDGELLM_EXPECTED_PAYLOAD_SHA256 / EXPECTED_ENGINE_COMMIT），
+# 所以原来的 mlc-qwen3-fs.tar.gz、models-backup.tar.gz 和「部署方式」
+# 选项一并去掉。
+#
+# device_class=jetson 引入共享的 Jetson 预部署修复（JetPack 6.x 的 iptables
+# raw 表 workaround）与硬件检测探针，见 devices/profiles/jetson.yaml。
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose-jetson-voice-ai.yml
+  options:
+    project_name: smart_warehouse_voice_ai
+    remove_orphans: true
+  services:
+    # 两个服务首次启动都要下载模型/引擎产物（合计约 10 GB），健康检查
+    # 必须给足时间。默认只有 90 秒，远远不够 —— 上游 compose 自己的
+    # start_period 就写了 15 分钟。
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_port: 8621
+      health_check_timeout: 1800
+      required: true
+    - name: edge-llm
+      port: 8000
+      health_check_endpoint: /v1/models
+      health_check_port: 8000
+      health_check_timeout: 1800
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: nvidia_runtime
+    description: Check NVIDIA container runtime is available
+  - type: disk_space
+    min_gb: 25
+    description: Check available disk space (speech + LLM engine artifacts ~10GB)
+
+post_deployment:
+  message: "Voice AI stack is running: OpenVoiceStream on 8621, EdgeLLM (Qwen3.5-4B) on 8000."
+  exports:
+    - key: VOICE_AI_URL
+      value: "http://{{host}}:8621"
+    - key: JETSON_LLM_URL
+      value: "http://{{host}}:8000/v1"
+  message_i18n:
+    zh: "语音 AI 栈已部署：OpenVoiceStream 在 8621，EdgeLLM（Qwen3.5-4B）在 8000。"
+
+name_i18n:
+  zh: 语音 AI 栈（Jetson）
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_voice_ai
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+      - nvidia_runtime
