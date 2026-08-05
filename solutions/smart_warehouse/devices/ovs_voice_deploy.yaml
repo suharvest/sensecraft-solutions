@@ -41,6 +41,37 @@ ssh:
 
 actions:
   before:
+    - name: Ensure speech runtime host libraries
+      # OVS 的语音镜像并不自带 libsentencepiece —— 它依赖宿主的
+      # /lib/aarch64-linux-gnu（compose 把它挂成 /host-libs 并加进
+      # LD_LIBRARY_PATH）来提供。参考机 orin-nx 上碰巧有（Ubuntu jammy
+      # 自带），而干净的 JetPack 镜像没有，于是 MOSS TTS worker 的启动
+      # 预检加载不到符号，整个 speech 容器 crash-loop —— 报错是一大串
+      # undefined symbol，完全指不回「宿主缺个库」。客户机器上实测踩过。
+      #
+      # 幂等：已存在则直接跳过，不碰 apt。
+      scope: remote
+      ignore_error: false
+      run: |
+        set -e
+        MISSING=""
+        for LIB in libsentencepiece.so.0; do
+          ldconfig -p 2>/dev/null | grep -q "$LIB" || MISSING="$MISSING $LIB"
+        done
+        if [ -z "$MISSING" ]; then
+          echo "语音运行时依赖的宿主库齐全"
+        else
+          echo "缺少宿主库：$MISSING，尝试安装..."
+          if sudo apt-get install -y libsentencepiece0 >/dev/null 2>&1; then
+            echo "已安装 libsentencepiece0"
+          else
+            echo "自动安装失败。请手工执行： sudo apt-get install -y libsentencepiece0" >&2
+            echo "不装的话 speech 容器会在启动预检阶段反复崩溃，报 undefined symbol。" >&2
+            exit 1
+          fi
+        fi
+      name_i18n:
+        zh: 检查语音运行时的宿主依赖
     - name: Check for conflicting containers
       run: |
         set -e
