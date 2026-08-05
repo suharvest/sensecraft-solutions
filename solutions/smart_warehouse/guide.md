@@ -782,6 +782,7 @@ Deploy the voice AI service and its management console, which give the Watcher i
 
 Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
 
+
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### Wiring
@@ -847,11 +848,9 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 
 ## Step 8: Create an Agent and Link It to the Warehouse {#agent_config_private_cloud_multi type=manual required=true}
 
-![Console login](gallery/console-login.png)
-
-> **Model addresses are filled in automatically during deployment.** To point them
-> at a different device, edit the base URL (red box) under
-> Model Configuration → Text-to-Speech → OpenVoiceStream → Edit:
+Create an agent in the management console, then paste its MCP endpoint into the warehouse system so voice commands can drive inventory.
+> **To change the addresses entered during deployment**: edit the base URL (red box)
+> under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
 > ![Model fields](gallery/console-ovs-form-annotated.png)
 >
@@ -859,7 +858,6 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
 > - 🔵 **API Key**: only needed when the voice service has `OVS_API_KEYS` enabled; leave blank otherwise
 
-Create an agent in the management console, then paste its MCP endpoint into the warehouse system so voice commands can drive inventory.
 
 ### Wiring
 
@@ -1125,6 +1123,7 @@ Deploy the voice AI service and its management console on the R2135-12. Select "
 
 Model addresses, the device access address and the MCP endpoint are then configured automatically.
 
+
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### Wiring
@@ -1189,11 +1188,9 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 
 ## Step 8: Create an Agent and Link It to the Warehouse {#agent_config_edge_computing type=manual required=true}
 
-![Console login](gallery/console-login.png)
-
-> **Model addresses are filled in automatically during deployment.** To point them
-> at a different device, edit the base URL (red box) under
-> Model Configuration → Text-to-Speech → OpenVoiceStream → Edit:
+Create an agent in the management console, then paste its MCP endpoint into the warehouse system so voice commands can drive inventory.
+> **To change the addresses entered during deployment**: edit the base URL (red box)
+> under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
 > ![Model fields](gallery/console-ovs-form-annotated.png)
 >
@@ -1201,7 +1198,6 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
 > - 🔵 **API Key**: only needed when the voice service has `OVS_API_KEYS` enabled; leave blank otherwise
 
-Create an agent in the management console, then paste its MCP endpoint into the warehouse system so voice commands can drive inventory.
 
 ### Wiring
 

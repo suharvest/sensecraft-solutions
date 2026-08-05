@@ -782,6 +782,7 @@ SenseCraft 体验版已就绪！
 
 语音识别与合成在本地，只有大模型走云端。部署完成后会自动配好地址与 MCP 接入点。
 
+
 ### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### 接线
@@ -846,10 +847,9 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 8: 创建智能体并联动仓库 {#agent_config_private_cloud_multi type=manual required=true}
 
-![智控台登录](gallery/console-login.png)
-
-> **模型地址部署时已自动填好**，如需改到别的设备，在「模型配置 → 语音合成 →
-> OpenVoiceStream → 修改」里改红框处的基础 URL：
+在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
+> **部署时填的地址如需改动**：在智控台「模型配置 → 语音合成 → OpenVoiceStream → 修改」
+> 里改红框处的基础 URL。
 >
 > ![模型配置项](gallery/console-ovs-form-annotated.png)
 >
@@ -857,7 +857,6 @@ SenseCraft 体验版已就绪！
 > - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
 > - 🔵 **API Key**：仅当语音服务开启了 `OVS_API_KEYS` 时才需要填，否则留空
 
-在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
 
 ### 接线
 
@@ -1123,6 +1122,7 @@ SenseCraft 体验版已就绪！
 
 部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点。
 
+
 ### 部署目标 {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
 
 ### 接线
@@ -1186,10 +1186,9 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 8: 创建智能体并联动仓库 {#agent_config_edge_computing type=manual required=true}
 
-![智控台登录](gallery/console-login.png)
-
-> **模型地址部署时已自动填好**，如需改到别的设备，在「模型配置 → 语音合成 →
-> OpenVoiceStream → 修改」里改红框处的基础 URL：
+在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
+> **部署时填的地址如需改动**：在智控台「模型配置 → 语音合成 → OpenVoiceStream → 修改」
+> 里改红框处的基础 URL。
 >
 > ![模型配置项](gallery/console-ovs-form-annotated.png)
 >
@@ -1197,7 +1196,6 @@ SenseCraft 体验版已就绪！
 > - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
 > - 🔵 **API Key**：仅当语音服务开启了 `OVS_API_KEYS` 时才需要填，否则留空
 
-在智控台创建智能体，再把它的 MCP 接入点填进仓库系统，让语音能操作库存。
 
 ### 接线
 
