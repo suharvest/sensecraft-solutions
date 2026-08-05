@@ -38,11 +38,14 @@ docker:
       health_check_endpoint: /xiaozhi/user/pub-config
       health_check_port: 18002
       required: true
+    # xiaozhi-server 不能参与健康门，否则死锁：引擎要等它健康才执行 after
+    # （docker_remote_deployer.py:1145-1149），而它启动就要用 server.secret 去
+    # 智控台取配置，secret 恰恰是 after 才回填的 —— 在此之前它必然 crashloop。
+    # 因此这里不设 health_check（退化为「容器存在即可」）且 required: false，
+    # 真正的就绪验证放在 after 里 secret 回填并重启之后做，见文末轮询。
     - name: xiaozhi-server
       port: 18000
-      health_check_endpoint: /xiaozhi/ota/
-      health_check_port: 18003
-      required: true
+      required: false
     - name: mcp-endpoint
       port: 18004
       required: true
@@ -394,8 +397,31 @@ remote_overrides:
               | xargs -r -n50 docker exec -i xiaozhi-esp32-server-redis redis-cli DEL >/dev/null 2>&1 || true
           done
 
-          # 让 xiaozhi-server 重新拉一次配置
+          # 让 xiaozhi-server 重新拉一次配置。到这里 secret 才刚回填，
+          # 这是它第一次具备正常启动的条件 —— 所以就绪验证也只能放在这里。
           docker restart xiaozhi-server >/dev/null 2>&1 || true
+
+          # 轮询直到真的起来（最多 60s）。不能打 /xiaozhi/ota/：智控台模式下
+          # xiaozhi-server 不注册该路由，那是 404。
+          echo "等待语音服务端就绪..."
+          READY=0
+          N=0
+          while [ $N -lt 20 ]; do
+            CODE=$(docker exec xiaozhi-server python3 -c \
+              "import urllib.request;print(urllib.request.urlopen('http://localhost:8003/voiceprint/health',timeout=3).status)" \
+              2>/dev/null || echo 000)
+            if [ "$CODE" = "200" ]; then READY=1; break; fi
+            N=$((N+1)); sleep 3
+          done
+          if [ "$READY" = "1" ]; then
+            echo "语音服务端已就绪"
+          else
+            echo ""
+            echo "⚠️  语音服务端 60 秒内未就绪。配置已全部写入，但服务未起来。"
+            echo "    请执行以下命令查看原因："
+            echo "      docker logs xiaozhi-server --tail 50"
+            echo "    若日志显示「无效的服务器密钥」，说明 secret 回填未生效。"
+          fi
 
           echo ""
           echo "======================================================"
