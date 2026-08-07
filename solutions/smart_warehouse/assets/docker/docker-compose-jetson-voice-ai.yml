@@ -61,7 +61,7 @@ services:
   # 对话大模型，OpenAI 兼容接口
   edge-llm:
     container_name: edge-llm-chat-service-v091
-    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13}
+    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-kvcache-src}
     runtime: nvidia
     privileged: true
     ipc: host
