@@ -14,7 +14,7 @@ services:
   # ASR + TTS + 声纹，同一进程同一端口
   speech:
     container_name: seeed-voice-v091
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-20260804-r5}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox070a0-slim2}
     runtime: nvidia
     ipc: host
     restart: unless-stopped
