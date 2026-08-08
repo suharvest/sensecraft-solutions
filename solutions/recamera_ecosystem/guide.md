@@ -708,3 +708,60 @@ Camera is ready! Click **Connect** above to watch the skeleton and rep counter.
 Change the exercise, reps and sets any time from the reCamera Console's app page — no redeploy needed. Counts are also published to `recamera/fitness-trainer/results`, and Home Assistant picks up reps, set, exercise and a workout-complete flag automatically via MQTT discovery.
 
 ---
+
+## Preset: Fall Detection {#fall_detection}
+
+Point reCamera at a fixed indoor area to detect a fall from the recent 3.2-second pose sequence. TPU pose inference, the learned temporal gate and event decisions stay on the device; alerts are published over MQTT.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera | Runs pose estimation, temporal fall logic, RTSP and MQTT locally |
+
+**Important:** This is a high-recall beta assistive alert, not a certified medical or life-safety system. With Subjects 1–2 used for training and Subject 3 for validation/configuration freeze, the untouched 27-clip Subject 4 test reached 74.1% accuracy, 83.3% fall recall, 66.7% specificity and 74.1% F1. On RealBiomFall's independent 34 fall-only test clips, recall was 58.8%. This improves missed falls substantially over v0.1, but increases false alarms; long shots, occlusion, low light and fall-like floor activities remain weak cases.
+
+## Step 1: Install Fall Detection {#deploy_fall_detection type=recamera_cpp required=true config=devices/recamera_fall_detection.yaml}
+
+Install the pose model and temporal fall detector on reCamera.
+
+### Wiring
+
+1. Mount the camera rigidly with a clear, wide view of the monitored area.
+2. Keep the whole person, especially shoulders and hips, visible throughout the expected fall path.
+3. USB connection uses `192.168.42.1`; for Wi-Fi, use the IP shown by your router.
+
+### What to check
+
+The application uses stable single-person association instead of switching to the highest score on every frame. It needs to observe the transition: if it starts while someone is already lying down, it reports the posture but does not emit a new event. Avoid pointing it primarily at a bed or exercise area unless you have separately validated those activities.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Cannot connect | Check that SSH is enabled and the IP/password are correct |
+| Service exits immediately | Confirm the YOLO11n-Pose model exists and no other camera app is running |
+| Falls are missed | Widen the view, improve lighting, and keep shoulders/hips visible before and after impact |
+| Push-ups trigger an alert | This is a known fall-like activity; change the view or add downstream human confirmation |
+
+---
+
+## Step 2: Watch Fall Status {#preview_fall_detection type=preview required=false config=devices/preview_fall_detection.yaml}
+
+Click **Connect** to view the skeleton, state, evidence count and new event number.
+
+The state advances through `normal`, `suspected`, `fallen`, and `recovering`. Automations should de-duplicate alerts with `event_id`; `fall_event` is true only on the transition into a confirmed event.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Overlay appears before video | MQTT connects faster than RTSP; wait a few seconds |
+| Skeleton disappears near the floor | Reframe the camera; a short post-impact gap is tolerated, but long occlusion cannot be classified |
+| No overlay | Confirm MQTT port 1883 is reachable and topic is `recamera/fall-detection/results` |
+
+### Deployment Complete
+
+The camera is ready for a supervised site trial. Alerts and diagnostics are published to `recamera/fall-detection/results`, and Home Assistant discovery exposes fall state, event ID and person presence.
+
+Do a site-specific acceptance test with representative falls and normal activities before enabling any notification workflow. Keep another means of emergency assistance in place.
+
+---

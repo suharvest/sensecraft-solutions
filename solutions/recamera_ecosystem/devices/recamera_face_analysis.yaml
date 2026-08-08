@@ -21,13 +21,13 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 S92face-analysis）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/face-analysis_0.5.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/face-analysis_0.5.1_riscv64.deb
     name: face-analysis
     includes_init_script: true
 
   # 模型文件部署（人脸检测 yolov8n + 年龄性别人种 FairFace + 表情 HSEmotion）
     checksum:
-      sha256: 83e3c6c01775da5bbbd5f38948c1e8994d70e9f53f8bd10b131e105abb88c7df
+      sha256: 716bbaae538b9fce647b31038b07af24efda001c8ce2b1b04c4e56770716ed88
   models:
     - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolov8n_face_cv181x_int8.cvimodel
       target_path: /userdata/local/models

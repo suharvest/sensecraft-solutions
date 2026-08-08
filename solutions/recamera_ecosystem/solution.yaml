@@ -17,6 +17,7 @@ intro:
     - emotion
     - age-gender
     - drowsiness-detection
+    - fall-detection
     - smart-home
     - rtsp
     - privacy
@@ -279,6 +280,30 @@ intro:
         zh: 新功能
       description_i18n:
         zh: 数你的组数、提示动作不到位——深蹲、俯卧撑或哑铃弯举，只靠摄像头，不用手机也不戴手环
+    - id: fall_detection
+      name: Fall Detection
+      badge: Beta
+      description: Detect rapid falls with an on-device pose timeline and publish alerts over MQTT — designed for fixed, single-person indoor views
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: AI 摄像头
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+      name_i18n:
+        zh: 跌倒检测
+      badge_i18n:
+        zh: 测试版
+      description_i18n:
+        zh: 通过设备本地姿态时序识别快速跌倒并用 MQTT 推送告警——适合固定机位、单人室内看护场景
     - id: retail_vision
       name: Retail People Counting
       badge: New
