@@ -8,7 +8,7 @@
   "jetson_voice_assistant": "sha256:1efdc4832e71263ba02bb3c3279172e2aae07c8de675b170d093a5af8a2b1955",
   "openclaw_deploy": "sha256:0bf61278e2cd579276ced24a0ce6ac005fd875c3e5a23bf87e656fbe120b813c",
   "reachy_claw_voice_robot": "sha256:bd5e5fad6645e48614156a442427a02a23971a3d2dc36e0ae21be00623e9757d",
-  "recamera_ecosystem": "sha256:dc07da966a93206a2adfba9ff04059e8201ac0ade8be8c238c2bf2b882599d8c",
+  "recamera_ecosystem": "sha256:f5102aed8c880d91eea63d6eb011ffbb8ab061eb1664208f4708fa2fe59e1699",
   "recamera_heatmap_grafana": "sha256:3cc638fb087f7ce0f7b417c21c49dd3338fbb57309c1a562d20007f5f130df66",
   "recamera_parking_monitor": "sha256:b1de35f55c378d572a6a6128c3cc0520af9c6e5788ce177364d99df33a6929de",
   "recamera_sheep_counter_lora": "sha256:255d97464dcc17dc86b46a74ca9adfe7b0a74347d59ffdb2410d9b6835e82cd9",
