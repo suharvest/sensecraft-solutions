@@ -15,7 +15,7 @@ services:
   # ASR + TTS + 声纹，同一进程同一端口
   speech:
     container_name: seeed-voice-v091
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-20260804-r5}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox080a0}
     runtime: nvidia
     ipc: host
     restart: unless-stopped
@@ -61,7 +61,7 @@ services:
   # 对话大模型，OpenAI 兼容接口
   edge-llm:
     container_name: edge-llm-chat-service-v091
-    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13}
+    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-kvcache-20260808-v1}
     runtime: nvidia
     privileged: true
     ipc: host
