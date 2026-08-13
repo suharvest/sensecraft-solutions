@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430" role="img" aria-label="Camera placement for fall detection: a side or corner view at 2 to 3 metres works; straight-down and long-shot views do not.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+    <linearGradient id="fov" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.06"/>
+    </linearGradient>
+    <linearGradient id="fovBad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.05"/>
+    </linearGradient>
+    <g id="cam">
+      <rect x="-13" y="-9" width="26" height="18" rx="4" fill="#334155"/>
+      <circle cx="0" cy="0" r="5.5" fill="#0ea5e9"/>
+      <circle cx="0" cy="0" r="2.2" fill="#e2e8f0"/>
+    </g>
+    <!-- upright person, ~1.7 m tall at panel scale -->
+    <g id="stand" stroke="#0f172a" stroke-width="4.5" stroke-linecap="round" fill="none">
+      <circle cx="0" cy="-64" r="9.5" fill="#0f172a" stroke="none"/>
+      <path d="M0,-54 L0,-24"/>
+      <path d="M0,-48 L-13,-32 M0,-48 L13,-32"/>
+      <path d="M0,-24 L-11,0 M0,-24 L11,0"/>
+    </g>
+    <!-- fallen person, lying across the floor.
+         Limbs are bent at elbow and knee on purpose: straight limbs converging
+         to a point read as an arrowhead rather than a body. -->
+    <g id="fallen" stroke="#0f172a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
+      <circle cx="-40" cy="-11" r="9.5" fill="#0f172a" stroke="none"/>
+      <path d="M-30,-10 L4,-10"/>
+      <path d="M-20,-10 L-12,-24 L0,-26"/>
+      <path d="M-20,-10 L-10,-1 L2,-3"/>
+      <path d="M4,-10 L20,-21 L34,-17"/>
+      <path d="M4,-10 L22,-3 L36,-6"/>
+    </g>
+  </defs>
+
+  <style>
+    .panel { fill:#ffffff; stroke:#e2e8f0; stroke-width:2; }
+    .floor { stroke:#94a3b8; stroke-width:3; }
+    .wall  { stroke:#cbd5e1; stroke-width:3; }
+    .dim   { stroke:#64748b; stroke-width:1.6; }
+    .dimtx { fill:#475569; font:600 15px system-ui,-apple-system,'Segoe UI',sans-serif; }
+    .mark  { font:700 34px system-ui,-apple-system,'Segoe UI',sans-serif; }
+    .ok    { fill:#16a34a; }
+    .no    { fill:#dc2626; }
+  </style>
+
+  <rect width="1200" height="430" fill="#f8fafc"/>
+
+  <!-- ============ 1. side / corner view, 2-3 m: works ============ -->
+  <g transform="translate(20,20)">
+    <rect class="panel" x="0" y="0" width="370" height="390" rx="12"/>
+    <text class="mark ok" x="26" y="52">✓</text>
+
+    <!-- wall + floor -->
+    <path class="wall"  d="M40,60 L40,300"/>
+    <path class="floor" d="M40,300 L340,300"/>
+
+    <!-- camera high on the wall, tilted down about 30 degrees -->
+    <g transform="translate(56,96) rotate(30)"><use href="#cam"/></g>
+
+    <!-- field of view reaching the floor where a fall would happen -->
+    <path d="M62,100 L318,232 L318,300 L120,300 Z" fill="url(#fov)"/>
+
+    <!-- mounting height -->
+    <path class="dim" d="M24,96 L24,300" marker-start="url(#ar)" marker-end="url(#ar)"/>
+    <text class="dimtx" x="8" y="200" transform="rotate(-90 8,200)" text-anchor="middle">2–3 m</text>
+
+    <!-- tilt angle -->
+    <path class="dim" d="M62,96 L150,96" stroke-dasharray="5 5"/>
+    <path class="dim" d="M104,96 A 42 42 0 0 1 96,118" fill="none"/>
+    <text class="dimtx" x="112" y="122">30°</text>
+
+    <!-- whole person visible, standing and fallen, both inside the cone -->
+    <g transform="translate(196,300)"><use href="#stand"/></g>
+    <g transform="translate(286,300)"><use href="#fallen"/></g>
+  </g>
+
+  <!-- ============ 2. straight down: does not work ============ -->
+  <g transform="translate(415,20)">
+    <rect class="panel" x="0" y="0" width="370" height="390" rx="12"/>
+    <text class="mark no" x="26" y="52">✗</text>
+
+    <path class="wall"  d="M40,60 L330,60"/>
+    <path class="floor" d="M40,300 L330,300"/>
+
+    <!-- ceiling mount looking straight down -->
+    <g transform="translate(185,78) rotate(90)"><use href="#cam"/></g>
+    <path d="M170,88 L200,88 L268,300 L102,300 Z" fill="url(#fovBad)"/>
+
+    <!-- from overhead the torso barely changes shape when someone goes down -->
+    <g transform="translate(150,300)"><use href="#stand"/></g>
+    <g transform="translate(250,300)"><use href="#fallen"/></g>
+
+    <path class="dim" d="M185,96 L185,286" marker-end="url(#ar)" stroke-dasharray="5 5"/>
+    <text class="dimtx" x="196" y="200">90°</text>
+  </g>
+
+  <!-- ============ 3. long shot / occlusion: does not work ============ -->
+  <g transform="translate(810,20)">
+    <rect class="panel" x="0" y="0" width="370" height="390" rx="12"/>
+    <text class="mark no" x="26" y="52">✗</text>
+
+    <path class="wall"  d="M40,60 L40,300"/>
+    <path class="floor" d="M40,300 L340,300"/>
+
+    <g transform="translate(56,96) rotate(18)"><use href="#cam"/></g>
+    <path d="M62,100 L336,250 L336,300 L120,300 Z" fill="url(#fovBad)"/>
+
+    <!-- near person, hips and legs cut off by furniture -->
+    <g transform="translate(196,300)"><use href="#stand"/></g>
+    <rect x="168" y="256" width="82" height="44" rx="5" fill="#cbd5e1" stroke="#94a3b8" stroke-width="2"/>
+
+    <!-- far person, too small in frame to give reliable keypoints -->
+    <g transform="translate(310,300) scale(0.5)"><use href="#stand"/></g>
+
+    <path class="dim" d="M62,336 L310,336" marker-start="url(#ar)" marker-end="url(#ar)"/>
+    <text class="dimtx" x="186" y="358" text-anchor="middle">&gt; 6 m</text>
+  </g>
+</svg>

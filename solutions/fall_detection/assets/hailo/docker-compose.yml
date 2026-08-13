@@ -1,0 +1,50 @@
+# Raspberry Pi 5 / reComputer R + Hailo-8 fall detection.
+#
+# Native C++ runtime: GStreamer decodes the RTSP stream, the `hailonet` plugin
+# runs YOLOv8s-Pose on the accelerator, and the process decodes the quantized
+# output tensors, tracks each person, runs the temporal MLP and publishes
+# reCamera-compatible MQTT. No Torch, Ultralytics, ONNX Runtime or Python in
+# the deployed hot path.
+#
+# ABI lock: the GStreamer plugin, the HailoRT user library and the kernel
+# driver must all be the same HailoRT version. The image contains none of them
+# — the host's are mounted read-only so they cannot drift apart.
+services:
+  fall-detection:
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rpi-hailo:0.1.0-rc1
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - mosquitto
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    environment:
+      HEF_PATH: /models/yolov8s_pose.hef
+      # Semicolon-separated id|URL entries; add more for multi-stream use.
+      STREAMS: "${STREAMS:-cam-01|rtsp://192.168.1.10:554/stream1}"
+      RTSP_LATENCY_MS: ${RTSP_LATENCY_MS:-100}
+      MQTT_HOST: ${MQTT_HOST:-127.0.0.1}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      MQTT_TOPIC: ${MQTT_TOPIC:-recamera/fall-detection/results/{stream_id}}
+      SCORE_THRESHOLD: ${SCORE_THRESHOLD:-0.35}
+      KEYPOINT_THRESHOLD: ${KEYPOINT_THRESHOLD:-0.25}
+      BENCHMARK_SECONDS: ${BENCHMARK_SECONDS:-0}
+    volumes:
+      - ./models:/models:ro
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so:ro
+      - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -c /dev/hailo0 && test -r /models/yolov8s_pose.hef"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
