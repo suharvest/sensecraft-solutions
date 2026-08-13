@@ -12,6 +12,22 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/cover.png
+  gallery:
+    - type: image
+      src: gallery/cover.png
+      caption: Confirmed fall on reComputer J — skeleton, track state and evidence count from the live MQTT message
+      caption_i18n:
+        zh: reComputer J 上确认的一次跌倒——骨架、跟踪状态和证据计数来自实时 MQTT 消息
+    - type: image
+      src: gallery/live-fall-demo.gif
+      caption: State transition from normal to fallen, shown in the reCamera Pro App Center preview
+      caption_i18n:
+        zh: 从正常到跌倒的状态跃迁，画面为 reCamera Pro App Center 预览页
+    - type: image
+      src: gallery/camera-placement.svg
+      caption: Camera placement — a side or corner view at 2-3 m works; straight-down and long-shot or occluded views do not
+      caption_i18n:
+        zh: 机位选择——2-3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用
   category: sensing
   solution_type: technical
   tags:
