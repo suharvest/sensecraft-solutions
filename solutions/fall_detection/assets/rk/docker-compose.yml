@@ -18,18 +18,33 @@ services:
       - mosquitto
     devices:
       - "/dev/dri:/dev/dri"
+    environment:
+      # RKNN Lite is reached from the host tree rather than copied over the
+      # container's own site-packages. Mounting onto site-packages is what the
+      # upstream compose does and it fails badly here: Rockchip ships
+      # rknn_toolkit_lite2 as a wheel, so on many images it lives in ~/.local or
+      # a venv rather than /usr/lib/python3/dist-packages. Docker then creates
+      # the missing source path as an EMPTY directory and mounts that over
+      # site-packages, so the import fails and the container crash-loops.
+      PYTHONPATH: /host-pysite
     volumes:
       - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro
-      - /usr/lib/python3/dist-packages/rknnlite:/usr/local/lib/python3.11/site-packages/rknnlite:ro
-      - /usr/lib/python3/dist-packages/ruamel:/usr/local/lib/python3.11/site-packages/ruamel:ro
-      - /usr/lib/python3/dist-packages/psutil:/usr/local/lib/python3.11/site-packages/psutil:ro
+      # RKNN_SITE is written to .env by the deploy step, which locates the real
+      # site-packages directory holding rknnlite on this board. An unset value
+      # makes compose fail loudly instead of mounting an empty directory.
+      - ${RKNN_SITE}:/host-pysite:ro
       - ./config:/config:ro
       - ./models:/models:ro
     healthcheck:
-      test: ["CMD-SHELL", "test -r /config/config.json && test -d /models"]
+      # Importing rknnlite is the check that matters. The previous test only
+      # confirmed the config and model files existed, which stayed true while
+      # the app crash-looped on a failed import — the stack reported healthy
+      # and published nothing.
+      test: ["CMD-SHELL", "python3 -c 'import rknnlite.api' && test -r /config/config.json"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
+      start_period: 30s
 
   # These boards ship no MQTT broker, so the stack brings one. Point Home
   # Assistant or your alerting system at port 1883.

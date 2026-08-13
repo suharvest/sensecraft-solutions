@@ -58,9 +58,23 @@ remote_overrides:
           # The user-space library must match the kernel NPU driver, which is why
           # the compose file mounts the host copy instead of baking one in.
           strings /usr/lib/librknnrt.so 2>/dev/null | grep -m1 "librknnrt version" || true
-          python3 -c "import rknnlite" 2>/dev/null \
-            && echo "rknnlite present" \
-            || echo "WARNING: python3 rknnlite not found at the expected dist-packages path" >&2
+          # Hard failure, not a warning. Rockchip ships rknn_toolkit_lite2 as a
+          # wheel, so it often lives in ~/.local or a venv rather than
+          # /usr/lib/python3/dist-packages. If the container cannot import it the
+          # app crash-loops, and a warning here is not enough to notice that.
+          SITE=$(python3 - <<'PY'
+          import importlib.util, os, sys
+          spec = importlib.util.find_spec("rknnlite")
+          if spec is None or not spec.origin:
+              sys.exit(1)
+          print(os.path.dirname(os.path.dirname(spec.origin)))
+          PY
+          ) || {
+            echo "rknnlite (rknn_toolkit_lite2) is not importable by python3 on this board." >&2
+            echo "Install it first, e.g.: pip3 install rknn_toolkit_lite2" >&2
+            exit 1
+          }
+          echo "rknnlite site-packages: $SITE"
           echo "RKNN runtime OK"
         name_i18n:
           zh: 校验 RKNN 运行环境
@@ -92,6 +106,26 @@ remote_overrides:
     # before `docker compose up` — config/config.json does not exist on the
     # device until the upload finishes.
     after_upload:
+
+      - name: Point the container at the board's RKNN Lite
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk/rk_auto_fall"
+          SITE=$(python3 - <<'PY'
+          import importlib.util, os
+          spec = importlib.util.find_spec("rknnlite")
+          print(os.path.dirname(os.path.dirname(spec.origin)))
+          PY
+          )
+          # Compose reads .env from the project directory. RKNN_SITE is mounted
+          # read-only at /host-pysite and reached through PYTHONPATH, rather than
+          # mounted over the container's own site-packages: a missing source path
+          # would otherwise be auto-created as an empty directory and shadow the
+          # real one, which fails as a crash loop rather than a deploy error.
+          echo "RKNN_SITE=$SITE" > "$WORKDIR/.env"
+          cat "$WORKDIR/.env"
+        name_i18n:
+          zh: 让容器指向板卡上的 RKNN Lite
       - name: Download the pose model for this board
         timeout: 900
         run: |
