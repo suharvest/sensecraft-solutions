@@ -44,18 +44,25 @@ froze the configuration, and Subject 4 was read once as an untouched test set.
 Accuracy on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15 everyday activities; every
 row measured at the temporal gate, same protocol, same test set):
 
-| Runtime | Pose model | Accuracy | Fall recall | Specificity | F1 | Alert latency |
-|---|---|---:|---:|---:|---:|---:|
-| reComputer J | YOLO11m FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.36 s |
-| reComputer RK3576 | YOLO11n FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
-| reComputer RK3588 | YOLO11n FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
-| reComputer R (Hailo) | YOLOv8s | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
-| reComputer J | YOLO11s FP16 | 77.8% | 83.3% | 73.3% | 76.9% | 1.47 s |
-| reCamera 2002 | YOLO11n INT8 | not measured | not measured | not measured | not measured | not measured |
+| Runtime | Pose model | Precision | Accuracy | Fall recall | Specificity | F1 | Alert latency |
+|---|---|---|---:|---:|---:|---:|---:|
+| reComputer J | YOLO11m-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.36 s |
+| reComputer RK3576 | YOLO11n-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
+| reComputer RK3588 | YOLO11n-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
+| reComputer R (Hailo) | YOLOv8s-pose | INT8 | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
+| reCamera Pro | YOLO11n-pose | INT8 | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 s |
+| reComputer J | YOLO11s-pose | FP16 | 77.8% | 83.3% | 73.3% | 76.9% | 1.47 s |
+| reCamera 2002 | YOLO11n-pose | INT8 | not measured | not measured | not measured | not measured | not measured |
 
-The top four share an identical confusion matrix (12/0/12/3); only alert latency
-separates them. reCamera 2002 has a deployed baseline only (74.1% accuracy /
-83.3% recall / 1.75 s) and no temporal-gate run.
+The platforms do not run the same model: n < s < m in size, so RK, reCamera and Pro
+use 11n, reComputer J uses 11s/11m and Hailo uses v8s. The table therefore compares
+platform + model + precision as a package, not hardware alone. The top four share an
+identical confusion matrix (12/0/12/3) and differ only in alert latency.
+
+reCamera Pro also has a natively retrained profile (70.4%) which scored below the
+transferred weights above and was not promoted to default. reCamera 2002 has a
+deployed baseline only (74.1% / 83.3% / 1.75 s) and no temporal-gate run. reCamera
+Pro is not yet offered as a deployment preset.
 
 ### Performance
 
