@@ -196,7 +196,10 @@ plus a compose bump, published together.
   untouched.
 - Jetson `trtexec --version` exits 1 on TensorRT 10.3. Any script that gates on it
   under `set -e` aborts before doing any work.
-- The upstream source at `/Users/harvest/project/fall-detection` is **not a git
-  repository**, so the three bug fixes made there during this work (`global RUNNING`
-  in `app.py`, the `trtexec --version` guard, the `/dev:/dev` mount) exist only as
-  working-tree edits with no history.
+- Upstream source: <https://github.com/suharvest/edgefallkit> (Apache-2.0), which
+  carries all seven platform directories. The three fixes made during this work
+  are in it — verified against `main`: `global RUNNING` in `app.py` and the
+  `trtexec --version` guard are present. The `/dev:/dev` mount is still in the
+  upstream `platforms/jetson/docker-compose.yml`; that is fine, because this
+  solution ships its own compose without it (runc rejects recreating `/dev/pts`
+  inodes, and the nvidia runtime injects the GPU nodes anyway).

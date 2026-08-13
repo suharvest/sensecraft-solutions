@@ -219,11 +219,8 @@ intro:
     difficulty: intermediate
     estimated_time: 30min
 
-  # TODO: repoint at the multi-platform fall-detection repository once it is
-  # published. The link below covers the reCamera preset only — the Jetson, RK
-  # and Hailo runtimes live in a separate project.
   links:
-    github: https://github.com/suharvest/sscma-example-sg200x
+    github: https://github.com/suharvest/edgefallkit
 
 deployment:
   guide_file: guide.md
