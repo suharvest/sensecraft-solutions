@@ -107,25 +107,33 @@ remote_overrides:
     # device until the upload finishes.
     after_upload:
 
-      - name: Point the container at the board's RKNN Lite
+      - name: Stage the board's RKNN Lite packages
         run: |
           set -e
           WORKDIR="/home/{{username}}/fall-detection-rk3588/rk3588_fall"
+          DEST="$WORKDIR/rknnsite"
           SITE=$(python3 - <<'PY'
           import importlib.util, os
           spec = importlib.util.find_spec("rknnlite")
           print(os.path.dirname(os.path.dirname(spec.origin)))
           PY
           )
-          # Compose reads .env from the project directory. RKNN_SITE is mounted
-          # read-only at /host-pysite and reached through PYTHONPATH, rather than
-          # mounted over the container's own site-packages: a missing source path
-          # would otherwise be auto-created as an empty directory and shadow the
-          # real one, which fails as a crash loop rather than a deploy error.
-          echo "RKNN_SITE=$SITE" > "$WORKDIR/.env"
-          cat "$WORKDIR/.env"
+          echo "rknnlite found in: $SITE"
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          # Copy ONLY the RKNN packages. Exposing the whole site-packages on
+          # PYTHONPATH takes precedence over the image's own packages, and the
+          # board's Debian numpy then shadows the image's and fails on a libblas
+          # the image does not ship. rknnlite's own deps that are absent from the
+          # image are copied alongside it; anything the image already provides is
+          # deliberately left behind.
+          cp -a "$SITE/rknnlite" "$DEST/"
+          for pkg in ruamel ruamel.yaml psutil; do
+            [ -e "$SITE/$pkg" ] && cp -a "$SITE/$pkg" "$DEST/" || true
+          done
+          ls -1 "$DEST"
         name_i18n:
-          zh: 让容器指向板卡上的 RKNN Lite
+          zh: 准备板卡的 RKNN Lite 依赖
       - name: Download the pose model for this board
         timeout: 900
         run: |

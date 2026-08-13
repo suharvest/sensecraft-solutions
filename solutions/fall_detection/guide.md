@@ -195,10 +195,10 @@ the other presets, using the board's own NPU instead of a GPU.
 | IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
 
 **Important:** this is an assistive alert, not a certified medical or life-safety
-system. Each board now runs a temporal profile trained and frozen on its own pose
-traces, and on the untouched Subject 4 test both reached 88.9% accuracy with 100%
-fall recall — the same confusion matrix as the best reComputer J configuration,
-measured the same way.
+system. Each board runs a temporal profile trained and frozen on its own pose traces.
+Accuracy is reported for the solution as a whole on the introduction page — the
+27-clip test set cannot separate the platforms, so per-board figures would read
+as differences that were not measured.
 
 ## Step 1: Deploy Fall Detection {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 
@@ -272,10 +272,9 @@ Python, so the host CPU stays largely free.
 | IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
 
 **Important:** this is an assistive alert, not a certified medical or life-safety
-system. A Hailo-specific temporal profile is now frozen and reached 88.9% accuracy
-with 100% fall recall on the untouched Subject 4 test, at 92.02% pose coverage —
-the same confusion matrix as the best reComputer J configuration, measured the
-same way.
+system. A Hailo-specific temporal profile is frozen, with 92.02% pose coverage on the
+held-out test. Accuracy is reported for the solution as a whole on the
+introduction page — the 27-clip test set cannot separate the platforms.
 
 ## Step 1: Deploy Fall Detection {#deploy_hailo_fall type=docker_deploy required=true config=devices/hailo_fall.yaml}
 

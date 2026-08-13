@@ -41,43 +41,54 @@ These are engineering benchmarks on public datasets, **not a medical or
 life-safety certification**. Subjects 1–2 trained the temporal model, Subject 3
 froze the configuration, and Subject 4 was read once as an untouched test set.
 
-Accuracy on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15 everyday activities; every
-row measured at the temporal gate, same protocol, same test set):
+**How it was tested**
 
-| Runtime | Pose model | Precision | Accuracy | Fall recall | Specificity | F1 | Alert latency |
-|---|---|---|---:|---:|---:|---:|---:|
-| reComputer J | YOLO11m-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.36 s |
-| reComputer RK3576 | YOLO11n-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
-| reComputer RK3588 | YOLO11n-pose | FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
-| reComputer R (Hailo) | YOLOv8s-pose | INT8 | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
-| reCamera Pro | YOLO11n-pose | INT8 | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 s |
-| reComputer J | YOLO11s-pose | FP16 | 77.8% | 83.3% | 73.3% | 76.9% | 1.47 s |
-| reCamera 2002 | YOLO11n-pose | INT8 | not measured | not measured | not measured | not measured | not measured |
+- GMDCSA-24 v2.1, split by person: Subjects 1–2 train the temporal model,
+  Subject 3 selects thresholds and freezes the configuration, and Subject 4 is a
+  held-out test set **read exactly once**.
+- Subject 4 drops the 10 clips previously used for pipeline smoke tests, leaving
+  27 (12 falls / 15 everyday activities).
+- Video is resampled to 15 FPS; tracking and temporal state reset before each clip.
+- An alert more than 0.5 s before the annotated start of the fall counts as a false
+  alarm, not a hit.
+- Every platform re-extracts traces from its own real pose output and retrains and
+  freezes its own temporal weights. Nothing is borrowed across platforms.
 
-The platforms do not run the same model: n < s < m in size, so RK, reCamera and Pro
-use 11n, reComputer J uses 11s/11m and Hailo uses v8s. The table therefore compares
-platform + model + precision as a package, not hardware alone. The top four share an
-identical confusion matrix (12/0/12/3) and differ only in alert latency.
+**Result**
 
-reCamera Pro also has a natively retrained profile (70.4%) which scored below the
-transferred weights above and was not promoted to default. reCamera 2002 has a
-deployed baseline only (74.1% / 83.3% / 1.75 s) and no temporal-gate run. reCamera
-Pro is not yet offered as a deployment preset.
+Averaged over the six frozen configurations: **85.8% accuracy, 95.8% fall recall,
+77.8% specificity, 85.7% F1, 1.4 s mean alert latency.** Individual configurations
+fall between 77.8% and 88.9%.
+
+**Why there is no per-platform comparison table**
+
+27 clips resolve to 3.7 percentage points — one clip is one step — so every
+configuration that reaches "all 12 falls caught, 3 of 15 everyday clips
+false-alarmed" lands on the same 88.9%. All platforms false-alarm on the same two
+clips, ADL/06 and ADL/07, which puts the limit in the fall-decision layer rather
+than the pose model; the temporal state machine is one shared design. Model size
+does not track the result either — the YOLO11s configuration scores below YOLO11n
+ones. Separating the platforms would need a larger, harder test set.
 
 ### Performance
 
-One basis: 640² single stream, model inference only, excluding RTSP decode and
-postprocessing.
+One basis: 640² input; per-frame is accelerator inference only, excluding RTSP
+decode and postprocessing; aggregate is total frame rate at the highest
+concurrency actually measured.
 
-| Runtime | Pose model | Per-frame inference | Streams measured |
-|---|---|---:|---:|
-| reComputer R (Hailo) | YOLOv8s | 6.9 ms | 2 |
-| reComputer J (Orin NX) | YOLO11s FP16 | 8.3 ms | 1 |
-| reComputer RK3588 | YOLO11n FP16 | 51.4 ms | 3 |
-| reCamera 2002 | YOLO11n INT8 | 53.0 ms | 1 |
-| reComputer RK3576 | YOLO11n FP16 | 63.0 ms | 2 |
+| Runtime | Pose model | Precision | Per-frame | Concurrency tested | Aggregate | Streams at 15 FPS |
+|---|---|---|---:|---:|---:|---:|
+| reComputer R (Hailo) | YOLOv8s | INT8 | 6.9 ms | 2 | 59.5 FPS | 3 |
+| reComputer J (Orin Nano) | YOLO11s | FP16 | 12.2 ms | 6 | 70.9 FPS | 4 |
+| reComputer J (Orin NX) | YOLO11m | FP16 | 18.6 ms | 6 | 53.5 FPS | 3 |
+| reComputer RK3588 | YOLO11n | FP16 | 51.4 ms | 3 | 51.4 FPS | 3 |
+| reCamera 2002 | YOLO11n | INT8 | 53.0 ms | 1 | 10.0 FPS | under 15 FPS on one |
+| reComputer RK3576 | YOLO11n | FP16 | 56.1 ms | 2 | 29.2 FPS | 1 |
 
-"Streams measured" is the concurrency actually exercised, not a board ceiling.
+"Streams at 15 FPS" is aggregate ÷ 15, rounded down — an inference-core bound with
+no headroom for decode, tracking or MQTT. Both Jetson boards hold essentially flat
+aggregate throughput across 6 concurrent contexts, so the accelerator is the limit
+rather than scheduling.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed

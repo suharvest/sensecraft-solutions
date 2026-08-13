@@ -146,9 +146,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Keep your existing cameras — a Jetson Orin runs a larger pose model with higher measured accuracy.
+      description: Keep your existing cameras — a Jetson Orin runs a larger pose model and covers the most streams.
       description_i18n:
-        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，实测准确率更高。
+        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，可支撑的路数最多。
       # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
       # source: image pulled, engine built on-device, sha256 verified, and MQTT
       # published with a person tracked through fallen -> recovering.
@@ -182,9 +182,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen at 88.9% accuracy on the held-out test.
+      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set.
       description_i18n:
-        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，留出测试集上冻结成绩 88.9% 准确率。
+        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。
       device_groups:
         - id: compute
           name: Detector Host
@@ -213,9 +213,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen at 88.9% accuracy on the held-out test.
+      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set.
       description_i18n:
-        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，留出测试集上冻结成绩 88.9% 准确率。
+        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。
       device_groups:
         - id: compute
           name: Detector Host

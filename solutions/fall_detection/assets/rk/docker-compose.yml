@@ -19,20 +19,21 @@ services:
     devices:
       - "/dev/dri:/dev/dri"
     environment:
-      # RKNN Lite is reached from the host tree rather than copied over the
-      # container's own site-packages. Mounting onto site-packages is what the
-      # upstream compose does and it fails badly here: Rockchip ships
-      # rknn_toolkit_lite2 as a wheel, so on many images it lives in ~/.local or
-      # a venv rather than /usr/lib/python3/dist-packages. Docker then creates
-      # the missing source path as an EMPTY directory and mounts that over
-      # site-packages, so the import fails and the container crash-loops.
+      # Only the RKNN Lite packages are exposed, never the board's whole
+      # site-packages. Two failure modes are being avoided here:
+      #   - mounting onto the container's site-packages (what upstream does):
+      #     Rockchip ships rknn_toolkit_lite2 as a wheel, so on many images it
+      #     lives in a venv rather than /usr/lib/python3/dist-packages. Docker
+      #     creates the missing source path as an EMPTY directory, mounts that
+      #     over site-packages, and the container crash-loops.
+      #   - putting the host's entire dist-packages on PYTHONPATH: it takes
+      #     precedence over site-packages, so Debian's numpy shadows the image's
+      #     and fails on a libblas the image does not carry.
+      # The deploy step copies just the needed packages into ./rknnsite.
       PYTHONPATH: /host-pysite
     volumes:
       - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro
-      # RKNN_SITE is written to .env by the deploy step, which locates the real
-      # site-packages directory holding rknnlite on this board. An unset value
-      # makes compose fail loudly instead of mounting an empty directory.
-      - ${RKNN_SITE}:/host-pysite:ro
+      - ./rknnsite:/host-pysite:ro
       - ./config:/config:ro
       - ./models:/models:ro
     healthcheck:
