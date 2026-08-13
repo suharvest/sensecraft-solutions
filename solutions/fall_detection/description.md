@@ -41,23 +41,36 @@ These are engineering benchmarks on public datasets, **not a medical or
 life-safety certification**. Subjects 1–2 trained the temporal model, Subject 3
 froze the configuration, and Subject 4 was read once as an untouched test set.
 
-Accuracy on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15 everyday activities):
+Accuracy on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15 everyday activities; every
+row measured at the temporal gate, same protocol, same test set):
 
-| Runtime | Pose model | Measured at | Accuracy | Fall recall | Specificity | F1 | Alert latency |
-|---|---|---|---:|---:|---:|---:|---:|
-| reCamera 2002 | YOLO11n INT8 | deployed | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
-| reComputer J | YOLO11s FP16 | deployed | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
-| reComputer J | YOLO11m FP16 | deployed | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
-| reComputer RK3576 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
-| reComputer RK3588 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
-| reComputer R (Hailo) | YOLOv8s | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
+| Runtime | Pose model | Accuracy | Fall recall | Specificity | F1 | Alert latency |
+|---|---|---:|---:|---:|---:|---:|
+| reComputer J | YOLO11m FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.36 s |
+| reComputer RK3576 | YOLO11n FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
+| reComputer RK3588 | YOLO11n FP16 | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
+| reComputer R (Hailo) | YOLOv8s | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
+| reComputer J | YOLO11s FP16 | 77.8% | 83.3% | 73.3% | 76.9% | 1.47 s |
+| reCamera 2002 | YOLO11n INT8 | not measured | not measured | not measured | not measured | not measured |
 
-**Do not skip the "measured at" column.** *Deployed* is the alert you actually
-receive over MQTT. *Temporal gate* is the moment the model first sustains its
-probability threshold — it fires earlier and reads higher. So 88.9% and 85.2%
-were not measured with the same ruler, and the deployed figure for the three NPU
-boards is still unmeasured. Each platform's weights were trained and frozen on
-that platform's own pose traces, so the numbers describe the board itself.
+The top four share an identical confusion matrix (12/0/12/3); only alert latency
+separates them. reCamera 2002 has a deployed baseline only (74.1% accuracy /
+83.3% recall / 1.75 s) and no temporal-gate run.
+
+### Performance
+
+One basis: 640² single stream, model inference only, excluding RTSP decode and
+postprocessing.
+
+| Runtime | Pose model | Per-frame inference | Streams measured |
+|---|---|---:|---:|
+| reComputer R (Hailo) | YOLOv8s | 6.9 ms | 2 |
+| reComputer J (Orin NX) | YOLO11s FP16 | 8.3 ms | 1 |
+| reComputer RK3588 | YOLO11n FP16 | 51.4 ms | 3 |
+| reCamera 2002 | YOLO11n INT8 | 53.0 ms | 1 |
+| reComputer RK3576 | YOLO11n FP16 | 63.0 ms | 2 |
+
+"Streams measured" is the concurrency actually exercised, not a board ceiling.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed

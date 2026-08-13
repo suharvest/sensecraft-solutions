@@ -183,8 +183,7 @@ NPU 代替 GPU。
 
 **重要提示：** 这是一个辅助告警，不是经过认证的医疗或人身安全系统。每块板卡现在都
 使用在自己姿态轨迹上训练并冻结的时序权重，在未被读过的 Subject 4 测试集上两者都达到
-88.9% 准确率、100% 跌倒召回。该数字测在时序门限而不是部署告警，与
-reCamera 和 reComputer J 那几行不是同一种测量；方案介绍页的准确率表标注了每行的测量位置。
+88.9% 准确率、100% 跌倒召回——与 reComputer J 最好的配置混淆矩阵完全相同，测量口径一致。
 
 ## 步骤 1: 部署跌倒检测 {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 
@@ -255,8 +254,7 @@ reCamera 和 reComputer J 那几行不是同一种测量；方案介绍页的准
 
 **重要提示：** 这是一个辅助告警，不是经过认证的医疗或人身安全系统。Hailo 专属的时序
 权重已经冻结，在未被读过的 Subject 4 测试集上达到 88.9% 准确率、100% 跌倒召回，姿态
-覆盖率 92.02%。该数字测在时序门限而不是部署告警，与 reCamera 和
-reComputer J 那几行不是同一种测量；方案介绍页的准确率表标注了每行的测量位置。
+覆盖率 92.02%——与 reComputer J 最好的配置混淆矩阵完全相同，测量口径一致。
 
 ## 步骤 1: 部署跌倒检测 {#deploy_hailo_fall type=docker_deploy required=true config=devices/hailo_fall.yaml}
 
