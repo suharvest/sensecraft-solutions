@@ -149,6 +149,11 @@ intro:
       description: Keep your existing cameras — a Jetson Orin runs a larger pose model with higher measured accuracy.
       description_i18n:
         zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，实测准确率更高。
+      # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
+      # source: image pulled, engine built on-device, sha256 verified, and MQTT
+      # published with a person tracked through fallen -> recovering.
+      verified:
+        - hardware
       device_groups:
         - id: compute
           name: Detector Host
