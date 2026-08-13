@@ -3151,7 +3151,7 @@
       "type": "object"
     }
   },
-  "contract_version": 2,
+  "contract_version": 3,
   "description": "Complete device configuration",
   "properties": {
     "actions": {
@@ -3209,6 +3209,19 @@
         }
       ],
       "default": null
+    },
+    "deploy_timeout": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum wall-clock seconds for this device's entire deployment. None (the default) means unlimited.",
+      "title": "Deploy Timeout"
     },
     "detection": {
       "anyOf": [
