@@ -41,32 +41,23 @@ These are engineering benchmarks on public datasets, **not a medical or
 life-safety certification**. Subjects 1–2 trained the temporal model, Subject 3
 froze the configuration, and Subject 4 was read once as an untouched test set.
 
-Final deployed comparison on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15
-everyday activities):
+Accuracy on GMDCSA-24 Subject 4 (27 clips, 12 falls / 15 everyday activities):
 
-| Runtime | Pose model | Accuracy | Fall recall | Specificity | F1 | Mean latency |
-|---|---|---:|---:|---:|---:|---:|
-| reCamera 2002 | YOLO11n INT8 | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
-| reComputer J | YOLO11s FP16 | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
-| reComputer J | YOLO11m FP16 | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
-
-
-A second, separately frozen result now exists for the NPU platforms. It is **not
-directly comparable to the table above**: those rows measure the deployed state
-machine — the alert you actually receive over MQTT — while these measure the
-temporal gate, the moment the model first sustains its probability threshold.
-The gate fires earlier and is the more flattering of the two, so the deployed
-figure for these boards is still unmeasured.
-
-| Runtime | Pose model | Measured at | Accuracy | Fall recall | Specificity | F1 | Mean latency |
+| Runtime | Pose model | Measured at | Accuracy | Fall recall | Specificity | F1 | Alert latency |
 |---|---|---|---:|---:|---:|---:|---:|
+| reCamera 2002 | YOLO11n INT8 | deployed | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
+| reComputer J | YOLO11s FP16 | deployed | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
+| reComputer J | YOLO11m FP16 | deployed | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
 | reComputer RK3576 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
 | reComputer RK3588 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
 | reComputer R (Hailo) | YOLOv8s | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
 
-Each of these runs on a profile trained and frozen on that platform's own pose
-traces, so unlike earlier builds the figures describe the board rather than a
-model borrowed from another one.
+**Do not skip the "measured at" column.** *Deployed* is the alert you actually
+receive over MQTT. *Temporal gate* is the moment the model first sustains its
+probability threshold — it fires earlier and reads higher. So 88.9% and 85.2%
+were not measured with the same ruler, and the deployed figure for the three NPU
+boards is still unmeasured. Each platform's weights were trained and frozen on
+that platform's own pose traces, so the numbers describe the board itself.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
@@ -74,6 +65,26 @@ YOLO11m on reComputer J. YOLO11s was not measured on that set. The limiting fact
 is pose coverage: in long shots and heavy occlusion the person is barely detected
 at all. The table above covers a framed indoor view at close-to-medium range; the
 external figures cover long shots and occlusion.
+
+### Performance
+
+Latency and throughput are measured separately from accuracy and under different
+conditions, so they get their own table:
+
+| Runtime | Per-frame inference | Single-stream end to end | Multi-stream measured | Conditions |
+|---|---:|---:|---|---|
+| reCamera 2002 | 52.96 ms | 10.0 FPS | — | on-device, 640² |
+| reComputer J (Orin NX, YOLO11s) | 8.3 ms | 15 FPS, source-limited | — | deployed run; source was 15 FPS |
+| reComputer RK3576 | 63.0 ms | 4.9 FPS | 2 streams, 3.8 + 3.8 FPS | other workloads left running |
+| reComputer RK3588 | 51.4 ms | 8.6 FPS | 3 streams, 5.2 + 5.4 + 5.7 FPS | other workloads left running |
+| reComputer R (Hailo) | 6.9 ms | 15.0 FPS | 2 streams, 15.1 + 15.0 FPS | 393 FPS pure-accelerator benchmark |
+
+**These columns do not compare across rows.** reComputer J's 15 FPS is the ceiling
+of the video source, not the board. The two RK figures were taken with other
+workloads still running, so they are contention-affected capacity evidence rather
+than board maxima. Hailo's 6.9 ms is accelerator time only and excludes RTSP
+decode and postprocessing. Measure your own cameras, codec and scene density
+before committing to a stream count.
 
 Known weak cases in every runtime: long shots, occlusion, low light, and
 floor-level activities that look like falls (push-ups, lying down to play with a

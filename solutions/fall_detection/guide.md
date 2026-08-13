@@ -197,9 +197,9 @@ the other presets, using the board's own NPU instead of a GPU.
 **Important:** this is an assistive alert, not a certified medical or life-safety
 system. Each board now runs a temporal profile trained and frozen on its own pose
 traces, and on the untouched Subject 4 test both reached 88.9% accuracy with 100%
-fall recall. That figure measures the temporal gate rather than the deployed state
-machine, so it is not directly comparable to the reCamera and reComputer J numbers,
-and the deployed accuracy for these boards has not been measured separately.
+fall recall. That figure is measured at the temporal gate rather than at the deployed
+alert, so it is not the same measurement as the reCamera and reComputer J rows —
+the accuracy table on the solution page marks which is which.
 
 ## Step 1: Deploy Fall Detection {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 
@@ -275,9 +275,9 @@ Python, so the host CPU stays largely free.
 **Important:** this is an assistive alert, not a certified medical or life-safety
 system. A Hailo-specific temporal profile is now frozen and reached 88.9% accuracy
 with 100% fall recall on the untouched Subject 4 test, at 92.02% pose coverage.
-That figure measures the temporal gate rather than the deployed state machine, so
-it is not directly comparable to the reCamera and reComputer J numbers, and the
-deployed accuracy has not been measured separately.
+That figure is measured at the temporal gate rather than at the deployed alert,
+so it is not the same measurement as the reCamera and reComputer J rows — the
+accuracy table on the solution page marks which is which.
 
 ## Step 1: Deploy Fall Detection {#deploy_hailo_fall type=docker_deploy required=true config=devices/hailo_fall.yaml}
 
