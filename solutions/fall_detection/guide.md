@@ -194,13 +194,12 @@ the other presets, using the board's own NPU instead of a GPU.
 | reComputer RK3576 / RK3588 | Pose inference on the NPU, tracking, fall logic and MQTT |
 | IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
 
-**Fall accuracy on this platform has not been measured yet.** The runtime is
-verified end to end — a looping fall clip produced a full sequence of contract-valid
-messages through `normal` → `suspected` → `fallen` → `recovering` — but the
-temporal model currently shipped is the frozen Jetson profile reused across
-platforms, so no accuracy figure is claimed for RK. Treat this preset as a working
-integration, not as a validated detector, until a board-specific profile is
-trained and frozen.
+**Important:** this is an assistive alert, not a certified medical or life-safety
+system. Each board now runs a temporal profile trained and frozen on its own pose
+traces, and on the untouched Subject 4 test both reached 88.9% accuracy with 100%
+fall recall. That figure measures the temporal gate rather than the deployed state
+machine, so it is not directly comparable to the reCamera and reComputer J numbers,
+and the deployed accuracy for these boards has not been measured separately.
 
 ## Step 1: Deploy Fall Detection {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 
@@ -250,8 +249,8 @@ per camera.
 #### Next steps
 
 - Point your alerting system at the MQTT topic, or add the broker to Home Assistant.
-- Before relying on it, run your own acceptance test — this platform has no frozen
-  accuracy result yet.
+- Before relying on it, run your own acceptance test — the frozen figure measures
+  the temporal gate, not the alert your automation actually receives.
 
 ### Troubleshooting
 
@@ -273,13 +272,12 @@ Python, so the host CPU stays largely free.
 | reComputer R with Hailo-8 | Pose inference on the Hailo-8, tracking, fall logic and MQTT |
 | IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
 
-**Fall accuracy on this platform has not been measured yet.** Throughput and the
-message contract are verified — the accelerator benchmarked at 393 FPS and the
-pipeline held a steady 15 FPS per stream on RTSP — but the end-to-end runs so far
-contained no person, so they validate the decoder, tracker and empty-detection
-path rather than a positive detection. The pose model's published COCO accuracy is
-not a fall-detection accuracy. Treat this preset as a working integration until a
-platform-specific profile is trained and frozen.
+**Important:** this is an assistive alert, not a certified medical or life-safety
+system. A Hailo-specific temporal profile is now frozen and reached 88.9% accuracy
+with 100% fall recall on the untouched Subject 4 test, at 92.02% pose coverage.
+That figure measures the temporal gate rather than the deployed state machine, so
+it is not directly comparable to the reCamera and reComputer J numbers, and the
+deployed accuracy has not been measured separately.
 
 ## Step 1: Deploy Fall Detection {#deploy_hailo_fall type=docker_deploy required=true config=devices/hailo_fall.yaml}
 
@@ -331,8 +329,8 @@ per camera.
 #### Next steps
 
 - Point your alerting system at the MQTT topic, or add the broker to Home Assistant.
-- Before relying on it, run your own acceptance test — this platform has no frozen
-  accuracy result yet.
+- Before relying on it, run your own acceptance test — the frozen figure measures
+  the temporal gate, not the alert your automation actually receives.
 
 ### Troubleshooting
 

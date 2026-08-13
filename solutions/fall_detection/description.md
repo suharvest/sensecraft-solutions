@@ -49,8 +49,24 @@ everyday activities):
 | reCamera 2002 | YOLO11n INT8 | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
 | reComputer J | YOLO11s FP16 | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
 | reComputer J | YOLO11m FP16 | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
-| reComputer RK | YOLO11n FP16 | not measured | not measured | not measured | not measured | not measured |
-| reComputer R (Hailo) | YOLOv8s | not measured | not measured | not measured | not measured | not measured |
+
+
+A second, separately frozen result now exists for the NPU platforms. It is **not
+directly comparable to the table above**: those rows measure the deployed state
+machine — the alert you actually receive over MQTT — while these measure the
+temporal gate, the moment the model first sustains its probability threshold.
+The gate fires earlier and is the more flattering of the two, so the deployed
+figure for these boards is still unmeasured.
+
+| Runtime | Pose model | Measured at | Accuracy | Fall recall | Specificity | F1 | Mean latency |
+|---|---|---|---:|---:|---:|---:|---:|
+| reComputer RK3576 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
+| reComputer RK3588 | YOLO11n FP16 | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
+| reComputer R (Hailo) | YOLOv8s | temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
+
+Each of these runs on a profile trained and frozen on that platform's own pose
+traces, so unlike earlier builds the figures describe the board rather than a
+model borrowed from another one.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
@@ -58,13 +74,6 @@ YOLO11m on reComputer J. YOLO11s was not measured on that set. The limiting fact
 is pose coverage: in long shots and heavy occlusion the person is barely detected
 at all. The table above covers a framed indoor view at close-to-medium range; the
 external figures cover long shots and occlusion.
-
-The RK and Hailo rows are blank because they are blank, not because the numbers
-are bad. Both runtimes are verified end to end and emit the same message
-contract, but the temporal model they currently ship is the frozen Jetson
-profile reused across platforms. A figure produced that way would describe the
-Jetson model, not the board — so none is quoted until a platform-specific
-profile is trained and frozen against the same held-out test.
 
 Known weak cases in every runtime: long shots, occlusion, low light, and
 floor-level activities that look like falls (push-ups, lying down to play with a
@@ -101,13 +110,15 @@ detector on a Jetson Orin, taking more than one stream at once with a larger pos
 model and higher measured accuracy. Pick it when the cameras exist, when you need
 more than one view, or when the accuracy difference in the table above matters.
 
-**reComputer RK** puts the detector on a Rockchip NPU board. Verified end to end
-over RTSP; measured throughput with other workloads still running was about
-8.6 FPS on RK3588 and 4.9 FPS on RK3576 end to end.
+**reComputer RK** puts the detector on a Rockchip NPU board, now with a
+board-native temporal profile and a hardware-accelerated video path. Measured
+throughput with other workloads still running was about 8.6 FPS on RK3588 and
+4.9 FPS on RK3576 end to end.
 
 **reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8, holding a steady
 15 FPS per stream with low host CPU. Pick either when you already run that
-hardware — but note both are integrations without a frozen accuracy result yet.
+hardware; both now have a frozen temporal-gate result, though neither has had its
+deployed state machine measured separately.
 
 ## Usage Notes
 
@@ -127,6 +138,10 @@ hardware — but note both are integrations without a frozen accuracy result yet
   The separate FPS figures quoted for the pose engines are inference-core only.
 
 ## Licensing note
+
+Upstream ships the runtime code under Apache-2.0, but that covers the code and
+documentation only — the pose models keep their own terms, and the projects
+require explicit licence acceptance before a model is downloaded.
 
 The reference pose weights are distributed by Ultralytics under AGPL-3.0. Confirm
 that licence suits your product, obtain a commercial licence, or substitute a

@@ -116,11 +116,14 @@ remote_overrides:
           echo "Detected board: $BOARD"
           case "$BOARD" in
             rk3588) MODEL=yolo11n_pose_rawhead_fp16.rk3588.rknn
-                    SHA=22f00270870b25dc013e4e8e39aed98f82bcabb69b9272302280a6b8b8f48d5c ;;
+                    SHA=22f00270870b25dc013e4e8e39aed98f82bcabb69b9272302280a6b8b8f48d5c
+                    TEMPORAL=temporal-rk3588.npz
+                    TEMPORAL_SHA=b7213580f6f6bd1d1cafbfdecb84306c17b3ecfbe37b907a8b41215310ed4397 ;;
             rk3576) MODEL=yolo11n_pose_rawhead_fp16.rk3576.rknn
-                    SHA=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd ;;
+                    SHA=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
+                    TEMPORAL=temporal-rk3576.npz
+                    TEMPORAL_SHA=dadcb916135e7dec284fe51a49432573e5451ba9c921325df119fbd2e33ebd82 ;;
           esac
-          TEMPORAL_SHA=95fea9136f6880548c6a3dc89fcdc5fa344fbfa84cf41f124c794d02fc8cc1fa
 
           fetch() {
             name="$1"; want="$2"
@@ -135,7 +138,7 @@ remote_overrides:
           }
 
           fetch "$MODEL" "$SHA"
-          fetch temporal-yolo11s.npz "$TEMPORAL_SHA"
+          fetch "$TEMPORAL" "$TEMPORAL_SHA"
           ls -l "$MODELS_DIR"
         name_i18n:
           zh: 下载该板卡对应的姿态模型
@@ -153,8 +156,12 @@ remote_overrides:
               config = json.load(handle)
 
           import glob
-          found = sorted(glob.glob(os.path.join(os.path.dirname(path), "..", "models", "*.rknn")))
-          config["model_path"] = "/models/" + os.path.basename(found[0])
+          models_dir = os.path.join(os.path.dirname(path), "..", "models")
+          rknn = sorted(glob.glob(os.path.join(models_dir, "*.rknn")))
+          config["model_path"] = "/models/" + os.path.basename(rknn[0])
+          # Board-native temporal profile, matched to the detected SoC.
+          npz = sorted(glob.glob(os.path.join(models_dir, "temporal-rk*.npz")))
+          config["temporal_model"] = "/models/" + os.path.basename(npz[0])
           config["streams"] = [{
               "id": "{{stream_id}}",
               "rtsp_url": "{{rtsp_url}}",

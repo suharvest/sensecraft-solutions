@@ -9,7 +9,7 @@
 # authoritative rather than a version baked into the image.
 services:
   fall-detection:
-    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rknn:0.1.0-rc1
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rknn:0.1.0-rc2
     command: ["app.py", "--config", "/config/config.json"]
     restart: unless-stopped
     network_mode: host

@@ -22,10 +22,11 @@ figure. See sections 5 and 6.
 | Jetson ONNX `yolo11m-pose.onnx` | `sensecraft-statics` | **live**, 84,062,930 B, sha256 `7fe87620…` |
 | RK model `…fp16.rk3576.rknn` | `sensecraft-statics` | **live**, 10,532,939 B, sha256 `659519ae…` |
 | RK model `…fp16.rk3588.rknn` | `sensecraft-statics` | **live**, 7,647,051 B, sha256 `22f00270…` |
-| RK temporal `temporal-yolo11s.npz` | `sensecraft-statics` | **live**, 65,581 B, sha256 `95fea913…` |
+| RK temporal `temporal-rk3588.npz` | `sensecraft-statics` | **live**, 65,854 B, sha256 `b7213580…` |
+| RK temporal `temporal-rk3576.npz` | `sensecraft-statics` | **live**, 65,921 B, sha256 `dadcb916…` |
 | Hailo HEF `yolov8s_pose.hef` | Hailo Model Zoo | **no hosting needed** — fetched at deploy time, digest `e1985669…` |
 | Jetson image `solution/fall-detection-jetson:0.1.0-rc1` | registry | **live** |
-| RK image `solution/fall-detection-rknn:0.1.0-rc1` | registry | **live** |
+| RK image `solution/fall-detection-rknn:0.1.0-rc2` | registry | **live** |
 | Hailo image `solution/fall-detection-rpi-hailo:0.1.0-rc1` | registry | **live** |
 
 Note the layout: **one repository per platform**, not one repository with per-platform
@@ -75,8 +76,12 @@ repo — asking for it returns `NOT_FOUND`. The release tag is shared across the
 | Platform | Device | Source image | Published as |
 |---|---|---|---|
 | Jetson | `orin-nano` | `fall-detection:jetson-slim` | `solution/fall-detection-jetson:0.1.0-rc1` |
-| RK | `radxa` | `fall-detection-rknn:2.3.0` | `solution/fall-detection-rknn:0.1.0-rc1` |
+| RK | `radxa` | `fall-detection-rknn:2.4.0` | `solution/fall-detection-rknn:0.1.0-rc2` |
 | Hailo | `harvest-pi` | `fall-detection-rpi-hailo:4.21` | `solution/fall-detection-rpi-hailo:0.1.0-rc1` |
+
+Upstream publishes a release manifest at `release/0.1.0-rc2.json` naming each
+image reference and digest — treat it as the source of truth when bumping tags
+here. As of rc2 only the RK image moved; Jetson and Hailo stay at rc1.
 
 Push RK from `radxa`, not `cat-remote` — the latter's device-side rebuild failed
 with a Docker base-layer `unexpected EOF`. One RK push serves both boards: the
@@ -169,14 +174,15 @@ Current honest state, do not pre-fill:
 |---|---|---|
 | `recamera` | none | someone runs it on a reCamera 2002 |
 | `jetson` | none | the pushed image is deployed through the app end to end |
-| `rk` | none | same, on RK3576 **and** RK3588 — one does not imply the other |
+| `rk` | none | same, on RK3576 **and** RK3588 — one does not imply the other, and each now loads its own temporal profile |
 | `hailo` | none | same, and with a person actually in frame |
 
 Accuracy is a separate claim and is **not** unblocked by any of this. RK and Hailo
-still ship the reused Jetson temporal profile; the accuracy rows in
-`description.md` stay "not measured" until a platform-specific profile is trained
-on Subjects 1–3 and the frozen Subject 4 test is read once. The upstream ledger
-tracks that.
+now carry platform-native frozen profiles (88.9% on the held-out Subject 4 test),
+but those measure the **temporal gate**, not the deployed state machine that
+produces the MQTT alert. Keep the two labelled apart in `description.md`: the gate
+fires earlier and reads higher, so presenting it beside the reCamera and Jetson
+deployed figures would overstate the boards.
 
 ## 7. Re-push and rollback
 

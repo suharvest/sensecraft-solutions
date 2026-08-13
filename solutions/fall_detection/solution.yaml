@@ -158,12 +158,12 @@ intro:
       name: IP Camera + reComputer RK
       name_i18n:
         zh: IP 摄像头 + reComputer RK
-      badge: Preview
+      badge: Beta
       badge_i18n:
-        zh: 预览版
-      description: Run the detector on a Rockchip NPU board. Runtime verified end to end; fall accuracy not yet measured.
+        zh: 测试版
+      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen at 88.9% accuracy on the held-out test.
       description_i18n:
-        zh: 把检测器跑在瑞芯微 NPU 板卡上。运行链路已端到端验证，跌倒准确率尚未实测。
+        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，留出测试集上冻结成绩 88.9% 准确率。
       device_groups:
         - id: compute
           name: Detector Host
@@ -189,12 +189,12 @@ intro:
       name: IP Camera + reComputer R (Hailo)
       name_i18n:
         zh: IP 摄像头 + reComputer R（Hailo）
-      badge: Preview
+      badge: Beta
       badge_i18n:
-        zh: 预览版
-      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Throughput verified; fall accuracy not yet measured.
+        zh: 测试版
+      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen at 88.9% accuracy on the held-out test.
       description_i18n:
-        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。吞吐已验证，跌倒准确率尚未实测。
+        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，留出测试集上冻结成绩 88.9% 准确率。
       device_groups:
         - id: compute
           name: Detector Host

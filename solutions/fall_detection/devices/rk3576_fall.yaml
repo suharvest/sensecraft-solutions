@@ -106,7 +106,8 @@ remote_overrides:
           # so the model is pinned here rather than chosen at run time.
           MODEL=yolo11n_pose_rawhead_fp16.rk3576.rknn
           SHA=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
-          TEMPORAL_SHA=95fea9136f6880548c6a3dc89fcdc5fa344fbfa84cf41f124c794d02fc8cc1fa
+          TEMPORAL=temporal-rk3576.npz
+          TEMPORAL_SHA=dadcb916135e7dec284fe51a49432573e5451ba9c921325df119fbd2e33ebd82
 
           fetch() {
             name="$1"; want="$2"
@@ -121,7 +122,7 @@ remote_overrides:
           }
 
           fetch "$MODEL" "$SHA"
-          fetch temporal-yolo11s.npz "$TEMPORAL_SHA"
+          fetch "$TEMPORAL" "$TEMPORAL_SHA"
           ls -l "$MODELS_DIR"
         name_i18n:
           zh: 下载该板卡对应的姿态模型
@@ -139,6 +140,9 @@ remote_overrides:
               config = json.load(handle)
 
           config["model_path"] = "/models/yolo11n_pose_rawhead_fp16.rk3576.rknn"
+          # Board-native temporal profile, trained and frozen on this SoC's own
+          # pose traces. Do not substitute another board's file.
+          config["temporal_model"] = "/models/temporal-rk3576.npz"
           config["streams"] = [{
               "id": "{{stream_id}}",
               "rtsp_url": "{{rtsp_url}}",
