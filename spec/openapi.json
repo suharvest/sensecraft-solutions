@@ -434,6 +434,19 @@
         "title": "CommandRequest",
         "type": "object"
       },
+      "ConfigUpdateRequest": {
+        "properties": {
+          "setup_key": {
+            "title": "Setup Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setup_key"
+        ],
+        "title": "ConfigUpdateRequest",
+        "type": "object"
+      },
       "ConnectDeviceRequest": {
         "description": "Request to connect to a remote Docker device",
         "properties": {
@@ -2026,6 +2039,30 @@
         "title": "ImportParseResponse",
         "type": "object"
       },
+      "InstallLocalRequest": {
+        "properties": {
+          "hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostname"
+          },
+          "sudo_password": {
+            "title": "Sudo Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sudo_password"
+        ],
+        "title": "InstallLocalRequest",
+        "type": "object"
+      },
       "InstallRemoteRequest": {
         "properties": {
           "accept_routes": {
@@ -2312,6 +2349,154 @@
         "title": "MdnsScanResult",
         "type": "object"
       },
+      "NetbirdInstallRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostname"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "NetbirdInstallRemoteRequest",
+        "type": "object"
+      },
+      "NetbirdInstallRemoteResponse": {
+        "properties": {
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "title": "NetbirdInstallRemoteResponse",
+        "type": "object"
+      },
+      "NetbirdResumeRequest": {
+        "properties": {
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          }
+        },
+        "title": "NetbirdResumeRequest",
+        "type": "object"
+      },
+      "NetbirdStatusRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "NetbirdStatusRemoteRequest",
+        "type": "object"
+      },
+      "NetbirdStatusResponse": {
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "fqdn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fqdn"
+          },
+          "installed": {
+            "title": "Installed",
+            "type": "boolean"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          }
+        },
+        "required": [
+          "installed",
+          "connected"
+        ],
+        "title": "NetbirdStatusResponse",
+        "type": "object"
+      },
       "PartnerInfo": {
         "description": "Deployment partner information",
         "properties": {
@@ -2464,6 +2649,174 @@
           "device"
         ],
         "title": "PortInfo",
+        "type": "object"
+      },
+      "ProbeRequest": {
+        "description": "Request to actively probe one or more hosts for reachability.\n\n``targets`` is capped and ``timeout`` bounded so the endpoint cannot be\nabused as an unbounded internal-network scanner / resource-exhaustion vector.",
+        "properties": {
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/ProbeTarget"
+            },
+            "maxItems": 64,
+            "title": "Targets",
+            "type": "array"
+          },
+          "timeout": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 0.1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout"
+          }
+        },
+        "title": "ProbeRequest",
+        "type": "object"
+      },
+      "ProbeResult": {
+        "description": "Reachability result for a single probed host",
+        "properties": {
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Type"
+          },
+          "hostname": {
+            "title": "Hostname",
+            "type": "string"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "port": {
+            "title": "Port",
+            "type": "integer"
+          },
+          "reachable": {
+            "default": false,
+            "title": "Reachable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hostname",
+          "port"
+        ],
+        "title": "ProbeResult",
+        "type": "object"
+      },
+      "ProbeTarget": {
+        "description": "A single host:port target to actively probe",
+        "properties": {
+          "host": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host"
+        ],
+        "title": "ProbeTarget",
+        "type": "object"
+      },
+      "PurchaseProfileBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "family_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Family Ids",
+            "type": "array"
+          }
+        },
+        "title": "PurchaseProfileBatchRequest",
+        "type": "object"
+      },
+      "PurchaseProfileBatchResponse": {
+        "properties": {
+          "profiles": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Profiles",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "unconfigured",
+              "upstream_error"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profiles",
+          "status"
+        ],
+        "title": "PurchaseProfileBatchResponse",
+        "type": "object"
+      },
+      "RecameraFixRequest": {
+        "description": "Request to run known-issue fixes on a reCamera over SSH",
+        "properties": {
+          "connection": {
+            "additionalProperties": true,
+            "title": "Connection",
+            "type": "object"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "title": "RecameraFixRequest",
+        "type": "object"
+      },
+      "RecameraProTestRequest": {
+        "description": "Request to probe a reCamera Pro over ADB",
+        "properties": {
+          "connection": {
+            "additionalProperties": true,
+            "title": "Connection",
+            "type": "object"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "title": "RecameraProTestRequest",
         "type": "object"
       },
       "RemoteConfigRequest": {
@@ -3031,9 +3384,7 @@
             "type": "array"
           },
           "links": {
-            "additionalProperties": {
-              "type": "string"
-            },
+            "additionalProperties": true,
             "default": {},
             "title": "Links",
             "type": "object"
@@ -4055,6 +4406,45 @@
         "title": "ToggleRequest",
         "type": "object"
       },
+      "UninstallRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "UninstallRemoteRequest",
+        "type": "object"
+      },
       "UpdateCheckResult": {
         "description": "Result of checking for available updates",
         "properties": {
@@ -4379,7 +4769,7 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.6.4"
+    "version": "0.6.12"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5963,6 +6353,52 @@
         ]
       }
     },
+    "/api/devices/probe": {
+      "post": {
+        "description": "Actively probe a list of hosts and report which are reachable.\n\nFor each target, the host is resolved (IP literal used directly, ``.local``\nresolved via a direct mDNS A-record query, otherwise via the OS resolver)\nand its port tested with a short TCP connect. Only targets whose port is\nopen report ``reachable: true``.",
+        "operationId": "probe_devices_api_devices_probe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProbeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProbeResult"
+                  },
+                  "title": "Response Probe Devices Api Devices Probe Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe Devices",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
     "/api/devices/scan-mdns": {
       "get": {
         "description": "Scan the local network for SSH-enabled devices using mDNS.\n\nReturns devices that advertise SSH services (_ssh._tcp.local).\nBy default, filters to known IoT device patterns (Raspberry Pi, Jetson, etc.).\n\nIf no devices are found, also returns suggested_hosts from the device catalog.\n\nReturns:\n    MdnsScanResult with devices and suggested_hosts",
@@ -6058,6 +6494,32 @@
           }
         },
         "summary": "List Serial Ports For Target",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/suggested-hosts": {
+      "get": {
+        "description": "Return the candidate mDNS hostnames from the device catalog.\n\nLightweight companion to POST /api/devices/probe: the frontend fetches this\nlist of candidate hosts, then actively probes them to show only the ones\nthat are actually reachable.",
+        "operationId": "get_suggested_hosts_api_devices_suggested_hosts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SuggestedHost"
+                  },
+                  "title": "Response Get Suggested Hosts Api Devices Suggested Hosts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Suggested Hosts",
         "tags": [
           "devices"
         ]
@@ -7512,7 +7974,7 @@
     },
     "/api/firmware/{operation_id}/confirm": {
       "post": {
-        "description": "Confirm the irreversible flash (S5). Only valid while awaiting confirmation.",
+        "description": "Confirm the flash. Only valid while awaiting confirmation.",
         "operationId": "confirm_firmware_update_api_firmware__operation_id__confirm_post",
         "parameters": [
           {
@@ -7886,6 +8348,478 @@
         "summary": "Set Editor Enabled",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/netbird/config": {
+      "get": {
+        "operationId": "get_config_api_netbird_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Config Api Netbird Config Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Config",
+        "tags": [
+          "netbird"
+        ]
+      },
+      "put": {
+        "operationId": "put_config_api_netbird_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Put Config Api Netbird Config Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Config",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/local": {
+      "post": {
+        "description": "Fully-automatic install on the machine this backend runs on.\n\nNo SSH, no setup-key exposure to the frontend — the key stays\nserver-side. Windows hosts are rejected (entry hidden there anyway).",
+        "operationId": "install_local_api_netbird_install_local_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallLocalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Local",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/remote": {
+      "post": {
+        "operationId": "install_remote_api_netbird_install_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdInstallRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/cancel": {
+      "post": {
+        "operationId": "install_cancel_api_netbird_install__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Install Cancel Api Netbird Install  Task Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Cancel",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/events": {
+      "get": {
+        "operationId": "install_events_api_netbird_install__task_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Events",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/resume": {
+      "post": {
+        "operationId": "install_resume_api_netbird_install__task_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdResumeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Install Resume Api Netbird Install  Task Id  Resume Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Resume",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/status/local": {
+      "get": {
+        "operationId": "status_local_api_netbird_status_local_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status Local",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/status/remote": {
+      "post": {
+        "operationId": "status_remote_api_netbird_status_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdStatusRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/remote": {
+      "post": {
+        "operationId": "uninstall_remote_api_netbird_uninstall_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UninstallRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/{task_id}/cancel": {
+      "post": {
+        "operationId": "uninstall_cancel_api_netbird_uninstall__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Uninstall Cancel Api Netbird Uninstall  Task Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Cancel",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/{task_id}/events": {
+      "get": {
+        "operationId": "uninstall_events_api_netbird_uninstall__task_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Events",
+        "tags": [
+          "netbird"
         ]
       }
     },
@@ -8624,6 +9558,47 @@
         ]
       }
     },
+    "/api/purchase-profiles/batch": {
+      "post": {
+        "operationId": "batch_purchase_profiles_api_purchase_profiles_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseProfileBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseProfileBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Batch Purchase Profiles",
+        "tags": [
+          "purchase-profiles"
+        ]
+      }
+    },
     "/api/restore/devices": {
       "get": {
         "description": "Get list of devices that support factory restore",
@@ -8694,6 +9669,86 @@
           }
         },
         "summary": "List Serial Ports",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/recamera-pro/test": {
+      "post": {
+        "description": "Probe a reCamera Pro over ADB and report what firmware it is running.\n\nreCamera Pro has no SSH root, so the reCamera 2002 test-connection path\ndoes not apply. This connects over adb, confirms adbd is running as root,\nand identifies `/oem/usr/bin/rkipc` as the factory build, our extension\nbuild, or something unknown — which is also what decides whether the\nextension firmware can be installed and rolled back.",
+        "operationId": "test_recamera_pro_api_restore_recamera_pro_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecameraProTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test Recamera Pro",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/recamera/fix": {
+      "post": {
+        "description": "Apply idempotent known-issue fixes to a reCamera over SSH.\n\nRuns the fix registry in utils/recamera_ssh.py (USB gateway\nadvertisement patch, stale clock sync) and reports per-fix status:\nfixed / already_ok / failed.",
+        "operationId": "fix_recamera_api_restore_recamera_fix_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecameraFixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fix Recamera",
         "tags": [
           "restore"
         ]
@@ -12025,5 +13080,5 @@
       }
     }
   },
-  "x-contract-version": 1
+  "x-contract-version": 2
 }

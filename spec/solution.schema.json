@@ -1895,7 +1895,7 @@
       "type": "object"
     }
   },
-  "contract_version": 1,
+  "contract_version": 2,
   "description": "Complete solution configuration",
   "properties": {
     "base_path": {

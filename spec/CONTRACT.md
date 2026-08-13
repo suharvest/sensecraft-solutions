@@ -1,11 +1,11 @@
-<!-- contract_version: 1 -->
+<!-- contract_version: 2 -->
 # SenseCraft Solution Contract
 
 > **GENERATED FILE — mechanical sections only.** Regenerate with
 > `uv run python scripts/export_spec.py`. The drift guard is
 > `tests/unit/test_contract_freeze.py`.
 >
-> `contract_version: 1`. Tables below are rendered from the
+> `contract_version: 2`. Tables below are rendered from the
 > committed `spec/*.json` artifacts. The "Derived rules" prose sections are
 > **human-authored** and preserved across regenerations (they live between
 > `<!-- AUTHORED:<key> BEGIN/END -->` sentinels) — the generator never
@@ -85,6 +85,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `influxdb` | object \| null | no | None |  |
 | `user_inputs` | array<UserInputConfig> | no | [] |  |
 | `device_detection` | array<DeviceDetectionProbe> | no | [] |  |
+| `preconditions` | array<PreconditionProbe> | no | [] |  |
 | `pre_checks` | array<PreCheck> | no | [] |  |
 | `steps` | array<DeploymentStep> | no | [] |  |
 | `post_deployment` | PostDeploymentConfig | no |  |  |
