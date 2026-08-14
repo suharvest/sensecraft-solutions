@@ -37,7 +37,7 @@ services:
       PYTHONPATH: /host-pysite:/usr/lib/python3/dist-packages
       # The Rockchip MPP decoder and RGA scaler are vendor plugins staged from the
       # board (see the deploy step). Without them the RTSP path silently falls back
-      # to CPU ffmpeg decode, which costs about three cores per stream.
+      # to CPU ffmpeg decode.
       GST_PLUGIN_PATH: /host-gst
       LD_LIBRARY_PATH: /host-gst
     volumes:
