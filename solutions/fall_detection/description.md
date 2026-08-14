@@ -121,28 +121,36 @@ deployable.
 baselines) and time the accelerator only. Real footage is slower, because anything
 detected has to go through raw-head decode, DFL, keypoints and NMS:
 
-| Platform | Blank-frame inference | Real-footage inference | Real-footage pipeline | Postprocess delta |
-|---|---:|---:|---:|---:|
-| reComputer RK3576 | 56.1 ms | 69.6 ms | 70.8 ms | 1.2 ms |
-| reComputer RK3588 | 51.4 ms | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer R (Hailo-8) | — | — | 7.8 ms ▲ | — |
+| Platform | Pose model | Accelerator inference | Real-footage pipeline | Pre/postprocess delta |
+|---|---|---:|---:|---:|
+| reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
+| reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
+| reComputer J (Orin NX) | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
+| reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | not measured ▲ | not measured |
 
-"pipeline" is inference plus raw-head decode / DFL / keypoints / NMS; it still excludes
-RTSP decode, tracking, the temporal MLP and MQTT. Postprocess cost grows with the number
-of people in frame: on RK3576 it is 2.7 ms on a 4-person test image against 0.4 ms on a
-blank one. The blank-to-real gap (13.4 ms on RK3576, 3.0 ms on RK3588) also contains
-contention from workloads running at the time, so it cannot all be attributed to frame
-content.
+"pipeline" is inference plus preprocess plus raw-head decode / DFL / keypoints / NMS. It
+excludes RTSP decode, tracking, the temporal MLP and MQTT. The Jetson figure is from 400
+measured frames (264 of them containing people), p95 5.24 ms.
 
-▲ Hailo's 7.8 ms is a probe from the buffer before `hailonet` to its source pad, covering
-Hailo scheduling and output transfer but not RTSP decode, resize, the C++ postprocess,
-tracking or MQTT. That runtime reports `inference_time_ms` as 0
-(`inference_time_metric=unavailable`), so the two must not be conflated. Jetson needs a separate note: the `inference_time_ms` it publishes is actually a
-**pipeline-scope** figure — the timer spans CUDA preprocess, TensorRT inference, YOLO
-decode and NMS (see the `started`/`finished` span in `main/c_api.cpp`), rather than the
-inference call alone as on RK. So the `trtexec` per-frame number in the table (pure GPU
-compute, no host copies) and its application-level number measure different things; a
-like-for-like figure is being measured.
+**Whether postprocess scales with people differs by platform.** On RK3576 it is 2.7 ms for
+a 4-person frame against 0.4 ms blank; on Jetson frames with and without people are
+indistinguishable (5.180 vs 5.187 ms), because YOLO11 decode walks a fixed 8400-anchor
+head regardless of content and NMS over 0-2 boxes is free.
+
+◆ The Jetson entry in that column is `trtexec` pure GPU compute with no host copies, while
+the RK entries are `rknnlite.inference()` — different scopes by construction. The pipeline
+column is the one that compares: on it, Jetson is roughly 11x faster than RK3588 and 14x
+faster than RK3576.
+
+▲ **Hailo's pipeline cannot be measured as it stands.** Its `pipeline_ms` is a
+`pre_hailonet_to_hailonet_src` probe whose timestamp is taken *before* `decodeYoloV8Pose()`
+and `tracker.update()`, so it covers hailonet scheduling, hardware inference and output
+tensor transfer — precisely excluding the decode and NMS that this column measures
+elsewhere. A like-for-like figure needs a timer added around the decode in
+`platforms/rpi-hailo/src/main.cpp`. It also could not be measured this round: no
+fall-detection stack is deployed on harvest-pi, and `/dev/hailo0` is held by the unrelated
+`mcp_face_rec` service (HailoRT contexts are exclusive), so `hailortcli benchmark` returns
+`HAILO_OUT_OF_PHYSICAL_DEVICES`.
 
 **How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
 accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end

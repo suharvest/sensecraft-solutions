@@ -98,23 +98,31 @@ INT8 姿态输出上重新冻结时序权重。RK 的 INT8 与之相反——用
 **这两张表的输入是合成空白 640 帧**（与既有 FP16 基线同口径），只测加速器推理。真实画面
 下会更慢，因为有目标就要做 raw-head 解码、DFL、关键点和 NMS：
 
-| 平台 | 空白帧推理 | 真实画面推理 | 真实画面 pipeline | 后处理增量 |
-|---|---:|---:|---:|---:|
-| reComputer RK3576 | 56.1 ms | 69.6 ms | 70.8 ms | 1.2 ms |
-| reComputer RK3588 | 51.4 ms | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer R（Hailo-8） | — | — | 7.8 ms ▲ | — |
+| 平台 | 姿态模型 | 加速器推理 | 真实画面 pipeline | 前后处理增量 |
+|---|---|---:|---:|---:|
+| reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
+| reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
+| reComputer J（Orin NX） | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
+| reComputer R（Hailo-8） | YOLOv8s INT8 | 6.9 ms | 未实测 ▲ | 未实测 |
 
-「pipeline」= 推理 + raw-head 解码/DFL/关键点/NMS，仍不含 RTSP 解码、跟踪、时序 MLP 与
-MQTT。后处理开销随画面里的人数增长：RK3576 在 4 人的测试图上是 2.7 ms，空白帧上只有
-0.4 ms。真实画面与空白帧的差值（RK3576 13.4 ms、RK3588 3.0 ms）里还含有当时并存业务的
-争用，不能全部记到画面内容上。
+「pipeline」= 推理 + 预处理 + raw-head 解码/DFL/关键点/NMS，不含 RTSP 解码、跟踪、时序
+MLP 与 MQTT。Jetson 的 5.18 ms 取自 400 帧实测（264 帧画面里有人），p95 5.24 ms。
 
-▲ Hailo 的 7.8 ms 是从 `hailonet` 前的缓冲到其 source pad 的探针，覆盖 Hailo 调度与输出
-搬运，不含 RTSP 解码、缩放、C++ 后处理、跟踪和 MQTT；该运行时的 `inference_time_ms` 上报
-为 0（`inference_time_metric=unavailable`），不能与这个数字混为一谈。Jetson 侧的口径需要单独说明：它上报的 `inference_time_ms` 实际上是 **pipeline 口径**——
-计时范围覆盖 CUDA 预处理、TensorRT 推理、YOLO 解码与 NMS（见 `main/c_api.cpp` 的
-`started`/`finished` 区间），而不是像 RK 那样只计推理调用。因此表中 Jetson 的
-`trtexec` 单帧数（纯 GPU 计算、无主机拷贝）与它的应用层数字不是一回事，正在补测。
+**后处理是否随人数增长，两边不一样。** RK3576 在 4 人画面上后处理 2.7 ms、空白帧 0.4 ms；
+Jetson 有人与无人几乎没差别（5.180 对 5.187 ms），因为 YOLO11 的解码要遍历固定的 8400 个
+anchor，与画面里有几个人无关，而 0–2 个框的 NMS 成本可以忽略。
+
+◆ Jetson 这一列是 `trtexec` 纯 GPU 计算（无主机拷贝），RK 那一列是 `rknnlite.inference()`，
+两者口径本就不同；可以横向比的是 pipeline 那一列。同口径下 Jetson 比 RK3588 快约 11 倍、
+比 RK3576 快约 14 倍。
+
+▲ **Hailo 的 pipeline 目前测不了。** 它的 `pipeline_ms` 是 `pre_hailonet_to_hailonet_src`
+探针：时间戳在 `decodeYoloV8Pose()` 和 `tracker.update()` **之前**就取了，因此覆盖的是
+hailonet 调度、硬件推理和输出张量搬运，恰好不含 RK/Jetson 这一列所计的解码与 NMS。要拿到
+同口径数字，需要在 `platforms/rpi-hailo/src/main.cpp` 的解码段加一个计时器。此外本轮也没
+测成：harvest-pi 上没有部署 fall-detection 栈，而 `/dev/hailo0` 被无关的 `mcp_face_rec`
+占用（HailoRT 上下文独占），`hailortcli benchmark` 报
+`HAILO_OUT_OF_PHYSICAL_DEVICES`。
 
 **路数怎么读**：「推理上限路数」= 聚合吞吐 ÷ 15 FPS，只算加速器，是理论天花板。
 「建议路数」在此基础上打了折——RK 上实测的端到端吞吐只有推理上限的 28%–44%，因为
