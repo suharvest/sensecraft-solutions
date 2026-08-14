@@ -72,30 +72,43 @@ ones. Separating the platforms would need a larger, harder test set.
 
 ### Performance
 
-One model across every device: **YOLO11n-Pose, 640² input, per-frame is accelerator
-inference only** (excluding RTSP decode and postprocessing); aggregate is total frame
-rate at the highest concurrency measured.
+One model across every device: **YOLO11n-Pose at 640²**; per-frame is accelerator
+inference only (excluding RTSP decode and postprocessing), aggregate is total frame
+rate at the highest concurrency measured. Different precisions are not mixed into one
+table.
 
-| Runtime | Precision | Per-frame | Aggregate | Concurrency tested |
-|---|---|---:|---:|---:|
-| reComputer J (Orin Nano) | FP16 | 3.7 ms | 270.5 FPS | 6 |
-| reComputer J (Orin NX) | FP16 | 3.8 ms | 264.9 FPS | 6 |
-| reComputer RK3588 | INT8 | 29.8 ms | 90.4 FPS | 3 |
-| reCamera Pro | INT8 | 35.9 ms | 18.1 FPS | 1 |
-| reComputer RK3576 | INT8 | 36.2 ms | 42.1 FPS | 2 |
-| reCamera 2002 | INT8 | 53.0 ms | 10.0 FPS | 1 |
+**FP16**
+
+| Runtime | Per-frame | Aggregate | Concurrency tested |
+|---|---:|---:|---:|
+| reComputer J (Orin Nano) | 3.7 ms | 270.5 FPS | 6 |
+| reComputer J (Orin NX) | 3.8 ms | 264.9 FPS | 6 |
+| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 |
+| reComputer RK3576 | 56.1 ms | 29.2 FPS | 2 |
+
+**INT8**
+
+| Runtime | Per-frame | Aggregate | Concurrency tested |
+|---|---:|---:|---:|
+| reComputer RK3588 | 29.8 ms | 90.4 FPS | 3 |
+| reCamera Pro | 35.9 ms | 18.1 FPS | 1 |
+| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 |
+| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 |
+
+The two RK boards appear in both tables, which gives the exchange rate between the
+precisions: INT8 is 1.5–1.7× faster and matches FP16 detection-for-detection on
+held-out frames.
+
+Jetson is FP16 only — upstream has no INT8 calibration path. reCamera 2002 and Pro are
+INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8
+(6.9 ms / 59.5 FPS); different model, so it is in neither table.
+
+**What the presets deploy today:** Jetson FP16, RK FP16, reCamera 2002 and Pro INT8.
+The RK INT8 weights were converted for this comparison and are not shipped yet —
+the temporal weights need re-checking before that switch.
 
 Both Jetson boards hold essentially flat aggregate throughput from 1 to 6 concurrent
 contexts, so concurrency shares one GPU budget rather than multiplying it.
-
-The RK INT8 weights were converted for this comparison (w8a8, 240 GMDCSA calibration
-frames) and match FP16 detection-for-detection on held-out frames. **The presets still
-ship FP16** (RK3588 51.4 ms, RK3576 56.1 ms); switching would need the temporal weights
-re-checked first. Upstream provides no INT8 calibration path for Jetson.
-
-Configurations that do not run 11n: reComputer R (Hailo) uses the official Model Zoo
-YOLOv8s-Pose INT8 at 6.9 ms / 59.5 FPS; on reComputer J a larger model costs 12.2 ms
-for YOLO11s and 18.6 ms for YOLO11m.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed

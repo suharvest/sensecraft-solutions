@@ -58,27 +58,39 @@ YAML。
 
 ### 性能
 
-同一个模型跑在不同设备上：**YOLO11n-Pose，640² 输入，单帧为加速器推理耗时**（不含
-RTSP 解码与后处理），聚合吞吐取实测最大并发下的总帧率。
+同一个模型跑在不同设备上：**YOLO11n-Pose，640² 输入**，单帧为加速器推理耗时（不含
+RTSP 解码与后处理），聚合吞吐取实测最大并发下的总帧率。精度不同的不放在一张表里比。
 
-| 运行平台 | 精度 | 单帧推理 | 聚合吞吐 | 实测并发 |
-|---|---|---:|---:|---:|
-| reComputer J（Orin Nano） | FP16 | 3.7 ms | 270.5 FPS | 6 |
-| reComputer J（Orin NX） | FP16 | 3.8 ms | 264.9 FPS | 6 |
-| reComputer RK3588 | INT8 | 29.8 ms | 90.4 FPS | 3 |
-| reCamera Pro | INT8 | 35.9 ms | 18.1 FPS | 1 |
-| reComputer RK3576 | INT8 | 36.2 ms | 42.1 FPS | 2 |
-| reCamera 2002 | INT8 | 53.0 ms | 10.0 FPS | 1 |
+**FP16**
+
+| 运行平台 | 单帧推理 | 聚合吞吐 | 实测并发 |
+|---|---:|---:|---:|
+| reComputer J（Orin Nano） | 3.7 ms | 270.5 FPS | 6 |
+| reComputer J（Orin NX） | 3.8 ms | 264.9 FPS | 6 |
+| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 |
+| reComputer RK3576 | 56.1 ms | 29.2 FPS | 2 |
+
+**INT8**
+
+| 运行平台 | 单帧推理 | 聚合吞吐 | 实测并发 |
+|---|---:|---:|---:|
+| reComputer RK3588 | 29.8 ms | 90.4 FPS | 3 |
+| reCamera Pro | 35.9 ms | 18.1 FPS | 1 |
+| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 |
+| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 |
+
+RK 两块板同时出现在两张表里，可以作为两种精度之间的换算：INT8 相对 FP16 提速
+1.5–1.7 倍，在留出帧上每帧检测数与 FP16 完全一致。
+
+Jetson 只有 FP16——上游没有 INT8 标定流程；reCamera 2002 与 Pro 只有 INT8。
+reComputer R（Hailo）跑的是官方 Model Zoo 的 YOLOv8s-Pose INT8（6.9 ms / 59.5 FPS），
+模型不同，不进上面两张表。
+
+**当前套餐下发的是**：Jetson FP16、RK FP16、reCamera 2002 与 Pro INT8。RK 的 INT8
+权重是本次新转换用于对比的，尚未随套餐下发，切换前需要复核时序权重。
 
 Jetson 两块板在 1–6 个并发上下文下总吞吐几乎不变，说明并发共享同一份 GPU 预算，不会
 线性倍增。
-
-RK 两块板的 INT8 权重为本次新转换（w8a8，240 张 GMDCSA 标定帧），在留出帧上与 FP16 的
-每帧检测数完全一致；**当前套餐下发的仍是 FP16 版本**（RK3588 51.4 ms、RK3576 56.1 ms），
-切换到 INT8 需要先复核时序权重。Jetson 侧上游只提供 FP16 构建，没有 INT8 标定流程。
-
-其余不跑 11n 的配置：reComputer R（Hailo）用官方 Model Zoo 的 YOLOv8s-Pose INT8，
-6.9 ms / 59.5 FPS；reComputer J 若换更大模型，YOLO11s 为 12.2 ms、YOLO11m 为 18.6 ms。
 
 换到一个独立的外部数据集（RealBiomFall，34 段全部为跌倒），在该数据集上实测的两
 个配置召回都会下降——reCamera 是 58.8%，reComputer J 上部署版 YOLO11m 是 52.9%；
