@@ -280,11 +280,6 @@ introduction page — the 27-clip test set cannot separate the platforms.
 
 Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 
-> **Known issue — an IP camera will not connect with the currently published image.**
-> Its runtime is missing the GStreamer plugin that carries `h264parse`, which the RTSP
-> input path requires, so the container exits instead of opening the stream. The fix is
-> made upstream and needs a rebuilt image before this preset works with a camera.
-
 ### Prerequisites
 
 1. A Hailo-8 accelerator present as `/dev/hailo0`, with **HailoRT 4.21** installed — the GStreamer plugin, the user library and the kernel driver must all be that version.
