@@ -81,6 +81,7 @@ concurrency actually measured.
 | reComputer R (Hailo) | YOLOv8s | INT8 | 6.9 ms | 2 | 59.5 FPS | 3 |
 | reComputer J (Orin Nano) | YOLO11s | FP16 | 12.2 ms | 6 | 70.9 FPS | 4 |
 | reComputer J (Orin NX) | YOLO11m | FP16 | 18.6 ms | 6 | 53.5 FPS | 3 |
+| reCamera Pro | YOLO11n | INT8 | 35.9 ms | 1 | 18.1 FPS | 1 |
 | reComputer RK3588 | YOLO11n | FP16 | 51.4 ms | 3 | 51.4 FPS | 3 |
 | reCamera 2002 | YOLO11n | INT8 | 53.0 ms | 1 | 10.0 FPS | under 15 FPS on one |
 | reComputer RK3576 | YOLO11n | FP16 | 56.1 ms | 2 | 29.2 FPS | 1 |
