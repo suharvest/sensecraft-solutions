@@ -128,6 +128,7 @@ detected has to go through raw-head decode, DFL, keypoints and NMS:
 
 | Platform | Pose model | Accelerator inference | Real-footage pipeline | Pre/postprocess delta |
 |---|---|---:|---:|---:|
+| reCamera 2002 | YOLO11n INT8 | not separable ◇ | 52.9 ms | — |
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
 | reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
@@ -140,6 +141,18 @@ measured frames (264 of them containing people), p95 5.24 ms; the Orin Nano figu
 1359 frames (1209 containing people), median 5.56 ms and p95 5.62 ms, with a single 88.9 ms
 first-frame warm-up outlier removed (the next largest is 8.21 ms). Both Jetsons carry the
 same 1.9 ms pre/postprocess delta.
+
+◇ **reCamera 2002 has no separable accelerator column.** Its app exposes one timer, started
+after frame retrieval and stopped after postprocess, which is exactly this table's pipeline
+definition — there is no separate accelerator counter, and the field is integer
+milliseconds, too coarse to resolve a ~2 ms delta anyway. The 52.9 ms is from 250 frames
+(213 containing people), median 53.0, p95 53.0, range 52-54 ms, with frames containing
+people again indistinguishable from empty ones (52.94 vs 52.84 ms).
+
+That means **the 53.0 ms shown for reCamera 2002 in the INT8 table above is not on the same
+basis as the RK, Jetson and Hailo entries in that column**: those are accelerator-only,
+while the 2002 figure already includes preprocess and postprocess. Putting it on the same
+basis would require adding a timer to the app and repackaging it.
 
 **Whether postprocess scales with people differs by platform.** On RK3576 it is 2.7 ms for
 a 4-person frame against 0.4 ms blank; on Jetson frames with and without people are
