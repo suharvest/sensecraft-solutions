@@ -106,17 +106,18 @@ The two RK boards appear in both tables, which gives the exchange rate between t
 precisions: INT8 is 1.5–1.7× faster and matches FP16 detection-for-detection on
 held-out frames.
 
-**Measurement conditions**: the two Jetson rows follow upstream's basis — taken with the
-boards' other workloads co-resident (upstream labels its own figures "co-existing
-capacity, not an idle peak"). Re-measured on an idle Orin NX, FP16 reaches
-3.3 ms / 306 FPS, about 15% headroom; the table keeps the co-resident figures because
-they are closer to a real deployment.
+**Measurement conditions**: both Jetson rows were taken with co-resident workloads
+stopped. That step is necessary — when a co-resident workload uses the accelerator the
+ranking inverts: Orin NX measured 264.9 FPS while running its own inference workload,
+*below* Orin Nano and the opposite of their relative capability; stopped, it is
+306.2 FPS. Orin Nano measured identically either way (270.5 vs 270.7), because its
+co-resident services never touch the GPU.
 
 **Why Jetson is absent from the INT8 table**: upstream has no INT8 calibration path —
 `build_engine.sh` passes only `--fp16`, and INT8 would need a calibrator and calibration
-set implemented in the project, not a flag. An uncalibrated engine was measured on an
-idle Orin NX for the speed ceiling (2.45 ms / 408 FPS, 1.33× over FP16, the same
-direction as RK's 1.5–1.7×), but uncalibrated INT8 assigns arbitrary dynamic ranges:
+set implemented in the project, not a flag. An uncalibrated engine was measured for the speed
+ceiling (idle Orin NX 2.45 ms / 408 FPS, Orin Nano 2.75 ms / 363.9 FPS, 1.33–1.34× over
+FP16 and the same direction as RK's 1.5–1.7×), but uncalibrated INT8 assigns arbitrary dynamic ranges:
 usable for timing, not for detection, so it is not listed as a deployable configuration.
 
 reCamera 2002 and Pro are INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8
