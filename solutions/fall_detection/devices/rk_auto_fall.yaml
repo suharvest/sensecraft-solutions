@@ -138,6 +138,27 @@ remote_overrides:
           ls -1 "$DEST"
         name_i18n:
           zh: 准备板卡的 RKNN Lite 依赖
+      - name: Stage the board's GStreamer MPP plugin
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk/rk_auto_fall"
+          DEST="$WORKDIR/gstmpp"
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          # Copied rather than bind-mounted per file: a board without these would
+          # otherwise get empty directories created by Docker at the mount points.
+          # If nothing is found the app falls back to CPU decode and still runs.
+          # h264parse lives in gstreamer1.0-plugins-bad, which the runtime image does
+          # not carry; without it the MPP branch cannot link and drops to CPU decode.
+          for f in $(find /usr/lib -name 'libgstrockchipmpp.so' 2>/dev/null | head -1) \
+                   $(find /usr/lib -name 'libgstvideoparsersbad.so' 2>/dev/null | head -1) \
+                   $(find /usr/lib /lib -name 'libgstcodecparsers-1.0.so.*' 2>/dev/null) \
+                   $(find /usr/lib /lib -name 'librockchip_mpp.so.*' 2>/dev/null) \
+                   $(find /usr/lib /lib -name 'librga.so.*' 2>/dev/null); do
+            [ -e "$f" ] && cp -aL "$f" "$DEST/" || true
+          done
+          ls -1 "$DEST" || true
+        name_i18n:
+          zh: 准备板卡的 GStreamer MPP 插件
       - name: Download the pose model for this board
         timeout: 900
         run: |

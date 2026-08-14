@@ -30,12 +30,28 @@ services:
       #     precedence over site-packages, so Debian's numpy shadows the image's
       #     and fails on a libblas the image does not carry.
       # The deploy step copies just the needed packages into ./rknnsite.
-      PYTHONPATH: /host-pysite
+      # Appended, not replaced: the image sets PYTHONPATH=/usr/lib/python3/dist-packages
+      # because its interpreter lives in /usr/local while apt-installed modules land in
+      # dist-packages. Overriding the variable outright hid every one of them, including
+      # PyGObject, which silently dropped the hardware decode path to CPU ffmpeg.
+      PYTHONPATH: /host-pysite:/usr/lib/python3/dist-packages
+      # The Rockchip MPP decoder and RGA scaler are vendor plugins staged from the
+      # board (see the deploy step). Without them the RTSP path silently falls back
+      # to CPU ffmpeg decode, which costs about three cores per stream.
+      GST_PLUGIN_PATH: /host-gst
+      LD_LIBRARY_PATH: /host-gst
     volumes:
       - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro
       - ./rknnsite:/host-pysite:ro
+      - ./gstmpp:/host-gst:ro
       - ./config:/config:ro
       - ./models:/models:ro
+    # GStreamer caches its plugin scan in /root/.cache. A container that first
+    # started before the MPP plugin was staged keeps that stale registry across
+    # restarts and never sees the plugin, silently staying on CPU decode. A
+    # tmpfs makes the scan fresh on every start.
+    tmpfs:
+      - /root/.cache
     healthcheck:
       # Importing rknnlite is the check that matters. The previous test only
       # confirmed the config and model files existed, which stayed true while
