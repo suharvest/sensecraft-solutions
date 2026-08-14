@@ -73,27 +73,34 @@ ones. Separating the platforms would need a larger, harder test set.
 ### Performance
 
 One model across every device: **YOLO11n-Pose at 640²**; per-frame is accelerator
-inference only (excluding RTSP decode and postprocessing), aggregate is total frame
-rate at the highest concurrency measured. Different precisions are not mixed into one
+inference only (excluding RTSP decode and postprocessing), aggregate is the highest total frame
+rate measured across 1–6 concurrent contexts. Different precisions are not mixed into one
 table.
 
 **FP16**
 
-| Runtime | Per-frame | Aggregate | Concurrency tested |
-|---|---:|---:|---:|
-| reComputer J (Orin Nano) | 3.7 ms | 270.5 FPS | 6 |
-| reComputer J (Orin NX) | 3.8 ms | 264.9 FPS | 6 |
-| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 |
-| reComputer RK3576 | 56.1 ms | 29.2 FPS | 2 |
+| Runtime | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
+|---|---:|---:|---:|---:|
+| reComputer J (Orin Nano) | 3.7 ms | 270.5 FPS | 18 | 7 |
+| reComputer J (Orin NX) | 3.8 ms | 264.9 FPS | 17 | 7 |
+| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 | 1 |
+| reComputer RK3576 | 56.1 ms | 29.2 FPS | 1 | 1 |
 
 **INT8**
 
-| Runtime | Per-frame | Aggregate | Concurrency tested |
-|---|---:|---:|---:|
-| reComputer RK3588 | 29.8 ms | 90.4 FPS | 3 |
-| reCamera Pro | 35.9 ms | 18.1 FPS | 1 |
-| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 |
-| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 |
+| Runtime | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
+|---|---:|---:|---:|---:|
+| reComputer RK3588 | 29.8 ms | 90.4 FPS | 6 | 2 |
+| reCamera Pro | 35.9 ms | 18.1 FPS | 1 | 1 |
+| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 | 1 |
+| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 | 1 |
+
+**How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
+accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end
+throughput on RK reached only 28–44% of the inference bound, because RTSP decode,
+tracking, the state machine and MQTT also consume CPU and memory bandwidth. Start
+from the suggested figure and load-test with your own cameras, codec and scene
+density.
 
 The two RK boards appear in both tables, which gives the exchange rate between the
 precisions: INT8 is 1.5–1.7× faster and matches FP16 detection-for-detection on
