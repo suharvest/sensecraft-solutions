@@ -111,8 +111,10 @@ MQTT。后处理开销随画面里的人数增长：RK3576 在 4 人的测试图
 
 ▲ Hailo 的 7.8 ms 是从 `hailonet` 前的缓冲到其 source pad 的探针，覆盖 Hailo 调度与输出
 搬运，不含 RTSP 解码、缩放、C++ 后处理、跟踪和 MQTT；该运行时的 `inference_time_ms` 上报
-为 0（`inference_time_metric=unavailable`），不能与这个数字混为一谈。Jetson 侧没有
-pipeline 计时字段，后处理开销**未实测**。
+为 0（`inference_time_metric=unavailable`），不能与这个数字混为一谈。Jetson 侧的口径需要单独说明：它上报的 `inference_time_ms` 实际上是 **pipeline 口径**——
+计时范围覆盖 CUDA 预处理、TensorRT 推理、YOLO 解码与 NMS（见 `main/c_api.cpp` 的
+`started`/`finished` 区间），而不是像 RK 那样只计推理调用。因此表中 Jetson 的
+`trtexec` 单帧数（纯 GPU 计算、无主机拷贝）与它的应用层数字不是一回事，正在补测。
 
 **路数怎么读**：「推理上限路数」= 聚合吞吐 ÷ 15 FPS，只算加速器，是理论天花板。
 「建议路数」在此基础上打了折——RK 上实测的端到端吞吐只有推理上限的 28%–44%，因为

@@ -137,8 +137,12 @@ content.
 ▲ Hailo's 7.8 ms is a probe from the buffer before `hailonet` to its source pad, covering
 Hailo scheduling and output transfer but not RTSP decode, resize, the C++ postprocess,
 tracking or MQTT. That runtime reports `inference_time_ms` as 0
-(`inference_time_metric=unavailable`), so the two must not be conflated. Jetson has no
-pipeline timing field, so its postprocess cost is **not measured**.
+(`inference_time_metric=unavailable`), so the two must not be conflated. Jetson needs a separate note: the `inference_time_ms` it publishes is actually a
+**pipeline-scope** figure — the timer spans CUDA preprocess, TensorRT inference, YOLO
+decode and NMS (see the `started`/`finished` span in `main/c_api.cpp`), rather than the
+inference call alone as on RK. So the `trtexec` per-frame number in the table (pure GPU
+compute, no host copies) and its application-level number measure different things; a
+like-for-like figure is being measured.
 
 **How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
 accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end
