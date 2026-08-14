@@ -102,12 +102,16 @@ table.
 Model Zoo v2.15 hailo8 directory ships pose only as `yolov8s_pose` and `yolov8m_pose`,
 with no n-size pose model at all. We compiled our own YOLO11n-Pose with the Hailo
 Dataflow Compiler 3.31.0 (640², INT8, 64 GMDCSA calibration frames) and measured
-**9.01 ms / 92.2 FPS** on the same board — 4.3x slower than the s build's 6.87 ms /
-393.9 FPS. The compiler split 11n across **3 contexts**, so weights are swapped once
-per frame; the Model Zoo s build is single-context and keeps its weights resident.
-Read the other way: that row runs a **larger** model than every other row and still
-lands at 6.9 ms per frame. The n figure describes how that HEF was allocated, not the
-ceiling for 11n on Hailo-8.
+**9.01 ms / 92.2 FPS** on the same board against the s build's 6.87 ms / 393.9 FPS:
+**per-frame latency is the same order (+31%); the 4.3x gap is in throughput.** The
+compiler split 11n across **3 contexts**, so weights are swapped once per frame, while
+the Model Zoo s build is single-context and keeps its weights resident.
+
+Measured against what this solution actually needs — one stream at 15 FPS — the n
+build's 92.2 FPS still leaves roughly 6x headroom, so the gap constrains stream
+density rather than single-stream deployment. The s size is kept because on this board
+it is both faster and larger, leaving nothing to gain from the swap. The n figure
+describes how that HEF was allocated, not the ceiling for 11n on Hailo-8.
 
 ＊ **Jetson INT8 is not deployable today and is listed for speed reference only.** The
 engine is built with `trtexec --int8` and no calibrator or calibration set, so its
