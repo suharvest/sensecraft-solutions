@@ -98,15 +98,16 @@ table.
 | reComputer J (Orin Nano) | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
 | reComputer J (Orin NX) | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
 
-▲ **No n-size model exists for Hailo.** The official Model Zoo v2.15 hailo8 directory
-ships pose only as `yolov8s_pose` and `yolov8m_pose` — `yolov8n_pose`, `yolo11n_pose`
-and `yolo11s_pose` are all absent (each returns 403). This solution downloads the
-official pre-compiled HEF rather than compiling its own, so s is the smallest available.
-Running 11n on Hailo would mean compiling it with the Hailo Dataflow Compiler (a
-licensed x86 SDK) plus a calibration set, then re-freezing the temporal weights on the
-resulting pose output.
+▲ **This row uses the s size because n is slower on this accelerator.** The official
+Model Zoo v2.15 hailo8 directory ships pose only as `yolov8s_pose` and `yolov8m_pose`,
+with no n-size pose model at all. We compiled our own YOLO11n-Pose with the Hailo
+Dataflow Compiler 3.31.0 (640², INT8, 64 GMDCSA calibration frames) and measured
+**9.01 ms / 92.2 FPS** on the same board — 4.3x slower than the s build's 6.87 ms /
+393.9 FPS. The compiler split 11n across **3 contexts**, so weights are swapped once
+per frame; the Model Zoo s build is single-context and keeps its weights resident.
 Read the other way: that row runs a **larger** model than every other row and still
-lands at 6.9 ms per frame.
+lands at 6.9 ms per frame. The n figure describes how that HEF was allocated, not the
+ceiling for 11n on Hailo-8.
 
 ＊ **Jetson INT8 is not deployable today and is listed for speed reference only.** The
 engine is built with `trtexec --int8` and no calibrator or calibration set, so its

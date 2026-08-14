@@ -82,12 +82,13 @@ RTSP 解码与后处理），聚合吞吐取 1–6 个并发上下文中实测�
 | reComputer J（Orin Nano） | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
 | reComputer J（Orin NX） | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
 
-▲ **Hailo 没有 n 尺寸可用。** 官方 Model Zoo v2.15 的 hailo8 目录里，姿态模型只提供
-`yolov8s_pose` 和 `yolov8m_pose`——`yolov8n_pose`、`yolo11n_pose`、`yolo11s_pose` 均不
-存在（实测均返回 403）。本方案直接下载官方预编译 HEF，不自行编译，因此最小只能用到 s
-尺寸。要在 Hailo 上跑 11n，需要用 Hailo Dataflow Compiler（x86 授权 SDK）自行编译并准备
-标定集，再在新的姿态输出上重新冻结时序权重。
-换个角度看：Hailo 这一行跑的是比其他行**更大**的 s 尺寸模型，单帧仍是 6.9 ms。
+▲ **Hailo 这一行用的是 s 尺寸，因为 n 尺寸在这块加速器上更慢。** 官方 Model Zoo v2.15 的
+hailo8 目录只提供 `yolov8s_pose` 和 `yolov8m_pose`，没有任何 n 尺寸姿态模型。我们用 Hailo
+Dataflow Compiler 3.31.0 自行编译了一份 YOLO11n-Pose（640²、INT8、64 帧 GMDCSA 标定），
+在同一块板子上实测 **9.01 ms / 92.2 FPS**，比 s 尺寸的 6.87 ms / 393.9 FPS 慢 4.3 倍。
+原因是编译器把 11n 切成了 **3 个 context**，每帧要换一次权重；Model Zoo 的 s 尺寸是
+single context，权重常驻。也就是说 Hailo 这一行跑的是比其他行**更大**的模型，单帧仍是
+6.9 ms。这个 n 尺寸结果反映的是该 HEF 的编译分配，不是 Hailo-8 跑 11n 的上限。
 
 ＊ **Jetson 的 INT8 目前不可部署，只作速度参考。** 引擎由 `trtexec --int8` 直接构建，
 没有标定器也没有标定集，动态范围是随意取的：内核速度是真的，检测结果不可用。上游
