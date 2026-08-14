@@ -149,6 +149,14 @@ milliseconds, too coarse to resolve a ~2 ms delta anyway. The 52.9 ms is from 25
 (213 containing people), median 53.0, p95 53.0, range 52-54 ms, with frames containing
 people again indistinguishable from empty ones (52.94 vs 52.84 ms).
 
+**reCamera Pro is the opposite case: its 35.9 ms is accelerator-only and compares
+directly.** Its runtime times `model.infer()` on its own (`kit/app.py:1258-1260`), with
+letterbox before the start and raw-head decode after the end — exactly this table's
+accelerator definition. It also publishes `pipeline_ms`, but that one stops after tracking
+and the temporal decision (`kit/app.py:1285-1297`), a wider span than this table's pipeline
+column, so it is not carried above; a comparable figure would need a t3-t0 timer added to
+the kit.
+
 That means **the 53.0 ms shown for reCamera 2002 in the INT8 table above is not on the same
 basis as the RK, Jetson and Hailo entries in that column**: those are accelerator-only,
 while the 2002 figure already includes preprocess and postprocess. Putting it on the same
@@ -216,13 +224,19 @@ external figures cover long shots and occlusion.
 
 | Output | Where | Content |
 |---|---|---|
-| Fall results | MQTT port 1883, topic `recamera/fall-detection/results` | Per-frame JSON: aggregate state plus one entry per tracked person |
-| Availability | MQTT port 1883, topic `recamera/fall-detection/status` | `online` / `offline`, retained |
+| Fall results | MQTT port 1883, topic `<device-name>/fall-detection/results` (multi-stream presets use `.../results/<stream-id>`) | Per-frame JSON: aggregate state plus one entry per tracked person |
+| Availability | MQTT port 1883, topic `<device-name>/fall-detection/status` | `online` / `offline`, retained |
 | Home Assistant | MQTT discovery under `homeassistant/` | Fall sensor, state, event ID, person count |
 | Video | RTSP port 8554 `/live0` on reCamera, or your own IP camera | The scene the detector is watching |
 
 The reComputer preset takes more than one camera from a single box and appends the
-stream id to the topic (`recamera/fall-detection/results/cam-01`), so each camera
+**`<device-name>` is yours to choose.** It is the Device Name field in the deploy step,
+defaulting to `recamera` on the reCamera preset and `recomputer` on the reComputer ones. It
+is only the first topic segment, there to keep several installations apart on one broker, so
+a room, floor or site name works just as well. `stream_id` is also carried in the payload, so
+nothing downstream has to parse the topic to know where a message came from.
+
+stream id to the topic (`<device-name>/fall-detection/results/cam-01`), so each camera
 stays separable downstream. This solution was verified end to end on one stream;
 the upstream project suggests starting at 4 streams with YOLO11s on Orin Nano, or
 3 with YOLO11m on Orin NX, at 15 FPS, then measuring your own cameras, codec and
