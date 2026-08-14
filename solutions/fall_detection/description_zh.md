@@ -63,21 +63,32 @@ RTSP 解码与后处理），聚合吞吐取 1–6 个并发上下文中实测�
 
 **FP16**
 
-| 运行平台 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
-|---|---:|---:|---:|---:|
-| reComputer J（Orin Nano） | 3.7 ms | 270.7 FPS | 18 | 7 |
-| reComputer J（Orin NX） | 3.3 ms | 306.2 FPS | 20 | 8 |
-| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 | 1 |
-| reComputer RK3576 | 56.1 ms | 29.2 FPS | 1 | 1 |
+| 运行平台 | 姿态模型 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
+|---|---|---:|---:|---:|---:|
+| reComputer RK3576 | YOLO11n | 56.1 ms | 29.2 FPS | 1 | 1 |
+| reComputer RK3588 | YOLO11n | 51.4 ms | 51.4 FPS | 3 | 1 |
+| reComputer J（Orin Nano） | YOLO11n | 3.7 ms | 270.7 FPS | 18 | 7 |
+| reComputer J（Orin NX） | YOLO11n | 3.3 ms | 306.2 FPS | 20 | 8 |
 
 **INT8**
 
-| 运行平台 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
-|---|---:|---:|---:|---:|
-| reComputer RK3588 | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reCamera Pro | 35.9 ms | 18.1 FPS | 1 | 1 |
-| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 | 1 |
-| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 | 1 |
+| 运行平台 | 姿态模型 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
+|---|---|---:|---:|---:|---:|
+| reCamera 2002 | YOLO11n | 53.0 ms | 10.0 FPS | 1 | 1 |
+| reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
+| reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
+| reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
+| reComputer R（Hailo-8） | YOLOv8s ▲ | 6.9 ms | 59.5 FPS | 3 | 2 |
+| reComputer J（Orin Nano） | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
+| reComputer J（Orin NX） | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
+
+▲ Hailo 侧跑的是官方 Model Zoo 的 YOLOv8s-Pose，不是 11n，模型不同不能与同表其他行直接比。
+
+＊ **Jetson 的 INT8 目前不可部署，只作速度参考。** 引擎由 `trtexec --int8` 直接构建，
+没有标定器也没有标定集，动态范围是随意取的：内核速度是真的，检测结果不可用。上游
+`build_engine.sh` 只传 `--fp16`；要做真正的 INT8 需要在项目里实现标定器与标定集，并在
+INT8 姿态输出上重新冻结时序权重。RK 的 INT8 与之相反——用 240 帧 GMDCSA 标定过，在未
+参与标定的帧上每帧检测数与 FP16 完全一致，是可部署的。
 
 **路数怎么读**：「推理上限路数」= 聚合吞吐 ÷ 15 FPS，只算加速器，是理论天花板。
 「建议路数」在此基础上打了折——RK 上实测的端到端吞吐只有推理上限的 28%–44%，因为
@@ -92,15 +103,7 @@ RK 两块板同时出现在两张表里，可以作为两种精度之间的换�
 低，与两者的算力关系相反；停掉后是 306.2 FPS。Orin Nano 停与不停完全一致（270.5 对
 270.7），因为它上面的业务不碰 GPU。
 
-**Jetson 为什么不在 INT8 表里**：上游没有 INT8 标定流程，`build_engine.sh` 只传
-`--fp16`，要做 INT8 得先在项目里实现标定器和标定集，不是加个开关。用未标定的引擎实测过速度上限（Orin NX 空闲
-2.45 ms / 408 FPS、Orin Nano 2.75 ms / 363.9 FPS，相对 FP16 快 1.33–1.34 倍，与 RK 的
-1.5–1.7 倍同向），但未标定的 INT8 动态范围是随意取的，只能看速度、检测结果不可用，因此不作为
-可部署配置列入表中。
-
-reCamera 2002 与 Pro 只有 INT8。
-reComputer R（Hailo）跑的是官方 Model Zoo 的 YOLOv8s-Pose INT8（6.9 ms / 59.5 FPS），
-模型不同，不进上面两张表。
+reCamera 2002 与 Pro 只有 INT8，没有 FP16 版本。
 
 **当前套餐下发的是**：Jetson FP16、RK FP16、reCamera 2002 与 Pro INT8。RK 的 INT8
 权重是本次新转换用于对比的，尚未随套餐下发，切换前需要复核时序权重。

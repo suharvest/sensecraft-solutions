@@ -79,21 +79,36 @@ table.
 
 **FP16**
 
-| Runtime | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
-|---|---:|---:|---:|---:|
-| reComputer J (Orin Nano) | 3.7 ms | 270.5 FPS | 18 | 7 |
-| reComputer J (Orin NX) | 3.8 ms | 264.9 FPS | 17 | 7 |
-| reComputer RK3588 | 51.4 ms | 51.4 FPS | 3 | 1 |
-| reComputer RK3576 | 56.1 ms | 29.2 FPS | 1 | 1 |
+| Runtime | Pose model | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
+|---|---|---:|---:|---:|---:|
+| reComputer RK3576 | YOLO11n | 56.1 ms | 29.2 FPS | 1 | 1 |
+| reComputer RK3588 | YOLO11n | 51.4 ms | 51.4 FPS | 3 | 1 |
+| reComputer J (Orin Nano) | YOLO11n | 3.7 ms | 270.7 FPS | 18 | 7 |
+| reComputer J (Orin NX) | YOLO11n | 3.3 ms | 306.2 FPS | 20 | 8 |
 
 **INT8**
 
-| Runtime | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
-|---|---:|---:|---:|---:|
-| reComputer RK3588 | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reCamera Pro | 35.9 ms | 18.1 FPS | 1 | 1 |
-| reComputer RK3576 | 36.2 ms | 42.1 FPS | 2 | 1 |
-| reCamera 2002 | 53.0 ms | 10.0 FPS | 1 | 1 |
+| Runtime | Pose model | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
+|---|---|---:|---:|---:|---:|
+| reCamera 2002 | YOLO11n | 53.0 ms | 10.0 FPS | 1 | 1 |
+| reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
+| reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
+| reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
+| reComputer R (Hailo-8) | YOLOv8s ▲ | 6.9 ms | 59.5 FPS | 3 | 2 |
+| reComputer J (Orin Nano) | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
+| reComputer J (Orin NX) | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
+
+▲ Hailo runs the official Model Zoo YOLOv8s-Pose, not 11n, so that row is not directly
+comparable with the others in its table.
+
+＊ **Jetson INT8 is not deployable today and is listed for speed reference only.** The
+engine is built with `trtexec --int8` and no calibrator or calibration set, so its
+dynamic ranges are arbitrary: the kernel timing is real, the detections are not.
+Upstream's `build_engine.sh` passes only `--fp16`; a real INT8 path needs a calibrator
+and calibration set implemented in the project, then the temporal weights re-frozen on
+INT8 pose output. RK INT8 is the opposite — calibrated on 240 GMDCSA frames and
+identical to FP16 detection-for-detection on frames held out of that set, hence
+deployable.
 
 **How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
 accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end
@@ -112,13 +127,6 @@ ranking inverts: Orin NX measured 264.9 FPS while running its own inference work
 *below* Orin Nano and the opposite of their relative capability; stopped, it is
 306.2 FPS. Orin Nano measured identically either way (270.5 vs 270.7), because its
 co-resident services never touch the GPU.
-
-**Why Jetson is absent from the INT8 table**: upstream has no INT8 calibration path —
-`build_engine.sh` passes only `--fp16`, and INT8 would need a calibrator and calibration
-set implemented in the project, not a flag. An uncalibrated engine was measured for the speed
-ceiling (idle Orin NX 2.45 ms / 408 FPS, Orin Nano 2.75 ms / 363.9 FPS, 1.33–1.34× over
-FP16 and the same direction as RK's 1.5–1.7×), but uncalibrated INT8 assigns arbitrary dynamic ranges:
-usable for timing, not for detection, so it is not listed as a deployable configuration.
 
 reCamera 2002 and Pro are INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8
 (6.9 ms / 59.5 FPS); different model, so it is in neither table.
