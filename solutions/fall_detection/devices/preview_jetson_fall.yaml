@@ -62,13 +62,13 @@ user_inputs:
     name: MQTT Topic
     type: text
     required: false
-    default: "recamera/fall-detection/results/cam-01"
-    placeholder: "recamera/fall-detection/results/cam-01"
-    description: One topic per stream — the suffix is the stream id from the deploy step
+    default: "recomputer/fall-detection/results/cam-01"
+    placeholder: "recomputer/fall-detection/results/cam-01"
+    description: Must match the deploy step — the first segment is the device name you set there, the suffix is the stream id
     name_i18n:
       zh: MQTT 主题
     description_i18n:
-      zh: 一路视频一个主题——后缀是部署步骤里的流编号
+      zh: 要和部署步骤一致——第一段是你在那里设的设备名称，后缀是流编号
   - id: mqtt_username
     name: MQTT Username
     type: text

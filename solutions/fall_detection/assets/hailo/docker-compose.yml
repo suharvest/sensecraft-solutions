@@ -27,7 +27,7 @@ services:
       MQTT_PORT: ${MQTT_PORT:-1883}
       MQTT_USERNAME: ${MQTT_USERNAME:-}
       MQTT_PASSWORD: ${MQTT_PASSWORD:-}
-      MQTT_TOPIC: ${MQTT_TOPIC:-recamera/fall-detection/results/{stream_id}}
+      MQTT_TOPIC: ${MQTT_TOPIC:-recomputer/fall-detection/results/{stream_id}}
       SCORE_THRESHOLD: ${SCORE_THRESHOLD:-0.35}
       KEYPOINT_THRESHOLD: ${KEYPOINT_THRESHOLD:-0.25}
       BENCHMARK_SECONDS: ${BENCHMARK_SECONDS:-0}

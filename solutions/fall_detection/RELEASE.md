@@ -152,7 +152,7 @@ What each run must prove:
 2. `after_upload` completes — Jetson builds the TensorRT engine (~461 s for
    YOLO11s; budget 900 s+), RK downloads the board-matched `.rknn` and passes its
    sha256, Hailo fetches the HEF and passes its digest.
-3. The container publishes to `recamera/fall-detection/results/<stream-id>`.
+3. The container publishes to `<device-name>/fall-detection/results/<stream-id>`.
 4. The preview step renders video **with the overlay aligned to the person**.
    For RK and Hailo specifically, confirm the skeleton is not squashed toward the
    vertical centre — that is the signature of the letterbox inversion failing, and

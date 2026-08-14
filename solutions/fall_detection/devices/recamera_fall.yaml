@@ -61,6 +61,9 @@ actions:
         [ -f "$CONF" ] || touch "$CONF"
         [ -n "{{mqtt_host}}" ] && set_kv MQTT_HOST "{{mqtt_host}}"
         [ -n "{{mqtt_port}}" ] && set_kv MQTT_PORT "{{mqtt_port}}"
+        # The init script reads MQTT_TOPIC from this file; the prefix is the
+        # device name the user chose rather than a fixed product name.
+        [ -n "{{device_name}}" ] && set_kv MQTT_TOPIC "{{device_name}}/fall-detection/results"
       sudo: true
       name_i18n:
         zh: 生成跌倒检测配置
@@ -95,6 +98,18 @@ actions:
         zh: 禁用 Node-RED 自启动
 
 user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recamera"
+    required: true
+    description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
   - id: mqtt_host
     name: MQTT Broker Host
     type: text

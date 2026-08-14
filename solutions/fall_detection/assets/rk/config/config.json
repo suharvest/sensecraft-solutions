@@ -9,6 +9,6 @@
   "postprocess": {"backend": "cpp", "strict": false, "fallback": "numpy"},
   "tracker": {"iou_threshold": 0.2, "max_lost_sec": 0.75},
   "fall": {"temporal_confirmation_required": true},
-  "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "recamera/fall-detection/results/{stream_id}", "username": "", "password": "", "tls": false},
+  "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "recomputer/fall-detection/results/{stream_id}", "username": "", "password": "", "tls": false},
   "streams": [{"id": "cam-01", "rtsp_url": "rtsp://192.168.1.10:554/stream1", "enabled": true, "transport": "tcp", "reconnect_delay_ms": 1000}]
 }

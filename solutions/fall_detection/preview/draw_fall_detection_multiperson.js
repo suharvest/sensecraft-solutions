@@ -15,7 +15,7 @@
  * each person gets a box and a state label rather than one global skeleton.
  *
  * Input (data): one Jetson MQTT message, published per processed frame to
- * `recamera/fall-detection/results/{stream_id}`
+ * `<device-name>/fall-detection/results/{stream_id}`
  * {
  *   timestamp: 1753689600123, frame_id: 4821, inference_time_ms: 24.3,
  *   stream_id: "cam-01",

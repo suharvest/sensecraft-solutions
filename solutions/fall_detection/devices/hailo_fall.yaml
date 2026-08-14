@@ -131,7 +131,7 @@ remote_overrides:
           STREAMS={{stream_id}}|{{rtsp_url}}
           MQTT_HOST=127.0.0.1
           MQTT_PORT=1883
-          MQTT_TOPIC=recamera/fall-detection/results/{stream_id}
+          MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
           EOF
           echo "wrote $WORKDIR/.env:"
           sed 's/:[^@/]*@/:****@/' "$WORKDIR/.env"
@@ -179,6 +179,18 @@ remote_overrides:
       required: true
       name_i18n:
         zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
     - id: rtsp_url
       name: Camera RTSP URL
       type: text

@@ -122,6 +122,12 @@ MLP 与 MQTT。Orin NX 的 5.18 ms 取自 400 帧实测（264 帧有人），p95
 整数毫秒，也分辨不出约 2 ms 的增量。实测 52.9 ms 取自 250 帧（213 帧有人），中位 53.0、
 p95 53.0、范围 52–54 ms，有人与无人同样几乎无差别（52.94 对 52.84）。
 
+**reCamera Pro 相反，它的 35.9 ms 是纯加速器，可以直接比。** 它的运行时把
+`model.infer()` 单独计时（`kit/app.py:1258-1260`），letterbox 在计时起点之前、raw-head 解码
+在终点之后，正好等于本表「加速器推理」的定义。它同时也发 `pipeline_ms`，但那个值的终点在
+跟踪与时序判定**之后**（`kit/app.py:1285-1297`），比本表 pipeline 的范围更宽，因此没有放进
+上表——要取同口径值需要在 kit 里补一个 t3-t0 的计时。
+
 因此**上面 INT8 表里 reCamera 2002 的 53.0 ms 与 RK/Jetson/Hailo 那一列口径不同**——后者
 是纯加速器，2002 那个数已经含预处理与后处理。要把它换成纯加速器口径，需要在应用里加计时器
 重新打包。
@@ -176,10 +182,14 @@ YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮
 
 | 输出 | 位置 | 内容 |
 |---|---|---|
-| 跌倒结果 | MQTT 1883 端口，主题 `recamera/fall-detection/results` | 每帧一条 JSON：整体状态加每个被跟踪者一条记录 |
-| 在线状态 | MQTT 1883 端口，主题 `recamera/fall-detection/status` | `online` / `offline`，retained |
+| 跌倒结果 | MQTT 1883 端口，主题 `<设备名>/fall-detection/results`（多路套餐为 `.../results/<流编号>`） | 每帧一条 JSON：整体状态加每个被跟踪者一条记录 |
+| 在线状态 | MQTT 1883 端口，主题 `<设备名>/fall-detection/status` | `online` / `offline`，retained |
 | Home Assistant | `homeassistant/` 下的 MQTT 自动发现 | 跌倒传感器、状态、事件编号、人数 |
 | 视频 | reCamera 的 RTSP 8554 端口 `/live0`，或你自己的 IP 摄像头 | 检测器正在看的画面 |
+
+**`<设备名>` 是你自己取的**，在部署步骤里作为「设备名称」填写，默认 reCamera 套餐为
+`recamera`、reComputer 套餐为 `recomputer`。它只是主题的第一段，用来区分同一个 broker 上的
+多台设备——按房间、楼层或站点命名都可以。`stream_id` 同时写在 payload 里，下游不必靠解析主题来判断来源。
 
 reComputer 套餐可以用一台设备接入多路摄像头，并把流编号拼在主题后面
 （`recamera/fall-detection/results/cam-01`），下游能把每路分开处理。本方案端到端

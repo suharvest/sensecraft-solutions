@@ -37,7 +37,7 @@
     "port": 1883,
     "username": "",
     "password": "",
-    "topic": "recamera/fall-detection/results/{stream_id}",
+    "topic": "recomputer/fall-detection/results/{stream_id}",
     "keepalive_sec": 30,
     "qos": 0,
     "retain": false,

@@ -40,7 +40,7 @@ intro:
   output_interfaces:
     - type: mqtt
       port: 1883
-      topic: recamera/fall-detection/results
+      topic: <device-name>/fall-detection/results
       description: Per-frame fall results JSON — aggregate state plus one entry per tracked person. The Jetson preset appends the stream id to the topic.
       schema_type: json
       payload_example: '{"state":"fallen","fall_detected":true,"fall_event":true,"event_id":7,"person_count":1,"fallen_count":1,"persons":[{"track_id":3,"state":"fallen","bbox":[0.51,0.72,0.34,0.21]}]}'
@@ -48,7 +48,7 @@ intro:
         zh: 每帧一条的跌倒结果 JSON——整体状态加每个被跟踪者一条记录。Jetson 套餐会把流编号拼在主题后面。
     - type: mqtt
       port: 1883
-      topic: recamera/fall-detection/status
+      topic: <device-name>/fall-detection/status
       description: Availability — online / offline, retained, published as the MQTT last will
       schema_type: json
       description_i18n:
@@ -86,14 +86,14 @@ intro:
         zh: 在你的 RTSP 视频上运行跌倒检测（Orin Nano 8GB）
       purchase:
         require:
-          module: orin_nano_8
+          module: [orin_nano_8]
     recomputer_j40:
       description: Runs the fall detector with the larger YOLO11m pose model (Orin NX 16GB)
       description_i18n:
         zh: 用更大的 YOLO11m 姿态模型运行跌倒检测（Orin NX 16GB）
       purchase:
         require:
-          module: orin_nx_16
+          module: [orin_nx_16]
     recomputer_rk3576:
       description: Runs the fall detector on the RK3576 NPU
       description_i18n:
@@ -108,7 +108,7 @@ intro:
         zh: 在 Hailo-8 加速器上运行跌倒检测，热路径为原生 C++
       purchase:
         require:
-          ai_accelerator: hailo-8
+          ai_accelerator: [hailo-8]
     generic_ip_camera:
       name: IP Camera
       name_i18n:

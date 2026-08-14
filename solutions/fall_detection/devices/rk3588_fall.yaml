@@ -186,6 +186,10 @@ remote_overrides:
               config = json.load(handle)
 
           config["model_path"] = "/models/yolo11n_pose_rawhead_fp16.rk3588.rknn"
+          # The topic prefix is the device name the user chose, so the same
+          # broker can carry several installations without collisions.
+          config.setdefault("mqtt", {})["topic"] = \
+              "{{device_name}}/fall-detection/results/{stream_id}"
           # Board-native temporal profile, trained and frozen on this SoC's own
           # pose traces. Do not substitute another board's file.
           config["temporal_model"] = "/models/temporal-rk3588.npz"
@@ -249,6 +253,18 @@ remote_overrides:
       required: true
       name_i18n:
         zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
     - id: rtsp_url
       name: Camera RTSP URL
       type: text
