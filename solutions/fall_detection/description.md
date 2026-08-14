@@ -117,6 +117,29 @@ INT8 pose output. RK INT8 is the opposite — calibrated on 240 GMDCSA frames an
 identical to FP16 detection-for-detection on frames held out of that set, hence
 deployable.
 
+**Both tables use a synthetic blank 640 frame** (the same basis as the existing FP16
+baselines) and time the accelerator only. Real footage is slower, because anything
+detected has to go through raw-head decode, DFL, keypoints and NMS:
+
+| Platform | Blank-frame inference | Real-footage inference | Real-footage pipeline | Postprocess delta |
+|---|---:|---:|---:|---:|
+| reComputer RK3576 | 56.1 ms | 69.6 ms | 70.8 ms | 1.2 ms |
+| reComputer RK3588 | 51.4 ms | 54.4 ms | 54.8 ms | 0.4 ms |
+| reComputer R (Hailo-8) | — | — | 7.8 ms ▲ | — |
+
+"pipeline" is inference plus raw-head decode / DFL / keypoints / NMS; it still excludes
+RTSP decode, tracking, the temporal MLP and MQTT. Postprocess cost grows with the number
+of people in frame: on RK3576 it is 2.7 ms on a 4-person test image against 0.4 ms on a
+blank one. The blank-to-real gap (13.4 ms on RK3576, 3.0 ms on RK3588) also contains
+contention from workloads running at the time, so it cannot all be attributed to frame
+content.
+
+▲ Hailo's 7.8 ms is a probe from the buffer before `hailonet` to its source pad, covering
+Hailo scheduling and output transfer but not RTSP decode, resize, the C++ postprocess,
+tracking or MQTT. That runtime reports `inference_time_ms` as 0
+(`inference_time_metric=unavailable`), so the two must not be conflated. Jetson has no
+pipeline timing field, so its postprocess cost is **not measured**.
+
 **How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
 accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end
 throughput on RK reached only 28–44% of the inference bound, because RTSP decode,
