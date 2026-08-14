@@ -126,7 +126,7 @@ detected has to go through raw-head decode, DFL, keypoints and NMS:
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
 | reComputer J (Orin NX) | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
-| reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | not measured ▲ | not measured |
+| reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
 
 "pipeline" is inference plus preprocess plus raw-head decode / DFL / keypoints / NMS. It
 excludes RTSP decode, tracking, the temporal MLP and MQTT. The Jetson figure is from 400
@@ -142,15 +142,18 @@ the RK entries are `rknnlite.inference()` — different scopes by construction. 
 column is the one that compares: on it, Jetson is roughly 11x faster than RK3588 and 14x
 faster than RK3576.
 
-▲ **Hailo's pipeline cannot be measured as it stands.** Its `pipeline_ms` is a
-`pre_hailonet_to_hailonet_src` probe whose timestamp is taken *before* `decodeYoloV8Pose()`
-and `tracker.update()`, so it covers hailonet scheduling, hardware inference and output
-tensor transfer — precisely excluding the decode and NMS that this column measures
-elsewhere. A like-for-like figure needs a timer added around the decode in
-`platforms/rpi-hailo/src/main.cpp`. It also could not be measured this round: no
-fall-detection stack is deployed on harvest-pi, and `/dev/hailo0` is held by the unrelated
-`mcp_face_rec` service (HailoRT contexts are exclusive), so `hailortcli benchmark` returns
-`HAILO_OUT_OF_PHYSICAL_DEVICES`.
+Hailo's 8.77 ms is from 1951 measured frames (1849 containing people), p95 12.34 ms:
+6.87 ms hardware inference, about 1.8 ms scheduling and output tensor transfer, and only
+**0.052 ms** of raw-head decode + NMS (0.6% of the frame), plus 0.013 ms tracking. Its
+decode barely moves with people (0.035 ms empty vs 0.053 ms with), behaving like Jetson
+rather than RK, because the HEF emits low-cardinality output tensors.
+
+▲ That platform's own `pipeline_ms` is a `pre_hailonet_to_hailonet_src` probe whose
+timestamp is taken before `decodeYoloV8Pose()` and `tracker.update()`. To get a
+like-for-like figure, `decode_ms` / `track_ms` / `pipeline_full_ms` were added upstream in
+`platforms/rpi-hailo/src/main.cpp` as new fields, leaving the original field and its
+`latency_metric` unchanged. The measurement then showed the original metric already covers
+99.4% of the per-frame cost, so the two are interchangeable in practice.
 
 **How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
 accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end

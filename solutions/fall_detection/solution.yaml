@@ -86,14 +86,14 @@ intro:
         zh: 在你的 RTSP 视频上运行跌倒检测（Orin Nano 8GB）
       purchase:
         require:
-          module: orin_nano_8
+          module: [orin_nano_8]
     recomputer_j40:
       description: Runs the fall detector with the larger YOLO11m pose model (Orin NX 16GB)
       description_i18n:
         zh: 用更大的 YOLO11m 姿态模型运行跌倒检测（Orin NX 16GB）
       purchase:
         require:
-          module: orin_nx_16
+          module: [orin_nx_16]
     recomputer_rk3576:
       description: Runs the fall detector on the RK3576 NPU
       description_i18n:
@@ -108,7 +108,7 @@ intro:
         zh: 在 Hailo-8 加速器上运行跌倒检测，热路径为原生 C++
       purchase:
         require:
-          ai_accelerator: hailo-8
+          ai_accelerator: [hailo-8]
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -213,9 +213,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set.
+      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Camera input is blocked pending a rebuilt image — see the guide.
       description_i18n:
-        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。
+        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。摄像头接入受已知问题阻塞，待镜像重建，详见部署指引。
       device_groups:
         - id: compute
           name: Detector Host

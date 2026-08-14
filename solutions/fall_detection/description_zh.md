@@ -103,7 +103,7 @@ INT8 姿态输出上重新冻结时序权重。RK 的 INT8 与之相反——用
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
 | reComputer J（Orin NX） | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
-| reComputer R（Hailo-8） | YOLOv8s INT8 | 6.9 ms | 未实测 ▲ | 未实测 |
+| reComputer R（Hailo-8） | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
 
 「pipeline」= 推理 + 预处理 + raw-head 解码/DFL/关键点/NMS，不含 RTSP 解码、跟踪、时序
 MLP 与 MQTT。Jetson 的 5.18 ms 取自 400 帧实测（264 帧画面里有人），p95 5.24 ms。
@@ -116,13 +116,16 @@ anchor，与画面里有几个人无关，而 0–2 个框的 NMS 成本可以�
 两者口径本就不同；可以横向比的是 pipeline 那一列。同口径下 Jetson 比 RK3588 快约 11 倍、
 比 RK3576 快约 14 倍。
 
-▲ **Hailo 的 pipeline 目前测不了。** 它的 `pipeline_ms` 是 `pre_hailonet_to_hailonet_src`
-探针：时间戳在 `decodeYoloV8Pose()` 和 `tracker.update()` **之前**就取了，因此覆盖的是
-hailonet 调度、硬件推理和输出张量搬运，恰好不含 RK/Jetson 这一列所计的解码与 NMS。要拿到
-同口径数字，需要在 `platforms/rpi-hailo/src/main.cpp` 的解码段加一个计时器。此外本轮也没
-测成：harvest-pi 上没有部署 fall-detection 栈，而 `/dev/hailo0` 被无关的 `mcp_face_rec`
-占用（HailoRT 上下文独占），`hailortcli benchmark` 报
-`HAILO_OUT_OF_PHYSICAL_DEVICES`。
+Hailo 的 8.77 ms 取自 1951 帧实测（1849 帧有人），p95 12.34 ms：其中硬件推理 6.87 ms，
+调度与输出张量搬运约 1.8 ms，raw-head 解码 + NMS 只有 **0.052 ms**（占 0.6%），跟踪
+0.013 ms。它的解码几乎不随人数变化（无人 0.035 ms、有人 0.053 ms），与 Jetson 同类，
+和 RK 不同——因为 HEF 输出的张量基数很低。
+
+▲ 该平台原本上报的 `pipeline_ms` 是 `pre_hailonet_to_hailonet_src` 探针，时间戳取在
+`decodeYoloV8Pose()` 与 `tracker.update()` 之前。为拿到同口径数字，在上游
+`platforms/rpi-hailo/src/main.cpp` 增加了 `decode_ms` / `track_ms` /
+`pipeline_full_ms`（新增字段，原字段与 `latency_metric` 保持不变）。实测结论是：原指标
+已经覆盖了 99.4% 的单帧成本，两者可以直接互换使用。
 
 **路数怎么读**：「推理上限路数」= 聚合吞吐 ÷ 15 FPS，只算加速器，是理论天花板。
 「建议路数」在此基础上打了折——RK 上实测的端到端吞吐只有推理上限的 28%–44%，因为
