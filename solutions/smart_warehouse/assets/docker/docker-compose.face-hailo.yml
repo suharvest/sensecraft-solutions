@@ -1,6 +1,6 @@
 services:
   warehouse:
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse:2026.08.10
     container_name: mcp_warehouse
     ports:
       - "2125:2125"
