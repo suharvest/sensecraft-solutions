@@ -130,16 +130,20 @@ detected has to go through raw-head decode, DFL, keypoints and NMS:
 |---|---|---:|---:|---:|
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer J (Orin NX) | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
 | reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
+| reComputer J (Orin Nano) | YOLO11n FP16 | 3.7 ms ◆ | 5.57 ms | 1.9 ms |
+| reComputer J (Orin NX) | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
 
 "pipeline" is inference plus preprocess plus raw-head decode / DFL / keypoints / NMS. It
-excludes RTSP decode, tracking, the temporal MLP and MQTT. The Jetson figure is from 400
-measured frames (264 of them containing people), p95 5.24 ms.
+excludes RTSP decode, tracking, the temporal MLP and MQTT. The Orin NX figure is from 400
+measured frames (264 of them containing people), p95 5.24 ms; the Orin Nano figure is from
+1359 frames (1209 containing people), median 5.56 ms and p95 5.62 ms, with a single 88.9 ms
+first-frame warm-up outlier removed (the next largest is 8.21 ms). Both Jetsons carry the
+same 1.9 ms pre/postprocess delta.
 
 **Whether postprocess scales with people differs by platform.** On RK3576 it is 2.7 ms for
 a 4-person frame against 0.4 ms blank; on Jetson frames with and without people are
-indistinguishable (5.180 vs 5.187 ms), because YOLO11 decode walks a fixed 8400-anchor
+indistinguishable (NX 5.180 vs 5.187 ms; Nano 5.567 vs 5.556 ms), because YOLO11 decode walks a fixed 8400-anchor
 head regardless of content and NMS over 0-2 boxes is free.
 
 ◆ The Jetson entry in that column is `trtexec` pure GPU compute with no host copies, while

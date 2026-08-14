@@ -107,14 +107,17 @@ INT8 姿态输出上重新冻结时序权重。RK 的 INT8 与之相反——用
 |---|---|---:|---:|---:|
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer J（Orin NX） | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
 | reComputer R（Hailo-8） | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
+| reComputer J（Orin Nano） | YOLO11n FP16 | 3.7 ms ◆ | 5.57 ms | 1.9 ms |
+| reComputer J（Orin NX） | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
 
 「pipeline」= 推理 + 预处理 + raw-head 解码/DFL/关键点/NMS，不含 RTSP 解码、跟踪、时序
-MLP 与 MQTT。Jetson 的 5.18 ms 取自 400 帧实测（264 帧画面里有人），p95 5.24 ms。
+MLP 与 MQTT。Orin NX 的 5.18 ms 取自 400 帧实测（264 帧有人），p95 5.24 ms；Orin Nano 的
+5.57 ms 取自 1359 帧实测（1209 帧有人），中位 5.56 ms、p95 5.62 ms，已剔除首帧预热的单个
+88.9 ms 离群点（次大 8.21 ms）。两台 Jetson 的前后处理增量都是 1.9 ms。
 
 **后处理是否随人数增长，两边不一样。** RK3576 在 4 人画面上后处理 2.7 ms、空白帧 0.4 ms；
-Jetson 有人与无人几乎没差别（5.180 对 5.187 ms），因为 YOLO11 的解码要遍历固定的 8400 个
+Jetson 有人与无人几乎没差别（NX 5.180 对 5.187 ms；Nano 5.567 对 5.556 ms），因为 YOLO11 的解码要遍历固定的 8400 个
 anchor，与画面里有几个人无关，而 0–2 个框的 NMS 成本可以忽略。
 
 ◆ Jetson 这一列是 `trtexec` 纯 GPU 计算（无主机拷贝），RK 那一列是 `rknnlite.inference()`，
