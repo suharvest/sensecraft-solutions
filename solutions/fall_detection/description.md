@@ -129,6 +129,7 @@ detected has to go through raw-head decode, DFL, keypoints and NMS:
 | Platform | Pose model | Accelerator inference | Real-footage pipeline | Pre/postprocess delta |
 |---|---|---:|---:|---:|
 | reCamera 2002 | YOLO11n INT8 | not separable ◇ | 52.9 ms | — |
+| reCamera Pro | YOLO11n INT8 | 35.2 ms | 36.6 ms | 1.4 ms |
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
 | reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
@@ -140,7 +141,10 @@ excludes RTSP decode, tracking, the temporal MLP and MQTT. The Orin NX figure is
 measured frames (264 of them containing people), p95 5.24 ms; the Orin Nano figure is from
 1359 frames (1209 containing people), median 5.56 ms and p95 5.62 ms, with a single 88.9 ms
 first-frame warm-up outlier removed (the next largest is 8.21 ms). Both Jetsons carry the
-same 1.9 ms pre/postprocess delta.
+same 1.9 ms pre/postprocess delta. The reCamera Pro figure is from 382 frames, only 3
+of which contained a person, so its 1.4 ms delta is a floor: it shares the RKNN path with the
+RK boards, where postprocess grows with people (2.7 ms on a 4-person frame against 0.4 ms
+blank on RK3576).
 
 ◇ **reCamera 2002 has no separable accelerator column.** Its app exposes one timer, started
 after frame retrieval and stopped after postprocess, which is exactly this table's pipeline
@@ -149,13 +153,21 @@ milliseconds, too coarse to resolve a ~2 ms delta anyway. The 52.9 ms is from 25
 (213 containing people), median 53.0, p95 53.0, range 52-54 ms, with frames containing
 people again indistinguishable from empty ones (52.94 vs 52.84 ms).
 
-**reCamera Pro is the opposite case: its 35.9 ms is accelerator-only and compares
+**reCamera Pro is the opposite case: its figure is accelerator-only and compares
 directly.** Its runtime times `model.infer()` on its own (`kit/app.py:1258-1260`), with
 letterbox before the start and raw-head decode after the end — exactly this table's
-accelerator definition. It also publishes `pipeline_ms`, but that one stops after tracking
-and the temporal decision (`kit/app.py:1285-1297`), a wider span than this table's pipeline
-column, so it is not carried above; a comparable figure would need a t3-t0 timer added to
-the kit.
+accelerator definition. The pipeline column comes from `pre+infer+post` in its own `metrics`
+message (0.00 + 35.21 + 1.34), which matches this table's scope; the separate `pipeline_ms`
+it publishes stops after tracking and the temporal decision and is therefore not used.
+
+**That row is only comparable because the clocks were pinned.** Its NPU runs
+`rknpu_ondemand` and sat at 800 MHz for 60 of 60 samples (ceiling 950), where inference
+measures 43.1 ms. With `min_freq` raised to 950 MHz and the CPU governor set to
+`performance` (1608 MHz) it measures 35.2 ms, matching the existing 35.89 frozen baseline.
+**The same board differs by 23% on frequency bin alone.** The table uses the pinned figures;
+the governors were restored afterwards. RK3576 and RK3588 held their top bin for 40 of 40
+samples (950 / 1000 MHz) and are unaffected, Jetson is recorded at MAXN_SUPER, and Hailo has
+no such layer.
 
 That means **the 53.0 ms shown for reCamera 2002 in the INT8 table above is not on the same
 basis as the RK, Jetson and Hailo entries in that column**: those are accelerator-only,
