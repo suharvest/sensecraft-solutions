@@ -117,34 +117,6 @@ is pose coverage: in long shots and heavy occlusion the person is barely detecte
 at all. The table above covers a framed indoor view at close-to-medium range; the
 external figures cover long shots and occlusion.
 
-### Performance
-
-Latency and throughput are measured separately from accuracy and under different
-conditions, so they get their own table:
-
-| Runtime | Per-frame inference | Single-stream end to end | Multi-stream measured | Conditions |
-|---|---:|---:|---|---|
-| reCamera 2002 | 52.96 ms | 10.0 FPS | — | on-device, 640² |
-| reComputer J (Orin NX, YOLO11s) | 8.3 ms | 15 FPS, source-limited | — | deployed run; source was 15 FPS |
-| reComputer RK3576 | 63.0 ms | 4.9 FPS | 2 streams, 3.8 + 3.8 FPS | other workloads left running |
-| reComputer RK3588 | 51.4 ms | 8.6 FPS | 3 streams, 5.2 + 5.4 + 5.7 FPS | other workloads left running |
-| reComputer R (Hailo) | 6.9 ms | 15.0 FPS | 2 streams, 15.1 + 15.0 FPS | 393 FPS pure-accelerator benchmark |
-
-**These columns do not compare across rows.** reComputer J's 15 FPS is the ceiling
-of the video source, not the board. The two RK figures were taken with other
-workloads still running, so they are contention-affected capacity evidence rather
-than board maxima. Hailo's 6.9 ms is accelerator time only and excludes RTSP
-decode and postprocessing. Measure your own cameras, codec and scene density
-before committing to a stream count.
-
-Known weak cases in every runtime: long shots, occlusion, low light, and
-floor-level activities that look like falls (push-ups, lying down to play with a
-pet). The detector must also observe the *transition* — starting it while someone
-is already on the floor reports the posture but raises no event.
-
-**Run a site acceptance test with representative falls and normal activity before
-you enable any notification workflow, and keep another means of summoning help.**
-
 ## Output Interfaces
 
 | Output | Where | Content |
