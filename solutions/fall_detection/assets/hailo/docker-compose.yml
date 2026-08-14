@@ -11,7 +11,7 @@
 # — the host's are mounted read-only so they cannot drift apart.
 services:
   fall-detection:
-    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rpi-hailo:0.1.0-rc1
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rpi-hailo:0.1.0-rc2
     restart: unless-stopped
     network_mode: host
     depends_on:
