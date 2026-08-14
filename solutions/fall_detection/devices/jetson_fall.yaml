@@ -38,6 +38,11 @@ pre_checks:
   - type: nvidia_runtime
     description: Check the NVIDIA container runtime is available
 
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 首次部署要在设备上构建 TensorRT 引擎（Orin 实测 461 s），整轮实测约 9 分钟；
+# 这里给到 6 倍余量，用于兜住卡死而不是限制正常构建。
+deploy_timeout: 3600
+
 post_deployment:
   open_browser: false
 

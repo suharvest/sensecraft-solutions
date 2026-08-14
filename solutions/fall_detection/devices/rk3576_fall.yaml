@@ -29,6 +29,10 @@ pre_checks:
     min_gb: 6
     description: Runtime image and pose model live on the device
 
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 整轮实测约 2–3 分钟（拉取已缓存镜像 + 下载模型）。
+deploy_timeout: 1800
+
 post_deployment:
   open_browser: false
 

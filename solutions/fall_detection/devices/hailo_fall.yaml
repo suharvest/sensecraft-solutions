@@ -30,6 +30,10 @@ pre_checks:
     min_gb: 4
     description: Runtime image and the pose HEF live on the device
 
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# HEF 从 Hailo Model Zoo 下载，整轮通常在几分钟内完成。
+deploy_timeout: 1800
+
 post_deployment:
   open_browser: false
 
