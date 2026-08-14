@@ -98,8 +98,15 @@ table.
 | reComputer J (Orin Nano) | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
 | reComputer J (Orin NX) | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
 
-▲ Hailo runs the official Model Zoo YOLOv8s-Pose, not 11n, so that row is not directly
-comparable with the others in its table.
+▲ **No n-size model exists for Hailo.** The official Model Zoo v2.15 hailo8 directory
+ships pose only as `yolov8s_pose` and `yolov8m_pose` — `yolov8n_pose`, `yolo11n_pose`
+and `yolo11s_pose` are all absent (each returns 403). This solution downloads the
+official pre-compiled HEF rather than compiling its own, so s is the smallest available.
+Running 11n on Hailo would mean compiling it with the Hailo Dataflow Compiler (a
+licensed x86 SDK) plus a calibration set, then re-freezing the temporal weights on the
+resulting pose output.
+Read the other way: that row runs a **larger** model than every other row and still
+lands at 6.9 ms per frame.
 
 ＊ **Jetson INT8 is not deployable today and is listed for speed reference only.** The
 engine is built with `trtexec --int8` and no calibrator or calibration set, so its
