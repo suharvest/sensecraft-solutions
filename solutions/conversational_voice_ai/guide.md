@@ -13,7 +13,7 @@ Speech remains local while recognized text is sent to Qwen API or another OpenAI
 
 After deployment, users can interrupt a spoken answer at any time.
 
-### Target {#cloud_rk3576 type=remote device_name="RK3576" config=devices/cloud_rk3576.yaml default=true}
+### Target {#cloud_rk3576 type=remote device=rk3576 device_name="RK3576" config=devices/cloud_rk3576.yaml default=true}
 
 Run speech on RK3576 and connect to a cloud or LAN model.
 
@@ -40,7 +40,29 @@ Ask a question. Within one second of playback starting, speak again; the current
 | Speech is recognized but no reply plays | Inspect the agent LLM error and confirm streaming output is supported |
 | Audio does not recover after hot-plug | Confirm the new Agent image is running and Compose has the dynamic `/dev/snd` mount plus the `116:*` cgroup rule |
 
-### Target {#cloud_rk3588 type=remote device_name="RK3588" config=devices/cloud_rk3588.yaml}
+### Target {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
+
+Deploy directly on the machine running SenseCraft Solution. This local target
+requires a Jetson Orin with JetPack 6.2, Docker, and NVIDIA Container Toolkit.
+
+### Wiring
+
+1. Connect the AEC microphone and speaker to this machine
+2. Enter the cloud endpoint, API key, model ID, and assistant personality
+3. Deploy and wait for speech model warmup
+
+### Deployment Complete
+
+Ask a question, then speak while the reply is playing to verify interruption.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Local deployment is unsupported | Use the remote target unless this machine is a Jetson Orin running JetPack 6.2 |
+| NVIDIA runtime missing | Install NVIDIA Container Toolkit and restart Docker |
+
+### Target {#cloud_rk3588 type=remote device=rk3588 device_name="RK3588" config=devices/cloud_rk3588.yaml}
 
 Run speech on RK3588 and connect to a cloud or LAN model.
 
@@ -61,7 +83,7 @@ Complete two turns, then interrupt the third answer. The dashboard should move f
 | Replies repeat | Confirm the microphone exposes a real AEC channel and retry at a lower speaker volume |
 | Audio continues after interruption | Confirm the agent drains playback; avoid external players that buffer several seconds |
 
-### Target {#cloud_jetson type=remote device_name="Jetson Orin" config=devices/cloud_jetson.yaml}
+### Target {#cloud_jetson type=remote device=jetson device_name="Jetson Orin" config=devices/cloud_jetson.yaml}
 
 Run speech on Orin Nano or Orin NX and connect to a cloud or LAN model.
 
@@ -112,7 +134,7 @@ Keep speech and conversation on-device. The packaged paths are RK3588 + RK1828 r
 
 Deploy the speech service, local model service, and resident duplex agent.
 
-### Target {#local_orin_nx type=remote device_name="Orin NX" config=devices/local_orin_nx.yaml default=true}
+### Target {#local_orin_nx type=remote device=orin_nx device_name="Orin NX" config=devices/local_orin_nx.yaml default=true}
 
 Run Qwen3-ASR, Matcha-TTS, and Qwen3.5-4B on Orin NX 16GB.
 
@@ -133,7 +155,29 @@ First artifact download and warmup can take several minutes. After both health c
 | Model load runs out of memory | Stop other GPU containers; do not deploy this preset to Orin Nano 8GB |
 | Engine provenance check fails | Keep the pinned engine revision and do not mix engines built for another TensorRT/JetPack version |
 
-### Target {#local_rk3588 type=remote device_name="RK3588 + RK1828" config=devices/local_rk3588_rk1828.yaml}
+### Target {#local_this_machine type=local device=orin_nx config=devices/local_orin_nx.yaml}
+
+Deploy directly on this machine. The local target requires an Orin NX 16GB
+running JetPack 6.2 with enough free memory for speech and Qwen3.5-4B.
+
+### Wiring
+
+1. Connect the AEC microphone and speaker
+2. Confirm at least 25GB free disk and stop other GPU workloads
+3. Deploy and wait for the local LLM and speech service to become healthy
+
+### Deployment Complete
+
+Disconnect external networking after warmup and verify conversation still works.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Local machine is not Orin NX 16GB | Choose the remote target and select the correct edge device |
+| Model load runs out of memory | Stop other GPU containers before deploying |
+
+### Target {#local_rk3588 type=remote device=rk3588_rk1828 device_name="RK3588 + RK1828" config=devices/local_rk3588_rk1828.yaml}
 
 Run speech on RK3588 and Qwen3-4B on the RK1828 card.
 
