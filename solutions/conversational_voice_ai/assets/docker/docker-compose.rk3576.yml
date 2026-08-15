@@ -1,6 +1,6 @@
 services:
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-qwen3asr-20260815-7330af9}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-qwen3asr-20260816-ea4e258-coldstart}
     container_name: conversational-voice-speech
     privileged: true
     init: true
