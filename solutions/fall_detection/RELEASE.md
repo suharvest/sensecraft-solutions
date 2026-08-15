@@ -83,17 +83,20 @@ repo — asking for it returns `NOT_FOUND`. The release tag is shared across the
 | Platform | Device | Source image | Published as |
 |---|---|---|---|
 | Jetson | `orin-nano` | `fall-detection:jetson-slim` | `solution/fall-detection-jetson:0.1.0-rc1` |
-| RK | `orin-nx` | built from `platforms/rknn/` | `solution/fall-detection-rknn:0.1.0-rc5` |
-| Hailo | `harvest-pi` (build) / `orin-nx` (push) | `fall-detection-rpi-hailo:4.21` | `solution/fall-detection-rpi-hailo:0.1.0-rc2` |
+| RK | any arm64 host with credentials | built from `platforms/rknn/` | `solution/fall-detection-rknn:0.1.0-rc5` |
+| Hailo | the Pi that built the binary; push elsewhere | `fall-detection-rpi-hailo:4.21` | `solution/fall-detection-rpi-hailo:0.1.0-rc2` |
 
-The RK image no longer has to be built on a Rockchip board: its runtime stage is
-apt plus a compiled postprocess module, so any arm64 host works and `orin-nx` is
-used because it holds registry credentials. `harvest-pi` has none, which is why
-the Hailo image is built there but pushed from `orin-nx`.
+Two constraints decide where a build runs, and they matter more than which host
+happens to be used:
 
-**Push as the normal user, not with `--sudo`.** The credentials live in that
-user's `~/.docker/config.json`; running the push as root fails with
-`no basic auth credentials` even though the same host pulls fine.
+- **The RK image needs any arm64 host, not a Rockchip board.** Its runtime stage
+  is apt plus a compiled postprocess module — nothing touches the NPU at build
+  time. The Hailo image is the opposite: it is built where its binary was built.
+- **Pushing needs registry credentials on that host**, and they belong to a
+  specific user. Push as that user, never with `--sudo`: credentials live in
+  `~/.docker/config.json`, so a root push fails with `no basic auth credentials`
+  even where the same host pulls fine. A build host without credentials still
+  works — build there, push from a host that has them.
 
 Upstream publishes a release manifest naming each image reference and digest —
 treat it as the source of truth when bumping tags here. The three platforms move
