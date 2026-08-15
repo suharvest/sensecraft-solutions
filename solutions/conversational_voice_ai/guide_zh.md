@@ -13,7 +13,7 @@
 
 部署后，用户可以在设备说话期间随时打断正在播放的回答。
 
-### 部署目标 {#cloud_rk3576 type=remote device_name="RK3576" config=devices/cloud_rk3576.yaml default=true}
+### 部署目标 {#cloud_rk3576 type=remote device=rk3576 device_name="RK3576" config=devices/cloud_rk3576.yaml default=true}
 
 在 RK3576 上运行语音，连接云端或局域网模型。
 
@@ -38,7 +38,29 @@ USB 产品标识自动选择真实采集设备，忽略 HDMI/DP 虚拟输入；�
 | 能识别但不说话 | 查看 agent 日志中的 LLM 请求错误，并确认模型支持流式输出 |
 | 热插拔后没有恢复 | 确认容器使用新版 Agent 镜像，且 Compose 包含动态 `/dev/snd` 映射和 `116:*` cgroup 规则 |
 
-### 部署目标 {#cloud_rk3588 type=remote device_name="RK3588" config=devices/cloud_rk3588.yaml}
+### 部署目标 {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
+
+直接部署到正在运行 SenseCraft Solution 的本机。该本机目标要求设备是
+Jetson Orin，并已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit。
+
+### 接线
+
+1. 将 AEC 麦克风和音箱接到本机
+2. 填写云端接口、API Key、模型 ID 和助手人设
+3. 开始部署并等待语音模型预热
+
+### 部署完成
+
+提出一个问题，在回答播放时再次说话，确认能立即打断。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 本机不支持部署 | 如果当前机器不是 JetPack 6.2 的 Jetson Orin，请选择远程部署 |
+| 缺少 NVIDIA runtime | 安装 NVIDIA Container Toolkit 后重启 Docker |
+
+### 部署目标 {#cloud_rk3588 type=remote device=rk3588 device_name="RK3588" config=devices/cloud_rk3588.yaml}
 
 在 RK3588 上运行语音，连接云端或局域网模型。
 
@@ -59,7 +81,7 @@ USB 产品标识自动选择真实采集设备，忽略 HDMI/DP 虚拟输入；�
 | 回复不断重复 | 检查麦克风是否真的输出 AEC 通道，降低音箱音量后复测 |
 | 打断后仍有余音 | 查看 agent 是否记录播放队列清空；不要使用会缓存数秒音频的外部播放器 |
 
-### 部署目标 {#cloud_jetson type=remote device_name="Jetson Orin" config=devices/cloud_jetson.yaml}
+### 部署目标 {#cloud_jetson type=remote device=jetson device_name="Jetson Orin" config=devices/cloud_jetson.yaml}
 
 在 Orin Nano 或 Orin NX 上运行语音，连接云端或局域网模型。
 
@@ -110,7 +132,7 @@ USB 产品标识自动选择真实采集设备，忽略 HDMI/DP 虚拟输入；�
 
 部署语音服务、本地模型服务和常驻双工 agent。
 
-### 部署目标 {#local_orin_nx type=remote device_name="Orin NX" config=devices/local_orin_nx.yaml default=true}
+### 部署目标 {#local_orin_nx type=remote device=orin_nx device_name="Orin NX" config=devices/local_orin_nx.yaml default=true}
 
 在 Orin NX 16GB 上运行 Qwen3-ASR、Matcha-TTS 和 Qwen3.5-4B。
 
@@ -131,7 +153,29 @@ USB 产品标识自动选择真实采集设备，忽略 HDMI/DP 虚拟输入；�
 | 模型加载时 OOM | 停止其他 GPU 容器；不要把该套餐部署到 Orin Nano 8GB |
 | engine 校验失败 | 不要混用其他 TensorRT/JetPack 版本构建的 engine，保留锁定 revision |
 
-### 部署目标 {#local_rk3588 type=remote device_name="RK3588 + RK1828" config=devices/local_rk3588_rk1828.yaml}
+### 部署目标 {#local_this_machine type=local device=orin_nx config=devices/local_orin_nx.yaml}
+
+直接部署到本机。该目标要求本机是运行 JetPack 6.2 的 Orin NX 16GB，
+并有足够内存同时运行语音服务和 Qwen3.5-4B。
+
+### 接线
+
+1. 接入 AEC 麦克风和音箱
+2. 确认至少有 25GB 空闲磁盘，并停止其他 GPU 工作负载
+3. 开始部署，等待本地 LLM 和语音服务健康
+
+### 部署完成
+
+完成预热后断开外网，确认对话仍可正常进行。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 本机不是 Orin NX 16GB | 选择远程部署，并在下拉框中选择正确设备 |
+| 模型加载时内存不足 | 部署前停止其他 GPU 容器 |
+
+### 部署目标 {#local_rk3588 type=remote device=rk3588_rk1828 device_name="RK3588 + RK1828" config=devices/local_rk3588_rk1828.yaml}
 
 在 RK3588 上运行语音，并由 RK1828 加速卡运行 Qwen3-4B。
 
