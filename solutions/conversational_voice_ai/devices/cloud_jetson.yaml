@@ -1,0 +1,64 @@
+version: "1.0"
+id: cloud_jetson
+name: Jetson with Cloud LLM
+name_i18n: {zh: Jetson + 云端对话}
+type: docker_deploy
+device_class: jetson
+deploy_timeout: 2400
+docker:
+  compose_file: assets/docker/docker-compose.jetson.yml
+  options: {project_name: conversational_voice_ai}
+  environment:
+    LLM_BACKEND: openai_compat
+    LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+    LLM_API_KEY: "{{LLM_API_KEY}}"
+    LLM_MODEL: qwen3.5-flash
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    DEFAULT_MODE: chat
+    OVS_PROFILE: jetson-qwen3asr-matcha
+  services:
+    - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
+ssh: {port: 22, default_user: recomputer}
+pre_checks:
+  - {type: disk_space, min_gb: 15, description: At least 15GB for images and model artifacts}
+remote_overrides:
+  remote_path: /home/{{username}}/conversational_voice_ai
+  compose_dir: assets/docker
+  detection: {method: network_scan, manual_entry: true}
+  environment:
+    LLM_BACKEND: openai_compat
+    LLM_BASE_URL: "{{LLM_BASE_URL}}"
+    LLM_API_KEY: "{{LLM_API_KEY}}"
+    LLM_MODEL: "{{LLM_MODEL}}"
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    DEFAULT_MODE: chat
+    OVS_PROFILE: "{{OVS_PROFILE}}"
+  user_inputs:
+    - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
+    - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+    - {id: LLM_BASE_URL, name: OpenAI-compatible Base URL, type: text, default: "https://dashscope.aliyuncs.com/compatible-mode/v1", required: true, reconfigurable: true, name_i18n: {zh: OpenAI 兼容接口地址}}
+    - {id: LLM_API_KEY, name: API Key, type: password, required: true, reconfigurable: true, name_i18n: {zh: API Key}}
+    - {id: LLM_MODEL, name: Model ID, type: text, default: qwen3.5-flash, required: true, reconfigurable: true, name_i18n: {zh: 模型 ID}}
+    - id: SYSTEM_PROMPT
+      name: Assistant personality
+      name_i18n: {zh: 助手人设与回答风格}
+      type: text
+      required: true
+      reconfigurable: true
+      default: >-
+        You are a natural, witty voice assistant. Reply in the user's language. Keep responses conversational and brief—usually one or two sentences. Add light humor and personality when appropriate, but never at the expense of accuracy. Avoid rambling, repetition, lectures, Markdown, headings, and lists. If details are missing, ask one short question. For spoken Chinese, write numbers, dates, times, money, and units as natural spoken Chinese.
+      default_i18n:
+        zh: >-
+          你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
+      description: Editable system prompt applied to every conversation.
+      description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}
+    - id: OVS_PROFILE
+      name: Jetson Voice Profile
+      name_i18n: {zh: Jetson 语音配置}
+      type: select
+      default: jetson-qwen3asr-matcha
+      required: true
+      options:
+        - {value: jetson-qwen3asr-matcha, label: Orin Nano - Qwen3 ASR + Matcha, label_i18n: {zh: Orin Nano - Qwen3 ASR + Matcha}}
+        - {value: jetson-qwen3asr-matcha-nx, label: Orin NX - Qwen3 ASR + Matcha, label_i18n: {zh: Orin NX - Qwen3 ASR + Matcha}}

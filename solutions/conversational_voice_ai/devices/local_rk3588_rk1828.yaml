@@ -1,0 +1,111 @@
+version: "1.0"
+id: local_rk3588_rk1828
+name: RK3588 with RK1828 Local LLM
+name_i18n: {zh: RK3588 + RK1828 本地模型}
+type: docker_deploy
+device_class: rk3588
+deploy_timeout: 3600
+docker:
+  compose_file: assets/docker/docker-compose.rk3588-rk1828.yml
+  options: {project_name: conversational_voice_ai}
+  environment:
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+  services:
+    - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
+    - {name: llm, port: 1828, health_check_endpoint: /health, required: true}
+ssh: {port: 22, default_user: radxa}
+pre_checks:
+  - {type: disk_space, min_gb: 18, description: At least 18GB for images and local model artifacts}
+remote_overrides:
+  remote_path: /home/{{username}}/conversational_voice_ai
+  compose_dir: assets/docker
+  detection: {method: network_scan, manual_entry: true}
+  environment:
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+  user_inputs:
+    - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
+    - {id: username, name: SSH Username, type: text, default: radxa, required: true, name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+    - id: SYSTEM_PROMPT
+      name: Assistant personality
+      name_i18n: {zh: 助手人设与回答风格}
+      type: text
+      required: true
+      reconfigurable: true
+      default: >-
+        You are a natural, witty voice assistant. Reply in the user's language. Keep responses conversational and brief—usually one or two sentences. Add light humor and personality when appropriate, but never at the expense of accuracy. Avoid rambling, repetition, lectures, Markdown, headings, and lists. If details are missing, ask one short question. For spoken Chinese, write numbers, dates, times, money, and units as natural spoken Chinese.
+      default_i18n:
+        zh: >-
+          你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
+      description: Editable system prompt applied to every conversation.
+      description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}
+    - id: RK_PERFORMANCE_MODE
+      name: RK Performance Mode
+      name_i18n: {zh: RK 性能模式}
+      type: select
+      default: performance
+      required: true
+      reconfigurable: true
+      description: Lock CPU, NPU, DDR, and GPU (when present) to their highest reported frequencies, or keep the system governor unchanged.
+      description_i18n: {zh: 将 CPU、NPU、DDR 及存在时的 GPU 锁定到设备报告的最高频率，或保持系统原有调频策略。}
+      options:
+        - {value: performance, label: Maximum performance, label_i18n: {zh: 最高性能（默认）}}
+        - {value: balanced, label: System default / balanced, label_i18n: {zh: 系统默认 / 均衡}}
+  actions:
+    before:
+      - name: Lock RK clocks to maximum
+        name_i18n: {zh: 将 RK 各计算域锁定到最高频率}
+        description: Pins the available CPU, NPU, DDR, and GPU frequency domains before starting the voice services.
+        description_i18n: {zh: 在启动语音服务前，将可用的 CPU、NPU、DDR 和 GPU 频率域锁定到最高档。}
+        sudo: true
+        when: {field: RK_PERFORMANCE_MODE, value: performance}
+        run: |
+          set -u
+          failures=0
+          npu_seen=0
+          npu_pinned=0
+
+          for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+            [ -d "$policy" ] || continue
+            max=$(cat "$policy/cpuinfo_max_freq" 2>/dev/null || cat "$policy/scaling_max_freq" 2>/dev/null || true)
+            [ -n "$max" ] || { echo "WARN: no maximum frequency for $policy"; failures=$((failures + 1)); continue; }
+            if grep -qw performance "$policy/scaling_available_governors" 2>/dev/null; then
+              echo performance > "$policy/scaling_governor" || failures=$((failures + 1))
+            elif grep -qw userspace "$policy/scaling_available_governors" 2>/dev/null; then
+              echo userspace > "$policy/scaling_governor" || failures=$((failures + 1))
+              echo "$max" > "$policy/scaling_setspeed" || failures=$((failures + 1))
+            else
+              echo "WARN: $policy has neither performance nor userspace governor"
+              failures=$((failures + 1))
+            fi
+            [ ! -e "$policy/scaling_min_freq" ] || echo "$max" > "$policy/scaling_min_freq" || failures=$((failures + 1))
+            echo "CPU $(basename "$policy"): governor=$(cat "$policy/scaling_governor" 2>/dev/null) min=$(cat "$policy/scaling_min_freq" 2>/dev/null) max=$max"
+          done
+
+          for node in /sys/class/devfreq/*; do
+            [ -d "$node" ] || continue
+            domain=$(basename "$(readlink -f "$node")")
+            case "$domain" in
+              *npu*) npu_seen=1 ;;
+              *dmc*|*gpu*) ;;
+              *) continue ;;
+            esac
+            max=$(tr ' ' '\n' < "$node/available_frequencies" 2>/dev/null | awk 'NF && $1+0>m {m=$1+0} END {if (m) print m}')
+            [ -n "$max" ] || max=$(cat "$node/max_freq" 2>/dev/null || true)
+            [ -n "$max" ] || { echo "WARN: no maximum frequency for $domain"; failures=$((failures + 1)); continue; }
+            pinned=0
+            if grep -qw userspace "$node/available_governors" 2>/dev/null && [ -e "$node/userspace/set_freq" ]; then
+              echo userspace > "$node/governor" && echo "$max" > "$node/userspace/set_freq" && pinned=1
+            elif grep -qw performance "$node/available_governors" 2>/dev/null; then
+              echo performance > "$node/governor" && pinned=1
+            fi
+            [ "$pinned" -eq 1 ] || { echo "WARN: cannot pin $domain"; failures=$((failures + 1)); continue; }
+            [ ! -e "$node/min_freq" ] || echo "$max" > "$node/min_freq" || failures=$((failures + 1))
+            case "$domain" in *npu*) npu_pinned=1 ;; esac
+            echo "$domain: governor=$(cat "$node/governor" 2>/dev/null) current=$(cat "$node/cur_freq" 2>/dev/null) target=$max"
+          done
+
+          [ "$npu_seen" -eq 1 ] || { echo "ERROR: RK NPU frequency domain not found"; exit 1; }
+          [ "$npu_pinned" -eq 1 ] || { echo "ERROR: RK NPU could not be locked to maximum frequency"; exit 1; }
+          [ "$failures" -eq 0 ] || { echo "ERROR: $failures RK frequency operation(s) failed"; exit 1; }
+          echo "RK maximum-performance mode enabled. Ensure adequate cooling."
