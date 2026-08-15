@@ -32,6 +32,11 @@ Checks performed against ``<solution_path>``:
    * **Target naming** — a markdown ``### Target`` name must not be a bare
      direction word (Local / Remote / 本地 / 远程 / 本机 / 远端); the live UI
      label is resolved from i18n, so a direction word is misleading.
+   * **Device-aware target grouping** — a ``docker_deploy`` step with more than
+     one target in the same method (for example several remote hardware
+     variants) must declare a unique ``device=`` value on every target. This
+     is what lets the deploy UI render one Local card and one Remote card with
+     a device dropdown instead of one card per hardware variant.
 """
 
 from __future__ import annotations
@@ -224,6 +229,88 @@ def _check_verify_and_target_naming(
                         f"bare direction word as its name ({text!r}). The live UI "
                         f"label comes from i18n, so this is misleading — omit the "
                         f"name or use a descriptive fallback like 'Deploy on Pi'."
+                    )
+    return errors
+
+
+def _check_device_aware_target_grouping(result, fname: str, lang: str) -> list[str]:
+    """Reject ambiguous multi-target Docker selectors.
+
+    The frontend switches to its two-card (Local / Remote) selector whenever a
+    target declares ``device=``. Within each method, targets are then exposed
+    through a device dropdown. A multi-variant step that omits ``device=``
+    therefore silently falls back to a flat list of cards — the exact failure
+    mode that previously rendered RK3576, RK3588, and Jetson as three cards.
+
+    ``device`` is intentionally scoped per method: the same hardware can have
+    both a local and a remote target, but two variants under one method must be
+    distinguishable. This check is limited to ``docker_deploy`` because
+    ``recamera_cpp`` uses a different flat model-variant selector by design.
+    """
+    errors: list[str] = []
+    for preset in result.presets:
+        for step in preset.steps:
+            if step.type != "docker_deploy":
+                continue
+
+            groups: dict[str, list[object]] = {}
+            for target in step.targets or []:
+                method = (
+                    getattr(target, "target_type", None)
+                    or getattr(target, "method", None)
+                    or "local"
+                )
+                method = str(method).strip().lower() or "local"
+                groups.setdefault(method, []).append(target)
+
+            for method, targets in groups.items():
+                if len(targets) < 2:
+                    continue
+
+                target_ids = [f"#{getattr(t, 'id', '<unknown>')}" for t in targets]
+                missing = [
+                    target
+                    for target in targets
+                    if not str(getattr(target, "device", "") or "").strip()
+                ]
+                if missing:
+                    missing_ids = ", ".join(
+                        f"#{getattr(target, 'id', '<unknown>')}" for target in missing
+                    )
+                    errors.append(
+                        f"{fname}: docker_deploy step '#{step.id}' has "
+                        f"{len(targets)} {method} targets ({', '.join(target_ids)}) "
+                        f"but {missing_ids} omit `device=`. Multi-target methods "
+                        "must give every target a device id so the UI can group "
+                        "them into one method card with a device dropdown."
+                    )
+                    # Do not report duplicate device ids for an already
+                    # incomplete group; the missing-attribute error is the
+                    # actionable root cause.
+                    continue
+
+                by_device: dict[str, list[object]] = {}
+                for target in targets:
+                    device = str(getattr(target, "device", "") or "").strip()
+                    by_device.setdefault(device, []).append(target)
+                duplicates = {
+                    device: entries
+                    for device, entries in by_device.items()
+                    if len(entries) > 1
+                }
+                if duplicates:
+                    duplicate_text = "; ".join(
+                        f"{device!r}: "
+                        + ", ".join(
+                            f"#{getattr(target, 'id', '<unknown>')}"
+                            for target in entries
+                        )
+                        for device, entries in sorted(duplicates.items())
+                    )
+                    errors.append(
+                        f"{fname}: docker_deploy step '#{step.id}' has duplicate "
+                        f"device groups within method '{method}' ({duplicate_text}). "
+                        "Each dropdown option must map to a unique `device=` value."
                     )
     return errors
 
@@ -815,6 +902,7 @@ def run(
                     result, sol_id, fname, lang, verify_types, verify_exempt
                 )
             )
+            errors.extend(_check_device_aware_target_grouping(result, fname, lang))
         if not any_guide:
             errors.append("no guide.md (or guide_zh.md) found — cannot validate steps")
 

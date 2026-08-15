@@ -997,6 +997,84 @@ class TestTargetHeadingDeclaresType:
         assert m and self._TYPE_ATTR_RE.search(m.group(2))
 
 
+class TestDeviceAwareDockerTargetGrouping:
+    """Docker target variants must render as method cards plus device dropdowns.
+
+    ``renderDockerTargetSelector`` enters the device-aware path when targets
+    carry ``device=``. Without that attribute, a step with one local target
+    and several remote hardware targets falls back to one card per target — a
+    subtle UI regression that ordinary parser/target-type checks cannot see.
+    """
+
+    @pytest.mark.parametrize("sol_id,guide_file", get_guide_files())
+    def test_multi_method_targets_have_unique_device_groups(self, sol_id, guide_file):
+        path = SOLUTIONS_DIR / sol_id / guide_file
+        lang = "zh" if guide_file.endswith("_zh.md") else "en"
+        result = parse_single_language_guide(path.read_text(encoding="utf-8"), lang)
+
+        offenders: list[str] = []
+        for preset in result.presets:
+            for step in preset.steps:
+                if step.type != "docker_deploy":
+                    continue
+                groups: dict[str, list] = {}
+                for target in step.targets or []:
+                    method = (
+                        getattr(target, "target_type", None)
+                        or getattr(target, "method", None)
+                        or "local"
+                    )
+                    groups.setdefault(str(method).strip().lower() or "local", []).append(target)
+                for method, targets in groups.items():
+                    if len(targets) < 2:
+                        continue
+                    missing = [t.id for t in targets if not str(t.device or "").strip()]
+                    devices = [str(t.device).strip() for t in targets]
+                    duplicates = sorted({d for d in devices if devices.count(d) > 1})
+                    if missing:
+                        offenders.append(
+                            f"{preset.id}/{step.id}/{method}: missing device on "
+                            + ", ".join(f"#{target_id}" for target_id in missing)
+                        )
+                    if duplicates:
+                        offenders.append(
+                            f"{preset.id}/{step.id}/{method}: duplicate device="
+                            + ", ".join(duplicates)
+                        )
+
+        assert not offenders, (
+            f"{sol_id}/{guide_file}: multi-target docker methods must declare "
+            "a unique device= on every target so the UI can render Local / "
+            "Remote cards with a device dropdown:\n  "
+            + "\n  ".join(offenders)
+        )
+
+    def test_lint_self_check(self):
+        """The rule rejects the former three-card shape and accepts the fix."""
+        bad = (
+            "## Preset: Demo {#p}\n\n"
+            "## Step 1: Deploy {#d type=docker_deploy}\n\n"
+            "### Target {#rk3576 type=remote}\n\n"
+            "### Target {#rk3588 type=remote}\n"
+        )
+        result = parse_single_language_guide(bad, "en")
+        step = result.presets[0].steps[0]
+        remote = [t for t in step.targets if t.target_type == "remote"]
+        assert len(remote) == 2
+        assert any(not str(t.device or "").strip() for t in remote)
+
+        good = (
+            "## Preset: Demo {#p}\n\n"
+            "## Step 1: Deploy {#d type=docker_deploy}\n\n"
+            "### Target {#rk3576 type=remote device=rk3576}\n\n"
+            "### Target {#rk3588 type=remote device=rk3588}\n"
+        )
+        result = parse_single_language_guide(good, "en")
+        step = result.presets[0].steps[0]
+        remote = [t for t in step.targets if t.target_type == "remote"]
+        assert [t.device for t in remote] == ["rk3576", "rk3588"]
+
+
 class TestDuplicateStepIdsAcrossPresets:
     """Step ids reused across presets must have byte-identical content.
 
