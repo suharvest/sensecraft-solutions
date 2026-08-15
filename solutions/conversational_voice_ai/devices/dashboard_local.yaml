@@ -1,0 +1,11 @@
+version: "1.0"
+id: dashboard_local
+name: Local Voice AI Dashboard
+type: web_dashboard
+inherit_host_from: deploy_local
+web_dashboard:
+  url: "http://{{deploy.host}}:18000"
+  title: Local Voice AI Dashboard
+  description: Verify the fully local dialogue path and barge-in state transitions.
+name_i18n:
+  zh: 本地语音 AI 面板

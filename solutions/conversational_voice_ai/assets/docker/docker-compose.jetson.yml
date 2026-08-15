@@ -1,0 +1,66 @@
+services:
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260815-7330af9}
+    container_name: conversational-voice-speech
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    environment:
+      OVS_PROFILE: ${OVS_PROFILE:-jetson-qwen3asr-matcha}
+      LANGUAGE_MODE: multilanguage
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      TTS_PROVIDER: cuda
+      STREAMING_ASR_PROVIDER: cuda
+      CUDA_MODULE_LOADING: LAZY
+      OVS_VAD_BACKEND: silero
+      OVS_VAD_SILENCE_MS: "400"
+    volumes:
+      - speech-models:/opt/models
+      - voice-data:/opt/seeed-local-voice/data
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 600s
+
+  agent:
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260815-ba44457}
+    container_name: conversational-voice-agent
+    init: true
+    network_mode: host
+    depends_on:
+      speech:
+        condition: service_healthy
+    command: ["ovs-agent", "run", "conversation", "--config", "/opt/voice/config/agent-config.yaml"]
+    # Bind the ALSA directory instead of snapshotting individual device nodes.
+    # Together with the wildcard cgroup rule this keeps USB audio hot-pluggable.
+    device_cgroup_rules:
+      - "c 116:* rwm"
+    group_add: ["29"]
+    volumes:
+      - /dev/snd:/dev/snd
+      - ./agent-config.yaml:/opt/voice/config/agent-config.yaml:ro
+      - ./audio_profiles.yaml:/opt/voice/config/audio_profiles.yaml:ro
+    environment:
+      CONFIG_DIR: /opt/voice/config
+      OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
+      OVS_AGENT_SERVER_LOOP: "0"
+      LLM_BACKEND: ${LLM_BACKEND:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-EMPTY}
+      LLM_MODEL: ${LLM_MODEL:-qwen3.5-flash}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
+      DEFAULT_MODE: ${DEFAULT_MODE:-chat}
+    restart: unless-stopped
+
+volumes:
+  speech-models:
+  voice-data:

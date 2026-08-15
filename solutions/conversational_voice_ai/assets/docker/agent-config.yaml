@@ -1,0 +1,57 @@
+slv_url: "${OVS_SLV_URL:-ws://127.0.0.1:8621/v2v/stream}"
+
+slv_config:
+  asr_language: auto
+  tts_language: zh
+  tts_speaker_id: null
+  tts_speed: 1.0
+  sample_rate: 16000
+  vad: none
+  multi_utterance: true
+
+# The microphone-side VAD keeps capture active while TTS is playing. A speech
+# partial during playback sends abort to the server and drains queued audio.
+# Production Agent images bundle the torch-free Silero ONNX asset. Keep this
+# explicit so a broken/custom image fails visibly instead of silently falling
+# back to fixed-RMS energy VAD (which fragments speech and can self-barge).
+client_vad_backend: silero
+# Use Silero's native speech-probability threshold (0.5). This is deliberately
+# not an RMS value and remains stable across supported AEC microphone arrays.
+client_vad_threshold: null
+client_vad_speech_min_ms: 200
+client_vad_silence_ms: 600
+client_vad_drive_eos: true
+barge_in_enabled: true
+barge_in_min_chars: 2
+barge_in_min_speaking_ms: 500
+# SLV may signal TTSDone as soon as it has finished sending PCM while the
+# local PortAudio buffer is still audibly draining. Keep the FSM in SPEAKING
+# until that buffer is empty so a real utterance during the audible tail is
+# still treated as barge-in (rather than a new IDLE turn).
+playback_drain_enabled: true
+playback_drain_timeout_s: 15.0
+
+llm_backend: "${LLM_BACKEND:-openai_compat}"
+llm_base_url: "${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}"
+llm_api_key: "${LLM_API_KEY:-EMPTY}"
+llm_model: "${LLM_MODEL:-qwen3.5-flash}"
+llm_enable_thinking: false
+
+system_prompt: "${SYSTEM_PROMPT:-You are a natural, witty voice assistant. Reply in the user's language. Keep responses conversational and brief—usually one or two sentences. Add light humor and personality when appropriate, but never at the expense of accuracy. Avoid rambling, repetition, lectures, Markdown, headings, and lists. If details are missing, ask one short question. For spoken Chinese, write numbers, dates, times, money, and units as natural spoken Chinese.}"
+
+# Shared OVS physical-device resolver: prefer hardware-AEC reSpeaker devices,
+# then real USB duplex audio, while excluding HDMI/DP/virtual capture nodes.
+audio_input_device: auto
+audio_output_device: auto
+mic_channels: auto
+mic_channel_select: auto
+audio_input_sample_rate: 16000
+audio_output_sample_rate: 24000
+
+pipeline_mode: always_on
+default_mode: "${DEFAULT_MODE:-chat}"
+realtime_protocol_version: 1
+log_level: INFO
+
+metadata:
+  dashboard_port: 18000
