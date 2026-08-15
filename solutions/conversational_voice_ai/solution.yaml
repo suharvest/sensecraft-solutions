@@ -60,14 +60,6 @@ intro:
       description: USB microphone array with hardware echo cancellation, noise suppression, and beamforming.
       description_i18n:
         zh: 支持硬件回声消除、降噪和波束成形的 USB 麦克风阵列。
-    rk1828:
-      name: RK1828 / RM182X Accelerator
-      name_i18n:
-        zh: RK1828 / RM182X 加速卡
-      description: Optional PCIe accelerator for running Qwen3-4B locally with an RK3588 host.
-      description_i18n:
-        zh: 可选 PCIe 加速卡，与 RK3588 搭配运行本地 Qwen3-4B。
-
   presets:
     - id: cloud_llm
       name: Cloud or OpenAI-Compatible LLM
