@@ -185,6 +185,13 @@ intro:
       description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set.
       description_i18n:
         zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。
+      # Deployed onto both boards against a live RTSP source: RK3576 on
+      # cat-remote and RK3588 on radxa, each pulling the image, staging the
+      # board's RKNN Lite and MPP plugins, downloading and checksumming its own
+      # model, and publishing MQTT with people tracked. Hardware decode
+      # confirmed active on RK3588 rather than silently falling back.
+      verified:
+        - hardware
       device_groups:
         - id: compute
           name: Detector Host

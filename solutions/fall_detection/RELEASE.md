@@ -3,13 +3,20 @@
 Maintainer-facing. Not referenced by `solution.yaml`, so it does not render on the
 solution page.
 
-All artifacts for the `0.1.0-rc1` release are published and the compose files
-reference the real registry refs. This file records what was shipped and the
-procedure for shipping the next tag.
+All artifacts are published and the compose files reference the real registry
+refs. Tags now differ per platform: Jetson `0.1.0-rc1`, RK `0.1.0-rc5`, Hailo
+`0.1.0-rc2`. This file records what was shipped and the procedure for the next
+tag.
 
-What is **not** done: no preset has been deployed end to end through the app yet,
-so no preset claims `verified: hardware`, and RK/Hailo have no fall-accuracy
-figure. See sections 5 and 6.
+`verified: hardware` is claimed by the `jetson` and `rk` presets, each deployed
+end to end against a live RTSP source. It is **not** claimed by `recamera` or
+`hailo`: the Hailo image has only been exercised by running its container by
+hand, never through the engine's deploy flow, and the reCamera preset has not
+been run end to end at all.
+
+Frozen Subject-4 figures exist for RK and Hailo (88.9% accuracy, 100% recall)
+in the upstream `evaluation/RESULTS.md`; what is still missing there is a
+deployed-state-machine accuracy figure separate from the temporal gate.
 
 ## 1. Current state
 
@@ -26,8 +33,8 @@ figure. See sections 5 and 6.
 | RK temporal `temporal-rk3576.npz` | `sensecraft-statics` | **live**, 65,921 B, sha256 `dadcb916…` |
 | Hailo HEF `yolov8s_pose.hef` | Hailo Model Zoo | **no hosting needed** — fetched at deploy time, digest `e1985669…` |
 | Jetson image `solution/fall-detection-jetson:0.1.0-rc1` | registry | **live** |
-| RK image `solution/fall-detection-rknn:0.1.0-rc2` | registry | **live** |
-| Hailo image `solution/fall-detection-rpi-hailo:0.1.0-rc1` | registry | **live** |
+| RK image `solution/fall-detection-rknn:0.1.0-rc5` | registry | **live** |
+| Hailo image `solution/fall-detection-rpi-hailo:0.1.0-rc2` | registry | **live** |
 
 Note the layout: **one repository per platform**, not one repository with per-platform
 tags. `solution/fall-detection` does not exist and a request for it returns
@@ -76,12 +83,24 @@ repo — asking for it returns `NOT_FOUND`. The release tag is shared across the
 | Platform | Device | Source image | Published as |
 |---|---|---|---|
 | Jetson | `orin-nano` | `fall-detection:jetson-slim` | `solution/fall-detection-jetson:0.1.0-rc1` |
-| RK | `radxa` | `fall-detection-rknn:2.4.0` | `solution/fall-detection-rknn:0.1.0-rc2` |
-| Hailo | `harvest-pi` | `fall-detection-rpi-hailo:4.21` | `solution/fall-detection-rpi-hailo:0.1.0-rc1` |
+| RK | `orin-nx` | built from `platforms/rknn/` | `solution/fall-detection-rknn:0.1.0-rc5` |
+| Hailo | `harvest-pi` (build) / `orin-nx` (push) | `fall-detection-rpi-hailo:4.21` | `solution/fall-detection-rpi-hailo:0.1.0-rc2` |
 
-Upstream publishes a release manifest at `release/0.1.0-rc2.json` naming each
-image reference and digest — treat it as the source of truth when bumping tags
-here. As of rc2 only the RK image moved; Jetson and Hailo stay at rc1.
+The RK image no longer has to be built on a Rockchip board: its runtime stage is
+apt plus a compiled postprocess module, so any arm64 host works and `orin-nx` is
+used because it holds registry credentials. `harvest-pi` has none, which is why
+the Hailo image is built there but pushed from `orin-nx`.
+
+**Push as the normal user, not with `--sudo`.** The credentials live in that
+user's `~/.docker/config.json`; running the push as root fails with
+`no basic auth credentials` even though the same host pulls fine.
+
+Upstream publishes a release manifest naming each image reference and digest —
+treat it as the source of truth when bumping tags here. The three platforms move
+independently: RK is at rc5 (rc3 shipped the pipeline-teardown fix, rc4 cut the
+image from 976 MB to 666 MB, rc5 added the appsink queue depth and `read_ms`),
+Hailo at rc2 (`h264parse`, without which every RTSP deployment fell back), and
+Jetson still at rc1.
 
 Push RK from `radxa`, not `cat-remote` — the latter's device-side rebuild failed
 with a Docker base-layer `unexpected EOF`. One RK push serves both boards: the
