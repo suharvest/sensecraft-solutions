@@ -70,7 +70,7 @@ services:
       start_period: 900s
 
   agent:
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260815-ba44457}
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260816-3849d33-hotplug}
     container_name: conversational-voice-agent
     init: true
     network_mode: host
