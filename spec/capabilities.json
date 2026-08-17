@@ -81,6 +81,10 @@
         "nodered.flow_file"
       ]
     },
+    "recamera_pro_app": {
+      "category": "deploy",
+      "required": []
+    },
     "robot_inspect": {
       "category": "verify",
       "required": []

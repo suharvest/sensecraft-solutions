@@ -63,6 +63,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `nodered` | NodeRedConfig \| null | no | None |  |
 | `binary` | BinaryConfig \| null | no | None |  |
 | `ha_integration` | HAIntegrationConfig \| null | no | None |  |
+| `recamera_pro_app` | RecameraProAppConfig \| null | no | None |  |
 | `video` | PreviewVideoConfig \| null | no | None |  |
 | `mqtt` | PreviewMqttConfig \| null | no | None |  |
 | `data` | PreviewDataConfig \| null | no | None |  |
@@ -111,6 +112,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `preview` | _(none)_ |
 | `recamera_cpp` | `binary` |
 | `recamera_nodered` | `nodered`, `nodered.flow_file` |
+| `recamera_pro_app` | _(none)_ |
 | `robot_inspect` | _(none)_ |
 | `script` | `script` |
 | `serial_camera` | _(none)_ |

@@ -90,6 +90,62 @@
 
 ---
 
+## 套餐: reCamera Pro {#recamera_pro}
+
+一台设备搞定全部，硬件比 2002 更新：摄像头看住房间，在设备本地判断有没有人摔倒，然后
+把事件通过 MQTT 发出去。
+
+| 设备 | 作用 |
+|--------|------|
+| reCamera Pro | 姿态估计、多人跟踪、时序跌倒判定与 MQTT，全部本地完成 |
+
+**重要提示：** 这是辅助告警，不是经过认证的医疗或人身安全系统。远景、遮挡、弱光以及
+类似跌倒的地面活动仍是薄弱场景。
+
+检测器随设备自己的应用中心分发，不随本方案下发，所以这个套餐做的是**配置已安装的应用
+并把它设为运行中的应用**。如果你的设备上还没有，请先在应用中心安装——部署步骤会提示你，
+并列出设备上已装的应用。
+
+## 步骤 1: 配置跌倒检测 {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
+
+把应用指向你的 MQTT 服务器，并将其设为运行中的应用。
+
+### 检查内容
+
+- 设备**同一时刻只运行一个应用**，激活这个会停掉当前正在运行的那个。
+- 这个套餐**不自带 broker**——请填 Home Assistant 或你现有告警系统在用的那个地址。
+- 凭据是**网页控制台**的账号密码，不是 SSH。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 提示应用未安装 | 先在设备的应用中心安装 Fall Detection，再重新执行本步 |
+| 登录被拒 | 连续失败会按 IP 递增锁定，重试前先在控制台确认密码 |
+| MQTT 收不到消息 | 确认 broker 地址**从摄像头**可达，而不只是从你的电脑可达 |
+
+### 部署目标 {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
+
+## 步骤 2: 查看跌倒状态 {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
+
+打开设备控制台，让人在摄像头前走动，观察实时画面。
+
+### 部署完成
+
+摄像头现在会把跌倒事件发到你的 broker。
+
+#### 发出的内容
+
+| 主题 | 内容 |
+|---|---|
+| `<设备名>/fall-detection/summary` | `person_count`、`fallen_count` |
+| `<设备名>/fall-detection/fall` | 状态跃迁时的 `fall_event` |
+
+与其他套餐不同，这里是**映射后的摘要**而非每帧完整文档——Home Assistant 需要的正是这些
+字段，但其中不含骨架数据；带骨架的实时画面在控制台自己的页面上，由本步骤打开。
+
+### 部署目标 {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
+
 ## 套餐: IP 摄像头 + reComputer J {#jetson}
 
 保留你现有的摄像头。由 Jetson Orin 拉取它们的 RTSP 流，运行更大的姿态模型，并对

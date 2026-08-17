@@ -76,6 +76,10 @@ intro:
         zh: 一个固定的室内机位，在可能发生跌倒的路径上整个人体（尤其是肩部和髋部）保持可见。reComputer 套餐通过 RTSP 接你自己的 IP 摄像头。
 
   device_catalog:
+    recamera_pro:
+      description: Newer all-in-one camera — pose, multi-person tracking and fall logic on device
+      description_i18n:
+        zh: 更新一代的一体机——姿态、多人跟踪与跌倒判定全部在设备本地完成
     recamera_2002:
       description: All-in-one AI camera — runs pose estimation, the fall state machine, RTSP and MQTT locally
       description_i18n:
@@ -139,6 +143,26 @@ intro:
             - device_ref: recamera_2002
           default: recamera_2002
 
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One device, newer hardware. The detector ships in the device's App Center; this preset configures it and makes it active.
+      description_i18n:
+        zh: 一台设备搞定，硬件更新。检测器随设备应用中心分发，本套餐负责配置并将其设为运行中的应用。
+      device_groups:
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
     - id: jetson
       name: IP Camera + reComputer J
       name_i18n:

@@ -2215,6 +2215,36 @@
       "title": "PreviewVideoConfig",
       "type": "object"
     },
+    "RecameraProAppConfig": {
+      "description": "Configuration for the ``recamera_pro_app`` deployer.\n\nThe App Center on reCamera Pro is a single-active supervisor: appmgr runs\nexactly one app at a time. This deployer therefore configures an app that\nis already installed on the device and makes it the active one; it does not\nupload or install packages, because installation requires a release-signed\narchive produced by a private packaging chain.",
+      "properties": {
+        "activation_timeout": {
+          "default": 60,
+          "title": "Activation Timeout",
+          "type": "integer"
+        },
+        "app_id": {
+          "title": "App Id",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Config",
+          "type": "object"
+        },
+        "require_installed": {
+          "default": true,
+          "title": "Require Installed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "app_id"
+      ],
+      "title": "RecameraProAppConfig",
+      "type": "object"
+    },
     "RobotInspectConfig": {
       "description": "Configuration for the ``robot_inspect`` verify step.\n\nPlatform side is intentionally stateless — no Robot instances, no\nsessions, no long-lived connections. The platform only:\n\n1. Polls the user-supplied ``endpoint`` (typically the solution's main\n   container exposing ``GET /observation``) at ``poll_hz``.\n2. Renders the resulting JSON observation against the schema fetched\n   from ``schema_endpoint`` (typically ``GET /observation/schema``).\n3. Falls back to ``fallback_message`` when the endpoint is unreachable.\n\nBoth URLs may contain ``{{var}}`` template placeholders (e.g.\n``{{deploy.host}}`` / ``{{deploy.observation_port}}``); resolution\nhappens in the frontend before the URL is handed to the backend\nreverse proxy.",
       "properties": {
@@ -3213,6 +3243,7 @@
     "deploy_timeout": {
       "anyOf": [
         {
+          "exclusiveMinimum": 0,
           "type": "integer"
         },
         {
@@ -3462,6 +3493,17 @@
       },
       "title": "Preconditions",
       "type": "array"
+    },
+    "recamera_pro_app": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecameraProAppConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "robot_inspect": {
       "anyOf": [

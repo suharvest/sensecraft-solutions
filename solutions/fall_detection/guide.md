@@ -95,6 +95,66 @@ state, event ID and person presence.
 
 ---
 
+## Preset: reCamera Pro {#recamera_pro}
+
+One device does everything, on newer hardware than the 2002: the camera sees the
+room, decides on-device whether someone fell, and publishes the event over MQTT.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera Pro | Pose estimation, multi-person tracking, temporal fall logic and MQTT, all local |
+
+**Important:** this is an assistive alert, not a certified medical or
+life-safety system. Long shots, occlusion, low light and fall-like floor
+activities remain weak cases.
+
+The detector ships in the device's own App Center rather than with this
+solution, so this preset configures the installed app and makes it active. If
+your device does not carry it yet, install it from the App Center first — the
+deploy step will tell you, and name what is installed instead.
+
+## Step 1: Configure Fall Detection {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
+
+Point the app at your MQTT broker and make it the running app.
+
+### What to check
+
+- The device runs **one app at a time**, so activating this one stops whatever is currently running.
+- This preset has **no broker of its own** — give it the address of the one Home Assistant or your alerting system already uses.
+- The credentials are the **web console's**, not SSH.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "not installed on this device" | Install Fall Detection from the device's App Center, then run this step again |
+| Login rejected | Repeated failures lock your IP for an increasing delay — confirm the password in the console before retrying |
+| Nothing arrives on MQTT | Check the broker address is reachable *from the camera*, not just from your computer |
+
+### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
+
+## Step 2: Watch Fall Status {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
+
+Open the device console and watch the live view while someone walks in front of
+the camera.
+
+### Deployment Complete
+
+The camera is now publishing fall events to your broker.
+
+#### What it publishes
+
+| Topic | Content |
+|---|---|
+| `<device-name>/fall-detection/summary` | `person_count`, `fallen_count` |
+| `<device-name>/fall-detection/fall` | `fall_event` on the transition |
+
+Unlike the other presets this is a mapped summary rather than a per-frame
+document, which is what Home Assistant consumes but carries no skeleton — the
+live view with skeletons is the console's own page, opened by this step.
+
+### Target {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
+
 ## Preset: IP Camera + reComputer J {#jetson}
 
 Keep the cameras you already have. A Jetson Orin pulls their RTSP streams, runs a
