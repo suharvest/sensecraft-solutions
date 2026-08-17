@@ -6,7 +6,14 @@ intro:
   description_file: description.md
   cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/banner_javis.png
   category: voice_ai
-  solution_type: solution
+  solution_type: technical
+  output_interfaces:
+    - type: serial
+      endpoint: /dev/ttyACM* @ 115200
+      description: Single-character drive commands (forward / back / turn / stop) sent to the XIAO ESP32S3 motor controller
+      schema_type: text
+      description_i18n:
+        zh: 发送给 XIAO ESP32S3 电机控制器的单字符驱动指令（前进 / 后退 / 转向 / 停止）
   tags: [voice, robot, lekiwi, esp32, raspberry-pi, respeaker, groq, llm, asr, tts]
 
   input_requirements:
