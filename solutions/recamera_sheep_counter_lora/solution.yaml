@@ -44,10 +44,16 @@ intro:
         zh: 对准围栏出入口的 reCamera 2002（内置 YOLO 绵羊检测模型）
 
   device_catalog:
-    recamera_2002_hq_poe:
+    recamera_2002:
       description: Edge AI camera running the sheep detector and gate-crossing counter
       description_i18n:
         zh: 运行绵羊检测和穿越计数的边缘 AI 摄像头
+      # Upstream folded the HQ PoE product into the reCamera 2002 family as a
+      # model axis value, so the constraint moves here rather than naming a
+      # family that no longer exists.
+      purchase:
+        require:
+          model: [2002_hq_poe]
     xiao_esp32s3:
       description: Meshtastic LoRa node — receives UART events from reCamera and broadcasts over LoRa
       description_i18n:
@@ -75,8 +81,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recamera_2002_hq_poe
-          default: recamera_2002_hq_poe
+            - device_ref: recamera_2002
+          default: recamera_2002
         - id: lora_node
           name: LoRa Node
           name_i18n:
