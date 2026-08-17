@@ -313,7 +313,7 @@ class TestRequiredSubsections:
 class TestOutputInterfacesAndInputRequirements:
     """Validate new schema fields for solution composition and integration."""
 
-    VALID_OUTPUT_TYPES = {"rtsp", "mqtt", "http", "websocket", "http_stream", "influxdb", "opc_ua"}
+    VALID_OUTPUT_TYPES = {"rtsp", "mqtt", "http", "websocket", "http_stream", "influxdb", "opc_ua", "onvif", "serial"}
     VALID_INPUT_TYPES = {"rtsp", "mqtt", "http", "usb", "serial", "websocket", "audio", "lorawan", "modbus", "network"}
 
     @pytest.mark.parametrize(
