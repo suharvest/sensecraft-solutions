@@ -12,20 +12,27 @@ recamera_pro_app:
   app_id: fall-detection
   activation_timeout: 90
   config:
-    # Everything the app publishes goes to MQTT so this preset lands on the same
-    # contract as the others. The app's own default is WebSocket only, which is
-    # fine for the on-device preview but invisible to Home Assistant.
-    output_channels: ["ws", "mqtt"]
-    dMqtt:
-      sURL: "{{mqtt_host}}"
-      iPort: "{{mqtt_port}}"
-      sTopic: "{{device_name}}"
-      sUsername: "{{mqtt_username}}"
-      sPassword: "{{mqtt_password}}"
-      sClientId: "recamera-pro-fall"
-    # Left at the app's frozen defaults on purpose: these thresholds were tuned
-    # against the held-out test set, and a solution that quietly re-tunes them
-    # would invalidate the accuracy figures on the intro page.
+    # Always applied: the app's own preview page is the zero-setup way to see
+    # results, and it needs nothing configured.
+    output_channels: ["ws"]
+  # Only applied when a broker address is given. Unlike the 2002, the Pro ships
+  # no MQTT broker, so requiring one would put a broker between the user and a
+  # working camera for no reason. Give an address and events are forwarded;
+  # leave it empty and you watch them on the device page.
+  config_when:
+    - when_present: mqtt_host
+      config:
+        output_channels: ["ws", "mqtt"]
+        dMqtt:
+          sURL: "{{mqtt_host}}"
+          iPort: "{{mqtt_port}}"
+          sTopic: "{{device_name}}"
+          sUsername: "{{mqtt_username}}"
+          sPassword: "{{mqtt_password}}"
+          sClientId: "recamera-pro-fall"
+  # Detection thresholds are left at the app's frozen defaults on purpose: they
+  # were tuned against the held-out test set, and a solution that quietly
+  # re-tuned them would invalidate the accuracy figures on the intro page.
 
 name_i18n:
   zh: reCamera Pro
@@ -76,15 +83,15 @@ user_inputs:
     description_i18n:
       zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
   - id: mqtt_host
-    name: MQTT Broker Address
+    name: MQTT Broker Address (optional)
     type: text
-    required: true
+    required: false
     placeholder: "192.168.1.50"
-    description: This preset has no broker of its own — point it at the one Home Assistant or your alerting system already uses
+    description: Leave empty to just watch results on the device's own page. Fill it in to forward events to Home Assistant or your alerting system — this camera has no broker of its own.
     name_i18n:
-      zh: MQTT 服务器地址
+      zh: MQTT 服务器地址（可选）
     description_i18n:
-      zh: 这个套餐不自带 broker——填 Home Assistant 或你现有告警系统在用的那个
+      zh: 留空就只在设备自带页面看结果；填了才会把事件转发到 Home Assistant 或你的告警系统——这台摄像头不自带 broker
   - id: mqtt_port
     name: MQTT Port
     type: text

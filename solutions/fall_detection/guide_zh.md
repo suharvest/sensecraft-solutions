@@ -113,7 +113,7 @@
 ### 检查内容
 
 - 设备**同一时刻只运行一个应用**，激活这个会停掉当前正在运行的那个。
-- 这个套餐**不自带 broker**——请填 Home Assistant 或你现有告警系统在用的那个地址。
+- **MQTT 是可选的。** broker 地址留空就在设备自带页面看结果；填了才会把事件转发到 Home Assistant。这台摄像头不自带 broker，和 2002 不同。
 - 凭据是**网页控制台**的账号密码，不是 SSH。
 
 ### 故障排查
@@ -122,7 +122,7 @@
 |------|------|
 | 提示应用未安装 | 先在设备的应用中心安装 Fall Detection，再重新执行本步 |
 | 登录被拒 | 连续失败会按 IP 递增锁定，重试前先在控制台确认密码 |
-| MQTT 收不到消息 | 确认 broker 地址**从摄像头**可达，而不只是从你的电脑可达 |
+| MQTT 收不到消息 | 确认 broker 地址**从摄像头**可达，而不只是从你的电脑可达。如果留空了，结果只出现在设备页面，这是预期行为 |
 
 ### 部署目标 {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
 

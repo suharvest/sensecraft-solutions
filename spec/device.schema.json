@@ -2233,6 +2233,15 @@
           "title": "Config",
           "type": "object"
         },
+        "config_when": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Config When",
+          "type": "array"
+        },
         "require_installed": {
           "default": true,
           "title": "Require Installed",

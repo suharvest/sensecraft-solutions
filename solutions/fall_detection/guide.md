@@ -120,7 +120,7 @@ Point the app at your MQTT broker and make it the running app.
 ### What to check
 
 - The device runs **one app at a time**, so activating this one stops whatever is currently running.
-- This preset has **no broker of its own** — give it the address of the one Home Assistant or your alerting system already uses.
+- **MQTT is optional.** Leave the broker address empty and you watch results on the device's own page; fill it in to forward events to Home Assistant. This camera ships no broker, unlike the 2002.
 - The credentials are the **web console's**, not SSH.
 
 ### Troubleshooting
@@ -129,7 +129,7 @@ Point the app at your MQTT broker and make it the running app.
 |-------|----------|
 | "not installed on this device" | Install Fall Detection from the device's App Center, then run this step again |
 | Login rejected | Repeated failures lock your IP for an increasing delay — confirm the password in the console before retrying |
-| Nothing arrives on MQTT | Check the broker address is reachable *from the camera*, not just from your computer |
+| Nothing arrives on MQTT | Check the broker address is reachable *from the camera*, not just from your computer. If you left it empty, results only appear on the device page — that is by design |
 
 ### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
 

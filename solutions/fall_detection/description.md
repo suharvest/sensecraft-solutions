@@ -284,8 +284,10 @@ deployed state machine measured separately.
   ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](gallery/camera-placement.svg)
 - **The fall has to happen on camera.** Starting the detector on someone already
   lying down reports the posture but raises no event.
-- **An MQTT broker must be reachable on port 1883.** reCamera uses its own local
-  broker; the reComputer preset brings one up alongside the detector.
+- **Where the MQTT broker comes from depends on the preset.** reCamera 2002 runs
+  its own; the reComputer presets bring one up alongside the detector; reCamera
+  Pro ships none, so MQTT there is optional — point it at an existing broker to
+  forward events, or leave it empty and read results on the camera's own page.
 - **One vision app at a time on reCamera.** Installing takes the camera away from
   Node-RED and any other vision application.
 - **Latency in the table is detection latency** — from the annotated start of the
