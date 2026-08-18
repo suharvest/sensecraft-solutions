@@ -59,6 +59,14 @@ services:
       PYTHONPATH: /rknnsite:/app
       GST_PLUGIN_PATH: /gstmpp
       LD_LIBRARY_PATH: /gstmpp:/usr/lib
+    # rknnlite's container check reads /proc/device-tree/compatible, which is a
+    # symlink into /sys/firmware/devicetree/base. Docker masks that path by
+    # default, and it cannot be bind-mounted back in: you cannot mount into
+    # procfs, and a sysfs bind lands under the masking tmpfs. Without this the
+    # RKNN runtime fails at init_runtime even though the model and the library
+    # both load. Verified on RK3588: with it, the path is readable.
+    security_opt:
+      - systempaths=unconfined
     devices:
       # Hardware decoder, 2D scaler and the DRM node. Without these the MPP
       # branch cannot open and the detector refuses to start on CPU decode
