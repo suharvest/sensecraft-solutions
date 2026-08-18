@@ -40,7 +40,7 @@ Install the pose model and the fall detector, then start it on the camera.
 
 ### Wiring
 
-![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](gallery/camera-placement.svg)
+![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 
 1. Mount the camera rigidly with a clear, wide view of the area you want covered.
 2. Keep the whole person — especially shoulders and hips — visible along the path where a fall would happen.
@@ -117,7 +117,7 @@ deploy step will tell you, and name what is installed instead.
 
 Only needed once, and only if your camera has no App Center yet.
 
-![Device Management, the Embedded tab, and the reCamera Pro entry with its address and ADB port](gallery/recamera-pro-firmware-update.gif)
+![Device Management, the Embedded tab, and the reCamera Pro entry with its address and ADB port](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/recamera-pro-firmware-update-a9539b3d.gif)
 
 ### What to check
 

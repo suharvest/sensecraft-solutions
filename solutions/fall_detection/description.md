@@ -281,7 +281,7 @@ deployed state machine measured separately.
   close-to-medium range with shoulders and hips visible. A ceiling-down view, a
   long corridor shot or heavy furniture occlusion will perform worse.
 
-  ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](gallery/camera-placement.svg)
+  ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 - **The fall has to happen on camera.** Starting the detector on someone already
   lying down reports the posture but raises no event.
 - **Where the MQTT broker comes from depends on the preset.** reCamera 2002 runs

@@ -227,7 +227,7 @@ CPU 占用很低。已经在用这两类硬件时可以选它们；二者现在�
 - **构图决定准确率。** 上面的数字来自固定机位、近中景、肩部和髋部可见的室内画面。
   垂直俯拍、长走廊远景或家具严重遮挡的场景表现会更差。
 
-  ![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](gallery/camera-placement.svg)
+  ![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 - **跌倒过程必须发生在画面里。** 如果启动时人已经躺着，它会报告姿态但不产生事件。
 - **MQTT broker 因套餐而异。** reCamera 2002 自带本地 broker；reCamera Pro 不带，接 MQTT 要指向外部 broker，不接则在设备自带页面看结果；
   reComputer 套餐会随检测器一起启动一个。

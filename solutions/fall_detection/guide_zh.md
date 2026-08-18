@@ -39,7 +39,7 @@
 
 ### 接线
 
-![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](gallery/camera-placement.svg)
+![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 
 1. 把摄像头固定安装，让它能完整、开阔地看到要覆盖的区域。
 2. 在可能发生跌倒的路径上，保证整个人体——尤其是肩部和髋部——始终可见。
@@ -110,7 +110,7 @@
 
 只需做一次，而且只在摄像头还没有应用中心时才需要。
 
-![设备管理 → 嵌入式 → reCamera Pro，展开后可填写地址与 ADB 端口](gallery/recamera-pro-firmware-update.gif)
+![设备管理 → 嵌入式 → reCamera Pro，展开后可填写地址与 ADB 端口](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/recamera-pro-firmware-update-a9539b3d.gif)
 
 ### 检查内容
 
