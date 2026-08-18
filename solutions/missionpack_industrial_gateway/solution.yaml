@@ -125,10 +125,8 @@ intro:
     difficulty: intermediate
     estimated_time: 15min
 
-  # links: omitted. The github entry here pointed at
-  # Seeed-Solution/Solution_HVAC_SmartControl -- the smart_hvac_control
-  # solution's repo, copy-pasted and never changed, and a 404 besides. Add the
-  # real MissionPack repo when there is one; a wrong link is worse than none.
+  links:
+    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
 
 deployment:
   guide_file: guide.md
