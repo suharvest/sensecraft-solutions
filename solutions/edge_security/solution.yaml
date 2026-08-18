@@ -1,5 +1,10 @@
 version: "1.0"
 id: edge_security
+# Successor to `industrial_security_jetson`. This package now covers the
+# TensorRT capability that was the older solution's only remaining advantage,
+# measured on an Orin NX 16GB. The older package stays published until this one
+# ships; retiring it is a separate release action.
+replaces: industrial_security_jetson
 name: Industrial Security (Multi-Platform Edge)
 name_i18n:
   zh: 工业安防（多平台边缘部署）
@@ -43,6 +48,7 @@ intro:
     - mqtt
     - rk3588
     - jetson
+    - tensorrt
 
   output_interfaces:
     - type: http
@@ -84,16 +90,16 @@ intro:
 
   device_catalog:
     recomputer_j30:
-      description: Runs broker, hub and the CPU detector on one box (Orin Nano 8GB)
+      description: Runs broker, hub and the TensorRT detector on one box (Orin Nano 8GB)
       description_i18n:
-        zh: 一台机器同时跑 broker、hub 和 CPU 检测器（Orin Nano 8GB）
+        zh: 一台机器同时跑 broker、hub 和 TensorRT 检测器（Orin Nano 8GB）
       purchase:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: Same single-box role with more CPU headroom for a second camera (Orin NX 16GB)
+      description: Same single-box role on the module the measurements were taken on (Orin NX 16GB)
       description_i18n:
-        zh: 同样的单机角色，CPU 余量更大，可再接一路摄像头（Orin NX 16GB）
+        zh: 同样的单机角色，实测数据就是在这块模组上取得的（Orin NX 16GB）
       purchase:
         require:
           module: [orin_nx_16]
@@ -105,9 +111,9 @@ intro:
       name: Generic Docker Host
       name_i18n:
         zh: 通用 Docker 主机
-      description: Any always-on arm64 or x86_64 machine with Docker. It can run the whole single-box stack, or in the optional expansion just the broker and the hub
+      description: Any always-on arm64 or x86_64 machine with Docker. Used only by the optional Shared Hub expansion, where it runs the broker and the hub and carries no detector of its own
       description_i18n:
-        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器。既可以跑完整的单机服务栈，也可以在可选的多机汇聚场景里只跑 broker 和 hub
+        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器。仅用于可选的「共享 Hub」扩展场景，只跑 broker 和 hub，本机不带检测器
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -124,22 +130,39 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One Jetson runs everything — broker, hub and a CPU/ONNX detector for one camera. No extra machine, and no TensorRT path yet, so the GPU stays idle.
+      description: "One Jetson runs everything — broker, hub and a TensorRT detector for one camera, with video decode on NVDEC. Measured on an Orin NX 16GB at 1280x720: 4.13 ms per inference, 8.5-12.5% of one CPU core."
       description_i18n:
-        zh: 一台 Jetson 跑完整套——broker、hub 和一路摄像头的 CPU/ONNX 检测器。不需要第二台机器；目前没有 TensorRT 路径，GPU 处于空闲。
+        zh: "一台 Jetson 跑完整套——broker、hub，以及推理走 TensorRT、解码走 NVDEC 的一路摄像头检测器。Orin NX 16GB、1280x720 实测：单次推理 4.13 ms，CPU 占单核 8.5-12.5%。"
       architecture_image: gallery/architecture.svg
+      # Jetson-only by construction: the detector loads a TensorRT engine built
+      # on the target device and decodes on NVDEC. There is no CPU fallback —
+      # require_hw_decode is on, so a non-Jetson host fails the before-checks
+      # rather than running slowly.
+      #
+      # Hardware-verified, containerised deployment included: this preset's own
+      # compose file, images and staging steps were deployed on a Jetson Orin NX
+      # 16GB (JetPack 6.1, L4T R36.4.3, TensorRT 10.3.0) against a live 1280x720
+      # H.264 stream. The engine was built on the device by the deploy step in
+      # 361 s. All three services came up healthy with no restarts; the detector
+      # decoded through nvv4l2decoder with /dev/v4l2-nvdec and /dev/nvmap open
+      # in the container process and NVMM provenance in the negotiated caps, and
+      # published inference_time_ms 4.13 at 5 fps. The hub on the same box listed
+      # the detector online with decode "hw", stored 32 alerts across zone_enter,
+      # line_cross (4 forward, 4 backward) and loitering with a snapshot on every
+      # one, and proxied a 16.5 KB JPEG preview.
+      verified:
+        - hardware
       device_groups:
         - id: compute
-          name: Host
+          name: Jetson
           name_i18n:
-            zh: 主机
+            zh: Jetson 主机
           type: single
           required: true
           options:
             - device_ref: recomputer_j30
             - device_ref: recomputer_j40
-            - device_ref: generic_arm64_host
-          default: recomputer_j30
+          default: recomputer_j40
         - id: camera
           name: IP Camera
           name_i18n:
