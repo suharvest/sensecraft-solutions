@@ -17,7 +17,7 @@ intro:
       caption_i18n:
         zh: 投屏系统架构
   category: voice_ai
-  solution_type: technical
+  solution_type: solution
   tags:
     - watcher
     - face_recognition

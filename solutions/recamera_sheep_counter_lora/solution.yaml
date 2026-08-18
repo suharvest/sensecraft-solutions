@@ -24,7 +24,22 @@ intro:
       caption_i18n:
         zh: 系统架构——reCamera + LoRa + Home Assistant
   category: sensing
-  solution_type: solution
+  solution_type: technical
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      endpoint: sheep/ha/in, sheep/ha/out, sheep/ha/inside
+      description: Retained IN / OUT / INSIDE totals published by the gateway ha-bridge (plain integers)
+      schema_type: text
+      description_i18n:
+        zh: 网关 ha-bridge 发布的 进/出/在栏 累计值（保留消息，纯整数）
+    - type: mqtt
+      port: 1883
+      endpoint: sheep/ha/event
+      description: Latest gate-crossing event as JSON (direction, timestamp, counts)
+      schema_type: json
+      description_i18n:
+        zh: 最新一次穿越事件（JSON：方向、时间戳、计数）
 
   tags:
     - recamera

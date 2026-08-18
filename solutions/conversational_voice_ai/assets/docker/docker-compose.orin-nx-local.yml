@@ -1,0 +1,107 @@
+services:
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox080a0-7330af9}
+    container_name: conversational-voice-speech
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    environment:
+      OVS_PROFILE: jetson-edgellm-v091-matcha
+      LANGUAGE_MODE: multilanguage
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      HF_MODEL_CACHE_ROOT: /opt/models
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+      TTS_PROVIDER: cuda
+      STREAMING_ASR_PROVIDER: cuda
+      CUDA_MODULE_LOADING: LAZY
+    volumes:
+      - speech-models-v091:/opt/models
+      - voice-data:/opt/seeed-local-voice/data
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    mem_limit: 8g
+    memswap_limit: 14g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 900s
+
+  llm:
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13}
+    container_name: conversational-voice-llm
+    runtime: nvidia
+    privileged: true
+    ipc: host
+    network_mode: host
+    shm_size: 512m
+    environment:
+      EDGELLM_MODEL_PROFILE: qwen35-4b-gdn-mtp
+      EDGELLM_MODEL_NAME: Qwen/Qwen3.5-4B
+      EDGELLM_ENGINE_PROFILE: 8k
+      EDGELLM_ENGINE_DIR: /workspace/models/qwen3.5-4b-gdn-mtp-8k
+      EDGELLM_MAX_INPUT_TOKENS: "8192"
+      EDGELLM_MAX_CONTEXT_TOKENS: "8192"
+      EDGELLM_ENGINE_REPO: harvestsu/qwen3.5-4b-gdn-mtp-jetson-artifacts
+      EDGELLM_ENGINE_REVISION: adb1c78fb61513e2d7d8e7f889f6196dbefb1e5e
+      EDGELLM_EXPECTED_PAYLOAD_SHA256: 9208e46d61a4f1440ac68a312e35dde3d04b88edf0e4ee12b32210e7190d3325
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      PORT: "8000"
+      WARMUP_TIMEOUT: "300"
+      WARMUP_INFERENCE_TIMEOUT: "300"
+    volumes:
+      - edge-llm-models-v091:/workspace/models
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/local/cuda/targets/aarch64-linux/lib:/host-cudla:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 900s
+
+  agent:
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260816-3849d33-hotplug}
+    container_name: conversational-voice-agent
+    init: true
+    network_mode: host
+    command: ["ovs-agent", "run", "conversation", "--config", "/opt/voice/config/agent-config.yaml"]
+    depends_on:
+      speech:
+        condition: service_healthy
+      llm:
+        condition: service_healthy
+    # Bind the ALSA directory instead of snapshotting individual device nodes.
+    # Together with the wildcard cgroup rule this keeps USB audio hot-pluggable.
+    device_cgroup_rules:
+      - "c 116:* rwm"
+    group_add: ["29"]
+    volumes:
+      - /dev/snd:/dev/snd
+      - ./agent-config.yaml:/opt/voice/config/agent-config.yaml:ro
+      - ./audio_profiles.yaml:/opt/voice/config/audio_profiles.yaml:ro
+    environment:
+      CONFIG_DIR: /opt/voice/config
+      OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
+      OVS_AGENT_SERVER_LOOP: "0"
+      LLM_BACKEND: openai_compat
+      LLM_BASE_URL: http://127.0.0.1:8000/v1
+      LLM_API_KEY: EMPTY
+      LLM_MODEL: Qwen/Qwen3.5-4B
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
+      DEFAULT_MODE: chat
+    restart: unless-stopped
+
+volumes:
+  speech-models-v091:
+  edge-llm-models-v091:
+  voice-data:

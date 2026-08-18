@@ -1,0 +1,59 @@
+services:
+  speech:
+    extends:
+      file: docker-compose.rk3588.yml
+      service: speech
+
+  llm:
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260731-kvreuse}
+    container_name: conversational-voice-llm
+    privileged: true
+    init: true
+    network_mode: host
+    volumes:
+      - /dev:/dev
+      - rk1828-llm-models:/opt/llm/models
+    environment:
+      RK1828_ARTIFACT_AUTO_DOWNLOAD: "1"
+      RK1828_ARTIFACT_REPO_ID: harvestsu/seeed-local-voice-rk-artifacts
+      RK1828_ARTIFACT_PREFIX: rk1828/opt/llm/qwen3-4b
+      RK1828_MAX_CONTEXT: "8192"
+      RK1828_CORE_MASK: ff
+      RK1828_PORT: "1828"
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:1828/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
+  agent:
+    extends:
+      file: docker-compose.rk3588.yml
+      service: agent
+    environment:
+      OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
+      OVS_AGENT_SERVER_LOOP: "0"
+      LLM_BACKEND: openai_compat
+      LLM_BASE_URL: http://127.0.0.1:1828/v1
+      LLM_API_KEY: EMPTY
+      LLM_MODEL: Qwen3-4B
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
+      DEFAULT_MODE: chat
+    depends_on:
+      speech:
+        condition: service_healthy
+      llm:
+        condition: service_healthy
+
+volumes:
+  rk-asr-models:
+    name: rk-asr-models
+  rk-tts-models:
+    name: rk-tts-models
+  voice-data:
+    name: conversational-voice-data
+  rk1828-llm-models:
+    name: rk1828-llm-models
