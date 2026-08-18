@@ -34,6 +34,15 @@ recamera_pro_app:
   # were tuned against the held-out test set, and a solution that quietly
   # re-tuned them would invalidate the accuracy figures on the intro page.
 
+# The App renders its connection panel from this block, and the panel — not
+# user_inputs — supplies host/username/password. Without it the form showed a
+# default user of "recomputer" on port 22, neither of which applies here: the
+# credentials are the web console's and the transport is HTTPS, not SSH.
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
+
 name_i18n:
   zh: reCamera Pro
 
@@ -41,35 +50,6 @@ post_deployment:
   open_browser: false
 
 user_inputs:
-  - id: host
-    name: Device IP
-    type: text
-    required: true
-    placeholder: "192.168.1.100"
-    description: The address you use to open the reCamera Pro console
-    name_i18n:
-      zh: 设备 IP
-    description_i18n:
-      zh: 就是你打开 reCamera Pro 控制台时用的地址
-  - id: username
-    name: Console Username
-    type: text
-    default: admin
-    required: true
-    description: The console account, not an SSH login
-    name_i18n:
-      zh: 控制台用户名
-    description_i18n:
-      zh: 控制台账号，不是 SSH 登录名
-  - id: password
-    name: Console Password
-    type: password
-    required: true
-    description: Repeated failures make the device lock your IP for a while, so check it before retrying
-    name_i18n:
-      zh: 控制台密码
-    description_i18n:
-      zh: 连续输错会让设备按 IP 锁定一段时间，重试前先确认密码
   - id: device_name
     name: Device Name
     type: text

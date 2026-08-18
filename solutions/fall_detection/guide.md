@@ -113,7 +113,29 @@ solution, so this preset configures the installed app and makes it active. If
 your device does not carry it yet, install it from the App Center first — the
 deploy step will tell you, and name what is installed instead.
 
-## Step 1: Configure Fall Detection {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
+## Step 1: Update the Camera Firmware {#firmware_recamera_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+
+Only needed once, and only if your camera has no App Center yet.
+
+![Device Management, the Embedded tab, and the reCamera Pro entry with its address and ADB port](gallery/recamera-pro-firmware-update.gif)
+
+### What to check
+
+- Open the camera's page first — if you can see **App Center** with Fall Detection in it, this step is already done and you can skip it.
+- In this app: **Device Management → Embedded → reCamera Pro**, fill in the camera's address, then **Check for device updates**.
+- It reaches the camera over **ADB on port 5555**, not SSH, so the camera has to be on the network — a USB connection alone is not enough.
+- The update reboots the camera and takes a few minutes. Do not power it off.
+- It keeps a copy of the factory files, so **Factory reset** on the same page can roll it back.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Test connection fails | Check the address, and that port 5555 is reachable from this computer |
+| Nothing happens after Check for device updates | The camera may already be up to date — look for the App Center on its page |
+| App Center still missing afterwards | Reload the page; the camera needs a moment after its reboot |
+
+## Step 2: Configure Fall Detection {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
 
 Point the app at your MQTT broker and make it the running app.
 
@@ -133,7 +155,7 @@ Point the app at your MQTT broker and make it the running app.
 
 ### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
 
-## Step 2: Watch Fall Status {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
+## Step 3: Watch Fall Status {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
 
 Open the device console and watch the live view while someone walks in front of
 the camera.

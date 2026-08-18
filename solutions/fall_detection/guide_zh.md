@@ -106,7 +106,29 @@
 并把它设为运行中的应用**。如果你的设备上还没有，请先在应用中心安装——部署步骤会提示你，
 并列出设备上已装的应用。
 
-## 步骤 1: 配置跌倒检测 {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
+## 步骤 1: 更新摄像头固件 {#firmware_recamera_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+
+只需做一次，而且只在摄像头还没有应用中心时才需要。
+
+![设备管理 → 嵌入式 → reCamera Pro，展开后可填写地址与 ADB 端口](gallery/recamera-pro-firmware-update.gif)
+
+### 检查内容
+
+- 先打开摄像头页面——如果已经能看到**应用中心**且里面有 Fall Detection，这一步就不用做，直接跳过。
+- 在本应用里：**设备管理 → 嵌入式 → reCamera Pro**，填写摄像头地址，然后点**检查更新设备**。
+- 它通过 **ADB 5555 端口**连接摄像头，不是 SSH，所以摄像头必须在网络上，仅用 USB 连接不够。
+- 更新过程会重启摄像头，需要几分钟，中途不要断电。
+- 它会保留出厂文件备份，同一页的**恢复出厂设置**可以回滚。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 测试连接失败 | 检查地址，以及这台电脑能否访问摄像头的 5555 端口 |
+| 点了检查更新设备没反应 | 可能已经是最新——去摄像头页面看有没有应用中心 |
+| 更新后仍没有应用中心 | 刷新页面，摄像头重启后需要一点时间 |
+
+## 步骤 2: 配置跌倒检测 {#deploy_recamera_pro_fall type=recamera_pro_app required=true config=devices/recamera_pro_fall.yaml}
 
 把应用指向你的 MQTT 服务器，并将其设为运行中的应用。
 
@@ -126,7 +148,7 @@
 
 ### 部署目标 {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_fall.yaml}
 
-## 步骤 2: 查看跌倒状态 {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
+## 步骤 3: 查看跌倒状态 {#verify_recamera_pro_fall type=web_dashboard required=false config=devices/verify_recamera_pro_fall.yaml}
 
 打开设备控制台，让人在摄像头前走动，观察实时画面。
 

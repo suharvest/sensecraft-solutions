@@ -1,0 +1,82 @@
+version: "1.0"
+id: recamera_pro_firmware
+name: Update reCamera Pro Firmware
+type: manual
+
+# Why this step is manual rather than automated.
+#
+# The engine already knows how to do this: recamera_pro_manager sideloads the
+# extension firmware over adb and installs S94appmgr plus the nginx edge config.
+# But that capability is wired to the device-management surface (/api/firmware),
+# not exposed as a deployer type, so a solution step cannot drive it today.
+#
+# Rather than pretend otherwise, this step sends the user to the place that can
+# do it and says exactly what to click. It is optional: a device whose App
+# Center already lists Fall Detection has the firmware and can skip straight to
+# the next step.
+#
+# Making this automatic is a small engine change — wrap the manager in a
+# deployer with a precondition probe, the way the 2002 preset skips its console
+# update when supervisor is already 0.5.5.
+
+steps:
+  - id: check_needed
+    name: Check whether you need this step
+    name_i18n:
+      zh: 先确认是否需要这一步
+    description: >-
+      Open your camera's page in a browser and look for the App Center. If Fall
+      Detection is listed there, the firmware is already in place — skip to the
+      next step. If there is no App Center at all, continue below.
+    description_i18n:
+      zh: >-
+        在浏览器里打开摄像头的页面，找「应用中心」。如果里面能看到 Fall Detection，
+        说明固件已经就绪，直接跳到下一步。如果根本没有应用中心，继续往下做。
+    optional: false
+
+  - id: open_device_manager
+    name: Open Device Management in this app
+    name_i18n:
+      zh: 在本应用中打开设备管理
+    description: >-
+      In the left-hand navigation open Device Management, switch to the
+      Embedded tab, and pick reCamera Pro. Enter the camera's address — it
+      connects over ADB on port 5555, so the camera must be on the network.
+    description_i18n:
+      zh: >-
+        在左侧导航进入「设备管理」，切到「嵌入式」标签，选择 reCamera Pro，
+        填入摄像头地址。它通过 ADB 5555 端口连接，所以摄像头必须在网络上。
+    optional: false
+
+  - id: run_update
+    name: Run the firmware update
+    name_i18n:
+      zh: 执行固件更新
+    description: >-
+      Use Test connection first, then Check for device updates. The camera
+      reboots when the update finishes, so allow a few minutes and do not power
+      it off. It is reversible: a copy of the factory files is kept, and
+      Factory reset on the same page restores them.
+    description_i18n:
+      zh: >-
+        先点「测试连接」，再点「检查更新设备」。更新完成后摄像头会重启，
+        请留出几分钟且中途不要断电。这个操作可回滚——它会保留一份出厂文件备份，
+        同一页的「恢复出厂设置」可以还原。
+    optional: false
+
+  - id: confirm
+    name: Confirm the App Center appeared
+    name_i18n:
+      zh: 确认应用中心已出现
+    description: >-
+      After the camera comes back, reload its page. The App Center should now be
+      there with Fall Detection among the apps. That is what the next step
+      configures and activates.
+    description_i18n:
+      zh: >-
+        摄像头重启回来后刷新它的页面，此时应该能看到「应用中心」，其中列有
+        Fall Detection。下一步要配置并激活的就是它。
+    optional: false
+
+name_i18n:
+  zh: 更新 reCamera Pro 固件
