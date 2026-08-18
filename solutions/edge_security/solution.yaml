@@ -20,19 +20,19 @@ intro:
   gallery:
     - type: image
       src: gallery/cover-corridor.jpg
-      caption: One frame from the running detector. Four people are tracked; three stand inside the red restricted zone at the corridor end, one walks toward the camera across the amber tripwire, whose arrow points the direction the rule counts as forward.
+      caption: One frame from the detector running on an RK3588 board. Four people are tracked; three stand inside the red restricted zone at the corridor end, one walks toward the camera across the amber tripwire, whose arrow points the direction the rule counts as forward. The overlay reads the board's own numbers - yolov8n int8 on the NPU, decode on the Rockchip hardware decoder, 13.3 fps, 35.7 ms per inference.
       caption_i18n:
-        zh: 运行中的检测器取下的一帧。四个人被跟踪，其中三人站在走廊尽头的红色禁区里，一人正朝镜头方向走过琥珀色越线；箭头指向规则判为 forward 的方向。
+        zh: RK3588 板卡上运行的检测器取下的一帧。四个人被跟踪，其中三人站在走廊尽头的红色禁区里，一人正朝镜头方向走过琥珀色越线；箭头指向规则判为 forward 的方向。角标数值取自板卡自己的上报——yolov8n int8 跑在 NPU 上，解码走 Rockchip 硬解，13.3 fps，单次推理 35.7 ms。
     - type: image
       src: gallery/workbench-alert.gif
-      caption: The workbench during a live run. New alerts drop in at the top of the list with their snapshot, and clicking Acknowledge stamps the row with the operator name and time while the pending count drops.
+      caption: The workbench while an RK3588 board keeps reporting. Line-crossing alerts from rk3588-01/cam-0 drop in at the top of the list, each carrying the corridor frame the detector captured at that moment, and clicking Acknowledge turns the row green with the operator name and time while the pending count drops and the acknowledged count rises.
       caption_i18n:
-        zh: 实跑中的告警工作台。新告警带着快照落到列表顶部，点「确认」后该条会记下处置人和时间，待处理计数随之减少。
+        zh: RK3588 板卡持续上报时的告警工作台。rk3588-01/cam-0 的越线告警落到列表顶部，每条都带着检测器当时截下的走廊画面；点「确认」后该条变绿并记下处置人和时间，待处理计数减少、已确认计数增加。
     - type: image
       src: gallery/rules-editor-live.gif
-      caption: Drawing rules on the camera's own frame — four clicks close a zone over the near corridor, two clicks lay a line across the far end, its direction is switched from both ways to forward, and Save turns the header into "Persisted … rev 2".
+      caption: Drawing rules on the camera's own frame, proxied by the hub from the RK3588 detector's preview endpoint — four clicks close a second zone over the near corridor, two clicks lay a second line across the corridor mouth, its direction is switched from both ways to forward, and Save turns the header into "Persisted 15:37:03 · rev 2".
       caption_i18n:
-        zh: 在摄像头自己的画面上画规则——四次点击围出近处走廊的区域，两次点击在远端拉出一条线，方向从双向改为 forward，保存后标题变成「Persisted … rev 2」。
+        zh: 在摄像头自己的画面上画规则，底图由 hub 从 RK3588 检测器的预览接口代理而来——四次点击围出近处走廊的第二个区域，两次点击在走廊口拉出第二条线，方向从双向改为 forward，保存后标题变成「Persisted 15:37:03 · rev 2」。
     - type: image
       src: gallery/architecture-diagram.png
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
