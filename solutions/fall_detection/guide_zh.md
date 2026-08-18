@@ -166,6 +166,15 @@
 与其他套餐不同，这里是**映射后的摘要**而非每帧完整文档——Home Assistant 需要的正是这些
 字段，但其中不含骨架数据；带骨架的实时画面在控制台自己的页面上，由本步骤打开。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 摄像头页面打不开 | 固件有 HTTPS 开关，80 端口会重定向到 443。跟随跳转，或直接用 `https://` 地址打开 |
+| 实时画面正常但 broker 收不到跌倒事件 | 检查上一步填的 broker 地址和端口；summary 主题要检测到人之后才会出现 |
+| 应用中心里有 Fall Detection 但启动不了 | 缺 AI 模型。在摄像头的应用中心里重新安装一次——安装时会连模型一起下载 |
+| 贴近地面时漏检 | 调整摄像头取景；倒地后的短暂遮挡可以容忍，长时间遮挡无法判定 |
+
 ### 部署目标 {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
 ## 套餐: IP 摄像头 + reComputer J {#jetson}

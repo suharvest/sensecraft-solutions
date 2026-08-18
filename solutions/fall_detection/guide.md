@@ -121,9 +121,9 @@ Only needed once, and only if your camera has no App Center yet.
 
 ### What to check
 
-- Open the camera's page first — if you can see **App Center** with Fall Detection in it, this step is already done and you can skip it.
+- Open the camera's page first — if **App Center** is there with Fall Detection, skip this step.
 - In this app: **Device Management → Embedded → reCamera Pro**, fill in the camera's address, then **Check for device updates**.
-- It reaches the camera over **ADB on port 5555**, not SSH, so the camera has to be on the network — a USB connection alone is not enough.
+- It uses **ADB on port 5555**, not SSH, so the camera must be on the network — USB alone is not enough.
 - The update reboots the camera and takes a few minutes. Do not power it off.
 - It keeps a copy of the factory files, so **Factory reset** on the same page can roll it back.
 
@@ -174,6 +174,15 @@ The camera is now publishing fall events to your broker.
 Unlike the other presets this is a mapped summary rather than a per-frame
 document, which is what Home Assistant consumes but carries no skeleton — the
 live view with skeletons is the console's own page, opened by this step.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| The camera's page does not open | The firmware has an HTTPS switch; port 80 answers with a redirect to 443. Follow it, or open the `https://` address directly |
+| Live view works but no fall events reach the broker | Check the broker address and port in the previous step; the summary topic only appears once a person is detected |
+| Fall Detection is listed but will not start | Its AI model is missing. Reinstall it from the App Center on the camera — the install downloads the model with the app |
+| A fall is missed near the floor | Reframe the camera; a short post-impact gap is tolerated, long occlusion cannot be classified |
 
 ### Target {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
