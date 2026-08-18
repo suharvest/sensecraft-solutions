@@ -1,3 +1,24 @@
+## Relationship to "Industrial Security on Jetson"
+
+This is the multi-platform rebuild of the existing `industrial_security_jetson`
+solution: the same three rules (restricted zone, line crossing, loitering) and
+the same browser dashboard, rewritten so the detection layer and the rule layer
+talk over a published MQTT payload contract instead of living in one process.
+That is what lets an RK3588 board run the whole thing today and lets other
+detector hardware join later without touching the hub.
+
+**One difference decides which one to use: this package has no TensorRT path.**
+The Jetson preset here runs a CPU / ONNX detector and leaves the GPU idle.
+
+- **Need GPU inference on a Jetson** — keep using **Industrial Security on
+  Jetson**. It is the only one of the two with a TensorRT detector.
+- **Deploying on RK3588**, or on any arm64 / x86_64 box where a CPU detector is
+  fast enough, or **you want alerts on MQTT and several detectors under one
+  alert list** — use this one. The other solution is Jetson-only.
+
+A TensorRT detection layer is being added here. Once it lands, this solution
+takes over from `industrial_security_jetson` and that one is retired.
+
 ## What This Solution Does
 
 Cameras watch an area. Edge boxes find the people in the picture. One hub turns
@@ -62,9 +83,9 @@ Verified on real hardware:
 
 Not verified, and not claimed:
 
-- **No TensorRT detection path exists.** The Single Box preset runs the CPU /
-  ONNX detector on the Jetson; the GPU is idle. If you need GPU inference on a
-  Jetson today, this is not the package that provides it.
+- **No TensorRT detection path exists.** The Jetson Single Box preset runs the
+  CPU / ONNX detector; the GPU is idle. If you need GPU inference on a Jetson
+  today, use `industrial_security_jetson` instead.
 - **reCamera and Hailo detection nodes are not built.** The payload contract is
   published so they can be added without changing the hub, but nothing here
   runs on them.
@@ -80,17 +101,23 @@ Not verified, and not claimed:
 |---|---|
 | Camera | Any fixed RTSP camera. H.264 is required for the RK3588 preset's hardware decode path. The camera must not move after the rules are drawn. |
 | Detection node | RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed, or any arm64 / x86_64 machine with about 2.5 spare CPU cores per 720p stream. |
-| Aggregation host | Any always-on arm64 or x86_64 machine with Docker. It decodes no video and runs no inference. |
+| Aggregation host | Not required. The broker and the hub run on the detection machine itself. Only the optional Shared Hub preset needs a separate always-on arm64 or x86_64 machine with Docker. |
 | Network | Detectors reach the hub on port 1883. Operators reach the hub on 8090. The camera preview on 8099 must be reachable from the operator's browser, otherwise the rule editor has no backdrop. |
 
 ## Choosing a Preset
 
-- **Single Box** — one machine, one camera, everything on it. Start here to see
-  the system work.
-- **Hub Only** — the aggregation layer alone. Deploy this first when you have
-  more than one camera or more than one site.
-- **RK3588 Detector** — a detection node that feeds an existing hub. Repeat it
-  per board.
+Both deployment presets are self-contained: broker, hub and detector on one
+machine, and the workbench is served from that same machine when the deploy
+finishes.
+
+- **Jetson Single Box** — a Jetson watching one camera with the CPU / ONNX
+  detector.
+- **RK3588 Single Box** — an RK3588 board watching one camera, inference on the
+  NPU and decode on the board's hardware decoder.
+- **Shared Hub (Optional Expansion)** — not a deployment path on its own. Use it
+  only after several detector boxes are running and you want one alert list
+  across them; it installs the broker and hub on a separate always-on machine,
+  and each detector's `mqtt_host` is then repointed at it.
 
 ## One Failure Mode Worth Knowing Before You Start
 

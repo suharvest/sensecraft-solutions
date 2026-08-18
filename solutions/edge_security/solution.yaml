@@ -1,13 +1,13 @@
 version: "1.0"
 id: edge_security
-name: Edge Security Hub
+name: Industrial Security (Multi-Platform Edge)
 name_i18n:
-  zh: 边缘安防汇聚平台
+  zh: 工业安防（多平台边缘部署）
 
 intro:
-  summary: Cameras watch, edge boxes detect people, and one hub turns that into zone, line-crossing and loitering alerts you can work through in a browser.
+  summary: Restricted-zone, line-crossing and loitering alerts from an RTSP camera, judged on the edge box itself and worked through in a browser. Jetson and RK3588 presets each run the whole stack on one machine.
   summary_i18n:
-    zh: 摄像头看现场，边缘盒子做人体检测，一台 hub 把结果判成区域入侵、越线和滞留告警，在浏览器里逐条处理。
+    zh: 一路 RTSP 摄像头，判出禁区入侵、越线和滞留告警，在浏览器里逐条处理。判定就在边缘盒子上完成，Jetson 与 RK3588 套餐各自一台机器跑完整套。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -37,10 +37,12 @@ intro:
   solution_type: solution
   tags:
     - security
+    - industrial-security
     - intrusion-detection
     - person-detection
     - mqtt
     - rk3588
+    - jetson
 
   output_interfaces:
     - type: http
@@ -96,16 +98,16 @@ intro:
         require:
           module: [orin_nx_16]
     recomputer_rk3588:
-      description: Detection layer — person detection on the NPU, video decode on the board's hardware decoder
+      description: Runs broker, hub and the NPU detector on one board — inference on the NPU, video decode on the board's hardware decoder
       description_i18n:
-        zh: 探测层——人体检测跑在 NPU 上，视频解码走板载硬解
+        zh: 一块板卡同时跑 broker、hub 和 NPU 检测器——推理走 NPU，视频解码走板载硬解
     generic_arm64_host:
-      name: Aggregation Host
+      name: Generic Docker Host
       name_i18n:
-        zh: 汇聚主机
-      description: Any arm64 or x86_64 machine with Docker that stays powered on — it runs the broker and the hub, and never touches video
+        zh: 通用 Docker 主机
+      description: Any always-on arm64 or x86_64 machine with Docker. It can run the whole single-box stack, or in the optional expansion just the broker and the hub
       description_i18n:
-        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器——运行 broker 和 hub，不接触视频
+        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器。既可以跑完整的单机服务栈，也可以在可选的多机汇聚场景里只跑 broker 和 hub
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -116,15 +118,15 @@ intro:
 
   presets:
     - id: jetson_hub
-      name: Single Box
+      name: Jetson Single Box
       name_i18n:
-        zh: 单机部署
+        zh: Jetson 单机部署
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One machine runs everything — broker, hub and a CPU detector for one camera. The shortest path to a working alert workbench.
+      description: One Jetson runs everything — broker, hub and a CPU/ONNX detector for one camera. No extra machine, and no TensorRT path yet, so the GPU stays idle.
       description_i18n:
-        zh: 一台机器跑完整套——broker、hub 和一路摄像头的 CPU 检测器。最短的一条路，部署完就有可用的告警工作台。
+        zh: 一台 Jetson 跑完整套——broker、hub 和一路摄像头的 CPU/ONNX 检测器。不需要第二台机器；目前没有 TensorRT 路径，GPU 处于空闲。
       architecture_image: gallery/architecture.svg
       device_groups:
         - id: compute
@@ -149,15 +151,15 @@ intro:
           default: generic_ip_camera
 
     - id: rk3588
-      name: RK3588 Detector
+      name: RK3588 Single Box
       name_i18n:
-        zh: RK3588 检测器
+        zh: RK3588 单机部署
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Add a detection node that runs on the NPU and decodes video in hardware, feeding a hub you already have.
+      description: One RK3588 board runs everything — broker, hub and a detector with NPU inference and hardware video decode. The hub costs 1.4% of one CPU core, so the board carries it alongside the detector.
       description_i18n:
-        zh: 增加一个探测节点，推理跑 NPU、解码走硬解，把结果送给你已经在跑的 hub。
+        zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 只占单核 1.4%，板卡在跑检测的同时完全带得动。
       architecture_image: gallery/architecture.svg
       # Hardware-verified: the RK3588 detector in this preset was run on a
       # radxa RK3588 board against a live 1280x720 H.264 stream with the int8
@@ -169,23 +171,14 @@ intro:
         - hardware
       device_groups:
         - id: compute
-          name: Detector Board
+          name: Board
           name_i18n:
-            zh: 检测板卡
+            zh: 板卡
           type: single
           required: true
           options:
             - device_ref: recomputer_rk3588
           default: recomputer_rk3588
-        - id: hub
-          name: Aggregation Host
-          name_i18n:
-            zh: 汇聚主机
-          type: single
-          required: true
-          options:
-            - device_ref: generic_arm64_host
-          default: generic_arm64_host
         - id: camera
           name: IP Camera
           name_i18n:
@@ -197,15 +190,15 @@ intro:
           default: generic_ip_camera
 
     - id: hub_only
-      name: Hub Only
+      name: Shared Hub (Optional Expansion)
       name_i18n:
-        zh: 仅 Hub
+        zh: 共享 Hub（可选扩展）
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Put the broker, the rule engine and the workbench on one always-on machine, then point detectors at it as you add them.
+      description: Not the normal path. Use it only when several detector boxes are already running and you want one shared alert list across them — it installs the broker, rule engine and workbench on an always-on machine with no detector of its own.
       description_i18n:
-        zh: 把 broker、规则引擎和工作台放在一台常开机器上，之后逐台把检测器指过来。
+        zh: 不是常规部署路径。仅当你已经有多台检测设备、希望它们共用一份告警列表时才用——它在一台常开机器上装 broker、规则引擎和工作台，本机不带检测器。
       architecture_image: gallery/architecture.svg
       device_groups:
         - id: hub

@@ -1,7 +1,8 @@
-## Preset: Single Box {#jetson_hub}
+## Preset: Jetson Single Box {#jetson_hub}
 
-Everything on one machine: the MQTT broker, the aggregation hub with its alert
-workbench, and one CPU detector watching a single camera.
+Everything on one Jetson: the MQTT broker, the aggregation hub with its alert
+workbench, and one CPU detector watching a single camera. No second machine is
+required.
 
 The detector here runs on ONNX Runtime on the CPU. There is no TensorRT
 detection path in this project yet, so the Jetson GPU is not used — the board
@@ -100,20 +101,22 @@ largest configuration measured; treat anything beyond that as untested.
 | Alerts have no snapshot thumbnail | The hub asks the detector for a snapshot when an alert fires; a snapshot over 200 KB is rejected. Check the detector log. |
 | Nothing fires when you cross the line | Line rules need a direction change across the line between two consecutive frames of the same track. Confirm the person is being tracked — the Devices page shows the detection rate. |
 
-## Preset: RK3588 Detector {#rk3588}
+## Preset: RK3588 Single Box {#rk3588}
 
-A detection node on an RK3588 board: person detection on the NPU, video decode
-on the board's hardware decoder. It publishes into a hub that runs elsewhere,
-so deploy the Hub Only preset first if you do not already have one.
+Everything on one RK3588 board: the MQTT broker, the aggregation hub with its
+alert workbench, and a detector doing person detection on the NPU with video
+decode on the board's hardware decoder. No second machine is required — the hub
+decodes no video and runs no inference, measured at 1.4% of one CPU core and
+44.9 MB of memory while carrying two live streams.
 
 Measured on this board with the int8 model at 1280x720: inference p50 41.9 ms
 inside the live pipeline, NPU core 8% busy, 21% of one CPU core, decode
 confirmed on hardware.
 
-## Step 1: Deploy the Detector {#deploy_edge_security_rk3588 type=docker_deploy required=true config=devices/rk3588_detector.yaml}
+## Step 1: Deploy the Security Stack {#deploy_edge_security_rk3588 type=docker_deploy required=true config=devices/rk3588_detector.yaml}
 
-Enter the board address, your camera URL and the address of the hub the results
-should go to.
+Enter the board address and your camera URL; three containers are installed and
+started on the board.
 
 ### Prerequisites
 
@@ -123,11 +126,16 @@ should go to.
 - The Rockchip hardware decoder present as `/dev/mpp_service`. The detector
   refuses to start on CPU decode rather than falling back silently.
 - An H.264 camera stream. The hardware decode path is built for H.264.
-- A hub already reachable on port 1883.
+- Ports 8090 (workbench), 1883 (broker) and 8099 (camera preview) free on the
+  board.
+- About 6 GB of free disk for the two images, the staged board libraries and
+  the alert database.
 
 ### What to check
 
-- The final step prints `/debug/decode` from the running detector: the element
+- The step prints the hub's `/api/health` response, and the admin credential
+  from the hub log if this is a first boot.
+- It then prints `/debug/decode` from the running detector: the element
   GStreamer actually instantiated. `"decode": "hw"` with
   `"decoder_factory": "mppvideodec"` is the result you want.
 
@@ -139,26 +147,29 @@ should go to.
 | Detector exits complaining about the decoder | The MPP plugin was not staged. Check `gstmpp/` next to the compose file on the board; if it is empty, install `gstreamer1.0-rockchip1` and `gstreamer1.0-plugins-bad`. |
 | Model fails to load with a version error | The version in the filename is not the version in the binary. Read the real one: `strings /usr/lib/librknnrt.so \| grep 'librknnrt version'`. The shipped model is built for 2.3.2. |
 | `W Query dynamic range failed` on every start | Harmless. It is what a static-shape model prints on this runtime. |
-| Detector runs but the hub never lists it | `mqtt_host` in `config/detector.yaml` must be an address the board can reach, and port 1883 must be open on the hub machine. |
+| Detector runs but the hub never lists it | The broker is in the same stack, so `mqtt_host` in `config/detector.yaml` should read `mosquitto`. The detector publishes its status every 30 s — wait a cycle before concluding anything. |
+| Hub does not answer on 8090 | `docker compose logs hub`. A port already in use on the board is the usual cause. |
 
 ### Target {#rk3588_board type=remote device_name="RK3588" config=devices/rk3588_detector.yaml default=true}
 
-## Step 2: Check It in the Workbench {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
+## Step 2: Open the Alert Workbench {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
 
-Open the hub and confirm the new board appears as online with hardware decode.
+Open the workbench on the board itself and confirm hardware decode.
 
 ### Deployment Complete
 
-The board is detecting people and publishing into your hub.
+The board is detecting people and judging rules on itself. The workbench is at
+`http://<board>:8090`.
 
 #### Quick verification
 
-1. Open **Devices** in the workbench. The board appears under the detector name
+1. Log in with `admin` / `admin` and set a new password when prompted.
+2. Open **Devices** in the workbench. The board appears under the detector name
    you chose.
-2. Its decode column should read `hw`. A `hw` reading here is a claim the
+3. Its decode column should read `hw`. A `hw` reading here is a claim the
    detector makes about its own live pipeline, read off the negotiated
    GStreamer caps rather than from the config file.
-3. Open **Rules**, pick this device and stream, and draw a zone or a line. The
+4. Open **Rules**, pick this device and stream, and draw a zone or a line. The
    backdrop is a real frame from this board.
 
 #### About the model
@@ -176,8 +187,13 @@ that site.
 
 #### Next steps
 
-- Repeat this preset for each additional board. Give every detector a distinct
-  name; the topic is keyed on it.
+- Repeat this preset for each additional board. Each one is self-contained and
+  keeps its own alert list. Give every detector a distinct name; the topic is
+  keyed on it.
+- If you would rather have one alert list across several boards, deploy the
+  Shared Hub preset on a separate always-on machine and change `mqtt_host` in
+  each board's `config/detector.yaml` to that machine's address. That is an
+  optional expansion, not a requirement.
 - Two concurrent streams is the largest configuration measured on one hub.
 
 ### Troubleshooting
@@ -188,15 +204,20 @@ that site.
 | Duplicate alerts for one motionless person | The detector is falling behind and the tracker is issuing new track ids. Check the detection rate on the Devices page against the camera's frame rate. |
 | Rule canvas is grey for this device | `preview_advertise_host` must be the board's LAN address so the hub can fetch a frame from port 8099. |
 
-## Preset: Hub Only {#hub_only}
+## Preset: Shared Hub (Optional Expansion) {#hub_only}
 
-The broker, the rule engine and the alert workbench on one always-on machine.
-No video is decoded here and no inference runs here — the hub judges rules from
-the JSON detectors send it, measured at 1.4% CPU and 44.9 MB of memory while
-carrying two live streams.
+This is not the normal way to deploy this solution. The Jetson and RK3588
+presets each run the broker, the hub and a detector on a single machine, and
+neither needs anything installed here.
 
-Deploy this first when you have more than one site, then point each detector at
-it.
+Use this preset only when detector boxes are already running and you want one
+shared alert list across all of them. It puts the broker, the rule engine and
+the alert workbench on an always-on machine with no detector of its own — the
+hub judges rules from the JSON detectors send it, measured at 1.4% CPU and
+44.9 MB of memory while carrying two live streams.
+
+After deploying it, change `mqtt_host` in each detector's `config/detector.yaml`
+from `mosquitto` to this machine's address and restart that detector.
 
 ## Step 1: Deploy the Hub {#deploy_edge_security_hub_only type=docker_deploy required=true config=devices/hub_stack.yaml}
 
@@ -242,9 +263,10 @@ The aggregation layer is running and listening for detectors on port 1883.
 
 #### Connecting a detector
 
-Deploy the RK3588 Detector preset on a board and give it this machine's address
-as the hub. Any device that publishes the documented payloads joins the same
-way — the payload contract is what the hub consumes, not a particular product.
+On each detector box, edit `config/detector.yaml` next to its compose file, set
+`mqtt_host` to this machine's address, and run `docker compose up -d detector`.
+The broker still running on that box does no harm; nothing subscribes to it any
+more. Any device that publishes the documented payloads joins the same way — the payload contract is what the hub consumes, not a particular product.
 A detector that carries track ids has its rules judged here; a device that
 judges its own rules publishes finished events instead and the hub records them
 without re-judging.

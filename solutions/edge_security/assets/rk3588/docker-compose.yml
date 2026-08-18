@@ -1,8 +1,12 @@
-# Detection layer only, on an RK3588 board: inference on the NPU, decode on the
-# Rockchip MPP hardware decoder. Results go to a hub that runs somewhere else.
+# Single-box form on an RK3588 board: broker, hub and the NPU detector all on
+# the same board. Inference on the NPU, decode on the Rockchip MPP hardware
+# decoder.
 #
 # Measured on RK3588 with the int8 model at 1280x720 H.264: in-pipeline
 # inference p50 41.9 ms, NPU core0 8% busy, 21% of one CPU core, decode hw.
+# The hub decodes nothing and runs no inference — measured at 1.4% of one CPU
+# core and 44.9 MB RSS while judging two live streams — so it sits next to the
+# detector on this board instead of asking for a second machine.
 #
 # Two host-supplied pieces are staged next to this file by the deploy step
 # rather than baked into the image, because both must match the board:
@@ -10,10 +14,44 @@
 #               NPU driver
 #   gstmpp/   - the board's GStreamer MPP plugin and its libraries
 services:
+  hub:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/data
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      # Empty on purpose: the hub then creates admin/admin with must_change=1
+      # and prints the credential to its own log. Set it to skip that.
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    # Also published on the board's LAN address, so extra detectors can be
+    # pointed at this board later without changing this file.
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/data
+
   detector:
     image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-rk3588:0.1.0
     command: ["--config", "/app/config/detector.yaml"]
     restart: unless-stopped
+    depends_on:
+      - mosquitto
     ports:
       - "8099:8099"
     environment:

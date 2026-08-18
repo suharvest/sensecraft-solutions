@@ -1,5 +1,6 @@
-# Placeholder. The deploy step overwrites this file with your camera URL, device
-# name and hub address before the container starts.
+# Placeholder. The deploy step overwrites this file with your camera URL and
+# device name before the container starts. The broker runs in this same stack,
+# so mqtt_host is the compose service name rather than another machine.
 device_id: rk3588-01
 stream_id: cam-0
 source: rtsp://127.0.0.1:8554/stream
@@ -15,7 +16,7 @@ iou_threshold: 0.45
 npu_core_mask: null
 track_iou_threshold: 0.2
 track_max_lost_s: 0.75
-mqtt_host: 127.0.0.1
+mqtt_host: mosquitto
 mqtt_port: 1883
 topic_prefix: sensecraft/security
 status_interval_s: 30

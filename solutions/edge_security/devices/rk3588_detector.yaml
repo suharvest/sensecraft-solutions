@@ -1,8 +1,8 @@
 version: "1.0"
 id: rk3588_detector
-name: RK3588 Detector
+name: RK3588 Security Stack
 name_i18n:
-  zh: RK3588 检测器
+  zh: RK3588 安防服务栈
 type: docker_deploy
 
 docker:
@@ -12,6 +12,12 @@ docker:
     project_name: edge_security_rk3588
     remove_orphans: true
   services:
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: hub
+      port: 8090
+      required: true
     - name: detector
       port: 8099
       required: true
@@ -26,8 +32,8 @@ ssh:
 
 pre_checks:
   - type: disk_space
-    min_gb: 4
-    description: Detector image and the staged board libraries live on the board
+    min_gb: 6
+    description: Detector image, hub image, the staged board libraries and the alert database all live on the board
 
 post_deployment:
   open_browser: false
@@ -76,6 +82,20 @@ remote_overrides:
           print("rknnlite site-packages:", os.path.dirname(os.path.dirname(spec.origin)))
           PY
           echo "RKNN + MPP runtime OK"
+
+      - name: Check ports 8090 and 1883 are free
+        name_i18n:
+          zh: 检查 8090 与 1883 端口是否空闲
+        ignore_error: true
+        run: |
+          # The broker and the hub run on this same board, so both ports must
+          # be free here — there is no separate aggregation machine.
+          for p in 8090 1883; do
+            if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
+              echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+            fi
+          done
+          echo "port check done"
 
       - name: Ensure docker compose command
         name_i18n:
@@ -146,13 +166,15 @@ remote_overrides:
           done
           ls -1 "$DEST" || true
 
-      - name: Write the camera, hub and detector configuration
+      - name: Write the camera and detector configuration
         name_i18n:
-          zh: 写入摄像头、hub 与检测器配置
+          zh: 写入摄像头与检测器配置
         run: |
           set -e
           WORKDIR="/home/{{username}}/edge-security-rk3588/rk3588_detector"
-          mkdir -p "$WORKDIR/config"
+          # data/ holds the alert database, the snapshots and the rule
+          # configuration for the hub that runs on this same board.
+          mkdir -p "$WORKDIR/config" "$WORKDIR/data" "$WORKDIR/mosquitto-data"
           # int8 by default: 41.9 ms in-pipeline inference against fp16's
           # 72.3 ms, NPU load 8% against 26%, for 0.52 AP@.5:.95 on COCO person.
           cat > "$WORKDIR/config/detector.yaml" <<CFG
@@ -171,7 +193,7 @@ remote_overrides:
           npu_core_mask: null
           track_iou_threshold: 0.2
           track_max_lost_s: 0.75
-          mqtt_host: {{hub_host}}
+          mqtt_host: mosquitto
           mqtt_port: 1883
           topic_prefix: sensecraft/security
           status_interval_s: 30
@@ -183,6 +205,33 @@ remote_overrides:
           cat "$WORKDIR/config/detector.yaml"
 
     after:
+      - name: Wait for the hub to answer
+        name_i18n:
+          zh: 等待 hub 响应
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the hub API ..."
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+              curl -sS "http://127.0.0.1:8090/api/health"
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Hub did not answer on 8090 — check: docker compose logs hub" >&2
+
+      - name: Report the admin credential
+        name_i18n:
+          zh: 输出管理员登录信息
+        ignore_error: true
+        timeout: 60
+        run: |
+          # On a first boot with no HUB_ADMIN_PASSWORD the hub creates
+          # admin/admin with must_change=1 and prints it here.
+          docker logs edge_security_rk3588-hub-1 2>&1 | grep -iE "admin|password|must_change" | tail -5 || true
+
       - name: Confirm the decoder actually running
         name_i18n:
           zh: 确认实际使用的解码器
@@ -209,9 +258,9 @@ remote_overrides:
       type: text
       required: true
       placeholder: "192.168.1.100"
-      description: Also written into the detector config as the preview address the workbench uses
+      description: Where the workbench will be served — http://<this address>:8090 — and also the preview address written into the detector config
       description_i18n:
-        zh: 同时写入检测器配置，作为工作台访问预览画面的地址
+        zh: 工作台的访问地址（http://该地址:8090），同时写入检测器配置作为预览画面地址
     - id: username
       name: SSH Username
       name_i18n:
@@ -228,16 +277,6 @@ remote_overrides:
         zh: SSH 密码
       type: password
       required: true
-    - id: hub_host
-      name: Hub IP
-      name_i18n:
-        zh: Hub IP
-      type: text
-      required: true
-      placeholder: "192.168.1.50"
-      description: The machine running the hub and its broker. Deploy the Hub Only preset there first.
-      description_i18n:
-        zh: 运行 hub 与其 broker 的那台机器。先在那台机器上部署「仅 Hub」套餐。
     - id: device_id
       name: Detector Name
       name_i18n:

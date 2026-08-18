@@ -1,7 +1,7 @@
-## 套餐: 单机部署 {#jetson_hub}
+## 套餐: Jetson 单机部署 {#jetson_hub}
 
-一台机器跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及一个看单路摄像头的
-CPU 检测器。
+一台 Jetson 跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及一个看单路摄像头的
+CPU 检测器。不需要第二台机器。
 
 这里的检测器跑在 CPU 上的 ONNX Runtime，本项目还没有 TensorRT 检测路径，因此
 Jetson 的 GPU 没有被使用——这块板子在这里的角色是一台核数够用的安静 arm64 机器。
@@ -91,17 +91,18 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 | 告警没有快照缩略图 | 告警触发时 hub 会向检测器索取快照，超过 200 KB 的快照会被拒绝。查看检测器日志。 |
 | 越线时不报警 | 越线判定需要同一跟踪目标在相邻两帧之间跨到线的另一侧。先确认这个人确实被跟踪上了——设备页会显示检测速率。 |
 
-## 套餐: RK3588 检测器 {#rk3588}
+## 套餐: RK3588 单机部署 {#rk3588}
 
-一个跑在 RK3588 板卡上的探测节点：人体检测走 NPU，视频解码走板载硬解。结果发给另一台
-机器上的 hub，所以如果还没有 hub，先部署「仅 Hub」套餐。
+一块 RK3588 板卡跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走 NPU、
+视频解码走板载硬解的检测器。不需要第二台机器——hub 不解码视频、不做推理，实测在承载
+两路实时流时只占单核 1.4%、44.9 MB 内存。
 
 该板卡实测（int8 模型，1280x720）：流水线内推理 p50 41.9 ms，NPU 核心占用 8%，
 CPU 占单核 21%，解码确认走硬件。
 
-## 步骤 1: 部署检测器 {#deploy_edge_security_rk3588 type=docker_deploy required=true config=devices/rk3588_detector.yaml}
+## 步骤 1: 部署安防服务栈 {#deploy_edge_security_rk3588 type=docker_deploy required=true config=devices/rk3588_detector.yaml}
 
-填入板卡地址、摄像头地址，以及结果要发往的 hub 地址。
+填入板卡地址和摄像头地址，在板卡上安装并启动三个容器。
 
 ### 前置条件
 
@@ -111,11 +112,13 @@ CPU 占单核 21%，解码确认走硬件。
 - 存在 Rockchip 硬解节点 `/dev/mpp_service`。检测器在只能用 CPU 解码时会拒绝启动，
   而不是悄悄降级。
 - 摄像头输出 H.264。硬解路径是按 H.264 构建的。
-- 已有一个 1883 端口可达的 hub。
+- 板卡上 8090（工作台）、1883（broker）、8099（摄像头预览）三个端口空闲。
+- 约 6 GB 空闲磁盘，用于两个镜像、板卡依赖库和告警数据库。
 
 ### 检查内容
 
-- 最后一步会打印运行中检测器的 `/debug/decode`，即 GStreamer 实际创建的元件。
+- 这一步会打印 hub 的 `/api/health` 返回；若是首次启动，还会打印管理员登录信息。
+- 随后会打印运行中检测器的 `/debug/decode`，即 GStreamer 实际创建的元件。
   期望结果是 `"decode": "hw"` 且 `"decoder_factory": "mppvideodec"`。
 
 ### 故障排查
@@ -126,24 +129,26 @@ CPU 占单核 21%，解码确认走硬件。
 | 检测器报解码器错误后退出 | MPP 插件没准备好。看板卡上 compose 文件旁边的 `gstmpp/` 目录，若为空，安装 `gstreamer1.0-rockchip1` 和 `gstreamer1.0-plugins-bad`。 |
 | 模型加载报版本不匹配 | 文件名里的版本不是二进制里的版本。用 `strings /usr/lib/librknnrt.so \| grep 'librknnrt version'` 读真实版本；随镜像发布的模型按 2.3.2 构建。 |
 | 每次启动都打印 `W Query dynamic range failed` | 无害。静态 shape 模型在这个运行时上就是这么打印的。 |
-| 检测器在跑，但 hub 里看不到它 | `config/detector.yaml` 里的 `mqtt_host` 必须是板卡能访问到的地址，且 hub 机器的 1883 端口要放通。 |
+| 检测器在跑，但 hub 里看不到它 | broker 就在同一套栈里，`config/detector.yaml` 里的 `mqtt_host` 应为 `mosquitto`。检测器每 30 s 上报一次状态，先等一个周期再下结论。 |
+| 8090 无响应 | 执行 `docker compose logs hub`，通常是板卡上端口被占用。 |
 
 ### 部署目标 {#rk3588_board type=remote device_name="RK3588" config=devices/rk3588_detector.yaml default=true}
 
-## 步骤 2: 在工作台里确认 {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
+## 步骤 2: 打开告警工作台 {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
 
-打开 hub，确认新板卡在线且解码方式为硬解。
+在板卡本机上打开工作台，确认解码方式为硬解。
 
 ### 部署完成
 
-板卡正在做人体检测，并把结果发往你的 hub。
+板卡正在做人体检测，并在本机判定规则。工作台地址是 `http://<板卡地址>:8090`。
 
 #### 快速验证
 
-1. 在工作台打开**设备**页，能看到你刚才命名的这块板卡。
-2. 解码列应显示 `hw`。这个值不是从配置文件读的，而是检测器从实时流水线协商到的
+1. 用 `admin` / `admin` 登录，按提示设置新密码。
+2. 在工作台打开**设备**页，能看到你刚才命名的这块板卡。
+3. 解码列应显示 `hw`。这个值不是从配置文件读的，而是检测器从实时流水线协商到的
    GStreamer caps 上读出来的。
-3. 打开**规则**页，选中这台设备和这一路流，画一个区域或一条线。底图就是这块板卡的
+4. 打开**规则**页，选中这台设备和这一路流，画一个区域或一条线。底图就是这块板卡的
    真实画面。
 
 #### 关于模型
@@ -158,7 +163,11 @@ CPU 占单核 21%，解码确认走硬件。
 
 #### 下一步
 
-- 每增加一块板卡就重复一次这个套餐。每台检测器要取不同的名字，主题以它为键。
+- 每增加一块板卡就重复一次这个套餐。每块板卡自成一套，各自维护自己的告警列表。每台
+  检测器要取不同的名字，主题以它为键。
+- 如果希望多块板卡共用一份告警列表，在一台独立的常开机器上部署「共享 Hub」套餐，
+  再把每块板卡 `config/detector.yaml` 里的 `mqtt_host` 改成那台机器的地址。这是可选
+  扩展，不是必须项。
 - 单个 hub 上实测过的最大规模是两路并发。
 
 ### 故障排查
@@ -169,12 +178,17 @@ CPU 占单核 21%，解码确认走硬件。
 | 一个人站着不动却重复报警 | 检测器跟不上视频流，跟踪器在不断发新的 track id。用设备页的检测速率和摄像头帧率对一下。 |
 | 这台设备的规则底图是灰的 | `preview_advertise_host` 要填板卡的局域网地址，hub 才能从 8099 端口取到画面。 |
 
-## 套餐: 仅 Hub {#hub_only}
+## 套餐: 共享 Hub（可选扩展） {#hub_only}
 
-把 broker、规则引擎和告警工作台放在一台常开机器上。这里不解码视频、不做推理——hub
-只根据检测器发来的 JSON 判定规则，实测在承载两路实时流时占 1.4% CPU、44.9 MB 内存。
+这不是本方案的常规部署路径。Jetson 与 RK3588 两个套餐各自在一台机器上跑完 broker、
+hub 和检测器，都不需要在这里装任何东西。
 
-多站点场景先部署这一套，之后再把各台检测器指过来。
+只有当你已经有多台检测设备在跑、希望它们共用一份告警列表时才用这个套餐。它在一台常开
+机器上装 broker、规则引擎和告警工作台，本机不带检测器——hub 只根据检测器发来的 JSON
+判定规则，实测在承载两路实时流时占 1.4% CPU、44.9 MB 内存。
+
+部署完之后，把每台检测器 `config/detector.yaml` 里的 `mqtt_host` 从 `mosquitto` 改成
+这台机器的地址，再重启该检测器。
 
 ## 步骤 1: 部署 Hub {#deploy_edge_security_hub_only type=docker_deploy required=true config=devices/hub_stack.yaml}
 
@@ -216,8 +230,9 @@ CPU 占单核 21%，解码确认走硬件。
 
 #### 接入检测器
 
-在一块板卡上部署「RK3588 检测器」套餐，把这台机器的地址填成 hub 地址即可。任何按
-公开契约发送报文的设备都能以同样方式接入——hub 消费的是报文契约，不是某个具体产品。
+在每台检测设备上编辑 compose 文件旁边的 `config/detector.yaml`，把 `mqtt_host` 改成
+这台机器的地址，再执行 `docker compose up -d detector`。那台设备上原有的 broker 留着
+也无妨，只是不再有人订阅它。任何按公开契约发送报文的设备都能以同样方式接入——hub 消费的是报文契约，不是某个具体产品。
 带跟踪编号的检测器由 hub 判规则；自己判规则的设备直接发成品事件，hub 只做记录，不再
 重复判定。
 

@@ -14,10 +14,12 @@ web_dashboard:
   title_i18n:
     zh: 边缘安防工作台
   description: >-
-    First login is admin / admin and the hub forces a password change. With no
-    detectors connected yet the Devices page is empty — that is the expected
-    state until you deploy one and point it at this machine on port 1883.
+    First login is admin / admin and the hub forces a password change. The
+    Devices page is empty — that is expected, since this machine has no
+    detector of its own. Repoint an existing detector's mqtt_host at this
+    machine on port 1883 and it appears here.
   description_i18n:
     zh: >-
-      首次登录用 admin / admin，hub 会强制改密。此时还没有检测器接入，设备页是空的——
-      这是正常状态，直到你部署一台检测器并让它连上这台机器的 1883 端口。
+      首次登录用 admin / admin，hub 会强制改密。设备页是空的——这台机器本身不带检测
+      器，属正常状态。把已有检测器的 mqtt_host 改成这台机器的地址（1883 端口），它就
+      会出现在这里。
