@@ -161,12 +161,16 @@ intro:
       description_i18n:
         zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 只占单核 1.4%，板卡在跑检测的同时完全带得动。
       architecture_image: gallery/architecture.svg
-      # Hardware-verified: the RK3588 detector in this preset was run on a
-      # radxa RK3588 board against a live 1280x720 H.264 stream with the int8
-      # model — hardware decode confirmed from the kernel side, and the
-      # end-to-end rule assertions against the 130 s truth video passed. That
-      # run was launched from the upstream project rather than through this
-      # package, so the packaging itself is not what the badge covers.
+      # Hardware-verified, containerised deployment included: this preset's own
+      # compose file, images and staging steps were deployed on a radxa RK3588
+      # board (radxa,rock-5t, kernel 6.1.84) against a live 1280x720 H.264
+      # stream with the int8 model. All three services came up healthy with no
+      # restarts; the detector reached init_runtime on librknnrt 2.3.2 and
+      # decoded through mppvideodec, with the container process holding
+      # /dev/mpp_service, /dev/rga and CMA dma-heap buffers and running
+      # mpp_dec_parser/mpp_dec_hal threads. The hub on the same board listed the
+      # detector online with decode "hw", stored zone alerts with snapshots, and
+      # proxied a 640x360 JPEG preview.
       verified:
         - hardware
       device_groups:
