@@ -43,7 +43,7 @@ intro:
     difficulty: intermediate
     estimated_time: 15min
   links:
-    github: https://github.com/seeed-solution/missionpack-knn
+    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
   presets:
     - id: default
       name: Standard Deployment

@@ -93,8 +93,6 @@ intro:
   stats:
     difficulty: intermediate
     estimated_time: 30min
-  links:
-    wiki: https://github.com/Seeed-Projects/reachy-claw
 
   summary_i18n:
     zh: "让桌面机器人成为语音伙伴——听、想、说、表达情绪，响应不到 1 秒。支持 Reachy Mini，三种部署方案：Jetson 一体化、R2000 + Hailo-8 NPU、或 CM4 无线版。"

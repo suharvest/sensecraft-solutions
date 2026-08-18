@@ -35,7 +35,7 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 
 #### Next Steps
 
-- [OpenClaw Documentation](https://github.com/nicepkg/openclaw)
+- [OpenClaw Documentation](https://github.com/openclaw/openclaw)
 - Add more AI providers in Settings > Models
 - Connect additional messaging platforms
 
@@ -137,7 +137,7 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 
 #### Next Steps
 
-- [OpenClaw Documentation](https://github.com/nicepkg/openclaw)
+- [OpenClaw Documentation](https://github.com/openclaw/openclaw)
 - Add more AI providers in Settings > Models
 - Connect additional messaging platforms
 

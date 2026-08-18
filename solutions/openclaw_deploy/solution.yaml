@@ -72,7 +72,7 @@ intro:
     estimated_time: 15min
 
   links:
-    github: https://github.com/nicepkg/openclaw
+    github: https://github.com/openclaw/openclaw
 
   summary_i18n:
     zh: 在 reComputer 上一键部署 OpenClaw（龙虾机器人）AI 消息网关，可选搭配本地模型，对话数据不出设备。
