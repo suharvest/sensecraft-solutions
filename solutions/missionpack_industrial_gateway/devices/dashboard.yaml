@@ -1,0 +1,22 @@
+version: "1.0"
+id: dashboard
+name: Open MissionPack Gateway Console
+name_i18n:
+  zh: 打开 MissionPack 网关管理界面
+type: web_dashboard
+inherit_host_from: gateway
+user_inputs:
+  - id: http_port
+    name: Web Console Port
+    name_i18n:
+      zh: 管理界面端口
+    default: "8280"
+    default_template: "{{http_port}}"
+web_dashboard:
+  url: "http://{{deploy.host}}:{{http_port}}"
+  title: MissionPack Industrial Protocol Gateway
+  title_i18n:
+    zh: MissionPack 工业协议网关
+  description: Add protocol sources, confirm discovered points, and publish unified MQTT data.
+  description_i18n:
+    zh: 添加协议数据源、确认发现点位，并通过 MQTT 提供统一数据。

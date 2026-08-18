@@ -1,0 +1,134 @@
+version: "1.0"
+id: missionpack_industrial_gateway
+name: MissionPack Industrial Protocol Gateway
+name_i18n:
+  zh: MissionPack 工业协议网关
+
+intro:
+  summary: Connect OPC UA, Modbus, BACnet/IP, and MQTT devices to one point table and a controlled MQTT data service.
+  summary_i18n:
+    zh: 将 OPC UA、Modbus、BACnet/IP 与 MQTT 设备汇入统一点位表，并通过受控 MQTT 数据服务对外提供数据。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.png
+  category: industrial_iot
+  solution_type: solution
+  tags:
+    - industrial-iot
+    - opc-ua
+    - modbus
+    - bacnet
+    - mqtt
+    - protocol-gateway
+    - edge-control
+    - recomputer-r
+    - reterminal-dm
+
+  gallery:
+    - type: image
+      src: gallery/access-runtime.png
+      caption: Configure industrial sources and inspect their live runtime state
+      caption_i18n:
+        zh: 配置工业数据源并查看实时运行状态
+    - type: image
+      src: gallery/live-points.png
+      caption: Filter, monitor, and control points from one table
+      caption_i18n:
+        zh: 在一个总表中筛选、监控和控制全部点位
+    - type: image
+      src: gallery/data-service.png
+      caption: Configure the embedded MQTT service and inspect its topic contract
+      caption_i18n:
+        zh: 配置内置 MQTT 服务并查看统一主题契约
+    - type: video
+      src: gallery/demo.mp4
+      thumbnail: gallery/cover.png
+      caption: End-to-end source onboarding and data service workflow
+      caption_i18n:
+        zh: 从协议接入到统一数据服务的完整操作流程
+
+  input_requirements:
+    - type: opc_ua
+      description: An OPC UA endpoint reachable from the edge device
+      description_i18n:
+        zh: 边缘设备能够访问的 OPC UA 服务地址
+    - type: modbus_tcp
+      description: A Modbus TCP controller reachable over the local network
+      description_i18n:
+        zh: 局域网内可访问的 Modbus TCP 控制器
+    - type: modbus_rtu
+      description: An optional USB-to-RS-485 adapter for Modbus RTU; production writes require hardware validation
+      description_i18n:
+        zh: Modbus RTU 可选用 USB 转 RS-485 适配器；生产写控制需先通过真实硬件验证
+    - type: bacnet_ip
+      description: A BACnet/IP network reachable from the selected network interface
+      description_i18n:
+        zh: 所选网卡能够访问的 BACnet/IP 网络
+    - type: mqtt
+      description: An MQTT broker and explicit topic-to-point mappings when MQTT is used as a data source
+      description_i18n:
+        zh: MQTT 作为数据源时，需要可访问的 Broker 与明确的主题到点位映射
+
+  output_interfaces:
+    - type: web_dashboard
+      description: Browser-based source, point, command receipt, and plugin management
+      description_i18n:
+        zh: 通过浏览器管理数据源、点位、控制回执和插件
+      port: 8280
+      endpoint: /
+    - type: mqtt
+      description: Versioned point telemetry, presence, command, and receipt topics from the embedded broker
+      description_i18n:
+        zh: 内置 Broker 提供带版本的点位遥测、在线状态、命令与回执主题
+      port: 1883
+      topic: missionpack/v1/{gateway}/points/{point_id}
+      schema_type: MissionPack v1 JSON envelope
+
+  device_catalog:
+    recomputer_r10:
+      description: Runs the protocol adapters, durable point registry, MQTT service, and web console
+      description_i18n:
+        zh: 运行协议适配器、持久点位注册表、MQTT 数据服务和管理界面
+    recomputer_r11:
+      description: Runs the protocol adapters, durable point registry, MQTT service, and web console
+      description_i18n:
+        zh: 运行协议适配器、持久点位注册表、MQTT 数据服务和管理界面
+    reterminal_dm:
+      description: Runs the gateway and provides a local touch display for setup and operations
+      description_i18n:
+        zh: 运行工业协议网关，并通过本机触控屏完成配置与日常操作
+
+  presets:
+    - id: standard
+      name: Standard Protocol Gateway
+      name_i18n:
+        zh: 标准工业协议网关
+      description: Deploy the gateway locally or to an ARM64 edge computer, then add data sources from the web console.
+      description_i18n:
+        zh: 在本机或 ARM64 边缘设备上部署网关，再从管理界面添加数据源。
+      device_groups:
+        - id: gateway_host
+          name: Gateway Host
+          name_i18n:
+            zh: 网关主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: recomputer_r11
+            - device_ref: reterminal_dm
+          default: recomputer_r11
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 15min
+
+  links:
+    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
