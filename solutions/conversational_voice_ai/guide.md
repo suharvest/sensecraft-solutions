@@ -20,7 +20,7 @@ Run speech on RK3576 and connect to a cloud or LAN model.
 ### Wiring
 
 1. Connect the AEC microphone and speaker
-2. Enter SSH details, base URL, API key, and model ID
+2. Fill in the SSH details and the model endpoint settings
 3. The Qwen defaults use the current low-latency `qwen3.5-flash` model
 
 The reSpeaker may be connected before deployment or hot-plugged after the
@@ -48,7 +48,7 @@ requires a Jetson Orin with JetPack 6.2, Docker, and NVIDIA Container Toolkit.
 ### Wiring
 
 1. Connect the AEC microphone and speaker to this machine
-2. Enter the cloud endpoint, API key, model ID, and assistant personality
+2. Fill in the model endpoint settings and the assistant personality
 3. Deploy and wait for speech model warmup
 
 ### Deployment Complete
@@ -69,7 +69,7 @@ Run speech on RK3588 and connect to a cloud or LAN model.
 ### Wiring
 
 1. Connect the AEC microphone and speaker
-2. Enter SSH details, base URL, API key, and model ID
+2. Fill in the SSH details and the model endpoint settings
 3. Deploy and wait for the speech models to become ready
 
 ### Deployment Complete
@@ -91,7 +91,7 @@ Run speech on Orin Nano or Orin NX and connect to a cloud or LAN model.
 
 1. Connect the AEC microphone and speaker
 2. Choose the Orin Nano or Orin NX voice profile
-3. Enter SSH details, base URL, API key, and model ID
+3. Fill in the SSH details and the model endpoint settings
 
 ### Deployment Complete
 
@@ -206,13 +206,11 @@ Disconnect external networking and confirm that dialogue continues locally.
 
 Three offline turns plus a successful interruption during playback pass the fully local test.
 
+The application is now continuously monitoring the microphone. Final acceptance must use the real room and real speaker volume: run three turns, interrupt 0.5–1 second after each answer begins, and confirm the old reply stops immediately without losing the interrupting utterance.
+
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
 | First offline start fails | Complete one online startup so every image and model artifact is cached |
 | Replies are too long | Keep the voice prompt to one or two spoken sentences so synthesis stays responsive |
-
-# Deployment Complete
-
-The application is now continuously monitoring the microphone. Final acceptance must use the real room and real speaker volume: run three turns, interrupt 0.5–1 second after each answer begins, and confirm the old reply stops immediately without losing the interrupting utterance.
