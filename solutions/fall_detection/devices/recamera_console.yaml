@@ -1,0 +1,122 @@
+version: "1.0"
+id: recamera_console
+name: reCamera Console
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# 控制台（supervisor）升级。
+#
+# 装的不是「又一个相机应用」，而是设备自带控制面板的升级版——同一个包名
+# supervisor、同一个二进制 /usr/local/bin/supervisor、同一个 init 脚本
+# S93sscma-supervisor。装完设备的运行范式会变：控制台成为唯一的 S 前缀
+# 编排者，相机应用降级为 K92 由画廊 appMgr 管理，跌倒检测才能在画廊里
+# 被开关。
+#
+# 已经是 0.5.5 的设备不会被重装：下面的 preconditions 探针退出码为 0 就
+# 表示「这一步没事可做」，引擎把该步骤标成 skipped 直接跳过。探针在任何
+# 改动设备状态的操作之前求值，所以「无需重复」这个判断是可信的。
+#
+# 注意语义与 device_detection 相反：device_detection 退出非 0 会中止部署，
+# 而 precondition 退出非 0 只是「尚未满足，正常安装」，不算失败。
+preconditions:
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.5'"
+    description: Console already at 0.5.5
+    description_i18n:
+      zh: 控制台已是 0.5.5
+    satisfied_message: Console is already at 0.5.5 — nothing to install.
+    satisfied_message_i18n:
+      zh: 控制台已是 0.5.5，无需重复安装。
+
+binary:
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.5_riscv64.deb
+    name: supervisor
+    includes_init_script: true
+    checksum:
+      sha256: a2c877f17583b65b5349efb7616a9d3a8fea70b3495dc6bfd2e394df534ccfd3
+
+  # service_name 是 init 脚本名 S93sscma-supervisor 去掉 S93 的部分，
+  # 与 deb 包名 supervisor 不同，必须显式写出，否则会回落到包名拼出
+  # 不存在的 /etc/init.d/S93supervisor。
+  service_name: sscma-supervisor
+  service_priority: 93
+  auto_start: true
+
+actions:
+  before:
+    # 纯信息性：把当前版本打到部署日志里，用户据此判断是否需要这一步。
+    # 引擎没有据此跳过的能力，因此不设 fail 条件。
+    - name: Report installed console version
+      fail_fast: false
+      run: |
+        CURRENT=$(opkg list-installed 2>/dev/null | awk '$1=="supervisor"{print $3}')
+        if [ -n "$CURRENT" ]; then
+          echo "Installed console version: $CURRENT (this step installs 0.5.5)"
+        else
+          echo "Console not installed yet (this step installs 0.5.5)"
+        fi
+        true
+      name_i18n:
+        zh: 报告当前控制台版本
+
+  after:
+    # 控制台把 /etc/recamera.conf 当作目录用（在线固件升级的下载暂存区）。
+    # 早期方案曾把同一路径写成共享 MQTT 配置文件，两种约定撞车会让
+    # 「检查更新」失效。
+    #
+    # 放在 after 而不是 before：引擎在 opkg install 前会无条件把该路径的
+    # 目录备份走再 rm -rf，before 建的目录会被清掉。
+    - name: Restore console config directory
+      run: |
+        set -e
+        if [ -f /etc/recamera.conf ]; then
+          mv -f /etc/recamera.conf /etc/recamera.conf.solution.bak
+        fi
+        [ -d /etc/recamera.conf ] || mkdir -p /etc/recamera.conf
+        true
+      sudo: true
+      name_i18n:
+        zh: 恢复控制台配置目录
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 控制台

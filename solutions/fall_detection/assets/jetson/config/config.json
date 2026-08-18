@@ -1,0 +1,57 @@
+{
+  "engine_path": "/models/yolo11s-pose.sm87.trt10.3.fp16.engine",
+  "trt_library": "/app/libjetson_fall_trt.so",
+  "temporal_profile": "auto",
+  "input": {"width": 640, "height": 640},
+  "score_threshold": 0.35,
+  "keypoint_threshold": 0.25,
+  "nms_threshold": 0.45,
+  "max_fps": 15,
+  "max_detections": 128,
+  "rtsp_latency_ms": 100,
+  "publish_empty_frames": true,
+  "tracker": {
+    "iou_threshold": 0.20,
+    "center_distance_threshold": 0.25,
+    "max_missed_frames": 8
+  },
+  "fall": {
+    "temporal_confirmation_required": true,
+    "hip_drop_speed_threshold": 0.25,
+    "hip_drop_distance_threshold": 0.02,
+    "motion_window_sec": 0.75,
+    "torso_angle_threshold_deg": 55.0,
+    "bbox_aspect_ratio_threshold": 1.25,
+    "min_suspected_features": 2,
+    "confirmation_sec": 0.80,
+    "suspected_timeout_sec": 1.50,
+    "occlusion_grace_sec": 0.75,
+    "recovery_torso_angle_deg": 35.0,
+    "recovery_aspect_ratio": 1.10,
+    "recovery_window_sec": 2.00,
+    "cooldown_sec": 3.00
+  },
+  "mqtt": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 1883,
+    "username": "",
+    "password": "",
+    "topic": "recomputer/fall-detection/results/{stream_id}",
+    "keepalive_sec": 30,
+    "qos": 0,
+    "retain": false,
+    "tls": false,
+    "ca_file": "",
+    "cert_file": "",
+    "key_file": ""
+  },
+  "streams": [
+    {
+      "id": "cam-01",
+      "rtsp_url": "rtsp://192.168.1.64:554/Streaming/Channels/101",
+      "enabled": true,
+      "reconnect_delay_ms": 1000
+    }
+  ]
+}

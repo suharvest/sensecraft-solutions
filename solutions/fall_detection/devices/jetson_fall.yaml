@@ -1,0 +1,290 @@
+version: "1.0"
+id: jetson_fall
+name: NVIDIA Jetson
+type: docker_deploy
+
+# device_class=jetson pulls in the shared Jetson pre-deploy fixes (the JetPack
+# 6.x iptables raw-table workaround) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from the bundled device profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  options:
+    project_name: fall_detection
+    remove_orphans: true
+  services:
+    - name: fall-detection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # The first deploy builds a TensorRT engine on the device (~8 min for
+  # YOLO11s, longer for YOLO11m), so the SSH command budget has to cover it.
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: Pose model, TensorRT engine and container image live on the device
+  - type: nvidia_runtime
+    description: Check the NVIDIA container runtime is available
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 首次部署要在设备上构建 TensorRT 引擎（Orin 实测 461 s），整轮实测约 9 分钟；
+# 这里给到 6 倍余量，用于兜住卡死而不是限制正常构建。
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson
+
+remote_overrides:
+  remote_path: /home/{{username}}/fall-detection
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate Jetson runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # These run AFTER the deployer uploads assets/jetson/ to
+    # remote_path/<device-yaml-id>/ and BEFORE `docker compose up`. They must
+    # not move into `before`: config/config.json does not exist on the device
+    # until the upload step finishes, and anything written earlier would be
+    # overwritten by it.
+    after_upload:
+      - name: Build the TensorRT pose engine
+        # A TensorRT engine is tied to the exact GPU architecture and TensorRT
+        # version, so it cannot be shipped prebuilt — it is built here, once.
+        # Measured on Orin Nano / JetPack 6.2 / TRT 10.3: 461 s for YOLO11s.
+        # The timing cache written alongside it makes any rebuild much cheaper.
+        timeout: 2400
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection/jetson_fall"
+          MODEL="{{pose_model}}"
+          MODELS_DIR="$WORKDIR/models"
+          ENGINE="$MODELS_DIR/${MODEL}.sm87.trt10.3.fp16.engine"
+          ONNX="$MODELS_DIR/${MODEL}.onnx"
+
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, skipping build: $ENGINE"
+            exit 0
+          fi
+
+          case "$MODEL" in
+            yolo11s-pose) SHA=8918cfc11983ee4d38019308fe87be33116da21b715e1c1a0cb2f97e36ffb8d2 ;;
+            yolo11m-pose) SHA=7fe8762007efd17976bdf140b99eac9a8069accd7020a5873ad20dd4caaf633c ;;
+            *) echo "Unknown pose model: $MODEL" >&2; exit 1 ;;
+          esac
+
+          if [ ! -s "$ONNX" ]; then
+            echo "Downloading $MODEL ONNX ..."
+            curl -fSL --retry 3 -o "$ONNX.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/${MODEL}.onnx"
+            echo "$SHA  $ONNX.part" | sha256sum -c -
+            mv -f "$ONNX.part" "$ONNX"
+          fi
+
+          echo "Building TensorRT engine — this takes several minutes ..."
+          # --version exits 1 on TensorRT 10.3, so it must not gate the build.
+          /usr/src/tensorrt/bin/trtexec --version || true
+          /usr/src/tensorrt/bin/trtexec \
+            --onnx="$ONNX" \
+            --saveEngine="$ENGINE.part" \
+            --fp16 \
+            --skipInference \
+            --builderOptimizationLevel=3 \
+            --timingCacheFile="$ENGINE.timing.cache" \
+            --minShapes=images:1x3x640x640 \
+            --optShapes=images:1x3x640x640 \
+            --maxShapes=images:1x3x640x640
+          mv -f "$ENGINE.part" "$ENGINE"
+          ls -l "$ENGINE"
+        name_i18n:
+          zh: 构建 TensorRT 姿态引擎
+
+      - name: Write the camera and MQTT configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection/jetson_fall"
+          CONFIG="$WORKDIR/config/config.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          model = "{{pose_model}}"
+          config["engine_path"] = f"/models/{model}.sm87.trt10.3.fp16.engine"
+          # The topic prefix is the device name the user chose, so the same
+          # broker can carry several installations without collisions.
+          config.setdefault("mqtt", {})["topic"] = \
+              "{{device_name}}/fall-detection/results/{stream_id}"
+          config["streams"] = [{
+              "id": "{{stream_id}}",
+              "rtsp_url": "{{rtsp_url}}",
+              "enabled": True,
+              "reconnect_delay_ms": 1000,
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"engine_path = {config['engine_path']}")
+          print(f"stream      = {config['streams'][0]['id']}")
+          PY
+        name_i18n:
+          zh: 写入摄像头与 MQTT 配置
+
+    after:
+      - name: Wait for the detector to connect to the camera
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the first RTSP connection ..."
+          for i in $(seq 1 30); do
+            if docker logs fall_detection-fall-detection-1 2>&1 | grep -q "RTSP connected"; then
+              echo "Camera connected."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "No RTSP connection yet — check the camera URL and the container logs." >&2
+        name_i18n:
+          zh: 等待检测器连接摄像头
+
+  user_inputs:
+    - id: host
+      name: Jetson IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: Jetson IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "cam-01"
+      required: true
+      description: Appended to the MQTT topic so several cameras stay separable
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题后面，用于区分多路摄像头
+    - id: pose_model
+      name: Pose Model
+      type: select
+      default: yolo11s-pose
+      required: true
+      description: YOLO11s suits Orin Nano; YOLO11m is more accurate and suits Orin NX
+      options:
+        - value: yolo11s-pose
+          label: YOLO11s — faster, more streams
+          label_i18n:
+            zh: YOLO11s——更快，可跑更多路
+        - value: yolo11m-pose
+          label: YOLO11m — more accurate
+          label_i18n:
+            zh: YOLO11m——更准
+      name_i18n:
+        zh: 姿态模型
+      description_i18n:
+        zh: Orin Nano 建议 YOLO11s；Orin NX 建议更准的 YOLO11m

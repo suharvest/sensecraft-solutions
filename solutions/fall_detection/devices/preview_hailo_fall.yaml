@@ -1,0 +1,88 @@
+version: "1.0"
+id: preview_hailo_fall
+name: Fall Detection Preview
+type: video_stream
+
+# The detector does not re-serve the video — it consumes the IP camera's RTSP and
+# publishes results only. So the preview pulls video straight from the same
+# camera and overlays the detector's MQTT results on top. That means this computer
+# needs to reach the camera as well as the detector.
+video:
+  type: rtsp_proxy
+
+mqtt:
+  broker_template: "{{mqtt_broker}}"
+  port_template: "{{mqtt_port}}"
+  topic_template: "{{mqtt_topic}}"
+  username_template: "{{mqtt_username}}"
+  password_template: "{{mqtt_password}}"
+
+overlay:
+  renderer: custom
+  script_file: preview/draw_fall_detection_multiperson.js
+  dependencies: []
+
+display:
+  aspect_ratio: "16:9"
+  auto_start: false
+  show_stats: true
+
+user_inputs:
+  - id: rtsp_url
+    name: Camera RTSP URL
+    type: text
+    required: true
+    default_template: "{{rtsp_url}}"
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: The same camera address you gave the deploy step
+    name_i18n:
+      zh: 摄像头 RTSP 地址
+    description_i18n:
+      zh: 与部署步骤中填写的摄像头地址相同
+  - id: mqtt_broker
+    name: Device IP
+    type: text
+    required: true
+    default_template: "{{host}}"
+    placeholder: "192.168.1.100"
+    description: MQTT broker address — the device you deployed to, auto-filled from the deploy step
+    name_i18n:
+      zh: 设备 IP
+    description_i18n:
+      zh: MQTT 服务器地址——即你部署的那台设备，自动带入部署步骤填的地址
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    required: false
+    default: "1883"
+    placeholder: "1883"
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_topic
+    name: MQTT Topic
+    type: text
+    required: false
+    default: "recomputer/fall-detection/results/cam-01"
+    placeholder: "recomputer/fall-detection/results/cam-01"
+    description: Must match the deploy step — the first segment is the device name you set there, the suffix is the stream id
+    name_i18n:
+      zh: MQTT 主题
+    description_i18n:
+      zh: 要和部署步骤一致——第一段是你在那里设的设备名称，后缀是流编号
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    placeholder: "(optional)"
+    name_i18n:
+      zh: MQTT 用户名
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    placeholder: "(optional)"
+    name_i18n:
+      zh: MQTT 密码
+
+name_i18n:
+  zh: 跌倒检测预览

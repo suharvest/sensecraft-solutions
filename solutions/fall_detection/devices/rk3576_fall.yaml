@@ -1,0 +1,308 @@
+version: "1.0"
+id: rk3576_fall
+name: reComputer RK3576
+type: docker_deploy
+
+docker:
+  compose_file: assets/rk/docker-compose.yml
+  compose_dir: assets/rk
+  options:
+    project_name: fall_detection_rk3576
+    remove_orphans: true
+  services:
+    - name: fall-detection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: radxa
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 6
+    description: Runtime image and pose model live on the device
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 整轮实测约 2–3 分钟（拉取已缓存镜像 + 下载模型）。
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reComputer RK3576
+
+remote_overrides:
+  remote_path: /home/{{username}}/fall-detection-rk3576
+  compose_dir: assets/rk
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the RKNN runtime
+        run: |
+          set -e
+          if [ ! -e /dev/dri ]; then
+            echo "No /dev/dri — this does not look like a Rockchip board with an NPU" >&2
+            exit 1
+          fi
+          if [ ! -f /usr/lib/librknnrt.so ]; then
+            echo "librknnrt.so not found. Install the board's rknpu2 runtime package first." >&2
+            exit 1
+          fi
+          # The user-space library must match the kernel NPU driver, which is why
+          # the compose file mounts the host copy instead of baking one in.
+          strings /usr/lib/librknnrt.so 2>/dev/null | grep -m1 "librknnrt version" || true
+          # Hard failure, not a warning. Rockchip ships rknn_toolkit_lite2 as a
+          # wheel, so it often lives in ~/.local or a venv rather than
+          # /usr/lib/python3/dist-packages. If the container cannot import it the
+          # app crash-loops, and a warning here is not enough to notice that.
+          SITE=$(python3 - <<'PY'
+          import importlib.util, os, sys
+          spec = importlib.util.find_spec("rknnlite")
+          if spec is None or not spec.origin:
+              sys.exit(1)
+          print(os.path.dirname(os.path.dirname(spec.origin)))
+          PY
+          ) || {
+            echo "rknnlite (rknn_toolkit_lite2) is not importable by python3 on this board." >&2
+            echo "Install it first, e.g.: pip3 install rknn_toolkit_lite2" >&2
+            exit 1
+          }
+          echo "rknnlite site-packages: $SITE"
+          echo "RKNN runtime OK"
+        name_i18n:
+          zh: 校验 RKNN 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # Runs after the deployer uploads assets/rk/ to remote_path/<device-id>/ and
+    # before `docker compose up` — config/config.json does not exist on the
+    # device until the upload finishes.
+    after_upload:
+
+      - name: Stage the board's RKNN Lite packages
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
+          DEST="$WORKDIR/rknnsite"
+          SITE=$(python3 - <<'PY'
+          import importlib.util, os
+          spec = importlib.util.find_spec("rknnlite")
+          print(os.path.dirname(os.path.dirname(spec.origin)))
+          PY
+          )
+          echo "rknnlite found in: $SITE"
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          # Copy ONLY the RKNN packages. Exposing the whole site-packages on
+          # PYTHONPATH takes precedence over the image's own packages, and the
+          # board's Debian numpy then shadows the image's and fails on a libblas
+          # the image does not ship. rknnlite's own deps that are absent from the
+          # image are copied alongside it; anything the image already provides is
+          # deliberately left behind.
+          cp -a "$SITE/rknnlite" "$DEST/"
+          for pkg in ruamel ruamel.yaml psutil; do
+            [ -e "$SITE/$pkg" ] && cp -a "$SITE/$pkg" "$DEST/" || true
+          done
+          ls -1 "$DEST"
+        name_i18n:
+          zh: 准备板卡的 RKNN Lite 依赖
+      - name: Stage the board's GStreamer MPP plugin
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
+          DEST="$WORKDIR/gstmpp"
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          # Copied rather than bind-mounted per file: a board without these would
+          # otherwise get empty directories created by Docker at the mount points.
+          # If nothing is found the app falls back to CPU decode and still runs.
+          # h264parse lives in gstreamer1.0-plugins-bad, which the runtime image does
+          # not carry; without it the MPP branch cannot link and drops to CPU decode.
+          for f in $(find /usr/lib -name 'libgstrockchipmpp.so' 2>/dev/null | head -1) \
+                   $(find /usr/lib -name 'libgstvideoparsersbad.so' 2>/dev/null | head -1) \
+                   $(find /usr/lib /lib -name 'libgstcodecparsers-1.0.so.*' 2>/dev/null) \
+                   $(find /usr/lib /lib -name 'librockchip_mpp.so.*' 2>/dev/null) \
+                   $(find /usr/lib /lib -name 'librga.so.*' 2>/dev/null); do
+            [ -e "$f" ] && cp -aL "$f" "$DEST/" || true
+          done
+          ls -1 "$DEST" || true
+        name_i18n:
+          zh: 准备板卡的 GStreamer MPP 插件
+      - name: Download the pose model for this board
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
+          MODELS_DIR="$WORKDIR/models"
+          BASE="https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models"
+          mkdir -p "$MODELS_DIR"
+
+          # An RKNN artifact built for one target is not portable to the other.
+          # The board is fixed by the deployment target that selected this file,
+          # so the model is pinned here rather than chosen at run time.
+          MODEL=yolo11n_pose_rawhead_fp16.rk3576.rknn
+          SHA=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
+          TEMPORAL=temporal-rk3576.npz
+          TEMPORAL_SHA=dadcb916135e7dec284fe51a49432573e5451ba9c921325df119fbd2e33ebd82
+
+          fetch() {
+            name="$1"; want="$2"
+            if [ -s "$MODELS_DIR/$name" ] && \
+               echo "$want  $MODELS_DIR/$name" | sha256sum -c - >/dev/null 2>&1; then
+              echo "$name already present"
+              return 0
+            fi
+            curl -fSL --retry 3 -o "$MODELS_DIR/$name.part" "$BASE/$name"
+            echo "$want  $MODELS_DIR/$name.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$name.part" "$MODELS_DIR/$name"
+          }
+
+          fetch "$MODEL" "$SHA"
+          fetch "$TEMPORAL" "$TEMPORAL_SHA"
+          ls -l "$MODELS_DIR"
+        name_i18n:
+          zh: 下载该板卡对应的姿态模型
+
+      - name: Write the camera and MQTT configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
+          CONFIG="$WORKDIR/config/config.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          config["model_path"] = "/models/yolo11n_pose_rawhead_fp16.rk3576.rknn"
+          # The topic prefix is the device name the user chose, so the same
+          # broker can carry several installations without collisions.
+          config.setdefault("mqtt", {})["topic"] = \
+              "{{device_name}}/fall-detection/results/{stream_id}"
+          # Board-native temporal profile, trained and frozen on this SoC's own
+          # pose traces. Do not substitute another board's file.
+          config["temporal_model"] = "/models/temporal-rk3576.npz"
+          config["streams"] = [{
+              "id": "{{stream_id}}",
+              "rtsp_url": "{{rtsp_url}}",
+              "enabled": True,
+              "transport": "tcp",
+              "reconnect_delay_ms": 1000,
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"model_path = {config['model_path']}")
+          print(f"stream     = {config['streams'][0]['id']}")
+          PY
+        name_i18n:
+          zh: 写入摄像头与 MQTT 配置
+
+    after:
+      - name: Wait for the detector to publish
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the first results ..."
+          for i in $(seq 1 30); do
+            if docker logs fall_detection_rk3576-fall-detection-1 2>&1 | grep -qiE "rtsp|stream|publish"; then
+              docker logs --tail 20 fall_detection_rk3576-fall-detection-1 2>&1 || true
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "No output yet — check the camera URL and the container logs." >&2
+        name_i18n:
+          zh: 等待检测器输出
+
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: radxa
+      required: true
+      description: "Depends on the board image — commonly radxa, cat, linaro or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "取决于板卡系统镜像，常见的是 radxa、cat、linaro 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "cam-01"
+      required: true
+      description: Appended to the MQTT topic so several cameras stay separable
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题后面，用于区分多路摄像头

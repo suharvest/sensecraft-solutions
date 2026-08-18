@@ -1,0 +1,281 @@
+version: "1.0"
+id: fall_detection
+name: Fall Detection
+name_i18n:
+  zh: 跌倒检测
+
+intro:
+  summary: Detect a fall on-device and publish the event over MQTT — as an all-in-one camera, or on a Jetson fed by the IP cameras you already have.
+  summary_i18n:
+    zh: 在设备本地识别跌倒并通过 MQTT 推送事件——可以用一体化摄像头，也可以用 Jetson 接你现有的 IP 摄像头。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.png
+  gallery:
+    - type: image
+      src: gallery/cover.png
+      caption: Confirmed fall on reComputer J — skeleton, track state and evidence count from the live MQTT message
+      caption_i18n:
+        zh: reComputer J 上确认的一次跌倒——骨架、跟踪状态和证据计数来自实时 MQTT 消息
+    - type: image
+      src: gallery/live-fall-demo.gif
+      caption: State transition from normal to fallen, shown in the reCamera Pro App Center preview
+      caption_i18n:
+        zh: 从正常到跌倒的状态跃迁，画面为 reCamera Pro App Center 预览页
+    - type: image
+      src: gallery/camera-placement.svg
+      caption: Camera placement — a side or corner view at 2-3 m works; straight-down and long-shot or occluded views do not
+      caption_i18n:
+        zh: 机位选择——2-3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用
+  category: sensing
+  solution_type: solution
+  tags:
+    - fall-detection
+    - pose
+    - elderly-care
+    - mqtt
+    - home-assistant
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/fall-detection/results
+      description: Per-frame fall results JSON — aggregate state plus one entry per tracked person. The Jetson preset appends the stream id to the topic.
+      schema_type: json
+      payload_example: '{"state":"fallen","fall_detected":true,"fall_event":true,"event_id":7,"person_count":1,"fallen_count":1,"persons":[{"track_id":3,"state":"fallen","bbox":[0.51,0.72,0.34,0.21]}]}'
+      description_i18n:
+        zh: 每帧一条的跌倒结果 JSON——整体状态加每个被跟踪者一条记录。Jetson 套餐会把流编号拼在主题后面。
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/fall-detection/status
+      description: Availability — online / offline, retained, published as the MQTT last will
+      schema_type: json
+      description_i18n:
+        zh: 在线状态——online / offline，retained，通过 MQTT 遗嘱消息发布
+    - type: mqtt
+      port: 1883
+      topic: homeassistant/
+      description: Home Assistant discovery configs — fall sensor, fall state, event ID and person presence appear automatically
+      schema_type: json
+      description_i18n:
+        zh: Home Assistant 自动发现配置——跌倒传感器、状态、事件编号和有人存在会自动出现
+    - type: rtsp
+      port: 8554
+      endpoint: /live0
+      description: Live video from the reCamera preset, used by the preview and by any NVR
+      schema_type: binary
+      description_i18n:
+        zh: reCamera 套餐的实时视频，供预览和 NVR 使用
+
+  input_requirements:
+    - type: rtsp
+      description: A fixed indoor view where the whole person, especially shoulders and hips, stays visible along the expected fall path. The reComputer preset takes this as an RTSP stream from your own IP camera.
+      required: true
+      description_i18n:
+        zh: 一个固定的室内机位，在可能发生跌倒的路径上整个人体（尤其是肩部和髋部）保持可见。reComputer 套餐通过 RTSP 接你自己的 IP 摄像头。
+
+  device_catalog:
+    recamera_pro:
+      description: Newer all-in-one camera — pose, multi-person tracking and fall logic on device
+      description_i18n:
+        zh: 更新一代的一体机——姿态、多人跟踪与跌倒判定全部在设备本地完成
+    recamera_2002:
+      description: All-in-one AI camera — runs pose estimation, the fall state machine, RTSP and MQTT locally
+      description_i18n:
+        zh: 一体化 AI 摄像头——本地运行姿态估计、跌倒状态机、RTSP 和 MQTT
+    recomputer_j30:
+      description: Runs the fall detector on your RTSP streams (Orin Nano 8GB)
+      description_i18n:
+        zh: 在你的 RTSP 视频上运行跌倒检测（Orin Nano 8GB）
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Runs the fall detector with the larger YOLO11m pose model (Orin NX 16GB)
+      description_i18n:
+        zh: 用更大的 YOLO11m 姿态模型运行跌倒检测（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_rk3576:
+      description: Runs the fall detector on the RK3576 NPU
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行跌倒检测
+    recomputer_rk3588:
+      description: Runs the fall detector on the RK3588 NPU, with more headroom for extra streams
+      description_i18n:
+        zh: 在 RK3588 NPU 上运行跌倒检测，可支撑更多路视频
+    recomputer_r20_industrial:
+      description: Runs the fall detector on a Hailo-8 accelerator, native C++ hot path
+      description_i18n:
+        zh: 在 Hailo-8 加速器上运行跌倒检测，热路径为原生 C++
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP or ONVIF camera you already own, supplying the video the detector watches
+      description_i18n:
+        zh: 你已有的任意 RTSP 或 ONVIF 摄像头，为检测器提供视频
+
+  presets:
+    - id: recamera
+      name: reCamera 2002
+      name_i18n:
+        zh: reCamera 2002
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One device does everything — camera, fall logic and MQTT alerts, for a single room.
+      description_i18n:
+        zh: 一台设备把事情做完——摄像头、跌倒判定和 MQTT 告警，适合单个房间。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One device, newer hardware. The detector ships in the device's App Center; this preset configures it and makes it active.
+      description_i18n:
+        zh: 一台设备搞定，硬件更新。检测器随设备应用中心分发，本套餐负责配置并将其设为运行中的应用。
+      device_groups:
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+    - id: jetson
+      name: IP Camera + reComputer J
+      name_i18n:
+        zh: IP 摄像头 + reComputer J
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Keep your existing cameras — a Jetson Orin runs a larger pose model and covers the most streams.
+      description_i18n:
+        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，可支撑的路数最多。
+      # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
+      # source: image pulled, engine built on-device, sha256 verified, and MQTT
+      # published with a person tracked through fallen -> recovering.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: rk
+      name: IP Camera + reComputer RK
+      name_i18n:
+        zh: IP 摄像头 + reComputer RK
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set.
+      description_i18n:
+        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。
+      # Deployed onto both boards against a live RTSP source: RK3576 on
+      # cat-remote and RK3588 on radxa, each pulling the image, staging the
+      # board's RKNN Lite and MPP plugins, downloading and checksumming its own
+      # model, and publishing MQTT with people tracked. Hardware decode
+      # confirmed active on RK3588 rather than silently falling back.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3588
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hailo
+      name: IP Camera + reComputer R (Hailo)
+      name_i18n:
+        zh: IP 摄像头 + reComputer R（Hailo）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set.
+      description_i18n:
+        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+
+  links:
+    github: https://github.com/suharvest/edgefallkit
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

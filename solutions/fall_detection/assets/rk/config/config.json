@@ -1,0 +1,14 @@
+{
+  "model_path": "/models/yolo11n_pose_rawhead_fp16.rk3588.rknn",
+  "temporal_model": "/models/temporal-rk3588.npz",
+  "input_size": 640,
+  "score_threshold": 0.35,
+  "keypoint_threshold": 0.25,
+  "nms_threshold": 0.45,
+  "video": {"backend": "gstreamer_mpp", "strict": false, "fallback": "opencv_ffmpeg", "codec": "h264", "latency_ms": 100, "appsink_timeout_ms": 2000, "failure_limit": 3},
+  "postprocess": {"backend": "cpp", "strict": false, "fallback": "numpy"},
+  "tracker": {"iou_threshold": 0.2, "max_lost_sec": 0.75},
+  "fall": {"temporal_confirmation_required": true},
+  "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "recomputer/fall-detection/results/{stream_id}", "username": "", "password": "", "tls": false},
+  "streams": [{"id": "cam-01", "rtsp_url": "rtsp://192.168.1.10:554/stream1", "enabled": true, "transport": "tcp", "reconnect_delay_ms": 1000}]
+}

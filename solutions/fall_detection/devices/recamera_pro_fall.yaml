@@ -1,0 +1,116 @@
+version: "1.0"
+id: recamera_pro_fall
+name: reCamera Pro
+type: recamera_pro_app
+
+# The app ships through the device's App Center rather than with this solution:
+# installing one requires a release-signed archive, and the signing chain is not
+# public. So this step configures the installed app and makes it the active one.
+# If the App Center on the target does not carry it, the step says so and names
+# what is installed instead.
+recamera_pro_app:
+  app_id: fall-detection
+  activation_timeout: 90
+  config:
+    # Always applied: the app's own preview page is the zero-setup way to see
+    # results, and it needs nothing configured.
+    output_channels: ["ws"]
+  # Only applied when a broker address is given. Unlike the 2002, the Pro ships
+  # no MQTT broker, so requiring one would put a broker between the user and a
+  # working camera for no reason. Give an address and events are forwarded;
+  # leave it empty and you watch them on the device page.
+  config_when:
+    - when_present: mqtt_host
+      config:
+        output_channels: ["ws", "mqtt"]
+        dMqtt:
+          sURL: "{{mqtt_host}}"
+          iPort: "{{mqtt_port}}"
+          sTopic: "{{device_name}}"
+          sUsername: "{{mqtt_username}}"
+          sPassword: "{{mqtt_password}}"
+          sClientId: "recamera-pro-fall"
+  # Detection thresholds are left at the app's frozen defaults on purpose: they
+  # were tuned against the held-out test set, and a solution that quietly
+  # re-tuned them would invalidate the accuracy figures on the intro page.
+
+name_i18n:
+  zh: reCamera Pro
+
+post_deployment:
+  open_browser: false
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The address you use to open the reCamera Pro console
+    name_i18n:
+      zh: 设备 IP
+    description_i18n:
+      zh: 就是你打开 reCamera Pro 控制台时用的地址
+  - id: username
+    name: Console Username
+    type: text
+    default: admin
+    required: true
+    description: The console account, not an SSH login
+    name_i18n:
+      zh: 控制台用户名
+    description_i18n:
+      zh: 控制台账号，不是 SSH 登录名
+  - id: password
+    name: Console Password
+    type: password
+    required: true
+    description: Repeated failures make the device lock your IP for a while, so check it before retrying
+    name_i18n:
+      zh: 控制台密码
+    description_i18n:
+      zh: 连续输错会让设备按 IP 锁定一段时间，重试前先确认密码
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recamera"
+    required: true
+    description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
+  - id: mqtt_host
+    name: MQTT Broker Address (optional)
+    type: text
+    required: false
+    placeholder: "192.168.1.50"
+    description: Leave empty to just watch results on the device's own page. Fill it in to forward events to Home Assistant or your alerting system — this camera has no broker of its own.
+    name_i18n:
+      zh: MQTT 服务器地址（可选）
+    description_i18n:
+      zh: 留空就只在设备自带页面看结果；填了才会把事件转发到 Home Assistant 或你的告警系统——这台摄像头不自带 broker
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    description: Leave empty if the broker allows anonymous clients
+    name_i18n:
+      zh: MQTT 用户名
+    description_i18n:
+      zh: broker 允许匿名连接就留空
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    name_i18n:
+      zh: MQTT 密码
