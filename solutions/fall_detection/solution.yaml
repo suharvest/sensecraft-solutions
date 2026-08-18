@@ -29,7 +29,7 @@ intro:
       caption_i18n:
         zh: 机位选择——2-3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用
   category: sensing
-  solution_type: technical
+  solution_type: solution
   tags:
     - fall-detection
     - pose
