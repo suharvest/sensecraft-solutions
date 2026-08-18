@@ -16,23 +16,23 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cover.jpg
+  cover_image: gallery/cover-corridor.jpg
   gallery:
     - type: image
-      src: gallery/cover.jpg
-      caption: The alert workbench during a live run — zone entry, loitering with dwell time, and line crossings with direction
+      src: gallery/cover-corridor.jpg
+      caption: One frame from the running detector. Four people are tracked; three stand inside the red restricted zone at the corridor end, one walks toward the camera across the amber tripwire, whose arrow points the direction the rule counts as forward.
       caption_i18n:
-        zh: 实跑中的告警工作台——区域入侵、带滞留时长的 loitering，以及带方向的越线
+        zh: 运行中的检测器取下的一帧。四个人被跟踪，其中三人站在走廊尽头的红色禁区里，一人正朝镜头方向走过琥珀色越线；箭头指向规则判为 forward 的方向。
     - type: image
-      src: gallery/rules-editor.jpg
-      caption: Rules are drawn on a real frame pulled from the detector, so a zone lands where you meant it
+      src: gallery/workbench-alert.gif
+      caption: The workbench during a live run. New alerts drop in at the top of the list with their snapshot, and clicking Acknowledge stamps the row with the operator name and time while the pending count drops.
       caption_i18n:
-        zh: 规则画在从检测器取回的真实画面上，区域落点所见即所得
+        zh: 实跑中的告警工作台。新告警带着快照落到列表顶部，点「确认」后该条会记下处置人和时间，待处理计数随之减少。
     - type: image
-      src: gallery/devices.jpg
-      caption: Device page — each detector reports whether it is decoding on hardware or on the CPU
+      src: gallery/rules-editor-live.gif
+      caption: Drawing rules on the camera's own frame — four clicks close a zone over the near corridor, two clicks lay a line across the far end, its direction is switched from both ways to forward, and Save turns the header into "Persisted … rev 2".
       caption_i18n:
-        zh: 设备页——每台检测器都会报告自己是硬解还是 CPU 解码
+        zh: 在摄像头自己的画面上画规则——四次点击围出近处走廊的区域，两次点击在远端拉出一条线，方向从双向改为 forward，保存后标题变成「Persisted … rev 2」。
     - type: image
       src: gallery/architecture-diagram.png
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
