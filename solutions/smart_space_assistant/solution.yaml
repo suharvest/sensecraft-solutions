@@ -48,13 +48,6 @@ intro:
       description: Edge computing device for display service
       description_i18n:
         zh: 边缘计算设备，用于投屏服务
-    generic_hdmi_display:
-      name: HDMI Display
-      description: Any HDMI-compatible TV or monitor
-      name_i18n:
-        zh: HDMI 显示器
-      description_i18n:
-        zh: 任何 HDMI 兼容的电视或显示器
   stats:
     deployed_count: 0
     likes_count: 0

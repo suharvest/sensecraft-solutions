@@ -69,10 +69,13 @@ intro:
       purchase:
         require:
           model: [2002_hq_poe]
-    xiao_esp32s3:
-      description: Meshtastic LoRa node — receives UART events from reCamera and broadcasts over LoRa
+    xiao_meshtastic_kit:
+      description: Meshtastic LoRa node (XIAO ESP32-S3 + Wio-SX1262) — receives UART events from reCamera and broadcasts over LoRa
       description_i18n:
-        zh: Meshtastic LoRa 节点——接收来自 reCamera 的 UART 事件并通过 LoRa 广播
+        zh: Meshtastic LoRa 节点（XIAO ESP32-S3 + Wio-SX1262）——接收来自 reCamera 的 UART 事件并通过 LoRa 广播
+      purchase:
+        require:
+          soc: [esp32s3]
     recomputer_r11:
       description: Local gateway — receives LoRa messages and forwards counts to Home Assistant via MQTT
       description_i18n:
@@ -105,8 +108,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: xiao_esp32s3
-          default: xiao_esp32s3
+            - device_ref: xiao_meshtastic_kit
+          default: xiao_meshtastic_kit
         - id: gateway
           name: Gateway Computer
           name_i18n:
