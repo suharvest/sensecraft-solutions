@@ -1,43 +1,69 @@
 ## Preset: Jetson Single Box {#jetson_hub}
 
-Everything on one Jetson: the MQTT broker, the aggregation hub with its alert
-workbench, and one CPU detector watching a single camera. No second machine is
-required.
+Everything on one Jetson Orin: the MQTT broker, the aggregation hub with its
+alert workbench, and a detector doing person detection on the GPU through
+TensorRT with video decode on NVDEC. No second machine is required — the hub
+decodes no video and runs no inference, measured at 1.4% of one CPU core and
+44.9 MB of memory while carrying two live streams.
 
-The detector here runs on ONNX Runtime on the CPU. There is no TensorRT
-detection path in this project yet, so the Jetson GPU is not used — the board
-is serving as a quiet arm64 machine with enough cores. Budget about 2.5 cores
-for one 720p camera at 15 fps.
+Measured on an Orin NX 16GB, JetPack 6.1, TensorRT 10.3.0, at 1280x720:
+in-pipeline inference p50 4.13 ms, full pipeline p50 7.24 ms, 8.5–12.5% of one
+CPU core, decode confirmed on NVDEC.
+
+The TensorRT engine is built on your device during deployment and takes about
+five to six minutes (361 s measured). That happens once; a redeploy reuses the
+engine already on disk.
 
 ## Step 1: Deploy the Security Stack {#deploy_edge_security_jetson_hub type=docker_deploy required=true config=devices/jetson_hub_stack.yaml}
 
-Enter the machine's address and your camera's RTSP URL; three containers are
-installed and started.
+Enter the machine's address and your camera's RTSP URL; the engine is built and
+three containers are installed and started.
 
 ### Prerequisites
 
-- Docker with the compose plugin on the target machine. The deploy step
-  installs the plugin if only the standalone `docker-compose` is present.
-- The camera's RTSP URL, tested in VLC first. A wrong path or wrong credentials
-  is the most common failure and it looks identical to a broken deployment.
+- A Jetson Orin on JetPack 6.x. This preset is Jetson-only: the detector loads a
+  TensorRT engine and refuses to start on the CPU decoder, and the deploy step
+  stops with an explanation on any other machine.
+- TensorRT on the board — `libnvinfer.so.10`, the `tensorrt` Python package and
+  `/usr/src/tensorrt/bin/trtexec`. All three ship with JetPack; the deploy step
+  checks for each one by name.
+- The nvidia container runtime registered with Docker. It is what bind-mounts
+  libcuda, the L4T GStreamer plugins and `/dev/v4l2-nvdec` into the container.
+  If it is missing: `sudo apt-get install -y nvidia-container-toolkit && sudo
+  nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`.
+- Docker with the compose plugin. The deploy step installs the plugin if only
+  the standalone `docker-compose` is present.
+- The camera's RTSP URL, H.264, tested in VLC first. A wrong path or wrong
+  credentials is the most common failure and it looks identical to a broken
+  deployment.
 - Ports 8090 (workbench), 1883 (broker) and 8099 (camera preview) free.
-- About 5 GB of free disk for the images and the alert database.
+- About 6 GB of free disk for the images, the engine and the alert database.
 
 ### What to check
 
+- The engine build step ends with `Engine written:` and a sha256. It takes about
+  five to six minutes — do not interrupt it.
 - The final step prints the hub's `/api/health` response. `mqtt_connected`
   must be true.
-- The same step prints the admin credential from the hub log if this is a first
+- The last step prints `/debug/decode` from the detector. `"decode": "hw"` with
+  `"decoder_factory": "nvv4l2decoder"` is the confirmation that NVDEC is really
+  in the pipeline.
+- The credential step prints the admin login from the hub if this is a first
   boot.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
+| Deploy stops at "This preset is Jetson-only" | The target is not a JetPack machine. Use the RK3588 preset, or a Jetson. |
+| Deploy stops at "The nvidia container runtime is not registered" | Install `nvidia-container-toolkit`, run `nvidia-ctk runtime configure --runtime=docker`, restart Docker, and deploy again. |
+| Engine build fails or produces nothing | Read the trtexec output above the failure. Out of disk is the usual cause — the build needs about 1.7 GB of RAM and leaves a 9 MB engine. |
+| Detector logs `deserialize_cuda_engine returned None` | The engine on disk was built by a different TensorRT version or on another machine. Delete `models/yolov8n_fp16.orin.engine` and redeploy; the step rebuilds it. |
+| Detector exits with a hardware-decode error | `/dev/v4l2-nvdec` did not reach the container. Check that `runtime: nvidia` took effect: `docker inspect edge_security-detector-1 --format '{{.HostConfig.Runtime}}'`. |
 | Hub does not answer on 8090 | `docker compose logs hub`. A port already in use is the usual cause. |
 | Detector container restarts in a loop | `docker compose logs detector`. An unreachable RTSP URL is the usual cause; test it in VLC from the same machine. |
 | Workbench shows no device | The detector publishes its status every 30 s. Wait a cycle, then check that `mqtt_host` in `config/detector.yaml` is `mosquitto`. |
-| Alerts fire twice for one person standing still | The detector is falling behind the stream, so the tracker retires the track and a new track id re-enters the zone. Raise the inference thread count, or drop the camera to a lower resolution. |
+| Alerts fire twice for one person standing still | The detector is falling behind the stream, so the tracker retires the track and a new track id re-enters the zone. On this preset one 720p camera uses 7.24 ms of a 200 ms frame, so suspect the camera or the network before the detector. |
 
 ### Target {#jetson_hub_host type=remote device_name="reComputer J" config=devices/jetson_hub_stack.yaml default=true}
 
@@ -55,7 +81,8 @@ The broker, the hub and one detector are running on the machine you chose.
 2. Log in with `admin` / `admin`. The hub forces a password change on first
    login; the new password is stored hashed with bcrypt.
 3. Open **Devices**. Your detector should be listed as online, with `decode`
-   reported as `sw` — this preset decodes on the CPU, so `sw` is correct here.
+   reported as `hw` — this preset decodes on NVDEC, and the detector refuses to
+   start on the CPU decoder, so anything else means it is not running.
 
 #### Draw your first rule
 
@@ -89,8 +116,19 @@ subscribe to the events topic rather than polling the API.
 
 One detector container handles one camera. A second camera means a second
 detector — either another container on this machine with its own `device_id`,
-or a separate board using the RK3588 preset. Two concurrent streams is the
-largest configuration measured; treat anything beyond that as untested.
+`stream_id` and `preview_port`, or a separate board using the RK3588 preset.
+
+On an Orin NX 16GB the multi-process route is measured to hold up to eight
+streams: each additional detector process costs 208 MB of unified memory, and
+eight 1080p streams at 15 fps is 120 inferences/s against a measured GPU ceiling
+of 236, so about 51% GPU. Four processes each inferring at 5 fps showed no
+interference (p50 4.02–4.07 ms, the same as one process alone). Two things in
+that budget are extrapolated rather than measured and should be confirmed before
+committing to eight cameras: the per-stream CPU cost at 1080p 15 fps, and
+NVDEC's concurrent session capacity.
+
+Two concurrent streams is the largest configuration measured end to end, hub and
+rules included.
 
 ### Troubleshooting
 

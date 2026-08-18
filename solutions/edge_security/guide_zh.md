@@ -1,38 +1,57 @@
 ## 套餐: Jetson 单机部署 {#jetson_hub}
 
-一台 Jetson 跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及一个看单路摄像头的
-CPU 检测器。不需要第二台机器。
+一台 Jetson Orin 跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走
+TensorRT、视频解码走 NVDEC 的检测器。不需要第二台机器——hub 不解码视频、不做推理，
+实测在承载两路实时流时只占单核 1.4%、44.9 MB 内存。
 
-这里的检测器跑在 CPU 上的 ONNX Runtime，本项目还没有 TensorRT 检测路径，因此
-Jetson 的 GPU 没有被使用——这块板子在这里的角色是一台核数够用的安静 arm64 机器。
-一路 720p、15 fps 的摄像头大约要占 2.5 个核。
+Orin NX 16GB、JetPack 6.1、TensorRT 10.3.0、1280x720 实测：流水线内推理 p50
+4.13 ms，整条流水线 p50 7.24 ms，CPU 占单核 8.5–12.5%，解码确认走 NVDEC。
+
+TensorRT 引擎在部署过程中于你的设备上构建，约需五到六分钟（实测 361 s）。这只发生
+一次，重新部署会复用磁盘上已有的引擎。
 
 ## 步骤 1: 部署安防服务栈 {#deploy_edge_security_jetson_hub type=docker_deploy required=true config=devices/jetson_hub_stack.yaml}
 
-填入这台机器的地址和摄像头 RTSP 地址，安装并启动三个容器。
+填入这台机器的地址和摄像头 RTSP 地址，先构建引擎，再安装并启动三个容器。
 
 ### 前置条件
 
-- 目标机器上装有 Docker 及 compose 插件。若只有独立版 `docker-compose`，部署步骤
-  会自动补上插件。
-- 摄像头的 RTSP 地址，先用 VLC 测通。路径或用户名密码写错是最常见的失败原因，
-  现象和部署失败完全一样。
+- 一台 JetPack 6.x 的 Jetson Orin。本套餐仅支持 Jetson：检测器加载 TensorRT 引擎，
+  且拒绝退回 CPU 解码；换成别的机器，部署步骤会带说明直接停下。
+- 板卡上装有 TensorRT——`libnvinfer.so.10`、`tensorrt` Python 包，以及
+  `/usr/src/tensorrt/bin/trtexec`。三者都随 JetPack 提供，部署步骤会逐个按名检查。
+- Docker 已注册 nvidia 容器运行时。正是它把 libcuda、L4T 的 GStreamer 插件和
+  `/dev/v4l2-nvdec` 挂进容器。若缺失：`sudo apt-get install -y
+  nvidia-container-toolkit && sudo nvidia-ctk runtime configure --runtime=docker
+  && sudo systemctl restart docker`。
+- 装有 Docker 及 compose 插件。若只有独立版 `docker-compose`，部署步骤会自动补上插件。
+- 摄像头的 RTSP 地址，须为 H.264，先用 VLC 测通。路径或用户名密码写错是最常见的
+  失败原因，现象和部署失败完全一样。
 - 8090（工作台）、1883（broker）、8099（摄像头预览）三个端口空闲。
-- 约 5 GB 空闲磁盘，用于镜像和告警数据库。
+- 约 6 GB 空闲磁盘，用于镜像、引擎和告警数据库。
 
 ### 检查内容
 
+- 引擎构建步骤结束时会打印 `Engine written:` 和一串 sha256。这一步要五到六分钟，
+  中途不要打断。
 - 最后一步会打印 hub 的 `/api/health` 返回，`mqtt_connected` 必须为 true。
-- 若是首次启动，同一步还会从 hub 日志里打印出管理员登录信息。
+- 最后一步还会打印检测器的 `/debug/decode`。看到 `"decode": "hw"` 且
+  `"decoder_factory": "nvv4l2decoder"`，才算确认 NVDEC 真的在流水线里。
+- 若是首次启动，还有一步会从 hub 打印出管理员登录信息。
 
 ### 故障排查
 
 | 问题 | 处理方法 |
 |------|----------|
+| 部署停在「This preset is Jetson-only」 | 目标机器不是 JetPack 系统。改用 RK3588 套餐，或换一台 Jetson。 |
+| 部署停在「The nvidia container runtime is not registered」 | 安装 `nvidia-container-toolkit`，执行 `nvidia-ctk runtime configure --runtime=docker`，重启 Docker 后重新部署。 |
+| 引擎构建失败或没有产物 | 读失败位置上方的 trtexec 输出。通常是磁盘不够——构建需要约 1.7 GB 内存，产物是一个 9 MB 的引擎。 |
+| 检测器日志里出现 `deserialize_cuda_engine returned None` | 磁盘上的引擎是别的 TensorRT 版本或别的机器构建的。删掉 `models/yolov8n_fp16.orin.engine` 再部署一次，该步骤会重建。 |
+| 检测器因硬解不可用退出 | `/dev/v4l2-nvdec` 没有进到容器里。确认 `runtime: nvidia` 生效：`docker inspect edge_security-detector-1 --format '{{.HostConfig.Runtime}}'`。 |
 | 8090 无响应 | 执行 `docker compose logs hub`，通常是端口被占用。 |
 | detector 容器反复重启 | 执行 `docker compose logs detector`，通常是 RTSP 地址不通；在同一台机器上用 VLC 验证。 |
 | 工作台里看不到设备 | 检测器每 30 秒上报一次状态，等一个周期；再确认 `config/detector.yaml` 里的 `mqtt_host` 是 `mosquitto`。 |
-| 一个人站着不动却连续报警两次 | 检测器跟不上视频流，跟踪目标被回收后换了新的 track id，等于又"进"了一次区域。调大推理线程数，或把摄像头降到更低分辨率。 |
+| 一个人站着不动却连续报警两次 | 检测器跟不上视频流，跟踪目标被回收后换了新的 track id，等于又"进"了一次区域。本套餐下一路 720p 摄像头在 200 ms 的帧周期里只花 7.24 ms，所以先怀疑摄像头或网络，再怀疑检测器。 |
 
 ### 部署目标 {#jetson_hub_host type=remote device_name="reComputer J" config=devices/jetson_hub_stack.yaml default=true}
 
@@ -48,8 +67,8 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 
 1. 工作台地址是 `http://<机器地址>:8090`。
 2. 用 `admin` / `admin` 登录。hub 会在首次登录时强制改密，新密码用 bcrypt 哈希存储。
-3. 打开**设备**页。检测器应显示为在线，解码方式为 `sw`——这个套餐用 CPU 解码，
-   `sw` 在这里是正确的。
+3. 打开**设备**页。检测器应显示为在线，解码方式为 `hw`——本套餐走 NVDEC 硬解，
+   检测器拒绝退回 CPU 解码，显示别的值就说明它没跑起来。
 
 #### 画第一条规则
 
@@ -79,8 +98,16 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 #### 增加第二路摄像头
 
 一个检测器容器对应一路摄像头。第二路摄像头需要第二个检测器——可以在这台机器上再起
-一个容器并给它另一个 `device_id`，也可以用 RK3588 套餐上一块独立板卡。实测过的最大
-规模是两路并发，超出部分属于未验证范围。
+一个容器，给它另一套 `device_id`、`stream_id` 和 `preview_port`，也可以用 RK3588
+套餐上一块独立板卡。
+
+在 Orin NX 16GB 上，多进程这条路实测可以撑到八路：每多一个检测器进程占 208 MB 统一
+内存，八路 1080p 15 fps 是 120 次推理/秒，对实测 236 次/秒的 GPU 上限约 51%。四个
+进程各以 5 fps 推理时互不干扰（p50 4.02–4.07 ms，与单进程独跑一致）。这份预算里有
+两项是外推而非实测，正式按八路摄像头交付前应当核实：1080p 15 fps 下每路的 CPU 占用，
+以及 NVDEC 的并发会话容量。
+
+端到端（含 hub 与规则）实测过的最大规模仍是两路并发。
 
 ### 故障排查
 
