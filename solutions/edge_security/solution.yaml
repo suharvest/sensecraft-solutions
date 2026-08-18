@@ -223,10 +223,25 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Not the normal path. Use it only when several detector boxes are already running and you want one shared alert list across them — it installs the broker, rule engine and workbench on an always-on machine with no detector of its own.
+      description: "Not the normal path. Use it only when several detector boxes are already running and you want one shared alert list across them — it installs the broker, rule engine and workbench on an always-on machine with no detector of its own. The detectors do not have to match: a Jetson running TensorRT and an RK3588 running RKNN report into the same device list, the same alert list and the same preview proxy. The aggregation host itself needs no accelerator — verified on an RK3588 board carrying both detectors at 3.7% of one CPU core and 52.8 MB RSS."
       description_i18n:
-        zh: 不是常规部署路径。仅当你已经有多台检测设备、希望它们共用一份告警列表时才用——它在一台常开机器上装 broker、规则引擎和工作台，本机不带检测器。
+        zh: "不是常规部署路径。仅当你已经有多台检测设备、希望它们共用一份告警列表时才用——它在一台常开机器上装 broker、规则引擎和工作台，本机不带检测器。接入的检测器不必同型：跑 TensorRT 的 Jetson 与跑 RKNN 的 RK3588 汇入同一份设备列表、同一份告警列表、同一个预览代理。汇聚主机本身不需要加速器——在一块 RK3588 板卡上同时承载这两个检测器实测占单核 3.7%、RSS 52.8 MB。"
       architecture_image: gallery/architecture.svg
+      # Hardware-verified: deployed by this preset's own steps onto an RK3588
+      # board (radxa, rock-5t, kernel 6.1.84) that already ran eight unrelated
+      # containers, then fed by two detectors on different platforms —
+      # rk3588-01 on that same board (RKNN int8, decode mppvideodec) and
+      # orin-nx-01 on a Jetson Orin NX 16GB (TensorRT fp16, decode
+      # nvv4l2decoder), both publishing into port 1883 on the board.
+      # /api/devices listed both online with decode "hw" and distinct model
+      # versions (yolov8n_zoo_int8.rk3588@856ae37c39d3 and
+      # yolov8n_fp16.orin@35db06066a64). A single /api/alerts held both
+      # devices' zone_enter, loitering and line_cross events, every one with
+      # snapshot_state "received" and a decodable 640x360 JPEG. The preview
+      # proxy served both, including the cross-machine fetch from the board to
+      # the Jetson's preview endpoint (HTTP 200, 13032-byte JPEG).
+      verified:
+        - hardware
       device_groups:
         - id: hub
           name: Aggregation Host
