@@ -32,8 +32,8 @@ ssh:
 
 pre_checks:
   - type: disk_space
-    min_gb: 5
-    description: Hub image, detector image and the alert database live on this machine
+    min_gb: 6
+    description: Detector image, hub image, the TensorRT engine built on this device and the alert database all live on this machine
 
 post_deployment:
   open_browser: false
@@ -47,23 +47,92 @@ remote_overrides:
 
   actions:
     before:
-      - name: Check the host can run the stack
+      - name: Validate the Jetson TensorRT and NVDEC runtime
         name_i18n:
-          zh: 检查主机能否运行本方案栈
+          zh: 校验 Jetson 的 TensorRT 与 NVDEC 运行环境
         run: |
           set -e
           ARCH=$(uname -m)
           echo "arch: $ARCH"
-          case "$ARCH" in
-            aarch64|arm64|x86_64) ;;
-            *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
-          esac
-          CORES=$(nproc)
-          echo "cores: $CORES"
-          if [ "$CORES" -lt 4 ]; then
-            echo "Fewer than 4 cores. The CPU detector needs headroom; expect dropped frames." >&2
+          if [ "$ARCH" != "aarch64" ]; then
+            echo "This preset is Jetson-only: the detector runs on TensorRT and NVDEC." >&2
+            exit 1
           fi
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "/etc/nv_tegra_release missing - this does not look like a JetPack (L4T) system." >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          # TensorRT. The detector loads the board's libnvinfer and the board's
+          # Python bindings; both have to be present and they have to match.
+          if [ ! -e /usr/lib/aarch64-linux-gnu/libnvinfer.so.10 ]; then
+            echo "libnvinfer.so.10 not found. Install the JetPack TensorRT packages:" >&2
+            echo "  sudo apt-get install -y nvidia-tensorrt" >&2
+            exit 1
+          fi
+          if [ ! -d /usr/lib/python3.10/dist-packages/tensorrt ]; then
+            echo "The TensorRT Python bindings are missing (python3-libnvinfer)." >&2
+            exit 1
+          fi
+          python3 -c "import sys; sys.path.insert(0,'/usr/lib/python3.10/dist-packages'); import tensorrt; print('tensorrt', tensorrt.__version__)"
+          # trtexec builds the engine in the after_upload step. It exits 1 on
+          # --version in TensorRT 10.3, so its presence is checked, not its
+          # exit code.
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "/usr/src/tensorrt/bin/trtexec is missing. Install tensorrt-dev / the JetPack samples." >&2
+            exit 1
+          fi
+          echo "trtexec: present"
+          # NVDEC. require_hw_decode is on, so the detector refuses to start on
+          # the CPU decoder rather than quietly running slow on a box bought
+          # for its GPU.
+          if [ ! -e /dev/v4l2-nvdec ]; then
+            echo "/dev/v4l2-nvdec missing - the hardware decoder is not available." >&2
+            exit 1
+          fi
+          if [ ! -e /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvvideo4linux2.so ]; then
+            echo "The L4T GStreamer plugin set is missing (nvidia-l4t-gstreamer)." >&2
+            exit 1
+          fi
+          echo "TensorRT + NVDEC runtime OK"
+
+      - name: Check the nvidia container runtime
+        name_i18n:
+          zh: 检查 nvidia 容器运行时
+        run: |
+          set -e
           docker version >/dev/null
+          # The compose file asks for `runtime: nvidia`. That runtime is what
+          # bind-mounts libcuda, the L4T GStreamer plugins and the decoder
+          # device nodes into the container; without it the detector starts and
+          # then fails to find nvv4l2decoder.
+          if ! docker info 2>/dev/null | grep -q "nvidia"; then
+            echo "The nvidia container runtime is not registered with Docker." >&2
+            echo "Install it and restart Docker:" >&2
+            echo "  sudo apt-get install -y nvidia-container-toolkit" >&2
+            echo "  sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+            exit 1
+          fi
+          docker info 2>/dev/null | grep -i "^ Runtimes:"
+          for f in /etc/nvidia-container-runtime/host-files-for-container.d/drivers.csv \
+                   /etc/nvidia-container-runtime/host-files-for-container.d/devices.csv; do
+            [ -f "$f" ] || { echo "Missing $f - the L4T CSV mounts are what inject NVDEC." >&2; exit 1; }
+          done
+          echo "nvidia container runtime OK"
+
+      - name: Check ports 8090 and 1883 are free
+        name_i18n:
+          zh: 检查 8090 与 1883 端口是否空闲
+        ignore_error: true
+        run: |
+          # The broker and the hub run on this same machine, so both ports must
+          # be free here - there is no separate aggregation host.
+          for p in 8090 1883; do
+            if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
+              echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+            fi
+          done
+          echo "port check done"
 
       - name: Ensure docker compose command
         name_i18n:
@@ -87,32 +156,73 @@ remote_overrides:
           docker compose version
 
     # Runs after the deployer uploads assets/jetson/ to
-    # remote_path/<device-yaml-id>/ and before `docker compose up`. It cannot
-    # move into `before`: config/detector.yaml does not exist on the machine
-    # until the upload finishes, and anything written earlier is overwritten.
+    # remote_path/<device-yaml-id>/ and before `docker compose up`. Neither of
+    # these can move into `before`: the destination directory does not exist on
+    # the machine until the upload finishes, and anything written earlier is
+    # overwritten.
     after_upload:
+      - name: Build the TensorRT engine on this device
+        name_i18n:
+          zh: 在本机构建 TensorRT 引擎
+        timeout: 1500
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security/jetson_hub_stack"
+          IMAGE=sensecraft-missionpack.seeed.cn/solution/edge-security-detector-jetson:0.1.0
+          ENGINE="$WORKDIR/models/yolov8n_fp16.orin.engine"
+          mkdir -p "$WORKDIR/models"
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, keeping it: $ENGINE"
+            sha256sum "$ENGINE"
+            exit 0
+          fi
+          # A serialized TensorRT engine is valid only for the exact TensorRT
+          # version and GPU architecture that built it. Copying one from
+          # another machine, or from this one after a JetPack upgrade, makes
+          # deserialize_cuda_engine return None with no other diagnostic - so
+          # the engine is built here, from the ONNX carried in the image, with
+          # the board's own trtexec.
+          #
+          # This takes about five minutes and only happens once: 307 s measured
+          # on an Orin NX 16GB / JetPack 6.1 / TensorRT 10.3.0. A redeploy
+          # reuses the engine above.
+          docker pull "$IMAGE"
+          CID=$(docker create "$IMAGE")
+          docker cp "$CID:/app/models/yolov8n.onnx" "$WORKDIR/models/yolov8n.onnx"
+          docker cp "$CID:/app/tools/build_engine.sh" "$WORKDIR/models/build_engine.sh"
+          docker rm -f "$CID" >/dev/null
+          chmod +x "$WORKDIR/models/build_engine.sh"
+          echo "Building the engine - this takes about five minutes, do not interrupt it."
+          "$WORKDIR/models/build_engine.sh" "$WORKDIR/models/yolov8n.onnx" "$ENGINE"
+          test -s "$ENGINE"
+          ls -la "$WORKDIR/models"
+
       - name: Write the camera and detector configuration
         name_i18n:
           zh: 写入摄像头与检测器配置
         run: |
           set -e
           WORKDIR="/home/{{username}}/edge-security/jetson_hub_stack"
+          # data/ holds the alert database, the snapshots and the rule
+          # configuration for the hub that runs on this same machine.
           mkdir -p "$WORKDIR/config" "$WORKDIR/data" "$WORKDIR/mosquitto-data"
-          # preview_advertise_host has to be an address the browser can
-          # reach, not the container's own. It is set to the device IP you
-          # entered; left unset the detector omits the field and the hub's
-          # rule-drawing canvas has no backdrop.
+          # preview_advertise_host has to be an address the browser can reach,
+          # not the container's own. It is set to the device IP you entered;
+          # left unset the detector omits the field and the hub's rule-drawing
+          # canvas has no backdrop.
           cat > "$WORKDIR/config/detector.yaml" <<CFG
           device_id: {{device_id}}
           stream_id: {{stream_id}}
           source: {{rtsp_url}}
           rtsp_transport: tcp
-          decode_primary: sw
-          model: /app/models/yolov8n.onnx
+          rtsp_codec: h264
+          rtsp_latency_ms: 100
+          decode_primary: hw
+          require_hw_decode: true
+          model: /models/yolov8n_fp16.orin.engine
+          input_size: 640
           conf_threshold: 0.35
           iou_threshold: 0.45
-          intra_threads: {{intra_threads}}
-          providers: ["CPUExecutionProvider"]
           track_iou_threshold: 0.2
           track_max_lost_s: 0.75
           mqtt_host: mosquitto
@@ -153,6 +263,26 @@ remote_overrides:
           # On a first boot with no HUB_ADMIN_PASSWORD the hub creates
           # a random password, writes it to /data/initial-password.txt and logs it.
           docker exec edge_security-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security-hub-1 2>&1 | grep -iE "password" | tail -3 || true
+
+      - name: Confirm the decoder actually running
+        name_i18n:
+          zh: 确认实际使用的解码器
+        ignore_error: true
+        timeout: 180
+        run: |
+          # The detector describes its own live pipeline here — the element
+          # GStreamer really instantiated, not what the config asked for. On
+          # this preset it must be nvv4l2decoder; the detector refuses to start
+          # on the CPU decoder, so anything else means it is not running.
+          echo "Waiting for the detector preview endpoint ..."
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:8099/debug/decode" 2>/dev/null; then
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "No answer on 8099 — check: docker compose logs detector" >&2
 
   user_inputs:
     - id: host
@@ -212,18 +342,6 @@ remote_overrides:
       type: text
       required: true
       placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
-      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      description: H.264 only — the NVDEC path is built for H.264. Test the address in VLC first; a wrong path or wrong credentials is the most common failure.
       description_i18n:
-        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
-    - id: intra_threads
-      name: Inference Threads
-      name_i18n:
-        zh: 推理线程数
-      type: text
-      default: "4"
-      required: true
-      description: Cores this detector may use. Leaving it unbounded makes one detector claim the whole machine — measured 900% CPU and inference p50 138 ms against 250% and 50 ms with the cap set.
-      description_i18n:
-        zh: 允许该检测器占用的核数。不设上限时单个检测器会吃满整机——实测 900% CPU、推理 p50 138 ms，设上限后为 250%、50 ms。
-      validation:
-        pattern: "^[0-9]+$"
+        zh: 仅支持 H.264——NVDEC 解码路径按 H.264 构建。先用 VLC 测一下这个地址，路径或用户名密码写错是最常见的失败原因。

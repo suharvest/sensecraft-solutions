@@ -20,10 +20,12 @@ web_dashboard:
     /data/initial-password.txt inside the hub container (line 1 username, line 2
     password); the deploy step above prints it. The hub forces a change on
     first login. The
-    Devices page should list your detector as online with decode "sw"; draw a
+    Devices page should list your detector as online with decode "hw" — this
+    preset decodes on NVDEC, and the detector refuses to start on the CPU
+    decoder, so anything else means it is not running. Draw a
     zone or a line on the Rules page and walk into it to see the first alert.
   description_i18n:
     zh: >-
       hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
       用户名，第二行密码），上面的部署步骤会打印出来。首次登录后 hub 会强制改密。设备页应能看到检测器在线、解码方式为
-      sw；在规则页画一个区域或一条线，走进去就能看到第一条告警。
+      hw——本套餐走 NVDEC 硬解，检测器拒绝退回 CPU 解码，显示别的值就说明它没跑起来。在规则页画一个区域或一条线，走进去就能看到第一条告警。
