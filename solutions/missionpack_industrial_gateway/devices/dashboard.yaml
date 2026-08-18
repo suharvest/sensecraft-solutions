@@ -1,8 +1,8 @@
 version: "1.0"
 id: dashboard
-name: Open MissionPack Gateway Console
+name: Open Multi-Protocol Data Hub
 name_i18n:
-  zh: 打开 MissionPack 网关管理界面
+  zh: 打开多协议数据中枢
 type: web_dashboard
 inherit_host_from: gateway
 user_inputs:
@@ -14,9 +14,9 @@ user_inputs:
     default_template: "{{http_port}}"
 web_dashboard:
   url: "http://{{deploy.host}}:{{http_port}}"
-  title: MissionPack Industrial Protocol Gateway
+  title: Industrial Multi-Protocol Data Hub
   title_i18n:
-    zh: MissionPack 工业协议网关
-  description: Add protocol sources, confirm discovered points, and publish unified MQTT data.
+    zh: 工业多协议数据中枢
+  description: Integrate field protocols into one point model and one MQTT read/write interface.
   description_i18n:
-    zh: 添加协议数据源、确认发现点位，并通过 MQTT 提供统一数据。
+    zh: 将现场协议汇入一套点位模型，并通过统一 MQTT 接口读取与控制。

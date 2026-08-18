@@ -1,24 +1,24 @@
-## 套餐: 标准工业协议网关 {#standard}
+## 套餐: 多协议数据中枢 {#standard}
 
-部署一个轻量网关，再从管理界面配置每一种工业连接。
+部署一套轻量协议融合服务，把不同控制器统一成一套可读写的点位数据。
 
 | 设备 | 用途 |
 |------|------|
-| reComputer R1000 / R1100 系列 | 运行协议适配器、点位管理、MQTT 数据服务和管理界面 |
-| reTerminal DM 系列 | 运行相同网关，并通过本机触控屏操作 |
+| reComputer R1000 / R1100 系列 | 将多种现场协议统一为点位模型和 MQTT 接口 |
+| reTerminal DM 系列 | 运行相同服务，并通过本机触控屏操作 |
 | 工业控制器 | 提供 OPC UA、Modbus、BACnet/IP 或 MQTT 数据 |
 
 **部署完成后你可以：**
-- 在主机管理页配置数据源，并使用协议支持的自动发现能力
-- 每种数据源都能通过手动填写点位作为兜底
-- 在一个总表中筛选点位，查看当前值、数据质量和控制回执
-- 按需开启内置 MQTT 服务，并使用有明确说明的 MissionPack v1 主题契约
+- 从一个入口配置 OPC UA、Modbus、BACnet/IP 和 MQTT 控制器
+- 使用自动发现加快接入，发现不完整时手动填写点位兜底
+- 在一个总表中读取、筛选和受控写入所有现场点位
+- 让上层应用只对接一套带版本的 MQTT 数据、命令和回执主题
 
 **前提条件：** Docker Engine 20.10 及以上 · 至少 4 GB 可用空间 · 能够访问目标控制器网络
 
-## 步骤 1: 部署工业协议网关 {#gateway type=docker_deploy required=true config=devices/gateway.yaml}
+## 步骤 1: 部署多协议数据中枢 {#gateway type=docker_deploy required=true config=devices/gateway.yaml}
 
-启动协议网关，并让点位注册表、审计记录和模型在重启后继续保留。
+启动协议融合与数据服务，并让点位配置、审计记录和模型在重启后继续保留。
 
 ### 部署目标 {#gateway_local type=local config=devices/gateway.yaml default=true}
 
@@ -64,13 +64,13 @@ BACnet/IP 广播发现可能无法穿过 Docker Desktop 的桥接网络。本机
 | 管理界面打不开 | 放行所选管理端口，并确认容器健康 |
 | BACnet 发现不到设备 | 选择 BACnet 所在网段的网卡，并确认广播没有被阻断 |
 
-## 步骤 2: 打开并配置网关 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 2: 配置统一接入与数据服务 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
-打开管理界面，创建首个管理员，并添加第一个工业数据源。
+打开管理界面，创建首个管理员，把第一个现场控制器接入统一点位模型。
 
 ### 前置条件
 
-步骤 1 的网关容器必须处于健康状态。首次创建管理员不需要注册码或 Token。
+步骤 1 的服务容器必须处于健康状态。首次创建管理员不需要注册码或 Token。
 
 ### 故障排查
 

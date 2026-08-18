@@ -1,13 +1,13 @@
 version: "1.0"
 id: missionpack_industrial_gateway
-name: MissionPack Industrial Protocol Gateway
+name: Industrial Multi-Protocol Data Hub
 name_i18n:
-  zh: MissionPack 工业协议网关
+  zh: 工业多协议数据中枢
 
 intro:
-  summary: Connect OPC UA, Modbus, BACnet/IP, and MQTT devices to one point table and a controlled MQTT data service.
+  summary: Bring OPC UA, Modbus, BACnet/IP, and MQTT devices into one point model, then read and control them through one MQTT interface.
   summary_i18n:
-    zh: 将 OPC UA、Modbus、BACnet/IP 与 MQTT 设备汇入统一点位表，并通过受控 MQTT 数据服务对外提供数据。
+    zh: 把 OPC UA、Modbus、BACnet/IP 和 MQTT 设备汇入一套点位模型，再通过统一 MQTT 接口读取与控制。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -20,7 +20,8 @@ intro:
     - modbus
     - bacnet
     - mqtt
-    - protocol-gateway
+    - protocol-integration
+    - unified-data
     - edge-control
     - recomputer-r
     - reterminal-dm
@@ -87,31 +88,31 @@ intro:
 
   device_catalog:
     recomputer_r10:
-      description: Runs the protocol adapters, durable point registry, MQTT service, and web console
+      description: Unifies field protocols into one point model and MQTT interface
       description_i18n:
-        zh: 运行协议适配器、持久点位注册表、MQTT 数据服务和管理界面
+        zh: 将现场协议统一为一套点位模型和 MQTT 接口
     recomputer_r11:
-      description: Runs the protocol adapters, durable point registry, MQTT service, and web console
+      description: Unifies field protocols into one point model and MQTT interface
       description_i18n:
-        zh: 运行协议适配器、持久点位注册表、MQTT 数据服务和管理界面
+        zh: 将现场协议统一为一套点位模型和 MQTT 接口
     reterminal_dm:
-      description: Runs the gateway and provides a local touch display for setup and operations
+      description: Unifies field protocols and provides a local touch display for setup and operations
       description_i18n:
-        zh: 运行工业协议网关，并通过本机触控屏完成配置与日常操作
+        zh: 统一现场协议，并通过本机触控屏完成配置与日常操作
 
   presets:
     - id: standard
-      name: Standard Protocol Gateway
+      name: Multi-Protocol Data Hub
       name_i18n:
-        zh: 标准工业协议网关
-      description: Deploy the gateway locally or to an ARM64 edge computer, then add data sources from the web console.
+        zh: 多协议数据中枢
+      description: Deploy one reusable protocol integration layer, then onboard controllers and expose a unified MQTT interface.
       description_i18n:
-        zh: 在本机或 ARM64 边缘设备上部署网关，再从管理界面添加数据源。
+        zh: 部署一套可复用的协议融合层，接入现场控制器，并提供统一 MQTT 读写接口。
       device_groups:
         - id: gateway_host
-          name: Gateway Host
+          name: Data Hub Host
           name_i18n:
-            zh: 网关主机
+            zh: 数据中枢主机
           type: single
           required: true
           options:

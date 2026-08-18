@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
-  <title id="title">MissionPack industrial protocol gateway architecture</title>
-  <desc id="desc">OPC UA, Modbus, BACnet IP, and MQTT sources connect to MissionPack, which exposes a web console and unified MQTT data.</desc>
+  <title id="title">Industrial multi-protocol data hub architecture</title>
+  <desc id="desc">OPC UA, Modbus, BACnet IP, and MQTT sources enter one point model with a unified MQTT read and control interface.</desc>
   <rect width="1280" height="720" fill="#f6f7f4"/>
-  <text x="64" y="72" fill="#20231f" font-family="Arial, sans-serif" font-size="34" font-weight="700">Industrial protocols in. One controlled data service out.</text>
+  <text x="64" y="72" fill="#20231f" font-family="Arial, sans-serif" font-size="34" font-weight="700">Many field protocols in. One data model and interface out.</text>
   <text x="64" y="108" fill="#697069" font-family="Arial, sans-serif" font-size="18">Discovery where available · manual configuration always available · writes require confirmation</text>
 
   <g font-family="Arial, sans-serif">
@@ -38,8 +38,8 @@
       <rect width="380" height="350" rx="20" fill="#20231f"/>
       <rect x="24" y="24" width="54" height="54" rx="14" fill="#8cc800"/>
       <text x="51" y="61" text-anchor="middle" fill="#20231f" font-size="24" font-weight="700">M</text>
-      <text x="96" y="52" fill="#ffffff" font-size="25" font-weight="700">MissionPack</text>
-      <text x="96" y="75" fill="#b8beb5" font-size="15">Industrial Protocol Gateway</text>
+      <text x="96" y="52" fill="#ffffff" font-size="25" font-weight="700">Protocol Integration Hub</text>
+      <text x="96" y="75" fill="#b8beb5" font-size="15">Powered by MissionPack</text>
       <line x1="24" y1="102" x2="356" y2="102" stroke="#464b45"/>
       <text x="36" y="145" fill="#ffffff" font-size="18" font-weight="700">1  Source &amp; host management</text>
       <text x="36" y="187" fill="#ffffff" font-size="18" font-weight="700">2  Durable point registry</text>
@@ -61,12 +61,12 @@
     </g>
     <g transform="translate(966 378)">
       <rect width="250" height="114" rx="14" fill="#ffffff" stroke="#d9ddd5"/>
-      <text x="24" y="40" fill="#20231f" font-size="21" font-weight="700">MissionPack v1 MQTT</text>
+      <text x="24" y="40" fill="#20231f" font-size="21" font-weight="700">Unified MQTT data</text>
       <text x="24" y="70" fill="#697069" font-size="15">Points · presence</text>
       <text x="24" y="92" fill="#697069" font-size="15">Commands · receipts</text>
     </g>
   </g>
 
   <rect x="64" y="624" width="1152" height="48" rx="12" fill="#eef5df" stroke="#d7e6b7"/>
-  <text x="640" y="655" text-anchor="middle" fill="#4d5d2b" font-family="Arial, sans-serif" font-size="16" font-weight="700">Native MissionPack MQTT topic contract · Sparkplug B is not claimed in this release</text>
+  <text x="640" y="655" text-anchor="middle" fill="#4d5d2b" font-family="Arial, sans-serif" font-size="16" font-weight="700">One versioned contract for point data · presence · commands · receipts</text>
 </svg>

@@ -1,24 +1,24 @@
-## Preset: Standard Protocol Gateway {#standard}
+## Preset: Multi-Protocol Data Hub {#standard}
 
-Deploy one lightweight gateway, then configure each industrial connection from the web console.
+Deploy one lightweight integration layer that turns different controllers into a unified, controllable point model.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R1000 / R1100 Series | Runs protocol adapters, point management, the MQTT service, and the web console |
-| reTerminal DM Series | Runs the same gateway with an on-device touch display |
+| reComputer R1000 / R1100 Series | Unifies field protocols into one point model and MQTT interface |
+| reTerminal DM Series | Runs the same services with an on-device touch display |
 | Industrial controllers | Provide OPC UA, Modbus, BACnet/IP, or MQTT data |
 
 **What you'll get:**
-- A source-management page with automatic discovery where the protocol supports it
-- A manual point-entry fallback for every source type
-- One filtered point table with current values, data quality, and command receipts
-- An optional embedded MQTT service with a documented MissionPack v1 topic contract
+- One place to configure OPC UA, Modbus, BACnet/IP, and MQTT controllers
+- Automatic discovery where available, with manual point entry as the fallback
+- One point table for reading, filtering, and safely controlling field data
+- One versioned MQTT contract for upstream data, commands, and receipts
 
 **Requirements:** Docker Engine 20.10+ · 4 GB free disk space · Network access to the target controllers
 
-## Step 1: Deploy the Gateway {#gateway type=docker_deploy required=true config=devices/gateway.yaml}
+## Step 1: Deploy the Multi-Protocol Data Hub {#gateway type=docker_deploy required=true config=devices/gateway.yaml}
 
-Start the protocol gateway and preserve its registry, audit trail, and models across restarts.
+Start protocol integration and data services while preserving point configuration, audit history, and models across restarts.
 
 ### Target {#gateway_local type=local config=devices/gateway.yaml default=true}
 
@@ -64,13 +64,13 @@ Deploy over SSH to a reComputer R1000/R1100 Series or reTerminal DM device on th
 | Web console cannot be opened | Allow the selected web port through the device firewall and verify the container is healthy |
 | BACnet discovery returns no devices | Select the interface on the BACnet subnet and check that broadcasts are not blocked |
 
-## Step 2: Open and Configure the Gateway {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 2: Configure Unified Access and Data Service {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
-Open the web console, create the first administrator, and add your first industrial data source.
+Open the web console, create the first administrator, and bring the first field controller into the unified point model.
 
 ### Prerequisites
 
-The gateway container from Step 1 must be healthy. No registration token is required for first-run administrator setup.
+The service container from Step 1 must be healthy. No registration token is required for first-run administrator setup.
 
 ### Troubleshooting
 

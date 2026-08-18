@@ -1,8 +1,8 @@
 version: "1.0"
 id: gateway
-name: Deploy MissionPack Industrial Gateway
+name: Deploy Industrial Multi-Protocol Data Hub
 name_i18n:
-  zh: 部署 MissionPack 工业协议网关
+  zh: 部署工业多协议数据中枢
 type: docker_deploy
 
 detection:
@@ -34,9 +34,9 @@ user_inputs:
       zh: 管理界面端口
     type: text
     default: "8280"
-    description: Host port used to open the MissionPack web console
+    description: Host port used to open the multi-protocol data hub console
     description_i18n:
-      zh: 用于打开 MissionPack 管理界面的主机端口
+      zh: 用于打开多协议数据中枢管理界面的主机端口
     required: true
     row: 1
   - id: mqtt_port
