@@ -122,6 +122,27 @@ remote_overrides:
         run: |
           docker exec edge_security_hub-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_hub-hub-1 2>&1 | grep -iE "password" | tail -3 || true
 
+      - name: Print how to point detectors at this hub
+        name_i18n:
+          zh: 输出检测器接入方式
+        ignore_error: true
+        timeout: 60
+        run: |
+          # This preset only installs the hub. Nothing here reaches the detector
+          # machines, so the operator has to repoint each one by hand - print
+          # exactly what to change rather than leaving them to work it out.
+          ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
+          [ -n "$ip" ] || ip="{{host}}"
+          echo "-------------------------------------------------------------"
+          echo "Broker for detectors:  ${ip}:1883"
+          echo "On EACH detector machine, set mqtt_host in its detector.yaml:"
+          echo "    mqtt_host: ${ip}"
+          echo "then restart that detector, e.g.:"
+          echo "    docker compose -p <its project> up -d detector"
+          echo "Detectors may be any mix of platforms; they appear on the"
+          echo "Devices page within a few seconds of reconnecting."
+          echo "-------------------------------------------------------------"
+
   user_inputs:
     - id: host
       name: Hub Host IP
