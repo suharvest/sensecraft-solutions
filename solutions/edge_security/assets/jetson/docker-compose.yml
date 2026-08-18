@@ -1,0 +1,50 @@
+# Single-box form: broker, hub and one CPU/ONNX detector on the same machine.
+#
+# The detector here is the CPU/ONNX reference detector, not a TensorRT one.
+# There is no TensorRT detection path in this project, so nothing in this stack
+# uses the Jetson GPU — the board is used as a quiet arm64 box that happens to
+# have enough cores. Measured on an aarch64 host at 1280x720: 30-37 ms per
+# inference, 14.92 fps sustained against a 15 fps source.
+services:
+  hub:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/data
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/data
+
+  detector:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-cpu:0.1.0
+    command: ["--config", "/app/config/detector.yaml"]
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    ports:
+      # Latest decoded frame as JPEG, and the still-refresh live page. The hub
+      # fetches the JPEG for the rule-drawing canvas backdrop.
+      - "8099:8099"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./config/detector.yaml:/app/config/detector.yaml:ro

@@ -1,0 +1,229 @@
+version: "1.0"
+id: edge_security
+name: Edge Security Hub
+name_i18n:
+  zh: 边缘安防汇聚平台
+
+intro:
+  summary: Cameras watch, edge boxes detect people, and one hub turns that into zone, line-crossing and loitering alerts you can work through in a browser.
+  summary_i18n:
+    zh: 摄像头看现场，边缘盒子做人体检测，一台 hub 把结果判成区域入侵、越线和滞留告警，在浏览器里逐条处理。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.jpg
+  gallery:
+    - type: image
+      src: gallery/cover.jpg
+      caption: The alert workbench during a live run — zone entry, loitering with dwell time, and line crossings with direction
+      caption_i18n:
+        zh: 实跑中的告警工作台——区域入侵、带滞留时长的 loitering，以及带方向的越线
+    - type: image
+      src: gallery/rules-editor.jpg
+      caption: Rules are drawn on a real frame pulled from the detector, so a zone lands where you meant it
+      caption_i18n:
+        zh: 规则画在从检测器取回的真实画面上，区域落点所见即所得
+    - type: image
+      src: gallery/devices.jpg
+      caption: Device page — each detector reports whether it is decoding on hardware or on the CPU
+      caption_i18n:
+        zh: 设备页——每台检测器都会报告自己是硬解还是 CPU 解码
+    - type: image
+      src: gallery/architecture-diagram.png
+      caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
+      caption_i18n:
+        zh: 探测层通过 MQTT 上报，hub 判定规则并提供工作台
+  category: sensing
+  solution_type: solution
+  tags:
+    - security
+    - intrusion-detection
+    - person-detection
+    - mqtt
+    - rk3588
+
+  output_interfaces:
+    - type: http
+      port: 8090
+      endpoint: /
+      description: Alert workbench and its REST API — alert list, disposition, rule editing, CSV export. Cookie session auth on everything except /api/health and the login route.
+      schema_type: json
+      description_i18n:
+        zh: 告警工作台及其 REST 接口——告警列表、处置、规则编辑、CSV 导出。除 /api/health 和登录接口外全部走 cookie 会话鉴权。
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/detections/<stream_id>
+      description: Per-frame person detections from a detector — boxes normalized against the original frame, each with a track id
+      schema_type: json
+      payload_example: '{"schema":"sensecraft.detection/1","device_id":"rk3588-01","stream_id":"cam-0","coordinate_space":"frame_norm","objects":[{"track_id":7,"label":"person","score":0.92,"bbox":[0.41,0.55,0.09,0.28]}]}'
+      description_i18n:
+        zh: 检测器发出的逐帧人体检测——检测框按原始画面归一化，每个目标带跟踪编号
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/status
+      description: Retained availability and health — online / offline via last will, plus which decoder the detector actually got
+      schema_type: json
+      description_i18n:
+        zh: retained 的在线与健康状态——通过遗嘱消息发 online / offline，并报告实际拿到的解码器
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/events/<stream_id>
+      description: The hub's own verdicts, republished so an NVR, PLC or alerting system can subscribe instead of polling the API
+      schema_type: json
+      description_i18n:
+        zh: hub 判定后回发的告警事件，NVR、PLC 或其他告警系统可以直接订阅，不必轮询接口
+
+  input_requirements:
+    - type: rtsp
+      description: A fixed camera view of the area you want to protect. Boundaries are drawn as polygons and lines on that view, so the camera must not move once the rules are set.
+      required: true
+      description_i18n:
+        zh: 一个固定机位，覆盖需要防护的区域。边界是画在这个画面上的多边形和线段，规则设好之后摄像头不能再移动。
+
+  device_catalog:
+    recomputer_j30:
+      description: Runs broker, hub and the CPU detector on one box (Orin Nano 8GB)
+      description_i18n:
+        zh: 一台机器同时跑 broker、hub 和 CPU 检测器（Orin Nano 8GB）
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Same single-box role with more CPU headroom for a second camera (Orin NX 16GB)
+      description_i18n:
+        zh: 同样的单机角色，CPU 余量更大，可再接一路摄像头（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_rk3588:
+      description: Detection layer — person detection on the NPU, video decode on the board's hardware decoder
+      description_i18n:
+        zh: 探测层——人体检测跑在 NPU 上，视频解码走板载硬解
+    generic_arm64_host:
+      name: Aggregation Host
+      name_i18n:
+        zh: 汇聚主机
+      description: Any arm64 or x86_64 machine with Docker that stays powered on — it runs the broker and the hub, and never touches video
+      description_i18n:
+        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器——运行 broker 和 hub，不接触视频
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera you already own, supplying the video a detector watches
+      description_i18n:
+        zh: 你已有的任意 RTSP 摄像头，为检测器提供视频
+
+  presets:
+    - id: jetson_hub
+      name: Single Box
+      name_i18n:
+        zh: 单机部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One machine runs everything — broker, hub and a CPU detector for one camera. The shortest path to a working alert workbench.
+      description_i18n:
+        zh: 一台机器跑完整套——broker、hub 和一路摄像头的 CPU 检测器。最短的一条路，部署完就有可用的告警工作台。
+      architecture_image: gallery/architecture.svg
+      device_groups:
+        - id: compute
+          name: Host
+          name_i18n:
+            zh: 主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: generic_arm64_host
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: rk3588
+      name: RK3588 Detector
+      name_i18n:
+        zh: RK3588 检测器
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Add a detection node that runs on the NPU and decodes video in hardware, feeding a hub you already have.
+      description_i18n:
+        zh: 增加一个探测节点，推理跑 NPU、解码走硬解，把结果送给你已经在跑的 hub。
+      architecture_image: gallery/architecture.svg
+      # Hardware-verified: the RK3588 detector in this preset was run on a
+      # radxa RK3588 board against a live 1280x720 H.264 stream with the int8
+      # model — hardware decode confirmed from the kernel side, and the
+      # end-to-end rule assertions against the 130 s truth video passed. That
+      # run was launched from the upstream project rather than through this
+      # package, so the packaging itself is not what the badge covers.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Board
+          name_i18n:
+            zh: 检测板卡
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: hub
+          name: Aggregation Host
+          name_i18n:
+            zh: 汇聚主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hub_only
+      name: Hub Only
+      name_i18n:
+        zh: 仅 Hub
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Put the broker, the rule engine and the workbench on one always-on machine, then point detectors at it as you add them.
+      description_i18n:
+        zh: 把 broker、规则引擎和工作台放在一台常开机器上，之后逐台把检测器指过来。
+      architecture_image: gallery/architecture.svg
+      device_groups:
+        - id: hub
+          name: Aggregation Host
+          name_i18n:
+            zh: 汇聚主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 20min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

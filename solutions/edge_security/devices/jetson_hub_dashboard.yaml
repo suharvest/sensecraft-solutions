@@ -1,0 +1,25 @@
+version: "1.0"
+id: jetson_hub_dashboard
+name: Open the Alert Workbench
+name_i18n:
+  zh: 打开告警工作台
+type: web_dashboard
+
+# The workbench is served by the hub that the deploy step just installed, so
+# the host comes from that step rather than from a second question.
+inherit_host_from: deploy_edge_security_jetson_hub
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8090"
+  open_in: browser
+  title: Edge Security Workbench
+  title_i18n:
+    zh: 边缘安防工作台
+  description: >-
+    First login is admin / admin and the hub forces a password change. The
+    Devices page should list your detector as online with decode "sw"; draw a
+    zone or a line on the Rules page and walk into it to see the first alert.
+  description_i18n:
+    zh: >-
+      首次登录用 admin / admin，hub 会强制改密。设备页应能看到检测器在线、解码方式为
+      sw；在规则页画一个区域或一条线，走进去就能看到第一条告警。

@@ -1,0 +1,229 @@
+version: "1.0"
+id: jetson_hub_stack
+name: Single-Box Security Stack
+name_i18n:
+  zh: 单机安防栈
+type: docker_deploy
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  options:
+    project_name: edge_security
+    remove_orphans: true
+  services:
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: hub
+      port: 8090
+      required: true
+    - name: detector
+      port: 8099
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: Hub image, detector image and the alert database live on this machine
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-security
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the host can run the stack
+        name_i18n:
+          zh: 检查主机能否运行本方案栈
+        run: |
+          set -e
+          ARCH=$(uname -m)
+          echo "arch: $ARCH"
+          case "$ARCH" in
+            aarch64|arm64|x86_64) ;;
+            *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;;
+          esac
+          CORES=$(nproc)
+          echo "cores: $CORES"
+          if [ "$CORES" -lt 4 ]; then
+            echo "Fewer than 4 cores. The CPU detector needs headroom; expect dropped frames." >&2
+          fi
+          docker version >/dev/null
+
+      - name: Ensure docker compose command
+        name_i18n:
+          zh: 确保 docker compose 可用
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2 || apt-get install -y docker-compose
+          docker compose version
+
+    # Runs after the deployer uploads assets/jetson/ to
+    # remote_path/<device-yaml-id>/ and before `docker compose up`. It cannot
+    # move into `before`: config/detector.yaml does not exist on the machine
+    # until the upload finishes, and anything written earlier is overwritten.
+    after_upload:
+      - name: Write the camera and detector configuration
+        name_i18n:
+          zh: 写入摄像头与检测器配置
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security/jetson_hub_stack"
+          mkdir -p "$WORKDIR/config" "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+          # preview_advertise_host has to be an address the browser can
+          # reach, not the container's own. It is set to the device IP you
+          # entered; left unset the detector omits the field and the hub's
+          # rule-drawing canvas has no backdrop.
+          cat > "$WORKDIR/config/detector.yaml" <<CFG
+          device_id: {{device_id}}
+          stream_id: {{stream_id}}
+          source: {{rtsp_url}}
+          rtsp_transport: tcp
+          decode_primary: sw
+          model: /app/models/yolov8n.onnx
+          conf_threshold: 0.35
+          iou_threshold: 0.45
+          intra_threads: {{intra_threads}}
+          providers: ["CPUExecutionProvider"]
+          track_iou_threshold: 0.2
+          track_max_lost_s: 0.75
+          mqtt_host: mosquitto
+          mqtt_port: 1883
+          topic_prefix: sensecraft/security
+          status_interval_s: 30
+          preview_enabled: true
+          preview_bind: 0.0.0.0
+          preview_port: 8099
+          preview_advertise_host: "{{host}}"
+          CFG
+          cat "$WORKDIR/config/detector.yaml"
+
+    after:
+      - name: Wait for the hub to answer
+        name_i18n:
+          zh: 等待 hub 响应
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the hub API ..."
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+              curl -sS "http://127.0.0.1:8090/api/health"
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Hub did not answer on 8090 — check: docker compose logs hub" >&2
+
+      - name: Report the admin credential
+        name_i18n:
+          zh: 输出管理员登录信息
+        ignore_error: true
+        timeout: 60
+        run: |
+          # On a first boot with no HUB_ADMIN_PASSWORD the hub creates
+          # admin/admin with must_change=1 and prints it here.
+          docker logs edge_security-hub-1 2>&1 | grep -iE "admin|password|must_change" | tail -5 || true
+
+  user_inputs:
+    - id: host
+      name: Device IP
+      name_i18n:
+        zh: 设备 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: Also written into the detector config as the preview address the workbench uses
+      description_i18n:
+        zh: 同时写入检测器配置，作为工作台访问预览画面的地址
+    - id: username
+      name: SSH Username
+      name_i18n:
+        zh: SSH 用户名
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      name_i18n:
+        zh: SSH 密码
+      type: password
+      required: true
+    - id: device_id
+      name: Detector Name
+      name_i18n:
+        zh: 检测器名称
+      type: text
+      default: "site-01"
+      required: true
+      description: Second segment of the MQTT topic and the name shown in the workbench device list
+      description_i18n:
+        zh: MQTT 主题的第二段，也是工作台设备列表里显示的名字
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+    - id: stream_id
+      name: Stream ID
+      name_i18n:
+        zh: 流编号
+      type: text
+      default: "cam-0"
+      required: true
+      description: Appended to the topic so several cameras on one detector stay separable
+      description_i18n:
+        zh: 拼在主题后面，用于区分同一检测器上的多路摄像头
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+    - id: rtsp_url
+      name: Camera RTSP URL
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: intra_threads
+      name: Inference Threads
+      name_i18n:
+        zh: 推理线程数
+      type: text
+      default: "4"
+      required: true
+      description: Cores this detector may use. Leaving it unbounded makes one detector claim the whole machine — measured 900% CPU and inference p50 138 ms against 250% and 50 ms with the cap set.
+      description_i18n:
+        zh: 允许该检测器占用的核数。不设上限时单个检测器会吃满整机——实测 900% CPU、推理 p50 138 ms，设上限后为 250%、50 ms。
+      validation:
+        pattern: "^[0-9]+$"

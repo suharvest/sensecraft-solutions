@@ -1,0 +1,36 @@
+# Aggregation layer only: MQTT broker + hub. Detectors live on other machines
+# and publish into port 1883 here.
+#
+# The hub is pure CPU and carries no numpy/cv2 — it never decodes video and
+# never runs inference. Measured while judging two live detector streams:
+# 1.4% CPU and 44.9 MB RSS.
+services:
+  hub:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/data
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      # Empty on purpose: the hub then creates admin/admin with must_change=1
+      # and prints the credential to its own log. Set it to skip that.
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/data

@@ -1,0 +1,37 @@
+version: "1.0"
+id: rk3588_dashboard
+name: Open the Alert Workbench
+name_i18n:
+  zh: 打开告警工作台
+type: web_dashboard
+
+# The hub is on a different machine from the detector this preset deployed, so
+# its address is asked for rather than inherited.
+web_dashboard:
+  url: "http://{{hub_host}}:8090"
+  open_in: browser
+  title: Edge Security Workbench
+  title_i18n:
+    zh: 边缘安防工作台
+  description: >-
+    The Devices page should now list the RK3588 detector as online with decode
+    "hw". If it says "sw", the hardware decoder was not reachable — the
+    detector is configured to refuse that, so a "sw" row means the config was
+    changed rather than that it fell back.
+  description_i18n:
+    zh: >-
+      设备页现在应能看到 RK3588 检测器在线、解码方式为 hw。若显示 sw，说明硬解不可用——
+      检测器默认拒绝在 sw 下启动，出现 sw 表示配置被改过，而不是自动降级。
+
+user_inputs:
+  - id: hub_host
+    name: Hub IP
+    name_i18n:
+      zh: Hub IP
+    type: text
+    required: true
+    default_template: "{{hub_host}}"
+    placeholder: "192.168.1.50"
+    description: The same hub address you gave the deploy step
+    description_i18n:
+      zh: 与部署步骤中填写的 hub 地址相同

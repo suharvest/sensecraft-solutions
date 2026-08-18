@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 520" width="1100" height="520" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="1100" height="520" fill="#ffffff"/>
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2f6f8f"/>
+    </marker>
+  </defs>
+  <text x="40" y="52" fill="#12232e" font-size="26" font-weight="700">Three presets, one MQTT contract</text>
+
+  <rect x="40" y="86" width="470" height="150" rx="12" fill="#f2f7fa" stroke="#c3d6e0"/>
+  <text x="62" y="118" fill="#12232e" font-size="19" font-weight="700">Preset A — Single Box</text>
+  <text x="62" y="146" fill="#42606f" font-size="16">broker + hub + CPU/ONNX detector on one machine</text>
+  <text x="62" y="172" fill="#42606f" font-size="16">one camera in, workbench on :8090</text>
+  <text x="62" y="204" fill="#7d94a1" font-size="15">simplest deployment; no accelerator is used</text>
+
+  <rect x="560" y="86" width="500" height="150" rx="12" fill="#f2f7fa" stroke="#c3d6e0"/>
+  <text x="582" y="118" fill="#12232e" font-size="19" font-weight="700">Preset C — Hub Only</text>
+  <text x="582" y="146" fill="#42606f" font-size="16">broker + hub on an arm64 machine</text>
+  <text x="582" y="172" fill="#42606f" font-size="16">existing detectors publish into :1883</text>
+  <text x="582" y="204" fill="#7d94a1" font-size="15">deploy this first when you have several sites</text>
+
+  <rect x="40" y="266" width="470" height="150" rx="12" fill="#eef7f3" stroke="#a9d6c4"/>
+  <text x="62" y="298" fill="#12232e" font-size="19" font-weight="700">Preset B — RK3588 Detector</text>
+  <text x="62" y="326" fill="#42606f" font-size="16">NPU inference + hardware decode on the board</text>
+  <text x="62" y="352" fill="#42606f" font-size="16">points at a hub you already run</text>
+  <text x="62" y="384" fill="#7d94a1" font-size="15">41.9 ms p50 inference, 21% of one CPU core</text>
+
+  <rect x="560" y="266" width="500" height="150" rx="12" fill="#ffffff" stroke="#c3d6e0" stroke-dasharray="7 5"/>
+  <text x="582" y="298" fill="#5c7280" font-size="19" font-weight="700">Reserved — reCamera, Hailo</text>
+  <text x="582" y="326" fill="#7d94a1" font-size="16">the payload contract is published, so any device</text>
+  <text x="582" y="352" fill="#7d94a1" font-size="16">that emits it joins the same hub unchanged</text>
+  <text x="582" y="384" fill="#a0b0ba" font-size="15">no detector built for these yet</text>
+
+  <line x1="275" y1="266" x2="275" y2="240" stroke="#2f6f8f" stroke-width="2" marker-end="url(#a2)"/>
+  <text x="290" y="256" fill="#2f6f8f" font-size="15">detections + status over MQTT</text>
+
+  <text x="40" y="470" fill="#42606f" font-size="16">Topics: sensecraft/security/&lt;device_id&gt;/detections/&lt;stream_id&gt; · /status · /snapshot/&lt;event_id&gt; · /events/&lt;stream_id&gt;</text>
+  <text x="40" y="496" fill="#7d94a1" font-size="15">The hub judges rules only for detectors that carry track ids. Devices that judge on their own publish events directly.</text>
+</svg>

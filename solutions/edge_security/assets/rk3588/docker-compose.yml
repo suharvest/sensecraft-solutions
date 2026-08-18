@@ -1,0 +1,37 @@
+# Detection layer only, on an RK3588 board: inference on the NPU, decode on the
+# Rockchip MPP hardware decoder. Results go to a hub that runs somewhere else.
+#
+# Measured on RK3588 with the int8 model at 1280x720 H.264: in-pipeline
+# inference p50 41.9 ms, NPU core0 8% busy, 21% of one CPU core, decode hw.
+#
+# Two host-supplied pieces are staged next to this file by the deploy step
+# rather than baked into the image, because both must match the board:
+#   rknnsite/ - the board's rknn_toolkit_lite2, which has to match the kernel
+#               NPU driver
+#   gstmpp/   - the board's GStreamer MPP plugin and its libraries
+services:
+  detector:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-rk3588:0.1.0
+    command: ["--config", "/app/config/detector.yaml"]
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /rknnsite:/app
+      GST_PLUGIN_PATH: /gstmpp
+      LD_LIBRARY_PATH: /gstmpp:/usr/lib
+    devices:
+      # Hardware decoder, 2D scaler and the DRM node. Without these the MPP
+      # branch cannot open and the detector refuses to start on CPU decode
+      # (require_hw_decode: true).
+      - /dev/mpp_service:/dev/mpp_service
+      - /dev/rga:/dev/rga
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+    volumes:
+      - ./config/detector.yaml:/app/config/detector.yaml:ro
+      - ./rknnsite:/rknnsite:ro
+      - ./gstmpp:/gstmpp:ro
+      # The user-space RKNN library must be the board's own copy.
+      - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro

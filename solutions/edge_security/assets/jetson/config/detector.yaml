@@ -1,0 +1,22 @@
+# Placeholder. The deploy step overwrites this file with your camera URL and
+# device name before the containers start.
+device_id: edge-sec-01
+stream_id: cam-0
+source: rtsp://127.0.0.1:8554/stream
+rtsp_transport: tcp
+decode_primary: sw
+model: /app/models/yolov8n.onnx
+conf_threshold: 0.35
+iou_threshold: 0.45
+intra_threads: 4
+providers: ["CPUExecutionProvider"]
+track_iou_threshold: 0.2
+track_max_lost_s: 0.75
+mqtt_host: mosquitto
+mqtt_port: 1883
+topic_prefix: sensecraft/security
+status_interval_s: 30
+preview_enabled: true
+preview_bind: 0.0.0.0
+preview_port: 8099
+preview_advertise_host: ""

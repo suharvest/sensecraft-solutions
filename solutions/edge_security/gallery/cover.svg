@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720" font-family="Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1520"/>
+      <stop offset="100%" stop-color="#12202e"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3ec1a4"/>
+    </marker>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+
+  <text x="72" y="104" fill="#eaf3f7" font-size="46" font-weight="700">Industrial Security</text>
+  <text x="72" y="150" fill="#7fd8c1" font-size="26" font-weight="500">Detectors publish over MQTT · one hub judges the rules</text>
+
+  <!-- detection layer -->
+  <text x="72" y="222" fill="#88a2b4" font-size="18" letter-spacing="2">DETECTION LAYER</text>
+  <g>
+    <rect x="72" y="244" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
+    <text x="96" y="284" fill="#eaf3f7" font-size="22" font-weight="600">CPU / ONNX detector</text>
+    <text x="96" y="314" fill="#8fb0c4" font-size="17">RTSP in · person boxes + track ids</text>
+    <text x="96" y="338" fill="#8fb0c4" font-size="17">30-37 ms inference, 14.9 fps</text>
+
+    <rect x="72" y="380" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
+    <text x="96" y="420" fill="#eaf3f7" font-size="22" font-weight="600">RK3588 NPU detector</text>
+    <text x="96" y="450" fill="#8fb0c4" font-size="17">int8 · 41.9 ms p50 · NPU 8%</text>
+    <text x="96" y="474" fill="#8fb0c4" font-size="17">hardware decode, verified live</text>
+
+    <rect x="72" y="516" width="300" height="72" rx="14" fill="#141f2b" stroke="#243546" stroke-dasharray="6 5"/>
+    <text x="96" y="548" fill="#6f8598" font-size="20" font-weight="600">reCamera · Hailo</text>
+    <text x="96" y="572" fill="#5f7386" font-size="16">contract is open — not built yet</text>
+  </g>
+
+  <!-- arrows -->
+  <line x1="384" y1="300" x2="486" y2="380" stroke="#3ec1a4" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="384" y1="436" x2="486" y2="410" stroke="#3ec1a4" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="388" y="344" fill="#3ec1a4" font-size="14">sensecraft</text>
+  <text x="388" y="362" fill="#3ec1a4" font-size="14">.detection/1</text>
+
+  <!-- hub -->
+  <rect x="500" y="244" width="300" height="348" rx="16" fill="#16323a" stroke="#3ec1a4" stroke-width="2"/>
+  <text x="524" y="288" fill="#eaf3f7" font-size="24" font-weight="700">Aggregation hub</text>
+  <text x="524" y="322" fill="#9fd8c9" font-size="17">restricted zone intrusion</text>
+  <text x="524" y="350" fill="#9fd8c9" font-size="17">line crossing, with direction</text>
+  <text x="524" y="378" fill="#9fd8c9" font-size="17">loitering dwell timer</text>
+  <line x1="524" y1="402" x2="776" y2="402" stroke="#2c4256"/>
+  <text x="524" y="434" fill="#8fb0c4" font-size="17">cooldown · snapshots · SQLite</text>
+  <text x="524" y="462" fill="#8fb0c4" font-size="17">1.4% CPU · 44.9 MB RSS</text>
+  <text x="524" y="508" fill="#eaf3f7" font-size="19" font-weight="600">capture to alert</text>
+  <text x="524" y="548" fill="#3ec1a4" font-size="34" font-weight="700">208.7 ms</text>
+  <text x="524" y="578" fill="#7fd8c1" font-size="18">p50 · 392.1 ms p95</text>
+
+  <line x1="812" y1="418" x2="896" y2="418" stroke="#3ec1a4" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- workbench -->
+  <rect x="908" y="244" width="300" height="348" rx="16" fill="#17293a" stroke="#2c4256"/>
+  <text x="932" y="288" fill="#eaf3f7" font-size="24" font-weight="700">Alert workbench</text>
+  <rect x="932" y="312" width="252" height="52" rx="8" fill="#3a2230" stroke="#a8425f"/>
+  <text x="948" y="336" fill="#ffb7c6" font-size="17" font-weight="600">line_cross · forward</text>
+  <text x="948" y="356" fill="#c98ea0" font-size="15">cam-0 · track 7 · 12:04:31</text>
+  <rect x="932" y="376" width="252" height="52" rx="8" fill="#3a3222" stroke="#a8853f"/>
+  <text x="948" y="400" fill="#ffdca8" font-size="17" font-weight="600">loitering · 30 s dwell</text>
+  <text x="948" y="420" fill="#c9ac7f" font-size="15">cam-0 · track 4 · 12:03:58</text>
+  <rect x="932" y="440" width="252" height="52" rx="8" fill="#22303a" stroke="#3f7fa8"/>
+  <text x="948" y="464" fill="#a8dcff" font-size="17" font-weight="600">zone_enter · dock</text>
+  <text x="948" y="484" fill="#7fa8c9" font-size="15">cam-0 · track 4 · 12:03:28</text>
+  <text x="932" y="524" fill="#8fb0c4" font-size="16">acknowledge / false positive</text>
+  <text x="932" y="548" fill="#8fb0c4" font-size="16">draw rules on a live frame</text>
+  <text x="932" y="572" fill="#8fb0c4" font-size="16">CSV export · EN / ZH</text>
+
+  <text x="72" y="654" fill="#6f8598" font-size="17">Numbers measured on the reference bench: aarch64 CPU detector and an RK3588 board against a 130 s truth video.</text>
+</svg>

@@ -1,0 +1,23 @@
+version: "1.0"
+id: hub_dashboard
+name: Open the Alert Workbench
+name_i18n:
+  zh: 打开告警工作台
+type: web_dashboard
+
+inherit_host_from: deploy_edge_security_hub_only
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8090"
+  open_in: browser
+  title: Edge Security Workbench
+  title_i18n:
+    zh: 边缘安防工作台
+  description: >-
+    First login is admin / admin and the hub forces a password change. With no
+    detectors connected yet the Devices page is empty — that is the expected
+    state until you deploy one and point it at this machine on port 1883.
+  description_i18n:
+    zh: >-
+      首次登录用 admin / admin，hub 会强制改密。此时还没有检测器接入，设备页是空的——
+      这是正常状态，直到你部署一台检测器并让它连上这台机器的 1883 端口。
