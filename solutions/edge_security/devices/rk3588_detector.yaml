@@ -90,9 +90,16 @@ remote_overrides:
         run: |
           # The broker and the hub run on this same board, so both ports must
           # be free here — there is no separate aggregation machine.
+          # A redeploy sees its own containers holding the ports, so only complain
+          # about a listener that is not part of this stack.
+          mine=$(docker ps --filter "label=com.docker.compose.project=edge_security_rk3588" -q 2>/dev/null | wc -l)
           for p in 8090 1883; do
             if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
-              echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+              if [ "$mine" -gt 0 ]; then
+                echo "Port $p is held by this stack's own containers; redeploy will replace them."
+              else
+                echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+              fi
             fi
           done
           echo "port check done"

@@ -14,16 +14,20 @@ web_dashboard:
   title_i18n:
     zh: 边缘安防工作台
   description: >-
-    The hub generates a random password on first start and writes it to
-    /data/initial-password.txt inside the hub container (line 1 username, line 2
-    password); the deploy step above prints it. The hub forces a change on
+    The hub generates a random password on first start. The deploy step above
+    prints it, but some CLI output modes truncate action output — if you did not
+    see it, read it off the device with
+    `docker exec edge_security_hub-hub-1 cat /data/initial-password.txt`
+    (line 1 username, line 2 password). The hub forces a change on
     first login. The
     Devices page is empty — that is expected, since this machine has no
     detector of its own. Repoint an existing detector's mqtt_host at this
     machine on port 1883 and it appears here.
   description_i18n:
     zh: >-
-      hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
-      用户名，第二行密码），上面的部署步骤会打印出来。首次登录后 hub 会强制改密。设备页是空的——这台机器本身不带检测
+      hub 首次启动会生成随机密码。上面的部署步骤会打印出来，但部分 CLI 输出模式会截断
+      动作输出——没看到的话，在设备上执行
+      `docker exec edge_security_hub-hub-1 cat /data/initial-password.txt`
+      取回（第一行用户名，第二行密码）。首次登录后 hub 会强制改密。设备页是空的——这台机器本身不带检测
       器，属正常状态。把已有检测器的 mqtt_host 改成这台机器的地址（1883 端口），它就
       会出现在这里。
