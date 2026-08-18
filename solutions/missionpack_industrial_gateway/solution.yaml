@@ -72,7 +72,7 @@ intro:
         zh: MQTT 作为数据源时，需要可访问的 Broker 与明确的主题到点位映射
 
   output_interfaces:
-    - type: web_dashboard
+    - type: http
       description: Browser-based source, point, command receipt, and plugin management
       description_i18n:
         zh: 通过浏览器管理数据源、点位、控制回执和插件
@@ -125,8 +125,10 @@ intro:
     difficulty: intermediate
     estimated_time: 15min
 
-  links:
-    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
+  # links: omitted. The github entry here pointed at
+  # Seeed-Solution/Solution_HVAC_SmartControl -- the smart_hvac_control
+  # solution's repo, copy-pasted and never changed, and a 404 besides. Add the
+  # real MissionPack repo when there is one; a wrong link is worse than none.
 
 deployment:
   guide_file: guide.md
