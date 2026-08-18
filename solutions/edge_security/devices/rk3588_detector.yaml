@@ -229,8 +229,8 @@ remote_overrides:
         timeout: 60
         run: |
           # On a first boot with no HUB_ADMIN_PASSWORD the hub creates
-          # admin/admin with must_change=1 and prints it here.
-          docker logs edge_security_rk3588-hub-1 2>&1 | grep -iE "admin|password|must_change" | tail -5 || true
+          # a random password, writes it to /data/initial-password.txt and logs it.
+          docker exec edge_security_rk3588-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_rk3588-hub-1 2>&1 | grep -iE "password" | tail -3 || true
 
       - name: Confirm the decoder actually running
         name_i18n:

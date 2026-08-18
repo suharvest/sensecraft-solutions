@@ -16,13 +16,17 @@ web_dashboard:
   title_i18n:
     zh: 边缘安防工作台
   description: >-
-    First login is admin / admin and the hub forces a password change. The
+    The hub generates a random password on first start and writes it to
+    /data/initial-password.txt inside the hub container (line 1 username, line 2
+    password); the deploy step above prints it. The hub forces a change on
+    first login. The
     Devices page should list this board as online with decode "hw". If it says
     "sw", the hardware decoder was not reachable — the detector is configured
     to refuse that, so a "sw" row means the config was changed rather than that
     it fell back.
   description_i18n:
     zh: >-
-      首次登录用 admin / admin，hub 会强制改密。设备页应能看到这块板卡在线、解码方式为
+      hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
+      用户名，第二行密码），上面的部署步骤会打印出来。首次登录后 hub 会强制改密。设备页应能看到这块板卡在线、解码方式为
       hw。若显示 sw，说明硬解不可用——检测器默认拒绝在 sw 下启动，出现 sw 表示配置被
       改过，而不是自动降级。

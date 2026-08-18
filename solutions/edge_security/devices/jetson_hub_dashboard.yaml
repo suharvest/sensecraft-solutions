@@ -16,10 +16,14 @@ web_dashboard:
   title_i18n:
     zh: 边缘安防工作台
   description: >-
-    First login is admin / admin and the hub forces a password change. The
+    The hub generates a random password on first start and writes it to
+    /data/initial-password.txt inside the hub container (line 1 username, line 2
+    password); the deploy step above prints it. The hub forces a change on
+    first login. The
     Devices page should list your detector as online with decode "sw"; draw a
     zone or a line on the Rules page and walk into it to see the first alert.
   description_i18n:
     zh: >-
-      首次登录用 admin / admin，hub 会强制改密。设备页应能看到检测器在线、解码方式为
+      hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
+      用户名，第二行密码），上面的部署步骤会打印出来。首次登录后 hub 会强制改密。设备页应能看到检测器在线、解码方式为
       sw；在规则页画一个区域或一条线，走进去就能看到第一条告警。

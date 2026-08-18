@@ -15,7 +15,9 @@ services:
     environment:
       MQTT_HOST: mosquitto
       MQTT_PORT: "1883"
-      # Empty on purpose: the hub then creates admin/admin with must_change=1
+      # Empty on purpose: the hub then generates a random password, writes it to
+      # /data/initial-password.txt (line 1 username, line 2 password) and logs it,
+      # with must_change=1
       # and prints the credential to its own log. Set it to skip that.
       HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
     depends_on:

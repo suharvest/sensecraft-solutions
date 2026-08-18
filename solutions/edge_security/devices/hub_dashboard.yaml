@@ -14,12 +14,16 @@ web_dashboard:
   title_i18n:
     zh: 边缘安防工作台
   description: >-
-    First login is admin / admin and the hub forces a password change. The
+    The hub generates a random password on first start and writes it to
+    /data/initial-password.txt inside the hub container (line 1 username, line 2
+    password); the deploy step above prints it. The hub forces a change on
+    first login. The
     Devices page is empty — that is expected, since this machine has no
     detector of its own. Repoint an existing detector's mqtt_host at this
     machine on port 1883 and it appears here.
   description_i18n:
     zh: >-
-      首次登录用 admin / admin，hub 会强制改密。设备页是空的——这台机器本身不带检测
+      hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
+      用户名，第二行密码），上面的部署步骤会打印出来。首次登录后 hub 会强制改密。设备页是空的——这台机器本身不带检测
       器，属正常状态。把已有检测器的 mqtt_host 改成这台机器的地址（1883 端口），它就
       会出现在这里。
