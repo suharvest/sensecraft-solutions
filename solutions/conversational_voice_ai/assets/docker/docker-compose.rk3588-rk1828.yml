@@ -36,6 +36,11 @@ services:
     environment:
       OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
       OVS_AGENT_SERVER_LOOP: "0"
+      PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
+      WAKEWORD_BACKEND: ${WAKEWORD_BACKEND:-sherpa_onnx}
+      WAKEWORD_PHRASE: ${WAKEWORD_PHRASE:-你好小智}
+      WAKEWORD_THRESHOLD: ${WAKEWORD_THRESHOLD:-0.25}
+      WAKEWORD_MIC_SKIP_MS: ${WAKEWORD_MIC_SKIP_MS:-120}
       LLM_BACKEND: openai_compat
       LLM_BASE_URL: http://127.0.0.1:1828/v1
       LLM_API_KEY: EMPTY
@@ -55,5 +60,7 @@ volumes:
     name: rk-tts-models
   voice-data:
     name: conversational-voice-data
+  agent-state:
+    name: conversational-voice-agent-state
   rk1828-llm-models:
     name: rk1828-llm-models

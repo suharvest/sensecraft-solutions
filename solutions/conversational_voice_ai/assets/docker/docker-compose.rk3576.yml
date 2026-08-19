@@ -62,7 +62,7 @@ services:
       start_period: 300s
 
   agent:
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260816-3849d33-hotplug}
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260819-4480743-runtimekws}
     container_name: conversational-voice-agent
     init: true
     network_mode: host
@@ -79,10 +79,16 @@ services:
       - /dev/snd:/dev/snd
       - ./agent-config.yaml:/opt/voice/config/agent-config.yaml:ro
       - ./audio_profiles.yaml:/opt/voice/config/audio_profiles.yaml:ro
+      - agent-state:/var/lib/ovs-agent
     environment:
       CONFIG_DIR: /opt/voice/config
       OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
       OVS_AGENT_SERVER_LOOP: "0"
+      PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
+      WAKEWORD_BACKEND: ${WAKEWORD_BACKEND:-sherpa_onnx}
+      WAKEWORD_PHRASE: ${WAKEWORD_PHRASE:-你好小智}
+      WAKEWORD_THRESHOLD: ${WAKEWORD_THRESHOLD:-0.25}
+      WAKEWORD_MIC_SKIP_MS: ${WAKEWORD_MIC_SKIP_MS:-120}
       LLM_BACKEND: ${LLM_BACKEND:-openai_compat}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
       LLM_API_KEY: ${LLM_API_KEY:-EMPTY}
@@ -98,3 +104,5 @@ volumes:
     name: rk-tts-models
   voice-data:
     name: conversational-voice-data
+  agent-state:
+    name: conversational-voice-agent-state

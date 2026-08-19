@@ -9,6 +9,12 @@ Speech remains local while recognized text is sent to Qwen API or another OpenAI
 
 **Requirements:** Continuous internet · valid API key · streaming Chat Completions support
 
+**Optional wake word:** Select **Wake word required** in the deployment form and
+enter any short Chinese or English phrase. The bundled open-vocabulary
+sherpa-onnx detector compiles it on startup and plays a short 880 Hz
+confirmation tone when it is accepted. **Always listening** remains the default;
+the phrase and sensitivity are retained in the Agent state volume.
+
 ## Step 1: Deploy the Cloud-Backed Voice Terminal {#deploy_cloud type=docker_deploy required=true config=devices/cloud_rk3576.yaml}
 
 After deployment, users can interrupt a spoken answer at any time.

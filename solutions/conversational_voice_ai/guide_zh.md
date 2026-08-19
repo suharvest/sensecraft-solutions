@@ -9,6 +9,10 @@
 
 **前提条件：** 持续联网 · 有效 API Key · 模型支持流式 Chat Completions
 
+**可选唤醒词：** 在部署表单选择“唤醒词后响应”，输入任意简短中文或英文唤醒词。
+镜像内置的开放词表 sherpa-onnx 会在启动时编译，检测成功后播放一声短促的
+880 Hz 提示音。“持续监听”仍是默认方式；唤醒词和灵敏度会保存在 Agent 数据卷中。
+
 ## 步骤 1: 部署云端对话终端 {#deploy_cloud type=docker_deploy required=true config=devices/cloud_rk3576.yaml}
 
 部署后，用户可以在设备说话期间随时打断正在播放的回答。

@@ -10,10 +10,47 @@ docker:
   options: {project_name: conversational_voice_ai}
   environment:
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
   services:
     - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
     - {name: llm, port: 8000, health_check_endpoint: /health, required: true}
 ssh: {port: 22, default_user: recomputer}
+user_inputs:
+  - id: PIPELINE_MODE
+    name: Conversation mode
+    name_i18n: {zh: 对话方式}
+    type: select
+    default: always_on
+    required: false
+    reconfigurable: true
+    options:
+      - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+      - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+  - id: WAKEWORD_PHRASE
+    name: Wake word
+    name_i18n: {zh: 唤醒词}
+    type: text
+    default: 你好小智
+    required: false
+    reconfigurable: true
+    description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+    description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+  - id: WAKEWORD_THRESHOLD
+    name: Wake-word sensitivity
+    name_i18n: {zh: 唤醒灵敏度}
+    type: select
+    default: "0.25"
+    required: false
+    reconfigurable: true
+    description: Lower threshold is more sensitive and may increase false triggers.
+    description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+    options:
+      - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+      - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+      - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
 pre_checks:
   - {type: disk_space, min_gb: 25, description: At least 25GB for images and local model artifacts}
 remote_overrides:
@@ -22,10 +59,46 @@ remote_overrides:
   detection: {method: network_scan, manual_entry: true}
   environment:
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
   user_inputs:
     - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
     - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+    - id: PIPELINE_MODE
+      name: Conversation mode
+      name_i18n: {zh: 对话方式}
+      type: select
+      default: always_on
+      required: false
+      reconfigurable: true
+      options:
+        - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+        - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+    - id: WAKEWORD_PHRASE
+      name: Wake word
+      name_i18n: {zh: 唤醒词}
+      type: text
+      default: 你好小智
+      required: false
+      reconfigurable: true
+      description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+      description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+    - id: WAKEWORD_THRESHOLD
+      name: Wake-word sensitivity
+      name_i18n: {zh: 唤醒灵敏度}
+      type: select
+      default: "0.25"
+      required: false
+      reconfigurable: true
+      description: Lower threshold is more sensitive and may increase false triggers.
+      description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+      options:
+        - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+        - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+        - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
     - id: SYSTEM_PROMPT
       name: Assistant personality
       name_i18n: {zh: 助手人设与回答风格}

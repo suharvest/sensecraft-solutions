@@ -48,10 +48,46 @@ mic_channel_select: auto
 audio_input_sample_rate: 16000
 audio_output_sample_rate: 24000
 
-pipeline_mode: always_on
+# The shipped image contains the small sherpa-onnx open-vocabulary KWS
+# assets.  Keep the application compatible with the existing always-on mode;
+# selecting ``wake_word`` enables the runtime source without rebuilding the
+# image.  The environment variables are intentionally resolved by the Agent
+# config loader so the same file works for local and SSH deployment.
+pipeline_mode: "${PIPELINE_MODE:-always_on}"
+wake_sources: []
+wake_mic_skip_ms: "${WAKEWORD_MIC_SKIP_MS:-120}"
+wake_phrases:
+  - "${WAKEWORD_PHRASE:-你好小智}"
 default_mode: "${DEFAULT_MODE:-chat}"
 realtime_protocol_version: 1
 log_level: INFO
 
 metadata:
   dashboard_port: 18000
+  wake_tone:
+    hz: 880
+    ms: 130
+    mic_suppress_tail_ms: 120
+  wakeword:
+    # The source is registered only when pipeline_mode=wake_word.  Keeping
+    # this configurable lets operators turn the feature off without editing
+    # the mounted YAML file.
+    backend: "${WAKEWORD_BACKEND:-sherpa_onnx}"
+    phrases:
+      - "${WAKEWORD_PHRASE:-你好小智}"
+    model:
+      tokens: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/tokens.txt"
+      encoder: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/encoder-epoch-13-avg-2-chunk-8-left-64.int8.onnx"
+      decoder: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/decoder-epoch-13-avg-2-chunk-8-left-64.onnx"
+      joiner: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/joiner-epoch-13-avg-2-chunk-8-left-64.int8.onnx"
+      keywords_threshold: "${WAKEWORD_THRESHOLD:-0.25}"
+      keywords_score: "${WAKEWORD_SCORE:-1.0}"
+      num_trailing_blanks: 1
+      num_threads: 1
+    compiler:
+      tokens: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/tokens.txt"
+      lexicon: "${WAKEWORD_MODEL_DIR:-/opt/ovs/models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20}/en.phone"
+      tokens_type: phone+ppinyin
+      timeout_s: 10
+    cooldown_s: "${WAKEWORD_COOLDOWN_S:-2.0}"
+    state_path: /var/lib/ovs-agent/wakeword.json

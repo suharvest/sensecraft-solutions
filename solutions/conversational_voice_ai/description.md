@@ -9,6 +9,7 @@ This is a persistent device application, not a push-to-talk browser demo. The on
 | Benefit | What it means |
 |---------|---------------|
 | Natural interruption | Capture stays active during playback; new speech cancels generation, drains queued audio, and starts the next turn |
+| Optional open-vocabulary wake word | Require any short Chinese or English phrase before a turn; a short confirmation tone signals successful detection |
 | Pluggable conversation layer | Use Qwen API or another OpenAI-compatible endpoint, or keep the model local on supported hardware |
 | One experience across four platforms | RK3576, RK3588, Orin Nano, and Orin NX share the same duplex protocol and agent behavior |
 | Local audio processing | Qwen3-ASR and Matcha-TTS run on the device; the fully local preset also keeps conversation text on-device |
@@ -38,6 +39,13 @@ This is a persistent device application, not a push-to-talk browser demo. The on
 - Software does not replace acoustic echo cancellation. A basic USB microphone may re-capture speaker output and cause false interruptions or an echo loop.
 - The validated reSpeaker XVF3800 2-channel and 6-channel firmware layouts are detected automatically. Unknown microphones default to the first capture channel and need an acoustic check.
 - Muting the microphone during playback is not recommended: it prevents echo, but it also makes barge-in impossible.
+
+### Optional Wake Word
+
+Select **Wake word required** during deployment to enable the bundled
+open-vocabulary sherpa-onnx detector. Enter any short Chinese or English phrase;
+the agent compiles it locally and plays a short 880 Hz tone after detection.
+**Always listening** remains the default for backward-compatible hands-free use.
 
 ### Network
 
