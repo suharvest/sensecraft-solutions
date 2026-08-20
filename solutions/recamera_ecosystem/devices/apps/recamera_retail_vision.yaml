@@ -21,11 +21,11 @@ ssh:
 binary:
   # .deb 包安装（包含 init 脚本 K92retail-vision）
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/retail-vision_1.4.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/retail-vision_1.5.1_riscv64.deb
     name: retail-vision
     includes_init_script: true
     checksum:
-      sha256: 1de59bc232d308acdc3ee371b58830b527442f18e7456ed3dccec3310969a9e1
+      sha256: de070d1edaa6711346888b03efaa168147beb170e01d70f3b0959ce10f712df0
 
   # 模型文件部署（复用通用 person 检测模型 yolo11n）
   models:
