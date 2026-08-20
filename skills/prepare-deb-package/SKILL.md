@@ -343,5 +343,5 @@ mosquitto_sub -h localhost -t "sscma/v0/#" -v
 
 ## Reference Solutions
 
-- `solutions/recamera_ecosystem/` — see `devices/recamera_yolo11.yaml` (`type: recamera_cpp`, ships a `.cvimodel` + `binary.deb_package.path`, YOLO11/YOLO26/YOLO8 variants).
+- `solutions/recamera_ecosystem/` — see `devices/apps/recamera_yolo11.yaml` (`type: recamera_cpp`, ships a `.cvimodel` + `binary.deb_package.path`, YOLO11/YOLO26/YOLO8 variants).
   - **Note**: in the real solution the `.deb` and `.cvimodel` are served from a **CDN URL** (e.g. `https://sensecraft-statics.seeed.cc/.../yolo-detector_0.1.1_riscv64.deb`) rather than committed under `packages/`. Both `deb_package.path` and `models[].path` accept URLs — files are downloaded and cached before deployment (the `packages/` layout shown above is just the local-files alternative).

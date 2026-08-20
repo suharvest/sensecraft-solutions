@@ -137,3 +137,16 @@ post_deployment:
 
 name_i18n:
   zh: reCamera 跌倒检测
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Fall Detection"
+catalog_name_i18n:
+  zh: "跌倒检测"
+catalog_description: "Detect rapid falls with an on-device pose timeline and publish alerts over MQTT — designed for fixed, single-person indoor views"
+catalog_description_i18n:
+  zh: "通过设备本地姿态时序识别快速跌倒并用 MQTT 推送告警——适合固定机位、单人室内看护场景"

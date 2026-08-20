@@ -198,3 +198,16 @@ post_deployment:
   open_browser: false
 name_i18n:
   zh: reCamera 零售人流分析
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Retail People Counting"
+catalog_name_i18n:
+  zh: "零售人流分析"
+catalog_description: "Count customers in and out, see where they linger, and spot who needs help — automatic entry/exit counting plus browsing / engaged / assistance states, all on-device"
+catalog_description_i18n:
+  zh: "自动统计进出客流、区分浏览/驻足/求助状态，看清顾客在哪儿停留、谁正需要帮助——全部在设备上处理"

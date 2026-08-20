@@ -169,3 +169,16 @@ post_deployment:
   open_browser: false
 name_i18n:
   zh: reCamera 人脸分析
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Face Analysis"
+catalog_name_i18n:
+  zh: "人脸分析"
+catalog_description: "Detect faces and analyze age, gender, and emotion — all on-device, with privacy blur on the video stream"
+catalog_description_i18n:
+  zh: "检测人脸并分析年龄、性别、表情——全部在设备上处理，视频流中自动打码保护隐私"

@@ -148,3 +148,16 @@ post_deployment:
 
 name_i18n:
   zh: reCamera 二维码识别
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "QR Code Reader"
+catalog_name_i18n:
+  zh: "二维码识别"
+catalog_description: "Turn the camera into a hands-free scanner — every QR code in view is decoded at once and pushed straight into your workflow, no model and no handheld gun needed"
+catalog_description_i18n:
+  zh: "把摄像头变成免手持扫码枪——一次识别画面里的所有二维码，结果直接推进业务流程，不需要模型，也不需要手持设备"
