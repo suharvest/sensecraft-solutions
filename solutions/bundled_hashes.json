@@ -2,7 +2,7 @@
   "ai_lab": "sha256:462c5c8cb468186083d72f8d0314f12e96e93e8ef122b06ee649da93db6f1a60",
   "conversational_voice_ai": "sha256:ac32ffabbc16c4eb7ec7574412329d25415faf8a47a97c822db130df3151073c",
   "depth_anything_v3": "sha256:73620e0f73b6f833b5310c7aac880f26f2c63ec43b10e6be32895d4b3c45f769",
-  "fall_detection": "sha256:2e3b52428bc69cbcfc2102094a3273ee507d5f060e80b8fc7c8684832a1ef8d6",
+  "fall_detection": "sha256:3ccd63e0960db1a2d4bd5b81af96846283d4804ce0eb108028bc31694f9e96e3",
   "gpt_oss_20b": "sha256:10f52a76a3b36bc84599df9c4b27f6a7121eea09c9f65d9fc1c305acfff4572f",
   "gun_detection_frigate": "sha256:fbedbbf3bfdb17f33b9a2229ee8e3154dca30c233339449a9b875e7cb8b1bb41",
   "indoor_positioning_ble_lorawan": "sha256:3800f2c609b87436281b61bfa7320ec19e36dc6082cb1481ebfd3bb129b898d9",

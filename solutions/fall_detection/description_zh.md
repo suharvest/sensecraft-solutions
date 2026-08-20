@@ -181,6 +181,27 @@ reCamera 2002 与 Pro 只有 INT8，没有 FP16 版本。
 Jetson 两块板在 1–6 个并发上下文下总吞吐几乎不变，说明并发共享同一份 GPU 预算，不会
 线性倍增。
 
+**多路实测容量（YOLO11s-Pose FP16，运行时 `0.1.0-rc2`）。** 上面两张表是 YOLO11n 的
+加速器单帧数据。端到端路数是用实际部署的 YOLO11s 配置单独测的：640x640 H264、
+15 FPS RTSP 输入、60 s 窗口，一路要稳定输出 14.5 FPS 以上才算带得动。
+
+| 模组 | 15 FPS 下最大路数 | 聚合吞吐 | GPU |
+|---|---:|---:|---:|
+| reComputer J（Orin Nano Super） | 8 | 119.6 | 91% |
+| reComputer J（Orin NX Super） | 9 | 134.4 | 95% |
+| Jetson AGX Orin 32G | 16 | 239.8 | 89% |
+
+这组数字取代此前「Orin Nano 4 路、Orin NX 3 路」的建议。差异来自 `0.1.0-rc2` 的两处
+改动。TensorRT 运行器原先用同步拷贝取回输出，该拷贝走 CUDA legacy default stream，
+形成设备级 barrier，导致无论加多少路 GPU 利用率都停在 59–77%；现在改为在每个运行器
+自己的 non-blocking stream 上异步拷贝。超过 7 路时控制平面还会自动拆分成多个进程，
+因为逐帧的 payload 构造、JSON 序列化和 MQTT 发布都要争同一个 GIL。上表的路数下两块板
+都已是加速器受限——再加路只会拉低每路帧率，总量不再上升。
+
+Orin NX Super 在这里比 Orin Nano Super 快 12%，与两者纯加速器吞吐的差距一致
+（同一 engine 下 173.8 对 155.3 qps）。两个模组都是 1024 CUDA core，而 FP16 GPU 路径
+既不用 DLA 也不用 INT8，所以 TOPS 标称暗示的倍数关系不会出现。
+
 换到一个独立的外部数据集（RealBiomFall，34 段全部为跌倒），在该数据集上实测的两
 个配置召回都会下降——reCamera 是 58.8%，reComputer J 上部署版 YOLO11m 是 52.9%；
 YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮挡的情况下，人本身就几
@@ -202,8 +223,9 @@ YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮
 
 reComputer 套餐可以用一台设备接入多路摄像头，并把流编号拼在主题后面
 （`recamera/fall-detection/results/cam-01`），下游能把每路分开处理。本方案端到端
-实测过的是单路；上游项目建议的起步路数是 Orin Nano 上 4 路 YOLO11s、Orin NX 上
-3 路 YOLO11m，按 15 FPS 输入，之后要用你自己的摄像头、编码和场景人数实测再定路数。
+部署预设配的是单路；多路容量另行实测，YOLO11s 按 15 FPS 输入时 Orin Nano Super 8 路、
+Orin NX Super 9 路、AGX Orin 16 路（见性能一节）。那组实测每路用的是同一段循环片源，
+所以正式定路数前仍要用你自己的摄像头、编码和场景人数跑一遍。
 
 ## 方案对比
 

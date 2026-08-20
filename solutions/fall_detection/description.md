@@ -225,6 +225,34 @@ the temporal weights need re-checking before that switch.
 Both Jetson boards hold essentially flat aggregate throughput from 1 to 6 concurrent
 contexts, so concurrency shares one GPU budget rather than multiplying it.
 
+**Measured multi-stream capacity (YOLO11s-Pose FP16, runtime 0.1.0-rc2).** The
+figures above are accelerator-only on YOLO11n. End-to-end stream density was
+measured separately with the deployed YOLO11s configuration: 640x640 H264
+15 FPS RTSP sources, 60 s windows, a stream counting as carried only when it
+sustained at least 14.5 published FPS.
+
+| Module | Max streams at 15 FPS | Aggregate FPS | GPU |
+|---|---:|---:|---:|
+| reComputer J (Orin Nano Super) | 8 | 119.6 | 91% |
+| reComputer J (Orin NX Super) | 9 | 134.4 | 95% |
+| Jetson AGX Orin 32G | 16 | 239.8 | 89% |
+
+These supersede the earlier suggestion of 4 streams on Orin Nano and 3 on
+Orin NX. Two changes in the `0.1.0-rc2` runtime account for the difference. The TensorRT
+runner used to read its output back with a synchronous copy on the CUDA legacy
+default stream, which acted as a device-wide barrier and held GPU utilisation
+at 59–77% no matter how many streams were added; it now copies asynchronously
+on each runner's own non-blocking stream. Above 7 streams the control plane
+also shards itself across OS processes, because per-frame payload building,
+JSON encoding and MQTT publishing contend for a single GIL. Both boards are
+accelerator-bound at the counts above — adding streams past them lowers
+per-stream FPS without raising the total.
+
+Orin NX Super leads Orin Nano Super by 12% here, matching their 12% gap in
+pure accelerator throughput (173.8 against 155.3 qps for this engine). Both
+modules carry 1024 CUDA cores, and an FP16 GPU path uses neither the DLA nor
+INT8, so the ratio their TOPS ratings suggest does not appear.
+
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
 YOLO11m on reComputer J. YOLO11s was not measured on that set. The limiting factor
@@ -249,10 +277,11 @@ a room, floor or site name works just as well. `stream_id` is also carried in th
 nothing downstream has to parse the topic to know where a message came from.
 
 stream id to the topic (`<device-name>/fall-detection/results/cam-01`), so each camera
-stays separable downstream. This solution was verified end to end on one stream;
-the upstream project suggests starting at 4 streams with YOLO11s on Orin Nano, or
-3 with YOLO11m on Orin NX, at 15 FPS, then measuring your own cameras, codec and
-scene density before committing to a count.
+stays separable downstream. The deploy preset configures one stream; multi-stream
+capacity was measured separately at 8 streams on Orin Nano Super, 9 on Orin NX
+Super and 16 on AGX Orin with YOLO11s at 15 FPS (see Performance). Those runs
+used one looped clip per stream, so measure your own cameras, codec and scene
+density before committing to a count.
 
 ## Deployment Comparison
 

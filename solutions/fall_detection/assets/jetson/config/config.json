@@ -46,6 +46,7 @@
     "cert_file": "",
     "key_file": ""
   },
+  "runtime": {"workers": "auto", "max_streams_per_worker": 7},
   "streams": [
     {
       "id": "cam-01",
