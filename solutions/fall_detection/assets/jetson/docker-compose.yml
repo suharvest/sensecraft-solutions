@@ -3,7 +3,7 @@
 # The image carries no CUDA, TensorRT, OpenCV or GStreamer of its own — L4T
 # r36.x userspace is Ubuntu 22.04, so a plain Ubuntu base is ABI-compatible with
 # the host's stack and the host libraries stay authoritative. That keeps the
-# image at ~206 MB instead of several GB.
+# image at ~138 MB instead of several GB.
 #
 # Host libraries are exposed under private paths (/host-lib, /host-opencv,
 # /host-python) and reached through LD_LIBRARY_PATH / PYTHONPATH. They are
@@ -12,7 +12,7 @@
 # "libblas.so.3: cannot open shared object file".
 services:
   fall-detection:
-    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-jetson:0.1.0-rc1
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-jetson:0.1.0-rc2
     command: ["--config", "/app/config/config.json"]
     restart: unless-stopped
     runtime: nvidia
