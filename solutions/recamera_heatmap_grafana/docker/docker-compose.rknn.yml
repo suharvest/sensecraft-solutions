@@ -1,0 +1,42 @@
+# Rockchip RK3576 / RK3588 detector.
+#
+# One runtime image serves both boards — only the .rknn model differs, and the
+# deploy step downloads the right one. The image carries no vendor libraries:
+# librknnrt, the MPP decoder and RGA are mounted from the host because the
+# user-space library has to match the kernel NPU driver, so the host copy stays
+# authoritative rather than a version baked into the image.
+#
+# This stack is the detector only. The dashboard backend (InfluxDB, Grafana,
+# MQTT broker, heatmap) comes from docker-compose.yml and can run on this same
+# board or on another machine — point MQTT_HOST at wherever it landed.
+services:
+  retail-vision:
+    image: sensecraft-missionpack.seeed.cn/solution/retail-vision-rknn:0.1.0
+    container_name: retail-vision-rknn
+    network_mode: host
+    privileged: true
+    restart: unless-stopped
+    devices:
+      - "/dev/dri:/dev/dri"
+    # GStreamer caches its plugin scan under $HOME/.cache. A cache written
+    # before the host MPP plugin was mounted keeps mppvideodec invisible and
+    # the app silently falls back to CPU decode with no error anywhere. A
+    # tmpfs forces a fresh scan on every start.
+    tmpfs:
+      - /root/.cache
+    volumes:
+      - /lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so:/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so:ro
+      - /lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoparsersbad.so:/lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoparsersbad.so:ro
+      - /lib/aarch64-linux-gnu/libgstcodecparsers-1.0.so.0:/lib/aarch64-linux-gnu/libgstcodecparsers-1.0.so.0:ro
+      - /lib/aarch64-linux-gnu/librockchip_mpp.so.1:/lib/aarch64-linux-gnu/librockchip_mpp.so.1:ro
+      - /lib/aarch64-linux-gnu/librga.so.2:/lib/aarch64-linux-gnu/librga.so.2:ro
+      - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro
+      # Only the packages actually imported are exposed. Mounting the host's
+      # whole dist-packages — or mounting onto the container's site-packages —
+      # shadows the image's numpy with the host build and breaks the import.
+      - /usr/lib/python3/dist-packages/rknnlite:/usr/local/lib/python3.11/site-packages/rknnlite:ro
+      - /usr/lib/python3/dist-packages/ruamel:/usr/local/lib/python3.11/site-packages/ruamel:ro
+      - /usr/lib/python3/dist-packages/psutil:/usr/local/lib/python3.11/site-packages/psutil:ro
+      - ./rknn-config:/config:ro
+      - ./rknn-models:/models:ro
+    command: ["--config", "/config/config.json"]
