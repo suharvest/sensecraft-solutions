@@ -242,6 +242,116 @@ that site.
 | Duplicate alerts for one motionless person | The detector is falling behind and the tracker is issuing new track ids. Check the detection rate on the Devices page against the camera's frame rate. |
 | Rule canvas is grey for this device | `preview_advertise_host` must be the board's LAN address so the hub can fetch a frame from port 8099. |
 
+## Preset: Hailo Single Box {#hailo}
+
+Everything on one board with a Hailo-8: the MQTT broker, the aggregation hub
+with its alert workbench, and a detector doing person detection on the
+accelerator. No second machine is required.
+
+Measured on a Raspberry Pi 5 + Hailo-8 at 1280x720: inference p50 7.7 ms and
+p95 8.4 ms inside the live pipeline, full pipeline p50 9.5 ms, 8.7-13.0% of one
+CPU core, 127-131 MB resident, while ten unrelated containers shared the board.
+
+**Video decode runs on the CPU here, and that is the design rather than a
+fault.** The Raspberry Pi 5 has no H.264 decoder — VideoCore VII decodes HEVC
+only — so the detector reports `decode: "sw"` with `fallback_active` false, and
+the CPU figure above buys decode as well as inference. Budget for that before
+adding a second camera.
+
+## Step 1: Deploy the Security Stack {#deploy_edge_security_hailo type=docker_deploy required=true config=devices/hailo_detector.yaml}
+
+Enter the board address and your camera URL; three containers are installed and
+started on the board.
+
+### Prerequisites
+
+- The Hailo PCIe driver loaded, so `/dev/hailo0` exists, and the matching
+  `hailort` package installed so `/usr/lib/libhailort.so` exists. Driver and
+  library must be the same version; the container mounts the board's copy.
+- **Nothing else holding the accelerator.** HailoRT hands the device to one
+  process at a time unless every consumer on the board goes through its
+  multi-process service, which is off by default. The deploy step checks this
+  and stops if something else has it open.
+- The HailoRT Python wheel (`hailort-*-cp311-*_aarch64.whl`) somewhere under
+  your home directory. Raspberry Pi OS ships Python 3.13 while Hailo publishes
+  a cp311 wheel, so there is nothing importable to copy out of the board's
+  site-packages; the deploy step unpacks the wheel for the container's Python
+  3.11 instead.
+- An RTSP camera stream.
+- Ports 8090 (workbench), 1883 (broker) and 8099 (camera preview) free on the
+  board.
+- About 4 GB of free disk for the two images, the staged package and the alert
+  database.
+
+### What to check
+
+- The step prints the hub's `/api/health` response, and the admin credential
+  from the hub log if this is a first boot.
+- It then prints `/api/devices`. The board should be listed online with
+  `"decode": "sw"`, `"fallback_active": false`, and a `backend` naming the
+  HailoRT version — that last field is the evidence a VDevice was actually
+  opened, since a device taken by another process fails before this point.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Deploy stops at "/dev/hailo0 is already held by" | Something else is using the accelerator — commonly another vision container. Stop it and redeploy. HailoRT cannot share the device between processes unless all of them use its multi-process service. |
+| `hailortcli fw-control identify` works, so you assume the device is free | It is not that check. `fw-control identify` opens a control handle rather than a VDevice and succeeds against a fully occupied device. The real test is opening a VDevice, which is what the deploy step's check approximates by reading `/proc/*/fd`. |
+| Detector exits with `HAILO_OUT_OF_PHYSICAL_DEVICES(74)` | Same cause as above, seen from inside the container. |
+| Deploy stops at "No hailort cp311 wheel found" | Download it from the Hailo developer zone, matching your installed driver version, and leave it under your home directory. It is not on a public index, which is why the image does not carry it. |
+| Detector starts, then the process exits 139 or 135 after printing a complete result | Fixed in the shipped image. If you are running an older build, the teardown released the device before its Python wrappers were destroyed. |
+| Devices page shows `decode: "sw"` | That is correct on this board and not a fallback. See the note above. |
+| Detector runs but the hub never lists it | The broker is in the same stack, so `mqtt_host` in `config/detector.yaml` should read `mosquitto`. The detector publishes its status every 30 s — wait a cycle before concluding anything. |
+| Hub does not answer on 8090 | `docker compose logs hub`. A port already in use on the board is the usual cause. |
+
+### Target {#hailo_board type=remote device_name="Hailo Board" config=devices/hailo_detector.yaml default=true}
+
+## Step 2: Open the Alert Workbench {#dashboard_edge_security_hailo type=web_dashboard required=true config=devices/hailo_dashboard.yaml}
+
+Open the workbench on the board itself and draw your first rule.
+
+### Deployment Complete
+
+The board is detecting people and judging rules on itself. The workbench is at
+`http://<board>:8090`.
+
+#### First login
+
+The hub generates a random password on first start and forces a change on first
+login. The deploy step prints it; if the output was truncated, read it off the
+board with `docker exec edge_security_hailo-hub-1 cat /data/initial-password.txt`
+— line 1 is the username, line 2 the password.
+
+#### Draw your first rule
+
+Open **Rules**, pick this board's camera, and draw on the live frame the hub
+proxies from the detector. A polygon becomes a restricted zone; a line becomes a
+tripwire whose arrow shows which direction counts as forward. Rules are stored
+in normalized coordinates, so they survive a resolution change — but not a
+camera move, since the boundary is drawn on that view.
+
+#### What it publishes
+
+Detections go to `sensecraft/security/<device_id>/detections/<stream_id>`, the
+hub's verdicts to `.../events/<stream_id>`, and retained availability to
+`.../status`. Boxes are normalized against the original frame, not the letterbox
+the model sees, so a subscriber does not need to know the input size.
+
+#### Adding a second camera
+
+The accelerator has headroom — the detector sustains far above a 5 fps source —
+but each additional stream also adds a software H.264 decode on the CPU, which
+is the first thing to run out on this board. Add one, watch the detector's CPU
+figure on the Devices page, and add the next only if there is room.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Live frame does not load in the rule editor | The hub proxies it from the detector's preview endpoint. Check `preview_advertise_host` in `config/detector.yaml` is the board's LAN address rather than `127.0.0.1`. |
+| Alerts arrive without snapshots | The detector answers snapshot requests over MQTT. If the broker restarted, wait one status cycle for the detector to reconnect. |
+
 ## Preset: Shared Hub (Optional Expansion) {#hub_only}
 
 This is not the normal way to deploy this solution. The Jetson and RK3588

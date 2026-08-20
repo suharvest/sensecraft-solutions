@@ -49,6 +49,7 @@ intro:
     - rk3588
     - jetson
     - tensorrt
+    - hailo
 
   output_interfaces:
     - type: http
@@ -107,6 +108,20 @@ intro:
       description: Runs broker, hub and the NPU detector on one board — inference on the NPU, video decode on the board's hardware decoder
       description_i18n:
         zh: 一块板卡同时跑 broker、hub 和 NPU 检测器——推理走 NPU，视频解码走板载硬解
+    recomputer_r20_industrial:
+      description: Runs broker, hub and the Hailo-8 detector on one box — inference on the accelerator, video decode on the CPU
+      description_i18n:
+        zh: 一台设备同时跑 broker、hub 和 Hailo-8 检测器——推理走加速器，视频解码走 CPU
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    raspberry_pi5_hailo:
+      name: Raspberry Pi 5 + Hailo-8
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8
+      description: A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. This is the board the measurements below were taken on
+      description_i18n:
+        zh: 装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。下面的实测数据就是在这块板卡上取得的
     generic_arm64_host:
       name: Generic Docker Host
       name_i18n:
@@ -206,6 +221,56 @@ intro:
           options:
             - device_ref: recomputer_rk3588
           default: recomputer_rk3588
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hailo
+      name: Hailo Single Box
+      name_i18n:
+        zh: Hailo 单机部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: "One board with a Hailo-8 runs everything — broker, hub and the detector. Measured on a Raspberry Pi 5 + Hailo-8 at 1280x720: 7.7 ms per inference, 9.5 ms for the full pipeline, 8.7-13.0% of one CPU core. Video decode is on the CPU: this board has no H.264 decoder, so that CPU figure covers decode as well as inference."
+      description_i18n:
+        zh: "一块带 Hailo-8 的板卡跑完整套——broker、hub 和检测器。Raspberry Pi 5 + Hailo-8、1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU：该板卡没有 H.264 硬解，所以这个 CPU 数字里同时含解码和推理。"
+      architecture_image: gallery/architecture.svg
+      # Not marked verified: hardware. The detector itself was measured on a
+      # Raspberry Pi 5 + Hailo-8 and passes the truth-video assertions there,
+      # but this preset's own compose file, image and staging steps have not
+      # been deployed through the engine's path yet, and nothing has been run
+      # on a reComputer R20 at all. The bar for that badge on the other presets
+      # is an observed business output from a deployment done by these steps.
+      #
+      # Two board facts the deploy steps encode, both found the hard way:
+      #   * HailoRT hands a VDevice to ONE process at a time unless every
+      #     consumer goes through the multi-process service, which is off by
+      #     default. `hailortcli fw-control identify` does NOT detect this --
+      #     it opens a control handle and succeeds against a fully occupied
+      #     device -- so the before-check reads /proc/*/fd instead.
+      #   * Raspberry Pi OS ships Python 3.13 while Hailo publishes a cp311
+      #     wheel, so `import hailo_platform` fails on the board's own
+      #     interpreter even when HailoRT is installed correctly. There is
+      #     nothing to copy out of site-packages the way the Rockchip preset
+      #     does; the deploy step unpacks the wheel for the container's 3.11.
+      device_groups:
+        - id: compute
+          name: Board
+          name_i18n:
+            zh: 板卡
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+            - device_ref: raspberry_pi5_hailo
+          default: recomputer_r20_industrial
         - id: camera
           name: IP Camera
           name_i18n:

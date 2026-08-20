@@ -205,6 +205,98 @@ CPU 占单核 21%，解码确认走硬件。
 | 一个人站着不动却重复报警 | 检测器跟不上视频流，跟踪器在不断发新的 track id。用设备页的检测速率和摄像头帧率对一下。 |
 | 这台设备的规则底图是灰的 | `preview_advertise_host` 要填板卡的局域网地址，hub 才能从 8099 端口取到画面。 |
 
+## 套餐: Hailo 单机部署 {#hailo}
+
+一块带 Hailo-8 的板卡跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走
+加速器的检测器。不需要第二台机器。
+
+Raspberry Pi 5 + Hailo-8 实测（1280x720）：流水线内推理 p50 7.7 ms、p95 8.4 ms，
+全管线 p50 9.5 ms，CPU 占单核 8.7-13.0%，常驻内存 127-131 MB，测量时板卡上另有
+十个无关容器在跑。
+
+**视频解码在 CPU 上,这是设计如此,不是故障。** Raspberry Pi 5 没有 H.264 硬解——
+VideoCore VII 只解 HEVC——所以检测器上报 `decode: "sw"`、`fallback_active` 为
+false，上面那个 CPU 数字里同时包含了解码和推理。加第二路摄像头前先把这部分算进去。
+
+## 步骤 1: 部署安防服务栈 {#deploy_edge_security_hailo type=docker_deploy required=true config=devices/hailo_detector.yaml}
+
+填入板卡地址和摄像头地址，在板卡上安装并启动三个容器。
+
+### 前置条件
+
+- Hailo PCIe 驱动已加载（存在 `/dev/hailo0`），且安装了版本匹配的 `hailort` 包
+  （存在 `/usr/lib/libhailort.so`）。驱动与用户库必须同版本，容器挂载的是板卡自己
+  那一份。
+- **加速器没有被别的程序占用。** HailoRT 同一时刻只把设备交给一个进程，除非板上
+  每一个使用方都改走它的多进程服务（默认关闭）。部署步骤会检查，被占用时直接停下。
+- 家目录下有 HailoRT 的 Python wheel（`hailort-*-cp311-*_aarch64.whl`）。
+  Raspberry Pi OS 现在是 Python 3.13，而 Hailo 发的是 cp311 wheel，所以板卡自己的
+  site-packages 里没有可 import 的包可拷；部署步骤改为解包 wheel 给容器里的 3.11 用。
+- 一路 RTSP 摄像头。
+- 板卡上 8090（工作台）、1883（broker）、8099（画面预览）端口空闲。
+- 约 4 GB 可用磁盘，用于两个镜像、暂存的依赖包和告警数据库。
+
+### 检查内容
+
+- 该步骤会打印 hub 的 `/api/health` 响应；若是首次启动，还会打印管理员登录信息。
+- 随后打印 `/api/devices`。板卡应显示在线、`"decode": "sw"`、
+  `"fallback_active": false`，并带一个标明 HailoRT 版本的 `backend` 字段——
+  最后这个字段是「确实打开了 VDevice」的证据，因为设备被别的进程占用时会在这之前就失败。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|------|----------|
+| 部署停在「/dev/hailo0 is already held by」 | 有别的程序在用加速器，常见是另一个视觉容器。停掉它再重新部署。HailoRT 无法在进程间共享设备，除非所有使用方都走多进程服务。 |
+| `hailortcli fw-control identify` 能通，就以为设备空闲 | 那不是这个检查。`fw-control identify` 开的是 control handle 而不是 VDevice，对完全被占用的设备照样成功。真正的判据是能否打开 VDevice，部署步骤用读 `/proc/*/fd` 来近似。 |
+| 检测器报 `HAILO_OUT_OF_PHYSICAL_DEVICES(74)` 退出 | 同上，只是从容器内部看到的表现。 |
+| 部署停在「No hailort cp311 wheel found」 | 从 Hailo developer zone 下载与已装驱动同版本的 wheel，放在家目录下。它不在公开源上，这也是镜像不内置它的原因。 |
+| 检测器打印完整结果后进程以 139 或 135 退出 | 已在发布镜像中修复。若你在跑更早的构建，原因是 teardown 先释放了设备、后析构它的 Python wrapper。 |
+| 设备页显示 `decode: "sw"` | 该板卡上这是正确状态，不是降级。见上方说明。 |
+| 检测器在跑但 hub 一直不列出它 | broker 在同一套栈里，`config/detector.yaml` 里的 `mqtt_host` 应为 `mosquitto`。检测器每 30 秒上报一次状态，等一个周期再下结论。 |
+| hub 在 8090 上没响应 | `docker compose logs hub`。通常是板卡上该端口已被占用。 |
+
+### 部署目标 {#hailo_board type=remote device_name="Hailo 板卡" config=devices/hailo_detector.yaml default=true}
+
+## 步骤 2: 打开告警工作台 {#dashboard_edge_security_hailo type=web_dashboard required=true config=devices/hailo_dashboard.yaml}
+
+在板卡上打开工作台，画出第一条规则。
+
+### 部署完成
+
+板卡正在本地做人体检测和规则判定。工作台地址是 `http://<板卡地址>:8090`。
+
+#### 首次登录
+
+hub 首次启动会生成随机密码，并在首次登录时强制修改。部署步骤会打印出来；若输出被截断，
+在板卡上执行 `docker exec edge_security_hailo-hub-1 cat /data/initial-password.txt`
+取回——第一行是用户名，第二行是密码。
+
+#### 画出第一条规则
+
+打开 **Rules**，选中这块板卡的摄像头，在 hub 从检测器代理过来的实时画面上作图。
+多边形是禁区，线段是越线，箭头指向规则判为 forward 的方向。规则按归一化坐标保存，
+换分辨率仍然成立——但摄像头不能移动，因为边界是画在这个机位的画面上的。
+
+#### 上报的内容
+
+检测结果发到 `sensecraft/security/<device_id>/detections/<stream_id>`，hub 的判定结果
+发到 `.../events/<stream_id>`，retained 的在线状态发到 `.../status`。检测框按**原始画面**
+归一化，而不是模型看到的 letterbox 画面，所以订阅方不需要知道模型输入尺寸。
+
+#### 增加第二路摄像头
+
+加速器还有余量——检测器的吞吐远高于 5 fps 的源——但每加一路也会多一份 CPU 上的
+H.264 软解，而软解正是这块板卡上最先耗尽的东西。先加一路，在设备页上观察检测器的
+CPU 数字，有余量再加下一路。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|------|----------|
+| 规则编辑器里实时画面加载不出来 | 底图由 hub 从检测器的预览接口代理而来。检查 `config/detector.yaml` 里的 `preview_advertise_host` 是板卡的局域网地址，而不是 `127.0.0.1`。 |
+| 告警到了但没有快照 | 检测器通过 MQTT 响应快照请求。如果 broker 重启过，等一个状态周期让检测器重连。 |
+
 ## 套餐: 共享 Hub（可选扩展） {#hub_only}
 
 这不是本方案的常规部署路径。Jetson 与 RK3588 两个套餐各自在一台机器上跑完 broker、
