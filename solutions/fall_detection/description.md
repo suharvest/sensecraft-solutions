@@ -128,7 +128,7 @@ detected has to go through raw-head decode, DFL, keypoints and NMS:
 
 | Platform | Pose model | Accelerator inference | Real-footage pipeline | Pre/postprocess delta |
 |---|---|---:|---:|---:|
-| reCamera 2002 | YOLO11n INT8 | not separable ◇ | 52.9 ms | — |
+| reCamera 2002 | YOLO11n INT8 | 52.74 ms ◇ | 53.23 ms | 0.012 ms |
 | reCamera Pro | YOLO11n INT8 | 35.2 ms | 36.6 ms | 1.4 ms |
 | reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
 | reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
@@ -146,12 +146,34 @@ of which contained a person, so its 1.4 ms delta is a floor: it shares the RKNN 
 RK boards, where postprocess grows with people (2.7 ms on a 4-person frame against 0.4 ms
 blank on RK3576).
 
-◇ **reCamera 2002 has no separable accelerator column.** Its app exposes one timer, started
-after frame retrieval and stopped after postprocess, which is exactly this table's pipeline
-definition — there is no separate accelerator counter, and the field is integer
-milliseconds, too coarse to resolve a ~2 ms delta anyway. The 52.9 ms is from 250 frames
-(213 containing people), median 53.0, p95 53.0, range 52-54 ms, with frames containing
-people again indistinguishable from empty ones (52.94 vs 52.84 ms).
+◇ **The reCamera 2002 figure is not accelerator-only, but it is now split as finely as this
+platform allows.** The app carried a single detectAll-wide timer at integer-millisecond
+resolution; it now reports microsecond-resolution stages (`model_run_ms`, `postprocess_ms`,
+`pipeline_ms`, with `inference_metric` naming the span), verified on hardware.
+
+Two samples of 300 frames each, one empty and one holding a person throughout:
+
+| | empty | with a person |
+|---|---:|---:|
+| `model_run_ms` | 52.65 ms | 52.74 ms |
+| `postprocess_ms` | 0.002 ms | 0.012 ms |
+| `pipeline_ms` | 53.13 ms | 53.23 ms |
+
+The original `inference_time_ms` averages 53.02 and 53.03, matching the frozen 52.96
+baseline, so this measurement stays comparable with the history. Postprocess grows sixfold
+with a person in frame yet is still only 0.012 ms — the same shape as Jetson and Hailo,
+because decode walks a fixed anchor count regardless of how many people are present.
+
+**Those 52.65 ms still include letterbox and raw-head decode** — all three run inside one
+sscma-micro `model_->run()` call with no seam the app can see, so splitting further means
+changing that upstream library. It is the narrowest inference span measurable here and is
+**not** equivalent to Jetson's `trtexec` or RK's `rknnlite.inference()`.
+
+This also corrects an earlier note. It said integer milliseconds were too coarse to resolve
+a ~2 ms delta; measured, the app-side postprocess is **0.002 ms**, 0.004% of the frame, so
+that delta does not exist.
+
+Sampling: 300 frames each, captured with the scene empty and with one person present.
 
 **reCamera Pro is the opposite case: its figure is accelerator-only and compares
 directly.** Its runtime times `model.infer()` on its own (`kit/app.py:1258-1260`), with
@@ -169,10 +191,12 @@ the governors were restored afterwards. RK3576 and RK3588 held their top bin for
 samples (950 / 1000 MHz) and are unaffected, Jetson is recorded at MAXN_SUPER, and Hailo has
 no such layer.
 
-That means **the 53.0 ms shown for reCamera 2002 in the INT8 table above is not on the same
-basis as the RK, Jetson and Hailo entries in that column**: those are accelerator-only,
-while the 2002 figure already includes preprocess and postprocess. Putting it on the same
-basis would require adding a timer to the app and repackaging it.
+**The reCamera 2002 row in the INT8 table above is still on a different basis** from the
+RK, Jetson and Hailo entries: those are accelerator-only, while the 2002's 52.65 ms
+includes letterbox and decode. The size of that gap is now known — app-side postprocess is
+only 0.002 ms — so what separates them is letterbox and raw-head decode, not application
+code. Closing it entirely would mean changing sscma-micro, which is outside this
+solution.
 
 **Whether postprocess scales with people differs by platform.** On RK3576 it is 2.7 ms for
 a 4-person frame against 0.4 ms blank; on Jetson frames with and without people are
