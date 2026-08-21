@@ -242,12 +242,24 @@ intro:
       description_i18n:
         zh: "一块带 Hailo-8 的板卡跑完整套——broker、hub 和检测器。Raspberry Pi 5 + Hailo-8、1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU：该板卡没有 H.264 硬解，所以这个 CPU 数字里同时含解码和推理。"
       architecture_image: gallery/architecture.svg
-      # Not marked verified: hardware. The detector itself was measured on a
-      # Raspberry Pi 5 + Hailo-8 and passes the truth-video assertions there,
-      # but this preset's own compose file, image and staging steps have not
-      # been deployed through the engine's path yet, and nothing has been run
-      # on a reComputer R20 at all. The bar for that badge on the other presets
-      # is an observed business output from a deployment done by these steps.
+      verified:
+        - hardware
+      # Hardware-verified, containerised deployment included: deployed by
+      # this preset's own steps through the provisioning engine onto a
+      # Raspberry Pi 5 + Hailo-8 (HailoRT 4.21.0, driver 4.21.0) that was
+      # already running eleven unrelated containers, against a live 1280x720
+      # H.264 stream. All thirteen engine steps plus every custom action
+      # completed; the detector container reached RestartCount 0 and served
+      # /preview.jpg as a 1280x720 JPEG. The hub on the same board listed
+      # hailo-01 online with decode "sw" and fallback_active false, stored six
+      # alerts across zone_enter and loitering -- every one simulated: false
+      # with snapshot_state "received" and a decodable 1280x720 JPEG -- and
+      # reported schema_failures 0, handler_errors 0 and 641 accepted
+      # sensecraft.detection/1 messages.
+      #
+      # Verified on a Raspberry Pi 5 + Hailo-8. Nothing has been run on a
+      # reComputer R20; it is offered as the sellable board with the same
+      # accelerator, not as a measured configuration.
       #
       # Two board facts the deploy steps encode, both found the hard way:
       #   * HailoRT hands a VDevice to ONE process at a time unless every

@@ -25,6 +25,15 @@ docker:
 ssh:
   port: 22
   default_user: pi
+  # password only, because `key` here would be a claim the engine cannot
+  # honour. auth_methods has no consumer: the only two occurrences in the
+  # engine are defaults (models/device.py, services/solution_manager.py) and
+  # nothing reads it. Key auth is selected by `key_file` in device_connections
+  # (deployers/docker_remote_deployer.py), which deploy-info does not expose
+  # in its request_template -- and utils/ssh.py connects with
+  # look_for_keys=False, allow_agent=False, so an agent key or ~/.ssh default
+  # is never picked up. Declaring `key` here makes a deploy sent with an empty
+  # password fail at Connect with nothing pointing at the cause.
   auth_methods:
     - password
   connection_timeout: 30
@@ -270,7 +279,12 @@ remote_overrides:
       - name: Confirm the detector reached the accelerator
         name_i18n:
           zh: 确认检测器已用上加速器
-        ignore_error: true
+        # Deliberately NOT ignore_error. A detector that crash-loops on every
+        # frame otherwise rides through: this step prints the traceback, the
+        # step still reports completed, and the deployment ends with
+        # status "completed" and errors []. Observed exactly that with an
+        # image that could not infer -- the evidence was in the log and the
+        # status said success.
         timeout: 240
         run: |
           # Three things are checked here because the obvious two both lie.
