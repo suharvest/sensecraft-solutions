@@ -5,6 +5,7 @@ intro:
   summary: Deploy OpenClaw AI messaging gateway on reComputer, with optional local AI model for privacy-first conversations.
   description_file: description.md
   cover_image: gallery/cover.png
+  repo_url: https://github.com/openclaw/openclaw
   category: llm
   solution_type: technical
   tags: [docker, llm, ai-gateway, edge-ai, jetson]
