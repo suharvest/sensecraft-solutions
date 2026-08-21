@@ -31,6 +31,9 @@ ssh:
   command_timeout: 1800
 
 pre_checks:
+  # Advisory, not a gate: the engine logs "⚠ Low disk space" below this and
+  # carries on to completion. Observed at 3.1 GB free, where the whole deploy
+  # still succeeded. Treat it as a warning the operator reads, not a stop.
   - type: disk_space
     min_gb: 4
     description: Detector image, hub image, the staged HailoRT package and the alert database all live on the board
@@ -268,22 +271,44 @@ remote_overrides:
         name_i18n:
           zh: 确认检测器已用上加速器
         ignore_error: true
-        timeout: 180
+        timeout: 240
         run: |
-          # The detector reports its own live state here. `backend` naming the
-          # HailoRT version is the evidence that a VDevice was actually opened —
-          # a device that was taken by another process fails before this point.
-          echo "Waiting for the detector preview endpoint ..."
-          for i in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:8099/healthz" >/dev/null 2>&1; then
-              curl -sS "http://127.0.0.1:8090/api/devices"
-              echo
-              exit 0
+          # Three things are checked here because the obvious two both lie.
+          #
+          # `docker ps` says healthy while the detector crash-loops: /healthz
+          # answers as soon as the preview server binds, deliberately, so that
+          # a briefly unreachable camera cannot restart-loop the container. It
+          # says nothing about inference.
+          #
+          # The hub's /api/devices needs a session cookie. Fetched without one
+          # it returns {"error":"unauthenticated"} and a 200, which looks the
+          # same whether the stack works or the detector never published.
+          #
+          # /preview.jpg is the honest one: 503 until a frame has been decoded
+          # AND run through the model, 200 image/jpeg after. Paired with the
+          # restart count, which is what a crash-loop actually shows up as.
+          echo "Waiting for the detector to produce a frame ..."
+          ok=0
+          for i in $(seq 1 40); do
+            code=$(curl -s -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "preview.jpg: HTTP 200, $(wc -c < /tmp/esk-prev.jpg) bytes"
+              ok=1
+              break
             fi
             sleep 5
           done
-          echo "No answer on 8099 — check: docker compose logs detector" >&2
-          echo "HAILO_OUT_OF_PHYSICAL_DEVICES(74) there means something else took the accelerator." >&2
+          restarts=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
+          echo "detector restart count: $restarts"
+          rm -f /tmp/esk-prev.jpg
+          if [ "$ok" = "1" ] && [ "$restarts" = "0" ]; then
+            echo "detector is decoding and inferring"
+            exit 0
+          fi
+          echo "The detector is not producing frames." >&2
+          echo "A rising restart count with a healthy container means it is" >&2
+          echo "crash-looping past the health check. Last lines:" >&2
+          docker logs --tail 25 edge_security_hailo-detector-1 2>&1 | sed 's/^/  /' >&2
 
   user_inputs:
     - id: host
