@@ -184,7 +184,11 @@ remote_overrides:
           mkdir -p "$WORKDIR/config" "$WORKDIR/data" "$WORKDIR/mosquitto-data"
           # int8 by default: 41.9 ms in-pipeline inference against fp16's
           # 72.3 ms, NPU load 8% against 26%, for 0.52 AP@.5:.95 on COCO person.
-          cat > "$WORKDIR/config/detector.yaml" <<CFG
+          # Quoted delimiter: the {{...}} placeholders are substituted by the
+          # engine before this script runs, so nothing here needs shell
+          # expansion -- and an unquoted heredoc would evaluate $(...) or a
+          # backtick that arrived inside a camera URL or username.
+          cat > "$WORKDIR/config/detector.yaml" <<'CFG'
           device_id: {{device_id}}
           stream_id: {{stream_id}}
           source: {{rtsp_url}}
@@ -209,7 +213,9 @@ remote_overrides:
           preview_port: 8099
           preview_advertise_host: "{{host}}"
           CFG
-          cat "$WORKDIR/config/detector.yaml"
+          # Printed with the source line masked: an RTSP URL normally carries
+          # the camera's user and password, and deploy output is kept.
+          sed 's#^source: .*#source: <rtsp url, hidden>#' "$WORKDIR/config/detector.yaml"
 
     after:
       - name: Wait for the hub to answer
@@ -242,20 +248,30 @@ remote_overrides:
       - name: Confirm the decoder actually running
         name_i18n:
           zh: 确认实际使用的解码器
-        ignore_error: true
+        # Deliberately NOT ignore_error, and the decoder value is asserted
+        # rather than printed. Both presets promise hardware decode and the
+        # detector is configured to refuse CPU decode, so a run that reaches
+        # here on anything else is a broken deployment, not a note in the log.
         timeout: 180
         run: |
           # The detector describes its own live pipeline here — the element
           # GStreamer really instantiated, not what the config asked for.
           echo "Waiting for the detector preview endpoint ..."
           for i in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:8099/debug/decode" 2>/dev/null; then
-              echo
-              exit 0
-            fi
-            sleep 5
+            body=$(curl -fsS "http://127.0.0.1:8099/debug/decode" 2>/dev/null) || { sleep 5; continue; }
+            echo "$body"
+            case "$body" in
+              *'"mppvideodec"'*)
+                echo "decode confirmed on the Rockchip hardware decoder"
+                exit 0
+                ;;
+            esac
+            echo "The detector answered, but is not decoding on the Rockchip hardware decoder." >&2
+            echo "This preset requires it; check the device mounts in the compose file." >&2
+            exit 1
           done
           echo "No answer on 8099 — check: docker compose logs detector" >&2
+          exit 1
 
   user_inputs:
     - id: host

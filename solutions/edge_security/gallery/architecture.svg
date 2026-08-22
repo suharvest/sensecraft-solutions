@@ -14,7 +14,7 @@
   <text x="62" y="190" fill="#42606f" font-size="15">all three containers on the same Jetson</text>
   <rect x="62" y="206" width="413" height="44" rx="8" fill="#ffffff" stroke="#c3d6e0"/>
   <text x="80" y="234" fill="#2f6f8f" font-size="14">detector · mosquitto · hub — workbench on :8090</text>
-  <text x="62" y="278" fill="#7d94a1" font-size="14">4.16 ms p50 inference, 5.5% of one CPU core</text>
+  <text x="62" y="278" fill="#7d94a1" font-size="14">4.13 ms p50 inference, 8.5-12.5% of one core</text>
   <text x="62" y="300" fill="#7d94a1" font-size="14">decode on NVDEC, confirmed in-kernel</text>
 
   <rect x="521" y="104" width="457" height="250" rx="12" fill="#eef7f3" stroke="#a9d6c4"/>

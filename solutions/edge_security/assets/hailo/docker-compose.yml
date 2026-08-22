@@ -23,9 +23,10 @@
 # The accelerator takes one process at a time. HailoRT hands out a VDevice
 # exclusively unless every participant goes through its multi-process service,
 # so anything else already using /dev/hailo0 has to be stopped first. The
-# deploy step's before-check tests this by opening a VDevice, which is the only
-# way to find out: `hailortcli fw-control identify` opens a control handle
-# instead and succeeds against a device that is fully occupied.
+# deploy step's before-check looks for a process already holding the device in
+# /proc/*/fd. `hailortcli fw-control identify` is not that check: it opens a
+# control handle rather than a VDevice and succeeds against a device that is
+# fully occupied.
 services:
   hub:
     image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0

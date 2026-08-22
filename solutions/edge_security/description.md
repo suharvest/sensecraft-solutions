@@ -167,23 +167,27 @@ Not verified, and not claimed:
 
 | Role | Requirement |
 |---|---|
-| Camera | Any fixed RTSP camera. H.264 is required — both presets decode in hardware and both hardware decoders are configured for H.264. The camera must not move after the rules are drawn. |
-| Detection node | A Jetson Orin (Orin Nano 8GB or Orin NX 16GB) on JetPack 6.x with TensorRT and the nvidia container runtime, **or** an RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed. |
+| Camera | Any fixed RTSP camera. H.264 is required — the Jetson and RK3588 presets decode it in hardware, and the Hailo preset decodes it on the CPU because the Pi 5 has no H.264 decoder. The camera must not move after the rules are drawn. |
+| Detection node | A Jetson Orin (Orin Nano 8GB or Orin NX 16GB) on JetPack 6.x with TensorRT and the nvidia container runtime, **or** an RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed, **or** a Raspberry Pi 5 with a Hailo-8 on the PCIe slot, its driver and matching HailoRT. |
 | Aggregation host | Not required. The broker and the hub run on the detection machine itself. Only the optional Shared Hub preset needs a separate always-on arm64 or x86_64 machine with Docker. |
-| Disk | About 6 GB free on the detection machine: detector image, hub image, the TensorRT engine built there, and the alert database. |
+| Disk | About 6 GB free on the detection machine for the Jetson and RK3588 presets — detector image, hub image, the TensorRT engine built there, and the alert database. The Hailo preset needs about 4 GB; it builds no engine. |
 | Network | Detectors reach the hub on port 1883. Operators reach the hub on 8090. The camera preview on 8099 must be reachable from the operator's browser, otherwise the rule editor has no backdrop. |
 
 ## Choosing a Preset
 
-Both deployment presets are self-contained: broker, hub and detector on one
-machine, and the workbench is served from that same machine when the deploy
-finishes.
+All three deployment presets are self-contained: broker, hub and detector on
+one machine, and the workbench is served from that same machine when the
+deploy finishes.
 
 - **Jetson Single Box** — a Jetson Orin watching one camera, inference on the
   GPU through TensorRT and decode on NVDEC. The engine is built on the device
   during deployment, which adds about five minutes to the first install.
 - **RK3588 Single Box** — an RK3588 board watching one camera, inference on the
   NPU and decode on the board's hardware decoder.
+- **Hailo Single Box** — a Raspberry Pi 5 with a Hailo-8 watching one camera,
+  inference on the accelerator. Decode runs on the CPU here, which is the
+  primary path rather than a fallback: the board has no H.264 decoder, so the
+  detector's CPU figure covers decode as well as inference.
 - **Shared Hub (Optional Expansion)** — not a deployment path on its own. Use it
   only after several detector boxes are running and you want one alert list
   across them; it installs the broker and hub on a separate always-on machine,

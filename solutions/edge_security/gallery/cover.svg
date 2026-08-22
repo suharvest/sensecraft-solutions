@@ -19,7 +19,7 @@
     <rect x="72" y="244" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
     <text x="96" y="284" fill="#eaf3f7" font-size="22" font-weight="600">Jetson TensorRT detector</text>
     <text x="96" y="314" fill="#8fb0c4" font-size="17">RTSP in · person boxes + track ids</text>
-    <text x="96" y="338" fill="#8fb0c4" font-size="17">fp16 · 4.16 ms p50 · NVDEC decode</text>
+    <text x="96" y="338" fill="#8fb0c4" font-size="17">fp16 · 4.13 ms p50 · NVDEC decode</text>
 
     <rect x="72" y="380" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
     <text x="96" y="420" fill="#eaf3f7" font-size="22" font-weight="600">RK3588 NPU detector</text>
@@ -47,8 +47,8 @@
   <text x="524" y="434" fill="#8fb0c4" font-size="17">cooldown · snapshots · SQLite</text>
   <text x="524" y="462" fill="#8fb0c4" font-size="17">3.7% CPU · 52.8 MB RSS</text>
   <text x="524" y="508" fill="#eaf3f7" font-size="19" font-weight="600">capture to alert</text>
-  <text x="524" y="548" fill="#3ec1a4" font-size="34" font-weight="700">208.7 ms</text>
-  <text x="524" y="578" fill="#7fd8c1" font-size="18">p50 · 392.1 ms p95</text>
+  <text x="524" y="548" fill="#3ec1a4" font-size="34" font-weight="700">117.4 ms</text>
+  <text x="524" y="578" fill="#7fd8c1" font-size="18">p50 · 297.0 ms p95</text>
 
   <line x1="812" y1="418" x2="896" y2="418" stroke="#3ec1a4" stroke-width="3" marker-end="url(#arrow)"/>
 
@@ -68,5 +68,5 @@
   <text x="932" y="548" fill="#8fb0c4" font-size="16">draw rules on a live frame</text>
   <text x="932" y="572" fill="#8fb0c4" font-size="16">CSV export · EN / ZH</text>
 
-  <text x="72" y="654" fill="#6f8598" font-size="17">Numbers measured on the reference bench: aarch64 CPU detector and an RK3588 board against a 130 s truth video.</text>
+  <text x="72" y="654" fill="#6f8598" font-size="17">Measured against a 130 s truth video: capture-to-alert on the Jetson Orin NX, hub cost on the RK3588 board.</text>
 </svg>
