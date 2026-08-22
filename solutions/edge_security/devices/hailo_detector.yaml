@@ -224,7 +224,11 @@ remote_overrides:
           # decode_primary is sw and there is no require_hw_decode switch: this
           # board has no H.264 decoder, so software decode is the primary path
           # rather than a fallback, and health.fallback_active stays false.
-          cat > "$WORKDIR/config/detector.yaml" <<CFG
+          # Quoted delimiter: the {{...}} placeholders are substituted by the
+          # engine before this script runs, so nothing here needs shell
+          # expansion -- and an unquoted heredoc would evaluate $(...) or a
+          # backtick that arrived inside a camera URL or username.
+          cat > "$WORKDIR/config/detector.yaml" <<'CFG'
           device_id: {{device_id}}
           stream_id: {{stream_id}}
           source: {{rtsp_url}}
@@ -246,7 +250,9 @@ remote_overrides:
           preview_port: 8099
           preview_advertise_host: "{{host}}"
           CFG
-          cat "$WORKDIR/config/detector.yaml"
+          # Printed with the source line masked: an RTSP URL normally carries
+          # the camera's user and password, and deploy output is kept.
+          sed 's#^source: .*#source: <rtsp url, hidden>#' "$WORKDIR/config/detector.yaml"
 
     after:
       - name: Wait for the hub to answer
@@ -323,6 +329,9 @@ remote_overrides:
           echo "A rising restart count with a healthy container means it is" >&2
           echo "crash-looping past the health check. Last lines:" >&2
           docker logs --tail 25 edge_security_hailo-detector-1 2>&1 | sed 's/^/  /' >&2
+          # The pipeline above exits 0 whatever it prints, which would hand the
+          # engine a success for the exact case this step exists to catch.
+          exit 1
 
   user_inputs:
     - id: host

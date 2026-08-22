@@ -17,9 +17,9 @@
   <text x="72" y="222" fill="#88a2b4" font-size="18" letter-spacing="2">DETECTION LAYER</text>
   <g>
     <rect x="72" y="244" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
-    <text x="96" y="284" fill="#eaf3f7" font-size="22" font-weight="600">CPU / ONNX detector</text>
+    <text x="96" y="284" fill="#eaf3f7" font-size="22" font-weight="600">Jetson TensorRT detector</text>
     <text x="96" y="314" fill="#8fb0c4" font-size="17">RTSP in · person boxes + track ids</text>
-    <text x="96" y="338" fill="#8fb0c4" font-size="17">30-37 ms inference, 14.9 fps</text>
+    <text x="96" y="338" fill="#8fb0c4" font-size="17">fp16 · 4.16 ms p50 · NVDEC decode</text>
 
     <rect x="72" y="380" width="300" height="112" rx="14" fill="#17293a" stroke="#2c4256"/>
     <text x="96" y="420" fill="#eaf3f7" font-size="22" font-weight="600">RK3588 NPU detector</text>
@@ -27,8 +27,8 @@
     <text x="96" y="474" fill="#8fb0c4" font-size="17">hardware decode, verified live</text>
 
     <rect x="72" y="516" width="300" height="72" rx="14" fill="#141f2b" stroke="#243546" stroke-dasharray="6 5"/>
-    <text x="96" y="548" fill="#6f8598" font-size="20" font-weight="600">reCamera · Hailo</text>
-    <text x="96" y="572" fill="#5f7386" font-size="16">contract is open — not built yet</text>
+    <text x="96" y="548" fill="#6f8598" font-size="20" font-weight="600">Pi 5 + Hailo-8</text>
+    <text x="96" y="572" fill="#5f7386" font-size="16">int8 · 7.7 ms p50 · CPU decode</text>
   </g>
 
   <!-- arrows -->
@@ -45,7 +45,7 @@
   <text x="524" y="378" fill="#9fd8c9" font-size="17">loitering dwell timer</text>
   <line x1="524" y1="402" x2="776" y2="402" stroke="#2c4256"/>
   <text x="524" y="434" fill="#8fb0c4" font-size="17">cooldown · snapshots · SQLite</text>
-  <text x="524" y="462" fill="#8fb0c4" font-size="17">1.4% CPU · 44.9 MB RSS</text>
+  <text x="524" y="462" fill="#8fb0c4" font-size="17">3.7% CPU · 52.8 MB RSS</text>
   <text x="524" y="508" fill="#eaf3f7" font-size="19" font-weight="600">capture to alert</text>
   <text x="524" y="548" fill="#3ec1a4" font-size="34" font-weight="700">208.7 ms</text>
   <text x="524" y="578" fill="#7fd8c1" font-size="18">p50 · 392.1 ms p95</text>

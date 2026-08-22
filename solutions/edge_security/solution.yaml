@@ -195,9 +195,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One RK3588 board runs everything — broker, hub and a detector with NPU inference and hardware video decode. The hub costs 1.4% of one CPU core, so the board carries it alongside the detector.
+      description: One RK3588 board runs everything — broker, hub and a detector with NPU inference and hardware video decode. The hub costs 3.7% of one CPU core and 52.8 MB RSS on this board while it also runs the detector, so one board carries both.
       description_i18n:
-        zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 只占单核 1.4%，板卡在跑检测的同时完全带得动。
+        zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 在同时跑检测的这块板卡上占单核 3.7%、RSS 52.8 MB，一块板带得动两者。
       architecture_image: gallery/architecture.svg
       # Hardware-verified, containerised deployment included: this preset's own
       # compose file, images and staging steps were deployed on a radxa RK3588
@@ -280,9 +280,13 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r20_industrial
             - device_ref: raspberry_pi5_hailo
-          default: recomputer_r20_industrial
+            - device_ref: recomputer_r20_industrial
+          # Defaults to the board the numbers were taken on. The R20 carries
+          # the same accelerator and is the sellable option, but nothing has
+          # been run on one, and defaulting to it would let the preset's
+          # verified badge read as covering it.
+          default: raspberry_pi5_hailo
         - id: camera
           name: IP Camera
           name_i18n:

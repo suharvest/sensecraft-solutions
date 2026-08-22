@@ -3,8 +3,13 @@
 # video decode on the CPU.
 #
 # Measured on a Pi 5 + Hailo-8 at 1280x720 H.264: in-pipeline inference p50
-# 9.7 ms / p95 10.8 ms, full pipeline p50 17.4 ms, 8.7-13.0% of one CPU core,
+# 7.7 ms / p95 8.4 ms, full pipeline p50 9.5 ms, 8.7-13.0% of one CPU core,
 # RSS 127-131 MB, while ten unrelated containers shared the board.
+#
+# The inference figure is not comparable to the other presets' on this row:
+# this detector asks HailoRT for uint8 outputs and dequantizes only the
+# anchors that survive the threshold, so dequantization sits outside its
+# timer and inside theirs. The full-pipeline figure spans the difference.
 #
 # Decode is software and that is the primary path, not a fallback. The Pi 5 has
 # no H.264 decoder — VideoCore VII decodes HEVC only — so the detector reports

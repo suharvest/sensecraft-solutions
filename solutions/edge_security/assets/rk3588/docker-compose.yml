@@ -4,8 +4,8 @@
 #
 # Measured on RK3588 with the int8 model at 1280x720 H.264: in-pipeline
 # inference p50 41.9 ms, NPU core0 8% busy, 21% of one CPU core, decode hw.
-# The hub decodes nothing and runs no inference — measured at 1.4% of one CPU
-# core and 44.9 MB RSS while judging two live streams — so it sits next to the
+# The hub decodes nothing and runs no inference — measured at 3.7% of one CPU
+# core and 52.8 MB RSS on this board while it also ran the detector — so it sits next to the
 # detector on this board instead of asking for a second machine.
 #
 # Two host-supplied pieces are staged next to this file by the deploy step

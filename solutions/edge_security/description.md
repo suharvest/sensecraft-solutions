@@ -93,8 +93,8 @@ known frame by frame, replayed over RTSP into the live pipeline.
 
 ### Hub
 
-Measured while judging two live streams: **1.4% of one CPU core, 44.9 MB RSS**
-on the RK3588 board, and 0.77% / 44.9 MB on the Orin NX. That is why every
+Measured **3.7% of one CPU core and 52.8 MB RSS** on the RK3588 board while that board also runs a detector.
+No separate figure was taken on the Orin NX. That is why every
 preset puts the hub on the detection machine instead of asking for a second one.
 
 ### Accuracy
@@ -153,9 +153,9 @@ Verified on real hardware:
 
 Not verified, and not claimed:
 
-- **reCamera and Hailo detection nodes are not built.** The payload contract is
-  published so they can be added without changing the hub, but nothing here
-  runs on them.
+- **The reCamera detection node is not built.** The payload contract is
+  published so it can be added without changing the hub, but nothing here runs
+  on one. The Hailo node is built and verified; see the Hailo preset.
 - **Capacity beyond two concurrent streams is untested end to end.** The
   multi-stream numbers above are GPU and memory measurements taken with worker
   processes, not eight cameras and eight sets of rules.

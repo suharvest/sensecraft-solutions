@@ -3,8 +3,8 @@
 Everything on one Jetson Orin: the MQTT broker, the aggregation hub with its
 alert workbench, and a detector doing person detection on the GPU through
 TensorRT with video decode on NVDEC. No second machine is required — the hub
-decodes no video and runs no inference, measured at 1.4% of one CPU core and
-44.9 MB of memory while carrying two live streams.
+decodes no video and runs no inference, measured at 3.7% of one CPU core and 52.8 MB RSS
+on the RK3588 board while that board also runs a detector.
 
 Measured on an Orin NX 16GB, JetPack 6.1, TensorRT 10.3.0, at 1280x720:
 in-pipeline inference p50 4.13 ms, full pipeline p50 7.24 ms, 8.5–12.5% of one
@@ -78,8 +78,12 @@ The broker, the hub and one detector are running on the machine you chose.
 #### First login
 
 1. The workbench opens at `http://<machine>:8090`.
-2. Log in with `admin` / `admin`. The hub forces a password change on first
-   login; the new password is stored hashed with bcrypt.
+2. Log in as `admin`. There is no fixed default password: the hub generates a
+   random one on first start, writes it to `/data/initial-password.txt` and
+   logs it, and the deploy step above prints it. If the output was truncated,
+   read it off the machine with `docker exec <hub container> cat
+   /data/initial-password.txt` — line 1 the username, line 2 the password. The
+   hub forces a change on first login; the new one is stored bcrypt-hashed.
 3. Open **Devices**. Your detector should be listed as online, with `decode`
    reported as `hw` — this preset decodes on NVDEC, and the detector refuses to
    start on the CPU decoder, so anything else means it is not running.
@@ -144,8 +148,8 @@ rules included.
 Everything on one RK3588 board: the MQTT broker, the aggregation hub with its
 alert workbench, and a detector doing person detection on the NPU with video
 decode on the board's hardware decoder. No second machine is required — the hub
-decodes no video and runs no inference, measured at 1.4% of one CPU core and
-44.9 MB of memory while carrying two live streams.
+decodes no video and runs no inference, measured at 3.7% of one CPU core and 52.8 MB RSS
+on the RK3588 board while that board also runs a detector.
 
 Measured on this board with the int8 model at 1280x720: inference p50 41.9 ms
 inside the live pipeline, NPU core 8% busy, 21% of one CPU core, decode
@@ -183,9 +187,9 @@ started on the board.
 |-------|----------|
 | Deploy stops at "rknnlite is not importable" | Install it on the board: `pip3 install rknn_toolkit_lite2`. It ships as a wheel and often lands in a venv the deploy step cannot see. |
 | Detector exits complaining about the decoder | The MPP plugin was not staged. Check `gstmpp/` next to the compose file on the board; if it is empty, install `gstreamer1.0-rockchip1` and `gstreamer1.0-plugins-bad`. |
+| Deploy reports success but the detector behaves like an older build | The deploy skips the image pull when one of the same name already exists on the board, so a republished tag does not reach a board that pulled it once. Check what is actually there: `docker image inspect <image> -f '{{.Id}}'`, compare against the registry, and `docker pull` it before redeploying. |
 | Model fails to load with a version error | The version in the filename is not the version in the binary. Read the real one: `strings /usr/lib/librknnrt.so \| grep 'librknnrt version'`. The shipped model is built for 2.3.2. |
 | `W Query dynamic range failed` on every start | Harmless. It is what a static-shape model prints on this runtime. |
-| Deploy reports success but the detector behaves like an older build | The deploy skips the image pull when one of the same name already exists on the board, so a republished tag does not reach a board that pulled it once. Check what is actually there: `docker image inspect <image> -f '{{.Id}}'`, compare against the registry, and `docker pull` it before redeploying. |
 | Detector runs but the hub never lists it | The broker is in the same stack, so `mqtt_host` in `config/detector.yaml` should read `mosquitto`. The detector publishes its status every 30 s — wait a cycle before concluding anything. |
 | Hub does not answer on 8090 | `docker compose logs hub`. A port already in use on the board is the usual cause. |
 
@@ -202,7 +206,10 @@ The board is detecting people and judging rules on itself. The workbench is at
 
 #### Quick verification
 
-1. Log in with `admin` / `admin` and set a new password when prompted.
+1. Log in as `admin` with the password the deploy step printed — the hub
+   generates a random one on first start, so there is no fixed default. It is
+   also in `/data/initial-password.txt` inside the hub container. Set a new
+   password when prompted.
 2. Open **Devices** in the workbench. The board appears under the detector name
    you chose.
 3. Its decode column should read `hw`. A `hw` reading here is a claim the
@@ -300,6 +307,7 @@ started on the board.
 | Deploy stops at "/dev/hailo0 is already held by" | Something else is using the accelerator — commonly another vision container. Stop it and redeploy. HailoRT cannot share the device between processes unless all of them use its multi-process service. |
 | `hailortcli fw-control identify` works, so you assume the device is free | It is not that check. `fw-control identify` opens a control handle rather than a VDevice and succeeds against a fully occupied device. The real test is opening a VDevice, which is what the deploy step's check approximates by reading `/proc/*/fd`. |
 | Detector exits with `HAILO_OUT_OF_PHYSICAL_DEVICES(74)` | Same cause as above, seen from inside the container. |
+| Deploy reports success but the detector behaves like an older build | The deploy skips the image pull when one of the same name already exists on the board, so a republished tag does not reach a board that pulled it once. Check what is actually there: `docker image inspect <image> -f '{{.Id}}'`, compare against the registry, and `docker pull` it before redeploying. |
 | Deploy stops at "No hailort cp311 wheel found" | Download it from the Hailo developer zone, matching your installed driver version, and leave it under your home directory. It is not on a public index, which is why the image does not carry it. |
 | Detector starts, then the process exits 139 or 135 after printing a complete result | Fixed in the shipped image. If you are running an older build, the teardown released the device before its Python wrappers were destroyed. |
 | Devices page shows `decode: "sw"` | That is correct on this board and not a fallback. See the note above. |
@@ -362,8 +370,8 @@ neither needs anything installed here.
 Use this preset only when detector boxes are already running and you want one
 shared alert list across all of them. It puts the broker, the rule engine and
 the alert workbench on an always-on machine with no detector of its own — the
-hub judges rules from the JSON detectors send it, measured at 1.4% CPU and
-44.9 MB of memory while carrying two live streams.
+hub judges rules from the JSON detectors send it, measured at 3.7% of one CPU core and 52.8 MB RSS
+on the RK3588 board while that board also runs a detector.
 
 After deploying it, change `mqtt_host` in each detector's `config/detector.yaml`
 from `mosquitto` to this machine's address and restart that detector.
@@ -406,7 +414,10 @@ The aggregation layer is running and listening for detectors on port 1883.
 #### First login
 
 1. The workbench opens at `http://<machine>:8090`.
-2. Log in with `admin` / `admin` and set a new password when prompted.
+2. Log in as `admin` with the password the deploy step printed — the hub
+   generates a random one on first start, so there is no fixed default. It is
+   also in `/data/initial-password.txt` inside the hub container. Set a new
+   password when prompted.
 3. **Devices** is empty. That is the expected state until a detector is pointed
    at this machine.
 
@@ -428,8 +439,9 @@ container.
 
 #### Reserved for later
 
-reCamera and Hailo detection nodes are not built yet. The payload contract is
-published, so adding one does not change anything on this machine.
+A reCamera detection node is not built yet. The payload contract is published,
+so adding one does not change anything on this machine. Jetson, RK3588 and
+Hailo detectors all report here today.
 
 ### Troubleshooting
 

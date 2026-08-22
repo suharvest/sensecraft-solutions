@@ -3,9 +3,9 @@
 #
 # The hub is pure CPU and carries no numpy/cv2 — it never decodes video and
 # never runs inference. Measured while judging two live detector streams:
-# 1.4% CPU and 44.9 MB RSS on an x86 workstation, 3.7% of one CPU core and
-# 52.8 MB RSS on an RK3588 board — so the aggregation host can be an edge
-# board, not just a server.
+# 3.7% of one CPU core and 52.8 MB RSS on an RK3588 board that was also
+# running a detector — so the aggregation host can be an edge board, not just
+# a server.
 #
 # The two detectors do not have to run the same accelerator. Verified with an
 # RKNN detector and a TensorRT detector reporting into this one broker.

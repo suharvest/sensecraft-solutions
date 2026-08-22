@@ -2,7 +2,7 @@
 
 一台 Jetson Orin 跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走
 TensorRT、视频解码走 NVDEC 的检测器。不需要第二台机器——hub 不解码视频、不做推理，
-实测在承载两路实时流时只占单核 1.4%、44.9 MB 内存。
+实测在同时还跑着检测器的 RK3588 板卡上占单核 3.7%、RSS 52.8 MB。
 
 Orin NX 16GB、JetPack 6.1、TensorRT 10.3.0、1280x720 实测：流水线内推理 p50
 4.13 ms，整条流水线 p50 7.24 ms，CPU 占单核 8.5–12.5%，解码确认走 NVDEC。
@@ -66,7 +66,10 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 #### 首次登录
 
 1. 工作台地址是 `http://<机器地址>:8090`。
-2. 用 `admin` / `admin` 登录。hub 会在首次登录时强制改密，新密码用 bcrypt 哈希存储。
+2. 用户名 `admin`。没有固定默认密码：hub 首次启动会生成一个随机密码，写入
+   `/data/initial-password.txt` 并打进日志，上面的部署步骤也会打印。输出被截断的话，
+   在机器上执行 `docker exec <hub 容器> cat /data/initial-password.txt` 取回——第一行
+   用户名，第二行密码。首次登录后 hub 会强制改密，新密码用 bcrypt 哈希存储。
 3. 打开**设备**页。检测器应显示为在线，解码方式为 `hw`——本套餐走 NVDEC 硬解，
    检测器拒绝退回 CPU 解码，显示别的值就说明它没跑起来。
 
@@ -122,7 +125,7 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 
 一块 RK3588 板卡跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走 NPU、
 视频解码走板载硬解的检测器。不需要第二台机器——hub 不解码视频、不做推理，实测在承载
-两路实时流时只占单核 1.4%、44.9 MB 内存。
+在同时还跑着检测器的 RK3588 板卡上占单核 3.7%、RSS 52.8 MB。
 
 该板卡实测（int8 模型，1280x720）：流水线内推理 p50 41.9 ms，NPU 核心占用 8%，
 CPU 占单核 21%，解码确认走硬件。
@@ -154,6 +157,7 @@ CPU 占单核 21%，解码确认走硬件。
 |------|----------|
 | 部署停在 "rknnlite is not importable" | 在板卡上安装：`pip3 install rknn_toolkit_lite2`。它是 wheel 包，经常装进部署步骤看不到的 venv。 |
 | 检测器报解码器错误后退出 | MPP 插件没准备好。看板卡上 compose 文件旁边的 `gstmpp/` 目录，若为空，安装 `gstreamer1.0-rockchip1` 和 `gstreamer1.0-plugins-bad`。 |
+| 部署报成功，但检测器表现得像旧版本 | 板卡上已存在同名镜像时部署会跳过拉取，所以重新发布同一个 tag 不会到达拉过一次的板卡。先看板上实际是哪个：`docker image inspect <image> -f '{{.Id}}'`，和 registry 对一下，重新部署前先 `docker pull`。 |
 | 模型加载报版本不匹配 | 文件名里的版本不是二进制里的版本。用 `strings /usr/lib/librknnrt.so \| grep 'librknnrt version'` 读真实版本；随镜像发布的模型按 2.3.2 构建。 |
 | 每次启动都打印 `W Query dynamic range failed` | 无害。静态 shape 模型在这个运行时上就是这么打印的。 |
 | 检测器在跑，但 hub 里看不到它 | broker 就在同一套栈里，`config/detector.yaml` 里的 `mqtt_host` 应为 `mosquitto`。检测器每 30 s 上报一次状态，先等一个周期再下结论。 |
@@ -171,7 +175,8 @@ CPU 占单核 21%，解码确认走硬件。
 
 #### 快速验证
 
-1. 用 `admin` / `admin` 登录，按提示设置新密码。
+1. 用户名 `admin`，密码用部署步骤打印出来的那个——hub 首次启动生成随机密码，没有固定
+   默认值。它也在 hub 容器里的 `/data/initial-password.txt`。按提示设置新密码。
 2. 在工作台打开**设备**页，能看到你刚才命名的这块板卡。
 3. 解码列应显示 `hw`。这个值不是从配置文件读的，而是检测器从实时流水线协商到的
    GStreamer caps 上读出来的。
@@ -250,10 +255,10 @@ false，上面那个 CPU 数字里同时包含了解码和推理。加第二路�
 | 部署停在「/dev/hailo0 is already held by」 | 有别的程序在用加速器，常见是另一个视觉容器。停掉它再重新部署。HailoRT 无法在进程间共享设备，除非所有使用方都走多进程服务。 |
 | `hailortcli fw-control identify` 能通，就以为设备空闲 | 那不是这个检查。`fw-control identify` 开的是 control handle 而不是 VDevice，对完全被占用的设备照样成功。真正的判据是能否打开 VDevice，部署步骤用读 `/proc/*/fd` 来近似。 |
 | 检测器报 `HAILO_OUT_OF_PHYSICAL_DEVICES(74)` 退出 | 同上，只是从容器内部看到的表现。 |
+| 部署报成功，但检测器表现得像旧版本 | 板卡上已存在同名镜像时部署会跳过拉取，所以重新发布同一个 tag 不会到达拉过一次的板卡。先看板上实际是哪个：`docker image inspect <image> -f '{{.Id}}'`，和 registry 对一下，重新部署前先 `docker pull`。 |
 | 部署停在「No hailort cp311 wheel found」 | 从 Hailo developer zone 下载与已装驱动同版本的 wheel，放在家目录下。它不在公开源上，这也是镜像不内置它的原因。 |
 | 检测器打印完整结果后进程以 139 或 135 退出 | 已在发布镜像中修复。若你在跑更早的构建，原因是 teardown 先释放了设备、后析构它的 Python wrapper。 |
 | 设备页显示 `decode: "sw"` | 该板卡上这是正确状态，不是降级。见上方说明。 |
-| 部署报成功，但检测器表现得像旧版本 | 板卡上已存在同名镜像时部署会跳过拉取，所以重新发布同一个 tag 不会到达拉过一次的板卡。先看板上实际是哪个：`docker image inspect <image> -f '{{.Id}}'`，和 registry 对一下，重新部署前先 `docker pull`。 |
 | 检测器在跑但 hub 一直不列出它 | broker 在同一套栈里，`config/detector.yaml` 里的 `mqtt_host` 应为 `mosquitto`。检测器每 30 秒上报一次状态，等一个周期再下结论。 |
 | hub 在 8090 上没响应 | `docker compose logs hub`。通常是板卡上该端口已被占用。 |
 
@@ -305,7 +310,7 @@ hub 和检测器，都不需要在这里装任何东西。
 
 只有当你已经有多台检测设备在跑、希望它们共用一份告警列表时才用这个套餐。它在一台常开
 机器上装 broker、规则引擎和告警工作台，本机不带检测器——hub 只根据检测器发来的 JSON
-判定规则，实测在承载两路实时流时占 1.4% CPU、44.9 MB 内存。
+判定规则，实测在同时还跑着检测器的 RK3588 板卡上占单核 3.7%、RSS 52.8 MB。
 
 部署完之后，把每台检测器 `config/detector.yaml` 里的 `mqtt_host` 从 `mosquitto` 改成
 这台机器的地址，再重启该检测器。
@@ -345,7 +350,8 @@ hub 和检测器，都不需要在这里装任何东西。
 #### 首次登录
 
 1. 工作台地址是 `http://<机器地址>:8090`。
-2. 用 `admin` / `admin` 登录，按提示设置新密码。
+2. 用户名 `admin`，密码用部署步骤打印出来的那个——hub 首次启动生成随机密码，没有固定
+   默认值。它也在 hub 容器里的 `/data/initial-password.txt`。按提示设置新密码。
 3. **设备**页是空的。在有检测器指向这台机器之前，这是正常状态。
 
 #### 接入检测器
@@ -363,8 +369,8 @@ hub 和检测器，都不需要在这里装任何东西。
 
 #### 预留扩展
 
-reCamera 和 Hailo 的探测节点尚未构建。报文契约已经公开，之后新增探测节点不需要改动
-这台机器上的任何东西。
+reCamera 的探测节点尚未构建。报文契约已经公开，之后新增探测节点不需要改动这台机器上的
+任何东西。Jetson、RK3588 和 Hailo 的检测器目前都能汇入这里。
 
 ### 故障排查
 
