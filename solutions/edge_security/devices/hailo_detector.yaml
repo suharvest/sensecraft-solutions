@@ -262,9 +262,14 @@ remote_overrides:
         timeout: 180
         run: |
           echo "Waiting for the hub API ..."
-          for i in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
-              curl -sS "http://127.0.0.1:8090/api/health"
+          # Deadline-driven rather than a fixed iteration count: without
+          # --max-time a stalled connection makes each pass take as long as
+          # curl's own default, and the loop then overruns the step timeout and
+          # is killed mid-way instead of reporting anything useful.
+          deadline=$(( $(date +%s) + 150 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            if curl -fsS --max-time 4 "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+              curl -sS --max-time 4 "http://127.0.0.1:8090/api/health"
               echo
               exit 0
             fi
@@ -309,8 +314,9 @@ remote_overrides:
           # restart count, which is what a crash-loop actually shows up as.
           echo "Waiting for the detector to produce a frame ..."
           ok=0
-          for i in $(seq 1 40); do
-            code=$(curl -s -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
+          deadline=$(( $(date +%s) + 200 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            code=$(curl -s --max-time 4 -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
             if [ "$code" = "200" ]; then
               echo "preview.jpg: HTTP 200, $(wc -c < /tmp/esk-prev.jpg) bytes"
               ok=1
