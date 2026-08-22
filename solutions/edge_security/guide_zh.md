@@ -253,6 +253,7 @@ false，上面那个 CPU 数字里同时包含了解码和推理。加第二路�
 | 部署停在「No hailort cp311 wheel found」 | 从 Hailo developer zone 下载与已装驱动同版本的 wheel，放在家目录下。它不在公开源上，这也是镜像不内置它的原因。 |
 | 检测器打印完整结果后进程以 139 或 135 退出 | 已在发布镜像中修复。若你在跑更早的构建，原因是 teardown 先释放了设备、后析构它的 Python wrapper。 |
 | 设备页显示 `decode: "sw"` | 该板卡上这是正确状态，不是降级。见上方说明。 |
+| 部署报成功，但检测器表现得像旧版本 | 板卡上已存在同名镜像时部署会跳过拉取，所以重新发布同一个 tag 不会到达拉过一次的板卡。先看板上实际是哪个：`docker image inspect <image> -f '{{.Id}}'`，和 registry 对一下，重新部署前先 `docker pull`。 |
 | 检测器在跑但 hub 一直不列出它 | broker 在同一套栈里，`config/detector.yaml` 里的 `mqtt_host` 应为 `mosquitto`。检测器每 30 秒上报一次状态，等一个周期再下结论。 |
 | hub 在 8090 上没响应 | `docker compose logs hub`。通常是板卡上该端口已被占用。 |
 

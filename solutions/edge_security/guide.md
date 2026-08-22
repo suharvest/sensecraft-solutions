@@ -185,6 +185,7 @@ started on the board.
 | Detector exits complaining about the decoder | The MPP plugin was not staged. Check `gstmpp/` next to the compose file on the board; if it is empty, install `gstreamer1.0-rockchip1` and `gstreamer1.0-plugins-bad`. |
 | Model fails to load with a version error | The version in the filename is not the version in the binary. Read the real one: `strings /usr/lib/librknnrt.so \| grep 'librknnrt version'`. The shipped model is built for 2.3.2. |
 | `W Query dynamic range failed` on every start | Harmless. It is what a static-shape model prints on this runtime. |
+| Deploy reports success but the detector behaves like an older build | The deploy skips the image pull when one of the same name already exists on the board, so a republished tag does not reach a board that pulled it once. Check what is actually there: `docker image inspect <image> -f '{{.Id}}'`, compare against the registry, and `docker pull` it before redeploying. |
 | Detector runs but the hub never lists it | The broker is in the same stack, so `mqtt_host` in `config/detector.yaml` should read `mosquitto`. The detector publishes its status every 30 s — wait a cycle before concluding anything. |
 | Hub does not answer on 8090 | `docker compose logs hub`. A port already in use on the board is the usual cause. |
 

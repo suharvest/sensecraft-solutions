@@ -56,12 +56,14 @@ services:
       - ./mosquitto-data:/mosquitto/data
 
   detector:
-    # Pinned by digest, not by tag. The deploy step skips the pull entirely
-    # when an image of the same NAME already exists on the board, so a mutable
-    # tag that has been republished never reaches a board that pulled it once
-    # -- a board kept running a known-broken build through two deploys that
-    # both reported success. A digest reference cannot go stale that way.
-    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-hailo@sha256:57e2d3af5a5322cc87cf3cc817dccf655838d8b84234870ae40f5d97284c6e38
+    # Tag reference, matching the other presets. Note the consequence: the
+    # deploy step skips the pull when an image of the same NAME already exists
+    # on the board, so republishing this tag does not reach a board that
+    # pulled it once. Bump the tag on a rebuild, or `docker pull` on the board
+    # first -- a board here kept running a superseded build through two
+    # deployments that both reported success. Covered in the guide's
+    # troubleshooting table.
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-hailo:0.1.0
     command: ["--config", "/app/config/detector.yaml"]
     restart: unless-stopped
     depends_on:
