@@ -281,28 +281,40 @@ remote_overrides:
         name_i18n:
           zh: 确认实际使用的解码器
         # Deliberately NOT ignore_error, and the decoder value is asserted
-        # rather than printed. Both presets promise hardware decode and the
-        # detector is configured to refuse CPU decode, so a run that reaches
-        # here on anything else is a broken deployment, not a note in the log.
-        timeout: 180
+        # rather than printed. This preset promises hardware decode and the
+        # detector is configured to refuse CPU decode, so finishing on
+        # anything else is a failed deployment, not a note in the log.
+        timeout: 240
         run: |
           # The detector describes its own live pipeline here — the element
           # GStreamer really instantiated, not what the config asked for.
-          echo "Waiting for the detector preview endpoint ..."
-          for i in $(seq 1 30); do
+          #
+          # Polled until the expected decoder appears rather than judged on the
+          # first answer: /debug/decode responds as soon as the preview server
+          # binds, and reports decode_path null until the pipeline has
+          # negotiated. Failing on the first reply would reject a deployment
+          # that was merely still starting.
+          echo "Waiting for the detector to report its decoder ..."
+          last=""
+          for i in $(seq 1 40); do
             body=$(curl -fsS "http://127.0.0.1:8099/debug/decode" 2>/dev/null) || { sleep 5; continue; }
-            echo "$body"
+            last="$body"
             case "$body" in
               *'"nvv4l2decoder"'*)
+                echo "$body"
                 echo "decode confirmed on NVDEC"
                 exit 0
                 ;;
             esac
-            echo "The detector answered, but is not decoding on NVDEC." >&2
-            echo "This preset requires it; check the device mounts in the compose file." >&2
-            exit 1
+            sleep 5
           done
-          echo "No answer on 8099 — check: docker compose logs detector" >&2
+          if [ -n "$last" ]; then
+            echo "$last" >&2
+            echo "The detector is answering but never reported NVDEC." >&2
+            echo "This preset requires it; check the device mounts in the compose file." >&2
+          else
+            echo "No answer on 8099 — check: docker compose logs detector" >&2
+          fi
           exit 1
 
   user_inputs:
