@@ -296,7 +296,7 @@ remote_overrides:
         # status "completed" and errors []. Observed exactly that with an
         # image that could not infer -- the evidence was in the log and the
         # status said success.
-        timeout: 240
+        timeout: 360
         run: |
           # Three things are checked here because the obvious two both lie.
           #
@@ -324,10 +324,19 @@ remote_overrides:
             fi
             sleep 5
           done
-          restarts=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
-          echo "detector restart count: $restarts"
+          # Sampled twice rather than required to be zero. The detector opens
+          # its MQTT connection synchronously at startup and exits if the
+          # broker is not accepting yet; compose's depends_on waits for the
+          # container to exist, not for mosquitto to be ready, so one early
+          # restart is normal on a slow board. A crash-loop keeps incrementing;
+          # a startup race settles. Requiring zero would fail working
+          # deployments.
+          r1=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
+          sleep 20
+          r2=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
+          echo "detector restart count: $r1 -> $r2"
           rm -f /tmp/esk-prev.jpg
-          if [ "$ok" = "1" ] && [ "$restarts" = "0" ]; then
+          if [ "$ok" = "1" ] && [ "$r1" = "$r2" ] && [ "$r1" != "?" ]; then
             echo "detector is decoding and inferring"
             exit 0
           fi
