@@ -77,10 +77,10 @@ intro:
     - type: mqtt
       port: 1883
       topic: sensecraft/security/<device_id>/events/<stream_id>
-      description: The hub's own verdicts, republished so an NVR, PLC or alerting system can subscribe instead of polling the API
+      description: The hub's own verdicts, republished so an NVR, PLC or alerting system can subscribe instead of polling the API. In the single-box presets the broker is bound to loopback; reaching it from another machine means republishing the port and adding a password file, both.
       schema_type: json
       description_i18n:
-        zh: hub 判定后回发的告警事件，NVR、PLC 或其他告警系统可以直接订阅，不必轮询接口
+        zh: hub 判定后回发的告警事件，NVR、PLC 或其他告警系统可以直接订阅，不必轮询接口。单机套餐里 broker 绑在 loopback 上；要从别的机器连，需要同时改端口映射和加密码文件，两步都做。
 
   input_requirements:
     - type: rtsp
@@ -247,7 +247,7 @@ intro:
       # Hardware-verified, containerised deployment included: deployed by
       # this preset's own steps through the provisioning engine onto a
       # Raspberry Pi 5 + Hailo-8 (HailoRT 4.21.0, driver 4.21.0) that was
-      # already running eleven unrelated containers, against a live 1280x720
+      # already running ten unrelated containers, against a live 1280x720
       # H.264 stream. All thirteen engine steps plus every custom action
       # completed; the detector container reached RestartCount 0 and served
       # /preview.jpg as a 1280x720 JPEG. The hub on the same board listed

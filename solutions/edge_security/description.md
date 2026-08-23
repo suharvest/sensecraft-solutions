@@ -144,8 +144,11 @@ Verified on real hardware:
   the CPU.
 - The RK3588 detector, including the same check against the board's hardware
   decoder.
-- Both presets deployed as containers, end to end, with the compose files and
-  deploy steps shipped here.
+- The Hailo-8 detector on a Raspberry Pi 5, including that its software decode
+  is the primary path rather than a fallback, and that it publishes alerts with
+  decodable snapshots.
+- All three presets deployed as containers, end to end, with the compose files
+  and deploy steps shipped here.
 - The hub — rules, cooldown, alert lifecycle, storage, the REST and WebSocket
   API.
 - The browser workbench.

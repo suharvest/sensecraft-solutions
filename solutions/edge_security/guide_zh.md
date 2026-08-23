@@ -96,7 +96,11 @@ broker、hub 和一个检测器已经在你选的机器上运行。
 | `sensecraft/security/<device_id>/status` | retained 的在线状态，以及实际使用的解码器 |
 | `sensecraft/security/<device_id>/events/<stream_id>` | hub 的判定结果，带 `origin: hub` 标记 |
 
-把 NVR、PLC 网关或你自己的告警服务连到 1883 端口订阅事件主题，不必轮询接口。
+NVR、PLC 网关或你自己的告警服务可以订阅事件主题，不必轮询接口——但**本套餐里 1883 绑在
+loopback 上**，别的机器连不到，需要你有意打开。两步都要做：把 compose 文件里 mosquitto 的
+端口映射从 `127.0.0.1:1883:1883` 改成 `1883:1883`，并在 `config/mosquitto.conf` 里加
+`password_file`、在 `config/detector.yaml` 里配上对应凭据。只开端口不加密码文件，等于在你的
+网络上放了一个任何东西都能往里发伪造告警的匿名 broker。
 
 #### 增加第二路摄像头
 
@@ -244,9 +248,10 @@ false，上面那个 CPU 数字里同时包含了解码和推理。加第二路�
 ### 检查内容
 
 - 该步骤会打印 hub 的 `/api/health` 响应；若是首次启动，还会打印管理员登录信息。
-- 随后确认检测器确实在工作：`/preview.jpg` 返回 200 且是 JPEG，容器重启次数为 0。
-  两个都要看——`/healthz` 只要预览服务绑定就返回 200，所以容器可以在推理每帧都崩的
-  情况下报 healthy。任一项不成立，该步骤会让部署失败。
+- 随后确认检测器确实在工作：`/preview.jpg` 返回 200 且是完整 JPEG，容器处于 running、
+  重启次数不再增长。三项都要看——`/healthz` 只要预览服务绑定就返回 200，所以容器可以在
+  推理每帧都崩的情况下报 healthy；而崩溃退避期里，重启计数也会暂时不动。任一项不成立，
+  该步骤会让部署失败。
 - 之后在工作台的设备页能看到板卡在线、`"decode": "sw"`、`"fallback_active": false`。
   这个读数在该板卡上是正确的，不是降级：它没有 H.264 硬解，软解就是主路径。
 

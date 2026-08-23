@@ -307,8 +307,13 @@ remote_overrides:
               # Magic bytes, not just a 200: the guide promises a decodable
               # JPEG, and an endpoint that answered with an error page or a
               # truncated body would otherwise pass as proof of a frame.
-              magic=$(head -c 3 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
-              if [ "$magic" = "ffd8ff" ]; then
+              # Start-of-image AND end-of-image. SOI alone passes a body that
+              # was truncated mid-transfer, which is exactly the failure this
+              # check is meant to catch.
+              soi=$(head -c 3 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
+              eoi=$(tail -c 2 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
+              magic="$soi/$eoi"
+              if [ "$soi" = "ffd8ff" ] && [ "$eoi" = "ffd9" ]; then
                 echo "preview.jpg: HTTP 200, JPEG, $(wc -c < /tmp/esk-prev.jpg) bytes"
                 ok=1
                 break
@@ -327,9 +332,15 @@ remote_overrides:
           r1=$(docker inspect -f '{{.RestartCount}}' edge_security_rk3588-detector-1 2>/dev/null || echo "?")
           sleep 20
           r2=$(docker inspect -f '{{.RestartCount}}' edge_security_rk3588-detector-1 2>/dev/null || echo "?")
-          echo "detector restart count: $r1 -> $r2"
+          # State as well as the counter. Docker backs a crash-loop off
+          # exponentially, so a container can sit in Restarting for the whole
+          # 20 s window with its count unchanged -- and the preview that set
+          # ok=1 was served before it died. Running=true / Restarting=false at
+          # the second sample is what rules that out.
+          state=$(docker inspect -f '{{.State.Running}}/{{.State.Restarting}}' edge_security_rk3588-detector-1 2>/dev/null || echo "?/?")
+          echo "detector restart count: $r1 -> $r2, state running/restarting: $state"
           rm -f /tmp/esk-prev.jpg
-          if [ "$ok" = "1" ] && [ "$r1" = "$r2" ] && [ "$r1" != "?" ]; then
+          if [ "$ok" = "1" ] && [ "$r1" = "$r2" ] && [ "$r1" != "?" ] && [ "$state" = "true/false" ]; then
             echo "detector is decoding and inferring"
             exit 0
           fi

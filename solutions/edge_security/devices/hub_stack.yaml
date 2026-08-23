@@ -136,8 +136,12 @@ remote_overrides:
           # This preset only installs the hub. Nothing here reaches the detector
           # machines, so the operator has to repoint each one by hand - print
           # exactly what to change rather than leaving them to work it out.
-          ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
-          [ -n "$ip" ] || ip="{{host}}"
+          # The address the operator typed comes first: it is the one they
+          # already reached this machine on, so detectors can reach it too. The
+          # default-route source is only a fallback, and on a box with several
+          # interfaces it can name one the cameras' network cannot see.
+          ip="{{host}}"
+          [ -n "$ip" ] || ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
           echo "-------------------------------------------------------------"
           echo "Broker for detectors:  ${ip}:1883"
           echo "On EACH detector machine, set mqtt_host in its detector.yaml:"

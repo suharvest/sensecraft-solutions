@@ -113,8 +113,14 @@ exports to CSV. The interface is available in English and Chinese.
 | `sensecraft/security/<device_id>/status` | retained online/offline plus the decoder actually in use |
 | `sensecraft/security/<device_id>/events/<stream_id>` | the hub's verdicts, tagged `origin: hub` |
 
-Point an NVR, a PLC gateway or your own alerting service at port 1883 and
-subscribe to the events topic rather than polling the API.
+An NVR, a PLC gateway or your own alerting service can subscribe to the events
+topic instead of polling the API — but **1883 is bound to loopback in this
+preset**, so it is not reachable from another machine until you open it
+deliberately. Two steps, both of them: change the mosquitto port mapping in the
+compose file from `127.0.0.1:1883:1883` to `1883:1883`, and add a
+`password_file` to `config/mosquitto.conf` with matching credentials in
+`config/detector.yaml`. Opening the port without the password file leaves an
+anonymous broker on your network that anything can publish forged alerts to.
 
 #### Adding a second camera
 
@@ -296,7 +302,8 @@ started on the board.
 - The step prints the hub's `/api/health` response, and the admin credential
   from the hub log if this is a first boot.
 - It then confirms the detector is actually running: `/preview.jpg` answering
-  200 with a JPEG, and a container restart count of 0. Both are needed —
+  200 with a complete JPEG, and a restart count that is not still climbing
+  while the container reports running. All three are needed —
   `/healthz` answers as soon as the preview server binds, so a container can
   report healthy while inference crash-loops on every frame. The step fails the
   deployment if either check does not hold.
