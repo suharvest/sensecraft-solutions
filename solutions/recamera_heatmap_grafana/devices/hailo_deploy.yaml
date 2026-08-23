@@ -1,0 +1,147 @@
+version: "1.0"
+id: hailo_deploy
+name: Hailo-8 Detector
+type: docker_deploy
+
+detection:
+  method: network_scan
+  manual_entry: true
+
+docker:
+  compose_file: ../docker/docker-compose.hailo.yml
+  remote_path: /home/{{username}}/retail-vision-hailo
+  environment:
+    STREAMS: "{{stream_id}}|{{rtsp_url}}"
+    INSTALLATION_ID: "{{device_name}}"
+    MQTT_HOST: "{{mqtt_host}}"
+    MQTT_PORT: "{{mqtt_port}}"
+  options:
+    project_name: retail-vision-hailo
+    remove_orphans: true
+  services:
+    - name: retail-vision
+      required: true
+
+ssh:
+  default_user: pi
+
+user_inputs:
+  - id: rtsp_url
+    name: RTSP Camera URL
+    type: text
+    placeholder: "rtsp://192.168.1.50:554/stream"
+    description: RTSP stream of the camera this board watches
+    required: true
+    name_i18n:
+      zh: RTSP 摄像头地址
+    description_i18n:
+      zh: 这块板子要看的摄像头 RTSP 地址
+  - id: device_name
+    name: Installation Name
+    type: text
+    default: "store-01"
+    required: true
+    row: 1
+    description: First segment of the MQTT topic — a store, floor or site name keeps several installations apart on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 安装点名称
+    description_i18n:
+      zh: MQTT 主题的第一段——用门店、楼层或站点名区分同一 broker 上的多个安装点
+  - id: stream_id
+    name: Camera ID
+    type: text
+    default: "cam-01"
+    required: true
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 摄像头编号
+  - id: mqtt_host
+    name: MQTT Broker
+    type: text
+    default: "127.0.0.1"
+    required: true
+    row: 2
+    description: Where the dashboard backend runs. Leave at 127.0.0.1 if you deployed it on this same board.
+    name_i18n:
+      zh: MQTT 服务器
+    description_i18n:
+      zh: 看板后端所在地址。如果后端就部署在这块板子上，保持 127.0.0.1
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    row: 2
+    validation:
+      pattern: "^[0-9]{1,5}$"
+      message: Port number only
+    name_i18n:
+      zh: MQTT 端口
+
+pre_checks:
+  - type: docker
+    description: Docker must be installed and running
+  - type: disk_space
+    min_gb: 1
+    description: At least 1GB for the detector image
+
+actions:
+  before:
+    - name: Check the Hailo runtime
+      # The plugin, the user library and the kernel driver must be one and the
+      # same HailoRT version. Rather than let a mismatch surface as a cryptic
+      # runtime failure, fail here and name what is actually installed.
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "/dev/hailo0 not present — is the Hailo-8 seated and its driver loaded?" >&2
+          exit 1
+        fi
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+          echo "Installed instead:" >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        if [ ! -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so ]; then
+          echo "libgsthailo.so not found — install the HailoRT GStreamer plugin." >&2
+          exit 1
+        fi
+        cat /sys/module/hailo_pci/version 2>/dev/null || true
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+      name_i18n:
+        zh: 检查 Hailo 运行时
+
+    - name: Download the detection model
+      # Fetched from Hailo's own Model Zoo rather than re-hosted, and pinned by
+      # digest. NMS runs on-chip in this HEF, so the detector only walks the
+      # decoded class-0 block — no DFL decode, no CPU NMS.
+      run: |
+        set -e
+        MODELS_DIR="{{remote_path}}/hailo-models"
+        URL=https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8n.hef
+        SHA=4f250daa6ac16e030cfaaf164e1cbdfe83e5852c81ae6c339c94857dd2b7b8d2
+        mkdir -p "$MODELS_DIR"
+        if [ -s "$MODELS_DIR/yolov8n.hef" ] && \
+           echo "$SHA  $MODELS_DIR/yolov8n.hef" | sha256sum -c - >/dev/null 2>&1; then
+          echo "model already present and verified"
+          exit 0
+        fi
+        curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/yolov8n.hef.part" "$URL"
+        echo "$SHA  $MODELS_DIR/yolov8n.hef.part" | sha256sum -c -
+        mv -f "$MODELS_DIR/yolov8n.hef.part" "$MODELS_DIR/yolov8n.hef"
+        ls -l "$MODELS_DIR/yolov8n.hef"
+      name_i18n:
+        zh: 下载检测模型
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: Hailo-8 检测器

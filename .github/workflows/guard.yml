@@ -15,6 +15,18 @@ jobs:
       - name: Run public-repo boundary guard
         run: sh scripts/public-repo-guard.sh
 
+  # The analytics backend config under solutions/recamera_heatmap_grafana/docker
+  # is a mirror; the open-source project is the authority. Two copies drift
+  # unless something compares them, and a drifted dashboard or telegraf config
+  # is the kind of thing nobody notices until a deployment behaves differently
+  # from the one it was tested against.
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backend config matches its pinned upstream
+        run: scripts/sync_retail_vision_backend.sh
+
   validate:
     runs-on: ubuntu-latest
     steps:

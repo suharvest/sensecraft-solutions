@@ -1,0 +1,52 @@
+version: "1.0"
+id: recamera_pro_apps
+name: Open the App Center
+type: web_dashboard
+
+# Verified against the shipping frontend (recamera_web_react): the App Center is
+# a sidebar tab at /app-center, its "+" button opens an install modal that reads
+# the cloud catalog, and each installed app card carries Start / Stop /
+# Configure. The page no longer carries its own preview -- that was removed when
+# the four sub-tabs collapsed into one panel, and the live picture now lives on
+# the sidebar's Live Preview / Live View pages (src/pages/AppCenter.js header).
+#
+# http, not https, on purpose. The firmware has an HTTPS switch: with it on,
+# port 80 answers 307 to 443; with it off, 443 answers 307 back to 80. Entering
+# on http follows the redirect either way, while entering on https dead-ends
+# when the switch is off.
+#
+# No inherit_host_from: the step before this one is `manual`, which deploys
+# nothing and therefore carries no host to inherit. The address is asked for
+# here instead.
+
+user_inputs:
+  - id: host
+    name: Camera Address
+    type: text
+    required: true
+    default: "192.168.42.1"
+    placeholder: "192.168.1.64"
+    description: IP address of your reCamera Pro (USB default 192.168.42.1)
+    validation:
+      pattern: "^[A-Za-z0-9_.-]+$"
+    name_i18n:
+      zh: 摄像头地址
+    description_i18n:
+      zh: reCamera Pro 的 IP 地址（USB 默认 192.168.42.1）
+
+web_dashboard:
+  url: "http://{{host}}/"
+  title: reCamera Pro Dashboard
+  description: >-
+    Sign in, open App Center in the sidebar, and press + to install an app from
+    the catalog. Start it on its card, then open Live Preview to watch what it
+    detects.
+  title_i18n:
+    zh: reCamera Pro 控制面板
+  description_i18n:
+    zh: >-
+      登录后在左侧打开「应用中心」，点 + 从目录里装一个应用。在应用卡片上点「启动」，
+      再打开「实时预览」看它检测到了什么。
+
+name_i18n:
+  zh: 打开应用中心

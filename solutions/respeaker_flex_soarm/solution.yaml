@@ -5,6 +5,7 @@ intro:
   summary: Speak natural language commands to control a SO-ARM101 6-DoF robotic arm. Fully on-device voice stack — Paraformer/Matcha ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — running on Jetson Orin NX. Exposes a HTTP observation endpoint so other solutions can read live joint state.
   description_file: description.md
   cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/lerobot_flex.png
+  repo_url: https://github.com/Seeed-Projects/Seeed_RoboController
   category: voice_ai
   solution_type: technical
   tags: [voice, robot, so-arm, lerobot, jetson, respeaker, local-llm, qwen3, edge-llm, asr, tts, offline]

@@ -9,11 +9,17 @@ the .deb and any model files from the CDN, and pushes them to the device over
 the existing chunked-upload API.
 
 The catalog is DERIVED, never hand-written. Its source of truth is
-solutions/recamera_ecosystem/: the device YAMLs carry the package URLs and
-checksums, guide.md says which device belongs to which preset, and solution.yaml
-carries the display copy. Hand-maintaining a second list of URLs and hashes is
-how the version numbers rotted (see sscma-example-sg200x@9187c33); do not start
-a new one.
+solutions/recamera_ecosystem/devices/apps/: one YAML per installable app,
+carrying the package URL, the model URLs, their checksums, and the display copy
+the console shows on the card (the `catalog_*` fields). Hand-maintaining a
+second list of URLs and hashes is how the version numbers rotted (see
+sscma-example-sg200x@9187c33); do not start a new one.
+
+Those YAMLs are not wired to guide steps. The solution has one preset per camera
+generation, and apps are installed from the camera's own console rather than by
+a solution step -- so devices/apps/ exists to describe what the console may
+offer, and lives in a subdirectory precisely so the validator does not read it
+as a stale guide config.
 
 Usage:
     uv run python scripts/generate_recamera_catalog.py                  # write + upload
@@ -25,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 import sys
 import urllib.request
@@ -35,26 +40,20 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOLUTION_DIR = REPO_ROOT / "solutions" / "recamera_ecosystem"
+APPS_DIR = SOLUTION_DIR / "devices" / "apps"
 EXCLUDED = {"supervisor"}
 OSS_TARGET = "oss://sensecraft-statics/solution-app/recamera_ecosystem/catalog.json"
 
-# guide.md structure: "## Preset: Name {#preset_id}" then, under it,
-# "## Step N: ... {#step_id type=recamera_cpp ... config=devices/<file>.yaml}".
-_PRESET_RE = re.compile(r"^##\s+Preset:.*?\{#([a-z0-9_]+)\}", re.M)
-_STEP_RE = re.compile(r"^##\s+Step\s+\d+:[^\{]*\{#[^}]*?type=recamera_cpp[^}]*?config=(devices/[^\s}]+)", re.M)
+# Every app in the catalog is installed onto a reCamera through the console that
+# the `recamera` preset sets up, so that is what the `preset` field reports. The
+# console's own type declares the field but does not read it; it is kept so an
+# older console build does not trip over a missing key.
+PRESET_ID = "recamera"
 
 
-def preset_to_device() -> dict[str, str]:
-    """preset id -> the device YAML of its recamera_cpp step (if it has one)."""
-    guide = (SOLUTION_DIR / "guide.md").read_text(encoding="utf-8")
-    out: dict[str, str] = {}
-    marks = [(m.start(), m.group(1)) for m in _PRESET_RE.finditer(guide)]
-    for i, (start, preset_id) in enumerate(marks):
-        end = marks[i + 1][0] if i + 1 < len(marks) else len(guide)
-        step = _STEP_RE.search(guide, start, end)
-        if step:
-            out[preset_id] = step.group(1)
-    return out
+def app_yamls() -> list[Path]:
+    """Every installable-app device YAML, in a stable order."""
+    return sorted(APPS_DIR.glob("*.yaml"))
 
 
 def content_length(url: str) -> int | None:
@@ -70,18 +69,10 @@ def content_length(url: str) -> int | None:
 
 
 def build(with_sizes: bool) -> dict:
-    solution = yaml.safe_load((SOLUTION_DIR / "solution.yaml").read_text(encoding="utf-8"))
-    presets = {p["id"]: p for p in solution["intro"]["presets"]}
-    mapping = preset_to_device()
-
     apps = []
-    for preset_id, device_rel in sorted(mapping.items()):
-        preset = presets.get(preset_id)
-        if preset is None:
-            print(f"  ! guide.md has preset '{preset_id}' with no solution.yaml entry", file=sys.stderr)
-            continue
-
-        device = yaml.safe_load((SOLUTION_DIR / device_rel).read_text(encoding="utf-8"))
+    for device_path in app_yamls():
+        device_rel = device_path.relative_to(SOLUTION_DIR)
+        device = yaml.safe_load(device_path.read_text(encoding="utf-8"))
         binary = device.get("binary") or {}
         deb = binary.get("deb_package") or {}
         if not deb.get("path"):
@@ -103,11 +94,11 @@ def build(with_sizes: bool) -> dict:
 
         entry = {
             "id": app_id,
-            "preset": preset_id,
-            "name": preset.get("name", app_id),
-            "name_zh": (preset.get("name_i18n") or {}).get("zh", ""),
-            "description": preset.get("description", ""),
-            "description_zh": (preset.get("description_i18n") or {}).get("zh", ""),
+            "preset": PRESET_ID,
+            "name": device.get("catalog_name") or device.get("name") or app_id,
+            "name_zh": (device.get("catalog_name_i18n") or {}).get("zh", ""),
+            "description": device.get("catalog_description", ""),
+            "description_zh": (device.get("catalog_description_i18n") or {}).get("zh", ""),
             "package": {
                 "url": deb["path"],
                 "filename": deb["path"].rsplit("/", 1)[-1],
@@ -138,7 +129,7 @@ def build(with_sizes: bool) -> dict:
 
     return {
         "schema": 1,
-        "source": "sensecraft-solutions/solutions/recamera_ecosystem",
+        "source": "sensecraft-solutions/solutions/recamera_ecosystem/devices/apps",
         "apps": apps,
     }
 

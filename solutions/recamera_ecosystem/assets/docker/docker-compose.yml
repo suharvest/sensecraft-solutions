@@ -10,5 +10,20 @@ services:
       - TZ=Asia/Shanghai
     restart: unless-stopped
 
+  # The cameras publish MQTT discovery configs; Home Assistant consumes them.
+  # Neither side is a broker, so this supplies one on the Home Assistant host —
+  # the address the camera's Integrations page asks for.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: recamera-mosquitto
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    restart: unless-stopped
+
 volumes:
   ha-config:
+  mosquitto-data:

@@ -1,339 +1,154 @@
 version: '1.0'
 id: recamera_ecosystem
 name: Plug & Play AI Camera
+name_i18n:
+  zh: 即插即用 AI 摄像头
 intro:
-  summary: A plug-and-play AI camera with one-click apps — object detection, text reading, face analysis, smart home, and more
+  summary: One AI camera, a gallery of apps — install object detection, text reading, face analysis or people counting from the camera's own console, and forward the results to Home Assistant
+  summary_i18n:
+    zh: 一台 AI 摄像头，一整套应用——在摄像头自己的控制台里安装目标检测、文字识别、人脸分析或客流统计，并把结果转发到 Home Assistant
   description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
   cover_image: gallery/recamera.svg
   category: automation
-  solution_type: technical
+  solution_type: solution
   tags:
     - recamera
+    - recamera-pro
     - home-assistant
+    - mqtt
+    - app-gallery
     - yolo
     - ocr
-    - text-recognition
     - face-analysis
-    - emotion
-    - age-gender
-    - drowsiness-detection
     - fall-detection
+    - retail-analytics
     - smart-home
     - rtsp
-    - privacy
-    - weather
-    - classification
-    - console
-    - device-management
-    - app-gallery
     - onvif
-    - nvr
+    - privacy
 
   output_interfaces:
     - type: rtsp
       port: 554
-      description: AI-processed camera video stream (YOLO/OCR/Face)
+      description: AI-processed camera video stream
       schema_type: binary
       description_i18n:
-        zh: AI 处理后的摄像头视频流（YOLO/OCR/人脸）
+        zh: AI 处理后的摄像头视频流
     - type: onvif
       port: 8000
       endpoint: /onvif/device_service
-      description: ONVIF Device and Media2 services — add the camera to an NVR or VMS by discovery, no manual RTSP URL needed (WS-Discovery answers on UDP 3702)
+      description: ONVIF Device and Media2 services — add the camera to an NVR or VMS by discovery, no manual RTSP URL needed (WS-Discovery answers on UDP 3702). reCamera only.
       schema_type: xml
       description_i18n:
-        zh: ONVIF Device 与 Media2 服务——NVR / 监控平台可自动发现并接入，无需手填 RTSP 地址（WS-Discovery 监听 UDP 3702）
+        zh: ONVIF Device 与 Media2 服务——NVR / 监控平台可自动发现并接入，无需手填 RTSP 地址（WS-Discovery 监听 UDP 3702）。仅 reCamera 提供。
     - type: mqtt
       port: 1883
-      description: Detection results JSON via MQTT
+      description: Detection results JSON from the running app
       schema_type: json
       payload_example: '{"type":"detection","objects":[{"class":"person","confidence":0.95}]}'
-
       description_i18n:
-        zh: 通过 MQTT 发送的检测结果 JSON
+        zh: 当前运行应用发出的检测结果 JSON
+    - type: mqtt
+      port: 1883
+      topic: homeassistant/
+      description: Home Assistant discovery configs — the running app's entities appear on their own, and change when you switch apps
+      schema_type: json
+      description_i18n:
+        zh: Home Assistant 自动发现配置——当前应用的实体会自动出现，换应用时也会自动跟着变
   input_requirements: []
 
   device_catalog:
     recamera_2002:
-      description: AI camera with YOLO detection and RTSP streaming
+      description: All-in-one AI camera — runs the app gallery, RTSP, ONVIF and a local MQTT broker on device
       description_i18n:
-        zh: AI 摄像头，支持 YOLO 识别和 RTSP 视频流
+        zh: 一体化 AI 摄像头——应用画廊、RTSP、ONVIF 和本地 MQTT broker 都在设备上运行
+    recamera_pro:
+      description: Newer all-in-one AI camera — runs the App Center, where each app carries its own output and MQTT configuration
+      description_i18n:
+        zh: 更新一代的一体化 AI 摄像头——运行应用中心，每个应用各自带一份输出与 MQTT 配置
     recomputer_r11:
-      description: Edge computing device for running Home Assistant
+      description: Edge computing device for running Home Assistant and the MQTT broker
       description_i18n:
-        zh: 边缘计算设备，运行 Home Assistant
+        zh: 边缘计算设备，运行 Home Assistant 和 MQTT broker
+
+  presets:
+    - id: recamera
+      name: reCamera
+      name_i18n:
+        zh: reCamera
+      badge: Start Here
+      badge_i18n:
+        zh: 从这里开始
+      description: Update the console, pick an app from the gallery, and forward the results to Home Assistant over MQTT.
+      description_i18n:
+        zh: 升级控制台、从画廊里挑一个应用，再通过 MQTT 把结果转发到 Home Assistant。
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: server
+          name: Home Assistant Server
+          name_i18n:
+            zh: Home Assistant 服务器
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      badge: New Hardware
+      badge_i18n:
+        zh: 新硬件
+      description: Same flow on the newer camera — update the firmware, pick an app from the App Center, and forward the results to Home Assistant over MQTT.
+      description_i18n:
+        zh: 新一代摄像头，同样的流程——更新固件、从应用中心挑一个应用，再通过 MQTT 把结果转发到 Home Assistant。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+        - id: server
+          name: Home Assistant Server
+          name_i18n:
+            zh: Home Assistant 服务器
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+      links:
+        github: https://github.com/Seeed-Studio/reCamera-OS
+
   stats:
     deployed_count: 0
     likes_count: 0
     difficulty: beginner
     estimated_time: 20min
   links:
-    github: https://github.com/xr686/reCamer_HA
-  presets:
-    - id: console
-      name: reCamera Console
-      badge: Start Here
-      description: Replace the camera's built-in control panel with the reCamera Console — browse and switch AI apps, watch the live view, and set up network, Home Assistant and system options from one web page
-      verified:
-        - hardware
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: reCamera 控制台
-      badge_i18n:
-        zh: 从这里开始
-      description_i18n:
-        zh: 把摄像头自带的控制面板升级为 reCamera 控制台——在一个网页里浏览和切换 AI 应用、查看实时画面，并配置网络、Home Assistant 和系统选项
-    - id: simple
-      name: Object Detection
-      badge: Quick Start
-      description: Just reCamera - spot people, vehicles and 80 other everyday objects, with a live heatmap showing where they gather
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        wiki: https://wiki.seeedstudio.com/
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 通用目标检测
-      badge_i18n:
-        zh: 快速上手
-      description_i18n:
-        zh: 只需 reCamera，识别人、车等 80 类常见目标，并用热力图看清他们聚集在哪儿
-    - id: ha_integration
-      name: Home Assistant Integration
-      badge: Smart Home
-      description: Connect reCamera to Home Assistant — live RTSP stream + AI detection sensor in HA dashboard
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-        - id: server
-          name: Home Assistant Server
-          type: single
-          required: true
-          options:
-            - device_ref: recomputer_r11
-          default: recomputer_r11
-          name_i18n:
-            zh: Home Assistant 服务器
-      links:
-        github: https://github.com/xr686/reCamer_HA
-      name_i18n:
-        zh: Home Assistant 集成
-      badge_i18n:
-        zh: 智能家居
-      description_i18n:
-        zh: 将 reCamera 接入 Home Assistant，实时 RTSP 画面 + AI 识别传感器一站式显示
-    - id: ocr_reader
-      name: OCR Text Reader
-      badge: New
-      description: Read text from camera feed with PP-OCRv3 — supports Chinese and English
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: OCR 文字识别
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 使用 PP-OCRv3 从摄像头画面中识别文字——支持中文和英文
-    - id: face_analysis
-      name: Face Analysis
-      badge: New
-      description: Detect faces and analyze age, gender, and emotion — all on-device, with privacy blur on the video stream
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 人脸分析
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 检测人脸并分析年龄、性别、表情——全部在设备上处理，视频流中自动打码保护隐私
-    - id: facemesh_drowsiness
-      name: Drowsiness Detection
-      badge: New
-      description: Monitor driver alertness with FaceMesh — tracks eye closure, PERCLOS, and yawn frequency in real-time, all on-device
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 困倦检测
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 通过 FaceMesh 监测驾驶员警觉状态——实时跟踪闭眼时长、PERCLOS 和哈欠频率，全部在设备上处理
-    - id: weather_classification
-      name: Weather Classification
-      badge: New
-      description: Classify the current weather (clear/cloudy/foggy/rainy/snowy) from the camera feed — all on-device, with results published to MQTT
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/Love4yzp/weather_classification_recamera
-      name_i18n:
-        zh: 天气识别
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT
-    - id: qrcode_reader
-      name: QR Code Reader
-      badge: New
-      description: Turn the camera into a hands-free scanner — every QR code in view is decoded at once and pushed straight into your workflow, no model and no handheld gun needed
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 二维码识别
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 把摄像头变成免手持扫码枪——一次识别画面里的所有二维码，结果直接推进业务流程，不需要模型，也不需要手持设备
-    - id: fitness_trainer
-      name: Fitness Trainer
-      badge: New
-      description: Count your reps and flag sloppy form — squats, push-ups or hammer curls, tracked by the camera alone with no phone and no wearable
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 健身教练
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 数你的组数、提示动作不到位——深蹲、俯卧撑或哑铃弯举，只靠摄像头，不用手机也不戴手环
-    - id: fall_detection
-      name: Fall Detection
-      badge: Beta
-      description: Detect rapid falls with an on-device pose timeline and publish alerts over MQTT — designed for fixed, single-person indoor views
-      verified:
-        - hardware
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 跌倒检测
-      badge_i18n:
-        zh: 测试版
-      description_i18n:
-        zh: 通过设备本地姿态时序识别快速跌倒并用 MQTT 推送告警——适合固定机位、单人室内看护场景
-    - id: retail_vision
-      name: Retail People Counting
-      badge: New
-      description: Count customers in and out, see where they linger, and spot who needs help — automatic entry/exit counting plus browsing / engaged / assistance states, all on-device
-      device_groups:
-        - id: camera
-          name: AI Camera
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-          name_i18n:
-            zh: AI 摄像头
-      links:
-        github: https://github.com/suharvest/sscma-example-sg200x
-      name_i18n:
-        zh: 零售人流分析
-      badge_i18n:
-        zh: 新功能
-      description_i18n:
-        zh: 自动统计进出客流、区分浏览/驻足/求助状态，看清顾客在哪儿停留、谁正需要帮助——全部在设备上处理
-  summary_i18n:
-    zh: 即插即用的 AI 摄像头，一键安装各种应用——物体检测、文字识别、人脸分析、智能家居联动
-  description_file_i18n:
-    zh: description_zh.md
+    github: https://github.com/suharvest/sscma-example-sg200x
 deployment:
   guide_file: guide.md
-  selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 即插即用 AI 摄像头
+  selection_mode: sequential

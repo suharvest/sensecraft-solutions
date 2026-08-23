@@ -21,6 +21,7 @@ intro:
       caption: Map Visualization
       caption_i18n:
         zh: 地图可视化
+  repo_url: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
   category: smart_building
   solution_type: solution
 

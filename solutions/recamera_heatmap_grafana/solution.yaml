@@ -46,10 +46,36 @@ intro:
       description: AI camera that detects people and automatically protects privacy
       description_i18n:
         zh: AI 摄像头，自动识别人员位置并打码保护隐私
+    recamera_pro:
+      description: Newer all-in-one camera — detection, tracking, dwell states and entry/exit counting on device
+      description_i18n:
+        zh: 更新一代的一体机——检测、跟踪、驻足状态和进出店计数全部在设备本地完成
     recomputer_r11:
       description: Edge computing device for running Grafana dashboard
       description_i18n:
         zh: 边缘计算设备，运行 Grafana 看板
+    recomputer_rk3588:
+      description: Runs the detector on the RK3588 NPU, with headroom for extra streams
+      description_i18n:
+        zh: 在 RK3588 NPU 上运行检测，可支撑更多路视频
+    recomputer_rk3576:
+      description: Runs the detector on the RK3576 NPU
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行检测
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera you already own, supplying the video the detector watches
+      description_i18n:
+        zh: 你已有的任意 RTSP 摄像头，为检测器提供视频
+    recomputer_r20_industrial:
+      description: Runs the detector on a Hailo-8 accelerator, native C++ hot path
+      description_i18n:
+        zh: 在 Hailo-8 加速器上运行检测，热路径为原生 C++
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
     recomputer_j40:
       description: GPU-accelerated edge AI device for multi-camera detection
       description_i18n:
@@ -98,6 +124,109 @@ intro:
         zh: AI 摄像头直连
       description_i18n:
         zh: 接上 reCamera 就能用，摄像头自带 AI 识别，不需要额外设备
+    - id: recamera_pro
+      name: reCamera Pro
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Newer hardware, same one-camera setup. The analytics app ships in the device's App Center; this preset points it at your dashboard.
+      description_i18n:
+        zh: 更新一代硬件，同样一台摄像头搞定。分析应用随设备应用中心分发，本套餐负责把它接到你的看板。
+      device_groups:
+        - id: camera
+          name: Camera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+          name_i18n:
+            zh: 摄像头
+        - id: server
+          name: Backend Server
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+          name_i18n:
+            zh: 后端服务器
+      name_i18n:
+        zh: reCamera Pro
+
+    - id: rk
+      name: IP Camera + Rockchip NPU
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Keep your current IP cameras — a Rockchip board runs the detector locally.
+      description_i18n:
+        zh: 保留现有 IP 摄像头，由瑞芯微板卡在本地跑检测。
+      # Verified on both boards against a live RTSP source: image built on the
+      # board, MPP hardware decode confirmed active (the CPU decoder is never
+      # loaded), 13.2 fps on RK3588 and 13.3 on RK3576, MQTT pinned at 1.00
+      # msg/s, 70/70 messages passing the contract validator.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3588
+          name_i18n:
+            zh: 检测主机
+        - id: camera
+          name: IP Camera
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+          name_i18n:
+            zh: IP 摄像头
+      name_i18n:
+        zh: IP 摄像头 + 瑞芯微 NPU
+
+    - id: hailo
+      name: IP Camera + Raspberry Pi 5 (Hailo)
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Keep your current IP cameras — a Hailo-8 accelerator runs the detector with a native C++ hot path.
+      description_i18n:
+        zh: 保留现有 IP 摄像头，由 Hailo-8 加速器跑检测，热路径为原生 C++。
+      # Verified against a live RTSP source: 440 frames in 30.7 s = 14.3 fps
+      # tracking a 15 fps camera, MQTT at 0.94 msg/s, on-chip NMS, and 84
+      # person records with no coordinate out of range. Unpaced, the same
+      # pipeline reached 234 fps — roughly 15x the source rate.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+          name_i18n:
+            zh: 检测主机
+        - id: camera
+          name: IP Camera
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+          name_i18n:
+            zh: IP 摄像头
+      name_i18n:
+        zh: IP 摄像头 + 树莓派 5（Hailo）
+
     - id: jetson
       name: Upgrade Existing Cameras
       description: Keep your current IP cameras, add an AI box to enable heatmap analytics

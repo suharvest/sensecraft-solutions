@@ -1,6 +1,6 @@
 version: "1.0"
 id: console_dashboard
-name: Open reCamera Console
+name: Choose and Install an App
 type: web_dashboard
 
 # 显式声明上游部署步骤（guide.md 里 `## Step 1 {#deploy_console ...}` 的 step id，
@@ -22,10 +22,14 @@ web_dashboard:
   # 控制台就是设备的 80 口 Web 服务，无需额外端口
   url: "http://{{host}}/"
   title: reCamera Console
-  description: Browse and switch apps, watch the live view, and manage network and system settings
+  description: >-
+    Open Applications, install the app you want with Install from cloud, then
+    activate it. Its Debug page shows the live view and detection results.
   title_i18n:
     zh: reCamera 控制台
   description_i18n:
-    zh: 浏览和切换应用、查看实时画面、管理网络与系统设置
+    zh: >-
+      打开「应用」页，用「从云端安装」装上想用的应用，然后启用它。
+      点应用上的「调试」就能看到实时画面和检测结果。
 name_i18n:
-  zh: 打开 reCamera 控制台
+  zh: 选择并安装应用

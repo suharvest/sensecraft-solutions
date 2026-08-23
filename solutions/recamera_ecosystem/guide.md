@@ -1,767 +1,387 @@
-## Preset: reCamera Console {#console}
+## Preset: reCamera {#recamera}
 
-Replace the camera's built-in control panel with the reCamera Console — one web page to browse and switch AI apps, watch the live view, and manage network and system settings. Start here: the console is how you run everything else.
+One camera does everything. The console on the camera carries an app gallery —
+install object detection, text reading, face analysis, fall detection or people
+counting, switch between them from the browser, and send whatever the running
+app produces to Home Assistant over MQTT.
 
 | Device | Purpose |
 |--------|---------|
-| reCamera | AI camera whose built-in control panel is upgraded to the console |
+| reCamera | Runs the console, the AI app, RTSP, ONVIF and a local MQTT broker |
+| Computer or reComputer R1100 | Optional — runs Home Assistant and the MQTT broker for steps 3 to 5 |
 
-**What you'll get:**
-- An app gallery — install, switch and configure AI apps from the browser, no SSH needed
-- Live view with detection overlays, plus camera orientation and focus controls
-- Wi-Fi / HaLow / static IP setup, Home Assistant integration and system settings in one place
+**Only one app holds the camera at a time.** Switching apps stops the previous
+one and its RTSP and MQTT output; nothing is uninstalled, and switching back
+takes a click.
 
-**Good to know:** The console takes over the camera pipeline, so the built-in Node-RED editor is switched off during install. You can switch back to Node-RED any time from the console's system settings — nothing is uninstalled.
+## Step 1: Update the reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+Install console 0.5.5, which manages the camera's apps. Already current? It's skipped.
 
-## Step 1: Install reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
+### Prerequisites
 
-Upgrade the camera's control panel to the console. The camera goes offline for about a minute while it restarts.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### What to check
-
-- The install finishes with the service started — the camera's web page reloads on its own within about a minute
-- Any AI app you installed earlier is kept and reappears in the console's app gallery
+1. Connect the camera over USB, or put it on the same network as this computer.
+2. Over USB the address is `192.168.42.1`; over Wi-Fi use the IP your router shows.
+3. Username `recamera`, default password `recamera` (older units use `recamera.2`).
+4. New devices need SSH enabled first — connect over USB, wait about two minutes for boot, open `http://192.168.42.1/#/security`, sign in, and turn on the SSH toggle.
+5. Nothing is reinstalled if the console is already 0.5.5 — the version is checked before anything is touched, and the step reports itself as skipped.
+6. The camera's operating system is updated separately, in **Device Management → Embedded → reCamera** in this app. That update is not required for this solution; run it if the camera is on an old release, and note that it flashes the whole system and takes several minutes.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-| Want the original panel back | Hold the **User** button while plugging in power, release when the red LED stops blinking and stays on — this factory-resets the camera |
+| Cannot connect | USB: use `192.168.42.1`; network: check your router for the IP |
+| Password rejected | Default is `recamera`; units shipped with older firmware use `recamera.2` |
+| Install failed | Restart the camera and run the step again |
+| Node-RED stopped working | Expected — the console takes over the camera pipeline. Switch back from the console's system settings; nothing is uninstalled |
+| Want the original panel back | Hold the **User** button while plugging in power and release when the red LED stops blinking and stays on — this factory-resets the camera |
 
 ---
 
-## Step 2: Open reCamera Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+## Step 2: Choose and Install an App {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
 
-Open the console in your browser and sign in with your camera's username and password.
+Open the console, install an app from the gallery, activate it, and watch the results.
+
+### Prerequisites
+
+1. Sign in with the camera's own credentials, the same ones as the previous step.
+2. Open **Applications**. Installed apps are listed; **Install from cloud** shows what else is available.
+3. Your browser does the downloading and pushes the bytes to the camera, so the camera needs no internet of its own — but this computer does.
+4. Pick one app and press **Install**. Models come with it, so an app can be a few hundred megabytes; the console shows the size first.
+5. Activate the app. Switching hands the camera over and stops whatever was running before.
+6. Press **Debug** on the running app to see the live view and its detection results.
+
+### Deployment Complete
+
+The camera is running the app you picked and is usable on its own from here.
+
+The console is at `http://<camera-ip>/`: the app gallery to install or switch
+apps, the live view to check what the camera sees, and network, privacy and
+system settings on the other pages.
+
+The apps also answer ONVIF, so an NVR or video management system can discover
+the camera and pull its stream without you typing an RTSP address.
+
+Steps 3 to 5 are optional. Do them if you want the results in Home Assistant
+rather than only on the camera's own page.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Page won't load | Wait a minute for the camera to finish restarting, then refresh |
+| Page won't load | Give the camera a minute to finish restarting, then refresh |
 | Login rejected | Use the camera's own credentials, default `recamera` / `recamera` |
-| Live view is black | Open the app gallery and start an app first — the live view shows the running app's output |
+| Cannot reach the app catalog | This computer cannot reach `sensecraft-statics.seeed.cc`. Use **Upload .deb** instead, or fix the network on this computer — the camera is not the problem |
+| Not enough storage | Uninstall an app you are not using; the console reports how much it needs against how much is free |
+| Live view is black | No app is running. Activate one from the gallery first |
+| App is listed but will not start | Its files are missing. Uninstall it and install it again |
 | Camera won't start after enabling privacy blur | That setting swaps a video kernel module and needs a full power cycle — unplug the camera and plug it back in rather than using a software reboot |
 
-### Deployment Complete
-
-The console is live at `http://<camera-ip>/`. Everything else on this camera is now managed from here.
-
-Open the app gallery to install or switch AI apps, use the live view to check what the camera sees, and set up Wi-Fi, static IP or Home Assistant from the settings pages. The other presets in this solution install apps that show up in this same gallery.
-
-The apps also answer ONVIF, so an NVR or video management system can discover the camera on the network and pull its stream without you typing an RTSP address.
-
-**If you turn on device-level privacy blur** in the settings: it replaces a video kernel module, so the console will tell you a restart is needed. Power the camera off and on again at the plug — a software reboot does not reset the video hardware and can leave the camera unable to start.
-
 ---
 
-## Preset: Object Detection {#simple}
+## Step 3: Deploy Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Just one reCamera - view a live retail people-flow heatmap directly in its web interface, see where shoppers gather and which areas are ignored.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that detects and tracks people, drives the people-flow heatmap |
-
-**What you'll get:**
-- Live video with people-flow heatmap overlay (rendered in real-time by the web interface, accumulated from person positions)
-- See exactly which shelves and aisles attract shoppers vs which ones get ignored
-- Privacy protection (faces auto-blurred)
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Enable People Detection {#deploy_detector type=recamera_cpp required=true config=devices/recamera_yolo11.yaml}
-
-Install the person detection program on reCamera so it can identify people in the video.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-
----
-
-## Step 2: View Live People Flow Heatmap {#preview type=preview required=false config=devices/preview.yaml}
-
-Click **Connect** to see the live video with people-flow heatmap overlay.
-
-**Tip:** The heatmap accumulates from person positions over time — wait a few minutes for the flow pattern to emerge.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| No heatmap overlay | Wait a few minutes for data to accumulate; make sure Step 1 completed |
-
-### Deployment Complete
-
-Camera is ready! Click **Connect** above to view the live people-flow heatmap.
-
-The heatmap accumulates from person positions over time — areas where shoppers linger or pass through more frequently will glow brighter, helping you spot retail "hot zones" and "cold zones".
-
----
-
-## Preset: Home Assistant Integration {#ha_integration}
-
-Connect reCamera to Home Assistant for unified smart home monitoring.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera with YOLO detection + RTSP streaming |
-| Computer or reComputer R1100 | Runs Home Assistant |
-
-**What you'll get:**
-- Live RTSP video stream as an HA camera entity
-- AI detection count sensor with per-class breakdown (person, car, etc.)
-- FlowFuse Dashboard on reCamera for local debugging
-
-**Requirements:** Docker installed · Same local network for all devices
-
----
-
-## Step 1: Deploy Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
-
-Start Home Assistant. Skip this step if you already have HA running.
+Start Home Assistant and an MQTT broker. Skip this if you already run both.
 
 ### Target {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-### Wiring
+### Prerequisites
 
-1. Make sure Docker Desktop is installed and running
-2. Ensure at least 2GB free disk space
+1. Docker Desktop installed and running.
+2. At least 2 GB free disk.
+3. Ports 8123 and 1883 free.
 
 ### Deployment Complete
 
-1. Open **http://localhost:8123** in your browser
-2. Follow the onboarding wizard to create your admin account
-3. Remember your username and password — you'll need them in Step 3
+1. Open **http://localhost:8123** and follow the onboarding wizard to create your admin account.
+2. An MQTT broker is now listening on port 1883 of this machine. Step 4 asks for its address.
+3. The broker runs beside Home Assistant rather than on the camera on purpose: it has to outlive any single camera and any app switch.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Port 8123 busy | Close the program using port 8123, or change the port in docker-compose.yml |
-| Docker not starting | Open Docker Desktop application |
-| Container keeps restarting | Make sure you have at least 2GB RAM available |
+| Port 8123 or 1883 busy | Something already uses it — an existing Home Assistant or Mosquitto. Stop it, or skip this step and use what you have |
+| Docker not starting | Open the Docker Desktop application |
+| Container keeps restarting | Make sure at least 2 GB RAM is available |
 
 ### Target {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-### Wiring
+### Prerequisites
 
-1. Connect the target device to the network
-2. Enter IP address, username and password below
-
-### Deployment Complete
-
-1. Open **http://\<device-ip\>:8123** in your browser
-2. Follow the onboarding wizard to create your admin account
-3. Remember your username and password — you'll need them in Step 3
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Connection timeout | Check network cable, test with ping |
-| SSH authentication failed | Verify username and password |
-
----
-
-## Step 2: Deploy AI Detection Flow {#deploy_flow type=recamera_nodered required=true config=devices/recamera.yaml}
-
-Install YOLO detection + RTSP streaming flow on reCamera.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-
----
-
-## Step 3: Add reCamera to Home Assistant {#configure_ha type=ha_integration required=true config=devices/homeassistant_existing.yaml}
-
-Install the reCamera integration and connect it to Home Assistant.
-
-### Wiring
-
-1. Enter your Home Assistant **IP address** (e.g. `192.168.1.100`)
-2. Enter the **HA login username and password** you created during HA setup
-3. Enter the **reCamera IP address** — use `192.168.42.1` if connected via USB, or the WiFi IP from your router
-4. **HA OS users**: leave the SSH fields empty — the system will set up SSH automatically
-5. **Docker HA users**: fill in the SSH username and password of the **host machine** (not the HA login)
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| HA login failed | The username and password here are for HA web login, not SSH. Check they are correct |
-| Restart takes a long time | HA OS restarts the entire system — this can take 30-90 seconds, please wait |
-| SSH addon install failed | HA OS needs internet to download the SSH addon. Check network connectivity |
-| File copy failed | HA OS: check disk space. Docker: verify SSH credentials are for the **host machine** |
-| `setup_retry` after adding | HA cannot reach reCamera — make sure both devices are on the same network |
-| Camera thumbnail blank, but stream works | Known issue: ffmpeg snapshot may time out; the live stream in the dashboard works fine |
-| Sensor shows 0 | Normal when nothing is in view; verify at http://\<recamera-ip\>:1880/data |
-
-## Step 4: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
-
-The Home Assistant dashboard is now live. Click below to open it in your browser.
-
-### Troubleshooting
-| Issue | Solution |
-|-------|----------|
-| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
-| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
+1. The target device is on the network and reachable over SSH.
+2. Docker is installed and running on it.
+3. Enter its IP address, username and password below.
 
 ### Deployment Complete
 
-Your reCamera is now integrated with Home Assistant!
+1. Open **http://\<device-ip\>:8123** and follow the onboarding wizard to create your admin account.
+2. The MQTT broker listens on port 1883 of that same device. Step 4 asks for its address.
 
-#### Quick Verification
+### Troubleshooting
 
-1. Open **http://\<server-ip\>:8123**
-2. Go to **Settings → Devices & Services** — you should see **reCamera (your-ip)** listed
-3. Click into the device to see both entities
-4. Add a **Picture Entity** card to your dashboard for the camera stream
-
-#### Access Points
-
-- **Home Assistant**: http://\<server-ip\>:8123 — your unified smart home dashboard
-- **FlowFuse Dashboard**: http://\<recamera-ip\>:1880/dashboard — local debugging UI on reCamera
-- **Detection API**: http://\<recamera-ip\>:1880/data — raw detection JSON data
-
-#### Next Steps
-
-- Create **automations** using the detection sensor (e.g. turn on lights when person count > 0)
-- Add the camera to a **dashboard card** with Picture Entity or Picture Glance
-- Set up **mobile notifications** when specific objects are detected
-
-**Having issues?**
-- No video? Check reCamera IP and that Step 2 completed successfully
-- No detection data? Make sure objects are in view; check Node-RED at http://\<recamera-ip\>:1880
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check the network, test with ping |
+| SSH authentication failed | Verify the username and password |
+| Port 1883 busy on the target | A broker is already running there — keep it and point step 4 at it instead |
 
 ---
 
-## Preset: OCR Text Reader {#ocr_reader}
+## Step 4: Connect the Camera to Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
 
-Point reCamera at any text — signs, labels, meter displays — and the recognized characters appear on screen in real-time. All processing happens on the camera, no cloud needed.
+Point Home Assistant and the camera at the same broker. The entities appear on their own.
+
+### Prerequisites
+
+1. Home Assistant is running and you can sign in.
+2. An MQTT broker is reachable — the one from step 3, or your own.
+3. The camera is running an app, from step 2.
+
+### Deployment Complete
+
+The camera's detection results are now in Home Assistant.
+
+The entities come from MQTT discovery, so nothing is added by hand and the set
+changes on its own when you switch to a different app on the camera. Discovery
+carries results, not video: for a picture in the dashboard, add the camera's
+RTSP URL with the built-in **Generic Camera** integration — the console's
+Integrations page shows the exact URL with a copy button.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Test Connection fails on the camera | The broker address must be reachable *from the camera*, not just from this computer. Check that it is the broker's machine address and not `localhost` |
+| Saved, but nothing appears in Home Assistant | Confirm the MQTT integration in Home Assistant points at the same broker and port, then restart the running app from the console |
+| Entities appear but stay unavailable | No app is running on the camera, or the app was stopped. Activate one from the gallery |
+| Entities vanished after switching apps | Expected — each app publishes its own entity set. The previous app's entities are removed when it stops |
+
+---
+
+## Step 5: See the Results in Home Assistant {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+
+Put the picture and the detections on one card.
+
+### Prerequisites
+
+1. **Find what discovery already made.** Settings → Devices & Services → MQTT → the camera's device. Its entities are listed there; note the ones you want on the dashboard.
+2. **Add the video separately.** Discovery carries results, not video. Settings → Devices & Services → Add integration → **Generic Camera**, and paste the camera's stream URL:
+   - Stream Source URL: `rtsp://<camera-ip>:8554/live0`
+   - RTSP transport protocol: **TCP**
+   - Leave Verify SSL certificate unticked
+   The console's Integrations page shows this exact URL with a copy button, next to a go2rtc snippet if you would rather restream it for lower latency.
+3. **Build the card.** Settings → Dashboards → open your dashboard → the pencil to edit → **+ Add card** → **Picture glance**. Set Camera Entity to the Generic Camera you just added, then add the detection entities to the Entities list. They render as icons over the live picture, and the card shows their state on hover.
+4. **Or keep them apart.** An **Entities** card lists the values as plain rows, which reads better for counts and timestamps than icons over video. A **History** card on the same entities shows how they moved over the day.
+5. **Act on it.** Settings → Automations & scenes → Create automation → trigger **Entity → State** on a detection entity. That is the point of having the values in Home Assistant rather than on the camera.
+
+### Deployment Complete
+
+The camera is now a device in Home Assistant like any other: a picture, a set of
+states, and history behind them.
+
+Anything you switch to on the camera republishes its own entities, so the MQTT
+device changes shape while the Generic Camera stays put — the video is tied to
+the RTSP stream, not to the app.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Generic Camera says it cannot connect | Test the URL in VLC first. If VLC works and Home Assistant does not, force RTSP transport to TCP — UDP is the usual difference |
+| Picture is black or stalls after a few seconds | Something else already holds the stream. The camera serves a limited number of RTSP clients; close the console's live view and any VLC window |
+| Card shows the camera but no detection icons | Those entities come from MQTT, not from the camera integration. Confirm they exist under Settings → Devices & Services → MQTT before adding them to the card |
+| Entities show `unknown` | The app publishes on change, so a fresh entity stays unknown until something happens in front of the camera |
+| Picture glance will not accept an entity | It only takes entities with a state, not the device. Add the individual entities rather than the device row |
+
+---
+
+## Preset: reCamera Pro {#recamera_pro}
+
+The same flow on the newer camera. Its App Center carries the apps, each app
+carries its own output settings, and the results reach Home Assistant the same
+way.
 
 | Device | Purpose |
 |--------|---------|
-| reCamera | AI camera that reads text from the video |
+| reCamera Pro | Runs the App Center, the AI app, RTSP, and each app's own MQTT configuration |
+| Computer or reComputer R1100 | Optional — runs Home Assistant and the MQTT broker for steps 3 to 5 |
 
-**What you'll get:**
-- Live video with recognized text highlighted on screen
-- Works with printed text, signs, labels, and digital displays
-- All processing on-device — no cloud, no extra hardware
+**Two differences that matter.** This camera ships no MQTT broker of its own,
+so results stay on the device until you give it a broker address in step 4 —
+and that address is set per app, not once for the camera.
 
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
+## Step 1: Check and Update Firmware {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
 
-## Step 1: Install Text Recognition {#deploy_ppocr type=recamera_cpp required=true config=devices/recamera_ppocr.yaml}
+Only needed once, and only if your camera has no App Center yet.
 
-Install the text recognition program on reCamera so it can read text in the video.
+![Device Management, the Embedded tab, and the reCamera Pro entry with its address and ADB port](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/recamera-pro-firmware-update-a9539b3d.gif)
 
-### Wiring
+### Prerequisites
 
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
+1. Open the camera's page first — if the **App Center** is there, skip this step.
+2. In this app: **Device Management → Embedded → reCamera Pro**, fill in the camera's address, then **Check for device updates**.
+3. It uses **ADB on port 5555**, not SSH, so the camera must be on the network — USB alone is not enough.
+4. The update reboots the camera and takes a few minutes. Do not power it off.
+5. It keeps a copy of the factory files, so **Factory reset** on the same page can roll it back.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
+| Test connection fails | Check the address, and that port 5555 is reachable from this computer |
+| Nothing happens after Check for device updates | The camera may already be up to date — look for the App Center on its page |
+| App Center still missing afterwards | Reload the page; the camera needs a moment after its reboot |
 
 ---
 
-## Step 2: View OCR Overlay {#preview_ocr type=preview required=false config=devices/preview_ocr.yaml}
+## Step 2: Choose and Install an App {#open_appcenter_pro type=web_dashboard required=true config=devices/recamera_pro_apps.yaml}
 
-Click **Connect** to see the live video with OCR text overlay.
+Open the App Center, install an app, start it, and watch what it detects.
 
-**Tip:** Point the camera at text — signs, labels, screens — for best results.
+### Prerequisites
 
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| No text detected | Make sure text is clearly visible and well-lit; check Step 1 completed |
+1. Sign in with the camera dashboard's credentials — these are not SSH credentials.
+2. Open **App Center** in the sidebar. Installed apps are listed there; the **+** button opens an install dialog that reads the online catalog.
+3. Your browser downloads each package, checks its SHA-256 and uploads it to the camera, so the camera itself never reaches the internet — this computer does. Models already on the device are skipped, and the dialog says how many are left to transfer.
+4. Some apps need a runtime component as well. The dialog asks before downloading it; declining cancels the install rather than leaving a half-installed app.
+5. Press **Start** on the app's card. Only one inference app runs at a time, so starting one stops the other.
+6. The App Center has no preview of its own. Open **Live Preview** or **Live View** in the sidebar to see the picture and the detections.
 
 ### Deployment Complete
 
-Camera is ready! Click **Connect** above to view the live OCR overlay.
+The camera is running the app you picked.
 
-Point the camera at printed text — the recognized characters will appear above each detected region.
+Results are visible on the camera's own pages and go no further until step 4 —
+unlike the reCamera, this one has no broker on board.
 
----
-
-## Preset: Face Analysis {#face_analysis}
-
-Point reCamera at people — it detects faces and analyzes age, gender, and emotion in real-time. All processing happens on the camera, no cloud needed.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that analyzes faces in the video |
-
-**What you'll get:**
-- Live video with face bounding boxes and analysis labels
-- Age, gender, and emotion displayed for each detected face
-- All processing on-device — no cloud, no extra hardware
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install Face Analysis {#deploy_face_analysis type=recamera_cpp required=true config=devices/recamera_face_analysis.yaml}
-
-Install the face analysis program on reCamera so it can detect faces and analyze age, gender, and emotion.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
+Steps 3 to 5 are optional. Do them if you want the results in Home Assistant.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
+| The page does not open | Enter the address as `http://` and let the browser follow the redirect. The firmware has an HTTPS switch: with it on, port 80 redirects to 443; with it off, an `https://` address redirects back to 80 |
+| Certificate warning | Expected when the HTTPS switch is on — the camera signs its own certificate. Continue past the warning |
+| App Center is empty or asks you to sign in | The management API is gated by the dashboard's own login cookie. Sign in to the dashboard first, then reopen the tab |
+| Failed to load catalog | This computer cannot reach `sensecraft-statics.seeed.cc`. The catalog URL is editable in the install dialog if you host your own |
+| Checksum mismatch — refusing to install | The download was corrupted or the package was republished. Reload the catalog and retry |
+| An app is listed but will not start | Its model is missing. Reinstall it — the install downloads the model with the app |
+| No detections in Live Preview | Another inference app may still hold the camera; confirm the one you installed is the running one |
 
 ---
 
-## Step 2: View Face Analysis Results {#preview_face_analysis type=preview required=false config=devices/preview_face_analysis.yaml}
+## Step 3: Deploy Home Assistant {#deploy_ha_pro type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Click **Connect** to see the live video with face analysis overlay.
+Start Home Assistant and an MQTT broker. Skip this if you already run both.
 
-**Tip:** Point the camera at people — each detected face will show age, gender, and emotion.
+### Target {#ha_local_pro type=local config=devices/homeassistant_deploy.yaml default=true}
 
-### Troubleshooting
+### Prerequisites
 
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| No faces detected | Make sure faces are clearly visible and well-lit; check Step 1 completed |
+1. Docker Desktop installed and running.
+2. At least 2 GB free disk.
+3. Ports 8123 and 1883 free.
 
 ### Deployment Complete
 
-Camera is ready! Click **Connect** above to view the live face analysis overlay.
-
-Each detected face will show age, gender, and emotion — all analyzed on-device in real-time.
-
----
-
-## Preset: Drowsiness Detection {#facemesh_drowsiness}
-
-Point reCamera at a driver — it tracks eye closure, yawn frequency, and PERCLOS score in real-time. All processing happens on the camera, no cloud needed.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that monitors driver alertness |
-
-**What you'll get:**
-- Live video with face bounding boxes and drowsiness metrics
-- Real-time EAR (Eye Aspect Ratio) and MAR (Mouth Aspect Ratio) tracking
-- PERCLOS drowsiness score and continuous eye closure monitoring
-- Yawn detection with 5-minute frequency counter
-- Color-coded drowsiness state: Alert, Tired, Drowsy, Danger
-- All processing on-device — no cloud, no extra hardware
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install Drowsiness Detection {#deploy_facemesh_drowsiness type=recamera_cpp required=true config=devices/recamera_facemesh_drowsiness.yaml}
-
-Install the FaceMesh drowsiness detection program on reCamera so it can track eye and mouth movements.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
+1. Open **http://localhost:8123** and follow the onboarding wizard to create your admin account.
+2. An MQTT broker is now listening on port 1883 of this machine. Step 4 asks for its address.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
+| Port 8123 or 1883 busy | Something already uses it — an existing Home Assistant or Mosquitto. Stop it, or skip this step and use what you have |
+| Docker not starting | Open the Docker Desktop application |
+| Container keeps restarting | Make sure at least 2 GB RAM is available |
 
----
+### Target {#ha_remote_pro type=remote config=devices/homeassistant_deploy.yaml}
 
-## Step 2: View Drowsiness Detection Results {#preview_facemesh_drowsiness type=preview required=false config=devices/preview_facemesh_drowsiness.yaml}
+### Prerequisites
 
-Click **Connect** to see the live video with drowsiness detection overlay.
-
-**Tip:** Point the camera at a face — each detected face will show EAR, MAR, and drowsiness state in real-time.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| No faces detected | Make sure the face is clearly visible and well-lit; check Step 1 completed |
+1. The target device is on the network and reachable over SSH.
+2. Docker is installed and running on it.
+3. Enter its IP address, username and password below.
 
 ### Deployment Complete
 
-Camera is ready! Click **Connect** above to view the live drowsiness detection overlay.
-
-Each detected face will show EAR/MAR values and a color-coded drowsiness state — all analyzed on-device in real-time.
-
----
-
-## Preset: Weather Classification {#weather_classification}
-
-Point reCamera outside — it classifies the current weather (clear/cloudy/foggy/rainy/snowy) in real-time. All processing happens on the camera, no cloud needed.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that classifies weather conditions in the video |
-
-**What you'll get:**
-- Live video with the current weather label and confidence overlay
-- Per-class confidence scores (clear/cloudy/foggy/rainy/snowy)
-- Results published to MQTT for downstream automation
-- All processing on-device — no cloud, no extra hardware
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install Weather Classification {#deploy_weather type=recamera_cpp required=true config=devices/recamera_weather.yaml}
-
-Install the weather classification program on reCamera so it can classify the current weather condition.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
+1. Open **http://\<device-ip\>:8123** and follow the onboarding wizard to create your admin account.
+2. The MQTT broker listens on port 1883 of that same device. Step 4 asks for its address.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
+| Connection timeout | Check the network, test with ping |
+| SSH authentication failed | Verify the username and password |
+| Port 1883 busy on the target | A broker is already running there — keep it and point step 4 at it instead |
 
 ---
 
-## Step 2: View Weather Classification Results {#preview_weather type=preview required=false config=devices/preview_weather.yaml}
+## Step 4: Connect the Camera to Home Assistant {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
 
-Click **Connect** to see the live video with the weather classification overlay.
+Point Home Assistant and the camera at the same broker. The entities appear on their own.
 
-**Tip:** Point the camera outside — the overlay updates with the current weather label and confidence as conditions change.
+### Prerequisites
 
-**Note:** The weather label and confidence usually appear a few seconds before the video frame does — MQTT connects faster than the RTSP stream stabilizes. If you see the label but not the video yet, just wait a bit longer; this is expected, not an error.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| Label shows but video doesn't | Normal — RTSP takes a bit longer to start than MQTT; wait a few more seconds |
-| No overlay data | Check Step 1 completed and MQTT is reachable on the camera |
+1. Home Assistant is running and you can sign in.
+2. An MQTT broker is reachable — the one from step 3, or your own.
+3. The camera is running an app, from step 2.
 
 ### Deployment Complete
 
-Camera is ready! Click **Connect** above to view the live weather classification overlay.
+The camera's detection results are now in Home Assistant.
 
-The overlay shows the current weather label, confidence, and per-class scores — all analyzed on-device in real-time.
-
----
-
-## Step 3: Restore Default Camera Services {#restore_defaults type=recamera_cpp required=false config=devices/restore_defaults.yaml}
-
-Optional — switch the camera back to its stock services (Node-RED, sscma-node) and stop the weather classification program.
+**This setting belongs to the app you configured, not to the camera.** Install
+another app later and its MQTT output starts off — open its Configure dialog and
+repeat this step. That also means switching between two configured apps swaps
+one entity set for the other without any further setup.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
+| No Result output group in Configure | That app does not declare an output capability, so it has no MQTT to configure. Its results stay on the device |
+| Nothing arrives at the broker | Check the broker address is reachable *from the camera*, not just from this computer. This camera has no broker of its own, so an empty address means nothing leaves the device |
+| Save is refused | The form blocks an MQTT channel with no broker host, and a base topic that is empty or contains `+`, `#` or a space |
+| Saved, but nothing appears in Home Assistant | Confirm Output mode is **Home Assistant** rather than Custom or Raw JSON, and that the MQTT integration in Home Assistant points at the same broker and port |
+| Entities appear but stay unavailable | No app is running on the camera. Start one from the App Center |
+| Entities vanished after starting a different app | Expected — each app declares its own entity set, and an unconfigured app publishes none |
 
 ---
 
-## Preset: Retail People Counting {#retail_vision}
+## Step 5: See the Results in Home Assistant {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
 
-Point reCamera at your entrance or aisle — it counts customers in and out, tracks where they linger, and flags who has been waiting long enough to need help. All processing happens on the camera, no cloud needed.
+Put the picture and the detections on one card.
 
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that detects, tracks and counts people, and analyzes dwell states |
+### Prerequisites
 
-**What you'll get:**
-- Live video with per-person tracking, dwell state (browsing / engaged / assistance) and footfall counters
-- Automatic entry / exit counting and rolling footfall statistics, published to MQTT
-- All processing on-device — no cloud, no extra hardware
-
-**Tip:** The counting zone and directional entry/exit line are drawn afterwards in the camera's own web console (Apps → Retail People Counting → Configure). Until you draw them, the app counts people across the whole frame.
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install Retail People Counting {#deploy_retail type=recamera_cpp required=true config=devices/recamera_retail_vision.yaml}
-
-Install the retail people-counting program on reCamera so it can detect, track and count shoppers in the video.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-
----
-
-## Step 2: View Retail Analytics {#preview_retail type=preview required=false config=devices/preview_retail_vision.yaml}
-
-Click **Connect** to see the live video with per-person tracking and footfall counters.
-
-**Tip:** For entry/exit counts, draw the directional line in the camera web console first; without it the preview still shows tracking and dwell states across the whole frame.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| No overlay data | Make sure Step 1 completed and MQTT is reachable on the camera |
-| Counters stay at zero | Draw the entry/exit line in the camera web console, or wait for people to enter the frame |
+1. **Find what discovery already made.** Settings → Devices & Services → MQTT → the camera's device. Its entities are listed there; note the ones you want on the dashboard.
+2. **Turn RTSP on and read its address off the camera.** On the camera: **Live View → Stream Settings**, pick RTSP as the protocol and enable it. The stream URL appears there with a copy button — the firmware supplies it, so copy it rather than guessing a path. Set a username and password on the same page if you want the stream authenticated.
+3. **Add the video separately.** Discovery carries results, not video. In Home Assistant: Settings → Devices & Services → Add integration → **Generic Camera**, paste that URL, and set RTSP transport protocol to **TCP**. If you enabled authentication, put the credentials in the URL as `rtsp://user:password@…`.
+4. **Build the card.** Settings → Dashboards → open your dashboard → the pencil to edit → **+ Add card** → **Picture glance**. Set Camera Entity to the Generic Camera, then add the detection entities to the Entities list.
+5. **Or keep them apart.** An **Entities** card lists the values as plain rows; a **History** card on the same entities shows how they moved over the day.
+6. **Act on it.** Settings → Automations & scenes → Create automation → trigger **Entity → State** on a detection entity.
 
 ### Deployment Complete
 
-Camera is ready! Click **Connect** above to view the live retail analytics.
+The camera is now a device in Home Assistant like any other: a picture, a set of
+states, and history behind them.
 
-Per-person tracking, dwell states and footfall counters are analyzed on-device in real-time. Draw a counting zone and entry/exit line in the camera's web console to turn the whole-frame counts into zone-scoped, directional footfall.
-
----
-
-## Preset: QR Code Reader {#qrcode_reader}
-
-Point reCamera at a workbench, a conveyor or a counter and it decodes every QR code in view — all of them in the same pass, not one at a time like a handheld gun.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that decodes QR codes and publishes their contents |
-
-**What you'll get:**
-- Live video with every decoded code outlined and its payload shown
-- All codes in a frame decoded together — useful over a conveyor or a full tray
-- Contents published to MQTT, ready to drive check-in, inventory or automation flows
-- No model to download and no TPU used — the decoder runs on the CPU
-- All processing on-device — no cloud, no handheld scanner
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install QR Code Reader {#deploy_qrcode type=recamera_cpp required=true config=devices/recamera_qrcode.yaml}
-
-Install the QR decoder on reCamera.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### What to check
-
-Nothing is downloaded beyond the package itself — this decoder is classical computer vision (quirc) running on the CPU, so there is no model and no TPU contention with other applications.
+The video and the detections arrive by different routes and behave differently
+when you change apps: the Generic Camera keeps working because it reads the
+firmware's stream, while the MQTT entities are replaced by whatever the newly
+started app publishes — and an app you have not configured for MQTT publishes
+none.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-
----
-
-## Step 2: Scan a Code {#preview_qrcode type=preview required=false config=devices/preview_qrcode.yaml}
-
-Click **Connect**, then hold a QR code up to the camera — it gets outlined and its contents appear.
-
-**Make the code bigger than feels necessary.** Below roughly one sixth of the frame width it stops decoding reliably. Even, diffuse light matters more than bright light: glare on a phone screen or a laminated label destroys the finder patterns faster than dim lighting does.
-
-**Note:** The overlay usually appears a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. That is expected, not an error.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
-| Card says "No code" with a code in view | Move closer, or light it more evenly — glare and small codes are the two common causes |
-| Barcode not read | 1D barcodes are not supported, QR only |
-
-### Deployment Complete
-
-Camera is ready! Click **Connect** above to watch codes being decoded.
-
-Contents are published to `recamera/qrcode-reader/results`, with each code's four corners included so downstream tooling can tell where in frame it was.
-
----
-
-## Preset: Fitness Trainer {#fitness_trainer}
-
-Point reCamera at your workout spot — it counts your reps and tells you when a rep was too shallow. Squats, push-ups or hammer curls, all counted on the camera itself.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | AI camera that tracks your joints and counts repetitions |
-
-**What you'll get:**
-- Live video with your skeleton drawn on and a rep counter pinned to the corner
-- Automatic set tracking — reps roll over into sets, with a "workout complete" signal
-- Form hints: a partial squat or a drifting elbow is called out, not silently counted
-- Counts published to MQTT, ready for Home Assistant workout logging
-- All processing on-device — no phone, no wearable, no video leaving the camera
-
-**Requirements:** New devices need SSH enabled first — connect via USB, wait for boot (~2 min), visit [192.168.42.1/#/security](http://192.168.42.1/#/security), login with `recamera` / `recamera`, enable the SSH toggle
-
-## Step 1: Install Fitness Trainer {#deploy_fitness_trainer type=recamera_cpp required=true config=devices/recamera_fitness_trainer.yaml}
-
-Pick your exercise and install the rep counter on reCamera.
-
-### Wiring
-
-1. USB connection: IP address `192.168.42.1`, plug and play
-2. Network/WiFi: Find reCamera's IP in your router admin page
-3. Username `recamera`, default password `recamera` (use your own if changed)
-
-### What to check
-
-The pose model ships with the reCamera Console, so nothing extra is downloaded. On firmware older than Console 0.3.x the model may be missing — the installer prints a warning and you can point `MODEL_PATH` in `/etc/fitness-trainer.conf` at any YOLO pose cvimodel.
-
-This app draws a skeleton instead of a detection box, which the camera's own web console only knows how to render from **Console 0.3.3 onward**; on an older console its debug view stays blank. Install the "reCamera Console" preset first (or update it) if you want to watch it there. Step 2 below is unaffected — it renders the skeleton itself.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect | USB: use `192.168.42.1`; Network: check router for IP |
-| Wrong password | Default is `recamera`, use your new password if changed |
-| Install failed | Restart the camera and try again |
-| Warning about a missing pose model | Update the reCamera Console, or set `MODEL_PATH` in `/etc/fitness-trainer.conf` |
-
----
-
-## Step 2: View Your Reps {#preview_fitness_trainer type=preview required=false config=devices/preview_fitness_trainer.yaml}
-
-Click **Connect**, then stand in frame and do a few reps — the counter moves as you come back up.
-
-**Camera placement matters, and differs per exercise:** squats need your whole body from the side or at 45°, with the **ankles in frame** — a view cropped at the knee gives no reading. Push-ups want a side view near floor height. Hammer curls want a front or side view from the waist up.
-
-**Note:** The counter and skeleton usually appear a few seconds before the video does — MQTT connects faster than the RTSP stream stabilizes. Seeing the overlay before the picture is expected, not an error.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Black screen | Wait 10 seconds for the stream to load; check camera IP is correct |
-| Overlay shows but video doesn't | Normal — RTSP takes longer to start than MQTT; wait a few more seconds |
-| Stage stuck on "out of frame" | The joints this exercise needs are not visible — for squats, get the ankles in frame |
-| Reps not counting | A rep is counted on the way back **up**, when the movement completes; half a rep counts as nothing |
-| Counter jumps by two | Slow down slightly — very fast reps can cross both thresholds within the de-bounce window |
-
-### Deployment Complete
-
-Camera is ready! Click **Connect** above to watch the skeleton and rep counter.
-
-Change the exercise, reps and sets any time from the reCamera Console's app page — no redeploy needed. Counts are also published to `recamera/fitness-trainer/results`, and Home Assistant picks up reps, set, exercise and a workout-complete flag automatically via MQTT discovery.
-
----
-
-## Preset: Fall Detection {#fall_detection}
-
-Point reCamera at a fixed indoor area to detect a fall from the recent 3.2-second pose sequence. TPU pose inference, the learned temporal gate and event decisions stay on the device; alerts are published over MQTT.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera | Runs pose estimation, temporal fall logic, RTSP and MQTT locally |
-
-**Important:** This is a high-recall beta assistive alert, not a certified medical or life-safety system. With Subjects 1–2 used for training and Subject 3 for validation/configuration freeze, the untouched 27-clip Subject 4 test reached 74.1% accuracy, 83.3% fall recall, 66.7% specificity and 74.1% F1. On RealBiomFall's independent 34 fall-only test clips, recall was 58.8%. This improves missed falls substantially over v0.1, but increases false alarms; long shots, occlusion, low light and fall-like floor activities remain weak cases.
-
-## Step 1: Install Fall Detection {#deploy_fall_detection type=recamera_cpp required=true config=devices/recamera_fall_detection.yaml}
-
-Install the pose model and temporal fall detector on reCamera.
-
-### Wiring
-
-1. Mount the camera rigidly with a clear, wide view of the monitored area.
-2. Keep the whole person, especially shoulders and hips, visible throughout the expected fall path.
-3. USB connection uses `192.168.42.1`; for Wi-Fi, use the IP shown by your router.
-
-### What to check
-
-The application uses stable single-person association instead of switching to the highest score on every frame. It needs to observe the transition: if it starts while someone is already lying down, it reports the posture but does not emit a new event. Avoid pointing it primarily at a bed or exercise area unless you have separately validated those activities.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect | Check that SSH is enabled and the IP/password are correct |
-| Service exits immediately | Confirm the YOLO11n-Pose model exists and no other camera app is running |
-| Falls are missed | Widen the view, improve lighting, and keep shoulders/hips visible before and after impact |
-| Push-ups trigger an alert | This is a known fall-like activity; change the view or add downstream human confirmation |
-
----
-
-## Step 2: Watch Fall Status {#preview_fall_detection type=preview required=false config=devices/preview_fall_detection.yaml}
-
-Click **Connect** to view the skeleton, state, evidence count and new event number.
-
-The state advances through `normal`, `suspected`, `fallen`, and `recovering`. Automations should de-duplicate alerts with `event_id`; `fall_event` is true only on the transition into a confirmed event.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Overlay appears before video | MQTT connects faster than RTSP; wait a few seconds |
-| Skeleton disappears near the floor | Reframe the camera; a short post-impact gap is tolerated, but long occlusion cannot be classified |
-| No overlay | Confirm MQTT port 1883 is reachable and topic is `recamera/fall-detection/results` |
-
-### Deployment Complete
-
-The camera is ready for a supervised site trial. Alerts and diagnostics are published to `recamera/fall-detection/results`, and Home Assistant discovery exposes fall state, event ID and person presence.
-
-Do a site-specific acceptance test with representative falls and normal activities before enabling any notification workflow. Keep another means of emergency assistance in place.
-
----
+| No stream URL under Stream Settings | RTSP is not enabled yet, or another protocol is selected. The three are mutually exclusive — picking RTSP turns RTMP and ONVIF off |
+| Generic Camera says it cannot connect | Test the URL in VLC first. If VLC works and Home Assistant does not, force RTSP transport to TCP. If you set credentials on the camera, they belong in the URL |
+| Picture is black or stalls after a few seconds | Something else already holds the stream; close the camera's own Live Preview and any VLC window |
+| Card shows the camera but no detection icons | Those entities come from MQTT. Confirm the running app has MQTT configured (step 4) and that the entities exist under Settings → Devices & Services → MQTT |
+| Entities show `unknown` | The app publishes on change, so a fresh entity stays unknown until something happens in front of the camera |

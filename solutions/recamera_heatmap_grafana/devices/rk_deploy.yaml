@@ -1,0 +1,189 @@
+version: "1.0"
+id: rk_deploy
+name: Rockchip NPU Detector
+type: docker_deploy
+
+detection:
+  method: network_scan
+  manual_entry: true
+
+docker:
+  # Shares the docker/ directory with the backend stack — one copy of the
+  # grafana, mosquitto, telegraf and heatmap-demo trees for every preset.
+  compose_file: ../docker/docker-compose.rknn.yml
+  remote_path: /home/{{username}}/retail-vision-rknn
+  options:
+    project_name: retail-vision-rknn
+    remove_orphans: true
+  services:
+    - name: retail-vision
+      required: true
+
+ssh:
+  default_user: radxa
+
+user_inputs:
+  - id: board
+    name: Board
+    type: select
+    default: "rk3588"
+    required: true
+    description: Picks the model built for this NPU — the wrong one will not load
+    options:
+      - value: rk3588
+        label: RK3588 / RK3588S
+      - value: rk3576
+        label: RK3576
+    name_i18n:
+      zh: 板卡型号
+    description_i18n:
+      zh: 决定下载哪份模型——装错型号的模型加载不了
+  - id: rtsp_url
+    name: RTSP Camera URL
+    type: text
+    placeholder: "rtsp://192.168.1.50:554/stream"
+    description: RTSP stream of the camera this board watches
+    required: true
+    name_i18n:
+      zh: RTSP 摄像头地址
+    description_i18n:
+      zh: 这块板子要看的摄像头 RTSP 地址
+  - id: device_name
+    name: Installation Name
+    type: text
+    default: "store-01"
+    required: true
+    row: 1
+    description: First segment of the MQTT topic — a store, floor or site name keeps several installations apart on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 安装点名称
+    description_i18n:
+      zh: MQTT 主题的第一段——用门店、楼层或站点名区分同一 broker 上的多个安装点
+  - id: stream_id
+    name: Camera ID
+    type: text
+    default: "cam-01"
+    required: true
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 摄像头编号
+  - id: mqtt_host
+    name: MQTT Broker
+    type: text
+    default: "127.0.0.1"
+    required: true
+    row: 2
+    description: Where the dashboard backend runs. Leave at 127.0.0.1 if you deployed it on this same board.
+    name_i18n:
+      zh: MQTT 服务器
+    description_i18n:
+      zh: 看板后端所在地址。如果后端就部署在这块板子上，保持 127.0.0.1
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    row: 2
+    validation:
+      pattern: "^[0-9]{1,5}$"
+      message: Port number only
+    name_i18n:
+      zh: MQTT 端口
+
+pre_checks:
+  - type: docker
+    description: Docker must be installed and running
+  - type: disk_space
+    min_gb: 1
+    description: At least 1GB for the detector image
+
+actions:
+  before:
+    - name: Stage the model and config for this board
+      # The model is the one fall_detection already publishes: a single-class
+      # DFL head, which is a person detector once the keypoint tensors are
+      # ignored. Reused rather than re-hosted, and pinned by digest so a
+      # silently swapped file fails here instead of at inference time.
+      run: |
+        set -e
+        WORKDIR="{{remote_path}}"
+        BASE="https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models"
+        mkdir -p "$WORKDIR/rknn-models" "$WORKDIR/rknn-config"
+
+        MODEL="yolo11n_pose_rawhead_fp16.{{board}}.rknn"
+        case "{{board}}" in
+          rk3588) WANT=22f00270870b25dc013e4e8e39aed98f82bcabb69b9272302280a6b8b8f48d5c ;;
+          rk3576) WANT=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd ;;
+          *) echo "unknown board {{board}}" >&2; exit 1 ;;
+        esac
+
+        if [ ! -f "$WORKDIR/rknn-models/$MODEL" ] || \
+           ! echo "$WANT  $WORKDIR/rknn-models/$MODEL" | sha256sum -c - >/dev/null 2>&1; then
+          curl -fsSL -o "$WORKDIR/rknn-models/$MODEL.part" "$BASE/$MODEL"
+          echo "$WANT  $WORKDIR/rknn-models/$MODEL.part" | sha256sum -c -
+          mv "$WORKDIR/rknn-models/$MODEL.part" "$WORKDIR/rknn-models/$MODEL"
+        fi
+
+        cat > "$WORKDIR/rknn-config/config.json" <<EOF
+        {
+          "installation": "{{device_name}}",
+          "backend": "rknn",
+          "model_path": "/models/$MODEL",
+          "input_size": 640,
+          "score_threshold": 0.35,
+          "nms_threshold": 0.45,
+          "publish_hz": 1.0,
+          "window_duration": 60.0,
+          "frame_width": 1280,
+          "frame_height": 720,
+          "video": {
+            "backend": "gstreamer_mpp",
+            "strict": false,
+            "fallback": "gstreamer_soft",
+            "codec": "h264",
+            "latency_ms": 100,
+            "appsink_timeout_ms": 2000,
+            "failure_limit": 3
+          },
+          "tracker": {
+            "iou_threshold": 0.2,
+            "dist_threshold": 0.15,
+            "dwell_speed_threshold": 10.0,
+            "dwell_min_duration": 1.5,
+            "dwell_assistance_threshold": 20.0,
+            "avg_person_height_m": 1.7
+          },
+          "mqtt": {
+            "host": "{{mqtt_host}}",
+            "port": {{mqtt_port}},
+            "client_id": "retail-vision-{{board}}",
+            "username": "",
+            "password": "",
+            "tls": false
+          },
+          "streams": [
+            {
+              "id": "{{stream_id}}",
+              "rtsp_url": "{{rtsp_url}}",
+              "enabled": true,
+              "reconnect_delay_ms": 1000,
+              "frame_width": 1280,
+              "frame_height": 720
+            }
+          ]
+        }
+        EOF
+      name_i18n:
+        zh: 准备本板卡的模型和配置
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: 瑞芯微 NPU 检测器

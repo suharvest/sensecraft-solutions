@@ -191,3 +191,16 @@ post_deployment:
   open_browser: false
 name_i18n:
   zh: reCamera 困倦检测
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Drowsiness Detection"
+catalog_name_i18n:
+  zh: "困倦检测"
+catalog_description: "Monitor driver alertness with FaceMesh — tracks eye closure, PERCLOS, and yawn frequency in real-time, all on-device"
+catalog_description_i18n:
+  zh: "通过 FaceMesh 监测驾驶员警觉状态——实时跟踪闭眼时长、PERCLOS 和哈欠频率，全部在设备上处理"

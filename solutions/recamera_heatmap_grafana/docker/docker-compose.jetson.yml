@@ -1,0 +1,39 @@
+# NVIDIA Jetson (TensorRT) detector.
+#
+# The detector is 77 lines of Jetson-specific code; tracking, dwell states,
+# zone metrics, payload and publishing come from the same retail_core package
+# the Rockchip boards run, so all of them report identical semantics.
+#
+# This stack is the detector only. The dashboard backend (InfluxDB, Grafana,
+# MQTT broker, heatmap) comes from docker-compose.yml and can run on this same
+# Jetson or on another machine.
+services:
+  retail-vision:
+    image: sensecraft-missionpack.seeed.cn/solution/retail-vision-jetson:0.2.0
+    container_name: retail-vision-jetson
+    runtime: nvidia
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/tegra
+    volumes:
+      # A TensorRT plan is tied to the GPU architecture and to the exact
+      # TensorRT build that produced it, so the host CUDA/TensorRT stack is
+      # mounted rather than baked in — same reason librknnrt.so is mounted on
+      # the Rockchip boards.
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu
+      - /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_lean:/usr/lib/python3.10/dist-packages/tensorrt_lean:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_dispatch:/usr/lib/python3.10/dist-packages/tensorrt_dispatch:ro
+      # Holds the .engine built on this board. Named, so an engine from an
+      # earlier deployment is reused instead of rebuilt every time.
+      - jetson-models:/models:ro
+      - ./jetson-config:/config:ro
+    command: ["--config", "/config/config.json"]
+
+volumes:
+  jetson-models:
+    name: retail-vision-jetson-models

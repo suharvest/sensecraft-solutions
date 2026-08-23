@@ -5,6 +5,7 @@ intro:
   summary: Control a 3-wheeled Kiwi-drive robot with your voice using Groq AI. Say "Hey Jarvis" and give natural language commands to drive, steer, and move hands-free.
   description_file: description.md
   cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/banner_javis.png
+  repo_url: https://github.com/KasunThushara/Lekiwi-voice
   category: voice_ai
   solution_type: technical
   output_interfaces:
