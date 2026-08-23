@@ -1,6 +1,6 @@
 ---
 name: extend-vision-solution
-description: 把一个只支持单一设备的 AI 视觉方案扩展到多个边缘平台（reCamera / RK / Jetson / Hailo 等），并产出可横向比较的实测性能与准确率数据。适用于：给现有 vision solution 增加设备 preset、跨平台性能对比、修正不可比的测量数据。
+description: 把一个只支持单一设备的 AI 视觉方案扩展到多个边缘平台（reCamera / RK / Jetson / Hailo 等）：先分层让业务逻辑只有一份，定好多设备的数据契约，再移植运行时，最后产出可横向比较的实测数据。适用于：给现有 vision solution 增加设备 preset、跨平台共享推理基座、设计多设备 MQTT 契约、跨平台性能对比、修正不可比的测量数据。
 argument-hint: "<solution_id> [目标平台，如 rk3588,hailo,jetson]"
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
@@ -22,6 +22,9 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 第二个高频问题是**厂商运行时**——每个 NPU 平台都有一套与内核耦合的用户态库，镜像里baked
 一份就会和板子上的驱动对不上。第三个是**没有实机验证就声明支持**。
 
+还有一个更早、更贵的问题：**按平台各写一份业务逻辑**。等发现四份跟踪器行为不一致时，
+改哪一份都不对。所以 Phase 0.5 排在测量之前——先把逻辑收敛成一份，再谈移植和比较。
+
 ---
 
 ## Phase 0：先判断值不值得扩
@@ -36,6 +39,68 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
    自己的姿态输出重新抽取轨迹并重新冻结权重**，不能跨平台借用——不同前端的关键点分布不同。
 
 任何一项答不上来，先做可行性验证，不要先写 preset。
+
+---
+
+## Phase 0.5：先分层，再移植
+
+**扩到第二个平台之前先问：跟踪、状态机、指标聚合、消息发布，是不是各写了一份？**
+
+如果是，先把它们抽出来，再谈移植。否则每加一个平台就复制一份业务逻辑，四份实现会各自漂移，
+**同一个人在不同板子上被判成不同状态**——这类 bug 极难查，因为每一份单看都是对的。
+
+参考反面教材：某方案家族只共享了契约，跟踪器和发布层重复了四遍（958 行 / 257 行 /
+两份 C++）。做完分层之后，同一功能在 Jetson 端的平台专属代码从 1281 行降到 **77 行**。
+
+### 切口按"什么真的随硬件变"来划
+
+| 层 | 是否共享 | 理由 |
+|---|---|---|
+| 契约（schema + 校验器） | 全共享 | 语言无关 |
+| 业务逻辑（跟踪 / 状态机 / 窗口指标 / 发布） | 按语言家族共享 | 只吃 box 和时间戳，不碰厂商 SDK |
+| backend（推理热路径 + 帧源） | **绝不共享** | 张量布局、前后处理、ABI 锁定的宿主库都不同 |
+| board 目录 | 绝不共享 | 只有 config 和模型，**不放代码** |
+
+**backend 只实现两件事**：一个帧源，和 `detect(frame) -> [DetectionBox]`。多一件都说明切错了。
+
+**判据**：共享层里一旦出现 `#ifdef PLATFORM` 或 `if backend == "rknn"`，就是切口错了，
+要把那段往下推到 backend。
+
+### 一个语言不够时
+
+C++ 和 Python 两份实现无法再合并（reCamera/Hailo 是 C++，Jetson/RK 是 Python）。
+用**一组行为 fixture** 卡住：录一段检测框序列 + 期望的 track id / state 序列，两边跑同一组。
+期望值要**从权威实现的规则推导**，不能从某一个 port 录制——那只是把 port 固化了，
+发现不了它本身的偏差。
+
+### 抽象什么时候算数
+
+**一个抽象只被一个平台用过不算抽象。** 第二个平台接进来才是验证切口对不对的时刻，
+所以第一个平台不要过度设计，第二个平台不要图快绕过共享层。
+
+---
+
+## Phase 0.6：数据契约（多设备场景必读）
+
+单设备时随便发什么都能work，接入第二台就开始出问题。四条硬规则：
+
+**① 批量发，不要逐检测发。** 按"每个检测框一条消息"发，broker 的消息速率 =
+人数 × 摄像头数 × 帧率。改成每周期一条批量消息（1 Hz 起步），速率只跟设备数走。
+
+**② 批次内要有一个有界的区分键。** 同批次所有对象共享一个时间戳，
+时序库按 (topic, timestamp) 存的话**同帧多人会被覆盖成一行**。
+用批次内下标（slot），**不要用 track_id**——它随部署时长单调增长，标签基数会无限膨胀。
+
+**③ 坐标发归一化百分比，不要发像素。** 一次平面图校准对任何分辨率的传感器都成立。
+
+**④ 设备只发消息队列，绝不直写时序库。** 两条写入路径进同一个 measurement、
+其中一条不带 device 标签，是必踩的坑。让 Telegraf 之类做唯一写入方。
+
+**类型陷阱**：telegraf 的 `json_v2` 把 JSON 数字一律当 float64。已有 bucket 里是 float 的话，
+改成写 integer 会让整批写入被以 `422 field type conflict` 丢弃。
+**不要改 schema 类型**，在面板层 `decimals: 0` 显示即可。
+
+契约要配**正反两组 fixture**：只喂正例的话，一个"什么都接受"的校验器也能全绿。
 
 ---
 
@@ -142,6 +207,39 @@ PYTHONPATH: /host-pysite:/usr/lib/python3/dist-packages   # 追加
 另一个常见浪费：`COPY /wheels` 后 `RUN pip install && rm -rf /wheels`——**删除只是新层标记
 不可见，wheel 仍在镜像里**。改用 BuildKit 的 `RUN --mount=type=bind,from=builder`。
 
+### 2.5 Jetson：不要用推理框架跑 engine
+
+用 ultralytics 执行 `.engine` 会把 torch 750 MB + polars 154 MB + scipy 109 MB +
+onnx 77 MB + sympy 57 MB 拖进镜像——**1.15 GB 依赖，只为执行一个宿主 TensorRT 本来就能执行的
+plan**，而 compose 通常早就把宿主的 TRT 绑定挂进容器了。直连 TRT 后镜像 2.4 GB → 233 MB，
+吞吐反而升了（少了张量往返），检测结果逐框相同。
+
+直连时的四个非显然点：
+
+- **显存管理用 ctypes 绑宿主 `libcudart`**（约 100 行）。pycuda 要现场编译，
+  cuda-python 又是一个要钉版本的 wheel，torch 正是要去掉的东西
+- **ultralytics 导出的 `.engine` 不是裸 plan**，是 `<4字节小端长度><JSON元数据><plan>`，
+  整个文件喂给 `deserializeCudaEngine` 会挂在 magic-tag 断言上
+- **输出头是原始 `[1,84,8400]`**，解码和 NMS 要自己写（约 40 行 numpy）。
+  别信"输出已经是解码好的框"这类注释，**先把 binding 形状打出来确认**
+- **base 镜像 Python 版本必须匹配宿主 TRT 绑定**（JetPack 6 = CPython 3.10 → `ubuntu:22.04`），
+  且要显式 `ENV NVIDIA_VISIBLE_DEVICES=all`——CUDA base 会继承，裸 ubuntu 不会，
+  缺了它 nvidia runtime 不注入 `/dev/nvmap`，即使传了 `--runtime nvidia` 也会 CUDA error 999
+
+**多路时还有两条**（单路看不出来，加第二台摄像头才暴露）：
+stream 要 `cudaStreamCreateWithFlags(cudaStreamNonBlocking)`，否则各路会因与 legacy default
+stream 隐式同步而互相串行化，**不报错、只是吞吐消失**；主机暂存要 `cudaHostAlloc` 页锁定内存，
+可分页内存会让"异步"拷贝退化成走驱动暂存路径。
+
+### 2.6 两个会咬人的通用坑
+
+- **`cv2.VideoCapture.read()` 不是线程安全的。** FFmpeg 后端上并发调用会触发
+  `Assertion fctx->async_lock failed at libavcodec/pthread_frame.c:175` 并**直接 abort 进程**
+  （不是抛异常，catch 不住）。必须单线程独占 read，其他消费者从共享缓冲取
+- **registry 有请求体上限。** 实测某 Tengine 反代在 268 MB（过）和 921 MB（413 拒绝）之间。
+  镜像单层过大推不上去，这会反过来影响架构决策——**提前问清楚上限**，
+  不要等做完才发现发布不了
+
 ---
 
 ## Phase 3：实机验证（不做完不许声明支持）
@@ -201,6 +299,12 @@ PYTHONPATH: /host-pysite:/usr/lib/python3/dist-packages   # 追加
 | 写代码前不读契约 | 返回类型和回调签名全错，真机跑挂 | 先看基类和同类实现 |
 | 假设模板会递归展开 | 占位符原样写进设备，应用崩溃 | 嵌套结构自己验证 |
 | 不看 `git log` 就解释现象 | 关于同一个问题连续给了 2 个错误原因 | 先查仓库状态再推理 |
+| 先写平台实现、后想分层 | 同一逻辑写了四遍，跨板行为不一致 | 扩第二个平台之前先抽共享层 |
+| 逐检测发消息 | 消息速率 = 人数 × 摄像头数 × 帧率，多设备直接压垮 broker | 批量发，一个周期一条 |
+| 批次内没有区分键 | 同帧多人被时序库覆盖成一行，数据静默丢失 | 用批次内下标，不要用 track_id |
+| 照抄注释里的输出形状 | 注释写"已解码"，实际是 raw head，解码全错 | 先打印 binding 形状确认 |
+| 只用正例测校验器 | "什么都接受"的校验器也能全绿 | 正反两组 fixture |
+| 设备间搬镜像 | Tailscale 常走中继（0.02–0.05 MB/s），1 GB 要 10 小时 | 传构建上下文就地重建，基础镜像按 digest 钉死 |
 
 **共同点：大多数错误不是不会做，而是没验证就下结论。** 每次给出结论前，问一句"这个数字是我
 测的还是我推的"。

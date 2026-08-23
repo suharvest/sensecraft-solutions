@@ -36,6 +36,18 @@ docker:
       health_check_endpoint: /api/health
       required: true
 
+user_inputs:
+  - id: camera_urls
+    name: Camera RTSP URLs (optional)
+    type: text
+    required: false
+    placeholder: "cam-01=rtsp://192.168.1.50:554/stream, cam-02=rtsp://..."
+    description: Only needed for cameras ONVIF discovery cannot see — one per entry as id=url, comma separated
+    name_i18n:
+      zh: 摄像头 RTSP 地址（选填）
+    description_i18n:
+      zh: 只有 ONVIF 发现不到的摄像头才需要填，格式 id=地址，逗号分隔
+
 pre_checks:
   - type: docker
     description: Docker must be installed and running
@@ -43,9 +55,84 @@ pre_checks:
     ports:
       - 8086
       - 3000
+      - 1984
+      - 8555
   - type: disk_space
     min_gb: 2
     description: At least 2GB for InfluxDB + Grafana + Heatmap images
+
+actions:
+  after:
+    - name: Find the cameras
+      # go2rtc is both the gateway and an ONVIF client: GET /api/onvif runs a
+      # WS-Discovery probe and returns every camera that answered, with the
+      # RTSP URL it advertises. Anything discovery cannot see — a camera on
+      # another subnet, or a backend running off-site — comes from the manual
+      # field instead, and the two are merged.
+      #
+      # Stream names are the camera id the detector publishes, so the
+      # dashboard's $stream variable picks the matching video with no lookup.
+      # Discovered cameras are named by their address until a detector claims
+      # them, because ONVIF has no idea what the operator called the camera.
+      # fail_fast: false — a site with no ONVIF cameras at all is a valid
+      # deployment, not an error.
+      fail_fast: false
+      run: |
+        CONF="{{remote_path}}/go2rtc/go2rtc.yaml"
+        API=http://127.0.0.1:1984
+
+        # go2rtc has to be up before it can be asked anything.
+        for i in $(seq 1 30); do
+          curl -sf "$API/api" >/dev/null 2>&1 && break
+          sleep 1
+        done
+
+        python3 - "$CONF" "{{camera_urls}}" <<'PYEOF'
+        import json, sys, urllib.request
+
+        conf_path, manual = sys.argv[1], sys.argv[2]
+        streams = {}
+
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:1984/api/onvif", timeout=20) as r:
+                for dev in json.load(r) or []:
+                    url = dev.get("url") or dev.get("rtsp") or ""
+                    name = (dev.get("name") or "").strip()
+                    if not url:
+                        continue
+                    host = url.split("//")[-1].split("/")[0].split("@")[-1].split(":")[0]
+                    streams[name or host.replace(".", "-")] = url
+            print(f"ONVIF discovery found {len(streams)} camera(s)")
+        except Exception as exc:
+            print(f"ONVIF discovery unavailable ({exc}); using manual entries only")
+
+        for entry in [e.strip() for e in manual.split(",") if e.strip()]:
+            if "=" not in entry:
+                print(f"skipping malformed entry (want id=url): {entry}")
+                continue
+            cam_id, url = entry.split("=", 1)
+            streams[cam_id.strip()] = url.strip()
+
+        body = "streams:\n"
+        if streams:
+            for name, url in sorted(streams.items()):
+                body += f"  {name}: {url}\n"
+        else:
+            body += "  {}\n"
+            print("no cameras configured yet — add them at http://<host>:1984")
+
+        with open(conf_path) as fh:
+            text = fh.read()
+        head, _, tail = text.partition("streams: {}")
+        with open(conf_path, "w") as fh:
+            fh.write(head + body.rstrip("\n") + tail)
+        for name in sorted(streams):
+            print("stream:", name)
+        PYEOF
+
+        docker restart recamera-go2rtc >/dev/null 2>&1 || true
+      name_i18n:
+        zh: 查找摄像头
 
 post_deployment:
   open_browser: true
@@ -78,6 +165,16 @@ remote_overrides:
     open_browser: true
     url: "http://{{host}}:3000"
   user_inputs:
+    - id: camera_urls
+      name: Camera RTSP URLs (optional)
+      type: text
+      required: false
+      placeholder: "cam-01=rtsp://192.168.1.50:554/stream, cam-02=rtsp://..."
+      description: Only needed for cameras ONVIF discovery cannot see — one per entry as id=url, comma separated. Discovery is multicast, so it stops at the subnet boundary; a backend on another network or in the cloud will find nothing and needs these.
+      name_i18n:
+        zh: 摄像头 RTSP 地址（选填）
+      description_i18n:
+        zh: 只有 ONVIF 发现不到的摄像头才需要填，格式 id=地址，逗号分隔。发现走组播、跨不了网段，后端在别的网络或云上时必须手填。
     - id: host
       name: Device IP
       type: text

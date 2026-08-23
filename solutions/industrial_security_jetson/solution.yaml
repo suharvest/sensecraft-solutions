@@ -7,6 +7,7 @@ intro:
   summary: TensorRT-accelerated person detection on Jetson — multi-camera RTSP support, restricted-zone / line-cross / dwell rules, real-time browser dashboard with SQLite event persistence.
   description_file: description.md
   cover_image: gallery/cover.png
+  repo_url: https://github.com/Zhang-zu-hao/Industrial-security-demo
   category: vision_ai
   solution_type: solution
   tags: [jetson, security, intrusion-detection, edge-ai, tensorrt, rtsp, multi-camera, yolo26]

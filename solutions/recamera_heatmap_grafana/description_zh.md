@@ -41,6 +41,32 @@
 | **AI 摄像头直连** | reCamera + reComputer R1100 | 每台 1 路 | 快速体验、小空间单点位 |
 | **传统摄像头改造** | IP 摄像头 + Jetson AI 盒子 | 每台盒子多路 | 大面积覆盖、保留现有摄像头 |
 
+## 数据契约
+
+所有检测端——reCamera、reCamera Pro、Jetson、瑞芯微、树莓派 + Hailo——都把结果发到后端的 MQTT broker，自己不写 InfluxDB。Telegraf 是唯一的写入方，所以一个看板覆盖所有来源，新增一类设备只需要实现一种消息格式。
+
+| 通道 | 主题 | 内容 |
+|------|------|------|
+| 分析数据 | `<安装点>/retail-vision/results/<摄像头编号>` | 每个发布周期（默认 1 秒）一条批量 JSON：区域计数 + 每个跟踪对象一条记录 |
+| 在线状态 | `<安装点>/retail-vision/status` | `online` / `offline`，retained |
+
+Payload 就是 VisionPayload——reCamera 上 `retail-vision` C++ 应用已经在发的格式：
+
+```json
+{
+  "timestamp": 1709500000000, "frame_width": 1280, "frame_height": 720,
+  "zone": {"occupancy_count": 3, "browsing_count": 1, "engaged_count": 1,
+           "assist_count": 0, "avg_dwell_time": 8.5,
+           "entry_count": 12, "exit_count": 10},
+  "persons": [{"slot": 0, "track_id": 7, "state": "engaged",
+               "cx_pct": 41.2, "cy_pct": 63.8, "dwell_duration": 5.2}]
+}
+```
+
+`<安装点>` 只是主题的第一段，用来在同一个 broker 上区分多个站点，填门店名、楼层名或房间名都可以。批量发送是必要的：按"每个检测框一条消息"发，broker 的消息速率等于 人数 × 摄像头数 × 帧率，一个站点接入多台设备后最先扛不住的就是这里。
+
+有三个字段是为具体问题存在的。`slot` 是这个人在批次里的下标——同一条消息里所有人共享一个时间戳，没有区分标签的话 InfluxDB 会把它们覆盖成每帧一条；用下标而不是 `track_id`，是为了让标签基数被"单帧人数"限制住，而不是随部署时长无限增长。`cx_pct` / `cy_pct` 是归一化中心点，这样一次平面图校准对任何分辨率的传感器都成立。
+
 ### 算力与成本说明
 
 - 算力消耗轻：每个盒子本地计算，服务器只做数据汇总

@@ -177,3 +177,16 @@ post_deployment:
   open_browser: false
 name_i18n:
   zh: reCamera 天气识别
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Weather Classification"
+catalog_name_i18n:
+  zh: "天气识别"
+catalog_description: "Classify the current weather (clear/cloudy/foggy/rainy/snowy) from the camera feed — all on-device, with results published to MQTT"
+catalog_description_i18n:
+  zh: "从摄像头画面识别当前天气状况（晴/多云/雾/雨/雪）——全部在设备上处理，识别结果发布到 MQTT"

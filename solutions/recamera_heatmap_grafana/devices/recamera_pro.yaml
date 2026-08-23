@@ -1,0 +1,162 @@
+version: "1.0"
+id: recamera_pro
+name: reCamera Pro
+type: recamera_pro_app
+device_class: recamera
+
+# The app ships through the device's App Center rather than with this solution:
+# installing one requires a release-signed archive, and the signing chain is not
+# public. So this step configures the installed app and makes it the active one.
+# If the App Center on the target does not carry it, the step says so and names
+# what is installed instead.
+recamera_pro_app:
+  app_id: retail-vision
+  activation_timeout: 90
+
+  config:
+    # The app's own preview page needs nothing configured, so it stays on as
+    # the zero-setup way to see whether the camera is pointed correctly.
+    output_channels: ["ws"]
+
+  # Without a broker address there is nothing to report to, and putting one
+  # between the user and a working camera would buy nothing. Give an address
+  # and the analytics channel switches on.
+  config_when:
+    - when_present: mqtt_host
+      config:
+        output_channels: ["ws", "mqtt"]
+        # 1 = custom: render the payload from the template below rather than
+        # dumping the app's internal envelope.
+        iMode: "custom"
+        # MUST be an empty list. The app manifest ships a default_mapping, and
+        # a non-empty mapping wins over dTemplate — leaving this unset would
+        # silently publish five scalar topics instead of the contract payload
+        # (kit/adapters/output_sink.py resolve_output_config / build_formatter).
+        output_mapping: []
+        dMqtt:
+          sURL: "{{mqtt_host}}"
+          iPort: "{{mqtt_port}}"
+          sTopic: "{{device_name}}"
+          sClientId: "recamera-pro-retail"
+          sUsername: "{{mqtt_username}}"
+          sPassword: "{{mqtt_password}}"
+        dTemplate:
+          # Renders VisionPayload, the contract every detector in this solution
+          # publishes. The free-template path derives the topic itself:
+          #   <sTopic>/<app-id>/<task>  ->  <device_name>/retail-vision/tracking
+          # and availability lands on <device_name>/retail-vision/status, which
+          # is the LWT topic the rest of the solution already expects.
+          #
+          # Envelope namespace (docs/guide/output-sink.md §2): app / timestamp /
+          # seq / frame / results / events. Track boxes are pixel xyxy in the
+          # original frame, so the centre is converted to a percentage here —
+          # the backend stores percentages so one floor-plan calibration holds
+          # regardless of sensor resolution.
+          #
+          # "slot" is the person's index in the batch: everyone in one message
+          # shares a timestamp, and without a distinguishing key InfluxDB
+          # overwrites them down to a single row per frame. Index rather than
+          # track_id keeps that key bounded by people-per-frame.
+          #
+          # The metrics event only appears once the rolling window has data,
+          # so the zone block falls back to zeroes rather than failing to
+          # render — a template error drops the whole message for that frame.
+          #
+          # Not published, because this app does not measure them: per-person
+          # dwell_duration and zone.avg_dwell_time. The dashboard's Avg Dwell
+          # tile stays empty on a Pro-only site.
+          sTracking: |
+            {% set m = (events.metrics | default([]) | last) if (events.metrics | default([]) | length) else none %}
+            {
+              "timestamp": {{ timestamp }},
+              "frame_width": {{ frame.width }},
+              "frame_height": {{ frame.height }},
+              "zone": {
+                "occupancy_count": {{ m.occupancy if m else 0 }},
+                "browsing_count": {{ m.browsing if m else 0 }},
+                "engaged_count": {{ m.engaged if m else 0 }},
+                "assist_count": {{ m.assistance if m else 0 }},
+                "peak_customer": {{ m.peak if m else 0 }},
+                "entry_count": {{ m.entry_count if m else 0 }},
+                "exit_count": {{ m.exit_count if m else 0 }}
+              },
+              "persons": [
+                {% for t in events.track | default([]) %}{% if not loop.first %},{% endif %}{
+                  "slot": {{ loop.index0 }},
+                  "track_id": {{ t.track_id }},
+                  "state": {{ t.state | default("transient") | tojson }},
+                  "confidence": {{ t.score | default(0) }},
+                  "cx_pct": {{ (t.box[0] + t.box[2]) * 50 / frame.width }},
+                  "cy_pct": {{ (t.box[1] + t.box[3]) * 50 / frame.height }}
+                }{% endfor %}
+              ]
+            }
+
+  # Detection and dwell thresholds are left at the app's own defaults on
+  # purpose — they are configurable on the device's app page, and a solution
+  # that re-tuned them behind the user's back would be harder to reason about
+  # than one that does not.
+
+# The App renders its connection panel from this block, and the panel — not
+# user_inputs — supplies host/username/password. The credentials are the web
+# console's and the transport is HTTPS, not SSH.
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
+
+post_deployment:
+  open_browser: false
+
+user_inputs:
+  - id: device_name
+    name: Installation Name
+    type: text
+    default: "recamera-pro"
+    required: true
+    description: First segment of the MQTT topic — a store, floor or room name keeps several installations apart on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 安装点名称
+    description_i18n:
+      zh: MQTT 主题的第一段——用门店、楼层或房间名区分同一 broker 上的多个安装点
+  - id: mqtt_host
+    name: MQTT Broker
+    type: text
+    required: false
+    placeholder: "192.168.1.100"
+    description: Address of the backend from step 1. Leave empty to watch results on the camera's own page without reporting anywhere.
+    name_i18n:
+      zh: MQTT 服务器
+    description_i18n:
+      zh: 步骤 1 那台后端的地址。留空则只在摄像头自带页面看结果，不上报。
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: false
+    validation:
+      pattern: "^[0-9]{1,5}$"
+      message: Port number only
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    description: Only if your broker requires authentication
+    name_i18n:
+      zh: MQTT 用户名
+    description_i18n:
+      zh: broker 需要认证时才填
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    name_i18n:
+      zh: MQTT 密码
+
+name_i18n:
+  zh: reCamera Pro

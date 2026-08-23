@@ -216,3 +216,16 @@ post_deployment:
 
 name_i18n:
   zh: reCamera 健身教练
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "Fitness Trainer"
+catalog_name_i18n:
+  zh: "健身教练"
+catalog_description: "Count your reps and flag sloppy form — squats, push-ups or hammer curls, tracked by the camera alone with no phone and no wearable"
+catalog_description_i18n:
+  zh: "数你的组数、提示动作不到位——深蹲、俯卧撑或哑铃弯举，只靠摄像头，不用手机也不戴手环"

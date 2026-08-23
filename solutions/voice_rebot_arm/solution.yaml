@@ -5,6 +5,7 @@ intro:
   summary: Say "Hey Jarvis, grab the water bottle" and a reBot B601-DM arm finds the object with an RGB-D wrist camera and picks it up in ~11 s. Grasps boxes, bottles, bananas, cups and oranges via an open-vocabulary detector (YOLOE on TensorRT GPU) + 3D shape-descriptor grasp planner. Fully on-device voice stack — Qwen3 streaming ASR + MOSS-TTS-Nano speech synthesis + Qwen3.5-4B-AWQ with MTP speculative decoding on TensorRT-Edge-LLM — on Jetson Orin NX.
   description_file: description.md
   cover_image: gallery/cover.jpg
+  repo_url: https://github.com/suharvest/openvoicestream
   category: voice_ai
   solution_type: technical
   tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, moss, offline]

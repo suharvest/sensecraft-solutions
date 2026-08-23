@@ -263,3 +263,16 @@ post_deployment:
   open_browser: false
 name_i18n:
   zh: reCamera PP-OCRv3 文字识别
+
+# --- Console install catalog copy -------------------------------------------
+# scripts/generate_recamera_catalog.py reads these four fields, plus the package
+# and model URLs above, to build the catalog the camera console offers under
+# "Install from cloud". They lived on the solution's presets until the solution
+# was reduced to one preset per camera generation; keeping them beside the URLs
+# they describe means one file per app rather than two places to edit.
+catalog_name: "OCR Text Reader"
+catalog_name_i18n:
+  zh: "OCR 文字识别"
+catalog_description: "Read text from camera feed with PP-OCRv3 — supports Chinese and English"
+catalog_description_i18n:
+  zh: "使用 PP-OCRv3 从摄像头画面中识别文字——支持中文和英文"

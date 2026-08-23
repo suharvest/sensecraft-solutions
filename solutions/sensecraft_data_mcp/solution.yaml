@@ -9,6 +9,7 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/cover.svg
+  repo_url: https://github.com/Love4yzp/sensecraft-data-mcp
   category: voice_ai
   solution_type: technical
   tags:

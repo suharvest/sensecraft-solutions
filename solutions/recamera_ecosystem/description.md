@@ -1,55 +1,64 @@
 ## What This Solution Does
 
-A small AI camera that you plug in, pick an app, and it just works. Object detection, text reading, face analysis, smart home integration — choose what you need, deploy in one click. All AI processing happens on the camera itself, so your video never leaves your network.
+Plug in an AI camera, open its console in a browser, and install an app: object
+detection, text reading, face analysis, drowsiness monitoring, weather
+classification, QR scanning, rep counting, fall detection or retail people
+counting. Switching apps is a click. All AI runs on the camera, so video never
+leaves your network — and when you want the results elsewhere, the camera
+publishes them over MQTT and Home Assistant picks them up automatically.
 
 ## Key Benefits
 
 | Benefit | Details |
 |---------|---------|
-| Pick an App, Click Deploy | Heatmap, text reader, face analysis, Home Assistant — each is a one-click install, no coding needed |
-| One Camera, Many Uses | The same camera can detect objects, read text, analyze faces, or connect to your smart home |
-| Plug & Play | Connect via USB, pick an app, hit deploy — done in minutes |
-| Privacy by Default | AI runs on the camera; video and data stay on your local network |
+| An app gallery on the camera | Install and switch apps from the browser. Your computer does the downloading, so the camera itself needs no internet |
+| One camera, many jobs | The same hardware detects objects, reads text, analyzes faces or counts customers, depending on which app is running |
+| Home Assistant without glue code | The camera publishes MQTT discovery configs; entities appear on their own, and change when you switch apps |
+| Privacy by default | AI runs on the camera. Video and detections stay on your local network, and the console can blur faces before the frame is even encoded |
+| Works with what you already have | RTSP for any player, ONVIF discovery for an NVR or VMS (reCamera) |
 
-## Use Cases
+## The Two Presets
 
-| Scenario | How to Use |
-|----------|------------|
-| Quick Demo | Deploy the heatmap preview to show what the camera can do — no extra hardware needed |
-| Smart Home | Add the camera to Home Assistant for live video + AI-triggered automations |
-| Text Reading | Point at signs, labels, or displays — recognized text appears on screen in real-time |
-| Face Analysis | Detect faces and see age, gender, and emotion — all processed on-device with privacy in mind |
-| Weather Classification | Point the camera outside to classify current weather conditions — results published to MQTT for automation |
-| Mix & Match | Use heatmap for analytics AND Home Assistant for automations — both from the same camera |
+| Preset | Hardware | Where apps come from | MQTT broker |
+|--------|----------|----------------------|-------------|
+| **reCamera** | reCamera 2002 | The reCamera Console's app gallery, installed by this solution | On the camera, plus the one you deploy with Home Assistant |
+| **reCamera Pro** | reCamera Pro | The camera's own App Center, delivered by firmware | None on the camera — the broker comes from the Home Assistant step |
+
+Both follow the same five steps: get the device current, pick an app, deploy
+Home Assistant if you want it, point both ends at the same broker, then build
+the dashboard.
+
+## Apps in the Gallery
+
+| App | What it does |
+|-----|--------------|
+| Object Detection | People, vehicles and 80 other everyday classes |
+| OCR Text Reader | Chinese and English text from signs, labels and meter displays |
+| Face Analysis | Age, gender and emotion, with optional privacy blur on the stream |
+| Drowsiness Detection | Eye closure, PERCLOS and yawn frequency from FaceMesh |
+| Weather Classification | Clear / cloudy / foggy / rainy / snowy from the camera view |
+| QR Code Reader | Every code in frame decoded at once, no model and no handheld scanner |
+| Fitness Trainer | Rep counting and form flags for squats, push-ups and curls |
+| Fall Detection | Rapid falls from an on-device pose timeline, for fixed indoor views |
+| Retail People Counting | Entry / exit counts plus browsing, engaged and assistance states |
+
+The reCamera Pro's App Center carries its own build of most of these, plus
+voice transcription. Weather classification is reCamera only.
 
 ## Requirements
 
-### Inputs and Outputs
-
-By application:
-- Heatmap preview: Video input → Web heatmap output
-- Home Assistant: Video input → RTSP stream + AI sensor entities output
-- OCR: Video input → Recognized text output (real-time overlay)
-- Face analysis: Video input → Age/gender/emotion labels output (optional privacy blur)
-
 ### Network
 
-- Camera and server must be on the same local network
-- USB connection for initial setup (IP: 192.168.42.1)
+- The camera and, if you use it, the Home Assistant machine must be on the same local network
+- USB works for initial setup (address `192.168.42.1`)
+- The computer running this app needs internet access to download apps on the camera's behalf; the camera does not
+
+### For the Home Assistant steps
+
+- Docker on the machine that will run Home Assistant, with ports 8123 and 1883 free
+- Or an existing Home Assistant and MQTT broker, in which case steps 3 and 4 collapse into filling in one address
 
 ### Privacy
 
 - All AI detection runs locally on the camera
-- Video streams and data stay on your local network
-
-## Deployment Comparison
-
-| Option | Core Device | Feature | Best For |
-|--------|-------------|---------|----------|
-| **Retail People Flow Heatmap** ⚡ | reCamera | Spot hot zones vs cold zones from shopper positions | Retail traffic analysis, no extra hardware needed |
-| **Home Assistant Integration** 🏠 | reCamera + reComputer R1100 | RTSP stream + AI sensors in HA | Smart home users, existing HA setup |
-| **OCR Text Reader** 🆕 | reCamera | Read Chinese/English text | Meter readings, label scanning, document processing |
-| **Face Analysis** 🆕 | reCamera | Age/gender/emotion + privacy blur | Traffic analysis, smart reception |
-| **Weather Classification** 🆕 | reCamera | Clear/cloudy/foggy/rainy/snowy, MQTT results | Outdoor monitoring, automation triggers |
-
-All options run fully local with no cloud fees.
+- Video streams and detection data stay on your local network

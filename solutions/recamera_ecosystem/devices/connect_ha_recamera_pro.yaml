@@ -1,0 +1,89 @@
+version: "1.0"
+id: connect_ha_recamera_pro
+name: Connect the Camera to Home Assistant
+type: manual
+
+# Verified against the shipping frontend (recamera_web_react): MQTT is
+# configured PER APP, in that app's Configure dialog, under the "Result output"
+# group that appmgr injects for apps declaring `capabilities:["output"]`
+# (src/components/app_center/OutputControls.js). The persisted keys are
+# output_channels, iMode / output_mode and dMqtt{sURL,iPort,sTopic,sClientId,
+# sUsername,sPassword} -- the same shape the fall_detection solution writes
+# through the recamera_pro_app deployer.
+#
+# appmgr also carries a device-wide broker config at /api/appMgr/mqtt
+# (market/appmgr/mqtt.py), injected as RECAMERA_MQTT_* into every app it
+# launches. The shipping frontend never calls that endpoint -- its only appMgr
+# routes are list / activate / config / assets / metrics -- so a user following
+# a guide cannot reach it, and this step does not send them looking for it.
+#
+# Consequence worth stating plainly: this is per app, so an app installed later
+# starts with MQTT off until it is configured too.
+
+steps:
+  - id: add_mqtt_integration
+    name: Add the MQTT integration in Home Assistant
+    name_i18n:
+      zh: 在 Home Assistant 中添加 MQTT 集成
+    description: >-
+      Open Home Assistant, go to Settings → Devices & Services → Add
+      integration, and pick MQTT. Broker is the address of the machine running
+      the stack from the previous step, port 1883, no username or password.
+      Skip this if your Home Assistant already has MQTT set up.
+    description_i18n:
+      zh: >-
+        打开 Home Assistant，进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。
+        Broker 填上一步部署的那台机器的地址，端口 1883，用户名密码留空。
+        如果你的 Home Assistant 已经配好 MQTT，跳过这一步。
+    optional: false
+
+  - id: open_app_config
+    name: Open the running app's configuration
+    name_i18n:
+      zh: 打开当前应用的配置
+    description: >-
+      In the camera's App Center, press Configure on the app you started in the
+      previous step. Scroll to the Result output group — that is where every
+      app's outputs are set.
+    description_i18n:
+      zh: >-
+        在摄像头的应用中心里，点上一步启动的那个应用的「配置」，
+        找到「结果输出」分组——每个应用的输出都在这里设置。
+    optional: false
+
+  - id: fill_broker
+    name: Turn on MQTT and point it at the broker
+    name_i18n:
+      zh: 打开 MQTT 通道并填写 broker 地址
+    description: >-
+      Tick MQTT in Output channels, set Output mode to Home Assistant, and fill
+      in Broker host and Port 1883 — the machine Home Assistant runs on, not the
+      camera. Base topic names this device; give each camera its own so they
+      stay separable. Press Save & apply. Home Assistant mode publishes the
+      discovery entities itself, so there is nothing to map by hand.
+    description_i18n:
+      zh: >-
+        在「输出通道」里勾上 MQTT，把「输出模式」设为 Home Assistant，
+        填入 Broker 地址和端口 1883——填的是 Home Assistant 所在的机器，不是摄像头自己。
+        「主题(base)」是这台设备的名字，多台摄像头各取一个才不会混在一起。
+        点「保存并应用」。Home Assistant 模式会自动下发发现实体，不需要手动映射。
+    optional: false
+
+  - id: check_entities
+    name: Check the entities appeared
+    name_i18n:
+      zh: 确认实体已出现
+    description: >-
+      Back in Home Assistant, Settings → Devices & Services → MQTT lists the
+      camera with the entities the app declares. This configuration belongs to
+      that one app: install another later and it starts with MQTT off until you
+      configure it the same way.
+    description_i18n:
+      zh: >-
+        回到 Home Assistant，「设置 → 设备与服务 → MQTT」里会出现这台摄像头，
+        以及这个应用声明的实体。这份配置只属于这一个应用：以后再装别的应用，
+        它的 MQTT 默认是关的，要照这一步再配一次。
+    optional: false
+
+name_i18n:
+  zh: 把摄像头接入 Home Assistant

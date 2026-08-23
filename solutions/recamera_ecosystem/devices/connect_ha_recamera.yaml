@@ -1,0 +1,85 @@
+version: "1.0"
+id: connect_ha_recamera
+name: Connect the Camera to Home Assistant
+type: manual
+
+# Both ends of this are already built, so nothing is installed here.
+#
+# The camera side is the console's Integrations → Home Assistant panel, which
+# writes /userdata/local/ha.conf and restarts the running app. The Home
+# Assistant side is MQTT discovery, which creates the entities on its own. What
+# is left is pointing them at the same broker, and that is what these steps say.
+#
+# No custom component is involved. The earlier reCamera integration polled
+# Node-RED over HTTP; discovery replaces it and keeps working when you switch
+# apps, because each app republishes its own entity set.
+
+steps:
+  - id: add_mqtt_integration
+    name: Add the MQTT integration in Home Assistant
+    name_i18n:
+      zh: 在 Home Assistant 中添加 MQTT 集成
+    description: >-
+      Open Home Assistant, go to Settings → Devices & Services → Add
+      integration, and pick MQTT. Broker is the address of the machine running
+      the stack from the previous step, port 1883, no username or password.
+      Skip this if your Home Assistant already has MQTT set up — one broker
+      serves every camera.
+    description_i18n:
+      zh: >-
+        打开 Home Assistant，进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。
+        Broker 填上一步部署的那台机器的地址，端口 1883，用户名密码留空。
+        如果你的 Home Assistant 已经配好 MQTT，跳过这一步——一个 broker 可以带所有摄像头。
+    optional: false
+
+  - id: fill_broker_on_camera
+    name: Point the camera at the broker
+    name_i18n:
+      zh: 在摄像头上填写 broker 地址
+    description: >-
+      In the camera's console open Integrations → Home Assistant, turn on
+      "Enable Home Assistant integration", and fill in the MQTT broker host and
+      port 1883 — the same machine you just pointed Home Assistant at, not the
+      camera itself. Press Test Connection, then Save. Saving restarts the
+      running app so the new settings take effect.
+    description_i18n:
+      zh: >-
+        在摄像头控制台里打开「集成 → Home Assistant」，打开「启用 Home Assistant 集成」，
+        填入 MQTT Broker 地址和端口 1883——填的是刚才 Home Assistant 连的那台机器，
+        不是摄像头自己。先点「测试连接」，再点「保存」。保存会重启正在运行的应用以生效。
+    optional: false
+
+  - id: check_entities
+    name: Check the entities appeared
+    name_i18n:
+      zh: 确认实体已出现
+    description: >-
+      Back in Home Assistant, Settings → Devices & Services → MQTT lists the
+      camera as a device with the entities the running app publishes. Nothing
+      is added by hand, and the entity set changes on its own when you switch
+      to another app on the camera.
+    description_i18n:
+      zh: >-
+        回到 Home Assistant，「设置 → 设备与服务 → MQTT」里会出现这台摄像头，
+        以及当前运行应用发布的实体。不需要手动添加，
+        在摄像头上换一个应用后，实体集合也会自动跟着变。
+    optional: false
+
+  - id: add_video
+    name: Add the video stream (optional)
+    name_i18n:
+      zh: 添加视频画面（可选）
+    description: >-
+      Discovery carries detection results, not video. For a picture in the
+      dashboard, add the camera's RTSP URL with Home Assistant's built-in
+      Generic Camera integration — the console's Integrations page shows the
+      exact URL with a copy button.
+    description_i18n:
+      zh: >-
+        自动发现带的是检测结果，不含视频。想在仪表盘上看画面，
+        用 Home Assistant 自带的 Generic Camera 集成添加摄像头的 RTSP 地址——
+        控制台的「集成」页面上就有完整地址和复制按钮。
+    optional: true
+
+name_i18n:
+  zh: 把摄像头接入 Home Assistant

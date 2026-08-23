@@ -48,6 +48,8 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # Serves the spatial heatmap and proxies its InfluxDB queries, so the
+  # browser never needs the token or a reachable port 8086.
   heatmap:
     image: node:22-alpine
     container_name: recamera-heatmap
@@ -60,8 +62,33 @@ services:
       - heatmap-config:/data
     environment:
       - CONFIG_PATH=/data/config.json
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=recamera-heatmap-token
+      - INFLUX_ORG=seeed
+      - INFLUX_BUCKET=recamera
+    depends_on:
+      influxdb:
+        condition: service_healthy
     restart: unless-stopped
 
+  # Live video. Detectors publish analytics over MQTT and never carry video;
+  # the picture comes straight from each camera's own RTSP server, which
+  # go2rtc re-publishes as WebRTC because browsers cannot play RTSP and
+  # Grafana has no panel that speaks it. It doubles as the ONVIF client that
+  # discovers those cameras in the first place.
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: recamera-go2rtc
+    # Host networking is not a shortcut here: ONVIF discovery is UDP multicast
+    # to 239.255.255.250, which does not cross a bridge network, and WebRTC
+    # wants its own port reachable directly.
+    network_mode: host
+    volumes:
+      - ./go2rtc/go2rtc.yaml:/config/go2rtc.yaml
+    restart: unless-stopped
+
+  # Single ingest path for every detector: reCamera, reCamera Pro, Jetson,
+  # RK and Hailo all publish here and Telegraf writes to InfluxDB.
   mosquitto:
     image: eclipse-mosquitto:2
     container_name: recamera-mosquitto
