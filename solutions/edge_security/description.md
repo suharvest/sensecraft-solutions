@@ -151,6 +151,17 @@ Verified on real hardware:
 - The browser workbench.
 - The ground-truth assertions in the tables above.
 
+**The broker accepts anonymous clients.** Every preset ships mosquitto with
+`allow_anonymous true` and publishes 1883 on the host, so any machine that can
+reach that port can publish on the detection topics — including fabricated
+detections and fabricated verdicts, which a security workbench will display as
+real alerts. This is a deliberate default for a single-box deployment on a
+camera VLAN, and it is the wrong default anywhere else. Put the box on a
+management or camera VLAN, or add a `password_file` to
+`assets/<preset>/config/mosquitto.conf` and matching credentials to the
+detector config, before exposing 1883 more widely. The workbench itself on 8090
+is unaffected: it requires a login.
+
 Not verified, and not claimed:
 
 - **The reCamera detection node is not built.** The payload contract is
@@ -171,7 +182,7 @@ Not verified, and not claimed:
 | Detection node | A Jetson Orin (Orin Nano 8GB or Orin NX 16GB) on JetPack 6.x with TensorRT and the nvidia container runtime, **or** an RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed, **or** a Raspberry Pi 5 with a Hailo-8 on the PCIe slot, its driver and matching HailoRT. |
 | Aggregation host | Not required. The broker and the hub run on the detection machine itself. Only the optional Shared Hub preset needs a separate always-on arm64 or x86_64 machine with Docker. |
 | Disk | About 6 GB free on the detection machine for the Jetson and RK3588 presets — detector image, hub image, the TensorRT engine built there, and the alert database. The Hailo preset needs about 4 GB; it builds no engine. |
-| Network | Detectors reach the hub on port 1883. Operators reach the hub on 8090. The camera preview on 8099 must be reachable from the operator's browser, otherwise the rule editor has no backdrop. |
+| Network | Detectors reach the hub on port 1883. Operators reach the hub on 8090. The camera preview on 8099 must be reachable from the operator's browser, otherwise the rule editor has no backdrop. **The broker on 1883 accepts anonymous clients** — see the note below before putting it on a general-purpose network. |
 
 ## Choosing a Preset
 

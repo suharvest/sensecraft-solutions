@@ -250,23 +250,25 @@ remote_overrides:
           # a random password, writes it to /data/initial-password.txt and logs it.
           docker exec edge_security_rk3588-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_rk3588-hub-1 2>&1 | grep -iE "password" | tail -3 || true
 
-      - name: Confirm the decoder actually running
+      - name: Confirm the detector reached the accelerator
         name_i18n:
-          zh: 确认实际使用的解码器
-        # Deliberately NOT ignore_error, and the decoder value is asserted
-        # rather than printed. This preset promises hardware decode and the
-        # detector is configured to refuse CPU decode, so finishing on
-        # anything else is a failed deployment, not a note in the log.
-        timeout: 240
+          zh: 确认检测器已用上加速器
+        # Deliberately NOT ignore_error. Three things are asserted because the
+        # obvious ones lie: `docker ps` reports healthy while a detector
+        # crash-loops, since /healthz answers as soon as the preview server
+        # binds; and the decoder being negotiated says nothing about whether
+        # inference works. A container that decodes correctly and fails on
+        # every frame is a real failure mode -- it is how a broken image got
+        # through two deployments that both reported success.
+        timeout: 300
         run: |
-          # The detector describes its own live pipeline here — the element
-          # GStreamer really instantiated, not what the config asked for.
-          #
-          # Polled until the expected decoder appears rather than judged on the
-          # first answer: /debug/decode responds as soon as the preview server
-          # binds, and reports decode_path null until the pipeline has
-          # negotiated. Failing on the first reply would reject a deployment
-          # that was merely still starting.
+          # /debug/decode names the element GStreamer actually instantiated,
+          # /preview.jpg only answers 200 once a frame has been decoded AND run
+          # through the model, and the restart count is what a crash-loop looks
+          # like from outside. Polled to a deadline rather than judged on the
+          # first reply: both endpoints answer before the pipeline has
+          # negotiated, so failing early would reject a deployment that was
+          # merely still starting.
           echo "Waiting for the detector to report its decoder ..."
           last=""
           deadline=$(( $(date +%s) + 200 ))
@@ -277,18 +279,48 @@ remote_overrides:
               *'"mppvideodec"'*)
                 echo "$body"
                 echo "decode confirmed on the Rockchip hardware decoder"
-                exit 0
+                break
                 ;;
             esac
             sleep 5
           done
-          if [ -n "$last" ]; then
-            echo "$last" >&2
-            echo "The detector is answering but never reported the Rockchip hardware decoder." >&2
-            echo "This preset requires it; check the device mounts in the compose file." >&2
-          else
-            echo "No answer on 8099 — check: docker compose logs detector" >&2
+          case "$last" in
+            *'"mppvideodec"'*) ;;
+            "")
+              echo "No answer on 8099 — check: docker compose logs detector" >&2
+              exit 1
+              ;;
+            *)
+              echo "$last" >&2
+              echo "The detector is answering but never reported the Rockchip hardware decoder." >&2
+              echo "This preset requires it; check the device mounts in the compose file." >&2
+              exit 1
+              ;;
+          esac
+
+          echo "Waiting for the detector to produce a frame ..."
+          ok=0
+          deadline=$(( $(date +%s) + 60 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            code=$(curl -s --max-time 4 -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "preview.jpg: HTTP 200, $(wc -c < /tmp/esk-prev.jpg) bytes"
+              ok=1
+              break
+            fi
+            sleep 5
+          done
+          restarts=$(docker inspect -f '{{.RestartCount}}' edge_security_rk3588-detector-1 2>/dev/null || echo "?")
+          echo "detector restart count: $restarts"
+          rm -f /tmp/esk-prev.jpg
+          if [ "$ok" = "1" ] && [ "$restarts" = "0" ]; then
+            echo "detector is decoding and inferring"
+            exit 0
           fi
+          echo "The detector negotiated its decoder but is not producing frames." >&2
+          echo "A rising restart count with a healthy container means it is" >&2
+          echo "crash-looping past the health check. Last lines:" >&2
+          docker logs --tail 25 edge_security_rk3588-detector-1 2>&1 | sed 's/^/  /' >&2
           exit 1
 
   user_inputs:

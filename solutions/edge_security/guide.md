@@ -295,10 +295,15 @@ started on the board.
 
 - The step prints the hub's `/api/health` response, and the admin credential
   from the hub log if this is a first boot.
-- It then prints `/api/devices`. The board should be listed online with
-  `"decode": "sw"`, `"fallback_active": false`, and a `backend` naming the
-  HailoRT version — that last field is the evidence a VDevice was actually
-  opened, since a device taken by another process fails before this point.
+- It then confirms the detector is actually running: `/preview.jpg` answering
+  200 with a JPEG, and a container restart count of 0. Both are needed —
+  `/healthz` answers as soon as the preview server binds, so a container can
+  report healthy while inference crash-loops on every frame. The step fails the
+  deployment if either check does not hold.
+- The workbench's Devices page then shows the board online with
+  `"decode": "sw"` and `"fallback_active": false`. That reading is correct on
+  this board, not a degradation: it has no H.264 decoder, so software decode is
+  the primary path.
 
 ### Troubleshooting
 

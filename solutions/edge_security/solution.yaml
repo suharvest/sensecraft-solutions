@@ -84,10 +84,10 @@ intro:
 
   input_requirements:
     - type: rtsp
-      description: A fixed camera view of the area you want to protect. Boundaries are drawn as polygons and lines on that view, so the camera must not move once the rules are set.
+      description: A fixed H.264 camera view of the area you want to protect. H.264 is required by every preset — the Jetson and RK3588 decode it in hardware, the Hailo preset on the CPU. Boundaries are drawn as polygons and lines on that view, so the camera must not move once the rules are set.
       required: true
       description_i18n:
-        zh: 一个固定机位，覆盖需要防护的区域。边界是画在这个画面上的多边形和线段，规则设好之后摄像头不能再移动。
+        zh: 一个固定机位的 H.264 画面，覆盖需要防护的区域。三个套餐都要求 H.264——Jetson 与 RK3588 走硬解，Hailo 走 CPU 软解。边界是画在这个画面上的多边形和线段，规则设好之后摄像头不能再移动。
 
   device_catalog:
     recomputer_j30:
