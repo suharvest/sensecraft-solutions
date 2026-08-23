@@ -336,9 +336,16 @@ remote_overrides:
           while [ "$(date +%s)" -lt "$deadline" ]; do
             code=$(curl -s --max-time 4 -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
             if [ "$code" = "200" ]; then
-              echo "preview.jpg: HTTP 200, $(wc -c < /tmp/esk-prev.jpg) bytes"
-              ok=1
-              break
+              # Magic bytes, not just a 200: the guide promises a decodable
+              # JPEG, and an endpoint that answered with an error page or a
+              # truncated body would otherwise pass as proof of a frame.
+              magic=$(head -c 3 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
+              if [ "$magic" = "ffd8ff" ]; then
+                echo "preview.jpg: HTTP 200, JPEG, $(wc -c < /tmp/esk-prev.jpg) bytes"
+                ok=1
+                break
+              fi
+              echo "preview.jpg answered 200 but the body is not a JPEG (magic $magic)" >&2
             fi
             sleep 5
           done

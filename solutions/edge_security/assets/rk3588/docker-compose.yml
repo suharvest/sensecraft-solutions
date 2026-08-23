@@ -40,10 +40,15 @@ services:
   mosquitto:
     image: eclipse-mosquitto:2
     restart: unless-stopped
-    # Also published on the board's LAN address, so extra detectors can be
-    # pointed at this board later without changing this file.
+    # Bound to loopback, not 0.0.0.0. Nothing in this preset needs the port
+    # published: the detector and the hub reach the broker as `mosquitto` over
+    # the compose network. Publishing it on the LAN would expose an
+    # anonymous-accepting broker on the detection topics, where a forged
+    # message becomes a real-looking alert in the workbench. To point a second
+    # detector box at this one later, change this to "1883:1883" AND add a
+    # password_file to config/mosquitto.conf -- do not do only the first.
     ports:
-      - "1883:1883"
+      - "127.0.0.1:1883:1883"
     volumes:
       - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
       - ./mosquitto-data:/mosquitto/data
