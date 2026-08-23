@@ -358,9 +358,19 @@ remote_overrides:
             echo "detector is decoding and inferring"
             exit 0
           fi
-          echo "The detector is not producing frames." >&2
-          echo "A rising restart count with a healthy container means it is" >&2
-          echo "crash-looping past the health check. Last lines:" >&2
+          # Say which of the three checks failed. The negative control for this
+          # step showed the cost of not doing so: the container was simply
+          # stopped, and the message told the operator to look for a crash-loop.
+          if [ "$state" != "true/false" ]; then
+            echo "The detector container is not running (state $state)." >&2
+          elif [ "$r1" != "$r2" ]; then
+            echo "The detector is crash-looping: restart count rose $r1 -> $r2" >&2
+            echo "while the container kept reporting healthy — /healthz answers" >&2
+            echo "as soon as the preview server binds, before any inference." >&2
+          else
+            echo "The detector is running but produced no decodable frame." >&2
+          fi
+          echo "Last lines:" >&2
           docker logs --tail 25 edge_security_hailo-detector-1 2>&1 | sed 's/^/  /' >&2
           # The pipeline above exits 0 whatever it prints, which would hand the
           # engine a success for the exact case this step exists to catch.
