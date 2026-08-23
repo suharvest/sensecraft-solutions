@@ -20,9 +20,12 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration
+      description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration — Orin NX 16GB module
       description_i18n:
-        zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉
+        zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉——Orin NX 16GB 模组
+      purchase:
+        require:
+          module: [orin_nx_16]
     recomputer_r21_industrial_ai:
       description: Industrial Raspberry Pi 5 + Hailo-8 NPU for low-power vision inference
       description_i18n:
@@ -90,8 +93,6 @@ intro:
   stats:
     difficulty: intermediate
     estimated_time: 30min
-  links:
-    wiki: https://github.com/Seeed-Projects/reachy-claw
 
   summary_i18n:
     zh: "让桌面机器人成为语音伙伴——听、想、说、表达情绪，响应不到 1 秒。支持 Reachy Mini，三种部署方案：Jetson 一体化、R2000 + Hailo-8 NPU、或 CM4 无线版。"

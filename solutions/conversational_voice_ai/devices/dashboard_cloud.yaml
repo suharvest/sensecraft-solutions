@@ -1,0 +1,11 @@
+version: "1.0"
+id: dashboard_cloud
+name: Conversational Voice Dashboard
+type: web_dashboard
+inherit_host_from: deploy_cloud
+web_dashboard:
+  url: "http://{{deploy.host}}:18000"
+  title: Conversational Voice Dashboard
+  description: Watch dialogue state and verify that speaking during playback interrupts the current reply.
+name_i18n:
+  zh: 对话式语音面板

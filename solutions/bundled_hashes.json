@@ -1,6 +1,8 @@
 {
   "ai_lab": "sha256:462c5c8cb468186083d72f8d0314f12e96e93e8ef122b06ee649da93db6f1a60",
+  "conversational_voice_ai": "sha256:ac32ffabbc16c4eb7ec7574412329d25415faf8a47a97c822db130df3151073c",
   "depth_anything_v3": "sha256:73620e0f73b6f833b5310c7aac880f26f2c63ec43b10e6be32895d4b3c45f769",
+  "fall_detection": "sha256:3ccd63e0960db1a2d4bd5b81af96846283d4804ce0eb108028bc31694f9e96e3",
   "gpt_oss_20b": "sha256:10f52a76a3b36bc84599df9c4b27f6a7121eea09c9f65d9fc1c305acfff4572f",
   "gun_detection_frigate": "sha256:fbedbbf3bfdb17f33b9a2229ee8e3154dca30c233339449a9b875e7cb8b1bb41",
   "indoor_positioning_ble_lorawan": "sha256:3800f2c609b87436281b61bfa7320ec19e36dc6082cb1481ebfd3bb129b898d9",
@@ -16,8 +18,8 @@
   "sensecraft_data_mcp": "sha256:8df397401ab9509c46a494108ee61a19138e2dc03d8ab7f13750c4bceb9eefce",
   "smart_hvac_control": "sha256:d9d03077d5d29c8e510c639cca1f078905e483a58d46061a9c832df77eca9f98",
   "smart_retail_voice_ai": "sha256:1897bbfa0d2c347909d1b77f447a1a742d83f6e50b1272286670dadb0f860b66",
-  "smart_space_assistant": "sha256:3d2e74ebceb3859f65a9ed8e227d024197a0cda5c1fd2ec7f15932a1d2bb3879",
-  "smart_warehouse": "sha256:249594487e74d91ee0faa8112f7e58cba50d07e8a5af5e42fe0f7c2ad82279d0",
+  "smart_space_assistant": "sha256:9c3fabf881293555dd2c11c68ecfb468dbec168a107af31f1d345fcba07947ca",
+  "smart_warehouse": "sha256:60c2d753bf340e511f11f864b1c3fc3a03cbdbf9b3f13c2e612e5dd50f8c1fc7",
   "voice_rebot_arm": "sha256:12045e4460df153165f356349053720d2233abb5c88364921d3b11bda1b911e7",
   "voice_robot_lekiwi": "sha256:78fa297ca4f30c8c34ac1df0dacc0484db923544fbd13701402b658e6d1e7794",
   "z_image_turbo": "sha256:c0c68c388cea2a395943701b6622affe8a6d6b5dd36b86b722303bbb9a9709b2"

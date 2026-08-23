@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 3,
   "deployers": {
     "docker_deploy": {
       "category": "deploy",
@@ -80,6 +80,10 @@
         "nodered",
         "nodered.flow_file"
       ]
+    },
+    "recamera_pro_app": {
+      "category": "deploy",
+      "required": []
     },
     "robot_inspect": {
       "category": "verify",

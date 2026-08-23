@@ -35,7 +35,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 #### 后续步骤
 
-- [OpenClaw 文档](https://github.com/nicepkg/openclaw)
+- [OpenClaw 文档](https://github.com/openclaw/openclaw)
 - 在 设置 > 模型 中添加更多 AI 提供者
 - 连接更多消息平台
 
@@ -137,7 +137,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 #### 后续步骤
 
-- [OpenClaw 文档](https://github.com/nicepkg/openclaw)
+- [OpenClaw 文档](https://github.com/openclaw/openclaw)
 - 在 设置 > 模型 中添加更多 AI 提供者
 - 连接更多消息平台
 

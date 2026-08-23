@@ -517,6 +517,17 @@
         "zh-hans": "工业空气温湿度传感器（RS485）"
       }
     },
+    "industrial_do_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "Industrial Dissolved Oxygen Sensor (RS485)",
+        "ja": "産業用溶存酸素センサー（RS485）",
+        "zh-hans": "工业溶解氧传感器（RS485）"
+      }
+    },
     "industrial_ec_tds_sensor": {
       "axes": {
         "connector": {
@@ -539,6 +550,17 @@
         "en": "Industrial EC & TDS Sensor (RS485)",
         "ja": "産業用EC & TDSセンサー（RS485）",
         "zh-hans": "工业 EC & TDS 传感器（RS485）"
+      }
+    },
+    "industrial_h2s_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "Industrial H2S Sensor (RS485)",
+        "ja": "産業用H2Sセンサー（RS485）",
+        "zh-hans": "工业硫化氢传感器（RS485）"
       }
     },
     "industrial_leaf_wetness_sensor": {
@@ -587,6 +609,28 @@
         "en": "Industrial Light Intensity Sensor (RS485)",
         "ja": "産業用照度センサー（RS485）",
         "zh-hans": "工业光照强度传感器（RS485）"
+      }
+    },
+    "industrial_liquid_level_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "Industrial Liquid Level Sensor (RS485, submersible)",
+        "ja": "産業用液位センサー（RS485・投込式）",
+        "zh-hans": "工业液位传感器（RS485，投入式）"
+      }
+    },
+    "industrial_nh3_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "Industrial NH3 Sensor (RS485)",
+        "ja": "産業用NH3センサー（RS485）",
+        "zh-hans": "工业氨氮传感器（RS485）"
       }
     },
     "industrial_par_sensor": {
@@ -687,6 +731,17 @@
         "en": "Industrial Soil Moisture & Temperature & EC Sensor (RS485)",
         "ja": "産業用土壌水分・温度・ECセンサー（RS485）",
         "zh-hans": "工业土壤温湿度电导率传感器（RS485）"
+      }
+    },
+    "industrial_turbidity_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "Industrial Turbidity Sensor (RS485)",
+        "ja": "産業用濁度センサー（RS485）",
+        "zh-hans": "工业浊度传感器（RS485）"
       }
     },
     "lekiwi": {
@@ -910,6 +965,7 @@
           "type": "enum",
           "values": [
             "2002",
+            "2002_hq_poe",
             "2002w"
           ]
         },
@@ -922,6 +978,14 @@
         }
       },
       "sku_attrs": [
+        {
+          "model": "2002_hq_poe",
+          "storage": "emmc_64"
+        },
+        {
+          "model": "2002_hq_poe",
+          "storage": "emmc_8"
+        },
         {
           "model": "2002",
           "storage": "emmc_8"
@@ -943,30 +1007,6 @@
         "en": "reCamera 2002",
         "ja": "reCamera 2002",
         "zh-hans": "reCamera 2002"
-      }
-    },
-    "recamera_2002_hq_poe": {
-      "axes": {
-        "storage": {
-          "type": "enum",
-          "values": [
-            "emmc_64",
-            "emmc_8"
-          ]
-        }
-      },
-      "sku_attrs": [
-        {
-          "storage": "emmc_64"
-        },
-        {
-          "storage": "emmc_8"
-        }
-      ],
-      "title": {
-        "en": "reCamera 2002 HQ PoE",
-        "ja": "reCamera 2002 HQ PoE",
-        "zh-hans": "reCamera 2002 HQ PoE"
       }
     },
     "recamera_gimbal": {
@@ -993,6 +1033,17 @@
         "zh-hans": "reCamera Gimbal 2002w 云台"
       }
     },
+    "recamera_pro": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "reCamera Pro",
+        "ja": "reCamera Pro",
+        "zh-hans": "reCamera Pro"
+      }
+    },
     "recomputer_j20": {
       "axes": {
         "form": {
@@ -1008,24 +1059,35 @@
             "xavier_nx_16",
             "xavier_nx_8"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "included",
+            "included_no_cord"
+          ]
         }
       },
       "sku_attrs": [
         {
           "form": "classical",
-          "module": "xavier_nx_8"
+          "module": "xavier_nx_8",
+          "power_adapter": "included_no_cord"
         },
         {
           "form": "classical",
-          "module": "xavier_nx_16"
+          "module": "xavier_nx_16",
+          "power_adapter": "included"
         },
         {
           "form": "industrial",
-          "module": "xavier_nx_8"
+          "module": "xavier_nx_8",
+          "power_adapter": "included_no_cord"
         },
         {
           "form": "industrial",
-          "module": "xavier_nx_16"
+          "module": "xavier_nx_16",
+          "power_adapter": "included_no_cord"
         }
       ],
       "title": {
@@ -1060,53 +1122,75 @@
             "orin_nano_4",
             "orin_nano_8"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "included_no_cord",
+            "not_included"
+          ]
         }
       },
       "sku_attrs": [
         {
           "expansion": "gmsl",
           "form": "robotics",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "mini",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "classical",
-          "module": "orin_nano_4"
+          "module": "orin_nano_4",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "classical",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "included_no_cord"
+        },
+        {
+          "expansion": "none",
+          "form": "classical",
+          "module": "orin_nano_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "industrial",
-          "module": "orin_nano_4"
+          "module": "orin_nano_4",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "industrial",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "super",
-          "module": "orin_nano_4"
+          "module": "orin_nano_4",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "super",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "extension",
           "form": "mini",
-          "module": "orin_nano_8"
+          "module": "orin_nano_8",
+          "power_adapter": "not_included"
         }
       ],
       "title": {
@@ -1140,53 +1224,70 @@
             "orin_nx_16",
             "orin_nx_8"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "included",
+            "included_no_cord",
+            "not_included"
+          ]
         }
       },
       "sku_attrs": [
         {
           "expansion": "none",
           "form": "mini",
-          "module": "orin_nx_16"
+          "module": "orin_nx_16",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "classical",
-          "module": "orin_nx_8"
+          "module": "orin_nx_8",
+          "power_adapter": "included"
         },
         {
           "expansion": "none",
           "form": "classical",
-          "module": "orin_nx_16"
+          "module": "orin_nx_16",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "industrial",
-          "module": "orin_nx_8"
+          "module": "orin_nx_8",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "industrial",
-          "module": "orin_nx_16"
+          "module": "orin_nx_16",
+          "power_adapter": "included_no_cord"
         },
         {
           "expansion": "none",
           "form": "robotics",
-          "module": "orin_nx_8"
+          "module": "orin_nx_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "super",
-          "module": "orin_nx_8"
+          "module": "orin_nx_8",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "none",
           "form": "super",
-          "module": "orin_nx_16"
+          "module": "orin_nx_16",
+          "power_adapter": "not_included"
         },
         {
           "expansion": "extension",
           "form": "mini",
-          "module": "orin_nx_16"
+          "module": "orin_nx_16",
+          "power_adapter": "not_included"
         }
       ],
       "title": {
@@ -1210,24 +1311,34 @@
             "agx_orin_32",
             "agx_orin_64"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "not_included"
+          ]
         }
       },
       "sku_attrs": [
         {
           "form": "mini",
-          "module": "agx_orin_32"
+          "module": "agx_orin_32",
+          "power_adapter": "not_included"
         },
         {
           "form": "robotics",
-          "module": "agx_orin_64"
+          "module": "agx_orin_64",
+          "power_adapter": "not_included"
         },
         {
           "form": "robotics",
-          "module": "agx_orin_32"
+          "module": "agx_orin_32",
+          "power_adapter": "not_included"
         },
         {
           "form": "mini",
-          "module": "agx_orin_64"
+          "module": "agx_orin_64",
+          "power_adapter": "not_included"
         }
       ],
       "title": {
@@ -1238,6 +1349,12 @@
     },
     "recomputer_r10": {
       "axes": {
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "not_included"
+          ]
+        },
         "ram_gb": {
           "type": "number",
           "values": [
@@ -1257,18 +1374,22 @@
       },
       "sku_attrs": [
         {
+          "power_adapter": "not_included",
           "ram_gb": 4,
           "storage": "emmc_32"
         },
         {
+          "power_adapter": "not_included",
           "ram_gb": 4,
           "storage": "emmc_16"
         },
         {
+          "power_adapter": "not_included",
           "ram_gb": 2,
           "storage": "emmc_8"
         },
         {
+          "power_adapter": "not_included",
           "ram_gb": 8,
           "storage": "emmc_32"
         }
@@ -1281,6 +1402,12 @@
     },
     "recomputer_r11": {
       "axes": {
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "not_included"
+          ]
+        },
         "ram_gb": {
           "type": "number",
           "values": [
@@ -1299,14 +1426,17 @@
       },
       "sku_attrs": [
         {
+          "power_adapter": "not_included",
           "ram_gb": 4,
           "storage": "emmc_32"
         },
         {
+          "power_adapter": "not_included",
           "ram_gb": 4,
           "storage": "emmc_16"
         },
         {
+          "power_adapter": "not_included",
           "ram_gb": 2,
           "storage": "emmc_8"
         }
@@ -1560,6 +1690,17 @@
         "zh-hans": "reComputer RK3588 系列"
       }
     },
+    "recomputer_thor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "NVIDIA Jetson AGX Thor Developer Kit",
+        "ja": "NVIDIA Jetson AGX Thor 開発者キット",
+        "zh-hans": "NVIDIA Jetson AGX Thor 开发者套件"
+      }
+    },
     "rerouter_cm4": {
       "axes": {
         "ram_gb": {
@@ -1594,26 +1735,47 @@
             "orin_nx_16",
             "orin_nx_8"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "included_no_cord"
+          ]
         }
       },
       "sku_attrs": [
         {
-          "jetson_module": "orin_nx_16"
+          "jetson_module": "orin_nx_16",
+          "power_adapter": "included_no_cord"
         },
         {
-          "jetson_module": "orin_nx_8"
+          "jetson_module": "orin_nx_8",
+          "power_adapter": "included_no_cord"
         },
         {
-          "jetson_module": "orin_nano_8"
+          "jetson_module": "orin_nano_8",
+          "power_adapter": "included_no_cord"
         },
         {
-          "jetson_module": "orin_nano_4"
+          "jetson_module": "orin_nano_4",
+          "power_adapter": "included_no_cord"
         }
       ],
       "title": {
         "en": "reServer Industrial NVR Series",
         "ja": "reServer Industrial NVRシリーズ",
         "zh-hans": "reServer Industrial NVR 系列"
+      }
+    },
+    "reserver_j501_carrier": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "reServer Industrial J501 Carrier Board (Jetson AGX Orin)",
+        "ja": "reServer Industrial J501キャリアボード（Jetson AGX Orin）",
+        "zh-hans": "reServer Industrial J501 载板（Jetson AGX Orin）"
       }
     },
     "respeaker_2mics_pi_hat": {
@@ -1829,20 +1991,29 @@
             "cm4104032",
             "cm4108032"
           ]
+        },
+        "power_adapter": {
+          "type": "enum",
+          "values": [
+            "not_included"
+          ]
         }
       },
       "sku_attrs": [
         {
           "camera_poe": "none",
-          "cm4_module": "cm4108032"
+          "cm4_module": "cm4108032",
+          "power_adapter": "not_included"
         },
         {
           "camera_poe": "included",
-          "cm4_module": "cm4108032"
+          "cm4_module": "cm4108032",
+          "power_adapter": "not_included"
         },
         {
           "camera_poe": "none",
-          "cm4_module": "cm4104032"
+          "cm4_module": "cm4104032",
+          "power_adapter": "not_included"
         }
       ],
       "title": {
@@ -1907,6 +2078,28 @@
         "zh-hans": "RS485 超声波液位传感器"
       }
     },
+    "sensecap_bc03_beacon": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "SenseCAP BC03 Indoor Bluetooth Beacon",
+        "ja": "SenseCAP BC03屋内Bluetoothビーコン",
+        "zh-hans": "SenseCAP BC03 室内蓝牙信标"
+      }
+    },
+    "sensecap_co2_rs485_sensor": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "SenseCAP CO2, Temperature & Humidity Sensor (RS485/SDI-12)",
+        "ja": "SenseCAP CO2・温湿度センサー（RS485/SDI-12）",
+        "zh-hans": "SenseCAP CO2 温湿度传感器（RS485/SDI-12）"
+      }
+    },
     "sensecap_combo_4g": {
       "axes": {},
       "sku_attrs": [
@@ -1916,6 +2109,34 @@
         "en": "SenseCAP Combo 5-in-1 Sensor with 4G",
         "ja": "SenseCAP Combo 5-in-1 4Gセンサー",
         "zh-hans": "SenseCAP Combo 5 合 1 4G 传感器"
+      }
+    },
+    "sensecap_compact_weather": {
+      "axes": {
+        "model": {
+          "type": "enum",
+          "values": [
+            "s1000_v2",
+            "s500",
+            "s800"
+          ]
+        }
+      },
+      "sku_attrs": [
+        {
+          "model": "s500"
+        },
+        {
+          "model": "s800"
+        },
+        {
+          "model": "s1000_v2"
+        }
+      ],
+      "title": {
+        "en": "SenseCAP Compact Weather Station Series",
+        "ja": "SenseCAPコンパクト気象ステーションシリーズ",
+        "zh-hans": "SenseCAP 紧凑型气象站系列"
       }
     },
     "sensecap_indicator": {
@@ -2036,6 +2257,17 @@
         "en": "SenseCAP LoRaWAN Outdoor Gateway",
         "ja": "SenseCAP LoRaWAN 屋外ゲートウェイ",
         "zh-hans": "SenseCAP LoRaWAN 户外网关"
+      }
+    },
+    "sensecap_s200_wind": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "SenseCAP S200 Wind Speed & Direction Sensor",
+        "ja": "SenseCAP S200風速・風向センサー",
+        "zh-hans": "SenseCAP S200 风速风向传感器"
       }
     },
     "sensecap_s2100_data_logger": {
@@ -3301,6 +3533,6 @@
       }
     }
   },
-  "family_count": 106,
+  "family_count": 117,
   "schema_version": 1
 }

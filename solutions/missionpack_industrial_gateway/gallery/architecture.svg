@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Industrial multi-protocol data hub architecture</title>
+  <desc id="desc">OPC UA, Modbus, BACnet IP, and MQTT sources enter one point model with a unified MQTT read and control interface.</desc>
+  <rect width="1280" height="720" fill="#f6f7f4"/>
+  <text x="64" y="72" fill="#20231f" font-family="Arial, sans-serif" font-size="34" font-weight="700">Many field protocols in. One data model and interface out.</text>
+  <text x="64" y="108" fill="#697069" font-family="Arial, sans-serif" font-size="18">Discovery where available · manual configuration always available · writes require confirmation</text>
+
+  <g font-family="Arial, sans-serif">
+    <g transform="translate(64 166)">
+      <rect width="250" height="82" rx="12" fill="#ffffff" stroke="#d9ddd5"/>
+      <circle cx="32" cy="41" r="12" fill="#8cc800"/>
+      <text x="58" y="36" fill="#20231f" font-size="20" font-weight="700">OPC UA</text>
+      <text x="58" y="60" fill="#697069" font-size="15">Browse + manual points</text>
+    </g>
+    <g transform="translate(64 266)">
+      <rect width="250" height="82" rx="12" fill="#ffffff" stroke="#d9ddd5"/>
+      <circle cx="32" cy="41" r="12" fill="#8cc800"/>
+      <text x="58" y="36" fill="#20231f" font-size="20" font-weight="700">Modbus TCP / RTU</text>
+      <text x="58" y="60" fill="#697069" font-size="15">Unit scan + manual map</text>
+    </g>
+    <g transform="translate(64 366)">
+      <rect width="250" height="82" rx="12" fill="#ffffff" stroke="#d9ddd5"/>
+      <circle cx="32" cy="41" r="12" fill="#8cc800"/>
+      <text x="58" y="36" fill="#20231f" font-size="20" font-weight="700">BACnet/IP</text>
+      <text x="58" y="60" fill="#697069" font-size="15">Who-Is + manual objects</text>
+    </g>
+    <g transform="translate(64 466)">
+      <rect width="250" height="82" rx="12" fill="#ffffff" stroke="#d9ddd5"/>
+      <circle cx="32" cy="41" r="12" fill="#8cc800"/>
+      <text x="58" y="36" fill="#20231f" font-size="20" font-weight="700">MQTT source</text>
+      <text x="58" y="60" fill="#697069" font-size="15">Topic observation + mapping</text>
+    </g>
+
+    <path d="M334 207 H430 M334 307 H430 M334 407 H430 M334 507 H430" stroke="#a8aea5" stroke-width="3"/>
+    <path d="M416 195 L432 207 L416 219 M416 295 L432 307 L416 319 M416 395 L432 407 L416 419 M416 495 L432 507 L416 519" fill="none" stroke="#a8aea5" stroke-width="3"/>
+
+    <g transform="translate(450 180)">
+      <rect width="380" height="350" rx="20" fill="#20231f"/>
+      <rect x="24" y="24" width="54" height="54" rx="14" fill="#8cc800"/>
+      <text x="51" y="61" text-anchor="middle" fill="#20231f" font-size="24" font-weight="700">M</text>
+      <text x="96" y="52" fill="#ffffff" font-size="25" font-weight="700">Protocol Integration Hub</text>
+      <text x="96" y="75" fill="#b8beb5" font-size="15">Powered by MissionPack</text>
+      <line x1="24" y1="102" x2="356" y2="102" stroke="#464b45"/>
+      <text x="36" y="145" fill="#ffffff" font-size="18" font-weight="700">1  Source &amp; host management</text>
+      <text x="36" y="187" fill="#ffffff" font-size="18" font-weight="700">2  Durable point registry</text>
+      <text x="36" y="229" fill="#ffffff" font-size="18" font-weight="700">3  Safety-gated control + receipts</text>
+      <text x="36" y="271" fill="#ffffff" font-size="18" font-weight="700">4  Plugin-declared workflows</text>
+      <rect x="24" y="300" width="332" height="28" rx="14" fill="#343a32"/>
+      <rect x="24" y="300" width="238" height="28" rx="14" fill="#8cc800"/>
+      <text x="190" y="320" text-anchor="middle" fill="#20231f" font-size="13" font-weight="700">reComputer R · reTerminal DM</text>
+    </g>
+
+    <path d="M850 275 H946 M850 435 H946" stroke="#a8aea5" stroke-width="3"/>
+    <path d="M932 263 L948 275 L932 287 M932 423 L948 435 L932 447" fill="none" stroke="#a8aea5" stroke-width="3"/>
+
+    <g transform="translate(966 218)">
+      <rect width="250" height="114" rx="14" fill="#ffffff" stroke="#d9ddd5"/>
+      <text x="24" y="40" fill="#20231f" font-size="21" font-weight="700">Web console</text>
+      <text x="24" y="70" fill="#697069" font-size="15">Hosts · points · receipts</text>
+      <text x="24" y="92" fill="#697069" font-size="15">Prediction as a plugin</text>
+    </g>
+    <g transform="translate(966 378)">
+      <rect width="250" height="114" rx="14" fill="#ffffff" stroke="#d9ddd5"/>
+      <text x="24" y="40" fill="#20231f" font-size="21" font-weight="700">Unified MQTT data</text>
+      <text x="24" y="70" fill="#697069" font-size="15">Points · presence</text>
+      <text x="24" y="92" fill="#697069" font-size="15">Commands · receipts</text>
+    </g>
+  </g>
+
+  <rect x="64" y="624" width="1152" height="48" rx="12" fill="#eef5df" stroke="#d7e6b7"/>
+  <text x="640" y="655" text-anchor="middle" fill="#4d5d2b" font-family="Arial, sans-serif" font-size="16" font-weight="700">One versioned contract for point data · presence · commands · receipts</text>
+</svg>

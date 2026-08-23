@@ -53,9 +53,12 @@ intro:
       description_i18n:
         zh: 边缘网关，运行仓库管理系统
     recomputer_r21_industrial:
-      description: Edge gateway, runs warehouse system + voice AI service, supports face recognition
+      description: Edge gateway, runs warehouse system + voice AI service, face recognition needs the Hailo-8 accelerator
       description_i18n:
-        zh: 边缘网关，运行仓管系统 + 语音 AI 服务，支持人脸识别
+        zh: 边缘网关，运行仓管系统 + 语音 AI 服务，人脸识别需要 Hailo-8 加速卡
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
     recomputer_j40:
       description: AI compute unit, supports multi-channel concurrent voice processing
       description_i18n:

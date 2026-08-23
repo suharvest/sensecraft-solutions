@@ -1,0 +1,88 @@
+version: "1.0"
+id: gateway
+name: Deploy Industrial Multi-Protocol Data Hub
+name_i18n:
+  zh: 部署工业多协议数据中枢
+type: docker_deploy
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  environment:
+    MISSIONPACK_HTTP_PORT: "{{http_port}}"
+    MISSIONPACK_MQTT_PORT: "{{mqtt_port}}"
+    TZ: "{{timezone}}"
+  options:
+    project_name: missionpack_industrial_gateway
+    remove_orphans: true
+    build: false
+  services:
+    - name: gateway
+      port: 8280
+      health_check_endpoint: /readyz
+      required: true
+
+user_inputs:
+  - id: http_port
+    name: Web Console Port
+    name_i18n:
+      zh: 管理界面端口
+    type: text
+    default: "8280"
+    description: Host port used to open the multi-protocol data hub console
+    description_i18n:
+      zh: 用于打开多协议数据中枢管理界面的主机端口
+    required: true
+    row: 1
+  - id: mqtt_port
+    name: MQTT Service Port
+    name_i18n:
+      zh: MQTT 数据服务端口
+    type: text
+    default: "1883"
+    description: Host port reserved for the optional embedded MQTT broker
+    description_i18n:
+      zh: 为可选内置 MQTT Broker 预留的主机端口
+    required: true
+    row: 1
+  - id: timezone
+    name: Time Zone
+    name_i18n:
+      zh: 时区
+    type: text
+    default: Asia/Shanghai
+    required: true
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.10"
+    description: Docker Engine 20.10 or newer
+  - type: disk_space
+    min_gb: 4
+    description: At least 4 GB free for the image and persistent data
+
+post_deployment:
+  open_browser: true
+  url: "http://localhost:{{http_port}}"
+  verify_service: true
+  wait_for_ready: 30
+
+remote_overrides:
+  compose_file: assets/docker/docker-compose.host.yml
+  remote_path: /opt/missionpack-industrial-gateway
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:{{http_port}}"
+    verify_service: true
+    wait_for_ready: 30

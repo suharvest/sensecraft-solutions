@@ -22,7 +22,16 @@ intro:
       caption_i18n:
         zh: Node-RED 控制面板界面
   category: sensing
-  solution_type: solution
+  solution_type: technical
+  output_interfaces:
+    - type: http
+      port: 1880
+      endpoint: /dashboard/preview
+      method: GET
+      description: Node-RED dashboard showing live parking slot status — green for free, red for occupied
+      schema_type: html
+      description_i18n:
+        zh: Node-RED 看板页，实时显示车位状态——绿色为空闲，红色为占用
 
 
   tags:

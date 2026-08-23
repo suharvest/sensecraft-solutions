@@ -1893,6 +1893,65 @@
       "title": "PreCheck",
       "type": "object"
     },
+    "PreconditionProbe": {
+      "description": "A probe asserting the deployment has *already* been applied.\n\nDeliberately the INVERSE of :class:`DeviceDetectionProbe`:\n\n* ``DeviceDetectionProbe``: exit 0 = \"right hardware, keep going\";\n  non-zero aborts the deployment as a failure.\n* ``PreconditionProbe``: exit 0 = \"already satisfied, this step has\n  nothing left to do\"; non-zero simply means \"not satisfied, run the\n  deployment normally\". A failing precondition is never an error.\n\nMotivating case: a reCamera solution whose only job is to bump the\non-device console/supervisor to 0.5.5. If the device already runs\n0.5.5, ``opkg install --force-reinstall`` would burn minutes and\nchurn the device for no change. A precondition probe such as::\n\n    preconditions:\n      - command: \"opkg list-installed | grep -q 'supervisor - 0.5.5'\"\n        description: \"Supervisor already at 0.5.5\"\n        satisfied_message: \"Supervisor is already 0.5.5, nothing to do.\"\n        satisfied_message_i18n:\n          zh: \"Supervisor 已是 0.5.5，无需重复安装。\"\n\nshort-circuits the whole deployment into ``skipped``.\n\nAll probes must exit 0 for the deployment to count as satisfied (AND\nsemantics), matching how ``device_detection`` treats its list.\n\nToday only ``type: shell`` is supported; the schema stays\ndiscriminated so ``http`` / ``file_exists`` variants can be added\nwithout breaking existing solutions.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "satisfied_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Satisfied Message"
+        },
+        "satisfied_message_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Satisfied Message I18N",
+          "type": "object"
+        },
+        "type": {
+          "default": "shell",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "PreconditionProbe",
+      "type": "object"
+    },
     "PreviewBehaviorConfig": {
       "description": "Behavior configuration for preview interactions",
       "properties": {
@@ -1922,28 +1981,6 @@
       "title": "PreviewBehaviorConfig",
       "type": "object"
     },
-    "PreviewDisplayConfig": {
-      "description": "Display configuration for preview",
-      "properties": {
-        "aspect_ratio": {
-          "default": "16:9",
-          "title": "Aspect Ratio",
-          "type": "string"
-        },
-        "auto_start": {
-          "default": false,
-          "title": "Auto Start",
-          "type": "boolean"
-        },
-        "show_stats": {
-          "default": true,
-          "title": "Show Stats",
-          "type": "boolean"
-        }
-      },
-      "title": "PreviewDisplayConfig",
-      "type": "object"
-    },
     "PreviewDataConfig": {
       "description": "HTTP polling data source for preview overlays",
       "properties": {
@@ -1966,6 +2003,28 @@
         }
       },
       "title": "PreviewDataConfig",
+      "type": "object"
+    },
+    "PreviewDisplayConfig": {
+      "description": "Display configuration for preview",
+      "properties": {
+        "aspect_ratio": {
+          "default": "16:9",
+          "title": "Aspect Ratio",
+          "type": "string"
+        },
+        "auto_start": {
+          "default": false,
+          "title": "Auto Start",
+          "type": "boolean"
+        },
+        "show_stats": {
+          "default": true,
+          "title": "Show Stats",
+          "type": "boolean"
+        }
+      },
+      "title": "PreviewDisplayConfig",
       "type": "object"
     },
     "PreviewMqttConfig": {
@@ -2154,6 +2213,45 @@
         }
       },
       "title": "PreviewVideoConfig",
+      "type": "object"
+    },
+    "RecameraProAppConfig": {
+      "description": "Configuration for the ``recamera_pro_app`` deployer.\n\nThe App Center on reCamera Pro is a single-active supervisor: appmgr runs\nexactly one app at a time. This deployer therefore configures an app that\nis already installed on the device and makes it the active one; it does not\nupload or install packages, because installation requires a release-signed\narchive produced by a private packaging chain.",
+      "properties": {
+        "activation_timeout": {
+          "default": 60,
+          "title": "Activation Timeout",
+          "type": "integer"
+        },
+        "app_id": {
+          "title": "App Id",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Config",
+          "type": "object"
+        },
+        "config_when": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Config When",
+          "type": "array"
+        },
+        "require_installed": {
+          "default": true,
+          "title": "Require Installed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "app_id"
+      ],
+      "title": "RecameraProAppConfig",
       "type": "object"
     },
     "RobotInspectConfig": {
@@ -3092,7 +3190,7 @@
       "type": "object"
     }
   },
-  "contract_version": 1,
+  "contract_version": 3,
   "description": "Complete device configuration",
   "properties": {
     "actions": {
@@ -3150,6 +3248,20 @@
         }
       ],
       "default": null
+    },
+    "deploy_timeout": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum wall-clock seconds for this device's entire deployment. None (the default) means unlimited.",
+      "title": "Deploy Timeout"
     },
     "detection": {
       "anyOf": [
@@ -3382,6 +3494,25 @@
       },
       "title": "Pre Checks",
       "type": "array"
+    },
+    "preconditions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PreconditionProbe"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "recamera_pro_app": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecameraProAppConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "robot_inspect": {
       "anyOf": [

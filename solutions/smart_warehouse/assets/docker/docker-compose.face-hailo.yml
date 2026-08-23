@@ -19,6 +19,11 @@ services:
       - FACE_WE2_SIMULATOR_ENABLED=1
     volumes:
       - warehouse_data:/data
+      # 客户通过智控台上传的 ERP Provider（.py）落在这里。必须是卷 ——
+      # 镜像不含它（.dockerignore 排除了 mcp/providers/custom/**），不挂卷
+      # 就只能活在容器可写层，`docker compose up -d` 换镜像即丢失，系统会
+      # 静默回退到 DefaultProvider（本地演示数据），查询看着能跑但全是假数据。
+      - warehouse_providers:/app/mcp/providers/custom
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2125/health', timeout=5)"]
       interval: 30s
@@ -51,6 +56,8 @@ services:
 
 volumes:
   warehouse_data:
+    driver: local
+  warehouse_providers:
     driver: local
   face_rec_data:
     driver: local

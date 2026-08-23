@@ -70,7 +70,7 @@ intro:
     estimated_time: 10min
 
   links:
-    github: https://github.com/Seeed-Projects/frigate-on-jetson
+    github: https://github.com/Seeed-Studio/frigate-on-jetson
 
   summary_i18n:
     zh: 使用 Frigate NVR 在边缘设备上实时检测枪支，支持多种 AI 加速硬件

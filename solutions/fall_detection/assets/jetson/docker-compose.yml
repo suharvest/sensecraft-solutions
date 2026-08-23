@@ -1,0 +1,72 @@
+# Jetson Orin fall detection.
+#
+# The image carries no CUDA, TensorRT, OpenCV or GStreamer of its own — L4T
+# r36.x userspace is Ubuntu 22.04, so a plain Ubuntu base is ABI-compatible with
+# the host's stack and the host libraries stay authoritative. That keeps the
+# image at ~138 MB instead of several GB.
+#
+# Host libraries are exposed under private paths (/host-lib, /host-opencv,
+# /host-python) and reached through LD_LIBRARY_PATH / PYTHONPATH. They are
+# deliberately NOT mounted over the container's own /usr/lib/aarch64-linux-gnu:
+# doing that hides the image's own libraries and numpy fails to import with
+# "libblas.so.3: cannot open shared object file".
+services:
+  fall-detection:
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-jetson:0.1.0-rc2
+    command: ["--config", "/app/config/config.json"]
+    restart: unless-stopped
+    runtime: nvidia
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+      # cv2 comes from the host (JetPack ships OpenCV 4.8.0 built with
+      # GStreamer/RTSP support); the image has no opencv of its own.
+      PYTHONPATH: /host-python
+      # rtspsrc / appsink / nvv4l2decoder live under /host-lib, not the
+      # container's default plugin directory.
+      GST_PLUGIN_PATH: /host-lib/gstreamer-1.0
+      GST_PLUGIN_SYSTEM_PATH: /host-lib/gstreamer-1.0
+      GST_PLUGIN_SCANNER: /host-lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+      GST_REGISTRY: /tmp/gstreamer-1.0-registry.bin
+      LD_LIBRARY_PATH: /usr/local/cuda/lib64:/host-nvidia:/host-trt:/host-opencv:/host-lib:/host-lib/nvidia
+    # No blanket `devices: - /dev:/dev` — runc refuses to recreate /dev/pts
+    # inodes ("create device inode /dev/pts/0: permission denied") and the
+    # nvidia runtime already injects the GPU device nodes. Add individual
+    # /dev/video* entries only for USB/CSI camera input.
+    volumes:
+      # Engine and config stay outside the image so the engine can be built for
+      # this exact GPU architecture + TensorRT version.
+      - ./config/config.json:/app/config/config.json:ro
+      - ./models:/models:ro
+      # Host TensorRT is authoritative — a base image with a different TRT
+      # minor version must not override it.
+      - /usr/lib/aarch64-linux-gnu/libnvinfer.so.10:/host-trt/libnvinfer.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvinfer_plugin.so.10:/host-trt/libnvinfer_plugin.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvonnxparser.so.10:/host-trt/libnvonnxparser.so.10:ro
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia:ro
+      # JetPack installs OpenCV into /usr/lib (top level), not the multiarch
+      # dir; exposed privately so it cannot shadow the container's own /usr/lib.
+      - /usr/lib:/host-opencv:ro
+      - /usr/lib/python3.10/dist-packages:/host-python:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/app.py && test -s /app/libjetson_fall_trt.so"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # JetPack ships no MQTT broker, so the stack brings its own. Results are
+  # published here; point Home Assistant or your alerting system at port 1883.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro

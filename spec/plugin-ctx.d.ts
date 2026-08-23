@@ -1,5 +1,5 @@
 // Plugin host context — TypeScript declarations.
-// contract_version: 1
+// contract_version: 3
 //
 // Shape of the `ctx` object passed to a plugin's exported `activate(ctx)`.
 // Source of truth: frontend/src/modules/plugin-loader.js (~:84-97).

@@ -1,0 +1,74 @@
+# Rockchip RK3576 / RK3588 fall detection.
+#
+# One runtime image serves both boards — only the .rknn pose model differs, and
+# that is downloaded per board at deploy time. The image carries NumPy and
+# headless OpenCV but no Torch, Ultralytics, ONNX Runtime or RKNN Toolkit.
+#
+# RKNN Lite and librknnrt are bind-mounted from the host on purpose: the user
+# library has to match the kernel NPU driver, so the host copy stays
+# authoritative rather than a version baked into the image.
+services:
+  fall-detection:
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-rknn:0.1.0-rc5
+    command: ["app.py", "--config", "/config/config.json"]
+    restart: unless-stopped
+    network_mode: host
+    privileged: true
+    depends_on:
+      - mosquitto
+    devices:
+      - "/dev/dri:/dev/dri"
+    environment:
+      # Only the RKNN Lite packages are exposed, never the board's whole
+      # site-packages. Two failure modes are being avoided here:
+      #   - mounting onto the container's site-packages (what upstream does):
+      #     Rockchip ships rknn_toolkit_lite2 as a wheel, so on many images it
+      #     lives in a venv rather than /usr/lib/python3/dist-packages. Docker
+      #     creates the missing source path as an EMPTY directory, mounts that
+      #     over site-packages, and the container crash-loops.
+      #   - putting the host's entire dist-packages on PYTHONPATH: it takes
+      #     precedence over site-packages, so Debian's numpy shadows the image's
+      #     and fails on a libblas the image does not carry.
+      # The deploy step copies just the needed packages into ./rknnsite.
+      # Appended, not replaced: the image sets PYTHONPATH=/usr/lib/python3/dist-packages
+      # because its interpreter lives in /usr/local while apt-installed modules land in
+      # dist-packages. Overriding the variable outright hid every one of them, including
+      # PyGObject, which silently dropped the hardware decode path to CPU ffmpeg.
+      PYTHONPATH: /host-pysite:/usr/lib/python3/dist-packages
+      # The Rockchip MPP decoder and RGA scaler are vendor plugins staged from the
+      # board (see the deploy step). Without them the RTSP path silently falls back
+      # to CPU ffmpeg decode.
+      GST_PLUGIN_PATH: /host-gst
+      LD_LIBRARY_PATH: /host-gst
+    volumes:
+      - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro
+      - ./rknnsite:/host-pysite:ro
+      - ./gstmpp:/host-gst:ro
+      - ./config:/config:ro
+      - ./models:/models:ro
+    # GStreamer caches its plugin scan in /root/.cache. A container that first
+    # started before the MPP plugin was staged keeps that stale registry across
+    # restarts and never sees the plugin, silently staying on CPU decode. A
+    # tmpfs makes the scan fresh on every start.
+    tmpfs:
+      - /root/.cache
+    healthcheck:
+      # Importing rknnlite is the check that matters. The previous test only
+      # confirmed the config and model files existed, which stayed true while
+      # the app crash-looped on a failed import — the stack reported healthy
+      # and published nothing.
+      test: ["CMD-SHELL", "python3 -c 'import rknnlite.api' && test -r /config/config.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # These boards ship no MQTT broker, so the stack brings one. Point Home
+  # Assistant or your alerting system at port 1883.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro

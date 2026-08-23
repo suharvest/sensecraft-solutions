@@ -24,9 +24,12 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      description: NVIDIA Jetson edge AI computer for local LLM serving
+      description: NVIDIA Jetson edge AI computer for local LLM serving — the 20B model needs the Orin NX 16GB module
       description_i18n:
-        zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理
+        zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理——20B 模型需要 Orin NX 16GB 模组
+      purchase:
+        require:
+          module: [orin_nx_16]
   presets:
     - id: jetson_got_oss
       name: Jetson GPT OSS 20B Service

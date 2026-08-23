@@ -86,7 +86,7 @@ intro:
     likes_count: 0
 
   links:
-    github: https://github.com/suharvest/z-image-turbo-jetson-trt
+    github: https://github.com/suharvest/z-image-turbo-tensorrt-jetson
 
   summary_i18n:
     zh: 在 Jetson Orin NX 上本地运行 Z-Image-Turbo（6B）——通过 HTTP API 实现文生图和图生图，完全离线。

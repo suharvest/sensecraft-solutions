@@ -1,0 +1,68 @@
+services:
+  volume-init:
+    image: sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.6.7
+    user: "0:0"
+    network_mode: none
+    read_only: true
+    command:
+      - sh
+      - -c
+      - >-
+        if [ ! -f /var/lib/missionpack/.volume-owner-v1 ] ||
+          [ "$(stat -c '%u:%g:%a' /var/lib/missionpack)" != "10001:10001:700" ] ||
+          [ "$(stat -c '%u:%g:%a' /var/log/missionpack)" != "10001:10001:750" ]; then
+          chown -R 10001:10001 /var/lib/missionpack /var/log/missionpack &&
+          chmod 0700 /var/lib/missionpack &&
+          chmod 0750 /var/log/missionpack &&
+          touch /var/lib/missionpack/.volume-owner-v1 &&
+          chown 10001:10001 /var/lib/missionpack/.volume-owner-v1;
+        fi
+    volumes:
+      - missionpack_data:/var/lib/missionpack
+      - missionpack_logs:/var/log/missionpack
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+
+  gateway:
+    image: sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.6.7
+    container_name: missionpack-industrial-gateway
+    restart: unless-stopped
+    stop_grace_period: 30s
+    ports:
+      - "${MISSIONPACK_HTTP_PORT:-8280}:8280"
+      - "${MISSIONPACK_MQTT_PORT:-1883}:1883"
+    environment:
+      TZ: "${TZ:-Asia/Shanghai}"
+      LOG_DIR: /var/log/missionpack
+      LOG_MAX_BYTES: "10485760"
+      LOG_BACKUP_COUNT: "4"
+    volumes:
+      - missionpack_data:/var/lib/missionpack
+      - missionpack_logs:/var/log/missionpack
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8280/readyz', timeout=3).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  missionpack_data:
+  missionpack_logs:

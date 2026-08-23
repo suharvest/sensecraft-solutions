@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from solutionctl.commands import validate
+from sensecraft_solution_spec.markdown_parser import parse_single_language_guide
 
 # Repo root: packages/solutionctl/tests/test_validate.py -> up 3 levels.
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -201,6 +202,65 @@ def test_validate_direction_word_target_name_fails(tmp_path, capsys):
     err = capsys.readouterr().err
     assert "bare direction word" in err
     assert "'Local'" in err
+
+
+def _multi_target_guide(targets: str) -> str:
+    return (
+        "## Preset: Demo {#default}\n\n"
+        "## Step 1: Verify {#check type=web_dashboard required=true}\n\n"
+        "Open the dashboard.\n\n"
+        "## Step 2: Deploy {#deploy type=docker_deploy required=true}\n\n"
+        "Deploy the service.\n\n"
+        f"{targets}"
+    )
+
+
+def test_validate_rejects_multi_remote_targets_without_device_grouping(tmp_path, capsys):
+    """Three remote cards must not silently bypass the device dropdown contract."""
+    base = tmp_path / "ungrouped_targets"
+    guide = _multi_target_guide(
+        "### Target {#rk3576 type=remote}\n\nRK3576.\n\n"
+        "### Target {#rk3588 type=remote}\n\nRK3588.\n\n"
+        "### Target {#jetson type=remote}\n\nJetson.\n"
+    )
+    _write_solution(base, guide)
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "omit `device=`" in err
+    assert "one method card with a device dropdown" in err
+
+
+def test_validate_rejects_duplicate_device_group(tmp_path, capsys):
+    """Two targets sharing one device id would make an ambiguous dropdown."""
+    base = tmp_path / "duplicate_device_targets"
+    guide = _multi_target_guide(
+        "### Target {#first type=remote device=rk3576}\n\nFirst.\n\n"
+        "### Target {#second type=remote device=rk3576}\n\nSecond.\n"
+    )
+    _write_solution(base, guide)
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "duplicate device groups" in err
+    assert "'rk3576'" in err
+
+
+def test_device_aware_grouping_accepts_local_remote_dropdown_shape():
+    """The intended Local + Remote-with-device-options shape remains valid."""
+    guide = _multi_target_guide(
+        "### Target {#local type=local device=jetson}\n\nLocal.\n\n"
+        "### Target {#rk3576 type=remote device=rk3576}\n\nRK3576.\n\n"
+        "### Target {#jetson type=remote device=jetson}\n\nJetson.\n"
+    )
+    result = parse_single_language_guide(guide, "en")
+
+    assert result.errors == []
+    assert validate._check_device_aware_target_grouping(result, "guide.md", "en") == []
 
 
 def test_validate_en_zh_mismatch_fails(tmp_path, capsys):

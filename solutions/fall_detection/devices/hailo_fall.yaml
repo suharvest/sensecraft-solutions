@@ -1,0 +1,213 @@
+version: "1.0"
+id: hailo_fall
+name: reComputer R with Hailo-8
+type: docker_deploy
+device_class: hailo
+
+docker:
+  compose_file: assets/hailo/docker-compose.yml
+  compose_dir: assets/hailo
+  options:
+    project_name: fall_detection_hailo
+    remove_orphans: true
+  services:
+    - name: fall-detection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 4
+    description: Runtime image and the pose HEF live on the device
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# HEF 从 Hailo Model Zoo 下载，整轮通常在几分钟内完成。
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reComputer R（Hailo-8）
+
+remote_overrides:
+  remote_path: /home/{{username}}/fall-detection-hailo
+  compose_dir: assets/hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Hailo runtime
+        run: |
+          set -e
+          if [ ! -c /dev/hailo0 ]; then
+            echo "No /dev/hailo0 — the Hailo accelerator is not present or its driver is not loaded" >&2
+            exit 1
+          fi
+          # The compose file pins libhailort.so.4.21.0. Plugin, user library and
+          # driver have to move together, so a different minor version needs all
+          # three changed rather than just this mount.
+          if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+            echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+            echo "Installed HailoRT:" >&2
+            ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+            exit 1
+          fi
+          if [ ! -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so ]; then
+            echo "libgsthailo.so not found — install the HailoRT GStreamer plugin." >&2
+            exit 1
+          fi
+          command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+          echo "Hailo runtime OK"
+        name_i18n:
+          zh: 校验 Hailo 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    after_upload:
+      - name: Fetch the pose model
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-hailo/hailo_fall"
+          MODELS_DIR="$WORKDIR/models"
+          # Official Hailo Model Zoo v2.15 build for Hailo-8, pinned by digest.
+          URL=https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8s_pose.hef
+          SHA=e19856699ed47cf866d23265827f960b263f287dab5e54e82c7ce37e12525a2d
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$MODELS_DIR/yolov8s_pose.hef" ] && \
+             echo "$SHA  $MODELS_DIR/yolov8s_pose.hef" | sha256sum -c - >/dev/null 2>&1; then
+            echo "HEF already present"
+            exit 0
+          fi
+          curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/yolov8s_pose.hef.part" "$URL"
+          echo "$SHA  $MODELS_DIR/yolov8s_pose.hef.part" | sha256sum -c -
+          mv -f "$MODELS_DIR/yolov8s_pose.hef.part" "$MODELS_DIR/yolov8s_pose.hef"
+          ls -l "$MODELS_DIR/yolov8s_pose.hef"
+        name_i18n:
+          zh: 获取姿态模型
+
+      - name: Write the camera and MQTT configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-hailo/hailo_fall"
+          # This runtime is configured through the environment rather than a
+          # config file, so the values go into the compose .env.
+          cat > "$WORKDIR/.env" <<EOF
+          STREAMS={{stream_id}}|{{rtsp_url}}
+          MQTT_HOST=127.0.0.1
+          MQTT_PORT=1883
+          MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
+          EOF
+          echo "wrote $WORKDIR/.env:"
+          sed 's/:[^@/]*@/:****@/' "$WORKDIR/.env"
+        name_i18n:
+          zh: 写入摄像头与 MQTT 配置
+
+    after:
+      - name: Wait for the detector to publish
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the first results ..."
+          for i in $(seq 1 30); do
+            if docker logs fall_detection_hailo-fall-detection-1 2>&1 | grep -qiE "rtsp|stream|publish|hailo"; then
+              docker logs --tail 20 fall_detection_hailo-fall-detection-1 2>&1 || true
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "No output yet — check the camera URL and the container logs." >&2
+        name_i18n:
+          zh: 等待检测器输出
+
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      description: "Depends on the image — commonly pi, recomputer or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "取决于系统镜像，常见的是 pi、recomputer 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "cam-01"
+      required: true
+      description: Appended to the MQTT topic so several cameras stay separable
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题后面，用于区分多路摄像头

@@ -1,11 +1,11 @@
-<!-- contract_version: 1 -->
+<!-- contract_version: 3 -->
 # SenseCraft Solution Contract
 
 > **GENERATED FILE — mechanical sections only.** Regenerate with
 > `uv run python scripts/export_spec.py`. The drift guard is
 > `tests/unit/test_contract_freeze.py`.
 >
-> `contract_version: 1`. Tables below are rendered from the
+> `contract_version: 3`. Tables below are rendered from the
 > committed `spec/*.json` artifacts. The "Derived rules" prose sections are
 > **human-authored** and preserved across regenerations (they live between
 > `<!-- AUTHORED:<key> BEGIN/END -->` sentinels) — the generator never
@@ -63,6 +63,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `nodered` | NodeRedConfig \| null | no | None |  |
 | `binary` | BinaryConfig \| null | no | None |  |
 | `ha_integration` | HAIntegrationConfig \| null | no | None |  |
+| `recamera_pro_app` | RecameraProAppConfig \| null | no | None |  |
 | `video` | PreviewVideoConfig \| null | no | None |  |
 | `mqtt` | PreviewMqttConfig \| null | no | None |  |
 | `data` | PreviewDataConfig \| null | no | None |  |
@@ -85,10 +86,12 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `influxdb` | object \| null | no | None |  |
 | `user_inputs` | array<UserInputConfig> | no | [] |  |
 | `device_detection` | array<DeviceDetectionProbe> | no | [] |  |
+| `preconditions` | array<PreconditionProbe> | no | [] |  |
 | `pre_checks` | array<PreCheck> | no | [] |  |
 | `steps` | array<DeploymentStep> | no | [] |  |
 | `post_deployment` | PostDeploymentConfig | no |  |  |
 | `network_region` | string | no | auto |  |
+| `deploy_timeout` | integer \| null | no | None | Maximum wall-clock seconds for this device's entire deployment. None (the default) means unlimited. |
 | `base_path` | string \| null | no | None |  |
 
 ## Deployer capabilities
@@ -109,6 +112,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `preview` | _(none)_ |
 | `recamera_cpp` | `binary` |
 | `recamera_nodered` | `nodered`, `nodered.flow_file` |
+| `recamera_pro_app` | _(none)_ |
 | `robot_inspect` | _(none)_ |
 | `script` | `script` |
 | `serial_camera` | _(none)_ |
@@ -262,6 +266,13 @@ body and associated with the enclosing Step:
   `parse_targets()` (`:949-982`), which merges EN/ZH by target id. Each target's
   attributes (`config`, `default`, `device`, `device_name`, `type`) come from
   the same `parse_step_attributes()` (`:909`, `:935-943`).
+
+  For `docker_deploy`, if a method (`local` or `remote`) has more than one
+  target variant, every target in that method MUST declare a unique `device=`
+  value. The frontend uses this marker to render one card per method and a
+  device-model dropdown inside the card. Omitting it falls back to a flat
+  target list (for example, three hardware targets become three cards), so
+  `solutionctl validate` rejects incomplete or duplicate device groups.
 - **Mode**: `### Mode: Name {#id ...}` (EN) / `### 模式: 名称 {#id ...}` (ZH)
   (`MODE_HEADER_PATTERN`, `:289-293`; parsed at `:985-1012`). Mode parsing stops
   when a Target header is reached (`:996-997`), so Modes belong to the Step body
