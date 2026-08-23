@@ -115,7 +115,10 @@ intro:
       purchase:
         require:
           ai_accelerator: [hailo-8]
-    raspberry_pi5_hailo:
+    # external_ prefix: not a Seeed catalogue product, so it is declared
+    # local-only and carries no purchase constraints. It is here because it is
+    # the board the measurements were taken on.
+    external_raspberry_pi5_hailo:
       name: Raspberry Pi 5 + Hailo-8
       name_i18n:
         zh: Raspberry Pi 5 + Hailo-8
@@ -280,13 +283,13 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: raspberry_pi5_hailo
+            - device_ref: external_raspberry_pi5_hailo
             - device_ref: recomputer_r20_industrial
           # Defaults to the board the numbers were taken on. The R20 carries
           # the same accelerator and is the sellable option, but nothing has
           # been run on one, and defaulting to it would let the preset's
           # verified badge read as covering it.
-          default: raspberry_pi5_hailo
+          default: external_raspberry_pi5_hailo
         - id: camera
           name: IP Camera
           name_i18n:
