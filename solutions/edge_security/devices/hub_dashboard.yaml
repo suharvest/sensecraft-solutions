@@ -1,0 +1,38 @@
+version: "1.0"
+id: hub_dashboard
+name: Open the Alert Workbench
+name_i18n:
+  zh: 打开告警工作台
+type: web_dashboard
+
+inherit_host_from: deploy_edge_security_hub_only
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8090"
+  open_in: browser
+  title: Edge Security Workbench
+  title_i18n:
+    zh: 边缘安防工作台
+  description: >-
+    The hub generates a random password on first start. The deploy step above
+    prints it, but some CLI output modes truncate action output — if you did not
+    see it, read it off the device with
+    `docker exec edge_security_hub-hub-1 cat /data/initial-password.txt`
+    (line 1 username, line 2 password). The hub forces a change on
+    first login. The
+    Devices page is empty — that is expected, since this machine has no
+    detector of its own. The deploy step prints the broker address and the one
+    line to change; set `mqtt_host` to it in each detector's detector.yaml and
+    restart that detector. The detectors do not have to match each other: a
+    TensorRT Jetson and an RKNN RK3588 were verified reporting into one device
+    list, one alert list and one preview proxy on this preset.
+  description_i18n:
+    zh: >-
+      hub 首次启动会生成随机密码。上面的部署步骤会打印出来，但部分 CLI 输出模式会截断
+      动作输出——没看到的话，在设备上执行
+      `docker exec edge_security_hub-hub-1 cat /data/initial-password.txt`
+      取回（第一行用户名，第二行密码）。首次登录后 hub 会强制改密。设备页是空的——这台机器本身不带检测
+      器，属正常状态。部署步骤会打印 broker 地址与需要改的那一行：把每台检测器
+      detector.yaml 里的 `mqtt_host` 改成该地址并重启该检测器即可。各检测器不必是同一
+      平台——TensorRT 的 Jetson 与 RKNN 的 RK3588 已实测汇入同一份设备列表、同一份告警
+      列表和同一个预览代理。

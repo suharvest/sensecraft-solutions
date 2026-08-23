@@ -1,0 +1,26 @@
+# Placeholder. The deploy step overwrites this file with your camera URL and
+# device name before the container starts. The broker runs in this same stack,
+# so mqtt_host is the compose service name rather than another machine.
+device_id: rk3588-01
+stream_id: cam-0
+source: rtsp://127.0.0.1:8554/stream
+rtsp_transport: tcp
+rtsp_codec: h264
+rtsp_latency_ms: 100
+decode_primary: hw
+require_hw_decode: true
+model: /app/models/yolov8n_zoo_int8.rk3588.rknn
+input_size: 640
+conf_threshold: 0.35
+iou_threshold: 0.45
+npu_core_mask: null
+track_iou_threshold: 0.2
+track_max_lost_s: 0.75
+mqtt_host: mosquitto
+mqtt_port: 1883
+topic_prefix: sensecraft/security
+status_interval_s: 30
+preview_enabled: true
+preview_bind: 0.0.0.0
+preview_port: 8099
+preview_advertise_host: ""

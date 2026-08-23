@@ -1,0 +1,90 @@
+# Single-box form on an RK3588 board: broker, hub and the NPU detector all on
+# the same board. Inference on the NPU, decode on the Rockchip MPP hardware
+# decoder.
+#
+# Measured on RK3588 with the int8 model at 1280x720 H.264: in-pipeline
+# inference p50 41.9 ms, NPU core0 8% busy, 21% of one CPU core, decode hw.
+# The hub decodes nothing and runs no inference — measured at 3.7% of one CPU
+# core and 52.8 MB RSS on this board while it also ran the detector — so it sits next to the
+# detector on this board instead of asking for a second machine.
+#
+# Two host-supplied pieces are staged next to this file by the deploy step
+# rather than baked into the image, because both must match the board:
+#   rknnsite/ - the board's rknn_toolkit_lite2, which has to match the kernel
+#               NPU driver
+#   gstmpp/   - the board's GStreamer MPP plugin and its libraries
+services:
+  hub:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/data
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      # Empty on purpose: the hub then generates a random password, writes it to
+      # /data/initial-password.txt (line 1 username, line 2 password) and logs it,
+      # with must_change=1
+      # and prints the credential to its own log. Set it to skip that.
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    # Bound to loopback, not 0.0.0.0. Nothing in this preset needs the port
+    # published: the detector and the hub reach the broker as `mosquitto` over
+    # the compose network. Publishing it on the LAN would expose an
+    # anonymous-accepting broker on the detection topics, where a forged
+    # message becomes a real-looking alert in the workbench. To point a second
+    # detector box at this one later, change this to "1883:1883" AND add a
+    # password_file to config/mosquitto.conf -- do not do only the first.
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/data
+
+  detector:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-rk3588:0.1.0
+    command: ["--config", "/app/config/detector.yaml"]
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    ports:
+      - "8099:8099"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /rknnsite:/app
+      GST_PLUGIN_PATH: /gstmpp
+      LD_LIBRARY_PATH: /gstmpp:/usr/lib
+    # rknnlite's container check reads /proc/device-tree/compatible, which is a
+    # symlink into /sys/firmware/devicetree/base. Docker masks that path by
+    # default, and it cannot be bind-mounted back in: you cannot mount into
+    # procfs, and a sysfs bind lands under the masking tmpfs. Without this the
+    # RKNN runtime fails at init_runtime even though the model and the library
+    # both load. Verified on RK3588: with it, the path is readable.
+    security_opt:
+      - systempaths=unconfined
+    devices:
+      # Hardware decoder, 2D scaler and the DRM node. Without these the MPP
+      # branch cannot open and the detector refuses to start on CPU decode
+      # (require_hw_decode: true).
+      - /dev/mpp_service:/dev/mpp_service
+      - /dev/rga:/dev/rga
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+    volumes:
+      - ./config/detector.yaml:/app/config/detector.yaml:ro
+      - ./rknnsite:/rknnsite:ro
+      - ./gstmpp:/gstmpp:ro
+      # The user-space RKNN library must be the board's own copy.
+      - /usr/lib/librknnrt.so:/usr/lib/librknnrt.so:ro

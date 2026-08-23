@@ -1,0 +1,113 @@
+# Single-box form on a Jetson Orin: broker, hub and the TensorRT detector all on
+# the same machine. Inference on the GPU through TensorRT, video decode on
+# NVDEC.
+#
+# Measured on an Orin NX 16GB, JetPack 6.1 (L4T R36.4.3), TensorRT 10.3.0,
+# against a 1280x720 H.264 stream: in-pipeline inference p50 4.13 ms, full
+# pipeline p50 7.24 ms, 8.5-12.5% of one CPU core, decode hw (NVDEC).
+# The hub decodes nothing and runs no inference - measured at 3.7% of one CPU
+# core and 52.8 MB RSS on an RK3588 board that also ran a detector; no separate
+# figure was taken on the Jetson - so it sits next to the
+# detector instead of asking for a second machine.
+#
+# Two things are supplied by the board rather than by the detector image:
+#
+#   runtime: nvidia   The container runtime's CSV mode bind-mounts the board's
+#                     own driver stack in: libcuda and the
+#                     /usr/lib/aarch64-linux-gnu/nvidia tree, the L4T GStreamer
+#                     plugins libgstnvvideo4linux2.so (nvv4l2decoder) and
+#                     libgstnvvidconv.so, and the device nodes the decoder needs
+#                     (/dev/v4l2-nvdec, /dev/nvmap, /dev/nvhost-*). There is
+#                     deliberately no `devices:` block below - a blanket
+#                     /dev:/dev is refused by runc, and listing the nodes by
+#                     hand would duplicate what the runtime already does.
+#
+#   ./models          The TensorRT engine, built on THIS machine by the deploy
+#                     step. A serialized engine is valid only for the exact
+#                     TensorRT version and GPU architecture that built it;
+#                     shipping one in the image would make
+#                     deserialize_cuda_engine return None with no other
+#                     diagnostic. Budget about 5 minutes for the first deploy
+#                     (307 s measured on an Orin NX 16GB).
+#
+# The remaining host pieces - TensorRT itself and its Python bindings - are
+# mounted at PRIVATE paths (/host-trt, /host-python) and reached through
+# LD_LIBRARY_PATH / PYTHONPATH. They must not be mounted over the container's
+# own /usr/lib/aarch64-linux-gnu or /usr/lib/python3.10/dist-packages: that
+# hides the image's own libraries, and the first symptom is numpy failing to
+# import with "libblas.so.3: cannot open shared object file".
+services:
+  hub:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-hub:0.1.0
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    volumes:
+      - ./data:/data
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      # Empty on purpose: the hub then generates a random password, writes it to
+      # /data/initial-password.txt (line 1 username, line 2 password) with
+      # must_change=1, and prints the credential to its own log. Set it to skip
+      # that.
+      HUB_ADMIN_PASSWORD: ${HUB_ADMIN_PASSWORD:-}
+    depends_on:
+      - mosquitto
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8090/api/health', timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    # Bound to loopback, not 0.0.0.0. Nothing in this preset needs the port
+    # published: the detector and the hub reach the broker as `mosquitto` over
+    # the compose network. Publishing it on the LAN would expose an
+    # anonymous-accepting broker on the detection topics, where a forged
+    # message becomes a real-looking alert in the workbench. To point a second
+    # detector box at this one later, change this to "1883:1883" AND add a
+    # password_file to config/mosquitto.conf -- do not do only the first.
+    ports:
+      - "127.0.0.1:1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto-data:/mosquitto/data
+
+  detector:
+    image: sensecraft-missionpack.seeed.cn/solution/edge-security-detector-jetson:0.1.0
+    command: ["--config", "/app/config/detector.yaml"]
+    restart: unless-stopped
+    runtime: nvidia
+    depends_on:
+      - mosquitto
+    ports:
+      # Latest decoded frame as JPEG, and the still-refresh live page. The hub
+      # fetches the JPEG for the rule-drawing canvas backdrop.
+      - "8099:8099"
+    environment:
+      PYTHONUNBUFFERED: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      # `video` is what pulls the NVDEC userspace in; without it the decoder
+      # plugin is injected but the hardware path cannot open.
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      # Only the board's tensorrt package. Putting the whole host
+      # dist-packages here would shadow the image's numpy and cv2.
+      PYTHONPATH: /host-python
+      LD_LIBRARY_PATH: /usr/local/cuda/lib64:/host-trt
+    volumes:
+      - ./config/detector.yaml:/app/config/detector.yaml:ro
+      # Engine built on this device by the deploy step.
+      - ./models:/models:ro
+      # Host TensorRT is authoritative - it has to match the driver, and the
+      # Python bindings have to match it in turn. Bind-mounted per file so a
+      # board without one of them fails loudly instead of getting an empty
+      # directory created at the mount point.
+      - /usr/lib/aarch64-linux-gnu/libnvinfer.so.10:/host-trt/libnvinfer.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvinfer_plugin.so.10:/host-trt/libnvinfer_plugin.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvonnxparser.so.10:/host-trt/libnvonnxparser.so.10:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/host-python/tensorrt:ro
+      # libcudart.so.12, which cuda-python dlopens.
+      - /usr/local/cuda:/usr/local/cuda:ro

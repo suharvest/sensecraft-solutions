@@ -1,0 +1,178 @@
+version: "1.0"
+id: hub_stack
+name: Aggregation Hub
+name_i18n:
+  zh: 汇聚 Hub
+type: docker_deploy
+
+docker:
+  compose_file: assets/hub/docker-compose.yml
+  compose_dir: assets/hub
+  options:
+    project_name: edge_security_hub
+    remove_orphans: true
+  services:
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: hub
+      port: 8090
+      required: true
+
+ssh:
+  port: 22
+  default_user: ubuntu
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 900
+
+pre_checks:
+  - type: disk_space
+    min_gb: 3
+    description: Hub image, the alert database and the snapshot directory live on this machine
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-security-hub
+  compose_dir: assets/hub
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Ensure docker compose command
+        name_i18n:
+          zh: 确保 docker compose 可用
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2 || apt-get install -y docker-compose
+          docker compose version
+
+      - name: Check ports 8090 and 1883 are free
+        name_i18n:
+          zh: 检查 8090 与 1883 端口是否空闲
+        ignore_error: true
+        run: |
+          # A redeploy sees its own containers holding the ports, so only complain
+          # about a listener that is not part of this stack.
+          mine=$(docker ps --filter "label=com.docker.compose.project=edge_security_hub" -q 2>/dev/null | wc -l)
+          for p in 8090 1883; do
+            if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
+              if [ "$mine" -gt 0 ]; then
+                echo "Port $p is held by this stack's own containers; redeploy will replace them."
+              else
+                echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+              fi
+            fi
+          done
+          echo "port check done"
+
+    after_upload:
+      - name: Prepare the data directories
+        name_i18n:
+          zh: 准备数据目录
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security-hub/hub_stack"
+          mkdir -p "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+          # The alert database, the snapshot files and the rule configuration
+          # all live in ./data. Back that directory up, not the container.
+          ls -ld "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+
+    after:
+      - name: Wait for the hub to answer
+        name_i18n:
+          zh: 等待 hub 响应
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the hub API ..."
+          # Deadline-driven rather than a fixed iteration count: without
+          # --max-time a stalled connection makes each pass take as long as
+          # curl's own default, and the loop then overruns the step timeout and
+          # is killed mid-way instead of reporting anything useful.
+          deadline=$(( $(date +%s) + 150 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            if curl -fsS --max-time 4 "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+              curl -sS --max-time 4 "http://127.0.0.1:8090/api/health"
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Hub did not answer on 8090 — check: docker compose logs hub" >&2
+
+      - name: Report the admin credential
+        name_i18n:
+          zh: 输出管理员登录信息
+        ignore_error: true
+        timeout: 60
+        run: |
+          docker exec edge_security_hub-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_hub-hub-1 2>&1 | grep -iE "password" | tail -3 || true
+
+      - name: Print how to point detectors at this hub
+        name_i18n:
+          zh: 输出检测器接入方式
+        ignore_error: true
+        timeout: 60
+        run: |
+          # This preset only installs the hub. Nothing here reaches the detector
+          # machines, so the operator has to repoint each one by hand - print
+          # exactly what to change rather than leaving them to work it out.
+          # The address the operator typed comes first: it is the one they
+          # already reached this machine on, so detectors can reach it too. The
+          # default-route source is only a fallback, and on a box with several
+          # interfaces it can name one the cameras' network cannot see.
+          ip="{{host}}"
+          [ -n "$ip" ] || ip=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
+          echo "-------------------------------------------------------------"
+          echo "Broker for detectors:  ${ip}:1883"
+          echo "On EACH detector machine, set mqtt_host in its detector.yaml:"
+          echo "    mqtt_host: ${ip}"
+          echo "then restart that detector, e.g.:"
+          echo "    docker compose -p <its project> up -d detector"
+          echo "Detectors may be any mix of platforms; they appear on the"
+          echo "Devices page within a few seconds of reconnecting."
+          echo "-------------------------------------------------------------"
+
+  user_inputs:
+    - id: host
+      name: Hub Host IP
+      name_i18n:
+        zh: Hub 主机 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: Detectors will be pointed at this address on port 1883
+      description_i18n:
+        zh: 检测器将连到这个地址的 1883 端口
+    - id: username
+      name: SSH Username
+      name_i18n:
+        zh: SSH 用户名
+      type: text
+      default: ubuntu
+      required: true
+    - id: password
+      name: SSH Password
+      name_i18n:
+        zh: SSH 密码
+      type: password
+      required: true

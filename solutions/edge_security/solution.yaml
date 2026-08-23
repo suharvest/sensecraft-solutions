@@ -1,0 +1,348 @@
+version: "1.0"
+id: edge_security
+# Successor to `industrial_security_jetson`. This package now covers the
+# TensorRT capability that was the older solution's only remaining advantage,
+# measured on an Orin NX 16GB. The older package stays published until this one
+# ships; retiring it is a separate release action.
+replaces: industrial_security_jetson
+name: Industrial Security (Multi-Platform Edge)
+name_i18n:
+  zh: 工业安防（多平台边缘部署）
+
+intro:
+  summary: Restricted-zone, line-crossing and loitering alerts from an RTSP camera, judged on the edge box itself and worked through in a browser. Jetson and RK3588 presets each run the whole stack on one machine.
+  summary_i18n:
+    zh: 一路 RTSP 摄像头，判出禁区入侵、越线和滞留告警，在浏览器里逐条处理。判定就在边缘盒子上完成，Jetson 与 RK3588 套餐各自一台机器跑完整套。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover-corridor.jpg
+  gallery:
+    - type: image
+      src: gallery/cover-corridor.jpg
+      caption: One frame from the detector running on an RK3588 board. Four people are tracked; three stand inside the red restricted zone at the corridor end, one walks toward the camera across the amber tripwire, whose arrow points the direction the rule counts as forward. The overlay reads the board's own numbers - yolov8n int8 on the NPU, decode on the Rockchip hardware decoder, 13.3 fps, 35.7 ms per inference.
+      caption_i18n:
+        zh: RK3588 板卡上运行的检测器取下的一帧。四个人被跟踪，其中三人站在走廊尽头的红色禁区里，一人正朝镜头方向走过琥珀色越线；箭头指向规则判为 forward 的方向。角标数值取自板卡自己的上报——yolov8n int8 跑在 NPU 上，解码走 Rockchip 硬解，13.3 fps，单次推理 35.7 ms。
+    - type: image
+      src: gallery/workbench-alert.gif
+      caption: The workbench while an RK3588 board keeps reporting. Line-crossing alerts from rk3588-01/cam-0 drop in at the top of the list, each carrying the corridor frame the detector captured at that moment, and clicking Acknowledge turns the row green with the operator name and time while the pending count drops and the acknowledged count rises.
+      caption_i18n:
+        zh: RK3588 板卡持续上报时的告警工作台。rk3588-01/cam-0 的越线告警落到列表顶部，每条都带着检测器当时截下的走廊画面；点「确认」后该条变绿并记下处置人和时间，待处理计数减少、已确认计数增加。
+    - type: image
+      src: gallery/rules-editor-live.gif
+      caption: Drawing rules on the camera's own frame, proxied by the hub from the RK3588 detector's preview endpoint — four clicks close a second zone over the near corridor, two clicks lay a second line across the corridor mouth, its direction is switched from both ways to forward, and Save turns the header into "Persisted 15:37:03 · rev 2".
+      caption_i18n:
+        zh: 在摄像头自己的画面上画规则，底图由 hub 从 RK3588 检测器的预览接口代理而来——四次点击围出近处走廊的第二个区域，两次点击在走廊口拉出第二条线，方向从双向改为 forward，保存后标题变成「Persisted 15:37:03 · rev 2」。
+    - type: image
+      src: gallery/architecture-diagram.png
+      caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
+      caption_i18n:
+        zh: 探测层通过 MQTT 上报，hub 判定规则并提供工作台
+  category: sensing
+  solution_type: solution
+  tags:
+    - security
+    - industrial-security
+    - intrusion-detection
+    - person-detection
+    - mqtt
+    - rk3588
+    - jetson
+    - tensorrt
+    - hailo
+
+  output_interfaces:
+    - type: http
+      port: 8090
+      endpoint: /
+      description: Alert workbench and its REST API — alert list, disposition, rule editing, CSV export. Cookie session auth on everything except /api/health and the login route.
+      schema_type: json
+      description_i18n:
+        zh: 告警工作台及其 REST 接口——告警列表、处置、规则编辑、CSV 导出。除 /api/health 和登录接口外全部走 cookie 会话鉴权。
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/detections/<stream_id>
+      description: Per-frame person detections from a detector — boxes normalized against the original frame, each with a track id
+      schema_type: json
+      payload_example: '{"schema":"sensecraft.detection/1","device_id":"rk3588-01","stream_id":"cam-0","coordinate_space":"frame_norm","objects":[{"track_id":7,"label":"person","score":0.92,"bbox":[0.41,0.55,0.09,0.28]}]}'
+      description_i18n:
+        zh: 检测器发出的逐帧人体检测——检测框按原始画面归一化，每个目标带跟踪编号
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/status
+      description: Retained availability and health — online / offline via last will, plus which decoder the detector actually got
+      schema_type: json
+      description_i18n:
+        zh: retained 的在线与健康状态——通过遗嘱消息发 online / offline，并报告实际拿到的解码器
+    - type: mqtt
+      port: 1883
+      topic: sensecraft/security/<device_id>/events/<stream_id>
+      description: The hub's own verdicts, republished so an NVR, PLC or alerting system can subscribe instead of polling the API. In the single-box presets the broker is bound to loopback; reaching it from another machine means republishing the port and adding a password file, both.
+      schema_type: json
+      description_i18n:
+        zh: hub 判定后回发的告警事件，NVR、PLC 或其他告警系统可以直接订阅，不必轮询接口。单机套餐里 broker 绑在 loopback 上；要从别的机器连，需要同时改端口映射和加密码文件，两步都做。
+
+  input_requirements:
+    - type: rtsp
+      description: A fixed H.264 camera view of the area you want to protect. H.264 is required by every preset — the Jetson and RK3588 decode it in hardware, the Hailo preset on the CPU. Boundaries are drawn as polygons and lines on that view, so the camera must not move once the rules are set.
+      required: true
+      description_i18n:
+        zh: 一个固定机位的 H.264 画面，覆盖需要防护的区域。三个套餐都要求 H.264——Jetson 与 RK3588 走硬解，Hailo 走 CPU 软解。边界是画在这个画面上的多边形和线段，规则设好之后摄像头不能再移动。
+
+  device_catalog:
+    recomputer_j30:
+      description: Runs broker, hub and the TensorRT detector on one box (Orin Nano 8GB)
+      description_i18n:
+        zh: 一台机器同时跑 broker、hub 和 TensorRT 检测器（Orin Nano 8GB）
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Same single-box role on the module the measurements were taken on (Orin NX 16GB)
+      description_i18n:
+        zh: 同样的单机角色，实测数据就是在这块模组上取得的（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_rk3588:
+      description: Runs broker, hub and the NPU detector on one board — inference on the NPU, video decode on the board's hardware decoder
+      description_i18n:
+        zh: 一块板卡同时跑 broker、hub 和 NPU 检测器——推理走 NPU，视频解码走板载硬解
+    recomputer_r20_industrial:
+      description: Runs broker, hub and the Hailo-8 detector on one box — inference on the accelerator, video decode on the CPU
+      description_i18n:
+        zh: 一台设备同时跑 broker、hub 和 Hailo-8 检测器——推理走加速器，视频解码走 CPU
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    # external_ prefix: not a Seeed catalogue product, so it is declared
+    # local-only and carries no purchase constraints. It is here because it is
+    # the board the measurements were taken on.
+    external_raspberry_pi5_hailo:
+      name: Raspberry Pi 5 + Hailo-8
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8
+      description: A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. This is the board the measurements below were taken on
+      description_i18n:
+        zh: 装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。下面的实测数据就是在这块板卡上取得的
+    generic_arm64_host:
+      name: Generic Docker Host
+      name_i18n:
+        zh: 通用 Docker 主机
+      description: Any always-on arm64 or x86_64 machine with Docker. Used only by the optional Shared Hub expansion, where it runs the broker and the hub and carries no detector of its own
+      description_i18n:
+        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器。仅用于可选的「共享 Hub」扩展场景，只跑 broker 和 hub，本机不带检测器
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera you already own, supplying the video a detector watches
+      description_i18n:
+        zh: 你已有的任意 RTSP 摄像头，为检测器提供视频
+
+  presets:
+    - id: jetson_hub
+      name: Jetson Single Box
+      name_i18n:
+        zh: Jetson 单机部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: "One Jetson runs everything — broker, hub and a TensorRT detector for one camera, with video decode on NVDEC. Measured on an Orin NX 16GB at 1280x720: 4.13 ms per inference, 8.5-12.5% of one CPU core."
+      description_i18n:
+        zh: "一台 Jetson 跑完整套——broker、hub，以及推理走 TensorRT、解码走 NVDEC 的一路摄像头检测器。Orin NX 16GB、1280x720 实测：单次推理 4.13 ms，CPU 占单核 8.5-12.5%。"
+      architecture_image: gallery/architecture.svg
+      # Jetson-only by construction: the detector loads a TensorRT engine built
+      # on the target device and decodes on NVDEC. There is no CPU fallback —
+      # require_hw_decode is on, so a non-Jetson host fails the before-checks
+      # rather than running slowly.
+      #
+      # Hardware-verified, containerised deployment included: this preset's own
+      # compose file, images and staging steps were deployed on a Jetson Orin NX
+      # 16GB (JetPack 6.1, L4T R36.4.3, TensorRT 10.3.0) against a live 1280x720
+      # H.264 stream. The engine was built on the device by the deploy step in
+      # 361 s. All three services came up healthy with no restarts; the detector
+      # decoded through nvv4l2decoder with /dev/v4l2-nvdec and /dev/nvmap open
+      # in the container process and NVMM provenance in the negotiated caps, and
+      # published inference_time_ms 4.13 at 5 fps. The hub on the same box listed
+      # the detector online with decode "hw", stored 32 alerts across zone_enter,
+      # line_cross (4 forward, 4 backward) and loitering with a snapshot on every
+      # one, and proxied a 16.5 KB JPEG preview.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Jetson
+          name_i18n:
+            zh: Jetson 主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+          default: recomputer_j40
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: rk3588
+      name: RK3588 Single Box
+      name_i18n:
+        zh: RK3588 单机部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One RK3588 board runs everything — broker, hub and a detector with NPU inference and hardware video decode. The hub costs 3.7% of one CPU core and 52.8 MB RSS on this board while it also runs the detector, so one board carries both.
+      description_i18n:
+        zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 在同时跑检测的这块板卡上占单核 3.7%、RSS 52.8 MB，一块板带得动两者。
+      architecture_image: gallery/architecture.svg
+      # Hardware-verified, containerised deployment included: this preset's own
+      # compose file, images and staging steps were deployed on a radxa RK3588
+      # board (radxa,rock-5t, kernel 6.1.84) against a live 1280x720 H.264
+      # stream with the int8 model. All three services came up healthy with no
+      # restarts; the detector reached init_runtime on librknnrt 2.3.2 and
+      # decoded through mppvideodec, with the container process holding
+      # /dev/mpp_service, /dev/rga and CMA dma-heap buffers and running
+      # mpp_dec_parser/mpp_dec_hal threads. The hub on the same board listed the
+      # detector online with decode "hw", stored zone alerts with snapshots, and
+      # proxied a 640x360 JPEG preview.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Board
+          name_i18n:
+            zh: 板卡
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hailo
+      name: Hailo Single Box
+      name_i18n:
+        zh: Hailo 单机部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: "One board with a Hailo-8 runs everything — broker, hub and the detector. Measured on a Raspberry Pi 5 + Hailo-8 at 1280x720: 7.7 ms per inference, 9.5 ms for the full pipeline, 8.7-13.0% of one CPU core. Video decode is on the CPU: this board has no H.264 decoder, so that CPU figure covers decode as well as inference."
+      description_i18n:
+        zh: "一块带 Hailo-8 的板卡跑完整套——broker、hub 和检测器。Raspberry Pi 5 + Hailo-8、1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU：该板卡没有 H.264 硬解，所以这个 CPU 数字里同时含解码和推理。"
+      architecture_image: gallery/architecture.svg
+      verified:
+        - hardware
+      # Hardware-verified, containerised deployment included: deployed by
+      # this preset's own steps through the provisioning engine onto a
+      # Raspberry Pi 5 + Hailo-8 (HailoRT 4.21.0, driver 4.21.0) that was
+      # already running ten unrelated containers, against a live 1280x720
+      # H.264 stream. All thirteen engine steps plus every custom action
+      # completed; the detector container reached RestartCount 0 and served
+      # /preview.jpg as a 1280x720 JPEG. The hub on the same board listed
+      # hailo-01 online with decode "sw" and fallback_active false, stored six
+      # alerts across zone_enter and loitering -- every one simulated: false
+      # with snapshot_state "received" and a decodable 1280x720 JPEG -- and
+      # reported schema_failures 0, handler_errors 0 and 641 accepted
+      # sensecraft.detection/1 messages.
+      #
+      # Verified on a Raspberry Pi 5 + Hailo-8. Nothing has been run on a
+      # reComputer R20; it is offered as the sellable board with the same
+      # accelerator, not as a measured configuration.
+      #
+      # Two board facts the deploy steps encode, both found the hard way:
+      #   * HailoRT hands a VDevice to ONE process at a time unless every
+      #     consumer goes through the multi-process service, which is off by
+      #     default. `hailortcli fw-control identify` does NOT detect this --
+      #     it opens a control handle and succeeds against a fully occupied
+      #     device -- so the before-check reads /proc/*/fd instead.
+      #   * Raspberry Pi OS ships Python 3.13 while Hailo publishes a cp311
+      #     wheel, so `import hailo_platform` fails on the board's own
+      #     interpreter even when HailoRT is installed correctly. There is
+      #     nothing to copy out of site-packages the way the Rockchip preset
+      #     does; the deploy step unpacks the wheel for the container's 3.11.
+      device_groups:
+        - id: compute
+          name: Board
+          name_i18n:
+            zh: 板卡
+          type: single
+          required: true
+          options:
+            - device_ref: external_raspberry_pi5_hailo
+            - device_ref: recomputer_r20_industrial
+          # Defaults to the board the numbers were taken on. The R20 carries
+          # the same accelerator and is the sellable option, but nothing has
+          # been run on one, and defaulting to it would let the preset's
+          # verified badge read as covering it.
+          default: external_raspberry_pi5_hailo
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hub_only
+      name: Shared Hub (Optional Expansion)
+      name_i18n:
+        zh: 共享 Hub（可选扩展）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: "Not the normal path. Use it only when several detector boxes are already running and you want one shared alert list across them — it installs the broker, rule engine and workbench on an always-on machine with no detector of its own. The detectors do not have to match: a Jetson running TensorRT and an RK3588 running RKNN report into the same device list, the same alert list and the same preview proxy. The aggregation host itself needs no accelerator — verified on an RK3588 board carrying both detectors at 3.7% of one CPU core and 52.8 MB RSS."
+      description_i18n:
+        zh: "不是常规部署路径。仅当你已经有多台检测设备、希望它们共用一份告警列表时才用——它在一台常开机器上装 broker、规则引擎和工作台，本机不带检测器。接入的检测器不必同型：跑 TensorRT 的 Jetson 与跑 RKNN 的 RK3588 汇入同一份设备列表、同一份告警列表、同一个预览代理。汇聚主机本身不需要加速器——在一块 RK3588 板卡上同时承载这两个检测器实测占单核 3.7%、RSS 52.8 MB。"
+      architecture_image: gallery/architecture.svg
+      # Hardware-verified: deployed by this preset's own steps onto an RK3588
+      # board (radxa, rock-5t, kernel 6.1.84) that already ran eight unrelated
+      # containers, then fed by two detectors on different platforms —
+      # rk3588-01 on that same board (RKNN int8, decode mppvideodec) and
+      # orin-nx-01 on a Jetson Orin NX 16GB (TensorRT fp16, decode
+      # nvv4l2decoder), both publishing into port 1883 on the board.
+      # /api/devices listed both online with decode "hw" and distinct model
+      # versions (yolov8n_zoo_int8.rk3588@856ae37c39d3 and
+      # yolov8n_fp16.orin@35db06066a64). A single /api/alerts held both
+      # devices' zone_enter, loitering and line_cross events, every one with
+      # snapshot_state "received" and a decodable 640x360 JPEG. The preview
+      # proxy served both, including the cross-machine fetch from the board to
+      # the Jetson's preview endpoint (HTTP 200, 13032-byte JPEG).
+      verified:
+        - hardware
+      device_groups:
+        - id: hub
+          name: Aggregation Host
+          name_i18n:
+            zh: 汇聚主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 20min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
