@@ -1,0 +1,157 @@
+version: "1.0"
+id: voice_services_rk3576
+name: Voice Services on reComputer RK3576
+name_i18n:
+  zh: reComputer RK3576 语音服务
+type: docker_deploy
+
+# Unlike voice_services_deploy.yaml (the reRouter target, which deliberately
+# carries no device_class because OpenWrt-on-CM4 exposes no useful hardware
+# identity), this target is pinned to rk3576: the image ships RKNN artifacts
+# compiled for that NPU and will not run elsewhere.
+device_class: rk3576
+
+# First boot downloads ~825 MB of models before the service accepts
+# connections (502 MB SenseVoice RKNN + 294 MB CT-Transformer + 28 MB CAM++),
+# measured at ~7 min on a 2.5 MB/s link.
+deploy_timeout: 2400
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose.rk3576.yml
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/smart_retail_voice_ai
+
+  environment:
+    TZ: Asia/Shanghai
+    OVS_PROFILE: rk3576-sensevoice
+    HF_ENDPOINT: "{{HF_ENDPOINT}}"
+    OVS_PUNCT: "{{OVS_PUNCT}}"
+    OVS_SPEAKER_EMB: "{{OVS_SPEAKER_EMB}}"
+
+  options:
+    project_name: smart_retail_voice_ai
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+
+  # No `models:` block. Unlike the reRouter target, which pre-downloads a
+  # models.zip in a before-action, seeed-local-voice fetches its own artifacts
+  # on first start (sha256-verified, honors HF_ENDPOINT) into named volumes.
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 2400
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: port_available
+    ports:
+      - 8621
+    description: Check if port 8621 is available
+  - type: disk_space
+    min_gb: 6
+    description: At least 6GB for the image and model artifacts
+    description_i18n:
+      zh: 镜像和模型产物至少需要 6GB 空间
+
+actions:
+  before:
+    - name: Verify RKNPU driver is present
+      # /dev/rknpu does NOT exist on the Seeed vendor kernel (6.1.115-vendor-
+      # seeed-rk3576) — the NPU is reached through the DRM render node
+      # instead. Probing for the char device gives a false negative, so check
+      # the driver binding and debugfs version node.
+      run: |
+        set -e
+        if [ ! -d /sys/bus/platform/drivers/RKNPU ]; then
+          echo "RKNPU driver not bound - this board cannot run the NPU ASR image" >&2
+          exit 1
+        fi
+        cat /sys/kernel/debug/rknpu/version 2>/dev/null || echo "RKNPU bound (version node not readable)"
+      name_i18n:
+        zh: 检查 RKNPU 驱动
+
+user_inputs:
+  - id: HF_ENDPOINT
+    name: Model download source
+    name_i18n: {zh: 模型下载源}
+    type: select
+    default: https://hf-mirror.com
+    required: false
+    reconfigurable: true
+    description: Mirror to fetch model artifacts from on first start.
+    description_i18n: {zh: 首次启动时下载模型产物的来源。}
+    options:
+      - {value: "https://hf-mirror.com", label: "HF Mirror (China)", label_i18n: {zh: HF 镜像（国内）}}
+      - {value: "https://huggingface.co", label: "Hugging Face", label_i18n: {zh: Hugging Face 官方}}
+  - id: OVS_PUNCT
+    name: Punctuation
+    name_i18n: {zh: 标点恢复}
+    type: select
+    default: "1"
+    required: false
+    reconfigurable: true
+    description: Adds a 294 MB CT-Transformer model. Disable to save memory and first-boot download time.
+    description_i18n: {zh: 需额外下载 294MB 的 CT-Transformer 模型。关闭可节省内存和首次启动时间。}
+    options:
+      - {value: "1", label: "Enabled", label_i18n: {zh: 开启（默认）}}
+      - {value: "0", label: "Disabled", label_i18n: {zh: 关闭}}
+  - id: OVS_SPEAKER_EMB
+    name: Speaker embedding
+    name_i18n: {zh: 声纹向量}
+    type: select
+    default: "1"
+    required: false
+    reconfigurable: true
+    description: Emits a 192-dim CAM++ embedding with each result. Matching against a registry happens on the client side.
+    description_i18n: {zh: 每条结果附带 192 维 CAM++ 声纹向量；与注册库的匹配在客户端完成。}
+    options:
+      - {value: "1", label: "Enabled", label_i18n: {zh: 开启（默认）}}
+      - {value: "0", label: "Disabled", label_i18n: {zh: 关闭}}
+
+remote_overrides:
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/smart_retail_voice_ai
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    TZ: Asia/Shanghai
+    OVS_PROFILE: rk3576-sensevoice
+    HF_ENDPOINT: "{{HF_ENDPOINT}}"
+    OVS_PUNCT: "{{OVS_PUNCT}}"
+    OVS_SPEAKER_EMB: "{{OVS_SPEAKER_EMB}}"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+  user_inputs:
+    - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
+    - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+
+post_deployment:
+  open_browser: false

@@ -19,6 +19,10 @@
 
 将操作系统写入 reRouter，然后连接到网络。**2025 年 11 月之后购买的新品可跳过此步骤**——已预装正确固件。
 
+> **使用 reComputer RK3576 的用户请整步跳过。** 本步骤只针对 reRouter 的 CM4 eMMC。
+> reComputer 出厂预装 Armbian，IP 由 DHCP 分配，既没有 `192.168.49.1` 这个网关地址，
+> 也不区分 LAN/WAN 口。直接进入步骤 2，选择 reComputer RK3576 目标。
+
 | 设备 | 连接方式 | 注意事项 |
 |------|---------|---------|
 | reRouter CM4 | 拆下外壳，露出主板 | 需要进入 boot 模式 |
@@ -97,7 +101,7 @@
 | 找不到麦克风设备 | 重新插拔 USB，确认设备管理器中有显示 |
 | 容器启动失败 | 检查 Docker 日志：`docker logs sensecraft-voice-client` |
 
-### 部署目标 {#voice_services_remote type=remote config=devices/voice_services_deploy.yaml default=true}
+### 部署目标 {#voice_services_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/voice_services_deploy.yaml default=true}
 
 将语音服务部署到远程设备（reRouter、树莓派等）。
 
@@ -127,6 +131,61 @@
 | 容器启动失败 | SSH 登录后执行 `docker logs sensecraft-voice-client` 查看错误信息 |
 | 找不到麦克风 | 执行 `arecord -l`，确认 reSpeaker 被识别 |
 | 日志中出现 "Health check failed" | 启动时正常现象——语音客户端先于 ASR 服务就绪，等待 30 秒后自动恢复 |
+
+### 部署目标 {#voice_services_rk3576 type=remote device=rk3576 device_name="reComputer RK3576" config=devices/voice_services_rk3576.yaml}
+
+把语音层部署到 Seeed reComputer RK3576 开发套件，SenseVoice 跑在 6 TOPS NPU 上而不是 CPU 上。
+
+> **该目标目前只部署语音服务（8621 端口）。** 采集与云端上报组件
+> `sensecraft-voice-client`（8090 端口）走的是旧的 `sensecraft-asr-server`
+> WebSocket 协议，且没有本地静音检测，无法直接驱动这套服务。在该部分完成之前，
+> 完整的门店部署请选 reRouter 目标。
+
+### 接线
+
+| 设备 | 连接 | 说明 |
+|------|------|------|
+| reSpeaker XVF3800 | 接 reComputer 的 USB-A 口 | 必须用 USB-A host 口。Type-C 是双角色口，可能处于 device 模式，此时插上去不会枚举 |
+| reComputer RK3576 | 网线接路由器 | 首次启动需要联网拉镜像和约 825MB 模型产物 |
+| 电脑 | 同一网段 | 用于 SSH 部署 |
+
+1. 确认 reComputer 能访问互联网
+2. 记下它的 IP、SSH 用户名（默认 `recomputer`）和密码
+3. 把 reSpeaker XVF3800 插进 USB-A 口，执行 `lsusb` 确认出现 `2886:001a`
+
+### 部署完成
+
+首次启动要先下载约 825MB 模型产物才会开始接受连接，按 2.5 MB/s 计约 7 分钟。
+之后重启约 25 秒即可 healthy，因为模型存在命名卷里。
+
+验证方式：
+
+```bash
+curl http://<设备IP>:8621/readyz
+# {"status":"ready"}
+
+curl -F "file=@sample.wav" http://<设备IP>:8621/asr
+# {"text":"...","backend":"rk:sensevoice_rknn"}
+```
+
+`backend` 必须是 `rk:sensevoice_rknn`，否则说明 NPU 路径没有加载成功。
+
+应用侧把音频推到 `ws://<设备IP>:8621/asr/stream`，连接参数用
+`?vad=none&punctuate=true&speaker_embedding=true`，每句说完发一个空帧结束。
+不要用服务端 VAD（`?vad_silence_ms=N`）——它会在每个切分点吃掉约一个音节。
+每条结果同时带回识别文本、标点和 192 维 CAM++ 声纹向量；
+把声纹向量与注册库比对是客户端的职责。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 预检提示 "RKNPU driver not bound" | 该板不是 RK3576，或内核没有 NPU 驱动。在 Seeed vendor 内核上 `/dev/rknpu` 不存在**属正常**，所以预检查的是 `/sys/bus/platform/drivers/RKNPU` |
+| 首次部署后容器持续数分钟 unhealthy | 正在下载 825MB 模型，属预期。用 `docker logs -f openvoicestream` 看进度 |
+| 模型下载卡住 | 把"模型下载源"在 HF 镜像和 huggingface.co 之间切换后重新部署 |
+| `backend` 不是 `rk:sensevoice_rknn` | 确认 profile 传进容器了：`docker exec openvoicestream env \| grep OVS_PROFILE` |
+| 4GB 板子内存不足 | 把"标点恢复"和"声纹向量"设为关闭，两个模型只在开关打开时才加载 |
+| `lsusb` 里没有 reSpeaker | 换到 USB-A host 口。用 `dmesg \| tail` 看是否有 `xhci-hcd` 总线被注销，那说明双角色控制器切到了 device 模式 |
 
 ---
 

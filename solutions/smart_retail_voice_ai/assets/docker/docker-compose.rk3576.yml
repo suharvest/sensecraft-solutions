@@ -1,0 +1,101 @@
+# Smart Retail Voice — reComputer RK3576 speech layer.
+#
+# Replaces the reRouter's CPU sensecraft-asr-server with seeed-local-voice
+# (OpenVoiceStream) running SenseVoice on the RK3576 NPU. One WebSocket
+# carries all four outputs the old ASR server produced: transcript,
+# punctuation, speaker embedding, and endpointing.
+#
+# Verified 2026-08-24 on a Seeed reComputer RK3576 Dev Kit (Armbian bookworm,
+# kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM):
+#   POST /asr           3.0 s audio -> ~780 ms warm (RTF 0.26)
+#   container RSS       1.71 GiB with ASR + punctuation + speaker loaded
+#   recreate -> healthy 25 s once the model volumes are populated
+#
+# Derived from seeed-local-voice/deploy/docker-compose.rk.yml. Three changes
+# are required for this board and are called out inline below.
+#
+# NOTE: the capture + reporting layer (sensecraft-voice-client, :8090) is not
+# in this file yet. It speaks the sensecraft-asr-server WebSocket protocol and
+# has no local VAD, so it cannot drive this stack unmodified — see the RK3576
+# target section in guide.md.
+
+services:
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-20260803b}
+    container_name: openvoicestream
+    privileged: true
+    init: true
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    # (1) Upstream sets 7500m for an 8 GB LubanCat. This board has 3.82 GiB.
+    mem_limit: 3000m
+    memswap_limit: 3600m
+    volumes:
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      # (2) SENSEVOICE_RKNN_MODEL_DIR is NOT under /opt/asr/models. Without its
+      # own volume the 502 MB fp16 .rknn lands in the container's writable
+      # layer and is re-downloaded (~7 min) on every --force-recreate.
+      - rk-sensevoice-rknn:/opt/asr/sensevoice-rknn
+      # Punctuation (CT-Transformer, 294 MB) and speaker embedding (CAM++,
+      # 28 MB) land under $MODEL_DIR/{punctuation,speaker}/.
+      - ovs-aux-models:/opt/models
+      - seeed-local-voice-data:/opt/seeed-local-voice/data
+    # (3) Upstream also bind-mounts /home/cat/project/rknn-matmul-parallel and
+    # puts it on PYTHONPATH. That path exists only on the LubanCat dev box and
+    # the SenseVoice RKNN path does not use the helper — both are dropped.
+    environment:
+      - OVS_PROFILE=${OVS_PROFILE:-rk3576-sensevoice}
+      - OVS_PROFILE_DEFAULT=rk3576-sensevoice
+      - OVS_LOG_FORMAT=${OVS_LOG_FORMAT:-json}
+      - OVS_ADMIN_KEY=${OVS_ADMIN_KEY:-}
+      # ── ASR: SenseVoice RKNN fp16 on the NPU ────────────────────────
+      - ASR_BACKEND=sensevoice_rknn
+      - ASR_PLATFORM=rk3576
+      - RK_PLATFORM=rk3576
+      - LANGUAGE_MODE=rk
+      - ASR_NPU_CORE_MASK=NPU_CORE_0
+      - ASR_MODEL_DIR=/opt/asr/models
+      - SENSEVOICE_RKNN_MODEL_DIR=/opt/asr/sensevoice-rknn
+      # Must stay 0. LANGUAGE_MODE=rk would otherwise pull the unrelated
+      # qwen3/matcha artifact set (~3.35 GB) and wedge startup.
+      - RK_ARTIFACT_AUTO_DOWNLOAD=0
+      - RK_ENSURE_MATCHA_RESOURCES=0
+      # ── VAD ─────────────────────────────────────────────────────────
+      # Server-side VAD is the fallback for clients that cannot endpoint on
+      # their own. Measured on an 11-file corpus, it drops roughly one
+      # syllable at every cut (channels -> nels, chatter -> Cha). Clients that
+      # can endpoint locally should connect with ?vad=none and finalize with
+      # an empty frame, which matches offline POST /asr quality exactly.
+      - OVS_VAD_BACKEND=${OVS_VAD_BACKEND:-silero}
+      - OVS_VAD_SILENCE_MS=${OVS_VAD_SILENCE_MS:-1000}
+      # ── Punctuation + speaker embedding ─────────────────────────────
+      # Together with ASR these cover what sensecraft-asr-server provided.
+      # Models download on first use and honor HF_ENDPOINT. OVS emits the
+      # 192-dim embedding only; the registry and cosine match stay on the
+      # consumer side.
+      - MODEL_DIR=/opt/models
+      - OVS_PUNCT=${OVS_PUNCT:-1}
+      - OVS_SPEAKER_EMB=${OVS_SPEAKER_EMB:-1}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # First boot downloads ~825 MB before uvicorn accepts connections
+      # (502 MB SenseVoice RKNN + 294 MB CT-Transformer + 28 MB CAM++).
+      # Measured ~7 min; the upstream 120s marks it unhealthy long before
+      # it is actually done.
+      start_period: 900s
+
+volumes:
+  rk-asr-models:
+    name: rk-asr-models
+  rk-sensevoice-rknn:
+    name: rk-sensevoice-rknn
+  ovs-aux-models:
+    name: ovs-aux-models
+  seeed-local-voice-data:
+    name: seeed-local-voice-data

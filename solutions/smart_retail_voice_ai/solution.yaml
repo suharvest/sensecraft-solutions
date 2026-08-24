@@ -37,11 +37,17 @@ intro:
     - edge-ai
     - rerouter
     - respeaker
+    - rk3576
+    - npu
   device_catalog:
     rerouter_cm4:
       description: Edge computing device with 4GB RAM, 32GB eMMC
       description_i18n:
         zh: 边缘计算设备，4GB 内存，32GB eMMC 存储
+    recomputer_rk3576:
+      description: Runs SenseVoice speech recognition on the RK3576 NPU instead of the CPU
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行 SenseVoice 语音识别，不占用 CPU
     respeaker_xvf3800:
       description: 4-mic array with noise suppression, AEC, and beamforming
       description_i18n:
@@ -67,6 +73,7 @@ intro:
           required: true
           options:
             - device_ref: rerouter_cm4
+            - device_ref: recomputer_rk3576
           default: rerouter_cm4
           name_i18n:
             zh: 边缘计算设备
