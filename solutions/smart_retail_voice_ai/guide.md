@@ -19,6 +19,8 @@ Deploy an edge-based voice collection and analysis system for your retail store.
 
 Write the operating system to the reRouter, then connect it to your network. **Skip this step** if your reRouter was purchased after November 2025 — it already has the correct firmware.
 
+> **reComputer RK3576 users: skip this step entirely.** It is specific to the reRouter's CM4 eMMC. The reComputer ships with Armbian and takes its address from DHCP, so there is no `192.168.49.1` gateway and no LAN/WAN port distinction. Go straight to Step 2 and pick the reComputer RK3576 target.
+
 | Device | Connection | Notes |
 |--------|------------|-------|
 | reRouter CM4 | Remove case to access the board | Required for entering boot mode |
@@ -97,7 +99,7 @@ Deploy voice services on your local computer.
 | Microphone device not found | Unplug and replug USB, verify it appears in Device Manager |
 | Container startup failed | Check Docker logs: `docker logs sensecraft-voice-client` |
 
-### Target {#voice_services_remote type=remote config=devices/voice_services_deploy.yaml default=true}
+### Target {#voice_services_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/voice_services_deploy.yaml default=true}
 
 Deploy voice services to a remote device (reRouter, Raspberry Pi, etc.).
 
@@ -127,6 +129,66 @@ Deploy voice services to a remote device (reRouter, Raspberry Pi, etc.).
 | Container startup failed | SSH in and run `docker logs sensecraft-voice-client` to view error messages |
 | Microphone not found | Run `arecord -l` to verify reSpeaker is recognized |
 | "Health check failed" warning in logs | Normal during startup - the voice client starts before the ASR server is ready. Wait 30 seconds and check again |
+
+### Target {#voice_services_rk3576 type=remote device=rk3576 device_name="reComputer RK3576" config=devices/voice_services_rk3576.yaml}
+
+Deploy the speech layer to a Seeed reComputer RK3576 Dev Kit, where SenseVoice
+runs on the 6 TOPS NPU instead of the CPU.
+
+> **This target currently deploys the speech service only (port 8621).** The
+> capture and cloud-reporting layer, `sensecraft-voice-client` (port 8090),
+> speaks the older `sensecraft-asr-server` WebSocket protocol and has no local
+> voice activity detection, so it cannot drive this stack unmodified. Choose
+> the reRouter target for a complete store deployment until that work lands.
+
+### Wiring
+
+| Device | Connection | Notes |
+|--------|------------|-------|
+| reSpeaker XVF3800 | USB-A on the reComputer | Use a USB-A host port. The Type-C port is dual-role and may sit in device mode, in which case nothing enumerates |
+| reComputer RK3576 | Ethernet to router | Internet required for the image and ~825 MB of model artifacts on first start |
+| Computer | Same network | For SSH deployment |
+
+1. Confirm the reComputer has internet access
+2. Note its IP address, SSH user (`recomputer` by default) and password
+3. Plug the reSpeaker XVF3800 into a USB-A port, then run `lsusb` and confirm `2886:001a` appears
+
+### Deployment Complete
+
+First start downloads about 825 MB of model artifacts before the service
+accepts connections, roughly 7 minutes on a 2.5 MB/s link. Later restarts
+reach healthy in about 25 seconds because the models live in named volumes.
+
+Verify with:
+
+```bash
+curl http://<device-ip>:8621/readyz
+# {"status":"ready"}
+
+curl -F "file=@sample.wav" http://<device-ip>:8621/asr
+# {"text":"...","backend":"rk:sensevoice_rknn"}
+```
+
+`backend` must read `rk:sensevoice_rknn`. Anything else means the NPU path did
+not load.
+
+Applications stream audio to `ws://<device-ip>:8621/asr/stream`. Connect with
+`?vad=none&punctuate=true&speaker_embedding=true` and finalize each utterance
+by sending an empty frame. The server-side VAD alternative
+(`?vad_silence_ms=N`) drops roughly one syllable at every cut. Each result
+carries the transcript, punctuation, and a 192-dim CAM++ speaker embedding;
+matching that embedding against a registry is the client's job.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Pre-check reports "RKNPU driver not bound" | The board is not an RK3576, or its kernel lacks the NPU driver. A missing `/dev/rknpu` is **not** a fault on Seeed's vendor kernel — the check reads `/sys/bus/platform/drivers/RKNPU` instead |
+| Container stays unhealthy for several minutes after the first deploy | Expected while the 825 MB of models download. Watch progress with `docker logs -f openvoicestream` |
+| Model download stalls | Switch the "Model download source" input between the HF mirror and huggingface.co, then redeploy |
+| `backend` is not `rk:sensevoice_rknn` | Confirm the profile reached the container: `docker exec openvoicestream env \| grep OVS_PROFILE` |
+| Out of memory on a 4GB board | Set Punctuation and Speaker embedding to Disabled; each model loads only when its switch is on |
+| reSpeaker missing from `lsusb` | Move it to a USB-A host port. Check `dmesg \| tail` for `xhci-hcd` bus deregistration, which means the dual-role controller switched to device mode |
 
 ---
 
