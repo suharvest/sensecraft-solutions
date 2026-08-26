@@ -418,16 +418,24 @@
       "properties": {
         "default_anchor_mode": {
           "default": 0,
+          "enum": [
+            0,
+            1
+          ],
           "title": "Default Anchor Mode",
           "type": "integer"
         },
         "max_lines": {
           "default": 4,
+          "maximum": 4,
+          "minimum": 1,
           "title": "Max Lines",
           "type": "integer"
         },
         "max_rois": {
           "default": 4,
+          "maximum": 4,
+          "minimum": 1,
           "title": "Max Rois",
           "type": "integer"
         }
