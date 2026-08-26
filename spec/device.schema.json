@@ -2664,7 +2664,41 @@
         "panels": {
           "default": [],
           "items": {
-            "$ref": "#/$defs/SerialCameraPanelConfig"
+            "allOf": [
+              {
+                "$ref": "#/$defs/SerialCameraPanelConfig"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "face_database"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/FaceDatabasePanelConfig"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "counting_config"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/CountingConfigPanelConfig"
+                }
+              }
+            ]
           },
           "title": "Panels",
           "type": "array"
