@@ -266,13 +266,6 @@ body and associated with the enclosing Step:
   `parse_targets()` (`:949-982`), which merges EN/ZH by target id. Each target's
   attributes (`config`, `default`, `device`, `device_name`, `type`) come from
   the same `parse_step_attributes()` (`:909`, `:935-943`).
-
-  For `docker_deploy`, if a method (`local` or `remote`) has more than one
-  target variant, every target in that method MUST declare a unique `device=`
-  value. The frontend uses this marker to render one card per method and a
-  device-model dropdown inside the card. Omitting it falls back to a flat
-  target list (for example, three hardware targets become three cards), so
-  `solutionctl validate` rejects incomplete or duplicate device groups.
 - **Mode**: `### Mode: Name {#id ...}` (EN) / `### 模式: 名称 {#id ...}` (ZH)
   (`MODE_HEADER_PATTERN`, `:289-293`; parsed at `:985-1012`). Mode parsing stops
   when a Target header is reached (`:996-997`), so Modes belong to the Step body

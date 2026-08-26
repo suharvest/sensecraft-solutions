@@ -547,6 +547,24 @@
         "title": "ContentUpdateDownloadAllResponse",
         "type": "object"
       },
+      "CountingQueryRequest": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "timeout": {
+            "default": 1.5,
+            "title": "Timeout",
+            "type": "number"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "CountingQueryRequest",
+        "type": "object"
+      },
       "CreateKeyRequest": {
         "properties": {
           "name": {
@@ -611,6 +629,23 @@
               }
             ],
             "title": "Crud Port"
+          },
+          "face_mode": {
+            "default": true,
+            "title": "Face Mode",
+            "type": "boolean"
+          },
+          "startup_commands": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup Commands"
           }
         },
         "title": "CreateSessionRequest",
@@ -1545,6 +1580,11 @@
           "method": {
             "default": "local",
             "title": "Method",
+            "type": "string"
+          },
+          "scope": {
+            "default": "all",
+            "title": "Scope",
             "type": "string"
           },
           "verify_after_reboot": {
@@ -3159,6 +3199,19 @@
           "config_file"
         ],
         "title": "RunDeviceActionRequest",
+        "type": "object"
+      },
+      "SendCommandRequest": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "SendCommandRequest",
         "type": "object"
       },
       "SolutionCreate": {
@@ -9915,6 +9968,108 @@
           }
         },
         "summary": "Delete Session",
+        "tags": [
+          "serial-camera"
+        ]
+      }
+    },
+    "/api/serial-camera/sessions/{session_id}/command": {
+      "post": {
+        "description": "Send an ad-hoc AT command to the camera session's serial port.\n\nThe serial_wizard's ``send_line`` cannot be reused here: it terminates\nwith ``\\n`` (the firmware AT parser needs ``\\r``) and it opens the port\nitself, which collides with the camera session's exclusive hold.",
+        "operationId": "send_command_api_serial_camera_sessions__session_id__command_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Command",
+        "tags": [
+          "serial-camera"
+        ]
+      }
+    },
+    "/api/serial-camera/sessions/{session_id}/counting/query": {
+      "post": {
+        "description": "Send one counting AT command and return the device's reply.\n\nResponse::\n\n    {\"ok\": bool, \"command\": str, \"reply\": <raw SSCMA message or null>}\n\n``ok`` is true only when the device answered with ``code == 0``; a\ntimeout returns ``ok: false`` with ``reply: null``.",
+        "operationId": "counting_query_api_serial_camera_sessions__session_id__counting_query_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountingQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Counting Query",
         "tags": [
           "serial-camera"
         ]
