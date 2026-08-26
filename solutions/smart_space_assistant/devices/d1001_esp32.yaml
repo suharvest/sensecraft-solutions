@@ -1,0 +1,48 @@
+version: "1.0"
+id: d1001_esp32
+name: Xiaozhi D1001 Firmware
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  # ESP32-P4 native USB-Serial-JTAG
+  usb_vendor_id: "0x303a"
+  usb_product_id: "0x1001"
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+
+firmware:
+  # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001.
+  # Multi-segment flash (no merged image: the face-model partition sits at
+  # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
+  source:
+    path: assets/d1001_firmware/xiaozhi.bin
+    checksum:
+      sha256: d0eb3d4fe7ccda84bb1a32a2a034239a38fda83433873ee2bdb7c11acbdce608
+  flash_config:
+    chip: esp32p4
+    baud_rate: 921600
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 32MB
+    partitions:
+      - name: bootloader
+        offset: "0x2000"
+        file: assets/d1001_firmware/bootloader.bin
+      - name: partition_table
+        offset: "0x8000"
+        file: assets/d1001_firmware/partition-table.bin
+      - name: ota_data
+        offset: "0x10d000"
+        file: assets/d1001_firmware/ota_data_initial.bin
+      - name: app
+        offset: "0x200000"
+        file: assets/d1001_firmware/xiaozhi.bin
+      - name: assets
+        offset: "0x1000000"
+        file: assets/d1001_firmware/generated_assets.bin
+      - name: face_model
+        offset: "0x1E00000"
+        file: assets/d1001_firmware/human_face_detect.espdl

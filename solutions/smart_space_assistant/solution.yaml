@@ -48,6 +48,10 @@ intro:
       description: Edge computing device for display service
       description_i18n:
         zh: 边缘计算设备，用于投屏服务
+    reterminal_d1001:
+      description: 8" touch HMI voice agent with camera (ESP32-P4)
+      description_i18n:
+        zh: 8 寸触摸屏语音智能体，带摄像头（ESP32-P4）
   stats:
     deployed_count: 0
     likes_count: 0
@@ -56,6 +60,21 @@ intro:
   links:
     github: https://github.com/78/xiaozhi-esp32
   presets:
+    - id: reterminal_d1001
+      verify_exempt: true
+      name: reTerminal D1001 Voice Agent
+      name_i18n: {zh: reTerminal D1001 语音智能体}
+      description: Xiaozhi voice agent on the 8" touch HMI with on-screen Wi-Fi setup, camera face wake and local push panel.
+      description_i18n: {zh: 8 寸触摸屏上的小智语音智能体：屏上配网、人脸唤醒、局域网推送面板。}
+      device_groups:
+        - id: d1001_device
+          name: Device
+          name_i18n: {zh: 设备}
+          type: single
+          required: true
+          options:
+            - {device_ref: reterminal_d1001}
+          default: reterminal_d1001
     - id: display_cast
       verify_exempt: true
       name: Display Cast

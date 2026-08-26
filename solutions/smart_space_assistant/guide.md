@@ -250,3 +250,70 @@ The display now supports a narrate mode where AI can control background images â
 3. Enter your Xiaozhi WebSocket MCP URL to enable AI-driven image switching
 4. Add trigger rules: keyword + image URL pairs for automatic background changes
 5. Press `N` to toggle narrate mode, click the PiP window to resize it
+
+## Preset: reTerminal D1001 Voice Agent {#reterminal_d1001}
+
+Turn the reTerminal D1001 into a Xiaozhi voice agent with an 8" touch screen, camera face wake and a LAN push panel.
+
+| Device | Purpose |
+|--------|---------|
+| reTerminal D1001 | Touch-screen AI voice agent with camera |
+| USB-C data cable | For firmware flashing |
+
+**What you'll get:**
+- Voice conversations with wake word, full-duplex barge-in and multiline subtitles
+- On-screen settings: Wi-Fi (incl. static IP), rotation, volume, sleep, face wake modes
+- Face wake: on-device detection, optional remote recognizer for known-person wake
+- LAN push panel on port 8080: push markdown to the screen, on-screen choices, camera snapshot
+
+**Requirements:** 2.4GHz WiFi network Â· [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding
+
+## Step 1: Flash D1001 Firmware {#d1001_esp32 type=esp32_usb required=true config=devices/d1001_esp32.yaml}
+
+Write the voice agent firmware to the device.
+
+### Wiring
+
+1. Connect the D1001 to your computer via USB-C
+2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
+3. Click the Flash button
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Serial port not found | Use a data-capable USB-C cable, try another port |
+| Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
+
+---
+
+## Step 2: Connect and Bind {#d1001_setup type=manual required=false}
+
+Set up the network on the touch screen and bind the device to your account.
+
+### Connect to WiFi
+
+1. On first boot the device prompts for network setup
+2. Tap the network icon at the top-left of the status bar
+3. Pick your 2.4GHz network on screen and type the password with the on-screen keyboard
+
+### Bind Xiaozhi Account
+
+1. Open the Xiaozhi App
+2. Scan the QR code displayed on the device
+3. Complete the binding process
+
+### Test Voice
+
+Say "Xiaozhi Xiaozhi" to wake the device. You can interrupt it mid-reply by saying the wake word again.
+
+### Optional: Face Wake
+
+Tap the person icon in the status bar to open face settings: mode tiles (off / detect-wake / recognize-wake), confirm duration, wake cooldown and the recognizer endpoint.
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| WiFi connection failed | Ensure a 2.4GHz network; recheck the password on screen |
+| No QR code | Wait for boot to complete, or restart the device |
