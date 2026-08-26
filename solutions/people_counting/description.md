@@ -2,14 +2,14 @@
 
 You want to know how many people walked into the shop this morning, how many are queuing right now, whether the meeting room is actually occupied. The usual answer is a camera, a network cable, a server, and a video stream leaving the building.
 
-This solution does it with one camera module and a USB cable. The Grove Vision AI Module V2 detects people, tracks them frame to frame, counts each crossing of the lines you draw, and reports how many people are standing in the zones you draw. The video never leaves the module — only numbers do.
+This solution does it with one camera module and a USB cable. The Grove Vision AI Module V2 detects people, tracks them frame to frame, counts each crossing of the lines you draw, and reports how many people are standing in the zones you draw. The video stays on the USB link: frames go straight to the app on your own computer for the live preview, and never touch a network or a cloud service.
 
 ## Core Value
 
 | Benefit | Details |
 |---------|---------|
 | Everything on device | Detection, tracking and counting run on the Himax WE2 and its Ethos-U55 NPU |
-| No video leaves the module | Only counts and detection coordinates come out over USB serial |
+| No network, no cloud | Counts, detection coordinates and the preview image all travel over the USB cable only — nothing is uploaded |
 | Draw your own geometry | Up to 4 counting lines with In/Out totals, up to 4 zones with live occupancy |
 | No infrastructure | No network, no server, no account — a USB cable is the whole install |
 | Open data out | SSCMA JSON over serial, easy to pipe into your own script or gateway |

@@ -631,14 +631,44 @@
             "title": "Crud Port"
           },
           "face_mode": {
-            "default": true,
-            "title": "Face Mode",
-            "type": "boolean"
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Face Mode"
+          },
+          "frame_formats": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Frame extensions to install, e.g. ['face']. An empty list runs the generic kernel only (raw boxes reach the UI). Omitted falls back to face_mode, then to the legacy ['face'] default.",
+            "title": "Frame Formats"
           },
           "startup_commands": {
             "anyOf": [
               {
-                "items": {},
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SerialCameraStartupCommand"
+                    }
+                  ]
+                },
                 "type": "array"
               },
               {
@@ -3212,6 +3242,41 @@
           "command"
         ],
         "title": "SendCommandRequest",
+        "type": "object"
+      },
+      "SerialCameraStartupCommand": {
+        "description": "One entry of ``serial_camera.startup_commands``\n\n``cmd`` is re-validated at the transport (``write_command``); the bounds\nhere exist so a malformed sequence is rejected at the API/schema edge\ninstead of inside the serial reader thread.",
+        "properties": {
+          "cmd": {
+            "maxLength": 256,
+            "minLength": 3,
+            "pattern": "^\\s*AT\\+[ -~]*$",
+            "title": "Cmd",
+            "type": "string"
+          },
+          "delay": {
+            "default": 0.3,
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Delay",
+            "type": "number"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "cmd"
+        ],
+        "title": "SerialCameraStartupCommand",
         "type": "object"
       },
       "SolutionCreate": {

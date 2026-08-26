@@ -2669,6 +2669,21 @@
         "display": {
           "$ref": "#/$defs/SerialCameraDisplayConfig"
         },
+        "frame_formats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Formats"
+        },
         "panels": {
           "default": [],
           "items": {
@@ -2804,14 +2819,19 @@
       "type": "object"
     },
     "SerialCameraStartupCommand": {
-      "description": "One entry of ``serial_camera.startup_commands``",
+      "description": "One entry of ``serial_camera.startup_commands``\n\n``cmd`` is re-validated at the transport (``write_command``); the bounds\nhere exist so a malformed sequence is rejected at the API/schema edge\ninstead of inside the serial reader thread.",
       "properties": {
         "cmd": {
+          "maxLength": 256,
+          "minLength": 3,
+          "pattern": "^\\s*AT\\+[ -~]*$",
           "title": "Cmd",
           "type": "string"
         },
         "delay": {
           "default": 0.3,
+          "maximum": 60,
+          "minimum": 0,
           "title": "Delay",
           "type": "number"
         },

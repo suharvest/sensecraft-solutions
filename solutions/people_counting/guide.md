@@ -11,7 +11,7 @@ Turn a Grove Vision AI Module V2 into a standalone people counter. The module de
 - Up to 4 counting lines with separate in/out totals
 - Up to 4 zones with a live occupancy number
 - Person detection and multi-object tracking running on the NPU
-- No network, no cloud, no video leaving the module
+- No network and no cloud — video travels over the USB cable to the app on your own computer, nothing else
 
 **Measured on device:** 48 ms inference per frame, about 13 fps end to end (240x240 input, Swift-YOLO Nano single-class person model, 92.6% mAP after INT8 quantization).
 
@@ -107,4 +107,4 @@ The module is counting. Everything below runs on the module itself — the app i
 2. Stand inside a zone and watch the occupancy number
 3. Have a second person join you to see multi-target tracking
 
-**Where the data goes:** counting events and per-frame detections come out of the USB serial port as SSCMA JSON, so you can pipe them into your own script, dashboard, or gateway. Nothing is uploaded, and no image ever leaves the module.
+**Where the data goes:** counting events and per-frame detections come out of the USB serial port as SSCMA JSON, so you can pipe them into your own script, dashboard, or gateway. The live preview shares that same USB serial link — the module sends a JPEG with each result so the app can draw your lines and zones over the real scene. Everything stays between the module and this computer: nothing is uploaded, and no image reaches a network or a cloud service.
