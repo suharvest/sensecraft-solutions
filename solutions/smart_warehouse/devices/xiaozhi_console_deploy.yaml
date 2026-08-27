@@ -250,49 +250,6 @@ remote_overrides:
           echo "工作目录就绪：$WORKDIR"
 
     after_upload:
-      - name: xiaozhi-console-fetch-vad-model
-        description: 补齐镜像缺失的 silero VAD 权重
-        description_i18n:
-          zh: 补齐镜像缺失的 silero VAD 权重
-        timeout: 300
-        # xiaozhi-server:arm64 的 models/snakers4_silero-vad/ 里只有 4 个 .py，
-        # data/silero_vad.onnx 整个目录缺失（构建时漏打，同目录还留着一堆
-        # macOS 的 ._* AppleDouble 文件）。缺了它容器起来就 crash-loop：
-        #   onnxruntime NO_SUCHFILE: Load model from
-        #   models/snakers4_silero-vad/src/silero_vad/data/silero_vad.onnx failed
-        # 报错在 onnxruntime 层，完全指不回「镜像少打了个权重文件」。
-        # 2026-08-27 客户 Jetson 上踩到。镜像修好后这一步可以删掉。
-        #
-        # 走 hf-mirror：受限网络下 github raw 常年不通。
-        run: |
-          set -e
-          COMPOSE_DIR="{{remote_path}}/{{device_id}}"
-          DEST="$COMPOSE_DIR/vad-model"
-          TARGET="$DEST/silero_vad.onnx"
-          mkdir -p "$DEST"
-          if [ -s "$TARGET" ]; then
-            echo "VAD 权重已就位，跳过"
-            exit 0
-          fi
-          for URL in \
-            "https://hf-mirror.com/deepghs/silero-vad-onnx/resolve/main/silero_vad.onnx" \
-            "https://ghproxy.net/https://github.com/snakers4/silero-vad/raw/master/src/silero_vad/data/silero_vad.onnx"; do
-            if curl -sSL --noproxy "*" -m 180 -o "$TARGET" "$URL" 2>/dev/null; then
-              SIZE=$(stat -c %s "$TARGET" 2>/dev/null || echo 0)
-              # 权重约 2.3MB；拿到 HTML 错误页时体积会小得多
-              if [ "$SIZE" -gt 1000000 ]; then
-                echo "VAD 权重已下载（$SIZE 字节，来源 $URL）"
-                exit 0
-              fi
-            fi
-            rm -f "$TARGET"
-          done
-          echo "VAD 权重下载失败。手工放置：$TARGET" >&2
-          echo "不放的话 xiaozhi-server 会反复崩溃，报 onnxruntime NO_SUCHFILE。" >&2
-          exit 1
-        name_i18n:
-          zh: 下载 VAD 模型
-
       - name: xiaozhi-console-render-config
         description: 渲染 .config.yaml（secret 稍后以数据库为准补上）
         description_i18n:
