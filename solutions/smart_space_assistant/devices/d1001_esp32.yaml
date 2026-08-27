@@ -30,19 +30,19 @@ firmware:
     partitions:
       - name: bootloader
         offset: "0x2000"
-        file: assets/d1001_firmware/bootloader.bin
+        file: bootloader.bin
       - name: partition_table
         offset: "0x8000"
-        file: assets/d1001_firmware/partition-table.bin
+        file: partition-table.bin
       - name: ota_data
         offset: "0x10d000"
-        file: assets/d1001_firmware/ota_data_initial.bin
+        file: ota_data_initial.bin
       - name: app
         offset: "0x200000"
-        file: assets/d1001_firmware/xiaozhi.bin
+        file: xiaozhi.bin
       - name: assets
         offset: "0x1000000"
-        file: assets/d1001_firmware/generated_assets.bin
+        file: generated_assets.bin
       - name: face_model
         offset: "0x1E00000"
-        file: assets/d1001_firmware/human_face_detect.espdl
+        file: human_face_detect.espdl

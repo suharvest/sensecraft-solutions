@@ -289,31 +289,16 @@ Write the voice agent firmware to the device.
 
 ## Step 2: Connect and Bind {#d1001_setup type=manual required=false}
 
-Set up the network on the touch screen and bind the device to your account.
+Set up the network and bind your Xiaozhi account, all on the touch screen:
 
-### Connect to WiFi
-
-1. On first boot the device prompts for network setup
-2. Tap the network icon at the top-left of the status bar
-3. Pick your 2.4GHz network on screen and type the password with the on-screen keyboard
-
-### Bind Xiaozhi Account
-
-1. Open the Xiaozhi App
-2. Scan the QR code displayed on the device
-3. Complete the binding process
-
-### Test Voice
-
-Say "Xiaozhi Xiaozhi" to wake the device. You can interrupt it mid-reply by saying the wake word again.
-
-### Optional: Face Wake
-
-Tap the person icon in the status bar to open face settings: mode tiles (off / detect-wake / recognize-wake), confirm duration, wake cooldown and the recognizer endpoint.
+1. On first boot, tap the network icon at the top-left and pick your 2.4GHz Wi-Fi
+2. Open the Xiaozhi App and scan the QR code shown on the device to bind it
+3. Say "Xiaozhi Xiaozhi" to test the wake word — you can barge in mid-reply
+4. Optional: tap the person icon to configure face wake (detect / recognize modes, recognizer endpoint)
 
 ### Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| WiFi connection failed | Ensure a 2.4GHz network; recheck the password on screen |
-| No QR code | Wait for boot to complete, or restart the device |
+| WiFi connection fails | Confirm it is a 2.4GHz network, re-enter the password on screen |
+| No QR code shown | Wait for boot to finish, or restart the device |
