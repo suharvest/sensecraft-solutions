@@ -78,7 +78,10 @@ actions:
       # deployment, not an error.
       fail_fast: false
       run: |
-        CONF="{{remote_path}}/go2rtc/go2rtc.yaml"
+        # 引擎把上传内容放在 remote_path/<device_id>/，compose 的相对挂载
+        # （./go2rtc 等）也按 compose 所在目录解析。写 remote_path 根下会
+        # 落到一个没人读的位置，而 fail_fast: false 会把这个失败一并吞掉。
+        CONF="{{remote_path}}/{{device_id}}/go2rtc/go2rtc.yaml"
         API=http://127.0.0.1:1984
 
         # go2rtc has to be up before it can be asked anything.

@@ -34,9 +34,9 @@ Make sure Docker Desktop is installed and running, with at least 2GB free disk s
 
 | Issue | Solution |
 |-------|----------|
-| Port conflict error | Close the program using port 8086 or 3000 |
-| Docker not starting | Open Docker Desktop application |
-| Stops after starting | Make sure you have at least 4GB RAM |
+| Port conflict error | Free up 8086, 3000, 8080 or 1883 — the stack binds all four |
+| Docker not available | Local target: start Docker Desktop. Remote target: make sure the Docker service is running on the device |
+| Not enough disk | The deploy step checks for at least 2 GB free |
 
 ### Target {#backend_remote type=remote config=devices/backend_deploy.yaml}
 
@@ -161,9 +161,9 @@ Same backend as the AI Camera Direct preset. Skip if you already deployed it.
 
 | Issue | Solution |
 |-------|----------|
-| Port conflict error | Close the program using port 8086 or 3000 |
-| Docker not starting | Open Docker Desktop application |
-| Stops after starting | Make sure you have at least 4GB RAM |
+| Port conflict error | Free up 8086, 3000, 8080 or 1883 — the stack binds all four |
+| Docker not available | Local target: start Docker Desktop. Remote target: make sure the Docker service is running on the device |
+| Not enough disk | The deploy step checks for at least 2 GB free |
 
 ## Step 2: Configure the Camera {#recamera_pro_app type=recamera_pro_app required=true config=devices/recamera_pro.yaml}
 
@@ -234,9 +234,9 @@ Same backend as the other presets. It can run on this board or on another machin
 
 | Issue | Solution |
 |-------|----------|
-| Port conflict error | Close the program using port 8086 or 3000 |
-| Docker not starting | Open Docker Desktop application |
-| Stops after starting | Make sure you have at least 4GB RAM |
+| Port conflict error | Free up 8086, 3000, 8080 or 1883 — the stack binds all four |
+| Docker not available | Local target: start Docker Desktop. Remote target: make sure the Docker service is running on the device |
+| Not enough disk | The deploy step checks for at least 2 GB free |
 
 ## Step 2: Deploy the Detector {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
@@ -303,9 +303,9 @@ Same backend as the other presets. It can run on this board or on another machin
 
 | Issue | Solution |
 |-------|----------|
-| Port conflict error | Close the program using port 8086 or 3000 |
-| Docker not starting | Open Docker Desktop application |
-| Stops after starting | Make sure you have at least 4GB RAM |
+| Port conflict error | Free up 8086, 3000, 8080 or 1883 — the stack binds all four |
+| Docker not available | Local target: start Docker Desktop. Remote target: make sure the Docker service is running on the device |
+| Not enough disk | The deploy step checks for at least 2 GB free |
 
 ## Step 2: Deploy the Detector {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
@@ -368,9 +368,9 @@ Same backend as the other presets. It can run on this Jetson or on another machi
 
 | Issue | Solution |
 |-------|----------|
-| Port conflict error | Close the program using port 8086 or 3000 |
-| Docker not starting | Open Docker Desktop application |
-| Stops after starting | Make sure you have at least 4GB RAM |
+| Port conflict error | Free up 8086, 3000, 8080 or 1883 — the stack binds all four |
+| Docker not available | Local target: start Docker Desktop. Remote target: make sure the Docker service is running on the device |
+| Not enough disk | The deploy step checks for at least 2 GB free |
 
 ## Step 2: Deploy the Detector {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 

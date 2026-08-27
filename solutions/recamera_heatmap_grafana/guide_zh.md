@@ -34,9 +34,9 @@
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ### 部署目标 {#backend_remote type=remote config=devices/backend_deploy.yaml}
 
@@ -167,9 +167,9 @@ Grafana 面板已经运行。点击下方按钮在浏览器中打开。
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ## 步骤 2: 配置摄像头 {#recamera_pro_app type=recamera_pro_app required=true config=devices/recamera_pro.yaml}
 
@@ -234,9 +234,9 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ## 步骤 2: 部署检测器 {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
@@ -303,9 +303,9 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ## 步骤 2: 部署检测器 {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
@@ -368,9 +368,9 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ## 步骤 2: 部署检测器 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
