@@ -609,18 +609,20 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 
 ## Preset: Tier 2B · Advanced (Multi Site) {#private_cloud_multi}
 
-Self-host the voice AI server, using a cloud API (DeepSeek, OpenAI, etc.) for the LLM only — speech recognition and synthesis run locally. Supports concurrent voice processing across multiple sites. Your data stays on your network; only LLM calls go to the cloud.
+One reComputer Super J4012 runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
 
 | Device | Purpose |
 |--------|---------|
-| SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
-| reComputer Super J4012 | Runs speech recognition and synthesis (OpenVoiceStream), multi-channel concurrent |
+| SenseCAP Watcher × 1-3 | Voice assistant, one per site |
+| reComputer Super J4012 (Jetson Orin NX 16GB) | Runs warehouse system + face recognition (TensorRT) + speech service + voice AI service |
+| USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
-- Full control over your data - inventory stays on your network
-- Flexible AI model choices (DeepSeek, GPT-4, Qwen, etc.)
-- Customize voice assistant prompts and behavior
+- One box per site - no separate gateway to buy, wire or maintain
+- Up to 3 concurrent voice sessions, one Watcher per site
+- High-accuracy face recognition with liveness detection, running on the same Jetson
+- Full control over your data - inventory, faces and speech stay on your network
+- Flexible LLM choices (DeepSeek, GPT-4, Qwen, etc.)
 
 ✅ Face recognition supported
 
@@ -673,13 +675,35 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ---
 
-## Step 3: Warehouse System {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
+## Step 3: Warehouse System + Face Recognition {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
-Deploy the inventory management service with voice control and web dashboard.
+Deploy the inventory management service together with the high-accuracy face recognition service — one Compose file, two containers, both on the J4012. Face inference runs on TensorRT and uses the host's JetPack CUDA/TensorRT (bind-mounted, not baked into the image).
 
-### Target {#warehouse_2b_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
+### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
-Run the warehouse system on this computer.
+Deploy to the reComputer Super J4012.
+
+### Wiring
+
+![Wiring](gallery/R1100_connected.png)
+
+1. Connect the J4012 to power and ethernet, ensure it's on the same network as your computer
+2. Check your router for the J4012's IP address and enter it
+3. Enter username `recomputer`, password `12345678`
+4. Click Deploy and wait for installation to complete
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check ethernet cable, verify IP address is correct |
+| SSH auth failed | Verify credentials, first-time setup requires monitor connection |
+| Face service won't start | Confirm JetPack is installed on the J4012 — the container bind-mounts host CUDA/TensorRT |
+| Face service takes minutes on first start | On a JetPack version other than 6.2 the backend rebuilds the TensorRT engines from ONNX; this is one-off |
+
+### Target {#warehouse_2b_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
+
+Run directly on this machine — only applicable when it is the J4012 itself.
 
 ### Wiring
 
@@ -690,28 +714,8 @@ Run the warehouse system on this computer.
 
 | Issue | Solution |
 |-------|----------|
-| Port in use | Check if port 2125 is used by another service |
-| Docker not running | Start Docker Desktop and retry |
-
-### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
-
-Deploy to the reComputer R2135-12 edge gateway (Hailo-8, required for face recognition).
-
-### Wiring
-
-![Wiring](gallery/R1100_connected.png)
-
-1. Connect J4012 to power and ethernet, ensure it's on the same network as your computer
-2. Check your router for J4012's IP address and enter it
-3. Enter username `recomputer`, password `12345678`
-4. Click Deploy and wait for installation to complete
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Connection timeout | Check ethernet cable, verify IP address is correct |
-| SSH auth failed | Verify credentials, first-time setup requires monitor connection |
+| Port in use | Check if ports 2125 and 8001 are used by another service |
+| Docker not running | Start Docker and retry |
 
 ---
 
@@ -737,9 +741,9 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The voice AI service deployed on the R2135-12 in the next step connects to it.
+Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The voice AI service in the next step lands on the same J4012 and connects to it.
 
-This tier runs speech locally and calls a cloud LLM, so no local large model is deployed.
+This tier runs speech locally and calls a cloud LLM, so no local large model is deployed — that leaves the Jetson's GPU budget for concurrent speech sessions alongside the face recognition service from Step 3.
 
 ### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
@@ -750,10 +754,10 @@ Deploy directly on this machine — only applicable when it is the J4012 itself.
 ### Wiring
 
 1. Connect the J4012 to power and ethernet
-2. If deploying to another device, enter its IP address and SSH credentials
+2. Enter the J4012's IP address and SSH credentials (the same device as Step 3)
 3. Click Deploy and wait for the models to download and the service to start
 
-The service listens on **8621**. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
+The service listens on **8621** and admits **3 concurrent voice sessions**, one per Watcher. A 4th is rejected with `4429 too_many_sessions`. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
 
 > Even when the voice service and the next step land on the same machine, do **not** use `127.0.0.1` — that address is read from inside a container, where `127.0.0.1` points at the container itself and never reaches the host.
 
@@ -765,7 +769,8 @@ The service listens on **8621**. **Note this machine's LAN IP — the next step 
 | Not enough disk space | This step needs at least 15GB free |
 | NVIDIA runtime unavailable | Install nvidia-container-toolkit and restart Docker |
 | Deploy aborts with a container-name conflict | The device already has a hand-installed voice service, or the other tier's voice step. Both claim the same container name and port 8621 and cannot coexist. `docker rm -f` the existing containers as instructed and retry — volumes are untouched |
-| Deployed but 8621 unreachable | Models still loading. Check `docker logs seeed-voice-v091`; ready when `curl localhost:8621/readyz` returns 200 |
+| Deployed but 8621 unreachable | Models still loading. Check `docker logs seeed-voice-v010`; ready when `curl localhost:8621/readyz` returns 200 |
+| A Watcher gets `4429 too_many_sessions` | All 3 lanes are busy. Sessions are released when a conversation ends; check for a Watcher stuck in an open session |
 
 ---
 

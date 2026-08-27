@@ -39,16 +39,20 @@ This solution turns complex system operations into **speaking** — say "Stock i
 
 ### Deployment Options Compared
 
-| Option | Network | Devices | Best For |
-|--------|---------|---------|----------|
-| **SenseCraft Cloud** ⭐Recommended | Internet required | Watcher + R1100/R2000 | Quick start, low cost |
-| **Private Cloud** | Internet required | Watcher + R1100/R2000 | Data privacy, use your own cloud APIs |
-| **Edge Computing** | LAN only | Watcher + R1100/R2000 + AGX Orin | Fully offline, data never leaves facility |
+| Tier | Network | Devices | Best For |
+|------|---------|---------|----------|
+| **Trial · Starter** | Internet required | Watcher | Small warehouse, cloud-hosted by Seeed, monthly subscription |
+| **Tier 1 · Basic** ⭐Recommended | Internet required | Watcher + R1125-10 | Quick start, inventory data stays on your network |
+| **Tier 2A · Advanced (Single Site)** | Internet required | Watcher + R2135-12 | Data privacy, your own AI APIs, one site |
+| **Tier 2B · Advanced (Multi Site)** | Internet required | Watcher ×1-3 + J4012 | Data privacy, your own AI APIs, up to 3 sites on one box |
+| **Tier 3 · Premium** | LAN only | Watcher + R2135-12 + J5011 | Fully offline, data never leaves facility |
 
 ### Cost Notes
 
-- SenseCraft Cloud / Private Cloud: Native voice cost included in Watcher device, no extra fees
-- Edge Computing: Requires separate voice box + AI box deployment, concurrency depends on these boxes' compute capacity
+- Trial: Monthly subscription covering cloud warehouse hosting and voice AI compute
+- Tier 1 / Tier 2A (cloud voice mode): Voice cost is included in the Watcher device, no extra fees
+- Tier 2A (self-hosted voice) / Tier 2B: Voice AI runs against the LLM provider you choose (DeepSeek, OpenAI, etc.), billed by that provider
+- Tier 3: All AI runs locally, no recurring service fees
 
 ### Optional: Face Recognition for Operator Verification
 

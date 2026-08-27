@@ -82,14 +82,18 @@ actions:
         # 不自动删 —— 删掉别人的容器不是本步骤该做的决定。
         CONFLICT=""
         CONFLICT_NAMES=""
-        for NAME in seeed-voice-v091; do
+        # 升级到 v0.10 时旧的 seeed-voice-v091 容器通常还在，且占着 8621，
+        # 所以两个名字都要查出来一并提示清理。
+        for NAME in seeed-voice-v010 seeed-voice-v091; do
           # `|| true`：set -e 下命令替换失败会直接中断脚本。容器不存在、
           # 或 docker 短暂不可用，都应该当作「无冲突」继续，而不是让整个
           # 部署炸在检查环节。
           EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null || true)
           if [ -n "$EXIST" ]; then
             PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || true)
-            if [ "$PROJ" != "smart_warehouse_voice" ]; then
+            # v091 容器即使属于本 project 也必须让位：它和 v010 抢同一个
+            # 容器端口，且模型根路径不同，不能共存。
+            if [ "$PROJ" != "smart_warehouse_voice" ] || [ "$NAME" = "seeed-voice-v091" ]; then
               # 两个串分开：CONFLICT 带 project 供人读，CONFLICT_NAMES 是纯容器名，
               # 供下面拼 docker rm 命令。混用会打印出
               # `docker rm -f name(project=xxx)`，用户照抄进 shell 直接语法报错。
