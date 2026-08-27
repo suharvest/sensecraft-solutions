@@ -609,18 +609,20 @@ SenseCraft 体验版已就绪！
 
 ## 套餐: 套餐二B · 升级版（多点位）{#private_cloud_multi}
 
-自建语音 AI 服务器，调用云端 API（DeepSeek、OpenAI 等）处理语音。数据不经过第三方平台，只有 API 调用。
+一台 reComputer Super J4012 承担整个现场：仓管系统、人脸识别、本地语音服务。语音识别与合成在本地跑，只有大模型调用走云端 API（DeepSeek、OpenAI 等）。最多 3 台 Watcher 共用这一台服务器，每个点位一台。
 
 | 设备 | 用途 |
 |------|------|
-| SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12（Hailo-8） | 运行仓管系统 + 人脸识别 + 语音 AI 服务 |
-| reComputer Super J4012 | 运行语音识别与合成（OpenVoiceStream），支持多路语音并发 |
+| SenseCAP Watcher × 1-3 | 语音助手，每个点位一台 |
+| reComputer Super J4012（Jetson Orin NX 16GB） | 运行仓管系统 + 人脸识别（TensorRT）+ 语音服务 + 语音 AI 服务 |
+| USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
-- 完全掌控数据——库存信息留在自己网络内
-- 自由选择 AI 模型（DeepSeek、GPT-4、通义千问等）
-- 自定义语音助手的提示词和行为
+- 一个点位一台机器，不需要另配网关
+- 最多 3 路语音并发，每个点位一台 Watcher
+- 高精度人脸识别（含活体检测），跑在同一台 Jetson 上
+- 完全掌控数据——库存、人脸、语音都留在自己网络内
+- 自由选择大模型（DeepSeek、GPT-4、通义千问等）
 
 ✅ 支持人脸识别
 
@@ -673,29 +675,13 @@ SenseCraft 体验版已就绪！
 
 ---
 
-## 步骤 3: 仓库管理系统 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
+## 步骤 3: 仓库管理系统 + 人脸识别 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
-部署库存管理服务，支持语音操控和网页看板。
+一并部署库存管理服务与高精度人脸识别服务——同一份 Compose，两个容器，都在 J4012 上。人脸推理走 TensorRT，容器挂载宿主机 JetPack 的 CUDA/TensorRT（不打进镜像）。
 
-### 部署目标 {#warehouse_2b_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
+### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
-在本机运行仓库管理服务。
-
-### 接线
-
-1. 确保本机 Docker 已安装并运行
-2. 点击部署按钮启动服务
-
-### 故障排除
-
-| 问题 | 解决方法 |
-|------|----------|
-| 端口被占用 | 检查 2125 端口是否被其他服务使用 |
-| Docker 未运行 | 启动 Docker Desktop 后重试 |
-
-### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
-
-部署到 reComputer R2135-12 边缘网关（带 Hailo-8，人脸识别需要它）。
+部署到 reComputer Super J4012。
 
 ### 接线
 
@@ -712,6 +698,24 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | 连接超时 | 检查网线是否插好，确认 IP 地址正确 |
 | SSH 认证失败 | 确认用户名密码正确，首次使用需接显示器完成初始设置 |
+| 人脸服务起不来 | 确认 J4012 装了 JetPack——容器挂载的是宿主机的 CUDA/TensorRT |
+| 人脸服务首次启动要几分钟 | JetPack 版本不是 6.2 时后端会从 ONNX 重建 TensorRT engine，只发生一次 |
+
+### 部署目标 {#warehouse_2b_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
+
+直接在本机运行——仅当本机就是 J4012 时适用。
+
+### 接线
+
+1. 确保本机 Docker 已安装并运行
+2. 点击部署按钮启动服务
+
+### 故障排除
+
+| 问题 | 解决方法 |
+|------|----------|
+| 端口被占用 | 检查 2125 与 8001 端口是否被其他服务使用 |
+| Docker 未运行 | 启动 Docker 后重试 |
 
 ---
 
@@ -737,7 +741,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 5: 语音服务 {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步在 R2135-12 上部署的语音 AI 服务会连接到它。
+在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步的语音 AI 服务落在同一台 J4012 上，连接到它。
 
 本套餐只在本地跑语音，大模型调用云端 API，所以不部署本地大模型。
 
@@ -750,10 +754,10 @@ SenseCraft 体验版已就绪！
 ### 接线
 
 1. 将 J4012 接上电源和网线
-2. 若部署到另一台设备，输入其 IP 地址和 SSH 凭据
+2. 输入 J4012 的 IP 地址和 SSH 凭据（与步骤 3 是同一台设备）
 3. 点击部署，等待模型下载与服务启动
 
-部署完成后服务监听 **8621**。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
+部署完成后服务监听 **8621**，支持 **3 路语音并发**，每台 Watcher 一路，第 4 路会被拒绝并返回 `4429 too_many_sessions`。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
 
 > 即使语音服务与下一步装在同一台机器上，也**不能填 `127.0.0.1`** —— 该地址由容器读取，容器里的 `127.0.0.1` 指向容器自己，连不到宿主服务。
 
@@ -765,7 +769,8 @@ SenseCraft 体验版已就绪！
 | 磁盘空间不足 | 该步骤需要至少 15GB 可用空间 |
 | 提示 NVIDIA runtime 不可用 | 确认已安装 nvidia-container-toolkit 并重启 Docker |
 | 部署中止，提示容器名冲突 | 设备上已手工装过语音服务，或装了另一个套餐的语音步骤。两者抢同一个容器名和 8621 端口，不能共存。按提示 `docker rm -f` 掉原有容器再重试，数据卷不受影响 |
-| 部署完但 8621 不通 | 模型仍在加载。`docker logs seeed-voice-v091` 查看进度，`curl localhost:8621/readyz` 返回 200 才算就绪 |
+| 部署完但 8621 不通 | 模型仍在加载。`docker logs seeed-voice-v010` 查看进度，`curl localhost:8621/readyz` 返回 200 才算就绪 |
+| Watcher 报 `4429 too_many_sessions` | 3 路已占满。会话结束才释放，检查是否有 Watcher 卡在未结束的会话里 |
 
 ---
 
