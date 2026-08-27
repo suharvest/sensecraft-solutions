@@ -55,6 +55,12 @@ services:
     ports:
       - "8621:8000"
     volumes:
+      # 三路并发的 profile 随方案走，不打进镜像：镜像里的模型本体和 worker
+      # 二进制都没有变化，变的只是一个 profile（会话上限、ASR lane 数、
+      # Matcha context pool，以及指向含 thinker-b3 的 artifact revision）。
+      # 启动脚本只校验 profile 名前缀与 runtime 二进制，不校验 profile 内容，
+      # 所以挂进来即可生效，省掉一整轮镜像重建与发布。
+      - ./profiles/jetson-edgellm-v010-orin-nx-matcha-n3.json:/opt/speech/configs/profiles/jetson-edgellm-v010-orin-nx-matcha-n3.json:ro
       - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
       - /usr/src/tensorrt:/usr/src/tensorrt:ro
       - speech-models:/opt/models-v010
