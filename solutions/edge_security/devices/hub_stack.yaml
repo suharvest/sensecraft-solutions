@@ -5,6 +5,16 @@ name_i18n:
   zh: 汇聚 Hub
 type: docker_deploy
 
+# Hub 与 broker 都是纯 x86/ARM 通用容器（edge-security-hub + mosquitto），
+# 不依赖任何加速器，所以本机部署是成立的：跑 SenseCraft Solution App 的
+# 那台机器就能当汇聚点，省掉一台设备和 SSH 配置。
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
 docker:
   compose_file: assets/hub/docker-compose.yml
   compose_dir: assets/hub

@@ -32,6 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Compose filenames must be recognised by the mirror rewrite
+        run: |
+          uv sync
+          uv run python scripts/check_compose_naming.py
       - name: Validate all solutions against the contract
         run: |
           uv sync

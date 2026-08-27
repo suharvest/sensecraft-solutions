@@ -34,9 +34,9 @@
 
 | 问题 | 解决方法 |
 |------|----------|
-| 端口被占用 | 关闭占用 8086 或 3000 端口的程序 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 启动后自动停止 | 确保电脑有至少 4GB 内存 |
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ### 部署目标 {#backend_remote type=remote config=devices/backend_deploy.yaml}
 
@@ -163,6 +163,14 @@ Grafana 面板已经运行。点击下方按钮在浏览器中打开。
 
 ### 部署目标 {#backend_pro_remote type=remote config=devices/backend_deploy.yaml}
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
+
 ## 步骤 2: 配置摄像头 {#recamera_pro_app type=recamera_pro_app required=true config=devices/recamera_pro.yaml}
 
 填入设备的 Web 控制台账号（不是 SSH）、安装点名称，以及步骤 1 那台后端的 MQTT 地址。
@@ -187,6 +195,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 - **数据看板**：http://\<服务器IP\>:3000
 - **实时热力图**：http://\<服务器IP\>:8080
 - **视频网关**：http://\<服务器IP\>:1984 — 摄像头发现与画面预览
+
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 页面无法加载 | 请确认前一个部署步骤已经成功，服务运行正常 |
+| 主机/端口错误 | 如果你部署到远程设备，请用实际的设备 IP 更新地址 |
 
 ---
 
@@ -214,6 +230,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 ### 部署目标 {#backend_rk_remote type=remote config=devices/backend_deploy.yaml}
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
+
 ## 步骤 2: 部署检测器 {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
 通过 SSH 把检测器部署到板卡。选对板卡型号——模型是按 NPU 型号编译的，装错了加载不了。
@@ -238,6 +262,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 - **数据看板**：http://\<服务器IP\>:3000
 - **实时热力图**：http://\<服务器IP\>:8080
 - **视频网关**：http://\<服务器IP\>:1984 — 摄像头发现与画面预览
+
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 页面无法加载 | 请确认前一个部署步骤已经成功，服务运行正常 |
+| 主机/端口错误 | 如果你部署到远程设备，请用实际的设备 IP 更新地址 |
 
 ---
 
@@ -267,6 +299,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 ### 部署目标 {#backend_hailo_remote type=remote config=devices/backend_deploy.yaml}
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
+
 ## 步骤 2: 部署检测器 {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
 通过 SSH 把检测器部署到板卡。部署前会检查 Hailo 运行时版本，不匹配会直接停下来并列出板上实际装的是哪个版本。
@@ -292,6 +332,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 - **数据看板**：http://\<服务器IP\>:3000
 - **实时热力图**：http://\<服务器IP\>:8080
 - **视频网关**：http://\<服务器IP\>:1984 — 摄像头发现与画面预览
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 页面无法加载 | 请确认前一个部署步骤已经成功，服务运行正常 |
+| 主机/端口错误 | 如果你部署到远程设备，请用实际的设备 IP 更新地址 |
+
 ## 套餐: 传统摄像头改造 {#jetson}
 
 手上有 IP 摄像头？加一台 NVIDIA Jetson，让传统摄像头变成智能人流传感器，不用换设备。
@@ -315,6 +363,14 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 ### 部署目标 {#backend_jetson_local type=local config=devices/backend_deploy.yaml default=true}
 
 ### 部署目标 {#backend_jetson_remote type=remote config=devices/backend_deploy.yaml}
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 端口被占用 | 释放 8086、3000、8080 或 1883 —— 这四个端口都会被占用 |
+| Docker 不可用 | 本机部署：启动 Docker Desktop；远程部署：确认设备上 Docker 服务在运行 |
+| 磁盘空间不足 | 部署步骤要求至少 2GB 可用空间 |
 
 ## 步骤 2: 部署检测器 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
@@ -341,5 +397,13 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 - **数据看板**：http://\<服务器IP\>:3000
 - **实时热力图**：http://\<服务器IP\>:8080
 - **视频网关**：http://\<服务器IP\>:1984 — 摄像头发现与画面预览
+
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 页面无法加载 | 请确认前一个部署步骤已经成功，服务运行正常 |
+| 主机/端口错误 | 如果你部署到远程设备，请用实际的设备 IP 更新地址 |
 
 ---

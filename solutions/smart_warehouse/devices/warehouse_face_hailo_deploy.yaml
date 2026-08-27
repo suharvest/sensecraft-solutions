@@ -139,7 +139,12 @@ remote_overrides:
           # 后端自动探测只能拿到 docker 网络地址（172.x），局域网设备连不到。
           # 这里在目标机上算出它自己的局域网 IP 写进 .env，compose 会替换
           # ${WAREHOUSE_DEVICE_BASE_URL}。
-          COMPOSE_DIR="/home/{{username}}/mcp_warehouse"
+          # .env 必须与 compose 文件同目录 —— docker compose 是按 compose 所在
+          # 目录找 .env 的。引擎把上传内容放在 remote_path/<device_id>/，写在
+          # remote_path 根下等于没写：容器照常起、healthcheck 照常过，只有
+          # 人脸库下发时才会因为地址为空而失败，是最难查的那类静默失败。
+          # 2026-08-27 客户 Jetson 上实测：根目录 .env 完全没被读到。
+          COMPOSE_DIR="{{remote_path}}/{{device_id}}"
           HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
           ENV_FILE="$COMPOSE_DIR/.env"
           if [ -z "$HOST_IP" ]; then

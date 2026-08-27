@@ -346,6 +346,12 @@ hub 和检测器，都不需要在这里装任何东西。
 
 ### 部署目标 {#hub_host_machine type=remote device_name="Hub Host" config=devices/hub_stack.yaml default=true}
 
+### 部署目标 {#hub_local type=local config=devices/hub_stack.yaml}
+
+在本机运行 Hub —— 也就是跑 SenseCraft Solution 的这台。Hub 与 broker 都是
+不依赖加速器的普通容器，不用另配机器、也不用配 SSH。其他板子上的检测器
+照样通过 MQTT 汇报。
+
 ## 步骤 2: 打开告警工作台 {#dashboard_edge_security_hub_only type=web_dashboard required=true config=devices/hub_dashboard.yaml}
 
 登录并改密；在检测器接入之前，设备列表是空的。
