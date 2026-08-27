@@ -157,39 +157,37 @@ intro:
         zh: 需要外网 · SenseCraft 语音 · 本地高精度人脸识别（含活体检测）
     - id: private_cloud_multi
       name: Tier 2B · Advanced (Multi Site)
-      description: Self-hosted AI, supports face recognition, multi-channel concurrent voice
+      description: One Jetson runs everything on site - warehouse, face recognition and local speech - shared by up to 3 Watchers
       device_groups:
         - id: watcher
           name: Voice Assistant
-          type: single
+          type: quantity
           required: true
-          options:
-            - device_ref: sensecap_watcher
-          default: sensecap_watcher
+          device_ref: sensecap_watcher
+          min_count: 1
+          max_count: 3
+          default_count: 3
+          description: One per site; the local speech service admits up to 3 concurrent sessions
           name_i18n:
             zh: 语音助手
-        - id: edge_gateway
-          name: Edge Gateway
-          type: single
-          required: true
-          options:
-            - device_ref: recomputer_r21_industrial
-          default: recomputer_r21_industrial
-          name_i18n:
-            zh: 边缘网关
-        - id: ai_compute
-          name: AI Compute
+          description_i18n:
+            zh: 每个点位一台，本地语音服务最多接纳 3 路并发会话
+        - id: edge_server
+          name: Edge Server
           type: single
           required: true
           options:
             - device_ref: recomputer_j40
           default: recomputer_j40
+          description: Runs the warehouse system, face recognition and the local speech service
           name_i18n:
-            zh: AI 算力
+            zh: 边缘服务器
+          description_i18n:
+            zh: 运行仓库系统、人脸识别与本地语音服务
       name_i18n:
         zh: 套餐二B · 升级版（多点位）
       description_i18n:
-        zh: 需要外网 · 本地 AI 服务 · 支持人脸识别 · 多路语音并发
+        zh: 需要外网 · 一台 J4012 全包：仓库系统 + 人脸识别 + 本地语音 · 最多 3 路语音并发
     - id: edge_computing
       name: Tier 3 · Premium
       description: Pure LAN, fully offline, supports face recognition

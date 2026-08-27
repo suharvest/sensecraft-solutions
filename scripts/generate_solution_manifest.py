@@ -14,6 +14,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import time
 import sys
@@ -40,6 +41,8 @@ _JUNK_SUFFIXES = {".pyc", ".pyo"}
 # before giving up; never degrade silently.
 _CHECK_IGNORE_ATTEMPTS = 3
 _CHECK_IGNORE_BACKOFF = 0.15
+# "not a git repository" is a permanent, expected state — not a transient fault.
+_NOT_A_REPO_RE = re.compile(r"not a git repository", re.I)
 
 
 def _filter_gitignored(files: list[Path], solution_dir: Path) -> list[Path]:
@@ -75,6 +78,11 @@ def _filter_gitignored(files: list[Path], solution_dir: Path) -> list[Path]:
             if proc.returncode in (0, 1):
                 ignored = {line for line in proc.stdout.splitlines() if line}
                 return [p for p in files if rel[p] not in ignored]
+            if _NOT_A_REPO_RE.search(proc.stderr or ""):
+                # git works, this tree just isn't under version control
+                # (source tarball, vendored copy). Same documented degraded
+                # mode as git being absent — retrying cannot change it.
+                return _denylist_only(files)
             last_error = (
                 f"exit {proc.returncode}: {proc.stderr.strip() or '(no stderr)'}"
             )
