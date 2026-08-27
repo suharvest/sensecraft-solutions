@@ -1976,6 +1976,17 @@
         "zh-hans": "reTerminal 5 英寸 HMI"
       }
     },
+    "reterminal_d1001": {
+      "axes": {},
+      "sku_attrs": [
+        {}
+      ],
+      "title": {
+        "en": "reTerminal D1001",
+        "ja": "reTerminal D1001",
+        "zh-hans": "reTerminal D1001"
+      }
+    },
     "reterminal_dm": {
       "axes": {
         "camera_poe": {
@@ -3533,6 +3544,6 @@
       }
     }
   },
-  "family_count": 117,
+  "family_count": 118,
   "schema_version": 1
 }
