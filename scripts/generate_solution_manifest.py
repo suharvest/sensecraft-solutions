@@ -15,6 +15,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+import time
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -35,6 +36,11 @@ def sha256_file(path: Path) -> str:
 _JUNK_NAMES = {".DS_Store", "__pycache__", ".pytest_cache", ".venv", "Thumbs.db"}
 _JUNK_SUFFIXES = {".pyc", ".pyo"}
 
+# git can fail transiently (index.lock held by a concurrent command). Retry
+# before giving up; never degrade silently.
+_CHECK_IGNORE_ATTEMPTS = 3
+_CHECK_IGNORE_BACKOFF = 0.15
+
 
 def _filter_gitignored(files: list[Path], solution_dir: Path) -> list[Path]:
     """Drop files git would ignore (single batched ``git check-ignore`` call).
@@ -48,21 +54,45 @@ def _filter_gitignored(files: list[Path], solution_dir: Path) -> list[Path]:
     # ignore rules like ``solutions/x/assets/docker/agent/`` resolve correctly;
     # git echoes each ignored path back verbatim.
     rel = {p: p.relative_to(solution_dir).as_posix() for p in files}
-    try:
-        proc = subprocess.run(
-            ["git", "check-ignore", "--stdin"],
-            input="\n".join(rel.values()),
-            cwd=solution_dir,
-            capture_output=True,
-            text=True,
-        )
-        # rc 0 = some ignored, 1 = none ignored; anything else = git error.
-        if proc.returncode in (0, 1):
-            ignored = {line for line in proc.stdout.splitlines() if line}
-            return [p for p in files if rel[p] not in ignored]
-    except (OSError, ValueError):
-        pass
-    # Fallback: no git — drop obvious junk by name/suffix.
+    last_error: str | None = None
+    for attempt in range(_CHECK_IGNORE_ATTEMPTS):
+        try:
+            proc = subprocess.run(
+                ["git", "check-ignore", "--stdin"],
+                input="\n".join(rel.values()),
+                cwd=solution_dir,
+                capture_output=True,
+                text=True,
+            )
+        except FileNotFoundError:
+            # git genuinely absent (source tarball, minimal image): the static
+            # denylist is the documented degraded mode.
+            return _denylist_only(files)
+        except (OSError, ValueError) as exc:  # transient: pipe/exec hiccup
+            last_error = f"{type(exc).__name__}: {exc}"
+        else:
+            # rc 0 = some ignored, 1 = none ignored; anything else = git error.
+            if proc.returncode in (0, 1):
+                ignored = {line for line in proc.stdout.splitlines() if line}
+                return [p for p in files if rel[p] not in ignored]
+            last_error = (
+                f"exit {proc.returncode}: {proc.stderr.strip() or '(no stderr)'}"
+            )
+        if attempt + 1 < _CHECK_IGNORE_ATTEMPTS:
+            time.sleep(_CHECK_IGNORE_BACKOFF * (attempt + 1))
+
+    # git is present but keeps failing (index.lock contention, a broken repo,
+    # resource exhaustion). Degrading to the denylist here would silently ship
+    # git-ignored build context into a published OTA zip, so refuse instead.
+    raise RuntimeError(
+        f"git check-ignore failed {_CHECK_IGNORE_ATTEMPTS}x in {solution_dir} "
+        f"({last_error}). Refusing to fall back to the static denylist: it does "
+        "not know this repository's .gitignore and would package build context."
+    )
+
+
+def _denylist_only(files: list[Path]) -> list[Path]:
+    """Name/suffix denylist — only for when git is not installed at all."""
     return [
         p
         for p in files
