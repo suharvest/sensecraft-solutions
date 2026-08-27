@@ -228,12 +228,18 @@ remote_overrides:
           zh: 准备工作目录
         timeout: 120
         run: |
-          WORKDIR="/home/{{username}}/xiaozhi_voice"
+          WORKDIR="{{remote_path}}"
           # compose 里的相对挂载（./data 等）按 **compose 文件所在目录** 解析，
-          # 而 compose 被上传到 remote_path/assets/docker/ 下。目录必须建在那儿，
-          # 建在 remote_path 根下会错位、配置永远读不到。真机实测踩过。
-          # （引擎不支持 project_directory 选项，只能脚本这边对齐。）
-          COMPOSE_DIR="$WORKDIR/assets/docker"
+          # 所以目录必须建在引擎实际放 compose 的地方，建在别处会错位、
+          # 配置永远读不到。真机实测踩过。
+          #
+          # 引擎把上传内容放在 remote_path/<device_id>/，不是 remote_path 根下，
+          # 也不是 assets/docker/。早先版本是后者，脚本硬编码了那个布局，
+          # 引擎改版后就对不上了 —— 2026-08-27 在客户机上炸出来：
+          # 「找不到配置模板 .../assets/docker/configs/config-console.yaml」，
+          # 而文件其实好好躺在 .../xiaozhi_console_deploy/configs/ 下。
+          # 用占位符而不是拼字符串，引擎再改布局也不会再错位。
+          COMPOSE_DIR="$WORKDIR/{{device_id}}"
           mkdir -p "$COMPOSE_DIR/data" "$COMPOSE_DIR/uploadfile"
 
           # 未命中的 {{}} 会被静默替换成空串，这里显式自检，避免后续拼出畸形地址
@@ -250,8 +256,8 @@ remote_overrides:
           zh: 渲染 .config.yaml
         timeout: 60
         run: |
-          WORKDIR="/home/{{username}}/xiaozhi_voice"
-          COMPOSE_DIR="$WORKDIR/assets/docker"
+          WORKDIR="{{remote_path}}"
+          COMPOSE_DIR="$WORKDIR/{{device_id}}"
           TPL="$COMPOSE_DIR/configs/config-console.yaml"
           if [ ! -f "$TPL" ]; then
             echo "找不到配置模板：$TPL"
@@ -276,8 +282,8 @@ remote_overrides:
         # curl/docker 单条失败不要中断整段，脚本内部自己判断并给出可读的错误
         fail_fast: false
         run: |
-          WORKDIR="/home/{{username}}/xiaozhi_voice"
-          COMPOSE_DIR="$WORKDIR/assets/docker"
+          WORKDIR="{{remote_path}}"
+          COMPOSE_DIR="$WORKDIR/{{device_id}}"
           VOICE_HOST="{{voice_ai_host}}"
           LLM_HOST="{{llm_host}}"
           DEPLOY_MODE="{{deploy_mode}}"
