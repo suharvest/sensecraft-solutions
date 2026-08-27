@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 import urllib.error
 import urllib.request
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -153,12 +153,25 @@ def check_referenced_device_assets(sol_dir: Path, sol_data: dict) -> list[str]:
             continue
         if not isinstance(data, dict):
             continue
+        # ESP32-style partition entries resolve relative to the firmware
+        # source's own directory (mirrors the engine's resolution order).
+        firmware = data.get("firmware") if isinstance(data.get("firmware"), dict) else {}
+        source = firmware.get("source") if isinstance(firmware.get("source"), dict) else {}
+        src_path = source.get("path")
+        src_dir = None
+        if isinstance(src_path, str) and src_path and not _is_url(src_path):
+            parent = PurePosixPath(src_path).parent
+            if str(parent) != ".":
+                src_dir = sol_dir / parent
         for label, ref in _iter_device_refs(data, ""):
             if not ref or _is_url(ref):
                 continue
             # Resolve relative to solution dir (engine base_path) OR relative
-            # to the device YAML's parent (handles ../ style references).
+            # to the device YAML's parent (handles ../ style references) OR,
+            # for partition files, relative to dirname(firmware.source.path).
             if (sol_dir / ref).exists() or (dev_file.parent / ref).exists():
+                continue
+            if src_dir is not None and "partitions[" in label and (src_dir / ref).exists():
                 continue
             errors.append(
                 f"device asset not found: devices/{dev_file.name}:{label} -> {ref!r}"
