@@ -205,6 +205,39 @@ scp package.deb recamera@192.168.42.1:/tmp/ && ssh recamera@192.168.42.1 "opkg i
 - 下载脚本里不要硬编码 `huggingface.co`，用环境变量 `HF_ENDPOINT` / `HF_ENDPOINT_HOST` 控制 endpoint，受限网络下可切换镜像
 - 验收：下载脚本的 curl/wget 命令里不出现硬编码 `huggingface.co`（注释里写没关系）
 
+### Phase 2.6: Docker 镜像与受限网络
+
+引擎会在部署时探测目标设备的网络，判定为受限网络（CN）后**自动把 compose 里的公共镜像改写成国内镜像源**（`mysql:latest` → `docker.m.daocloud.io/library/mysql:latest`）。作者不用自己配镜像源，但要满足两个前提，否则重写会被静默跳过。
+
+**1. compose 文件名必须能被引擎识别**
+
+引擎只对它认得的文件名做重写，判定规则见 `docker_remote_deployer._looks_like_compose_file`：
+
+| 写法 | 是否识别 |
+|---|---|
+| `docker-compose.yml` / `compose.yaml` | ✓ |
+| `docker-compose.face-jetson.yml`（点号限定） | ✓ |
+| `docker-compose-jetson-voice.yml`（连字符限定） | ✓ |
+| `voice-stack.yml`、`my-compose.yaml` | ✗ |
+
+不被识别的文件原样上传，公共镜像直连 Docker Hub，在国内部署超时失败，**而日志只报 `Pull failed`，完全指不回文件名**。2026-08-27 客户 Jetson 上踩过（smart_warehouse 步骤 6，`mysql:latest` / `redis:8.0` 拉不下来）。
+
+CI 的 `scripts/check_compose_naming.py` 会拦住不合规的命名。
+
+**2. 私有 registry 的镜像不会被改写**
+
+第一段含 `.` 或 `:` 的镜像（如 `sensecraft-missionpack.seeed.cn/solution/xxx`）被视为已固定到特定 registry，引擎跳过不动。这是对的——自建 registry 本来就该直连。所以**自建镜像要确保国内可达**，别指望镜像源兜底。
+
+**3. action 脚本里自己拉的镜像用 `${DOCKER_REGISTRY_PREFIX}`**
+
+`before` / `after` 动作里如果有 `docker run`/`docker pull`，compose 重写管不到，要显式加前缀变量：
+
+```bash
+docker run --rm ${DOCKER_REGISTRY_PREFIX}alpine sh -c '...'
+```
+
+该变量由引擎按探测结果注入，非受限网络下为空串，不影响。
+
 ---
 
 ## Phase 3: 整理配置文件
@@ -514,6 +547,7 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
 uv run python scripts/ci/validate_product_families.py
+uv run python scripts/check_compose_naming.py
 ```
 
 **人眼自检清单**（工具查不到的）：
@@ -526,6 +560,9 @@ uv run python scripts/ci/validate_product_families.py
 - [ ] technical 首屏不是端口表或 curl；首段专业缩写不超过 2 个，并有通俗解释
 - [ ] 产品硬件已从 `spec/product-family-manifest.json` 选择 family；能力要求只写 `purchase.require`，没有具体 SKU
 - [ ] `device_catalog` key、`device_ref` 和 default 使用同一 `family_id`；只有确无 family 时才使用并说明 `generic_` / `external_`
+- [ ] compose 文件名以 `docker-compose` / `compose` 开头（见 Phase 2.6）；否则镜像源重写被静默跳过，受限网络下拉公共镜像超时
+- [ ] action 脚本里自己 `docker run` / `docker pull` 的镜像带上 `${DOCKER_REGISTRY_PREFIX}` 前缀
+- [ ] 自建 registry 的镜像国内可达（引擎不会给私有 registry 加镜像源前缀）
 
 ---
 
