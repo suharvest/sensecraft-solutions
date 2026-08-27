@@ -390,7 +390,9 @@ from `mosquitto` to this machine's address and restart that detector.
 
 ## Step 1: Deploy the Hub {#deploy_edge_security_hub_only type=docker_deploy required=true config=devices/hub_stack.yaml}
 
-Enter the machine's address; the broker and the hub are installed and started.
+The broker and the hub are installed and started. Both are plain containers with
+no accelerator dependency, so they can run either on this machine or on a
+separate always-on box.
 
 ### Prerequisites
 
@@ -413,6 +415,12 @@ Enter the machine's address; the broker and the hub are installed and started.
 | Alerts stop after the first few | Check `handler_errors` in `/api/health`. A non-zero and rising count means messages are being dropped inside the hub rather than never arriving. |
 
 ### Target {#hub_host_machine type=remote device_name="Hub Host" config=devices/hub_stack.yaml default=true}
+
+### Target {#hub_local type=local config=devices/hub_stack.yaml}
+
+Run the hub on this machine — the one running SenseCraft Solution. The hub and
+the broker are plain containers with no accelerator dependency, so no separate
+box or SSH setup is needed. Detectors on other boards still report in over MQTT.
 
 ## Step 2: Open the Alert Workbench {#dashboard_edge_security_hub_only type=web_dashboard required=true config=devices/hub_dashboard.yaml}
 

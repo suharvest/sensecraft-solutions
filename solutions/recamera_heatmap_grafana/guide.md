@@ -157,6 +157,14 @@ Same backend as the AI Camera Direct preset. Skip if you already deployed it.
 
 ### Target {#backend_pro_remote type=remote config=devices/backend_deploy.yaml}
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port conflict error | Close the program using port 8086 or 3000 |
+| Docker not starting | Open Docker Desktop application |
+| Stops after starting | Make sure you have at least 4GB RAM |
+
 ## Step 2: Configure the Camera {#recamera_pro_app type=recamera_pro_app required=true config=devices/recamera_pro.yaml}
 
 Enter the device's web console credentials (not SSH), an installation name, and the MQTT address of the backend from step 1.
@@ -188,6 +196,14 @@ Both services start automatically with Step 1.
 - No data? Check that reCamera is connected (Step 2)
 - Can't open pages? Run `docker ps` to check services are running
 
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
+| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
+
 ---
 
 ## Preset: IP Camera + Rockchip NPU {#rk}
@@ -214,6 +230,14 @@ Same backend as the other presets. It can run on this board or on another machin
 
 ### Target {#backend_rk_remote type=remote config=devices/backend_deploy.yaml}
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port conflict error | Close the program using port 8086 or 3000 |
+| Docker not starting | Open Docker Desktop application |
+| Stops after starting | Make sure you have at least 4GB RAM |
+
 ## Step 2: Deploy the Detector {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
 Deploys the detector to the board over SSH. Pick the right board — the model is compiled per NPU and the wrong one will not load.
@@ -238,6 +262,14 @@ If the backend runs on this same board, leave the MQTT address at `127.0.0.1`.
 - **Dashboard**: http://\<server-ip\>:3000
 - **Live Heatmap**: http://\<server-ip\>:8080
 - **Video gateway**: http://\<server-ip\>:1984 — camera discovery and preview
+
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
+| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
 
 ---
 
@@ -267,6 +299,14 @@ Same backend as the other presets. It can run on this board or on another machin
 
 ### Target {#backend_hailo_remote type=remote config=devices/backend_deploy.yaml}
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port conflict error | Close the program using port 8086 or 3000 |
+| Docker not starting | Open Docker Desktop application |
+| Stops after starting | Make sure you have at least 4GB RAM |
+
 ## Step 2: Deploy the Detector {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
 Deploys the detector over SSH. The Hailo runtime version is checked first — a mismatch stops here and names what is actually installed.
@@ -292,6 +332,14 @@ The model is downloaded from Hailo's own Model Zoo and verified by sha256; it is
 - **Dashboard**: http://\<server-ip\>:3000
 - **Live Heatmap**: http://\<server-ip\>:8080
 - **Video gateway**: http://\<server-ip\>:1984 — camera discovery and preview
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
+| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
+
 ## Preset: Upgrade Existing Cameras {#jetson}
 
 Already have IP cameras? Add an NVIDIA Jetson and they become people-flow sensors — no need to replace them.
@@ -315,6 +363,14 @@ Same backend as the other presets. It can run on this Jetson or on another machi
 ### Target {#backend_jetson_local type=local config=devices/backend_deploy.yaml default=true}
 
 ### Target {#backend_jetson_remote type=remote config=devices/backend_deploy.yaml}
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port conflict error | Close the program using port 8086 or 3000 |
+| Docker not starting | Open Docker Desktop application |
+| Stops after starting | Make sure you have at least 4GB RAM |
 
 ## Step 2: Deploy the Detector {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
@@ -341,5 +397,13 @@ Deploys the detector to the Jetson over SSH.
 - **Dashboard**: http://\<server-ip\>:3000
 - **Live Heatmap**: http://\<server-ip\>:8080
 - **Video gateway**: http://\<server-ip\>:1984 — camera discovery and preview
+
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
+| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
 
 ---
