@@ -9,12 +9,26 @@
 # 引擎产物强绑定，改任何一项都会导致启动失败。
 #
 # 端口：8621（容器内 8000）。要求 NVIDIA container runtime。
+#
+# 三路并发（套餐二B 多点位）：走 v0.10 栈。
+#
+# ASR worker 会把 lane 数 clamp 到 engine 的物理 batch（qwen3_asr_worker.cpp
+# 的 asrMax = min(--max_slots, runtime->maxSessionBatchSize())），b1/b2 engine
+# 永远给不出三路，而且是静默降级 —— v091 和 v010 的现成 profile 都犯了这个错：
+# 声明 max_concurrent_sessions=2，engine 却指向 thinker-b1。
+#
+# 所以这里必须同时满足两件事：镜像是 v010（worker/plugin 与 engine 同代），
+# profile 是带 batch-3 engine 的 n3 变体。engine 已在 Orin NX 上编出并验证
+# （worker ready 报 max_slots=3），但尚未发布到 HF、也未进 release lock，
+# 因此 profile 还不存在，本文件在那之前不可发布 —— 启动会直接失败，
+# 这是刻意的，好过静默跑成一路。
+# 构建、验证与发布步骤见 seeed-local-voice/docs/three-lane-orin-nx.md。
 
 services:
   # ASR + TTS + 声纹，同一进程同一端口
   speech:
-    container_name: seeed-voice-v091
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox080a0}
+    container_name: seeed-voice-v010
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v010-20260815-v1}
     runtime: nvidia
     ipc: host
     restart: unless-stopped
@@ -23,9 +37,10 @@ services:
       # compose 也不会继承未声明的变量，所以这里必须显式写。
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
       LANGUAGE_MODE: multilanguage
-      OVS_PROFILE: ${OVS_PROFILE:-jetson-edgellm-v091-matcha}
+      OVS_PROFILE: ${OVS_PROFILE:-jetson-edgellm-v010-orin-nx-matcha-n3}
       OVS_WORKER_IO_QUEUE_WHEN_SATURATED: "0"
-      HF_MODEL_CACHE_ROOT: /opt/models
+      # v0.10 镜像的模型根是 /opt/models-v010（不是 v091 的 /opt/models）。
+      HF_MODEL_CACHE_ROOT: /opt/models-v010
       OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
       TTS_PROVIDER: cuda
       # 运行时注册的音色与 SparkTTS VoiceProfile 属于用户数据，不是模型产物，
@@ -35,18 +50,24 @@ services:
       STREAMING_ASR_PROVIDER: cuda
       CUDA_MODULE_LOADING: LAZY
       OVS_LOG_FORMAT: text
-      PYTHONPATH: /opt/edgellm-v091/python:/opt/speech:/usr/lib/python3.10/dist-packages
+      PYTHONPATH: /opt/edgellm-v010/python:/opt/speech:/usr/lib/python3.10/dist-packages
       LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
     ports:
       - "8621:8000"
     volumes:
       - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
       - /usr/src/tensorrt:/usr/src/tensorrt:ro
-      - speech-models:/opt/models
+      - speech-models:/opt/models-v010
       - seeed-local-voice-data:/opt/seeed-local-voice/data
       - /usr/local/cuda/lib64:/host-cuda:ro
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
+    # 实测（orin-nx, 2026-08-27, docker stats）：v0.10 栈三路并发时容器峰值
+    # 1.72 GiB，与 idle 的 1.70 GiB 几乎无差 —— 推理不额外吃 cgroup 内存，
+    # 开销全在加载态。8g 保持不变（约 4.6x 余量）。
+    # 注意 Jetson 是 unified memory，TensorRT 的显存不计入 cgroup：整机口径
+    # （tegrastats）空机 4330 MB → 服务加载后 6250 MB → 三路推理 6269 MB。
+    # 同一台 J4012 上还并存 warehouse 与 face-rec（TensorRT）两个容器。
     mem_limit: 8g
     memswap_limit: 14g
     healthcheck:
@@ -59,7 +80,10 @@ services:
 
 
 volumes:
+  # v0.10 的产物集与 v091 不同（模型根从 /opt/models 换成 /opt/models-v010），
+  # 因此换新卷而不是复用 speech-models-v091 —— 混用会让 artifact 校验反复重下。
+  # 代价：升级到 v010 后首次启动要重新拉一次模型。
   speech-models:
-    name: ${SPEECH_MODEL_VOLUME:-speech-models-v091}
+    name: ${SPEECH_MODEL_VOLUME:-speech-models-v010}
   seeed-local-voice-data:
     name: seeed-local-voice-data
