@@ -20,7 +20,7 @@ firmware:
   source:
     path: assets/d1001_firmware/xiaozhi.bin
     checksum:
-      sha256: d0eb3d4fe7ccda84bb1a32a2a034239a38fda83433873ee2bdb7c11acbdce608
+      sha256: acc526f5e61ecf99926ac81fdf1ac470adb0b204b4d55daa97cd9a7e5e5689b1
   flash_config:
     chip: esp32p4
     baud_rate: 921600
