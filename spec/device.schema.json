@@ -413,6 +413,36 @@
       "title": "ConflictServiceConfig",
       "type": "object"
     },
+    "CountingConfigPanelConfig": {
+      "description": "People-counting setup panel (``type: counting_config``).\n\nThe panel draws crossing lines and quadrilateral regions on the live\npreview, normalizes them against the current frame resolution and\npushes them with ``AT+CNTLINE`` / ``AT+CNTROI`` / ``AT+CNTCFG``.",
+      "properties": {
+        "default_anchor_mode": {
+          "default": 0,
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Default Anchor Mode",
+          "type": "integer"
+        },
+        "max_lines": {
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Max Lines",
+          "type": "integer"
+        },
+        "max_rois": {
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Max Rois",
+          "type": "integer"
+        }
+      },
+      "title": "CountingConfigPanelConfig",
+      "type": "object"
+    },
     "DebPackageConfig": {
       "description": "Debian package configuration",
       "properties": {
@@ -793,6 +823,34 @@
         "name"
       ],
       "title": "DockerService",
+      "type": "object"
+    },
+    "FaceDatabasePanelConfig": {
+      "description": "Face database panel configuration (``type: face_database``)",
+      "properties": {
+        "database_port": {
+          "$ref": "#/$defs/SerialPortRef"
+        },
+        "enrollment_duration": {
+          "default": 5.0,
+          "title": "Enrollment Duration",
+          "type": "number"
+        },
+        "min_confidence": {
+          "default": 0.5,
+          "title": "Min Confidence",
+          "type": "number"
+        },
+        "min_samples": {
+          "default": 3,
+          "title": "Min Samples",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "database_port"
+      ],
+      "title": "FaceDatabasePanelConfig",
       "type": "object"
     },
     "FileUploadConfig": {
@@ -2611,13 +2669,84 @@
         "display": {
           "$ref": "#/$defs/SerialCameraDisplayConfig"
         },
+        "frame_formats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Formats"
+        },
         "panels": {
           "default": [],
           "items": {
-            "$ref": "#/$defs/SerialCameraPanelConfig"
+            "allOf": [
+              {
+                "$ref": "#/$defs/SerialCameraPanelConfig"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "face_database"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/FaceDatabasePanelConfig"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "counting_config"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/CountingConfigPanelConfig"
+                }
+              }
+            ]
           },
           "title": "Panels",
           "type": "array"
+        },
+        "startup_commands": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/$defs/SerialCameraStartupCommand"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startup Commands"
         }
       },
       "required": [
@@ -2649,7 +2778,8 @@
       "type": "object"
     },
     "SerialCameraPanelConfig": {
-      "description": "A panel attached to the serial camera step",
+      "additionalProperties": true,
+      "description": "A panel attached to the serial camera step.\n\nPanels are polymorphic on ``type``; the concrete shape is owned by the\nmodule that registers that panel type (see\n:class:`FaceDatabasePanelConfig`). Unknown keys are **kept**\n(``extra=\"allow\"``) so a new panel type needs no kernel change.\n\nThe four ``database_port`` / ``enrollment_duration`` / ``min_samples`` /\n``min_confidence`` fields below are **deprecated** flat face fields.\nThey stay declared so existing ``face_enroll.yaml`` files keep\nvalidating with their documented defaults.",
       "properties": {
         "database_port": {
           "anyOf": [
@@ -2686,6 +2816,42 @@
         "type"
       ],
       "title": "SerialCameraPanelConfig",
+      "type": "object"
+    },
+    "SerialCameraStartupCommand": {
+      "description": "One entry of ``serial_camera.startup_commands``\n\n``cmd`` is re-validated at the transport (``write_command``); the bounds\nhere exist so a malformed sequence is rejected at the API/schema edge\ninstead of inside the serial reader thread.",
+      "properties": {
+        "cmd": {
+          "maxLength": 256,
+          "minLength": 3,
+          "pattern": "^\\s*AT\\+[ -~]*$",
+          "title": "Cmd",
+          "type": "string"
+        },
+        "delay": {
+          "default": 0.3,
+          "maximum": 60,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        }
+      },
+      "required": [
+        "cmd"
+      ],
+      "title": "SerialCameraStartupCommand",
       "type": "object"
     },
     "SerialPortRef": {

@@ -1,0 +1,72 @@
+version: '1.0'
+id: people_counting
+name: On-Device People Counting
+name_i18n:
+  zh: 本地人流计数
+intro:
+  summary: Count people crossing a line and standing in a zone — detection, tracking and counting all run on the camera module
+  summary_i18n:
+    zh: 统计越线进出人数和区域实时人数——检测、跟踪、计数全部在摄像头模组本地完成
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  category: sensing
+  solution_type: solution
+  tags:
+    - people_counting
+    - person_detection
+    - tracking
+    - edge_ai
+    - grove_vision_ai
+
+  output_interfaces:
+    - type: serial
+      description: Counting events and per-frame detections over USB serial (SSCMA JSON)
+      schema_type: json
+      description_i18n:
+        zh: 通过 USB 串口输出计数事件与逐帧检测结果（SSCMA JSON）
+  input_requirements:
+    - type: usb
+      description: Grove Vision AI Module V2 connected over USB-C
+      description_i18n:
+        zh: 通过 USB-C 连接的 Grove Vision AI Module V2
+
+  device_catalog:
+    grove_vision_ai:
+      description: Himax WE2 camera module (Cortex-M55 + Ethos-U55 NPU) that runs detection, tracking and counting on device
+      description_i18n:
+        zh: Himax WE2 摄像头模组（Cortex-M55 + Ethos-U55 NPU），在设备本地完成检测、跟踪与计数
+      purchase:
+        require:
+          version: [v2]
+
+  stats:
+    deployed_count: 0
+    likes_count: 0
+    difficulty: beginner
+    estimated_time: 15min
+
+  presets:
+    - id: grove_vision_ai_v2
+      name: Grove Vision AI Module V2
+      name_i18n:
+        zh: Grove Vision AI Module V2
+      description: Flash the counting firmware, draw your lines and zones, and watch the counts update live
+      description_i18n:
+        zh: 烧录计数固件，画好越线和区域，实时看计数结果
+      device_groups:
+        - id: camera_module
+          name: Camera Module
+          name_i18n:
+            zh: 摄像头模组
+          type: single
+          required: true
+          options:
+            - device_ref: grove_vision_ai
+          default: grove_vision_ai
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

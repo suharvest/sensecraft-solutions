@@ -1,0 +1,67 @@
+version: "1.0"
+id: grove_himax
+name: Grove Vision AI V2 People Counting Firmware
+type: himax_usb
+
+# Auto-detection configuration
+detection:
+  method: usb_serial
+  # Grove Vision AI Module V2 uses a WCH CH343 USB-serial bridge.
+  # Note: 0x55D3 is the Grove Vision AI V2 product id (SenseCAP Watcher uses 0x55D2).
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x55d3"
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+    - "/dev/cu.wchusbserial*"
+
+firmware:
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/people_counting/assets/firmware/people_counting-a43a689a.img
+    checksum:
+      sha256: e59a6d170270f5b13293b505cf0d8358856a59915e2ef5fc9a2f03c816c16a7e
+  flash_config:
+    baudrate: 921600
+    protocol: xmodem  # xmodem (128B) or xmodem1k (1024B)
+    timeout: 60
+    # Grove Vision AI V2 is a single-chip board (Himax WE2 only, no companion ESP32),
+    # so no ESP32 reset hold is needed and no manual reset is required.
+    requires_reset: false
+
+    # AI models flashed after the base firmware at fixed flash addresses
+    models:
+      - id: person_detection
+        name: Person Detection (Swift-YOLO Nano 192)
+        path: https://sensecraft-statics.seeed.cc/solution-app/people_counting/assets/models/swift_yolo_person_192_padded.tflite
+        flash_address: "0x700000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: Single-class person detector, 192x192 INT8, Vela-compiled for the Ethos-U55 NPU. 16KB of padding is appended to the official model file to work around an xmodem transfer truncation that occurs about 6KB before the end of file.
+        size_hint: "1.62MB"
+        checksum:
+          sha256: b646a6b6f5c2345413017913cefefc440309ef00980c87e726db685f4b8876a0
+        name_i18n:
+          zh: 人体检测模型 (Swift-YOLO Nano 192)
+        description_i18n:
+          zh: 单类别人体检测模型，192x192 INT8，经 Vela 编译运行在 Ethos-U55 NPU 上。该文件在官方模型尾部补了 16KB 填充，用于绕过 xmodem 传输在距文件末尾约 6KB 处的截断问题。
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: Grove Vision AI Module V2 USB serial port
+    auto_detect: true
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: Grove Vision AI Module V2 的 USB 串口
+
+post_deployment:
+  reset_device: false
+  wait_for_ready: 5
+
+name_i18n:
+  zh: Grove Vision AI V2 人流计数固件
