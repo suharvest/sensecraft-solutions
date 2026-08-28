@@ -14,13 +14,14 @@ detection:
     - "/dev/ttyACM*"
 
 firmware:
-  # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001.
+  # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001,
+  # app segment at commit 8ad7793 (face-wake threshold fix).
   # Multi-segment flash (no merged image: the face-model partition sits at
   # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
   source:
     path: assets/d1001_firmware/xiaozhi.bin
     checksum:
-      sha256: 326e8e31f7c4e457123583f7b7d827476dd8914392504e53797c04c39b82588a
+      sha256: 526f9cf84e9b71a99e4fb13cca251a871c054d63549efb212255a2310c8702de
   flash_config:
     chip: esp32p4
     baud_rate: 921600
