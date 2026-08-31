@@ -15,13 +15,13 @@ detection:
 
 firmware:
   # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001,
-  # app segment at commit 8ad7793 (face-wake threshold fix).
+  # app segment at commit 8f7ac61 (face-wake letterbox + capture-guard fixes).
   # Multi-segment flash (no merged image: the face-model partition sits at
   # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
   source:
     path: assets/d1001_firmware/xiaozhi.bin
     checksum:
-      sha256: 526f9cf84e9b71a99e4fb13cca251a871c054d63549efb212255a2310c8702de
+      sha256: 955f323fd68722b870e75f9b082a2020fcb56a6922b844d114bf46acd2b3f4a8
   flash_config:
     chip: esp32p4
     baud_rate: 921600
