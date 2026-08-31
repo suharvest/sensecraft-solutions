@@ -78,7 +78,7 @@ RTSP 解码与后处理），聚合吞吐取 1–6 个并发上下文中实测�
 | reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
 | reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
 | reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reComputer R（Hailo-8） | YOLOv8s ▲ | 6.9 ms | 59.5 FPS | 3 | 2 |
+| reComputer R（Hailo-8） | YOLOv8s ▲ | 6.9 ms | 393.9 FPS | 26 | 16 |
 | reComputer J（Orin Nano） | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
 | reComputer J（Orin NX） | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
 
@@ -223,6 +223,21 @@ Orin NX Super 在这里比 Orin Nano Super 快 12%，与两者纯加速器吞吐
 （同一 engine 下 173.8 对 155.3 qps）。两个模组都是 1024 CUDA core，而 FP16 GPU 路径
 既不用 DLA 也不用 INT8，所以 TOPS 标称暗示的倍数关系不会出现。
 
+**Hailo-8 多路实测容量（运行时 `0.1.0-rc3`）。** 测试同样使用 640x640 H264、15 FPS
+输入，并以每路至少 14.5 FPS 为通过线。默认 YOLOv8s-Pose HEF 是 single-context，继续走
+现有 `hailonet` 路径。官方 Model Zoo v2.19 的 YOLOv8m-Pose HEF 有 3 个 context；rc3 会识别
+这种布局并自动切换到共享 direct-HailoRT batch。
+
+| 姿态模型 | 运行路径 | 15 FPS 下最大路数 | 聚合吞吐 |
+|---|---|---:|---:|
+| YOLOv8s-Pose | single-context `hailonet` | 16 | 233.6 FPS |
+| YOLOv8m-Pose | shared auto-batch | 5 | 75.0 FPS |
+
+M 模型 5 路时，设备 CPU 为 72.5%、RSS 为 234,368 KiB、温度 63.9 C。提升来自完整 batch
+补齐，以及单一共享 runner 关闭调度等待；官方 HEF 没有重新编译。两组路数边界测试都关闭了
+MQTT，因此这里描述的是视频到跟踪器的运行时容量，不是 broker 吞吐。当前部署预设仍是单路
+并下载 S 模型；把 `HEF_PATH` 指向 M HEF 时 rc3 已能运行。模型选择器与多摄像头表单后续再做。
+
 换到一个独立的外部数据集（RealBiomFall，34 段全部为跌倒），在该数据集上实测的两
 个配置召回都会下降——reCamera 是 58.8%，reComputer J 上部署版 YOLO11m 是 52.9%；
 YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮挡的情况下，人本身就几
@@ -245,7 +260,8 @@ YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮
 reComputer 套餐可以用一台设备接入多路摄像头，并把流编号拼在主题后面
 （`recamera/fall-detection/results/cam-01`），下游能把每路分开处理。本方案端到端
 部署预设配的是单路；多路容量另行实测，YOLO11s 按 15 FPS 输入时 Orin Nano Super 8 路、
-Orin NX Super 9 路、AGX Orin 16 路（见性能一节）。那组实测每路用的是同一段循环片源，
+Orin NX Super 9 路、AGX Orin 16 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见性能一节）。
+这些实测每路用的是同一段循环片源，
 所以正式定路数前仍要用你自己的摄像头、编码和场景人数跑一遍。
 
 ## 方案对比
@@ -261,9 +277,9 @@ Orin NX Super 9 路、AGX Orin 16 路（见性能一节）。那组实测每路�
 加速的视频通路。在板卡其他业务未停的情况下，实测端到端吞吐 RK3588 约 8.6 FPS、
 RK3576 约 4.9 FPS。
 
-**reComputer R（Hailo）** 在 Hailo-8 上跑原生 C++ 热路径，单路稳定 15 FPS，宿主
-CPU 占用很低。已经在用这两类硬件时可以选它们；二者现在都有冻结的时序门限结果，但
-部署状态机的准确率都还没有单独测过。
+**reComputer R（Hailo）** 在 Hailo-8 上跑原生 C++ 热路径。默认 S 模型实测可带 16 路
+15 FPS，官方 M 模型在 rc3 自动切换 shared batch 后可带 5 路。当前部署表单仍配置单路。
+已经安装这类硬件时可以选它；时序门限已经冻结，但部署状态机的准确率还没有单独测过。
 
 ## 使用须知
 

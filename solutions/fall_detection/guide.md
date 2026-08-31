@@ -387,6 +387,7 @@ Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 | `libhailort.so.4.21.0 not found` | This deployment is ABI-locked to HailoRT 4.21; upgrading means changing plugin, library and driver together |
 | Container starts then exits | Another process owns the accelerator; HailoRT contexts are exclusive |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
+| Deployment stops before verification | Check the detector log for the `HAILO_BATCH` line, container health, and an MQTT result on the configured topic |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml default=true}
 

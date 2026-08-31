@@ -139,21 +139,35 @@ remote_overrides:
           zh: 写入摄像头与 MQTT 配置
 
     after:
-      - name: Wait for the detector to publish
-        ignore_error: true
+      - name: Verify the detector is publishing
         timeout: 180
         run: |
-          echo "Waiting for the first results ..."
+          set -e
+          APP=fall_detection_hailo-fall-detection-1
+          BROKER=fall_detection_hailo-mosquitto-1
+          TOPIC="{{device_name}}/fall-detection/results/{{stream_id}}"
+          echo "Waiting for the detector and first MQTT result ..."
           for i in $(seq 1 30); do
-            if docker logs fall_detection_hailo-fall-detection-1 2>&1 | grep -qiE "rtsp|stream|publish|hailo"; then
-              docker logs --tail 20 fall_detection_hailo-fall-detection-1 2>&1 || true
-              exit 0
+            # Split the Docker Go-template braces so the solution template
+            # renderer does not treat them as a user-input placeholder.
+            STATUS=$(docker inspect "$APP" --format '{''{.State.Health.Status}}' 2>/dev/null || true)
+            BATCH=$(docker logs "$APP" 2>&1 | grep -E 'HAILO_BATCH .*backend=(legacy|shared)' | tail -1 || true)
+            if [ "$STATUS" = healthy ] && [ -n "$BATCH" ]; then
+              echo "$BATCH"
+              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null; then
+                echo "MQTT result received on $TOPIC"
+                exit 0
+              fi
             fi
             sleep 5
           done
-          echo "No output yet — check the camera URL and the container logs." >&2
+          STATUS=$(docker inspect "$APP" --format '{''{.State.Health.Status}}' 2>/dev/null || true)
+          echo "container health=${STATUS:-unknown}"
+          docker logs --tail 40 "$APP" 2>&1 || true
+          echo "No verified MQTT result — check the camera URL and the container logs." >&2
+          exit 1
         name_i18n:
-          zh: 等待检测器输出
+          zh: 验证检测器正在发布结果
 
   user_inputs:
     - id: host

@@ -94,7 +94,7 @@ table.
 | reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
 | reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
 | reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reComputer R (Hailo-8) | YOLOv8s ▲ | 6.9 ms | 59.5 FPS | 3 | 2 |
+| reComputer R (Hailo-8) | YOLOv8s ▲ | 6.9 ms | 393.9 FPS | 26 | 16 |
 | reComputer J (Orin Nano) | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
 | reComputer J (Orin NX) | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
 
@@ -239,8 +239,7 @@ ranking inverts: Orin NX measured 264.9 FPS while running its own inference work
 306.2 FPS. Orin Nano measured identically either way (270.5 vs 270.7), because its
 co-resident services never touch the GPU.
 
-reCamera 2002 and Pro are INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8
-(6.9 ms / 59.5 FPS); different model, so it is in neither table.
+reCamera 2002 and Pro are INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8.
 
 **What the presets deploy today:** Jetson FP16, RK FP16, reCamera 2002 and Pro INT8.
 The RK INT8 weights were converted for this comparison and are not shipped yet —
@@ -277,6 +276,25 @@ pure accelerator throughput (173.8 against 155.3 qps for this engine). Both
 modules carry 1024 CUDA cores, and an FP16 GPU path uses neither the DLA nor
 INT8, so the ratio their TOPS ratings suggest does not appear.
 
+**Measured Hailo-8 multi-stream capacity (runtime `0.1.0-rc3`).** The same
+640x640 H264, 15 FPS source and 14.5 FPS pass threshold were used. The default
+YOLOv8s-Pose HEF is single-context and stays on the existing `hailonet` path.
+The official Model Zoo v2.19 YOLOv8m-Pose HEF has three contexts; rc3 detects
+that layout and switches to a shared direct-HailoRT batcher automatically.
+
+| Pose model | Runtime path | Max streams at 15 FPS | Aggregate FPS |
+|---|---|---:|---:|
+| YOLOv8s-Pose | Single-context `hailonet` | 16 | 233.6 |
+| YOLOv8m-Pose | Shared auto-batch | 5 | 75.0 |
+
+At five M-model streams the device used 72.5% CPU, 234,368 KiB RSS and reached
+63.9 C. The M-model gain came from full-batch padding and disabling scheduler
+wait in the single shared runner; the official HEF was not recompiled. MQTT was
+disabled during both capacity-boundary runs, so these figures describe the
+video-to-tracker runtime rather than broker throughput. The deploy preset remains
+single-stream and downloads the S model; rc3 can run the M HEF when `HEF_PATH`
+points to it. A model selector and multi-camera form are deferred.
+
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
 YOLO11m on reComputer J. YOLO11s was not measured on that set. The limiting factor
@@ -303,7 +321,8 @@ nothing downstream has to parse the topic to know where a message came from.
 stream id to the topic (`<device-name>/fall-detection/results/cam-01`), so each camera
 stays separable downstream. The deploy preset configures one stream; multi-stream
 capacity was measured separately at 8 streams on Orin Nano Super, 9 on Orin NX
-Super and 16 on AGX Orin with YOLO11s at 15 FPS (see Performance). Those runs
+Super and 16 on AGX Orin with YOLO11s, plus 16 with Hailo YOLOv8s and 5 with
+Hailo YOLOv8m, at 15 FPS (see Performance). Those runs
 used one looped clip per stream, so measure your own cameras, codec and scene
 density before committing to a count.
 
@@ -323,10 +342,11 @@ board-native temporal profile and a hardware-accelerated video path. Measured
 throughput with other workloads still running was about 8.6 FPS on RK3588 and
 4.9 FPS on RK3576 end to end.
 
-**reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8, holding a steady
-15 FPS per stream with low host CPU. Pick either when you already run that
-hardware; both now have a frozen temporal-gate result, though neither has had its
-deployed state machine measured separately.
+**reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8. The default S
+model carried 16 measured 15 FPS streams; the official M model carried 5 after
+rc3 switched it to shared batching. The current deployment form still configures
+one camera. Pick it when this hardware is already installed; its temporal profile
+is frozen, but the deployed state machine has not been measured separately.
 
 ## Usage Notes
 

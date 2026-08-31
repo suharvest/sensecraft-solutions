@@ -361,6 +361,7 @@ NPU 代替 GPU。
 | 找不到 `libhailort.so.4.21.0` | 本部署锁定 HailoRT 4.21；要升级就得同时换插件、库和驱动 |
 | 容器启动后退出 | 有别的进程占着加速器，HailoRT 上下文是独占的 |
 | 收不到摄像头画面 | 先用 VLC 测试 RTSP 地址，绝大多数问题是路径或用户名密码写错 |
+| 部署在验证阶段停止 | 检查检测器日志中的 `HAILO_BATCH` 行、容器健康状态和配置主题上的 MQTT 结果 |
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml default=true}
 
