@@ -80,6 +80,11 @@ class WiringInfo:
 
     image: Optional[str] = None
     steps: Localized[list[str]] = field(default_factory=lambda: Localized())
+    # Everything in the section that is not the image, a list item or a table
+    # row: lead-ins, trailing explanations, ``> **Note:**`` callouts, fenced
+    # commands. Rendered below the step list. Kept as HTML like the other
+    # prose fields. Before this existed the parser silently dropped it.
+    notes: Localized[str] = field(default_factory=lambda: Localized())
 
 
 @dataclass
@@ -356,7 +361,7 @@ def _split_table_row(line: str) -> list[str]:
     return [cell.strip() for cell in inner.split("|")]
 
 
-def extract_wiring_for_lang(content: str) -> tuple[Optional[str], list[str]]:
+def extract_wiring_for_lang(content: str) -> tuple[Optional[str], list[str], str]:
     """Extract wiring image and steps from content for a single language.
 
     Stage-2 (AST-migration) behavior: steps are collected from ordered lists,
@@ -389,7 +394,7 @@ def extract_wiring_for_lang(content: str) -> tuple[Optional[str], list[str]]:
         content: Markdown content for one language
 
     Returns:
-        Tuple of (image_path, steps_list)
+        Tuple of (image_path, steps_list, notes_markdown)
     """
     image = None
 
@@ -399,7 +404,50 @@ def extract_wiring_for_lang(content: str) -> tuple[Optional[str], list[str]]:
         image = imgs[0]
 
     steps = _extract_wiring_steps(content)
-    return image, steps
+    notes = _extract_wiring_notes(content)
+    return image, steps, notes
+
+
+IMAGE_ONLY_PATTERN = re.compile(r"^!\[[^\]]*\]\([^)]*\)\s*$")
+
+
+def _extract_wiring_notes(content: str) -> str:
+    """Return the wiring section's prose — everything ``_extract_wiring_steps``
+    and the image extraction do NOT consume.
+
+    Dropped by the step collector and therefore invisible until now: lead-in
+    sentences, trailing explanations after the numbered list, ``> **Note:**``
+    callouts (excluded from steps by design) and fenced command blocks.
+
+    Consumed elsewhere, so skipped here: the image line, list items at any
+    indent (nested items are merged into their parent step) and table rows.
+    Blank lines are preserved so paragraph and block-quote structure survives
+    the markdown -> HTML conversion.
+    """
+    lines = content.split("\n")
+    unfenced_idx = {idx for idx, _ in md_ast.iter_unfenced_lines(lines)}
+
+    kept: list[str] = []
+    for i, raw in enumerate(lines):
+        stripped = raw.strip()
+        if not stripped:
+            kept.append("")
+            continue
+        if i not in unfenced_idx:
+            # Inside a fenced block (or the fence line itself): keep verbatim.
+            kept.append(raw)
+            continue
+        if IMAGE_ONLY_PATTERN.match(stripped):
+            continue
+        if stripped.startswith("|"):
+            continue
+        if ORDERED_LIST_PATTERN.match(stripped) or UNORDERED_LIST_PATTERN.match(
+            stripped
+        ):
+            continue
+        kept.append(raw)
+
+    return "\n".join(kept).strip()
 
 
 def _extract_wiring_steps(content: str) -> list[str]:
@@ -494,18 +542,24 @@ def extract_wiring(content: str, content_zh: str = "") -> Optional[WiringInfo]:
     Returns:
         WiringInfo with Localized steps, or None if no wiring content
     """
-    image, steps_en = extract_wiring_for_lang(content)
+    image, steps_en, notes_en = extract_wiring_for_lang(content)
 
-    if not image and not steps_en:
+    if not image and not steps_en and not notes_en:
         return None
 
-    wiring = WiringInfo(image=image, steps=Localized({"en": steps_en}))
+    wiring = WiringInfo(
+        image=image,
+        steps=Localized({"en": steps_en}),
+        notes=Localized({"en": md_to_html(notes_en)} if notes_en else {}),
+    )
 
     # Extract Chinese steps if provided
     if content_zh:
-        _, steps_zh = extract_wiring_for_lang(content_zh)
+        _, steps_zh, notes_zh = extract_wiring_for_lang(content_zh)
         if steps_zh:
             wiring.steps.set("zh", steps_zh)
+        if notes_zh:
+            wiring.notes.set("zh", md_to_html(notes_zh))
 
     return wiring
 
@@ -522,18 +576,23 @@ def extract_wiring_multilang(lang_contents: Dict[str, str]) -> Optional[WiringIn
     # Use first available content to get image
     image = None
     all_steps: Dict[str, list[str]] = {}
+    all_notes: Dict[str, str] = {}
 
     for lang, content in lang_contents.items():
-        lang_image, lang_steps = extract_wiring_for_lang(content)
+        lang_image, lang_steps, lang_notes = extract_wiring_for_lang(content)
         if lang_image and image is None:
             image = lang_image
         if lang_steps:
             all_steps[lang] = lang_steps
+        if lang_notes:
+            all_notes[lang] = md_to_html(lang_notes)
 
-    if not image and not all_steps:
+    if not image and not all_steps and not all_notes:
         return None
 
-    return WiringInfo(image=image, steps=Localized(all_steps))
+    return WiringInfo(
+        image=image, steps=Localized(all_steps), notes=Localized(all_notes)
+    )
 
 
 def md_to_html(content: str) -> str:
@@ -830,11 +889,11 @@ def parse_deployment_step(
 
 def _parse_target_content(
     content_lines: list[str],
-) -> tuple[str, list[str], Optional[str], str, str, str]:
+) -> tuple[str, list[str], Optional[str], str, str, str, str]:
     """Parse target content into its subsections.
 
-    Returns: (description, wiring_steps, wiring_image, prerequisites,
-    troubleshoot, post_deploy)
+    Returns: (description, wiring_steps, wiring_image, wiring_notes,
+    prerequisites, troubleshoot, post_deploy)
     """
     # Join lines and use parse_subsections for consistent parsing
     content = "\n".join(content_lines)
@@ -853,9 +912,12 @@ def _parse_target_content(
     # nested merge, tables; block quotes excluded).
     wiring_steps = []
     wiring_image = None
+    wiring_notes = ""
     wiring_content = subsections.get("wiring", "")
     if wiring_content:
-        wiring_image, wiring_steps = extract_wiring_for_lang(wiring_content)
+        wiring_image, wiring_steps, wiring_notes = extract_wiring_for_lang(
+            wiring_content
+        )
 
     # Main content is description
     description = subsections.get("main", "").strip()
@@ -873,6 +935,7 @@ def _parse_target_content(
         description,
         wiring_steps,
         wiring_image,
+        wiring_notes,
         prerequisites,
         troubleshoot,
         post_deploy,
@@ -939,15 +1002,19 @@ def _parse_targets_single_lang(content: str, lang: str) -> list[TargetInfo]:
             desc,
             wiring_steps,
             wiring_image,
+            wiring_notes,
             prerequisites,
             troubleshoot,
             post_deploy,
         ) = _parse_target_content(content_lines)
         wiring = None
-        if wiring_image or wiring_steps:
+        if wiring_image or wiring_steps or wiring_notes:
             wiring = WiringInfo(
                 image=wiring_image,
                 steps=Localized({lang: wiring_steps}),
+                notes=Localized(
+                    {lang: md_to_html(wiring_notes)} if wiring_notes else {}
+                ),
             )
         target = TargetInfo(
             id=target_id,
@@ -1005,9 +1072,12 @@ def parse_targets(content_en: str, content_zh: str) -> list[TargetInfo]:
                 target.troubleshoot.set("zh", zh_target.troubleshoot.get("zh"))
                 # Merge post_deploy
                 target.post_deploy.set("zh", zh_target.post_deploy.get("zh"))
-                # Merge wiring steps
+                # Merge wiring steps and notes
                 if target.wiring and zh_target.wiring:
                     target.wiring.steps.set("zh", zh_target.wiring.steps.get("zh"))
+                    zh_notes = zh_target.wiring.notes.get("zh")
+                    if zh_notes:
+                        target.wiring.notes.set("zh", zh_notes)
 
     return targets
 
@@ -1563,10 +1633,14 @@ def parse_guide_multilang(
                                 merged_step.section.wiring = WiringInfo(
                                     image=lang_step.section.wiring.image,
                                     steps=Localized(),
+                                    notes=Localized(),
                                 )
                             wiring_steps = lang_step.section.wiring.steps.get(lang)
                             if wiring_steps:
                                 merged_step.section.wiring.steps.set(lang, wiring_steps)
+                            wiring_notes = lang_step.section.wiring.notes.get(lang)
+                            if wiring_notes:
+                                merged_step.section.wiring.notes.set(lang, wiring_notes)
 
             # Merge targets
             if base_step.targets:
@@ -1642,6 +1716,7 @@ def parse_guide_multilang(
                                             merged_target.wiring = WiringInfo(
                                                 image=lang_target.wiring.image,
                                                 steps=Localized(),
+                                                notes=Localized(),
                                             )
                                         wiring_steps = lang_target.wiring.steps.get(
                                             lang
@@ -1649,6 +1724,13 @@ def parse_guide_multilang(
                                         if wiring_steps:
                                             merged_target.wiring.steps.set(
                                                 lang, wiring_steps
+                                            )
+                                        wiring_notes = lang_target.wiring.notes.get(
+                                            lang
+                                        )
+                                        if wiring_notes:
+                                            merged_target.wiring.notes.set(
+                                                lang, wiring_notes
                                             )
 
                     merged_targets.append(merged_target)
