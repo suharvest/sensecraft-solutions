@@ -273,8 +273,17 @@ body and associated with the enclosing Step:
 
 Other recognized `###` sub-sections within a Step — `Prerequisites` (`前置条件`),
 `Wiring` (`接线`), `Troubleshooting` (`故障排查`/`故障排除`), `Deployment Complete`
-(`部署完成`) — are matched by `SUBSECTION_PATTERNS` (`:299-312`) and folded into
-the Step's section content.
+(`部署完成`) — are matched by `SUBSECTION_PATTERNS` and each lands in its own
+`SectionContent` field: `prerequisites`, `wiring`, `troubleshoot`,
+`post_deploy`. Everything else (the leading paragraph, unrecognized `###`
+headings) goes to `subtitle` / `description`.
+
+`Wiring` is the one sub-section that is not stored verbatim: list items and
+table rows become `wiring.steps` (an ordered list in the UI), the first image
+becomes `wiring.image`, and everything else in the section — lead-in prose,
+explanations after the list, `> **Note:**` callouts, fenced blocks — becomes
+`wiring.notes`, rendered below the step list. Before `notes` existed that
+content was silently dropped.
 <!-- AUTHORED:guide_step_target_syntax END -->
 
 ### Step id uniqueness across presets

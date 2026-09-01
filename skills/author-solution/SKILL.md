@@ -357,12 +357,15 @@ One-line description.
 > ```
 
 > **`### Wiring` 段严格限定为接线说明**，不要塞 Docker 安装、API key 获取等非接线内容。
+>
+> 该段里**列表项**渲染成编号步骤，**列表之外的内容**（引子、列表后的说明、`> **Note:**` 提示、代码块）渲染在编号列表下方。所以"为什么要等几分钟""这个填充是有意为之"这类解释可以直接写在列表后面，不必硬塞进某一条。
 
 > **guide.md 里 H2 只能是 `## Preset:` 或 `## Step N:`（必带 `{#id}`）** —— 其他任何顶层 `## ...`（如 `## Quick Verification` / `## API Reference` / `## Next Steps`）都是孤儿 H2，校验会拦。
 >
 > - 部署完成后的总结/验证/链接 → 写成 `### Deployment Complete`，放在该 preset **最后一个 step 的所有 `### Target` 之前**。
 > - 附录小节（验证、API 表、下一步等）→ 写成 `#### XXX`（H4），嵌在 `### Deployment Complete` 下面。
-> - 前置条件 / 系统要求 / 介绍性文字 → 放进 `description.md`，guide.md 只讲怎么部署。
+> - **某个步骤**的硬性前提（驱动、运行时、端口占用、磁盘余量）→ 写成该 step 下的 `### Prerequisites` / `### 前置条件`，渲染在步骤正文上方（标题「开始之前 / Before You Start」）。
+> - **整个方案**的介绍性文字、选型说明 → 放进 `description.md`，guide.md 只讲怎么部署。
 
 ```markdown
 ## Step 3: Open Dashboard {#dashboard type=web_dashboard ...}
