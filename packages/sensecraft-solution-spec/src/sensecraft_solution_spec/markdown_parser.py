@@ -97,6 +97,9 @@ class TargetInfo:
     description_html: Localized[str] = field(
         default_factory=lambda: Localized()
     )  # HTML for content area
+    prerequisites: Localized[str] = field(
+        default_factory=lambda: Localized()
+    )  # HTML
     troubleshoot: Localized[str] = field(default_factory=lambda: Localized())  # HTML
     post_deploy: Localized[str] = field(default_factory=lambda: Localized())  # HTML
     wiring: Optional["WiringInfo"] = None
@@ -116,6 +119,7 @@ class ModeInfo:
     default: bool = False
     description: Localized[str] = field(default_factory=lambda: Localized())
     description_html: Localized[str] = field(default_factory=lambda: Localized())
+    prerequisites: Localized[str] = field(default_factory=lambda: Localized())
     troubleshoot: Localized[str] = field(default_factory=lambda: Localized())
 
 
@@ -128,6 +132,9 @@ class SectionContent:
         default_factory=lambda: Localized()
     )  # Plain text extracted from first paragraph (for header subtitle)
     description: Localized[str] = field(
+        default_factory=lambda: Localized()
+    )  # HTML content
+    prerequisites: Localized[str] = field(
         default_factory=lambda: Localized()
     )  # HTML content
     troubleshoot: Localized[str] = field(
@@ -758,6 +765,11 @@ def parse_deployment_step(
                 "en": md_to_html(en_main_stripped),
             }
         ),
+        prerequisites=Localized(
+            {
+                "en": md_to_html(subsections_en.get("prerequisites", "")),
+            }
+        ),
         troubleshoot=Localized(
             {
                 "en": md_to_html(subsections_en.get("troubleshoot", "")),
@@ -778,6 +790,8 @@ def parse_deployment_step(
         section.description.set("zh", md_to_html(zh_main_stripped))
         if zh_subtitle:
             section.subtitle.set("zh", zh_subtitle)
+    if subsections_zh.get("prerequisites"):
+        section.prerequisites.set("zh", md_to_html(subsections_zh["prerequisites"]))
     if subsections_zh.get("troubleshoot"):
         section.troubleshoot.set("zh", md_to_html(subsections_zh["troubleshoot"]))
     if subsections_zh.get("post_deploy"):
@@ -816,10 +830,11 @@ def parse_deployment_step(
 
 def _parse_target_content(
     content_lines: list[str],
-) -> tuple[str, list[str], Optional[str], str, str]:
-    """Parse target content into description, wiring steps, wiring image, troubleshoot, and post_deploy.
+) -> tuple[str, list[str], Optional[str], str, str, str]:
+    """Parse target content into its subsections.
 
-    Returns: (description, wiring_steps, wiring_image, troubleshoot, post_deploy)
+    Returns: (description, wiring_steps, wiring_image, prerequisites,
+    troubleshoot, post_deploy)
     """
     # Join lines and use parse_subsections for consistent parsing
     content = "\n".join(content_lines)
@@ -845,13 +860,23 @@ def _parse_target_content(
     # Main content is description
     description = subsections.get("main", "").strip()
 
+    # Prerequisites content (as markdown, will be converted to HTML later)
+    prerequisites = subsections.get("prerequisites", "").strip()
+
     # Troubleshoot content (as markdown, will be converted to HTML later)
     troubleshoot = subsections.get("troubleshoot", "").strip()
 
     # Post-deploy content (as markdown, will be converted to HTML later)
     post_deploy = subsections.get("post_deploy", "").strip()
 
-    return description, wiring_steps, wiring_image, troubleshoot, post_deploy
+    return (
+        description,
+        wiring_steps,
+        wiring_image,
+        prerequisites,
+        troubleshoot,
+        post_deploy,
+    )
 
 
 def _parse_targets_single_lang(content: str, lang: str) -> list[TargetInfo]:
@@ -910,9 +935,14 @@ def _parse_targets_single_lang(content: str, lang: str) -> list[TargetInfo]:
         # empty element that a keepends slice would otherwise produce.
         content_lines = "".join(raw_parts).splitlines()
 
-        desc, wiring_steps, wiring_image, troubleshoot, post_deploy = (
-            _parse_target_content(content_lines)
-        )
+        (
+            desc,
+            wiring_steps,
+            wiring_image,
+            prerequisites,
+            troubleshoot,
+            post_deploy,
+        ) = _parse_target_content(content_lines)
         wiring = None
         if wiring_image or wiring_steps:
             wiring = WiringInfo(
@@ -928,6 +958,9 @@ def _parse_targets_single_lang(content: str, lang: str) -> list[TargetInfo]:
             description=Localized({lang: desc.strip() if desc else ""}),
             description_html=Localized({lang: md_to_html(desc) if desc else ""}),
             wiring=wiring,
+            prerequisites=Localized(
+                {lang: md_to_html(prerequisites) if prerequisites else ""}
+            ),
             troubleshoot=Localized(
                 {lang: md_to_html(troubleshoot) if troubleshoot else ""}
             ),
@@ -1027,6 +1060,7 @@ def _build_mode(mode_id, name, attrs, content_lines, lang):
     content = "\n".join(content_lines)
     subsections = parse_subsections(content)
     description = subsections.get("main", "").strip()
+    prerequisites = subsections.get("prerequisites", "").strip()
     troubleshoot = subsections.get("troubleshoot", "").strip()
 
     return ModeInfo(
@@ -1037,6 +1071,9 @@ def _build_mode(mode_id, name, attrs, content_lines, lang):
         description=Localized({lang: description}),
         description_html=Localized(
             {lang: md_to_html(description) if description else ""}
+        ),
+        prerequisites=Localized(
+            {lang: md_to_html(prerequisites) if prerequisites else ""}
         ),
         troubleshoot=Localized(
             {lang: md_to_html(troubleshoot) if troubleshoot else ""}
@@ -1478,6 +1515,7 @@ def parse_guide_multilang(
                     title=Localized(),
                     subtitle=Localized(),
                     description=Localized(),
+                    prerequisites=Localized(),
                     troubleshoot=Localized(),
                     post_deploy=Localized(),
                     wiring=None,
@@ -1507,6 +1545,10 @@ def parse_guide_multilang(
                         desc = lang_step.section.description.get(lang)
                         if desc:
                             merged_step.section.description.set(lang, desc)
+                        # Merge prerequisites
+                        prerequisites = lang_step.section.prerequisites.get(lang)
+                        if prerequisites:
+                            merged_step.section.prerequisites.set(lang, prerequisites)
                         # Merge troubleshoot
                         troubleshoot = lang_step.section.troubleshoot.get(lang)
                         if troubleshoot:
@@ -1538,6 +1580,7 @@ def parse_guide_multilang(
                         target_type=base_target.target_type,
                         description=Localized(),
                         description_html=Localized(),
+                        prerequisites=Localized(),
                         troubleshoot=Localized(),
                         post_deploy=Localized(),
                         wiring=None,
@@ -1579,6 +1622,10 @@ def parse_guide_multilang(
                                         merged_target.description_html.set(
                                             lang, desc_html
                                         )
+                                    # Merge prerequisites
+                                    prerequisites = lang_target.prerequisites.get(lang)
+                                    if prerequisites:
+                                        merged_target.prerequisites.set(lang, prerequisites)
                                     # Merge troubleshoot
                                     troubleshoot = lang_target.troubleshoot.get(lang)
                                     if troubleshoot:
@@ -1618,6 +1665,7 @@ def parse_guide_multilang(
                         default=base_mode.default,
                         description=Localized(),
                         description_html=Localized(),
+                        prerequisites=Localized(),
                         troubleshoot=Localized(),
                     )
 
@@ -1650,6 +1698,11 @@ def parse_guide_multilang(
                                     if desc_html:
                                         merged_mode.description_html.set(
                                             lang, desc_html
+                                        )
+                                    prerequisites = lang_mode.prerequisites.get(lang)
+                                    if prerequisites:
+                                        merged_mode.prerequisites.set(
+                                            lang, prerequisites
                                         )
                                     troubleshoot = lang_mode.troubleshoot.get(lang)
                                     if troubleshoot:
