@@ -15,14 +15,14 @@ detection:
 
 firmware:
   # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001,
-  # app segment at commit 8f7ac61 (face-wake letterbox + capture-guard fixes).
+  # app segment at commit 7ec3edd (wake-tag, threshold and Wi-Fi scan-race fixes).
   # Multi-segment flash (no merged image: the face-model partition sits at
   # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
   source:
     path: 
-      https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi.bin
+      https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-6878d2d1.bin
     checksum:
-      sha256: 955f323fd68722b870e75f9b082a2020fcb56a6922b844d114bf46acd2b3f4a8
+      sha256: 6878d2d131cd973a9cd4b016310148c5d52bb6c1092eb22d3b2227f5d0b3745c
   flash_config:
     chip: esp32p4
     baud_rate: 921600
@@ -45,7 +45,7 @@ firmware:
     - name: app
       offset: "0x200000"
       file: 
-        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi.bin
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-6878d2d1.bin
     - name: assets
       offset: "0x1000000"
       file: 
