@@ -9,9 +9,9 @@ detection:
   usb_vendor_id: "0x303a"
   usb_product_id: "0x1001"
   fallback_ports:
-    - "/dev/cu.usbmodem*"
-    - "/dev/tty.usbmodem*"
-    - "/dev/ttyACM*"
+  - "/dev/cu.usbmodem*"
+  - "/dev/tty.usbmodem*"
+  - "/dev/ttyACM*"
 
 firmware:
   # Built from xiaozhi-esp32 fork, branch feat/reterminal-d1001,
@@ -19,7 +19,8 @@ firmware:
   # Multi-segment flash (no merged image: the face-model partition sits at
   # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
   source:
-    path: assets/d1001_firmware/xiaozhi.bin
+    path: 
+      https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi.bin
     checksum:
       sha256: 955f323fd68722b870e75f9b082a2020fcb56a6922b844d114bf46acd2b3f4a8
   flash_config:
@@ -29,21 +30,27 @@ firmware:
     flash_freq: 80m
     flash_size: 32MB
     partitions:
-      - name: bootloader
-        offset: "0x2000"
-        file: assets/d1001_firmware/bootloader.bin
-      - name: partition_table
-        offset: "0x8000"
-        file: assets/d1001_firmware/partition-table.bin
-      - name: ota_data
-        offset: "0x10d000"
-        file: assets/d1001_firmware/ota_data_initial.bin
-      - name: app
-        offset: "0x200000"
-        file: assets/d1001_firmware/xiaozhi.bin
-      - name: assets
-        offset: "0x1000000"
-        file: assets/d1001_firmware/generated_assets.bin
-      - name: face_model
-        offset: "0x1E00000"
-        file: assets/d1001_firmware/human_face_detect.espdl
+    - name: bootloader
+      offset: "0x2000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/bootloader.bin
+    - name: partition_table
+      offset: "0x8000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/partition-table.bin
+    - name: ota_data
+      offset: "0x10d000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/ota_data_initial.bin
+    - name: app
+      offset: "0x200000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi.bin
+    - name: assets
+      offset: "0x1000000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/generated_assets.bin
+    - name: face_model
+      offset: "0x1E00000"
+      file: 
+        https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/human_face_detect.espdl
