@@ -21,7 +21,7 @@
   "sensecraft_data_mcp": "sha256:32b1b8bde32b25cb8d9e387577edd88dc9213f7a057cadecd6b5a91985ea1a0f",
   "smart_hvac_control": "sha256:2e087a1623a287e730693f0900753c6a577d6974f5e14d8a300af7c05e460d3d",
   "smart_retail_voice_ai": "sha256:4c95576fe64687f5f01a0daf2de603556b6279c29eb93f210205e5fe7cf28f33",
-  "smart_space_assistant": "sha256:a56117c78c7ce62b67ae80e5e5dba67318e981f32ad5437108a7c5941e7a9908",
+  "smart_space_assistant": "sha256:1b206f0640334e0563f5d792bc35279c1b84053202629adaab2146abd1a0fb5c",
   "smart_warehouse": "sha256:d689140c45a71b792ac75ac21dd9f4e7a156e8d4934be1ba75395fda61c13026",
   "voice_rebot_arm": "sha256:626bf14ad91c2d9a1b560f1d477cafbd301289a3e118df1a10d9cd9522b7a04e",
   "voice_robot_lekiwi": "sha256:c53ce55b6307de410a3471d82bd0b8b25c75c73c3942d4efbfaf436a7fc92a37",
