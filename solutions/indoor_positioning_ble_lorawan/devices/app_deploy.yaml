@@ -13,6 +13,14 @@ detection:
     - docker_installed
     - docker_running
 
+# Image: assets/docker/docker-compose.yml pins
+# seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05.
+# THIS TAG IS NOT PUBLISHED YET. The previously shipped tag is the pre-outdoor
+# code and does not contain GNSS positioning, geofences, floor-plan
+# georeferencing or the PMTiles basemap switch. Build and push the tag from
+# solution-indoor-positioning @ feature/outdoor, or retag locally, before
+# running this step.
+
 docker:
   compose_file: assets/docker/docker-compose.yml
 
@@ -36,6 +44,41 @@ pre_checks:
   - type: disk_space
     min_gb: 1
     description: At least 1GB for indoor positioning Docker image
+
+# These two inputs describe the outdoor basemap the site will use. They are not
+# interpolated into docker-compose.yml; they are carried into the georeferencing
+# and geofence steps, where the operator sets the same values in the dashboard
+# (Configuration -> outdoor.tileSources) and puts the archive on the host path
+# that the compose file mounts read-only.
+user_inputs:
+  - id: basemap_mode
+    name: Outdoor basemap
+    type: select
+    default: osm
+    description: OpenStreetMap raster tiles need internet on the host. Offline (PMTiles) reads a local archive instead.
+    name_i18n:
+      zh: 室外底图
+    description_i18n:
+      zh: OpenStreetMap 栅格瓦片需要主机联网；离线（PMTiles）改读本地归档。
+    options:
+      - value: osm
+        label: OpenStreetMap raster tiles (online)
+        label_i18n:
+          zh: OpenStreetMap 栅格瓦片（在线）
+      - value: pmtiles
+        label: Offline PMTiles archive
+        label_i18n:
+          zh: 离线 PMTiles 归档
+  - id: pmtiles_path
+    name: PMTiles archive path on the host
+    type: string
+    default: ./data/pmtiles
+    placeholder: ./data/pmtiles
+    description: Host directory holding the .pmtiles archive, mounted read-only at /app/uploads/pmtiles. Only used when the basemap is Offline PMTiles. Leave the default unless you keep the archive elsewhere.
+    name_i18n:
+      zh: 主机上的 PMTiles 归档目录
+    description_i18n:
+      zh: 存放 .pmtiles 归档的主机目录，以只读方式挂到 /app/uploads/pmtiles。只有底图选离线 PMTiles 时才用。归档不在别处就保持默认值。
 
 post_deployment:
   open_browser: true
