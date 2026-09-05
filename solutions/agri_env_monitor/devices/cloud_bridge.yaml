@@ -1,0 +1,270 @@
+version: "1.0"
+id: cloud_bridge
+name: SenseCAP Cloud Bridge
+type: docker_deploy
+
+# Preset 1. One container: the bridge with its `sensecap-cloud` source enabled.
+# It runs beside the Home Assistant stack (or on any host that can reach both
+# the SenseCAP cloud and the broker) as its own compose project, so restarting
+# it never touches Home Assistant.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/cloud/docker-compose.yml
+  compose_dir: assets/cloud
+  remote_path: /home/{{username}}/agri-env-monitor
+  options:
+    project_name: agri-env-cloud
+    remove_orphans: true
+  services:
+    - name: bridge
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # The bridge image is small; the time goes into the initial backfill, which
+  # pages the OpenAPI month by month for every device on the account.
+  command_timeout: 1800
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 2
+    description: Bridge image plus its SQLite store
+
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: SenseCAP 云桥接
+
+remote_overrides:
+  remote_path: /home/{{username}}/agri-env-monitor
+  compose_dir: assets/cloud
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the broker is reachable
+        # A bridge that cannot reach the broker looks identical to a bridge with
+        # bad cloud credentials from the outside, so this is checked first.
+        ignore_error: true
+        run: |
+          if command -v nc >/dev/null 2>&1; then
+            if nc -z -w 5 "{{mqtt_host}}" "{{mqtt_port}}"; then
+              echo "broker {{mqtt_host}}:{{mqtt_port}} is reachable"
+            else
+              echo "WARNING: cannot open {{mqtt_host}}:{{mqtt_port}} — deploy the Home Assistant step first, or check the address" >&2
+            fi
+          else
+            echo "nc not available, skipping the reachability check"
+          fi
+        name_i18n:
+          zh: 检查 broker 可达
+
+    after_upload:
+      - name: Write the bridge configuration
+        # Credentials only ever exist in this file, mode 600, on the target
+        # host. They are not written into the image and not committed anywhere.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/agri-env-monitor/cloud_bridge"
+          umask 077
+          cat > "$WORKDIR/.env" <<EOF
+          COMPOSE_PROJECT_NAME=agri-env-cloud
+          TZ={{timezone}}
+          MQTT_OUT_HOST={{mqtt_host}}
+          MQTT_OUT_PORT={{mqtt_port}}
+          MQTT_USERNAME={{mqtt_username}}
+          MQTT_PASSWORD={{mqtt_password}}
+          SENSECAP_ACCESS_ID={{access_id}}
+          SENSECAP_ACCESS_KEY={{access_key}}
+          SENSECAP_MQTT_HOST={{sensecap_mqtt_host}}
+          SENSECAP_BACKFILL_MONTHS={{backfill_months}}
+          BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
+          EOF
+          echo "wrote $WORKDIR/.env"
+        name_i18n:
+          zh: 写入桥的配置
+
+    after:
+      - name: Wait for the first cloud message
+        ignore_error: true
+        timeout: 600
+        run: |
+          echo "Watching the bridge log for the cloud MQTT connection ..."
+          for i in $(seq 1 60); do
+            if docker logs agri-env-bridge-cloud 2>&1 | grep -q "cloud MQTT connected"; then
+              echo "Connected to the SenseCAP cloud MQTT stream."
+              docker logs --tail 20 agri-env-bridge-cloud 2>&1
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "No cloud MQTT connection yet." >&2
+          echo "Two candidate hosts exist and neither is confirmed — if the log shows a DNS or auth failure, redeploy with the other one." >&2
+          docker logs --tail 40 agri-env-bridge-cloud 2>&1 || true
+        name_i18n:
+          zh: 等待第一条云端消息
+
+  user_inputs:
+    - id: host
+      name: Bridge Host Address
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: Where the bridge container runs — usually the same machine as Home Assistant
+      name_i18n:
+        zh: 桥的主机地址
+      description_i18n:
+        zh: 运行桥容器的机器——通常就是运行 Home Assistant 的那台
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: timezone
+      name: Time Zone
+      type: text
+      default: "Asia/Shanghai"
+      required: true
+      name_i18n:
+        zh: 时区
+    - id: mqtt_host
+      name: MQTT Broker Address
+      type: text
+      required: true
+      default: "127.0.0.1"
+      placeholder: "192.168.1.50"
+      description: The broker deployed with Home Assistant. Use the host's LAN address, not 127.0.0.1, when the bridge runs on a different machine.
+      name_i18n:
+        zh: MQTT Broker 地址
+      description_i18n:
+        zh: 与 Home Assistant 一起部署的那个 broker。桥不在同一台机器上时，填局域网地址而不是 127.0.0.1。
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_username
+      name: MQTT Username
+      type: text
+      default: "agrienv"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: MQTT 用户名
+    - id: mqtt_password
+      name: MQTT Password
+      type: password
+      required: true
+      description: The same value you set on the Home Assistant step
+      name_i18n:
+        zh: MQTT 密码
+      description_i18n:
+        zh: 与 Home Assistant 那一步填的是同一个值
+    - id: access_id
+      name: SenseCAP Access ID
+      type: text
+      required: true
+      placeholder: "1A2B3C4D5E6F7890"
+      description: From the SenseCAP Portal, Security → Access API Keys
+      name_i18n:
+        zh: SenseCAP Access ID
+      description_i18n:
+        zh: 在 SenseCAP Portal 的「安全 → Access API Keys」里获取
+    - id: access_key
+      name: SenseCAP Access Key
+      type: password
+      required: true
+      description: The secret half of the API key pair. It is written only to a mode-600 .env file on the target host.
+      name_i18n:
+        zh: SenseCAP Access Key
+      description_i18n:
+        zh: API 密钥对的密钥部分。只写入目标主机上权限 600 的 .env 文件。
+    - id: sensecap_mqtt_host
+      name: SenseCAP Cloud MQTT Host
+      type: select
+      default: "sensecap-openstream.seeed.cc"
+      required: true
+      # NOT VERIFIED. Two candidate hostnames are known and neither has been
+      # tested against a live account during packaging. The default is the one
+      # a shipping Seeed solution uses in production code; the second appears in
+      # documentation. Whether they are aliases is unknown.
+      description: "Two hostnames are in circulation and neither is confirmed. Try the default first; if the bridge log shows a DNS or authentication failure, redeploy with the other."
+      options:
+        - value: "sensecap-openstream.seeed.cc"
+          label: sensecap-openstream.seeed.cc — used by a shipping Seeed solution
+          label_i18n:
+            zh: sensecap-openstream.seeed.cc——已上线 Seeed 方案在用的值
+        - value: "openstream.api.sensecap.seeed.cc"
+          label: openstream.api.sensecap.seeed.cc — appears in documentation
+          label_i18n:
+            zh: openstream.api.sensecap.seeed.cc——文档里出现的值
+      name_i18n:
+        zh: SenseCAP 云 MQTT 地址
+      description_i18n:
+        zh: 目前流传两个域名，都没有实测确认。先用默认值；如果桥的日志显示 DNS 或认证失败，改用另一个重新部署。
+    - id: backfill_months
+      name: Backfill Window
+      type: select
+      default: "1"
+      required: true
+      description: How far back to pull history on first start. The OpenAPI reaches back three months at most and serves one month per request, so a longer window means more requests.
+      options:
+        - value: "0"
+          label: None — live data only
+          label_i18n:
+            zh: 不回填——只取实时数据
+        - value: "1"
+          label: 1 month
+          label_i18n:
+            zh: 1 个月
+        - value: "3"
+          label: 3 months — the API maximum
+          label_i18n:
+            zh: 3 个月——接口上限
+      name_i18n:
+        zh: 回填范围
+      description_i18n:
+        zh: 首次启动时向前拉多久的历史。OpenAPI 最多回溯三个月、单次一个月，窗口越长请求越多。
+    - id: unavailable_after
+      name: Offline Threshold (seconds)
+      type: text
+      default: "7200"
+      required: true
+      description: No uplink for this long marks the node offline in Home Assistant. Default is two S210x reporting cycles plus margin — raise it if your nodes report less often than hourly.
+      validation:
+        pattern: "^[0-9]{2,6}$"
+      name_i18n:
+        zh: 离线判定时长（秒）
+      description_i18n:
+        zh: 超过这么久没有上行就在 Home Assistant 里标记为离线。默认是 S210x 两个上报周期加余量——节点上报间隔超过一小时就调大。

@@ -1,0 +1,95 @@
+version: "1.0"
+id: wm1302_tts
+name: Fit the WM1302 Concentrator
+type: manual
+
+# A `manual` step, not a scripted one, because the work is physical (seating an
+# SPI module and its antenna) and the software half — building sx1302_hal and
+# installing the packet forwarder unit — depends on the host's kernel, the
+# SPI overlay it exposes and the regional variant of the module. Scripting it
+# would encode assumptions this package has not verified on hardware.
+#
+# NOT VERIFIED ON HARDWARE. No WM1302 was fitted or driven during packaging.
+# Every step below is written from the module and gateway documentation and
+# must be confirmed on a real unit before this preset is called verified.
+
+steps:
+  - id: seat_module
+    name: Seat the module and connect the antenna
+    name_i18n:
+      zh: 装好模块并接天线
+    description: >-
+      Power the host down before fitting the WM1302. Seat the SPI variant of the
+      module in its slot, screw it down, and connect the LoRa antenna before
+      applying power — transmitting into an open port can damage the radio.
+      Check the frequency band printed on the module matches the band your nodes
+      are configured for: a module and node on different bands look exactly like
+      a gateway that hears nothing.
+    description_i18n:
+      zh: >-
+        装 WM1302 之前先断电。把 SPI 版模块插进插槽并拧紧，上电之前先接好 LoRa 天线——
+        开路发射可能损坏射频。核对模块上印的频段与节点配置的频段一致：
+        频段不一致的表现和"网关收不到任何东西"完全一样。
+    optional: false
+
+  - id: enable_spi
+    name: Enable SPI and the reset GPIO
+    name_i18n:
+      zh: 打开 SPI 与复位 GPIO
+    description: >-
+      Enable the SPI bus on the host (on Raspberry Pi OS: `sudo raspi-config`
+      → Interface Options → SPI → Yes, then reboot) and confirm `/dev/spidev0.0`
+      exists. The concentrator also needs its reset, power-enable and SX1261
+      lines driven; the pin numbers come from the carrier board's documentation,
+      not from the module. Record the numbers you used — the packet forwarder
+      configuration in the next step refers to them.
+    description_i18n:
+      zh: >-
+        在主机上打开 SPI 总线（Raspberry Pi OS：`sudo raspi-config` → Interface Options
+        → SPI → Yes，然后重启），确认 `/dev/spidev0.0` 存在。集中器还需要驱动
+        reset、power-enable 与 SX1261 三条控制线；引脚编号来自载板文档，不是模块文档。
+        把用到的编号记下来——下一步的 packet forwarder 配置要用。
+    optional: false
+
+  - id: packet_forwarder
+    name: Point the packet forwarder at the local stack
+    name_i18n:
+      zh: 把 packet forwarder 指向本地网络服务器
+    description: >-
+      Build `sx1302_hal` for the host, pick the `global_conf.json` for your
+      frequency plan, and set the server address to the machine running The
+      Things Stack with the Semtech UDP ports 1700 up and 1700 down. Start the
+      forwarder and watch its output: it should print the concentrator's EUI and
+      then `INFO: [main] concentrator started`. That EUI is the gateway EUI you
+      register in the Console. Basic Station is the alternative if you prefer a
+      TLS-authenticated link; it needs the trust chain configured on both ends.
+    description_i18n:
+      zh: >-
+        在主机上编译 `sx1302_hal`，选对应频段的 `global_conf.json`，
+        把 server 地址指向运行 The Things Stack 的那台机器，上下行都用 Semtech UDP 端口 1700。
+        启动 forwarder 并观察输出：它应当打印集中器 EUI，随后是
+        `INFO: [main] concentrator started`。这个 EUI 就是稍后要在 Console 里注册的网关 EUI。
+        想要 TLS 认证的链路可以改用 Basic Station，但需要在两端配好信任链。
+    optional: false
+
+  - id: register_gateway
+    name: Register the gateway in the Console
+    name_i18n:
+      zh: 在 Console 里注册网关
+    description: >-
+      Open the Console on port 1885, sign in as the admin user created when the
+      stack first started, and add a gateway with the EUI the forwarder printed
+      and the frequency plan you chose. The gateway's status turns to
+      `Connected` within a minute of the forwarder running. If it stays
+      disconnected, the usual cause is UDP 1700 not reaching the host — check a
+      firewall before touching the radio configuration.
+    description_i18n:
+      zh: >-
+        打开 1885 端口的 Console，用首启时创建的管理员账号登录，
+        用 forwarder 打印的 EUI 和刚才选的频段添加一个网关。
+        forwarder 在跑的话，网关状态会在一分钟内变成 `Connected`。
+        一直连不上，最常见的原因是 UDP 1700 没通到主机——先查防火墙，再查射频配置。
+    optional: false
+
+name_i18n:
+  zh: 安装 WM1302 集中器

@@ -1,0 +1,250 @@
+version: "1.0"
+id: agri_env_monitor
+name: Agricultural Environment Monitoring
+name_i18n:
+  zh: 农业环境监测
+
+intro:
+  summary: Put SenseCAP soil and air sensors on a Home Assistant dashboard — through the SenseCAP cloud, or through a LoRaWAN network server you run yourself with no internet at all.
+  summary_i18n:
+    zh: 把 SenseCAP 土壤与空气传感器接到 Home Assistant 看板上——可以走 SenseCAP 云，也可以用自建的 LoRaWAN 网络服务器，全程不联外网。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/architecture.svg
+  gallery:
+    - type: image
+      src: gallery/architecture.svg
+      caption: Three ingest paths, one bridge, one set of entity ids in Home Assistant
+      caption_i18n:
+        zh: 三条接入路径、一个桥、Home Assistant 里同一套实体 ID
+    - type: image
+      src: gallery/offline-acceptance.svg
+      caption: Offline acceptance — the M2 gateway is the network server and nothing leaves the site
+      caption_i18n:
+        zh: 无公网验收——M2 网关就是网络服务器，数据不出场地
+  category: sensing
+  solution_type: solution
+  tags:
+    - agriculture
+    - lorawan
+    - sensecap
+    - soil-moisture
+    - mqtt
+    - home-assistant
+    - chirpstack
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: homeassistant/sensor/sensecap_<deveui>/<entity_key>/config
+      description: Home Assistant MQTT discovery config, one retained message per entity. Entities appear on their own — nothing is added by hand.
+      schema_type: json
+      payload_example: '{"name":"Soil Moisture","unique_id":"sensecap_2cf7f1c0000000aa_soil_moisture","object_id":"sensecap_2cf7f1c0000000aa_soil_moisture","state_topic":"agri_env/sensecap_2cf7f1c0000000aa/soil_moisture/state","availability_topic":"agri_env/sensecap_2cf7f1c0000000aa/availability","unit_of_measurement":"%","state_class":"measurement","device":{"identifiers":["sensecap_2cf7f1c0000000aa"],"name":"SenseCAP 2CF7F1C0000000AA","manufacturer":"Seeed Studio"}}'
+      description_i18n:
+        zh: Home Assistant MQTT 自动发现配置，每个实体一条 retained 消息。实体自动出现，不需要手工添加。
+    - type: mqtt
+      port: 1883
+      topic: agri_env/sensecap_<deveui>/<entity_key>/state
+      description: The value of one measurement, retained so a restarted Home Assistant picks up the last reading immediately
+      schema_type: json
+      payload_example: '33.8'
+      description_i18n:
+        zh: 单个测量项的值，retained，Home Assistant 重启后能立刻拿到最后一次读数
+    - type: mqtt
+      port: 1883
+      topic: agri_env/sensecap_<deveui>/availability
+      description: online / offline, retained. Flips to offline when a node has been silent longer than the configured threshold; the last value is kept and the entity shows as unavailable.
+      schema_type: json
+      payload_example: 'offline'
+      description_i18n:
+        zh: online / offline，retained。节点静默超过设定时长就翻成 offline；最后一个值保留，实体显示为不可用。
+
+  input_requirements:
+    - type: lorawan
+      description: SenseCAP LoRaWAN nodes and a gateway that covers them, both configured for the same regional band. The nodes' DevEUI, JoinEUI and AppKey are needed for the two self-hosted presets.
+      required: true
+      description_i18n:
+        zh: SenseCAP LoRaWAN 节点，以及能覆盖它们的网关，两者频段一致。两个自建套餐需要节点的 DevEUI、JoinEUI 与 AppKey。
+    - type: mqtt
+      description: A Linux host with Docker for Home Assistant, the broker and the bridge. It needs no inbound internet access — the offline scenario keeps it entirely on the local network.
+      required: true
+      description_i18n:
+        zh: 一台装了 Docker 的 Linux 主机，跑 Home Assistant、broker 和桥。不需要外网入站访问——无公网场景下它完全留在局域网内。
+
+  device_catalog:
+    sensecap_s21xx_sensor:
+      description: Soil and air sensor nodes — temperature, humidity, soil moisture, EC, CO2 and rainfall, depending on the variant
+      description_i18n:
+        zh: 土壤与空气传感节点——温度、湿度、土壤水分、电导率、CO2、雨量，具体看型号
+    sensecap_s2100_data_logger:
+      description: Data logger for third-party RS485 or analogue probes on the same LoRaWAN network
+      description_i18n:
+        zh: 数据记录仪，把第三方 RS485 或模拟量探头接进同一张 LoRaWAN 网
+    sensecap_t1000_tracker:
+      description: Tracker used in the offline acceptance scenario — position plus temperature and light
+      description_i18n:
+        zh: 无公网验收场景里用的追踪器——定位加温度与光照
+    sensecap_m2_gateway:
+      description: LoRaWAN gateway. Forwards to the SenseCAP cloud in preset 1; runs its own network server in preset 3. Choose the regional frequency variant when purchasing.
+      description_i18n:
+        zh: LoRaWAN 网关。套餐 1 里转发到 SenseCAP 云；套餐 3 里运行自己的网络服务器。购买时选所在地区的频段版本。
+    wio_wm1302:
+      description: SPI concentrator module for building a gateway on a Linux host — used by the self-hosted network server presets
+      description_i18n:
+        zh: SPI 集中器模块，用于在 Linux 主机上自建网关——自建网络服务器的套餐会用到
+    rerouter_cm4:
+      description: CM4-based host that carries the WM1302 and runs the network server beside it
+      description_i18n:
+        zh: 基于 CM4 的主机，承载 WM1302 并在本机运行网络服务器
+    generic_arm64_host:
+      name: Linux Host
+      name_i18n:
+        zh: Linux 主机
+      description: Any Linux machine with Docker — runs Home Assistant, the MQTT broker and the bridge
+      description_i18n:
+        zh: 任意装了 Docker 的 Linux 机器——运行 Home Assistant、MQTT broker 和桥
+
+  presets:
+    - id: cloud
+      name: SenseCAP Cloud
+      name_i18n:
+        zh: SenseCAP 云
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Nodes already reporting to the SenseCAP cloud. The bridge pulls their history and subscribes to the live stream — no gateway work, no radio work.
+      description_i18n:
+        zh: 节点已经在向 SenseCAP 云上报。桥把历史拉下来并订阅实时流——不用碰网关，也不用碰射频。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: gateway
+          name: LoRaWAN Gateway
+          name_i18n:
+            zh: LoRaWAN 网关
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_m2_gateway
+          default: sensecap_m2_gateway
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+    - id: tts_local
+      name: Self-hosted The Things Stack
+      name_i18n:
+        zh: 自建 The Things Stack
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A LoRaWAN network server you run yourself, with a WM1302 concentrator on a CM4 host. The heaviest of the three, and the one with the most control over the radio side.
+      description_i18n:
+        zh: 自己运行的 LoRaWAN 网络服务器，WM1302 集中器装在 CM4 主机上。三者中最重的一个，对射频侧的控制也最多。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: gateway_host
+          name: Gateway Host
+          name_i18n:
+            zh: 网关主机
+          type: single
+          required: true
+          options:
+            - device_ref: rerouter_cm4
+          default: rerouter_cm4
+        - id: concentrator
+          name: Concentrator Module
+          name_i18n:
+            zh: 集中器模块
+          type: single
+          required: true
+          options:
+            - device_ref: wio_wm1302
+          default: wio_wm1302
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+    - id: chirpstack_local
+      name: Local ChirpStack
+      name_i18n:
+        zh: 本地 ChirpStack
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: ChirpStack as the network server — built into the M2 gateway, or on a CM4 host with a WM1302. This is the preset the offline acceptance scenario uses.
+      description_i18n:
+        zh: 用 ChirpStack 作网络服务器——可以是 M2 网关内置的，也可以是装了 WM1302 的 CM4 主机。无公网验收场景走的就是这个套餐。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: network_server
+          name: Network Server
+          name_i18n:
+            zh: 网络服务器
+          type: single
+          required: true
+          description: The M2 runs ChirpStack itself; the CM4 host runs it in Docker with a WM1302 concentrator
+          description_i18n:
+            zh: M2 自己就能跑 ChirpStack；CM4 主机则用 Docker 跑，另配 WM1302 集中器
+          options:
+            - device_ref: sensecap_m2_gateway
+            - device_ref: rerouter_cm4
+          default: sensecap_m2_gateway
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

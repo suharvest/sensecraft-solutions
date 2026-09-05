@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1000" height="520" fill="#ffffff"/>
+
+  <!-- column captions: product and protocol names only, so one asset serves both languages -->
+  <g font-size="13" fill="#8a8f98" text-anchor="middle">
+    <text x="115" y="42">LoRaWAN node</text>
+    <text x="360" y="42">Network server</text>
+    <text x="620" y="42">agri-env-bridge</text>
+    <text x="880" y="42">Home Assistant</text>
+  </g>
+
+  <!-- P1 -->
+  <g>
+    <rect x="30" y="70" width="170" height="70" rx="8" fill="#f4f7fb" stroke="#c4d0e0"/>
+    <text x="115" y="100" font-size="15" text-anchor="middle" fill="#1f2933">S2100 / S210x</text>
+    <text x="115" y="122" font-size="12" text-anchor="middle" fill="#6b7280">+ M2 gateway</text>
+
+    <rect x="265" y="70" width="190" height="70" rx="8" fill="#eef6ef" stroke="#b8d6bd"/>
+    <text x="360" y="100" font-size="15" text-anchor="middle" fill="#1f2933">SenseCAP Cloud</text>
+    <text x="360" y="122" font-size="12" text-anchor="middle" fill="#6b7280">OpenAPI + MQTT</text>
+    <text x="232" y="98" font-size="12" text-anchor="middle" fill="#8a8f98">LoRaWAN</text>
+  </g>
+
+  <!-- P2 -->
+  <g>
+    <rect x="30" y="185" width="170" height="70" rx="8" fill="#f4f7fb" stroke="#c4d0e0"/>
+    <text x="115" y="215" font-size="15" text-anchor="middle" fill="#1f2933">S2100 / S210x</text>
+    <text x="115" y="237" font-size="12" text-anchor="middle" fill="#6b7280">T1000</text>
+
+    <rect x="265" y="185" width="190" height="70" rx="8" fill="#eef6ef" stroke="#b8d6bd"/>
+    <text x="360" y="209" font-size="15" text-anchor="middle" fill="#1f2933">The Things Stack</text>
+    <text x="360" y="229" font-size="12" text-anchor="middle" fill="#6b7280">R1000 + WM1302</text>
+    <text x="360" y="246" font-size="11" text-anchor="middle" fill="#a0a4ab">self-hosted</text>
+  </g>
+
+  <!-- P3 -->
+  <g>
+    <rect x="30" y="300" width="170" height="70" rx="8" fill="#f4f7fb" stroke="#c4d0e0"/>
+    <text x="115" y="330" font-size="15" text-anchor="middle" fill="#1f2933">S2100 / S210x</text>
+    <text x="115" y="352" font-size="12" text-anchor="middle" fill="#6b7280">T1000</text>
+
+    <rect x="265" y="300" width="190" height="70" rx="8" fill="#eef6ef" stroke="#b8d6bd"/>
+    <text x="360" y="324" font-size="15" text-anchor="middle" fill="#1f2933">ChirpStack v4</text>
+    <text x="360" y="344" font-size="12" text-anchor="middle" fill="#6b7280">M2 built-in / R1000</text>
+    <text x="360" y="361" font-size="11" text-anchor="middle" fill="#a0a4ab">self-hosted</text>
+  </g>
+
+  <!-- arrows node -> LNS -->
+  <g stroke="#9aa5b1" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <path d="M200 105 H262"/>
+    <path d="M200 220 H262"/>
+    <path d="M200 335 H262"/>
+  </g>
+
+  <!-- bridge -->
+  <rect x="530" y="150" width="180" height="140" rx="10" fill="#fff7ec" stroke="#e3c48f"/>
+  <text x="620" y="188" font-size="16" text-anchor="middle" fill="#1f2933">agri-env-bridge</text>
+  <text x="620" y="212" font-size="12" text-anchor="middle" fill="#6b7280">measurementId</text>
+  <text x="620" y="230" font-size="12" text-anchor="middle" fill="#6b7280">→ entity</text>
+  <text x="620" y="254" font-size="12" text-anchor="middle" fill="#6b7280">SQLite dedupe</text>
+  <text x="620" y="272" font-size="12" text-anchor="middle" fill="#6b7280">availability</text>
+
+  <g stroke="#9aa5b1" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <path d="M455 105 H495 Q525 105 525 150 V180" />
+    <path d="M455 220 H527"/>
+    <path d="M455 335 H495 Q525 335 525 290 V262"/>
+  </g>
+
+  <!-- mosquitto + HA -->
+  <rect x="760" y="150" width="210" height="60" rx="8" fill="#eef2fb" stroke="#c0c9e2"/>
+  <text x="865" y="178" font-size="15" text-anchor="middle" fill="#1f2933">Mosquitto</text>
+  <text x="865" y="197" font-size="12" text-anchor="middle" fill="#6b7280">MQTT discovery</text>
+
+  <rect x="760" y="240" width="210" height="90" rx="8" fill="#eef2fb" stroke="#c0c9e2"/>
+  <text x="865" y="270" font-size="15" text-anchor="middle" fill="#1f2933">Home Assistant</text>
+  <text x="865" y="291" font-size="12" text-anchor="middle" fill="#6b7280">dashboard</text>
+  <text x="865" y="310" font-size="12" text-anchor="middle" fill="#6b7280">threshold automations</text>
+
+  <g stroke="#9aa5b1" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <path d="M710 180 H756"/>
+    <path d="M865 210 V236"/>
+  </g>
+
+  <!-- entity id note -->
+  <rect x="530" y="400" width="440" height="70" rx="8" fill="#fafafa" stroke="#e2e4e8"/>
+  <text x="550" y="428" font-size="13" fill="#4b5563" font-family="Menlo, Consolas, monospace">sensor.sensecap_&lt;deveui&gt;_&lt;entity_key&gt;</text>
+  <text x="550" y="452" font-size="12" fill="#8a8f98">same entity ids on all three paths</text>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#9aa5b1"/>
+    </marker>
+  </defs>
+</svg>

@@ -1,0 +1,93 @@
+version: "1.0"
+id: m2_local_lns
+name: Switch the M2 to Local Network Server
+type: manual
+
+# The M2's own web UI is the only way to switch it out of cloud mode, and it is
+# not an endpoint a deployment step can drive. Manual it is.
+#
+# NOT VERIFIED ON HARDWARE. No M2 was switched to local mode during packaging.
+# Two things in particular are written from documentation and need confirming
+# on a real unit: the exact menu path, and whether the gateway can report to
+# the cloud and to a local network server at the same time.
+
+steps:
+  - id: open_ui
+    name: Open the gateway's web interface
+    name_i18n:
+      zh: 打开网关的 Web 界面
+    description: >-
+      Reach the M2 on its LAN address and sign in. Before changing anything,
+      write down the model, the frequency band and the firmware version shown on
+      the status page — the band has to match the nodes, and the firmware
+      version is the first thing to quote if the menu below does not look like
+      this description.
+    description_i18n:
+      zh: >-
+        用局域网地址访问 M2 并登录。改任何设置之前，先把状态页上的型号、频段和固件版本记下来——
+        频段必须与节点一致；如果下面描述的菜单和你看到的对不上，固件版本是排查时首先要说清的信息。
+    optional: false
+
+  - id: switch_mode
+    name: Switch to Local Network Server
+    name_i18n:
+      zh: 切换到 Local Network Server
+    description: >-
+      Go to `LoRa → LoRa Network` and change the mode to `Local Network Server`.
+      This takes the gateway off the SenseCAP cloud: uplinks stop appearing in
+      the Portal and start being handled by the network server built into the
+      gateway. Do not assume both happen at once — whether this generation of
+      firmware can report to the cloud and locally at the same time is
+      unverified. If you need the cloud path as well, confirm that on the unit
+      before relying on it.
+    description_i18n:
+      zh: >-
+        进入 `LoRa → LoRa Network`，把模式改成 `Local Network Server`。
+        这会让网关脱离 SenseCAP 云：上行不再出现在 Portal 里，改由网关内置的网络服务器处理。
+        不要假定两条路会同时生效——这一代固件能否同时向云端和本地上报，尚未核实。
+        如果你两条都需要，先在实机上确认，再依赖它。
+    optional: false
+
+  - id: configure_broker
+    name: Point the built-in network server at its broker
+    name_i18n:
+      zh: 配置内置网络服务器的 broker
+    description: >-
+      On the same page, fill in the MQTT host, port, username and password the
+      built-in ChirpStack will publish application events to. This is a direct
+      MQTT connection — not a Semtech UDP forwarder and not Basic Station — so
+      the bridge subscribes to that broker rather than to the gateway itself.
+      Note the values down: the deployment step for the bridge asks for exactly
+      these four.
+    description_i18n:
+      zh: >-
+        在同一页面填写内置 ChirpStack 发布 application 事件所用的 MQTT 地址、端口、用户名和密码。
+        这是直连 MQTT——不是 Semtech UDP forwarder，也不是 Basic Station——
+        所以桥订阅的是那个 broker，而不是网关本身。
+        把这四个值记下来：部署桥的那一步要填的就是它们。
+    optional: false
+
+  - id: create_objects
+    name: Create the application and device profile
+    name_i18n:
+      zh: 创建 application 与 device profile
+    description: >-
+      In the gateway's built-in ChirpStack, create a tenant if there is not one,
+      then an application, then a device profile matching your nodes' LoRaWAN
+      version and regional parameters. Paste the SenseCAP decoder for your node
+      series from https://github.com/Seeed-Solution/SenseCAP-Decoder (the
+      ChirpStack directory) into the device profile's codec field — without it
+      the uplink arrives with no `object.messages`, and the bridge has nothing
+      to map. That repository has no LICENSE file and its licensing is
+      unconfirmed; installing it is your decision.
+    description_i18n:
+      zh: >-
+        在网关内置的 ChirpStack 里，先建 tenant（没有的话），再建 application，
+        再建一个与节点 LoRaWAN 版本和区域参数匹配的 device profile。
+        把 https://github.com/Seeed-Solution/SenseCAP-Decoder 里对应节点系列的 decoder
+        （ChirpStack 目录）粘进 device profile 的 codec 字段——没有它，上行里就没有
+        `object.messages`，桥无从映射。该仓库没有 LICENSE 文件，许可状态未确认，是否安装请自行判断。
+    optional: false
+
+name_i18n:
+  zh: 把 M2 切到本地网络服务器
