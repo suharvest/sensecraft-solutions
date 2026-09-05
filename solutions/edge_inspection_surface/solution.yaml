@@ -43,6 +43,9 @@ intro:
     - modbus
     - mqtt
     - yolox
+    - dfine
+    - rtdetrv2
+    - anomaly-detection
     - industrial
 
   output_interfaces:
@@ -92,6 +95,24 @@ intro:
         zh: >-
           只读的调试页面。带检测框的 MJPEG 预览、含推理耗时与 capture→coil 时延
           以及 MQTT / Modbus 计数的健康接口，还有最近的判定记录。
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/inspection/<stream-id>/explanations
+      description: >-
+        Optional side-channel event carrying a shared VLM service's
+        (edge-vision-vlm) plain-language explanation for one frame, keyed by
+        frame_id to the results event. Requires vlm.enabled=true and a
+        reachable VLM endpoint; off by default. It never blocks or changes
+        the main verdict — a missing explanation event only means the VLM
+        was slow, degraded or disabled.
+      schema_type: json
+      payload_example: '{"type":"surface_explanation","stream_id":"line1-cam1","frame_id":10423,"trigger":"low_confidence","verdict":"NG","verdict_reasons":["defect"],"explanation":"...","vlm_model":"Qwen3-VL-2B-Instruct@cuda","vlm_latency_ms":3187.4,"vlm_fallback_used":false,"candidates":[]}'
+      description_i18n:
+        zh: >-
+          可选的旁路事件，携带外部共享 VLM 服务（edge-vision-vlm）对某一帧的
+          文字解释，按 frame_id 与 results 事件对齐。需要 vlm.enabled=true
+          且 VLM 服务端点可达，默认关闭。它不进主判定链路、不改变判定——
+          没有解释事件只说明 VLM 慢、降级或没开。
 
   input_requirements:
     - type: rtsp
@@ -115,6 +136,18 @@ intro:
         zh: >-
           与设备同网段、能做 Modbus TCP 主站的 PLC 或产线控制器。
           寄存器表固定在 unit 1 上。
+    - type: http
+      description: >-
+        Optional — a VLM service endpoint (edge-vision-vlm) reachable from
+        the inspection host, only needed to enable VLM explanations. Without
+        it, leave vlm.enabled=false and the demo behaves exactly as without
+        this section.
+      required: false
+      description_i18n:
+        zh: >-
+          可选——一个从质检主机可达的 VLM 服务端点（edge-vision-vlm），
+          只有要启用 VLM 解释时才需要。不需要就保持 vlm.enabled=false，
+          demo 行为与没有这一段完全一样。
 
   device_catalog:
     recomputer_j40:

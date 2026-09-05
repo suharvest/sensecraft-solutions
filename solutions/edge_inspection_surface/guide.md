@@ -48,6 +48,17 @@ Deploy the inspector and build its TensorRT engine on the Jetson. Allow about
    the device by hand; the checksum is verified either way.
 6. Decide the verdict threshold before you deploy. 0.35 is the frozen value; the
    solution page prices 0.25 and 0.45 against it.
+7. **Pick a detector track.** `model.track` in `config/config.json` (deploy
+   input **Detector Track**) selects `yolox` (default, the only track
+   measured on this board — 291 s engine build, all Jetson latency figures
+   on the solution page), `dfine`, or `rtdetrv2`. The two DETR tracks scored
+   equal or slightly better mAP50 and higher recall at matched precision on
+   a CPU-only comparison (single seed — see the solution page's "Detector
+   Selection" section), but have not been engine-built or timed on Orin yet;
+   picking one builds a fresh TensorRT engine the same way `yolox` does, just
+   with no prior timing to expect. Both tracks reuse the same 0.35 frozen
+   threshold, which is calibrated for `yolox`'s score distribution, not
+   theirs.
 
 ### Troubleshooting
 
@@ -206,6 +217,61 @@ The register map, unit 1 on port 502:
 
 ---
 
+## Step 4: Enable Unsupervised Anomaly Detection (Optional) {#enable_anomaly_jetson type=manual required=false verify=true config=devices/enable_anomaly.yaml}
+
+Optional. Runs a second model (EfficientAD-S, trained only on defect-free
+images) alongside the detector so a frame can be flagged as unlike the OK
+reference set even for a defect type the detector was never trained to name.
+This never enters the verdict path — every number on the intro page holds
+with this step skipped.
+
+### Prerequisites
+
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+- The EfficientAD-S ONNX copied onto the device — it is not on the CDN yet,
+  same licence-clearance gate as the detector. See the step's first substep.
+- Your own OK-sample images from the actual inspection camera, if you intend
+  to trust `anomaly_score` for anything beyond seeing the mechanism run. The
+  shipped evaluation's OK set is DeepPCB template scans, not photographs from
+  this camera — see the solution page's "Unsupervised Anomaly Detection"
+  section before calibrating `anomaly.threshold` on it.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
+| `anomaly_score` looks stable near one value on every frame regardless of the sample | Expected if `anomaly.threshold` was copied from this solution's own evaluation — that threshold was calibrated on DeepPCB template images, not your camera's OK images. Recalibrate on your own OK set first |
+| Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | This is a known limit, not a bug — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal (`heatmap_ref` plus the score), not a single frame-level cutoff |
+
+## Step 5: Enable VLM Explanations (Optional) {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+Optional. Points the runtime at an external shared VLM service
+(`edge-vision-vlm`, typically on a separate Orin box) so low-confidence or
+anomaly-only frames get a plain-language explanation on a side-channel MQTT
+topic. This never enters the frame loop and never changes a verdict — every
+number on the intro page holds with this step skipped.
+
+### Prerequisites
+
+- An `edge-vision-vlm` instance already running and reachable from this
+  device — this solution does not deploy or bundle that service.
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+- To use the `anomaly` trigger, Step 4 must be enabled first — otherwise only
+  `low_confidence` has any effect.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing — see the step's second substep |
+| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state, not a crash |
+| Explanation events arrive but the main results event does not | Should never happen — the two are independent. File this as a bug against the VLM client, not the trigger configuration |
+
+---
+
 ## Preset: IP Camera + Raspberry Pi 5 (Hailo-8) {#pi_hailo}
 
 The cheaper board and the unproven path. The INT8 HEF is compiled and its
@@ -279,6 +345,7 @@ this is faster than the Jetson path — assuming the ABI gates pass.
 | `docker compose` fails reading `._docker-compose.yml` | AppleDouble sidecars from a macOS upload. The deploy step deletes `._*` and `.DS_Store` from the upload directory; if you copied by hand, run `find . -name '._*' -delete` |
 | Detections look plausible but recall is worse than the solution page | Expected on this path — the level-0 build lost 0.03 mAP50 against the CPU reference on the emulator subset. Confirm you are running the level-1 HEF, which is the default |
 | No video from the camera | Test the RTSP URL in VLC. A wrong path or wrong credentials is the most common failure |
+| Trying to run the `dfine` or `rtdetrv2` detector track on this board | Not supported — the Hailo Dataflow Compiler 3.31.0 parser rejects both (deformable-attention operators `GridSample`/`GatherElements`/`TopK` have no Hailo-8 lowering; see the solution page's "Detector Selection" section). This preset only offers `yolox` |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml default=true}
 
@@ -421,3 +488,53 @@ The register map, unit 1 on port 502:
 | Registers all zero while MQTT shows detections | You are reading a different unit id than the one written during deployment, or reading during an OK frame |
 | Values look plausible but the box is wrong | HR 2-5 are normalised x10000 centre/width/height, not pixels. Divide by 10000 and multiply by the frame size |
 | Several cameras but only one set of registers | That is by design — the contract defines one register block, and with several streams the last verdict wins. Per-stream registers need a contract change |
+
+---
+
+## Step 4: Enable Unsupervised Anomaly Detection (Optional) {#enable_anomaly_hailo type=manual required=false verify=true config=devices/enable_anomaly.yaml}
+
+Optional, identical to the Jetson preset. Runs EfficientAD-S on CPU
+(`accelerator: "cpu"` — no Hailo backend for this model exists yet)
+alongside the detector so a frame can be flagged as unlike the OK reference
+set. This never enters the verdict path.
+
+### Prerequisites
+
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+- The EfficientAD-S ONNX copied onto the device — it is not on the CDN yet.
+- Your own OK-sample images from the actual inspection camera before trusting
+  `anomaly.threshold` — the shipped evaluation's OK set is DeepPCB template
+  scans, not photographs from this camera.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
+| `anomaly_score` looks stable near one value regardless of the sample | The threshold was likely copied from this solution's own evaluation, calibrated on DeepPCB images, not your camera's OK images. Recalibrate on your own OK set |
+| Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | Known limit — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal, not a single frame-level cutoff |
+
+## Step 5: Enable VLM Explanations (Optional) {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+Optional, identical to the Jetson preset. Points the runtime at an external
+shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
+box — the Raspberry Pi does not run it) so low-confidence or anomaly-only
+frames get a plain-language explanation on a side-channel MQTT topic. This
+never enters the frame loop and never changes a verdict.
+
+### Prerequisites
+
+- An `edge-vision-vlm` instance already running and reachable from this
+  Raspberry Pi — this solution does not deploy or bundle that service.
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+- To use the `anomaly` trigger, Step 4 must be enabled first.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing |
+| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state |
+| Explanation events arrive but the main results event does not | Should never happen — the two are independent |

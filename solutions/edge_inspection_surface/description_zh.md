@@ -135,6 +135,130 @@ INT8 损失。它与硬件不保证 bit-exact，它自己报的耗时是 x86 GPU
 | Jetson 镜像 | 375 MB | `edge-inspection-jetson:0.1.0-dev`；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，`2026-09-05-m2-orin` |
 | 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；在 macOS 上交叉构建为 arm64，从未在树莓派上跑过 | 交叉构建实测，`2026-09-05-m3-hef` §3.1 |
 
+## 检测器选型：基线 vs 先进
+
+YOLOX-Tiny 是默认值，也是唯一在 Jetson 上实测过、唯一在 Hailo 套餐上出货的
+track。另外评测了两种 NMS-free 的 DETR 架构——D-FINE-S 与 RT-DETRv2-S，
+都是 Apache-2.0，都是从各自 COCO-only 的 checkpoint 微调（不使用也不分发
+Objects365 系权重）。`config/config.json` 里的 `model.track` 选择跑哪一个；
+Jetson 部署步骤把它开放成一个 **检测器 Track** 选项。
+
+| 检测器 | mAP50 | 冻结 0.35 下 P / R | 整帧漏检 | CPU `detect()` P50 / P95 / P99 (ms) |
+|---|---:|---|---:|---|
+| YOLOX-Tiny（默认） | 0.7574 | 0.7632 / 0.6983 | 7/290 | 30.2 / 35.7 / 52.7 |
+| D-FINE-S | 0.7499 | 0.4956 / 0.8017 | **0/290** | 54.0 / 68.1 / 95.8 |
+| RT-DETRv2-S | 0.7317 | 0.4575 / 0.7847 | 1/290 | 83.1 / 93.8 / 126.1 |
+
+三者前提相同：同一份 290 张 NEU6 val 图（706 框）、同样的 640x640 静态
+batch-1 输入、同一台机器（arm64 Mac，onnxruntime CPUExecutionProvider）、
+每个 track 各 1 个种子、冻结阈值 0.35。来源：
+`evaluation/runs/2026-09-06-a1-cpu/results.md`。
+
+**mAP 接近，但冻结阈值不是跨架构的公平比较。** 0.35 是按 YOLOX 的
+`obj x cls` 分数分布标定的，没有按架构分别重新标定——这也是上表 P/R
+看起来不对称的原因（DETR 的 sigmoid decoder 分数分布不同）。改成按精度
+对齐而不是按阈值对齐（P 约 0.81-0.87），D-FINE 的召回比 YOLOX 高
+2-7 个点，整帧漏检从 YOLOX 的 38 帧降到 20 帧。**这是单种子的观察，
+不是已确认的结论**——每个 track 目前只跑了 1 个种子，需要 3 个种子才能
+定论。
+
+**crazing 换架构也没有改善。** 三者的 AP50 都在 0.30-0.36（YOLOX 0.360、
+D-FINE 0.302、RT-DETRv2 0.310）——与 Jetson 实测边界表里对 YOLOX 单独下的
+结论一致：这是模型能力上限，不是换个检测头能解决的。
+
+**Hailo-8 对两条 DETR track 都不支持——树莓派套餐继续用 YOLOX-Tiny。**
+Hailo Dataflow Compiler 3.31.0 的解析器直接拒绝 RT-DETRv2-S（`GridSample`
+×9、`GatherElements` ×3、`TopK` ×2 全部报不支持——可变形注意力算子在
+Hailo-8 上没有实现），对 D-FINE-S 甚至在给出这份清单之前就崩了（解析器
+自身的一个 `MatMul` 形状假设不成立，不是「支持/不支持」的判定）。
+Hailo 部署步骤的 `detector_track` 选项因此不提供 `dfine`/`rtdetrv2`。
+
+**RKNN 能转但未上板验证。** 两份 ONNX 都成功转成了 RK3576 的 `.rknn`
+（FP16，不量化），但 18 处 `GridSample` 节点（每个模型各 9 处）走的是
+自定义算子回退，没有对应的 NPU 实现——转换成功不代表这部分图在 NPU 上跑。
+探针阶段没有可用的 RK3576 设备核实与 CPU 的输出一致性，所以这是**未验证**，
+不是负面结论。
+
+来源：`tracks/detector/PROVENANCE.md`（两个上游的许可与 commit 锁定）、
+`evaluation/runs/2026-09-06-a1-probe/results.md`（Hailo/RKNN 探针）。
+
+## 无监督异常检测（可选）
+
+一个可选的第二模型（anomalib EfficientAD-S，Apache-2.0）可以与检测器并行
+跑，只用无缺陷（"OK"）参考图训练，标出与参考集不像的帧——包括检测器
+从未学过命名的缺陷**类型**。它从不替代检测器的判定：`anomaly_score` 是
+MQTT 里附加的独立字段（`contracts/MQTT.md`），`anomaly_verdict` 从不与
+顶层 `verdict` 合并。
+
+| 指标 | 数值 | 条件 | 来源 |
+|---|---|---|---|
+| 像素级 AUROC | **0.8752** | DeepPCB `pcb` OK/异常切分：205 张 OK val + 213 张 OK test + 213 张异常 test | `evaluation/runs/2026-09-05-a2-cpu/results.md` |
+| 像素级 AUPRO（FPR ≤ 0.30） | **0.6494** | 同一次跑测，1177 个连通缺陷区域 | 同一次跑测 |
+| 图像级 AUROC | **0.5201**（0.5 = 随机） | 同一次跑测——见下方 caveat | 同一次跑测 |
+| 未见缺陷召回，留一类（像素/区域级） | **0.225-0.955**，按类差异极大（open 0.955，spur 0.225） | 留出类完全不进标定；模型没见过这个标签 | 同一次跑测 §2 |
+| 双路延迟开销（检测器 + EfficientAD，CPU 参考实现） | **+139 ms P95/帧** | queue=2、超时 500 ms（随包默认值）；120/120 帧成功汇合，丢帧 0 | 同一次跑测 §3 |
+
+**像素/区域级判据可用，图像级不可用，且试过 12 种聚合方式都没救回来。**
+把像素级热力图压成一个图像标量分数（max、top-k 均值、Otsu 前景 mask 内
+max、高斯平滑后 max、连通域面积/最大连通域占比）——12 种方式的图像 AUROC
+全部落在 0.495-0.530，都在随机水平的噪声带内。根因不是图像边缘的稀疏
+噪声尖峰（去边处理没有带来可测的差异）；是 OK 集（扫描模板图）与异常集
+（实拍图）之间弥漫全图的分数偏置，它以同样的方式污染任何对像素图做的
+单标量汇总。像素/区域级指标之所以还有效，是因为它们只在同一张异常图
+内部比较（框内 vs 框外），偏置在这个比较里被抵消；图像级指标比较的是
+两张来自不同来源的图像，偏置抵消不掉。
+
+**OK 参考集必须与被测图同源采集——上面这组数字用的那份不是。** NEU6
+（本方案检测器自己的训练数据）完全没有无缺陷图像：1799 张图里每一张都
+至少带一个标注缺陷。上面的异常模型因此训练与评测在另一个 MIT 许可的
+数据集（DeepPCB）上，它的 OK 图是扫描出来的板卡模板图，而异常图是另一块
+实体板卡的实拍照片——这个模板 vs 实拍的差异正是上面说的那个弥漫偏置，
+不代表真实产线上同一台相机拍出的 OK/异常图会长什么样。**启用
+`anomaly.enabled` 之前，先用真实检测相机采集你自己的 OK 样本，
+并在这批图上重新标定 `anomaly.threshold`**——不要把上面的像素 AUROC
+当成你产线图像上的承诺；它证明的是机制能跑通，不是你数据集上的数字。
+
+配置：`config/config.json` 里的 `anomaly.enabled`（默认 `false`）与
+`anomaly.threshold`，在 schema 里是 additive 字段——关掉它，本页其余每一个
+实测数字都照样成立。启用后，把 `anomaly_score` 和 `heatmap_ref` 当成
+像素/区域级信号来读，不要当成帧级的正常/异常开关，上面的数字就是原因。
+
+来源：`tracks/anomaly/README.md`、`tracks/anomaly/PROVENANCE.md`
+（anomalib `lib/v2.6.0`，Apache-2.0）、
+`evaluation/runs/2026-09-05-a2-cpu/results.md`、
+`evaluation/runs/2026-09-05-a2-aggregation/results.md`。
+
+## 可选：VLM 解释
+
+运行时可以把一帧交给外部共享 VLM 服务（`edge-vision-vlm`）生成一段人话
+解释。这是一条旁路，不是第二个判定者：它不进帧循环、不改变 `verdict`，
+服务关闭、变慢或不可达时，OK/NG 输出与没有这条旁路完全一样。
+
+- **触发条件**（两条依据任一即可，有框优先）。`low_confidence`——主缺陷
+  分数低于 `vlm.trigger.min_confidence`。`anomaly`——`anomaly_score`
+  过了 `anomaly.threshold` 且**检测器一个框都没有**，此时没有这条旁路就
+  完全没有机器可读的判定理由。每路按 `vlm.trigger.min_interval_s` 限速，
+  绝不是每帧调用一次。
+- **旁路事件。** 有界、drop-oldest 队列加独立 worker 线程提交调用；
+  `inspection/<流编号>/results` 上的主事件照常按原节奏发布，不管 VLM
+  有没有回应。回应了才会在 `inspection/<流编号>/explanations` 上再发
+  一条，按同一个 `frame_id` 对齐。
+- **不阻塞主链路。** 客户端硬超时会放弃这次调用；连续失败达到阈值后
+  熔断器会停调一段冷却期，冷却期靠 `GET /healthz` 探活。
+- **时延不是可以按帧规划的数字。** 在共享服务自己的评测硬件——NVIDIA
+  Spark GB10 工作站，**不是这台设备**——上实测，Qwen3-VL-2B bf16 光生成
+  阶段就是 P50 约 3.2 s / P95 约 7.2 s（`max_tokens=320`）。这正是这次
+  调用要离开热路径的原因；这套集成目前没有 Orin 上的实测时延。
+
+设置 `vlm.enabled: true` 并把 `vlm.base_url` 指到一个可达的
+`edge-vision-vlm` 实例即可启用；完整步骤见部署指南，包括设备上需要的
+`no_proxy` 设置。
+
+来源：上游 `README.md` "VLM 解释" 一节、
+`contracts/explanation-event.schema.json`、
+`evaluation/runs/2026-09-06-mvlma-stub-localhost/results.md`
+（Mac 上用 stub backend 做的接线联调，不是真实模型的时延实测）。
+
 ## 输出接口
 
 | 输出 | 位置 | 内容 |
@@ -181,9 +305,16 @@ HEF 已编译，量化损失在编译器 emulator 上量过，运行时镜像也
 
 ## 许可说明
 
-运行时代码是 Apache-2.0。检测骨干用 YOLOX（Megvii-BaseDetection），同样是
-Apache-2.0——这是刻意的选择，为的是避开 Ultralytics 权重带来的 AGPL 条款。
-本方案任何位置都没有使用 Ultralytics 的代码或权重。
+运行时代码是 Apache-2.0。默认检测骨干用 YOLOX（Megvii-BaseDetection），
+同样是 Apache-2.0——这是刻意的选择，为的是避开 Ultralytics 权重带来的
+AGPL 条款。本方案任何位置都没有使用 Ultralytics 的代码或权重。两个可选的
+先进检测器 track 上游同样是 Apache-2.0（D-FINE，Peterande/D-FINE；
+RT-DETRv2，lyuwenyu/RT-DETR），且只从各自 COCO 许可的 checkpoint 微调——
+不下载也不分发 Objects365 系权重，因为上游自己声明那部分许可未确认
+（`tracks/detector/PROVENANCE.md`）。可选的无监督异常检测模型
+（anomalib EfficientAD-S）同样是 Apache-2.0，包括它的预训练 teacher 权重
+（`tracks/anomaly/PROVENANCE.md`）；它的 OK/异常训练数据（DeepPCB）是
+MIT 许可，与 NEU-DET 是两个不同的数据集。
 
 **没结清的是训练数据。** 模型训练自 NEU-DET 的转载版。该转载版的 Roboflow
 页面标 CC BY 4.0，但原始 NEU-DET 出处未见正式许可声明，从原作者到那个页面的

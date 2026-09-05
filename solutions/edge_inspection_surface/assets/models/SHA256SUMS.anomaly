@@ -1,0 +1,28 @@
+18d177f2c7df6f8d350efaa65bbe22547b926755d49e2de9b93338a030d20ada  efficientad_s_pcb.onnx
+6bea18ddca3b464726c2c8fcb0d7680fa153db65569915aba377dd25f9c34b23  model.ckpt
+
+# metadata (not part of the checksum lines)
+# track               : anomaly (optional, unsupervised, config.anomaly)
+# status              : listing only — no CDN upload yet
+# model               : anomalib EfficientAd, size=small
+# upstream            : open-edge-platform/anomalib lib/v2.6.0 =
+#                        3759687e76395c4d6d239552d3bf6d72e003da78 (Apache-2.0)
+# torch_version       : 2.14.0+cu130
+# onnx_version        : 1.21.0
+# input               : input:batch_sizex3x256x256 opset14
+# outputs             : pred_score, pred_label, anomaly_map, pred_mask
+# train_device        : NVIDIA GB10
+# ok_dataset_id       : pcb (DeepPCB, MIT — NOT the same dataset as the
+#                        detector's NEU6; NEU6 has no defect-free images)
+# ok_definition       : *_temp.jpg (defect-free template scan of the same
+#                        board view — a template scan, not a photograph of
+#                        an OK board; see the solution page's caveat before
+#                        trusting the pixel-level number for your own line)
+# pixel AUROC         : 0.8752 (evaluation/runs/2026-09-05-a2-cpu/results.md)
+# image AUROC         : 0.5201 (near random — do not use for a frame-level
+#                        normal/abnormal decision; see
+#                        evaluation/runs/2026-09-05-a2-aggregation/results.md)
+# threshold           : NOT part of the artifact — calibrate per run on your
+#                        own OK images through the same pipeline
+# size                : efficientad_s_pcb.onnx = 32278349 bytes
+# size                : model.ckpt = 75199925 bytes

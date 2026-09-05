@@ -152,10 +152,29 @@ remote_overrides:
           set -e
           WORKDIR="/home/{{username}}/edge-inspection-surface/jetson_inspection"
           MODELS_DIR="$WORKDIR/models"
-          ONNX="$MODELS_DIR/yolox_tiny_neu6.onnx"
-          ENGINE="$MODELS_DIR/yolox_tiny_neu6.engine"
-          # models/SHA256SUMS in this solution's assets/ records the same value.
-          SHA=4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba
+
+          # detector_track picks which ONNX gets built into a TensorRT engine.
+          # yolox is the only track measured on this board and the only one
+          # supported on the Hailo preset; dfine/rtdetrv2 are CPU-golden only
+          # so far (evaluation/runs/2026-09-06-a1-cpu/results.md) — no
+          # Orin/TensorRT figure exists for them yet, see the solution page.
+          case "{{detector_track}}" in
+            yolox)
+              MODEL_NAME=yolox_tiny_neu6
+              SHA=4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba
+              ;;
+            dfine)
+              MODEL_NAME=dfine_s_neu6
+              SHA=7c81827d91f3cf4aab49ba16ee701e4bd889f85105baedc0f00d85f180f96653
+              ;;
+            rtdetrv2)
+              MODEL_NAME=rtdetrv2_s_neu6
+              SHA=a2aa56779a19ec952360da90503d20eae65b1d46bc7a3c14a06c2c10b822a36a
+              ;;
+            *) echo "Unknown detector_track: {{detector_track}}" >&2; exit 1 ;;
+          esac
+          ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
+          ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
 
           mkdir -p "$MODELS_DIR"
 
@@ -167,17 +186,21 @@ remote_overrides:
           if [ ! -s "$ONNX" ]; then
             # TODO(CDN): the ONNX has NOT been uploaded yet. The licence of the
             # training data is unconfirmed, so nothing is published until that
-            # is cleared. Until then, copy yolox_tiny_neu6.onnx onto the device
+            # is cleared. Until then, copy $MODEL_NAME.onnx onto the device
             # at the path below by hand; the sha256 check still applies.
-            echo "Downloading yolox_tiny_neu6.onnx ..."
+            echo "Downloading $MODEL_NAME.onnx ..."
             curl -fSL --retry 3 -o "$ONNX.part" \
-              "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/yolox_tiny_neu6.onnx"
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$MODEL_NAME.onnx"
             echo "$SHA  $ONNX.part" | sha256sum -c -
             mv -f "$ONNX.part" "$ONNX"
           fi
           echo "$SHA  $ONNX" | sha256sum -c -
 
-          echo "Building the TensorRT engine — measured at 291 s on Orin NX ..."
+          # 291 s was measured for the yolox track on Orin NX 16GB / TRT 10.3
+          # (evaluation/runs/2026-09-05-m2-orin/results.md §1). dfine/rtdetrv2
+          # have not been engine-built or timed on this board — CPU-only
+          # golden so far (evaluation/runs/2026-09-06-a1-cpu/results.md).
+          echo "Building the TensorRT engine for {{detector_track}} ..."
           # --version exits 1 on TensorRT 10.3, so it must not gate the build.
           /usr/src/tensorrt/bin/trtexec --version || true
           START=$(date +%s)
@@ -208,8 +231,15 @@ remote_overrides:
           with open(path) as handle:
               config = json.load(handle)
 
-          config["model"]["path"] = "/models/yolox_tiny_neu6.engine"
+          track = "{{detector_track}}"
+          model_names = {
+              "yolox": "yolox_tiny_neu6",
+              "dfine": "dfine_s_neu6",
+              "rtdetrv2": "rtdetrv2_s_neu6",
+          }
+          config["model"]["path"] = f"/models/{model_names[track]}.engine"
           config["model"]["accelerator"] = "tensorrt"
+          config["model"]["track"] = track
           # The freeze threshold measured on the held-out val set. 0.35 gives
           # box P 0.765 / R 0.697; raising it trades recall for precision.
           config["rules"]["min_score"] = float("{{min_score}}")
@@ -229,7 +259,7 @@ remote_overrides:
               json.dump(config, handle, indent=2)
               handle.write("\n")
           os.replace(tmp, path)
-          print(f"model      = {config['model']['path']}")
+          print(f"model      = {config['model']['path']} (track={track})")
           print(f"min_score  = {config['rules']['min_score']}")
           print(f"stream     = {config['sources'][0]['stream_id']} @ {config['sources'][0]['fps']} fps")
           PY
@@ -331,21 +361,61 @@ remote_overrides:
         zh: 产线节拍（FPS）
       description_i18n:
         zh: 从视频源取帧的速率。所有实测时延数字都是在 10 FPS 下取得的。
+    - id: detector_track
+      name: Detector Track
+      type: select
+      default: yolox
+      required: true
+      description: >-
+        Which detector architecture to build and run. yolox is the only track
+        measured on this board (TensorRT engine, 291 s build) and the only
+        one this solution ships on the Hailo preset. dfine and rtdetrv2 have
+        equal or better recall at matched precision in the CPU-only
+        comparison (single seed, see the solution page) but have not been
+        engine-built or timed on Orin yet — the 291 s build time and every
+        Jetson latency figure on this page are yolox-only until they are.
+      options:
+        - value: yolox
+          label: YOLOX-Tiny — the measured, deployed default
+          label_i18n:
+            zh: YOLOX-Tiny——有实测数据的默认部署项
+        - value: dfine
+          label: D-FINE-S — CPU golden shows higher recall at matched precision; no Orin engine timing yet
+          label_i18n:
+            zh: D-FINE-S——CPU 基准显示等精度下召回更高；尚无 Orin engine 实测耗时
+        - value: rtdetrv2
+          label: RT-DETRv2-S — CPU golden only, slower than D-FINE on CPU; no Orin engine timing yet
+          label_i18n:
+            zh: RT-DETRv2-S——仅有 CPU 基准，CPU 上比 D-FINE 慢；尚无 Orin engine 实测耗时
+      name_i18n:
+        zh: 检测器 Track
+      description_i18n:
+        zh: >-
+          选择构建并运行哪种检测器架构。yolox 是唯一在这块板上实测过的
+          track（TensorRT engine，构建 291 s），也是 Hailo 套餐上唯一提供的
+          一个。dfine 与 rtdetrv2 在 CPU-only 对比（单种子，见方案页）里
+          等精度下召回持平或更高，但还没有在 Orin 上构建过 engine 或计过时——
+          本页所有 291 s 构建耗时与 Jetson 时延数字，在补上之前只对 yolox 成立。
     - id: min_score
       name: Verdict Threshold
       type: select
       default: "0.35"
       required: true
-      description: Score above which a detection counts towards an NG verdict. Measured on 290 val images at 0.35 — see the solution page.
+      description: >-
+        Score above which a detection counts towards an NG verdict. 0.35 was
+        frozen against YOLOX's obj×cls score distribution on 290 val images —
+        see the solution page. It is not re-calibrated for dfine/rtdetrv2:
+        their sigmoid decoder scores are distributed differently, so the same
+        number does not mean the same confidence level on those tracks.
       options:
         - value: "0.25"
           label: 0.25 — higher recall, more false alarms
           label_i18n:
             zh: 0.25——召回更高，误报更多
         - value: "0.35"
-          label: 0.35 — the frozen deployment value
+          label: 0.35 — the frozen deployment value (calibrated for yolox)
           label_i18n:
-            zh: 0.35——部署冻结值
+            zh: 0.35——部署冻结值（按 yolox 标定）
         - value: "0.45"
           label: 0.45 — higher precision, more misses
           label_i18n:
@@ -353,7 +423,11 @@ remote_overrides:
       name_i18n:
         zh: 判定阈值
       description_i18n:
-        zh: 检测框计入 NG 判定的分数门限。0.35 是在 290 张 val 图上实测的冻结值，见方案页。
+        zh: >-
+          检测框计入 NG 判定的分数门限。0.35 是按 YOLOX 的 obj×cls 分数分布在
+          290 张 val 图上标定的冻结值，见方案页。dfine/rtdetrv2 没有单独重新
+          标定——它们的 sigmoid decoder 分数分布不同，同一个数值在那两个
+          track 上不代表同一个置信水平。
     - id: modbus_unit_id
       name: Modbus Unit ID
       type: text
