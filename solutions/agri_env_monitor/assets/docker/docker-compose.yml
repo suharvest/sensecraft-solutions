@@ -1,0 +1,72 @@
+# Shared Home Assistant + Mosquitto host. All three presets deploy this one
+# first; the per-preset stacks (assets/cloud, assets/tts, assets/chirpstack)
+# each run their own agri-env-bridge instance and publish into this broker.
+#
+# Baseline: recamera_ecosystem/assets/docker/docker-compose.yml (Home Assistant
+# + Mosquitto on the same host). Differences here:
+#   * Mosquitto runs with a username/password instead of anonymous access,
+#     because the bridge may sit on a different machine than the broker.
+#   * ports are variables so the stack can move off 8123/1883 when the host
+#     already runs something there.
+#
+# The broker is deliberately separate from any single sensor path: a preset can
+# be swapped (cloud -> local ChirpStack) without touching Home Assistant, and
+# the entity ids stay the same because the same bridge produces them.
+
+name: ${COMPOSE_PROJECT_NAME:-agri-env}
+
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    # Home Assistant only publishes the rolling `stable` tag — there is no
+    # semver tag to pin. Pin to a digest once an ARM64 target has been measured.
+    container_name: agri-env-homeassistant
+    ports:
+      - "${HA_PORT:-8123}:8123"
+    volumes:
+      - ha-config:/config
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    depends_on:
+      - mosquitto
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    container_name: agri-env-mosquitto
+    # The password file is generated on first start from the environment, so
+    # no credential is baked into the image or committed to the repository.
+    # `chown mosquitto:mosquitto` is required: the broker drops privileges to
+    # the `mosquitto` user and cannot read a root-owned 0600 pwfile
+    # (this failed exactly this way during the local smoke run).
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        mosquitto_passwd -b -c /mosquitto/data/passwd "$$MQTT_USERNAME" "$$MQTT_PASSWORD"
+        chmod 600 /mosquitto/data/passwd
+        chown mosquitto:mosquitto /mosquitto/data/passwd
+        exec mosquitto -c /mosquitto/config/mosquitto.conf
+    environment:
+      - MQTT_USERNAME=${MQTT_USERNAME:-agrienv}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:?MQTT_PASSWORD must be set}
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  ha-config:
+  mosquitto-data:

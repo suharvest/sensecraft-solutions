@@ -1,0 +1,54 @@
+version: "1.0"
+id: ha_dashboard
+name: Check the Data in Home Assistant
+type: web_dashboard
+
+# The verify step for all three presets. Chosen over a `manual` step because
+# everything that has to be checked is visible on one page the user can be sent
+# to directly, and over `preview`/`video_stream` because there is no video in
+# this solution — the output is a set of entities.
+#
+# inherit_host_from points at the Home Assistant deploy step so the address is
+# filled in automatically. The input below stays typeable for anyone pointing
+# this at a Home Assistant they already ran.
+inherit_host_from: deploy_ha
+
+user_inputs:
+  - id: host
+    name: Home Assistant Address
+    type: text
+    required: true
+    default: "localhost"
+    default_template: "{{host}}"
+    placeholder: "192.168.1.50"
+    description: Address of the machine running Home Assistant
+    name_i18n:
+      zh: Home Assistant 地址
+    description_i18n:
+      zh: 运行 Home Assistant 的机器地址
+  - id: ha_port
+    name: Home Assistant Port
+    type: text
+    required: true
+    default: "8123"
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: Home Assistant 端口
+
+web_dashboard:
+  url: "http://{{host}}:{{ha_port}}"
+  title: Home Assistant
+  description: >-
+    Settings → Devices & Services → MQTT lists one device per node, named
+    `SenseCAP <DevEUI>`, with one entity per measurement it reports. Import
+    assets/homeassistant/agri_env_dashboard.yaml into the Lovelace raw
+    configuration editor and replace the example DevEUIs with your own.
+  description_i18n:
+    zh: >-
+      「设置 → 设备与服务 → MQTT」里每个节点是一台设备，名字是 `SenseCAP <DevEUI>`，
+      它上报的每个测量项对应一个实体。把 assets/homeassistant/agri_env_dashboard.yaml
+      粘进 Lovelace 原始配置编辑器，再把示例 DevEUI 换成你自己的。
+
+name_i18n:
+  zh: 在 Home Assistant 里核对数据

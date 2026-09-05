@@ -1,0 +1,279 @@
+version: "1.0"
+id: tts_stack
+name: The Things Stack and Bridge
+type: docker_deploy
+
+# Preset 2. The Things Stack Open Source (Identity, Gateway, Network and
+# Application servers plus the Console in one container) with Postgres and
+# Redis, and the bridge beside them.
+#
+# NOT VERIFIED ON HARDWARE. This stack has not been started on an R1000 or any
+# other ARM64 target during packaging. The first-start Identity Server
+# initialisation, the admin and OAuth client creation, and the memory and disk
+# floor are all unmeasured. The `after_upload` action below runs the documented
+# initialisation sequence; expect to read `docker compose logs stack` the first
+# time.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/tts/docker-compose.yml
+  compose_dir: assets/tts
+  remote_path: /home/{{username}}/agri-env-monitor
+  options:
+    project_name: agri-env-tts
+    remove_orphans: true
+  services:
+    - name: stack
+      port: 1885
+      required: true
+    - name: bridge
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # Four images to pull (the stack image alone is several hundred MB) plus the
+  # database migration on first start. Not measured — see the note above.
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 10
+    description: Stack, Postgres and Redis images plus the database volume
+  - type: port_available
+    ports:
+      - 1885
+      - 1700
+    description: Check the Console port and the packet forwarder UDP port are free
+
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: The Things Stack 与桥
+
+remote_overrides:
+  remote_path: /home/{{username}}/agri-env-monitor
+  compose_dir: assets/tts
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    after_upload:
+      - name: Write the stack configuration
+        # The cookie keys have to be random per installation — a shared key
+        # would let a session from one deployment be replayed against another.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/agri-env-monitor/tts_stack"
+          umask 077
+          gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          cat > "$WORKDIR/.env" <<EOF
+          COMPOSE_PROJECT_NAME=agri-env-tts
+          TZ={{timezone}}
+          TTS_HOST={{host}}
+          TTS_DB_PASSWORD=$(gen 16)
+          TTS_COOKIE_BLOCK_KEY=$(gen 32)
+          TTS_COOKIE_HASH_KEY=$(gen 64)
+          TTS_CONSOLE_SECRET=$(gen 16)
+          MQTT_OUT_HOST={{mqtt_host}}
+          MQTT_OUT_PORT={{mqtt_port}}
+          MQTT_USERNAME={{mqtt_username}}
+          MQTT_PASSWORD={{mqtt_password}}
+          TTN_MQTT_USERNAME={{ttn_mqtt_username}}
+          TTN_MQTT_PASSWORD={{ttn_mqtt_password}}
+          TTN_APPLICATION_ID={{ttn_application_id}}
+          BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
+          EOF
+          echo "wrote $WORKDIR/.env with freshly generated database and cookie keys"
+        name_i18n:
+          zh: 写入 stack 配置
+
+    after:
+      - name: Initialise the stack and create the admin user
+        # Documented first-start sequence for The Things Stack Open Source:
+        # migrate the database, create the admin user, then register the
+        # Console and CLI OAuth clients. Every command is idempotent enough to
+        # re-run — a second attempt reports the object already exists.
+        # UNVERIFIED: not executed against a running stack during packaging.
+        ignore_error: true
+        timeout: 900
+        run: |
+          set -e
+          cd "/home/{{username}}/agri-env-monitor/tts_stack"
+          echo "Waiting for Postgres ..."
+          for i in $(seq 1 30); do
+            docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && break
+            sleep 5
+          done
+          docker compose run --rm stack is-db migrate
+          docker compose run --rm stack is-db create-admin-user \
+            --id admin --email "{{admin_email}}" --password "{{admin_password}}"
+          docker compose run --rm stack is-db create-oauth-client \
+            --id console --name "Console" --owner admin --no-rights \
+            --redirect-uri "http://{{host}}:1885/console/oauth/callback" \
+            --logout-redirect-uri "http://{{host}}:1885/console" \
+            --secret "$(grep '^TTS_CONSOLE_SECRET=' .env | cut -d= -f2)"
+          echo "Stack initialised. Console: http://{{host}}:1885/console"
+        name_i18n:
+          zh: 初始化 stack 并创建管理员
+
+      - name: Confirm the bridge reached both brokers
+        ignore_error: true
+        timeout: 300
+        run: |
+          for i in $(seq 1 30); do
+            if docker logs agri-env-bridge-tts 2>&1 | grep -q "TTS MQTT connected"; then
+              echo "Bridge is subscribed to the Application Server MQTT."
+              docker logs --tail 20 agri-env-bridge-tts 2>&1
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "The bridge has not connected to the Application Server MQTT." >&2
+          echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then restart: docker compose restart bridge" >&2
+          docker logs --tail 40 agri-env-bridge-tts 2>&1 || true
+        name_i18n:
+          zh: 确认桥已连上两个 broker
+
+  user_inputs:
+    - id: host
+      name: Gateway Host Address
+      type: text
+      required: true
+      placeholder: "192.168.1.60"
+      description: The machine running the concentrator and this stack. It must be an address the browser and the packet forwarder can both reach — not 127.0.0.1.
+      name_i18n:
+        zh: 网关主机地址
+      description_i18n:
+        zh: 运行集中器与本 stack 的那台机器。浏览器和 packet forwarder 都要能访问到它——不能填 127.0.0.1。
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: timezone
+      name: Time Zone
+      type: text
+      default: "Asia/Shanghai"
+      required: true
+      name_i18n:
+        zh: 时区
+    - id: admin_email
+      name: Console Admin Email
+      type: text
+      required: true
+      placeholder: "admin@example.com"
+      description: The address the admin account is created with. It is not sent anywhere — the stack has no mail server configured.
+      name_i18n:
+        zh: Console 管理员邮箱
+      description_i18n:
+        zh: 创建管理员账号用的邮箱地址。不会发到任何地方——本 stack 没有配邮件服务。
+    - id: admin_password
+      name: Console Admin Password
+      type: password
+      required: true
+      description: Used to sign in to the Console on port 1885
+      name_i18n:
+        zh: Console 管理员密码
+      description_i18n:
+        zh: 用于登录 1885 端口的 Console
+    - id: mqtt_host
+      name: Home Assistant Broker Address
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: The Mosquitto deployed with Home Assistant — where the bridge publishes entities
+      name_i18n:
+        zh: Home Assistant Broker 地址
+      description_i18n:
+        zh: 与 Home Assistant 一起部署的那个 Mosquitto——桥把实体发到这里
+    - id: mqtt_port
+      name: Home Assistant Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: Home Assistant Broker 端口
+    - id: mqtt_username
+      name: Home Assistant Broker Username
+      type: text
+      default: "agrienv"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: Home Assistant Broker 用户名
+    - id: mqtt_password
+      name: Home Assistant Broker Password
+      type: password
+      required: true
+      name_i18n:
+        zh: Home Assistant Broker 密码
+    - id: ttn_application_id
+      name: Application ID
+      type: text
+      default: "agri-env"
+      required: true
+      description: The application you will create in the Console. The bridge subscribes to its uplinks.
+      validation:
+        pattern: "^[a-z0-9-]+$"
+      name_i18n:
+        zh: Application ID
+      description_i18n:
+        zh: 稍后要在 Console 里创建的 application。桥订阅它的上行。
+    - id: ttn_mqtt_username
+      name: Application MQTT Username
+      type: text
+      required: true
+      placeholder: "agri-env@my-tenant"
+      description: "Form: {application-id}@{tenant-id}. On a self-hosted Open Source stack the tenant is usually the same string for every application."
+      name_i18n:
+        zh: Application MQTT 用户名
+      description_i18n:
+        zh: "格式：{application-id}@{tenant-id}。自建开源版里各 application 的 tenant 通常是同一个字符串。"
+    - id: ttn_mqtt_password
+      name: Application API Key
+      type: password
+      required: true
+      description: An API key with rights to read application traffic. Created in the Console under Integrations → MQTT, and shown only once.
+      name_i18n:
+        zh: Application API Key
+      description_i18n:
+        zh: 有读取 application 流量权限的 API key。在 Console 的「Integrations → MQTT」里创建，只显示一次。
+    - id: unavailable_after
+      name: Offline Threshold (seconds)
+      type: text
+      default: "7200"
+      required: true
+      description: No uplink for this long marks the node offline in Home Assistant
+      validation:
+        pattern: "^[0-9]{2,6}$"
+      name_i18n:
+        zh: 离线判定时长（秒）
+      description_i18n:
+        zh: 超过这么久没有上行就在 Home Assistant 里标记为离线

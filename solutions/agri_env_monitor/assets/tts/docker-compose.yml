@@ -1,0 +1,117 @@
+# Preset 2 — self-hosted The Things Stack Open Source + the bridge.
+#
+# Baseline: the upstream `docker-compose-open-source.yml` from The Things Stack
+# (Identity Server, Gateway Server, Network Server, Application Server and
+# Console in one `stack` container, with Postgres and Redis beside it).
+#
+# NOT VERIFIED ON HARDWARE. This stack has not been started on an R1000 or any
+# other ARM64 target during packaging: the first-start Identity Server
+# initialisation, the OAuth client creation and the resource floor
+# (RAM/disk) are all unmeasured. Treat the values below as a starting point and
+# check `docker compose logs stack` on first run.
+#
+# IMAGE STATUS: `agri-env-bridge:0.1.0` is not published to any registry.
+# `docker manifest inspect agri-env-bridge:0.1.0` returns "denied: requested
+# access to the resource is denied / unauthorized: authentication required".
+# Build it locally from the agri-env-monitor repository or override BRIDGE_IMAGE.
+
+name: ${COMPOSE_PROJECT_NAME:-agri-env-tts}
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: agri-env-tts-postgres
+    environment:
+      - POSTGRES_USER=${TTS_DB_USER:-root}
+      - POSTGRES_PASSWORD=${TTS_DB_PASSWORD:?TTS_DB_PASSWORD must be set}
+      - POSTGRES_DB=ttn_lorawan
+    volumes:
+      - tts-postgres:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: agri-env-tts-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - tts-redis:/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  stack:
+    image: ${TTS_IMAGE:-thethingsnetwork/lorawan-stack:3.31.0}
+    container_name: agri-env-tts
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - TTN_LW_IS_DATABASE_URI=postgres://${TTS_DB_USER:-root}:${TTS_DB_PASSWORD}@postgres:5432/ttn_lorawan?sslmode=disable
+      - TTN_LW_REDIS_ADDRESS=redis:6379
+      - TTN_LW_BLOB_LOCAL_DIRECTORY=/srv/ttn-lorawan/public/blob
+      - TTN_LW_IS_OAUTH_UI_CANONICAL_URL=http://${TTS_HOST:?TTS_HOST must be the address devices and browsers use}:1885/oauth
+      - TTN_LW_HTTP_COOKIE_BLOCK_KEY=${TTS_COOKIE_BLOCK_KEY:?32-byte hex, see guide}
+      - TTN_LW_HTTP_COOKIE_HASH_KEY=${TTS_COOKIE_HASH_KEY:?64-byte hex, see guide}
+      - TTN_LW_CONSOLE_UI_CANONICAL_URL=http://${TTS_HOST}:1885/console
+      - TTN_LW_CONSOLE_OAUTH_AUTHORIZE_URL=http://${TTS_HOST}:1885/oauth/authorize
+      - TTN_LW_CONSOLE_OAUTH_TOKEN_URL=http://${TTS_HOST}:1885/oauth/token
+      - TTN_LW_CONSOLE_OAUTH_CLIENT_ID=console
+      - TTN_LW_CONSOLE_OAUTH_CLIENT_SECRET=${TTS_CONSOLE_SECRET:?TTS_CONSOLE_SECRET must be set}
+    ports:
+      # 1700/udp is the Semtech UDP packet forwarder port the WM1302 concentrator
+      # publishes to; 1885 is the Console; 1883 is the Application Server MQTT
+      # the bridge subscribes to. Mapped to 11883 on the host so it does not
+      # collide with the Home Assistant broker when both run on one machine.
+      - "1700:1700/udp"
+      - "1885:1885"
+      - "8885:8885"
+      - "${TTS_MQTT_PORT:-11883}:1883"
+    volumes:
+      - tts-blob:/srv/ttn-lorawan/public/blob
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  bridge:
+    image: ${BRIDGE_IMAGE:-agri-env-bridge:0.1.0}
+    container_name: agri-env-bridge-tts
+    depends_on:
+      - stack
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - BRIDGE_LOG_LEVEL=${BRIDGE_LOG_LEVEL:-INFO}
+      - BRIDGE_DB=/data/agri_env.db
+      - BRIDGE_MEASUREMENTS=/app/config/measurements.yaml
+      - BRIDGE_UNAVAILABLE_AFTER=${BRIDGE_UNAVAILABLE_AFTER:-7200}
+      - MQTT_OUT_HOST=${MQTT_OUT_HOST:?MQTT_OUT_HOST must point at the Home Assistant host}
+      - MQTT_OUT_PORT=${MQTT_OUT_PORT:-1883}
+      - MQTT_OUT_USERNAME=${MQTT_USERNAME:-agrienv}
+      - MQTT_OUT_PASSWORD=${MQTT_PASSWORD:?MQTT_PASSWORD must be set}
+      - P1_ENABLED=false
+      - P2_ENABLED=true
+      - P3_ENABLED=false
+      # Application Server MQTT of the stack container above. Username is
+      # {application-id}@{tenant-id}, password is an API key with
+      # `read application traffic` rights.
+      - TTN_MQTT_HOST=stack
+      - TTN_MQTT_PORT=1883
+      - TTN_MQTT_USERNAME=${TTN_MQTT_USERNAME:?TTN_MQTT_USERNAME must be set}
+      - TTN_MQTT_PASSWORD=${TTN_MQTT_PASSWORD:?TTN_MQTT_PASSWORD must be set}
+      - TTN_APPLICATION_ID=${TTN_APPLICATION_ID:-+}
+    volumes:
+      - bridge-data:/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+volumes:
+  tts-postgres:
+  tts-redis:
+  tts-blob:
+  bridge-data:

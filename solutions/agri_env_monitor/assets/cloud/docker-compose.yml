@@ -1,0 +1,73 @@
+# Preset 1 — SenseCAP Cloud bridge.
+#
+# One service: agri-env-bridge with the `sensecap-cloud` source enabled. It
+# calls the SenseCAP OpenAPI to list devices and to backfill history, then
+# subscribes to the SenseCAP cloud MQTT stream, and republishes everything as
+# Home Assistant MQTT discovery entities on the broker deployed by
+# assets/docker/docker-compose.yml.
+#
+# IMAGE STATUS: `agri-env-bridge:0.1.0` is NOT published to any registry yet.
+# `docker manifest inspect agri-env-bridge:0.1.0` was run while packaging and
+# returned "denied: requested access to the resource is denied /
+# unauthorized: authentication required" — the registry has no such
+# repository. Until it is pushed to
+# sensecraft-missionpack.seeed.cn/solution/, build it locally from the
+# agri-env-monitor repository (`docker build -f deploy/Dockerfile -t
+# agri-env-bridge:0.1.0 .`) or override BRIDGE_IMAGE with your own tag.
+# The tag is written out here rather than left blank so the intended reference
+# is unambiguous once it is published.
+
+name: ${COMPOSE_PROJECT_NAME:-agri-env-cloud}
+
+services:
+  bridge:
+    image: ${BRIDGE_IMAGE:-agri-env-bridge:0.1.0}
+    container_name: agri-env-bridge-cloud
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - BRIDGE_LOG_LEVEL=${BRIDGE_LOG_LEVEL:-INFO}
+      - BRIDGE_DB=/data/agri_env.db
+      - BRIDGE_MEASUREMENTS=/app/config/measurements.yaml
+      # No uplink for this long (seconds) flips the device's availability topic
+      # to `offline`; Home Assistant then shows its entities as unavailable but
+      # keeps the last value. Default is two S210X reporting cycles plus margin.
+      - BRIDGE_UNAVAILABLE_AFTER=${BRIDGE_UNAVAILABLE_AFTER:-7200}
+      # Output broker — the Mosquitto from assets/docker on the Home Assistant host.
+      - MQTT_OUT_HOST=${MQTT_OUT_HOST:?MQTT_OUT_HOST must point at the Home Assistant host}
+      - MQTT_OUT_PORT=${MQTT_OUT_PORT:-1883}
+      - MQTT_OUT_USERNAME=${MQTT_USERNAME:-agrienv}
+      - MQTT_OUT_PASSWORD=${MQTT_PASSWORD:?MQTT_PASSWORD must be set}
+      # ---- SenseCAP Cloud source ----
+      - P1_ENABLED=true
+      - P2_ENABLED=false
+      - P3_ENABLED=false
+      - SENSECAP_API_HOST=${SENSECAP_API_HOST:-https://sensecap-openapi.seeed.cc}
+      # Two candidate cloud MQTT hosts are known and NEITHER has been verified
+      # against a live account. `sensecap-openstream.seeed.cc` is the value a
+      # shipping Seeed solution uses in production; `openstream.api.sensecap.seeed.cc`
+      # appears in documentation. Whether they are aliases is unverified — the
+      # deployment step asks the user to choose.
+      - SENSECAP_MQTT_HOST=${SENSECAP_MQTT_HOST:-sensecap-openstream.seeed.cc}
+      - SENSECAP_MQTT_PORT=${SENSECAP_MQTT_PORT:-1883}
+      - SENSECAP_ACCESS_ID=${SENSECAP_ACCESS_ID:?SENSECAP_ACCESS_ID must be set}
+      - SENSECAP_ACCESS_KEY=${SENSECAP_ACCESS_KEY:?SENSECAP_ACCESS_KEY must be set}
+      - SENSECAP_APPLICATION_ID=${SENSECAP_APPLICATION_ID:-}
+      # The OpenAPI reaches back at most three months and serves at most one
+      # month per window, so the bridge pages month by month.
+      - SENSECAP_BACKFILL_MONTHS=${SENSECAP_BACKFILL_MONTHS:-1}
+      - SENSECAP_REALTIME_ONLY=${SENSECAP_REALTIME_ONLY:-false}
+    volumes:
+      # The image already carries config/measurements.yaml. To change the
+      # measurementId -> entity mapping without rebuilding, copy
+      # assets/config/measurements.yaml next to this file and uncomment:
+      #   - ./measurements.yaml:/app/config/measurements.yaml:ro
+      - bridge-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  bridge-data:

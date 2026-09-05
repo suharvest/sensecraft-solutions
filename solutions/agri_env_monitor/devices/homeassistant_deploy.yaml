@@ -1,0 +1,202 @@
+version: "1.0"
+id: homeassistant_deploy
+name: Home Assistant and MQTT Broker
+type: docker_deploy
+
+# Shared by all three presets — the destination is the same regardless of how
+# the data got there. Pure application-layer Docker stack, so no device_class:
+# it runs on any Linux host (or Mac desktop Docker) that has Docker running.
+#
+# Single source-of-truth device YAML; the backend derives the docker_local and
+# docker_remote views from it.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/agri-env-monitor
+  options:
+    project_name: agri-env
+    remove_orphans: true
+  services:
+    - name: homeassistant
+      port: 8123
+      health_check_endpoint: /api/
+      required: true
+    # No health_check_endpoint — MQTT is not HTTP, and an HTTP probe would
+    # score a healthy broker as failed.
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # Two image pulls (Home Assistant is ~1.5 GB) on a home uplink.
+  command_timeout: 1800
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 8
+    description: Home Assistant image, its config volume and the broker's persistence file
+  - type: port_available
+    ports:
+      - 8123
+      - 1883
+    description: Check that ports 8123 and 1883 are free
+
+# Wall-clock budget for the whole round. Local smoke on Mac desktop Docker with
+# the images already cached took under a minute; this allows for a cold pull of
+# both images on a slow link.
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8123
+
+name_i18n:
+  zh: Home Assistant 与 MQTT Broker
+
+remote_overrides:
+  remote_path: /home/{{username}}/agri-env-monitor
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+
+  actions:
+    # Runs after assets/docker/ has been uploaded and before `docker compose up`.
+    # The broker password has to reach the compose file as an environment value,
+    # and .env is the only place compose reads one from.
+    after_upload:
+      - name: Write the broker credentials
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/agri-env-monitor/homeassistant_deploy"
+          umask 077
+          cat > "$WORKDIR/.env" <<EOF
+          COMPOSE_PROJECT_NAME=agri-env
+          TZ={{timezone}}
+          HA_PORT={{ha_port}}
+          MQTT_PORT={{mqtt_port}}
+          MQTT_USERNAME={{mqtt_username}}
+          MQTT_PASSWORD={{mqtt_password}}
+          EOF
+          echo "wrote $WORKDIR/.env (mode $(stat -c %a "$WORKDIR/.env" 2>/dev/null || stat -f %A "$WORKDIR/.env"))"
+        name_i18n:
+          zh: 写入 broker 凭据
+
+    after:
+      - name: Wait for Home Assistant to answer
+        ignore_error: true
+        timeout: 300
+        run: |
+          echo "Waiting for Home Assistant to finish first start ..."
+          for i in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:{{ha_port}}/" >/dev/null 2>&1; then
+              echo "Home Assistant is answering on port {{ha_port}}."
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Home Assistant did not answer within 5 minutes — check 'docker logs agri-env-homeassistant'." >&2
+        name_i18n:
+          zh: 等待 Home Assistant 就绪
+
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:{{ha_port}}"
+
+user_inputs:
+  - id: host
+    name: Host Address
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: The machine that will run Home Assistant and the broker
+    name_i18n:
+      zh: 主机地址
+    description_i18n:
+      zh: 将要运行 Home Assistant 与 broker 的那台机器
+  - id: username
+    name: SSH Username
+    type: text
+    default: pi
+    required: true
+    description: "Common defaults: pi (Raspberry Pi OS), recomputer (Seeed reComputer), ubuntu."
+    name_i18n:
+      zh: SSH 用户名
+    description_i18n:
+      zh: "常见默认值：pi（Raspberry Pi OS）、recomputer（Seeed reComputer）、ubuntu。"
+  - id: password
+    name: SSH Password
+    type: password
+    required: true
+    name_i18n:
+      zh: SSH 密码
+  - id: timezone
+    name: Time Zone
+    type: text
+    default: "Asia/Shanghai"
+    required: true
+    description: IANA name — it decides how timestamps read on the dashboard
+    name_i18n:
+      zh: 时区
+    description_i18n:
+      zh: IANA 时区名——决定看板上时间戳的显示
+  - id: ha_port
+    name: Home Assistant Port
+    type: text
+    default: "8123"
+    required: true
+    description: Change this if 8123 is already taken on this host
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: Home Assistant 端口
+    description_i18n:
+      zh: 如果这台机器上 8123 已被占用，改成别的端口
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    default: "agrienv"
+    required: true
+    description: Used by Home Assistant's MQTT integration and by the bridge; the broker refuses anonymous clients
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: MQTT 用户名
+    description_i18n:
+      zh: Home Assistant 的 MQTT 集成与桥都用这一组；broker 不接受匿名连接
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: true
+    description: Write it down — the next step asks for the same value
+    name_i18n:
+      zh: MQTT 密码
+    description_i18n:
+      zh: 记下来——下一步还要填同一个值

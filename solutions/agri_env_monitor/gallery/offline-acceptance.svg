@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" width="1000" height="460" font-family="Helvetica, Arial, sans-serif">
+  <rect width="1000" height="460" fill="#ffffff"/>
+
+  <!-- the isolated boundary -->
+  <rect x="40" y="60" width="740" height="330" rx="14" fill="#fbfcfd" stroke="#9aa5b1" stroke-dasharray="8 6"/>
+  <text x="60" y="90" font-size="13" fill="#6b7280">no WAN uplink</text>
+
+  <rect x="80" y="130" width="160" height="70" rx="8" fill="#f4f7fb" stroke="#c4d0e0"/>
+  <text x="160" y="160" font-size="15" text-anchor="middle" fill="#1f2933">T1000</text>
+  <text x="160" y="181" font-size="12" text-anchor="middle" fill="#6b7280">4197 / 4198</text>
+
+  <rect x="80" y="250" width="160" height="70" rx="8" fill="#f4f7fb" stroke="#c4d0e0"/>
+  <text x="160" y="280" font-size="15" text-anchor="middle" fill="#1f2933">S210x</text>
+  <text x="160" y="301" font-size="12" text-anchor="middle" fill="#6b7280">soil / air</text>
+
+  <rect x="330" y="180" width="180" height="90" rx="8" fill="#eef6ef" stroke="#b8d6bd"/>
+  <text x="420" y="212" font-size="15" text-anchor="middle" fill="#1f2933">M2 gateway</text>
+  <text x="420" y="233" font-size="12" text-anchor="middle" fill="#6b7280">built-in ChirpStack</text>
+  <text x="420" y="252" font-size="12" text-anchor="middle" fill="#6b7280">Local Network Server</text>
+
+  <rect x="580" y="180" width="170" height="90" rx="8" fill="#eef2fb" stroke="#c0c9e2"/>
+  <text x="665" y="212" font-size="15" text-anchor="middle" fill="#1f2933">bridge + HA</text>
+  <text x="665" y="233" font-size="12" text-anchor="middle" fill="#6b7280">local host</text>
+  <text x="665" y="252" font-size="12" text-anchor="middle" fill="#6b7280">MQTT · dashboard</text>
+
+  <g stroke="#9aa5b1" stroke-width="2" fill="none" marker-end="url(#arrow2)">
+    <path d="M240 165 H300 Q327 165 327 190 V210"/>
+    <path d="M240 285 H300 Q327 285 327 260 V240"/>
+    <path d="M510 225 H576"/>
+  </g>
+
+  <!-- cut link to internet -->
+  <rect x="830" y="180" width="130" height="90" rx="8" fill="#fafafa" stroke="#e2e4e8"/>
+  <text x="895" y="222" font-size="14" text-anchor="middle" fill="#a0a4ab">cloud</text>
+  <text x="895" y="243" font-size="12" text-anchor="middle" fill="#c0c4cb">not used</text>
+  <g stroke="#d05a5a" stroke-width="2" fill="none">
+    <path d="M782 225 H826" stroke-dasharray="6 5"/>
+    <path d="M796 210 L812 240"/>
+    <path d="M812 210 L796 240"/>
+  </g>
+
+  <defs>
+    <marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#9aa5b1"/>
+    </marker>
+  </defs>
+</svg>

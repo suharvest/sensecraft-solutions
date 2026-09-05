@@ -1,0 +1,86 @@
+version: "1.0"
+id: wm1302_chirpstack
+name: Fit the WM1302 Concentrator (ChirpStack)
+type: manual
+
+# Only needed on the R1000 route of preset 3 — the M2 has its own radio. Kept
+# separate from wm1302_tts.yaml because the software half differs: ChirpStack
+# expects either the Semtech UDP packet forwarder talking to the gateway bridge,
+# or the native `chirpstack-concentratord-sx1302` talking over ZMQ.
+#
+# NOT VERIFIED ON HARDWARE. No WM1302 was fitted or driven during packaging, and
+# the concentratord-over-ZMQ path into a containerised gateway bridge is the
+# part most likely to need adjusting.
+
+steps:
+  - id: seat_module
+    name: Seat the module and connect the antenna
+    name_i18n:
+      zh: 装好模块并接天线
+    description: >-
+      Power the host down, seat the SPI variant of the WM1302, screw it down and
+      connect the LoRa antenna before applying power — transmitting into an open
+      port can damage the radio. The band printed on the module must match the
+      frequency plan you chose in the deployment step and the band the nodes are
+      configured for.
+    description_i18n:
+      zh: >-
+        先断电，把 SPI 版 WM1302 插好拧紧，上电之前接好 LoRa 天线——开路发射可能损坏射频。
+        模块上印的频段必须与部署步骤里选的频段、以及节点配置的频段三者一致。
+    optional: false
+
+  - id: enable_spi
+    name: Enable SPI and the control lines
+    name_i18n:
+      zh: 打开 SPI 与控制线
+    description: >-
+      Enable SPI on the host and confirm `/dev/spidev0.0` exists. The
+      concentrator needs its reset, power-enable and SX1261 lines driven; take
+      the pin numbers from the carrier board's documentation and note them down.
+    description_i18n:
+      zh: >-
+        在主机上打开 SPI，确认 `/dev/spidev0.0` 存在。集中器需要驱动 reset、power-enable
+        与 SX1261 三条控制线；引脚编号取自载板文档，记下来备用。
+    optional: false
+
+  - id: forwarder
+    name: Feed uplinks into ChirpStack
+    name_i18n:
+      zh: 把上行送进 ChirpStack
+    description: >-
+      Two ways in, pick one. The simpler one is `sx1302_hal`'s Semtech UDP
+      packet forwarder pointed at this host's port 1700, which the
+      chirpstack-gateway-bridge container already listens on. The native one is
+      `chirpstack-concentratord-sx1302` on the host, with the gateway bridge
+      configured for its ZMQ sockets — lower latency, but the ZMQ endpoints have
+      to be reachable from inside the container, which is the unverified part of
+      this route. Start with the UDP forwarder; move to concentratord once
+      uplinks are arriving.
+    description_i18n:
+      zh: >-
+        两条路，选一条。简单的一条是用 `sx1302_hal` 的 Semtech UDP packet forwarder
+        指向本机 1700 端口——chirpstack-gateway-bridge 容器已经在这个端口上监听。
+        原生的一条是在宿主机跑 `chirpstack-concentratord-sx1302`，
+        让 gateway bridge 走它的 ZMQ 套接字——延迟更低，但 ZMQ 端点必须能从容器内访问，
+        这正是本路线未经验证的部分。先用 UDP forwarder，等上行进来之后再换 concentratord。
+    optional: false
+
+  - id: register_gateway
+    name: Register the gateway in ChirpStack
+    name_i18n:
+      zh: 在 ChirpStack 里注册网关
+    description: >-
+      Open the ChirpStack web interface on port 8080, sign in with the default
+      admin credentials and change the password. Add a gateway using the EUI the
+      forwarder printed on startup. Its `Last seen` field starts updating within
+      about a minute. If it does not, the packets are not arriving — check UDP
+      1700 through any firewall before touching the radio configuration.
+    description_i18n:
+      zh: >-
+        打开 8080 端口的 ChirpStack Web 界面，用默认管理员账号登录并改掉密码。
+        用 forwarder 启动时打印的 EUI 添加一个网关。大约一分钟内它的 `Last seen` 会开始更新。
+        如果没有，说明数据包没到——先查防火墙上的 UDP 1700，再动射频配置。
+    optional: false
+
+name_i18n:
+  zh: 安装 WM1302 集中器（ChirpStack）
