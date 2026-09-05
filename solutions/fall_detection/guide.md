@@ -301,7 +301,7 @@ Deploy the detector to your Rockchip board. Allow about 5 minutes.
 2. At least 6 GB free disk for the runtime image and the pose model.
 3. Your IP camera's RTSP URL, with credentials if it needs them.
 4. Choose the deployment target that matches your board. A model compiled for RK3588 does not run on RK3576 or the reverse, so the target selects which model is downloaded — it is not cosmetic.
-5. Measured throughput, with other workloads left running on the boards: RK3588 reached 19.3 FPS single-context on blank frames and about 8.6 FPS end to end over RTSP; RK3576 reached 15.2 FPS on a real test image and about 4.9 FPS end to end. These are contention-affected figures, not board maxima.
+5. The 2026-09-05 production-path benchmark stopped other inference applications and used a fixed 640×640 H.264, 15 FPS RTSP source. The optimized YOLOv8s INT8 profile verified 1 stream on RK3576 and 5 streams on RK3588 at the 14.5 FPS-per-route gate; the next boundary failed on both boards. This deployment form still installs one stream with the existing YOLO11n FP16 model and board-specific temporal profile.
 
 ### Troubleshooting
 

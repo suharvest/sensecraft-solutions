@@ -54,246 +54,81 @@ froze the configuration, and Subject 4 was read once as an untouched test set.
 - Every platform re-extracts traces from its own real pose output and retrains and
   freezes its own temporal weights. Nothing is borrowed across platforms.
 
-**Result**
+**Results**
 
-Averaged over the six frozen configurations: **85.8% accuracy, 95.8% fall recall,
-77.8% specificity, 85.7% F1, 1.4 s mean alert latency.** Individual configurations
-fall between 77.8% and 88.9%.
+| Frontend/profile | Accuracy | Recall | Specificity | F1 | Mean alert latency |
+|---|---:|---:|---:|---:|---:|
+| reCamera CVI baseline | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
+| Jetson YOLO11s optimized | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
+| Jetson YOLO11m optimized | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
+| Jetson YOLOv8m mixed INT8/FP16 repaired | 88.9% | 83.3% | 93.3% | 87.0% | 1.43 s |
+| RK3576 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
+| RK3588 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
+| reCamera Pro production fallback on Pro traces | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 s |
+| reCamera Pro native experiment | 70.4% | 75.0% | 66.7% | 69.2% | 1.47 s |
+| Hailo-8 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
 
-**Why there is no per-platform comparison table**
-
-27 clips resolve to 3.7 percentage points — one clip is one step — so every
-configuration that reaches "all 12 falls caught, 3 of 15 everyday clips
-false-alarmed" lands on the same 88.9%. All platforms false-alarm on the same two
-clips, ADL/06 and ADL/07, which puts the limit in the fall-decision layer rather
-than the pose model; the temporal state machine is one shared design. Model size
-does not track the result either — the YOLO11s configuration scores below YOLO11n
-ones. Separating the platforms would need a larger, harder test set.
+The clean historical test has 27 clips, so one clip changes a metric by 3.7
+percentage points. RK and Hailo rows measure the frozen temporal gate and are not
+full deployed-state-machine accuracy. The repaired YOLOv8m result is regression
+evidence on the same 27 clips, not a pristine one-shot holdout publication: its
+calibration and fitting exclude Subject 4, but earlier failed-M investigations had
+already observed that subject. The historical YOLO11m FP16 row remains the clean M
+baseline. The temporal model itself remains FP32; INT8 names the pose frontend.
 
 ### Performance
+Capacity now uses real RTSP input rather than synthetic blank tensors. Jetson and RK
+passing routes had to publish at least 14.5 FPS from the same 640×640 H.264, 15 FPS
+source. Hailo used the same source and threshold but disabled MQTT during its capacity
+boundary run; reCamera Pro is one-camera coverage below that threshold. Other inference
+applications were stopped before these runs.
 
-One model across every device: **YOLO11n-Pose at 640²**; per-frame is accelerator
-inference only (excluding RTSP decode and postprocessing), aggregate is the highest total frame
-rate measured across 1–6 concurrent contexts. Different precisions are not mixed into one
-table.
-
-**FP16**
-
-| Runtime | Pose model | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
-|---|---|---:|---:|---:|---:|
-| reComputer RK3576 | YOLO11n | 56.1 ms | 29.2 FPS | 1 | 1 |
-| reComputer RK3588 | YOLO11n | 51.4 ms | 51.4 FPS | 3 | 1 |
-| reComputer J (Orin Nano) | YOLO11n | 3.7 ms | 270.7 FPS | 18 | 7 |
-| reComputer J (Orin NX) | YOLO11n | 3.3 ms | 306.2 FPS | 20 | 8 |
-
-**INT8**
-
-| Runtime | Pose model | Per-frame | Aggregate | Inference-bound streams | Suggested streams |
-|---|---|---:|---:|---:|---:|
-| reCamera 2002 | YOLO11n | 53.0 ms | 10.0 FPS | 1 | 1 |
-| reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
-| reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
-| reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reComputer R (Hailo-8) | YOLOv8s ▲ | 6.9 ms | 393.9 FPS | 26 | 16 |
-| reComputer J (Orin Nano) | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
-| reComputer J (Orin NX) | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
-
-▲ **This row uses the s size because n is slower on this accelerator.** The official
-Model Zoo v2.15 hailo8 directory ships pose only as `yolov8s_pose` and `yolov8m_pose`,
-with no n-size pose model at all. We compiled our own YOLO11n-Pose with the Hailo
-Dataflow Compiler 3.31.0 (640², INT8, 64 GMDCSA calibration frames) and measured
-**9.01 ms / 92.2 FPS** on the same board against the s build's 6.87 ms / 393.9 FPS:
-**per-frame latency is the same order (+31%); the 4.3x gap is in throughput.** The
-compiler split 11n across **3 contexts**, so weights are swapped once per frame, while
-the Model Zoo s build is single-context and keeps its weights resident.
-
-Measured against what this solution actually needs — one stream at 15 FPS — the n
-build's 92.2 FPS still leaves roughly 6x headroom, so the gap constrains stream
-density rather than single-stream deployment. The s size is kept because on this board
-it is both faster and larger, leaving nothing to gain from the swap. The n figure
-describes how that HEF was allocated, not the ceiling for 11n on Hailo-8.
-
-＊ **Jetson INT8 is not deployable today and is listed for speed reference only.** The
-engine is built with `trtexec --int8` and no calibrator or calibration set, so its
-dynamic ranges are arbitrary: the kernel timing is real, the detections are not.
-Upstream's `build_engine.sh` passes only `--fp16`; a real INT8 path needs a calibrator
-and calibration set implemented in the project, then the temporal weights re-frozen on
-INT8 pose output. RK INT8 is the opposite — calibrated on 240 GMDCSA frames and
-identical to FP16 detection-for-detection on frames held out of that set, hence
-deployable.
-
-**Both tables use a synthetic blank 640 frame** (the same basis as the existing FP16
-baselines) and time the accelerator only. Real footage is slower, because anything
-detected has to go through raw-head decode, DFL, keypoints and NMS:
-
-| Platform | Pose model | Accelerator inference | Real-footage pipeline | Pre/postprocess delta |
-|---|---|---:|---:|---:|
-| reCamera 2002 | YOLO11n INT8 | 52.74 ms ◇ | 53.23 ms | 0.012 ms |
-| reCamera Pro | YOLO11n INT8 | 35.2 ms | 36.6 ms | 1.4 ms |
-| reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
-| reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer R (Hailo-8) | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
-| reComputer J (Orin Nano) | YOLO11n FP16 | 3.7 ms ◆ | 5.57 ms | 1.9 ms |
-| reComputer J (Orin NX) | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
-
-"pipeline" is inference plus preprocess plus raw-head decode / DFL / keypoints / NMS. It
-excludes RTSP decode, tracking, the temporal MLP and MQTT. The Orin NX figure is from 400
-measured frames (264 of them containing people), p95 5.24 ms; the Orin Nano figure is from
-1359 frames (1209 containing people), median 5.56 ms and p95 5.62 ms, with a single 88.9 ms
-first-frame warm-up outlier removed (the next largest is 8.21 ms). Both Jetsons carry the
-same 1.9 ms pre/postprocess delta. The reCamera Pro figure is from 382 frames, only 3
-of which contained a person, so its 1.4 ms delta is a floor: it shares the RKNN path with the
-RK boards, where postprocess grows with people (2.7 ms on a 4-person frame against 0.4 ms
-blank on RK3576).
-
-◇ **The reCamera 2002 figure is not accelerator-only, but it is now split as finely as this
-platform allows.** The app carried a single detectAll-wide timer at integer-millisecond
-resolution; it now reports microsecond-resolution stages (`model_run_ms`, `postprocess_ms`,
-`pipeline_ms`, with `inference_metric` naming the span), verified on hardware.
-
-Two samples of 300 frames each, one empty and one holding a person throughout:
-
-| | empty | with a person |
-|---|---:|---:|
-| `model_run_ms` | 52.65 ms | 52.74 ms |
-| `postprocess_ms` | 0.002 ms | 0.012 ms |
-| `pipeline_ms` | 53.13 ms | 53.23 ms |
-
-The original `inference_time_ms` averages 53.02 and 53.03, matching the frozen 52.96
-baseline, so this measurement stays comparable with the history. Postprocess grows sixfold
-with a person in frame yet is still only 0.012 ms — the same shape as Jetson and Hailo,
-because decode walks a fixed anchor count regardless of how many people are present.
-
-**Those 52.65 ms still include letterbox and raw-head decode** — all three run inside one
-sscma-micro `model_->run()` call with no seam the app can see, so splitting further means
-changing that upstream library. It is the narrowest inference span measurable here and is
-**not** equivalent to Jetson's `trtexec` or RK's `rknnlite.inference()`.
-
-This also corrects an earlier note. It said integer milliseconds were too coarse to resolve
-a ~2 ms delta; measured, the app-side postprocess is **0.002 ms**, 0.004% of the frame, so
-that delta does not exist.
-
-Sampling: 300 frames each, captured with the scene empty and with one person present.
-
-**reCamera Pro is the opposite case: its figure is accelerator-only and compares
-directly.** Its runtime times `model.infer()` on its own (`kit/app.py:1258-1260`), with
-letterbox before the start and raw-head decode after the end — exactly this table's
-accelerator definition. The pipeline column comes from `pre+infer+post` in its own `metrics`
-message (0.00 + 35.21 + 1.34), which matches this table's scope; the separate `pipeline_ms`
-it publishes stops after tracking and the temporal decision and is therefore not used.
-
-**That row is only comparable because the clocks were pinned.** Its NPU runs
-`rknpu_ondemand` and sat at 800 MHz for 60 of 60 samples (ceiling 950), where inference
-measures 43.1 ms. With `min_freq` raised to 950 MHz and the CPU governor set to
-`performance` (1608 MHz) it measures 35.2 ms, matching the existing 35.89 frozen baseline.
-**The same board differs by 23% on frequency bin alone.** The table uses the pinned figures;
-the governors were restored afterwards. RK3576 and RK3588 held their top bin for 40 of 40
-samples (950 / 1000 MHz) and are unaffected, Jetson is recorded at MAXN_SUPER, and Hailo has
-no such layer.
-
-**The reCamera 2002 row in the INT8 table above is still on a different basis** from the
-RK, Jetson and Hailo entries: those are accelerator-only, while the 2002's 52.65 ms
-includes letterbox and decode. The size of that gap is now known — app-side postprocess is
-only 0.002 ms — so what separates them is letterbox and raw-head decode, not application
-code. Closing it entirely would mean changing sscma-micro, which is outside this
-solution.
-
-**Whether postprocess scales with people differs by platform.** On RK3576 it is 2.7 ms for
-a 4-person frame against 0.4 ms blank; on Jetson frames with and without people are
-indistinguishable (NX 5.180 vs 5.187 ms; Nano 5.567 vs 5.556 ms), because YOLO11 decode walks a fixed 8400-anchor
-head regardless of content and NMS over 0-2 boxes is free.
-
-◆ The Jetson entry in that column is `trtexec` pure GPU compute with no host copies, while
-the RK entries are `rknnlite.inference()` — different scopes by construction. The pipeline
-column is the one that compares: on it, Jetson is roughly 11x faster than RK3588 and 14x
-faster than RK3576.
-
-Hailo's 8.77 ms is from 1951 measured frames (1849 containing people), p95 12.34 ms:
-6.87 ms hardware inference, about 1.8 ms scheduling and output tensor transfer, and only
-**0.052 ms** of raw-head decode + NMS (0.6% of the frame), plus 0.013 ms tracking. Its
-decode barely moves with people (0.035 ms empty vs 0.053 ms with), behaving like Jetson
-rather than RK, because the HEF emits low-cardinality output tensors.
-
-▲ That platform's own `pipeline_ms` is a `pre_hailonet_to_hailonet_src` probe whose
-timestamp is taken before `decodeYoloV8Pose()` and `tracker.update()`. To get a
-like-for-like figure, `decode_ms` / `track_ms` / `pipeline_full_ms` were added upstream in
-`platforms/rpi-hailo/src/main.cpp` as new fields, leaving the original field and its
-`latency_metric` unchanged. The measurement then showed the original metric already covers
-99.4% of the per-frame cost, so the two are interchangeable in practice.
-
-**How to read the stream counts.** "Inference-bound" is aggregate ÷ 15 FPS — the
-accelerator's theoretical ceiling. "Suggested" discounts it: measured end-to-end
-throughput on RK reached only 28–44% of the inference bound, because RTSP decode,
-tracking, the state machine and MQTT also consume CPU and memory bandwidth. Start
-from the suggested figure and load-test with your own cameras, codec and scene
-density.
-
-The two RK boards appear in both tables, which gives the exchange rate between the
-precisions: INT8 is 1.5–1.7× faster and matches FP16 detection-for-detection on
-held-out frames.
-
-**Measurement conditions**: both Jetson rows were taken with co-resident workloads
-stopped. That step is necessary — when a co-resident workload uses the accelerator the
-ranking inverts: Orin NX measured 264.9 FPS while running its own inference workload,
-*below* Orin Nano and the opposite of their relative capability; stopped, it is
-306.2 FPS. Orin Nano measured identically either way (270.5 vs 270.7), because its
-co-resident services never touch the GPU.
-
-reCamera 2002 and Pro are INT8 only. reComputer R (Hailo) runs the official Model Zoo YOLOv8s-Pose INT8.
-
-**What the presets deploy today:** Jetson FP16, RK FP16, reCamera 2002 and Pro INT8.
-The RK INT8 weights were converted for this comparison and are not shipped yet —
-the temporal weights need re-checking before that switch.
-
-Both Jetson boards hold essentially flat aggregate throughput from 1 to 6 concurrent
-contexts, so concurrency shares one GPU budget rather than multiplying it.
-
-**Measured multi-stream capacity (YOLO11s-Pose FP16, runtime 0.1.0-rc2).** The
-figures above are accelerator-only on YOLO11n. End-to-end stream density was
-measured separately with the deployed YOLO11s configuration: 640x640 H264
-15 FPS RTSP sources, 60 s windows, a stream counting as carried only when it
-sustained at least 14.5 published FPS.
-
-| Module | Max streams at 15 FPS | Aggregate FPS | GPU |
-|---|---:|---:|---:|
-| reComputer J (Orin Nano Super) | 8 | 119.6 | 91% |
-| reComputer J (Orin NX Super) | 9 | 134.4 | 95% |
-| Jetson AGX Orin 32G | 16 | 239.8 | 89% |
-
-These supersede the earlier suggestion of 4 streams on Orin Nano and 3 on
-Orin NX. Two changes in the `0.1.0-rc2` runtime account for the difference. The TensorRT
-runner used to read its output back with a synchronous copy on the CUDA legacy
-default stream, which acted as a device-wide barrier and held GPU utilisation
-at 59–77% no matter how many streams were added; it now copies asynchronously
-on each runner's own non-blocking stream. Above 7 streams the control plane
-also shards itself across OS processes, because per-frame payload building,
-JSON encoding and MQTT publishing contend for a single GIL. Both boards are
-accelerator-bound at the counts above — adding streams past them lowers
-per-stream FPS without raising the total.
-
-Orin NX Super leads Orin Nano Super by 12% here, matching their 12% gap in
-pure accelerator throughput (173.8 against 155.3 qps for this engine). Both
-modules carry 1024 CUDA cores, and an FP16 GPU path uses neither the DLA nor
-INT8, so the ratio their TOPS ratings suggest does not appear.
-
-**Measured Hailo-8 multi-stream capacity (runtime `0.1.0-rc3`).** The same
-640x640 H264, 15 FPS source and 14.5 FPS pass threshold were used. The default
-YOLOv8s-Pose HEF is single-context and stays on the existing `hailonet` path.
-The official Model Zoo v2.19 YOLOv8m-Pose HEF has three contexts; rc3 detects
-that layout and switches to a shared direct-HailoRT batcher automatically.
-
-| Pose model | Runtime path | Max streams at 15 FPS | Aggregate FPS |
+| Device | Pose frontend | Highest tested live/RTSP load | Next boundary / coverage |
 |---|---|---:|---:|
-| YOLOv8s-Pose | Single-context `hailonet` | 16 | 233.6 |
-| YOLOv8m-Pose | Shared auto-batch | 5 | 75.0 |
+| reComputer J (Orin Nano Super) | YOLO11s-Pose TensorRT FP16 | 8 streams, 14.95 FPS each | 9 streams, 13.36 FPS each |
+| reComputer J (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
+| reComputer RK3576 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 1 stream, 14.83–15.01 FPS | 2 streams, 12.81–12.83 FPS |
+| reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
+| reComputer R (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
+| reComputer R (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
+| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Higher loads not tested; 14.5 FPS SLA not met |
 
-At five M-model streams the device used 72.5% CPU, 234,368 KiB RSS and reached
-63.9 C. The M-model gain came from full-batch padding and disabling scheduler
-wait in the single shared runner; the official HEF was not recompiled. MQTT was
-disabled during both capacity-boundary runs, so these figures describe the
-video-to-tracker runtime rather than broker throughput. The deploy preset remains
-single-stream and downloads the S model; rc3 can run the M HEF when `HEF_PATH`
-points to it. A model selector and multi-camera form are deferred.
+The Hailo S-to-M drop is larger than the increase in model operations. The official S
+HEF is single-context, so its weights stay resident; the M HEF is split across three
+compiled contexts and pays context switching and memory traffic. This is a property of
+that compiled graph, not a universal Hailo rule. Jetson also slows down with M, but its
+aligned accelerator time rises by about 2.1–2.2× rather than Hailo's throughput cliff.
+
+Timing fields are kept separate because their boundaries differ:
+
+| Device / model | Output cadence | Application inference | Named pipeline interval |
+|---|---:|---:|---:|
+| Orin Nano / YOLOv8s INT8 | 14.79 FPS | 5.35 / 5.40 ms mean/P95 | Not instrumented |
+| Orin Nano / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 9.92 / 9.98 ms mean/P95 | Not instrumented |
+| Orin NX / YOLOv8s INT8 | 14.80 FPS | 4.82 / 4.86 ms mean/P95 | Not instrumented |
+| Orin NX / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 8.86 / 8.90 ms mean/P95 | Not instrumented |
+| Hailo-8 / YOLOv8s | 15.00–15.06 FPS | Not exposed | 7.47–7.51 ms mean; 7.99–8.10 ms P95 |
+| Hailo-8 / YOLOv8m | 14.12–14.16 FPS | Not exposed | 28.52–28.89 ms mean; 32.30–37.86 ms P95 |
+| reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms mean/P95 | 77.80 / 85.99 ms mean/P95 |
+
+Jetson's application interval includes preprocessing, copies, TensorRT, output copy and
+pose parsing. Hailo S and M use different named probe boundaries. RK `inference_ms`
+excludes video preprocessing, while RK `pipeline_ms` starts only after the source returns
+a model-input frame and includes inference, pose decoding, tracking, temporal logic and
+payload construction. None of those fields is relabelled as another platform's metric.
+
+The RK capacity rows are the optimized benchmark profile, not the current one-camera
+solution default. The deploy preset intentionally remains on its existing board-specific
+YOLO11n FP16 model and temporal profile until the INT8 profiles complete the same frozen
+accuracy release process. A separate RK3588 prototype moved DMA-BUF→RGA→RKNN into a native
+hot stage; at five 15 FPS sources it reduced CPU from 144.6% to 43.7–44.5% and RSS from
+495,488 KiB to about 157,000 KiB. That prototype omits pose decoding, tracking, temporal
+logic and MQTT, so it is not a production capacity or accuracy claim.
+
+These results were frozen on 2026-09-05. Synthetic blank-frame and accelerator-only
+history remains available in the
+[EdgeFallKit results ledger](https://github.com/suharvest/edgefallkit/blob/main/evaluation/RESULTS.md),
+but is no longer presented here as route capacity.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
@@ -311,18 +146,17 @@ external figures cover long shots and occlusion.
 | Home Assistant | MQTT discovery under `homeassistant/` | Fall sensor, state, event ID, person count |
 | Video | RTSP port 8554 `/live0` on reCamera, or your own IP camera | The scene the detector is watching |
 
-The reComputer preset takes more than one camera from a single box and appends the
 **`<device-name>` is yours to choose.** It is the Device Name field in the deploy step,
 defaulting to `recamera` on the reCamera preset and `recomputer` on the reComputer ones. It
 is only the first topic segment, there to keep several installations apart on one broker, so
 a room, floor or site name works just as well. `stream_id` is also carried in the payload, so
 nothing downstream has to parse the topic to know where a message came from.
 
-stream id to the topic (`<device-name>/fall-detection/results/cam-01`), so each camera
-stays separable downstream. The deploy preset configures one stream; multi-stream
-capacity was measured separately at 8 streams on Orin Nano Super, 9 on Orin NX
-Super and 16 on AGX Orin with YOLO11s, plus 16 with Hailo YOLOv8s and 5 with
-Hailo YOLOv8m, at 15 FPS (see Performance). Those runs
+The reComputer runtime appends the stream ID to the topic
+(`<device-name>/fall-detection/results/cam-01`), so routes stay separable downstream.
+The deploy form configures one stream. Separate 15 FPS tests verified 8 streams on
+Orin Nano Super, 9 on Orin NX Super, 1 on RK3576, 5 on RK3588, and 16/5 on Hailo
+with YOLOv8s/YOLOv8m respectively (see Performance). Those runs
 used one looped clip per stream, so measure your own cameras, codec and scene
 density before committing to a count.
 
@@ -337,14 +171,14 @@ detector on a Jetson Orin, taking more than one stream at once with a larger pos
 model and higher measured accuracy. Pick it when the cameras exist, when you need
 more than one view, or when the accuracy difference in the table above matters.
 
-**reComputer RK** puts the detector on a Rockchip NPU board, now with a
-board-native temporal profile and a hardware-accelerated video path. Measured
-throughput with other workloads still running was about 8.6 FPS on RK3588 and
-4.9 FPS on RK3576 end to end.
+**reComputer RK** puts the detector on a Rockchip NPU board with a board-native
+temporal profile and hardware video decode. On the optimized YOLOv8s INT8 benchmark
+profile, RK3576 verified 1×15 FPS and RK3588 verified 5×15 FPS. The current deployment
+keeps its existing single-camera YOLO11n FP16 profile.
 
 **reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8. The default S
 model carried 16 measured 15 FPS streams; the official M model carried 5 after
-rc3 switched it to shared batching. The current deployment form still configures
+the runtime switched it to shared batching. The current deployment form still configures
 one camera. Pick it when this hardware is already installed; its temporal profile
 is frozen, but the deployed state machine has not been measured separately.
 

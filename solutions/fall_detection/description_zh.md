@@ -45,205 +45,75 @@ YAML。
 
 **结果**
 
-六组已冻结配置的平均：**准确率 85.8%，跌倒召回 95.8%，特异度 77.8%，F1 85.7%，
-平均告警延迟 1.4 秒**。单个配置落在 77.8%–88.9% 之间。
+| 前端 / 配置 | 准确率 | 召回率 | 特异度 | F1 | 平均告警延迟 |
+|---|---:|---:|---:|---:|---:|
+| reCamera CVI 基线 | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 秒 |
+| Jetson YOLO11s 优化配置 | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 秒 |
+| Jetson YOLO11m 优化配置 | 85.2% | 100% | 73.3% | 85.7% | 1.26 秒 |
+| Jetson YOLOv8m 修复后的混合 INT8/FP16 | 88.9% | 83.3% | 93.3% | 87.0% | 1.43 秒 |
+| RK3576 原生时序门 | 88.9% | 100% | 80.0% | 88.9% | 1.49 秒 |
+| RK3588 原生时序门 | 88.9% | 100% | 80.0% | 88.9% | 1.53 秒 |
+| reCamera Pro 在 Pro 轨迹上的生产 fallback | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 秒 |
+| reCamera Pro 原生实验 | 70.4% | 75.0% | 66.7% | 69.2% | 1.47 秒 |
+| Hailo-8 原生时序门 | 88.9% | 100% | 80.0% | 88.9% | 1.61 秒 |
 
-**为什么不列平台对比表**
-
-27 段测试集的分辨率是 3.7 个百分点，一段片段就是一档，跑到「12 段跌倒全中、15 段日常
-误报 3 段」的配置都会落在同一个 88.9%。所有平台都在同样的 ADL/06、ADL/07 两段上误报，
-说明瓶颈在跌倒判定这一层，而不是姿态模型——各平台的时序状态机是同一套设计。模型大小
-也和成绩不相关：YOLO11s 的配置反而低于 YOLO11n 的配置。要区分平台优劣，需要更大、更
-难的测试集。
+历史干净测试集共 27 段，一段会让指标变化 3.7 个百分点。RK 与 Hailo 行只测冻结时序门，
+不能写成完整部署状态机准确率。修复后的 YOLOv8m 行是在同一 27 段上的回归证据，不是新的
+一次性留出集发布：标定和拟合没有使用 Subject 4，但更早的失败排查已经看过该 Subject。
+历史 YOLO11m FP16 行仍是干净的 M 尺寸基线。时序模型本身仍为 FP32；INT8 指对应的姿态前端。
 
 ### 性能
 
-同一个模型跑在不同设备上：**YOLO11n-Pose，640² 输入**，单帧为加速器推理耗时（不含
-RTSP 解码与后处理），聚合吞吐取 1–6 个并发上下文中实测的最大总帧率。精度不同的不放在一张表里比。
+容量改用真实 RTSP 输入，不再拿合成空白张量的加速器吞吐代替路数。Jetson 与 RK 每一路都使用
+同一份 640×640 H.264、15 FPS 视频源，稳定发布至少 14.5 FPS 才算通过。Hailo 使用相同片源和
+阈值，但容量边界测试关闭了 MQTT；reCamera Pro 是低于该阈值的单相机覆盖。测试前已停止设备上的
+其他推理应用。
 
-**FP16**
-
-| 运行平台 | 姿态模型 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
-|---|---|---:|---:|---:|---:|
-| reComputer RK3576 | YOLO11n | 56.1 ms | 29.2 FPS | 1 | 1 |
-| reComputer RK3588 | YOLO11n | 51.4 ms | 51.4 FPS | 3 | 1 |
-| reComputer J（Orin Nano） | YOLO11n | 3.7 ms | 270.7 FPS | 18 | 7 |
-| reComputer J（Orin NX） | YOLO11n | 3.3 ms | 306.2 FPS | 20 | 8 |
-
-**INT8**
-
-| 运行平台 | 姿态模型 | 单帧推理 | 聚合吞吐 | 推理上限路数 | 建议路数 |
-|---|---|---:|---:|---:|---:|
-| reCamera 2002 | YOLO11n | 53.0 ms | 10.0 FPS | 1 | 1 |
-| reCamera Pro | YOLO11n | 35.9 ms | 18.1 FPS | 1 | 1 |
-| reComputer RK3576 | YOLO11n | 36.2 ms | 42.1 FPS | 2 | 1 |
-| reComputer RK3588 | YOLO11n | 29.8 ms | 90.4 FPS | 6 | 2 |
-| reComputer R（Hailo-8） | YOLOv8s ▲ | 6.9 ms | 393.9 FPS | 26 | 16 |
-| reComputer J（Orin Nano） | YOLO11n ＊ | 2.7 ms | 363.9 FPS | 24 | 9 |
-| reComputer J（Orin NX） | YOLO11n ＊ | 2.5 ms | 408.0 FPS | 27 | 10 |
-
-▲ **Hailo 这一行用的是 s 尺寸，因为 n 尺寸在这块加速器上更慢。** 官方 Model Zoo v2.15 的
-hailo8 目录只提供 `yolov8s_pose` 和 `yolov8m_pose`，没有任何 n 尺寸姿态模型。我们用 Hailo
-Dataflow Compiler 3.31.0 自行编译了一份 YOLO11n-Pose（640²、INT8、64 帧 GMDCSA 标定），
-在同一块板子上实测 **9.01 ms / 92.2 FPS**，对比 s 尺寸的 6.87 ms / 393.9 FPS：
-**单帧延迟同量级（+31%），差 4.3 倍的是吞吐。** 原因是编译器把 11n 切成了 **3 个
-context**，每帧要换一次权重；Model Zoo 的 s 尺寸是 single context，权重常驻。
-
-按本方案单路 15 FPS 的实际需求看，n 的 92.2 FPS 仍有约 6 倍余量，这个差距不构成单路部署
-的瓶颈，只在多路密度上体现。之所以仍然选 s，是因为它在这块板子上既更快、模型又更大，
-换成 n 没有任何收益。这个 n 尺寸结果反映的是该 HEF 的编译分配，不是 Hailo-8 跑 11n 的
-上限。
-
-＊ **Jetson 的 INT8 目前不可部署，只作速度参考。** 引擎由 `trtexec --int8` 直接构建，
-没有标定器也没有标定集，动态范围是随意取的：内核速度是真的，检测结果不可用。上游
-`build_engine.sh` 只传 `--fp16`；要做真正的 INT8 需要在项目里实现标定器与标定集，并在
-INT8 姿态输出上重新冻结时序权重。RK 的 INT8 与之相反——用 240 帧 GMDCSA 标定过，在未
-参与标定的帧上每帧检测数与 FP16 完全一致，是可部署的。
-
-**这两张表的输入是合成空白 640 帧**（与既有 FP16 基线同口径），只测加速器推理。真实画面
-下会更慢，因为有目标就要做 raw-head 解码、DFL、关键点和 NMS：
-
-| 平台 | 姿态模型 | 加速器推理 | 真实画面 pipeline | 前后处理增量 |
-|---|---|---:|---:|---:|
-| reCamera 2002 | YOLO11n INT8 | 52.74 ms ◇ | 53.23 ms | 0.012 ms |
-| reCamera Pro | YOLO11n INT8 | 35.2 ms | 36.6 ms | 1.4 ms |
-| reComputer RK3576 | YOLO11n FP16 | 69.6 ms | 70.8 ms | 1.2 ms |
-| reComputer RK3588 | YOLO11n FP16 | 54.4 ms | 54.8 ms | 0.4 ms |
-| reComputer R（Hailo-8） | YOLOv8s INT8 | 6.9 ms | 8.77 ms | 1.9 ms |
-| reComputer J（Orin Nano） | YOLO11n FP16 | 3.7 ms ◆ | 5.57 ms | 1.9 ms |
-| reComputer J（Orin NX） | YOLO11n FP16 | 3.3 ms ◆ | 5.18 ms | 1.9 ms |
-
-「pipeline」= 推理 + 预处理 + raw-head 解码/DFL/关键点/NMS，不含 RTSP 解码、跟踪、时序
-MLP 与 MQTT。Orin NX 的 5.18 ms 取自 400 帧实测（264 帧有人），p95 5.24 ms；Orin Nano 的
-5.57 ms 取自 1359 帧实测（1209 帧有人），中位 5.56 ms、p95 5.62 ms，已剔除首帧预热的单个
-88.9 ms 离群点（次大 8.21 ms）。两台 Jetson 的前后处理增量都是 1.9 ms。 reCamera Pro 的 36.6 ms 取自
-382 帧（其中仅 3 帧有人），增量 1.4 ms 因此偏低——它和 RK 同属 RKNN 路径，后处理会随人数
-增长（RK3576 在 4 人画面上是 2.7 ms、空白帧 0.4 ms），有人的场景会比这个数高。
-
-◇ **reCamera 2002 的这个数不是纯加速器，但已拆到该平台能拆的最细。** 应用原本只有一个
-detectAll 范围的整数毫秒计时器；现已加入微秒精度的分段计时（`model_run_ms` /
-`postprocess_ms` / `pipeline_ms`，并以 `inference_metric` 标注范围），实机验证通过。
-
-实测两组各 300 帧，一组无人、一组画面中恒有 1 人：
-
-| | 无人 | 有人 |
-|---|---:|---:|
-| `model_run_ms` | 52.65 ms | 52.74 ms |
-| `postprocess_ms` | 0.002 ms | 0.012 ms |
-| `pipeline_ms` | 53.13 ms | 53.23 ms |
-
-原字段 `inference_time_ms` 两组均值分别为 53.02 与 53.03，与冻结基线 52.96 一致，
-因此这次测量与历史数据可比。有人时后处理涨到 6 倍，但绝对值仍只有 0.012 ms——
-与 Jetson、Hailo 同类：解码要遍历固定数量的 anchor，与画面里有几个人无关。
-
-**52.65 ms 里仍然包含 letterbox 与 raw-head 解码**——三步全封装在 sscma-micro 的一次
-`model_->run()` 调用里，应用层看不见接缝，要再拆需要改那个上游库。所以它是该平台可测的最窄
-推理区间，**不等同于** Jetson 的 `trtexec` 或 RK 的 `rknnlite.inference()`。
-
-顺带更正旧说法：原先写"整数毫秒分辨不出约 2 ms 的增量"，实测应用层后处理只有 **0.002 ms**
-（占 0.004%），那 2 ms 的增量并不存在。
-
-采样条件：两组各 300 帧，分别在无人与恒有 1 人的画面下采集。
-
-**reCamera Pro 相反，它的数字是纯加速器，可以直接比。** 它的运行时把 `model.infer()`
-单独计时（`kit/app.py:1258-1260`），letterbox 在计时起点之前、raw-head 解码在终点之后，正好
-等于本表「加速器推理」的定义。pipeline 一列取自它 `metrics` 消息里的 `pre+infer+post`
-（0.00 + 35.21 + 1.34），与本表定义一致；它另发的 `pipeline_ms` 终点在跟踪与时序判定之后，
-范围更宽，没有采用。
-
-**Pro 这一行必须锁频才有可比性。** 它的 NPU 用 `rknpu_ondemand`，实测 60/60 采样都停在
-800 MHz（上限 950），此时推理 43.1 ms；把 `min_freq` 顶到 950 MHz、CPU 切 `performance`
-（1608 MHz）之后是 35.2 ms，与既有的 35.89 冻结基线一致。**同一块板仅因频率档位就差 23%。**
-上表数字取自锁频状态，测完已还原。RK3576 与 RK3588 实测 40/40 采样都稳在各自最高档
-（950 / 1000 MHz），不受此影响；Jetson 记录的是 MAXN_SUPER；Hailo 没有这一层。
-
-**上面 INT8 表里 reCamera 2002 那一行的口径仍与 RK/Jetson/Hailo 不同**：后者是纯加速器，
-2002 的 52.65 ms 含 letterbox 与解码。差距的量级现已知——应用层后处理只占 0.002 ms，
-所以两者的差别来自 letterbox 与 raw-head 解码，而非应用代码。要完全同口径需要改 sscma-micro，
-不在本方案范围内。
-
-**后处理是否随人数增长，两边不一样。** RK3576 在 4 人画面上后处理 2.7 ms、空白帧 0.4 ms；
-Jetson 有人与无人几乎没差别（NX 5.180 对 5.187 ms；Nano 5.567 对 5.556 ms），因为 YOLO11 的解码要遍历固定的 8400 个
-anchor，与画面里有几个人无关，而 0–2 个框的 NMS 成本可以忽略。
-
-◆ Jetson 这一列是 `trtexec` 纯 GPU 计算（无主机拷贝），RK 那一列是 `rknnlite.inference()`，
-两者口径本就不同；可以横向比的是 pipeline 那一列。同口径下 Jetson 比 RK3588 快约 11 倍、
-比 RK3576 快约 14 倍。
-
-Hailo 的 8.77 ms 取自 1951 帧实测（1849 帧有人），p95 12.34 ms：其中硬件推理 6.87 ms，
-调度与输出张量搬运约 1.8 ms，raw-head 解码 + NMS 只有 **0.052 ms**（占 0.6%），跟踪
-0.013 ms。它的解码几乎不随人数变化（无人 0.035 ms、有人 0.053 ms），与 Jetson 同类，
-和 RK 不同——因为 HEF 输出的张量基数很低。
-
-▲ 该平台原本上报的 `pipeline_ms` 是 `pre_hailonet_to_hailonet_src` 探针，时间戳取在
-`decodeYoloV8Pose()` 与 `tracker.update()` 之前。为拿到同口径数字，在上游
-`platforms/rpi-hailo/src/main.cpp` 增加了 `decode_ms` / `track_ms` /
-`pipeline_full_ms`（新增字段，原字段与 `latency_metric` 保持不变）。实测结论是：原指标
-已经覆盖了 99.4% 的单帧成本，两者可以直接互换使用。
-
-**路数怎么读**：「推理上限路数」= 聚合吞吐 ÷ 15 FPS，只算加速器，是理论天花板。
-「建议路数」在此基础上打了折——RK 上实测的端到端吞吐只有推理上限的 28%–44%，因为
-RTSP 解码、跟踪、状态机和 MQTT 也要占用 CPU 与内存带宽。按建议路数起步，再用自己的
-摄像头、编码和场景人数压测确认。
-
-RK 两块板同时出现在两张表里，可以作为两种精度之间的换算：INT8 相对 FP16 提速
-1.5–1.7 倍，在留出帧上每帧检测数与 FP16 完全一致。
-
-**测量条件**：两块 Jetson 都在停掉共存业务后测得。这一步是必要的——共存业务如果占用
-加速器，数字会反过来：先前 Orin NX 在自身跑着推理业务时测得 264.9 FPS，比 Orin Nano 还
-低，与两者的算力关系相反；停掉后是 306.2 FPS。Orin Nano 停与不停完全一致（270.5 对
-270.7），因为它上面的业务不碰 GPU。
-
-reCamera 2002 与 Pro 只有 INT8，没有 FP16 版本。
-
-**当前套餐下发的是**：Jetson FP16、RK FP16、reCamera 2002 与 Pro INT8。RK 的 INT8
-权重是本次新转换用于对比的，尚未随套餐下发，切换前需要复核时序权重。
-
-Jetson 两块板在 1–6 个并发上下文下总吞吐几乎不变，说明并发共享同一份 GPU 预算，不会
-线性倍增。
-
-**多路实测容量（YOLO11s-Pose FP16，运行时 `0.1.0-rc2`）。** 上面两张表是 YOLO11n 的
-加速器单帧数据。端到端路数是用实际部署的 YOLO11s 配置单独测的：640x640 H264、
-15 FPS RTSP 输入、60 s 窗口，一路要稳定输出 14.5 FPS 以上才算带得动。
-
-| 模组 | 15 FPS 下最大路数 | 聚合吞吐 | GPU |
-|---|---:|---:|---:|
-| reComputer J（Orin Nano Super） | 8 | 119.6 | 91% |
-| reComputer J（Orin NX Super） | 9 | 134.4 | 95% |
-| Jetson AGX Orin 32G | 16 | 239.8 | 89% |
-
-这组数字取代此前「Orin Nano 4 路、Orin NX 3 路」的建议。差异来自 `0.1.0-rc2` 的两处
-改动。TensorRT 运行器原先用同步拷贝取回输出，该拷贝走 CUDA legacy default stream，
-形成设备级 barrier，导致无论加多少路 GPU 利用率都停在 59–77%；现在改为在每个运行器
-自己的 non-blocking stream 上异步拷贝。超过 7 路时控制平面还会自动拆分成多个进程，
-因为逐帧的 payload 构造、JSON 序列化和 MQTT 发布都要争同一个 GIL。上表的路数下两块板
-都已是加速器受限——再加路只会拉低每路帧率，总量不再上升。
-
-Orin NX Super 在这里比 Orin Nano Super 快 12%，与两者纯加速器吞吐的差距一致
-（同一 engine 下 173.8 对 155.3 qps）。两个模组都是 1024 CUDA core，而 FP16 GPU 路径
-既不用 DLA 也不用 INT8，所以 TOPS 标称暗示的倍数关系不会出现。
-
-**Hailo-8 多路实测容量（运行时 `0.1.0-rc3`）。** 测试同样使用 640x640 H264、15 FPS
-输入，并以每路至少 14.5 FPS 为通过线。默认 YOLOv8s-Pose HEF 是 single-context，继续走
-现有 `hailonet` 路径。官方 Model Zoo v2.19 的 YOLOv8m-Pose HEF 有 3 个 context；rc3 会识别
-这种布局并自动切换到共享 direct-HailoRT batch。
-
-| 姿态模型 | 运行路径 | 15 FPS 下最大路数 | 聚合吞吐 |
+| 设备 | 姿态前端 | 最高实测实时/RTSP 负载 | 下一边界 / 覆盖范围 |
 |---|---|---:|---:|
-| YOLOv8s-Pose | single-context `hailonet` | 16 | 233.6 FPS |
-| YOLOv8m-Pose | shared auto-batch | 5 | 75.0 FPS |
+| reComputer J（Orin Nano Super） | YOLO11s-Pose TensorRT FP16 | 8 路，每路 14.95 FPS | 9 路，每路 13.36 FPS |
+| reComputer J（Orin NX Super） | YOLO11s-Pose TensorRT FP16 | 9 路，每路 14.93 FPS | 10 路，每路 13.05 FPS |
+| reComputer RK3576 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 1 路，14.83–15.01 FPS | 2 路，12.81–12.83 FPS |
+| reComputer RK3588 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 5 路，每路 14.97–15.01 FPS | 6 路，每路 14.43–14.49 FPS |
+| reComputer R（Hailo-8） | YOLOv8s-Pose 量化 HEF，1 context | 16 路，每路 14.52–14.57 FPS；关闭 MQTT | 17 路低于 14.5 FPS |
+| reComputer R（Hailo-8） | YOLOv8m-Pose 量化 HEF，3 contexts | 5 路，每路 14.98–15.02 FPS；关闭 MQTT | 6 路低于 14.5 FPS |
+| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 路实时相机，13.05 FPS | 未测试更高负载；未达到 14.5 FPS SLA |
 
-M 模型 5 路时，设备 CPU 为 72.5%、RSS 为 234,368 KiB、温度 63.9 C。提升来自完整 batch
-补齐，以及单一共享 runner 关闭调度等待；官方 HEF 没有重新编译。两组路数边界测试都关闭了
-MQTT，因此这里描述的是视频到跟踪器的运行时容量，不是 broker 吞吐。当前部署预设仍是单路
-并下载 S 模型；把 `HEF_PATH` 指向 M HEF 时 rc3 已能运行。模型选择器与多摄像头表单后续再做。
+Hailo 从 S 到 M 的下降大于模型计算量的增长。官方 S HEF 是 single-context，权重可以常驻；
+M HEF 被编译成 3 个 context，需要承担上下文切换和内存搬运。这是该编译产物的特性，不是
+Hailo 的通用规律。Jetson 的 M 也会变慢，但同口径加速器耗时约增加 2.1–2.2 倍，没有出现
+Hailo 这种吞吐断崖。
 
-换到一个独立的外部数据集（RealBiomFall，34 段全部为跌倒），在该数据集上实测的两
-个配置召回都会下降——reCamera 是 58.8%，reComputer J 上部署版 YOLO11m 是 52.9%；
-YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮挡的情况下，人本身就几
-乎检测不出来。上表的数字来自构图完整的室内近中景，远景和遮挡场景对应的是外部数
-据集的数字。
+不同平台的计时起止点不同，因此分别列出：
 
+| 设备 / 模型 | 输出节奏 | 应用推理 | 已命名 pipeline 区间 |
+|---|---:|---:|---:|
+| Orin Nano / YOLOv8s INT8 | 14.79 FPS | 5.35 / 5.40 ms 均值/P95 | 未埋点 |
+| Orin Nano / YOLOv8m 混合 INT8/FP16 | 14.35 FPS | 9.92 / 9.98 ms 均值/P95 | 未埋点 |
+| Orin NX / YOLOv8s INT8 | 14.80 FPS | 4.82 / 4.86 ms 均值/P95 | 未埋点 |
+| Orin NX / YOLOv8m 混合 INT8/FP16 | 14.35 FPS | 8.86 / 8.90 ms 均值/P95 | 未埋点 |
+| Hailo-8 / YOLOv8s | 15.00–15.06 FPS | 未暴露 | 7.47–7.51 ms 均值；7.99–8.10 ms P95 |
+| Hailo-8 / YOLOv8m | 14.12–14.16 FPS | 未暴露 | 28.52–28.89 ms 均值；32.30–37.86 ms P95 |
+| reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms 均值/P95 | 77.80 / 85.99 ms 均值/P95 |
+
+Jetson 的应用推理包括预处理、数据拷贝、TensorRT、输出拷贝和姿态解析。Hailo S 与 M 使用的
+探针起点不同。RK 的 `inference_ms` 不含视频预处理；`pipeline_ms` 从视频源返回模型输入帧
+之后开始，包括推理、姿态解码、跟踪、时序判断和消息构造。这里不把某个平台的指标改名后
+当成另一个平台的同口径数据。
+
+RK 容量行是最佳性能测试配置，不是当前单相机套餐的默认模型。部署套餐继续使用原有的板卡专属
+YOLO11n FP16 模型和时序权重；YOLOv8s INT8 需要完成同标准冻结准确率发布后才切换。另一个
+RK3588 原型把 DMA-BUF→RGA→RKNN 放进原生热路径：5 路 15 FPS 时，CPU 从 144.6% 降到
+43.7–44.5%，RSS 从 495,488 KiB 降到约 157,000 KiB。该原型不含姿态解码、跟踪、时序逻辑
+和 MQTT，不能当作生产容量或准确率结论。
+
+这些结果冻结于 2026-09-05。合成空白帧与纯加速器历史数据仍保留在
+[EdgeFallKit 完整结果台账](https://github.com/suharvest/edgefallkit/blob/main/evaluation/RESULTS.md)，
+但不再作为这里的路数数据。
+
+在独立外部集 RealBiomFall 的 34 段跌倒视频上，两组已测配置的召回率都下降：reCamera 为
+58.8%，reComputer J 上部署的 YOLO11m 为 52.9%；YOLO11s 未测。主要限制是远景和严重遮挡
+下的姿态覆盖率。上面的容量表代表近中距离、完整人体入镜的固定室内机位，不代表这些外部场景。
 ## 输出接口
 
 | 输出 | 位置 | 内容 |
@@ -259,8 +129,8 @@ YOLO11s 未在该集上实测。瓶颈在于姿态覆盖率：远景和严重遮
 
 reComputer 套餐可以用一台设备接入多路摄像头，并把流编号拼在主题后面
 （`recamera/fall-detection/results/cam-01`），下游能把每路分开处理。本方案端到端
-部署预设配的是单路；多路容量另行实测，YOLO11s 按 15 FPS 输入时 Orin Nano Super 8 路、
-Orin NX Super 9 路、AGX Orin 16 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见性能一节）。
+部署预设配的是单路；15 FPS 多路容量另行实测：Orin Nano Super 8 路、Orin NX Super 9 路、
+RK3576 1 路、RK3588 5 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见性能一节）。
 这些实测每路用的是同一段循环片源，
 所以正式定路数前仍要用你自己的摄像头、编码和场景人数跑一遍。
 
@@ -273,12 +143,12 @@ Orin NX Super 9 路、AGX Orin 16 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5
 一台同时接入多路，用更大的姿态模型换更高的实测准确率。摄像头已经有了、需要多个
 视角，或者在意上面那张表里的准确率差距时，选它。
 
-**reComputer RK** 把检测器放到瑞芯微 NPU 板卡上，现在带有板卡专属的时序权重和硬件
-加速的视频通路。在板卡其他业务未停的情况下，实测端到端吞吐 RK3588 约 8.6 FPS、
-RK3576 约 4.9 FPS。
+**reComputer RK** 把检测器放到瑞芯微 NPU 板卡上，带有板卡专属的时序权重和硬件视频
+解码。最佳性能测试配置使用 YOLOv8s INT8，RK3576 验证 1×15 FPS，RK3588 验证
+5×15 FPS；当前部署仍保留原有单相机 YOLO11n FP16 配置。
 
 **reComputer R（Hailo）** 在 Hailo-8 上跑原生 C++ 热路径。默认 S 模型实测可带 16 路
-15 FPS，官方 M 模型在 rc3 自动切换 shared batch 后可带 5 路。当前部署表单仍配置单路。
+15 FPS，官方 M 模型在运行时自动切换 shared batch 后可带 5 路。当前部署表单仍配置单路。
 已经安装这类硬件时可以选它；时序门限已经冻结，但部署状态机的准确率还没有单独测过。
 
 ## 使用须知
