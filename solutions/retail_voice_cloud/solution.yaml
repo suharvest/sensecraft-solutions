@@ -1,0 +1,197 @@
+version: "1.0"
+id: retail_voice_cloud
+name: Retail Voice Collection (Server Stack)
+name_i18n:
+  zh: 零售语音采集（服务端栈）
+
+intro:
+  summary: A deployable voice pipeline — transcription, voiceprint, PII redaction before storage, hard delete and export — fed either by your existing mobile app over an ASR endpoint, or by an edge collector with a mic array.
+  summary_i18n:
+    zh: 一套可部署的语音链路——转写、声纹、入库前脱敏、硬删除与导出——音频来源可以是你现有的手机 App（通过 ASR 端点接入），也可以是带麦克风阵列的边缘采集端。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.webp
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      caption: Capture hardware for the edge collector preset
+      caption_i18n:
+        zh: 边缘采集套餐使用的采集硬件
+    - type: image
+      src: gallery/edge-client-asr.png
+      caption: Transcript view — text shown here is the redacted text, the original is never stored
+      caption_i18n:
+        zh: 转写界面——这里显示的是脱敏后的文本，原文不落库
+    - type: image
+      src: gallery/rerouter.png
+      caption: reRouter CM4 collector
+      caption_i18n:
+        zh: reRouter CM4 采集端
+    - type: image
+      src: gallery/respeaker.jpg
+      caption: reSpeaker XVF3800 4-mic array
+      caption_i18n:
+        zh: reSpeaker XVF3800 4 麦克风阵列
+  category: voice_ai
+  solution_type: solution
+  tags:
+    - voice
+    - asr
+    - retail
+    - privacy
+    - pii-redaction
+    - data-deletion
+    - rk3576
+
+  output_interfaces:
+    - type: websocket
+      port: 8080
+      endpoint: /ws?token=<operator-token>
+      description: ASR endpoint the mobile app connects to. Client sends raw PCM binary frames (16 kHz, mono, signed 16-bit little-endian); server replies with JSON messages of type connection / vad / final / error.
+      schema_type: json
+      payload_example: '{"type":"final","text":"我想找[[NAME]]咨询一下","timestamp":1757030400000,"textLength":12,"wordCount":2,"sessionID":"a1b2","audioID":"c3d4","speaker":{"identified":true,"speaker_id":"spk-7","speaker_name":"staff-a","confidence":0.83}}'
+      description_i18n:
+        zh: 供手机 App 接入的 ASR 端点。客户端发送原始 PCM 二进制帧（16 kHz、单声道、有符号 16 位小端），服务端回 JSON 消息，type 为 connection / vad / final / error。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/recordings
+      description: Transcript ingest and query. POST requires an operator token, GET requires viewer. Text is redacted before it is written to MySQL.
+      schema_type: json
+      description_i18n:
+        zh: 转写上报与查询。POST 需要 operator 令牌，GET 需要 viewer。文本在写入 MySQL 之前完成脱敏。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/privacy/erase
+      description: Hard delete by subject / device / session. Cascades MySQL rows, MinIO objects and the voiceprint, leaves a PII-free tombstone. Requires an admin token.
+      schema_type: json
+      description_i18n:
+        zh: 按主体 / 设备 / 会话硬删除。级联 MySQL 行、MinIO 对象与声纹，只留无 PII 的墓碑。需要 admin 令牌。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/privacy/export
+      description: Subject export — redacted transcripts as JSON plus an audio manifest (manifest only, not the audio itself). Requires an admin token.
+      schema_type: json
+      description_i18n:
+        zh: 按主体导出——脱敏文本 JSON 加音频清单（只给清单，不给音频本体）。需要 admin 令牌。
+
+  input_requirements:
+    - type: audio
+      description: 16 kHz mono PCM. From the mobile app over the ASR endpoint, or from a reSpeaker XVF3800 array on the edge collector.
+      description_i18n:
+        zh: 16 kHz 单声道 PCM。来自手机 App 经 ASR 端点上传，或来自边缘采集端上的 reSpeaker XVF3800 阵列。
+    - type: network
+      description: The app must be able to reach the stack host on the ASR port. Across an untrusted network put a TLS terminator in front of it — the token travels in the URL query string.
+      description_i18n:
+        zh: App 必须能访问到栈主机的 ASR 端口。跨不受信网络时前面要加 TLS 终结——令牌是走 URL 查询参数的。
+    - type: storage
+      description: 20 GB free on the stack host for MySQL, MinIO objects and container images.
+      description_i18n:
+        zh: 栈主机需 20 GB 可用空间，用于 MySQL、MinIO 对象与容器镜像。
+
+  device_catalog:
+    recomputer_rk3576:
+      description: Runs the whole stack — ASR, voice-service, MySQL, MinIO, admin web. The frozen compose targets arm64 and the ASR image is the RK3576 NPU build.
+      description_i18n:
+        zh: 跑整套栈——ASR、voice-service、MySQL、MinIO、管理后台。冻结 compose 面向 arm64，ASR 镜像是 RK3576 NPU 版本。
+    rerouter_cm4:
+      description: Edge collector — captures from the mic array and reports to the stack over the network.
+      description_i18n:
+        zh: 边缘采集端——从麦克风阵列采音，经网络上报到栈。
+    respeaker_xvf3800:
+      description: 4-mic array with noise suppression, AEC and beamforming, used by the edge collector preset.
+      description_i18n:
+        zh: 4 麦克风阵列，支持降噪、回声消除与波束成形，用于边缘采集套餐。
+    generic_linux_host:
+      description: Any arm64 Linux host with Docker for the server stack. The bundled ASR image is the RK3576 build — on a host without an RKNN NPU the ASR container has to be swapped for a matching build, which this package has not verified.
+      description_i18n:
+        zh: 任意装有 Docker 的 arm64 Linux 主机，用于承载服务端栈。随包的 ASR 镜像是 RK3576 版本——主机没有 RKNN NPU 时需要换成对应构建，本包未验证这条路径。
+    external_mobile_app:
+      description: Your existing mobile app. It lives outside this repository — this package only publishes the ASR endpoint for it to point at.
+      description_i18n:
+        zh: 你已有的手机 App。它不在本仓库内——本包只对外提供供其指向的 ASR 端点。
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 60min
+
+  presets:
+    - id: app_capture
+      name: Server Stack + Mobile App
+      name_i18n:
+        zh: 服务端栈 + 手机 App
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Deploy the stack, hand the ASR endpoint to the app you already ship. The app uploads audio; transcription, redaction, storage, export and deletion all happen in the stack.
+      description_i18n:
+        zh: 部署这套栈，把 ASR 端点交给你已有的 App。App 上传音频，转写、脱敏、入库、导出与删除都发生在栈内。
+      device_groups:
+        - id: stack_host
+          name: Stack Host
+          name_i18n:
+            zh: 栈主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+            - device_ref: generic_linux_host
+          default: recomputer_rk3576
+        - id: capture
+          name: Capture Source
+          name_i18n:
+            zh: 采集来源
+          type: single
+          required: true
+          options:
+            - device_ref: external_mobile_app
+          default: external_mobile_app
+
+    - id: edge_capture
+      name: Server Stack + Edge Collector
+      name_i18n:
+        zh: 服务端栈 + 边缘采集端
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: No app involved. A mic array on an edge box captures, transcribes locally and reports into the same stack.
+      description_i18n:
+        zh: 不涉及 App。边缘盒子上的麦克风阵列采音、本地转写，再上报进同一套栈。
+      device_groups:
+        - id: stack_host
+          name: Stack Host
+          name_i18n:
+            zh: 栈主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+            - device_ref: generic_linux_host
+          default: recomputer_rk3576
+        - id: collector
+          name: Collector
+          name_i18n:
+            zh: 采集端
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+            - device_ref: rerouter_cm4
+          default: recomputer_rk3576
+        - id: microphone
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800
+          default: respeaker_xvf3800
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
+
+enabled: true

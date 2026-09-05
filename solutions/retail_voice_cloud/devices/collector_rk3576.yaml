@@ -1,0 +1,279 @@
+version: "1.0"
+id: collector_rk3576
+name: reComputer RK3576 Collector
+name_i18n:
+  zh: reComputer RK3576 采集端
+type: docker_deploy
+
+# 边缘采集端：跑完整的冻结编排（含 voice-client），麦克风接在这台机器上。
+# 用的是 assets/docker/docker-compose.yml —— 与 sensecraft_voice
+# deploy/edge-frozen/docker-compose.yml 逐字相同的那一份。
+#
+# 采集端与栈是同一份编排：voice-client 通过本机回环把转写上报给 voice-service。
+# 如果栈已经部署在另一台机器上，这台就不该再起一套 MySQL/MinIO——
+# 那种拓扑需要改 voice-client 的上报地址，本包未验证，见 guide 的 Troubleshooting。
+#
+# ASR 后端是 OVS 的 RK3576 NPU 构建（ASR_BACKEND=qwen3_asr_rk，
+# ASR_PLATFORM=rk3576），所以这个 descriptor 只对 RK3576 有效。
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  compose_dir: assets/docker
+  options:
+    project_name: sensecraft-voice-c4
+    remove_orphans: true
+  services:
+    - name: ovs-asr
+      required: true
+    - name: voice-client
+      required: true
+    - name: voice-service
+      port: 8081
+      required: true
+    - name: voice-web
+      port: 3000
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 20
+    description: Images, MySQL data, MinIO objects and the local audio buffer
+    description_i18n:
+      zh: 镜像、MySQL 数据、MinIO 对象与本地音频缓冲
+
+deploy_timeout: 5400
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/sensecraft-voice-c4
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the microphone array is visible
+        run: |
+          set -e
+          docker info >/dev/null 2>&1 || { echo "docker is not usable by this user" >&2; exit 1; }
+          if [ ! -d /proc/asound ]; then
+            echo "no ALSA subsystem on this host — the mic array cannot be captured" >&2
+            exit 1
+          fi
+          cat /proc/asound/cards
+          echo "note the card number of the XVF3800 — it goes into AUDIO_CARD_ID below"
+        name_i18n:
+          zh: 检查麦克风阵列是否可见
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+      - name: Create the host data directories
+        sudo: true
+        run: |
+          set -e
+          # voice-client 与声纹服务按绝对路径挂这几个目录，不存在时 docker 会
+          # 建出 root 属主的空目录，容器随后写不进去。
+          mkdir -p /data-iot/respeaker/recordings /data-iot/respeaker/voiceprints \
+                   /data-iot/respeaker/logs /data-iot/respeaker/models
+          chmod -R 0775 /data-iot/respeaker
+          ls -ld /data-iot/respeaker
+        name_i18n:
+          zh: 创建主机数据目录
+
+    after_upload:
+      - name: Write .env and the service configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/sensecraft-voice-c4/collector_rk3576"
+          cd "$WORKDIR"
+
+          umask 077
+          cat > .env <<'ENVEOF'
+          TZ=Asia/Shanghai
+          MYSQL_ROOT_PASSWORD={{mysql_root_password}}
+          MYSQL_DATABASE=voice
+          MYSQL_PORT=3306
+          MINIO_ROOT_USER={{minio_root_user}}
+          MINIO_ROOT_PASSWORD={{minio_root_password}}
+          MINIO_PORT=9000
+          MINIO_CONSOLE_PORT=9001
+          VOICE_API_TOKENS=edge-client:operator:{{operator_token}},ops:admin:{{admin_token}}
+          ASR_API_TOKENS=edge-client:operator:{{operator_token}},voice-service:admin:{{admin_token}}
+          VOICE_CLIENT_TOKEN={{operator_token}}
+          ASR_CLIENT_TOKEN={{operator_token}}
+          VOICE_SERVICE_PORT=8081
+          VOICE_WEB_PORT=3000
+          CLOUD_ANALYTICS_PORT=8082
+          AUDIO_CARD_ID={{audio_card_id}}
+          AUDIO_DEVICE_ID=0
+          OVS_PROFILE_DEFAULT=rk3576-default
+          ASR_PLATFORM=rk3576
+          OVS_ADMIN_KEY=
+          ENVEOF
+
+          CFG=config/voice-service.yaml
+          python3 - "$CFG" <<'PY'
+          import sys
+
+          path = sys.argv[1]
+          text = open(path, encoding="utf-8").read()
+          repl = {
+              "CHANGE_ME_JWT_KEY": "{{jwt_secret}}",
+              "CHANGE_ME_MYSQL_PASSWORD": "{{mysql_root_password}}",
+              "CHANGE_ME_MINIO_USER": "{{minio_root_user}}",
+              "CHANGE_ME_MINIO_PASSWORD": "{{minio_root_password}}",
+          }
+          for old, new in repl.items():
+              text = text.replace(old, new)
+          text = text.replace(
+              "raw_audio_retention_hours: 24",
+              "raw_audio_retention_hours: {{raw_audio_retention_hours}}")
+          open(path, "w", encoding="utf-8").write(text)
+          if "CHANGE_ME_" in text:
+              raise SystemExit("placeholders left in config")
+          print("config written")
+          PY
+          chmod 600 .env config/voice-service.yaml
+        name_i18n:
+          zh: 写入 .env 与服务配置
+
+    after:
+      - name: Wait for the client to reach the ASR backend
+        ignore_error: true
+        timeout: 300
+        run: |
+          for i in $(seq 1 40); do
+            if curl -sf "http://127.0.0.1:8621/health" >/dev/null 2>&1; then
+              echo "ASR backend healthy"
+              break
+            fi
+            sleep 5
+          done
+          docker ps | grep ' c4-' || true
+          docker logs --tail 30 c4-voice-client 2>&1 || true
+        name_i18n:
+          zh: 等待客户端连上 ASR 后端
+
+  user_inputs:
+    - id: host
+      name: Collector IP
+      type: text
+      required: true
+      placeholder: "192.168.1.101"
+      name_i18n:
+        zh: 采集端 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: audio_card_id
+      name: ALSA Card ID
+      type: text
+      default: "1"
+      required: true
+      validation:
+        pattern: "^[0-9]+$"
+      description: The card number the XVF3800 got in `cat /proc/asound/cards` — usually 1, but it moves if other audio devices are attached
+      name_i18n:
+        zh: ALSA 声卡编号
+      description_i18n:
+        zh: XVF3800 在 `cat /proc/asound/cards` 里的编号——通常是 1，接了别的音频设备就会变
+    - id: mysql_root_password
+      name: MySQL Root Password
+      type: password
+      required: true
+      name_i18n:
+        zh: MySQL root 口令
+    - id: minio_root_user
+      name: MinIO Access Key
+      type: text
+      default: voiceadmin
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]{3,64}$"
+      name_i18n:
+        zh: MinIO 访问密钥
+    - id: minio_root_password
+      name: MinIO Secret Key
+      type: password
+      required: true
+      name_i18n:
+        zh: MinIO 私有密钥
+    - id: jwt_secret
+      name: JWT Secret
+      type: password
+      required: true
+      description: Generate with `openssl rand -hex 32`
+      name_i18n:
+        zh: JWT 密钥
+      description_i18n:
+        zh: 用 `openssl rand -hex 32` 生成
+    - id: operator_token
+      name: Operator API Token
+      type: password
+      required: true
+      description: The token voice-client uses to report transcripts
+      name_i18n:
+        zh: operator API 令牌
+      description_i18n:
+        zh: voice-client 上报转写时使用的令牌
+    - id: admin_token
+      name: Admin API Token
+      type: password
+      required: true
+      description: Deletion and export only — not handed to the client
+      name_i18n:
+        zh: admin API 令牌
+      description_i18n:
+        zh: 只用于删除与导出——不下发给客户端
+    - id: raw_audio_retention_hours
+      name: Raw Audio Retention
+      type: select
+      default: "24"
+      required: true
+      options:
+        - value: "1"
+          label: 1 hour
+          label_i18n:
+            zh: 1 小时
+        - value: "6"
+          label: 6 hours
+          label_i18n:
+            zh: 6 小时
+        - value: "24"
+          label: 24 hours (default)
+          label_i18n:
+            zh: 24 小时（默认）
+      name_i18n:
+        zh: 原音频保留期

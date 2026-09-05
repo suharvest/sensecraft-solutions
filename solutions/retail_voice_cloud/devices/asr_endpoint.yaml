@@ -1,0 +1,137 @@
+version: "1.0"
+id: asr_endpoint
+name: Publish the ASR Endpoint to the App
+name_i18n:
+  zh: 把 ASR 端点交给 App
+type: manual
+inherit_host_from: cloud_stack
+
+# 为什么是 manual：另一端（手机 App）不在本仓库内，引擎没有可以驱动它的
+# deployer 类型。能自动做的只有「连一次端点确认它活着」，那部分写在 verify 里。
+# 这一步做的是把端点 URL、令牌和音频约定交到 App 侧手上。
+#
+# 端点协议出处（sensecraft_voice / sensecraft-asr-service，feature/c4-harden）：
+#   internal/router/router.go:41-44   GET /ws，先过 operator 鉴权再升级连接
+#   internal/middleware/auth.go:44-50 令牌通道：X-API-Token / Authorization: Bearer / ?token=
+#   internal/ws/websocket.go:66-72    连接后服务端先发 {"type":"connection",...}
+#   internal/session/manager.go:385   PCM 解析：低字节在前，即 16 位小端
+#   config.json server.port=8080, audio.sample_rate=16000,
+#               websocket.max_message_size=2097152, read_timeout=20
+
+steps:
+  - id: collect_app_contract
+    name: Get three things from the app side
+    name_i18n:
+      zh: 先向 App 侧拿三样东西
+    description: >-
+      The app is not part of this package, so its configuration screen is not
+      described here. Before you fill anything in, get these three from whoever
+      ships the app: (1) the WebSocket path and query format its ASR client
+      builds, (2) how it passes credentials — custom header, Authorization
+      Bearer, or a query parameter, (3) the audio format it uploads (sample
+      rate, channels, sample width, frame size). This endpoint accepts a token
+      on any of the three credential channels and expects 16 kHz mono
+      signed-16-bit little-endian PCM; anything else has to be converted on the
+      app side.
+    description_i18n:
+      zh: >-
+        App 不在本包内，它的配置页长什么样这里不写。填任何东西之前，先向交付 App 的一方拿三样：
+        (1) 它的 ASR 客户端拼出来的 WebSocket 路径与查询参数格式；
+        (2) 它怎么传凭据——自定义头、Authorization Bearer，还是查询参数；
+        (3) 它上传的音频格式（采样率、声道数、采样位宽、帧长）。
+        本端点这三条凭据通道都收，音频要求 16 kHz、单声道、有符号 16 位小端 PCM；
+        不是这个格式就得在 App 侧转换。
+    optional: false
+
+  - id: hand_over_endpoint
+    name: Hand over the endpoint URL and token
+    name_i18n:
+      zh: 交付端点地址与令牌
+    description: >-
+      The endpoint is ws://<stack-host>:8080/ws?token=<operator-token> —
+      the host is the stack host you just deployed to, the token is the operator
+      token you entered in the previous step. Do not hand over the admin token:
+      operator is enough to open /ws and is not allowed to delete or export.
+      Fill these into the app's ASR configuration screen; where a field name in
+      the app does not match anything here, fill it in as the app's own
+      configuration page describes.
+    description_i18n:
+      zh: >-
+        端点是 ws://<栈主机地址>:8080/ws?token=<operator 令牌>——
+        主机就是上一步部署的栈主机，令牌就是上一步填的 operator 令牌。
+        不要把 admin 令牌交出去：operator 已经足够打开 /ws，且不能删除或导出。
+        把这些填进 App 的 ASR 配置页；App 里有本页没有对应项的字段，按 App 配置页的说明填写。
+    optional: false
+
+  - id: probe_endpoint
+    name: Connect once yourself before handing it over
+    name_i18n:
+      zh: 交付前自己先连一次
+    description: >-
+      From a machine that can reach the stack host, run
+      `npx wscat -c "ws://<stack-host>:8080/ws?token=<operator-token>"`.
+      A working endpoint replies immediately with
+      {"type":"connection","message":"WebSocket connected, ready for audio","session_id":"..."}.
+      A wrong or missing token gives HTTP 401 before the upgrade, a
+      viewer-grade token gives 403 — the two are deliberately different so you
+      know whether to change the token or change its role. Nothing happens if
+      you type text: the socket carries binary PCM, not text commands.
+    description_i18n:
+      zh: >-
+        在能访问栈主机的机器上执行
+        `npx wscat -c "ws://<栈主机地址>:8080/ws?token=<operator 令牌>"`。
+        端点正常时会立刻回
+        {"type":"connection","message":"WebSocket connected, ready for audio","session_id":"..."}。
+        令牌错或没带是升级前就 401，令牌档位不够是 403——两者故意分开，
+        好让你知道该换令牌还是换角色。敲文字不会有反应：这条连接走的是二进制 PCM，不是文本命令。
+    optional: false
+
+  - id: tls_terminator
+    name: Put TLS in front of it when it leaves the LAN
+    name_i18n:
+      zh: 出局域网就在前面加 TLS
+    description: >-
+      The token travels in the URL query string because browser WebSocket
+      clients cannot set custom headers. On a plain ws:// hop anyone on the path
+      sees it, and the audio is unencrypted. Keep the endpoint on the local
+      network, or terminate TLS in front of it (nginx / Caddy) and give the app
+      wss://<host>/ws?token=... instead. Rotate the operator token by editing
+      ASR_API_TOKENS in .env and restarting the container.
+    description_i18n:
+      zh: >-
+        令牌走 URL 查询参数，是因为浏览器 WebSocket 客户端不能设自定义头。
+        明文 ws:// 这一跳上，链路上的人能看到令牌，音频也是明文。
+        要么把端点留在局域网内，要么在它前面用 nginx / Caddy 终结 TLS，
+        给 App 的是 wss://<主机>/ws?token=...。
+        轮换 operator 令牌的做法是改 .env 里的 ASR_API_TOKENS 再重启容器。
+    optional: false
+
+  - id: endpoint_dependency
+    name: Know which container serves this endpoint
+    name_i18n:
+      zh: 弄清这个端点由哪个容器提供
+    description: >-
+      /ws on port 8080 is served by the asr-service container (asr-voiceprint in
+      the compose file), which also owns speaker identification. That container
+      is in the `voiceprint` profile and does not start by default: the source
+      gap that blocked its build has been fixed, but the image is still pending
+      a build and has not been pushed, so the compose file references it by tag
+      rather than digest. Until it is built and pullable there is no
+      /ws?token= endpoint to hand over, and `speaker.identified` would be false
+      anyway. Start it with
+      `docker compose --profile voiceprint up -d asr-voiceprint` once the image
+      is available, and confirm with the wscat probe above before telling the
+      app side the endpoint is live. The edge-collector preset does not depend
+      on this: it transcribes through OpenVoiceStream instead.
+    description_i18n:
+      zh: >-
+        8080 上的 /ws 由 asr-service 容器（compose 里的 asr-voiceprint）提供，
+        说话人识别也在它身上。这个容器在 `voiceprint` profile 里，默认不启动：
+        挡住它构建的源码缺口已经补上，但镜像仍待构建验证且未 push，
+        所以 compose 里引用的是 tag 而不是 digest。
+        在镜像构建好并能拉到之前，没有 /ws?token= 端点可交付，
+        `speaker.identified` 也只会是 false。镜像就绪后用
+        `docker compose --profile voiceprint up -d asr-voiceprint` 起它，
+        并用上面的 wscat 探测确认之后，再告诉 App 侧端点可用。
+        边缘采集套餐不依赖这一条：它走 OpenVoiceStream 转写。
+    optional: false
