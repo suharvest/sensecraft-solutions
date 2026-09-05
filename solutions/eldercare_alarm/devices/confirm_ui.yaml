@@ -1,0 +1,45 @@
+version: "1.0"
+id: confirm_ui
+name: Open the Confirmation Page
+type: web_dashboard
+
+# The verify step for every preset. Not a video_stream preview, deliberately:
+# what this solution produces is an alarm record with a state and an operator
+# decision, not a per-frame overlay. There is no skeleton to draw here — the
+# fall_detection solution already owns that view — so the thing to look at is
+# the alarm list itself.
+#
+# It carries its own host input rather than `inherit_host_from` because the
+# same page is the endpoint of three presets whose preceding step differs:
+# orin_alarm, hailo_alarm, or a gateway the manual reCamera step set up by
+# hand, which no preceding step recorded a host for.
+web_dashboard:
+  url: "http://{{alarm_host}}:{{alarm_port}}/"
+  title: Eldercare Alarm Console
+  description: The alarm list with confirm and dismiss on each entry. An empty list on a quiet site is the correct result — it means the service is up. Confirming or dismissing an alarm records the operator against it, which is what the audit trail is for.
+  description_i18n:
+    zh: 告警列表，每条带确认与驳回。现场无事时列表为空即为正常——说明服务已在运行。确认或驳回会把操作者记到该条告警上，这正是审计链的用途。
+
+user_inputs:
+  - id: alarm_host
+    name: Alarm Service Host
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The device you just deployed to, or the gateway host on the reCamera preset
+    name_i18n:
+      zh: 告警服务地址
+    description_i18n:
+      zh: 刚部署的那台设备；reCamera 套餐下填网关主机地址
+  - id: alarm_port
+    name: Port
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    name_i18n:
+      zh: 端口
+
+name_i18n:
+  zh: 打开确认页
