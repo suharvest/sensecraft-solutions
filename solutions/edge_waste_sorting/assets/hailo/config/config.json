@@ -1,0 +1,79 @@
+{
+  "sources": [
+    {
+      "stream_id": "bin1-cam1",
+      "uri": "/dev/video0",
+      "kind": "usb"
+    }
+  ],
+  "model": {
+    "path": "/models/mobilenetv3s_waste8.hef",
+    "accelerator": "hailo",
+    "track": "baseline",
+    "backbone": "mobilenet_v3_small",
+    "input_size": [
+      224,
+      224
+    ],
+    "top_k": 3,
+    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e"
+  },
+  "classes": [
+    "paper",
+    "cardboard",
+    "glass",
+    "metal",
+    "plastic",
+    "textile",
+    "organic",
+    "residual"
+  ],
+  "rules": {
+    "min_confidence": 0.5,
+    "fallback_category": "residual",
+    "consecutive_frames": 3
+  },
+  "trigger": {
+    "mode": "on_demand",
+    "sources": [
+      "http"
+    ],
+    "debounce_ms": 800,
+    "merge_pending": true,
+    "max_fps": 5
+  },
+  "capture_store": {
+    "kind": "local",
+    "dir": "/var/lib/edge-waste-sorting/captures",
+    "retain_days": 7
+  },
+  "actuator": {
+    "enabled": false,
+    "min_confidence": 0.5
+  },
+  "mqtt": {
+    "host": "127.0.0.1",
+    "port": 1883,
+    "topic": "waste/{stream_id}/results",
+    "fallback_topic": "waste/{stream_id}/fallback",
+    "qos": 0,
+    "retain": false
+  },
+  "web": {
+    "enabled": true,
+    "bind": "0.0.0.0",
+    "port": 8080,
+    "preview_fps": 5
+  },
+  "vlm": {
+    "enabled": false,
+    "base_url": "http://127.0.0.1:8100",
+    "timeout_ms": 4000,
+    "language": "zh",
+    "apply_fallback_to_gpio": false,
+    "trigger": {
+      "min_confidence": 0.6,
+      "margin": 0.15
+    }
+  }
+}

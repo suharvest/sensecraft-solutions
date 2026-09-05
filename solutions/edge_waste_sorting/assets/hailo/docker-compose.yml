@@ -1,0 +1,74 @@
+# Waste sorting on Raspberry Pi 5 + Hailo-8.
+#
+# Adapted from the A project (edge-inspection-surface,
+# solutions/edge_inspection_surface/assets/hailo/docker-compose.yml), because
+# the upstream repo ~/project/edge-waste-sorting has no platforms/rpi-hailo
+# directory yet — platforms/README.md lists it as pending. Changes from that
+# source: Modbus removed, models/captures volumes and names retargeted.
+#
+# NO HEF EXISTS. The baseline MobileNetV3-Small has not been compiled for
+# Hailo-8 by this project, and the open-vocabulary tower's INT8 quantisation
+# currently fails at `hailo optimize`. This stack will start and then fail to
+# load a model. See devices/hailo_waste.yaml.
+#
+# IMAGE NOT PUBLISHED. Nothing has been pushed to the tag below.
+#
+# The image carries no HailoRT of its own: the HEF is ABI-locked to the host's
+# HailoRT 4.21 (driver, user-space library and python bindings move together),
+# so the host's runtime is mounted read-only rather than pinned inside the
+# image where it could drift away from the driver.
+services:
+  waste:
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev}
+    container_name: edge-waste-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-pi5-hailo}"]
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      PYTHONUNBUFFERED: "1"
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    volumes:
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
+      # Host HailoRT user-space library and python bindings. _pyhailort's .so
+      # only imports under the same Python minor as the host built it for —
+      # Bookworm is 3.11, trixie is 3.13.
+      - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
+      - /usr/lib/python3/dist-packages/hailo_platform:/host-python/hailo_platform:ro
+    # For a USB camera add the individual /dev/videoN nodes here. Never mount
+    # all of /dev.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Raspberry Pi OS ships no MQTT broker, so the stack brings its own.
+  # allow_anonymous is on: local commissioning only. A deployment that leaves
+  # the bench must point at a broker with credentials.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-waste-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

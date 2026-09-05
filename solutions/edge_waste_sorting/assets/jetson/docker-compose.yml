@@ -1,0 +1,80 @@
+# Waste sorting on Jetson Orin.
+#
+# Adapted from the A project (edge-inspection-surface,
+# solutions/edge_inspection_surface/assets/jetson/docker-compose.yml), because
+# the upstream repo ~/project/edge-waste-sorting has no platforms/jetson
+# directory yet — platforms/README.md lists jetson/ and rpi-hailo/ as pending.
+# Changes from that source: Modbus removed (this project has no Modbus; the
+# actuator is a GPIO callback), the models/captures volumes and the container
+# and project names retargeted, and the service renamed.
+#
+# The image carries no CUDA or TensorRT of its own: L4T r36.x userspace is
+# Ubuntu 22.04, so the host's TensorRT/CUDA stack stays authoritative and is
+# mounted read-only. Only the host's `tensorrt` python package is mounted —
+# never the whole dist-packages, because the host's numpy would shadow the
+# image's own pinned one.
+#
+# IMAGE NOT PUBLISHED. Nothing has been pushed to the tag below; it is the
+# intended registry destination only. Until it is pushed, build the image from
+# the upstream repo on the device and either retag it to this name or set
+# WASTE_IMAGE to the local tag.
+services:
+  waste:
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.0-dev}
+    container_name: edge-waste-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-orin-nx}"]
+    restart: unless-stopped
+    runtime: nvidia
+    # host network: the web page and /trigger on 8080 are reachable directly,
+    # and MQTT goes to the local broker.
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Config, engine and captures stay outside the image so the engine can be
+      # rebuilt for this exact GPU architecture + TensorRT version.
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      # Captured images land here. The MQTT payload carries only the reference.
+      - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
+      - /usr/lib/python3.10/dist-packages/tensorrt:/host-python/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    # For a USB camera add the individual /dev/videoN nodes here. Never mount
+    # all of /dev — runc refuses to recreate the /dev/pts inodes.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # JetPack ships no MQTT broker, so the stack brings its own.
+  # allow_anonymous is on: this configuration is for local commissioning only.
+  # A deployment that leaves the bench must point at a broker with credentials.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-waste-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
