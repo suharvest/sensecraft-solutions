@@ -1,0 +1,82 @@
+version: "1.0"
+id: verify_asr
+name: Check the Local Transcript
+name_i18n:
+  zh: 检查本地转写结果
+type: manual
+
+# Why manual rather than one of the richer verify types: the deliverable of
+# this solution is a file on the device's own disk, produced only when a human
+# speaks near the array. There is no stream to preview (no video), no
+# device-hosted dashboard beyond the client's own page, and no MQTT topic to
+# watch. `http_debug` against POST /asr would prove the recognizer runs but not
+# that the microphone path works, which is the part that actually fails on
+# site. So the check is: say a sentence, then look at the file that appeared.
+#
+# Shared by both presets — the file layout is identical on CM4 and RK3576.
+
+steps:
+  - id: speak
+    name: Say one sentence near the array
+    name_i18n: {zh: 对着阵列说一句话}
+    description: >-
+      Stand within about 3 m of the reSpeaker XVF3800 and say a full sentence
+      in the language selected during deployment — for example "How much is
+      this one?". Wait about two seconds of silence afterwards: the local VAD
+      needs 0.7 s of silence to close the utterance before anything is written.
+    description_i18n:
+      zh: >-
+        站在 reSpeaker XVF3800 约 3 m 以内，用部署时选定的语种说一句完整的话，比如"这个多少钱"。
+        说完静默两秒左右：本地 VAD 需要 0.7 s 静音才会结束这一句，然后才会写文件。
+    optional: false
+
+  - id: check_file
+    name: Confirm a transcript file appeared
+    name_i18n: {zh: 确认转写文件已生成}
+    description: >-
+      On the device, list the output directory chosen during deployment:
+      `ls -lt <output-dir>/cache/asr/ | head` — a new .json file should carry
+      the current timestamp. Open it: `cat <output-dir>/cache/asr/<newest>.json`.
+      The `text` field must contain what you said. If voiceprint labelling was
+      enabled, a `speaker` field is present as well. This file is the output of
+      the solution; nothing was sent anywhere to produce it.
+    description_i18n:
+      zh: >-
+        在设备上列出部署时选定的输出目录：`ls -lt <输出目录>/cache/asr/ | head`，应能看到一个
+        带当前时间戳的新 .json 文件。打开它：`cat <输出目录>/cache/asr/<最新文件>.json`。
+        `text` 字段应该是你说的内容；如果开启了声纹标注，还会有一个 `speaker` 字段。
+        这个文件就是本方案的产物——生成它的过程中没有向任何地方发送数据。
+    optional: false
+
+  - id: check_page
+    name: Watch the same result on the local page
+    name_i18n: {zh: 在本地网页上看到同一条结果}
+    description: >-
+      Open `http://<device-ip>:8090/` from a computer on the store LAN. The
+      sentence you just spoke appears in the live transcript view. Speak again
+      and watch it update. This page is served by the device itself and is not
+      reachable from outside the LAN.
+    description_i18n:
+      zh: >-
+        在门店局域网内的电脑上打开 `http://<设备IP>:8090/`，刚才说的那句话会出现在实时转写视图里。
+        再说一句可以看到它更新。这个页面由设备自身提供，局域网之外访问不到。
+    optional: false
+
+  - id: check_offline
+    name: Optional — transcribe a file directly
+    name_i18n: {zh: 可选——直接转写一个文件}
+    description: >-
+      To separate a recognizer problem from a microphone problem, post a WAV
+      file straight to the speech service:
+      `curl -F "file=@sample.wav" http://<device-ip>:8621/asr`. On the RK3576
+      preset the reply must carry `"backend":"rk:sensevoice_rknn"` — anything
+      else means the NPU path did not load. If this returns correct text while
+      the transcript directory stays empty, the fault is in the audio path,
+      not the recognizer.
+    description_i18n:
+      zh: >-
+        要区分是识别问题还是麦克风问题，直接把一个 WAV 文件发给语音服务：
+        `curl -F "file=@sample.wav" http://<设备IP>:8621/asr`。RK3576 套餐的返回必须带
+        `"backend":"rk:sensevoice_rknn"`，否则说明 NPU 路径没加载。如果这一步返回的文字正确、
+        而转写目录仍然是空的，故障就在音频通路上，不在识别器。
+    optional: true

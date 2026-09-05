@@ -1,0 +1,185 @@
+version: "1.0"
+id: retail_voice_local
+name: Retail Voice — Local Transcription
+name_i18n:
+  zh: 零售语音本地转写
+
+intro:
+  summary: Turn in-store speech into text on the device itself — no cloud account, no upload, transcripts written to a folder you own.
+  summary_i18n:
+    zh: 在设备本地把门店对话转成文字——不需要云端账号，不上传，转写结果落在你自己的目录里。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.webp
+  gallery:
+    - type: image
+      src: gallery/cover.webp
+      caption: Local voice capture in a store — microphone array plus a small edge box, nothing else
+      caption_i18n:
+        zh: 门店本地语音采集——一个麦克风阵列加一台小型边缘盒子，没有别的
+    - type: image
+      src: gallery/architecture.png
+      caption: Hardware combination — reSpeaker XVF3800 into the edge device over USB
+      caption_i18n:
+        zh: 硬件组合——reSpeaker XVF3800 通过 USB 接入边缘设备
+    - type: image
+      src: gallery/rerouter.png
+      caption: reRouter CM4 — the CPU preset, Paraformer streaming ASR on four Cortex-A72 cores
+      caption_i18n:
+        zh: reRouter CM4——CPU 套餐，Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上
+    - type: image
+      src: gallery/respeaker.jpg
+      caption: reSpeaker XVF3800 — 4-mic array with AEC, beamforming and noise suppression
+      caption_i18n:
+        zh: reSpeaker XVF3800——4 麦阵列，带回声消除、波束成形和噪声抑制
+  category: voice_ai
+  solution_type: solution
+  tags:
+    - voice
+    - asr
+    - retail
+    - edge-ai
+    - offline
+    - privacy
+    - respeaker
+    - rk3576
+
+  output_interfaces:
+    - type: file
+      endpoint: <output-dir>/cache/asr/<id>.json
+      description: One JSON file per finalized utterance — transcript, timestamps, and the speaker label when voiceprint matching is on. Written on the device; nothing is sent anywhere.
+      schema_type: json
+      payload_example: '{"id":"20260905T101233-0007","text":"这个多少钱","lang":"zh","start_ms":1200,"end_ms":2840,"speaker":"用户1"}'
+      description_i18n:
+        zh: 每句断句后写一个 JSON 文件——转写文本、时间戳，开启声纹匹配时还带说话人标签。文件写在设备本地，不向外发送。
+    - type: file
+      endpoint: <output-dir>/voice/*.wav
+      description: Raw 16 kHz mono WAV segments, kept only when file output is enabled. Disable it if the deployment must not retain audio at all.
+      schema_type: binary
+      description_i18n:
+        zh: 16 kHz 单声道 WAV 原始音频片段，仅在开启文件输出时保留。若部署要求完全不留音频，把它关掉。
+    - type: websocket
+      port: 8621
+      endpoint: /asr/stream?vad=none&punctuate=true&speaker_embedding=true
+      description: OpenVoiceStream streaming ASR. Send 16 kHz mono PCM frames, finalize an utterance with an empty frame. Each result carries the transcript, punctuation, and a 192-dim CAM++ embedding.
+      schema_type: json
+      description_i18n:
+        zh: OpenVoiceStream 流式 ASR。发送 16 kHz 单声道 PCM 帧，用空帧结束一句。每条结果包含转写文本、标点和 192 维 CAM++ 声纹向量。
+    - type: http
+      port: 8621
+      endpoint: /asr
+      method: POST
+      description: Offline transcription of a whole WAV file. Used by the acceptance check in the guide.
+      schema_type: json
+      payload_example: '{"text":"这个多少钱","backend":"rk:sensevoice_rknn"}'
+      description_i18n:
+        zh: 整段 WAV 文件的离线转写接口。指南中的验收步骤用的就是它。
+    - type: http
+      port: 8090
+      endpoint: /
+      description: Local web page of the voice client — live transcript view, microphone status, voiceprint registry. Reachable only on the store LAN.
+      schema_type: html
+      description_i18n:
+        zh: 语音客户端的本地网页——实时转写、麦克风状态、声纹注册库。仅门店局域网内可访问。
+
+  input_requirements:
+    - type: audio
+      required: true
+      description: A reSpeaker XVF3800 on a USB host port, with the talking area within about 3 m and steady background noise at or below 70 dB. The array does AEC, beamforming and noise suppression on its own DSP; the host receives one 16 kHz mono stream.
+      description_i18n:
+        zh: USB 主机口上接一只 reSpeaker XVF3800，说话区域在 3 m 以内，稳态背景噪声不高于 70 dB。回声消除、波束成形和噪声抑制在阵列自带 DSP 上完成，主机拿到的是一路 16 kHz 单声道音频。
+    - type: storage
+      required: true
+      description: A writable directory on the device for transcripts and, optionally, audio. Everything the solution produces stays there — plan retention and deletion yourself.
+      description_i18n:
+        zh: 设备上一个可写目录，用于存放转写结果和（可选的）音频。本方案产生的全部数据都留在这里——保留期和删除策略由你自己制定。
+
+  device_catalog:
+    rerouter_cm4:
+      description: CPU-only edge box (BCM2711, 4 cores, 4 GB RAM). Runs Paraformer streaming ASR on the CPU; no NPU, no TTS.
+      description_i18n:
+        zh: 纯 CPU 边缘盒子（BCM2711，4 核，4GB 内存）。在 CPU 上运行 Paraformer 流式 ASR；没有 NPU，不做语音合成。
+    recomputer_rk3576:
+      description: Runs SenseVoice on the RK3576 NPU, leaving the CPU for punctuation, voiceprint embedding and the capture client.
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行 SenseVoice，把 CPU 留给标点恢复、声纹向量和采集客户端。
+    respeaker_xvf3800:
+      description: 4-mic array with on-DSP AEC, beamforming and noise suppression; enumerates as a USB audio device.
+      description_i18n:
+        zh: 4 麦阵列，DSP 内置回声消除、波束成形和噪声抑制；以 USB 音频设备枚举。
+
+  presets:
+    - id: cm4
+      name: reRouter CM4 (CPU)
+      name_i18n:
+        zh: reRouter CM4（CPU）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Lowest-cost local box. Paraformer streaming ASR on four Cortex-A72 cores, Chinese and English, no NPU needed.
+      description_i18n:
+        zh: 成本最低的本地盒子。Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上，中英文，不需要 NPU。
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          name_i18n:
+            zh: 边缘设备
+          type: single
+          required: true
+          options:
+            - device_ref: rerouter_cm4
+          default: rerouter_cm4
+        - id: microphone
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800
+          default: respeaker_xvf3800
+
+    - id: rk3576
+      name: reComputer RK3576 (NPU)
+      name_i18n:
+        zh: reComputer RK3576（NPU）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: SenseVoice on the 6 TOPS NPU. Faster and more accurate than the CPU preset, with headroom for punctuation and voiceprint on the same board.
+      description_i18n:
+        zh: SenseVoice 跑在 6 TOPS NPU 上。比 CPU 套餐更快更准，同一块板子还有余量跑标点恢复和声纹。
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          name_i18n:
+            zh: 边缘设备
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+        - id: microphone
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800
+          default: respeaker_xvf3800
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 40min
+
+  # No `links:` block. The upstream OpenVoiceStream repository is not public,
+  # and the old cloud console (test-voice-web.seeed.cn) is deliberately absent
+  # from this solution — it is the cloud path, which this package does not use.
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
