@@ -60,3 +60,25 @@ This solution turns complex system operations into **speaking** — say "Stock i
 |-------|----------------|
 | Light use (≤20 users) | Watcher built-in face recognition (stores up to 20 faces) |
 | Heavy use (20+ users) | Use R2000 + Watcher camera (supports more faces) |
+
+## Measured Boundaries
+
+Every number below comes from one load run on **harvest-pi (Raspberry Pi 5, arm64)** on 2026-09-05, image `sensecraft-missionpack.seeed.cn/solution/warehouse:latest` (arm64 manifest), backend commit `94b7e1d`. Data measured on other hardware is not listed here, and these figures are not a throughput guarantee for other devices, larger datasets or a MySQL backend.
+
+| Scenario | Level | Measured | Conditions | Source |
+|----------|-------|----------|------------|--------|
+| Inventory query `GET /api/materials/list` | concurrency 10 | p95 404 ms, p99 2.7 s, 0% errors — stable | RPi5, Mac client over Tailscale (real WAN hop), 60 s at this level, 50 seeded materials, 1 warehouse, SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| Inventory query `GET /api/materials/list` | concurrency 20 | p95 824 ms, p99 5.3 s, 0% errors — degrading (p95 over 500 ms, doubled vs. level 10) | RPi5, Mac client over Tailscale, 60 s at this level, 50 seeded materials, SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| Inventory query `GET /api/materials/list` | concurrency 50 | p95 5.5 s, p99 8.7 s, still 0% errors — latency no longer usable | RPi5, Mac client over Tailscale, 60 s at this level, 50 seeded materials, SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| Stock-in `POST /api/materials/stock-in` | concurrency 1 | p95 106 ms, 0% errors — stable | RPi5, Mac client over Tailscale, 60 s at this level, all requests on the same material, SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| Stock-in `POST /api/materials/stock-in` | concurrency 5 / 10 / 20 / 50 | 77.4% / 100% / 100% / 100% errors, all HTTP 409 (batch number conflict) — failed | RPi5, Mac client over Tailscale, 60 s per level, all requests on the same material, SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| Stock-out `POST /api/materials/stock-out` | concurrency 1 – 20 | Successful requests capped at ~60/min at every level (95–98% HTTP 429), p95 56–738 ms — rate limit, not resource exhaustion | RPi5, Mac client over Tailscale, 60 s per level, single source IP, SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| Stock-out `POST /api/materials/stock-out` | concurrency 50 | p95 8.1 s, p99 10.1 s plus 50 client-side connection exceptions on top of the 429s — device capacity edge | RPi5, Mac client over Tailscale, 60 s at this level, single source IP, SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| Service interruption | ~10 req/s query traffic, 34 s outage | 100% request failure during the outage, nothing queued or replayed; full recovery within ~1 s of the service coming back, no backlog and no dirty data | RPi5, outage simulated by stopping and restarting the container (34 s includes the migration checks on boot), Mac client over Tailscale, SQLite | `runs/2026-09-05-load/raw-harvest-pi/offline_summary.json` |
+| Role and tenant isolation | 4 single-shot probes | All 4 as expected: VIEW key on a write endpoint 403, VIEW key on a read endpoint 200, cross-tenant write 403, cross-tenant read 403 | RPi5, `DEPLOY_MODE=multi_tenant`, 2 tenants, 2 warehouses, view/operate/admin API keys | `runs/2026-09-05-load/results.md` |
+
+## Known Limitations
+
+- **Concurrent stock-in on the same material fails with HTTP 409.** At concurrency 5 the error rate was 77.4%, and at 10 and above it was 100%. Cause: the generated `batch_no` collides with the `(batch_no, warehouse_id)` unique constraint, and the code retries a fixed 5 times regardless of how many requests are in flight (`backend/app.py`, around line 4611). Stock-in has to be serialized per material; it does not queue or degrade linearly.
+- **Stock-out is rate limited to 60 requests per minute per source IP.** The limit (`slowapi`, keyed on the caller's IP) is independent of concurrency, so multiple terminals behind one NAT egress share a single 60/min budget and cut into each other's quota.
+- **The REST layer has no offline queue.** Requests issued while the network or the service is down fail immediately and are never replayed after recovery; the reconnect/backoff logic covers only the MCP voice WebSocket channel, not HTTP inventory calls.

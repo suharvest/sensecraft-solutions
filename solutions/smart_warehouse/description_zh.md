@@ -61,3 +61,25 @@
 |----------|----------|
 | 轻量场景（≤20人） | Watcher 内置人脸识别（最多存储 20 张人脸） |
 | 大规模场景（20人+） | 使用 R2000 + Watcher 摄像头（支持更多人脸） |
+
+## 实测边界
+
+下表数字全部来自 2026-09-05 在 **harvest-pi（Raspberry Pi 5，arm64）** 上的一轮压测，镜像 `sensecraft-missionpack.seeed.cn/solution/warehouse:latest`（arm64 manifest），后端 commit `94b7e1d`。其他硬件上测到的数据不列入此表；这些数字不构成对其他设备、更大数据量或 MySQL 后端的吞吐承诺。
+
+| 场景 | 压力档位 | 实测结果 | 条件 | 来源 |
+|------|----------|----------|------|------|
+| 库存查询 `GET /api/materials/list` | 并发 10 | p95 404 ms，p99 2.7 s，错误率 0% — 稳定 | RPi5，Mac 客户端经 Tailscale（真实 WAN 跳数），该档位 60 s，50 个种子物料，1 个仓库，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 库存查询 `GET /api/materials/list` | 并发 20 | p95 824 ms，p99 5.3 s，错误率 0% — 下降（p95 越过 500 ms，且相对并发 10 翻倍） | RPi5，Mac 客户端经 Tailscale，该档位 60 s，50 个种子物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 库存查询 `GET /api/materials/list` | 并发 50 | p95 5.5 s，p99 8.7 s，错误率仍为 0% — 延迟已不可用 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，50 个种子物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 入库 `POST /api/materials/stock-in` | 并发 1 | p95 106 ms，错误率 0% — 稳定 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，全部请求打同一个物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| 入库 `POST /api/materials/stock-in` | 并发 5 / 10 / 20 / 50 | 错误率 77.4% / 100% / 100% / 100%，全部为 HTTP 409（批次号冲突）— 失败 | RPi5，Mac 客户端经 Tailscale，每档 60 s，全部请求打同一个物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| 出库 `POST /api/materials/stock-out` | 并发 1 – 20 | 各档位成功请求均被压在约 60 次/分钟（95–98% 为 HTTP 429），p95 56–738 ms — 限流生效，非资源耗尽 | RPi5，Mac 客户端经 Tailscale，每档 60 s，单一来源 IP，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| 出库 `POST /api/materials/stock-out` | 并发 50 | p95 8.1 s，p99 10.1 s，并在 429 之外额外出现 50 个客户端连接异常 — 设备容量边界 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，单一来源 IP，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| 服务中断 | 约 10 req/s 查询流量，中断 34 s | 中断期间 100% 请求失败，无排队无补发；服务恢复后约 1 s 内完全恢复，无积压、无脏数据 | RPi5，用停止并重启容器模拟中断（34 s 含启动时的迁移校验），Mac 客户端经 Tailscale，SQLite | `runs/2026-09-05-load/raw-harvest-pi/offline_summary.json` |
+| 角色与租户隔离 | 4 项单次探针 | 4 项全部符合预期：VIEW key 打写接口 403，VIEW key 打读接口 200，跨租户写 403，跨租户读 403 | RPi5，`DEPLOY_MODE=multi_tenant`，2 个租户、2 个仓库，view/operate/admin API key | `runs/2026-09-05-load/results.md` |
+
+## 已知限制
+
+- **并发对同一物料入库会返回 HTTP 409。** 并发 5 时错误率 77.4%，并发 10 及以上为 100%。原因：系统生成的 `batch_no` 撞 `(batch_no, warehouse_id)` 唯一约束后固定重试 5 次，重试预算与并发请求数无关（`backend/app.py` 约 4611 行）。入库必须按物料串行，系统不会排队也不会线性降级。
+- **出库接口按来源 IP 限流 60 次/分钟。** 该限流（`slowapi`，按调用方 IP 计数）与并发数无关，多个终端共享同一个 NAT 出口 IP 时共用这一份 60 次/分钟额度，会互相挤占。
+- **REST 层没有离线队列。** 网络或服务中断期间发出的请求直接失败，恢复后不会补发；重连与退避逻辑只覆盖 MCP 语音 WebSocket 通道，不覆盖 HTTP 库存接口。
