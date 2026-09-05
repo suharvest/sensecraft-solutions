@@ -124,8 +124,14 @@ voice-service 与管理后台。
 1. 说一句带电话号码的话：「我叫张伟，手机号是 13812345678」。
 2. 看最新一条——号码必须显示为 `[[PHONE]]`、姓名显示为 `[[NAME]]`，
    且 `pii_masked_count` 大于 0。
-3. 用 admin 令牌调 `POST /api/v1/privacy/erase` 删掉它，读返回里的残留数，必须是 0。
-4. 在 `sensecraft-voice-service` 仓库根目录跑 `assets/tools/delete_proof.sh`。
+3. 用 admin 令牌调 `POST /api/v1/privacy/erase` 删掉它。返回里必须是
+   `"status": "complete"`、`"residue_count": 0`，且没有 `failed_steps`。
+   级联步骤失败时接口仍返回 HTTP 200——判断这次删除算不算数看的是 `status`。
+   `status: partial` 表示有东西没删掉（MinIO 对象、声纹、或墓碑），
+   此时 `residue_count` 会把它们一并计入，不会是 0。
+4. 把 `assets/tools/delete_proof.sh` 拷进 `sensecraft-voice-service` 仓库再跑
+   （脚本往上找到第一个 `go.mod` 作为仓库根，放 `tools/` 或 `assets/tools/` 都行；
+   也可以显式指定 `REPO_ROOT=`）。
    它自己起 MySQL 与 MinIO（容器名前缀 `c4-proof-`，不碰既有编排），
    造数据、删一个主体、再核三处。通过条件是 `RESIDUE_COUNT=0` 且 `RESIDUE_DB_REPORTED=0`。
 5. 这个脚本证明的是代码路径，不是你现场的数据。两项检查都要做。
@@ -136,8 +142,12 @@ voice-service 与管理后台。
 |-------|----------|
 | 数据库里能看到原始手机号 | 脱敏被关了——检查 `config/voice-service.yaml` 里的 `privacy.redaction_enabled`，然后停下来重查已入库的全部内容 |
 | 有个姓名没被遮蔽 | 金标准集上的 recall 是 0.95；低置信实体是标记而不是遮蔽。先看 `pii_review_count` 再判定是 bug |
-| 残留数不为 0 | MinIO 里有对象没删掉——行没了但音频还在。读 `errors` 字段，按删除失败处理 |
-| 删除成功但声纹还在 | 声纹服务没跑时属预期；级联没有可调用的对象 |
+| 残留数不为 0 | 数据库之外有东西没删掉——MinIO 对象或声纹。读 `failed_steps` 与 `errors`，按删除失败处理 |
+| `status` 是 `partial` | 至少有一个级联步骤失败。`voiceprint_delete` 是声纹服务不可达，`object_delete` 是 MinIO，`tombstone_write` 是删了但没留下凭证。修掉原因后重跑 erase，该接口是幂等的 |
+| 删除成功但声纹还在 | 声纹服务没跑（未开 `voiceprint` profile）时属预期——级联没有可调用的对象，此时响应会给出 `status: partial` 与非零残留，而不是一个干净的 0 |
+| `voiceprint_delete` 报 `connection refused` | `config/voice-service.yaml` 的 `asr.base_url` 必须写 compose 服务名 `http://asr-voiceprint:8080`，不能写 `127.0.0.1`——voice-service 在自己的网络命名空间里，`127.0.0.1` 指的是它自己 |
+| 一口气念出的手机号没被遮蔽 | ASR 把它转写成中文数字词（「幺三八幺二三四五六七八」）而不是阿拉伯数字。`cn_mobile_spoken` 规则覆盖 11 位手机号形态；这样念出的身份证号、座机号仍未覆盖——见方案描述里的「已知限制」 |
+| `delete_proof.sh` 报 `go.mod file not found` | 脚本不在 `sensecraft-voice-service` 检出目录里。拷进去，或用 `REPO_ROOT=/path/to/sensecraft-voice-service` 运行 |
 | `delete_proof.sh` 连不上 Go 模块代理 | 它默认传 `GOPROXY=https://goproxy.cn,direct`；网络有别的要求就覆盖 `GOPROXY` |
 
 ### 部署完成
@@ -153,7 +163,8 @@ voice-service 与管理后台。
 2. `curl -sf http://<栈主机>:8081/healthz` 正常返回。
 3. 不带令牌的请求返回 401；用 viewer 令牌调删除接口返回 403。
 4. 最新一条录音里是占位符，不是原始个人信息。
-5. 删除接口返回的残留数是 0。
+5. 删除接口返回 `status: complete` 且残留数为 0（`partial` 加非零残留
+   表示这次删除没有被证明）。
 
 #### 后续步骤
 
@@ -248,7 +259,7 @@ CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包�
 
 1. 对着阵列说一句带电话号码的话，然后停下——语音段是靠静音结束的。
 2. 看最新一条是不是显示 `[[PHONE]]` 与 `[[NAME]]`，且 `pii_masked_count` 大于 0。
-3. 用 admin 令牌删掉这个会话，确认残留数是 0。
+3. 用 admin 令牌删掉这个会话，确认返回是 `status: complete` 且残留数为 0。
 4. 在 `sensecraft-voice-service` 仓库根目录跑 `assets/tools/delete_proof.sh`，
    读 `RESIDUE_COUNT=0`。
 5. 确认本地音频目录 `/data-iot/respeaker/recordings` 里已经没有被删会话的文件——
@@ -275,7 +286,7 @@ CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包�
 2. `curl -sf http://<采集端>:8621/health` 正常返回。
 3. 在阵列附近说话，几秒内出现一条新记录。
 4. 这条记录里是占位符，不是原始个人信息。
-5. 删除返回残留数 0，且盘上的音频文件已消失。
+5. 删除返回 `status: complete` 且残留数为 0，盘上的音频文件已消失。
 
 #### 后续步骤
 
