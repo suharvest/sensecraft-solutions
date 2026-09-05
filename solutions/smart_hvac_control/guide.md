@@ -1,89 +1,137 @@
-HVAC energy optimization system using KNN prediction model with OPC-UA integration.
+HVAC setpoint optimization with a KNN model over a unified point model, an Eastron SDM630 energy meter, verified write-and-readback control, rollback, and alarms.
 
 ## Preset: Standard Deployment {#default}
 
-Deploy a KNN-based HVAC optimization system that learns from your historical data to suggest optimal settings.
+Deploy the prediction service, register the energy meter, and commission control in observe-first mode. Writes stay off until readback, rollback and alarms have each been exercised on your own plant and the safety limits have been approved by a named engineer.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R1100 | Edge computing device with Docker support |
+| reComputer R1100 (or any Docker host) | Runs the point model, prediction, control path and web console |
+| Eastron SDM630 energy meter | Supplies power and energy points over Modbus TCP or RS-485 |
+| HVAC controller (OPC UA, Modbus or BACnet/IP) | The plant being read and written; the built-in simulator covers a dry run |
 
 **What you'll get:**
-- AI-powered temperature recommendations based on historical patterns
-- OPC-UA integration for industrial HVAC systems
-- Web dashboard for monitoring and control
+- Setpoint recommendations learned from this building's own historical data
+- Meter and HVAC points in one table, with the SDM630 register map as a built-in template
+- Writes that only count as applied after a field readback matches within tolerance
+- Rollback on five triggers, and alarms identified by cause rather than by event
 
-**Requirements:** Docker installed · OPC-UA controller (or use built-in simulator)
+**Important.** This is not a safety-certified control system. The plant's own interlocks and safety controls stay in charge. Every write is bounded by limits that ship as **placeholders** — 18–30 °C, 1 °C per 5 minutes, and an off/fan/cool/heat/auto mode whitelist — and the runtime reports the baseline as unapproved until a named site engineer signs it off. **No energy-saving figure is claimed anywhere in this package**: no baseline comparison, weather or occupancy normalisation, or defined measurement period exists yet.
 
-## Step 1: HVAC Control System {#hvac type=docker_deploy required=true config=devices/deploy.yaml}
+**Requirements:** Docker Engine 20.10+ · about 1 GB free disk · host ports 8280 and 4841 free · at least one week of historical operation data as CSV or Excel
 
-Deploy a smart temperature optimization service that learns from your building data.
+## Step 1: Deploy the HVAC Control Service {#hvac type=docker_deploy required=true config=devices/deploy.yaml}
+
+Deploy the prediction and control service and enter the meter, control-mode, safety and alarm settings.
+
+### Prerequisites
+
+Docker running on the target, the meter's transport and unit id to hand, and the OPC UA endpoint of the HVAC controller — or the default address, which reaches the built-in simulator.
+
+Leave **Control Mode** at *observe*. Leave **Safety Baseline Approved By** blank until an engineer has actually approved the limits; a blank field is what keeps the baseline reporting as unapproved.
 
 ### Target {#hvac_local type=local config=devices/deploy.yaml default=true}
 
-Click the "Deploy" button below to automatically start the HVAC control service on this machine.
+Deploy on the machine running SenseCraft Solution. Use this for a dry run against the built-in simulator, or when the plant network is reachable from this machine.
 
 ### Wiring
 
-![Wiring](gallery/architecture.svg)
+Real captures of the wiring and the running console are not available yet — see `gallery/ATTRIBUTION.md`. Wire it as follows:
 
-1. Ensure Docker is installed and running
-2. Click deploy to start the container
-3. Access the web interface at localhost:8280
+1. Put this machine on the same network as the HVAC controller and the meter or its Modbus TCP gateway.
+2. Modbus RTU is not available on this target: the standard Docker profile attaches no host serial device. Use Modbus TCP here, or the remote target with the serial-device profile.
+3. Keep ports 8280 and 4841 free, or free them before deploying.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Docker not running | Start Docker Desktop application |
-| Port 8280 in use | Close the program using that port, or modify config to use another port |
-| Container stops after starting | Run `docker logs missionpack_knn` to check error logs |
-| Web page not loading | Wait 30 seconds for the service to fully start |
+| Docker not running | Start Docker Desktop or Docker Engine, then retry |
+| Port 8280 in use | Free the port or change the host port mapping in the compose file |
+| Container exits after starting | `docker logs missionpack_knn` — the last lines carry the startup failure |
+| Web page not loading | Wait for the health check at `/api/v1/health`; startup allows 30 s |
+| Meter points read but the values are nonsense | Byte or word order mismatch, not a wiring fault — see Step 3 |
 
 ### Target {#hvac_remote type=remote config=devices/deploy.yaml}
 
-Click the "Deploy" button below to automatically deploy the HVAC control service to the remote device.
+Deploy over SSH to a reComputer R1100 or another Linux device on the plant network. Use this when the meter is on RS-485 or when the controller network is not reachable from your workstation.
 
 ### Wiring
 
-![Wiring](gallery/recomputer.svg)
+Real captures of the device and its connections are not available yet — see `gallery/ATTRIBUTION.md`. Wire it as follows:
 
-1. Connect to remote device via SSH
-2. Deploy Docker container remotely
-3. Access the web interface at device IP:8280
+1. Connect the device's Ethernet interface to the controller network and record its IP address.
+2. For Modbus RTU, attach the USB-to-RS-485 adapter, note the device path (typically `/dev/ttyUSB0`), and use the serial-device deployment profile — the standard profile does not pass a host serial device into the container.
+3. Match the RS-485 baud rate, parity and unit id to what the meter is configured for; a mismatch reads as a timeout, not as an error message.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| SSH connection failed | Check IP address and credentials |
-| Remote device has no Docker | Install Docker on the remote device first |
-| Deployment timeout | Check remote device network, ensure it can access image registry |
-| Web page not loading | Check if firewall allows port 8280 |
+| SSH connection failed | Check the device IP, username, credentials and that sshd is running |
+| Remote device has no Docker | Install Docker Engine on the device first |
+| Deployment timeout | Check that the device can reach the image registry |
+| Web page not loading | Open port 8280 through the device firewall |
+| `/dev/ttyUSB0` missing in the container | The standard profile does not attach serial devices; redeploy with the serial-device profile |
 
-## Step 2: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 2: Open the Control Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
-The HVAC control dashboard is now live. Click below to open it in your browser.
+Open the console, create the first administrator, and check that the sources from Step 1 are online.
+
+### Prerequisites
+
+The container from Step 1 must be healthy.
 
 ### Troubleshooting
+
 | Issue | Solution |
 |-------|----------|
-| Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
-| Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
+| Page not loading | Confirm Step 1 finished and the health check passes |
+| Wrong host/port | Update the URL with the device IP if you deployed remotely |
+| A source shows offline | Check reachability, the unit id, and — for RS-485 — the baud rate and wiring polarity |
+
+## Step 3: Commission the Meter, Control Path and Alarms {#commissioning type=manual required=true verify=true config=devices/commissioning.yaml}
+
+Register the meter, run predictions in observe mode, exercise the failure paths on purpose, and only then enable writes. This is the step that decides whether the deployment is trustworthy; do not shorten it.
+
+### Prerequisites
+
+An administrator session from Step 2, physical access to the meter's display, and someone who operates this plant available to judge whether the recommendations make sense.
+
+**Image tag first.** `docker inspect -f '{{.Config.Image}}' missionpack_knn`. The published tag `missionpack-knn:v1.6.5` **does not** carry the SDM630 template, the rollback coordinator or the alarm envelope. The image that does has not been built or pushed, and its immutable tag is **to be assigned**. On v1.6.5, the observe-mode substeps still apply; the meter, rollback and alarm substeps cannot be completed.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Meter template import rejected | The template renders a strict CSV bounded at 256 rows; a customised template that exceeds it is refused by the same parser |
+| Voltage and frequency look plausible but wrong | Float word order. Switch it in the deployment form and re-read before changing anything else |
+| Imported energy jumps backwards | Word order again, or two sources polling the same meter with different unit ids |
+| A write is acknowledged but the readback never verifies | Check the point's quality first — a readback whose quality is not good never verifies, regardless of value |
+| A rollback itself fails | This raises a critical compensation-failed alarm. The plant is in an unknown state; restore it by hand and do not re-enable writes until the cause is understood |
+| The same fault opens a new alarm each time | Alarms are keyed by cause; if you see duplicates, the cause fields differ — compare the source and point ids |
+
 ### Deployment Complete
 
-HVAC control system is ready!
+**Reminder.** Not a safety-certified control system. Known weaknesses: the rollback coordinator and the alarm envelope are not yet wired into the prediction cycle upstream, so verify both on your own plant; the meter's byte and word order is a vendor default, not a measured fact; and no energy-saving figure has been measured.
 
-#### Access
+#### Quick verification
 
-http://\<server-ip\>:8280
+1. `docker inspect -f '{{.Config.Image}}' missionpack_knn` returns the tag you intend to run.
+2. All ten SDM630 points read, and voltage, frequency and imported energy agree with the meter's own display.
+3. Imported active energy only increases, and survives a restart of the source.
+4. A full occupancy cycle of predictions has run in observe mode and the recommendations have been reviewed by whoever operates the plant.
+5. The safety limits carry an approver's name; the baseline no longer reports as unapproved.
+6. One write inside the limits produced a command receipt, a delayed readback within tolerance, and a point quality of good.
+7. Source-offline, readback-mismatch and stale-sample faults each produced the expected alarm, and the first two each produced a rollback: BACnet released with Null at the original priority, Modbus restored in reverse order.
+8. `northbound.spool.queued` in `GET /system/runtime-metrics` is 0 with `dropped` unchanged, if northbound publishing is enabled.
 
-#### Next Steps
+#### Evidence to export
 
-1. Connect to OPC-UA server (or use built-in simulator)
-2. Upload training data
-3. Configure parameters
+For the handover record: the image tag; the meter template id and confirmed word order; the approved safety limits and the approver's name; the command audit trail for the verified write; the rollback journal entries from the fault injection; the alarm history with its acknowledgements. Container logs rotate at 10 MB with 4 backups (`docker logs missionpack_knn`), so copy anything you need before it ages away.
 
-#### Useful Commands
+#### Next steps
 
-`docker logs missionpack_knn` to view logs
+1. Enable writes on one zone only, and watch it for a full cycle before widening.
+2. Alert on the critical compensation-failed alarm; it is the only one that means the plant is in an unknown state.
+3. Re-approve the safety limits whenever the plant is rebalanced — a commissioned limit that no longer matches the plant is worse than a placeholder, because it looks approved.
