@@ -97,9 +97,12 @@ voice-service 与管理后台。
 
 1. 第一个账号用 admin API 令牌创建：
    `curl -X POST -H "X-API-Token: <admin 令牌>" -H "Content-Type: application/json" -d '{"username":"ops","password":"<口令>"}' http://<栈主机>:8081/api/v1/users/register`。
-2. 这个账号建出来是 **viewer**——能读，不能删除或导出，而且没有改角色的接口。
-   要给它 admin，直接改 `users` 表的 `role` 列：
-   `docker exec -i c4-mysql mysql -uroot -p<MySQL 口令> voice -e "UPDATE users SET role='admin' WHERE username='ops';"`，然后重新登录拿带新角色的令牌。
+2. 这个账号建出来是 **viewer**——能读，不能删除或导出。用改角色接口把它提到
+   admin（调用本身也要 admin 凭据）：
+   `curl -X PATCH -H "X-API-Token: <admin 令牌>" -H "Content-Type: application/json" -d '{"role":"admin"}' http://<栈主机>:8081/api/v1/users/<id>/role`。
+   `<id>` 用同一个 admin 令牌调 `GET /api/v1/users?username=ops` 查，然后重新
+   登录拿带新角色的令牌。服务本身不允许把最后一个 admin 降级（返回
+   409），所以这条路径不会把账号锁在角色接口外面。
 3. 后台展示的全部是脱敏之后的内容。任何地方都看不到原文，因为它从来没被存过。
 
 ### 故障排查
@@ -222,7 +225,9 @@ CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包�
 
 1. 用 admin API 令牌创建第一个账号，做法与另一个套餐完全一样：
    `curl -X POST -H "X-API-Token: <admin 令牌>" -H "Content-Type: application/json" -d '{"username":"ops","password":"<口令>"}' http://<采集端>:8081/api/v1/users/register`。
-2. 需要它能删除或导出就去 `users` 表里提权——新账号是 viewer，且没有改角色的接口。
+2. 需要它能删除或导出就用改角色接口提权（要 admin 令牌）：
+   `curl -X PATCH -H "X-API-Token: <admin 令牌>" -H "Content-Type: application/json" -d '{"role":"admin"}' http://<采集端>:8081/api/v1/users/<id>/role`。
+   新账号默认是 viewer。
 3. 「录音」页显示的是脱敏后的文本。采集端注册的设备会出现在「设备」里，按 MAC 标识。
 
 ### 故障排查
