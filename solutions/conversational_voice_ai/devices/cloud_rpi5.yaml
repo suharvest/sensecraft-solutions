@@ -1,0 +1,158 @@
+version: "1.0"
+id: cloud_rpi5
+name: Raspberry Pi 5 with Cloud LLM
+name_i18n: {zh: 树莓派 5 + 云端对话}
+type: docker_deploy
+device_class: raspberry_pi
+deploy_timeout: 2400
+docker:
+  compose_file: assets/docker/docker-compose.rpi5.yml
+  options: {project_name: conversational_voice_ai}
+  environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: rpi5
+    LLM_BACKEND: openai_compat
+    LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+    LLM_API_KEY: "{{LLM_API_KEY}}"
+    LLM_MODEL: qwen3.5-flash
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    DEFAULT_MODE: chat
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+  services:
+    - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
+ssh: {port: 22, default_user: pi}
+user_inputs:
+  - id: LANGUAGE
+    name: Conversation language
+    name_i18n: {zh: 对话语言}
+    type: select
+    default: en
+    required: true
+    reconfigurable: true
+    description: >-
+      Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. Raspberry Pi 5 serves English only: there is no Qwen3-ASR backend for this board, and Whisper is not an acceptable Chinese substitute - its Chinese CER here is 50.30% short / 57.74% long on CPU. Chinese is refused rather than transcribed badly. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+    description_i18n:
+      zh: >-
+        识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。树莓派 5 仅支持英文：该板没有 Qwen3-ASR 后端，Whisper 也不能替代中文——其在该板的中文 CER 为短句 50.30%、长句 57.74%，因此中文直接拒绝而不是勉强识别。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+    options:
+      - {value: en, label: English, label_i18n: {zh: 英语}}
+  - id: PIPELINE_MODE
+    name: Conversation mode
+    name_i18n: {zh: 对话方式}
+    type: select
+    default: always_on
+    required: false
+    reconfigurable: true
+    options:
+      - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+      - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+  - id: WAKEWORD_PHRASE
+    name: Wake word
+    name_i18n: {zh: 唤醒词}
+    type: text
+    default: 你好小智
+    required: false
+    reconfigurable: true
+    description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+    description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+  - id: WAKEWORD_THRESHOLD
+    name: Wake-word sensitivity
+    name_i18n: {zh: 唤醒灵敏度}
+    type: select
+    default: "0.25"
+    required: false
+    reconfigurable: true
+    description: Lower threshold is more sensitive and may increase false triggers.
+    description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+    options:
+      - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+      - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+      - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
+pre_checks:
+  - {type: disk_space, min_gb: 10, description: At least 10GB for images and model artifacts}
+remote_overrides:
+  remote_path: /home/{{username}}/conversational_voice_ai
+  compose_dir: assets/docker
+  detection: {method: network_scan, manual_entry: true}
+  environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: rpi5
+    LLM_BACKEND: openai_compat
+    LLM_BASE_URL: "{{LLM_BASE_URL}}"
+    LLM_API_KEY: "{{LLM_API_KEY}}"
+    LLM_MODEL: "{{LLM_MODEL}}"
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    DEFAULT_MODE: chat
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+  user_inputs:
+    - id: LANGUAGE
+      name: Conversation language
+      name_i18n: {zh: 对话语言}
+      type: select
+      default: en
+      required: true
+      reconfigurable: true
+      description: >-
+        Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. Raspberry Pi 5 serves English only: there is no Qwen3-ASR backend for this board, and Whisper is not an acceptable Chinese substitute - its Chinese CER here is 50.30% short / 57.74% long on CPU. Chinese is refused rather than transcribed badly. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+      description_i18n:
+        zh: >-
+          识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。树莓派 5 仅支持英文：该板没有 Qwen3-ASR 后端，Whisper 也不能替代中文——其在该板的中文 CER 为短句 50.30%、长句 57.74%，因此中文直接拒绝而不是勉强识别。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+      options:
+          - {value: en, label: English, label_i18n: {zh: 英语}}
+    - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
+    - {id: username, name: SSH Username, type: text, default: cat, required: true, name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+    - id: PIPELINE_MODE
+      name: Conversation mode
+      name_i18n: {zh: 对话方式}
+      type: select
+      default: always_on
+      required: false
+      reconfigurable: true
+      options:
+        - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+        - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+    - id: WAKEWORD_PHRASE
+      name: Wake word
+      name_i18n: {zh: 唤醒词}
+      type: text
+      default: 你好小智
+      required: false
+      reconfigurable: true
+      description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+      description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+    - id: WAKEWORD_THRESHOLD
+      name: Wake-word sensitivity
+      name_i18n: {zh: 唤醒灵敏度}
+      type: select
+      default: "0.25"
+      required: false
+      reconfigurable: true
+      description: Lower threshold is more sensitive and may increase false triggers.
+      description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+      options:
+        - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+        - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+        - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
+    - {id: LLM_BASE_URL, name: OpenAI-compatible Base URL, type: text, default: "https://dashscope.aliyuncs.com/compatible-mode/v1", required: true, reconfigurable: true, name_i18n: {zh: OpenAI 兼容接口地址}}
+    - {id: LLM_API_KEY, name: API Key, type: password, required: true, reconfigurable: true, name_i18n: {zh: API Key}}
+    - {id: LLM_MODEL, name: Model ID, type: text, default: qwen3.5-flash, required: true, reconfigurable: true, name_i18n: {zh: 模型 ID}}
+    - id: SYSTEM_PROMPT
+      name: Assistant personality
+      name_i18n: {zh: 助手人设与回答风格}
+      type: text
+      required: true
+      reconfigurable: true
+      default: >-
+        You are a natural, witty voice assistant. Reply in the user's language. Keep responses conversational and brief—usually one or two sentences. Add light humor and personality when appropriate, but never at the expense of accuracy. Avoid rambling, repetition, lectures, Markdown, headings, and lists. If details are missing, ask one short question. For spoken Chinese, write numbers, dates, times, money, and units as natural spoken Chinese.
+      default_i18n:
+        zh: >-
+          你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
+      description: Editable system prompt applied to every conversation.
+      description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}

@@ -110,6 +110,31 @@ After warmup, complete two turns and speak during playback to verify interruptio
 | CUDA initialization fails | Check JetPack 6.2, TensorRT 10.3, and the NVIDIA container runtime |
 | Orin Nano runs out of memory | Use `jetson-qwen3asr-matcha`; do not start a local 4B model on Nano |
 
+### Target {#cloud_rpi5 type=remote device=rpi5 device_name="Raspberry Pi 5" config=devices/cloud_rpi5.yaml}
+
+Run the CPU speech stack on a Raspberry Pi 5 and connect to a cloud or LAN model. **English only** — this board has no Qwen3-ASR backend, and Whisper's Chinese error rate on it (50.30% short / 57.74% long CER) makes Chinese a refusal rather than a degraded option.
+
+### Wiring
+
+1. Connect the AEC microphone and speaker
+2. Fill in the SSH details and the model endpoint settings
+3. Leave the conversation language on English; any other value stops the deployment before services start
+
+The reSpeaker may be connected before deployment or hot-plugged after the
+Agent starts.
+
+### Deployment Complete
+
+Ask a question in English. Within one second of playback starting, speak again; the current answer should stop immediately.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Deployment stops with "not supported" | The language you picked is not served on this board; select English |
+| Replies are slow | CPU-only ASR and TTS share four cores; close other workloads or move to an NPU board |
+| Audio does not recover after hot-plug | Confirm Compose has the dynamic `/dev/snd` mount plus the `116:*` cgroup rule |
+
 ## Step 2: Verify Conversation and Barge-in {#verify_cloud type=web_dashboard required=true config=devices/dashboard_cloud.yaml}
 
 Watch the listening, thinking, speaking, and barged-in states.
@@ -124,6 +149,22 @@ Three normal turns plus an immediate stop when you say “wait” during playbac
 |-------|----------|
 | State changes but there is no sound | Check the default playback device; avoid a PortAudio device with zero output channels |
 | Room noise triggers interruptions | Verify the AEC channel first, then raise the client VAD threshold slightly; do not mute capture |
+
+## Step 3: Verify the Selected Language {#voice_chat_cloud type=web_dashboard required=true config=devices/voice_chat_cloud.yaml}
+
+Confirm that the language chosen at deploy time is the language recognized and spoken back.
+
+### Deployment Complete
+
+Two or three turns transcribed in the selected language, answered aloud in the same language, pass this check.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Replies come back in the wrong language | Check the assistant personality prompt; it instructs the model to reply in the user's language |
+| Deployment never started | An unsupported (language, device) pair stops before any service starts; pick a language this board serves |
+| Transcript language is right but audio is wrong | The speech profile resolved for this pair is marked untested; report the language and board rather than tuning it in place |
 
 ## Preset: Fully Local Conversation {#local_llm}
 
@@ -220,3 +261,19 @@ The application is now continuously monitoring the microphone. Final acceptance 
 |-------|----------|
 | First offline start fails | Complete one online startup so every image and model artifact is cached |
 | Replies are too long | Keep the voice prompt to one or two spoken sentences so synthesis stays responsive |
+
+## Step 3: Verify the Selected Language Locally {#voice_chat_local type=web_dashboard required=true config=devices/voice_chat_local.yaml}
+
+Confirm that the language chosen at deploy time is the language recognized and spoken back.
+
+### Deployment Complete
+
+Two or three turns transcribed in the selected language, answered aloud in the same language, pass this check.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Replies come back in the wrong language | Check the assistant personality prompt; it instructs the model to reply in the user's language |
+| Deployment never started | An unsupported (language, device) pair stops before any service starts; pick a language this board serves |
+| Transcript language is right but audio is wrong | The speech profile resolved for this pair is marked untested; report the language and board rather than tuning it in place |

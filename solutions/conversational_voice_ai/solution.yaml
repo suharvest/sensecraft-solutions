@@ -5,16 +5,16 @@ name_i18n:
   zh: 可打断对话式语音 AI
 
 intro:
-  summary: Plug in an AEC microphone array and build a hands-free voice application with Qwen3-ASR, Matcha-TTS, real barge-in, and either a cloud or local LLM across RK3576, RK3588, Jetson Orin Nano, and Orin NX.
+  summary: Plug in an AEC microphone array and build a hands-free voice application with Qwen3-ASR, Matcha-TTS, real barge-in, and either a cloud or local LLM across RK3576, RK3588, Jetson Orin Nano, Orin NX, and Raspberry Pi 5. Pick the conversation language at deploy time and the speech models are selected for you.
   summary_i18n:
-    zh: 插上支持 AEC 的麦克风阵列，即可在 RK3576、RK3588、Jetson Orin Nano 或 Orin NX 上运行支持实时打断的语音应用；语音使用 Qwen3-ASR + Matcha-TTS，对话模型可接云端，也可全本地运行。
+    zh: 插上支持 AEC 的麦克风阵列，即可在 RK3576、RK3588、Jetson Orin Nano、Orin NX 或树莓派 5 上运行支持实时打断的语音应用；语音使用 Qwen3-ASR + Matcha-TTS，对话模型可接云端，也可全本地运行。部署时选择对话语言，语音模型自动匹配。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/hero.png
   category: voice_ai
   solution_type: solution
-  tags: [voice-ai, barge-in, aec, qwen3-asr, matcha-tts, rk3576, rk3588, jetson, orin, rk1828, local-llm]
+  tags: [voice-ai, barge-in, aec, qwen3-asr, matcha-tts, rk3576, rk3588, jetson, orin, rk1828, local-llm, raspberry-pi-5, multilingual]
 
   input_requirements:
     - type: audio
@@ -56,6 +56,10 @@ intro:
       purchase:
         require:
           module: [orin_nx_16]
+    external_raspberry_pi_5:
+      description: Runs the CPU speech stack on a Raspberry Pi 5. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it.
+      description_i18n:
+        zh: 在树莓派 5 上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。
     respeaker_xvf3800:
       description: USB microphone array with hardware echo cancellation, noise suppression, and beamforming.
       description_i18n:
@@ -79,6 +83,7 @@ intro:
             - {device_ref: recomputer_rk3588}
             - {device_ref: recomputer_j30}
             - {device_ref: recomputer_j40}
+            - {device_ref: external_raspberry_pi_5}
           default: recomputer_rk3576
         - id: cloud_mic
           name: AEC Microphone

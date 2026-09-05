@@ -9,6 +9,8 @@ docker:
   compose_file: assets/docker/docker-compose.orin-nx-local.yml
   options: {project_name: conversational_voice_ai}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: orin_nx_v091
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
@@ -19,6 +21,49 @@ docker:
     - {name: llm, port: 8000, health_check_endpoint: /health, required: true}
 ssh: {port: 22, default_user: recomputer}
 user_inputs:
+  - id: LANGUAGE
+    name: Conversation language
+    name_i18n: {zh: 对话语言}
+    type: select
+    default: zh
+    required: true
+    reconfigurable: true
+    description: >-
+      Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+    description_i18n:
+      zh: >-
+        识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+    options:
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英语}}
+      - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+      - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+      - {value: de, label: German, label_i18n: {zh: 德语}}
+      - {value: fr, label: French, label_i18n: {zh: 法语}}
+      - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+      - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+      - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+      - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+      - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+      - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+      - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+      - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+      - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+      - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+      - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+      - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+      - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+      - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+      - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+      - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+      - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+      - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+      - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+      - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+      - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+      - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+      - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+      - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
   - id: PIPELINE_MODE
     name: Conversation mode
     name_i18n: {zh: 对话方式}
@@ -58,12 +103,57 @@ remote_overrides:
   compose_dir: assets/docker
   detection: {method: network_scan, manual_entry: true}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: orin_nx_v091
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
     WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
   user_inputs:
+    - id: LANGUAGE
+      name: Conversation language
+      name_i18n: {zh: 对话语言}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: >-
+        Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+      description_i18n:
+        zh: >-
+          识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英语}}
+        - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+        - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+        - {value: de, label: German, label_i18n: {zh: 德语}}
+        - {value: fr, label: French, label_i18n: {zh: 法语}}
+        - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+        - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+        - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+        - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+        - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+        - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+        - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+        - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+        - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+        - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+        - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+        - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+        - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+        - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+        - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+        - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+        - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+        - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+        - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+        - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+        - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+        - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+        - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+        - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
     - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
     - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
