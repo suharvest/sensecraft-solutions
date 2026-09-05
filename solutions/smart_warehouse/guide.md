@@ -102,6 +102,9 @@ Try these voice commands — the conversation itself is your verification that t
 | Watcher not responding | Confirm the Agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the SenseCraft page to see latest data |
 | Cannot see records | Confirm your Watcher is bound to your SenseCraft account |
+| Stock-in returns 409 under load | Cause: concurrent stock-in on the same material exhausts the fixed 5-attempt retry budget for generating a unique batch number (`backend/app.py`, around line 4611). Workaround: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-out returns 429 | Cause: `slowapi` limits `/api/materials/stock-out` to 60 requests per minute counted per source IP, independent of concurrency. Workaround: keep sustained stock-out below 1 request/s per exit IP; terminals behind one NAT share a single 60/min budget, so give busy sites separate egress IPs or stagger their requests |
+| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. Workaround: retry from the client and keep unsent operations locally. A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
 ### Deployment Complete
 
@@ -212,6 +215,8 @@ Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Invento
 
 Deploy the inventory management service with voice control and web dashboard.
 
+**Capacity planning (measured on a Raspberry Pi 5, 50 materials, SQLite, 60 s per concurrency level, client over Tailscale)**: inventory queries stayed under 500 ms p95 up to 10 concurrent clients (p95 404 ms), reached 824 ms p95 at 20, and 5.5 s p95 at 50 with no errors. On this class of hardware plan for up to 10 concurrent query clients per box, serialize stock-in per material, and budget 60 stock-out operations per minute per exit IP. Anything beyond that — more concurrent clients, larger datasets, the MySQL backend — has not been measured and needs its own run. To re-check on your own hardware, run one level from the `warehouse_system` repo: `uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`.
+
 ### Target {#warehouse_local type=local config=devices/warehouse_deploy.yaml}
 
 Run the warehouse system on this computer.
@@ -311,6 +316,9 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
+| Stock-in returns 409 under load | Cause: concurrent stock-in on the same material exhausts the fixed 5-attempt retry budget for generating a unique batch number (`backend/app.py`, around line 4611). Workaround: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-out returns 429 | Cause: `slowapi` limits `/api/materials/stock-out` to 60 requests per minute counted per source IP, independent of concurrency. Workaround: keep sustained stock-out below 1 request/s per exit IP; terminals behind one NAT share a single 60/min budget, so give busy sites separate egress IPs or stagger their requests |
+| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. Workaround: retry from the client and keep unsent operations locally. A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
 ---
 
@@ -567,6 +575,9 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
+| Stock-in returns 409 under load | Cause: concurrent stock-in on the same material exhausts the fixed 5-attempt retry budget for generating a unique batch number (`backend/app.py`, around line 4611). Workaround: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-out returns 429 | Cause: `slowapi` limits `/api/materials/stock-out` to 60 requests per minute counted per source IP, independent of concurrency. Workaround: keep sustained stock-out below 1 request/s per exit IP; terminals behind one NAT share a single 60/min budget, so give busy sites separate egress IPs or stagger their requests |
+| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. Workaround: retry from the client and keep unsent operations locally. A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
 ## Step 8: Test Face Recognition {#face_test_2a type=manual required=false}
 
@@ -935,6 +946,9 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
+| Stock-in returns 409 under load | Cause: concurrent stock-in on the same material exhausts the fixed 5-attempt retry budget for generating a unique batch number (`backend/app.py`, around line 4611). Workaround: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-out returns 429 | Cause: `slowapi` limits `/api/materials/stock-out` to 60 requests per minute counted per source IP, independent of concurrency. Workaround: keep sustained stock-out below 1 request/s per exit IP; terminals behind one NAT share a single 60/min budget, so give busy sites separate egress IPs or stagger their requests |
+| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. Workaround: retry from the client and keep unsent operations locally. A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
 ## Step 10: Open Dashboard {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
@@ -1269,6 +1283,9 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
+| Stock-in returns 409 under load | Cause: concurrent stock-in on the same material exhausts the fixed 5-attempt retry budget for generating a unique batch number (`backend/app.py`, around line 4611). Workaround: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-out returns 429 | Cause: `slowapi` limits `/api/materials/stock-out` to 60 requests per minute counted per source IP, independent of concurrency. Workaround: keep sustained stock-out below 1 request/s per exit IP; terminals behind one NAT share a single 60/min budget, so give busy sites separate egress IPs or stagger their requests |
+| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. Workaround: retry from the client and keep unsent operations locally. A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
 ## Step 10: Open Dashboard {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
 
