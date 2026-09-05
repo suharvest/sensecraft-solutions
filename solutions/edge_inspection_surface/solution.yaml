@@ -1,0 +1,242 @@
+# INTERNAL VALIDATION ONLY — NOT FOR PUBLIC DEMO UNTIL THE LICENCE IS CLEARED.
+# The model is trained on a re-hosted copy of NEU-DET: the Roboflow page states
+# CC BY 4.0, but no formal licence statement has been found for the original
+# NEU-DET release. Until an explicit answer arrives or the dataset is replaced,
+# nothing derived from it — weights, ONNX, HEF, evaluation screenshots, overlay
+# images — may be used for public demos, customer-site demos or commercial
+# material. See gallery/ATTRIBUTION.md.
+version: "1.0"
+id: edge_inspection_surface
+name: Surface Defect Inspection
+name_i18n:
+  zh: 表面缺陷质检
+
+intro:
+  summary: >-
+    Internal validation build (dataset licence unconfirmed — no public demos).
+    Detect six classes of steel surface defect on the edge and hand the OK/NG
+    verdict to the line over Modbus TCP and MQTT.
+  summary_i18n:
+    zh: >-
+      内部验证用，许可确认前不得公开演示。在边缘侧识别六类钢材表面缺陷，
+      并通过 Modbus TCP 与 MQTT 把 OK/NG 判定交给产线。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/overlay-pitted-surface.jpg
+  gallery:
+    - type: image
+      src: gallery/overlay-pitted-surface.jpg
+      caption: Detector output on a pitted-surface sample from the held-out validation split — internal validation asset, not for public use
+      caption_i18n:
+        zh: 留出验证集里一张 pitted_surface 图上的检测输出——内部验证素材，不得对外使用
+    - type: image
+      src: gallery/overlay-inclusion.jpg
+      caption: Detector output on an inclusion sample — internal validation asset, not for public use
+      caption_i18n:
+        zh: 一张 inclusion 图上的检测输出——内部验证素材，不得对外使用
+  category: sensing
+  solution_type: solution
+  tags:
+    - surface-inspection
+    - defect-detection
+    - modbus
+    - mqtt
+    - yolox
+    - industrial
+
+  output_interfaces:
+    - type: modbus
+      port: 502
+      endpoint: unit 1, coils 0-1 and holding registers 0-7
+      description: >-
+        Modbus TCP server. Coil 0 = NG, coil 1 = OK, always mutually exclusive.
+        HR 0 primary defect class id, HR 1 defect count, HR 2-5 the primary box
+        as cx/cy/w/h normalised x10000, HR 6-7 the heartbeat Unix seconds as the
+        high and low word of a uint32. Registers are updated atomically before
+        the coil is written, so a PLC that latches on the coil already sees the
+        matching frame's data.
+      schema_type: binary
+      description_i18n:
+        zh: >-
+          Modbus TCP 服务端。线圈 0 = NG，线圈 1 = OK，二者始终互斥。
+          HR 0 主缺陷类别 ID，HR 1 缺陷数，HR 2-5 主缺陷框的 cx/cy/w/h 归一化后 x10000，
+          HR 6-7 心跳 Unix 秒的 uint32 高字与低字。
+          每次判定先原子更新寄存器再写线圈，PLC 锁线圈时读到的就是同一帧的数据。
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/inspection/<stream-id>/results
+      description: >-
+        One JSON message per frame, carrying the verdict and every detection in
+        that frame in one payload rather than one message per box. Boxes are
+        normalised [cx, cy, w, h]; `slot` is a within-frame index ordered by
+        score, not a track id. Every message is validated against the contract
+        schema before it is published; a message that fails is counted and
+        dropped rather than sent.
+      schema_type: json
+      payload_example: '{"type":"surface_inspection_result","version":"1.0.0","device":"orin-nx","stream_id":"line1-cam1","frame_id":10423,"verdict":"NG","verdict_reason":"2 defect(s) >= min_defects=1","defect_count":2,"primary_class_id":1,"coordinate_space":"normalized_center_wh","inference_time_ms":6.4,"pipeline_ms":21.8,"detections":[{"slot":0,"class_id":1,"class_name":"inclusion","score":0.87,"bbox":[0.4125,0.5312,0.1094,0.2031]}]}'
+      description_i18n:
+        zh: >-
+          一帧一条 JSON，判定与该帧内所有检测框放在同一条消息里，不逐框发。
+          框是归一化的 [cx, cy, w, h]；`slot` 是帧内按分数降序的下标，不是 track id。
+          每条消息发布前都过一遍契约 schema 校验，不合格的计数并丢弃，不发出去。
+    - type: http
+      port: 8080
+      endpoint: /preview.mjpg, /healthz, /events, /snapshot.jpg
+      description: >-
+        Read-only commissioning page. MJPEG preview with boxes drawn on it, a
+        health endpoint carrying inference time, capture-to-coil latency and the
+        MQTT/Modbus counters, and the most recent verdicts.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          只读的调试页面。带检测框的 MJPEG 预览、含推理耗时与 capture→coil 时延
+          以及 MQTT / Modbus 计数的健康接口，还有最近的判定记录。
+
+  input_requirements:
+    - type: rtsp
+      description: >-
+        A fixed camera on the strip or part, framed so a defect fills a
+        meaningful part of the frame. The measured figures come from 640x640
+        crops at 10 FPS. Lighting must be stable — the model was trained on one
+        dataset's illumination and has not been evaluated under any other.
+      required: true
+      description_i18n:
+        zh: >-
+          对着钢带或工件的固定机位，取景要让缺陷在画面里占到有意义的比例。
+          实测数字取自 640x640、10 FPS 的画面。光照必须稳定——
+          模型只在一个数据集的光照下训练过，没有在其它光照条件下评测过。
+    - type: modbus
+      description: >-
+        A PLC or line controller that can act as a Modbus TCP master on the same
+        network segment as the device. The register map is fixed at unit 1.
+      required: false
+      description_i18n:
+        zh: >-
+          与设备同网段、能做 Modbus TCP 主站的 PLC 或产线控制器。
+          寄存器表固定在 unit 1 上。
+
+  device_catalog:
+    recomputer_j40:
+      description: >-
+        Runs the detector on TensorRT. Every measured figure on this page was
+        taken on an Orin NX 16GB (reComputer Super J4012).
+      description_i18n:
+        zh: >-
+          用 TensorRT 运行检测器。本页所有实测数字都取自 Orin NX 16GB
+          （reComputer Super J4012）。
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j30:
+      description: >-
+        The smaller Orin Nano 8GB option. It has not been measured for this
+        solution; the multi-stream and latency figures are Orin NX only.
+      description_i18n:
+        zh: >-
+          更小的 Orin Nano 8GB 选项。本方案没有在它上面实测过，
+          多路容量与时延数字仅适用于 Orin NX。
+      purchase:
+        require:
+          module: [orin_nano_8]
+    external_raspberry_pi5_hailo:
+      name: Raspberry Pi 5 + Hailo-8
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8
+      description: >-
+        A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. The INT8 HEF has
+        been compiled and checked against the compiler's emulator, but this path
+        has never been run on the board.
+      description_i18n:
+        zh: >-
+          装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。INT8 HEF 已编译并在编译器
+          emulator 上比对过，但这条路径从未在板卡上跑过。
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera pointed at the strip or part under inspection
+      description_i18n:
+        zh: 任意一台对着被检钢带或工件的 RTSP 摄像头
+
+  presets:
+    - id: orin
+      name: IP Camera + reComputer J (Orin)
+      name_i18n:
+        zh: IP 摄像头 + reComputer J（Orin）
+      badge: Internal
+      badge_i18n:
+        zh: 内部验证
+      description: >-
+        The measured path. TensorRT FP16 on Jetson Orin, with the engine built on
+        the device during deployment.
+      description_i18n:
+        zh: >-
+          有实测数据的那条路径。Jetson Orin 上跑 TensorRT FP16，
+          engine 在部署过程中于设备上构建。
+      device_groups:
+        - id: compute
+          name: Inspection Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: pi_hailo
+      name: IP Camera + Raspberry Pi 5 (Hailo-8)
+      name_i18n:
+        zh: IP 摄像头 + Raspberry Pi 5（Hailo-8）
+      badge: Untested on hardware
+      badge_i18n:
+        zh: 未上板验证
+      description: >-
+        The INT8 HEF is compiled and its quantisation loss measured against the
+        compiler's emulator, but nothing here has run on a Pi. Expect to work
+        through the three ABI gates the deploy step checks.
+      description_i18n:
+        zh: >-
+          INT8 HEF 已编译，量化损失也在编译器 emulator 上量过，
+          但这里没有一样东西在树莓派上跑过。部署步骤会检查的三道 ABI 关卡，
+          预期要现场逐个过。
+      device_groups:
+        - id: compute
+          name: Inspection Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_raspberry_pi5_hailo
+          default: external_raspberry_pi5_hailo
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+  stats:
+    difficulty: advanced
+    estimated_time: 40min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
