@@ -1,0 +1,131 @@
+version: "1.0"
+id: verify_edge
+name: Verify Capture, Transcription and Deletion
+name_i18n:
+  zh: 验收采集、转写与删除
+type: manual
+inherit_host_from: collector_rk3576
+
+# 为什么是 manual 而不是自动 verify：这一步要验的是「说一句话之后，
+# 库里出现的是脱敏后的文本，删掉之后三处都没有残留」。前半段需要有人对着麦克风
+# 或用 App 说一句话，后半段的 delete_proof.sh 会自己起一套 MySQL/MinIO 造数据核对，
+# 跑的不是这台设备上的数据——两者都不是部署引擎能代替人做的判断。
+#
+# 命令里的接口出处（sensecraft-voice-service feature/c4-harden）：
+#   api/server/router/recording/recording.go:25       GET  /api/v1/recordings（viewer）
+#   api/server/router/privacy/privacy.go:25-26        POST /api/v1/privacy/erase、GET /export（admin）
+#   api/server/middleware/admission.go:94-105         上面这些路由的角色要求
+#   tools/delete_proof.sh                             删除证明脚本（随包在 assets/tools/）
+
+steps:
+  - id: say_one_sentence
+    name: Say one sentence with a phone number in it
+    name_i18n:
+      zh: 说一句带电话号码的话
+    description: >-
+      Into the mic array on the collector, say something
+      like "我叫张伟，手机号是 13812345678". Say it clearly and stop — the
+      segment closes on silence.
+    description_i18n:
+      zh: >-
+        对着采集端的麦克风阵列，说一句类似「我叫张伟，手机号是 13812345678」的话。
+        说清楚然后停下——语音段是靠静音结束的。
+    optional: false
+
+  - id: check_redacted
+    name: Check what landed in the database
+    name_i18n:
+      zh: 看落库的是什么
+    description: >-
+      Open the admin console's recordings page, or run
+      `curl -s -H "X-API-Token: <operator-or-admin-token>" "http://<collector>:8081/api/v1/recordings?limit=5"`.
+      The newest row must show the phone number replaced by a `[[PHONE]]`
+      placeholder and the name by `[[NAME]]`, and `pii_masked_count` must be
+      greater than zero. If you can see the raw number anywhere, stop: redaction
+      is off (`privacy.redaction_enabled`) or the placeholder never ran, and
+      nothing downstream is trustworthy.
+    description_i18n:
+      zh: >-
+        打开管理后台的录音页，或执行
+        `curl -s -H "X-API-Token: <operator 或 admin 令牌>" "http://<采集端>:8081/api/v1/recordings?limit=5"`。
+        最新一条里，手机号必须已被 `[[PHONE]]` 占位符替换、姓名被 `[[NAME]]` 替换，
+        `pii_masked_count` 必须大于 0。任何地方还能看到原始号码就停下：
+        要么脱敏被关了（`privacy.redaction_enabled`），要么这条根本没走脱敏，后面的结论都不成立。
+    optional: false
+
+  - id: erase_subject
+    name: Delete that subject and read the response
+    name_i18n:
+      zh: 删除该主体并读返回
+    description: >-
+      Run
+      `curl -s -X POST -H "X-API-Token: <admin-token>" -H "Content-Type: application/json" -d '{"scope":"session","session_id":"<session-id-from-the-row>"}' "http://<collector>:8081/api/v1/privacy/erase"`.
+      The response reports how many rows and objects went, plus a residue count
+      — that count must be 0. A non-zero residue means an object failed to
+      delete in MinIO; the row is gone but the audio is not, so treat it as a
+      failed deletion and look at the `errors` field.
+    description_i18n:
+      zh: >-
+        执行
+        `curl -s -X POST -H "X-API-Token: <admin 令牌>" -H "Content-Type: application/json" -d '{"scope":"session","session_id":"<上一步那条的 session id>"}' "http://<采集端>:8081/api/v1/privacy/erase"`。
+        返回里会给删了多少行、多少对象，以及残留数——这个数必须是 0。
+        非 0 意味着 MinIO 里有对象没删掉：行没了但音频还在，按删除失败处理，看 `errors` 字段。
+    optional: false
+
+  - id: delete_proof
+    name: Run the delete-proof script
+    name_i18n:
+      zh: 跑删除证明脚本
+    description: >-
+      `assets/tools/delete_proof.sh` is the reproducible version of the check
+      above. It stands up its own MySQL and MinIO (container names prefixed
+      `c4-proof-`, nothing existing is touched), seeds data, takes SHA-256
+      manifests before and after, runs one subject-scope deletion and then
+      re-checks the database, the object store and the local audio directory. It
+      needs the sensecraft-voice-service source tree and Docker — run it from
+      that repository root, not from the deployed host. Read the last lines:
+      `RESIDUE_COUNT=0`, `RESIDUE_DB_REPORTED=0` and a `DELETE_LATENCY_MS`
+      value. Anything other than zero residue fails this step.
+    description_i18n:
+      zh: >-
+        `assets/tools/delete_proof.sh` 是上一步的可复现版本。它自己起一套 MySQL 与 MinIO
+        （容器名前缀 `c4-proof-`，不碰任何既有编排），造数据、取删除前后的 SHA-256 清单，
+        跑一次按主体删除，再核数据库、对象存储与本地音频目录三处。
+        它需要 sensecraft-voice-service 的源码树和 Docker——在那个仓库根目录跑，不是在部署主机上跑。
+        看最后几行：`RESIDUE_COUNT=0`、`RESIDUE_DB_REPORTED=0`，以及一个 `DELETE_LATENCY_MS` 值。
+        残留数不为 0 就是这一步没过。
+    optional: false
+
+  - id: local_audio_gone
+    name: Check the third store — the local audio directory
+    name_i18n:
+      zh: 核第三处——本地音频目录
+    description: >-
+      On the collector, `ls /data-iot/respeaker/recordings` must no longer hold
+      the deleted session's file. Database and object store are the first two
+      stores; this is the third, and it is the one a deletion API cannot report
+      on by itself.
+    description_i18n:
+      zh: >-
+        在采集端上 `ls /data-iot/respeaker/recordings`，已删会话的文件必须不在了。
+        数据库与对象存储是前两处，这里是第三处——也是删除接口自己报不出来的那一处。
+    optional: false
+
+  - id: export_check
+    name: Check the export before you rely on it
+    name_i18n:
+      zh: 依赖导出之前先核一遍
+    description: >-
+      `curl -s -H "X-API-Token: <admin-token>" "http://<collector>:8081/api/v1/privacy/export?scope=device&device_mac=<mac>"`
+      returns redacted transcripts as JSON plus an audio manifest. The audio
+      itself is not in the package, deliberately: audio is not redacted, so
+      shipping it would walk around the redaction the text side promises. There
+      is no export-everything mode. Read the `note` field in the package before
+      you forward it to anyone.
+    description_i18n:
+      zh: >-
+        `curl -s -H "X-API-Token: <admin 令牌>" "http://<采集端>:8081/api/v1/privacy/export?scope=device&device_mac=<设备 MAC>"`
+        返回脱敏文本 JSON 加音频清单。音频本体不在包里，这是有意的：
+        音频没有做脱敏，随包给出去就绕过了文本侧的脱敏承诺。也没有「导出全部」这个选项。
+        把导出包转给任何人之前，先读里面的 `note` 字段。
+    optional: false

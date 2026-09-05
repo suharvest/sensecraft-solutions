@@ -1,0 +1,75 @@
+# 云端分析实例的配置（--profile cloud-analytics 时才用到）。
+#
+# 与 voice-service.yaml 的唯一差别是这份会填 chat / openai 段，把文本发到设备外。
+# 默认不启用；启用后「全链路离线」这条描述就不成立，页面上不能再这么写。
+#
+# 这里不放任何真实口令：数据库口令在部署时由运维改成与 .env 中一致的值，
+# 或改用外部 secret 注入。仓库里保持占位符。
+default:
+  mode: release
+  listen: 8081
+  # 签发/校验 JWT 的密钥。部署时必须改成随机值（openssl rand -hex 32），
+  # 沿用占位符等于没有鉴权。
+  jwt_key: CHANGE_ME_JWT_KEY
+  auto_migrate: true
+  base_url: http://127.0.0.1:8081
+  log_level: info
+  log_format: json
+
+mysql:
+  host: mysql
+  port: 3306
+  user: root
+  password: CHANGE_ME_MYSQL_PASSWORD
+  name: voice
+
+auth:
+  # 缺省即 true；写出来是为了让人看得见这份配置是开着鉴权的。
+  enabled: true
+  # api_tokens 留空：令牌走环境变量 VOICE_API_TOKENS，不写进文件。
+  api_tokens: []
+
+privacy:
+  # 入库前脱敏。关掉等于明文入库，只有排查脱敏规则时才临时关。
+  redaction_enabled: true
+  # 原文不落库。spec §3 的两个选项里选「不存」而不是「加密存」：
+  # 加密存意味着系统里仍有一份可解密的原文，删除证明要多覆盖密钥与密文一处。
+  store_original_text: false
+  raw_audio_retention_hours: 24
+  redacted_text_retention_days: 30
+
+asr:
+  # 级联删除声纹时调的地址。启用 voiceprint profile 后改成实际地址。
+  base_url: http://127.0.0.1:8080
+  api_token: ""
+  timeout: 10
+
+oss:
+  minio:
+    endpoint: minio:9000
+    access_key: CHANGE_ME_MINIO_USER
+    secret_key: CHANGE_ME_MINIO_PASSWORD
+    use_ssl: false
+    bucket_name: voice-audio
+    region: us-east-1
+    timeout: 30
+  processing:
+    max_file_size: 52428800
+
+keywords:
+  cache_schedule: "*/5 * * * *"
+
+# 云端分析所需的外部服务。真实值由部署方填，仓库里保持占位符。
+chat:
+  base_url: ""
+  api_key: ""
+  timeout: 30
+  enable_debug: false
+
+openai:
+  base_url: ""
+  api_key: ""
+  model: ""
+  timeout: 60
+  max_tokens: 1024
+  temperature: 0.2

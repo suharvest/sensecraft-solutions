@@ -1,0 +1,309 @@
+version: "1.0"
+id: cloud_stack
+name: Voice Server Stack
+name_i18n:
+  zh: 语音服务端栈
+type: docker_deploy
+
+# 部署的是 C4 冻结编排（sensecraft_voice deploy/edge-frozen），这里用的是去掉
+# voice-client 的那一份：栈主机上没有麦克风，音频从手机 App 的 ASR 端点或
+# 边缘采集端进来。
+#
+# 镜像状态（打包时核对 IMAGE-DIGESTS.md）：
+#   - voice-service / voice-web / voice-client：本地 buildx 出的 OCI 归档，digest 已写死，
+#     但**尚未推到 registry**。上架前需在能推的机器上 `buildx build --push` 一次，
+#     再用 `docker buildx imagetools inspect` 复核 digest 是否一致，不一致以推上去的为准。
+#     在复核完成前，这些 digest 只是本地构建产物的指纹，不能保证 registry 上拉得到。
+#   - ovs-asr / mysql / minio：第三方已发布镜像，digest 取自上游，可直接拉。
+#     打包时核对过（2026-09-05）：`docker manifest inspect` 对 ovs-asr 的 digest 返回 manifest，
+#     对 voice-service / voice-web / asr-server 的引用返回 "artifact ... not found"——
+#     即三个自建镜像确实尚未推上 registry，部署前必须先推。
+#   - asr-voiceprint（声纹）：此前构不出的原因（缺 internal/audio_cache）已解决，
+#     源码自 feature/omi-remote(77d7b61) 取回并提交到 feature/c4-harden(3d6abd3)；
+#     镜像仍待构建验证，tag sensecraft-asr-server:c4-<sha> 未 push。
+#     因此它留在 voiceprint profile 里默认不启动，声纹能力默认关闭。
+#     开启条件见 guide 的 Troubleshooting：镜像可拉 + .env 配好 ASR_API_TOKENS。
+
+docker:
+  compose_file: assets/docker/docker-compose.cloud.yml
+  compose_dir: assets/docker
+  options:
+    project_name: sensecraft-voice-c4
+    remove_orphans: true
+  services:
+    - name: mysql
+      required: true
+    - name: minio
+      required: true
+    - name: ovs-asr
+      required: true
+    - name: voice-service
+      port: 8081
+      required: true
+    - name: voice-web
+      port: 3000
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # 首次部署要拉 5 个镜像，其中 OVS 语音镜像数 GB；给到 1 小时。
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 20
+    description: MySQL data, MinIO objects and the container images all live on this host
+    description_i18n:
+      zh: MySQL 数据、MinIO 对象与容器镜像都落在这台主机上
+
+# 整轮墙钟预算。首次部署的绝大部分时间在拉镜像，随网络而定；
+# 这里按「慢速网络下拉完 OVS 镜像」给量，用于兜住卡死而不是限制正常拉取。
+deploy_timeout: 5400
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/sensecraft-voice-c4
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check Docker and architecture
+        run: |
+          set -e
+          docker info >/dev/null 2>&1 || { echo "docker is not usable by this user" >&2; exit 1; }
+          ARCH=$(uname -m)
+          echo "arch: $ARCH"
+          if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
+            echo "WARNING: the frozen images are arm64 only; this host is $ARCH" >&2
+          fi
+        name_i18n:
+          zh: 检查 Docker 与主机架构
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # 在 assets/docker/ 上传之后、`docker compose up` 之前跑：
+    # .env 与 config/voice-service.yaml 都在上传的目录里，写早了会被上传覆盖。
+    after_upload:
+      - name: Write .env and the service configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/sensecraft-voice-c4/cloud_stack"
+          cd "$WORKDIR"
+
+          # .env 只在设备上生成，不进仓库、不进镜像层。
+          umask 077
+          cat > .env <<'ENVEOF'
+          TZ=Asia/Shanghai
+          MYSQL_ROOT_PASSWORD={{mysql_root_password}}
+          MYSQL_DATABASE=voice
+          MYSQL_PORT=3306
+          MINIO_ROOT_USER={{minio_root_user}}
+          MINIO_ROOT_PASSWORD={{minio_root_password}}
+          MINIO_PORT=9000
+          MINIO_CONSOLE_PORT=9001
+          VOICE_API_TOKENS=edge-client:operator:{{operator_token}},ops:admin:{{admin_token}}
+          ASR_API_TOKENS=edge-client:operator:{{operator_token}},voice-service:admin:{{admin_token}}
+          VOICE_CLIENT_TOKEN={{operator_token}}
+          ASR_CLIENT_TOKEN={{operator_token}}
+          VOICE_SERVICE_PORT=8081
+          VOICE_WEB_PORT=3000
+          CLOUD_ANALYTICS_PORT=8082
+          OVS_PROFILE_DEFAULT=rk3576-default
+          ASR_PLATFORM=rk3576
+          OVS_ADMIN_KEY=
+          ENVEOF
+
+          # 配置文件里的占位符换成本次部署的值。留着 CHANGE_ME_ 等于没有鉴权。
+          CFG=config/voice-service.yaml
+          python3 - "$CFG" <<'PY'
+          import sys
+
+          path = sys.argv[1]
+          text = open(path, encoding="utf-8").read()
+          repl = {
+              "CHANGE_ME_JWT_KEY": "{{jwt_secret}}",
+              "CHANGE_ME_MYSQL_PASSWORD": "{{mysql_root_password}}",
+              "CHANGE_ME_MINIO_USER": "{{minio_root_user}}",
+              "CHANGE_ME_MINIO_PASSWORD": "{{minio_root_password}}",
+          }
+          for old, new in repl.items():
+              text = text.replace(old, new)
+          text = text.replace(
+              "raw_audio_retention_hours: 24",
+              "raw_audio_retention_hours: {{raw_audio_retention_hours}}")
+          text = text.replace(
+              "redacted_text_retention_days: 30",
+              "redacted_text_retention_days: {{redacted_text_retention_days}}")
+          open(path, "w", encoding="utf-8").write(text)
+          leftover = [line for line in text.splitlines() if "CHANGE_ME_" in line]
+          if leftover:
+              raise SystemExit("placeholders left in config: %r" % leftover)
+          print("config written, retention: audio {{raw_audio_retention_hours}} h / text {{redacted_text_retention_days}} d")
+          PY
+          chmod 600 .env config/voice-service.yaml
+          echo ".env and config written"
+        name_i18n:
+          zh: 写入 .env 与服务配置
+
+    after:
+      - name: Wait for voice-service to report healthy
+        ignore_error: true
+        timeout: 300
+        run: |
+          echo "Waiting for voice-service ..."
+          for i in $(seq 1 40); do
+            if curl -sf "http://127.0.0.1:8081/healthz" >/dev/null 2>&1; then
+              echo "voice-service healthy"
+              # 不用 docker ps --format：它的模板语法与本文件的 {{...}} 占位符会互相吞。
+              docker ps | grep ' c4-' || true
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "voice-service did not become healthy in time — check: docker logs c4-voice-service" >&2
+        name_i18n:
+          zh: 等待 voice-service 健康
+
+  user_inputs:
+    - id: host
+      name: Stack Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 栈主机 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: mysql_root_password
+      name: MySQL Root Password
+      type: password
+      required: true
+      description: Written to .env and to config/voice-service.yaml on the device only; MySQL is bound to 127.0.0.1
+      name_i18n:
+        zh: MySQL root 口令
+      description_i18n:
+        zh: 只写到设备上的 .env 与 config/voice-service.yaml；MySQL 只绑本机回环
+    - id: minio_root_user
+      name: MinIO Access Key
+      type: text
+      default: voiceadmin
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]{3,64}$"
+      name_i18n:
+        zh: MinIO 访问密钥
+    - id: minio_root_password
+      name: MinIO Secret Key
+      type: password
+      required: true
+      name_i18n:
+        zh: MinIO 私有密钥
+    - id: jwt_secret
+      name: JWT Secret
+      type: password
+      required: true
+      description: Signs the admin-console login tokens. Generate with `openssl rand -hex 32`.
+      name_i18n:
+        zh: JWT 密钥
+      description_i18n:
+        zh: 用于签发管理后台登录令牌。用 `openssl rand -hex 32` 生成。
+    - id: operator_token
+      name: Operator API Token
+      type: password
+      required: true
+      description: Ingest token — devices and the mobile app use it. Allows transcript upload and the ASR /ws endpoint, not deletion or export. Generate with `openssl rand -hex 32`.
+      name_i18n:
+        zh: operator API 令牌
+      description_i18n:
+        zh: 上报令牌——设备与手机 App 使用。可上报转写、可连 ASR /ws，不能删除或导出。用 `openssl rand -hex 32` 生成。
+    - id: admin_token
+      name: Admin API Token
+      type: password
+      required: true
+      description: Deletion, export and user management. Keep it off devices — it is for operators and for the delete-proof script.
+      name_i18n:
+        zh: admin API 令牌
+      description_i18n:
+        zh: 删除、导出与用户管理。不要下发到设备——它给运维和删除证明脚本使用。
+    - id: raw_audio_retention_hours
+      name: Raw Audio Retention
+      type: select
+      default: "24"
+      required: true
+      description: How long the unredacted audio stays on the host. Audio is not redacted, only the text is — shorten this if the site requires it.
+      options:
+        - value: "1"
+          label: 1 hour
+          label_i18n:
+            zh: 1 小时
+        - value: "6"
+          label: 6 hours
+          label_i18n:
+            zh: 6 小时
+        - value: "24"
+          label: 24 hours (default)
+          label_i18n:
+            zh: 24 小时（默认）
+      name_i18n:
+        zh: 原音频保留期
+      description_i18n:
+        zh: 未脱敏的原音频在主机上保留多久。音频本身不做脱敏，只有文本做——现场有要求就调短。
+    - id: redacted_text_retention_days
+      name: Redacted Text Retention
+      type: select
+      default: "30"
+      required: true
+      options:
+        - value: "7"
+          label: 7 days
+          label_i18n:
+            zh: 7 天
+        - value: "30"
+          label: 30 days (default)
+          label_i18n:
+            zh: 30 天（默认）
+        - value: "90"
+          label: 90 days
+          label_i18n:
+            zh: 90 天
+      name_i18n:
+        zh: 脱敏文本保留期
