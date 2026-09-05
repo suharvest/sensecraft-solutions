@@ -125,7 +125,15 @@ services:
     container_name: c4-asr-voiceprint
     profiles: ["voiceprint"]
     restart: unless-stopped
-    network_mode: host
+    # 不用 network_mode: host。
+    #
+    # 用 host 网络时这个容器不在 compose 默认网络上，服务名 asr-voiceprint 解析不到，
+    # voice-service（bridge 网络）只能靠 127.0.0.1 去找它——而容器里的 127.0.0.1
+    # 是它自己，级联删除声纹必然 connection refused（C4-fix3 Bug #5）。
+    # 走默认网络 + 端口映射后，voice-service 用服务名直接可达；
+    # 端口仍映射到宿主机，手机 App 连 /ws 的路径不变。
+    ports:
+      - "${ASR_PORT:-8080}:8080"
     environment:
       - TZ=${TZ:-Asia/Shanghai}
       # name:role:token，逗号分隔。令牌值只在 .env 里，不入库不入镜像。
