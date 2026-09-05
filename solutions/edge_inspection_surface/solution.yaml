@@ -4,7 +4,9 @@
 # NEU-DET release. Until an explicit answer arrives or the dataset is replaced,
 # nothing derived from it — weights, ONNX, HEF, evaluation screenshots, overlay
 # images — may be used for public demos, customer-site demos or commercial
-# material. See gallery/ATTRIBUTION.md.
+# material. No dataset-derived image is committed to this repository at all; the
+# only gallery asset is a schematic drawn for this solution.
+# See gallery/ATTRIBUTION.md.
 version: "1.0"
 id: edge_inspection_surface
 name: Surface Defect Inspection
@@ -23,18 +25,16 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/overlay-pitted-surface.jpg
+  cover_image: gallery/architecture.svg
   gallery:
     - type: image
-      src: gallery/overlay-pitted-surface.jpg
-      caption: Detector output on a pitted-surface sample from the held-out validation split — internal validation asset, not for public use
+      src: gallery/architecture.svg
+      caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
       caption_i18n:
-        zh: 留出验证集里一张 pitted_surface 图上的检测输出——内部验证素材，不得对外使用
-    - type: image
-      src: gallery/overlay-inclusion.jpg
-      caption: Detector output on an inclusion sample — internal validation asset, not for public use
-      caption_i18n:
-        zh: 一张 inclusion 图上的检测输出——内部验证素材，不得对外使用
+        zh: 从相机到设备再到产线——RTSP 进来，判定通过 Modbus TCP 与 MQTT 出去，旁边是预览页
+  # No detection sample image is shipped. Every overlay this project can produce
+  # is drawn on a dataset image whose licence is unconfirmed, so none is
+  # committed here. See gallery/ATTRIBUTION.md.
   category: sensing
   solution_type: solution
   tags:

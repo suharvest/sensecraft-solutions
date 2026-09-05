@@ -1,45 +1,44 @@
 # Gallery attribution
 
-> **These images are internal validation assets. They must not be published, put
-> on a public solution page, shown in a customer demo, or used in commercial
-> material until the dataset licence question below is answered.**
+## Standing rule: no dataset-derived image is committed
 
-## What these files are
+**Until the dataset licence question below is answered, this package commits no
+image derived from the training or validation data** — no detection overlay, no
+evaluation screenshot, no sample frame, in this directory or anywhere else in
+the solution. This matches the upstream repository, which excludes
+`evaluation/fixtures/` and `evaluation/runs/**/*.jpg` from version control and
+commits only the numerical smoke report.
 
-| File | sha256 | Origin |
+The rule covers the whole package, not just this directory: `assets/models/`
+holds manifests and checksums only, and nothing has been uploaded to a CDN.
+
+## What is in this directory
+
+| File | Origin | Contains dataset imagery |
 |---|---|---|
-| `overlay-pitted-surface.jpg` | `b5871171ba0d2c8d50b421e258637039a7e28491f6d844248466f2ebbfd6f31a` | `evaluation/runs/2026-09-05-m1-smoke/overlay_pitted_surface_100_jpg.rf.50a2cc31fe13105a21b22f930e481d7f.jpg` in the upstream repo |
-| `overlay-inclusion.jpg` | `f02a8d51f3999bf876b7aca3fb0b12b06ba0917c3ccc57e174280fb499b0be4b` | `evaluation/runs/2026-09-05-m1-smoke/overlay_inclusion_110_jpg.rf.14d4ab42696fedc3d48775e0cce5fd57.jpg` in the upstream repo |
+| `architecture.svg` | Drawn for this solution | No |
 
-Both are real output from this solution's own pipeline, not mock-ups: an image
-from the held-out validation split with the detector's boxes, class names and
-scores drawn on it by the CPU smoke script (ONNX
-`4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba`, YOLOX-Tiny
-640x640). The numerical output for the same run is
-`evaluation/runs/2026-09-05-m1-smoke/smoke-report.json`.
+`architecture.svg` is the data path only — camera, edge device, the OK/NG step,
+and the three outputs with their ports. Boxes, arrows, product names, protocol
+names and port numbers; no photograph, no detector output, nothing traceable to
+the dataset. It is near-wordless on purpose so one asset serves both the English
+and the Chinese page.
 
 ## The licence problem
 
-The underlying photographs come from **NEU-DET** (NEU surface defect database)
-by way of a re-hosted copy on Roboflow. That Roboflow page states CC BY 4.0. **No
-formal licence statement has been found for the original NEU-DET release**, so
-the chain of permission from the original authors to that page is not
-established, and CC BY 4.0 on a re-host is a claim by the re-hoster rather than
-a grant traceable to the copyright holder.
+The model is trained on **NEU-DET** (NEU surface defect database) by way of a
+re-hosted copy on Roboflow. That Roboflow page states CC BY 4.0. **No formal
+licence statement has been found for the original NEU-DET release**, so the
+chain of permission from the original authors to that page is not established,
+and CC BY 4.0 on a re-host is a claim by the re-hoster rather than a grant
+traceable to the copyright holder.
 
-Consequences, applied consistently across the whole project:
+Everything derived from that data is restricted the same way: the trained
+checkpoint, the ONNX, both HEFs, any TensorRT engine built from them, and every
+evaluation overlay. The same notice appears in `solution.yaml`, both description
+files, both guides and both compose files.
 
-- The upstream repository excludes every dataset-derived image from version
-  control (`evaluation/fixtures/`, `evaluation/runs/**/*.jpg`); only the
-  numerical smoke report is committed. **The two files here are the one
-  deliberate exception**, carried into this package so the solution has a cover
-  image at all. They inherit the same restriction, not an exemption from it.
-- The trained checkpoint, the ONNX, both HEFs and any TensorRT engine built from
-  them are equally derived works and are equally restricted.
-- The solution page, `solution.yaml`, both description files and both guides all
-  carry the same notice.
-
-## What has to happen before these can be published
+## What has to happen before a sample image can be added
 
 One of:
 
@@ -48,21 +47,23 @@ One of:
    `data/DATASET.md` alongside the Roboflow id, version, download date and URL.
 2. Retraining on a dataset whose terms are clear — the upstream survey ranks
    AITEX (CC BY 4.0) above the NEU derivatives for exactly this reason — and
-   regenerating these overlays from that model.
+   regenerating the overlays from that model.
 
-Until then these files stay in this package for internal review and go no
-further.
+Either way, the overlay to add would come from
+`evaluation/runs/<date>-m1-smoke/` in the upstream repo, which produces the
+detector's boxes, class names and scores drawn on a validation image. Add it in
+the same change that records the licence answer, never before.
 
 ## CDN
 
 **Nothing has been uploaded.** The packaging convention is CDN-hosted images
 under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.png`,
-and `solution.yaml` deliberately does not use it: uploading these files to a
-public CDN is itself the publication step that the licence question blocks. The
-gallery entries therefore point at local paths.
+and `solution.yaml` does not use it yet — `architecture.svg` is referenced by
+its local path. Uploading is a separate step and is safe for this file, since it
+carries no dataset content; it has simply not been done.
 
-When the licence is cleared or the images are replaced, upload them and switch
-`intro.cover_image` and `intro.gallery[].src` to the CDN URLs in the same change.
+When the gallery is published, upload `architecture.svg` and switch
+`intro.cover_image` and `intro.gallery[].src` to the CDN URLs in one change.
 
 ## Model artefacts
 

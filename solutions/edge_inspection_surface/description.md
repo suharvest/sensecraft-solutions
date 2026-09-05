@@ -3,8 +3,10 @@
 > page states CC BY 4.0, but no formal licence statement has been found for the
 > original NEU-DET release. Until an explicit answer arrives or the dataset is
 > replaced, nothing derived from it — weights, ONNX, HEF, evaluation
-> screenshots, the overlay images on this page — may be used for public demos,
-> customer-site demos or commercial material.
+> screenshots, detection overlays — may be used for public demos, customer-site
+> demos or commercial material. That is why this page carries a schematic rather
+> than a sample of the detector's output: no dataset-derived image is committed
+> to this package at all.
 
 ## What it does
 
@@ -229,7 +231,9 @@ re-hosted copy of NEU-DET. The Roboflow page for that copy states CC BY 4.0, but
 no formal licence statement has been found for the original NEU-DET release, so
 the chain from the original authors to that page is not established. Everything
 derived from it — the checkpoint, the ONNX, both HEFs, the TensorRT engine, the
-evaluation overlays and the two images on this page — is restricted to internal
-validation until an explicit answer arrives or the dataset is replaced with one
-whose terms are clear. Do not use this solution for a public demo, a
-customer-site demo or commercial material before that.
+evaluation overlays — is restricted to internal validation until an explicit
+answer arrives or the dataset is replaced with one whose terms are clear. No
+image derived from that dataset is committed to this package, which is why the
+only illustration here is a schematic drawn for this solution. Do not use this
+solution for a public demo, a customer-site demo or commercial material before
+that.
