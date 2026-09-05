@@ -17,14 +17,21 @@ intro:
   description_file_i18n:
     zh: description_zh.md
 
-  # Gallery and cover image are intentionally absent.
+  # Cover and gallery carry the architecture diagram only.
   #
-  # The four SVG files still on disk under gallery/ (cover, dashboard, architecture,
-  # recomputer) are schematic drawings made for this package, not screenshots of the
-  # running system. Presenting them as product imagery overstates what has been seen
-  # working, so they are no longer referenced. The four real captures this page needs are
-  # listed as TODOs in gallery/ATTRIBUTION.md; they are blocked on a commissioning run that
-  # has not happened yet. Restore cover_image and gallery[] together with those captures.
+  # gallery/architecture.svg is a schematic block diagram, and its caption says so — a
+  # diagram that presents itself as a diagram is not a stand-in for evidence. The other
+  # three SVGs on disk (cover, dashboard, recomputer) are drawings that would read as
+  # product photography or as a screenshot of a running console, so they stay unreferenced
+  # until real captures exist. The four captures this page still owes are listed as TODOs
+  # in gallery/ATTRIBUTION.md, blocked on a commissioning run that has not happened yet.
+  cover_image: gallery/architecture.svg
+  gallery:
+    - type: image
+      src: gallery/architecture.svg
+      caption: Schematic architecture diagram — meter and HVAC points, prediction, and the verified write path. Not a screenshot of a running system.
+      caption_i18n:
+        zh: 系统架构示意图——电表与暖通点位、预测，以及带读回核实的写入链路。非运行界面截图。
 
   category: industrial_iot
   solution_type: solution

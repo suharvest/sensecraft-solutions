@@ -1,23 +1,24 @@
 # Gallery attribution and open items
 
-## Current state: no product imagery
+## Current state: one schematic diagram, no captures
 
-This solution ships **no** cover image and **no** gallery entries. `solution.yaml` and both
-guide files reference none of the files in this directory.
+This solution ships the architecture diagram as both the cover image and the only gallery
+entry. Its caption states that it is a schematic diagram and not a screenshot. Nothing else
+in this directory is referenced by `solution.yaml` or by either guide file.
 
-Four SVG files remain on disk:
+| File | What it is | Referenced? | Origin |
+|---|---|---|---|
+| `architecture.svg` | Schematic block diagram | **Yes** — `intro.cover_image` and the single `intro.gallery[]` entry | Drawn for this package, first-party |
+| `cover.svg` | Schematic cover drawing | No | Drawn for this package, first-party |
+| `dashboard.svg` | Sketch of a dashboard layout | No | Drawn for this package, first-party |
+| `recomputer.svg` | Schematic device outline | No | Drawn for this package, first-party |
 
-| File | What it is | Origin |
-|---|---|---|
-| `cover.svg` | Schematic cover drawing | Drawn for this package, first-party, no third-party material |
-| `dashboard.svg` | Schematic sketch of a dashboard layout | Drawn for this package, first-party |
-| `architecture.svg` | Schematic block diagram | Drawn for this package, first-party |
-| `recomputer.svg` | Schematic device outline | Drawn for this package, first-party |
-
-None of them is a screenshot or a photograph. They were previously used as the cover, the
-gallery images and the guide wiring images, which presented drawings as evidence of a
-running system. They were removed from every reference for that reason and are kept only so
-the history is traceable; delete them once the captures below exist.
+None of the four is a screenshot or a photograph. `architecture.svg` is kept in use because
+a block diagram labelled as a block diagram claims nothing it cannot support. The other
+three would read as product photography or as a screenshot of a running console, which
+would present a drawing as evidence that the system has been seen working; they were
+removed from every reference for that reason and are kept only so the history is traceable.
+Delete them once the captures below exist.
 
 Licensing: all four are original drawings made for this package. No third-party asset,
 brand mark or stock image is included, so no upstream licence applies. Nothing is redacted
@@ -38,7 +39,8 @@ built, and no device has been run with a real SDM630 and a real HVAC controller.
 must come from that run, not from the simulator, and any site identifier, IP address,
 account name or building name visible in a capture has to be redacted before it lands here.
 
-When the captures exist, restore `intro.cover_image` and `intro.gallery[]` in
-`solution.yaml` with CDN URLs (`https://files.seeedstudio.com/Solution/landpage_asset/smart_hvac_control/<name>-<hash>.png`),
-give each a bilingual caption, and record the capture date, device and image tag in this
-file.
+When the captures exist, add them to `intro.gallery[]` in `solution.yaml` with CDN URLs
+(`https://files.seeedstudio.com/Solution/landpage_asset/smart_hvac_control/<name>-<hash>.png`),
+move `intro.cover_image` from the diagram to capture 1, give each a bilingual caption, and
+record the capture date, device and image tag in this file. The architecture diagram may
+stay in the gallery after that, as a diagram alongside the captures.
