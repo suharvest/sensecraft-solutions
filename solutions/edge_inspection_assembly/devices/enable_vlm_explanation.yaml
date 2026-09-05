@@ -1,0 +1,130 @@
+version: "1.0"
+id: enable_vlm_explanation
+name: Enable VLM Explanations
+name_i18n:
+  zh: 启用 VLM 解释
+type: manual
+
+# Why this step is manual.
+#
+# There is no deployer capability for "point this container at an external
+# service and wire in a proxy exception" — it is two config.json edits plus a
+# host-level environment check, not a deployable artifact of its own. The VLM
+# service (edge-vision-vlm) is not part of this solution; it is assumed to
+# already be running somewhere the inspection host can reach (typically an
+# Orin box), per contracts/config.schema.json's vlm section and
+# edge-vision-vlm/docs/INTEGRATION.md.
+#
+# This step is optional and additive: it never enters the frame loop, never
+# changes a verdict, and every measurement on the intro page holds with
+# vlm.enabled left at its default (false).
+
+user_inputs:
+  - id: vlm_base_url
+    name: VLM Service URL
+    type: text
+    required: true
+    placeholder: "http://192.168.1.50:8100"
+    description: Base URL of a reachable edge-vision-vlm instance. Typically a separate Orin box on the same network — this demo does not bundle or start that service.
+    name_i18n:
+      zh: VLM 服务地址
+    description_i18n:
+      zh: 一个可达的 edge-vision-vlm 实例地址。通常是同网络里另一台 Orin 主机——本方案不打包也不启动这个服务。
+  - id: vlm_timeout_ms
+    name: Client Timeout (ms)
+    type: text
+    default: "4000"
+    required: true
+    description: Hard client timeout for one /v1/explain call. On expiry the call is abandoned and no explanation event is published — the main verdict is never affected.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 客户端超时（毫秒）
+    description_i18n:
+      zh: 一次 /v1/explain 调用的硬超时。超时就放弃这次调用、不发解释事件——主判定完全不受影响。
+  - id: vlm_min_confidence
+    name: Trigger Confidence Threshold
+    type: text
+    default: "0.5"
+    required: true
+    description: Call the VLM when the primary defect's confidence is below this value, or when assembly.missing_count > 0. Does not affect verdict — advisory trigger only.
+    validation:
+      pattern: "^0(\\.[0-9]+)?|1(\\.0+)?$"
+    name_i18n:
+      zh: 触发置信度阈值
+    description_i18n:
+      zh: 主缺陷置信度低于这个值，或 assembly.missing_count > 0 时调用 VLM。不影响判定，只是触发条件。
+
+steps:
+  - id: edit_vlm_config
+    name: Edit config.json to point at the VLM service
+    name_i18n:
+      zh: 编辑 config.json 指向 VLM 服务
+    description: >-
+      On the device, edit config/config.json and add or update the top-level
+      vlm section: {"enabled": true, "base_url": "<the VLM Service URL you
+      entered>", "timeout_ms": <the timeout you entered>, "trigger":
+      {"min_confidence": <the threshold you entered>, "on_missing_parts":
+      true, "min_interval_s": 5.0}}. Restart the inspection container
+      (docker compose restart inspection) to pick up the change. Leaving
+      "enabled" at its default false is always safe — the vlm section is
+      optional and additive in the schema.
+    description_i18n:
+      zh: >-
+        在设备上编辑 config/config.json，新增或更新顶层的 vlm 段：
+        {"enabled": true, "base_url": "<你填的 VLM 服务地址>", "timeout_ms":
+        <你填的超时值>, "trigger": {"min_confidence": <你填的阈值>,
+        "on_missing_parts": true, "min_interval_s": 5.0}}。改完重启质检容器
+        （docker compose restart inspection）让配置生效。保持 "enabled"
+        为默认的 false 永远是安全的——vlm 段在 schema 里是可选 additive 字段。
+    optional: false
+
+  - id: set_no_proxy
+    name: Exempt the VLM address from any host proxy
+    name_i18n:
+      zh: 让 VLM 地址绕开主机代理
+    description: >-
+      If the inspection host or its container runtime has HTTP_PROXY /
+      HTTPS_PROXY set, add the VLM host to no_proxy (or NO_PROXY) before
+      testing. A transparent proxy that intercepts the VLM address turns a
+      plain "service unreachable" into an HTTP 502 from the proxy itself,
+      which this runtime logs and counts identically to a real
+      vlm_backend_error — same behaviour, misleading attribution. This was
+      observed during integration testing: stopping the VLM service without
+      no_proxy set produced a 502 rather than a connection-refused error.
+    description_i18n:
+      zh: >-
+        如果质检主机或它的容器运行时设了 HTTP_PROXY / HTTPS_PROXY，测试前先把
+        VLM 主机地址加进 no_proxy（或 NO_PROXY）。透明代理拦截 VLM 地址后，
+        原本该是"连不上"的情况会变成代理自己返回的 HTTP 502，本运行时会把它
+        和真正的 vlm_backend_error 记成同一类——行为一样，但归因会误导。
+        联调时实测过：不设 no_proxy 时停掉 VLM 服务，拿到的是 502 而不是
+        connection-refused。
+    optional: false
+
+  - id: verify_explanation_event
+    name: Verify — subscribe and see an explanation event
+    name_i18n:
+      zh: 验证——订阅并看到一条解释事件
+    description: >-
+      Subscribe with "mosquitto_sub -h <device-ip> -t
+      '<station-name>/inspection/+/explanations' -C 1" and remove or cover one
+      expected part so the frame goes NG. Within a few seconds (bounded by the
+      configured timeout) one JSON event should arrive with type
+      assembly_explanation, a non-empty explanation string, vlm_model, and
+      vlm_latency_ms. If nothing arrives within timeout_ms plus a few seconds,
+      check that base_url is reachable from the inspection host
+      (curl <base_url>/healthz from inside the container) and that no_proxy is
+      set — see the previous substep. No event ever means degraded silently,
+      by design; it does not mean the main results event stopped.
+    description_i18n:
+      zh: >-
+        用 "mosquitto_sub -h <设备IP> -t
+        '<工位名>/inspection/+/explanations' -C 1" 订阅，然后拿掉或挡住一个
+        期望件让这一帧变 NG。几秒内（受配置的超时约束）应该收到一条
+        type 为 assembly_explanation 的 JSON 事件，带非空的 explanation
+        文本、vlm_model 与 vlm_latency_ms。如果超过 timeout_ms 加几秒还没收到，
+        检查 base_url 从质检主机是否可达（在容器里 curl <base_url>/healthz），
+        以及是否设了 no_proxy——见上一个子步骤。没收到事件按设计就是"静默降级"，
+        不代表主 results 事件也停了。
+    optional: false
