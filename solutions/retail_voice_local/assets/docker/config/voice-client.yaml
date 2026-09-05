@@ -1,0 +1,126 @@
+# sensecraft-voice-client — local-output configuration.
+#
+# Derived from sensecraft_voice/sensecraft-voice-client/config.yaml on branch
+# feature/c4-harden. Everything that reaches outside the device is removed:
+# no `remote:` block, no `mysql:`, no `mqtt:`, no audio_upload. Results are
+# written to the mounted output directory and stay there.
+#
+# Placeholders written by the deploy step:
+#   __LANGUAGE__        zh or en
+#   __SPEAKER_ENABLED__ true or false
+#   __AUDIO_CARD_ID__   ALSA card id of the reSpeaker XVF3800
+
+default:
+  auto_migrate: true
+  jwt_key: goExample
+  listen: 8090
+  log_format: text
+  # `debug` in the upstream file. A store box logs to a capped json-file
+  # driver, so keep it quiet.
+  mode: release
+  log_file:
+    enabled: false
+    path: ./logs/app.log
+    max_size: 100
+    max_age: 1
+    max_backups: 3
+    compress: true
+
+language:
+  auto_detect: false
+  default_language: "__LANGUAGE__"
+  fallback_lang: zh
+  supported_langs:
+    - zh
+    - en
+
+voice:
+  autoStart: true
+  # 16 kHz mono is what the ASR path expects and what the XVF3800 presents
+  # after its own beamforming. Do not raise the channel count: the array
+  # already mixed down, and a second channel would be silence.
+  sampleRate: 16000
+  channels: 1
+  format: wav
+  # `file` also keeps the WAV segments next to the transcripts. Set to
+  # `stream` to send audio to the recognizer and write nothing but text.
+  output: both
+  filePath: ./recordings/voice
+  deviceId: ""
+  onDeviceLost: switch-default
+  softMuteOnStart: false
+  wsChunkBytes: 8192
+  wsMaxQueue: 64
+  wsMaxReconnectDelay: 15s
+  # Queue-full block ceiling. On timeout the whole utterance is dropped with a
+  # WARN — dropping single packets would let ASR transcribe half a sentence
+  # silently and wrongly.
+  wsEnqueueTimeout: 5s
+  wsHeaders: {}
+
+  # All three query parameters are required:
+  #   vad=none                 the server does not endpoint; the local VAD
+  #                            below finalizes with an empty frame. Server-side
+  #                            VAD drops about one syllable at each cut.
+  #   punctuate=true           punctuation restoration.
+  #   speaker_embedding=true   returns the 192-dim vector; without it the
+  #                            voiceprint matcher has no input.
+  wsUrl: ws://127.0.0.1:8621/asr/stream?vad=none&punctuate=true&speaker_embedding=true
+
+  audio_volume:
+    enabled: true
+    card_id: "__AUDIO_CARD_ID__"
+    device_id: "0"
+    capture_volume: 80
+    mic_boost: 20
+
+  # Local VAD. Must stay paired with `?vad=none` above — both off means the
+  # stream never finalizes and nothing is ever recognized; both on means two
+  # VADs fight over the cut points.
+  vad:
+    enabled: true
+    provider: silero_vad
+    modelPath: models/vad/silero_vad/silero_vad.onnx
+    threshold: 0.25
+    minSilenceDuration: 0.7
+    minSpeechDuration: 0.25
+    maxSpeechDuration: 10.0
+    windowSize: 512
+    # Must be > 0: cut exactly at the VAD boundary and sensevoice_rknn
+    # degrades reliably. Do not tune this against a small corpus — above 0.2
+    # the ranking of values is fp16 rounding noise, not a padding requirement.
+    speechPadSeconds: 0.5
+    bufferSizeSeconds: 10.0
+    numThreads: 1
+
+  # Voiceprint matching. OVS returns the embedding and makes no identity
+  # judgement (deliberately stateless), so the registry and threshold live
+  # here. Thresholds carried over from the asr-service production values.
+  speaker:
+    enabled: __SPEAKER_ENABLED__
+    dataDir: ./voiceprints
+    threshold: 0.4
+    minAudioSeconds: 1.5
+    autoRegister: true
+    maxSpeakers: 10
+    namePrefix: "Speaker"
+
+  # Transcript files. This is the solution's output: one JSON per finalized
+  # utterance under cache_dir. Upstream calls it a cache because it also
+  # buffers for a remote uploader; with no `remote:` block configured, nothing
+  # drains it and the files are the deliverable.
+  #
+  # Nothing rotates this directory. Set a retention routine before the box
+  # runs for months.
+  asr_cache:
+    enabled: true
+    cache_dir: ./recordings/cache/asr
+    cache_expiry: 0
+    cleanup_interval: 1h
+    max_cache_size: 100000
+    max_retries: 0
+    retry_interval: 30s
+    http_batch:
+      # Off, and it must stay off in this package: there is no backend to
+      # upload to.
+      enabled: false

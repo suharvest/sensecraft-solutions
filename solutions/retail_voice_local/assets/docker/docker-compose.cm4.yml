@@ -1,0 +1,120 @@
+# Retail Voice — Local Transcription, reRouter CM4 (CPU-only).
+#
+# Two containers, no cloud service, no watchtower:
+#   speech        OpenVoiceStream, Paraformer streaming ASR on the CPU
+#   voice-client  capture from the reSpeaker XVF3800, local VAD, writes
+#                 transcripts to disk
+#
+# Derived from openvoicestream/deploy/docker-compose.rpi.yml (same CPU/ONNX
+# image line) and from smart_retail_voice_ai/assets/docker/docker-compose.yml
+# (the capture container). Three things are deliberately different from that
+# older file: the cloud reporting path is not configured, watchtower is gone
+# (a store box must not silently swap its own image), and both containers have
+# bounded logs.
+#
+# Not measured on this SoC. The RPi4 / CM4 `asr_zh_en` row in the upstream
+# bench matrix (openvoicestream/docs/perf-test-runbook.md) is still TBD, so
+# treat CM4 throughput as unknown until a pilot says otherwise.
+
+services:
+  speech:
+    # Pushed and reachable: sha256:dd7760bf5a99c77c1eee28043e8175371e6056a3060ddc0c54782946f80deeb9
+    # (verified with `docker manifest inspect`, 2026-09-05). This is the CPU /
+    # ONNX line; it contains no RKNN or TensorRT artifacts.
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-20260721}
+    container_name: openvoicestream
+    init: true
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    volumes:
+      - speech-models:/opt/models
+      - seeed-local-voice-data:/opt/seeed-local-voice/data
+    environment:
+      # ASR-only profile for a 4 GB Cortex-A72 board: Paraformer streaming via
+      # sherpa-onnx, no TTS. See openvoicestream/configs/profiles/
+      # rpi4-asr-zh-en.json — `execution_policy.mode` is `exclusive`, so this
+      # board runs one recognition at a time by design.
+      - OVS_PROFILE=${OVS_PROFILE:-rpi4-asr-zh-en}
+      - OVS_PROFILE_DEFAULT=rpi4-asr-zh-en
+      - OVS_LOG_FORMAT=json
+      # Admin endpoints stay loopback-only while this is empty.
+      - OVS_ADMIN_KEY=
+      - LANGUAGE_MODE=${LANGUAGE_MODE:-zh_en}
+      - MODEL_DIR=/opt/models
+      - ASR_BACKEND=sherpa
+      - STREAMING_ASR_PROVIDER=cpu
+      - OFFLINE_ASR_PROVIDER=cpu
+      - ENSURE_OFFLINE_ASR=1
+      # Two threads, matching the profile. Four cores minus the capture client
+      # and the VAD leaves little more than that.
+      - STREAMING_ASR_NUM_THREADS=2
+      # Punctuation (CT-Transformer, 294 MB) and speaker embedding (CAM++,
+      # 28 MB) are optional on this board — each is an extra model resident in
+      # 4 GB of RAM. Both default off here; the device YAML exposes them.
+      - OVS_PUNCT=${OVS_PUNCT:-0}
+      - OVS_SPEAKER_EMB=${OVS_SPEAKER_EMB:-0}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # First boot downloads the ASR model set before uvicorn accepts
+      # connections. 600s is a budget, not a measurement — no CM4 first-boot
+      # timing has been recorded.
+      start_period: 600s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  voice-client:
+    # NOT PUBLISHED. The local-output build lives on branch feature/c4-harden
+    # of sensecraft_voice/sensecraft-voice-client; no `c4-*` tag exists in the
+    # registry (checked 2026-09-05: `docker manifest inspect` on
+    # sensecraft-voice-client:c4 and :c4-local both return "not found").
+    # Before verifying this preset, build that branch and tag it as below, or
+    # override VOICE_CLIENT_IMAGE.
+    #
+    # The published v0.4 tag (sha256:164d4022b8859046d8813a99cf2e79055c4c4de7d
+    # 67c61fc7ecb354244b4a056) is NOT a substitute: it speaks the older
+    # sensecraft-asr-server WebSocket protocol, has no local VAD, and reports
+    # to the cloud rather than to disk.
+    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client:c4-local}
+    container_name: sensecraft-voice-client
+    depends_on:
+      speech:
+        condition: service_healthy
+    network_mode: host
+    devices:
+      - /dev/snd
+    group_add:
+      - audio
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      # ALSA card/device of the reSpeaker XVF3800. `arecord -l` on the device
+      # prints them; the deployment asks for the card id.
+      - AUDIO_CARD_ID=${AUDIO_CARD_ID:-1}
+      - AUDIO_DEVICE_ID=${AUDIO_DEVICE_ID:-0}
+    volumes:
+      # Read-only config. Placeholders in it are substituted by the deploy
+      # step before upload; see assets/docker/config/voice-client.yaml.
+      - ./config/voice-client.yaml:/app/config.yaml:ro
+      # The single output directory. Transcripts land in cache/asr/, audio in
+      # voice/, the voiceprint registry in voiceprints/.
+      - ${OUTPUT_DIR:-/data-iot/retail-voice}:/app/recordings
+      - ${OUTPUT_DIR:-/data-iot/retail-voice}/voiceprints:/app/voiceprints
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  speech-models:
+    name: speech-models
+  seeed-local-voice-data:
+    name: seeed-local-voice-data
