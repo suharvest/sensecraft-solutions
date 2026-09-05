@@ -1,6 +1,16 @@
+# Single-container application stack. The image carries the FastAPI server and
+# the built Vue frontend; nothing else is needed on the host beyond Docker.
+#
+# IMAGE TAG NOT PUBLISHED YET.
+# seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05 is the tag this
+# package targets, built from solution-indoor-positioning @ feature/outdoor. It
+# has not been pushed. The previously used untagged (latest) image is the
+# pre-outdoor code: no GNSS positioning, no geofences, no floor-plan
+# georeferencing, no PMTiles switch. Build and push that tag, or retag a local
+# build under the same name, before deploying.
 services:
   app:
-    image: seeedcloud/sensecraft-indoor-positioning
+    image: seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05
     container_name: indoor-positioning
     ports:
       - "5173:5173"
@@ -9,9 +19,24 @@ services:
       - ./db:/app/db/
       - ./config:/app/server/config/json
       - ./uploads:/app/uploads
+      # Offline basemap. The application only reads this archive, so it is
+      # mounted read-only; it is served through the existing StaticFiles mount
+      # for /uploads, no extra web server. Build the archive with
+      # `pmtiles extract <source> data/pmtiles/<name>.pmtiles --bbox=w,s,e,n
+      # --maxzoom=18` (see the guide). An empty or missing directory is fine:
+      # the map falls back to the online OpenStreetMap raster source and logs
+      # one console error.
+      - ./data/pmtiles:/app/uploads/pmtiles:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5173/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    # Bounded logs: without this the json-file driver grows without limit on a
+    # long-running site deployment.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

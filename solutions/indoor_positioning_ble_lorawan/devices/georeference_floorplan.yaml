@@ -1,0 +1,99 @@
+version: "1.0"
+id: georeference_floorplan
+name: Georeference the Floor Plan
+type: manual
+
+# Why manual: georeferencing is an interactive drag/rotate/scale operation in the
+# dashboard. There is no deployer type that can drive it, and the only automatable
+# surface is PUT /api/configuration/dashboard/maps/{mapName}/registration, which
+# still needs the four numbers a human produces by aligning the image. The last
+# substep is the verification: reload the browser and confirm the registration
+# survived (it lives in dashboard_config.json, not in the database).
+
+steps:
+  - id: upload_floorplan
+    name: Upload the floor plan and set its real-world size
+    name_i18n:
+      zh: 上传平面图并填写实际尺寸
+    description: >-
+      In Configuration, create or open the map, upload the floor plan image and
+      enter the area it covers in metres (width x height). These metres are what
+      the registration scales against, so measure them on site rather than
+      guessing. Verified with a 1000x800 px image on a 50 m x 40 m map.
+    description_i18n:
+      zh: >-
+        在配置页新建或打开地图，上传平面图，并填写它覆盖的实际尺寸（宽 x 高，单位米）。
+        配准的缩放就是以这个米数为基准，所以要现场量，不要估。实测用的是 1000x800 px
+        的图片配 50 m x 40 m 的地图。
+    optional: false
+  - id: enter_registration_mode
+    name: Switch the outdoor map into registration mode
+    name_i18n:
+      zh: 在室外地图进入配准模式
+    description: >-
+      Pick the Outdoor entry in the map dropdown, pan to your site, then enter
+      registration mode and select the floor plan. The first guess is the current
+      view centre, true north, scale 1. If the map already has a registration,
+      editing starts from the saved values instead.
+    description_i18n:
+      zh: >-
+        在地图下拉里选“室外”，把视野移到你的站点，然后进入配准模式并选中那张平面图。
+        初猜是当前视图中心、正北、scale 1；地图已经有配准参数时，从保存值开始编辑。
+    optional: false
+  - id: align_floorplan
+    name: Drag, rotate and scale until the plan lines up
+    name_i18n:
+      zh: 拖动、旋转、缩放直到对齐
+    description: >-
+      Use Drag to move the plan, Rotate to spin it, Scale to resize it. The aspect
+      ratio is locked, so the plan cannot be stretched out of shape. The toolbar
+      fields (origin lat, origin lon, rotation in degrees, scale) and the image
+      stay in sync in both directions - type a number and the image moves, drag
+      the image and the numbers change. Cancel discards the draft, Reset returns
+      to the first guess.
+    description_i18n:
+      zh: >-
+        Drag 平移、Rotate 旋转、Scale 缩放。宽高比锁定，图片不会被拉变形。
+        工具条上的四个参数（原点纬度、原点经度、旋转角、缩放）与图片双向同步：
+        改数字图片跟着动，拖图片数字跟着变。Cancel 丢弃草稿，Reset 回到初猜。
+    optional: false
+  - id: save_registration
+    name: Save the registration
+    name_i18n:
+      zh: 保存配准
+    description: >-
+      Save; the dashboard confirms with "Registration saved." Saving requires an
+      admin session - a guest session gets 403 on the registration endpoint. The
+      request is rejected if |latitude| > 85 degrees or scale <= 0. Keep the
+      origin within about 2 km of the area you care about: that is the radius
+      within which the measured projection error stays at or below 0.21 m.
+    description_i18n:
+      zh: >-
+        点保存，面板会提示 “Registration saved.”。保存需要 admin 会话，guest 会话在
+        配准接口上返回 403。|纬度| > 85° 或 scale <= 0 会被拒绝。原点要放在你关心的
+        区域 2 km 以内：实测的投影误差在这个半径内不超过 0.21 m。
+    optional: false
+  - id: verify_registration_persists
+    name: "Verify: reload the browser, the registration is still there"
+    name_i18n:
+      zh: 验证：刷新浏览器后配准仍在
+    description: >-
+      Reload the page, go back into registration mode and select the same floor
+      plan. The four parameters must still be the values you saved. If they came
+      back as the first guess, the save did not land - check that you were logged
+      in as admin, then check that maps[].map.registration exists in
+      server/config/json/dashboard_config.json inside the container. Second check
+      on the same screen: a tracker positioned on that floor plan and its metric
+      trail now draw on the same Leaflet map as the WGS84 trail, with no line
+      joining the two across the switch point.
+    description_i18n:
+      zh: >-
+        刷新页面，重新进入配准模式并选中同一张平面图，四个参数应当仍是保存值。
+        如果回到了初猜，说明没存上——先确认登录的是 admin，再确认容器里
+        server/config/json/dashboard_config.json 的 maps[].map.registration 存在。
+        同一屏上的第二项检查：落在这张平面图上的设备实时点与 metric 轨迹段，
+        现在与 WGS84 轨迹段画在同一张 Leaflet 图上，且两段在切换点之间不连线。
+    optional: false
+
+name_i18n:
+  zh: 平面图配准

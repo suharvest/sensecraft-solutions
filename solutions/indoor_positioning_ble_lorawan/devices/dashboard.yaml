@@ -12,10 +12,10 @@ user_inputs:
 web_dashboard:
   url: "http://{{host}}:5173"
   title: Indoor Positioning Dashboard
-  description: View live tracker positions and floor plan (login admin / 83EtWJUbGrPnQjdCqyKq)
+  description: View live tracker positions, floor plans and the outdoor map. The map dropdown has one entry per floor plan plus an Outdoor entry; there is also a standalone /outdoor-map route for wall displays. Login admin / 83EtWJUbGrPnQjdCqyKq
   title_i18n:
-    zh: 室内定位面板
+    zh: 室内外定位面板
   description_i18n:
-    zh: 查看实时定位与楼层平面图（登录 admin / 83EtWJUbGrPnQjdCqyKq）
+    zh: 查看实时定位、楼层平面图与室外地图。地图下拉里每张平面图一条，外加一条“室外”；另有独立路由 /outdoor-map 便于投屏。登录 admin / 83EtWJUbGrPnQjdCqyKq
 name_i18n:
   zh: 打开定位面板
