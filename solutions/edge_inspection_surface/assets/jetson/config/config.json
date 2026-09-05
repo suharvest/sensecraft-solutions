@@ -42,5 +42,27 @@
     "bind": "0.0.0.0",
     "port": 8080,
     "preview_fps": 5
+  },
+  "anomaly": {
+    "enabled": false,
+    "path": "/models/efficientad_s_pcb.onnx",
+    "accelerator": "cpu",
+    "input_size": [256, 256],
+    "threshold": 0.0,
+    "queue_size": 2,
+    "join_timeout_ms": 500,
+    "heatmap_enabled": true,
+    "heatmap_dir": "/tmp/anomaly-heatmaps",
+    "heatmap_max_files": 200
+  },
+  "vlm": {
+    "enabled": false,
+    "base_url": "http://127.0.0.1:8100",
+    "timeout_ms": 4000,
+    "trigger": {
+      "min_confidence": 0.5,
+      "on_anomaly": true,
+      "min_interval_s": 5.0
+    }
   }
 }

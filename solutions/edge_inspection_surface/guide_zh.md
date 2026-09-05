@@ -41,6 +41,14 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
    `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx`；
    两种方式都会做校验。
 6. 部署前先定好判定阈值。0.35 是冻结值；方案页给出了 0.25 与 0.45 的代价对照。
+7. **选一个检测器 track。** `config/config.json` 里的 `model.track`
+   （部署输入项 **检测器 Track**）可选 `yolox`（默认，也是唯一在这块板上
+   实测过的 track——291 s engine 构建、本页所有 Jetson 时延数字都是它的）、
+   `dfine` 或 `rtdetrv2`。两个 DETR track 在 CPU-only 对比里（单种子——见
+   方案页"检测器选型"一节）mAP50 持平或略好、等精度下召回更高，但还没有
+   在 Orin 上构建过 engine 或计过时；选它们会像 `yolox` 一样重新构建
+   TensorRT engine，只是没有事先的耗时预期。两个 track 都沿用同一个
+   0.35 冻结阈值，而这个阈值是按 `yolox` 的分数分布标定的，不是它们的。
 
 ### 故障排查
 
@@ -186,6 +194,55 @@ unit 1 的线圈 0 与 1 上。
 
 ---
 
+## 步骤 4: 启用无监督异常检测（可选） {#enable_anomaly_jetson type=manual required=false verify=true config=devices/enable_anomaly.yaml}
+
+可选。在检测器旁边跑一个第二模型（EfficientAD-S，只用无缺陷图训练），
+让一帧即便是检测器从未学过命名的缺陷类型，也能被标成"跟 OK 参考集不像"。
+它不进判定路径——跳过这一步，介绍页上的每一个数字都照样成立。
+
+### 前置条件
+
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+- EfficientAD-S 的 ONNX 已拷到设备上——它还没上 CDN，与检测器同一个许可
+  确认关卡。见该步骤第一个子步骤。
+- 如果你打算把 `anomaly_score` 用在"看看机制能不能跑通"之外的地方，
+  需要用真实检测相机采集你自己的 OK 样本。随包评测的 OK 集是 DeepPCB
+  的模板扫描图，不是这台相机拍的——在拿它标定 `anomaly.threshold` 之前，
+  先看方案页"无监督异常检测"一节。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| MQTT 事件里从来不出现 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启；检查容器日志里 `anomaly.path` 对应的模型加载是否报错 |
+| 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 大概率是 `anomaly.threshold` 直接抄了本方案自己的评测——那个阈值是在 DeepPCB 图上标定的，不是你相机的 OK 图。先用自己的 OK 集重新标定 |
+| 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 这是已知限制，不是 bug——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号（`heatmap_ref` 加分数），不要用单一帧级门限 |
+
+## 步骤 5: 启用 VLM 解释（可选） {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+可选。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，通常跑在另一台
+Orin 上），让低置信度或只有异常分数的帧在旁路 MQTT 主题上拿到一段人话
+解释。这条路径不进帧循环、不改变判定——跳过这一步，介绍页上的每一个数字
+都照样成立。
+
+### 前置条件
+
+- 已经跑起来、且这台设备能访问到的 `edge-vision-vlm` 实例——本方案不部署
+  也不打包这个服务。
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+- 要用 `anomaly` 触发条件，得先启用步骤 4——否则只有 `low_confidence`
+  生效。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy`——见该步骤第二个子步骤 |
+| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态，不是崩溃 |
+| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立。这应该按 VLM 客户端的 bug 处理，而不是触发条件配置的问题 |
+
+---
+
 ## 套餐: IP 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
 
 更便宜、也未经验证的那条路径。INT8 HEF 已编译，量化损失在编译器 emulator 上
@@ -253,6 +310,7 @@ crazing 弱、误报无法测量这两条在这里同样成立。
 | `docker compose` 去读 `._docker-compose.yml` 报错 | 从 macOS 上传时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；手工拷贝的话跑 `find . -name '._*' -delete` |
 | 能出框但召回明显低于方案页 | 这条路径上属预期——level-0 版本在 emulator 子集上比 CPU 基准掉了 0.03 mAP50。确认你跑的是默认的 level-1 HEF |
 | 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |
+| 想在这块板上跑 `dfine` 或 `rtdetrv2` 检测器 track | 不支持——Hailo Dataflow Compiler 3.31.0 的解析器对两者都拒绝（可变形注意力算子 `GridSample`/`GatherElements`/`TopK` 在 Hailo-8 上没有实现；见方案页"检测器选型"一节）。这个套餐只提供 `yolox` |
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml default=true}
 
@@ -381,3 +439,47 @@ unit 1 的线圈 0 与 1 上。
 | MQTT 有检测结果但寄存器全 0 | 你读的从站号与部署时写入的不是同一个，或者正好读在一帧 OK 上 |
 | 数值看着合理但框对不上 | HR 2-5 是归一化 x10000 的中心点与宽高，不是像素。除以 10000 再乘画面尺寸 |
 | 接了多路相机却只有一组寄存器 | 这是设计如此——契约只定义了一组寄存器，多路时最后一次判定生效。要按路独立寄存器得先改契约 |
+
+---
+
+## 步骤 4: 启用无监督异常检测（可选） {#enable_anomaly_hailo type=manual required=false verify=true config=devices/enable_anomaly.yaml}
+
+可选，与 Jetson 套餐相同。在 CPU 上跑 EfficientAD-S（`accelerator: "cpu"`——
+这个模型目前没有 Hailo 后端），在检测器旁边跑，让一帧能被标成"跟 OK
+参考集不像"。这条路径不进判定路径。
+
+### 前置条件
+
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+- EfficientAD-S 的 ONNX 已拷到设备上——它还没上 CDN。
+- 在信任 `anomaly.threshold` 之前，先用真实检测相机采集你自己的 OK
+  样本——随包评测的 OK 集是 DeepPCB 的模板扫描图，不是这台相机拍的。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| MQTT 事件里从来不出现 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启；检查容器日志里 `anomaly.path` 对应的模型加载是否报错 |
+| 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 阈值大概率是抄了本方案自己的评测，在 DeepPCB 图上标定，不是你相机的 OK 图。用自己的 OK 集重新标定 |
+| 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 已知限制——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号，不要用单一帧级门限 |
+
+## 步骤 5: 启用 VLM 解释（可选） {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+可选，与 Jetson 套餐相同。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，
+通常跑在另一台 Orin 上——树莓派本身不跑它），让低置信度或只有异常分数的帧
+在旁路 MQTT 主题上拿到一段人话解释。这条路径不进帧循环、不改变判定。
+
+### 前置条件
+
+- 已经跑起来、且这台树莓派能访问到的 `edge-vision-vlm` 实例——本方案不
+  部署也不打包这个服务。
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+- 要用 `anomaly` 触发条件，得先启用步骤 4。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy` |
+| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态 |
+| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立 |

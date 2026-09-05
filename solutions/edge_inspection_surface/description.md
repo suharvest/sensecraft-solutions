@@ -162,6 +162,157 @@ a Hailo-8. Full-validation accuracy on the board is still outstanding.
 | Jetson image | 375 MB | `edge-inspection-jetson:0.1.0-dev`; host TensorRT and CUDA mounted rather than baked in | This measurement, `2026-09-05-m2-orin` |
 | Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; cross-built for arm64 on macOS, never run on a Pi | Cross-build measurement, `2026-09-05-m3-hef` §3.1 |
 
+## Detector Selection: Baseline vs Advanced
+
+YOLOX-Tiny is the default and the only track measured on Jetson or shipped on
+the Hailo preset. Two NMS-free DETR architectures — D-FINE-S and RT-DETRv2-S,
+both Apache-2.0, both fine-tuned from their COCO-only checkpoint (no
+Objects365-trained weights used or distributed) — were evaluated on the same
+CPU golden run for a same-conditions comparison. `model.track` in
+`config/config.json` selects which one runs; the Jetson deploy step exposes it
+as a **Detector Track** choice.
+
+| Detector | mAP50 | P / R at frozen 0.35 | Whole-frame misses | CPU `detect()` P50 / P95 / P99 (ms) |
+|---|---:|---|---:|---|
+| YOLOX-Tiny (default) | 0.7574 | 0.7632 / 0.6983 | 7/290 | 30.2 / 35.7 / 52.7 |
+| D-FINE-S | 0.7499 | 0.4956 / 0.8017 | **0/290** | 54.0 / 68.1 / 95.8 |
+| RT-DETRv2-S | 0.7317 | 0.4575 / 0.7847 | 1/290 | 83.1 / 93.8 / 126.1 |
+
+All three: same 290-image NEU6 val split (706 boxes), same 640x640 static
+batch-1 input, same machine (arm64 Mac, onnxruntime CPUExecutionProvider),
+single seed per track, frozen threshold 0.35. Source:
+`evaluation/runs/2026-09-06-a1-cpu/results.md`.
+
+**mAP is close; the frozen threshold is not a fair comparison across
+architectures.** 0.35 was calibrated on YOLOX's `obj x cls` score
+distribution, not re-calibrated per architecture — that is why P/R above looks
+lopsided (DETR's sigmoid decoder scores are distributed differently). At
+matched precision instead of matched threshold (P approx. 0.81-0.87), D-FINE's
+recall is 2-7 points higher than YOLOX's and whole-frame misses drop to 20
+against YOLOX's 38. **This is a single-seed observation, not a confirmed
+result** — each track has run one seed so far, and three are needed to call it
+settled.
+
+**crazing does not improve with a different architecture.** AP50 stays
+0.30-0.36 across all three (YOLOX 0.360, D-FINE 0.302, RT-DETRv2 0.310) — the
+same conclusion the Jetson boundary caveats already state for YOLOX alone: a
+model-capability limit, not something a different detector head fixes.
+
+**Hailo-8 does not support either DETR track — the Raspberry Pi preset stays
+on YOLOX-Tiny.** The Hailo Dataflow Compiler 3.31.0 parser rejects
+RT-DETRv2-S outright (`GridSample` x9, `GatherElements` x3, `TopK` x2 all
+reported unsupported — deformable-attention operators with no Hailo-8
+lowering) and crashes before it can even produce that list for D-FINE-S (a
+`MatMul`-shape assumption in the parser itself, not a supported/unsupported
+verdict). `dfine` and `rtdetrv2` are not offered as `detector_track` options
+on the Hailo deploy step for this reason.
+
+**RKNN converts without error but is unverified on hardware.** Both ONNX
+files convert to `.rknn` for RK3576 (FP16, no quantization) successfully, but
+18 `GridSample` nodes (9 per model) fall back to a custom-operator lowering
+with no NPU implementation of their own — a successful conversion does not
+mean that part of the graph runs on the NPU. No RK3576 device was reachable
+to confirm output parity against CPU, so this is unverified, not a negative
+result.
+
+Source: `tracks/detector/PROVENANCE.md` (licence and commit lock for both
+upstreams), `evaluation/runs/2026-09-06-a1-probe/results.md` (Hailo/RKNN
+probe).
+
+## Unsupervised Anomaly Detection (Optional)
+
+An optional second model (anomalib EfficientAD-S, Apache-2.0) can run
+alongside the detector, trained only on defect-free ("OK") reference images,
+to flag frames that look unlike that reference set — including defect
+*types* the detector was never trained to name. It never replaces the
+detector's verdict: `anomaly_score` is an additive, independent MQTT field
+(`contracts/MQTT.md`), and `anomaly_verdict` is never merged into the
+top-level `verdict`.
+
+| Metric | Value | Conditions | Source |
+|---|---|---|---|
+| Pixel-level AUROC | **0.8752** | DeepPCB `pcb` OK/anomaly split: 205 OK val + 213 OK test + 213 defect test images | `evaluation/runs/2026-09-05-a2-cpu/results.md` |
+| Pixel-level AUPRO (FPR <= 0.30) | **0.6494** | Same run, 1177 connected defect regions | Same run |
+| Image-level AUROC | **0.5201** (0.5 = random) | Same run — see caveat below | Same run |
+| Unseen-defect recall, leave-one-class-out (pixel/region level) | **0.225 - 0.955**, uneven by class (open 0.955, spur 0.225) | Held-out class never enters calibration; the model has never seen its label | Same run §2 |
+| Dual-path latency overhead (detector + EfficientAD, CPU reference) | **+139 ms P95/frame** | queue=2, 500 ms timeout (the shipped default); 120/120 frames joined, 0 dropped | Same run §3 |
+
+**Pixel/region-level scoring is usable; image-level is not, and 12 aggregation
+methods were tried and none fixed it.** Turning the pixel-level heatmap into a
+single per-image score (max, top-k mean, Otsu-foreground-mask max,
+Gaussian-smoothed max, connected-area / connected-region fraction) leaves
+image AUROC at 0.495-0.530 across all twelve — inside the noise band around
+random. The cause is not a sparse noise spike at the image border (cropping
+the border made no measurable difference); it is a diffuse, whole-image score
+offset between the OK set (scanned templates) and the defect set (real
+photographs) that pollutes every single-scalar summary of the pixel map in
+the same way. Pixel/region metrics stay valid because they only compare
+inside one anomaly image (in-box vs. out-of-box), where that offset cancels
+out; image-level metrics compare two different images from two different
+sources, where it does not.
+
+**The OK reference set must be sourced the same way as the frames being
+tested — the set behind the numbers above is not.** NEU6, this package's own
+detector training data, has no defect-free images at all: every one of its
+1799 images carries at least one annotated defect. The anomaly model above is
+therefore trained and evaluated on a different, MIT-licensed dataset
+(DeepPCB) whose OK images are scanned board templates while its defect images
+are photographs of a different, physical board — that template-vs-photograph
+gap is exactly the diffuse offset described above, and it does not represent
+what a real line's OK/defect pair looks like when both are captured by the
+same camera. **Before enabling `anomaly.enabled`, collect your own OK-sample
+images from the actual inspection camera and recalibrate `anomaly.threshold`
+on them** — do not treat the pixel AUROC above as a promise for your line's
+images; it demonstrates the mechanism, not your dataset's number.
+
+Config: `anomaly.enabled` (default `false`) and `anomaly.threshold` in
+`config/config.json`, additive to the schema — leaving it off reproduces
+every other measurement on this page exactly. When enabled, read
+`anomaly_score` as a pixel/region-level signal alongside `heatmap_ref`, not a
+frame-level normal/abnormal switch; the number above is why.
+
+Source: `tracks/anomaly/README.md`, `tracks/anomaly/PROVENANCE.md` (anomalib
+`lib/v2.6.0`, Apache-2.0), `evaluation/runs/2026-09-05-a2-cpu/results.md`,
+`evaluation/runs/2026-09-05-a2-aggregation/results.md`.
+
+## Optional: VLM Explanations
+
+The runtime can hand a frame to a shared external VLM service
+(`edge-vision-vlm`) for a plain-language explanation. This is a side channel,
+not a second judge: it never enters the frame loop, never changes `verdict`,
+and a disabled, slow or unreachable service produces exactly the same OK/NG
+stream as without it.
+
+- **Trigger** (either condition, a box always wins). `low_confidence` — the
+  primary defect's score is below `vlm.trigger.min_confidence`. `anomaly` —
+  `anomaly_score` crosses `anomaly.threshold` **and the detector produced
+  zero boxes**, so there is nothing machine-readable to hand the operator
+  otherwise. Rate-limited by `vlm.trigger.min_interval_s` per stream; never a
+  per-frame call.
+- **Side channel.** A bounded, drop-oldest queue plus an independent worker
+  thread submit the call; the main event on `inspection/<stream-id>/results`
+  publishes on its usual schedule regardless of whether the VLM answers. If
+  it does, a second event follows on `inspection/<stream-id>/explanations`,
+  keyed to the same `frame_id`.
+- **Does not block the main chain.** A hard client timeout abandons the
+  call; repeated failures open a circuit breaker for a cool-off period,
+  probed by `GET /healthz`.
+- **Latency is not a per-frame number to plan around.** Measured on the
+  shared service's own evaluation hardware — an NVIDIA Spark GB10
+  workstation, **not this device** — generation alone with Qwen3-VL-2B bf16
+  is P50 approx. 3.2 s / P95 approx. 7.2 s at `max_tokens=320`. That is why
+  the call sits off the hot path in the first place; no Orin-specific
+  latency has been measured for this integration.
+
+Enable it by setting `vlm.enabled: true` and pointing `vlm.base_url` at a
+reachable `edge-vision-vlm` instance; see the guide for the walk-through,
+including the `no_proxy` requirement on the device.
+
+Source: upstream `README.md` "VLM 解释" section,
+`contracts/explanation-event.schema.json`,
+`evaluation/runs/2026-09-06-mvlma-stub-localhost/results.md` (Mac stub-backend
+integration test, not a real-model latency measurement).
+
 ## Output Interfaces
 
 | Output | Where | Content |
@@ -221,10 +372,18 @@ prepared to be the first to run it.
 
 ## Licensing note
 
-The runtime code is Apache-2.0. The detection backbone is YOLOX
+The runtime code is Apache-2.0. The default detection backbone is YOLOX
 (Megvii-BaseDetection), also Apache-2.0 — deliberately, to avoid the AGPL terms
 that come with Ultralytics weights. No Ultralytics code or weights are used
-anywhere in this solution.
+anywhere in this solution. The two optional advanced detector tracks are
+likewise Apache-2.0 upstream (D-FINE, Peterande/D-FINE; RT-DETRv2,
+lyuwenyu/RT-DETR), fine-tuned only from their COCO-licensed checkpoint — no
+Objects365-trained weights are downloaded or distributed, since upstream
+itself states that licence is unconfirmed for those (`tracks/detector/PROVENANCE.md`).
+The optional unsupervised-anomaly model (anomalib EfficientAD-S) is also
+Apache-2.0, including its pretrained teacher weights
+(`tracks/anomaly/PROVENANCE.md`); its OK/anomaly training data (DeepPCB) is
+MIT-licensed and distinct from NEU-DET.
 
 **The training data is the unresolved part.** The model is trained on a
 re-hosted copy of NEU-DET. The Roboflow page for that copy states CC BY 4.0, but
