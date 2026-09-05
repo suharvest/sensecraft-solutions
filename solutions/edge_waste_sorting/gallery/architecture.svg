@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Trigger and camera to edge device to MQTT, HTTP and GPIO outputs">
+  <title>Waste sorting data path</title>
+  <!--
+    Drawn for this solution. Contains no dataset imagery of any kind: only
+    boxes, arrows, product names, protocol names and port numbers. Deliberately
+    near-wordless so one asset serves both the English and Chinese pages.
+  -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6472"/>
+    </marker>
+    <style>
+      .box   { fill:#ffffff; stroke:#5b6472; stroke-width:1.6; }
+      .core  { fill:#eef3f8; stroke:#2f6fb3; stroke-width:2; }
+      .opt   { fill:#ffffff; stroke:#9aa5b1; stroke-width:1.4; stroke-dasharray:5 4; }
+      .line  { stroke:#5b6472; stroke-width:1.6; fill:none; marker-end:url(#arrow); }
+      .dash  { stroke:#9aa5b1; stroke-width:1.4; fill:none; stroke-dasharray:5 4; marker-end:url(#arrow); }
+      .t     { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; fill:#1f2733; }
+      .h     { font-size:16px; font-weight:600; }
+      .s     { font-size:13px; fill:#5b6472; }
+      .p     { font-size:12px; fill:#5b6472; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .m     { font-size:12px; fill:#2f6fb3; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .g     { font-size:11px; fill:#9aa5b1; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="900" height="440" fill="#ffffff"/>
+
+  <!-- trigger -->
+  <rect class="box" x="20" y="66" width="152" height="76" rx="8"/>
+  <text class="t h" x="96" y="98" text-anchor="middle">Trigger</text>
+  <text class="t p" x="96" y="120" text-anchor="middle">button / HTTP / motion</text>
+
+  <!-- camera -->
+  <rect class="box" x="20" y="196" width="152" height="86" rx="8"/>
+  <text class="t h" x="96" y="228" text-anchor="middle">Camera</text>
+  <text class="t s" x="96" y="250" text-anchor="middle">USB / RTSP</text>
+  <text class="t p" x="96" y="268" text-anchor="middle">1 item per shot</text>
+
+  <line class="line" x1="174" y1="104" x2="248" y2="150"/>
+  <line class="line" x1="174" y1="239" x2="248" y2="215"/>
+
+  <!-- edge device -->
+  <rect class="core" x="252" y="72" width="300" height="290" rx="10"/>
+  <text class="t h" x="402" y="102" text-anchor="middle">Jetson Orin  /  Pi 5 + Hailo-8</text>
+  <line x1="276" y1="116" x2="528" y2="116" stroke="#c3d2e2" stroke-width="1"/>
+
+  <rect class="box" x="276" y="130" width="252" height="44" rx="6"/>
+  <text class="t s" x="402" y="149" text-anchor="middle">debounce 800 ms</text>
+  <text class="t p" x="402" y="166" text-anchor="middle">merge, don't queue</text>
+
+  <line class="line" x1="402" y1="176" x2="402" y2="192"/>
+
+  <rect class="box" x="276" y="194" width="252" height="44" rx="6"/>
+  <text class="t s" x="402" y="213" text-anchor="middle">classifier 224 x 224</text>
+  <text class="t p" x="402" y="230" text-anchor="middle">8 material classes</text>
+
+  <line class="line" x1="402" y1="240" x2="402" y2="256"/>
+
+  <rect class="box" x="276" y="258" width="252" height="44" rx="6"/>
+  <text class="t s" x="402" y="277" text-anchor="middle">China 4-way lookup</text>
+  <text class="t p" x="402" y="294" text-anchor="middle">table, not a 2nd head</text>
+
+  <text class="t p" x="402" y="332" text-anchor="middle">image stays on the device</text>
+
+  <!-- fan-out -->
+  <line class="line" x1="556" y1="152" x2="648" y2="120"/>
+  <line class="line" x1="556" y1="217" x2="648" y2="217"/>
+  <line class="line" x1="556" y1="282" x2="648" y2="314"/>
+
+  <rect class="box" x="652" y="86" width="228" height="70" rx="8"/>
+  <text class="t h" x="766" y="114" text-anchor="middle">MQTT</text>
+  <text class="t m" x="766" y="136" text-anchor="middle">1883  waste/&lt;id&gt;/results</text>
+
+  <rect class="box" x="652" y="182" width="228" height="70" rx="8"/>
+  <text class="t h" x="766" y="210" text-anchor="middle">HTTP</text>
+  <text class="t m" x="766" y="232" text-anchor="middle">8080  /trigger /preview</text>
+
+  <rect class="box" x="652" y="278" width="228" height="70" rx="8"/>
+  <text class="t h" x="766" y="306" text-anchor="middle">GPIO callback</text>
+  <text class="t m" x="766" y="328" text-anchor="middle">no pin binding</text>
+
+  <!-- optional VLM side channel -->
+  <rect class="opt" x="652" y="372" width="228" height="52" rx="8"/>
+  <text class="t s" x="766" y="394" text-anchor="middle">VLM fallback (optional)</text>
+  <text class="t g" x="766" y="412" text-anchor="middle">waste/&lt;id&gt;/fallback</text>
+  <path class="dash" d="M 402 344 L 402 398 L 648 398"/>
+</svg>

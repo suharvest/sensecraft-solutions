@@ -1,0 +1,264 @@
+# Waste sorting at the bin. Upstream repo: ~/project/edge-waste-sorting.
+#
+# Dataset licences are cleared for external use: TrashNet is MIT
+# (Copyright (c) 2017 Gary Thung) and Roboflow "Garbage Classification 3 —
+# Material Identification" is CC BY 4.0. Both licences permit redistribution
+# and derivative works with attribution; the attribution string is in
+# gallery/ATTRIBUTION.md and repeated in both description files.
+#
+# No dataset-derived image is committed anywhere in this package. The only
+# gallery asset is a schematic drawn for this solution.
+#
+# NOTHING HERE HAS RUN ON HARDWARE. Every figure on this page comes from
+# onnxruntime on an Apple M4 CPU. No preset carries `verified:`.
+version: "1.0"
+id: edge_waste_sorting
+name: Waste Sorting at the Bin
+name_i18n:
+  zh: 投放点垃圾分类
+
+intro:
+  summary: >-
+    Photograph one item on a trigger, return its material class plus the
+    Chinese four-way disposal category over MQTT, and hand the verdict to a
+    flap or indicator through a GPIO callback.
+  summary_i18n:
+    zh: >-
+      触发即拍一件物品，通过 MQTT 给出物料类别与中国生活垃圾四分类，
+      并把判定通过 GPIO 回调交给翻盖或指示灯。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/architecture.svg
+  gallery:
+    - type: image
+      src: gallery/architecture.svg
+      caption: Trigger to camera to device — one shot in, material class and Chinese four-way category out on MQTT, with a GPIO callback alongside
+      caption_i18n:
+        zh: 从触发到相机再到设备——拍一张进去，物料类别与中国四分类通过 MQTT 出来，旁边是 GPIO 回调
+  # No classification sample image is shipped. Both datasets permit
+  # redistribution, but the upstream repository keeps every dataset-derived
+  # image out of version control (data/raw, data/cls, data/crops and the
+  # evaluation overlays are all gitignored), and this package follows it.
+  # See gallery/ATTRIBUTION.md.
+  category: sensing
+  solution_type: solution
+  tags:
+    - waste-sorting
+    - image-classification
+    - mqtt
+    - gpio
+    - mobilenet
+    - siglip2
+    - open-vocabulary
+    - smart-bin
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: waste/<stream-id>/results
+      description: >-
+        One JSON message per classification, never one message per class.
+        Carries the material class, the Chinese four-way category looked up
+        from it, the top-3 with confidences, the trigger source, and a
+        reference to the captured image — never the image bytes. `category`
+        always equals `top3[0]` and `confidence` always equals
+        `top3[0].confidence`; both are checked before publishing, and a
+        payload that fails the contract is counted and dropped rather than
+        sent.
+      schema_type: json
+      payload_example: '{"type":"waste_sorting_result","version":"1.0.0","taxonomy_version":"material8/china4-v1","device":"orin-nx","stream_id":"bin1-cam1","frame_id":4207,"timestamp":1757030400123,"trigger":"button","inference_time_ms":3.7,"pipeline_ms":42.5,"category":{"class_id":4,"class_name":"plastic","china_category":"recyclable","china_category_zh":"可回收物"},"confidence":0.913,"top3":[{"rank":0,"class_id":4,"class_name":"plastic","confidence":0.913,"china_category":"recyclable"},{"rank":1,"class_id":2,"class_name":"glass","confidence":0.052,"china_category":"recyclable"},{"rank":2,"class_id":7,"class_name":"residual","confidence":0.021,"china_category":"residual"}],"image_ref":{"kind":"local","uri":"/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"},"model":{"name":"mobilenetv3s_waste8","backbone":"mobilenet_v3_small","input":"images:1x3x224x224","onnx_sha256":"51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e","accelerator":"tensorrt"}}'
+      description_i18n:
+        zh: >-
+          一次分类一条 JSON，不逐类别发。内容包括物料类别、由它查表得到的
+          中国四分类、带置信度的 top3、触发来源，以及所拍图片的引用——
+          不含图片字节。`category` 恒等于 `top3[0]`，`confidence` 恒等于
+          `top3[0].confidence`；两条在发布前都会检查，不合契约的 payload
+          计数并丢弃，不发出去。
+    - type: http
+      port: 8080
+      endpoint: /trigger, /preview.mjpg, /healthz, /events
+      description: >-
+        The runtime's own page and control surface. POST /trigger fires one
+        capture-and-classify (the `http` trigger source); /preview.mjpg is the
+        live view; /healthz carries inference time, the trigger and debounce
+        counters and the MQTT counters; /events lists the most recent results
+        with their top-3.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          运行时自带的页面与控制入口。POST /trigger 触发一次拍照分类
+          （`http` 触发源）；/preview.mjpg 是实时画面；/healthz 带推理耗时、
+          触发与去抖计数以及 MQTT 计数；/events 列出最近的结果与它们的 top3。
+    - type: mqtt
+      port: 1883
+      topic: waste/<stream-id>/fallback
+      description: >-
+        Optional side-channel event (`waste_fallback`) carrying a shared VLM
+        service's second opinion on one ambiguous item, keyed by frame_id to
+        the results event. It never enters the classification path and never
+        changes the main event's category; a missing fallback event only means
+        the VLM was slow, degraded or disabled. Off by default.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          可选的旁路事件（`waste_fallback`），携带外部共享 VLM 服务对某件
+          模糊物品的第二意见，按 frame_id 与 results 事件对齐。它不进分类
+          路径，也不改变主事件的 category；没有 fallback 事件只说明 VLM 慢、
+          降级或没开。默认关闭。
+
+  input_requirements:
+    - type: usb
+      description: >-
+        A camera looking down into the drop area, framed so one item fills a
+        meaningful part of the frame. The model classifies one object per
+        image — it has no detector and does not separate two items in one
+        shot. USB, RTSP and file sources are all accepted.
+      required: true
+      description_i18n:
+        zh: >-
+          一台俯视投放区的相机，取景要让单件物品在画面里占到有意义的比例。
+          模型一图一件——它没有检测器，同一张图里的两件物品分不开。
+          USB、RTSP 与文件源都支持。
+    - type: http
+      description: >-
+        Optional — a VLM service endpoint (edge-vision-vlm) reachable from the
+        host, only needed for the `waste_fallback` side channel. Without it,
+        leave `vlm.enabled` false.
+      required: false
+      description_i18n:
+        zh: >-
+          可选——一个从主机可达的 VLM 服务端点（edge-vision-vlm），
+          只有要用 `waste_fallback` 旁路时才需要。不需要就保持
+          `vlm.enabled` 为 false。
+
+  device_catalog:
+    recomputer_j40:
+      description: >-
+        Runs the classifier on TensorRT, and is the only device class on which
+        the optional open-vocabulary track is offered — a ViT-B/16 at 67 ms
+        per image on CPU needs an accelerator to be usable. No figure on this
+        page was taken on this board.
+      description_i18n:
+        zh: >-
+          用 TensorRT 运行分类器，也是唯一提供可选开放词汇 track 的设备类别——
+          ViT-B/16 在 CPU 上单图 67 ms，要能用就得有加速器。
+          本页没有任何一个数字取自这块板。
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j30:
+      description: >-
+        The smaller Orin Nano 8GB option. It carries the baseline classifier
+        the same way; the open-vocabulary track has not been sized for it.
+      description_i18n:
+        zh: >-
+          更小的 Orin Nano 8GB 选项。基线分类器跑法相同；
+          开放词汇 track 没有为它估过资源。
+      purchase:
+        require:
+          module: [orin_nano_8]
+    external_raspberry_pi5_hailo:
+      name: Raspberry Pi 5 + Hailo-8
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8
+      description: >-
+        A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. The baseline
+        MobileNetV3-Small HEF has not been compiled yet, so this preset ships
+        without a model file and the deploy step stops at the ABI gates.
+      description_i18n:
+        zh: >-
+          装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。基线 MobileNetV3-Small
+          的 HEF 尚未编译，因此这个套餐没有模型文件，
+          部署步骤会停在 ABI 关卡处。
+    generic_usb_camera:
+      name: USB / IP Camera
+      name_i18n:
+        zh: USB / IP 摄像头
+      description: Any USB or RTSP camera looking down into the drop area
+      description_i18n:
+        zh: 任意一台俯视投放区的 USB 或 RTSP 摄像头
+
+  presets:
+    - id: orin
+      name: Camera + reComputer J (Orin)
+      name_i18n:
+        zh: 摄像头 + reComputer J（Orin）
+      badge: Untested on hardware
+      badge_i18n:
+        zh: 未上板验证
+      description: >-
+        TensorRT FP16 on Jetson Orin, engine built on the device during
+        deployment. The only preset that offers the optional open-vocabulary
+        track, and the only one whose model file exists.
+      description_i18n:
+        zh: >-
+          Jetson Orin 上跑 TensorRT FP16，engine 在部署过程中于设备上构建。
+          唯一提供可选开放词汇 track 的套餐，也是唯一有模型文件的那个。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+    - id: pi_hailo
+      name: Camera + Raspberry Pi 5 (Hailo-8)
+      name_i18n:
+        zh: 摄像头 + Raspberry Pi 5（Hailo-8）
+      badge: HEF pending
+      badge_i18n:
+        zh: HEF 待编译
+      description: >-
+        The baseline MobileNetV3-Small on Hailo-8. The HEF has not been
+        compiled — the deploy step checks the three ABI gates and then stops
+        at the missing model file. Choose this preset to prepare the board,
+        not to get a running classifier today.
+      description_i18n:
+        zh: >-
+          基线 MobileNetV3-Small 跑在 Hailo-8 上。HEF 尚未编译——
+          部署步骤会走完三道 ABI 关卡，然后停在缺失的模型文件上。
+          选这个套餐是为了把板子准备好，不是为了今天拿到能跑的分类器。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_raspberry_pi5_hailo
+          default: external_raspberry_pi5_hailo
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 35min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

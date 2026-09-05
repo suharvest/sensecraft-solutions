@@ -1,0 +1,28 @@
+# Open-vocabulary track artefacts. Checksums only — nothing is committed here
+# and nothing has been uploaded to the CDN. The vision tower alone is 372 MB.
+#
+# Source of truth: ~/project/edge-waste-sorting tracks/open_vocab/artifacts/SHA256SUMS.
+6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac  siglip2_vision_224.onnx
+2d47cc7e68a590d776d06e72c4c5d92fd51987d814a158fad35c57239c016ca6  siglip2_vision_224.onnx.golden.json
+5d960ed2a2a27f401b9740b873fee9a6c045f51106bb306f597a50c5d597efab  prototypes-en-material8.npz
+eb740d1b8c2b1e3c04734338f29af7e89092de39b67a5738cc266c615513faac  prototypes-en-material8.meta.json
+1af77c01b06493a5c5a11e108655d3de16327df8233f3d27caa7e878e92f7653  prototypes-zh-material8.npz
+12a53ebafcc292b233423cbda91aabd823f4f87117fb035a9c71b9b6248b8af7  prototypes-zh-material8.meta.json
+693aedce906bd8798f27cee72da6218fe733a1e92d8f3c0321eb4d8ff2c2d899  prototypes-zh-china4.npz
+2740ef041a6c1ee41b2b6449139729a9834d022cd03ea7049635ab15a269ed53  prototypes-zh-china4.meta.json
+7e27e64b8a4b69b5bdff6a5a305be6ea9926ded9255db1678b63997a78de2c40  calibration-report.json
+
+# metadata (not part of the checksum lines)
+# checkpoint     : google/siglip2-base-patch16-224
+# revision       : 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
+# license        : apache-2.0
+# input          : images:1x3x224x224 opset17
+# output         : embedding:1x768 (unnormalized)
+# size           : siglip2_vision_224.onnx = 371695898 bytes
+# prompt_set     : en-material8 sha256=e1a0234eff042f891a27ef6c5768cc2b4471ae3c36e0626b844a037b7a7e70f3 templates=t02 shots=16 alpha=0.8 temperature=0.0075
+# prompt_set     : zh-material8 sha256=fa4244f5862d51dc4230b6c7b7ba813d7fa35c13aab8ed2462103599ee3ac67f templates=z02 shots=4 alpha=0.9 temperature=0.0075
+# prompt_set     : zh-china4 sha256=3504d5a898905747c4c83cad54c11c41f58efa085a2f52e1f9b17d38a7be5b12 templates=z03,z05,z07 shots=16 alpha=0.0 temperature=0.02
+# measured       : val top-1 0.8501 / china4 0.9393 / ECE 0.0221 (7417 images, onnxruntime CPU)
+# note           : the zh-china4 bank predicts the four categories DIRECTLY and
+#                  scores 0.8478 against 0.9393 for the hierarchical path. It is
+#                  listed for completeness; do not deploy it.

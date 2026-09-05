@@ -1,0 +1,21 @@
+# Baseline track model artefacts. Checksums only — no weights, no ONNX and no
+# engine is committed to this repository, and nothing has been uploaded to
+# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/
+# either. The deploy step names that path, verifies against these lines, and
+# carries a TODO(CDN) saying the file must be placed on the device by hand
+# until the upload happens.
+#
+# Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.
+51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e  mobilenetv3s_waste8.onnx
+f888432c065cb5dbe3008a80fbc9f1e5fd575115fd52edb167cddb62d5b4405e  best.pth
+
+# metadata (not part of the checksum lines)
+# repo_commit    : 72cf6130783e39c2ad5ebe491e9a7662ed32997a
+# arch           : mobilenet_v3_small
+# input          : images:1x3x224x224 opset13
+# output         : logits:1x8
+# taxonomy       : material8/china4-v1
+# classes        : paper,cardboard,glass,metal,plastic,textile,organic,residual
+# size           : mobilenetv3s_waste8.onnx = 6118606 bytes
+# size           : best.pth = 6227497 bytes
+# measured       : val top-1 0.8792 / china4 0.9519 (7417 images, onnxruntime CPU)
