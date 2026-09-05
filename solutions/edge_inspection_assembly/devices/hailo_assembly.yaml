@@ -1,0 +1,304 @@
+version: "1.0"
+id: hailo_assembly
+name: Raspberry Pi 5 with Hailo-8
+name_i18n:
+  zh: Raspberry Pi 5（Hailo-8）
+type: docker_deploy
+device_class: hailo
+
+docker:
+  compose_file: assets/rpi-hailo/docker-compose.yml
+  compose_dir: assets/rpi-hailo
+  options:
+    project_name: edge_inspection_assembly_hailo
+    remove_orphans: true
+  services:
+    - name: inspection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # No engine build on this board — the HEF is compiled off-device. The budget
+  # covers the image pull and the HEF download (8.6 MB).
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 4
+    description: Runtime image (~104 MB), the HEF (~8.6 MB) and the mosquitto image live on the device
+
+# Wall-clock budget for the whole round on this device. Not measured on a board
+# yet — see the caveat in the intro page; 1800 s is the fall-detection Hailo
+# preset's budget, which covers a pull plus a small model download with margin.
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-inspection-assembly-hailo
+  compose_dir: assets/rpi-hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      # The three prerequisites below are the ones that fail late and
+      # confusingly if they are not checked early: a Python minor mismatch
+      # breaks the import of the host's _pyhailort .so, a HailoRT minor
+      # mismatch breaks the HEF load, and a missing force_desc_page_size
+      # breaks configure(hef) only — VDevice() and fw-control identify both
+      # pass without it on a Pi 5 (16 KB kernel pages vs the Hailo-8's 4 KB
+      # max descriptor page).
+      - name: Validate the Hailo runtime
+        run: |
+          set -e
+          if [ ! -c /dev/hailo0 ]; then
+            echo "No /dev/hailo0 — the Hailo accelerator is not present or its driver is not loaded" >&2
+            exit 1
+          fi
+          if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+            echo "libhailort.so.4.21.0 not found — this HEF was compiled by Dataflow Compiler 3.31.0," >&2
+            echo "which pairs with HailoRT 4.21.x. Driver, user library and python bindings must all match." >&2
+            ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+            exit 1
+          fi
+          command -v hailortcli >/dev/null 2>&1 && hailortcli --version || true
+          command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+          if ! grep -qs force_desc_page_size=4096 /etc/modprobe.d/*.conf; then
+            echo "WARNING: hailo_pci is not configured with force_desc_page_size=4096." >&2
+            echo "On a Pi 5 the accelerator identifies fine without it and then fails at configure(hef)." >&2
+            echo "Fix: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+          fi
+          echo "Hailo runtime OK"
+        name_i18n:
+          zh: 校验 Hailo 运行环境
+
+      # The runtime image is NOT published to a registry yet. It has been
+      # cross-built for arm64 on a Mac (9 layers, 103,591,916 B of content) but
+      # never pushed and never run on a board, so this step fails early and
+      # says how to produce it rather than letting the compose pull fail.
+      - name: Check the runtime image is available
+        run: |
+          set -e
+          IMAGE="${INSPECTION_IMAGE:-edge-inspection-assembly-rpi-hailo:0.1.0-dev}"
+          if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "image present:"
+            docker images "$IMAGE"
+            exit 0
+          fi
+          echo "Image $IMAGE is not on this device." >&2
+          echo "This tag is not published to a registry yet. Build it from the upstream" >&2
+          echo "repository (on the board, or cross-built and loaded from a tar):" >&2
+          echo "  docker build -f platforms/rpi-hailo/Dockerfile -t $IMAGE ." >&2
+          echo "Its Python minor version must match this host's python3 --version." >&2
+          exit 1
+        name_i18n:
+          zh: 检查运行镜像是否可用
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    after_upload:
+      - name: Fetch the Hailo-8 HEF
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-assembly-hailo/hailo_assembly"
+          MODELS_DIR="$WORKDIR/models"
+          HEF="$MODELS_DIR/yolox_tiny_deeppcb6.hef"
+          # sha256 and size of the HEF this solution was evaluated with:
+          # YOLOX-Tiny INT8, optimization level 1 + Bias Correction, 2 contexts,
+          # 8,976,469 bytes, compiled by DFC 3.31.0 for HailoRT 4.21.0.
+          SHA=eed115a2d68866593a0d8f64a76db87325ab7fd8bcc6008d1b83101c86b7e3ce
+          # TODO(CDN): this object is not uploaded yet. Until it is, copy the
+          # HEF into $MODELS_DIR by hand; the step verifies the sha either way.
+          URL=https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.hef
+
+          mkdir -p "$MODELS_DIR" "$WORKDIR/data"
+
+          if [ -s "$HEF" ] && echo "$SHA  $HEF" | sha256sum -c - >/dev/null 2>&1; then
+            echo "HEF already present and verified"
+            exit 0
+          fi
+          curl -fSL --retry 3 --continue-at - -o "$HEF.part" "$URL"
+          echo "$SHA  $HEF.part" | sha256sum -c -
+          mv -f "$HEF.part" "$HEF"
+          ls -l "$HEF"
+        name_i18n:
+          zh: 获取 Hailo-8 HEF
+
+      - name: Write the camera, MQTT and inspection configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-assembly-hailo/hailo_assembly"
+          CONFIG="$WORKDIR/config/config.json"
+          cat > "$WORKDIR/.env" <<EOF
+          DEVICE_NAME={{device_name}}
+          MODELS_DIR=./models
+          DATA_DIR=./data
+          EOF
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          def kind_of(uri: str) -> str:
+              if uri.startswith(("rtsp://", "rtsps://")):
+                  return "rtsp"
+              if uri.startswith("/dev/video"):
+                  return "usb"
+              return "file"
+
+          sources = config["sources"]
+          assembly_src = dict(sources[0])
+          assembly_src["stream_id"] = "{{stream_id}}"
+          assembly_src["uri"] = "{{source_uri}}"
+          assembly_src["kind"] = kind_of("{{source_uri}}")
+          new_sources = [assembly_src]
+
+          dimension_uri = "{{dimension_source_uri}}".strip()
+          if dimension_uri:
+              dimension_src = dict(sources[1])
+              dimension_src["stream_id"] = "{{stream_id}}-gauge"
+              dimension_src["uri"] = dimension_uri
+              dimension_src["kind"] = kind_of(dimension_uri)
+              new_sources.append(dimension_src)
+
+          config["sources"] = new_sources
+          config["model"]["path"] = "/models/yolox_tiny_deeppcb6.hef"
+          config["model"]["accelerator"] = "hailo"
+          config.setdefault("mqtt", {})["topic"] = \
+              "{{device_name}}/inspection/{stream_id}/results"
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          for source in config["sources"]:
+              print(f"source {source['stream_id']}: kind={source['kind']} "
+                    f"assembly={'assembly' in source} dimension={'dimension' in source}")
+          PY
+        name_i18n:
+          zh: 写入摄像头、MQTT 与质检配置
+
+    after:
+      - name: Wait for the first verdict
+        ignore_error: true
+        timeout: 300
+        run: |
+          echo "Waiting for the runtime to report healthy and publish ..."
+          for i in $(seq 1 40); do
+            HEALTH=$(curl -fsS http://127.0.0.1:8080/healthz 2>/dev/null || true)
+            if [ -n "$HEALTH" ]; then
+              echo "$HEALTH"
+              case "$HEALTH" in
+                *'"frames_processed"'*) echo "Runtime is processing frames."; exit 0 ;;
+              esac
+            fi
+            sleep 5
+          done
+          echo "No health report yet — check the camera URI and the container logs." >&2
+          docker logs --tail 40 edge-inspection-assembly-app 2>&1 || true
+        name_i18n:
+          zh: 等待首次判定
+
+  user_inputs:
+    - id: host
+      name: Raspberry Pi IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 树莓派 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      description: "Depends on the image — commonly pi or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "取决于系统镜像，常见的是 pi 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Station Name
+      type: text
+      default: "line1"
+      required: true
+      description: First segment of the MQTT topic — name the station (line, cell or site) so several stations stay separable on one broker
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 工位名称
+      description_i18n:
+        zh: MQTT 主题的第一段——给这个工位取名（产线、工段或站点），一个 broker 上多个工位就不会混在一起
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "line1-pcb"
+      required: true
+      description: Identifies this camera in the MQTT topic and in every event
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 在 MQTT 主题和每条事件里标识这路摄像头
+    - id: source_uri
+      name: Inspection Camera URI
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: The camera looking at the board or assembly. An RTSP URL, a /dev/videoN device, or a path to a recorded file inside the container's /data.
+      name_i18n:
+        zh: 质检摄像头地址
+      description_i18n:
+        zh: 对着板件或装配体的摄像头。可以是 RTSP 地址、/dev/videoN 设备，或容器内 /data 下的录制文件路径。
+    - id: dimension_source_uri
+      name: Dimension Camera URI
+      type: text
+      required: false
+      placeholder: "rtsp://admin:password@192.168.1.65:554/Streaming/Channels/101"
+      description: Optional second camera for the dimension measurement, framed on the part together with its calibration reference. Leave empty to deploy the missing-part check only.
+      name_i18n:
+        zh: 尺寸测量摄像头地址
+      description_i18n:
+        zh: 可选的第二路摄像头，用于尺寸测量，画面里要同时有被测件和标定物。留空则只部署缺件检测。

@@ -1,0 +1,120 @@
+version: "1.0"
+id: calibrate_dimension
+name: Set Up the Dimension Calibration
+name_i18n:
+  zh: 建立尺寸标定
+type: manual
+
+# Why this step is manual.
+#
+# Calibration is a physical act — a reference object of known size has to be
+# placed in the same plane as the part, and the ROIs that follow are picture
+# coordinates of that specific framing. No deployer type can put an object on
+# a fixture or decide where the operator wants the measurement window. What can
+# be automated is the self-check, and that is what substep 3 runs inside the
+# already-deployed image (tools/check_aruco.py), so the operator gets a numeric
+# pass/fail instead of an opinion.
+#
+# This step is optional: a station that only needs the missing-part check can
+# skip it, and the dimension section then reports uncalibrated with Modbus
+# HR 11 = 4, which is a defined state rather than a failure.
+
+steps:
+  - id: place_reference
+    name: Place the calibration reference
+    name_i18n:
+      zh: 放置标定物
+    description: >-
+      Put the calibration reference in the same plane as the surface you are
+      measuring — on the fixture next to the part, not on the table below it. A
+      reference at a different working distance biases every measurement,
+      because the millimetres-per-pixel it produces belongs to its own plane.
+      Two kinds work: an ArUco marker (the default configuration expects
+      DICT_4X4_50, id 7, 25 mm wide), or any object whose width you know and
+      can enter as ref_object_width_mm. Print an ArUco marker at a known size
+      and check the printed width with a caliper — a printer that scales to fit
+      the page turns a 25 mm marker into a 24.1 mm one, and that error goes
+      straight into every result.
+    description_i18n:
+      zh: >-
+        把标定物放在与被测面同一个平面上——放在工装上、紧挨着零件，不要放在下面的
+        台面上。标定物与被测面不等距会让每次测量都带上系统偏差，因为它算出来的
+        mm/px 属于它自己那个平面。两种标定物都可以：ArUco 标记（默认配置期望
+        DICT_4X4_50、id 7、宽 25 mm），或任意你知道宽度、能填进
+        ref_object_width_mm 的参考物。打印 ArUco 标记时按已知尺寸打，并用卡尺量一下
+        实际印出来的宽度——打印机的"适应页面"会把 25 mm 印成 24.1 mm，这个误差会
+        原样进入每一条结果。
+    optional: false
+
+  - id: set_rois
+    name: Write the calibration, ROI, nominal size and tolerance
+    name_i18n:
+      zh: 填写标定、ROI、名义尺寸与公差
+    description: >-
+      Edit config/config.json on the device, in the source that carries the
+      dimension block. All four ROI numbers are normalised picture coordinates
+      [x1, y1, x2, y2] in the range 0-1, taken from this camera's framing:
+      calibration.roi bounds the reference object, and each entry in
+      measurements[] has its own roi around the feature being measured, plus
+      nominal_width_mm, nominal_height_mm and tolerance_mm. The shipped example
+      measures a 60 x 40 mm block with a 1.0 mm tolerance against a 25 mm ArUco
+      marker. Grab a frame from the panel's MJPEG preview to read the
+      coordinates off, and remember that these numbers are only valid for this
+      framing — moving the camera means redoing them.
+    description_i18n:
+      zh: >-
+        在设备上编辑 config/config.json 里带 dimension 段的那一路源。四个 ROI 数字都是
+        归一化画面坐标 [x1, y1, x2, y2]，取值 0–1，来自这台摄像头当前的画面：
+        calibration.roi 框住标定物，measurements[] 里每一项各有自己的 roi 框住被测特征，
+        并带 nominal_width_mm、nominal_height_mm 与 tolerance_mm。随包示例是用一个
+        25 mm 的 ArUco 标记去量 60 × 40 mm 的块，公差 1.0 mm。可以从面板的 MJPEG
+        预览里抓一帧来读坐标；这些数字只对当前画面成立，摄像头一动就要重做。
+    optional: false
+
+  - id: run_selfcheck
+    name: Run the ArUco self-check inside the runtime image
+    name_i18n:
+      zh: 在运行镜像里跑一次 ArUco 自检
+    description: >-
+      Run "docker run --rm --entrypoint python3
+      edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py" on
+      the device (use the -rpi-hailo tag on a Raspberry Pi). It synthesises a
+      scene with a known millimetres-per-pixel, detects the marker and measures
+      the target, then prints the relative errors and a verdict. Exit code 0
+      with "verdict": "ok" is a pass; on the evaluation device it reported
+      cv2 4.10.0, has_aruco true, and a worst error of 0.65% against a 1%
+      budget. A non-zero exit means this OpenCV build has no aruco module and
+      the image needs opencv-contrib-python-headless instead — worth knowing
+      before you blame the fixture. This check does not validate your ROIs; it
+      validates that the ArUco path in the image works at all.
+    description_i18n:
+      zh: >-
+        在设备上执行 "docker run --rm --entrypoint python3
+        edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py"
+        （树莓派上换成 -rpi-hailo 那个 tag）。它会合成一张已知 mm/px 的场景图，
+        检测标记并测量目标，然后打印相对误差与结论。退出码 0 且 "verdict": "ok"
+        算过；评测设备上的输出是 cv2 4.10.0、has_aruco true、最差误差 0.65%
+        （预算 1%）。非零退出说明这套 OpenCV 没有 aruco 模块，镜像要换成
+        opencv-contrib-python-headless——在怀疑工装之前先看这一条。
+        这个自检不校验你填的 ROI，它校验的是镜像里的 ArUco 通路本身能用。
+    optional: false
+
+  - id: confirm_measurement
+    name: Confirm the measurement against a caliper
+    name_i18n:
+      zh: 用卡尺核对一次测量结果
+    description: >-
+      Put a known-good part in the fixture and compare what the panel reports
+      with what a caliper says. Take the difference as this station's error
+      budget and set tolerance_mm above it — a tolerance tighter than your own
+      measurement error produces NG verdicts that nothing on the line can act
+      on. If the panel reports status not_found, the ROI has no contour of
+      sufficient size in it (low contrast or wrong window); uncalibrated means
+      the reference was not detected at all.
+    description_i18n:
+      zh: >-
+        把一件合格品放到工装上，用卡尺量一遍，与面板报的数比。把这个差值当成本工位的
+        误差预算，tolerance_mm 要设在它之上——公差比自己的测量误差还紧，只会产出产线上
+        没人能处置的 NG。如果面板报 not_found，说明 ROI 里没有足够大的轮廓
+        （对比度不够或者窗口画错了）；报 uncalibrated 说明标定物根本没被检出。
+    optional: false
