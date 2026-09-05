@@ -234,6 +234,7 @@ top-level `verdict`.
 | Pixel-level AUROC | **0.8752** | DeepPCB `pcb` OK/anomaly split: 205 OK val + 213 OK test + 213 defect test images | `evaluation/runs/2026-09-05-a2-cpu/results.md` |
 | Pixel-level AUPRO (FPR <= 0.30) | **0.6494** | Same run, 1177 connected defect regions | Same run |
 | Image-level AUROC | **0.5201** (0.5 = random) | Same run — see caveat below | Same run |
+| Same-source OK-set cross-check: image-level AUROC (NEU patch) | **0.7055** | A separate EfficientAD-S training/evaluation run; OK and defect patches are cropped from the same batch of NEU photographs, same shoot, only crop position differs; 256x256 patches; dataset licence UNRESOLVED, internal method-validation only | `evaluation/runs/2026-09-06-a2-neu-cpu/results.md` |
 | Unseen-defect recall, leave-one-class-out (pixel/region level) | **0.225 - 0.955**, uneven by class (open 0.955, spur 0.225) | Held-out class never enters calibration; the model has never seen its label | Same run §2 |
 | Dual-path latency overhead (detector + EfficientAD, CPU reference) | **+139 ms P95/frame** | queue=2, 500 ms timeout (the shipped default); 120/120 frames joined, 0 dropped | Same run §3 |
 
@@ -252,18 +253,30 @@ out; image-level metrics compare two different images from two different
 sources, where it does not.
 
 **The OK reference set must be sourced the same way as the frames being
-tested — the set behind the numbers above is not.** NEU6, this package's own
-detector training data, has no defect-free images at all: every one of its
-1799 images carries at least one annotated defect. The anomaly model above is
-therefore trained and evaluated on a different, MIT-licensed dataset
-(DeepPCB) whose OK images are scanned board templates while its defect images
-are photographs of a different, physical board — that template-vs-photograph
-gap is exactly the diffuse offset described above, and it does not represent
-what a real line's OK/defect pair looks like when both are captured by the
-same camera. **Before enabling `anomaly.enabled`, collect your own OK-sample
-images from the actual inspection camera and recalibrate `anomaly.threshold`
-on them** — do not treat the pixel AUROC above as a promise for your line's
-images; it demonstrates the mechanism, not your dataset's number.
+tested — the set behind the numbers above is not. This is not an inference;
+it is the result of two paired experiments: OK/defect not same-sourced (this
+model, DeepPCB template scans vs. photographs) gives image-level AUROC
+0.5201 (random); OK/defect same-sourced (a separate EfficientAD-S
+training/evaluation run, NEU patch, OK and defect patches cropped from the
+same batch of photographs) brings image-level AUROC back up to 0.7055 — see
+the "same-source OK-set cross-check" row in the table above.** NEU6, this
+package's own detector training data, has no defect-free images at all:
+every one of its 1799 images carries at least one annotated defect. The
+anomaly model above is therefore trained and evaluated on a different,
+MIT-licensed dataset (DeepPCB) whose OK images are scanned board templates
+while its defect images are photographs of a different, physical board —
+that template-vs-photograph gap is exactly the diffuse offset described
+above, and it does not represent what a real line's OK/defect pair looks
+like when both are captured by the same camera. **The 0.7055 same-source
+number is itself not a product metric** — it comes from patch-level
+evaluation (256x256 crops, not full frames), the dataset's licence is
+UNRESOLVED (internal method-validation only, not for external demos), and it
+is a single, unreproduced run; it does not license a claim that "same-source
+data gets you to 0.7 AUROC" in production. **Before enabling
+`anomaly.enabled`, collect your own OK-sample images from the actual
+inspection camera and recalibrate `anomaly.threshold` on them** — do not
+treat the pixel AUROC above as a promise for your line's images; it
+demonstrates the mechanism, not your dataset's number.
 
 Config: `anomaly.enabled` (default `false`) and `anomaly.threshold` in
 `config/config.json`, additive to the schema — leaving it off reproduces
