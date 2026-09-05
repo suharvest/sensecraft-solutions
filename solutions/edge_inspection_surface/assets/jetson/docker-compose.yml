@@ -1,0 +1,78 @@
+# Surface defect inspection on Jetson Orin.
+# Copied from the upstream repo's platforms/jetson/docker-compose.yml and adapted
+# for solution deployment (image tag, bounded logs, .env-driven paths).
+#
+# INTERNAL VALIDATION ONLY — the detection model is trained on a re-hosted copy
+# of NEU-DET whose licence is unconfirmed. Do not use this stack for public
+# demos, customer-site demos or commercial material until the licence is
+# cleared or the dataset is replaced.
+#
+# The image carries no CUDA or TensorRT of its own: L4T r36.x userspace is
+# Ubuntu 22.04, so the host's TensorRT/CUDA stack stays authoritative and is
+# mounted read-only. That is why the image is ~375 MB instead of several GB.
+# Only the host's `tensorrt` python package is mounted — never the whole
+# dist-packages, because the host's numpy 2.2.6 and its broken cv2 would
+# shadow the image's own pinned numpy 1.26.4 (upstream IMPL-NOTES 41/42).
+#
+# IMAGE NOT PUBLISHED YET. The tag below is the intended registry destination;
+# nothing has been pushed to it. Until it is pushed, build the image from the
+# upstream repo (platforms/jetson/Dockerfile.slim) on the device and either
+# retag it to this name or set INSPECTION_IMAGE to the local tag.
+services:
+  inspection:
+    image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev}
+    container_name: edge-inspection-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-orin-nx}"]
+    restart: unless-stopped
+    runtime: nvidia
+    # host network: Modbus 502 and the web preview on 8080 are reachable from
+    # the line PLC/HMI directly; MQTT goes to the local broker.
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Config, engine and media stay outside the image so the engine can be
+      # rebuilt for this exact GPU architecture + TensorRT version.
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/host-python/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    # For a USB camera add the individual /dev/videoN nodes here. Never mount
+    # all of /dev — runc refuses to recreate the /dev/pts inodes.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # JetPack ships no MQTT broker, so the stack brings its own.
+  # allow_anonymous is on: this configuration is for local commissioning only.
+  # A production line must point at a broker with credentials instead.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-inspection-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

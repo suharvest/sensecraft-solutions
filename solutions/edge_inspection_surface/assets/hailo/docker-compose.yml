@@ -1,0 +1,78 @@
+# Surface defect inspection on Raspberry Pi 5 + Hailo-8.
+# Copied from the upstream repo's platforms/rpi-hailo/docker-compose.yml and
+# adapted for solution deployment (image tag, bounded logs).
+#
+# INTERNAL VALIDATION ONLY — the detection model is trained on a re-hosted copy
+# of NEU-DET whose licence is unconfirmed. Do not use this stack for public
+# demos, customer-site demos or commercial material until the licence is
+# cleared or the dataset is replaced.
+#
+# ABI LOCK. The host's hailo_pci driver, libhailort.so and the hailo_platform
+# python bindings must all be the same 4.x version, and that version must match
+# the Dataflow Compiler that produced the HEF. The HEF shipped with this
+# solution was built with DFC 3.31.0 / HailoRT 4.21.0 (assets/models/
+# hef_o1.manifest.json, "dfc" section), so the device must run HailoRT 4.21.x
+# and must hold BOTH packages: `apt-mark hold hailort hailort-pcie-driver`.
+# Holding only the driver lets apt silently upgrade the user-space library.
+#
+# IMAGE NOT PUBLISHED YET. The tag below is the intended registry destination;
+# nothing has been pushed to it. Until it is pushed, build the image from the
+# upstream repo (platforms/rpi-hailo/Dockerfile) and set INSPECTION_IMAGE, or
+# retag the local build to this name. The image has been cross-built for
+# linux/arm64 on macOS but has never been run on a Pi.
+services:
+  inspection:
+    image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev}
+    container_name: edge-inspection-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-harvest-pi}"]
+    restart: unless-stopped
+    # host network: Modbus 502 and the web preview on 8080 are reachable from
+    # the line PLC/HMI directly; MQTT goes to the local broker.
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      PYTHONUNBUFFERED: "1"
+    devices:
+      # Only this node. Never mount all of /dev.
+      - /dev/hailo0:/dev/hailo0
+    volumes:
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      # The host's HailoRT is authoritative and is mounted read-only. Only the
+      # hailo_platform package is mounted — mounting the whole dist-packages
+      # would shadow the image's own pinned numpy and cv2.
+      - ${HOST_HAILO_PY:-/usr/lib/python3/dist-packages/hailo_platform}:/usr/lib/python3/dist-packages/hailo_platform:ro
+      - ${HOST_LIBHAILORT:-/usr/lib/libhailort.so.4.21.0}:/usr/lib/libhailort.so.4.21.0:ro
+      - ${HOST_LIBHAILORT_SONAME:-/usr/lib/libhailort.so.4}:/usr/lib/libhailort.so.4:ro
+    # For a USB camera add the individual /dev/videoN nodes here.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "test -c /dev/hailo0 && python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # allow_anonymous is on: this configuration is for local commissioning only.
+  # A production line must point at a broker with credentials instead.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-inspection-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

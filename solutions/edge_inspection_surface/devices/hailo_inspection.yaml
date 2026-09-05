@@ -1,0 +1,377 @@
+version: "1.0"
+id: hailo_inspection
+name: Raspberry Pi 5 + Hailo-8
+type: docker_deploy
+device_class: hailo
+
+# INTERNAL VALIDATION ONLY — the model is trained on a re-hosted copy of NEU-DET
+# whose licence is unconfirmed. No public demo, customer-site demo or commercial
+# material until the licence is cleared or the dataset is replaced.
+#
+# NOT VERIFIED ON HARDWARE. The HEF has been compiled and checked against the
+# Dataflow Compiler emulator; nothing in this file has been run on a Pi. The
+# three ABI gates in `before` are exactly the checks that can only pass or fail
+# on the device.
+
+docker:
+  compose_file: assets/hailo/docker-compose.yml
+  compose_dir: assets/hailo
+  options:
+    project_name: edge_inspection_surface_hailo
+    remove_orphans: true
+  services:
+    - name: inspection
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # No engine build on this platform — the HEF is precompiled. The budget only
+  # has to cover the image pull and the HEF download.
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 4
+    description: >-
+      Measured footprint added by this deployment is about 452 MB (runtime image
+      ~443 MB on disk + 8.9 MB HEF + config), so 4 GB leaves ample headroom
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 无设备端编译，主要耗时是镜像拉取与 8.9 MB HEF 下载，实测未做（未上板），
+# 按 Jetson 侧非编译部分的量级给 1800 s。
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: Raspberry Pi 5 + Hailo-8
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-inspection-surface
+  compose_dir: assets/hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Hailo runtime and the ABI lock
+        run: |
+          set -e
+          if [ ! -c /dev/hailo0 ]; then
+            echo "No /dev/hailo0 — the Hailo-8 is not present or hailo_pci is not loaded" >&2
+            exit 1
+          fi
+          # Gate 1: HailoRT must be 4.21.x. The HEF was compiled with Dataflow
+          # Compiler 3.31.0 / HailoRT 4.21.0 (assets/models/hef_o1.manifest.json).
+          # Driver, user-space library and python bindings all move together.
+          if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+            echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+            echo "Installed HailoRT:" >&2
+            ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+            exit 1
+          fi
+          command -v hailortcli >/dev/null 2>&1 && hailortcli --version 2>/dev/null | head -2 || true
+          command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+          # Both packages must be held. Holding only the driver lets apt
+          # silently upgrade the user-space library out from under the HEF.
+          if command -v apt-mark >/dev/null 2>&1; then
+            HELD=$(apt-mark showhold 2>/dev/null | grep -c hailo || true)
+            if [ "$HELD" -lt 2 ]; then
+              echo "WARNING: expected both hailort and hailort-pcie-driver on hold; found $HELD" >&2
+              echo "Run: sudo apt-mark hold hailort hailort-pcie-driver" >&2
+            fi
+          fi
+          # Gate 2: hailo_pci needs force_desc_page_size=4096. The Pi 5 kernel
+          # PAGE_SIZE is 16 KB and the Hailo-8 max_desc_page_size is 4 KB.
+          # Without it VDevice() and fw-control identify both succeed and the
+          # failure only surfaces at configure(hef).
+          if ! grep -rqs force_desc_page_size=4096 /etc/modprobe.d/; then
+            echo "hailo_pci is missing force_desc_page_size=4096 — configure(hef) will crash." >&2
+            echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+            exit 1
+          fi
+          # Gate 3: the host's hailo_platform bindings are mounted into the
+          # container, and _pyhailort.cpython-3XX-*.so only imports under the
+          # same Python minor. Bookworm is 3.11, trixie is 3.13.
+          echo "host python: $(python3 -V 2>&1)"
+          echo "Hailo runtime OK"
+        name_i18n:
+          zh: 校验 Hailo 运行环境与 ABI 锁
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    after_upload:
+      - name: Clean macOS sidecar files from the uploaded assets
+        # AppleDouble sidecars (._name) and .DS_Store travel with assets
+        # uploaded from a Mac; compose then tries to parse ._docker-compose.yml.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/hailo_inspection"
+          find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+          echo "sidecar cleanup done"
+        name_i18n:
+          zh: 清理上传目录里的 macOS 附属文件
+
+      - name: Fetch and verify the HEF
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/hailo_inspection"
+          MODELS_DIR="$WORKDIR/models"
+          mkdir -p "$MODELS_DIR" "$WORKDIR/data"
+
+          # The default is the optimization_level=1 build (Bias Correction,
+          # 1024 train-split calibration images). On the 20-image emulator
+          # comparison it scored mAP50 0.7266 against 0.6927 for the
+          # level-0 build. Both are recorded in assets/models/.
+          case "{{hef_variant}}" in
+            level1)
+              HEF=yolox_tiny_neu6_o1.hef
+              SHA=02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565
+              ;;
+            level0)
+              HEF=yolox_tiny_neu6.hef
+              SHA=9638f2b210b49b10b44658d2e970b2822e0fac7d36ec8831f08ad4d0a10dac8f
+              ;;
+            *) echo "Unknown HEF variant: {{hef_variant}}" >&2; exit 1 ;;
+          esac
+
+          if [ -s "$MODELS_DIR/$HEF" ] && \
+             echo "$SHA  $MODELS_DIR/$HEF" | sha256sum -c - >/dev/null 2>&1; then
+            echo "HEF already present and verified: $HEF"
+            exit 0
+          fi
+
+          # TODO(CDN): the HEF has NOT been uploaded yet. The licence of the
+          # training data is unconfirmed, so nothing is published until that is
+          # cleared. Until then, copy the HEF onto the device at the path below
+          # by hand; the sha256 check still applies either way.
+          curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/$HEF.part" \
+            "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$HEF"
+          echo "$SHA  $MODELS_DIR/$HEF.part" | sha256sum -c -
+          mv -f "$MODELS_DIR/$HEF.part" "$MODELS_DIR/$HEF"
+          ls -l "$MODELS_DIR/$HEF"
+          sha256sum "$MODELS_DIR/$HEF"
+        name_i18n:
+          zh: 下载并校验 HEF
+
+      - name: Write the source, MQTT and Modbus configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/hailo_inspection"
+          CONFIG="$WORKDIR/config/config.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          variant = "{{hef_variant}}"
+          hef = "yolox_tiny_neu6_o1.hef" if variant == "level1" else "yolox_tiny_neu6.hef"
+          config["model"]["path"] = f"/models/{hef}"
+          config["model"]["accelerator"] = "hailo"
+          config["rules"]["min_score"] = float("{{min_score}}")
+          config["mqtt"]["topic"] = "{{device_name}}/inspection/{stream_id}/results"
+          config["modbus"]["unit_id"] = int("{{modbus_unit_id}}")
+          config["sources"] = [{
+              "stream_id": "{{stream_id}}",
+              "uri": "{{source_uri}}",
+              "kind": "rtsp",
+              "fps": int("{{source_fps}}"),
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"model      = {config['model']['path']}")
+          print(f"min_score  = {config['rules']['min_score']}")
+          print(f"stream     = {config['sources'][0]['stream_id']} @ {config['sources'][0]['fps']} fps")
+          PY
+        name_i18n:
+          zh: 写入视频源、MQTT 与 Modbus 配置
+
+    after:
+      - name: Verify the inspector is publishing
+        timeout: 240
+        run: |
+          set -e
+          BROKER=edge-inspection-mosquitto
+          TOPIC="{{device_name}}/inspection/{{stream_id}}/results"
+          echo "Waiting for the health endpoint and the first MQTT result ..."
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null 2>&1; then
+                echo "MQTT result received on $TOPIC"
+                cat /tmp/healthz.json
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "No verified MQTT result yet." >&2
+          docker logs --tail 40 edge-inspection-app 2>&1 || true
+          echo "An AssembleError here means the HEF output layout did not match; a" >&2
+          echo "python import error means the host/container Python minor differs." >&2
+        ignore_error: true
+        name_i18n:
+          zh: 验证检测器正在发布结果
+
+  user_inputs:
+    - id: host
+      name: Raspberry Pi IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 树莓派 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      description: "Depends on the image — commonly pi or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "取决于系统镜像，常见的是 pi 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "rpi-hailo"
+      required: true
+      description: First segment of the MQTT topic — name this device after the line or cell so several installations stay separable on one broker
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按产线或工位命名，多台设备在同一个 broker 上就不会混
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "line1-cam1"
+      required: true
+      description: Appended to the MQTT topic so several cameras on one box stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机
+    - id: source_uri
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 相机 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: source_fps
+      name: Line Rate (FPS)
+      type: text
+      default: "10"
+      required: true
+      description: Frames per second pulled from the source. Throughput on this board has not been measured — start low.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: 产线节拍（FPS）
+      description_i18n:
+        zh: 从视频源取帧的速率。这块板卡的吞吐尚未实测，先从低速率起。
+    - id: hef_variant
+      name: HEF Build
+      type: select
+      default: level1
+      required: true
+      description: Which quantized build to run. level-1 scored mAP50 0.7266 against level-0's 0.6927 on the 20-image emulator comparison.
+      options:
+        - value: level1
+          label: level-1 — Bias Correction, 1024 calibration images (default)
+          label_i18n:
+            zh: level-1——启用 Bias Correction，1024 张校准集（默认）
+        - value: level0
+          label: level-0 — 128 calibration images, kept for comparison
+          label_i18n:
+            zh: level-0——128 张校准集，保留用于对照
+      name_i18n:
+        zh: HEF 版本
+      description_i18n:
+        zh: 选择运行哪一版量化产物。在 20 张图的 emulator 比对上 level-1 的 mAP50 是 0.7266，level-0 是 0.6927。
+    - id: min_score
+      name: Verdict Threshold
+      type: select
+      default: "0.35"
+      required: true
+      description: Score above which a detection counts towards an NG verdict. The 0.35 figure was frozen on the TensorRT path; the Hailo path has no on-device measurement yet.
+      options:
+        - value: "0.25"
+          label: 0.25 — higher recall, more false alarms
+          label_i18n:
+            zh: 0.25——召回更高，误报更多
+        - value: "0.35"
+          label: 0.35 — the frozen deployment value
+          label_i18n:
+            zh: 0.35——部署冻结值
+        - value: "0.45"
+          label: 0.45 — higher precision, more misses
+          label_i18n:
+            zh: 0.45——精度更高，漏检更多
+      name_i18n:
+        zh: 判定阈值
+      description_i18n:
+        zh: 检测框计入 NG 判定的分数门限。0.35 是在 TensorRT 链路上冻结的，Hailo 链路尚无上板实测。
+    - id: modbus_unit_id
+      name: Modbus Unit ID
+      type: text
+      default: "1"
+      required: true
+      description: Modbus TCP unit id served on port 502. The register map in the guide assumes unit 1.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: Modbus 从站号
+      description_i18n:
+        zh: 502 端口上 Modbus TCP 的 unit id。指南里的寄存器表按 unit 1 写。
