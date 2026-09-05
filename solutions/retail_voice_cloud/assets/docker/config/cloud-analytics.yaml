@@ -39,8 +39,14 @@ privacy:
   redacted_text_retention_days: 30
 
 asr:
-  # 级联删除声纹时调的地址。启用 voiceprint profile 后改成实际地址。
-  base_url: http://127.0.0.1:8080
+  # 级联删除声纹时调的地址，走 compose 默认网络的服务名 DNS。
+  #
+  # 不能写 127.0.0.1：voice-service 在自己的网络命名空间里，127.0.0.1 指向它自己，
+  # 声纹删除会 connection refused，而 erase 响应此前仍报 residue_count=0（Bug #5）。
+  # 服务名与端口对应 docker-compose 里的 asr-voiceprint 服务（容器内监听 8080）。
+  # asr-voiceprint 没启动（未开 voiceprint profile）时这个地址不可达，
+  # erase 会把失败记进 errors/failed_steps 并返回 status=partial，而不是假装删干净了。
+  base_url: http://asr-voiceprint:8080
   api_token: ""
   timeout: 10
 
@@ -67,6 +73,8 @@ chat:
   enable_debug: false
 
 openai:
+  # 不写 enabled 时按 api_key 是否非空推断：填了真实 key 才会启用并校验本段，
+  # 留空则启动时跳过本段（此时 chat 路由不可用）。
   base_url: ""
   api_key: ""
   model: ""
