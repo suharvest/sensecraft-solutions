@@ -163,5 +163,15 @@
     "bind": "0.0.0.0",
     "port": 8080,
     "preview_fps": 5
+  },
+  "vlm": {
+    "enabled": false,
+    "base_url": "http://127.0.0.1:8100",
+    "timeout_ms": 4000,
+    "trigger": {
+      "min_confidence": 0.5,
+      "on_missing_parts": true,
+      "min_interval_s": 5.0
+    }
   }
 }

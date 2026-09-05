@@ -213,6 +213,38 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
 | 一开线全是 NG | 期望清单还是随包示例。先按你的工位重建它，再谈结论 |
 | 每条事件里 `dimension.enabled` 都是 false | 那一路没有 `dimension` 段；在随包配置里标定摄像头是另一路源 |
 
+## 步骤 4: 启用 VLM 解释（可选） {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+可选。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，通常跑在另一台 Orin 上），
+让 NG 帧在旁路 MQTT 主题上拿到一段人话解释。这条路径不进帧循环、不改变判定——
+跳过这一步，介绍页上的每一个数字都照样成立。
+
+### 前置条件
+
+- 已经跑起来、且这台设备能访问到的 `edge-vision-vlm` 实例——本方案不部署也不
+  打包这个服务。
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy`——见该步骤第二个子步骤 |
+| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态，不是崩溃 |
+| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立。这应该按 VLM 客户端的 bug 处理，而不是触发条件配置的问题 |
+
+## 步骤 5: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
+
+可选。在工作站或 spark 上跑上游的半自动标注工具（`tools/annotation/`，SAM2 辅助），
+把你自己的图像变成 `assembly.expected[]` 模板和一个带版本号的
+`roi_profile_sha256`，不用手写 ROI。这一步没有任何东西跑在质检设备本身上。
+
+### 前置条件
+
+- 一台装有上游 `edge-inspection-assembly` 仓库的工作站或 spark，SAM2 后端需要
+  GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
+- 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
+
 ## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#hailo}
 
 同一套运行时、INT8 模型、更低功耗。HEF 在设备外编译、部署时下载，板子上没有构建步骤。
@@ -364,3 +396,34 @@ MQTT broker。
 | 线圈与寄存器对不上 | 原子性只在写侧成立；读侧分两次 Modbus 请求时可能落在两次判定之间。先读寄存器、把线圈当触发信号 |
 | 帧率远低于 Jetson 的数字 | 属预期——那些数字来自 Orin NX 上的 TensorRT engine。测这块板自己的数并用它 |
 | 一开线全是 NG | 期望清单还是随包示例；先按你的工位重建它 |
+
+## 步骤 4: 启用 VLM 解释（可选） {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+可选，与 Jetson 套餐相同。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，
+通常跑在另一台 Orin 上——树莓派本身不跑它），让 NG 帧在旁路 MQTT 主题上拿到一段
+人话解释。这条路径不进帧循环、不改变判定。
+
+### 前置条件
+
+- 已经跑起来、且这台树莓派能访问到的 `edge-vision-vlm` 实例——本方案不部署也不
+  打包这个服务。
+- 运行时已部署（步骤 1），改配置加重启容器就够。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|-------|----------|
+| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy` |
+| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态 |
+| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立 |
+
+## 步骤 5: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
+
+可选，与 Jetson 套餐相同。在工作站或 spark 上跑上游的半自动标注工具——这一步
+没有任何东西跑在树莓派上。
+
+### 前置条件
+
+- 一台装有上游 `edge-inspection-assembly` 仓库的工作站或 spark，SAM2 后端需要
+  GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
+- 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。

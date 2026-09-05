@@ -68,6 +68,14 @@ intro:
       schema_type: json
       description_i18n:
         zh: 本地 Web 面板——健康计数（帧率、推理耗时、缺件与尺寸失败计数）、最近事件，以及带检测框和缺件 ROI 的 MJPEG 预览
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/inspection/<stream-id>/explanations
+      description: Optional side-channel event carrying a shared VLM service's (edge-vision-vlm) plain-language explanation for one NG frame, keyed by frame_id to the results event. Requires vlm.enabled=true and a reachable VLM endpoint; off by default. It never blocks or changes the main verdict — a missing explanation event only means the VLM was slow, degraded or disabled.
+      schema_type: json
+      payload_example: '{"type":"assembly_explanation","version":"1.0.0","stream_id":"line1-pcb","frame_id":10423,"verdict":"NG","verdict_reasons":["missing"],"explanation":"...","vlm_model":"Qwen3-VL-2B-Instruct@cuda","vlm_latency_ms":3120.0,"vlm_fallback_used":false,"candidates":[]}'
+      description_i18n:
+        zh: 可选的旁路事件，携带外部共享 VLM 服务（edge-vision-vlm）对某个 NG 帧的文字解释，按 frame_id 与 results 事件对齐。需要 vlm.enabled=true 且 VLM 服务端点可达，默认关闭。它不进主判定链路、不改变判定——没有解释事件只说明 VLM 慢、降级或没开。
 
   input_requirements:
     - type: rtsp
@@ -75,6 +83,11 @@ intro:
       required: true
       description_i18n:
         zh: 检测工位的固定机位，整块板或整件装配体在画面内，且从建模板到上线期间机位不动——期望件 ROI 是画面坐标，机位一动就失效。要做尺寸判定时，画面里还需要一个与被测面共面的标定物（ArUco 标记，默认 DICT_4X4_50，或任意已知宽度的参考物）；没有它时尺寸段报 uncalibrated，Modbus HR 11 = 4。
+    - type: http
+      description: Optional — a VLM service endpoint (edge-vision-vlm running on an Orin box) reachable from the inspection host, only needed to enable VLM explanations. Without it, leave vlm.enabled=false and the demo behaves exactly as without this section.
+      required: false
+      description_i18n:
+        zh: 可选——一个从质检主机可达的 VLM 服务端点（跑在 Orin 上的 edge-vision-vlm），只有要启用 VLM 解释时才需要。不需要就保持 vlm.enabled=false，demo 行为与没有这一段完全一样。
 
   device_catalog:
     recomputer_j30:

@@ -79,6 +79,8 @@ missing parts on your assemblies.
 | Hailo INT8 (HEF) accuracy | **mAP50 0.9924, identical on all three paths** | 20 val images / 118 boxes; CPU onnxruntime, Hailo emulator `SDK_NATIVE`, and emulator `SDK_QUANTIZED` (optimization level 1 + Bias Correction) return the same mAP50 / P / R / FP / FN. Per-box: CPU ↔ native 120/120 matched; CPU ↔ quantized 119/120 | This project's M3a run, 2026-09-05, in the Hailo Dataflow Compiler emulator on x86 — **not on a device** |
 | Raspberry Pi 5 + Hailo-8 on-device throughput and latency | **not measured** | The runtime image cross-builds for arm64 and the HEF loads in the emulator, but nothing has run on the board yet | To be measured — do not quote a number here until it is |
 | 72 h soak | **in progress at packaging time** | Single stream, looped 300 s video, 10 fps; baseline over the first samples: RSS 256–259 MiB, 0 dropped frames, tj 61–62 °C, 0 restarts | Same M4 run; the three tiers in `boundary.soak.yaml` are null until it finishes |
+| Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on spark (GB10) with another training job co-resident on the same GPU | `edge-inspection-assembly` annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
+| Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
 
 Two things the numbers above deliberately do not claim. First, the accuracy
 figures are DeepPCB's, and DeepPCB is easier than a real assembly scene —
@@ -97,6 +99,69 @@ each.
 `HR 10 = 0` does not mean "measured 0 mm" — read HR 11 first. And in v2,
 `verdict = NG` no longer implies `defect_count > 0`: a missing part or an
 out-of-tolerance measurement is enough on its own.
+
+## Optional: VLM Explanations
+
+The runtime can hand an NG frame to a shared external VLM service
+(`edge-vision-vlm`) for a plain-language explanation. This is a side channel,
+not a second judge: it never enters the frame loop, never changes `verdict`,
+and a disabled, slow or unreachable service produces exactly the same OK/NG
+stream as without it.
+
+- **Trigger.** A call fires only on a state change worth a human's attention —
+  `assembly.missing_count > 0`, or the primary defect confidence below
+  `vlm.trigger.min_confidence` — rate-limited by `vlm.trigger.min_interval_s`
+  per stream. It is never called once per frame.
+- **Side channel.** A background worker with a bounded, drop-oldest queue
+  submits the call; the main event on `inspection/<stream-id>/results` is
+  published on the usual schedule regardless of whether the VLM answers. If it
+  does, a second event follows on `inspection/<stream-id>/explanations`, keyed
+  to the same `frame_id`.
+- **Does not block the main chain.** A hard client timeout abandons the call;
+  after repeated failures a circuit breaker stops calling for a cool-off
+  period. Nothing here can stall a verdict, a Modbus write or an MQTT publish.
+- **Latency is not a per-frame number to plan around.** Measured on the shared
+  service's own evaluation hardware — an NVIDIA Spark GB10 workstation, **not
+  the Orin box this demo runs on** — generation alone with Qwen3-VL-2B bf16 is
+  P50 ≈ 3.2 s / P95 ≈ 7.2 s at `max_tokens=320`. That is the reason the call is
+  off the hot path in the first place; no Orin-specific latency has been
+  measured for this integration.
+
+Enable it by setting `vlm.enabled: true` and pointing `vlm.base_url` at a
+reachable `edge-vision-vlm` instance; see the guide for the full walk-through,
+including the `no_proxy` requirement on the device.
+
+## Semi-automatic Annotation Tool
+
+`tools/annotation/` in the upstream repository turns hand-drawn boxes into
+pixel masks with SAM2, and turns approved masks into an assembly ROI profile —
+it never runs on the edge device or in the frame loop; it is an offline
+workstation/spark tool for building the `assembly.expected[]` template.
+
+- **Model.** SAM 2.1 Hiera-Small (`facebookresearch/sam2`, Apache-2.0 code and
+  checkpoints), plus a pure-numpy Otsu-flood backend that needs no GPU and
+  doubles as a baseline.
+- **What it does not save.** The operator still draws the box — that click
+  count is unchanged from manual annotation (2 clicks/box). What SAM2 adds is
+  a pixel mask from that same box, which the ROI-profile step then expands
+  into a normalised `assembly` ROI (`roi_profile.py`, mask bbox × 1.6).
+- **More prompt points make it worse, not better.** Box-only prompting beat
+  box+points and box+points+negatives in calibration — DeepPCB's defects are
+  small enough that extra points and negative points fall on or inside the
+  defect itself and pull the mask the wrong way. The tool defaults to
+  box-only for this reason.
+- **The revision rate is a proxy, not a human count.** No human reviewed this
+  evaluation round; the 9.33% figure is `gt_box_iou < 0.5` applied
+  automatically (`review_by: auto:gt_box_iou>=0.5`), kept in a separate field
+  from any real human decision so the two are never averaged together.
+- **`roi_profile_sha256`.** The generated `assembly` section carries a SHA-256
+  over that section alone (not the run directory, timestamp or model name),
+  so an event can assert which ROI profile is running in the field; the field
+  is additive and optional — hand-written ROIs simply omit it or send `null`.
+
+Numbers, per-class breakdown and the point-count calibration are in the boundary
+table above and the guide's optional annotation step; both come from the same
+DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 

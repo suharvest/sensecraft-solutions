@@ -241,6 +241,44 @@ for that source, so a consumer never has to test for their existence. In v2,
 | Everything is NG the moment the line starts | The expected list is still the shipped example. Rebuild it for your station before drawing any conclusion |
 | `dimension.enabled` is false in every event | That source has no `dimension` block; the calibration camera is a separate source in the shipped configuration |
 
+## Step 4: Enable VLM Explanations (Optional) {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+Optional. Points the runtime at an external shared VLM service
+(`edge-vision-vlm`, typically on a separate Orin box) so NG frames get a
+plain-language explanation on a side-channel MQTT topic. This never enters the
+frame loop and never changes a verdict — every number on the intro page holds
+with this step skipped.
+
+### Prerequisites
+
+- An `edge-vision-vlm` instance already running and reachable from this
+  device — this solution does not deploy or bundle that service.
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing — see the step's second substep |
+| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state, not a crash |
+| Explanation events arrive but the main results event does not | Should never happen — the two are independent. File this as a bug against the VLM client, not the trigger configuration |
+
+## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
+
+Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`,
+SAM2-assisted) on a workstation or spark box to turn your own images into an
+`assembly.expected[]` template and a versioned `roi_profile_sha256`, instead of
+hand-writing ROIs. Nothing in this step runs on the inspection device itself.
+
+### Prerequisites
+
+- A workstation or spark box with the upstream `edge-inspection-assembly`
+  repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
+  is a weaker baseline).
+- Your own station images and a COCO-style category list, or a willingness to
+  label a handful of classes by hand first.
+
 ## Preset: Camera + Raspberry Pi 5 with Hailo-8 {#hailo}
 
 Same runtime, INT8 model, less power. The HEF is compiled off-device and
@@ -414,3 +452,40 @@ implying `defect_count > 0`.
 | The coil and the registers disagree | The write side is atomic; a reader issuing two Modbus requests can land between verdicts. Poll the registers first and treat the coil as the trigger |
 | Frame rate is far below the Jetson figures | Expected — those numbers are from an Orin NX with a TensorRT engine. Measure this board and use its own number |
 | Everything is NG the moment the line starts | The expected list is still the shipped example; rebuild it for your station |
+
+## Step 4: Enable VLM Explanations (Optional) {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
+
+Optional, identical to the Jetson preset. Points the runtime at an external
+shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
+box — the Raspberry Pi does not run it) so NG frames get a plain-language
+explanation on a side-channel MQTT topic. This never enters the frame loop and
+never changes a verdict.
+
+### Prerequisites
+
+- An `edge-vision-vlm` instance already running and reachable from this
+  Raspberry Pi — this solution does not deploy or bundle that service.
+- The runtime already deployed (Step 1), so a config edit and container
+  restart are enough.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing |
+| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state |
+| Explanation events arrive but the main results event does not | Should never happen — the two are independent |
+
+## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
+
+Optional, identical to the Jetson preset. Runs the upstream semi-automatic
+annotation tool on a workstation or spark box — nothing in this step runs on
+the Raspberry Pi.
+
+### Prerequisites
+
+- A workstation or spark box with the upstream `edge-inspection-assembly`
+  repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
+  is a weaker baseline).
+- Your own station images and a COCO-style category list, or a willingness to
+  label a handful of classes by hand first.
