@@ -1,0 +1,112 @@
+# reComputer J / Jetson Orin: edgefallkit inference + the eldercare alarm
+# service + a local broker, on one device.
+#
+# Derived from eldercare-alarm/compose.orin.yml. Two changes were needed to
+# make it deployable from this package: the `build:` stanza on
+# eldercare-alarm is replaced by a registry tag (a solution deploy uploads
+# assets, not source), and the config paths follow the assets/<platform>/config
+# layout that the deployer uploads.
+#
+# The inference service carries no CUDA, TensorRT, OpenCV or GStreamer of its
+# own — L4T r36.x userspace is Ubuntu 22.04, so the host libraries stay
+# authoritative and are mounted read-only under private paths. That keeps the
+# image at ~138 MB instead of several GB, and it is why LD_LIBRARY_PATH and
+# PYTHONPATH below point at /host-*.
+services:
+  fall-detection:
+    # Base image, published by the edgefallkit project. Tag taken from
+    # eldercare-alarm/release/PINNING.md; that file records the digest as
+    # "待真机核验 / pending on-device verification", so this reference is by
+    # tag rather than by digest. Pin it to `image: <repo>@sha256:<digest>`
+    # once a device has pulled it and reported the digest.
+    image: sensecraft-missionpack.seeed.cn/solution/fall-detection-jetson:0.1.0-rc3
+    command: ["--config", "/app/config/config.json"]
+    restart: unless-stopped
+    runtime: nvidia
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /host-python
+      GST_PLUGIN_PATH: /host-lib/gstreamer-1.0
+      GST_PLUGIN_SYSTEM_PATH: /host-lib/gstreamer-1.0
+      GST_PLUGIN_SCANNER: /host-lib/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+      GST_REGISTRY: /tmp/gstreamer-1.0-registry.bin
+      LD_LIBRARY_PATH: /usr/local/cuda/lib64:/host-nvidia:/host-trt:/host-opencv:/host-lib:/host-lib/nvidia
+    volumes:
+      # config/fall-config.json ships with publish_empty_frames = true. The
+      # Jetson runtime defaults it to false and then skips publishing on empty
+      # frames, which would starve the no_person timeout of any input. Do not
+      # replace this file with a copy of the device's /opt/fall-detection
+      # config without setting that key again.
+      - ./config/fall-config.json:/app/config/config.json:ro
+      - ./models:/models:ro
+      - /usr/lib/aarch64-linux-gnu/libnvinfer.so.10:/host-trt/libnvinfer.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvinfer_plugin.so.10:/host-trt/libnvinfer_plugin.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvonnxparser.so.10:/host-trt/libnvonnxparser.so.10:ro
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia:ro
+      - /usr/lib:/host-opencv:ro
+      - /usr/lib/python3.10/dist-packages:/host-python:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/app.py && test -s /app/libjetson_fall_trt.so"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # JetPack ships no MQTT broker. Results land here, and the alarm service
+  # subscribes on the same host.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - eldercare-mosquitto:/mosquitto/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  eldercare-alarm:
+    # NOT PUSHED YET. This tag does not exist in the registry as of packaging
+    # (2026-09-05) — the upstream project builds it locally as
+    # `eldercare-alarm:0.1.0` from eldercare-alarm/docker/Dockerfile, and
+    # eldercare-alarm/release/PINNING.md records only local arm64 and amd64
+    # builds. Before a deploy of this preset can succeed, either push this tag
+    # or build on the device and retag:
+    #   docker build -f docker/Dockerfile -t \
+    #     sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .
+    image: sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0
+    command: ["--config", "/config/config.yaml"]
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      # Written on the device by the deploy step from the values in the form.
+      - ./config/eldercare.yaml:/config/config.yaml:ro
+      - eldercare-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  eldercare-data:
+  eldercare-mosquitto:

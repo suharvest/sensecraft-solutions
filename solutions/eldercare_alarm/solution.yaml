@@ -1,0 +1,208 @@
+version: "1.0"
+id: eldercare_alarm
+name: Eldercare Alarm
+name_i18n:
+  zh: 养老告警
+
+intro:
+  summary: Turn a fall-detection event stream into an auditable alarm — falls, an empty zone, a motionless person — with an operator confirmation page and a webhook that carries no video.
+  summary_i18n:
+    zh: 把跌倒检测的事件流变成可审计的告警——跌倒、区域无人、区域静止——带人工确认页面，webhook 不携带任何视频。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+
+  # Local paths, not CDN URLs. Nothing has been uploaded yet; gallery/ATTRIBUTION.md
+  # holds the target CDN paths and the upload TODO.
+  cover_image: gallery/eldercare-alarm-architecture.svg
+  gallery:
+    - type: image
+      src: gallery/eldercare-alarm-architecture.svg
+      caption: Event flow — the detector publishes MQTT, the alarm service adds zones, timeouts, a state machine and an audit store
+      caption_i18n:
+        zh: 事件流——检测器发布 MQTT，告警服务在其上加区域、超时、状态机与审计存储
+    - type: image
+      src: gallery/eldercare-alarm-state-machine.svg
+      caption: Alarm states — an evidence window, an operator window, then notification with escalation on a missed deadline
+      caption_i18n:
+        zh: 告警状态——取证窗口、人工确认窗口，随后通知；超过期限则升级
+  category: sensing
+  solution_type: solution
+  tags:
+    - eldercare
+    - fall-detection
+    - alarm
+    - mqtt
+    - webhook
+    - audit
+
+  output_interfaces:
+    - type: http
+      port: 8080
+      endpoint: /api/alarms
+      description: Alarm records with their current state, zone, stream, timestamps and the operator who acted on each. The same page serves the confirm and dismiss actions.
+      schema_type: json
+      payload_example: '{"id":"a-17","kind":"fall","zone_id":"bedroom","stream_id":"cam-01","state":"notified","event_timestamp":1788581337237,"operator":"nurse-a"}'
+      description_i18n:
+        zh: 告警记录，含当前状态、区域、流编号、时间戳，以及处理它的操作者。同一页面提供确认与驳回操作。
+    - type: http
+      port: 0
+      endpoint: <your webhook URL>
+      description: Outbound POST on a confirmed alarm. The payload carries alarm id, kind, zone, stream, timestamp and operator only — no snapshot and no video — and an idempotency key so a retry cannot double-notify.
+      schema_type: json
+      description_i18n:
+        zh: 告警确认后向外 POST。负载只含告警 id、类型、区域、流编号、时间戳与操作者，不含快照和视频；另带幂等键，重试不会重复通知。
+    - type: mqtt
+      port: 1883
+      topic: eldercare/alarm/<zone-id>
+      description: Optional alarm bus, off by default. Same payload as the webhook, for sites that route notifications over MQTT rather than HTTP.
+      schema_type: json
+      description_i18n:
+        zh: 可选的告警总线，默认关闭。负载与 webhook 相同，供以 MQTT 而非 HTTP 分发通知的现场使用。
+
+  input_requirements:
+    - type: mqtt
+      description: A fall-detection result stream in the edgefallkit v1 format, carrying stream_id, person_count, fall_event and per-person bbox in the payload. The Orin and Hailo presets deploy that detector alongside the alarm service; the reCamera preset consumes one that is already running on the cameras.
+      required: true
+      description_i18n:
+        zh: edgefallkit v1 格式的跌倒检测结果流，payload 中带 stream_id、person_count、fall_event 与每人 bbox。Orin 与 Hailo 套餐会连同检测器一起部署；reCamera 套餐消费摄像头上已在运行的那一路。
+    - type: rtsp
+      description: On the Orin and Hailo presets, a fixed indoor view where a person stays visible along the expected fall path. Zones are normalised rectangles over that frame, so moving the camera invalidates the zone layout.
+      required: false
+      description_i18n:
+        zh: Orin 与 Hailo 套餐需要一个固定的室内机位，在可能发生跌倒的路径上人体保持可见。区域是该画面上的归一化矩形，移动摄像头会使区域划分失效。
+
+  device_catalog:
+    recomputer_j30:
+      description: Runs the detector and the alarm service together (Orin Nano 8GB)
+      description_i18n:
+        zh: 检测器与告警服务跑在同一台上（Orin Nano 8GB）
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Same stack with the larger YOLO11m pose model (Orin NX 16GB)
+      description_i18n:
+        zh: 同一套栈，改用更大的 YOLO11m 姿态模型（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_r20_industrial:
+      description: Runs the detector on a Hailo-8 accelerator with the alarm service alongside
+      description_i18n:
+        zh: 检测器跑在 Hailo-8 加速器上，告警服务在同机运行
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    recamera_2002:
+      description: All-in-one AI camera that already runs fall detection; supplies the event stream this solution consumes
+      description_i18n:
+        zh: 已在运行跌倒检测的一体化 AI 摄像头，为本方案提供事件流
+    recamera_pro:
+      description: Newer all-in-one camera running the App Center fall detector; supplies the event stream over its own topic
+      description_i18n:
+        zh: 运行应用中心跌倒检测的新一代一体机，通过自己的主题提供事件流
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera you already own, supplying the video the detector watches on the Orin and Hailo presets
+      description_i18n:
+        zh: 你已有的任意 RTSP 摄像头，在 Orin 与 Hailo 套餐里为检测器提供视频
+
+  presets:
+    - id: orin
+      name: IP Camera + reComputer J (Orin)
+      name_i18n:
+        zh: IP 摄像头 + reComputer J（Orin）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Detector, alarm service, broker and confirmation page on one Jetson. The most streams per box and the shortest path from an existing camera estate to an auditable alarm.
+      description_i18n:
+        zh: 检测器、告警服务、broker 与确认页面全在一台 Jetson 上。单机可带的路数最多，从现有摄像头到可审计告警的路径最短。
+      device_groups:
+        - id: compute
+          name: Alarm Host
+          name_i18n:
+            zh: 告警主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hailo
+      name: IP Camera + reComputer R (Hailo)
+      name_i18n:
+        zh: IP 摄像头 + reComputer R（Hailo）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Same stack on a Hailo-8 accelerator, with a native C++ detector hot path. Pick it when this hardware is already installed.
+      description_i18n:
+        zh: 同一套栈跑在 Hailo-8 加速器上，检测器热路径为原生 C++。这类硬件已经装好时选它。
+      device_groups:
+        - id: compute
+          name: Alarm Host
+          name_i18n:
+            zh: 告警主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: recamera
+      name: reCamera + Alarm Gateway
+      name_i18n:
+        zh: reCamera + 告警网关
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: The cameras already detect falls on their own. The alarm service runs on a gateway beside them and is brought up by hand, because the gateway is whatever machine you already have.
+      description_i18n:
+        zh: 摄像头自己就在做跌倒检测。告警服务跑在旁边的网关上，由人工拉起——网关是你手上现成的任意一台机器。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+            - device_ref: recamera_pro
+          default: recamera_2002
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+
+  links:
+    github: https://github.com/suharvest/edgefallkit
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

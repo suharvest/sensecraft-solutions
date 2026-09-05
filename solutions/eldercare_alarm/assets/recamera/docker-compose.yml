@@ -1,0 +1,61 @@
+# reCamera (SG2002 and Pro): the alarm gateway only.
+#
+# Copied from eldercare-alarm/compose.recamera.yml with the alarm service's
+# `build:` stanza replaced by a registry tag.
+#
+# Inference is NOT in a container here. On reCamera 2002 it is a native process
+# installed as a .deb; on reCamera Pro it is an App Center application. Both
+# publish MQTT on their own. This stack therefore runs on a gateway host next
+# to the cameras (any x86_64 or arm64 machine — a reComputer, a NUC, an
+# existing home server) and consumes that external event stream.
+#
+# This file is not deployed by the solution engine. The reCamera preset is a
+# manual step: the guide walks through bringing this up by hand, because the
+# gateway is whatever machine the integrator already has rather than a device
+# the deploy form can address.
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - eldercare-mosquitto:/mosquitto/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  eldercare-alarm:
+    # NOT PUSHED YET. Neither of these tags exists in the registry as of
+    # packaging (2026-09-05). Build from eldercare-alarm/docker/Dockerfile —
+    # both architectures build (release/PINNING.md records local arm64 and
+    # --platform linux/amd64 builds) — and retag, or push, before running this.
+    # Pick the tag matching the gateway's architecture.
+    image: ${ELDERCARE_ALARM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0}
+    command: ["--config", "/config/config.yaml"]
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      # reCamera 2002 publishes to <device-name>/fall-detection/results (single
+      # stream, no stream-id suffix); reCamera Pro publishes to
+      # <base>/fall-detection/state and needs the recamera_pro_state adapter.
+      # Both are selected in config.yaml under mqtt.subscriptions.
+      - ./config/eldercare.yaml:/config/config.yaml:ro
+      - eldercare-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  eldercare-data:
+  eldercare-mosquitto:
