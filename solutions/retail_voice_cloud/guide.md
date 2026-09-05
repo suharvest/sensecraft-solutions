@@ -111,10 +111,13 @@ delete surface.
 
 1. The first account is created with the admin API token:
    `curl -X POST -H "X-API-Token: <admin-token>" -H "Content-Type: application/json" -d '{"username":"ops","password":"<password>"}' http://<stack-host>:8081/api/v1/users/register`.
-2. That account is created as **viewer** — it can read but not delete or export,
-   and there is no API to promote it. To give it admin, update the `role` column
-   in the `users` table directly:
-   `docker exec -i c4-mysql mysql -uroot -p<mysql-password> voice -e "UPDATE users SET role='admin' WHERE username='ops';"`, then log in again to get a token carrying the new role.
+2. That account is created as **viewer** — it can read but not delete or export.
+   Promote it to admin with the role API (needs an admin credential itself):
+   `curl -X PATCH -H "X-API-Token: <admin-token>" -H "Content-Type: application/json" -d '{"role":"admin"}' http://<stack-host>:8081/api/v1/users/<id>/role`.
+   Look up `<id>` with `GET /api/v1/users?username=ops` using the same admin
+   token, then log in again to get a token carrying the new role. The service
+   itself refuses to demote the last remaining admin (409), so this path never
+   locks the account out of its own role endpoint.
 3. Everything the console shows is post-redaction. There is no view of the
    original text anywhere, because it was never stored.
 
@@ -252,8 +255,9 @@ Opens `http://<collector>:3000/` — the same console, on the collector.
 1. Create the first account with the admin API token, exactly as in the other
    preset:
    `curl -X POST -H "X-API-Token: <admin-token>" -H "Content-Type: application/json" -d '{"username":"ops","password":"<password>"}' http://<collector>:8081/api/v1/users/register`.
-2. Promote it in the `users` table if it needs to delete or export — new accounts
-   are viewer and there is no API for the role.
+2. Promote it with the role API if it needs to delete or export (admin token
+   required): `curl -X PATCH -H "X-API-Token: <admin-token>" -H "Content-Type: application/json" -d '{"role":"admin"}' http://<collector>:8081/api/v1/users/<id>/role`.
+   New accounts are viewer by default.
 3. The Recordings page shows the redacted text. The device the collector
    registered appears under Devices, keyed by MAC.
 
