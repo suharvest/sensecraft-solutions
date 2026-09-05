@@ -1,0 +1,72 @@
+# edge-inspection-assembly（Demo B）on Raspberry Pi 5 + Hailo-8。改造自
+# edge-inspection-surface（demo A）的 platforms/rpi-hailo/docker-compose.yml。
+#
+#   docker compose -p edge_inspection_assembly_hailo up -d
+#
+# 独立 project 名，不与设备上其它 compose project 混用（IMPL-NOTES 44）。
+# 与 Jetson 侧同构：配置、模型、素材都在镜像外，换 HEF 不用重打镜像。
+#
+# ABI 锁（gotchas-rpi-hailo #1）：宿主的 hailo_pci 驱动、libhailort.so、
+# hailo_platform python 绑定三者必须同一个 4.x 版本，而且要与编 HEF 的
+# Dataflow Compiler 对得上。本仓库的 HEF 由 DFC 3.31.0 / HailoRT 4.21.0 编出
+# （models/hef.manifest.json 的 dfc 段），所以设备侧必须是 HailoRT **4.21.x**，
+# 并且 `apt-mark hold hailort hailort-pcie-driver` 两个都 hold（同 #15）。
+# 镜像 tag 尚未发布：edge-inspection-assembly-rpi-hailo:0.1.0-dev 只在 Mac 上
+# 交叉构建过（arm64，9 层，内容 103,591,916 B），没有推到 registry，也没有在板子上
+# 跑过。部署前在设备上构建这个 tag，或用 INSPECTION_IMAGE 覆盖。
+# devices/hailo_assembly.yaml 的 before 动作会先检查这一点。
+services:
+  inspection:
+    image: ${INSPECTION_IMAGE:-edge-inspection-assembly-rpi-hailo:0.1.0-dev}
+    container_name: edge-inspection-assembly-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-line1}"]
+    restart: unless-stopped
+    # host 网络：Modbus 502 与 web 8080 直接暴露给产线，MQTT 走本机 broker。
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      PYTHONUNBUFFERED: "1"
+    devices:
+      # 只挂这一个节点，不整挂 /dev。
+      - /dev/hailo0:/dev/hailo0
+    volumes:
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      # 宿主机 HailoRT 是权威版本，只读挂进来（fall-detection 同一条规矩）。
+      # 只挂 hailo_platform 这一个包，不整挂 dist-packages：整挂会把宿主的
+      # numpy / cv2 顶到镜像自带的前面（IMPL-NOTES 42 在 Jetson 上踩过）。
+      - ${HOST_HAILO_PY:-/usr/lib/python3/dist-packages/hailo_platform}:/usr/lib/python3/dist-packages/hailo_platform:ro
+      - ${HOST_LIBHAILORT:-/usr/lib/libhailort.so.4.21.0}:/usr/lib/libhailort.so.4.21.0:ro
+      - ${HOST_LIBHAILORT_SONAME:-/usr/lib/libhailort.so.4}:/usr/lib/libhailort.so.4:ro
+    # USB 摄像头输入时在这里逐个加 /dev/videoN。
+    # devices:
+    #   - /dev/video0:/dev/video0
+    # 有界日志：docker logs 不无限增长，产线上长期运行时不会把分区写满。
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "test -c /dev/hailo0 && python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-inspection-assembly-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    # 有界日志：docker logs 不无限增长，产线上长期运行时不会把分区写满。
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

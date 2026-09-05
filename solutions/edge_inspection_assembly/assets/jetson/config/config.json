@@ -1,0 +1,167 @@
+{
+  "sources": [
+    {
+      "stream_id": "line1-pcb",
+      "uri": "/data/deeppcb_val_30s.mp4",
+      "kind": "file",
+      "fps": 10,
+      "assembly": {
+        "expected": [
+          {
+            "class": "open",
+            "roi": [
+              0.29328,
+              0.34656,
+              0.42078,
+              0.43156
+            ],
+            "min_count": 1,
+            "label": "slot00-open"
+          },
+          {
+            "class": "mousebite",
+            "roi": [
+              0.36469,
+              0.45766,
+              0.44469,
+              0.52516
+            ],
+            "min_count": 1,
+            "label": "slot01-mousebite"
+          },
+          {
+            "class": "spur",
+            "roi": [
+              0.47344,
+              0.62641,
+              0.54844,
+              0.69391
+            ],
+            "min_count": 1,
+            "label": "slot02-spur"
+          },
+          {
+            "class": "pin-hole",
+            "roi": [
+              0.665,
+              0.83875,
+              0.735,
+              0.89875
+            ],
+            "min_count": 1,
+            "label": "slot03-pin-hole"
+          },
+          {
+            "class": "mousebite",
+            "roi": [
+              0.84844,
+              0.49109,
+              0.94844,
+              0.56359
+            ],
+            "min_count": 1,
+            "label": "slot04-mousebite"
+          },
+          {
+            "class": "open",
+            "roi": [
+              0.04,
+              0.58156,
+              0.21,
+              0.69656
+            ],
+            "min_count": 1,
+            "label": "slot05-open"
+          }
+        ],
+        "match_distance": 0.12,
+        "min_score": 0.25,
+        "report_extra": false
+      }
+    },
+    {
+      "stream_id": "gauge-cam",
+      "uri": "/data/dimension_aruco_30s.mp4",
+      "kind": "file",
+      "fps": 10,
+      "dimension": {
+        "calibration": {
+          "ref_object_width_mm": 25.0,
+          "detect": "aruco",
+          "roi": [
+            0.020695,
+            0.320312,
+            0.245305,
+            0.679688
+          ],
+          "aruco_dict": "DICT_4X4_50",
+          "aruco_id": 7
+        },
+        "measurements": [
+          {
+            "name": "gauge-block",
+            "roi": [
+              0.401906,
+              0.2375,
+              0.894094,
+              0.7625
+            ],
+            "nominal_width_mm": 60.0,
+            "nominal_height_mm": 40.0,
+            "tolerance_mm": 1.0
+          }
+        ]
+      }
+    }
+  ],
+  "model": {
+    "path": "/models/yolox_tiny_deeppcb6.engine",
+    "accelerator": "tensorrt",
+    "input_size": [
+      640,
+      640
+    ],
+    "score_threshold": 0.25,
+    "nms_threshold": 0.45,
+    "onnx_sha256": "1149b92e6d627f9ed6e50357c84f150c00d3e567263de32f81b135896a739e5e"
+  },
+  "classes": [
+    "open",
+    "short",
+    "mousebite",
+    "spur",
+    "copper",
+    "pin-hole"
+  ],
+  "rules": {
+    "ng_classes": [],
+    "min_score": 0.35,
+    "min_defects": 1,
+    "min_area": 0.0,
+    "consecutive_frames": 1,
+    "ng_on_defect": true,
+    "ng_on_missing": true,
+    "ng_on_extra": true,
+    "ng_on_dimension": true
+  },
+  "mqtt": {
+    "host": "127.0.0.1",
+    "port": 1883,
+    "topic": "inspection/{stream_id}/results",
+    "qos": 0,
+    "retain": false
+  },
+  "modbus": {
+    "enabled": true,
+    "bind": "0.0.0.0",
+    "port": 502,
+    "unit_id": 1,
+    "heartbeat_interval_s": 1.0
+  },
+  "web": {
+    "enabled": true,
+    "bind": "0.0.0.0",
+    "port": 8080,
+    "preview_fps": 5
+  }
+}

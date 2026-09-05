@@ -1,0 +1,68 @@
+# edge-inspection-assembly（Demo B）on Jetson Orin。改造自 fall-detection 的
+# docker-compose.slim.yml：同样把宿主机 TensorRT / CUDA 作为权威版本挂进来，
+# engine 与配置留在镜像外，可以按设备重建。
+#
+#   docker compose -p edge_inspection_assembly up -d
+#
+# 独立 project 名 edge_inspection_assembly（与 devices/jetson_assembly.yaml 一致），不与设备上
+# 其它 compose project 混用。
+# 镜像 tag 尚未发布：edge-inspection-assembly-jetson:0.1.0-dev 到目前为止只在评测
+# 设备上本地构建过，没有推到 registry。部署前要么在设备上按上游仓库的
+# platforms/jetson/Dockerfile.slim 构建一次这个 tag，要么用 INSPECTION_IMAGE
+# 覆盖成设备能拉到的 tag。devices/jetson_assembly.yaml 的 before 动作会先检查这一点。
+services:
+  inspection:
+    image: ${INSPECTION_IMAGE:-edge-inspection-assembly-jetson:0.1.0-dev}
+    container_name: edge-inspection-assembly-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-line1}"]
+    restart: unless-stopped
+    runtime: nvidia
+    # host 网络：Modbus 502 与 web 8080 直接暴露给产线，MQTT 走本机 broker。
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # 配置、engine、素材都在镜像外，换模型不用重打镜像。
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      # 宿主机 TensorRT python 绑定。只挂这一个包，不整挂 dist-packages。
+      - /usr/lib/python3.10/dist-packages/tensorrt:/host-python/tensorrt:ro
+      # 宿主机 TensorRT / CUDA 运行时库是权威版本（gotchas-jetson #10）。
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    # USB 摄像头输入时在这里逐个加 /dev/videoN，不要整挂 /dev。
+    # devices:
+    #   - /dev/video0:/dev/video0
+    # 有界日志：docker logs 不无限增长，产线上长期运行时不会把分区写满。
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-inspection-assembly-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    # 有界日志：docker logs 不无限增长，产线上长期运行时不会把分区写满。
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
