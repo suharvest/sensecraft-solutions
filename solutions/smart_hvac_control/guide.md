@@ -36,7 +36,7 @@ Deploy on the machine running SenseCraft Solution. Use this for a dry run agains
 
 ### Wiring
 
-Real captures of the wiring and the running console are not available yet — see `gallery/ATTRIBUTION.md`. Wire it as follows:
+A real running-console capture is in `gallery/`; a capture of the physical wiring is not available yet — see `gallery/ATTRIBUTION.md`. Wire it as follows:
 
 1. Put this machine on the same network as the HVAC controller and the meter or its Modbus TCP gateway.
 2. Modbus RTU is not available on this target: the standard Docker profile attaches no host serial device. Use Modbus TCP here, or the remote target with the serial-device profile.

@@ -17,16 +17,59 @@ intro:
   description_file_i18n:
     zh: description_zh.md
 
-  # Cover and gallery carry the architecture diagram only.
+  # Cover and gallery: real running-UI captures plus the architecture diagram.
   #
-  # gallery/architecture.svg is a schematic block diagram, and its caption says so — a
-  # diagram that presents itself as a diagram is not a stand-in for evidence. The other
-  # three SVGs on disk (cover, dashboard, recomputer) are drawings that would read as
-  # product photography or as a screenshot of a running console, so they stay unreferenced
-  # until real captures exist. The four captures this page still owes are listed as TODOs
-  # in gallery/ATTRIBUTION.md, blocked on a commissioning run that has not happened yet.
-  cover_image: gallery/architecture.svg
+  # The four PNGs are screen captures of the actual missionpack-knn console running against
+  # real backend code, with the SDM630 meter and the HVAC BACnet controller supplied by this
+  # repository's own protocol simulators rather than physical field devices — every caption
+  # says so. gallery/architecture.svg stays alongside them as a labelled schematic diagram.
+  # The three remaining SVGs on disk (cover, dashboard, recomputer) are drawings that would
+  # read as product photography or as a screenshot of a running console, so they stay
+  # unreferenced. Full provenance (capture host, commit, simulator configuration, duration)
+  # is in gallery/ATTRIBUTION.md.
+  cover_image: gallery/points-overview-running.png
   gallery:
+    - type: image
+      src: gallery/points-overview-running.png
+      caption: >-
+        Running point table — all 13 points (10 SDM630 meter registers, 3 HVAC BACnet points)
+        reading live "good" quality across both sources. Field devices are this repo's own
+        protocol simulators, not a physical meter or controller.
+      caption_i18n:
+        zh: >-
+          运行中的点位总表——电表（SDM630，10 个寄存器）与暖通 BACnet（3 个点位）共 13 个
+          点位均为实时"良好"质量。现场设备为本仓库自带的协议模拟器，非真实电表或控制器。
+    - type: image
+      src: gallery/access-registration.png
+      caption: >-
+        Access page — the SDM630 Modbus TCP source and the HVAC BACnet/IP source, both
+        online, with their registered point counts. Simulated field devices, real gateway
+        registration flow.
+      caption_i18n:
+        zh: >-
+          接入页——SDM630 Modbus TCP 数据源与暖通 BACnet/IP 数据源均在线，附各自已注册点位数。
+          现场设备为模拟器，接入注册流程为真实网关逻辑。
+    - type: image
+      src: gallery/control-dispatch-readback.png
+      caption: >-
+        Command-receipt ledger — manual setpoint and compressor-enable writes to the
+        simulated HVAC controller, each shown protocol-acknowledged with requested vs.
+        effective value and actor. Not a rollback or alarm demonstration.
+      caption_i18n:
+        zh: >-
+          命令回执台账——对模拟暖通控制器下发的手动设定值与压缩机启停写入，均显示协议已确认，
+          附请求值/生效值与操作者。非回滚或告警演示。
+    - type: image
+      src: gallery/points-source-offline.png
+      caption: >-
+        Point table with the SDM630 source stopped mid-capture: its ten points read
+        "offline" while the HVAC BACnet source stays "good" — the pre-existing per-point
+        quality state, not the new alarm banner or rollback coordinator (neither is wired
+        into the live cycle yet).
+      caption_i18n:
+        zh: >-
+          停止 SDM630 数据源后的点位总表：其 10 个点位显示"离线"，暖通 BACnet 数据源仍为
+          "良好"——沿用既有的逐点质量状态，非新告警条或回滚协调器（二者均尚未接入实时周期）。
     - type: image
       src: gallery/architecture.svg
       caption: Schematic architecture diagram — meter and HVAC points, prediction, and the verified write path. Not a screenshot of a running system.

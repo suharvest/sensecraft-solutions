@@ -36,7 +36,7 @@
 
 ### 接线
 
-现场接线和运行界面的真实截图暂缺，见 `gallery/ATTRIBUTION.md`。按以下方式接线：
+`gallery/` 中已有运行界面的真实截图；现场接线照片暂缺，见 `gallery/ATTRIBUTION.md`。按以下方式接线：
 
 1. 把本机接入与暖通控制器、电表（或其 Modbus TCP 网关）相同的网络。
 2. 本目标不支持 Modbus RTU：标准 Docker 配置不会挂载主机串口。这里请用 Modbus TCP，或改用远程目标配合串口设备部署配置。
