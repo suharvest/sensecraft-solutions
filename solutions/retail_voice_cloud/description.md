@@ -116,6 +116,26 @@ Read this before writing any customer-facing copy about the deployment.
 - **Turning on the cloud-analytics profile sends text off the host.** The text
   is redacted, but "nothing leaves the premises" stops being true.
 
+### Known limitations
+
+- **Numbers spoken as a continuous string come back as Chinese numeral words.**
+  The ASR does not apply inverse text normalization to an isolated digit run,
+  even with `recognition.use_inverse_text_normalization` on: "13812345678"
+  spoken in one breath transcribes as "幺三八幺二三四五六七八", not as Arabic
+  digits. Every phone-number regex in the redactor matches Arabic digits, so
+  before this was handled such a line was stored with the number in the clear
+  and `pii_masked_count: 0`.
+  A dedicated rule (`cn_mobile_spoken`) now masks the 11-character Chinese
+  numeral mobile-number pattern, including the 幺 reading used when people read
+  a number out. **What is still not covered:** ID card numbers, landline
+  numbers and any other numeric identifier read out as Chinese numeral words.
+  If those matter for the deployment, verify with your own recordings before
+  relying on redaction, and treat the raw audio retention window as the control
+  that actually bounds the exposure.
+- **The redaction score in the table is a text-level score.** It is measured on
+  written text, not on ASR output. Transcription errors move entity boundaries
+  and can drop a match that the same rule would catch in clean text.
+
 ## Output Interfaces
 
 | Interface | Port | Path | Content |

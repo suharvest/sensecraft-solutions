@@ -141,10 +141,16 @@ deletion.
 1. Say something with a phone number in it: "我叫张伟，手机号是 13812345678".
 2. Check the newest row — the number must appear as `[[PHONE]]` and the name as
    `[[NAME]]`, with `pii_masked_count` greater than zero.
-3. Delete it with `POST /api/v1/privacy/erase` using the admin token, and read
-   the residue count in the response. It must be 0.
-4. Run `assets/tools/delete_proof.sh` from the `sensecraft-voice-service`
-   repository root. It stands up its own MySQL and MinIO (`c4-proof-` prefixed
+3. Delete it with `POST /api/v1/privacy/erase` using the admin token. The
+   response must report `"status": "complete"`, `"residue_count": 0` and no
+   `failed_steps`. The call returns HTTP 200 even when a cascade step fails —
+   `status` is the field that says whether this deletion counts as proof.
+   `partial` means something (an object in MinIO, a voiceprint, the tombstone)
+   was not removed; `residue_count` then also counts those, so it will not be 0.
+4. Copy `assets/tools/delete_proof.sh` into the `sensecraft-voice-service`
+   repository and run it (it finds the repository root by walking up to the
+   first `go.mod`, so `tools/` and `assets/tools/` both work; or set
+   `REPO_ROOT=` explicitly). It stands up its own MySQL and MinIO (`c4-proof-` prefixed
    containers, nothing existing is touched), seeds data, deletes one subject and
    re-checks all three stores. `RESIDUE_COUNT=0` and `RESIDUE_DB_REPORTED=0` are
    the pass condition.
@@ -156,8 +162,12 @@ deletion.
 |-------|----------|
 | The raw phone number is in the database | Redaction is off — check `privacy.redaction_enabled` in `config/voice-service.yaml`, then stop and re-check everything ingested so far |
 | A name was not masked | Recall is 0.95 on the gold set; low-confidence entities are flagged rather than masked. Check `pii_review_count` before calling it a bug |
-| Residue count is not zero | An object failed to delete in MinIO — the row is gone but the audio is not. Read the `errors` field and treat the deletion as failed |
-| Deletion succeeded but the voiceprint is still there | Expected while the voiceprint service is not running; the cascade has nothing to call |
+| Residue count is not zero | Something outside the database survived — an object in MinIO, or a voiceprint. Read `failed_steps` and `errors`, and treat the deletion as failed |
+| `status` is `partial` | At least one cascade step failed. `voiceprint_delete` means the voiceprint service was unreachable, `object_delete` means MinIO, `tombstone_write` means the deletion happened but left no receipt. Fix the cause and re-run the erase; it is idempotent |
+| Deletion succeeded but the voiceprint is still there | Expected while the voiceprint service is not running (the `voiceprint` profile is off) — the cascade has nothing to call, so the response reports `status: partial` and a non-zero residue rather than a clean 0 |
+| `voiceprint_delete` fails with `connection refused` | `asr.base_url` in `config/voice-service.yaml` must be the compose service name `http://asr-voiceprint:8080`, not `127.0.0.1` — inside its own network namespace voice-service's `127.0.0.1` is itself |
+| A phone number read out as one continuous run of digits is not masked | The ASR returns it as Chinese numeral words ("幺三八幺二三四五六七八"), not Arabic digits. The `cn_mobile_spoken` rule covers the 11-digit mobile pattern; ID card and landline numbers read out this way are still not covered — see the known limitations in the solution description |
+| `delete_proof.sh` reports `go.mod file not found` | The script is not inside the `sensecraft-voice-service` checkout. Copy it in, or run it with `REPO_ROOT=/path/to/sensecraft-voice-service` |
 | `delete_proof.sh` cannot reach the Go module proxy | It passes `GOPROXY=https://goproxy.cn,direct` by default; override `GOPROXY` if your network needs something else |
 
 ### Deployment Complete
@@ -174,7 +184,8 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 3. A request with no token returns 401; a viewer token on the delete route
    returns 403.
 4. The newest recording shows placeholders, not raw personal data.
-5. The erase response reports residue 0.
+5. The erase response reports `status: complete` and residue 0 (a
+   `partial` status with a non-zero residue means the deletion is not proven).
 
 #### Next steps
 
@@ -281,7 +292,8 @@ The same acceptance check, driven by the mic array instead of an app.
    segments close on silence.
 2. Check the newest row shows `[[PHONE]]` and `[[NAME]]`, and that
    `pii_masked_count` is greater than zero.
-3. Erase that session with the admin token and confirm the residue count is 0.
+3. Erase that session with the admin token and confirm the response reports
+   `status: complete` and residue 0.
 4. Run `assets/tools/delete_proof.sh` from the `sensecraft-voice-service`
    repository root and read `RESIDUE_COUNT=0`.
 5. Confirm the local audio directory `/data-iot/respeaker/recordings` no longer
@@ -309,7 +321,8 @@ unless someone enables the cloud-analytics profile.
 2. `curl -sf http://<collector>:8621/health` returns without error.
 3. Speaking near the array produces a new row within a few seconds.
 4. That row contains placeholders, not raw personal data.
-5. Erase returns residue 0, and the audio file is gone from disk.
+5. Erase returns `status: complete` with residue 0, and the audio file is gone
+   from disk.
 
 #### Next steps
 

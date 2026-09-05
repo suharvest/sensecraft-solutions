@@ -15,7 +15,38 @@ set -euo pipefail
 # zsh 是本机默认 shell，但本脚本用 bash 的 set -o pipefail 与数组，
 # 因此显式走 bash。macOS 自带 bash 3.2 也能跑：没有用 associative array。
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# 仓库根 = 往上找到第一个带 go.mod 的目录。
+#
+# 不能写死跳几级：这个脚本有两份位置不同的副本——仓库内的 tools/delete_proof.sh
+# （一级）和方案包里的 assets/tools/delete_proof.sh（两级）。原来固定 "/.."，
+# 从 assets/tools/ 运行时 REPO_ROOT 会停在 assets/，go test 报
+# "go.mod file not found in current directory or any parent directory"。
+# REPO_ROOT 也可以从环境变量显式指定，脚本被拷到别处时用。
+if [ -n "${REPO_ROOT:-}" ]; then
+  REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
+else
+  REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  while [ ! -f "$REPO_ROOT/go.mod" ] && [ "$REPO_ROOT" != "/" ]; do
+    REPO_ROOT="$(dirname "$REPO_ROOT")"
+  done
+fi
+
+if [ ! -f "$REPO_ROOT/go.mod" ]; then
+  echo "❌ 找不到 go.mod：从 $(dirname "${BASH_SOURCE[0]}") 一路往上都没有。" >&2
+  echo "   这个脚本要在 sensecraft-voice-service 仓库内运行。方案包里的副本请先拷进仓库，" >&2
+  echo "   或显式指定：REPO_ROOT=/path/to/sensecraft-voice-service $0" >&2
+  exit 1
+fi
+if [ ! -d "$REPO_ROOT/pkg/controller/privacy" ]; then
+  echo "❌ $REPO_ROOT 下没有 pkg/controller/privacy，删除证明的测试不在这个仓库里。" >&2
+  exit 1
+fi
+if ! command -v docker >/dev/null 2>&1; then
+  echo "❌ 找不到 docker：本脚本要拉起真的 MySQL + MinIO。" >&2
+  exit 1
+fi
+
+echo "REPO_ROOT=$REPO_ROOT"
 cd "$REPO_ROOT"
 
 MYSQL_CONTAINER=c4-proof-mysql
