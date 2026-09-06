@@ -51,20 +51,23 @@ classifier alongside a local MQTT broker.
   refuses to recreate the `/dev/pts` inodes.
 - **The model file is not on any CDN.** The download URL in the step is the
   intended destination and nothing has been uploaded to it. Copy
-  `mobilenetv3s_waste8.onnx` onto the device at
+  `efficientnet_lite0_waste8.onnx` onto the device at
   `~/edge-waste-sorting/jetson_waste/models/` beforehand; the sha256 check
-  (`51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e`) still
-  applies either way.
+  (`e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391`) still
+  applies either way. This is the current baseline (EfficientNet-Lite0, m1c) —
+  MobileNetV3-Small (m1b) was superseded because it collapsed under INT8 on
+  every edge chain tested; see the solution page.
 - **The container image has not been pushed.** Build it from the upstream
   repository on the device and either retag it to the name in the compose file
   or set `WASTE_IMAGE` to your local tag.
 
 Choose the classifier track here. `baseline` is the default and the right
 choice unless you have read the "Classifier selection" section on the solution
-page: it has higher top-1 on this taxonomy (0.8792 against 0.8501 on the same
-val split) and is 40× faster. `open_vocab` trades about 3 points of top-1 for
-better calibration, open-set rejection, either-language answers and adding a
-class without retraining.
+page: EfficientNet-Lite0 has higher top-1 on this taxonomy than the
+open-vocabulary track (0.8877 against 0.8501 on the same val split) and is
+roughly 4-5x faster on CPU (no Jetson TensorRT number exists for it yet).
+`open_vocab` trades top-1 for better calibration, open-set rejection,
+either-language answers and adding a class without retraining.
 
 ### Troubleshooting
 
@@ -165,10 +168,10 @@ The stack is running and one classification has been verified end to end.
     "uri": "/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"
   },
   "model": {
-    "name": "mobilenetv3s_waste8",
-    "backbone": "mobilenet_v3_small",
+    "name": "efficientnet_lite0_waste8",
+    "backbone": "efficientnet_lite0",
     "input": "images:1x3x224x224",
-    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e",
+    "onnx_sha256": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
     "accelerator": "tensorrt"
   }
 }
@@ -267,9 +270,12 @@ every figure on the solution page holds with it off.
 ## Preset: Camera + Raspberry Pi 5 (Hailo-8) {#pi_hailo}
 
 Prepares a Pi 5 with a Hailo-8, validates the three ABI gates that can only be
-checked on the device, and then stops at a missing model file. The baseline
-MobileNetV3-Small has not been compiled to a HEF by this project. Choose this
-preset to get the board ready, not to get a running classifier today.
+checked on the device, and downloads the EfficientNet-Lite0 (m1c) HEF. The HEF
+compiled cleanly and was INT8-verified against the DFC emulator (agreement
+0.89 vs CPU/native on 200 val images) — **no Hailo-8 hardware has run it yet**.
+Choose this preset to get the first real on-device result for this classifier;
+treat the emulator number as a compile-time sanity check, not a hardware
+verification.
 
 | Device | Purpose |
 |---|---|
@@ -286,21 +292,25 @@ decision.
 
 Known weaknesses, all measured or explicitly unmeasured:
 
-- **No HEF exists.** The baseline has never been compiled for Hailo-8; the
-  open-vocabulary tower parses cleanly but its INT8 quantisation fails at
-  `hailo optimize`. The retry is in progress and distillation is the fallback.
+- **The HEF is emulator-verified, not hardware-verified.** The baseline
+  (EfficientNet-Lite0, m1c) compiles cleanly and shows no INT8 collapse on the
+  DFC emulator (agreement 0.89), but no Hailo-8 hardware has run it. The
+  open-vocabulary tower still fails INT8 quantisation at `hailo optimize`. If
+  you train and self-quantise MobileNetV3-Small yourself, do not assume INT8
+  works for it the way it does for this baseline — it collapsed on this exact
+  compile pipeline (see the solution page).
 - **One item per image.** There is no detector.
 - **`textile` has never been trained or tested**, and `hazardous` is never
   emitted.
-- **Domain shift is unmeasured**, and every accuracy figure on the solution
-  page is CPU FP32 — an INT8 HEF would have a different confidence
-  distribution, also unmeasured.
+- **Domain shift is unmeasured**, and every CPU accuracy figure on the
+  solution page is FP32 — the on-device INT8 confidence distribution has not
+  been measured on real Hailo-8 hardware.
 - **Nothing here has run on a Pi.**
 
 ## Step 1: Deploy Waste Sorting on Hailo {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
-Uploads the compose stack, checks the three Hailo ABI gates, then looks for a
-HEF and stops because there is none.
+Uploads the compose stack, checks the three Hailo ABI gates, then downloads
+and verifies the EfficientNet-Lite0 HEF.
 
 ### Prerequisites
 
@@ -314,9 +324,14 @@ HEF and stops because there is none.
   page size is 4 KB; without this, `VDevice()` and `hailortcli fw-control
   identify` both succeed and the failure only surfaces at `configure(hef)`.
 - At least 4 GB free.
-- **The container image has not been pushed**, and **no HEF exists**. The step
-  will pass the gates and then fail at the model. That is the expected outcome
-  today.
+- **The container image has not been pushed.** Build it from the upstream
+  repository on the device and either retag it to the name in the compose file
+  or set `WASTE_IMAGE` to your local tag.
+- **The HEF has not been uploaded to any CDN.** The download URL in the step
+  is the intended destination; copy `efficientnet_lite0_waste8.hef` onto the
+  device by hand until the upload happens. The sha256 check
+  (`3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00`) still
+  applies either way.
 
 ### Troubleshooting
 
@@ -326,8 +341,9 @@ HEF and stops because there is none.
 | `libhailort.so.4.21.0 not found` | This deployment is ABI-locked to HailoRT 4.21. Install that version; do not mix versions across the driver, the library and the python bindings. |
 | `expected both hailort and hailort-pcie-driver on hold` | `sudo apt-mark hold hailort hailort-pcie-driver`. |
 | `hailo_pci is missing force_desc_page_size=4096` | `echo 'options hailo_pci force_desc_page_size=4096' \| sudo tee /etc/modprobe.d/hailo.conf && sudo reboot`. |
-| `No HEF for this solution` | Expected. The baseline has not been compiled for Hailo-8 and nothing has been uploaded. The board is prepared; re-run this step once a HEF exists. |
+| `No HEF for this solution` | The CDN upload has not happened yet. Copy the HEF onto the device by hand at the path the step names, matching the sha256 above, then re-run the step. |
 | Python import error on `_pyhailort` | The host bindings are mounted into the container and only import under the same Python minor. Bookworm is 3.11, trixie is 3.13. |
+| Your own trained MobileNetV3-Small INT8s badly on Hailo | Expected — do not quantise it directly. MobileNetV3-Small (m1b) collapsed to near-random accuracy on this exact compile pipeline (agreement 0.115 vs CPU/native). EfficientNet-Lite0 is the baseline for this reason. |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml default=true}
 
@@ -339,8 +355,10 @@ Run the deployment on the Pi itself, when you are already working on the device.
 
 ## Step 2: Watch the Live Classification {#preview_hailo_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
 
-Opens the runtime's own page. With no HEF the live view and the health endpoint
-still come up; the classification results do not.
+Opens the runtime's own page: the live view, a trigger button, the health
+endpoint. If Step 1 could not fetch the HEF (nothing on the CDN yet, and it
+was not copied onto the device by hand), the live view still comes up but
+classification results do not.
 
 ### Troubleshooting
 
@@ -348,14 +366,16 @@ still come up; the classification results do not.
 |---|---|
 | Page does not load | `docker ps` on the device — the `waste` container should be up. Check `docker logs edge-waste-app`. |
 | Page loads, preview is black | The source is wrong or unreachable. For a USB camera check that `/dev/videoN` is mounted into the container; for RTSP test the URL in VLC first. |
-| Preview works, `/events` stays empty | With no HEF the model never loads, so nothing is ever classified. This is the expected state of this preset today. |
+| Preview works, `/events` stays empty | If no HEF was placed on the device, the model never loads and nothing is ever classified — see Step 1's "No HEF for this solution" troubleshooting entry. |
 | Item is tiny in the frame | Re-aim. Nothing on the solution page was measured with the item small in the frame. |
 
 ## Step 3: Wire the Trigger and Confirm One Classification {#trigger_setup_hailo type=manual required=true verify=true config=devices/trigger_setup.yaml}
 
-The end-to-end verification. On this preset it will not produce an event until
-a HEF exists — run the framing and subscription substeps now so everything but
-the model is confirmed.
+The end-to-end verification. If the HEF was placed on the device in Step 1,
+this produces a real classification, running on Hailo-8 hardware for the
+first time — this project's own emulator numbers are not a substitute for
+this result. If the HEF is still missing, run the framing and subscription
+substeps now so everything but the model is confirmed.
 
 ### Prerequisites
 
@@ -367,8 +387,11 @@ the model is confirmed.
 
 ### Deployment Complete
 
-The board is prepared and the stack is running. Classification is blocked on
-the missing HEF.
+The board is prepared and the stack is running. If the HEF was placed on the
+device, classification runs on Hailo-8 hardware — this is the first real
+verification of that number, since this project has no Hailo-8 of its own. If
+the HEF is still missing (CDN upload pending), classification is blocked on
+it; the trigger and MQTT path can still be exercised.
 
 #### Quick verification
 
@@ -414,10 +437,10 @@ the missing HEF.
     "uri": "/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"
   },
   "model": {
-    "name": "mobilenetv3s_waste8",
-    "backbone": "mobilenet_v3_small",
+    "name": "efficientnet_lite0_waste8",
+    "backbone": "efficientnet_lite0",
     "input": "images:1x3x224x224",
-    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e",
+    "onnx_sha256": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
     "accelerator": "hailo"
   }
 }
@@ -429,22 +452,24 @@ parsing the topic.
 
 #### Next steps
 
-- Wait for the HEF. The INT8 quantisation retry is in progress; if it fails the
-  fallback is distilling a small student model.
+- Report back the real Hailo-8 accuracy and latency you just measured — this
+  is the first hardware verification for this HEF anywhere in the project.
+  Compare it against the DFC emulator's 0.89 agreement / 0.755 accuracy
+  figures on the solution page.
+- If the CDN upload is still pending and you copied the HEF on by hand, note
+  that for the next deploy — the download step will otherwise fail.
 - Keep the ABI state you just established: both Hailo packages held, and
-  `force_desc_page_size=4096` in place. A HEF compiled against DFC 3.31.0 /
-  HailoRT 4.21.0 will need exactly this.
+  `force_desc_page_size=4096` in place. This HEF, compiled against DFC
+  3.31.0 / HailoRT 4.21.0, needs exactly this.
 - Point MQTT at a broker with credentials before this leaves the bench.
-- If you need a working classifier now, use the Orin preset — it is the only
-  one with a model file.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| No message at all | Expected with no HEF. Check the container log names the missing model; if it names something else, that is a separate fault. |
+| No message at all | Check whether the HEF is actually present on the device (`ls` the models directory) — if the CDN upload has not happened, Step 1 fails at the fetch step. If the HEF is present, check the container log for a different fault. |
 | Trigger counter does not move | The trigger source is not configured. Check `trigger.sources` in `config/config.json`. |
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
-| `configure(hef)` crashes once a HEF exists | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
-| Confidence thresholds behave differently from the Orin preset | The 4.5%-below-0.5 figure is CPU FP32. An INT8 HEF has a different confidence distribution, which nobody has measured. |
+| `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
+| Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.89 emulator agreement figure; a large gap from that number on real hardware is worth reporting. |
 | Want open-vocabulary or VLM fallback here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`, and the VLM fallback steps are Orin-only. |

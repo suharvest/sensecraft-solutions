@@ -3,9 +3,13 @@
 触发拍一张，拿回这件东西是什么材质、该进中国生活垃圾四分类里的哪一档，
 通过 MQTT 一条消息发出去。
 
-**本页没有任何内容在硬件上跑过。** 下面每一个精度与时延数字都是用
-onnxruntime 在 Apple M4 CPU 上测的。本页没有任何 Jetson、Hailo 或 RKNN
-数字，也没有任何套餐声明 `verified: [hardware]`。
+**基线分类器是 EfficientNet-Lite0（m1c），不是 MobileNetV3-Small。**
+原基线（MobileNetV3-Small，"m1b"）在三条实测过的边缘链路上（Hailo emulator、
+RK3576、RK3588）都出现 INT8 量化塌缩；EfficientNet-Lite0 不塌缩，现已成为
+出货基线。下面大多数精度数字仍来自 Apple M4 CPU 上的 onnxruntime，但 Hailo-8
+与 RK3588 两节带有真实 INT8 数字：RK3588 数字来自真实的 Radxa ROCK 5T 设备，
+Hailo-8 数字只来自 DFC emulator——**本页任何地方都没有用过 Hailo-8 真机。**
+目前也没有任何套餐声明 `verified: [hardware]`。
 
 ## 这个方案做什么
 
@@ -52,21 +56,66 @@ payload 里只有路径或对象存储 URI。同时一个异步回调收到四�
 两个分类器在**同一份 split**、同一批图片、同样 224² 输入、同样后处理、
 同一台 Apple M4 CPU 上测过。
 
-### 实测边界——基线分类器（MobileNetV3-Small）
+### 实测边界——基线分类器（EfficientNet-Lite0，m1c）
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
-| 物料八类 top-1 | 0.8792 | val，7417 张 / 1882 组；TrashNet 392 + GC3 7025；onnxruntime 1.25.1 CPU；ONNX `51c7c0ed…` | 本项目 `evaluation/runs/2026-09-06-m1b-cpu` |
-| 物料 top-5 | 0.9854 | 同上 | 同上 |
-| 中国四分类 top-1 | 0.9519 | 同上；在八类 argmax 之上查表得到 | 同上 |
-| macro-F1（有样本的 7 类） | 0.8292 | 不含 `textile`——零样本 | 同上 |
-| 物料八类 top-1，held-out test | 0.8807 | test，7290 张；本轮首次在这个集上测 | 本项目 `evaluation/runs/2026-09-05-w1-cpu` 基线列 |
-| 推理时延（单图） | mean 1.886 ms / p50 1.769 ms / p95 2.276 ms | 仅 `session.run`，Apple M4 CPU，batch 1 | `evaluation/runs/2026-09-06-m1b-cpu` |
-| 置信度低于 0.5 的图 | 335 张（4.5%） | val | 同上 |
+| 物料八类 top-1 | 0.8877 | val，7417 张；onnxruntime 1.25.1 CPU；ONNX `e9f9e847…`，13,477,056 B | 本项目 `evaluation/runs/2026-09-06-m1c-cpu` |
+| 物料 top-5 | 0.9833 | 同上 | 同上 |
+| 中国四分类 top-1 | 0.9500 | 同上；在八类 argmax 之上查表得到 | 同上 |
+| macro-F1（有样本的 7 类） | 0.8511 | 不含 `textile`——零样本 | 同上 |
+| 物料八类 top-1，held-out test | 0.8802 | test，7290 张，与 m1b 同一份 split | 同上 |
+| 推理时延（单图，CPU） | mean 16.796 ms / p50 14.724 ms / p95 28.718 ms | 仅 `session.run`，Apple M4 CPU，batch 1 | 同上 |
+| 置信度低于 0.5 的图 | 318 张（4.3%） | val | 同上 |
+| ORT PTQ INT8 与 fp32 一致率（200 张 val） | 0.965 | per_channel + MinMax，未塌缩 | `evaluation/runs/2026-09-06-m1c-int8-diag-quick` |
 
-**两个 top-1 必须一起报。** 四分类（0.9519）比物料层（0.8792）高得多，
+**为什么换基线。** MobileNetV3-Small（m1b）在同一份 split 上 top-1 略高
+（val 0.8792 对 Lite0 0.8877——其实 Lite0 **高 0.85 个百分点**，不是更差），
+但它的 INT8 量化图在每一条测过的边缘链路上都塌缩：Hailo emulator top-1
+0.15、RK3576 一致率 0.10、RK3588 一致率 0.22，同一批链路上 fp16 一致率都在
+0.98 左右（`2026-09-06-m1b-hef`、`2026-09-06-rk3576-cat`、
+`2026-09-06-rk3588-radxa`）。ORT PTQ 复现了同样的塌缩，排除了「厂商编译器
+特有 bug」这个可能。EfficientNet-Lite0（无 SE 分支、无 hard-swish）在同一批
+INT8 流水线上不塌缩——见下方 Hailo-8 与 RK3588 两节。代价只在 CPU 上：
+平均推理时延从 1.886 ms 涨到 16.796 ms（**CPU 上约慢 9 倍**），因为 Lite0
+（13.5 MB ONNX）FLOPs 比 MobileNetV3-Small（6.1 MB）更高。在真正测过的边缘
+NPU 上（Hailo-8 emulator、RK3588），Lite0 的时延与 MobileNetV3-Small 相近甚至
+更快——CPU 上的这 9 倍代价不会带到下面的 NPU 数字里。
+
+**两个 top-1 必须一起报。** 四分类（0.9500）比物料层（0.8877）高得多，
 是因为 glass↔metal↔plastic 的混淆被吸收掉了——三者都映射到可回收物。
 只报四分类那个数字会高估模型对材质的认知。
+
+### MobileNetV3-Small（m1b）——已被取代，保留作 INT8 塌缩对照
+
+同一份 split、同一批图、同一台 CPU。这个模型不再是出货基线；留在本页是
+因为它的 INT8 失败是换基线的原因，它的 fp16 数字仍是有效对照。
+
+| 指标 | 数值 | 条件 | 来源 |
+|---|---|---|---|
+| 物料八类 top-1 | 0.8792 | val，7417 张；ONNX `51c7c0ed…` | 本项目 `evaluation/runs/2026-09-06-m1b-cpu` |
+| 物料 top-5 | 0.9854 | 同上 | 同上 |
+| 中国四分类 top-1 | 0.9519 | 同上 | 同上 |
+| macro-F1（有样本的 7 类） | 0.8292 | 不含 `textile` | 同上 |
+| 物料八类 top-1，held-out test | 0.8807 | test，7290 张 | 本项目 `evaluation/runs/2026-09-05-w1-cpu` 基线列 |
+| 推理时延（单图，CPU） | mean 1.886 ms / p50 1.769 ms / p95 2.276 ms | 仅 `session.run`，Apple M4 CPU，batch 1 | `evaluation/runs/2026-09-06-m1b-cpu` |
+| 置信度低于 0.5 的图 | 335 张（4.5%） | val | 同上 |
+| **INT8 塌缩——Hailo-8 emulator** | top-1 0.15，与 CPU/native 一致率 0.115（200 张 val） | 同一批 200 张图 fp16 一致率 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
+| **INT8 塌缩——RK3576（cat-remote，真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 塌缩——RK3588（radxa，真机）** | 与 CPU golden 一致率 0.22 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3588-radxa` |
+
+**根因未完全证实。** 排除 SE 分支的数值链路并不能修复塌缩，ORT PTQ 独立于
+任何厂商编译器复现了同样的塌缩——这是全网退化，不是局部算子问题。训练
+recipe 里确实存在一个具体缺陷：`AdamW(model.parameters(),
+weight_decay=1e-4)` 把 weight decay 施加到了 BatchNorm 的 gamma/bias 上，
+m1b checkpoint 里 34 个 `BatchNorm2d` 层中有 4 个 `running_var`/`|gamma|`
+退化到 float32 反规格化量级，位置恰好落在 INT8 精度断崖处。
+EfficientNet-Lite0 用同样的 weight decay 设置，也有同类型的权重离群
+（`|w|` 最大 35.70 对 m1b 的 52.35，只降了 32%），却**没有**塌缩——离群幅度
+的降幅不足以单独解释一致率从 0.115 跳到 0.89 以上这个量级的改善。更可能的
+读法是 SE 门控 + hard-swish 结构本身对 INT8 更敏感，weight-decay 缺陷是
+背景因素、放大了这种敏感性而非单独致因。这个判断没有做消融实验（例如给
+m1b 加 no-decay 参数组重训）验证。
 
 ### 实测边界——开放词汇 track（SigLIP 2 ViT-B/16）
 
@@ -102,50 +151,80 @@ payload 里只有路径或对象存储 URI。同时一个异步回调收到四�
 映射代码路径。基线一列是为这次对比在这份 split 上重算的，
 它的 val top-1 与独立的 m1b 报告逐位一致。
 
-### Hailo-8——什么都还没编出来
+### Hailo-8——基线已编译并在 DFC emulator 上完成 INT8 核实，没有 Hailo-8 真机
 
 | 路径 | 状态 |
 |---|---|
-| 基线 MobileNetV3-Small → HEF | 未尝试。本方案没有任何 HEF。 |
-| SigLIP 2 视觉塔 → HEF | `hailo parser` 端到端通过，无 unsupported op。`hailo optimize`（INT8 PTQ，256 张校准图，optimization_level=1）**失败**，在 `ne_activation_mul_and_add78` 层报 `NegativeSlopeExponentNonFixable`——"Desired shift is 16.0, but op has only 8 data bits"。没有 optimized HAR，没跑 compiler，没有 HEF。 |
+| 基线 EfficientNet-Lite0（m1c） → HEF | **一次编译成功，不需要任何修复。** `hailo optimize` 与 `compiler` 第一次尝试就都 exit 0——Lite0 没有 SE 分支，从架构上就不会撞上 m1b 那个需要 model-script 修复的 avgpool shift 问题。200 张 val 图上（DFC 3.31.0 / HailoRT 4.21.0 emulator）：INT8 与 CPU/native 一致率 **0.890**，对真值准确率 **0.755**（native/CPU 同批图是 0.795）——掉 4 个百分点，不是塌缩。与 CPU 余弦相似度 mean 0.948、min 0.441。**这些数字全部来自编译机（wsl2-local）上的 x86 emulator，没有用过 Hailo-8 PCIe 卡。** `evaluation/runs/2026-09-06-m1c-hef` |
+| 基线 MobileNetV3-Small（m1b） → HEF | 编译成功，但 INT8 塌缩：emulator 一致率 0.115，对真值准确率 0.150（接近 7 类随机基线）。因此被 Lite0 取代——见上方对照表。`evaluation/runs/2026-09-06-m1b-hef` |
+| SigLIP 2 视觉塔 → HEF | 不受 m1c 这轮工作影响。`hailo parser` 端到端通过，无 unsupported op。`hailo optimize`（INT8 PTQ，256 张校准图，optimization_level=1）**失败**，在 `ne_activation_mul_and_add78` 层报 `NegativeSlopeExponentNonFixable`——"Desired shift is 16.0, but op has only 8 data bits"。没有 optimized HAR，没跑 compiler，没有 HEF。 |
 
-**Hailo 路径待定：INT8 量化重试中，失败则蒸馏。** parse 阶段的数值核实倒是
-通过了——DFC native emulator 与 CPU onnxruntime 在 20 张比对图上余弦相似度
-1.0、top-1 判定全一致，说明 ONNX→HAR 的翻译没有引入误差。
-这是没有 Hailo-8 也能回答的那一半；INT8 那一半回答不了。
+**「0.89 一致率」支持什么、不支持什么。** 支持：EfficientNet-Lite0 在同一条
+编译链路、同一份校准集上，INT8 量化没有出现 MobileNetV3-Small 那种模式坍缩，
+且 `hailo optimize` 不需要任何 SE 分支的绕过修复就能跑通。不支持：这份 HEF
+能在真实 Hailo-8 上正确分类垃圾——本项目的评测链路里没有出现过 Hailo-8
+硬件，板级时延、发热与精度全部未测。校准集也只有 256 张，低于 DFC 文档
+通常建议的约 1024 张门槛，且是原样复用 m1b 轮次的抽样，没有为 Lite0
+重新采样。
 
-这不支持「SigLIP2 上不了 Hailo-8」的结论。本轮只在一个 optimization level、
-一套校准集上试了一次，错误原文自己给了三个可能原因，其中只有一条
-（校准集归一化）被核实并排除。
+### RK3588（Radxa ROCK 5T）——真机实测，基线 INT8 现已可用
 
-### RK3588（Radxa ROCK 5T）——推理 parity 已上板验证，部署包待补
-
-本项目唯一的设备侧实测。在 wsl2-local 上用 rknn-toolkit2 2.3.2 转换，
+设备侧实测，真机而非 emulator。在 wsl2-local 上用 rknn-toolkit2 2.3.2 转换，
 在 Radxa ROCK 5T 上跑，librknnrt **2.3.2**（软链名字写的是 2.3.0，
-以库内版本为准），50 张 val 图，`core_mask=AUTO`。
+以库内版本为准），50 张 val 图，`core_mask=AUTO`，per-channel 量化。
+
+| 模型 / 精度 | 时延 p50 / p95（mean） | 与 CPU golden 的一致率 | 对真值准确率 | 条件 |
+|---|---|---|---|---|
+| **EfficientNet-Lite0（m1c），fp16** | 7.906 ms / 8.129 ms（7.041 ms） | 1.00 | 0.78 | ONNX sha `e9f9e847…`，50 张 val 图 |
+| EfficientNet-Lite0（m1c），int8 calib64+normal | 3.780 ms / 3.984 ms（3.807 ms） | 0.90 | 0.72 | 63 张校准图，`normal` 算法 |
+| EfficientNet-Lite0（m1c），int8 calib64+mmse | 3.785 ms / 3.981 ms（3.808 ms） | 0.98 | 0.78 | 63 张校准图，`mmse` 算法 |
+| EfficientNet-Lite0（m1c），int8 calib256+normal | 3.766 ms / 3.920 ms（3.500 ms） | 0.90 | 0.72 | 252 张校准图，`normal` 算法 |
+| **EfficientNet-Lite0（m1c），int8 calib256+mmse**——推荐 | 3.803 ms / 4.003 ms（3.834 ms） | **1.00** | **0.78** | 252 张校准图，`mmse` 算法；与 fp16 一致率、准确率完全打平，**快 52%** |
+| MobileNetV3-Small（m1b，已淘汰），fp16 | 4.44 ms / 6.32 ms | 0.98 | — | ONNX sha `aa181dd5…`，仅作对照 |
+| MobileNetV3-Small（m1b，已淘汰），int8 | 4.70 ms / 11.04 ms | **0.22——塌缩** | — | 64 张校准图，仅作对照 |
+
+**推荐配置：`calib256+mmse`。** 与 fp16 完全打平（一致率 1.00、准确率
+0.78）的同时快 52%（RK3588 上 int8 真正吃到了 NPU 加速路径，塌缩的 m1b
+int8 图从未吃到——m1b 的 int8 反而比自己的 fp16 更慢，4.70 ms 对 4.44 ms，
+说明它的执行从未走进 INT8 加速通道）。四个 Lite0 INT8 变体全部落在
+0.90–1.00 一致率区间，没有一个塌缩。`mmse` 转换耗时是默认 `normal` 算法的
+40–90 倍（256 张校准下 17.3 分钟对 11.5 秒）——这是一次性转换成本，不是
+运行时成本。m1b 塌缩的根因见上方对照表：PTQ 独立于 RK 编译器造成了全网退化，
+训练 recipe 里对 BatchNorm 的 weight-decay 缺陷是一个疑似但未证实的助因。
+`evaluation/runs/2026-09-06-m1c-rk3588-radxa`、
+`evaluation/runs/2026-09-06-rk3588-radxa`（m1b 对照）
+
+同一台设备上的 SigLIP 2 视觉塔，不受本轮 m1c 工作影响：
 
 | 模型 / 精度 | 时延 p50 / p95 | 与 CPU golden 的一致率 | 条件 |
 |---|---|---|---|
-| MobileNetV3-Small，**fp16** | 4.44 ms / 6.32 ms | top-1 **98%**（49/50） | ONNX sha `aa181dd5…`，50 张 val 图 |
-| MobileNetV3-Small，**int8** | 4.70 ms / 11.04 ms | top-1 **22%**（11/50）——**不可用** | 校准集为 train 的 64 张图 |
 | SigLIP 2 视觉塔，**fp16** | 169.4 ms / 170.5 ms | embedding 余弦均值 **0.999617**，最小 0.998841 | ONNX sha `6f664af0…`，.rknn 191 MB |
 
-**RK 上不要发 int8。** int8 的失败模式是类别坍缩而不是噪声：50 张图里 34 张
-坍缩到同一个 class id，而有样本的七类随机基线是 14.3%——量化后的分类头是丢掉了
-判别边界，不是多了一点误差。要修就得加大校准集或改 per-channel / 混合精度策略，
-两者都还没试过。**RK 平台当前只发 fp16。**
+注意 m1b 对照行的条件：这一轮用的 MobileNetV3 ONNX 是 sha256 `aa181dd5…`，
+不是上面所有 m1b 精度数字所指的文件（`51c7c0ed…`）。这个 parity 结果说的是
+运行时，不是精度，两者不能拼成一个精度结论。
 
-注意条件：这一轮用的 MobileNetV3 ONNX 是 sha256 `aa181dd5…`，
-不是上面所有精度数字所指的 m1b 文件（`51c7c0ed…`）。这个 parity 结果说的是
-运行时，不是精度，两者不能拼成一个针对 RK3588 的精度结论。
+### RK3576（EmbedFire LubanCat-3）——真机实测，只有 m1b，未用 m1c 复测
+
+| 模型 / 精度 | 时延 p50 / p95 | 与 CPU golden 的一致率 | 条件 |
+|---|---|---|---|
+| MobileNetV3-Small（m1b），**fp16** | 9.49 ms / 12.49 ms | top-1 **98%**（49/50） | `evaluation/runs/2026-09-06-rk3576-cat` |
+| MobileNetV3-Small（m1b），**int8** | 4.62 ms / 6.68 ms | top-1 **10%**（5/50）——**不可用，比随机猜还差** | train 的 64 张校准图 |
+| SigLIP 2 视觉塔，**fp16** | 152.51 ms / 176.59 ms | embedding 余弦均值 **0.99965**，最小 0.99900 | 同一轮 |
+
+**EfficientNet-Lite0（m1c）从未在 RK3576 上转换或跑过。** 这台设备上只有
+上面的 m1b 数字；不要假设 RK3588 的 INT8 结果能直接搬过来——RK3576 与
+RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 表现本身
+就不同（一致率 10% 对 22%），未测的情况下往哪个方向猜都是猜测。
 
 ### 平台支持
 
 | 平台 | 状态 |
 |---|---|
-| Jetson Orin（TensorRT） | 部署包已发，未上板验证 |
-| Raspberry Pi 5 + Hailo-8 | 部署包已发；没有 HEF，INT8 量化重试进行中 |
-| RK3588 | **推理 parity 已上板验证（fp16）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在。 |
+| Jetson Orin（TensorRT） | 部署包已发，基线换成 EfficientNet-Lite0 ONNX；从未在任何 Jetson 上构建过 engine |
+| Raspberry Pi 5 + Hailo-8 | 部署包已发；基线 HEF 已编译并在 DFC emulator 上完成 INT8 核实（一致率 0.89）——**没有 Hailo-8 真机跑过它**。SigLIP2 视觉塔 INT8 量化仍失败 |
+| RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
+| RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
 | CPU（onnxruntime） | 本页所有精度数字 |
 
 ### 会改变对外表述的 caveat
@@ -177,13 +256,23 @@ payload 里只有路径或对象存储 URI。同时一个异步回调收到四�
 
 | 项 | 大小 |
 |---|---|
-| 基线 ONNX（`mobilenetv3s_waste8.onnx`） | 6,118,606 B |
+| 基线 ONNX（`efficientnet_lite0_waste8.onnx`，m1c，当前） | 13,477,056 B |
+| 基线 ONNX（`mobilenetv3s_waste8.onnx`，m1b，已淘汰） | 6,118,606 B |
 | SigLIP 2 视觉塔 ONNX（`siglip2_vision_224.onnx`） | 371,695,898 B |
 | 原型库 + 校准报告 | 合计约 155 KB |
 
 ## 分类器选型：基线 vs 开放词汇
 
 两条 track 都是真的，两条都发。选择不是「旧的 vs 新的」。
+
+**这次对比之后基线模型换了：现在是 EfficientNet-Lite0（m1c），不是
+MobileNetV3-Small（m1b）。** 下面的对比是针对旧基线测的，数字本身没变——
+Lite0 在这份 split 上比 MobileNetV3-Small 略准（val 0.8877 对 0.8792），
+所以「基线 vs 开放词汇」的精度差距没有缩小；但下面表格里「基线」列的具体
+数字（0.8792/0.8501 等）指的是 MobileNetV3-Small，不是今天实际出货的模型。
+40 倍时延差距也是 CPU-only 的旧数字——除数是 MobileNetV3-Small 的 CPU
+时延（p50 1.57 ms），Lite0 自己的 CPU p50 是 14.7 ms（见上方基线表），
+把倍数收窄到约 4–5 倍。换基线之后，两条 track 都没有针对 SigLIP2 重新测过。
 
 **在这套分类法上基线更准。** 同 split、同批图：val 0.8792 对 0.8501，
 test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 上约 2 个。
@@ -200,9 +289,11 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 - **不重训就加类。** 新类别是改 prompt 加重建原型，不是一次训练——
   这正是对 `textile` 没有数据这个问题的直接回答。
 
-**代价是 40 倍时延：** 同一台 M4 CPU 上 p50 66.93 ms 对 1.57 ms。
+**对旧基线代价是 40 倍时延**（同一台 M4 CPU 上 p50 66.93 ms 对 1.57 ms），
+**对当前基线约 4–5 倍**（66.93 ms 对 Lite0 自己的 CPU p50 约 14.7 ms）。
 这不是实现差距——ViT-B/16 在 224² 上约 17.6 GFLOPs，MobileNetV3-Small 是
-0.06 GFLOPs 量级。**开放词汇在 CPU 上不构成实时方案。** 它的落点是
+0.06 GFLOPs 量级（Lite0 的 FLOPs 比 MobileNetV3-Small 高，但没有单独测过）。
+**开放词汇在 CPU 上不构成实时方案。** 它的落点是
 (a) 有 NPU / GPU 的形态，或 (b) 当教师蒸馏出小模型。
 
 校准过程还有两条结论，直接决定这条 track 怎么部署：
@@ -262,8 +353,10 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 目前它上面什么都还没实测过。
 
 **摄像头 + Raspberry Pi 5（Hailo-8）**——把板子准备好、验证三道 Hailo ABI
-关卡，然后停下。基线 HEF 尚未编译，没有模型可部署。选它是为了让板子就位，
-不要指望拿到能跑的分类器。
+关卡，下载已编译并在 DFC emulator 上完成 INT8 核实（一致率 0.89）的
+EfficientNet-Lite0 HEF。**没有 Hailo-8 真机跑过这份 HEF**——板级精度与
+时延未测。选它是为了第一次在真实 Hailo-8 硅片上跑起一个真分类器；把
+第一次上板结果当作真正的验证，而不是本页这个 emulator 数字。
 
 ## 使用须知
 

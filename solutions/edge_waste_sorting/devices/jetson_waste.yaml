@@ -42,7 +42,7 @@ pre_checks:
   - type: disk_space
     min_gb: 10
     description: >-
-      ONNX (6 MB baseline, 372 MB open_vocab), the built TensorRT engine and the
+      ONNX (13.5 MB baseline -- EfficientNet-Lite0, m1c -- plus 372 MB open_vocab), the built TensorRT engine and the
       container image all live on the device
   - type: nvidia_runtime
     description: Check the NVIDIA container runtime is available
@@ -154,8 +154,8 @@ remote_overrides:
           # which also needs its prototype bank and prompt set (fetched below).
           case "{{model_track}}" in
             baseline)
-              MODEL_NAME=mobilenetv3s_waste8
-              SHA=51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e
+              MODEL_NAME=efficientnet_lite0_waste8
+              SHA=e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
               ;;
             open_vocab)
               MODEL_NAME=siglip2_vision_224
@@ -236,11 +236,11 @@ remote_overrides:
 
           track = "{{model_track}}"
           model_names = {
-              "baseline": "mobilenetv3s_waste8",
+              "baseline": "efficientnet_lite0_waste8",
               "open_vocab": "siglip2_vision_224",
           }
           onnx_sha = {
-              "baseline": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e",
+              "baseline": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
               "open_vocab": "6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac",
           }
           config["model"]["path"] = f"/models/{model_names[track]}.engine"
@@ -255,7 +255,7 @@ remote_overrides:
               # 16-shot alpha 0.8 (tracks/open_vocab/artifacts/SHA256SUMS).
               config["model"]["temperature"] = 0.0075
           else:
-              config["model"]["backbone"] = "mobilenet_v3_small"
+              config["model"]["backbone"] = "efficientnet_lite0"
               config["model"].pop("prototypes", None)
               config["model"].pop("prompt_set", None)
               config["model"].pop("temperature", None)
@@ -405,18 +405,22 @@ remote_overrides:
       default: baseline
       required: true
       description: >-
-        baseline is the closed-set MobileNetV3-Small head: higher top-1 on this
-        taxonomy (0.8792 vs 0.8501 on the same val split) and 40x faster on
-        CPU. open_vocab is the SigLIP 2 vision tower scored against text
+        baseline is the closed-set EfficientNet-Lite0 head (m1c): higher top-1
+        on this taxonomy than open_vocab (0.8877 vs 0.8501 on the same val
+        split) and roughly 4-5x faster on CPU (no Jetson TensorRT figure
+        exists for either track). The prior baseline, MobileNetV3-Small
+        (m1b), was superseded because it collapsed under INT8 quantisation on
+        every edge chain tested (Hailo, RK3576, RK3588) -- see the solution
+        page. open_vocab is the SigLIP 2 vision tower scored against text
         prototypes: better calibrated, able to score open-set rejection and to
         answer in either language, and able to add a class without retraining —
         but 372 MB, never engine-built on any board, and no Jetson latency
         figure exists for it. Neither track has been measured on hardware.
       options:
         - value: baseline
-          label: Baseline MobileNetV3-Small — higher top-1, 6 MB, the default
+          label: Baseline EfficientNet-Lite0 (m1c) — higher top-1, 13.5 MB, the default
           label_i18n:
-            zh: 基线 MobileNetV3-Small——top-1 更高，6 MB，默认项
+            zh: 基线 EfficientNet-Lite0（m1c）——top-1 更高，13.5 MB，默认项
         - value: open_vocab
           label: Open-vocabulary SigLIP 2 — better calibrated, adds classes without retraining, 372 MB, no timing on any board
           label_i18n:
@@ -425,11 +429,15 @@ remote_overrides:
         zh: 分类器 Track
       description_i18n:
         zh: >-
-          baseline 是闭集 MobileNetV3-Small 头：在这套分类法上 top-1 更高
-          （同一份 val 上 0.8792 对 0.8501），CPU 上快 40 倍。open_vocab 是
-          SigLIP 2 视觉塔对文本原型打分：校准更好、能给开放集拒识分数、
-          中英文都能回答、不重训就能加类——但 372 MB，从未在任何板卡上构建过
-          engine，也没有任何 Jetson 时延数字。两条 track 都没有上板实测过。
+          baseline 是闭集 EfficientNet-Lite0 头（m1c）：在这套分类法上 top-1
+          比 open_vocab 更高（同一份 val 上 0.8877 对 0.8501），CPU 上大约快
+          4-5 倍（两条 track 都没有 Jetson TensorRT 实测数字）。原基线
+          MobileNetV3-Small（m1b）已被取代，因为它在每一条测过的边缘链路
+          （Hailo、RK3576、RK3588）上都出现 INT8 量化塌缩——详见方案页。
+          open_vocab 是 SigLIP 2 视觉塔对文本原型打分：校准更好、能给开放集
+          拒识分数、中英文都能回答、不重训就能加类——但 372 MB，从未在任何
+          板卡上构建过 engine，也没有任何 Jetson 时延数字。两条 track 都没有
+          上板实测过。
     - id: trigger_sources
       name: Trigger Sources
       type: select

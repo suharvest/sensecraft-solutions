@@ -3,10 +3,15 @@
 Trigger a shot, get back what the item is made of and which of the four
 Chinese municipal waste streams it belongs in, on MQTT, in one message.
 
-**Nothing on this page has run on hardware.** Every accuracy and latency
-figure below was measured with onnxruntime on an Apple M4 CPU. There is no
-Jetson, Hailo or RKNN number anywhere on this page, and no preset claims
-`verified: [hardware]`.
+**The baseline classifier is EfficientNet-Lite0 (m1c), not MobileNetV3-Small.**
+The original baseline (MobileNetV3-Small, "m1b") collapsed under INT8
+quantisation on all three edge chains tested (Hailo emulator, RK3576, RK3588);
+EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
+figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
+and RK3588 sections carry real INT8 numbers: RK3588 numbers are a real Radxa
+ROCK 5T device, Hailo-8 numbers are the DFC emulator only — **no Hailo-8
+hardware has been used anywhere on this page.** No preset claims
+`verified: [hardware]` yet.
 
 ## What it does
 
@@ -67,22 +72,75 @@ sole basis for a charging, penalty or compliance decision.
 Two classifiers were measured on the **same split**, same images, same 224²
 input, same post-processing, on the same Apple M4 CPU.
 
-### Measured boundaries — baseline classifier (MobileNetV3-Small)
+### Measured boundaries — baseline classifier (EfficientNet-Lite0, m1c)
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Material top-1 (8 classes) | 0.8792 | val, 7417 images / 1882 groups; TrashNet 392 + GC3 7025; onnxruntime 1.25.1 CPU; ONNX `51c7c0ed…` | This project, `evaluation/runs/2026-09-06-m1b-cpu` |
-| Material top-5 | 0.9854 | same | same |
-| Chinese four-way top-1 | 0.9519 | same; lookup on top of the eight-class argmax | same |
-| macro-F1 (7 classes with samples) | 0.8292 | `textile` excluded — zero samples | same |
-| Material top-1, held-out test | 0.8807 | test, 7290 images; first measurement on this split | This project, `evaluation/runs/2026-09-05-w1-cpu` baseline column |
-| Inference latency (single image) | mean 1.886 ms / p50 1.769 ms / p95 2.276 ms | `session.run` only, Apple M4 CPU, batch 1 | `evaluation/runs/2026-09-06-m1b-cpu` |
-| Images below 0.5 confidence | 335 (4.5%) | val | same |
+| Material top-1 (8 classes) | 0.8877 | val, 7417 images; onnxruntime 1.25.1 CPU; ONNX `e9f9e847…`, 13,477,056 B | This project, `evaluation/runs/2026-09-06-m1c-cpu` |
+| Material top-5 | 0.9833 | same | same |
+| Chinese four-way top-1 | 0.9500 | same; lookup on top of the eight-class argmax | same |
+| macro-F1 (7 classes with samples) | 0.8511 | `textile` excluded — zero samples | same |
+| Material top-1, held-out test | 0.8802 | test, 7290 images, same split as m1b | same |
+| Inference latency (single image, CPU) | mean 16.796 ms / p50 14.724 ms / p95 28.718 ms | `session.run` only, Apple M4 CPU, batch 1 | same |
+| Images below 0.5 confidence | 318 (4.3%) | val | same |
+| ORT PTQ INT8 vs fp32 agreement (200 val images) | 0.965 | per_channel + MinMax, not a collapse | `evaluation/runs/2026-09-06-m1c-int8-diag-quick` |
 
-**Report both top-1 numbers together.** The four-way figure (0.9519) is much
-higher than the material figure (0.8792) because glass↔metal↔plastic confusion
+**Why the baseline changed.** MobileNetV3-Small (m1b) scored a fraction of a
+point higher on this same split (val top-1 0.8792 vs 0.8877 for Lite0 — Lite0
+is actually **+0.85pp better**, not worse) but its INT8-quantised graph
+collapsed on every edge chain tried: Hailo emulator top-1 0.15, RK3576
+agreement 0.10, RK3588 agreement 0.22, all against ~0.98 fp16 agreement on the
+same chains (`2026-09-06-m1b-hef`, `2026-09-06-rk3576-cat`,
+`2026-09-06-rk3588-radxa`). ORT PTQ reproduced the same collapse, which ruled
+out a compiler-specific bug. EfficientNet-Lite0 (no Squeeze-Excite branch, no
+hard-swish) does not collapse under the same INT8 pipelines — see the Hailo-8
+and RK3588 sections below. The cost is a CPU-only one: mean inference time
+rose from 1.886 ms to 16.796 ms (**about 9× slower on CPU**), because Lite0
+(13.5 MB ONNX) has more FLOPs than MobileNetV3-Small (6.1 MB). On the edge
+NPUs actually tested (Hailo-8 emulator, RK3588), Lite0's latency is close to
+or faster than MobileNetV3-Small's — the CPU-only 9× penalty does not carry
+over to the NPU numbers below.
+
+**Report both top-1 numbers together.** The four-way figure (0.9500) is much
+higher than the material figure (0.8877) because glass↔metal↔plastic confusion
 is absorbed — all three map to 可回收物. Quoting only the four-way number
 overstates what the model knows about materials.
+
+### MobileNetV3-Small (m1b) — superseded, kept as the INT8-collapse contrast
+
+Same split, same images, same CPU. This model is no longer the shipped
+baseline; it stays on this page because its INT8 failure is the reason the
+baseline changed, and because its fp16 numbers remain a valid contrast.
+
+| Metric | Value | Conditions | Source |
+|---|---|---|---|
+| Material top-1 (8 classes) | 0.8792 | val, 7417 images; ONNX `51c7c0ed…` | This project, `evaluation/runs/2026-09-06-m1b-cpu` |
+| Material top-5 | 0.9854 | same | same |
+| Chinese four-way top-1 | 0.9519 | same | same |
+| macro-F1 (7 classes with samples) | 0.8292 | `textile` excluded | same |
+| Material top-1, held-out test | 0.8807 | test, 7290 images | This project, `evaluation/runs/2026-09-05-w1-cpu` baseline column |
+| Inference latency (single image, CPU) | mean 1.886 ms / p50 1.769 ms / p95 2.276 ms | `session.run` only, Apple M4 CPU, batch 1 | `evaluation/runs/2026-09-06-m1b-cpu` |
+| Images below 0.5 confidence | 335 (4.5%) | val | same |
+| **INT8 collapse — Hailo-8 emulator** | top-1 0.15, agreement 0.115 vs CPU/native (200 val images) | fp16 agreement on the same 200 images is 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
+| **INT8 collapse — RK3576 (cat-remote, real hardware)** | agreement 0.10 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 collapse — RK3588 (radxa, real hardware)** | agreement 0.22 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3588-radxa` |
+
+**Root cause, not fully proven.** Excluding the SE branch numerically did not
+fix the collapse, and ORT PTQ reproduced it independent of any vendor
+compiler — this is whole-network degradation, not a localised op issue. A
+concrete defect exists in the training recipe: `AdamW(model.parameters(),
+weight_decay=1e-4)` applies weight decay to BatchNorm gamma/bias, and 4 of 34
+`BatchNorm2d` layers in the m1b checkpoint have `running_var`/`|gamma|`
+degraded to float32 denormal magnitude, at the same layers where the
+INT8 accuracy cliff appears. EfficientNet-Lite0 has the same weight-decay
+setting and the same kind of weight outliers (max `|w|` 35.70 vs m1b's 52.35,
+only 32% lower) yet does **not** collapse — the drop in outlier magnitude is
+too small to explain the swing from 0.115 to 0.89+ agreement on its own. The
+more likely reading is that SE-gating and hard-swish are structurally more
+INT8-sensitive, and the weight-decay defect is a background factor that
+amplifies that sensitivity rather than causing it outright. No ablation (e.g.
+retraining m1b with a no-decay parameter group) has been run to confirm
+either reading.
 
 ### Measured boundaries — open-vocabulary track (SigLIP 2 ViT-B/16)
 
@@ -119,12 +177,23 @@ same softmax/top-k/mapping code path. The baseline column was recomputed on
 this split for the comparison; its val top-1 matches the standalone m1b report
 to the digit.
 
-### Hailo-8 — nothing compiled yet
+### Hailo-8 — baseline compiled and INT8-verified on the DFC emulator, no Hailo-8 hardware
 
 | Path | Status |
 |---|---|
-| Baseline MobileNetV3-Small → HEF | Not attempted. No HEF exists for this solution. |
-| SigLIP 2 vision tower → HEF | `hailo parser` passes end to end with no unsupported op. `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1) **fails** with `NegativeSlopeExponentNonFixable` at layer `ne_activation_mul_and_add78` — "Desired shift is 16.0, but op has only 8 data bits". No optimized HAR, no compiler run, no HEF. |
+| Baseline EfficientNet-Lite0 (m1c) → HEF | **Compiled successfully, one attempt, no fix needed.** `hailo optimize` and `compiler` both exit 0 on the first try — Lite0 has no Squeeze-Excite branch, so it never hits the `avgpool` shift-range issue m1b needed a model-script fix for. On 200 val images (DFC 3.31.0 / HailoRT 4.21.0 emulator): INT8 vs CPU/native top-1 agreement **0.890**, accuracy vs ground truth **0.755** (native/CPU is 0.795 on the same images) — a 4-point drop, not a collapse. Cosine similarity to CPU: mean 0.948, min 0.441. **All of these numbers are from the x86 emulator on the compile host (wsl2-local); no Hailo-8 PCIe card was used.** `evaluation/runs/2026-09-06-m1c-hef` |
+| Baseline MobileNetV3-Small (m1b) → HEF | Compiled, but INT8 collapses: emulator agreement 0.115, accuracy vs ground truth 0.150 (near the 1/7 random baseline). Superseded by Lite0 for this reason — see the contrast table above. `evaluation/runs/2026-09-06-m1b-hef` |
+| SigLIP 2 vision tower → HEF | Unchanged by the m1c work. `hailo parser` passes end to end with no unsupported op. `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1) **fails** with `NegativeSlopeExponentNonFixable` at layer `ne_activation_mul_and_add78` — "Desired shift is 16.0, but op has only 8 data bits". No optimized HAR, no compiler run, no HEF. |
+
+**What "0.89 agreement" does and does not support.** It supports: EfficientNet-Lite0
+INT8-quantises without the pattern collapse MobileNetV3-Small showed on the
+same compile pipeline and the same calibration set, and `hailo optimize`
+needed no SE-branch workaround to get there. It does not support: that the HEF
+classifies waste correctly on a real Hailo-8 — no Hailo-8 hardware exists in
+this project's evaluation chain, so board-level latency, thermal behaviour and
+accuracy are all unmeasured. The calibration set (256 images) is also below
+the ~1024-image threshold the DFC documentation typically recommends, and was
+reused unchanged from the m1b run rather than resampled for Lite0.
 
 **Hailo path pending: the INT8 quantisation retry is in progress; if it fails
 the fallback is distillation into a small student model.** The parse-stage
@@ -138,38 +207,70 @@ attempt was made at one optimization level with one calibration set, and the
 error message itself names three possible causes; only one of them
 (calibration-set normalisation) has been checked and ruled out.
 
-### RK3588 (Radxa ROCK 5T) — inference parity verified on hardware, no deployment package
+### RK3588 (Radxa ROCK 5T) — real hardware, baseline INT8 now usable
 
-The only on-device measurement this project has. Converted on wsl2-local with
-rknn-toolkit2 2.3.2, run on a Radxa ROCK 5T with librknnrt **2.3.2** (the
-symlink names it 2.3.0; the in-library version is what matters), 50 val images,
-`core_mask=AUTO`.
+On-device measurement, real hardware — not an emulator. Converted on
+wsl2-local with rknn-toolkit2 2.3.2, run on a Radxa ROCK 5T with librknnrt
+**2.3.2** (the symlink names it 2.3.0; the in-library version is what
+matters), 50 val images, `core_mask=AUTO`, per-channel quantisation.
+
+| Model / precision | Latency p50 / p95 (mean) | Agreement with CPU golden | Accuracy vs ground truth | Conditions |
+|---|---|---|---|---|
+| **EfficientNet-Lite0 (m1c), fp16** | 7.906 ms / 8.129 ms (7.041 ms) | 1.00 | 0.78 | ONNX sha `e9f9e847…`, 50 val images |
+| EfficientNet-Lite0 (m1c), int8 calib64+normal | 3.780 ms / 3.984 ms (3.807 ms) | 0.90 | 0.72 | 63-image calibration, `normal` algorithm |
+| EfficientNet-Lite0 (m1c), int8 calib64+mmse | 3.785 ms / 3.981 ms (3.808 ms) | 0.98 | 0.78 | 63-image calibration, `mmse` algorithm |
+| EfficientNet-Lite0 (m1c), int8 calib256+normal | 3.766 ms / 3.920 ms (3.500 ms) | 0.90 | 0.72 | 252-image calibration, `normal` algorithm |
+| **EfficientNet-Lite0 (m1c), int8 calib256+mmse** — recommended | 3.803 ms / 4.003 ms (3.834 ms) | **1.00** | **0.78** | 252-image calibration, `mmse` algorithm; matches fp16 on both agreement and accuracy, **52% faster** |
+| MobileNetV3-Small (m1b, superseded), fp16 | 4.44 ms / 6.32 ms | 0.98 | — | ONNX sha `aa181dd5…`, contrast only |
+| MobileNetV3-Small (m1b, superseded), int8 | 4.70 ms / 11.04 ms | **0.22 — collapsed** | — | 64-image calibration, contrast only |
+
+**Recommended config: `calib256+mmse`.** It matches fp16 exactly on both
+agreement (1.00) and accuracy (0.78) while running 52% faster (int8 gets a
+real NPU acceleration path on RK3588 that the collapsed m1b int8 graph never
+reached — m1b's int8 was *slower* than its own fp16, 4.70 ms vs 4.44 ms,
+evidence its execution never engaged the INT8 fast path). All four Lite0 INT8
+variants land in a 0.90–1.00 agreement band; none collapse. `mmse` is 40–90×
+slower to convert than the default `normal` algorithm (17.3 min vs 11.5 s at
+256 calibration images) — a one-time conversion cost, not a runtime cost.
+Root cause of the m1b collapse: see the contrast table above — PTQ produces
+whole-network degradation on MobileNetV3-Small independent of the RK
+compiler, with a training-recipe weight-decay defect on BatchNorm as a
+suspected but unconfirmed contributing factor. `evaluation/runs/2026-09-06-m1c-rk3588-radxa`,
+`evaluation/runs/2026-09-06-rk3588-radxa` (m1b contrast)
+
+SigLIP 2 vision tower on the same device, unaffected by the m1c work:
 
 | Model / precision | Latency p50 / p95 | Agreement with CPU golden | Conditions |
 |---|---|---|---|
-| MobileNetV3-Small, **fp16** | 4.44 ms / 6.32 ms | top-1 **98%** (49/50) | ONNX sha `aa181dd5…`, 50 val images |
-| MobileNetV3-Small, **int8** | 4.70 ms / 11.04 ms | top-1 **22%** (11/50) — **unusable** | 64-image calibration set from train |
 | SigLIP 2 vision tower, **fp16** | 169.4 ms / 170.5 ms | embedding cosine mean **0.999617**, min 0.998841 | ONNX sha `6f664af0…`, 191 MB .rknn |
 
-**Do not ship int8 on RK.** The int8 failure is class collapse, not noise: 34 of
-50 images collapse onto one class id, against a 14.3% random baseline for the
-seven classes with samples — the quantised head has lost its decision
-boundaries rather than gained a little error. Fixing it means a larger
-calibration set or a per-channel / mixed-precision strategy, neither of which
-has been tried. **The RK platform ships fp16 only.**
+Note the conditions on the m1b contrast row: that run used a MobileNetV3 ONNX
+with sha256 `aa181dd5…`, which is not the m1b file (`51c7c0ed…`) every m1b
+accuracy figure above refers to. That parity result is about the runtime, not
+about accuracy, and the two should not be combined into an accuracy claim.
 
-Note the conditions: this run used a MobileNetV3 ONNX with sha256 `aa181dd5…`,
-which is not the m1b file (`51c7c0ed…`) every accuracy figure above refers to.
-The parity result is about the runtime, not about accuracy, and the two should
-not be combined into an accuracy claim for RK3588.
+### RK3576 (EmbedFire LubanCat-3) — real hardware, m1b only, not retested with m1c
+
+| Model / precision | Latency p50 / p95 | Agreement with CPU golden | Conditions |
+|---|---|---|---|
+| MobileNetV3-Small (m1b), **fp16** | 9.49 ms / 12.49 ms | top-1 **98%** (49/50) | `evaluation/runs/2026-09-06-rk3576-cat` |
+| MobileNetV3-Small (m1b), **int8** | 4.62 ms / 6.68 ms | top-1 **10%** (5/50) — **unusable, worse than random** | 64-image calibration from train |
+| SigLIP 2 vision tower, **fp16** | 152.51 ms / 176.59 ms | embedding cosine mean **0.99965**, min 0.99900 | same run |
+
+**EfficientNet-Lite0 (m1c) has not been converted or run on RK3576.** Only the
+m1b numbers above exist for this device; do not assume the RK3588 INT8 result
+carries over — RK3576 and RK3588 are different NPU generations with different
+INT8 behaviour on this same MobileNetV3-Small graph (10% vs 22% agreement),
+so an untested claim either way would be a guess.
 
 ### Platform support
 
 | Platform | Status |
 |---|---|
-| Jetson Orin (TensorRT) | Deployment package shipped, untested on hardware |
-| Raspberry Pi 5 + Hailo-8 | Deployment package shipped; no HEF exists, INT8 quantisation retry in progress |
-| RK3588 | **Inference parity verified on hardware (fp16); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist. |
+| Jetson Orin (TensorRT) | Deployment package shipped, baseline swapped to EfficientNet-Lite0 ONNX; engine has never been built on any Jetson |
+| Raspberry Pi 5 + Hailo-8 | Deployment package shipped; baseline HEF compiled and INT8-verified on the DFC emulator only (agreement 0.89) — **no Hailo-8 hardware has run it**. SigLIP2 tower still fails INT8 quantisation |
+| RK3588 | **Inference parity verified on real hardware, fp16 and INT8 (baseline, m1c); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
+| RK3576 | Inference parity verified on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
 | CPU (onnxruntime) | Every accuracy figure on this page |
 
 ### Caveats that change what you can claim
@@ -210,13 +311,27 @@ not be combined into an accuracy claim for RK3588.
 
 | Item | Size |
 |---|---|
-| Baseline ONNX (`mobilenetv3s_waste8.onnx`) | 6,118,606 B |
+| Baseline ONNX (`efficientnet_lite0_waste8.onnx`, m1c, current) | 13,477,056 B |
+| Baseline ONNX (`mobilenetv3s_waste8.onnx`, m1b, superseded) | 6,118,606 B |
 | SigLIP 2 vision tower ONNX (`siglip2_vision_224.onnx`) | 371,695,898 B |
 | Prototype banks + calibration report | ~155 KB total |
 
 ## Classifier selection: baseline vs open-vocabulary
 
 Both tracks are real and both are shipped. The choice is not "old vs new".
+
+**The baseline model changed after this comparison was run: it is now
+EfficientNet-Lite0 (m1c), not MobileNetV3-Small (m1b).** The comparison below
+was measured against the old baseline and its numbers are unchanged — Lite0
+is marginally more accurate than MobileNetV3-Small on this split (val 0.8877
+vs 0.8792) so the "baseline vs open-vocabulary" gap in accuracy does not
+narrow, but the "baseline" column's exact figures (0.8792/0.8501 etc.) below
+refer to MobileNetV3-Small, not to the model actually shipped today. The
+40× latency gap is CPU-only and also predates the swap — MobileNetV3-Small's
+CPU latency (1.57 ms p50) was the divisor; Lite0's own CPU p50 is 14.7 ms
+(see the baseline table above), which narrows the multiple to roughly 4–5×
+against Lite0. Neither track has been re-measured against SigLIP2 since the
+baseline swap.
 
 **The baseline is more accurate on this taxonomy.** Same split, same images:
 0.8792 vs 0.8501 on val, 0.8807 vs 0.8620 on test — the closed-set head leads
@@ -239,9 +354,12 @@ cannot do:**
   prototype rebuild, not a training run — the direct answer to `textile` having
   no data.
 
-**The cost is 40× latency:** p50 66.93 ms vs 1.57 ms on the same M4 CPU. That
-is not an implementation gap — ViT-B/16 at 224² is roughly 17.6 GFLOPs against
-MobileNetV3-Small's 0.06. **Open-vocabulary is not a real-time CPU option.** Its
+**The cost is 40× latency against the old baseline** (p50 66.93 ms vs 1.57 ms
+on the same M4 CPU), **or roughly 4–5× against the current baseline**
+(66.93 ms vs Lite0's own CPU p50 of ~14.7 ms). That is not an implementation
+gap — ViT-B/16 at 224² is roughly 17.6 GFLOPs against MobileNetV3-Small's 0.06
+(Lite0's FLOPs are higher than MobileNetV3-Small's but not measured
+separately). **Open-vocabulary is not a real-time CPU option.** Its
 landing places are (a) a form factor with an NPU or GPU, or (b) as a teacher for
 a distilled student model.
 
@@ -309,10 +427,13 @@ prebuilt. It is also the only preset offering the open-vocabulary track: the
 SigLIP 2 tower at 67 ms per image on CPU needs an accelerator, and the Orin is
 the accelerator this package has. Nothing has been measured on it yet.
 
-**Camera + Raspberry Pi 5 (Hailo-8)** — prepares the board and validates the
-three Hailo ABI gates, then stops. The baseline HEF has not been compiled, so
-there is no model to deploy. Choose it to get the board ready; do not choose it
-expecting a running classifier.
+**Camera + Raspberry Pi 5 (Hailo-8)** — prepares the board, validates the
+three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF compiled and
+INT8-verified against the DFC emulator (agreement 0.89). **No Hailo-8
+hardware has run this HEF** — board-level accuracy and latency are unmeasured.
+Choose it to get a real classifier running on real Hailo-8 silicon for the
+first time; treat the first on-device result as the actual verification, not
+this page's emulator number.
 
 ## Usage Notes
 

@@ -4,19 +4,26 @@ name: Raspberry Pi 5 + Hailo-8
 type: docker_deploy
 device_class: hailo
 
-# NOT VERIFIED ON HARDWARE, AND THE MODEL FILE DOES NOT EXIST.
+# BASELINE HEF COMPILED AND INT8-VERIFIED ON THE DFC EMULATOR ONLY. NO HAILO-8
+# HARDWARE HAS RUN IT.
 #
-# The baseline MobileNetV3-Small has never been compiled to a HEF for this
-# project — no `hailo parser`, no `hailo optimize`, no compiler run. The only
-# Hailo work done so far is on the open-vocabulary SigLIP 2 tower, where the
-# parser passes and `hailo optimize` (INT8 PTQ) fails with
-# NegativeSlopeExponentNonFixable; see the solution page. The INT8 retry is in
-# progress and distillation is the fallback if it fails.
+# The baseline is EfficientNet-Lite0 (m1c), not the original MobileNetV3-Small
+# (m1b) — m1b's INT8-quantised HEF collapsed to near-random accuracy on this
+# same compile pipeline (agreement 0.115 vs CPU/native), so it was superseded.
+# EfficientNet-Lite0 compiled on the first attempt (no Squeeze-Excite branch,
+# so it never hit the avgpool shift-range issue m1b needed a model-script fix
+# for) and shows agreement 0.890 vs CPU/native on 200 val images on the DFC
+# 3.31.0 / HailoRT 4.21.0 emulator. That number is from the x86 compile host
+# (wsl2-local) — there is no Hailo-8 PCIe card anywhere in this project's
+# evaluation chain, so real board latency, thermal behaviour and accuracy
+# are unmeasured. The SigLIP 2 open-vocabulary tower is unaffected by this
+# work: its parser passes but `hailo optimize` (INT8 PTQ) still fails with
+# NegativeSlopeExponentNonFixable; see the solution page.
 #
-# This file therefore deploys a board that is correctly prepared and then stops
-# at a missing model. The three ABI gates in `before` are exactly the checks
-# that can only pass or fail on the device, and they are worth running now: they
-# are what a working HEF deployment would have to clear later anyway.
+# The HEF itself has not been uploaded to any CDN yet (see the fetch step
+# below) — that is a packaging gap, not a model-quality gap. The three ABI
+# gates in `before` are exactly the checks that can only pass or fail on the
+# device.
 
 docker:
   compose_file: assets/hailo/docker-compose.yml
@@ -150,34 +157,40 @@ remote_overrides:
           zh: 清理上传目录里的 macOS 附属文件
 
       - name: Fetch and verify the HEF
-        # TODO(HEF): NO HEF EXISTS. The baseline MobileNetV3-Small has not been
-        # compiled for Hailo-8 by this project, so neither the CDN path below
-        # nor assets/models/SHA256SUMS.hef has a file or a checksum behind it.
-        # This step is written the way it will work once the HEF exists, and it
-        # fails loudly rather than starting a container with no model.
+        # TODO(CDN): the EfficientNet-Lite0 HEF has not been uploaded to
+        # sensecraft-statics yet, so the download below will fail until it
+        # is. It is compiled and INT8-verified on the DFC emulator (agreement
+        # 0.890 vs CPU/native on 200 val images) but has never run on a real
+        # Hailo-8 -- copy it onto the device by hand at the path below in the
+        # meantime; the sha256 check still applies either way.
         timeout: 900
         run: |
           set -e
           WORKDIR="/home/{{username}}/edge-waste-sorting/hailo_waste"
           MODELS_DIR="$WORKDIR/models"
-          HEF="$MODELS_DIR/mobilenetv3s_waste8.hef"
+          HEF="$MODELS_DIR/efficientnet_lite0_waste8.hef"
+          SHA=3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00
           mkdir -p "$MODELS_DIR"
 
           if [ -s "$HEF" ]; then
             echo "HEF already present: $HEF"
-            sha256sum "$HEF"
+            echo "$SHA  $HEF" | sha256sum -c -
             exit 0
           fi
 
-          echo "No HEF for this solution." >&2
-          echo "The baseline MobileNetV3-Small has not been compiled to a HEF." >&2
-          echo "Nothing has been uploaded to" >&2
-          echo "  https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/mobilenetv3s_waste8.hef" >&2
-          echo "and assets/models/SHA256SUMS.hef carries no checksum line yet." >&2
-          echo "" >&2
-          echo "The board is now prepared: all three Hailo ABI gates passed." >&2
-          echo "Place a HEF at $HEF and re-run this step once one exists." >&2
-          exit 1
+          echo "Downloading efficientnet_lite0_waste8.hef ..."
+          if curl -fSL --retry 3 -o "$HEF.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.hef"; then
+            echo "$SHA  $HEF.part" | sha256sum -c -
+            mv -f "$HEF.part" "$HEF"
+          else
+            echo "No HEF available at the CDN path yet (TODO(CDN))." >&2
+            echo "Copy efficientnet_lite0_waste8.hef onto the device by hand at $HEF" >&2
+            echo "and verify: echo '$SHA  $HEF' | sha256sum -c -" >&2
+            echo "" >&2
+            echo "The board is now prepared: all three Hailo ABI gates passed." >&2
+            exit 1
+          fi
         name_i18n:
           zh: 获取并校验 HEF
 
@@ -196,10 +209,10 @@ remote_overrides:
 
           # Only the baseline track is offered here. The open-vocabulary tower
           # has no HEF either — its INT8 quantisation currently fails.
-          config["model"]["path"] = "/models/mobilenetv3s_waste8.hef"
+          config["model"]["path"] = "/models/efficientnet_lite0_waste8.hef"
           config["model"]["accelerator"] = "hailo"
           config["model"]["track"] = "baseline"
-          config["model"]["backbone"] = "mobilenet_v3_small"
+          config["model"]["backbone"] = "efficientnet_lite0"
           config["rules"]["min_confidence"] = float("{{min_confidence}}")
           config["trigger"]["mode"] = "on_demand"
           config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
@@ -371,10 +384,10 @@ remote_overrides:
       type: text
       default: "0.5"
       required: true
-      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.5%-below-0.5 figure is a CPU FP32 measurement; an INT8 HEF will have a different confidence distribution, unmeasured.
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0); the on-device INT8 confidence distribution has not been measured on real Hailo-8 hardware.
       validation:
         pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
       name_i18n:
         zh: 最低置信度
       description_i18n:
-        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.5% 低于 0.5」是 CPU FP32 上的实测；INT8 HEF 的置信度分布会不同，未测。
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测；真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
