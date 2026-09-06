@@ -83,10 +83,12 @@ EdgeFallKit 检测器的准确率。那组数字——GMDCSA-24 v2.1，按人切
 Hailo 的逐帧发布行为、reCamera 实际的主题与负载形态，都还没在硬件上核实过；检测器镜像的
 digest 在 `eldercare-alarm/release/PINNING.md` 里记为待核验。在自己现场亲眼看到一条告警走完
 之前，请把每一次部署都当作调试性质的开通来对待。
-2026-09-06 在一台标准版（非 PoE）reCamera One 上通过 USB-RNDIS 尝试真机联调，
-未能跑通闭环：SSH 账号没有免密 sudo，剩余步骤（从正在跑的 `depth-estimation`
-App Center 应用手上释放摄像头、启动 `fall-detection`、开放本地 mosquitto 监听）
-全部需要 root 权限，详见
+2026-09-06 在一台标准版（非 PoE）reCamera One 上通过 USB-RNDIS 跑通过一次闭环：
+真实的 fall-detection MQTT 帧、一条注入的跌倒告警和一条真实触发的 60 s 无活动
+告警，都经设备本机 mosquitto broker 送达 webhook（因本机某网络工具拦截了直连
+路由——非设备问题，改用 SSH 隧道转发）。10 次注入的告警时延，前 5 次 P50 2487 ms /
+P95 2751 ms，第 6 次起被通知层自带的"600 s 内最多 5 条"限速悄悄拦下，
+这是设计行为，不是故障。USB 断开重连测试未做（超出本轮授权范围）。详见
 `eldercare-alarm/evaluation/runs/2026-09-06-recamera-one/results.md`。
 
 ## 输出接口
