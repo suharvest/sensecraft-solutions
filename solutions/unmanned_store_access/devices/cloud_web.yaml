@@ -79,9 +79,14 @@ remote_overrides:
           TOKENS="{{admin_token}}:admin"
           [ -n "{{operator_token}}" ] && TOKENS="$TOKENS,{{operator_token}}:operator"
           [ -n "{{viewer_token}}" ] && TOKENS="$TOKENS,{{viewer_token}}:viewer"
+          mkdir -p "$WORKDIR/assets/cloud/secret"
+          printf '%s' '{{facedb_signing_key}}' > "$WORKDIR/assets/cloud/secret/facedb.key"
+          chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
           cat > "$ENVFILE" <<EOF
           USA_WEB_TOKENS=$TOKENS
-          USA_FACEDB_SIGNING_KEY={{facedb_signing_key}}
+          USA_FACEDB_KEY_ID={{facedb_key_id}}
+          USA_MATCH_THRESHOLD={{match_threshold}}
+          USA_DEVICE_ENDPOINTS={{device_endpoints}}
           USA_FACE_REC_API={{face_rec_api_url}}
           MQTT_HOST=127.0.0.1
           MQTT_PORT=1883
@@ -163,6 +168,51 @@ remote_overrides:
         zh: 人脸库签名密钥
       description_i18n:
         zh: 与「人脸库服务」步骤里填的是同一个密钥。签名由管理界面写入、由设备校验，填错的后果是每台设备拒绝每一个新版本——报错发生在设备侧，不在这里。
+    - id: facedb_key_id
+      name: Signing Key ID
+      type: text
+      default: "facedb-key-1"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+      description: The same id entered in the Face Library Server step, and the same id configured on every device. It is written into each manifest and compared byte for byte at the device.
+      name_i18n:
+        zh: 签名密钥 ID
+      description_i18n:
+        zh: 与「人脸库服务」步骤里填的、以及每台设备上配的是同一个 id。它写进每一份 manifest，由设备逐字节比对。
+    - id: match_threshold
+      name: Match Threshold
+      type: text
+      default: "0.40"
+      required: true
+      validation:
+        pattern: "^0\\.[0-9]{1,3}$"
+      description: The same value as the Face Library Server step, and the same value as each device's own `match_threshold`. The console refuses to start without it, because a library published with no threshold cannot be activated by any device.
+      name_i18n:
+        zh: 匹配阈值
+      description_i18n:
+        zh: 与「人脸库服务」步骤、以及每台设备自己的 `match_threshold` 都填同一个值。不填这一项管理界面拒绝启动——发布出去的库没有阈值，任何设备都激活不了。
+    - id: device_endpoints
+      name: Device Control Endpoints (JSON)
+      type: text
+      required: false
+      default: "[]"
+      placeholder: '[{"device_id":"recamera-std-01","host":"192.168.42.1","port":1883}]'
+      description: >-
+        The MQTT control plane of each standard reCamera, as a JSON list of
+        `{device_id, host, port, cmd_topic, ack_topic, timeout_s}`. This is what
+        fills the device status and library version page: leave it empty and
+        that page has nothing to show, which reads as "no devices" rather than
+        "not configured". Presets whose devices do not expose an MQTT command
+        channel leave it at `[]`.
+      name_i18n:
+        zh: 设备控制端点（JSON）
+      description_i18n:
+        zh: >-
+          每台标准版 reCamera 的 MQTT 控制面，写成
+          `{device_id, host, port, cmd_topic, ack_topic, timeout_s}` 的 JSON 列表。
+          设备状态与人脸库版本页靠它填内容：留空的话那一页什么都没有，看起来像
+          "没有设备"而不是"没配"。设备不提供 MQTT 命令通道的套餐保持 `[]` 即可。
     - id: admin_token
       name: Admin Token
       type: password

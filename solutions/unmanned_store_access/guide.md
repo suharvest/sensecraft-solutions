@@ -1,4 +1,25 @@
-## Preset: On-Device — reCamera Pro / PoE {#p1_recamera_pro}
+## Preset: On-Device — reCamera Pro {#p1_recamera_pro}
+
+**Choosing a preset.** There is no automatic matching in this release. The app's
+network discovery cannot tell a reCamera Pro from a standard reCamera, and it
+cannot see whether a gateway is present at all, so the preset is chosen by hand
+from this table. Find the device you have, read across to how the lock is
+switched, and that is the preset.
+
+| Door device | How the lock is switched | Preset |
+|---|---|---|
+| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
+| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
+| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+
+Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+Pro: it recognises on the camera but drives no lock at all, so it takes the
+gateway-relay path even when the gateway is standing next to it. And the Grove
+Vision AI V2 preset has no liveness model — a printed photograph opens that door
+— so it is not a substitute for the others on price alone.
+
 
 Recognition, liveness, the decision and the contact all live in one device at
 the door. Nothing on the network sits between a face and the lock, so the door
@@ -152,7 +173,34 @@ is why `relay_contact` and `fail_mode` have no default values.
 | The door pulses once at boot | The active level is inverted. Fix it before reconnecting the lock. |
 | Two pulses per approach | The debounce is not in the path, or its window is shorter than the time somebody spends in frame. |
 
-## Step 5: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 5: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Open the console's device page and confirm that the version you published is the
+version the door device is actually matching against. Do this before putting a
+face in front of the camera: a door that will not open because the library never
+activated looks exactly like a door that will not open because recognition
+failed, and only this page tells them apart.
+
+### Prerequisites
+
+- The door device from the previous step is powered, on the network and running.
+- At least one person enrolled, so there is a version to activate.
+- A viewer token, and — for devices with an MQTT command channel — that device
+  listed in the console's `USA_DEVICE_ENDPOINTS`. An empty list makes this page
+  read as "no devices" rather than "not configured".
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
+| `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
+| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
+| A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
+| The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
+
+## Step 6: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An enrolled person opens the door once; a photograph does not open it at all; a
 remote unlock produces a receipt; a delete cannot be rolled back.
@@ -214,6 +262,27 @@ directly rather than inferred from a container being up.
 | Events stop but the door still opens | The broker connection dropped. That is the intended behaviour — the unlock path in this preset does not go through the network — but the retained last-will should show the device as offline in the console. |
 
 ## Preset: Industrial Box — reComputer Industrial J20 {#p2_industrial_box}
+
+**Choosing a preset.** There is no automatic matching in this release. The app's
+network discovery cannot tell a reCamera Pro from a standard reCamera, and it
+cannot see whether a gateway is present at all, so the preset is chosen by hand
+from this table. Find the device you have, read across to how the lock is
+switched, and that is the preset.
+
+| Door device | How the lock is switched | Preset |
+|---|---|---|
+| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
+| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
+| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+
+Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+Pro: it recognises on the camera but drives no lock at all, so it takes the
+gateway-relay path even when the gateway is standing next to it. And the Grove
+Vision AI V2 preset has no liveness model — a printed photograph opens that door
+— so it is not a substitute for the others on price alone.
+
 
 For a door that already has a camera. The J20 pulls the existing RTSP stream,
 runs recognition and liveness in containers, and drives the relay from an
@@ -349,7 +418,34 @@ continuing.
 | RTSP stream opens on your laptop but not on the J20 | Routing or credentials. Test from the box itself. |
 | The door pulses at boot | The active level is inverted. Fix it before reconnecting the lock. |
 
-## Step 5: Verify the Door End to End {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 5: Check the Library Reached the Device {#p2_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Open the console's device page and confirm that the version you published is the
+version the door device is actually matching against. Do this before putting a
+face in front of the camera: a door that will not open because the library never
+activated looks exactly like a door that will not open because recognition
+failed, and only this page tells them apart.
+
+### Prerequisites
+
+- The door device from the previous step is powered, on the network and running.
+- At least one person enrolled, so there is a version to activate.
+- A viewer token, and — for devices with an MQTT command channel — that device
+  listed in the console's `USA_DEVICE_ENDPOINTS`. An empty list makes this page
+  read as "no devices" rather than "not configured".
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
+| `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
+| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
+| A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
+| The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
+
+## Step 6: Verify the Door End to End {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An enrolled person opens the door once; a photograph does not; a remote unlock
 produces a receipt; a delete cannot be rolled back.
@@ -403,10 +499,31 @@ directly.
 
 ## Preset: MQTT Relay — Compute Away From the Door {#p3_mqtt_relay}
 
+**Choosing a preset.** There is no automatic matching in this release. The app's
+network discovery cannot tell a reCamera Pro from a standard reCamera, and it
+cannot see whether a gateway is present at all, so the preset is chosen by hand
+from this table. Find the device you have, read across to how the lock is
+switched, and that is the preset.
+
+| Door device | How the lock is switched | Preset |
+|---|---|---|
+| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
+| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
+| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+
+Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+Pro: it recognises on the camera but drives no lock at all, so it takes the
+gateway-relay path even when the gateway is standing next to it. And the Grove
+Vision AI V2 preset has no liveness model — a printed photograph opens that door
+— so it is not a substitute for the others on price alone.
+
+
 For when the box that can run recognition is nowhere near the door, or when one
-box serves several doors. Recognition runs on a J30/J40/R2000 or a standard
-reCamera; the unlock travels over MQTT to a relay node — an R1000 writing a
-Modbus point, or a XIAO ESP32 driving a Grove Relay.
+box serves several doors. Recognition runs on a J30/J40/R2000; the unlock
+travels over MQTT to a relay node — an R1000 writing a Modbus point, or a XIAO
+ESP32 driving a Grove Relay.
 
 The trade is explicit: the broker is on the unlock path, so its availability is
 the door's availability. That is why this preset carries its own latency
@@ -415,15 +532,17 @@ boundary rather than sharing the direct one.
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer J30 / J40 / R2000 or a standard reCamera | Recognition, liveness, decision |
+| reComputer J30 / J40 / R2000 | Recognition, liveness, decision |
 | RTSP camera at the door | Video source |
 | SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
 | Relay module | Switches the lock |
 | Lock + its own 12/24 V supply | Never powered from the relay node |
 
 **Important.** This is not a certified security or life-safety system, and no
-part of it has run on hardware. Six of the seven boundary metrics are empty. The
-face embedding weights are non-commercial.
+part of this preset has run on hardware. Six of the seven boundary metrics are
+empty. A standard reCamera is not an option here — it is preset P5, whose
+library-delivery path has been verified on real hardware. The face embedding
+weights are non-commercial.
 
 Known weaknesses, none of them measured:
 
@@ -541,7 +660,283 @@ leave the door standing open.
 | Pulse width rejected | The command range is 500–5000 ms. The relay firmware's own wire format allows 100–10000 ms; they are different constraints and the narrower one governs. |
 | "LIVENESS IS NOT LOADED" | The recognition service came up without its liveness model. Fix the image. |
 
-## Step 5: Verify the Door End to End {#p3_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 5: Check the Library Reached the Device {#p3_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Open the console's device page and confirm that the version you published is the
+version the door device is actually matching against. Do this before putting a
+face in front of the camera: a door that will not open because the library never
+activated looks exactly like a door that will not open because recognition
+failed, and only this page tells them apart.
+
+### Prerequisites
+
+- The door device from the previous step is powered, on the network and running.
+- At least one person enrolled, so there is a version to activate.
+- A viewer token, and — for devices with an MQTT command channel — that device
+  listed in the console's `USA_DEVICE_ENDPOINTS`. An empty list makes this page
+  read as "no devices" rather than "not configured".
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
+| `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
+| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
+| A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
+| The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
+
+## Step 6: Verify the Door End to End {#p3_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+
+An enrolled person opens the door once; a photograph does not; a remote unlock
+produces a receipt; a delete cannot be rolled back.
+
+### Prerequisites
+
+- Steps 1–4 finished, the lock connected at the relay node, someone enrolled.
+- A printed photograph of that same person.
+- An operator token and a viewer token.
+
+### Deployment Complete
+
+The door is installed and the four behaviours that matter have been observed
+directly.
+
+#### Quick verification
+
+1. Reproduce the software half:
+   `uv run python tools/verify_software_loop.py` from a clone of the upstream
+   repository. The reference run reports 52 of 52 checks passing.
+2. Stand in front of the camera as an enrolled person. Expect one contact
+   closure, one allowed event, the audit chain one record longer.
+3. Step back and forward within the debounce window. Expect `debounced` and no
+   second pulse.
+4. Hold the printed photograph up. Expect `liveness_failed` and no pulse.
+5. As an operator, issue a remote unlock. Expect one closure and an executed
+   receipt. Repeat as a viewer: expect a refusal.
+6. Delete an enrolled person, then try to roll back to a version that contained
+   them. Expect a refusal naming that person.
+7. Disconnect the broker briefly and confirm the door **stops opening** — in
+   this preset that is the expected behaviour, and knowing it is what tells you
+   whether you chose the right preset for this door.
+
+#### Next steps
+
+- Calibrate the threshold on the installed camera.
+- Replace the bundled broker configuration with TLS, per-device identities and
+  topic ACLs. In this preset that broker is on the unlock path, so it deserves
+  the same care as the door itself.
+- Consider a second broker or a local fallback if the door cannot tolerate
+  broker downtime. If it cannot, P1 or P2 is the better preset.
+- Record the relay id, contact, pulse width and lock type with the installation.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| A photograph opens the door | Liveness is not in the path. Take the door out of service. |
+| Receipt executed, contact never closes | Read `access/v1/relay/<id>/state`. The relay reports why. |
+| The door opens twice for one approach | Either the debounce or the relay's duplicate-id table is not in the path. |
+| Audit verification fails | The log was edited, or two processes wrote it. Keep the file. |
+| Latency feels high | There is no measured figure for this path. Do not compare it against the direct-path expectation; the extra hop is the whole point of this preset. |
+
+## Preset: Standard reCamera — On-Camera Loop, Gateway Relay {#p5_recamera_std}
+
+**Choosing a preset.** There is no automatic matching in this release. The app's
+network discovery cannot tell a reCamera Pro from a standard reCamera, and it
+cannot see whether a gateway is present at all, so the preset is chosen by hand
+from this table. Find the device you have, read across to how the lock is
+switched, and that is the preset.
+
+| Door device | How the lock is switched | Preset |
+|---|---|---|
+| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
+| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
+| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+
+Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+Pro: it recognises on the camera but drives no lock at all, so it takes the
+gateway-relay path even when the gateway is standing next to it. And the Grove
+Vision AI V2 preset has no liveness model — a printed photograph opens that door
+— so it is not a substitute for the others on price alone.
+
+The camera already does the recognition. An App Center application on the
+standard reCamera runs detection, embedding, a two-head texture liveness with
+blink fusion and cosine matching in one native process on the device, so this
+preset installs no recognition container and pulls no video off the camera. It
+adds a small standard-library daemon for the three things the camera does not do
+by itself: pull the versioned face library, map the camera's native result
+stream onto the event contract, and hold every threshold in one file.
+
+The camera drives no lock. Events leave over MQTT and the relay is at the
+gateway — an R1000 writing a Modbus point, or a XIAO ESP32 driving a Grove
+Relay.
+
+| Device | Purpose |
+|---|---|
+| Cloud / on-prem host | Face library server, management console, MQTT broker |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Recognition, liveness, decision — all on the camera |
+| SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
+| Relay module | Switches the lock |
+| Lock + its own 12/24 V supply | Never powered from the relay node |
+
+**Important.** This is not a certified security or life-safety system. The
+library path has been exercised on a real unit; the door path has not. The face
+embedding weights are non-commercial.
+
+What is verified and what is not, stated separately because they are usually
+conflated:
+
+- **Verified on hardware** (second probe run, standard reCamera at
+  192.168.42.1): library pull, per-file SHA, manifest signature, atomic switch,
+  gallery write and `op:reload` ack; resume after an interrupted download;
+  rejection of a version whose manifest does not verify; the threshold
+  consistency gate refusing to start when the config and the running recognition
+  process disagree. Full activation measured p50 491.6 ms and p95 507.8 ms over
+  20 runs on a 2-person, 16.5 KB library; the `op:reload` round trip measured
+  p50 100.0 ms over 25 runs. Source:
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
+- **Not verified, and not to be presented as if it were**: any recognition or
+  liveness figure — nobody stood in front of the lens during either probe run
+  and each run sampled 220 frames that all read `face_count: 0` (see
+  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
+  recognition-to-relay latency, because no relay has been wired (see
+  `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`); and the
+  thresholds, which are the device's shipped values carrying
+  `calibration = pending`.
+- **The relay node's `set` topic must never be retained.** A retained unlock
+  replays on every reconnect, and the door would open by itself after a power
+  cut.
+
+## Step 1: Deploy the Face Library Server {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
+
+Same cloud host, same step as the other presets.
+
+### Prerequisites
+
+- A Linux host with Docker and the compose plugin, reachable from both the
+  access host and the relay node.
+- **Its clock must be right.**
+- **The container image has not been pushed.** Build and retag on the host.
+- A signing key: `openssl rand -hex 32`.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Image pull fails | Expected until the image is pushed. Build and retag on the host. |
+| `docker compose` not found | Install `docker-compose-plugin`. |
+| Library endpoint answers 404 | Correct before the first enrolment. |
+| `NTP is not synchronised` warning | Fix it before deploying any door. |
+| Relay node cannot reach the broker | In this preset that means the door cannot open. Fix routing before going further. |
+
+## Step 2: Deploy the Management Console {#p5_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml}
+
+Configures the three role tokens and brings the console up alongside the server.
+
+### Prerequisites
+
+- Step 1 finished and the library endpoint answering.
+- Tokens decided for admin, and optionally operator and viewer.
+- A TLS-terminating reverse proxy before external exposure.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| "The face library server is not answering" | Step 1 has not finished, or the port differs. |
+| Anonymous `GET /api/events` returns 200 | The token gate is not in front of the data. |
+| Console starts, person library empty | Correct before the first enrolment. |
+| Enrolled people are never recognised | A fake embedder was used. Set the recognition service URL and re-enrol. |
+
+## Step 3: Enrol People {#p5_register type=web_dashboard required=true config=devices/register_person.yaml}
+
+Opens the console's person library. 3 to 8 photographs per person.
+
+### Prerequisites
+
+- The admin token from Step 2.
+- 3–8 photographs per person.
+- The recognition service URL configured.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Enrolment refused with "fewer than three images" | By design. |
+| New version published, door still refuses the person | Wait one poll period plus download. |
+| Rollback refused naming a person | The deletion barrier. Mint a new version. |
+| `model_tag` mismatch on the device | Built against a different embedding model. |
+
+## Step 4: Install the Access Agent on the Camera {#p5_install type=manual required=true config=devices/p5_recamera_std.yaml}
+
+Copy six files onto the camera as root, fill in one config file, run one
+synchronisation in the foreground, then leave it resident.
+
+### Prerequisites
+
+- Root SSH access to the camera. Root is required, not preferred:
+  `/userdata/local/face-gallery/` is `root:root 0700` and the daemon writes
+  there.
+- The App Center `face-recognition` application present and startable.
+- The face library server reachable from the camera over plain HTTP, and the
+  signing key from the cloud step.
+- A clone of the upstream repository, for `platforms/recamera-std/` and
+  `contracts/validate_payload.py`.
+
+### Wiring
+
+- The camera is not wired to the lock. Nothing on it carries lock current.
+- The relay lives at the gateway node, on the lock's own 12/24 V supply.
+- Fail-safe magnetic lock: COM and NC. Fail-secure strike: COM and NO. Confirm
+  with an LED before the lock goes on.
+- Getting events off the camera needs an MQTT listener beyond the default
+  loopback-only one. That is a site networking decision, and the daemon does not
+  make it for you — it does not edit `/etc/mosquitto/mosquitto.conf`.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `RuntimeArgsMismatch: face-recognition is not running` | Start the recognition application first. An access daemon with no recogniser cannot make decisions, so it stops rather than guessing. |
+| `mqtt.mqtt_host='127.0.0.1' but face-recognition runs -m 'localhost'` | The gate compares command-line strings literally. Write `localhost`. This is the one that catches people on a factory device. |
+| `PermissionError` writing the gallery | The daemon is not running as root. |
+| The daemon starts but no version ever activates | Check `key_id` and the secret against the console, and `match_threshold` against `USA_MATCH_THRESHOLD`. |
+| Version directories accumulate on the device | `[facedb] keep_versions` (default 3) bounds them after a successful activation. Rollback does not depend on them — the server republishes old content under a new version number. |
+| You want to change a threshold | Change it in the config file **and** in the recognition process's start arguments. Changing one alone makes the daemon refuse to start, which is the point. |
+
+## Step 5: Check the Library Reached the Device {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Open the console's device page and confirm that the version you published is the
+version the door device is actually matching against. Do this before putting a
+face in front of the camera: a door that will not open because the library never
+activated looks exactly like a door that will not open because recognition
+failed, and only this page tells them apart.
+
+### Prerequisites
+
+- The door device from the previous step is powered, on the network and running.
+- At least one person enrolled, so there is a version to activate.
+- A viewer token, and — for devices with an MQTT command channel — that device
+  listed in the console's `USA_DEVICE_ENDPOINTS`. An empty list makes this page
+  read as "no devices" rather than "not configured".
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
+| `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
+| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
+| A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
+| The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
+
+## Step 6: Verify the Door End to End {#p5_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An enrolled person opens the door once; a photograph does not; a remote unlock
 produces a receipt; a delete cannot be rolled back.
@@ -596,6 +991,27 @@ directly.
 | Latency feels high | There is no measured figure for this path. Do not compare it against the direct-path expectation; the extra hop is the whole point of this preset. |
 
 ## Preset: XIAO + Grove Vision AI V2 — No Liveness {#p4_xiao_grove}
+
+**Choosing a preset.** There is no automatic matching in this release. The app's
+network discovery cannot tell a reCamera Pro from a standard reCamera, and it
+cannot see whether a gateway is present at all, so the preset is chosen by hand
+from this table. Find the device you have, read across to how the lock is
+switched, and that is the preset.
+
+| Door device | How the lock is switched | Preset |
+|---|---|---|
+| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
+| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
+| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+
+Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+Pro: it recognises on the camera but drives no lock at all, so it takes the
+gateway-relay path even when the gateway is standing next to it. And the Grove
+Vision AI V2 preset has no liveness model — a printed photograph opens that door
+— so it is not a substitute for the others on price alone.
+
 
 The cheapest door. A Grove Vision AI V2 detects and embeds; a XIAO ESP32-S3
 matches against a library held in its own flash and drives a Grove Relay. It
@@ -784,7 +1200,34 @@ Change the wiring and the `relay_contact` setting together, never one alone.
 | The library never activates | Check the model tag and the signing key. A mismatch on either is rejected at load, deliberately. |
 | The relay pulses at boot | The active level is inverted for the module you fitted. Fix it before connecting the lock. |
 
-## Step 6: Verify the Door End to End {#p4_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 6: Check the Library Reached the Device {#p4_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Open the console's device page and confirm that the version you published is the
+version the door device is actually matching against. Do this before putting a
+face in front of the camera: a door that will not open because the library never
+activated looks exactly like a door that will not open because recognition
+failed, and only this page tells them apart.
+
+### Prerequisites
+
+- The door device from the previous step is powered, on the network and running.
+- At least one person enrolled, so there is a version to activate.
+- A viewer token, and — for devices with an MQTT command channel — that device
+  listed in the console's `USA_DEVICE_ENDPOINTS`. An empty list makes this page
+  read as "no devices" rather than "not configured".
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
+| `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
+| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
+| A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
+| The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
+
+## Step 7: Verify the Door End to End {#p4_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An allowlisted person opens the door once, a delete cannot be rolled back, and —
 on this preset specifically — you confirm for yourself that a photograph *does*

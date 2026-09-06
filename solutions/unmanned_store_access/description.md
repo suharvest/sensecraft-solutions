@@ -42,9 +42,11 @@ after a power cut.
 previous record's hash. Changing one past decision from denied to allowed breaks
 the chain, and the console's verification endpoint reports it.
 
-**Four ways to wire the same system**, from a camera that drives its own GPIO to
+**Five ways to wire the same system**, from a camera that drives its own GPIO to
 a 20-dollar controller with no liveness at all, sharing one library, one event
-contract and one console.
+contract and one console: P1 on-device (reCamera Pro), P2 industrial box
+(reComputer Industrial J20), P3 MQTT relay, P5 standard reCamera running its own
+recognition with the relay at the gateway, and P4 XIAO + Grove Vision AI V2.
 
 ## Where it fits
 
@@ -56,31 +58,46 @@ contract and one console.
 
 Not for: doors where a failure to open is a safety event, and doors where the
 consequences of a wrongly admitted person are severe. Nothing here is a
-certified security product and none of the presets has been verified on
-hardware.
+certified security product. Only the face-library distribution path has been
+exercised on hardware — on a standard reCamera, sources below. Recognition,
+liveness and the door path have not.
 
 ## How well it works
 
-**This is not a certified security or life-safety system, and it has never run
-on hardware.** The upstream project is at its software milestone: a pure
-software loop on a macOS development machine, with a fake actuator, an in-memory
-MQTT broker and a fake recogniser. No camera, no relay, no lock, no real broker,
-no real face model has been in the loop.
+**This is not a certified security or life-safety system.** One link has been
+exercised on hardware and the rest has not, so the two are stated separately.
+
+**On hardware**: the face-library distribution path — poll, chunked download,
+per-file SHA-256, manifest signature, atomic switch, gallery write and
+`op:reload` ack, plus resume after an interrupted download and rejection of a
+version whose manifest does not verify. Two probe runs on a standard reCamera
+(SG2002 / CV181x riscv64, firmware 0.2.2).
+
+**Not on hardware**: recognition, liveness and the door path. Nobody stood in
+front of the lens in either probe run — each run sampled 220 frames, all
+reading `face_count: 0` — no relay has been wired, and the thresholds are the
+device's shipped values carrying `calibration = pending`. Everything outside
+the library path runs as a pure software loop on a macOS development machine,
+with a fake actuator, an in-memory MQTT broker and a fake recogniser.
 
 Seven boundary metrics are defined. One carries numbers and six are empty, each
 with the reason recorded rather than guessed at.
 
+All sources below are paths in the upstream repository `unmanned-store-access`.
+
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Face library activation | 11.6 ms slowest of three activations (v1/v2/v3: 11.6 / 3.7 / 3.5 ms) | macOS development machine, loopback HTTP, no TLS, no authentication, zero loss, 4 people × 3 embeddings of 128 dimensions, single run | This project's software loop. **Not a device-side figure.** Real activation is dominated by the poll period (30 s default) plus edge network download, and neither was in this measurement |
-| Recognition FAR / FRR | pending | — | No real face model and no positive/negative pairs in the software loop. Needs hardware |
-| Liveness spoof rejection / live false-reject | pending | — | Needs real spoof samples — photographs, screens, masks — and Silent-Face actually running |
-| Direct-path unlock latency p95 | pending | — | Needs the full camera-to-relay chain on hardware |
-| MQTT-relay unlock latency p95 | pending | — | Needs a real broker and a real relay node |
-| Offline endurance | pending | — | Needs a device running disconnected for a long period |
-| 72-hour soak: wrong opens / crashes | pending | — | Needs 72 hours of uninterrupted operation on hardware |
+| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); `op:reload` round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §2 and `boundary.facedb-activation.yaml` alongside it |
+| Face library activation, software loop | 11.6 ms slowest of three activations (v1/v2/v3: 11.6 / 3.7 / 3.5 ms) | macOS development machine, loopback HTTP, no TLS, no authentication, zero loss, 4 people × 3 embeddings of 128 dimensions, single run | `evaluation/runs/2026-09-06-c1-software/results.md`. **Not a device-side figure**, and superseded by the row above |
+| Recognition FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.recognition.yaml`. No real face model and no positive/negative pairs in the software loop; both probe runs had nobody in front of the lens |
+| Liveness spoof rejection / live false-reject | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.liveness.yaml`. Needs real spoof samples — photographs, screens, masks — and Silent-Face actually running |
+| Direct-path unlock latency p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.latency-direct.yaml`. Needs the full camera-to-relay chain on hardware |
+| MQTT-relay unlock latency p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`. Still pending after the second probe run — no relay has been wired at the gateway (`evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §5) |
+| Offline endurance | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.offline.yaml`. Needs a device running disconnected for a long period |
+| 72-hour soak: wrong opens / crashes | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.soak72h.yaml`. Needs 72 hours of uninterrupted operation on hardware |
 
-What the software loop did establish, on that machine and no other: 52 of 52
+What the software loop did establish, on that machine and no other
+(`evaluation/runs/2026-09-06-c1-software/results.md`): 52 of 52
 checks passing across three library versions built, published, pulled,
 SHA-verified and atomically switched; the policy denying a photograph
 (`liveness_failed`), a null liveness result (`liveness_unknown`), a blocklisted
@@ -113,16 +130,16 @@ they claim.
 
 ## Deployment Comparison
 
-| | P1 on-device | P2 industrial box | P3 MQTT relay | P4 XIAO + Grove Vision |
-|---|---|---|---|---|
-| Compute | reCamera Pro / PoE / HQ PoE | reComputer Industrial J20 | J30 / J40 / R2000 / reCamera | XIAO ESP32-S3 |
-| Camera | The device's own sensor | Existing RTSP camera | Existing RTSP camera | Grove Vision AI V2 (Himax WE2) |
-| Unlock path | Local sysfs GPIO → relay | Opto-isolated DO → relay | MQTT → R1000 Modbus point or XIAO relay | Local GPIO D0 → relay |
-| Liveness | Enforced (Silent-Face) | Enforced (Silent-Face) | Enforced (Silent-Face) | **None. No model exists for this chip** |
-| Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | **Weakened: allowlist within a schedule, single-shot** |
-| Network on the unlock path | No | No | **Yes — broker availability is door availability** | No |
-| Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Two-segment USB flash |
-| State | Untested on hardware | Untested on hardware | Untested on hardware | **Firmware not built** |
+| | P1 on-device | P2 industrial box | P3 MQTT relay | P5 standard reCamera | P4 XIAO + Grove Vision |
+|---|---|---|---|---|---|
+| Compute | reCamera Pro / PoE / HQ PoE | reComputer Industrial J20 | J30 / J40 / R2000 / reCamera | Standard reCamera (SG2002), on-camera native process | XIAO ESP32-S3 |
+| Camera | The device's own sensor | Existing RTSP camera | Existing RTSP camera | The device's own sensor | Grove Vision AI V2 (Himax WE2) |
+| Unlock path | Local sysfs GPIO → relay | Opto-isolated DO → relay | MQTT → R1000 Modbus point or XIAO relay | MQTT → relay at the gateway | Local GPIO D0 → relay |
+| Liveness | Enforced (Silent-Face) | Enforced (Silent-Face) | Enforced (Silent-Face) | On-camera two-head texture liveness with blink fusion, **thresholds uncalibrated** | **None. No model exists for this chip** |
+| Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | Same, evaluated in the cloud from the event stream | **Weakened: allowlist within a schedule, single-shot** |
+| Network on the unlock path | No | No | **Yes — broker availability is door availability** | **Yes — broker availability is door availability** | No |
+| Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Manual copy of a standard-library daemon, no container | Two-segment USB flash |
+| State | Untested on hardware | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
 
 **Choose P1** when the door has no camera yet and you want the shortest possible
 chain: recognition, decision and contact all in one device, nothing on the
@@ -140,6 +157,15 @@ confirmed.
 when one box serves several doors. You are explicitly buying a network hop on the
 unlock path in exchange for that flexibility, which is why it carries its own
 latency boundary.
+
+**Choose P5** when the door has a standard reCamera and you want no recognition
+container anywhere: the camera already detects, embeds, judges liveness and
+matches in one native process, so the only thing added is a standard-library
+daemon that pulls the versioned library and maps the camera's native result
+stream onto the event contract. The relay sits at the gateway, so the unlock
+path crosses the network the same way P3's does. It is the preset whose library
+path has actually run on hardware, and the one whose thresholds are the device's
+shipped values rather than calibrated ones.
 
 **Choose P4** when cost dominates and the threat model does not include someone
 holding up a photograph — a stock-room door inside an already-controlled

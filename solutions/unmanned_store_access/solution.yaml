@@ -2,7 +2,7 @@
 # (HEAD 95f314a at packaging time). Design spec: seeed-solutions-hub
 # docs/specs/f1-unmanned-store-access-spec.md.
 #
-# NOTHING HERE HAS RUN ON HARDWARE. The upstream milestone is C1 — a pure
+# NO DOOR HAS BEEN OPENED BY ANY OF THIS. The upstream milestone is C1 — a pure
 # software loop on a macOS development machine with a FakeActuator, an
 # in-memory MQTT broker and a FakeRecognizer. Six of the seven boundary files
 # in evaluation/runs/2026-09-06-c1-software/ carry `status: pending` with every
@@ -10,6 +10,20 @@
 # device-side numbers. No preset carries `verified:`, and none may until the
 # C2 hardware pass records GPIO/DO voltage, current, polarity, relay trigger
 # and lock action.
+#
+# One exception, and only one: the face library distribution path has run on a
+# standard reCamera at 192.168.42.1 across two probe runs — poll, Range
+# download, per-file SHA, manifest signature, atomic switch, gallery write and
+# reload ack, plus resume after an interrupted download and rejection of a
+# version that does not verify. Full activation measured p50 491.6 ms / p95
+# 507.8 ms over 20 runs on a 2-person, 16.5 KB library. Source:
+# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md. That is a library
+# number, not a door number, and it is the only measured figure in this package.
+# Recognition, liveness and any recognition-to-relay latency remain unmeasured:
+# nobody stood in front of the lens during either run (each run sampled 220
+# frames, all reading face_count: 0 — see
+# evaluation/runs/2026-09-06-recamera-std-p3/results.md and
+# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md).
 #
 # LICENCE, in one line so nobody has to go looking: the face detection and
 # embedding weights (InsightFace buffalo_l) are NON-COMMERCIAL. They are not
@@ -46,9 +60,9 @@ intro:
   gallery:
     - type: image
       src: gallery/architecture.svg
-      caption: Cloud face library and console above four presets — every one of them ends at a relay and a lock on its own supply
+      caption: Cloud face library and console above the presets — every one of them ends at a relay and a lock on its own supply
       caption_i18n:
-        zh: 上方是云端人脸库与管理界面，下方四个套餐——每一个都终结于继电器和独立供电的门锁
+        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器和独立供电的门锁
     - type: image
       src: gallery/ui-events.png
       caption: Access events with the decision reason and the audit chain hash. Synthetic demo data — the people, scores and events are fixtures, not field results
@@ -213,12 +227,12 @@ intro:
         zh: 云端 / 本地服务器
       description: >-
         Runs the face library server, the management console and the MQTT
-        broker in containers. Present in all four presets — the library and the
+        broker in containers. Present in every preset — the library and the
         console are shared infrastructure, not per-preset extras. Neither
         container image has been pushed to a registry yet.
       description_i18n:
         zh: >-
-          以容器运行人脸库服务、管理界面与 MQTT broker。四个套餐都要它——人脸库与
+          以容器运行人脸库服务、管理界面与 MQTT broker。每个套餐都要它——人脸库与
           管理界面是共用基础设施，不是某个套餐的附加项。两个容器镜像都还没有推送到
           registry。
     recamera_pro:
@@ -239,15 +253,25 @@ intro:
           真机盘点发现 `gpio131` 已被另一个应用 export，所以任何引脚都不能假定空闲。
     recamera_2002:
       description: >-
-        The 3.3 V sysfs GPIO variant of the same preset — GPIO 490/487/488 per
-        the design spec. Pin numbers, polarity and available drive current must
-        come from a meter on the actual unit before anything is wired to a
-        lock; nothing here has been measured.
+        The standard reCamera, and a different shape from the Pro rather than a
+        variant of it. It already recognises faces on its own — an App Center
+        application does detection, embedding, a two-head texture liveness with
+        blink fusion, and matching, entirely on the camera — and its control
+        plane is MQTT, not the Pro's loopback HTTP. It drives no lock: events
+        leave over MQTT and the relay sits at the gateway, which is why it
+        belongs to the MQTT preset rather than the on-device one. What gets
+        installed on it is a small standard-library daemon that pulls the face
+        library, maps the native result stream onto the event contract, and pins
+        every threshold in one file against the recognition process's actual
+        arguments.
       description_i18n:
         zh: >-
-          同一套餐的 3.3 V sysfs GPIO 形态——按设计 spec 是 GPIO 490/487/488。
-          引脚号、极性与可供驱动电流必须在接锁之前用万用表在实机上测出来；
-          本方案没有测过其中任何一项。
+          标准版 reCamera，与 Pro 是两种形态，不是同一形态的变体。它本身就会识别人脸
+          ——一个 App Center 应用在摄像头内完成检测、嵌入、双头纹理活体加眨眼融合与匹配
+          ——而它的控制面是 MQTT，不是 Pro 的回环 HTTP。它不驱动任何锁：事件经 MQTT 发出，
+          继电器在网关侧，这正是它属于 MQTT 套餐而不是端侧直控套餐的原因。装在它上面的是
+          一个纯标准库的小守护进程，负责拉人脸库、把原生结果流映射成事件契约，
+          并把所有阈值钉在一个文件里，与识别进程的实际启动参数逐项比对。
     recomputer_j20:
       description: >-
         The industrial box preset. Recognition runs in containers against an
@@ -333,7 +357,7 @@ intro:
         permanently, which is why `relay_contact` has no default value.
       description_i18n:
         zh: >-
-          四个套餐里真正切换门锁的部件。断电即开的电磁锁走 COM/NC，断电即锁的
+          每个套餐里真正切换门锁的部件。断电即开的电磁锁走 COM/NC，断电即锁的
           电插锁走 COM/NO。接反会让门长期敞着——这正是 `relay_contact` 不设默认值
           的原因。
     generic_rtsp_camera:
@@ -385,7 +409,6 @@ intro:
           required: true
           options:
             - device_ref: recamera_pro
-            - device_ref: recamera_2002
           default: recamera_pro
         - id: relay
           name: Relay
@@ -461,17 +484,22 @@ intro:
         zh: 未上板验证
       description: >-
         For when the box that can run recognition is nowhere near the door, or
-        when one box serves several doors. Recognition runs on a J30/J40/R2000
-        or a standard reCamera; the unlock travels over MQTT to a relay node —
-        either an R1000 writing a Modbus point or a XIAO ESP32 driving a Grove
-        Relay. The extra hop is the cost, and it is why this preset has its own
-        latency boundary rather than sharing the direct one.
+        when one box serves several doors. Recognition runs in containers on a
+        J30/J40/R2000 against an existing RTSP stream; the unlock travels over
+        MQTT to a relay node — either an R1000 writing a Modbus point or a XIAO
+        ESP32 driving a Grove Relay. The extra hop is the cost, and it is why
+        this preset has its own latency boundary rather than sharing the direct
+        one. A standard reCamera reaches the same relay node but installs
+        differently enough to have its own preset: it recognises on the camera
+        and never runs a recognition container.
       description_i18n:
         zh: >-
-          适合能跑识别的盒子离门很远，或者一台盒子管好几道门的场合。识别跑在
-          J30/J40/R2000 或标准 reCamera 上；开门指令经 MQTT 发到继电器节点——
+          适合能跑识别的盒子离门很远，或者一台盒子管好几道门的场合。识别在
+          J30/J40/R2000 上以容器运行，接现有 RTSP 流；开门指令经 MQTT 发到继电器节点——
           要么是 R1000 写一个 Modbus 点位，要么是 XIAO ESP32 驱动一个 Grove 继电器。
           代价是多一跳，这也是它单列一个时延边界而不与端侧直控共用的原因。
+          标准版 reCamera 接的是同一个继电器节点，但安装方式差别够大，单列一个套餐：
+          它在摄像头内识别，不跑任何识别容器。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -511,6 +539,78 @@ intro:
             - device_ref: generic_modbus_relay_gateway
             - device_ref: xiao_esp32s3
           default: xiao_esp32s3
+
+    - id: p5_recamera_std
+      name: Standard reCamera — On-Camera Loop, Gateway Relay
+      name_i18n:
+        zh: 标准版 reCamera —— 摄像头内闭环，网关侧继电器
+      badge: Library path verified on hardware; door path untested
+      badge_i18n:
+        zh: 拉库链路已上板验证；门控链路未验证
+      description: >-
+        The standard reCamera already recognises faces by itself — detection,
+        embedding, a two-head texture liveness with blink fusion and matching all
+        run on the camera, in one native process. So this preset installs no
+        recognition container and pulls no RTSP off the camera. What it adds is a
+        small standard-library daemon that does the three things the camera does
+        not do on its own: pull the versioned face library, map the camera's
+        native result stream onto the event contract, and pin every threshold in
+        one file, checked against the recognition process's actual command line
+        so that a threshold cannot quietly differ between the two. The camera
+        drives no lock; events leave over MQTT and the relay is at the gateway.
+        The library path — poll, chunked download, per-file SHA, signature,
+        atomic switch, reload — has been exercised on a real unit. The door path
+        has not: nobody has stood in front of the lens, no relay has been wired,
+        and the thresholds are the device's shipped values, not calibrated ones.
+      description_i18n:
+        zh: >-
+          标准版 reCamera 本身就会识别人脸——检测、嵌入、双头纹理活体加眨眼融合、匹配，
+          全部在摄像头内的同一个原生进程里完成。因此这个套餐不装任何识别容器，
+          也不从摄像头拉 RTSP。它加的是一个纯标准库的小守护进程，做摄像头自己不做的
+          三件事：拉版本化人脸库、把摄像头原生的结果流映射成事件契约、把所有阈值钉在
+          一个文件里并与识别进程的实际命令行逐项比对，让两边的阈值不可能悄悄不一致。
+          摄像头不驱动任何锁；事件经 MQTT 发出，继电器在网关侧。
+          拉库这条链路——轮询、分块下载、逐文件 SHA、验签、原子切换、reload——已经在
+          真机上跑过。门控那条没有：没有人站到镜头前，没有接过继电器，
+          阈值用的是设备出厂的现值，不是标定结果。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: door
+          name: Door Camera
+          name_i18n:
+            zh: 门口摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: relay
+          name: Relay Node
+          name_i18n:
+            zh: 继电器节点
+          type: single
+          required: true
+          options:
+            - device_ref: generic_modbus_relay_gateway
+            - device_ref: xiao_esp32s3
+          default: xiao_esp32s3
+        - id: relay_module
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
 
     - id: p4_xiao_grove
       name: XIAO + Grove Vision AI V2 — No Liveness
