@@ -183,9 +183,9 @@ Deploy over SSH. The board takes its address from DHCP; the default user is `rec
 | Pre-check reports "RKNPU driver not bound" | The board is not an RK3576, or its kernel lacks the NPU driver. A missing `/dev/rknpu` is not the cause — the check reads `/sys/bus/platform/drivers/RKNPU` |
 | `speech` stays unhealthy for several minutes | Expected while 825 MB of models download. Watch with `docker logs -f openvoicestream` |
 | Model download stalls | Switch the model source between the HF mirror and huggingface.co, then redeploy |
-| `voice-client` will not start, image not found | The `c4-local` tag is not published yet. Build branch `feature/c4-harden` of sensecraft-voice-client and tag it, or set `VOICE_CLIENT_IMAGE` |
+| `voice-client` will not start, image not found | The `c4-local` tag is not published yet. Build branch `feature/c4-harden` of sensecraft-voice-client and tag it, or set `VOICE_CLIENT_IMAGE`. Real-machine check on an RK3576 board that already had `sensecraft-voice-client:ovs-20260901b` cached locally (2026-09-06): that tag also speaks `vad=none` local VAD, `asr_cache`, and `speaker_embedding`, so pointing `VOICE_CLIENT_IMAGE` at it worked as a drop-in for this preset without a rebuild — but the tag is not published to any registry, only confirmed present on that one device. |
 | reSpeaker missing from `lsusb` | Move it to a USB-A host port. `dmesg \| tail` showing `xhci-hcd` bus deregistration means the dual-role controller switched to device mode |
-| Restarts re-download the models | The named volumes were removed. `rk-sensevoice-rknn` in particular holds the 502 MB artifact; without it every recreate re-downloads |
+| Restarts re-download the models | The named volumes were removed. `rk-sensevoice-rknn` in particular holds the 502 MB artifact; without it every recreate re-downloads. Note that `rk-asr-models` is a generic volume name also used by other RK3576 OVS-based solutions on the same device (observed alongside a `conversational_voice_ai` deployment on `cat-remote`) — it is shared, not solution-scoped, so `docker compose down -v` on this stack would also remove that other solution's cached models. |
 
 ---
 
