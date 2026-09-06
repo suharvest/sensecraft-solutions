@@ -52,7 +52,7 @@ services:
     # （MYSQL_VERSION=26.7.0-1.el9），跨大版本漂移，智控台的 schema 没在上面验证过。
     # 注意：如果宿主上已有由更高版本 MySQL 创建的 xiaozhi-mysql-data 卷，
     # 降到 8.0 起不来，需要先删卷重建。
-    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     container_name: xiaozhi-esp32-server-db
     restart: unless-stopped
     healthcheck:
@@ -110,7 +110,7 @@ services:
     # 0.0.7 是 `latest` 在 2026-09-06 指向的版本，两者 digest 相同
     # （docker buildx imagetools inspect ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:{latest,0.0.7}
     #  都是 sha256:33ca12e0…，与上游 ghcr.io/xinnan-tech/… 一致）。
-    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server@sha256:33ca12e06dcafb965fb27ecf2631070a267451331b65f0cb0e0332247b0491cc
+    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:0.0.7@sha256:33ca12e06dcafb965fb27ecf2631070a267451331b65f0cb0e0332247b0491cc
     container_name: mcp-endpoint-server
     restart: unless-stopped
     ports:
