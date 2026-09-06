@@ -42,9 +42,11 @@ after a power cut.
 previous record's hash. Changing one past decision from denied to allowed breaks
 the chain, and the console's verification endpoint reports it.
 
-**Four ways to wire the same system**, from a camera that drives its own GPIO to
+**Five ways to wire the same system**, from a camera that drives its own GPIO to
 a 20-dollar controller with no liveness at all, sharing one library, one event
-contract and one console.
+contract and one console: P1 on-device (reCamera Pro), P2 industrial box
+(reComputer Industrial J20), P3 MQTT relay, P5 standard reCamera running its own
+recognition with the relay at the gateway, and P4 XIAO + Grove Vision AI V2.
 
 ## Where it fits
 
@@ -128,16 +130,16 @@ they claim.
 
 ## Deployment Comparison
 
-| | P1 on-device | P2 industrial box | P3 MQTT relay | P4 XIAO + Grove Vision |
-|---|---|---|---|---|
-| Compute | reCamera Pro / PoE / HQ PoE | reComputer Industrial J20 | J30 / J40 / R2000 / reCamera | XIAO ESP32-S3 |
-| Camera | The device's own sensor | Existing RTSP camera | Existing RTSP camera | Grove Vision AI V2 (Himax WE2) |
-| Unlock path | Local sysfs GPIO → relay | Opto-isolated DO → relay | MQTT → R1000 Modbus point or XIAO relay | Local GPIO D0 → relay |
-| Liveness | Enforced (Silent-Face) | Enforced (Silent-Face) | Enforced (Silent-Face) | **None. No model exists for this chip** |
-| Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | **Weakened: allowlist within a schedule, single-shot** |
-| Network on the unlock path | No | No | **Yes — broker availability is door availability** | No |
-| Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Two-segment USB flash |
-| State | Untested on hardware | Untested on hardware | Untested on hardware | **Firmware not built** |
+| | P1 on-device | P2 industrial box | P3 MQTT relay | P5 standard reCamera | P4 XIAO + Grove Vision |
+|---|---|---|---|---|---|
+| Compute | reCamera Pro / PoE / HQ PoE | reComputer Industrial J20 | J30 / J40 / R2000 / reCamera | Standard reCamera (SG2002), on-camera native process | XIAO ESP32-S3 |
+| Camera | The device's own sensor | Existing RTSP camera | Existing RTSP camera | The device's own sensor | Grove Vision AI V2 (Himax WE2) |
+| Unlock path | Local sysfs GPIO → relay | Opto-isolated DO → relay | MQTT → R1000 Modbus point or XIAO relay | MQTT → relay at the gateway | Local GPIO D0 → relay |
+| Liveness | Enforced (Silent-Face) | Enforced (Silent-Face) | Enforced (Silent-Face) | On-camera two-head texture liveness with blink fusion, **thresholds uncalibrated** | **None. No model exists for this chip** |
+| Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | Same, evaluated in the cloud from the event stream | **Weakened: allowlist within a schedule, single-shot** |
+| Network on the unlock path | No | No | **Yes — broker availability is door availability** | **Yes — broker availability is door availability** | No |
+| Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Manual copy of a standard-library daemon, no container | Two-segment USB flash |
+| State | Untested on hardware | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
 
 **Choose P1** when the door has no camera yet and you want the shortest possible
 chain: recognition, decision and contact all in one device, nothing on the
@@ -155,6 +157,15 @@ confirmed.
 when one box serves several doors. You are explicitly buying a network hop on the
 unlock path in exchange for that flexibility, which is why it carries its own
 latency boundary.
+
+**Choose P5** when the door has a standard reCamera and you want no recognition
+container anywhere: the camera already detects, embeds, judges liveness and
+matches in one native process, so the only thing added is a standard-library
+daemon that pulls the versioned library and maps the camera's native result
+stream onto the event contract. The relay sits at the gateway, so the unlock
+path crosses the network the same way P3's does. It is the preset whose library
+path has actually run on hardware, and the one whose thresholds are the device's
+shipped values rather than calibrated ones.
 
 **Choose P4** when cost dominates and the threat model does not include someone
 holding up a photograph — a stock-room door inside an already-controlled
