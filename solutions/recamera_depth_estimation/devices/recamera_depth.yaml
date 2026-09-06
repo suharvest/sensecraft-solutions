@@ -1,0 +1,63 @@
+version: "1.0"
+id: recamera_depth
+name: reCamera Depth Estimation
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  # Gallery app: the deb ships /etc/init.d/K92depth-estimation (K, not S).
+  # The camera is exclusive -- two apps opening VPSS at once fails to stream at
+  # best and wedges the driver at worst -- so every gallery app stays parked at
+  # K and the console's appMgr starts exactly one. Shipping S92 would mean
+  # auto-start on boot, racing whatever the console brings up.
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_depth_estimation/packages/depth-estimation_0.1.0_riscv64.deb
+    name: depth-estimation
+    includes_init_script: true
+    checksum:
+      sha256: 827d8b47ca739807f6d01e9876665b48224c2977834771520ca7a3df835c98c3
+
+  service_name: depth-estimation
+  service_priority: 92
+  auto_start: true
+
+# The model is not inside the deb -- it is a model, not code, and the app looks
+# for it by path at start-up. Without it the app exits immediately on a failed
+# load, so this file must land before the service starts.
+#
+# BF16, deliberately, not INT8: BF16 needs no calibration table, so there is no
+# calibration set to collect and none to get wrong. It costs 1.5 MB and about
+# 6% -- neither matters against a 66.7 ms frame period and a ~60 MB ION budget.
+# The INT8 build's SQNR against float32 is 16.4 dB versus BF16's 40.0 dB, and
+# depth output is a continuous scalar field, so that quantisation noise shows up
+# directly as depth jitter and local near/far inversions rather than being
+# absorbed by an argmax the way a detector's would be.
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/recamera_depth_estimation/packages/fastdepth_224_bf16.cvimodel
+    remote_path: /userdata/local/models/fastdepth_224_bf16.cvimodel
+    checksum: da9f847e9c412e926d0ad48de6e59b9b9f59f90955b74c2e1e076b3710f5e0bb
+    sudo: true
+
+user_inputs:
+  - id: host
+    name: reCamera IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    name_i18n:
+      zh: reCamera IP 地址
+
+name_i18n:
+  zh: reCamera 深度估计
