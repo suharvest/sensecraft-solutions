@@ -42,12 +42,22 @@ services:
     <<: [*cloud_image, *bounded_logs]
     container_name: usa-facedb
     restart: unless-stopped
-    command: ["python", "-m", "facedb.server", "--root", "/var/lib/unmanned-store-access/facedb", "--host", "0.0.0.0", "--port", "8080"]
+    # `facedb.server` exposes FaceDbServer as a library and has no console
+    # entry point of its own (checked against the upstream module), so the
+    # command constructs it directly rather than naming a `-m` target that
+    # would fail at start with an unhelpful message.
+    #
+    # This service signs nothing. It serves whatever version directories are on
+    # the shared volume; the manifests were signed by the console when it minted
+    # them, which is why the signing key is configured on `web` and not here.
+    command:
+      - python
+      - -c
+      - |
+        from facedb.server import FaceDbServer
+        FaceDbServer("/var/lib/unmanned-store-access/facedb",
+                     host="0.0.0.0", port=8080, quiet=False).start()._thread.join()
     ports: ["${FACEDB_PORT:-8080}:8080"]
-    environment:
-      # The HMAC key that signs each manifest. Devices on a plaintext http://
-      # URL refuse to start without it — see the LAN/clock note in the guide.
-      USA_FACEDB_SIGNING_KEY: ${USA_FACEDB_SIGNING_KEY:?set USA_FACEDB_SIGNING_KEY}
     volumes:
       - facedb:/var/lib/unmanned-store-access/facedb
     healthcheck:
@@ -74,6 +84,25 @@ services:
       USA_FACEDB_ROOT: /var/lib/unmanned-store-access/facedb
       USA_AUDIT_PATH: /var/lib/unmanned-store-access/audit/access.ndjson
       USA_WEB_UI_DIST: /app/web/ui/dist
+      # The signing material. `build_facedb_store()` refuses to assemble a
+      # library without it, at startup — devices reject unsigned manifests, and
+      # discovering that at the device is much worse than failing here. The
+      # key id is compared byte for byte on the device, so rotating a key means
+      # changing both sides.
+      USA_FACEDB_KEY_ID: ${USA_FACEDB_KEY_ID:?set USA_FACEDB_KEY_ID}
+      USA_FACEDB_SECRET_FILE: /run/secrets/facedb.key
+      # The single source of the match threshold: it is written into
+      # gallery.json's `_meta.threshold` and the .fdb1 header, and every device
+      # config's `match_threshold` must equal it. Two numbers in two places is
+      # the same as having no threshold at all.
+      USA_MATCH_THRESHOLD: ${USA_MATCH_THRESHOLD:?set USA_MATCH_THRESHOLD}
+      # Written into each manifest and compared byte for byte by devices, so a
+      # library built for one embedding model cannot be loaded by another.
+      USA_MODEL_TAG: ${USA_MODEL_TAG:-buffalo_l@face_rec_api}
+      # MQTT control-plane endpoints for the device pages: a JSON list of
+      # {device_id, host, port, cmd_topic, ack_topic, timeout_s}. Empty means
+      # the device control and status pages have nothing to show.
+      USA_DEVICE_ENDPOINTS: ${USA_DEVICE_ENDPOINTS:-[]}
       # Enrolment takes its embedding from a recognition service. Leave this
       # unset only on a bench: without it the console falls back to a
       # FakeEmbedder, and a library built that way cannot recognise anyone.
@@ -86,6 +115,10 @@ services:
       # Not read-only: enrolment and deletion create new versions under facedb.
       - facedb:/var/lib/unmanned-store-access/facedb
       - audit:/var/lib/unmanned-store-access/audit:ro
+      # The signing secret as a file rather than an environment variable: an
+      # environment variable is readable from `docker inspect` and lands in
+      # process listings. The deployment step writes it with mode 600.
+      - ./secret/facedb.key:/run/secrets/facedb.key:ro
     depends_on:
       facedb:
         condition: service_started

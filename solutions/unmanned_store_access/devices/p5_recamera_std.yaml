@@ -1,0 +1,291 @@
+version: "1.0"
+id: p5_recamera_std
+name: Install the Access Agent on a Standard reCamera
+name_i18n:
+  zh: 在标准版 reCamera 上安装门禁守护进程
+type: manual
+
+# The standard reCamera (SG2002) is not a host that runs the access node in a
+# container. It already recognises faces on its own: the App Center application
+# /usr/local/bin/face-recognition is a native C++ process (RSS 14.3 MB) doing
+# SCRFD-500M INT8 detection, ArcFace-MobileFaceNet BF16 512-d embedding, a
+# MiniFASNet two-head texture liveness, a FaceMesh blink fusion and cosine
+# matching, entirely on the device.
+#
+# So on this device the preset is: closed loop on the camera, events out over
+# MQTT, relay on the gateway. Nothing pulls RTSP off the camera and no
+# face_rec_api container is deployed. The camera itself drives no lock — the
+# relay lives at the gateway end (R1000 + Modbus relay, or a XIAO ESP32 with a
+# Grove Relay), which is the whole point of this shape.
+#
+# What this step installs is a small daemon that does the three things the
+# device does not do by itself: pull the face library, map the native `results`
+# stream onto access/v1/events, and pin the thresholds in one place. It is pure
+# Python 3.9 standard library because the device has no numpy, no pip and no
+# route to the internet.
+#
+# Why manual: the install is an scp of six files as root plus a foreground
+# consistency check, onto a Buildroot device with no package manager and no
+# systemd. ssh_deb and recamera_cpp both assume a package manager this device
+# does not have; script/docker deployers assume a shell environment it does not
+# provide. AGENTS.md's fallback order ends at a manual step with the reason
+# written down, so: manual, with the reason on the record.
+#
+# Source of every claim below, all paths in the upstream repository
+# unmanned-store-access: platforms/recamera-std/README.md, and the two
+# on-device probe runs evaluation/runs/2026-09-06-recamera-std-p3/results.md
+# and evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md (with
+# boundary.facedb-activation.yaml alongside each).
+
+steps:
+  - id: std_reach_device
+    name: Log in as root and confirm the recognition app is there
+    name_i18n:
+      zh: 以 root 登录并确认识别应用在位
+    description: >-
+      SSH to the camera as root — root can log in with the same password as
+      `admin`, and root is required: /userdata/local/face-gallery/ is
+      `root:root 0700`, and running the daemon as the `recamera` user gives a
+      PermissionError the moment it writes a gallery. Confirm the recognition
+      binary and its models exist: `ls -l /usr/local/bin/face-recognition
+      /userdata/local/models/` and `ls -ld /userdata/local/face-gallery`.
+    description_i18n:
+      zh: >-
+        以 root SSH 登录摄像头——root 可以用与 `admin` 相同的密码登录，而且必须是
+        root：/userdata/local/face-gallery/ 是 `root:root 0700`，以 `recamera` 用户跑
+        守护进程，一写 gallery 就是 PermissionError。确认识别二进制与模型在位：
+        `ls -l /usr/local/bin/face-recognition /userdata/local/models/`，
+        再 `ls -ld /userdata/local/face-gallery`。
+    optional: false
+
+  - id: std_copy_agent
+    name: Copy the agent and the payload validator
+    name_i18n:
+      zh: 拷贝守护进程与契约校验器
+    description: >-
+      Six files, from the upstream repository, into one directory on the camera
+      — `/userdata/f1-access/` for a permanent install (the on-device probe runs
+      used `/userdata/f1-probe/agent/`; either works, the path only has to match
+      what the config file says). From `platforms/recamera-std/`:
+      `facedb_agent.py`, `agent_config.py`, `event_adapter.py`, `mqtt_min.py`
+      and `face-recognition.conf`; plus `contracts/validate_payload.py`, which
+      goes in the same directory because the daemon refuses to start without it
+      when `[policy] event_validation = required`. Compare md5 on both ends
+      after the copy — the probe run did, and it is the cheapest way to rule out
+      a truncated transfer before the consistency gate starts reporting
+      confusing mismatches.
+    description_i18n:
+      zh: >-
+        六个文件，从上游仓库拷进摄像头上的同一个目录——正式安装用
+        `/userdata/f1-access/`（真机探针那两轮用的是 `/userdata/f1-probe/agent/`；
+        两个都行，路径只要与配置文件里写的一致即可）。来自 `platforms/recamera-std/`：
+        `facedb_agent.py`、`agent_config.py`、`event_adapter.py`、`mqtt_min.py`、
+        `face-recognition.conf`；再加 `contracts/validate_payload.py`——它要放在同一个
+        目录，因为 `[policy] event_validation = required` 时校验器缺失守护进程会拒绝
+        启动。拷完两端各算一次 md5 对一下——探针那轮就是这么做的，这是在一致性闸门
+        开始报奇怪的不匹配之前排除传输截断的最省事办法。
+    optional: false
+
+  - id: std_write_key
+    name: Write the library signing key, 0600
+    name_i18n:
+      zh: 写入人脸库签名密钥，权限 0600
+    description: >-
+      `printf '%s' '<shared secret>' > /userdata/f1-access/facedb.key` then
+      `chmod 600`. This is the same secret the console has as
+      `USA_FACEDB_SECRET_FILE` (or `USA_FACEDB_SECRET`), and the `key_id` in the
+      camera's config file must equal the console's `USA_FACEDB_KEY_ID`
+      byte for byte — the device compares it, so a rotated key that is only
+      rotated on one side means every device rejects every new version, and the
+      symptom appears at the device, not at the console. On this device the
+      signature is not a hardening option: the clock is 56.7 years out and every
+      HTTPS certificate reads as not-yet-valid, so the library is fetched over
+      plaintext HTTP and the HMAC over the manifest is the entire integrity
+      boundary.
+    description_i18n:
+      zh: >-
+        `printf '%s' '<共享密钥>' > /userdata/f1-access/facedb.key`，然后 `chmod 600`。
+        这与管理界面的 `USA_FACEDB_SECRET_FILE`（或 `USA_FACEDB_SECRET`）是同一个密钥，
+        而摄像头配置文件里的 `key_id` 必须与管理界面的 `USA_FACEDB_KEY_ID` 逐字节相等
+        ——设备会比对它，只在一边换密钥的结果是每台设备拒绝每一个新版本，而且报错出现
+        在设备侧，不在管理界面。这台设备上签名不是可选的加固项：时钟偏差 56.7 年，
+        任何 HTTPS 证书都读作"尚未生效"，因此人脸库走明文 HTTP，manifest 上的 HMAC
+        就是完整性保护的全部。
+    optional: false
+
+  - id: std_conf
+    name: Fill the config file — it is the single source of every threshold
+    name_i18n:
+      zh: 填配置文件——它是所有阈值的唯一来源
+    description: >-
+      Edit `face-recognition.conf`. Set `[device] device_id` and `actuator_id`
+      (the gateway relay channel this camera actually opens — it goes into every
+      event, so it has to match the wiring), `[facedb] url`, `root`,
+      `secret_file`, `key_id` and `gallery_out`, and `[mqtt] host` /
+      `cmd_topic` / `ack_topic` / `results_topic`. Do not invent threshold
+      values: the daemon reads `/proc/<pid>/cmdline` of the running recognition
+      process at startup and compares every threshold and model path in this
+      file against the arguments the process was actually started with. Any
+      difference — including an argument the startup script does not pass, which
+      means the binary default is in force — raises `RuntimeArgsMismatch` and it
+      refuses to start. That gate is the reason the file exists; it is not a
+      nuisance to work around. Two values that catch people: `[mqtt] host` is
+      compared as a literal string, so `127.0.0.1` fails on a factory device
+      whose K92face-recognition passes `-m localhost`; and
+      `[recognition] match_threshold` must equal the console's
+      `USA_MATCH_THRESHOLD`, because the recognition process matches against the
+      threshold baked into the gallery while the event reports the one from this
+      file, and a door opening on a threshold nobody configured does not show up
+      in the audit log. The shipped values are the current contents of the
+      device's own /etc/face-recognition.conf and carry `calibration = pending`
+      — they have not been calibrated against positive and negative pairs on
+      hardware.
+    description_i18n:
+      zh: >-
+        编辑 `face-recognition.conf`。填 `[device] device_id` 与 `actuator_id`
+        （这台摄像头实际开的那一路网关继电器——它出现在每一条事件里，必须与接线对上）、
+        `[facedb]` 的 `url` / `root` / `secret_file` / `key_id` / `gallery_out`，
+        以及 `[mqtt]` 的 `host` / `cmd_topic` / `ack_topic` / `results_topic`。
+        不要自己编阈值：守护进程启动时读正在运行的识别进程的 `/proc/<pid>/cmdline`，
+        把本文件里每一个阈值与模型路径与进程实际的启动参数逐项比对。任何不一致——
+        包括启动脚本根本没传这个参数（那意味着用的是二进制默认值）——都抛
+        `RuntimeArgsMismatch` 拒绝启动。这道闸门正是这个文件存在的理由，不是要绕开的
+        麻烦。两个特别容易踩的值：`[mqtt] host` 是按字面字符串比的，原厂设备的
+        K92face-recognition 传的是 `-m localhost`，这里写 `127.0.0.1` 会直接被拒；
+        `[recognition] match_threshold` 必须与管理界面的 `USA_MATCH_THRESHOLD` 相等
+        ——识别进程按 gallery 里的阈值判匹配，事件里报的却是本文件的阈值，门开在一个
+        没人配过的阈值上，而审计记录看不出来。随包的这些值取自设备自己
+        /etc/face-recognition.conf 的现值，标着 `calibration = pending`——尚未在真机上
+        按正负对标定过。
+    optional: false
+
+  - id: std_no_init_edits
+    name: Leave the init scripts alone
+    name_i18n:
+      zh: 不要动 init 脚本
+    description: >-
+      Do not edit anything under /etc/init.d/. `K92face-recognition` already
+      carries its own `stop_conflicting_services`, which covers sscma-node,
+      node-red, retail-vision, face-analysis, yolo-detector and facemesh-reader;
+      changing it only introduces a boot order nobody has verified. The daemon
+      also leaves /etc/mosquitto/mosquitto.conf alone — the broker listens on
+      127.0.0.1:1883 by default and the daemon runs on the same device. Getting
+      events off the camera needs an additional listener, and that is a decision
+      about the gateway wiring, not something this step should make for you. The
+      daemon writes to exactly three places: `[facedb] root`,
+      `[facedb] gallery_out`, and its log.
+    description_i18n:
+      zh: >-
+        不要改 /etc/init.d/ 下的任何东西。`K92face-recognition` 自带的
+        `stop_conflicting_services` 已经覆盖 sscma-node、node-red、retail-vision、
+        face-analysis、yolo-detector、facemesh-reader，改它只会引入一个没人验证过的
+        启动顺序。守护进程同样不动 /etc/mosquitto/mosquitto.conf——broker 默认只监听
+        127.0.0.1:1883，而守护进程就在同一台设备上。事件要出摄像头需要另配 listener，
+        那是关于网关接线的决定，不该由这一步替你做。守护进程的写入范围只有三处：
+        `[facedb] root`、`[facedb] gallery_out`，以及它的日志。
+    optional: false
+
+  - id: std_first_sync
+    name: Run one synchronisation in the foreground, then daemonise
+    name_i18n:
+      zh: 先前台跑一轮同步，再常驻
+    description: >-
+      Start the recognition application first — `/etc/init.d/K92face-recognition
+      start` — otherwise the consistency gate reports that there is nothing to
+      compare thresholds against and stops, which is correct: an access daemon
+      with no recogniser cannot make decisions. Then, from the install
+      directory, `python3 facedb_agent.py -c face-recognition.conf --once`. A
+      successful round polls `current`, downloads with Range, verifies each
+      file's SHA and the manifest signature, switches `current` atomically,
+      writes the rendered gallery to `gallery_out` and gets an ack for MQTT
+      `op:reload`. Only once that passes, run it resident:
+      `python3 facedb_agent.py -c face-recognition.conf >> /var/log/f1-access.log
+      2>&1 &`. Integrity failure deletes the whole `.partial/vNNNNNN/` and keeps
+      the old version; a network failure keeps `.partial` and resumes next round.
+    description_i18n:
+      zh: >-
+        先起识别应用——`/etc/init.d/K92face-recognition start`——否则一致性闸门会报
+        "没有可比对阈值的对象"并停下，这是对的：没有识别器的门禁守护进程做不了判定。
+        然后在安装目录里跑
+        `python3 facedb_agent.py -c face-recognition.conf --once`。成功的一轮会轮询
+        `current`、用 Range 下载、逐文件校验 SHA 与 manifest 签名、原子切换 `current`、
+        把渲染好的 gallery 写到 `gallery_out`，并拿到 MQTT `op:reload` 的 ack。
+        这一轮通过之后才常驻：
+        `python3 facedb_agent.py -c face-recognition.conf >> /var/log/f1-access.log 2>&1 &`。
+        完整性失败会删掉整个 `.partial/vNNNNNN/` 并保持旧版本；网络失败会保留
+        `.partial`，下一轮断点续传。
+    optional: false
+
+  - id: std_verify_activation
+    name: Verify the pull activated — compare active_version with desired_version
+    name_i18n:
+      zh: 核对拉库是否激活——比对 active_version 与 desired_version
+    description: >-
+      This is the acceptance check for the whole library path, and it is done
+      from the cloud side rather than the device side on purpose: the number
+      that matters is whether the server and the device agree. Enrol or rename
+      one person in the console to mint a new version, wait one poll period (30 s
+      by default) plus the download, then
+      `curl -sH "Authorization: Bearer <viewer token>"
+      http://<cloud host>:8088/api/devices/status`. The device's row must show
+      `active_version` equal to `desired_version`, `signature.verified` true,
+      `reload.pending` false and `reload.error` null. If `desired_version` is
+      behind the server's `current`, the device has not polled yet — wait. If
+      `desired_version` matches but `active_version` lags, the device saw the
+      version and could not activate it, and `last_error` says why; the usual
+      causes are a key_id or secret mismatch, a `match_threshold` that differs
+      from the console's, or a manifest with no `artifacts.gallery_v2`.
+      `clock.valid` false is expected on this device and is not a failure — the
+      integrity boundary is the signature, not the clock. As a cross-check,
+      `GET /api/devices/{id}/gallery` runs `op:list` on the device and diffs it
+      against the server; `only_on_device` entries mean somebody enrolled
+      locally, which the next activation will overwrite. On the probed unit a
+      full activation took p50 491.6 ms (n=20, 2 persons, 16.5 KB library), so
+      what you are waiting on is the poll interval, not the transfer.
+    description_i18n:
+      zh: >-
+        这是整条人脸库链路的验收检查，而且是刻意从云端侧做而不是设备侧做的：真正要看的
+        是服务端与设备是否一致。在管理界面注册或改名一个人以生成新版本，等一个轮询周期
+        （默认 30 s）加下载时间，然后
+        `curl -sH "Authorization: Bearer <viewer token>" http://<云端主机>:8088/api/devices/status`。
+        这台设备那一行必须是 `active_version` 等于 `desired_version`、
+        `signature.verified` 为 true、`reload.pending` 为 false、`reload.error` 为 null。
+        如果 `desired_version` 落后于服务端的 `current`，说明设备还没轮询到——等。
+        如果 `desired_version` 对上了但 `active_version` 落后，说明设备看到了这个版本却
+        没激活成功，`last_error` 会说原因；常见的是 key_id 或密钥不一致、
+        `match_threshold` 与管理界面不等、manifest 里没有 `artifacts.gallery_v2`。
+        `clock.valid` 为 false 在这台设备上是预期内的，不是故障——完整性边界在签名上，
+        不在时钟上。作为交叉核对，`GET /api/devices/{id}/gallery` 会在设备上跑 `op:list`
+        并与服务端做差集；`only_on_device` 里的人说明有人在本地注册过，下一次激活会覆盖它。
+        探针那台设备上一次完整激活实测 p50 491.6 ms（n=20，2 人、16.5 KB 库），
+        所以你等的是轮询周期，不是传输时间。
+    optional: false
+
+  - id: std_gateway_relay
+    name: Point the gateway at the events and wire the relay there
+    name_i18n:
+      zh: 让网关订阅事件，继电器接在网关侧
+    description: >-
+      The camera drives no lock. Events leave on `access/v1/events` with QoS 1
+      and no retain, carrying the actuator_id from the config file; the gateway —
+      an R1000 writing a Modbus point, or a XIAO ESP32 driving a Grove Relay —
+      subscribes and switches the lock on its own 12/24 V supply. Wire a
+      fail-safe magnetic lock through COM and NC and a fail-secure strike through
+      COM and NO, and confirm with an LED before the lock goes on. Note that
+      getting the events off the camera at all needs an MQTT listener beyond the
+      default loopback-only one; that is a site networking decision. The
+      recognition-to-relay latency of this path has not been measured on
+      hardware — the `latency-p3` boundary is still pending, and so is threshold
+      calibration and any real-person match or liveness result: the probe runs
+      had nobody in front of the lens and all 220 frames read `face_count: 0`.
+    description_i18n:
+      zh: >-
+        摄像头不驱动任何锁。事件以 QoS 1、不 retain 发到 `access/v1/events`，携带
+        配置文件里的 actuator_id；网关——写 Modbus 点位的 R1000，或者驱动 Grove 继电器的
+        XIAO ESP32——订阅它，用自己那路 12/24 V 电源切换门锁。断电即开的电磁锁走 COM/NC，
+        断电即锁的电插锁走 COM/NO，接锁之前先用 LED 确认。注意事件要出摄像头，需要在
+        默认的仅回环 listener 之外再配一个 MQTT listener，那是站点网络的决定。
+        这条路径识别到继电器动作的时延尚未在真机上测过——`latency-p3` 边界仍是 pending，
+        阈值标定、真人 match 与活体结果也一样：探针那两轮镜头前没有人，220 帧全是
+        `face_count: 0`。
+    optional: false
