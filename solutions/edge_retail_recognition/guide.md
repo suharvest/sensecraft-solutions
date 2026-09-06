@@ -118,6 +118,14 @@ settles where embedding runs.
 - The detector ONNX. It is not shipped with this package: its weights are
   trained on SKU-110K, which is academic and non-commercial with derivative
   works forbidden.
+- The embedder ONNX from Step 2, if you have not placed it yet. Its licence is
+  separate from the detector's and no less restrictive: `use_scope:
+  non-commercial`, `redistributable: false`, inherited from the JD Products-10K
+  training data (the `facebook/dinov2-base` backbone itself is Apache-2.0). It
+  must not be redistributed with this package or baked into an image, and a
+  commercial deployment has to retrain it on first-party or permissively
+  licensed capture and rebuild every gallery version, because vectors from one
+  embedder are not comparable to vectors from another.
 
 ### Troubleshooting
 
@@ -453,6 +461,14 @@ that has to pass before any latency number from it means anything.
 - The detector ONNX. It is not shipped here: the weights are trained on
   SKU-110K, which is academic and non-commercial with derivative works
   forbidden.
+- The embedder ONNX from Step 2, if you have not placed it yet. Its licence is
+  separate from the detector's and no less restrictive: `use_scope:
+  non-commercial`, `redistributable: false`, inherited from the JD Products-10K
+  training data (the `facebook/dinov2-base` backbone itself is Apache-2.0). It
+  must not be redistributed with this package or baked into an image, and a
+  commercial deployment has to retrain it on first-party or permissively
+  licensed capture and rebuild every gallery version, because vectors from one
+  embedder are not comparable to vectors from another.
 - Willingness to write the backend. This step does not install one.
 
 ### Troubleshooting

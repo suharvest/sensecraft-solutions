@@ -99,6 +99,11 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 - toolkit 版本必须与板上 `librknnrt.so` 的版本一致。不匹配不一定会明着报错——
   它可能加载成功但算出错的数。
 - 检测器 ONNX。本包不含它：权重训练在 SKU-110K 上，仅限学术与非商用，且禁止衍生作品。
+- 步骤 2 的嵌入器 ONNX，如果还没放的话。它的许可与检测器的是两回事，限制不比后者松：
+  `use_scope: non-commercial`、`redistributable: false`，继承自 JD Products-10K
+  训练数据（骨干 `facebook/dinov2-base` 本身是 Apache-2.0）。不得随本包分发，
+  也不得打进镜像；商用部署必须用自采或许可宽松的数据重训它，并重建每一个商品库版本——
+  一个嵌入器产出的向量与另一个的不可比。
 
 ### 故障排查
 
@@ -392,6 +397,11 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 - 一块装好 JetPack 与 TensorRT 的 Orin 板。engine 在它将要运行的那块板上构建——
   engine 与设备和 TensorRT 版本绑定，不得在板之间分发。
 - 检测器 ONNX。本包不含它：权重训练在 SKU-110K 上，仅限学术与非商用，且禁止衍生作品。
+- 步骤 2 的嵌入器 ONNX，如果还没放的话。它的许可与检测器的是两回事，限制不比后者松：
+  `use_scope: non-commercial`、`redistributable: false`，继承自 JD Products-10K
+  训练数据（骨干 `facebook/dinov2-base` 本身是 Apache-2.0）。不得随本包分发，
+  也不得打进镜像；商用部署必须用自采或许可宽松的数据重训它，并重建每一个商品库版本——
+  一个嵌入器产出的向量与另一个的不可比。
 - 愿意把后端写出来。这一步不会替你装一个。
 
 ### 故障排查
