@@ -19,10 +19,10 @@ intro:
       caption_i18n:
         zh: 边缘采集套餐使用的采集硬件
     - type: image
-      src: gallery/edge-client-asr.png
-      caption: Transcript view — text shown here is the redacted text, the original is never stored
+      src: gallery/voice-web-recordings.png
+      caption: Admin console recordings view (shared UI kit, zh/en) — layout only, no live dataset shown
       caption_i18n:
-        zh: 转写界面——这里显示的是脱敏后的文本，原文不落库
+        zh: 管理后台录音页面（共享 UI kit，中英双语）——仅展示界面结构，非真实数据
     - type: image
       src: gallery/rerouter.png
       caption: reRouter CM4 collector
