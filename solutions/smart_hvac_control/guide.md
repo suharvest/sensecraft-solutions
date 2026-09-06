@@ -100,6 +100,33 @@ An administrator session from Step 2, physical access to the meter's display, an
 
 **Image tag first.** `docker inspect -f '{{.Config.Image}}' missionpack_knn`. The published tag `missionpack-knn:v1.6.5` **does not** carry the SDM630 template, the rollback coordinator or the alarm envelope. The image that does has not been built or pushed, and its immutable tag is **to be assigned**. On v1.6.5, the observe-mode substeps still apply; the meter, rollback and alarm substeps cannot be completed.
 
+### Turn on write-back verification
+
+Write-back verification is off unless the prediction-run configuration asks for it: a config
+without a `rollback` section migrates to `enabled: false` rather than silently gaining a new
+write path. This package ships no prediction-run config template — the run configuration is
+created in the console, not through a deployment variable — so set the section explicitly
+when you start the run:
+
+```json
+{
+  "schema_version": "prediction-run.v3",
+  "interval_seconds": 60,
+  "rollback": { "enabled": true, "settle_seconds": 2.5 }
+}
+```
+
+`settle_seconds` (0–30, default 1.0) is how long the gateway waits after a batch before it
+reads the points back. It must be longer than the source's collection interval, or the
+readback sees the value from before the write and reports a mismatch that never happened.
+The readback and compensation run after the batch, not inside it, so this delay does not
+enter the cycle latency; the next batch does wait for the previous one to reach a terminal
+state, which is what keeps at most one write in flight per point.
+
+Only points on Modbus are verified. A BACnet output is skipped, because the production cycle
+supplies no write priority for it and a compensation would not know which priority to
+relinquish.
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -113,7 +140,7 @@ An administrator session from Step 2, physical access to the meter's display, an
 
 ### Deployment Complete
 
-**Reminder.** Not a safety-certified control system. Known weaknesses: the rollback coordinator and the alarm envelope are not yet wired into the prediction cycle upstream, so verify both on your own plant; the meter's byte and word order is a vendor default, not a measured fact; and no energy-saving figure has been measured.
+**Reminder.** Not a safety-certified control system. Known weaknesses: the rollback coordinator and the alarm envelope are wired into the prediction cycle upstream but have only been exercised against protocol simulators, so verify both on your own plant; the meter's byte and word order is a vendor default, not a measured fact; and no energy-saving figure has been measured.
 
 #### Quick verification
 

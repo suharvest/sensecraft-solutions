@@ -1,9 +1,9 @@
 # Gallery attribution
 
-## Current state: architecture diagram plus four running-UI captures
+## Current state: architecture diagram plus six running-UI captures
 
 `intro.cover_image` and `intro.gallery[]` in `solution.yaml` reference the architecture
-diagram and four PNG captures of the actual `missionpack-knn` web console, taken against a
+diagram and six PNG captures of the actual `missionpack-knn` web console, taken against a
 real backend process with real (simulated) field devices behind it — not drawn, not staged
 composites of unrelated screens.
 
@@ -14,6 +14,8 @@ composites of unrelated screens.
 | `access-registration.png` | Access page: the SDM630 Modbus TCP source and the HVAC BACnet/IP source, both online, with point counts | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `control-dispatch-readback.png` | Data-service page's command-receipts table: manual setpoint and compressor-enable writes with `protocol_acknowledged` status, requested vs. effective value and actor | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `points-source-offline.png` | Point table with the SDM630 Modbus source stopped mid-capture, its ten points showing `offline` quality while the BACnet source stays `good` | **Yes** — `intro.gallery[]` | Screen capture, see below |
+| `alarm-banner-source-offline.png` | Point table with the alarm banner raised: one unrecovered, unacknowledged `source-offline` warning after the SDM630 simulator took `SIGTERM` | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
+| `control-readback-compensated.png` | Command-receipt ledger with the readback column: matched writes, one mismatched-and-compensated write showing the out-of-band value 99, and the compensation command that undid it | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
 | `cover.svg` | Schematic cover drawing | No | Drawn for this package, first-party |
 | `dashboard.svg` | Sketch of a dashboard layout | No | Drawn for this package, first-party |
 | `recomputer.svg` | Schematic device outline | No | Drawn for this package, first-party |
@@ -24,7 +26,7 @@ ever wired back in, which would present a drawing as evidence the system has bee
 working.
 
 Licensing: the three unreferenced SVGs and `architecture.svg` are original drawings made for
-this package; no third-party asset, brand mark or stock image is included. The four PNG
+this package; no third-party asset, brand mark or stock image is included. The six PNG
 captures are original screen captures of this repository's own software, taken by the
 packaging agent; nothing in them is a third-party asset either.
 
@@ -90,3 +92,57 @@ packaging agent; nothing in them is a third-party asset either.
 Full transcript (commands run, `docker ps` before/after, raw `solutionctl validate` output,
 and the original PNGs alongside the ones committed here) is in
 `Solution_HVAC_SmartControl/evaluation/runs/2026-09-06-b2-screens/` on the Mac working copy.
+
+## Capture inventory addendum (2026-09-06, spark, UTC+8) — wiring session
+
+| File | Size | Dimensions | SHA-256 | Captured at (local) |
+|---|---:|---|---|---|
+| `alarm-banner-source-offline.png` | 151 KB | 1440x900 | `c54aeda665b2bfac404ff7f8ffd2e59cf757edc2aa4dced88221300c03f9102a` | 2026-09-06 08:09 CST |
+| `control-readback-compensated.png` | 135 KB | 1440x900 | `2d23357c933c55fdc7834f1022bfba29f0bb867cf37c6307be5da510ea5aab8b` | 2026-09-06 08:08 CST |
+
+### How these two were taken
+
+- **Where:** the same `spark` fleet device, in the same disposable `git worktree`
+  `~/b2-screens`, this time at commit `4b30192` of `feature/building-energy`
+  (`Solution_HVAC_SmartControl`) — the commit that gives the receipts table its
+  readback column. Bare processes started by the packaging agent, no Docker; the
+  five containers in `docker ps` before and after were identical and untouched.
+- **What was running:** the FastAPI backend (`uvicorn app_server.main:app`, port
+  18280, `MISSIONPACK_DATA_DIR` pointed at a throwaway directory) with the
+  production frontend build served from it; two Modbus TCP simulators from
+  `tests/simulators/` — the **Eastron SDM630** device profile on port 15020
+  (`--profile-hours-per-second 60`) and a plain writable device on port 15023
+  standing in for the HVAC control register.
+- **Why a Modbus control register and not the BACnet setpoint:** compensation
+  targets are only built for points whose adapter can be restored, and the
+  production cycle supplies no BACnet write priority to
+  `build_rollback_targets()`, so BACnet points are skipped
+  (`app_server/services/prediction_rollback_bridge.py`). A writable Modbus
+  holding register is therefore the only shape that exercises a real
+  compensation end to end.
+- **`control-readback-compensated.png`:** a prediction run with
+  `rollback: {enabled: true, settle_seconds: 2.5}` wrote its output to the
+  holding register; the register was then changed out of band to `99` by a
+  separate Modbus client before the settle window expired. The gateway read the
+  point back, found the mismatch, restored the frozen pre-write value, and wrote
+  a `mismatch-compensated` readback event against the original command. Both the
+  original write and the compensation are visible in the ledger, the latter
+  issued by `plugin:prediction:rollback`. Earlier rows in the same capture show
+  `verified` writes from cycles nobody interfered with — the two verdicts appear
+  side by side because both really happened.
+- **`alarm-banner-source-offline.png`:** the SDM630 simulator process was sent
+  `SIGTERM`; the source went `offline`, the health/alarm bridge raised one
+  `source-offline` alarm, and the shell's 5-second poll of `GET /api/health/latest`
+  put it in the banner. Unlike `points-source-offline.png` (an earlier capture of
+  the pre-existing per-point quality state only), this one **is** the alarm
+  envelope path.
+- **What is real vs. simulated:** identical to the first four captures — the
+  console, the point registry, the write/readback/compensate path, the durable
+  command ledger and the alarm register are the product's real runtime; the field
+  devices are this repository's protocol simulators. Every caption says so.
+- **No site data:** every host and identifier visible (`127.0.0.1`, the
+  `sdm630-meter` / `hvac-ctrl` source ids, the `b2-admin` demo account) is
+  local-loopback or created for this session.
+
+Transcript for these two (driver scripts, raw receipts, health payloads, pytest
+output) is in `Solution_HVAC_SmartControl/evaluation/runs/2026-09-06-b2-wire-e2e/`.
