@@ -88,7 +88,12 @@ BACnet/IP 广播发现可能无法穿过 Docker Desktop 的桥接网络。本机
 | 控制命令被拒绝 | 检查点位写权限、当前数据质量、安全规则和命令回执 |
 | MQTT 控制不可用 | 启用 TLS 并配置具有控制权限的身份；明文模式只允许遥测 |
 
-## 步骤 3: 北向上云并验证断网补传 {#northbound type=manual required=false verify=true config=devices/northbound_setup.yaml}
+## 步骤 3: 北向上云并验证断网补传（待镜像发布后启用） {#northbound type=manual required=false}
+
+> **本步骤在当前方案部署的镜像上跑不通。** 步骤 1 使用的已发布 tag `missionpack-knn:v1.6.7`
+> 不含北向发布器，下面每一个调用都返回 HTTP 404。因此本步骤不带任何可执行配置、也不带验证，
+> 只作为待构建镜像的参考资料。带该能力的镜像发布后，本步骤会恢复
+> `config=devices/northbound_setup.yaml` 与 `verify=true`，下面的验证即为本步骤的验证。
 
 把网关指向外部或云端 MQTT Broker，然后验证 Broker 断网时数据落盘缓存、重连后按序补传。如果步骤 2 的内置 Broker 是唯一消费方，可跳过本步骤。
 
@@ -124,7 +129,9 @@ BACnet/IP 广播发现可能无法穿过 Docker Desktop 的桥接网络。本机
 
 ### 部署完成
 
-#### 快速验证
+#### 快速验证（待镜像发布后启用）
+
+这些检查需要待构建的镜像；在 `v1.6.7` 上第 1 条就会返回 HTTP 404。
 
 1. `GET /system/northbound-publish/status` 返回 running、connected，且队列容量大于 0。
 2. 云端订阅 `<前缀>/{gateway}/telemetry` 的消费者收到含 `schema_version`、`message_id`、`gateway_id` 和 `samples` 数组的 envelope。

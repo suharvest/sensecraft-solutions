@@ -12,6 +12,11 @@ type: manual
 # and the credentials are write-only, so this step guides the operator instead of
 # scripting it. The last substep is the verification for this step.
 #
+# NOT WIRED INTO THE GUIDE YET. guide.md / guide_zh.md Step 3 deliberately omits
+# `config=devices/northbound_setup.yaml` and `verify=true` so the App never offers an
+# operation that returns HTTP 404 on the packaged image. Restore both attributes on the
+# Step 3 header once the image carrying the northbound publisher is published.
+#
 # Image tag: northbound outbound publishing is NOT in the currently published
 # tag (missionpack-knn:v1.6.7). It ships in the pending tag described in the
 # deployment guide. Confirm the running tag before following these substeps.

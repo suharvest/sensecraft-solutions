@@ -88,7 +88,14 @@ The service container from Step 1 must be healthy. No registration token is requ
 | A control command is rejected | Check point write permission, current quality, safety rules, and the command receipt |
 | MQTT control is unavailable | Enable TLS and configure a control identity; plaintext mode is telemetry-only |
 
-## Step 3: Publish Northbound and Verify Store-and-Forward {#northbound type=manual required=false verify=true config=devices/northbound_setup.yaml}
+## Step 3: Publish Northbound and Verify Store-and-Forward — pending image build {#northbound type=manual required=false}
+
+> **This step is not runnable with the image this package deploys.** The published tag
+> `missionpack-knn:v1.6.7` used by Step 1 does not contain the northbound publisher, so every
+> call below returns HTTP 404. The step therefore carries no configuration to run and no
+> verification to pass — it is reference material for the pending build. Once the image that
+> carries the feature is published, this step gets its `config=devices/northbound_setup.yaml`
+> and `verify=true` back, and the verification below becomes the step's verification.
 
 Point the gateway at an external or cloud MQTT broker, then prove that a broker outage buffers data on disk and replays it in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
 
@@ -124,7 +131,9 @@ An administrator session from Step 2, a reachable external MQTT broker with a CA
 
 ### Deployment Complete
 
-#### Quick verification
+#### Quick verification — enabled once the image is published
+
+These checks need the pending build; against `v1.6.7` step 1 already fails with HTTP 404.
 
 1. `GET /system/northbound-publish/status` reports running, connected, and a queue capacity greater than zero.
 2. A cloud subscriber on `<prefix>/{gateway}/telemetry` receives envelopes carrying `schema_version`, `message_id`, `gateway_id`, and a `samples` array.
