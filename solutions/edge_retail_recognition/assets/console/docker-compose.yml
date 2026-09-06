@@ -41,7 +41,12 @@ x-logging: &bounded_logs
 
 services:
   mosquitto:
-    image: eclipse-mosquitto:2.0.20
+    # Digest-pinned. The tag is mutable; a rebuild months later would otherwise
+    # pull a different broker under the same name. Digest read from the
+    # registry with `docker buildx imagetools inspect eclipse-mosquitto:2.0.20`
+    # on 2026-09-07 — it is the OCI image index, so it still resolves per
+    # architecture on both amd64 and arm64 hosts.
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb
     container_name: retail-mosquitto
     restart: unless-stopped
     <<: *bounded_logs
