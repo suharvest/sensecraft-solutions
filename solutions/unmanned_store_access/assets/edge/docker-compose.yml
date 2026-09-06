@@ -1,0 +1,76 @@
+# Door-side stack for P2 (reComputer Industrial J20) and P3 (J30/J40/R2000 or a
+# standard reCamera). Copied from the upstream skeleton
+# platforms/compose/docker-compose.yml (unmanned-store-access @ 95f314a) with
+# the `web` service removed — the console runs on the cloud host, once, not on
+# every door.
+#
+# NEITHER IMAGE IS AVAILABLE YET.
+#
+#   face-rec-api  The upstream recognition service. The design spec requires a
+#                 DIGEST-pinned reference, not a tag: two doors running the
+#                 same tag but different digests would hold embeddings that are
+#                 not comparable, and the failure shows up as people not being
+#                 recognised rather than as a version mismatch. There is no
+#                 published digest yet, so FACE_REC_API_IMAGE is required with
+#                 no default and the deploy stops here until it is set.
+#   access-node   This project's own device-side process. C1 was a pure software
+#                 loop with no device process at all, so this image has never
+#                 been built. ACCESS_NODE_IMAGE likewise has no default.
+#
+# Service boundaries, which are also the security boundaries: face-rec-api only
+# produces embeddings and a liveness score; access-node makes every decision and
+# owns the actuator; nothing else may write to the door.
+
+name: unmanned-store-access-edge
+
+x-logging: &bounded_logs
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  face-rec-api:
+    image: ${FACE_REC_API_IMAGE:?set FACE_REC_API_IMAGE to a digest-pinned image}
+    container_name: usa-face-rec-api
+    restart: unless-stopped
+    <<: *bounded_logs
+    ports: ["18080:8080"]
+    healthcheck:
+      # The adapter demands /health.liveness == "loaded" at startup. Upstream
+      # silently degrades to "keep recognising, skip liveness" when the model
+      # file is missing; for a door that degradation is an open door, so the
+      # adapter refuses to start instead.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  access-node:
+    image: ${ACCESS_NODE_IMAGE:?set ACCESS_NODE_IMAGE — this image has never been built}
+    container_name: usa-access-node
+    restart: unless-stopped
+    <<: *bounded_logs
+    depends_on:
+      face-rec-api:
+        condition: service_healthy
+    # The door actuator is a sysfs GPIO or an opto-isolated DO on the host, so
+    # the container needs the gpio class exported into it. Mounting all of /sys
+    # is not acceptable here and not necessary: bind only the gpio class.
+    volumes:
+      - /sys/class/gpio:/sys/class/gpio
+      - facedb:/var/lib/unmanned-store-access/facedb
+      - audit:/var/lib/unmanned-store-access/audit
+      - ./config/access-node.json:/etc/unmanned-store-access/access-node.json:ro
+    environment:
+      USA_CONFIG: /etc/unmanned-store-access/access-node.json
+      USA_FACE_REC_API: http://face-rec-api:8080
+      USA_MQTT_HOST: ${MQTT_HOST:?set MQTT_HOST}
+      USA_MQTT_PORT: ${MQTT_PORT:-8883}
+      USA_MQTT_TLS: ${MQTT_TLS:-1}
+      USA_DEVICE_ID: ${DEVICE_ID:?set DEVICE_ID}
+
+volumes:
+  facedb:
+  audit:

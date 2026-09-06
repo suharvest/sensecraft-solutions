@@ -1,0 +1,413 @@
+version: "1.0"
+id: p3_mqtt_relay
+name: Access Host with MQTT Relay
+name_i18n:
+  zh: 门禁主机 + MQTT 继电器
+type: docker_deploy
+
+# NOT VERIFIED ON HARDWARE. Same two missing images as the J20 preset: no
+# published digest for the recognition service, and this project's device-side
+# image has never been built.
+#
+# The difference from P2 is the whole point of this preset: the compute box has
+# NO door wiring. The unlock leaves over MQTT and a separate node closes the
+# contact. Two relay backends are offered:
+#
+#   mqtt_modbus  A SenseCAP R1000 writing a Modbus point. The write goes through
+#                the gateway's own point-command path (prepare, then execute the
+#                prepared command) rather than around it — bypassing the point
+#                policy would put the door outside whatever interlocks the site
+#                already has on that gateway.
+#   mqtt_esp32   A XIAO ESP32-S3 with a Grove Relay, subscribing to
+#                access/v1/relay/{relay_id}/set. That topic must never be
+#                retained: a retained unlock replays on every reconnect, so the
+#                door would open by itself after a power cut. The relay's own
+#                firmware timer ends the pulse, so a dropped packet cannot leave
+#                the door standing open either.
+#
+# The extra network hop is why this preset has its own latency boundary rather
+# than sharing the direct one. Neither boundary has been measured.
+#
+# device_class is deliberately absent: the compute box may be a Jetson (J30/J40)
+# or not (R2000, standard reCamera), and pulling the Jetson pre-deploy profile
+# onto a non-Jetson would fail the hardware probe on a perfectly valid target.
+
+docker:
+  compose_file: assets/edge/docker-compose.yml
+  compose_dir: assets/edge
+  options:
+    project_name: unmanned_store_access_edge
+    remove_orphans: true
+  services:
+    - name: face-rec-api
+      port: 18080
+      required: true
+    - name: access-node
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 15
+    description: The recognition image with its weights, the device image, the local library copy and a bounded audit log.
+
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/unmanned-store-access
+  compose_dir: assets/edge
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check docker and reach the broker
+        run: |
+          set -e
+          docker compose version >/dev/null 2>&1 || {
+            echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
+          # The broker is on the unlock path in this preset, not just the
+          # reporting path. If it is unreachable the door cannot be opened at
+          # all, so it is worth failing here rather than at the door.
+          if command -v nc >/dev/null 2>&1; then
+            nc -z -w 5 "{{mqtt_host}}" "{{mqtt_port}}" \
+              && echo "broker reachable at {{mqtt_host}}:{{mqtt_port}}" \
+              || { echo "Cannot reach the MQTT broker. In this preset the broker is on the unlock path — the door will not open without it." >&2; exit 1; }
+          else
+            echo "nc not installed; skipping the broker reachability check"
+          fi
+          echo "device time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        name_i18n:
+          zh: 检查 docker 并连通 broker
+
+    after_upload:
+      - name: Write the door configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/unmanned-store-access/p3_mqtt_relay"
+          find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+          CONFIG="$WORKDIR/config/access-node.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+          path = sys.argv[1]
+          with open(path) as fh:
+              cfg = json.load(fh)
+          cfg.pop("_comment", None)
+          cfg["device_id"] = "{{device_id}}"
+          act = cfg["actuator"]
+          act["kind"] = "{{relay_backend}}"
+          act["actuator_id"] = "{{relay_id}}"
+          act["gpio"] = None          # no local pin in this preset, by design
+          act["active_high"] = None
+          act["pulse_ms"] = int("{{pulse_ms}}")
+          # relay_contact and fail_mode still belong to the access node even
+          # though the contact is elsewhere: the relay firmware does not know
+          # what kind of lock is on the other side of it, and must not.
+          act["relay_contact"] = "{{relay_contact}}"
+          act["fail_mode"] = "{{fail_mode}}"
+          if act["kind"] == "mqtt_esp32":
+              act["set_topic"] = "access/v1/relay/{{relay_id}}/set"
+              act["state_topic"] = "access/v1/relay/{{relay_id}}/state"
+              act["retain_set"] = False   # never. A retained unlock replays on reconnect.
+          else:
+              act["modbus_point_id"] = "{{modbus_point_id}}"
+          fdb = cfg["facedb"]
+          fdb["url"] = "{{facedb_url}}"
+          fdb["signature_key"] = "{{facedb_signing_key}}" or None
+          fdb["poll_interval_s"] = int("{{facedb_poll_s}}")
+          mq = cfg["mqtt"]
+          mq["host"] = "{{mqtt_host}}"
+          mq["port"] = int("{{mqtt_port}}")
+          mq["tls"] = "{{mqtt_tls}}" == "true"
+          cfg["policy"]["threshold"] = float("{{threshold}}")
+          cfg["recognition"]["rtsp_url"] = "{{rtsp_url}}"
+          tmp = path + ".tmp"
+          with open(tmp, "w") as fh:
+              json.dump(cfg, fh, indent=2); fh.write("\n")
+          os.replace(tmp, path)
+          print(f"actuator = {act['kind']} id={act['actuator_id']} pulse={act['pulse_ms']}ms "
+                f"contact={act['relay_contact']} fail={act['fail_mode']}")
+          print(f"facedb   = {fdb['url']} poll={fdb['poll_interval_s']}s signed={'yes' if fdb['signature_key'] else 'NO'}")
+          if fdb["url"].startswith("http://") and not fdb["signature_key"]:
+              print("REFUSING: a plaintext library URL with no signing key. The node will not start.")
+              raise SystemExit(1)
+          PY
+          cat > "$WORKDIR/.env" <<EOF
+          FACE_REC_API_IMAGE={{face_rec_api_image}}
+          ACCESS_NODE_IMAGE={{access_node_image}}
+          MQTT_HOST={{mqtt_host}}
+          MQTT_PORT={{mqtt_port}}
+          MQTT_TLS=$([ "{{mqtt_tls}}" = "true" ] && echo 1 || echo 0)
+          DEVICE_ID={{device_id}}
+          EOF
+        name_i18n:
+          zh: 写入门禁配置
+
+    after:
+      - name: Confirm liveness is loaded and the relay node answers
+        timeout: 300
+        run: |
+          set -e
+          echo "--- recognition health ---"
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:18080/health && break
+            sleep 5
+          done
+          echo
+          curl -fsS http://127.0.0.1:18080/health | grep -q '"liveness"[[:space:]]*:[[:space:]]*"loaded"' \
+            && echo "liveness: loaded" \
+            || echo "LIVENESS IS NOT LOADED — the access node will refuse to start, and it is right to." >&2
+          echo "--- relay node retained state ---"
+          # The relay publishes its contact state retained, so this returns
+          # immediately if the node has ever connected. Nothing here is
+          # returned if the relay has never been on the broker — which is
+          # itself the answer.
+          if command -v mosquitto_sub >/dev/null 2>&1; then
+            mosquitto_sub -h "{{mqtt_host}}" -p "{{mqtt_port}}" \
+              -t "access/v1/relay/{{relay_id}}/state" -C 1 -W 10 \
+              || echo "No retained state from relay {{relay_id}}. It has not connected to this broker yet."
+          else
+            echo "mosquitto_sub not installed on this host; check the relay from the console instead."
+          fi
+          echo "--- containers ---"
+          docker ps --filter name=usa- --no-trunc
+          docker logs --tail 30 usa-access-node 2>&1 || true
+        ignore_error: true
+        name_i18n:
+          zh: 确认活体已加载且继电器节点有响应
+
+  user_inputs:
+    - id: host
+      name: Access Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.61"
+      name_i18n:
+        zh: 门禁主机 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_id
+      name: Door / Device Name
+      type: text
+      default: "door-front"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      description: Goes into the MQTT topics and every audit record.
+      name_i18n:
+        zh: 门 / 设备名称
+      description_i18n:
+        zh: 会拼进 MQTT 主题，也会写进每一条审计记录。
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      default_template: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+    - id: face_rec_api_image
+      name: Recognition Image (digest-pinned)
+      type: text
+      required: true
+      placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
+      description: A digest, not a tag. No digest has been published for this project yet.
+      name_i18n:
+        zh: 识别服务镜像（digest 锁定）
+      description_i18n:
+        zh: 写 digest，不要写 tag。本项目目前还没有发布过 digest。
+    - id: access_node_image
+      name: Access Node Image
+      type: text
+      required: true
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-edge:0.1.0-c1"
+      description: This image has never been built. Build it from the upstream repository and set the tag you built here.
+      name_i18n:
+        zh: 门禁节点镜像
+      description_i18n:
+        zh: 这个镜像从未构建过。请从上游仓库构建后，把你构建出的 tag 填在这里。
+    - id: relay_backend
+      name: Relay Backend
+      type: select
+      default: mqtt_esp32
+      required: true
+      description: Which node closes the contact. The R1000 path suits sites already running one for other industrial IO; the XIAO path is the cheaper standalone node.
+      options:
+        - value: mqtt_esp32
+          label: XIAO ESP32-S3 + Grove Relay — subscribes to access/v1/relay/{id}/set
+          label_i18n:
+            zh: XIAO ESP32-S3 + Grove 继电器——订阅 access/v1/relay/{id}/set
+        - value: mqtt_modbus
+          label: SenseCAP R1000 — writes a Modbus point through the gateway's point-command path
+          label_i18n:
+            zh: SenseCAP R1000——经网关点位指令通道写一个 Modbus 点位
+      name_i18n:
+        zh: 继电器后端
+      description_i18n:
+        zh: 由哪个节点闭合触点。R1000 路径适合站点上本来就有一台在接其他工业 IO；XIAO 路径是更便宜的独立节点。
+    - id: relay_id
+      name: Relay ID
+      type: text
+      default: "door-front"
+      required: true
+      description: The relay node's identifier, used in its topics. One broker can carry several relays; they must not share an id.
+      validation:
+        pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$"
+      name_i18n:
+        zh: 继电器 ID
+      description_i18n:
+        zh: 继电器节点的标识，会用在它的 topic 里。一个 broker 上可以有多个继电器，它们的 id 不能重复。
+    - id: modbus_point_id
+      name: Modbus Point ID
+      type: text
+      required: false
+      placeholder: "door_front_relay"
+      description: Only for the R1000 backend — the point the gateway writes. Leave empty for the XIAO backend.
+      name_i18n:
+        zh: Modbus 点位 ID
+      description_i18n:
+        zh: 仅 R1000 后端需要——网关要写的那个点位。用 XIAO 后端时留空。
+    - id: pulse_ms
+      name: Unlock Pulse (ms)
+      type: text
+      default: "1500"
+      required: true
+      description: 500–5000 ms. Out-of-range values are rejected, not clamped. Note the relay firmware's own wire-format range is wider (100–10000 ms); the two are different constraints and the narrower one governs here.
+      validation:
+        pattern: "^[0-9]{3,4}$"
+      name_i18n:
+        zh: 开锁脉宽（毫秒）
+      description_i18n:
+        zh: 500–5000 ms。超界会被拒绝，不做钳位。继电器固件自身的线格式范围更宽（100–10000 ms），两者不是同一约束，这里以更窄的这条为准。
+    - id: relay_contact
+      name: Relay Contact
+      type: select
+      required: true
+      description: The relay firmware does not know what kind of lock is on the other side and must not — this is where the lock type is recorded.
+      options:
+        - value: "NC"
+          label: COM + NC — for fail-safe magnetic locks (unlock on power loss)
+          label_i18n:
+            zh: COM + NC——用于断电即开的电磁锁
+        - value: "NO"
+          label: COM + NO — for fail-secure strikes (stay locked on power loss)
+          label_i18n:
+            zh: COM + NO——用于断电即锁的电插锁
+      name_i18n:
+        zh: 继电器触点
+      description_i18n:
+        zh: 继电器固件不知道另一头是什么锁，也不该知道——锁型记录在这里。
+    - id: fail_mode
+      name: Fail Mode
+      type: select
+      required: true
+      options:
+        - value: "fail_safe"
+          label: fail_safe — door opens on power loss (egress-critical)
+          label_i18n:
+            zh: fail_safe——断电开门（疏散优先）
+        - value: "fail_secure"
+          label: fail_secure — door stays locked on power loss
+          label_i18n:
+            zh: fail_secure——断电保持锁闭
+      name_i18n:
+        zh: 失效模式
+    - id: threshold
+      name: Match Threshold
+      type: text
+      default: "0.62"
+      required: true
+      description: A starting point, not a calibrated value. No FAR/FRR figure exists for this project on any hardware.
+      validation:
+        pattern: "^0(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 匹配阈值
+      description_i18n:
+        zh: 这是起点，不是标定值。本项目在任何硬件上都没有 FAR / FRR 实测。
+    - id: facedb_url
+      name: Face Library URL
+      type: text
+      required: true
+      default_template: "http://192.168.1.50:8080"
+      placeholder: "http://192.168.1.50:8080"
+      name_i18n:
+        zh: 人脸库地址
+    - id: facedb_signing_key
+      name: Library Signing Key
+      type: password
+      required: true
+      description: The key from the cloud step. Mandatory on a plaintext http:// URL.
+      name_i18n:
+        zh: 人脸库签名密钥
+      description_i18n:
+        zh: 云端那一步填的密钥。明文 http:// 地址下是必填项。
+    - id: facedb_poll_s
+      name: Library Poll Interval (s)
+      type: text
+      default: "30"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,4}$"
+      name_i18n:
+        zh: 人脸库轮询周期（秒）
+    - id: mqtt_host
+      name: MQTT Broker Host
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: In this preset the broker is on the unlock path, not only the reporting path. Its availability is the door's availability.
+      name_i18n:
+        zh: MQTT Broker 地址
+      description_i18n:
+        zh: 这个套餐里 broker 在开门路径上，不只是上报路径。它的可用性就是这道门的可用性。
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_tls
+      name: MQTT TLS
+      type: select
+      default: "false"
+      required: true
+      description: The bundled broker configuration is anonymous plaintext and is a bench configuration only.
+      options:
+        - value: "false"
+          label: Off — bench only
+          label_i18n:
+            zh: 关闭——仅限台面测试
+        - value: "true"
+          label: On — with a broker that has certificates and per-device ACLs
+          label_i18n:
+            zh: 开启——配合有证书与按设备 ACL 的 broker
+      name_i18n:
+        zh: MQTT TLS
+      description_i18n:
+        zh: 随包的 broker 配置是匿名明文，只能用于台面测试。

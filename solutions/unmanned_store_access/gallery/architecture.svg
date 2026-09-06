@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 620" width="960" height="620" role="img" aria-label="Cloud face library and console above four door-access presets, each ending at a relay and an independently powered lock">
+  <title>Unmanned store access — data path</title>
+  <!--
+    Drawn for this solution package. No photograph, no face image, no captured
+    frame: boxes, arrows, product names, protocol names, port numbers and pin
+    labels only. Deliberately near-wordless so one asset serves both the
+    English and the Chinese page.
+
+    The one thing this drawing is meant to make unmissable: in every preset the
+    lock is behind a relay / dry contact and on its own 12/24 V supply. No GPIO
+    and no isolated DO ever carries lock current.
+  -->
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6472"/>
+    </marker>
+    <marker id="arrowb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f6fb3"/>
+    </marker>
+    <style>
+      .box   { fill:#ffffff; stroke:#5b6472; stroke-width:1.5; }
+      .core  { fill:#eef3f8; stroke:#2f6fb3; stroke-width:2; }
+      .warn  { fill:#fdf3e7; stroke:#c8791f; stroke-width:1.8; }
+      .opt   { fill:#ffffff; stroke:#9aa5b1; stroke-width:1.3; stroke-dasharray:5 4; }
+      .line  { stroke:#5b6472; stroke-width:1.5; fill:none; marker-end:url(#arrow); }
+      .blue  { stroke:#2f6fb3; stroke-width:1.6; fill:none; marker-end:url(#arrowb); }
+      .dash  { stroke:#9aa5b1; stroke-width:1.3; fill:none; stroke-dasharray:5 4; marker-end:url(#arrow); }
+      .t     { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; fill:#1f2733; }
+      .h     { font-size:15px; font-weight:600; }
+      .hh    { font-size:13px; font-weight:600; }
+      .s     { font-size:12px; fill:#5b6472; }
+      .p     { font-size:11px; fill:#5b6472; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .m     { font-size:11px; fill:#2f6fb3; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .g     { font-size:10.5px; fill:#9aa5b1; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .w     { font-size:11px; fill:#c8791f; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="620" fill="#ffffff"/>
+
+  <!-- ================= cloud band ================= -->
+  <rect class="core" x="24" y="20" width="912" height="104" rx="10"/>
+  <text class="t h" x="44" y="44">Cloud / on-prem host</text>
+
+  <rect class="box" x="44" y="54" width="196" height="54" rx="7"/>
+  <text class="t hh" x="142" y="76" text-anchor="middle">facedb server</text>
+  <text class="t p" x="142" y="95" text-anchor="middle">HTTP :8080  two endpoints</text>
+
+  <rect class="box" x="256" y="54" width="196" height="54" rx="7"/>
+  <text class="t hh" x="354" y="76" text-anchor="middle">web console</text>
+  <text class="t p" x="354" y="95" text-anchor="middle">:8088  viewer/operator/admin</text>
+
+  <rect class="box" x="468" y="54" width="180" height="54" rx="7"/>
+  <text class="t hh" x="558" y="76" text-anchor="middle">MQTT broker</text>
+  <text class="t p" x="558" y="95" text-anchor="middle">:8883  TLS + ACL</text>
+
+  <rect class="box" x="664" y="54" width="252" height="54" rx="7"/>
+  <text class="t hh" x="790" y="76" text-anchor="middle">versioned face library</text>
+  <text class="t p" x="790" y="95" text-anchor="middle">vNNNNNN + SHA256SUMS + barrier</text>
+
+  <!-- ================= link band ================= -->
+  <line class="blue" x1="142" y1="126" x2="142" y2="176"/>
+  <text class="t m" x="152" y="146">GET /v1/facedb/current</text>
+  <text class="t g" x="152" y="162">poll 30 s, SHA + HMAC, atomic switch</text>
+
+  <line class="blue" x1="558" y1="126" x2="558" y2="176"/>
+  <text class="t m" x="568" y="146">access/v1/events | status | commands | receipts</text>
+  <text class="t g" x="568" y="162">QoS 1, UUID + TTL + replay table, LWT</text>
+
+  <line class="line" x1="24" y1="182" x2="936" y2="182"/>
+
+  <!-- ================= P1 ================= -->
+  <rect class="box" x="24" y="206" width="220" height="182" rx="9"/>
+  <text class="t h" x="40" y="230">P1 · on-device</text>
+  <text class="t s" x="40" y="248">reCamera Pro / PoE / HQ PoE</text>
+  <rect class="opt" x="40" y="260" width="188" height="34" rx="6"/>
+  <text class="t p" x="134" y="281" text-anchor="middle">kit app (root) + liveness</text>
+  <rect class="box" x="40" y="304" width="188" height="30" rx="6"/>
+  <text class="t p" x="134" y="323" text-anchor="middle">sysfs GPIO 3.3 V / 12–21 V</text>
+  <text class="t w" x="40" y="356">liveness enforced</text>
+  <text class="t g" x="40" y="374">gpio131 already taken — probe first</text>
+
+  <!-- ================= P2 ================= -->
+  <rect class="box" x="256" y="206" width="220" height="182" rx="9"/>
+  <text class="t h" x="272" y="230">P2 · industrial box</text>
+  <text class="t s" x="272" y="248">reComputer Industrial J20</text>
+  <rect class="opt" x="272" y="260" width="188" height="34" rx="6"/>
+  <text class="t p" x="366" y="281" text-anchor="middle">RTSP cam + containers</text>
+  <rect class="box" x="272" y="304" width="188" height="30" rx="6"/>
+  <text class="t p" x="366" y="323" text-anchor="middle">opto-isolated DO</text>
+  <text class="t w" x="272" y="356">liveness enforced</text>
+  <text class="t g" x="272" y="374">DO switches the relay only</text>
+
+  <!-- ================= P3 ================= -->
+  <rect class="box" x="488" y="206" width="220" height="182" rx="9"/>
+  <text class="t h" x="504" y="230">P3 · MQTT relay</text>
+  <text class="t s" x="504" y="248">J30 / J40 / R2000 / reCamera</text>
+  <rect class="opt" x="504" y="260" width="188" height="34" rx="6"/>
+  <text class="t p" x="598" y="281" text-anchor="middle">containers, no local IO</text>
+  <rect class="box" x="504" y="304" width="188" height="30" rx="6"/>
+  <text class="t p" x="598" y="323" text-anchor="middle">R1000 Modbus / XIAO relay</text>
+  <text class="t w" x="504" y="356">liveness enforced</text>
+  <text class="t g" x="504" y="374">access/v1/relay/{id}/set, never retained</text>
+
+  <!-- ================= P4 ================= -->
+  <rect class="warn" x="720" y="206" width="216" height="182" rx="9"/>
+  <text class="t h" x="736" y="230">P4 · XIAO + Grove Vision</text>
+  <text class="t s" x="736" y="248">XIAO ESP32-S3 + WE2</text>
+  <rect class="opt" x="736" y="260" width="184" height="34" rx="6"/>
+  <text class="t p" x="828" y="281" text-anchor="middle">on-chip match, 8 MB flash</text>
+  <rect class="box" x="736" y="304" width="184" height="30" rx="6"/>
+  <text class="t p" x="828" y="323" text-anchor="middle">GPIO D0 → Grove Relay</text>
+  <text class="t w" x="736" y="356">NO liveness — allowlist only</text>
+  <text class="t g" x="736" y="374">two facedb slots, sha256 then flip</text>
+
+  <!-- ================= relay + lock band ================= -->
+  <line class="line" x1="134" y1="392" x2="134" y2="440"/>
+  <line class="line" x1="366" y1="392" x2="366" y2="440"/>
+  <line class="line" x1="598" y1="392" x2="598" y2="440"/>
+  <line class="line" x1="828" y1="392" x2="828" y2="440"/>
+
+  <rect class="core" x="24" y="444" width="912" height="70" rx="10"/>
+  <text class="t h" x="44" y="470">Relay / dry contact</text>
+  <text class="t s" x="44" y="492">COM + NC for fail-safe magnetic locks, COM + NO for fail-secure strikes — configured, never defaulted</text>
+  <text class="t p" x="700" y="492">active_high · pulse_ms 500–5000 · relay_contact · fail_mode</text>
+
+  <line class="line" x1="480" y1="518" x2="480" y2="552"/>
+
+  <rect class="warn" x="264" y="556" width="432" height="48" rx="9"/>
+  <text class="t hh" x="480" y="578" text-anchor="middle">Lock on its own 12 / 24 V supply</text>
+  <text class="t w" x="480" y="596" text-anchor="middle">300 mA – 1 A. No GPIO and no DO ever carries this current.</text>
+</svg>

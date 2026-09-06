@@ -1,0 +1,149 @@
+version: "1.0"
+id: remote_unlock
+name: Verify the Door End to End
+name_i18n:
+  zh: 端到端验证这道门
+type: manual
+
+# The verification step for every preset. It is manual because the things worth
+# checking are physical — a contact clicking, a lock moving, a photograph being
+# refused — and no deployer type can observe any of them. The software half is
+# reproducible and is given as a command; the hardware half is not, and saying
+# so is more useful than a green tick that only proves a container started.
+
+steps:
+  - id: software_loop
+    name: Reproduce the software loop (no hardware needed)
+    name_i18n:
+      zh: 复现纯软件闭环（不需要硬件）
+    description: >-
+      From a clone of the upstream repository, run
+      `uv run python tools/verify_software_loop.py`. It builds three library
+      versions, pulls them over real HTTP with SHA verification and an atomic
+      switch, drives the policy through a live person, a photograph, a
+      liveness-unknown frame, a blocklisted person, a stranger, an empty frame
+      and a debounce, exercises the remote-command gate including TTL expiry
+      and replay, verifies the audit chain and then tampers with it to confirm
+      the check catches it, and walks the console API through all three roles.
+      The reference run reports 52 of 52 checks passing. Everything it proves is
+      protocol and state-machine behaviour on a development machine — no
+      camera, no broker, no relay, no lock.
+    description_i18n:
+      zh: >-
+        在上游仓库的克隆里跑 `uv run python tools/verify_software_loop.py`。
+        它会构建三个人脸库版本，用真实 HTTP 拉取、校验 SHA 并原子切换；用真人、
+        照片、活体未知帧、黑名单、陌生人、空帧与去抖各走一遍策略；跑一遍远程指令
+        闸门（含 TTL 过期与重放）；校验审计链，再篡改它确认校验能发现；最后把
+        管理界面 API 的三档角色都走一遍。参考运行的结果是 52 项全过。它证明的
+        全部是开发机上的协议与状态机行为——没有摄像头、没有 broker、没有继电器、
+        没有锁。
+    optional: false
+
+  - id: enrolled_person
+    name: An enrolled person opens the door once
+    name_i18n:
+      zh: 已注册人员开门一次
+    description: >-
+      Stand in front of the camera as someone enrolled in the current library
+      version. Expect exactly one contact closure of the configured width, one
+      event in the console with the decision allowed, and the audit chain
+      extended by one record. Step back and forward again within the debounce
+      window: expect a second event with reason `debounced` and no second
+      pulse. Two pulses for one approach means the debounce is not in the path.
+    description_i18n:
+      zh: >-
+        以当前库版本里已注册的身份站到摄像头前。预期是：恰好一次配置宽度的触点闭合、
+        管理界面上一条放行事件、审计链增加一条记录。在去抖窗口内退开再上前：
+        预期出现第二条 reason 为 `debounced` 的事件，且没有第二个脉冲。
+        一次靠近产生两个脉冲，说明去抖不在链路上。
+    optional: false
+
+  - id: photograph
+    name: A printed photograph does not open the door
+    name_i18n:
+      zh: 打印照片打不开门
+    description: >-
+      Hold a printed photograph of the same enrolled person up to the camera.
+      Expect the reason `liveness_failed` and no pulse at all. If the door
+      opens, stop and check the recognition service's health endpoint reports
+      liveness as loaded — the upstream service silently degrades to
+      "keep recognising, skip liveness" when the model file is missing, the
+      adapter is supposed to refuse to start in that state, and a door that
+      opens to a photograph means that refusal is not in the path. On the P4
+      preset this step does not apply: that hardware has no liveness model at
+      all, which is exactly why it is restricted to an allowlist and must not
+      be used where this test would matter.
+    description_i18n:
+      zh: >-
+        把同一位已注册人员的打印照片举给摄像头。预期是 reason 为 `liveness_failed`，
+        完全没有脉冲。如果门开了，立刻停下来，检查识别服务的 health 接口是否报告活体
+        已加载——上游服务在模型文件缺失时会静默降级为"继续识别、跳过活体"，
+        适配层本应在这种状态下拒绝启动，照片能开门说明这道拒绝不在链路上。
+        P4 套餐不适用这一步：那套硬件根本没有活体模型，这正是它被限制成白名单、
+        且不得用在这条测试有意义的场合的原因。
+    optional: false
+
+  - id: remote_unlock
+    name: Remote unlock, and the receipt that comes back
+    name_i18n:
+      zh: 远程开门，以及回来的那张回执
+    description: >-
+      In the console's Devices page, as an operator, issue an unlock. Expect the
+      contact to close once and a receipt to come back reaching the executed
+      state. Then repeat with a viewer token: expect a refusal, not a pulse. If
+      you can replay the same command — same command id — expect the original
+      receipt returned again and no second pulse: a network retransmission must
+      not open the door twice, while the caller still gets something to
+      reconcile against.
+    description_i18n:
+      zh: >-
+        在管理界面的「设备」页，以 operator 身份下发一次开门。预期是触点闭合一次，
+        并回来一张走到 executed 终态的回执。再用 viewer token 重试：预期是被拒绝，
+        而不是一个脉冲。如果你能重放同一条指令——同一个 command id——预期是原来那张
+        回执被再次回放、且没有第二个脉冲：网络重传不该把门开两次，但调用方仍要拿得到
+        可对账的凭据。
+    optional: false
+
+  - id: deletion_barrier
+    name: Delete someone, then try to roll back
+    name_i18n:
+      zh: 删掉一个人，然后试着回滚
+    description: >-
+      Delete an enrolled person from the console. A new version appears without
+      them, and devices stop admitting them within one poll period. Now try to
+      roll back to a version that still contained them: expect a refusal naming
+      the person, and the current version unchanged. That refusal is the point
+      of the whole barrier mechanism — without it, one rollback quietly
+      re-admits everyone who has ever been removed.
+    description_i18n:
+      zh: >-
+        在管理界面删掉一位已注册人员。会出现一个不含此人的新版本，设备在一个轮询
+        周期内停止放行他。然后尝试回滚到一个仍包含此人的版本：预期是一条点名该人员的
+        拒绝，且当前版本不变。这条拒绝就是整个屏障机制的意义——没有它，一次回滚就会
+        悄悄把所有曾被移除的人重新放回来。
+    optional: false
+
+  - id: hardware_pending
+    name: What this step cannot verify yet
+    name_i18n:
+      zh: 这一步目前还验证不了什么
+    description: >-
+      Recorded here rather than left implicit. No figure for recognition
+      FAR/FRR, liveness spoof rejection, end-to-end unlock latency, offline
+      endurance or 72-hour soak exists for this project on any hardware — six of
+      the seven boundary files are empty with the reason written in each. No
+      GPIO or DO voltage, current or polarity has been measured. The MQTT
+      behaviour proven so far came from an in-memory broker, which does not
+      model QoS 1 delivery, TLS or per-device ACLs. Anyone quoting a number for
+      this solution should be asked which of those runs it came from.
+    description_i18n:
+      zh: >-
+        写在这里而不是留作默认。本项目在任何硬件上都没有识别 FAR / FRR、活体假体
+        拒绝率、端到端开锁时延、断网续航与 72 小时长稳的数字——七个 boundary 文件里
+        有六个是空的，每个都写明了为什么。GPIO 与 DO 的电压、电流、极性一项都没测过。
+        目前证明过的 MQTT 行为来自内存 broker，它不模拟 QoS 1 投递、TLS 与按设备的
+        ACL。谁要是为这个方案报了一个数字，先问它出自上面哪一次运行。
+    optional: false
+
+name_i18n:
+  zh: 端到端验证这道门

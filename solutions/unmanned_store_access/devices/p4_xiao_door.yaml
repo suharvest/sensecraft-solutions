@@ -1,0 +1,173 @@
+version: "1.0"
+id: p4_xiao_door
+name: XIAO ESP32-S3 Door Controller Firmware
+name_i18n:
+  zh: XIAO ESP32-S3 门控固件
+type: esp32_usb
+
+# THE FIRMWARE HAS NOT BEEN BUILT. Every `path` below points at
+# assets/firmware/*.NOT-BUILT — text stubs, not images, so that a validator can
+# resolve the reference while anyone who runs this step fails immediately
+# instead of flashing something plausible-looking onto a door controller.
+# assets/firmware/MANIFEST.md carries the source branch, the flash layout, the
+# destination CDN path and the four blockers. Replace stubs with built
+# artefacts, real CDN URLs and real sha256 in one change.
+#
+# The design spec calls this segment `esp32_firmware`; the deployment engine's
+# capability table names the type `esp32_usb`, which is what this file uses.
+#
+# Source: xiaozhi-esp32, branch feature/door-access-xiao-grove, head 8760bd0.
+# Board main/boards/xiao-esp32s3-grove-door/ plus main/face/ — the FDB1 library
+# format, cosine matching, the access policy, the door actuator, the event
+# contract and the HTTP library sync. It has never been built for the target;
+# the only compilation so far is a host-side unit-test shim.
+#
+# Multi-segment flashing rather than one merged image, following the D1001
+# preset convention: the two library slots sit at 0x680000 and 0x6c0000, and a
+# merged binary would carry megabytes of 0xFF padding to reach them.
+#
+# Pin assignment from the board's config.h (XIAO silkscreen D-pins to ESP32-S3
+# GPIOs): relay on D0/GPIO1, exit button on D1/GPIO2, WE2 reset on D2/GPIO3,
+# WE2 UART on D6/GPIO43 (TX) and D7/GPIO44 (RX) at 921600. D6/D7 are the
+# ESP32-S3's default UART0 pins and are free only because the console runs over
+# native USB — switching the console back to UART0 collides with them and the
+# vision link stops answering.
+
+detection:
+  method: usb_serial
+  # ESP32-S3 native USB-Serial-JTAG.
+  usb_vendor_id: "0x303a"
+  usb_product_id: "0x1001"
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+
+firmware:
+  source:
+    path: assets/firmware/xiao_door_app.NOT-BUILT
+  flash_config:
+    chip: esp32s3
+    baud_rate: 921600
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 8MB
+    partitions:
+      - name: bootloader
+        offset: "0x0"
+        file: assets/firmware/xiao_door_bootloader.NOT-BUILT
+      - name: partition_table
+        offset: "0x8000"
+        file: assets/firmware/xiao_door_partition_table.NOT-BUILT
+      - name: app
+        offset: "0x20000"
+        file: assets/firmware/xiao_door_app.NOT-BUILT
+    # The two facedb slots (0x680000 and 0x6c0000, 256 KB each) are NOT flashed
+    # here. They are filled at runtime by the HTTP sync: a download always
+    # targets the inactive slot and the active pointer in NVS flips only after
+    # the body sha256 verifies, so a power cut mid-download cannot damage the
+    # library that is currently opening the door. Flashing a library image
+    # would defeat that and would also bake a face library into a firmware
+    # artefact, which is not something that should be distributable.
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: The XIAO's USB serial port. Flash the Grove Vision AI V2 first — this application probes the vision link at startup.
+    auto_detect: true
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: XIAO 的 USB 串口。先烧 Grove Vision AI V2——这个应用在启动时会探测视觉链路。
+  - id: wifi_ssid
+    name: Wi-Fi SSID
+    type: text
+    required: true
+    description: The network the controller uses to poll the face library and reach the broker. It has to be 2.4 GHz.
+    name_i18n:
+      zh: Wi-Fi 名称
+    description_i18n:
+      zh: 控制器用来轮询人脸库、连接 broker 的网络。必须是 2.4 GHz。
+  - id: wifi_password
+    name: Wi-Fi Password
+    type: password
+    required: true
+    name_i18n:
+      zh: Wi-Fi 密码
+  - id: facedb_url
+    name: Face Library URL
+    type: text
+    required: true
+    default_template: "http://192.168.1.50:8080"
+    placeholder: "http://192.168.1.50:8080"
+    description: The same two-endpoint service the other presets poll. The controller compares versions, downloads in chunks into the inactive slot, verifies sha256 and only then flips the active pointer.
+    name_i18n:
+      zh: 人脸库地址
+    description_i18n:
+      zh: 与其他套餐轮询的是同一个两接口服务。控制器比对版本、分块下载进未激活的槽位、校验 sha256，通过之后才切换激活指针。
+  - id: facedb_signing_key
+    name: Library Signing Key
+    type: password
+    required: true
+    description: The key from the cloud step. This controller has no RTC and cannot validate a TLS certificate, so the manifest signature is the whole integrity boundary here — not an optional hardening step.
+    name_i18n:
+      zh: 人脸库签名密钥
+    description_i18n:
+      zh: 云端那一步填的密钥。这块控制器没有 RTC，验不了 TLS 证书，因此 manifest 签名就是这里完整性保护的全部——不是可选的加固项。
+  - id: model_tag
+    name: Model Tag
+    type: text
+    default: "we2-mfnr6-128-v1"
+    required: true
+    description: Guards against loading a library built for a different embedding model. It must match the library manifest's model_tag; a mismatch is rejected at load rather than discovered as "nobody is recognised".
+    validation:
+      pattern: "^[A-Za-z0-9._:-]+$"
+    name_i18n:
+      zh: 模型标签
+    description_i18n:
+      zh: 防止加载为另一个嵌入模型构建的库。它必须与库 manifest 的 model_tag 一致；不一致会在加载时被拒绝，而不是变成"谁都认不出来"。
+  - id: actuator_id
+    name: Relay / Door ID
+    type: text
+    default: "door-front"
+    required: true
+    validation:
+      pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$"
+    name_i18n:
+      zh: 继电器 / 门 ID
+  - id: pulse_ms
+    name: Unlock Pulse (ms)
+    type: text
+    default: "1500"
+    required: true
+    description: 500–5000 ms. The firmware's own timer ends the pulse, so a lost packet cannot leave the door standing open.
+    validation:
+      pattern: "^[0-9]{3,4}$"
+    name_i18n:
+      zh: 开锁脉宽（毫秒）
+    description_i18n:
+      zh: 500–5000 ms。脉冲由固件自己的定时器结束，丢包不会让门一直开着。
+  - id: relay_contact
+    name: Relay Contact
+    type: select
+    required: true
+    description: The board defaults to fail_secure wiring — normally-open, so losing power leaves the lock engaged. Change the wiring and this setting together, never one alone.
+    options:
+      - value: "NO"
+        label: COM + NO — fail-secure strike (stays locked on power loss)
+        label_i18n:
+          zh: COM + NO——断电即锁的电插锁
+      - value: "NC"
+        label: COM + NC — fail-safe magnetic lock (opens on power loss)
+        label_i18n:
+          zh: COM + NC——断电即开的电磁锁
+    name_i18n:
+      zh: 继电器触点
+    description_i18n:
+      zh: 板子默认按 fail_secure 接线——常开，断电时锁保持吸合。接线与这个设置要一起改，不能只改一个。
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 10
