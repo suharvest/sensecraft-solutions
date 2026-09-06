@@ -102,11 +102,17 @@ FP16 engine 还与同一份 ONNX 的 CPU（onnxruntime）结果做过逐框比�
 643 对匹配，CPU 侧多 3 个框、TensorRT 侧一个不多，IoU 均值 0.9972（最小 0.8311），
 分数差均值 0.0011，mAP50 差 0.0003。FP16 没有改变任何一帧的 OK/NG 判定。
 
-### Hailo-8——已编译并在 emulator 上比对，未上板
+### Hailo-8——已编译并在 emulator 上比对，2026-09-06 上板部分完成
 
 Raspberry Pi 5 + Hailo-8 这条路径已有一份用 Dataflow Compiler 3.31.0 /
 HailoRT 4.21.0 编出的 INT8 HEF，量化损失也在编译器自带的 emulator 上量过。
-**本节没有一个数字来自 Hailo 硬件**，这块板卡的精度、吞吐、时延数字目前都不存在。
+2026-09-06 在 fleet `harvest-pi` 上做过一轮真机验证：HailoRT 4.21.0 三件套
+（驱动/用户态/固件）核对通过、HEF 结构（`hailortcli parse-hef`）核对通过、
+运行镜像原生 arm64 构建通过、容器内 Python ABI（3.11.2 对上 cp311 wheel）
+核对通过——**但这块板卡的精度、吞吐、时延数字仍然不存在**：harvest-pi 上
+唯一一块 Hailo-8 被一个不在本方案范围内、且按约束不能停止的既有容器独占，
+`VDevice()` 创建持续报 `HAILO_OUT_OF_PHYSICAL_DEVICES`，本轮没有拿到一次
+真实推理。详见仓库 `evaluation/runs/2026-09-06-rpi-hailo/results.md`。
 
 从同一份 ONNX 编了两版 HEF，在同样的 20 张验证图（45 个框）上比对——
 这 20 张与校准集不重叠，且跨六类均匀分布：
@@ -133,7 +139,7 @@ INT8 损失。它与硬件不保证 bit-exact，它自己报的耗时是 x86 GPU
 |---|---|---|---|
 | 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，`2026-09-05-m2-orin` §1 |
 | Jetson 镜像 | 375 MB | `edge-inspection-jetson:0.1.0-dev`；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，`2026-09-05-m2-orin` |
-| 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；在 macOS 上交叉构建为 arm64，从未在树莓派上跑过 | 交叉构建实测，`2026-09-05-m3-hef` §3.1 |
+| 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；2026-09-06 已在 harvest-pi 原生 arm64 构建通过（444 MB），真实推理未跑通（见 Hailo-8 一节） | 交叉构建实测 `2026-09-05-m3-hef` §3.1；原生构建 `2026-09-06-rpi-hailo` |
 
 ## 检测器选型：基线 vs 先进
 
