@@ -1,0 +1,117 @@
+version: "1.0"
+id: place_embedder_pi
+name: Place the Embedding Model (Pi)
+name_i18n:
+  zh: 放置嵌入模型（Pi）
+type: manual
+inherit_host_from: console_stack
+
+# Manual because the file cannot be shipped, and because this Pi preset needs
+# a different file from the RK3588/Jetson presets (devices/place_embedder.yaml).
+# The Pi runs the detector on Hailo-8 but the embedder on the Pi's own CPU
+# (see devices/pi_hailo_compile.yaml) — the reference figure for that path,
+# 91.95 ms per crop, was measured on the dynamically quantised INT8
+# DINOv2-small, not on DINOv2-base. The console-side gallery is bound to
+# whichever embedder produced its vectors: a gallery built with base and a
+# device running small (or the reverse) returns silent noise, not an error.
+#
+# Skipping this step is allowed and is not silent about consequences here, but
+# it is silent at runtime. Upstream server/config.py:57 defaults
+# `embedder_backend` to `fake`; server/api.py:53 only constructs OnnxEmbedder
+# when it is `onnx`, otherwise FakeEmbedder. FakeEmbedder produces a
+# deterministic vector from the image bytes, so registration succeeds, the
+# gallery gets versions, the UI works and every retrieval result is noise.
+# GET /api/health returns `ok`, the collector counters and the gallery version
+# (server/api.py:302-305) — it does not report which embedder is loaded, and
+# nothing is logged at startup. There is no runtime signal at all. That is why
+# this step exists as a step rather than a footnote.
+
+steps:
+  - id: embed_obtain_pi
+    name: Obtain the ONNX
+    name_i18n:
+      zh: 取得 ONNX
+    description: >-
+      The file is `dinov2s_arcface_products10k_224_b1_dynint8.onnx`,
+      23,541,073 bytes, sha256
+      `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`. It is
+      produced by the upstream training and export pipeline in the
+      edge-retail-recognition repository, from the dynamic-INT8 quantisation
+      run recorded there in
+      `evaluation/runs/2026-09-06-embed-small/raw/dynint8_sha256.txt`. Do not
+      substitute the DINOv2-base file used on the RK3588/Jetson presets: the
+      two models produce vectors that are not comparable, and the gallery is
+      bound to whichever one built it. Verify with `sha256sum` before using
+      it — a silently different model means a silently wrong gallery.
+    description_i18n:
+      zh: >-
+        文件是 `dinov2s_arcface_products10k_224_b1_dynint8.onnx`，23,541,073
+        字节，sha256
+        `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`。
+        它由上游 edge-retail-recognition 仓库的训练与导出流水线产出，来自动态
+        INT8 量化那一轮，记在
+        `evaluation/runs/2026-09-06-embed-small/raw/dynint8_sha256.txt`。
+        不要拿 RK3588/Jetson 套餐用的 DINOv2-base 文件替代：两个模型产出的向量
+        互不可比，商品库与建它的那个模型绑定。用之前先 `sha256sum` 核对：
+        模型悄悄换了，库就悄悄错了。
+    optional: false
+
+  - id: embed_licence_pi
+    name: Check the licence before you use it
+    name_i18n:
+      zh: 用之前先确认许可
+    description: >-
+      `license_id: products10k-terms`, `use_scope: non-commercial`,
+      `redistributable: false`. The backbone `facebook/dinov2-small` is
+      Apache-2.0; the restriction comes from the training data, not the
+      backbone. The verbatim clause is in the upstream `data/DATASET-embed.md`
+      §4.1. This is fine for an evaluation and not fine for a paid deployment.
+      A commercial deployment has to retrain the embedder on first-party or
+      permissively licensed capture and rebuild every gallery version, because
+      vectors from one model are not comparable to vectors from another. Do not
+      redistribute the file with this package or with any image built from it.
+    description_i18n:
+      zh: >-
+        `license_id: products10k-terms`、`use_scope: non-commercial`、
+        `redistributable: false`。骨干 `facebook/dinov2-small` 是 Apache-2.0；
+        非商用的限制来自训练数据，不来自骨干。原文条款在上游
+        `data/DATASET-embed.md` §4.1。这份权重用于评估没问题，用于付费部署不行。
+        商用部署必须用自采或许可宽松的数据重训嵌入器，并重建每一个商品库版本——
+        一个模型产出的向量与另一个模型的向量不可比。不要把这个文件随本包分发，
+        也不要打进任何由本包构建的镜像。
+    optional: false
+
+  - id: embed_place_pi
+    name: Put it where compose mounts it, and switch the backend on
+    name_i18n:
+      zh: 放到 compose 挂载的位置，并把后端切过去
+    description: >-
+      Copy the ONNX to `assets/console/models/` next to the compose file — the
+      server service mounts that directory as `/models:ro`. Then set
+      `RETAIL_EMBEDDER=onnx` and
+      `RETAIL_EMBEDDER_ONNX=/models/dinov2s_arcface_products10k_224_b1_dynint8.onnx`
+      in the `.env` beside the compose file and restart the service with
+      `docker compose up -d server`. The default value of
+      `RETAIL_EMBEDDER_ONNX` (`/models/dinov2b_arcface_products10k_224_b1.onnx`)
+      is the base model used by the other presets — it must be overridden here.
+      Upstream refuses to start with `embedder_backend=onnx` and no path
+      (server/config.py:87-88), and onnxruntime fails on a missing file, so a
+      typo shows up as a container that will not come up rather than as bad
+      vectors. Registering a SKU before this step, on a placeholder, or with
+      the wrong model file and keeping the gallery afterwards does not work:
+      vectors are only comparable to the model that produced them. Register
+      everything again after switching.
+    description_i18n:
+      zh: >-
+        把 ONNX 拷到 compose 文件旁边的 `assets/console/models/`——server 服务把这个目录
+        以 `/models:ro` 挂进去。然后在 compose 文件旁的 `.env` 里设
+        `RETAIL_EMBEDDER=onnx` 与
+        `RETAIL_EMBEDDER_ONNX=/models/dinov2s_arcface_products10k_224_b1_dynint8.onnx`，
+        用 `docker compose up -d server` 重启该服务。`RETAIL_EMBEDDER_ONNX` 的默认值
+        （`/models/dinov2b_arcface_products10k_224_b1.onnx`）是其它套餐用的 base
+        模型——这里必须覆盖它。上游在 `embedder_backend=onnx` 而路径为空时拒绝启动
+        （server/config.py:87-88），onnxruntime 在文件缺失时同样会失败，
+        所以写错路径表现为容器起不来，而不是算出错的向量。在这一步之前、在占位
+        嵌入器上，或者用错模型文件注册的 SKU 都不能留着用：向量只与产出它的那个
+        模型可比。切换之后全部重新注册一遍。
+    optional: false

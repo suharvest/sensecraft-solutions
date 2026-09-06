@@ -14,6 +14,13 @@ inherit_host_from: console_stack
 # `redistributable: false`. A solution package that anyone can download cannot
 # carry it.
 #
+# This is the RK3588/Jetson variant. The Pi preset uses a different file
+# (devices/place_embedder_pi.yaml, DINOv2-small dynamic-INT8) because its
+# embedder runs on the Pi's own CPU, not the RK3588/Jetson CPU this file's
+# figures assume. The gallery is bound to whichever embedder produced its
+# vectors: switching models without rebuilding the gallery from scratch
+# produces silent noise, not an error.
+#
 # Skipping this step is allowed and is not silent about consequences here, but
 # it is silent at runtime. Upstream server/config.py:57 defaults
 # `embedder_backend` to `fake`; server/api.py:53 only constructs OnnxEmbedder

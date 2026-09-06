@@ -198,20 +198,22 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 | Pi 访问不到服务端口 | 设备是从那个端口拉商品库的，不是走界面。在 Pi 上试，不要在另一个网络的浏览器上试。 |
 | 8089 端口被占用 | 在向导里改掉，并把同一个值给设备。 |
 
-## 步骤 2: 放置嵌入模型 {#p2_embed type=manual required=true config=devices/place_embedder.yaml}
+## 步骤 2: 放置嵌入模型 {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
-把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。
+把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。这个套餐用的是
+DINOv2-small，不是 RK3588/Jetson 套餐用的 DINOv2-base 文件——商品库与建它的那个
+模型绑定，两者不能互换。
 
 ### 前置条件
 
 - 步骤 1 的管理端栈，停着或跑着都行——文件放在它的 compose 文件旁边，
   下一次 `docker compose up -d server` 时生效。
-- `dinov2b_arcface_products10k_224_b1.onnx`，348 MB，sha256
-  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+- `dinov2s_arcface_products10k_224_b1_dynint8.onnx`，23,541,073 字节，sha256
+  `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`。
   本包不含它：`use_scope: non-commercial`、`redistributable: false`
   （JD Products-10K 条款，在其上微调的权重继承该范围）。骨干
-  `facebook/dinov2-base` 是 Apache-2.0；限制来自训练数据。
-- 管理端主机上 350 MB 空闲空间。
+  `facebook/dinov2-small` 是 Apache-2.0；限制来自训练数据。
+- 管理端主机上 30 MB 空闲空间。
 
 ### 故障排查
 

@@ -238,22 +238,24 @@ Same console stack as every preset — registration service, management UI, brok
 | The Pi cannot reach the service port | Devices pull the gallery over that port, not through the UI. Check it from the Pi, not from a browser on another network. |
 | Port 8089 already in use | Change it in the wizard and give devices the same value. |
 
-## Step 2: Place the Embedding Model {#p2_embed type=manual required=true config=devices/place_embedder.yaml}
+## Step 2: Place the Embedding Model {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
 Puts the DINOv2 ONNX where the console mounts it and switches the server off
-the placeholder embedder.
+the placeholder embedder. This preset uses DINOv2-small, not the DINOv2-base
+file used by the RK3588/Jetson presets — the gallery is bound to whichever
+model built it, and the two are not interchangeable.
 
 ### Prerequisites
 
 - The console stack from Step 1, stopped or running — the file is placed next
   to its compose file and picked up on the next `docker compose up -d server`.
-- `dinov2b_arcface_products10k_224_b1.onnx`, 348 MB, sha256
-  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is not
+- `dinov2s_arcface_products10k_224_b1_dynint8.onnx`, 23,541,073 bytes, sha256
+  `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`. It is not
   shipped with this package: `use_scope: non-commercial`,
   `redistributable: false` (JD Products-10K terms, inherited by weights
-  fine-tuned on it). The backbone `facebook/dinov2-base` is Apache-2.0; the
+  fine-tuned on it). The backbone `facebook/dinov2-small` is Apache-2.0; the
   restriction comes from the training data.
-- 350 MB of free space on the console host.
+- 30 MB of free space on the console host.
 
 ### Troubleshooting
 
