@@ -119,6 +119,16 @@ exact reCamera topic and payload shapes are all still unverified on hardware, an
 the detector image digests are recorded as pending in
 `eldercare-alarm/release/PINNING.md`. Treat every deployment as a commissioning
 exercise until you have watched a real alarm complete on your own site.
+On 2026-09-06, this closed the loop once on a standard (non-PoE) reCamera One
+over USB-RNDIS: real `fall-detection` MQTT frames, an injected fall alarm and a
+real 60 s no-activity alarm both reached a webhook over the device's mosquitto
+broker (proxied through an SSH tunnel because a local network tool intercepted
+the direct route — not a device issue). Alert latency across 10 injected
+trials was P50 2487 ms / P95 2751 ms for the first 5, after which the
+notifier's own 5-per-10-minute rate limit silently stopped further sends —
+by design, not a fault. USB-disconnect recovery was not attempted (out of
+this session's authorized scope). See
+`eldercare-alarm/evaluation/runs/2026-09-06-recamera-one/results.md`.
 
 ## Output Interfaces
 
