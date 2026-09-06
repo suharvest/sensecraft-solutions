@@ -1,0 +1,96 @@
+version: "1.0"
+id: network_face_database
+name: Face Library Distribution and Device Status
+name_i18n:
+  zh: 人脸库下发与设备状态
+type: web_dashboard
+inherit_host_from: cloud_web
+
+# The distribution half of the console, as its own step.
+#
+# `register_person` is the write side — enrol a person, mint a version. This
+# step is the *distribution* side: what the devices did with that version. They
+# are separate steps because they fail separately and are read by different
+# people. An enrolment that returns 200 and a device that never activates the
+# resulting version is the normal failure of this system, and it is invisible
+# on the person page.
+#
+# Why web_dashboard and not a panel: the app's only face-library panel is
+# `face_database` under `serial_camera`, whose schema requires a
+# `database_port: SerialPortRef` (spec/device.schema.json). There is no HTTP or
+# MQTT variant of it, and a plugin cannot register a panel. Until the app gains
+# `transport: serial | http_mqtt`, the network face library is reached through
+# the console's own page. That is the whole reason this file exists rather than
+# a second `face_database` panel.
+#
+# inherit_host_from reuses the host from the console step, so the address is
+# typed once.
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8088/#/devices"
+  title: Management Console — Devices and Library Versions
+  title_i18n:
+    zh: 管理界面 —— 设备与人脸库版本
+  description: >-
+    The cloud is the only writer. Enrolling, renaming, deleting or rolling back
+    all do the same thing: build a new version directory, sign its manifest with
+    HMAC-SHA256, write SHA256SUMS, and only then move `current`. If any of those
+    steps fails, `current` does not move — there is no state in which a device
+    can fetch a version the server did not finish writing.
+
+    Devices pull; nothing is pushed. Each device polls
+    `GET /v1/facedb/current`, compares the version with its own, and only on a
+    change downloads the files with HTTP `Range`, verifies each file's SHA-256
+    against the signed manifest, verifies the manifest signature, switches
+    atomically, and tells the recognition process to reload. A version whose
+    manifest carries no signature, or no `artifacts.gallery_v2`, is rejected by
+    the device rather than half-loaded.
+
+    This page is where that is visible. Per device it shows `desired_version`
+    (what the device last saw the server advertise) against `active_version`
+    (what it is actually matching against), the download state, whether the
+    signature verified, whether a reload is pending or errored, the clock
+    validity, and the last time it reported at all. Those two version numbers
+    disagreeing is the single most useful line in the system: it separates "the
+    device has not seen the new version yet" from "it saw it and could not
+    activate it".
+
+    The device's own `op:list` is available here too, as reconciliation only. A
+    person present on a device but not on the server can only have come from a
+    local enrol that bypassed the cloud, and the next activation overwrites it.
+    Treat that as something to investigate, not as a queue waiting to sync.
+
+    Timing, from the second on-device probe run (source:
+    `unmanned-store-access-recamera-std-probe-r2-2026-09-06.md` §2, standard
+    reCamera at 192.168.42.1): a full activation — poll, Range download, per-file
+    SHA, signature, atomic switch, gallery write, reload ack — measured
+    p50 491.6 ms and p95 507.8 ms over 20 runs on a 2-person, 16.5 KB library;
+    the `op:reload` round trip alone measured p50 100.0 ms over 25 runs. Those
+    are activation numbers, not door numbers. End-to-end recognition-to-relay
+    latency has not been measured on hardware and remains to be verified.
+  description_i18n:
+    zh: >-
+      云端是唯一写源。注册、改名、删除、回滚做的都是同一件事：生成一个新的版本目录、
+      用 HMAC-SHA256 给 manifest 签名、写 SHA256SUMS，最后才移动 `current`。其中任何
+      一步失败，`current` 都不动——不存在"设备拉到一个服务端没写完的版本"这种状态。
+
+      设备是拉，不是推。每台设备轮询 `GET /v1/facedb/current` 与本地版本比对，只有变了
+      才用 HTTP `Range` 下载文件、逐个文件按签名 manifest 校验 SHA-256、校验 manifest
+      签名、原子切换，再通知识别进程 reload。manifest 没有签名、或者缺
+      `artifacts.gallery_v2` 的版本，设备直接拒绝，不会加载一半。
+
+      这一页就是看这些的地方。每台设备显示 `desired_version`（设备上次轮询看到服务端
+      公告的版本）与 `active_version`（它实际在用来匹配的版本）、下载状态、签名是否
+      通过、reload 是否 pending 或报错、时钟是否可信，以及最后一次上报的时间。这两个
+      版本号不一致是整套系统里最有用的一行：它把"设备还没看到新版本"与"看到了但激活
+      失败"分开了。
+
+      设备自己的 `op:list` 在这里也能调，但只用于核对。只在设备上、不在服务端的人，
+      只可能来自绕过云端的本地 enroll，下一次激活会整份覆盖它。这要当成待查的异常，
+      不是"排队等同步"。
+
+      时延，取自第二轮真机探针（来源：`unmanned-store-access-recamera-std-probe-r2-2026-09-06.md`
+      §2，标准版 reCamera，192.168.42.1）：一次完整激活——轮询、Range 下载、逐文件 SHA、
+      验签、原子切换、落 gallery、reload ack——20 次实测 p50 491.6 ms、p95 507.8 ms，
+      库是 2 人 16.5 KB；单独的 `op:reload` 往返 25 次实测 p50 100.0 ms。这些是激活
+      时延，不是开门时延。识别到继电器动作的端到端时延尚未在真机上测过，需核实。

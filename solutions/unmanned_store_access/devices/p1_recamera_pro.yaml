@@ -27,9 +27,15 @@ type: manual
 # either. So: manual, with the reason on the record. Adding a `recamera_kit_app`
 # deployer is a small engine change and would replace this file.
 #
-# The 3.3 V sysfs GPIO variant (reCamera PoE / HQ PoE, GPIO 490/487/488 per the
-# design spec) follows the same steps with different pin numbers. Neither
-# variant has been wired or measured.
+# This descriptor covers reCamera Pro only. The standard reCamera (SG2002 —
+# 2002, 2002w, 2002 HQ PoE) is a different shape entirely and has its own
+# descriptor, devices/p3_recamera_std.yaml: it recognises on the camera, sends
+# events over MQTT and drives no lock at all, with the relay at the gateway.
+# Putting both under one preset made the standard unit look like a Pro with
+# different pin numbers, which it is not — its control plane is MQTT, not the
+# Pro's loopback 8125 HTTP.
+#
+# Nothing here has been wired or measured on hardware.
 
 steps:
   - id: reach_device
@@ -172,6 +178,47 @@ steps:
         HMAC 签名保完整性。没有第三种——明文地址又不配签名密钥时应用会拒绝启动，
         这是刻意的。无论选哪一种，应用都不会去改系统时钟：它从服务器 Date 头算出偏移，
         只修正自己的事件时间戳——改设备时钟既不该由它做，它也没有权限。
+    optional: false
+
+  - id: verify_activation
+    name: Confirm the library pull activated before testing the door
+    name_i18n:
+      zh: 测门之前先确认拉库已激活
+    description: >-
+      Check the library path on its own, before any face is put in front of the
+      camera — a door that does not open because the library never activated
+      looks exactly like a door that does not open because recognition failed.
+      Three values in the app's manifest.json have to agree with the console:
+      `key_id` with `USA_FACEDB_KEY_ID`, the signing secret with whatever
+      `USA_FACEDB_SECRET_FILE` (or `USA_FACEDB_SECRET`) holds, and
+      `match_threshold` with `USA_MATCH_THRESHOLD`. The first two disagreeing
+      means every new version is rejected at the device; the third disagreeing
+      means the door opens on a threshold that appears nowhere in the audit log.
+      Then enrol or rename one person in the console to mint a version, wait a
+      poll period plus the download, and run
+      `curl -sH "Authorization: Bearer <viewer token>"
+      http://<cloud host>:8088/api/devices/status`. This camera's row must show
+      `active_version` equal to `desired_version`, `signature.verified` true and
+      `reload.error` null. `desired_version` behind the server's `current` means
+      it has not polled yet; `desired_version` matching while `active_version`
+      lags means it saw the version and could not activate it, and `last_error`
+      says why. Expect `clock.valid` false on a device with no NTP — the
+      integrity boundary is the manifest signature, not the clock.
+    description_i18n:
+      zh: >-
+        在把任何一张脸放到摄像头前之前，先单独验证人脸库这条链路——"库根本没激活"导致的
+        门打不开，和"识别没通过"导致的门打不开，看起来一模一样。应用 manifest.json 里
+        有三个值必须与管理界面一致：`key_id` 对 `USA_FACEDB_KEY_ID`，签名密钥对
+        `USA_FACEDB_SECRET_FILE`（或 `USA_FACEDB_SECRET`）里的内容，`match_threshold`
+        对 `USA_MATCH_THRESHOLD`。前两个不一致的结果是每个新版本都在设备侧被拒；
+        第三个不一致的结果是门开在一个审计日志里根本查不到的阈值上。然后在管理界面注册或
+        改名一个人以生成新版本，等一个轮询周期加下载时间，跑
+        `curl -sH "Authorization: Bearer <viewer token>" http://<云端主机>:8088/api/devices/status`。
+        这台摄像头那一行必须是 `active_version` 等于 `desired_version`、
+        `signature.verified` 为 true、`reload.error` 为 null。`desired_version` 落后于
+        服务端 `current` 说明它还没轮询到；`desired_version` 对上了而 `active_version`
+        落后，说明它看到了却没激活成功，`last_error` 会说原因。没有 NTP 的设备上
+        `clock.valid` 为 false 是预期内的——完整性边界在 manifest 签名上，不在时钟上。
     optional: false
 
   - id: verify_pulse
