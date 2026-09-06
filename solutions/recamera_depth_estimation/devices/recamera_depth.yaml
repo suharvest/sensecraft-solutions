@@ -23,11 +23,11 @@ binary:
   # K and the console's appMgr starts exactly one. Shipping S92 would mean
   # auto-start on boot, racing whatever the console brings up.
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_depth_estimation/packages/depth-estimation_0.1.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_depth_estimation/packages/depth-estimation_0.1.1_riscv64.deb
     name: depth-estimation
     includes_init_script: true
     checksum:
-      sha256: 827d8b47ca739807f6d01e9876665b48224c2977834771520ca7a3df835c98c3
+      sha256: 172f39596b7719e3af061011c892fced80bdbca5d8d844611b399fca0d529438
 
   service_name: depth-estimation
   service_priority: 92
