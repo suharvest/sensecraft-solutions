@@ -94,23 +94,34 @@ steps:
     name_i18n:
       zh: 放到 compose 挂载的位置，并把后端切过去
     description: >-
-      Copy the ONNX to `assets/console/models/` next to the compose file — the
-      server service mounts that directory as `/models:ro`. Then set
-      `RETAIL_EMBEDDER=onnx` in the `.env` beside the compose file and restart
-      the service with `docker compose up -d server`. `RETAIL_EMBEDDER_ONNX`
-      already defaults to `/models/dinov2b_arcface_products10k_224_b1.onnx`;
-      override it only if you placed a different filename. Upstream refuses to
-      start with `embedder_backend=onnx` and no path
-      (server/config.py:87-88), and onnxruntime fails on a missing file, so a
-      typo shows up as a container that will not come up rather than as bad
-      vectors. Registering a SKU before this step and keeping the gallery
-      afterwards does not work: vectors written by FakeEmbedder are not
-      comparable to vectors written by the real model. Register everything
-      again after switching.
+      In this package's local layout the file lives at
+      `assets/console/models/` next to the compose file — that directory
+      ships empty and is what `server` mounts as `/models:ro`. Once
+      `console_stack` has deployed, that directory exists on the console host
+      at `/home/{{username}}/edge-retail-recognition/console_stack/models/`
+      (the same remote path `console_stack`'s compose file and `.env` were
+      uploaded to); copy the ONNX there, not to a fresh location. Then set
+      `RETAIL_EMBEDDER=onnx` in the `.env` at
+      `/home/{{username}}/edge-retail-recognition/console_stack/.env` and
+      restart the service with `docker compose up -d server`.
+      `RETAIL_EMBEDDER_ONNX` already defaults to
+      `/models/dinov2b_arcface_products10k_224_b1.onnx`; override it only if
+      you placed a different filename. Upstream refuses to start with
+      `embedder_backend=onnx` and no path (server/config.py:87-88), and
+      onnxruntime fails on a missing file, so a typo shows up as a container
+      that will not come up rather than as bad vectors. Registering a SKU
+      before this step and keeping the gallery afterwards does not work:
+      vectors written by FakeEmbedder are not comparable to vectors written by
+      the real model. Register everything again after switching.
     description_i18n:
       zh: >-
-        把 ONNX 拷到 compose 文件旁边的 `assets/console/models/`——server 服务把这个目录
-        以 `/models:ro` 挂进去。然后在 compose 文件旁的 `.env` 里设
+        在本包的本地目录结构里，文件放在 compose 文件旁边的 `assets/console/models/`
+        ——这个目录随包发布时是空的，是 `server` 挂载为 `/models:ro` 的那个目录。
+        `console_stack` 部署完之后，管理端主机上会有这同一个目录：
+        `/home/{{username}}/edge-retail-recognition/console_stack/models/`
+        （与 `console_stack` 的 compose 文件、`.env` 上传到的是同一个远端路径）；
+        把 ONNX 拷到那里，不要另找位置。然后在
+        `/home/{{username}}/edge-retail-recognition/console_stack/.env` 里设
         `RETAIL_EMBEDDER=onnx`，用 `docker compose up -d server` 重启该服务。
         `RETAIL_EMBEDDER_ONNX` 已经默认指向
         `/models/dinov2b_arcface_products10k_224_b1.onnx`，只有换了文件名才需要覆盖。
