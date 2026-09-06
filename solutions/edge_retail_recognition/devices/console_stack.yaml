@@ -1,0 +1,269 @@
+version: "1.0"
+id: console_stack
+name: Registration Console
+name_i18n:
+  zh: 注册管理端
+type: docker_deploy
+
+# NOT VERIFIED ON HARDWARE. Neither image exists: `edge-retail-server` and
+# `edge-retail-web` have never been pushed to any registry, because the upstream
+# project builds them from a repository checkout. Both variables are required
+# with no default, so this step stops at the first `docker compose up` until
+# they are supplied — that is the intended behaviour, not a gap to paper over
+# with a placeholder tag.
+#
+# The SPA is built on the host before the image is built. The images do not run
+# npm: a node_modules tree on an arm64 board is larger than the service itself,
+# and the bundle that ships has to be the one that was reviewed.
+#
+# This is the only container stack in the package. There is no device-side
+# service to deploy alongside it — the upstream repository has the detector
+# backends, the embedder protocol, the gallery and the aggregation logic, but
+# no process that joins them. The platform steps are therefore manual.
+
+docker:
+  compose_file: assets/console/docker-compose.yml
+  compose_dir: assets/console
+  options:
+    project_name: edge_retail_console
+    remove_orphans: true
+  services:
+    - name: server
+      port: 8089
+      required: true
+    - name: web
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: ubuntu
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # Pulls or loads two locally built images plus eclipse-mosquitto. 900 s is a
+  # budget for a slow link, not a measurement — nothing has been pulled here.
+  command_timeout: 900
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: Two service images, the gallery volume with its per-version vectors, and the SQLite projection of the event stream.
+
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-retail-recognition
+  compose_dir: assets/console
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check Docker and that both images are present
+        run: |
+          set -e
+          docker compose version >/dev/null 2>&1 || {
+            echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
+          # Neither image is published. Failing here with the image name printed
+          # is more useful than failing inside `compose up` with a registry
+          # error that points at a host that never had it.
+          for IMG in "{{server_image}}" "{{web_image}}"; do
+            if docker image inspect "$IMG" >/dev/null 2>&1; then
+              echo "present: $IMG"
+            else
+              echo "MISSING: $IMG — build it from the upstream repository on this host (see the compose file header) or push it to a registry this host can reach." >&2
+              exit 1
+            fi
+          done
+          echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        name_i18n:
+          zh: 检查 Docker 与两个镜像是否就位
+
+    after_upload:
+      - name: Write the console environment file
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-retail-recognition/console_stack"
+          find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+          umask 077
+          # The token table is the whole authorisation model: viewer reads,
+          # operator additionally publishes, admin registers, replaces and
+          # rolls back. Empty entries are dropped so an unused role does not
+          # become an empty token matching an empty header.
+          TOKENS="{{admin_token}}:admin"
+          [ -n "{{operator_token}}" ] && TOKENS="$TOKENS,{{operator_token}}:operator"
+          [ -n "{{viewer_token}}" ] && TOKENS="$TOKENS,{{viewer_token}}:viewer"
+          cat > "$WORKDIR/.env" <<EOF
+          RETAIL_SERVER_IMAGE={{server_image}}
+          RETAIL_WEB_IMAGE={{web_image}}
+          RETAIL_WEB_TOKENS=$TOKENS
+          SERVER_PORT={{server_port}}
+          WEB_PORT={{web_port}}
+          MQTT_PORT={{mqtt_port}}
+          EOF
+          echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
+        name_i18n:
+          zh: 写入管理端环境文件
+
+    after:
+      - name: Confirm the service answers and the token gate holds
+        timeout: 300
+        run: |
+          set -e
+          API="http://127.0.0.1:{{server_port}}"
+          for i in $(seq 1 40); do
+            curl -s -o /dev/null "$API/v1/gallery" && break
+            sleep 5
+          done
+          # There is no anonymous read. A 200 here would be a finding, not a
+          # pass: it would mean the token gate is not in front of the gallery,
+          # and the gallery is the whole product catalogue.
+          ANON=$(curl -s -o /dev/null -w '%{http_code}' "$API/v1/gallery")
+          echo "anonymous GET /v1/gallery -> HTTP $ANON (401 or 403 expected — anything else means the token gate is not in front of the data)"
+          echo
+          AUTHED=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer {{admin_token}}" "$API/v1/gallery")
+          echo "admin GET /v1/gallery -> HTTP $AUTHED (200 expected; the gallery is empty until the first registration, which is correct, not an error)"
+          echo "--- containers ---"
+          docker ps --filter name=retail- --no-trunc
+          echo "--- server log tail ---"
+          docker logs --tail 30 retail-server 2>&1 || true
+        ignore_error: true
+        name_i18n:
+          zh: 确认服务已响应且 token 闸门生效
+
+  user_inputs:
+    - id: host
+      name: Console Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      name_i18n:
+        zh: 管理端主机 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: ubuntu
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: server_image
+      name: Registration Service Image
+      type: text
+      required: true
+      placeholder: "edge-retail-server:0.1.0-dev"
+      description: >-
+        This image has never been published. Build it on this host from the
+        upstream repository with platforms/console/Dockerfile.server and put
+        the tag you built here. Pin a digest if your registry gives you one:
+        gallery vectors written by one build are only comparable to vectors
+        written by the same embedding model and the same preprocessing, and the
+        symptom of a mismatch is "nothing is recognised", not a version error.
+      name_i18n:
+        zh: 注册服务镜像
+      description_i18n:
+        zh: >-
+          这个镜像从未发布过。在这台主机上用上游仓库的
+          platforms/console/Dockerfile.server 构建，把构建出的 tag 填在这里。
+          registry 给得出 digest 就钉 digest：一个构建写出的商品库向量，只与同一个嵌入模型、
+          同一套预处理写出的向量可比，对不上的症状是"什么都认不出来"，不是显眼的版本错误。
+    - id: web_image
+      name: Management UI Image
+      type: text
+      required: true
+      placeholder: "edge-retail-web:0.1.0-dev"
+      description: >-
+        Also never published. Build the SPA first
+        (`npm --prefix web/ui ci && npm --prefix web/ui run build`), then build
+        this image with platforms/console/Dockerfile.web. The image does not
+        run npm.
+      name_i18n:
+        zh: 管理界面镜像
+      description_i18n:
+        zh: >-
+          同样从未发布过。先构建 SPA（`npm --prefix web/ui ci && npm --prefix web/ui run build`），
+          再用 platforms/console/Dockerfile.web 构建这个镜像。镜像里不跑 npm。
+    - id: admin_token
+      name: Admin Token
+      type: password
+      required: true
+      description: Registers SKUs, replaces them and rolls the gallery back. Give it to whoever decides what is in the product catalogue.
+      name_i18n:
+        zh: Admin Token
+      description_i18n:
+        zh: 可以注册 SKU、替换 SKU、回滚商品库。发给有权决定"商品目录里有什么"的人。
+    - id: operator_token
+      name: Operator Token
+      type: password
+      required: false
+      description: Read access plus the device-side publishing role. Cannot change the gallery.
+      name_i18n:
+        zh: Operator Token
+      description_i18n:
+        zh: 只读权限，外加设备侧的上报角色。不能改商品库。
+    - id: viewer_token
+      name: Viewer Token
+      type: password
+      required: false
+      description: Read only — events, summaries, gallery versions. Cannot register anything.
+      name_i18n:
+        zh: Viewer Token
+      description_i18n:
+        zh: 只读——事件、汇总、商品库版本。不能注册任何东西。
+    - id: server_port
+      name: Registration Service Port
+      type: text
+      default: "8089"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      description: Devices pull the gallery from this port. It must be reachable from every recognition device, not only from the browser.
+      name_i18n:
+        zh: 注册服务端口
+      description_i18n:
+        zh: 设备从这个端口拉商品库。它必须对每一台识别设备可达，不只是对浏览器可达。
+    - id: web_port
+      name: Management UI Port
+      type: text
+      default: "8080"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      description: Put a reverse proxy terminating TLS in front of this before anyone outside the local network can reach it. A shared bearer token over plain HTTP is not authentication.
+      name_i18n:
+        zh: 管理界面端口
+      description_i18n:
+        zh: 在本地网络之外能访问它之前，先在前面放一个终止 TLS 的反向代理。共享 bearer token 走明文 HTTP 等于没有鉴权。
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      description: >-
+        The bundled broker configuration is anonymous plaintext and says so at
+        the top of config/mosquitto.conf. Anyone who can reach this port can
+        publish forged recognition events onto retail/v1/events. Bench only —
+        add accounts and TLS before this leaves a lab bench.
+      name_i18n:
+        zh: MQTT 端口
+      description_i18n:
+        zh: >-
+          随包的 broker 配置是匿名明文，config/mosquitto.conf 开头就写了这一条。
+          任何能访问这个端口的人都能往 retail/v1/events 上灌伪造事件。只能用于台面测试——
+          离开实验台之前先加账号与 TLS。

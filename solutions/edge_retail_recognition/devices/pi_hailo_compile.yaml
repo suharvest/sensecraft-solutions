@@ -1,0 +1,172 @@
+version: "1.0"
+id: pi_hailo_compile
+name: Compile the HEF and Prepare the Pi
+name_i18n:
+  zh: 编译 HEF 并准备 Pi
+type: manual
+
+# Manual for the same two reasons as the Rockchip step: the Hailo Dataflow
+# Compiler is x86_64 only, so the HEF is built off-device, and there is no
+# device-side service to start — the upstream repository has the Hailo detector
+# backend and the shared decode/NMS, but no process that joins detection,
+# embedding, gallery lookup and MQTT publishing.
+#
+# This preset is the one where both stages have actually run on the target
+# hardware. The numbers in the steps below are from
+# evaluation/runs/2026-09-06-det-hef/ (status: measured) and
+# evaluation/runs/2026-09-06-embed-small/ §8.4.
+#
+# LICENCE: the HEF is compiled from weights trained on SKU-110K
+# (academic-only, derivative works forbidden) and the embedder from weights
+# fine-tuned on Products-10K (non-commercial). Neither is redistributed here.
+
+steps:
+  - id: hailo_versions
+    name: Pin HailoRT, the driver and the firmware to one version
+    name_i18n:
+      zh: 把 HailoRT、驱动与固件钉在同一个版本
+    description: >-
+      The measured run used HailoRT 4.21.0 and hailort-pcie-driver 4.21.0 on
+      the Pi, both `apt-mark hold`, with firmware 4.21.0 and the compiler side
+      on DFC 3.31.0 / HailoRT 4.21.0 — same version on both ends, no ABI
+      mismatch. `/etc/modprobe.d/hailo.conf` carries
+      `force_desc_page_size=4096`: the Pi 5 uses 16 KB pages and the Hailo-8
+      expects 4 KB descriptors, and without this the device does not come up
+      reliably. Confirm `/dev/hailo0` exists and that nothing else holds it —
+      in the measured run a face-recognition container had to be stopped for
+      the duration, and the numbers below are therefore for exclusive use of
+      the accelerator.
+    description_i18n:
+      zh: >-
+        实测那一轮 Pi 上是 HailoRT 4.21.0 + hailort-pcie-driver 4.21.0，两个包都
+        `apt-mark hold`，固件 4.21.0，编译侧是 DFC 3.31.0 / HailoRT 4.21.0——
+        两端同版本，没有 ABI 错配。`/etc/modprobe.d/hailo.conf` 里带
+        `force_desc_page_size=4096`：Pi 5 是 16 KB 页而 Hailo-8 要 4 KB descriptor，
+        不加这一条设备起不稳。确认 `/dev/hailo0` 存在且没有别的进程占着它——
+        实测那一轮临时停掉了一个人脸识别容器，因此下面的数字是独占加速器时的值。
+    optional: false
+
+  - id: hailo_compile
+    name: Compile the HEF on an x86_64 host
+    name_i18n:
+      zh: 在 x86_64 主机上编译 HEF
+    description: >-
+      In the Hailo AI SW Suite container on an x86_64 machine, run
+      `platforms/hailo/dfc/compile_hef_o1.sh` with
+      `yolox_tiny_sku110k_640_o1.alls` (optimization_level=1,
+      compression_level=0) and a 256-image calibration set sampled evenly from
+      the training split and letterboxed to 640x640 with no normalisation. The
+      measured compile took 1177 s end to end: 9 s to parse the nine end nodes,
+      543 s to optimize with bias correction and layer noise analysis actually
+      running, 625 s to compile. Single-context compilation fails on this model
+      and the compiler falls back to a two-context partition; the root cause is
+      not located, but the runtime cost of that fallback was measured on
+      hardware and is inside the 9 ms figure below. Make the calibration
+      directory world-writable before mounting it — the container's hailo user
+      needs to write its cache there.
+    description_i18n:
+      zh: >-
+        在 x86_64 机器上的 Hailo AI SW Suite 容器里跑
+        `platforms/hailo/dfc/compile_hef_o1.sh`，配
+        `yolox_tiny_sku110k_640_o1.alls`（optimization_level=1、compression_level=0）
+        和 256 张校准图——从训练集等间隔抽、letterbox 到 640x640、不做归一化。
+        实测整轮编译 1177 s：解析 9 个 end node 用 9 s，optimize 543 s
+        （Bias Correction 与 Layer Noise Analysis 都真的跑了，没有自动降级），
+        compile 625 s。这个模型的 single context 编译会失败，编译器自动切到两 context 分区；
+        根因未定位，但这次降级的运行时代价已经在真机上测掉，含在下面那个 9 ms 里。
+        挂载校准目录之前先把它改成可写——容器里的 hailo 用户要往那里写 cache。
+    optional: false
+
+  - id: hailo_output_order
+    name: Know the one thing that fails silently — output vstream order
+    name_i18n:
+      zh: 记住唯一一处会静默出错的地方——输出 vstream 的顺序
+    description: >-
+      The nine output vstreams on hardware are named after DFC conv numbers and
+      enumerate in descending order within each scale (conv56, conv55, conv54,
+      then conv70, conv69, conv68, then conv83, conv82, conv81). Sorting them
+      by trailing number ascending — which is correct for the DFC emulator's
+      `output_layer1..9` — puts the one-channel class output where the
+      four-channel box regression belongs. The boxes still appear and the
+      coordinates are all wrong. The upstream Hailo detector therefore takes
+      the order straight from `HEF.get_output_vstream_infos()` and asserts that
+      the regression output has four channels and that the three scale sizes
+      are inversely proportional to their strides, so the wrong order is
+      rejected at the first position instead of passing silently. If you
+      recompile, do not reorder `dfc/end_nodes.txt`.
+    description_i18n:
+      zh: >-
+        真机上 9 个输出 vstream 的名字是 DFC 生成的 conv 编号，**每个尺度内部是降序**
+        枚举（conv56、conv55、conv54，然后 conv70、conv69、conv68，然后 conv83、conv82、conv81）。
+        按名字尾部数字升序排——那条规则只对 DFC emulator 的 `output_layer1..9` 成立——
+        会把 1 通道的分类输出排到 4 通道的框回归位置上。框还在，坐标全错。
+        上游的 Hailo 检测器因此直接用 `HEF.get_output_vstream_infos()` 的枚举顺序，
+        并断言回归输出必须是 4 通道、三个尺度的边长与 stride 成反比，
+        错排会在第一个位置就被拦下来，不会静默通过。重新编译时不要改
+        `dfc/end_nodes.txt` 的顺序。
+    optional: false
+
+  - id: hailo_embed_cpu
+    name: Put the embedder on the CPU — the NPU path does not work
+    name_i18n:
+      zh: 把嵌入器放在 CPU 上——NPU 那条路不通
+    description: >-
+      Two Hailo DFC quantisation attempts were made on the DINOv2-small
+      embedder and both failed the ≤3 pp acceptance threshold. The default
+      profile lost 20.85 to 44.06 percentage points of top-1 on Grocery Store
+      and 37.27 to 39.04 on unseen Products-10K SKUs. The aggressive profile
+      (equalization plus bias correction plus the quantisation-aware
+      fine-tuning that optimization_level=2 triggers) collapsed outright: all
+      8171 evaluation images produced the identical embedding vector, AUROC
+      exactly 50.00, output-layer SNR negative. No HEF was produced for the
+      embedder, so there is no device latency figure for that path and there is
+      no partial credit to take. Run the embedder on the Pi's own CPU instead,
+      as the dynamically quantised INT8 DINOv2-small: 91.95 ms p50 and 105.98
+      ms p95 per crop on four threads, measured on this hardware, against
+      180.75 / 233.41 ms for the same model in fp32. Its retrieval accuracy is
+      within 0.65 pp of that fp32 baseline across all seven measured
+      configurations, so the quantisation is free in accuracy terms and pays
+      2x in latency. Weight-only quantisation is what makes that work; the
+      static QDQ variant that also quantises activations lost 3.78 to 9.96 pp
+      and is not usable.
+    description_i18n:
+      zh: >-
+        对 DINOv2-small 嵌入器做过两档 Hailo DFC 量化，两档都没过 ≤3pp 的验收线。
+        default 档在 Grocery Store 上 top-1 掉 20.85–44.06 个百分点，在 Products-10K
+        未见 SKU 上掉 37.27–39.04。激进档（equalization + bias correction +
+        optimization_level=2 触发的量化感知微调）直接塌缩：8171 张评测图产出的嵌入向量
+        完全相同，AUROC 精确等于 50.00，输出层 SNR 为负。嵌入器没有生成 HEF，
+        所以那条路径没有设备延迟数据，也没有可以打折收下的部分成果。
+        改为在 Pi 自己的 CPU 上跑动态量化 INT8 的 DINOv2-small：四线程下单裁剪
+        p50 91.95 ms、p95 105.98 ms，这套硬件上实测，同模型 fp32 是 180.75 / 233.41 ms。
+        它的检索准确率与那条 fp32 基线在全部 7 个实测档位上相差 0.65pp 以内，
+        因此这次量化在准确率上是白拿的，延迟上换到 2 倍。起作用的是"只量化权重"；
+        连激活一起量化的静态 QDQ 变体掉 3.78–9.96pp，不能用。
+    optional: false
+
+  - id: hailo_budget
+    name: Budget the frame — 9 ms of detection, 92 ms per crop of embedding
+    name_i18n:
+      zh: 做一帧的预算——检测 9 ms，每个裁剪嵌入 92 ms
+    description: >-
+      Detection is not the constraint on this board. Inference alone is 9.04 ms
+      p50 (110.4 fps single-stream), and end to end with letterboxing, output
+      assembly, decode and NMS it is 18.74 ms p50 / 24.25 ms p95 — the pure
+      numpy per-class NMS over roughly 160 boxes costs more than the inference
+      does. Embedding is the constraint: 92 ms per crop on the CPU. A checkout
+      basket of five items is about half a second of embedding and fits a lane.
+      A shelf frame at the measured density of 157.6 boxes is roughly 14
+      seconds of embedding, which is not a frame rate — shelf use needs frame
+      skipping, slot-level sampling, or an accelerator the embedder can
+      actually run on. Say which of those you are doing before installing
+      anything.
+    description_i18n:
+      zh: >-
+        这块板上检测不是瓶颈。纯推理 p50 9.04 ms（单流 110.4 fps），
+        端到端含 letterbox、输出拼接、解码与 NMS 是 p50 18.74 ms / p95 24.25 ms——
+        对约 160 个框做纯 numpy 的逐类 NMS，比推理本身还贵。瓶颈在嵌入：
+        CPU 上每个裁剪 92 ms。收银台一次五件商品约半秒嵌入，一条收银道够用。
+        货架一帧按实测密度 157.6 个框算约 14 秒嵌入，那不叫帧率——
+        货架场景需要抽帧、按货位采样，或者换一个嵌入器真能跑上去的加速器。
+        动手安装之前先把选哪一条说清楚。
+    optional: false

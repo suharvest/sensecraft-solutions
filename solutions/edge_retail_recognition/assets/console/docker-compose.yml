@@ -1,0 +1,125 @@
+# Console side — the SKU registration / query service, the management UI and a
+# broker. Derived from the upstream skeleton platforms/console/docker-compose.yml
+# (edge-retail-recognition @ d96326a). Two changes were made for packaging:
+#
+#   1. The upstream file uses `build:` against the repository root. A solution
+#      package has no repository to build from, so both services take an image
+#      reference instead.
+#   2. Neither image has been pushed anywhere. `RETAIL_SERVER_IMAGE` and
+#      `RETAIL_WEB_IMAGE` are therefore required with no default: compose stops
+#      at the first `up` until they are supplied. That is the intended
+#      behaviour, not a gap to paper over with a tag that resolves to nothing.
+#
+# Build them on the host from the upstream repository. The SPA is built on the
+# host first — the images do not run npm, because a node_modules tree on an
+# arm64 board is larger than the whole service and the built bundle has to
+# match the one that was reviewed:
+#
+#   npm --prefix web/ui ci && npm --prefix web/ui run build
+#   docker build -f platforms/console/Dockerfile.server -t <your-registry>/edge-retail-server:<tag> .
+#   docker build -f platforms/console/Dockerfile.web    -t <your-registry>/edge-retail-web:<tag> .
+#
+# Then set both variables to the tags you built — pin a digest if the registry
+# gives you one, because the gallery vectors written by one server build are
+# only comparable to vectors written by the same embedding model and the same
+# preprocessing.
+#
+# The broker configuration in config/mosquitto.conf is anonymous plaintext and
+# says so at the top: anyone who can reach port 1883 can publish forged
+# recognition events. Bench only.
+
+name: edge-retail-console
+
+x-logging: &bounded_logs
+  # Bounded logs. A checkout lane runs for months; unbounded json-file logging
+  # fills the rootfs and takes the till with it.
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  mosquitto:
+    # Digest-pinned. The tag is mutable; a rebuild months later would otherwise
+    # pull a different broker under the same name. Digest read from the
+    # registry with `docker buildx imagetools inspect eclipse-mosquitto:2.0.20`
+    # on 2026-09-07 — it is the OCI image index, so it still resolves per
+    # architecture on both amd64 and arm64 hosts.
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb
+    container_name: retail-mosquitto
+    restart: unless-stopped
+    <<: *bounded_logs
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+
+  server:
+    image: ${RETAIL_SERVER_IMAGE:?set RETAIL_SERVER_IMAGE to an image you built from the upstream repository}
+    container_name: retail-server
+    restart: unless-stopped
+    <<: *bounded_logs
+    depends_on:
+      - mosquitto
+    environment:
+      # Tokens are injected by the deployer. There is no built-in default and
+      # no anonymous read — the service refuses to start with none configured.
+      RETAIL_WEB_TOKENS: ${RETAIL_WEB_TOKENS:?set RETAIL_WEB_TOKENS as <token>:<role>[,...]}
+      RETAIL_GALLERY_ROOT: /data/gallery
+      RETAIL_WEB_DB: /data/events.sqlite3
+      RETAIL_MQTT_HOST: mosquitto
+      RETAIL_MQTT_PORT: "1883"
+      # Embedding backend. Upstream server/config.py:57 defaults
+      # `embedder_backend` to `fake`, and server/api.py:53 picks OnnxEmbedder
+      # only when it is `onnx`; RETAIL_EMBEDDER / RETAIL_EMBEDDER_ONNX are the
+      # env names it reads (server/config.py:131-132). The default below is
+      # `fake` on purpose — the weights are not shipped with this package
+      # (Products-10K terms, non-commercial, not redistributable), so a
+      # freshly cloned package has no ONNX to load and `onnx` with a missing
+      # file would refuse to start.
+      #
+      # WITH `fake`, THE SERVICE STARTS AND REGISTRATION SUCCEEDS, BUT EVERY
+      # VECTOR IS A HASH OF THE IMAGE BYTES. Retrieval results are meaningless.
+      # Upstream prints no warning and GET /api/health does not report the
+      # backend (server/api.py:302-305), so nothing at runtime will tell you.
+      # Place the model as described in the "Place the Embedding Model" guide
+      # step, then set RETAIL_EMBEDDER=onnx in .env.
+      RETAIL_EMBEDDER: ${RETAIL_EMBEDDER:-fake}
+      RETAIL_EMBEDDER_ONNX: ${RETAIL_EMBEDDER_ONNX:-/models/dinov2b_arcface_products10k_224_b1.onnx}
+      RETAIL_EMBEDDER_ACCELERATOR: ${RETAIL_EMBEDDER_ACCELERATOR:-cpu}
+      # The UI is served by the web container; the server does not mount static
+      # files. Set this to the dist path instead if you drop the web service.
+      RETAIL_WEB_UI_DIST: ""
+    volumes:
+      # The gallery is writable state and has to survive a container rebuild:
+      # lose a version directory and the gallery.version / sha256 a device
+      # reports no longer matches anything that exists.
+      - gallery:/data
+      # The embedding model, placed by hand next to this compose file. Read
+      # only: nothing in the service writes it, and a gallery is only
+      # comparable to vectors produced by the same file. The directory may be
+      # empty — the mount succeeds either way and the service then runs with
+      # the FakeEmbedder described above.
+      - ./models:/models:ro
+    ports:
+      - "${SERVER_PORT:-8089}:8089"
+    command: >-
+      uvicorn server.api:app_factory --factory --host 0.0.0.0 --port 8089
+
+  web:
+    image: ${RETAIL_WEB_IMAGE:?set RETAIL_WEB_IMAGE to an image you built from the upstream repository}
+    container_name: retail-web
+    restart: unless-stopped
+    <<: *bounded_logs
+    depends_on:
+      - server
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  gallery:
+  mosquitto_data:

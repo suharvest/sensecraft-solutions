@@ -1,0 +1,121 @@
+version: "1.0"
+id: rk3588_convert
+name: Convert and Check the Detector on Rockchip
+name_i18n:
+  zh: 在 Rockchip 上转换并核对检测器
+type: manual
+
+# Manual, and the reason is structural rather than a shortcut. Two things are
+# missing for an automated step:
+#
+#   1. The `.rknn` cannot be produced on the board. rknn-toolkit2 is x86_64
+#      only; the device runs rknnlite, which loads but does not convert. The
+#      conversion therefore happens on a separate host and the artifact is
+#      copied over — the deployment engine has no step type that spans two
+#      machines that way.
+#   2. There is no device-side service to start. The upstream repository has
+#      the RKNN conversion and inference scripts, the shared decode/NMS, the
+#      gallery and the aggregation logic, but no process that joins detection,
+#      embedding, lookup and MQTT publishing. `platforms/` holds console, hailo
+#      and rknn; there is no rknn compose file and no rknn runtime image.
+#
+# What this step does deliver is the conversion and an on-device parity check
+# against the CPU golden, which is the same procedure that produced the
+# measured numbers quoted on the solution page.
+#
+# LICENCE: the ONNX this converts is trained on SKU-110K, which is
+# academic-and-non-commercial with derivative works forbidden. The weights are
+# not redistributed with this package and the `.rknn` you build inherits that
+# scope.
+
+steps:
+  - id: rk_convert
+    name: Convert the ONNX to .rknn on an x86_64 host
+    name_i18n:
+      zh: 在 x86_64 主机上把 ONNX 转成 .rknn
+    description: >-
+      From a clone of the upstream repository, on an x86_64 machine with
+      rknn-toolkit2 2.3.2 installed, run
+      `platforms/rknn/convert_rk3588.py --onnx yolox_tiny_sku110k_640.onnx
+      --out-dir out --precision fp16`. Two pins matter and are already recorded
+      upstream: onnx must be 1.16.1 (later versions that dropped `onnx.mapping`
+      fail inside `load_onnx`) and setuptools must be below 81 (81 removed
+      `pkg_resources`). The toolkit version and the device's `librknnrt.so`
+      version must match — 2.3.2 against 2.3.2 in the measured run. For the
+      INT8 variant, build the calibration set with
+      `prepare_calib_images.py --count 64` sampled evenly across the whole
+      validation directory: taking the first N files by name lands you inside
+      one capture batch and the quantisation scales are then set by that batch
+      alone. Preprocessing is `mean=0 / std=1` on purpose — the model has no
+      normalisation layer, so letterboxed 0–255 BGR goes in unchanged, matching
+      the CPU path bit for bit.
+    description_i18n:
+      zh: >-
+        在上游仓库的克隆里、一台装了 rknn-toolkit2 2.3.2 的 x86_64 机器上跑
+        `platforms/rknn/convert_rk3588.py --onnx yolox_tiny_sku110k_640.onnx
+        --out-dir out --precision fp16`。两个版本钉死很重要，上游已经记下来了：
+        onnx 必须是 1.16.1（更高且已删 `onnx.mapping` 的版本会在 `load_onnx` 报错），
+        setuptools 必须低于 81（81 起没有 `pkg_resources`）。toolkit 版本要与设备上
+        `librknnrt.so` 的版本一致——实测那一轮是 2.3.2 对 2.3.2。要 INT8 变体的话，
+        用 `prepare_calib_images.py --count 64` 从整个 val 目录等间隔抽校准图：
+        按文件名取前 N 张会落进同一个拍摄批次，量化 scale 就只按那个批次定了。
+        预处理是 `mean=0 / std=1`，这是刻意的——模型没有归一化层，letterbox 后的
+        0–255 BGR 原样进去，与 CPU 路径逐位一致。
+    optional: false
+
+  - id: rk_copy
+    name: Copy the artifact to the board and check the runtime version
+    name_i18n:
+      zh: 把产物拷到板上并核对运行时版本
+    description: >-
+      Copy the `.rknn` and record its sha256 on both sides. On the board,
+      confirm the runtime: `strings /usr/lib/librknnrt.so | grep -i "librknnrt
+      version"`. A toolkit/runtime mismatch does not always fail loudly — it can
+      load and produce wrong numbers. The measured run used a Radxa ROCK 5T
+      with librknnrt 2.3.2 and driver 0.9.8. Note that the board in that run
+      had no cv2 or PIL in its system Python and none were installed, to avoid
+      contaminating a machine other projects were using: images were
+      letterboxed elsewhere and shipped over as one `(N, 640, 640, 3)` uint8
+      BGR `.npy`, so the device script needs only numpy and rknnlite.
+    description_i18n:
+      zh: >-
+        把 `.rknn` 拷过去，两边都记下 sha256。在板上确认运行时：
+        `strings /usr/lib/librknnrt.so | grep -i "librknnrt version"`。
+        toolkit 与运行时版本不匹配不一定会明着报错——它可能加载成功但算出错的数。
+        实测那一轮用的是 Radxa ROCK 5T，librknnrt 2.3.2、driver 0.9.8。
+        注意那台机器的系统 Python 里没有 cv2 和 PIL，也没有装——为了不污染其它项目在用的
+        那个 python：图片在别处 letterbox 好，打包成一个 `(N, 640, 640, 3)` uint8 BGR
+        的 `.npy` 传过去，设备端脚本只需要 numpy 和 rknnlite。
+    optional: false
+
+  - id: rk_embed
+    name: Decide where embedding runs, and accept that it is the CPU
+    name_i18n:
+      zh: 定下嵌入跑在哪里——答案是 CPU
+    description: >-
+      There is no RKNN conversion of the embedder. It has not been attempted:
+      the upstream `backends/` directory holds an onnxruntime detector and a
+      Hailo detector, and the embedder exists as a protocol with an
+      onnxruntime reference implementation (`OnnxEmbedder`) that the other
+      backends are meant to be checked against. On this board the embedder
+      therefore runs on the Rockchip CPU through onnxruntime, and that path has
+      never been timed on RK3588 — the Pi 5 figure of 91.95 ms per crop for the
+      dynamically quantised DINOv2-small is the closest reference and is a
+      different CPU. Two artifacts exist upstream: the DINOv2-base fp32 ONNX
+      (348 MB, Grocery Store top-1 84.67% at eight registration images) and the
+      DINOv2-small dynamic-INT8 ONNX (23.5 MB, top-1 79.11% at the same k).
+      There is no fp16 variant of either. Budget the crop count accordingly:
+      a checkout basket is a handful of crops per frame, a shelf frame in the
+      measured set averaged 157.6 boxes.
+    description_i18n:
+      zh: >-
+        嵌入器没有 RKNN 转换，也没有尝试过：上游 `backends/` 下只有一个 onnxruntime
+        检测器和一个 Hailo 检测器，嵌入器是一个协议加一份 onnxruntime 参考实现
+        （`OnnxEmbedder`），其它后端本来要拿它当 golden 对。因此这块板上嵌入走
+        Rockchip CPU 上的 onnxruntime，而这条路径在 RK3588 上从没测过延迟——
+        最接近的参照是 Pi 5 上动态量化 DINOv2-small 单裁剪 91.95 ms，那是另一颗 CPU。
+        上游有两份产物：DINOv2-base fp32 ONNX（348 MB，每 SKU 8 张注册图时
+        Grocery Store top-1 84.67%）与 DINOv2-small 动态 INT8 ONNX（23.5 MB，
+        同一档 top-1 79.11%）。两者都没有 fp16 变体。按裁剪数量做预算：
+        收银台一帧几个裁剪，实测那批货架图平均一帧 157.6 个框。
+    optional: false
