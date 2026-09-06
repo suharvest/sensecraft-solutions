@@ -7,7 +7,7 @@ services:
     #   Docker-Content-Digest: sha256:04e26201…
     # registry 上现有的日期 tag（最新 20260820-*）都指向更早的构建，没有一个
     # 对应这枚 digest，所以只能按 digest 引用。发新版时改这一行。
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d  # registry 无对应 tag，见上方说明
     container_name: mcp_warehouse
     ports:
       - "2125:2125"
