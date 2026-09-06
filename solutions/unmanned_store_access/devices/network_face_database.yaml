@@ -27,7 +27,7 @@ inherit_host_from: cloud_web
 # typed once.
 
 web_dashboard:
-  url: "http://{{deploy.host}}:8088/#/devices"
+  url: "http://{{deploy.host}}:8088/devices"
   title: Management Console — Devices and Library Versions
   title_i18n:
     zh: 管理界面 —— 设备与人脸库版本
