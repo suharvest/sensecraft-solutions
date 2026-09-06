@@ -17,9 +17,13 @@ name: ${COMPOSE_PROJECT_NAME:-agri-env}
 
 services:
   homeassistant:
-    image: ghcr.io/home-assistant/home-assistant:stable
-    # Home Assistant only publishes the rolling `stable` tag — there is no
-    # semver tag to pin. Pin to a digest once an ARM64 target has been measured.
+    # 2026.9.1 是 `stable` 在 2026-09-06 指向的版本，digest 与 `stable` 完全一致：
+    #   curl -sI -H 'Accept: application/vnd.oci.image.index.v1+json' \
+    #     https://ghcr.io/v2/home-assistant/home-assistant/manifests/{stable,2026.9.1}
+    #   两者 Docker-Content-Digest 都是 sha256:612d7676…
+    # 按 digest 固定：`stable` 每月都会漂，同一份方案在不同时间部署会拿到不同的 HA。
+    # 升级 HA 时改这一行的版本号与 digest，不要退回 `stable`。
+    image: ghcr.io/home-assistant/home-assistant@sha256:612d76760b544cb40b7ba01387fdac964c59a6a550a50a4d30b4773c822d2918
     container_name: agri-env-homeassistant
     ports:
       - "${HA_PORT:-8123}:8123"
