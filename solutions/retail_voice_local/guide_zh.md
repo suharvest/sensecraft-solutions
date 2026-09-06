@@ -183,9 +183,9 @@ SenseVoice 跑在 6 TOPS NPU 上，CPU 因此可以同时承担标点恢复、�
 | 预检报 "RKNPU driver not bound" | 这块板不是 RK3576，或者内核没有 NPU 驱动。原因不是缺 `/dev/rknpu`——检查读的是 `/sys/bus/platform/drivers/RKNPU` |
 | `speech` 好几分钟一直 unhealthy | 下载 825 MB 模型时的正常现象。用 `docker logs -f openvoicestream` 跟踪 |
 | 模型下载卡住 | 把模型下载源在 HF 镜像和 huggingface.co 之间切换后重新部署 |
-| `voice-client` 起不来，提示镜像找不到 | `c4-local` tag 尚未发布。请从 sensecraft-voice-client 的 `feature/c4-harden` 分支构建并打上该 tag，或设置 `VOICE_CLIENT_IMAGE` |
+| `voice-client` 起不来，提示镜像找不到 | `c4-local` tag 尚未发布。请从 sensecraft-voice-client 的 `feature/c4-harden` 分支构建并打上该 tag，或设置 `VOICE_CLIENT_IMAGE`。真机核实（2026-09-06，RK3576 `cat-remote`，该设备本地已缓存 `sensecraft-voice-client:ovs-20260901b`）：这个 tag 同样支持 `vad=none` 本地 VAD、`asr_cache`、`speaker_embedding`，把 `VOICE_CLIENT_IMAGE` 指向它可以直接顶替本套餐、不用重新构建——但这个 tag 没有发布到任何 registry，只确认在那一台设备上存在。 |
 | `lsusb` 里看不到 reSpeaker | 换到 USB-A 主机口。`dmesg \| tail` 出现 `xhci-hcd` 总线注销，说明双角色控制器切到了 device 模式 |
-| 每次重启都重新下载模型 | 命名卷被删了。特别是 `rk-sensevoice-rknn` 里存着 502 MB 的产物，没有它每次重建都会重下 |
+| 每次重启都重新下载模型 | 命名卷被删了。特别是 `rk-sensevoice-rknn` 里存着 502 MB 的产物，没有它每次重建都会重下。另外 `rk-asr-models` 是个通用卷名，同一台设备上其他基于 OVS 的 RK3576 方案也会用到它（在 `cat-remote` 上实测发现与 `conversational_voice_ai` 部署共用）——它是跨方案共享的，不是本方案专属，对这套 compose 执行 `docker compose down -v` 会连带删掉那个方案缓存的模型 |
 
 ---
 
