@@ -124,12 +124,19 @@ The FP16 engine was also compared box-for-box against the same ONNX on CPU
 TensorRT side, mean IoU 0.9972 (minimum 0.8311), mean score difference 0.0011,
 mAP50 difference 0.0003. FP16 changed no frame's OK/NG verdict.
 
-### Hailo-8 — compiled and emulated, not yet run on hardware
+### Hailo-8 — compiled and emulated; 2026-09-06 on-device pass partially completed
 
 The Raspberry Pi 5 + Hailo-8 path has an INT8 HEF built with Dataflow Compiler
 3.31.0 / HailoRT 4.21.0, and its quantisation loss has been measured against the
-compiler's own emulator. **No figure in this section comes from Hailo hardware**,
-and no accuracy, throughput or latency number for that board exists yet.
+compiler's own emulator. A 2026-09-06 pass on fleet `harvest-pi` verified the
+HailoRT 4.21.0 driver/userspace/firmware triple, the HEF's tensor layout
+(`hailortcli parse-hef`), a native arm64 build of the runtime image, and the
+Python ABI match inside the container (3.11.2 against the cp311 wheel). **No
+accuracy, throughput or latency number for that board exists yet**: the sole
+Hailo-8 on harvest-pi was held exclusively by a pre-existing container outside
+this solution's scope that the task could not stop, so every `VDevice()`
+creation returned `HAILO_OUT_OF_PHYSICAL_DEVICES` and no real inference ran.
+See `evaluation/runs/2026-09-06-rpi-hailo/results.md` in the repository.
 
 Two HEF builds were compiled from the same ONNX and compared on the same 20
 validation images (45 boxes), chosen to be disjoint from the calibration set and
@@ -160,7 +167,7 @@ a Hailo-8. Full-validation accuracy on the board is still outstanding.
 |---|---|---|---|
 | TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, `2026-09-05-m2-orin` §1 |
 | Jetson image | 375 MB | `edge-inspection-jetson:0.1.0-dev`; host TensorRT and CUDA mounted rather than baked in | This measurement, `2026-09-05-m2-orin` |
-| Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; cross-built for arm64 on macOS, never run on a Pi | Cross-build measurement, `2026-09-05-m3-hef` §3.1 |
+| Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; natively built arm64 on harvest-pi on 2026-09-06 (444 MB), real inference not yet exercised (see Hailo-8 section) | Cross-build measurement `2026-09-05-m3-hef` §3.1; native build `2026-09-06-rpi-hailo` |
 
 ## Detector Selection: Baseline vs Advanced
 
