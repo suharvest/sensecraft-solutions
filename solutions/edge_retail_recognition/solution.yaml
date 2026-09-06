@@ -1,0 +1,455 @@
+# Supermarket product recognition. Upstream repo: ~/project/edge-retail-recognition
+# (HEAD d96326a at packaging time). Design spec: seeed-solutions-hub
+# docs/specs/e1-edge-retail-recognition-spec.md.
+#
+# LICENCE, before anything else, because it constrains what this package may be
+# used for:
+#
+#   * The detector weights are trained on SKU-110K. The Trax licence permits
+#     academic and non-commercial use and clause (iii) forbids derivative
+#     works, so the trained weights inherit `use_scope: academic-only` and
+#     `redistributable: false`. They are not shipped here.
+#   * The embedding weights are fine-tuned on JD Products-10K, whose terms
+#     restrict it to non-commercial research and education. The weights inherit
+#     `use_scope: non-commercial`, `redistributable: false`, and are not shipped
+#     here. The backbones themselves (facebook/dinov2-base, facebook/dinov2-small)
+#     are Apache-2.0 — the restriction comes from the training data.
+#   * Grocery Store Dataset (MIT) is used for retrieval evaluation only.
+#   * The project's own code is Apache-2.0.
+#
+# A commercial deployment must retrain both models on first-party or
+# permissively licensed capture. Full per-artifact fields (license_id,
+# use_scope, redistributable, source_revision, sha256) live in the upstream
+# models/MODEL-CARD.*.json; the summary is in gallery/ATTRIBUTION.md and in
+# both description files.
+#
+# NOTHING HERE CARRIES `verified: [hardware]`. Parts of it have run on
+# hardware — the RK3588 detector on a Radxa ROCK 5T, the Hailo-8 detector and
+# the CPU embedder on a Raspberry Pi 5 — and those numbers are on the page with
+# their source paths. What has never been run is this package: no preset has
+# been deployed through the engine, and the device-side pipeline that would
+# join detection, embedding, gallery lookup and MQTT into one process does not
+# exist upstream yet. The console stack is the only container stack, and
+# neither of its images has been pushed.
+version: "1.0"
+id: edge_retail_recognition
+name: Supermarket Product Recognition
+name_i18n:
+  zh: 超市商品图像识别
+
+intro:
+  summary: >-
+    Detect every product in a checkout or shelf frame with a single-class
+    detector, embed each crop, look it up in a versioned FAISS gallery, and
+    publish a SKU-to-quantity list or a shelf slot state over MQTT — a new SKU
+    is registered from 3 to 8 photographs, with no retraining.
+  summary_i18n:
+    zh: >-
+      用单类检测器框出收银台或货架画面里的每一件商品，对每个裁剪做嵌入，
+      在版本化的 FAISS 商品库里检索，再通过 MQTT 输出 SKU→数量清单或货位状态——
+      新 SKU 现场拍 3–8 张即注册，不重训模型。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/architecture.svg
+  gallery:
+    - type: image
+      src: gallery/architecture.svg
+      caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
+      caption_i18n:
+        zh: 一帧进去，SKU→数量清单出来——检测、嵌入与库检索在设备上，注册与查看在管理界面
+    - type: image
+      src: gallery/ui-events.png
+      caption: Recognition events by scene, SKU, device and time. Synthetic demo data from the upstream web_demo tool — the SKUs, scores and events are fixtures, not field results
+      caption_i18n:
+        zh: 按场景、SKU、设备与时间过滤的识别事件。上游 web_demo 工具产生的合成演示数据——SKU、分数与事件都是测试夹具，不是现场结果
+    - type: image
+      src: gallery/ui-event-detail.png
+      caption: One event, box by box — similarity, top-2 margin, the OCR block and whether a fallback was used. Synthetic demo data
+      caption_i18n:
+        zh: 单条事件的逐框详情——相似度、top-2 间距、OCR 块，以及是否用过兜底。合成演示数据
+    - type: image
+      src: gallery/ui-gallery.png
+      caption: The product gallery — register a SKU from 3–8 photographs, browse versions, roll back. Synthetic demo data; no real SKU was registered
+      caption_i18n:
+        zh: 商品库——用 3–8 张图注册一个 SKU、浏览版本、回滚。合成演示数据，没有注册过任何真实 SKU
+    - type: image
+      src: gallery/ui-board.png
+      caption: The checkout and shelf board — the most recent basket and the four-state slot snapshot. Synthetic demo data
+      caption_i18n:
+        zh: 收银台与货架看板——最近一次清单与货位四态快照。合成演示数据
+  category: sensing
+  solution_type: solution
+  tags:
+    - retail
+    - product-recognition
+    - object-detection
+    - image-retrieval
+    - faiss
+    - yolox
+    - dinov2
+    - mqtt
+    - checkout
+    - shelf-audit
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: retail/v1/events
+      description: >-
+        One JSON message per frame, carrying every box in it — never one
+        message per box. Each detection has its track id, normalised bbox,
+        matched SKU, cosine similarity, the top-1/top-2 margin that decides
+        whether OCR reranking runs at all, the OCR block with its status, and
+        whether a VLM fallback was used. The message also carries the gallery
+        version and sha256 and the detector/embedder sha256, because a
+        similarity score is meaningless without knowing which gallery and which
+        model produced it.
+      schema_type: json
+      payload_example: '{"event_id":"6f1a2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d","scene":"checkout","timestamp":"2026-09-06T03:20:11Z","gallery":{"version":12,"sha256":"9b1e…"},"detections":[{"track_id":7,"bbox":[0.5,0.5,0.2,0.3],"sku_id":"sku-1","similarity":0.84,"top2_margin":0.03,"ocr":{"text":"lime","match_score":0.76,"status":"used"},"fallback":{"used":false,"backend":null}}],"summary":{"items":{"sku-1":2},"empty_slots":[],"wrong_slots":[]},"models":{"detector_sha256":"73938d5a…","embedder_sha256":"01ae07d1…"}}'
+      description_i18n:
+        zh: >-
+          一帧一条 JSON，带上这一帧里的所有框——不逐框发。每个检测带 track id、
+          归一化 bbox、匹配到的 SKU、余弦相似度、决定是否触发 OCR 重排的 top-1/top-2
+          间距、带状态的 OCR 块，以及是否用过 VLM 兜底。消息里还带商品库版本与 sha256、
+          检测器与嵌入模型的 sha256——不知道是哪个库、哪个模型算出来的，相似度这个数没有意义。
+    - type: http
+      port: 8089
+      endpoint: /v1/gallery/skus, /v1/gallery, /v1/gallery/{version}, /v1/gallery/current/download, /v1/gallery/rollback/{version}
+      description: >-
+        The whole registration surface. `POST /v1/gallery/skus` takes a sku_id,
+        a display name, aliases, a licence field and 3 to 8 images, runs them
+        through a quality gate, embeds them and mints a new immutable gallery
+        version; the same sku_id returns 409 unless `replace=true`. Devices
+        pull `current/download` as a tar.gz with SHA256SUMS inside and switch
+        atomically after verifying it. Rollback re-verifies the target
+        version's SHA before switching and does not mint a new version.
+        Authorisation is `Bearer <token>` with viewer < operator < admin, and
+        there is no anonymous read — the token table is injected at deploy
+        time and the code carries no default token.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          注册接口的全部。`POST /v1/gallery/skus` 接收 sku_id、显示名、别名、许可字段
+          与 3–8 张图，过质量闸门后做嵌入，生成一个新的不可变商品库版本；同一个 sku_id
+          返回 409，除非显式 `replace=true`。设备拉 `current/download` 拿到带
+          SHA256SUMS 的 tar.gz，校验通过后原子切换。回滚在切换前重校目标版本的 SHA，
+          且不产生新版本。鉴权是 `Bearer <token>`，角色 viewer < operator < admin，
+          没有匿名读——token 表在部署时注入，代码里没有任何默认 token。
+    - type: http
+      port: 8080
+      endpoint: /api/events, /api/events/{id}, /api/summary
+      description: >-
+        The management UI and its read API behind the same token gate — the
+        event list filtered by scene, SKU, device and time, the per-box detail
+        of one event, and the summary that backs the board: the most recent
+        checkout basket and the shelf slot snapshot in its four states (ok,
+        empty, wrong_sku, unknown).
+      schema_type: json
+      description_i18n:
+        zh: >-
+          管理界面与它的只读 API，走同一个 token 闸门——按场景/SKU/设备/时间过滤的
+          事件列表、单条事件的逐框详情，以及支撑看板的汇总：最近一次收银台清单，
+          与货架货位四态（ok / empty / wrong_sku / unknown）快照。
+
+  input_requirements:
+    - type: rtsp
+      description: >-
+        A camera over the checkout belt or facing the shelf. The checkout
+        preset is a fixed 640² input; the shelf preset is a fixed 1280². The
+        input size is a property of the compiled artifact and is never changed
+        at run time — a 640 artifact fed shelf imagery loses the distant
+        products, which is exactly what the two presets exist to separate.
+      required: true
+      description_i18n:
+        zh: >-
+          一台架在收银台传送带上方或正对货架的摄像头。收银台 preset 固定 640² 输入，
+          货架 preset 固定 1280²。输入尺寸是编译产物的属性，运行时不改——
+          用 640 的产物去看货架会丢掉远端商品，这正是分成两个 preset 的原因。
+    - type: other
+      description: >-
+        A host for the console — the registration/query service, the management
+        UI and an MQTT broker, in three containers. Any amd64 or arm64 Linux
+        box with Docker works; no GPU needed. It must be reachable from every
+        recognition device, because that is where the gallery is minted and
+        where devices pull it from.
+      required: true
+      description_i18n:
+        zh: >-
+          一台承载管理端的主机——注册/查询服务、管理界面与 MQTT broker，三个容器。
+          任意装了 Docker 的 amd64 或 arm64 Linux 机器都行，不需要 GPU。
+          它必须对每一台识别设备可达：商品库在这里生成，设备也从这里拉。
+    - type: other
+      description: >-
+        An x86_64 machine for model conversion. Neither the RKNN toolkit nor
+        the Hailo Dataflow Compiler runs on the target board, so the `.rknn`
+        and the `.hef` are produced off-device and copied over. This is a
+        one-time step per model, not per deployment.
+      required: true
+      description_i18n:
+        zh: >-
+          一台 x86_64 机器用于模型转换。RKNN toolkit 与 Hailo Dataflow Compiler
+          都不在目标板上运行，`.rknn` 与 `.hef` 都在别的机器上产出后拷过去。
+          这是每个模型一次的事，不是每次部署都要做。
+
+  device_catalog:
+    external_console_host:
+      name: Console / On-Prem Host
+      name_i18n:
+        zh: 管理端 / 本地服务器
+      description: >-
+        Runs the registration service, the management UI and the broker in
+        containers. Present in all three presets — the gallery and the UI are
+        shared infrastructure, not a per-preset extra. Neither container image
+        has been pushed to a registry; both are built on this host from the
+        upstream repository.
+      description_i18n:
+        zh: >-
+          以容器运行注册服务、管理界面与 broker。三个套餐都要它——商品库与管理界面是
+          共用基础设施，不是某个套餐的附加项。两个容器镜像都没有推送到 registry，
+          都在这台主机上从上游仓库构建。
+    recomputer_rk3588:
+      description: >-
+        Runs the detector on the RK3588 NPU. The RKNN fp16 conversion of the
+        640² checkout detector has been measured on a Radxa ROCK 5T: 99.85%
+        box agreement with the CPU golden and 56.7 ms p50. The embedding step
+        has no RKNN conversion — it has not been attempted — so on this board
+        embedding runs on the CPU through onnxruntime, and that path has not
+        been timed on RK3588.
+      description_i18n:
+        zh: >-
+          在 RK3588 NPU 上跑检测。640² 收银台检测器的 RKNN fp16 转换已在 Radxa ROCK 5T
+          上实测：与 CPU golden 的框一致率 99.85%，p50 56.7 ms。嵌入段没有 RKNN 转换——
+          没有尝试过——因此这块板上嵌入走 onnxruntime CPU，而这条路径在 RK3588 上没有测过延迟。
+    recomputer_rk3576:
+      description: >-
+        The smaller Rockchip option, same toolchain and same conversion script.
+        Nothing on this page was measured on RK3576; the numbers quoted for the
+        Rockchip preset are all from RK3588.
+      description_i18n:
+        zh: >-
+          更小的 Rockchip 选项，工具链与转换脚本相同。本页没有任何数字取自 RK3576；
+          Rockchip 套餐引用的数字全部来自 RK3588。
+    external_raspberry_pi5_hailo:
+      name: Raspberry Pi 5 + Hailo-8
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8
+      description: >-
+        A Raspberry Pi 5 with a Hailo-8 on the M.2 slot. The detector HEF has
+        been compiled and measured on this hardware: 9.04 ms p50, 94.77% box
+        agreement with the CPU golden. The embedder does not go on the NPU —
+        both Hailo DFC quantisation attempts failed the ≤3 pp acceptance
+        threshold — so it runs on the Pi's own CPU as a dynamically quantised
+        INT8 DINOv2-small at 91.95 ms per crop.
+      description_i18n:
+        zh: >-
+          M.2 插槽上装了 Hailo-8 的 Raspberry Pi 5。检测器 HEF 已在这套硬件上编译并实测：
+          p50 9.04 ms，与 CPU golden 的框一致率 94.77%。嵌入段不上 NPU——两档 Hailo DFC
+          量化都没过 ≤3pp 的验收线——因此它跑在 Pi 自己的 CPU 上，是动态量化 INT8 的
+          DINOv2-small，单个裁剪 91.95 ms。
+    recomputer_j40:
+      description: >-
+        The Orin NX 16GB option for the TensorRT path. Nothing on this page was
+        measured on Jetson, and the upstream repository has no TensorRT backend
+        yet: `platforms/` holds console, hailo and rknn only. Choosing this
+        preset means building that path, not deploying it.
+      description_i18n:
+        zh: >-
+          TensorRT 路线的 Orin NX 16GB 选项。本页没有任何数字取自 Jetson，
+          上游仓库也还没有 TensorRT 后端：`platforms/` 下只有 console、hailo、rknn。
+          选这个套餐是去把这条路径建起来，不是去部署它。
+      purchase:
+        require:
+          module:
+            - orin_nx_16
+    recomputer_j30:
+      description: >-
+        The smaller Orin Nano 8GB option for the same role, with the same
+        caveat — no TensorRT backend exists upstream and no figure here was
+        taken on either board.
+      description_i18n:
+        zh: >-
+          同一角色下更小的 Orin Nano 8GB 选项，附带同样的限定——上游没有 TensorRT 后端，
+          这里也没有任何数字取自这两块板中的任何一块。
+      purchase:
+        require:
+          module:
+            - orin_nano_8
+    generic_rtsp_camera:
+      name: RTSP / USB Camera
+      name_i18n:
+        zh: RTSP / USB 摄像头
+      description: Any camera over the checkout belt or facing the shelf, supplying the frames the detector reads
+      description_i18n:
+        zh: 任意一台架在收银台上方或正对货架的摄像头，为检测器提供画面
+
+  presets:
+    - id: p1_rockchip
+      name: Rockchip NPU — RK3588 / RK3576
+      name_i18n:
+        zh: Rockchip NPU —— RK3588 / RK3576
+      badge: Detector measured, pipeline not built
+      badge_i18n:
+        zh: 检测段已实测，主链未搭建
+      description: >-
+        The detector runs on the Rockchip NPU as an fp16 `.rknn`, converted on
+        an x86_64 host. On RK3588 that path agrees with the CPU golden on
+        99.85% of boxes at 56.7 ms p50, and the INT8 variant is 2.2x faster at
+        98.35%. Embedding has no RKNN conversion and falls back to
+        onnxruntime on the Rockchip CPU, untimed. There is no device-side
+        service that joins the two — this preset converts the model, proves the
+        conversion on the board, and stops there.
+      description_i18n:
+        zh: >-
+          检测器以 fp16 `.rknn` 跑在 Rockchip NPU 上，转换在 x86_64 主机上完成。
+          在 RK3588 上这条路径与 CPU golden 的框一致率 99.85%、p50 56.7 ms，
+          INT8 变体快 2.2 倍、一致率 98.35%。嵌入段没有 RKNN 转换，退到 Rockchip CPU 上的
+          onnxruntime，未测延迟。没有把两段串起来的设备侧服务——这个套餐做的是转换模型、
+          在板上证明转换正确，到此为止。
+      device_groups:
+        - id: console
+          name: Console Host
+          name_i18n:
+            zh: 管理端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_console_host
+          default: external_console_host
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3588
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_rtsp_camera
+          default: generic_rtsp_camera
+
+    - id: p2_pi5_hailo
+      name: Raspberry Pi 5 + Hailo-8 — Detector on the NPU, Embedder on the CPU
+      name_i18n:
+        zh: Raspberry Pi 5 + Hailo-8 —— 检测上 NPU，嵌入留 CPU
+      badge: Both stages measured, pipeline not built
+      badge_i18n:
+        zh: 两段均已实测，主链未搭建
+      description: >-
+        The only preset where both stages have run on the target hardware. The
+        detector is an INT8 HEF at 9.04 ms p50 and 94.77% box agreement; the
+        embedder is a dynamically quantised INT8 DINOv2-small on the Pi's four
+        cores at 91.95 ms per crop, within 0.65 pp of its own fp32 retrieval
+        accuracy. The embedder is on the CPU because it has to be: both Hailo
+        DFC quantisation attempts failed, one by 21–44 pp and the other by
+        collapsing every image to the same vector. That 92 ms is the number to
+        plan around — a checkout basket of a few items is comfortable, a shelf
+        frame with 160 boxes is not, and shelf use needs frame skipping or
+        slot-level sampling.
+      description_i18n:
+        zh: >-
+          唯一一个两段都在目标硬件上跑过的套餐。检测器是 INT8 HEF，p50 9.04 ms、
+          框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，跑在 Pi 的四个核上，
+          单个裁剪 91.95 ms，检索准确率与自身 fp32 相差 0.65pp 以内。嵌入放在 CPU 上
+          是没得选：两档 Hailo DFC 量化都失败了，一档差 21–44pp，另一档把所有图片压成同一个向量。
+          这 92 ms 是做规划时要盯的数——收银台一次几件商品够用，货架一帧 160 个框不够用，
+          货架场景需要抽帧或按货位采样。
+      device_groups:
+        - id: console
+          name: Console Host
+          name_i18n:
+            zh: 管理端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_console_host
+          default: external_console_host
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_raspberry_pi5_hailo
+          default: external_raspberry_pi5_hailo
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_rtsp_camera
+          default: generic_rtsp_camera
+
+    - id: p3_jetson_orin
+      name: Jetson Orin — TensorRT, Not Yet Built
+      name_i18n:
+        zh: Jetson Orin —— TensorRT，尚未搭建
+      badge: Backend not implemented
+      badge_i18n:
+        zh: 后端未实现
+      description: >-
+        The TensorRT path is in the design and not in the code. The upstream
+        repository's `platforms/` directory holds console, hailo and rknn; the
+        Jetson entry in its README was inherited from the donor project and
+        points at files that were never copied across. No engine has been
+        built, no number on this page was taken on an Orin, and the boards
+        earmarked for this work were on a soak run through 2026-09-08. Choose
+        this preset to build and measure that path — the steps say exactly what
+        is missing — not to deploy a working system.
+      description_i18n:
+        zh: >-
+          TensorRT 这条路径在设计里，不在代码里。上游仓库 `platforms/` 下只有
+          console、hailo、rknn；README 里的 jetson 条目继承自捐赠项目，指向的文件从未拷过来。
+          没有构建过任何 engine，本页没有任何数字取自 Orin，而计划做这件事的板子在
+          2026-09-08 之前都在跑长稳。选这个套餐是去搭建并实测这条路径——步骤里写清了缺什么——
+          不是去部署一套能用的系统。
+      device_groups:
+        - id: console
+          name: Console Host
+          name_i18n:
+            zh: 管理端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_console_host
+          default: external_console_host
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_rtsp_camera
+          default: generic_rtsp_camera
+
+  stats:
+    difficulty: advanced
+    estimated_time: 90min
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

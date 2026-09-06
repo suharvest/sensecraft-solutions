@@ -1,0 +1,154 @@
+version: "1.0"
+id: verify_recognition
+name: Verify Registration, Retrieval and the Device Artifact
+name_i18n:
+  zh: 验证注册、检索与设备产物
+type: manual
+
+# The verification step for every preset. Manual, because what is worth
+# checking here spans two machines and a model artifact, and no deployer type
+# observes any of it. The software half is reproducible and is given as a
+# command. The device half is the parity procedure that produced the measured
+# numbers on the solution page — reproducing it is what tells you your
+# conversion is the same conversion, and a green container is not evidence of
+# that.
+#
+# Nothing in this package has been deployed through the engine. Passing every
+# check below means the pieces work; it does not mean the system was run end to
+# end, because the process that would join them does not exist yet.
+
+steps:
+  - id: software_loop
+    name: Reproduce the software loop (no hardware needed)
+    name_i18n:
+      zh: 复现纯软件闭环（不需要硬件）
+    description: >-
+      From a clone of the upstream repository, run `uv run pytest` and then
+      `uv run python tools/verify_software_loop.py`. The loop registers SKUs,
+      mints gallery versions, publishes events, queries them back and rolls the
+      gallery back, asserting on each. It runs against a FakeEmbedder and an
+      in-memory broker: no camera, no real broker, no real model. It proves
+      protocol and state-machine behaviour on a development machine and
+      produces no accuracy conclusion whatsoever.
+    description_i18n:
+      zh: >-
+        在上游仓库的克隆里跑 `uv run pytest`，然后跑
+        `uv run python tools/verify_software_loop.py`。这个闭环会注册 SKU、
+        生成商品库版本、发事件、查回来、再回滚，每一步都有断言。
+        它跑在 FakeEmbedder 与内存 broker 上：没有摄像头、没有真 broker、没有真模型。
+        它证明的是开发机上的协议与状态机行为，不产生任何精度结论。
+    optional: false
+
+  - id: console_roundtrip
+    name: Register three SKUs and read them back through the API
+    name_i18n:
+      zh: 注册三个 SKU 并通过 API 读回来
+    description: >-
+      Against the console you deployed, register three SKUs with 3–8 images
+      each, then check four things. `GET /v1/gallery` with the admin token
+      returns a version number that increased once per registration. The same
+      request with no token returns 401 or 403 — there is no anonymous read,
+      and a 200 here is a finding. Registering an existing sku_id again returns
+      409 unless you pass `replace=true`. And
+      `GET /v1/gallery/current/download` returns a tar.gz whose SHA256SUMS
+      verify: that is exactly what a device does before switching, so if it
+      fails here it would fail silently there.
+    description_i18n:
+      zh: >-
+        在你部署好的管理端上，用每个 3–8 张图注册三个 SKU，然后检查四件事。
+        带 admin token 的 `GET /v1/gallery` 返回的版本号，每注册一次涨一次。
+        不带 token 的同一请求返回 401 或 403——没有匿名读，这里返回 200 是个问题。
+        重复注册同一个 sku_id 返回 409，除非带 `replace=true`。
+        `GET /v1/gallery/current/download` 返回的 tar.gz 里 SHA256SUMS 校验得过：
+        设备切换前做的正是这件事，这里过不了，那边就会静默失败。
+    optional: false
+
+  - id: device_parity
+    name: Reproduce the parity number for your own artifact
+    name_i18n:
+      zh: 为你自己的产物复现 parity 数字
+    description: >-
+      Run the CPU golden with `evaluation/run_golden.py` on the same ONNX,
+      then run your converted artifact on the board and match boxes at IoU ≥
+      0.5 with a 0.25 score threshold. Compare against the measured references:
+      RKNN fp16 on a Radxa ROCK 5T reached 99.85% box agreement at 56.7 ms p50
+      and its INT8 variant 98.35% at 26.0 ms p50
+      (evaluation/runs/2026-09-06-det-rk3588-radxa/results.md); the Hailo INT8
+      HEF on a Raspberry Pi 5 reached 94.77% on 200 images and 94.68% on 300,
+      at 9.04 ms p50 (evaluation/runs/2026-09-06-det-hef/, both boundary files
+      `status: measured`). Landing far below the reference for your platform
+      means the output layout or the decode is wrong, not that quantisation is
+      lossy — on Hailo specifically, a wrong output vstream order gives you
+      boxes in the right count with the wrong coordinates. There is no Jetson
+      reference to compare against; that number does not exist yet.
+    description_i18n:
+      zh: >-
+        用 `evaluation/run_golden.py` 在同一份 ONNX 上取 CPU golden，
+        再在板上跑你转换出的产物，按分数阈值 0.25、IoU ≥ 0.5 匹配框。
+        与实测参照对比：Radxa ROCK 5T 上 RKNN fp16 的框一致率 99.85%、p50 56.7 ms，
+        INT8 变体 98.35%、p50 26.0 ms
+        （evaluation/runs/2026-09-06-det-rk3588-radxa/results.md）；
+        Raspberry Pi 5 上 Hailo INT8 HEF 在 200 张上 94.77%、300 张上 94.68%，
+        p50 9.04 ms（evaluation/runs/2026-09-06-det-hef/，两个 boundary 文件均
+        `status: measured`）。明显低于你所在平台的参照，说明输出布局或解码错了，
+        不是量化有损——Hailo 上尤其如此：输出 vstream 顺序排错会给你数量正确、坐标全错的框。
+        Jetson 没有可比的参照，那个数字还不存在。
+    optional: false
+
+  - id: retrieval_check
+    name: Check retrieval on your own SKUs, not on the published number
+    name_i18n:
+      zh: 在你自己的 SKU 上核对检索，不要照搬公布的数字
+    description: >-
+      The published retrieval figures are on Grocery Store (MIT, 81 classes)
+      and on held-out Products-10K SKUs: top-1 84.67% and top-5 96.66% for
+      DINOv2-base at eight registration images per SKU, 79.11% top-1 for
+      DINOv2-small at the same k, and 51.11% for DINOv2-small at one image per
+      SKU. Both models are fine-tuned on e-commerce packshots, and the upstream
+      model card says plainly that shelf and checkout deployment still needs
+      first-party capture. Your own shelf is a different distribution. Register
+      your SKUs, photograph each of them again from angles you did not
+      register, and measure top-1 on those. If it is far below the published
+      figure, that is the domain gap, and it is fixed by fine-tuning on your
+      own capture — not by adding registration images past eight, where top-5
+      has already saturated.
+    description_i18n:
+      zh: >-
+        公布的检索数字是在 Grocery Store（MIT，81 类）和 Products-10K 留出 SKU 上测的：
+        每 SKU 8 张注册图时 DINOv2-base top-1 84.67%、top-5 96.66%，
+        同一档 DINOv2-small top-1 79.11%，每 SKU 1 张图时 DINOv2-small 51.11%。
+        两个模型都是在电商棚拍图上微调的，上游 model card 直接写着货架与收银台部署
+        仍然需要自采数据。你自己的货架是另一个分布。把你的 SKU 注册进去，
+        再用没注册过的角度重新拍一遍，在那批图上测 top-1。
+        明显低于公布数字就是域差距，解决办法是用自采数据微调——
+        不是把注册图加到 8 张以上，top-5 在那之前就饱和了。
+    optional: false
+
+  - id: what_is_not_verified
+    name: Write down what this run did not verify
+    name_i18n:
+      zh: 把这一轮没验证的东西写下来
+    description: >-
+      Five things, none of which the checks above touch. There is no end-to-end
+      pipeline — detection, embedding, lookup and publishing have never run as
+      one process on any device, so there is no end-to-end latency, no counting
+      accuracy and no shelf-slot accuracy. OCR reranking is not implemented;
+      the contract carries the fields and registration writes empty text
+      facets. Detection mAP is below the project's own stable threshold on both
+      presets: 52.84 mAP50-95 at 640 and 56.32 at 1280 on SKU-110K test, where
+      the boundary calls anything under 60 a failure tier — boxes are found
+      (mAP50 88.26 at 640) but not placed tightly. Nothing has been run for 72
+      hours. And no result anywhere in this package has been reproduced by
+      anyone other than the person who first measured it; every boundary file
+      carries `reproduced_by: null`.
+    description_i18n:
+      zh: >-
+        五件事，上面的检查一件都没碰到。没有端到端主链——检测、嵌入、检索与上报
+        从未作为一个进程在任何设备上跑过，因此没有端到端时延、没有计数准确率、
+        也没有货位准确率。OCR 重排没有实现；契约里留了字段，注册时写的是空的
+        text facets。检测 mAP 在两个 preset 上都低于本项目自己的 stable 门槛：
+        SKU-110K test 上 640 是 52.84、1280 是 56.32 mAP50-95，而边界把低于 60 的都算
+        failure 档——框找得到（640 上 mAP50 88.26），但框不准。没有任何东西跑过 72 小时。
+        本包里没有任何一个结果被首测者之外的人复现过；每个 boundary 文件都是
+        `reproduced_by: null`。
+    optional: false

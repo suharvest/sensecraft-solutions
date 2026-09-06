@@ -1,0 +1,51 @@
+version: "1.0"
+id: register_sku
+name: Register SKUs and Publish the Gallery
+name_i18n:
+  zh: 注册 SKU 并发布商品库
+type: web_dashboard
+inherit_host_from: console_stack
+
+# A web_dashboard step rather than a preview one, for the same reason as the
+# fall-detection and unmanned-store packages: there is nothing to draw.
+# Registration is a form and a version number, and the console already renders
+# the product gallery, the version history and the event board.
+#
+# inherit_host_from reuses the host entered in the console step, so the operator
+# does not type the address twice and cannot type it differently.
+#
+# This is also where the licence question becomes concrete. Registering a SKU
+# builds gallery vectors with the DINOv2 embedder fine-tuned on Products-10K,
+# which is non-commercial. That is fine for an evaluation and not fine for a
+# paid deployment; a commercial deployment has to retrain the embedder and
+# rebuild every gallery version, because vectors from one model are not
+# comparable to vectors from another.
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8080/"
+  title: Console — Product Gallery
+  description: >-
+    Sign in with the admin token and open the product gallery. Register each
+    SKU from 3 to 8 photographs — at minimum a front, a back and a side, in two
+    lighting conditions. Fewer than three is rejected: one photograph tells the
+    matcher nothing about how much this package varies with angle and light,
+    and a gallery built that way fails on the shelf rather than at
+    registration. On the measured retrieval set, going from one registration
+    image per SKU to eight moves top-1 from 51.11% to 79.11% on the same model
+    (evaluation/runs/2026-09-06-embed-small/), so the number of views is not a
+    formality. Each registration mints a new immutable gallery version; the
+    same sku_id is refused with 409 unless you explicitly ask to replace it.
+    Devices fetch the new version, verify its SHA256SUMS and switch atomically,
+    so allow one poll period plus the download before testing at the lane.
+    Rollback re-verifies the target version's SHA before switching and does not
+    mint a new version.
+  description_i18n:
+    zh: >-
+      用 admin token 登录，打开商品库。每个 SKU 用 3 到 8 张图注册——至少正面、背面、
+      侧面各一张，覆盖两种光照。少于三张会被拒绝：一张图给不了匹配器任何关于这个包装
+      随角度和光照变化的信息，这样建出来的库不会在注册时出问题，而是在货架上出问题。
+      在实测的检索集上，同一个模型每 SKU 的注册图从 1 张加到 8 张，top-1 从 51.11%
+      涨到 79.11%（evaluation/runs/2026-09-06-embed-small/），所以视角数量不是走过场。
+      每次注册生成一个新的不可变商品库版本；同一个 sku_id 会返回 409，除非你显式要求替换。
+      设备拉到新版本、校验 SHA256SUMS 后原子切换，所以去收银台测试之前请留出一个轮询周期
+      加下载时间。回滚在切换前重校目标版本的 SHA，且不产生新版本。

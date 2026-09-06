@@ -1,0 +1,94 @@
+version: "1.0"
+id: jetson_trt_build
+name: Build the TensorRT Path (Not Yet Implemented)
+name_i18n:
+  zh: 搭建 TensorRT 路径（尚未实现）
+type: manual
+
+# NOT IMPLEMENTED UPSTREAM, which is a stronger statement than "not verified".
+# The upstream repository's platforms/ directory contains console, hailo and
+# rknn. The jetson entry in platforms/README.md — build_engine.sh,
+# Dockerfile.slim, a compose file — was inherited verbatim from the donor
+# project and points at files that were never copied across. There is no
+# TensorRT detector in backends/, no engine build script, and no compose file.
+#
+# No figure anywhere in this package was taken on a Jetson. The boards
+# earmarked for this work were on a soak run through 2026-09-08.
+#
+# This preset exists so the path is described rather than silently absent, and
+# so that whoever builds it starts from what the other two platforms already
+# settled — the same static ONNX, the same shared decode/NMS, the same parity
+# procedure against the CPU golden. It does not deploy a working system.
+
+steps:
+  - id: trt_gap
+    name: Read what is missing before choosing this preset
+    name_i18n:
+      zh: 选这个套餐之前先读清楚缺什么
+    description: >-
+      Four things do not exist and have to be written: a TensorRT detector in
+      `backends/`, an engine build invocation for the fixed
+      `images:1x3x640x640` profile, a runtime container for the board, and the
+      device-side process that joins detection, embedding, gallery lookup and
+      MQTT publishing — that last one is missing on all three platforms, not
+      just this one. What does exist and transfers unchanged is the static
+      batch-1 ONNX with opset 11 and its sha256, the pure-numpy YOLOX decode
+      and NMS in `core_retail.postprocess` that all platforms share, the
+      onnxruntime CPU golden the other two backends were checked against, and
+      the parity procedure itself.
+    description_i18n:
+      zh: >-
+        有四样东西不存在，需要写出来：`backends/` 里的 TensorRT 检测器、
+        针对固定 `images:1x3x640x640` profile 的 engine 构建调用、板上的运行时容器，
+        以及把检测、嵌入、库检索与 MQTT 上报串起来的设备侧进程——最后这一样三个平台都缺，
+        不只是这一个。已经存在、可以原样搬过来的是：静态 batch-1、opset 11 的 ONNX
+        及其 sha256，`core_retail.postprocess` 里四平台共用的纯 numpy YOLOX 解码与 NMS，
+        另外两个后端拿来对过的 onnxruntime CPU golden，以及那套 parity 流程本身。
+    optional: false
+
+  - id: trt_engine
+    name: Build the engine on the board it will run on
+    name_i18n:
+      zh: 在它将要运行的那块板上构建 engine
+    description: >-
+      A TensorRT engine is bound to the device and the TensorRT version that
+      built it, so build on the target board and do not distribute the engine
+      between boards. Fix the profile to `images:1x3x640x640` — the input size
+      is a property of the artifact in this project and is never changed at run
+      time — and write a timing cache next to it. Record the engine's sha256
+      alongside the ONNX sha256: a cache hit downstream requires the ONNX
+      sha256, the target device, the builder profile and the runtime ABI to all
+      match, and any one of them changing means the engine is a different
+      artifact.
+    description_i18n:
+      zh: >-
+        TensorRT engine 与构建它的设备和 TensorRT 版本绑定，所以在目标板上构建，
+        不要在板之间分发 engine。profile 固定成 `images:1x3x640x640`——
+        输入尺寸在这个项目里是产物的属性，运行时不改——并在旁边落一份 timing cache。
+        把 engine 的 sha256 与 ONNX 的 sha256 一起记下来：下游要命中缓存，
+        ONNX sha256、目标设备、构建 profile 与运行时 ABI 四项必须全部一致，
+        其中任何一项变了，engine 就是另一个产物。
+    optional: false
+
+  - id: trt_parity
+    name: Prove the engine before believing any latency number from it
+    name_i18n:
+      zh: 在相信它的任何延迟数字之前，先证明这个 engine 是对的
+    description: >-
+      Run the same parity check the other two platforms ran: take the CPU
+      golden from `evaluation/run_golden.py` on the same ONNX, match boxes by
+      IoU ≥ 0.5 at a 0.25 score threshold, and report the hit rate and the mean
+      absolute score difference. For reference, RKNN fp16 reached 99.85% on
+      RK3588 and the Hailo INT8 HEF reached 94.77% on a Pi 5 — a fp16 TensorRT
+      engine should land near the former, and anything far below it means the
+      decode or the output layout is wrong rather than that fp16 is lossy. A
+      latency number taken before this check has passed is a measurement of the
+      wrong thing.
+    description_i18n:
+      zh: >-
+        跑另外两个平台跑过的同一套 parity 检查：用 `evaluation/run_golden.py` 在同一份
+        ONNX 上取 CPU golden，按分数阈值 0.25、IoU ≥ 0.5 匹配框，报命中率与均值分数绝对差。
+        参照：RKNN fp16 在 RK3588 上是 99.85%，Hailo INT8 HEF 在 Pi 5 上是 94.77%——
+        fp16 的 TensorRT engine 应当落在前者附近，明显低于它说明解码或输出布局错了，
+        而不是 fp16 有损。这道检查通过之前测出来的延迟，测的是别的东西。
+    optional: false
