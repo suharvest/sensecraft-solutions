@@ -119,6 +119,12 @@ exact reCamera topic and payload shapes are all still unverified on hardware, an
 the detector image digests are recorded as pending in
 `eldercare-alarm/release/PINNING.md`. Treat every deployment as a commissioning
 exercise until you have watched a real alarm complete on your own site.
+On 2026-09-06, an attempt on a standard (non-PoE) reCamera One over USB-RNDIS
+could not complete the on-device loop: the SSH account has no passwordless
+sudo, and every remaining step (releasing the camera from the running
+`depth-estimation` App Center app, starting `fall-detection`, opening the
+local mosquitto listener) requires root — see
+`eldercare-alarm/evaluation/runs/2026-09-06-recamera-one/results.md`.
 
 ## Output Interfaces
 
