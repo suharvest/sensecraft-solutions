@@ -521,9 +521,9 @@ Vision AI V2 preset has no liveness model — a printed photograph opens that do
 
 
 For when the box that can run recognition is nowhere near the door, or when one
-box serves several doors. Recognition runs on a J30/J40/R2000 or a standard
-reCamera; the unlock travels over MQTT to a relay node — an R1000 writing a
-Modbus point, or a XIAO ESP32 driving a Grove Relay.
+box serves several doors. Recognition runs on a J30/J40/R2000; the unlock
+travels over MQTT to a relay node — an R1000 writing a Modbus point, or a XIAO
+ESP32 driving a Grove Relay.
 
 The trade is explicit: the broker is on the unlock path, so its availability is
 the door's availability. That is why this preset carries its own latency
@@ -532,15 +532,17 @@ boundary rather than sharing the direct one.
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer J30 / J40 / R2000 or a standard reCamera | Recognition, liveness, decision |
+| reComputer J30 / J40 / R2000 | Recognition, liveness, decision |
 | RTSP camera at the door | Video source |
 | SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
 | Relay module | Switches the lock |
 | Lock + its own 12/24 V supply | Never powered from the relay node |
 
 **Important.** This is not a certified security or life-safety system, and no
-part of it has run on hardware. Six of the seven boundary metrics are empty. The
-face embedding weights are non-commercial.
+part of this preset has run on hardware. Six of the seven boundary metrics are
+empty. A standard reCamera is not an option here — it is preset P5, whose
+library-delivery path has been verified on real hardware. The face embedding
+weights are non-commercial.
 
 Known weaknesses, none of them measured:
 
