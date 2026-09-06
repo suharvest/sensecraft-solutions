@@ -16,10 +16,14 @@
 # download, per-file SHA, manifest signature, atomic switch, gallery write and
 # reload ack, plus resume after an interrupted download and rejection of a
 # version that does not verify. Full activation measured p50 491.6 ms / p95
-# 507.8 ms over 20 runs on a 2-person, 16.5 KB library. That is a library
+# 507.8 ms over 20 runs on a 2-person, 16.5 KB library. Source:
+# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md. That is a library
 # number, not a door number, and it is the only measured figure in this package.
 # Recognition, liveness and any recognition-to-relay latency remain unmeasured:
-# nobody stood in front of the lens during either run.
+# nobody stood in front of the lens during either run (each run sampled 220
+# frames, all reading face_count: 0 — see
+# evaluation/runs/2026-09-06-recamera-std-p3/results.md and
+# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md).
 #
 # LICENCE, in one line so nobody has to go looking: the face detection and
 # embedding weights (InsightFace buffalo_l) are NON-COMMERCIAL. They are not

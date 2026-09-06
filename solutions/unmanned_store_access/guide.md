@@ -797,12 +797,17 @@ conflated:
   consistency gate refusing to start when the config and the running recognition
   process disagree. Full activation measured p50 491.6 ms and p95 507.8 ms over
   20 runs on a 2-person, 16.5 KB library; the `op:reload` round trip measured
-  p50 100.0 ms over 25 runs.
+  p50 100.0 ms over 25 runs. Source:
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
 - **Not verified, and not to be presented as if it were**: any recognition or
   liveness figure — nobody stood in front of the lens during either probe run
-  and all 220 sampled frames read `face_count: 0`; the recognition-to-relay
-  latency, because no relay has been wired; and the thresholds, which are the
-  device's shipped values carrying `calibration = pending`.
+  and each run sampled 220 frames that all read `face_count: 0` (see
+  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
+  recognition-to-relay latency, because no relay has been wired (see
+  `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`); and the
+  thresholds, which are the device's shipped values carrying
+  `calibration = pending`.
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power
   cut.

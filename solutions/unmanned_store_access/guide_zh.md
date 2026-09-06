@@ -686,10 +686,15 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
   manifest 验签、原子切换、落 gallery 与 `op:reload` ack；下载中断后的断点续传；
   manifest 验不过的版本被拒绝；配置与正在运行的识别进程不一致时阈值一致性闸门拒绝启动。
   完整激活 20 次实测 p50 491.6 ms、p95 507.8 ms（2 人、16.5 KB 库）；
-  `op:reload` 往返 25 次实测 p50 100.0 ms。
+  `op:reload` 往返 25 次实测 p50 100.0 ms。来源：
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`。
 - **未验证，也不要当成已验证来讲**：任何识别或活体指标——两轮探针镜头前都没有人，
-  采样的 220 帧全是 `face_count: 0`；识别到继电器动作的时延，因为还没接过继电器；
-  以及阈值，它们是设备出厂的现值，标着 `calibration = pending`。
+  两轮各采样 220 帧，全部读到 `face_count: 0`（见
+  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` 与
+  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`）；识别到继电器动作
+  的时延，因为还没接过继电器（见
+  `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`）；以及阈值，
+  它们是设备出厂的现值，标着 `calibration = pending`。
 - **继电器节点的 `set` topic 绝不能是 retained。** retained 的开门指令会在每次重连时
   重放，断电恢复后门会自己开。
 
