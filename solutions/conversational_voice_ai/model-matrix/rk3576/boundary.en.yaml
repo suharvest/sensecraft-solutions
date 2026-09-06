@@ -89,6 +89,18 @@ metrics:
       reported instead as the closest available round-trip number.
     caveat: 完整回复（末帧/tts_done）未采集，理由同 zh cell。
 
+  - name: ASR WER/CER — offline /asr (model capability, no VAD endpoint)
+    unit: percent
+    direction: lower_is_better
+    value: "short n=5, mean WER=3.65%, CER=1.11%; long n=5, mean WER=6.99%, CER=4.16%"
+    observation: >-
+      Same offline whole-file endpoint as the zh cell (POST /asr, no VAD/
+      streaming logic). Recovers full multi-clause English text on every long
+      file (e.g. en_long_03: 0% error). Residual error is real recognition
+      slips (e.g. "3:2" -> "three to two" in en_long_05), not truncation.
+      Deployment unchanged from the shipped default profile; no env override
+      needed for this endpoint.
+
 resources_snapshot:
   docker_stats: "see boundary.zh.yaml — same container, snapshot taken once during the combined zh+en session (profile not restarted between languages)"
   rknpu_load: "see boundary.zh.yaml"

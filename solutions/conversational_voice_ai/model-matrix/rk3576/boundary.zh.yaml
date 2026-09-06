@@ -97,6 +97,24 @@ metrics:
       corrected for.
     caveat: 完整回复（末帧/tts_done 时刻）未采集：现有 measure_v2v_unified.py 只记录首帧 PCM 到达时间，不记录 tts_done。若需要完整回复时长，可用 TTS RTF（0.204）x 回复音频时长做估算，但那是推算不是实测，故此处未测n填写。
 
+  - name: ASR CER — offline /asr (model capability, no VAD endpoint)
+    unit: percent
+    direction: lower_is_better
+    value: "short n=5, mean=1.05%; long n=5, mean=9.62%"
+    observation: >-
+      POST /asr (whole-file, non-streaming; same interface retail_voice_local's
+      verify_asr.yaml uses) reads the entire WAV in one request — no VAD, no
+      streaming endpoint logic. Every long file returns its full multi-clause
+      text now (zh_long_01: 0% CER, vs "这并不是告别。" cut after clause 1 on
+      the streaming path). The remaining 9.62% long-form CER is real
+      recognition error (numeral normalization, one garbled word), not
+      truncation. Evidence: server response includes enc_ms/llm_ms fields
+      unique to the non-streaming execute_asr() path (curl example in
+      openvoicestream:docs/perf/rk3576-matrix-20260906.md addendum).
+      Deployment unchanged from the shipped default (OVS_PROFILE=rk3576-default,
+      no env override needed — /asr does not go through the streaming
+      ASR_MAX_NEW_TOKENS/ASR_FINAL_STOP_ON_PUNCT code path at all).
+
 resources_snapshot:
   docker_stats: "CPU 112.83%, MEM 2.76GiB/7.324GiB (37.69%), container conversational-voice-speech, snapshot taken during zh bench window"
   rknpu_load: "Core0: 0%, Core1: 18% (sudo cat /sys/kernel/debug/rknpu/load, snapshot taken idle-between-requests, not a peak reading)"
