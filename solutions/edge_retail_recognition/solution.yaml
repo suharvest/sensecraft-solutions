@@ -169,15 +169,17 @@ intro:
     - type: other
       description: >-
         A host for the console — the registration/query service, the management
-        UI and an MQTT broker, in three containers. Any amd64 or arm64 Linux
-        box with Docker works; no GPU needed. It must be reachable from every
-        recognition device, because that is where the gallery is minted and
-        where devices pull it from.
+        UI and an MQTT broker, in three containers. Target is an amd64 or arm64
+        Linux box with Docker and no GPU; the stack has not been run on target
+        hardware, and neither image has been built or pushed anywhere. It must
+        be reachable from every recognition device, because that is where the
+        gallery is minted and where devices pull it from.
       required: true
       description_i18n:
         zh: >-
           一台承载管理端的主机——注册/查询服务、管理界面与 MQTT broker，三个容器。
-          任意装了 Docker 的 amd64 或 arm64 Linux 机器都行，不需要 GPU。
+          目标是装了 Docker 的 amd64 或 arm64 Linux 机器，不需要 GPU；这套栈没有在目标
+          硬件上跑过，两个镜像也都没有构建或推送到任何地方。
           它必须对每一台识别设备可达：商品库在这里生成，设备也从这里拉。
     - type: other
       description: >-
