@@ -1,0 +1,93 @@
+version: "1.0"
+id: recamera_depth_estimation
+name: Monocular Depth Estimation on reCamera
+intro:
+  summary: Turn one ordinary camera into a depth sensor — relative near/far for the whole scene, on-device, no stereo pair and no depth camera
+  description_file: description.md
+  cover_image: gallery/depth_pip.jpg
+  gallery:
+    - type: image
+      src: gallery/depth_pip.jpg
+      caption: Live stream with the depth preview in the corner — red is near, blue is far
+      caption_i18n:
+        zh: 出流画面右下角的深度预览——红近蓝远
+    - type: image
+      src: gallery/depth_lowtexture.jpg
+      caption: A blank ceiling, the model's documented weak case — the usable range collapses
+      caption_i18n:
+        zh: 大面积无纹理的天花板，模型已知的弱项——可用范围明显塌缩
+  category: vision
+  solution_type: technical
+  tags:
+    - recamera
+    - depth-estimation
+    - fastdepth
+    - edge-ai
+    - rtsp
+
+  output_interfaces:
+    - type: rtsp
+      port: 8554
+      endpoint: /live0
+      description: H.264 stream with a colour depth preview composited in the bottom-right corner
+      description_i18n:
+        zh: H.264 视频流，右下角合成彩色深度预览
+    - type: mqtt
+      topic: recamera/depth-estimation/results
+      description: Per-frame relative depth statistics — percentiles, near-area ratio and a 3x3 proximity grid
+      schema_type: json
+      description_i18n:
+        zh: 逐帧相对深度统计——百分位、近距离面积占比、3x3 方位近度网格
+
+  input_requirements:
+    - type: camera
+      description: reCamera pointed at a scene with objects at clearly different distances
+      description_i18n:
+        zh: reCamera，对准物体距离差异明显的场景
+
+  device_catalog:
+    recamera_2002:
+      description: reCamera running the depth app on its CV181x TPU
+      description_i18n:
+        zh: reCamera，深度应用运行在其 CV181x TPU 上
+
+  presets:
+    - id: default
+      name: Depth Estimation
+      description: Install the depth app and its model onto a reCamera
+      device_groups:
+        - id: camera
+          name: reCamera
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+          name_i18n:
+            zh: reCamera
+      name_i18n:
+        zh: 单目深度估计
+      description_i18n:
+        zh: 将深度应用与模型安装到 reCamera
+
+  stats:
+    difficulty: beginner
+    estimated_time: 5min
+
+  links:
+    source: https://github.com/Seeed-Studio/sscma-example-sg200x
+    wiki: https://wiki.seeedstudio.com/recamera_deploy_monocular_depth/
+
+  summary_i18n:
+    zh: 让一台普通摄像头输出深度——全画面相对远近，端侧运行，不需要双目也不需要深度相机
+  description_file_i18n:
+    zh: description_zh.md
+
+deployment:
+  guide_file: guide.md
+  selection_mode: sequential
+  guide_file_i18n:
+    zh: guide_zh.md
+
+name_i18n:
+  zh: reCamera 单目深度估计
