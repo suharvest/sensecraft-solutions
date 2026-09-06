@@ -48,8 +48,10 @@
 （IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频；
 Hailo die 温度与功耗在这个平台上读不到，记为 unavailable，没有估算。
 
-**检测，RK3588**（`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`，
-Radxa ROCK 5T）。RKNN fp16：框一致率 99.85%，p50 56.7 ms / p95 89.5 ms。
+**检测，RK3588**（`evaluation/runs/2026-09-06-det-rk3588-radxa/` 的
+`boundary.rknn-parity.yaml` 与 `boundary.rknn-latency.yaml`，两份均
+`status: measured`；Radxa ROCK 5T）。RKNN fp16：框一致率 99.85%，
+p50 56.7 ms / p95 89.5 ms。
 RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
 代价是 1.5 个百分点的一致率。
 

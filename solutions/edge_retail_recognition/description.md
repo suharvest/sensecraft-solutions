@@ -67,10 +67,11 @@ reference is 94.77% on 200 images and 94.68% on 300, at IoU ≥ 0.5. No thermal
 throttling over the run; Hailo die temperature and power draw could not be read
 on this platform and are recorded as unavailable rather than estimated.
 
-**Detection, RK3588** (`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`,
-Radxa ROCK 5T). RKNN fp16: 99.85% box agreement, 56.7 ms p50 / 89.5 ms p95.
-RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms p95 — 2.2x faster for 1.5
-percentage points of agreement.
+**Detection, RK3588** (`evaluation/runs/2026-09-06-det-rk3588-radxa/`,
+`boundary.rknn-parity.yaml` and `boundary.rknn-latency.yaml`, both
+`status: measured`; Radxa ROCK 5T). RKNN fp16: 99.85% box agreement, 56.7 ms
+p50 / 89.5 ms p95. RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms p95 —
+2.2x faster for 1.5 percentage points of agreement.
 
 **Embedding, Raspberry Pi 5 CPU**
 (`evaluation/runs/2026-09-06-embed-small/` §8). Dynamically quantised INT8
