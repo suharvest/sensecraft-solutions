@@ -100,7 +100,7 @@ each registration mints a new immutable gallery version.
 |---|---|
 | Registration refused with "fewer than three images" | By design. Supply at least three. |
 | The same sku_id returns 409 | Also by design. Pass `replace=true` if you mean to replace it; that mints a new version. |
-| A new version appears but the device still misses the SKU | It has not fetched and switched yet. Allow one poll period plus the download; the switch happens only after SHA verification. |
+| A new version appears but the device still misses the SKU | The console side provides a versioned, signed gallery; the device-side runtime that would fetch a version, verify its checksums and switch atomically does not exist yet (in progress — see upstream spec). |
 | Top-1 is much worse than the published figure | Check registration count first (one image per SKU measured 51.11%, eight measured 79.11% on the same model), then assume domain gap — the models were fine-tuned on e-commerce packshots. |
 
 ## Step 4: Convert and Check the Detector on Rockchip {#p1_convert type=manual required=true config=devices/rk3588_convert.yaml}
@@ -283,7 +283,7 @@ immutable gallery version.
 |---|---|
 | Registration refused with "fewer than three images" | By design. |
 | Gallery built with base, device runs small | Vectors are not comparable across models. Rebuild the gallery with the model the device actually runs. |
-| A new version appears but the device still misses the SKU | Allow one poll period plus the download; the switch happens after SHA verification. |
+| A new version appears but the device still misses the SKU | The console side provides a versioned, signed gallery; the device-side runtime that would fetch a version, verify its checksums and switch atomically does not exist yet (in progress — see upstream spec). |
 | Registration is slow | Embedding on the console host is CPU work. It is per-image, not per-frame, so this is a one-time cost per SKU. |
 
 ## Step 4: Compile the HEF and Prepare the Pi {#p2_compile type=manual required=true config=devices/pi_hailo_compile.yaml}

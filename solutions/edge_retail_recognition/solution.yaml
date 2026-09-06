@@ -120,10 +120,13 @@ intro:
         The whole registration surface. `POST /v1/gallery/skus` takes a sku_id,
         a display name, aliases, a licence field and 3 to 8 images, runs them
         through a quality gate, embeds them and mints a new immutable gallery
-        version; the same sku_id returns 409 unless `replace=true`. Devices
-        pull `current/download` as a tar.gz with SHA256SUMS inside and switch
-        atomically after verifying it. Rollback re-verifies the target
-        version's SHA before switching and does not mint a new version.
+        version; the same sku_id returns 409 unless `replace=true`. The
+        console side of the versioning protocol is implemented — versions are
+        immutable, `current/download` serves a tar.gz with SHA256SUMS inside,
+        and rollback re-verifies the target version's SHA before switching
+        without minting a new one. The device-side runtime that would fetch a
+        version, verify its checksums and switch atomically does not exist yet
+        (in progress — see upstream spec).
         Authorisation is `Bearer <token>` with viewer < operator < admin, and
         there is no anonymous read — the token table is injected at deploy
         time and the code carries no default token.
@@ -132,9 +135,10 @@ intro:
         zh: >-
           注册接口的全部。`POST /v1/gallery/skus` 接收 sku_id、显示名、别名、许可字段
           与 3–8 张图，过质量闸门后做嵌入，生成一个新的不可变商品库版本；同一个 sku_id
-          返回 409，除非显式 `replace=true`。设备拉 `current/download` 拿到带
-          SHA256SUMS 的 tar.gz，校验通过后原子切换。回滚在切换前重校目标版本的 SHA，
-          且不产生新版本。鉴权是 `Bearer <token>`，角色 viewer < operator < admin，
+          返回 409，除非显式 `replace=true`。控制台侧的版本协议已实现——版本不可变，
+          `current/download` 提供带 SHA256SUMS 的 tar.gz，回滚在切换前重校目标版本的
+          SHA 且不产生新版本。设备端运行时——拉取版本、校验 checksum、原子切换——
+          尚未实现（开发中，见上游 spec）。鉴权是 `Bearer <token>`，角色 viewer < operator < admin，
           没有匿名读——token 表在部署时注入，代码里没有任何默认 token。
     - type: http
       port: 8080
