@@ -97,11 +97,18 @@ found, they are not placed tightly. Moving to 1280² lifts small-object mAP50-95
 from 17.49 to 26.88, which is why the shelf preset exists.
 
 **What has not been measured, and what does not exist.** The embedder does not
-run on either NPU: both Hailo DFC quantisation attempts failed the ≤3 point
-acceptance threshold, one losing 21 to 44 points and the other collapsing every
-image to an identical vector
-(`evaluation/runs/2026-09-06-embed-hailo/`); the RKNN conversion of the embedder
-was never attempted. There is no Jetson figure of any kind, and no TensorRT
+run on either NPU. Two Hailo DFC quantisation attempts were made
+(`evaluation/runs/2026-09-06-embed-hailo/`) and neither produced a usable
+figure. The o2 attempt collapsed: every image maps to an identical vector. The
+default attempt lost 20 to 44 points against the fp32 baseline, but that number
+is not a conclusion about DFC quantisation — the calibration set fed to the
+optimise stage cannot be shown from the record to have been raw 0–255 pixels
+rather than an already-normalised array, in which case the `.alls`
+normalisation ran twice and part of that gap has nothing to do with
+quantisation. The upstream default has been corrected and a dimension check
+added; the default tier has to be re-run under the corrected pipeline before
+anything can be concluded from it. The RKNN conversion of the embedder was
+never attempted. There is no Jetson figure of any kind, and no TensorRT
 backend in the repository. OCR reranking is specified and not implemented. And
 there is no end-to-end number — no counting accuracy, no shelf-slot accuracy, no
 72-hour run — because the process that would join detection, embedding, lookup
