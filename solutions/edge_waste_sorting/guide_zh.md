@@ -45,18 +45,20 @@
   否则容器里看不到视频节点。不要整个挂载 `/dev`；runc 无法重建 `/dev/pts` 的
   inode。
 - **模型文件不在任何 CDN 上。** 步骤里的下载地址只是目标位置，
-  什么都还没上传。请事先把 `mobilenetv3s_waste8.onnx` 拷到设备的
+  什么都还没上传。请事先把 `efficientnet_lite0_waste8.onnx` 拷到设备的
   `~/edge-waste-sorting/jetson_waste/models/`；无论走哪条路，
-  sha256 校验（`51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e`）
-  都照做。
+  sha256 校验（`e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391`）
+  都照做。这是当前基线（EfficientNet-Lite0，m1c）——MobileNetV3-Small
+  （m1b）已被取代，因为它在每一条测过的边缘链路上都出现 INT8 塌缩，
+  详见方案页。
 - **容器镜像尚未 push。** 在设备上从上游仓库构建，然后要么把它 retag 成
   compose 文件里的名字，要么把 `WASTE_IMAGE` 设成你的本地 tag。
 
 分类器 track 在这里选。`baseline` 是默认项，除非你已经读过方案页的
-「分类器选型」一节，否则它就是正确选择：在这套分类法上 top-1 更高
-（同一份 val 上 0.8792 对 0.8501），而且快 40 倍。`open_vocab` 用大约 3 个
-百分点的 top-1 换来更好的校准、开放集拒识、中英文都能回答，
-以及不重训就能加类。
+「分类器选型」一节，否则它就是正确选择：EfficientNet-Lite0 在这套分类法上
+top-1 比开放词汇 track 更高（同一份 val 上 0.8877 对 0.8501），CPU 上大约
+快 4-5 倍（目前还没有它在 Jetson TensorRT 上的实测数字）。`open_vocab` 用
+top-1 换来更好的校准、开放集拒识、中英文都能回答，以及不重训就能加类。
 
 ### 故障排查
 
@@ -153,10 +155,10 @@ MQTT。
     "uri": "/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"
   },
   "model": {
-    "name": "mobilenetv3s_waste8",
-    "backbone": "mobilenet_v3_small",
+    "name": "efficientnet_lite0_waste8",
+    "backbone": "efficientnet_lite0",
     "input": "images:1x3x224x224",
-    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e",
+    "onnx_sha256": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
     "accelerator": "tensorrt"
   }
 }
@@ -247,8 +249,10 @@ category，方案页上的每一个数字在它关闭时都成立。
 ## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
 
 把一台装了 Hailo-8 的 Pi 5 准备好、验证三道只能在设备上检查的 ABI 关卡，
-然后停在缺失的模型文件上。本项目没有把基线 MobileNetV3-Small 编译成 HEF。
-选这个套餐是为了让板子就位，不是为了今天拿到能跑的分类器。
+然后下载 EfficientNet-Lite0（m1c）的 HEF。该 HEF 编译顺利，并在 DFC
+emulator 上完成了 INT8 核实（与 CPU/native 在 200 张 val 图上一致率
+0.89）——**目前还没有 Hailo-8 真机跑过它**。选这个套餐是为了拿到这个分类器
+第一次真机上板的结果；把 emulator 数字当作编译期健全性检查，不是硬件验证。
 
 | 设备 | 用途 |
 |---|---|
@@ -263,17 +267,21 @@ category，方案页上的每一个数字在它关闭时都成立。
 
 已知弱点，全部要么实测过、要么明确标为未测：
 
-- **没有任何 HEF。** 基线从未为 Hailo-8 编译过；开放词汇视觉塔 parse 通过，
-  但它的 INT8 量化在 `hailo optimize` 处失败。重试进行中，失败则蒸馏。
+- **HEF 只在 emulator 上验证过，不是硬件验证。** 基线（EfficientNet-Lite0，
+  m1c）在 DFC emulator 上编译顺利、没有 INT8 塌缩（一致率 0.89），但没有
+  Hailo-8 真机跑过它。开放词汇视觉塔的 INT8 量化仍然在 `hailo optimize`
+  处失败。如果你自己训练并量化 MobileNetV3-Small，不要假设它的 INT8 也能像
+  这个基线一样跑通——它在同一条编译链路上塌缩过（详见方案页）。
 - **一图一件。** 没有检测器。
 - **`textile` 从未被训练或测试过**，`hazardous` 永远不会发出。
-- **域偏移未测**，而且方案页上所有精度数字都是 CPU FP32——
-  INT8 HEF 的置信度分布会不同，同样未测。
+- **域偏移未测**，而且方案页上所有 CPU 精度数字都是 FP32——
+  真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
 - **这里没有任何东西在树莓派上跑过。**
 
 ## 步骤 1: 在 Hailo 上部署垃圾分类 {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
-上传 compose 栈、检查三道 Hailo ABI 关卡，然后去找 HEF 并因为没有而停下。
+上传 compose 栈、检查三道 Hailo ABI 关卡，然后下载并校验 EfficientNet-Lite0
+的 HEF。
 
 ### 前置条件
 
@@ -286,8 +294,12 @@ category，方案页上的每一个数字在它关闭时都成立。
   没有这条时 `VDevice()` 与 `hailortcli fw-control identify` 都会成功，
   故障只在 `configure(hef)` 时才暴露。
 - 至少 4 GB 可用空间。
-- **容器镜像尚未 push**，而且**没有任何 HEF**。该步骤会过完关卡然后在模型处
-  失败。这就是今天的预期结果。
+- **容器镜像尚未 push。** 在设备上从上游仓库构建，然后要么把它 retag 成
+  compose 文件里的名字，要么把 `WASTE_IMAGE` 设成你的本地 tag。
+- **HEF 还没上传到任何 CDN。** 步骤里的下载地址只是目标位置；上传落地前
+  请手工把 `efficientnet_lite0_waste8.hef` 拷到设备上。sha256 校验
+  （`3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00`）
+  无论走哪条路都照做。
 
 ### 故障排查
 
@@ -297,8 +309,9 @@ category，方案页上的每一个数字在它关闭时都成立。
 | `libhailort.so.4.21.0 not found` | 本部署 ABI 锁在 HailoRT 4.21。装这个版本；驱动、库与 python 绑定不要混版本。 |
 | `expected both hailort and hailort-pcie-driver on hold` | `sudo apt-mark hold hailort hailort-pcie-driver`。 |
 | `hailo_pci is missing force_desc_page_size=4096` | `echo 'options hailo_pci force_desc_page_size=4096' \| sudo tee /etc/modprobe.d/hailo.conf && sudo reboot`。 |
-| `No HEF for this solution` | 属预期。基线没有为 Hailo-8 编译过，也什么都没上传。板子已经准备好了；有了 HEF 再重跑这一步。 |
+| `No HEF for this solution` | CDN 上传还没落地。按步骤里给出的路径手工把 HEF 拷到设备上，校验上面的 sha256，再重跑这一步。 |
 | `_pyhailort` 导入报错 | 主机的绑定被挂进容器，只能在同一个 Python 小版本下导入。Bookworm 是 3.11，trixie 是 3.13。 |
+| 自己训的 MobileNetV3-Small 在 Hailo 上 INT8 表现很差 | 属预期——不要直接量化它。MobileNetV3-Small（m1b）在同一条编译链路上塌缩到接近随机水平（与 CPU/native 一致率 0.115）。EfficientNet-Lite0 正因为这个原因成为基线。 |
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml default=true}
 
@@ -310,8 +323,9 @@ category，方案页上的每一个数字在它关闭时都成立。
 
 ## 步骤 2: 查看实时分类画面 {#preview_hailo_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
 
-打开运行时自带的页面。没有 HEF 时实时画面与健康接口照样能起来，
-分类结果起不来。
+打开运行时自带的页面：实时画面、一个触发按钮、健康接口。如果步骤 1 没能
+拿到 HEF（CDN 还没上传，也没有手工拷贝），实时画面照样能起来，但分类结果
+起不来。
 
 ### 故障排查
 
@@ -319,13 +333,14 @@ category，方案页上的每一个数字在它关闭时都成立。
 |---|---|
 | 页面打不开 | 在设备上 `docker ps`——`waste` 容器应当在跑。看 `docker logs edge-waste-app`。 |
 | 页面能开但预览是黑的 | 视频源写错或不可达。USB 相机检查 `/dev/videoN` 有没有挂进容器；RTSP 先用 VLC 测地址。 |
-| 预览正常但 `/events` 一直空 | 没有 HEF 模型就永远加载不上，所以什么都不会被分类。这就是这个套餐今天的预期状态。 |
+| 预览正常但 `/events` 一直空 | 如果设备上没有 HEF，模型永远加载不上，所以什么都不会被分类——见步骤 1 的「No HEF for this solution」条目。 |
 | 物品在画面里很小 | 重新对准。方案页上没有任何数字是在物品很小的取景下测的。 |
 
 ## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_hailo type=manual required=true verify=true config=devices/trigger_setup.yaml}
 
-端到端验证。在这个套餐上，有 HEF 之前它不会产出事件——现在先把取景与订阅这两
-小步跑掉，除模型之外的部分就都确认过了。
+端到端验证。如果步骤 1 已经把 HEF 放到了设备上，这一步会产出一次真实分类，
+第一次跑在 Hailo-8 真机上——本项目自己的 emulator 数字不能替代这个结果。
+如果 HEF 还缺，先把取景与订阅这两小步跑掉，除模型之外的部分就都确认过了。
 
 ### 前置条件
 
@@ -336,7 +351,9 @@ category，方案页上的每一个数字在它关闭时都成立。
 
 ### 部署完成
 
-板子已经准备好，栈也在跑。分类被缺失的 HEF 卡住。
+板子已经准备好，栈也在跑。如果 HEF 已经放到设备上，分类跑在 Hailo-8 真机
+上——这是本项目第一次真正验证这个数字，因为本项目自己没有 Hailo-8。
+如果 HEF 还缺（CDN 上传待定），分类被它卡住；触发与 MQTT 链路仍然可以验证。
 
 #### 快速验证
 
@@ -379,10 +396,10 @@ category，方案页上的每一个数字在它关闭时都成立。
     "uri": "/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"
   },
   "model": {
-    "name": "mobilenetv3s_waste8",
-    "backbone": "mobilenet_v3_small",
+    "name": "efficientnet_lite0_waste8",
+    "backbone": "efficientnet_lite0",
     "input": "images:1x3x224x224",
-    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e",
+    "onnx_sha256": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
     "accelerator": "hailo"
   }
 }
@@ -393,20 +410,23 @@ payload 形状跨平台完全一致，只有 `model.accelerator` 不同。
 
 #### 下一步
 
-- 等 HEF。INT8 量化重试进行中；失败的话就退到蒸馏一个小的学生模型。
+- 把你刚测到的真实 Hailo-8 精度与时延反馈回来——这是本项目第一次在真机上
+  验证这份 HEF。拿它对照方案页上 DFC emulator 的 0.89 一致率 / 0.755
+  准确率两个数字。
+- 如果 CDN 上传还没落地、你是手工把 HEF 拷上去的，记下这一点——下次部署
+  该下载步骤会失败。
 - 保住你刚建立的 ABI 状态：两个 Hailo 包都 hold 着，
-  `force_desc_page_size=4096` 保持在位。用 DFC 3.31.0 / HailoRT 4.21.0
+  `force_desc_page_size=4096` 保持在位。这份用 DFC 3.31.0 / HailoRT 4.21.0
   编出来的 HEF 需要的正是这一套。
 - 离开工作台之前把 MQTT 指向带凭据的 broker。
-- 现在就要能用的分类器，就用 Orin 套餐——它是唯一有模型文件的那个。
 
 ### 故障排查
 
 | 问题 | 解决办法 |
 |---|---|
-| 一条消息都没有 | 没有 HEF 时属预期。确认容器日志报的是缺模型；如果报的是别的，那是另一个故障。 |
+| 一条消息都没有 | 先确认设备上是不是真有 HEF（`ls` models 目录)——如果 CDN 上传还没落地，步骤 1 会在下载这一步失败。HEF 存在的话，去容器日志里找别的故障。 |
 | 触发计数不动 | 触发源没配上。检查 `config/config.json` 里的 `trigger.sources`。 |
 | 按一次按钮出两条消息 | 去抖时间对这个抖动的开关来说太短。调高 `trigger.debounce_ms`；低于约 300 ms 时抖动的按钮会触发两次。 |
-| 有了 HEF 之后 `configure(hef)` 崩溃 | `force_desc_page_size=4096` 没设，或者设完没重启。 |
-| 置信度阈值的表现与 Orin 套餐不同 | 「4.5% 低于 0.5」是 CPU FP32 上的数字。INT8 HEF 的置信度分布不同，没有人测过。 |
+| `configure(hef)` 崩溃 | `force_desc_page_size=4096` 没设，或者设完没重启。 |
+| 置信度阈值的表现与 Orin 套餐不同 | 方案页上「4.3% 低于 0.5」是 CPU FP32 上的数字。这块板子的 INT8 置信度分布本来就是另一次独立测量——这是预期，不是 bug；但如果看到它坍缩到单一类别，拿它对照 emulator 的 0.89 一致率，真机上出现明显差距值得反馈。 |
 | 想在这里用开放词汇或 VLM 兜底 | 这个套餐不提供。SigLIP 2 的 INT8 量化在 `hailo optimize` 处失败，而 VLM 兜底步骤仅限 Orin。 |
