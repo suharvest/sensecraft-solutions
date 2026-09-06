@@ -12,8 +12,11 @@ carrying the gallery version and the model hashes that produced it.
 The point of the split is registration. Adding a SKU means photographing it 3
 to 8 times and posting the images to the console — the detector never learns
 about it, and the embedder never learns about it either. The gallery gains a new
-immutable version, devices fetch it, verify its checksums and switch atomically.
-Rolling back re-verifies the target version before switching. Nothing retrains.
+immutable version. The console side of that protocol is implemented — versions
+are immutable, each carries SHA256SUMS, and rollback re-verifies the target
+version before switching without minting a new one. The device-side runtime
+that would fetch a version, verify its checksums and switch atomically does not
+exist yet. Nothing retrains.
 
 ## What you get
 
