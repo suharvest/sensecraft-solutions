@@ -56,16 +56,27 @@ contract and one console.
 
 Not for: doors where a failure to open is a safety event, and doors where the
 consequences of a wrongly admitted person are severe. Nothing here is a
-certified security product and none of the presets has been verified on
-hardware.
+certified security product. Only the face-library distribution path has been
+exercised on hardware — on a standard reCamera, sources below. Recognition,
+liveness and the door path have not.
 
 ## How well it works
 
-**This is not a certified security or life-safety system, and it has never run
-on hardware.** The upstream project is at its software milestone: a pure
-software loop on a macOS development machine, with a fake actuator, an in-memory
-MQTT broker and a fake recogniser. No camera, no relay, no lock, no real broker,
-no real face model has been in the loop.
+**This is not a certified security or life-safety system.** One link has been
+exercised on hardware and the rest has not, so the two are stated separately.
+
+**On hardware**: the face-library distribution path — poll, chunked download,
+per-file SHA-256, manifest signature, atomic switch, gallery write and
+`op:reload` ack, plus resume after an interrupted download and rejection of a
+version whose manifest does not verify. Two probe runs on a standard reCamera
+(SG2002 / CV181x riscv64, firmware 0.2.2).
+
+**Not on hardware**: recognition, liveness and the door path. Nobody stood in
+front of the lens in either probe run — all 220 sampled frames read
+`face_count: 0` — no relay has been wired, and the thresholds are the device's
+shipped values carrying `calibration = pending`. Everything outside the library
+path runs as a pure software loop on a macOS development machine, with a fake
+actuator, an in-memory MQTT broker and a fake recogniser.
 
 Seven boundary metrics are defined. One carries numbers and six are empty, each
 with the reason recorded rather than guessed at.
