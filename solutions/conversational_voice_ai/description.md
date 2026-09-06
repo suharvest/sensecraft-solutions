@@ -70,7 +70,7 @@ available lists, since Qwen3-ASR upstream advertises 52 languages and Whisper
 | Orin Nano 8GB | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
 | Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
 | Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS CustomVoice, pending measurement |
-| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, pending measurement | Not supported - TTS on this board is Matcha zh-en only |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, measured 2026-09-06: WER 16.95% short / 63.38% long, TTS RTF 0.194 (see docs/perf/rk3576-matrix-20260906.md) | Not supported - TTS on this board is Matcha zh-en only |
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, pending measurement | Qwen3-ASR + Kokoro RKNN, pending measurement |
 | Raspberry Pi 5 | Not supported | sherpa-onnx CPU, pending measurement | Not supported |
 

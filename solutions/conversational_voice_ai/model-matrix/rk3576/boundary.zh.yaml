@@ -1,0 +1,97 @@
+# Targeted bench for the RK3576 row of the C multilingual matrix
+# (docs/specs/p-voice-split-multilingual-spec.md §3). Adapted from
+# seeed-solutions-hub/templates/evaluation/boundary.schema.yaml: that
+# template describes one stable/degrading/failure metric per file; this
+# bench measures three metrics (WER/CER, TTS RTF, V2V latency) for one
+# resolved (language, device) cell, so they are grouped as `metrics: []`
+# under shared `conditions` instead of one file per metric, per the
+# targeted-bench task instructions. No `verified:` field per instructions.
+demo_id: conversational_voice_ai_rk3576_zh
+
+conditions:
+  device:
+    model: reComputer RK3576 (LubanCat-3 form factor)
+    sku: fleet device id cat-remote
+    os: Debian 12 (Rockchip BSP)
+    firmware: N/A
+  software:
+    repo: openvoicestream
+    commit: a0b043a6 (branch feature/language-device-resolver)
+    image_tag: openvoicestream:rk-20260903.10 (sha256:fdc480da3061...)
+  network_env: 本机 loopback（bench 脚本与 speech 容器同机 127.0.0.1:8621，未经网络）
+  data_scale: >-
+    ASR: bench/perf/corpus 复用既有 FLEURS(CC BY 4.0) 语料，zh short 5 + zh long 5 = 10 条
+    （非新采 20 条 Common Voice；语料已 sha256 校验，源见 docs/perf/whisper-cross-device-20260827.md）。
+    TTS: 5 句自定中文短句。V2V: 1 条 zh_short_01.wav（3.18s），重复 --multi 2 规避会话提前关闭。
+  duration: 单次批量运行；ASR 10 条一次跑完；TTS 5 次 POST；V2V 6 轮（1 warmup + 5 计入）
+
+resolver_profile: rk3576-default   # resolver output for (zh, rk3576); see docs/perf/rk3576-matrix-20260906.md
+
+metrics:
+  - name: ASR CER (short utterances)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=29.09%"
+    observation: >-
+      2/5 files exact match (0% CER); 2 files with partial mid-utterance
+      truncation (zh_short_03 79%, zh_short_05 59%) consistent with
+      ASR_MAX_NEW_TOKENS=64 + ASR_FINAL_STOP_ON_PUNCT=1 cutting off after the
+      first clause on longer single utterances.
+  - name: ASR CER (long-form, 10-20s)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=84.06%"
+    observation: >-
+      Every long file is truncated to its first clause (profile is tuned for
+      short conversational turns, not dictation) — this is not a decoder
+      accuracy failure, it is the streaming true_streaming pipeline stopping
+      at the first sentence-final punctuation. rk3576-default is unsuitable
+      for long-form transcription as configured.
+  - name: TTS RTF (Matcha ORT + RKNN Vocos)
+    unit: ratio (synth_time / audio_duration)
+    direction: lower_is_better
+    value: "n=5, mean=0.204 (range 0.190-0.216)"
+    observation: 5 Chinese sentences (1.9-2.9s audio each) via POST /tts, x-rtf header read directly from server.
+  - name: V2V stop_to_final (ASR latency after audio ends)
+    unit: ms
+    direction: lower_is_better
+    value: "n=10 (2 utterances x 5 runs), p50=1771ms, mean=1732ms, min=1284ms, max=2049ms"
+    observation: measured via bench/perf/measure_v2v_unified.py against /v2v/stream, 1 warmup run discarded.
+  - name: V2V stop_to_tts_audio (first TTS PCM frame after audio ends, echo mode)
+    unit: ms
+    direction: lower_is_better
+    value: "n=5, p50=3782ms, mean=3640ms, min=3061ms, max=3892ms"
+    observation: >-
+      No LLM in the loop: the harness echoes the ASR-final text straight into
+      TTS (server has no api_key plumbing for a real dashscope call in
+      OVS_V2V_SERVER_LOOP mode). This measures ASR + TTS pipeline latency,
+      not a real conversational reply. --multi 2 was required: in
+      single-utterance mode the deployed server (server/main.py) sets
+      asr_session_closed=True immediately on the first asr_final and closes
+      the socket before the injected {"type":"text"} message can reach the
+      TTS buffer ("v2v stream closed" in container logs with no TTS
+      activity). Using --multi 2 (same wav replayed with an 800ms gap) keeps
+      the session open long enough for the echoed TTS round trip to
+      complete, at the cost of some NPU contention from the second
+      utterance's concurrently-arriving audio — a genuine caveat, not
+      corrected for.
+    caveat: 完整回复（末帧/tts_done 时刻）未采集：现有 measure_v2v_unified.py 只记录首帧 PCM 到达时间，不记录 tts_done。若需要完整回复时长，可用 TTS RTF（0.204）x 回复音频时长做估算，但那是推算不是实测，故此处未测n填写。
+
+resources_snapshot:
+  docker_stats: "CPU 112.83%, MEM 2.76GiB/7.324GiB (37.69%), container conversational-voice-speech, snapshot taken during zh bench window"
+  rknpu_load: "Core0: 0%, Core1: 18% (sudo cat /sys/kernel/debug/rknpu/load, snapshot taken idle-between-requests, not a peak reading)"
+
+raw_refs:
+  - "docs/perf/rk3576-matrix-20260906.md (openvoicestream repo) — full resolver output, per-file ASR JSON lines, TTS header dumps, docker ps/df before-after"
+
+reproduced_by: null
+
+caveats: >-
+  Single measurement pass by the author (this bench), not independently
+  reproduced. Corpus is N=5 per category (10 zh total), not the 20-clip
+  Common Voice sample originally proposed in the task brief — the existing
+  sha256-pinned FLEURS corpus already used for the RK3576 Whisper bench
+  (docs/perf/whisper-cross-device-20260827.md) was reused instead of a fresh
+  download, per "OVS tests 语料里若已有就复用". V2V echo-mode numbers are not
+  a full conversational round trip (no LLM); see the V2V metric observation
+  above for the session-close workaround and its side effect.

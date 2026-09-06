@@ -65,7 +65,7 @@
 | Orin Nano 8GB | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
 | Orin NX 16GB（云端对话） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
 | Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS CustomVoice，待测 |
-| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，待测 | 不支持——该板 TTS 仅有 Matcha zh-en |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，2026-09-06 实测：WER 短句 16.95% / 长句 63.38%，TTS RTF 0.194（详见 docs/perf/rk3576-matrix-20260906.md） | 不支持——该板 TTS 仅有 Matcha zh-en |
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，待测 | Qwen3-ASR + Kokoro RKNN，待测 |
 | 树莓派 5 | 不支持 | sherpa-onnx CPU，待测 | 不支持 |
 

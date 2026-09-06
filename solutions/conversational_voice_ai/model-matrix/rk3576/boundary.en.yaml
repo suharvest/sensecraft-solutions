@@ -1,0 +1,95 @@
+# Targeted bench for the RK3576 row of the C multilingual matrix
+# (docs/specs/p-voice-split-multilingual-spec.md §3), English cell. See
+# boundary.zh.yaml for the note on adapting seeed-solutions-hub's
+# one-metric-per-file boundary schema to this 3-metric targeted bench.
+demo_id: conversational_voice_ai_rk3576_en
+
+conditions:
+  device:
+    model: reComputer RK3576 (LubanCat-3 form factor)
+    sku: fleet device id cat-remote
+    os: Debian 12 (Rockchip BSP)
+    firmware: N/A
+  software:
+    repo: openvoicestream
+    commit: a0b043a6 (branch feature/language-device-resolver)
+    image_tag: openvoicestream:rk-20260903.10 (sha256:fdc480da3061...)
+  network_env: 本机 loopback（bench 脚本与 speech 容器同机 127.0.0.1:8621，未经网络）
+  data_scale: >-
+    ASR: bench/perf/corpus 复用既有 FLEURS(CC BY 4.0) 语料，en short 5 + en long 5 = 10 条
+    （非新采 20 条；语料已 sha256 校验，源见 docs/perf/whisper-cross-device-20260827.md）。
+    TTS: 5 句自定英文短句。V2V: 1 条 en_short_01.wav（3.84s），重复 --multi 2 规避会话提前关闭。
+  duration: 单次批量运行；ASR 10 条一次跑完；TTS 5 次 POST；V2V 6 轮（1 warmup + 5 计入）
+
+resolver_profile: rk3576-default
+resolver_note: >-
+  resolver 对 (en, rk3576) 的实际输出仍是 rk3576-default（Qwen3 ASR + Matcha
+  icefall zh-en TTS），OVS_MATRIX_STATUS=untested，resolver 打印 WARN 且明确指出
+  spec §3 规划的 Whisper base/10s + Kokoro ConvOnly 组合尚不存在（两者目前只有
+  ASR-only / TTS-only 的独立 profile，组合需要单独的工程工作，不在本次定向 bench
+  范围内）。本 cell 测的是 resolver 实际会部署的 rk3576-default，不是 spec 表格里
+  规划的 Whisper+Kokoro 组合。
+
+metrics:
+  - name: ASR WER (short utterances)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=16.95% (word), mean CER=10.16%"
+    observation: >-
+      Qwen3-ASR RK (rk3576-default, trained multilingually within its
+      30-language set per qwen3asr_rk config) transcribes English on the
+      same deployed profile as Chinese; errors are mostly near-miss word
+      substitutions (e.g. "Aerosmith" -> "Irish Smith"), not garbage output.
+  - name: ASR WER (long-form, 10-20s)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=63.38% (word), mean CER=62.58%"
+    observation: >-
+      Same first-clause truncation as the zh long cell (ASR_MAX_NEW_TOKENS=64,
+      ASR_FINAL_STOP_ON_PUNCT=1) — profile is tuned for short conversational
+      turns, not long-form English dictation either.
+  - name: TTS RTF (Matcha ORT + RKNN Vocos, icefall zh-en voice)
+    unit: ratio (synth_time / audio_duration)
+    direction: lower_is_better
+    value: "n=5, mean=0.194 (range 0.158-0.216)"
+    observation: 5 English sentences (2.5-4.3s audio each) via POST /tts language=en, x-rtf header read directly from server.
+  - name: V2V ASR latency (stop -> final)
+    unit: ms
+    direction: lower_is_better
+    value: "n=5 (asr_stream_ws_bench short set), mean eos_to_final=2837ms"
+    observation: >-
+      Taken from the separate bench/perf/asr_stream_ws_bench.py run (not the
+      measure_v2v_unified.py run) because the /v2v/stream English run's
+      stop_to_final/stop_to_endpoint fields came back null on every run for
+      an unexplained reason (final_to_tts_* fields on the same run were
+      populated normally) — recorded as a raw artefact, not silently
+      substituted without a note.
+  - name: V2V final_to_tts_audio (ASR final -> first TTS PCM frame, echo mode)
+    unit: ms
+    direction: lower_is_better
+    value: "n=5, p50=1127ms, mean=1126ms, min=1021ms, max=1232ms"
+    observation: >-
+      Same echo-mode caveat and --multi 2 session-close workaround as the zh
+      cell (see boundary.zh.yaml). stop_to_tts_audio_ms is null on every English
+      run for the same reason stop_to_final is null; final_to_tts_audio_ms is
+      reported instead as the closest available round-trip number.
+    caveat: 完整回复（末帧/tts_done）未采集，理由同 zh cell。
+
+resources_snapshot:
+  docker_stats: "see boundary.zh.yaml — same container, snapshot taken once during the combined zh+en session (profile not restarted between languages)"
+  rknpu_load: "see boundary.zh.yaml"
+
+raw_refs:
+  - "docs/perf/rk3576-matrix-20260906.md (openvoicestream repo) — full resolver output, per-file ASR JSON lines, TTS header dumps, docker ps/df before-after"
+
+reproduced_by: null
+
+caveats: >-
+  Single measurement pass, not independently reproduced. N=5 per category
+  (10 en total), reusing the existing FLEURS corpus rather than a fresh
+  Common Voice download. stop_to_final/stop_to_endpoint being null on every
+  /v2v/stream English run (but not on the zh run with the same script) is
+  unexplained and reported as-is rather than investigated further within
+  this bench's scope — a follow-up should check whether it is a VAD
+  endpoint-detection difference on English audio or a script indexing issue
+  specific to how English "final" messages are counted against multi=2.
