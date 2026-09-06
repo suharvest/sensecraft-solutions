@@ -43,7 +43,31 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 | 带 admin token 的 `GET /v1/gallery` 返回空库 | 首次注册之前这是正确的。 |
 | 8089 端口被占用 | 在向导里改服务端口。设备必须拿到同一个值——那是它们拉商品库的端口。 |
 
-## 步骤 2: 注册 SKU {#p1_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## 步骤 2: 放置嵌入模型 {#p1_embed type=manual required=true config=devices/place_embedder.yaml}
+
+把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。
+
+### 前置条件
+
+- 步骤 1 的管理端栈，停着或跑着都行——文件放在它的 compose 文件旁边，
+  下一次 `docker compose up -d server` 时生效。
+- `dinov2b_arcface_products10k_224_b1.onnx`，348 MB，sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+  本包不含它：`use_scope: non-commercial`、`redistributable: false`
+  （JD Products-10K 条款，在其上微调的权重继承该范围）。骨干
+  `facebook/dinov2-base` 是 Apache-2.0；限制来自训练数据。
+- 管理端主机上 350 MB 空闲空间。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 注册成功，但每次检索都返回错的 SKU | 服务还在占位嵌入器上。上游 `embedder_backend` 默认 `fake`（`server/config.py`），它把图片字节哈希成向量。`GET /api/health` 不报告这一项，启动也不打日志，所以这个症状是唯一的信号。设 `RETAIL_EMBEDDER=onnx`，重启，然后把所有 SKU 重新注册一遍。 |
+| 设了 `RETAIL_EMBEDDER=onnx` 之后 `server` 容器立刻退出 | 要么 `RETAIL_EMBEDDER_ONNX` 是空的——上游在这个组合下拒绝启动——要么路径在容器里不存在。确认文件在 `assets/console/models/` 里，且文件名与变量一致。 |
+| 切换前后注册的商品库对不上 | 不能混用。一个嵌入器产出的向量与另一个的不可比。在新模型上把所有 SKU 重新注册一遍。 |
+| 计划商用部署 | 用自采或许可宽松的数据重训嵌入器，并重建每一个商品库版本。随包给出的权重不能用于商用。 |
+
+## 步骤 3: 注册 SKU {#p1_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 打开管理界面的商品库。每个 SKU 用 3 到 8 张图注册；每次注册生成一个新的不可变商品库版本。
 
@@ -63,7 +87,7 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 | 出了新版本，但设备仍然认不出这个 SKU | 它还没拉取并切换。留出一个轮询周期加下载时间；切换在 SHA 校验通过之后才发生。 |
 | top-1 明显低于公布数字 | 先看注册张数（同一模型每 SKU 1 张实测 51.11%，8 张实测 79.11%），再考虑域差距——模型是在电商棚拍图上微调的。 |
 
-## 步骤 3: 在 Rockchip 上转换并核对检测器 {#p1_convert type=manual required=true config=devices/rk3588_convert.yaml}
+## 步骤 4: 在 Rockchip 上转换并核对检测器 {#p1_convert type=manual required=true config=devices/rk3588_convert.yaml}
 
 在 x86_64 主机上把 ONNX 转成 `.rknn`，拷到板上，并定下嵌入跑在哪里。
 
@@ -85,13 +109,13 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 | INT8 一致率明显低于 98% | 看校准图是怎么抽的。按文件名取前 N 张会落进同一个拍摄批次，量化 scale 就只按那个批次定了。要从整个 val 目录等间隔抽。 |
 | 板上没有 cv2 和 PIL | 如果那个 Python 还有别的项目在用，就不要装。在别处 letterbox 好，打包成一个 `(N, 640, 640, 3)` uint8 BGR 的 `.npy`；设备端脚本只需要 numpy 和 rknnlite。 |
 
-## 步骤 4: 验证注册、检索与设备产物 {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## 步骤 5: 验证注册、检索与设备产物 {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 复现软件闭环、走一遍管理端 API、为你自己的转换产物复现 parity 数字，并记下还有什么没验证。
 
 ### 前置条件
 
-- 步骤 1 到 3 已完成。
+- 步骤 1 到 4 已完成。
 - 一份跑过 `uv sync` 的上游仓库克隆，用于软件闭环与 CPU golden。
 - 你自己 SKU 的照片，用没注册过的角度拍，供检索核对使用。
 
@@ -169,7 +193,31 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 | Pi 访问不到服务端口 | 设备是从那个端口拉商品库的，不是走界面。在 Pi 上试，不要在另一个网络的浏览器上试。 |
 | 8089 端口被占用 | 在向导里改掉，并把同一个值给设备。 |
 
-## 步骤 2: 注册 SKU {#p2_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## 步骤 2: 放置嵌入模型 {#p2_embed type=manual required=true config=devices/place_embedder.yaml}
+
+把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。
+
+### 前置条件
+
+- 步骤 1 的管理端栈，停着或跑着都行——文件放在它的 compose 文件旁边，
+  下一次 `docker compose up -d server` 时生效。
+- `dinov2b_arcface_products10k_224_b1.onnx`，348 MB，sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+  本包不含它：`use_scope: non-commercial`、`redistributable: false`
+  （JD Products-10K 条款，在其上微调的权重继承该范围）。骨干
+  `facebook/dinov2-base` 是 Apache-2.0；限制来自训练数据。
+- 管理端主机上 350 MB 空闲空间。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 注册成功，但每次检索都返回错的 SKU | 服务还在占位嵌入器上。上游 `embedder_backend` 默认 `fake`（`server/config.py`），它把图片字节哈希成向量。`GET /api/health` 不报告这一项，启动也不打日志，所以这个症状是唯一的信号。设 `RETAIL_EMBEDDER=onnx`，重启，然后把所有 SKU 重新注册一遍。 |
+| 设了 `RETAIL_EMBEDDER=onnx` 之后 `server` 容器立刻退出 | 要么 `RETAIL_EMBEDDER_ONNX` 是空的——上游在这个组合下拒绝启动——要么路径在容器里不存在。确认文件在 `assets/console/models/` 里，且文件名与变量一致。 |
+| 切换前后注册的商品库对不上 | 不能混用。一个嵌入器产出的向量与另一个的不可比。在新模型上把所有 SKU 重新注册一遍。 |
+| 计划商用部署 | 用自采或许可宽松的数据重训嵌入器，并重建每一个商品库版本。随包给出的权重不能用于商用。 |
+
+## 步骤 3: 注册 SKU {#p2_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 每个 SKU 用 3 到 8 张图注册。每次注册生成一个新的不可变商品库版本。
 
@@ -189,7 +237,7 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 | 出了新版本，但设备仍然认不出这个 SKU | 留出一个轮询周期加下载时间；切换在 SHA 校验通过之后发生。 |
 | 注册很慢 | 管理端主机上的嵌入是 CPU 活。它是按图片算的，不是按帧算的，所以每个 SKU 只花这一次。 |
 
-## 步骤 3: 编译 HEF 并准备 Pi {#p2_compile type=manual required=true config=devices/pi_hailo_compile.yaml}
+## 步骤 4: 编译 HEF 并准备 Pi {#p2_compile type=manual required=true config=devices/pi_hailo_compile.yaml}
 
 把 HailoRT 一整套钉在同一版本，在 x86_64 主机上编译检测器 HEF，
 并把嵌入器定在 CPU 上，连同由此推出的一帧预算。
@@ -213,13 +261,13 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 | 别的进程占着 `/dev/hailo0` | 测量期间把它停掉。共用加速器会改变本页每一个数字。 |
 | 嵌入远慢于 92 ms | 看线程数（实测用的是四线程），再确认你跑的是动态 INT8 模型而不是 fp32——fp32 实测是 180.75 ms。 |
 
-## 步骤 4: 验证注册、检索与设备产物 {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## 步骤 5: 验证注册、检索与设备产物 {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 复现软件闭环、走一遍管理端 API、为你自己的 HEF 复现 parity 数字，并记下还有什么没验证。
 
 ### 前置条件
 
-- 步骤 1 到 3 已完成。
+- 步骤 1 到 4 已完成。
 - 一份跑过 `uv sync` 的上游仓库克隆。
 - 你自己 SKU 的照片，用没注册过的角度拍。
 
@@ -291,7 +339,31 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 | 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
 | 8089 端口被占用 | 在向导里改掉。 |
 
-## 步骤 2: 注册 SKU {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## 步骤 2: 放置嵌入模型 {#p3_embed type=manual required=true config=devices/place_embedder.yaml}
+
+把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。
+
+### 前置条件
+
+- 步骤 1 的管理端栈，停着或跑着都行——文件放在它的 compose 文件旁边，
+  下一次 `docker compose up -d server` 时生效。
+- `dinov2b_arcface_products10k_224_b1.onnx`，348 MB，sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+  本包不含它：`use_scope: non-commercial`、`redistributable: false`
+  （JD Products-10K 条款，在其上微调的权重继承该范围）。骨干
+  `facebook/dinov2-base` 是 Apache-2.0；限制来自训练数据。
+- 管理端主机上 350 MB 空闲空间。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 注册成功，但每次检索都返回错的 SKU | 服务还在占位嵌入器上。上游 `embedder_backend` 默认 `fake`（`server/config.py`），它把图片字节哈希成向量。`GET /api/health` 不报告这一项，启动也不打日志，所以这个症状是唯一的信号。设 `RETAIL_EMBEDDER=onnx`，重启，然后把所有 SKU 重新注册一遍。 |
+| 设了 `RETAIL_EMBEDDER=onnx` 之后 `server` 容器立刻退出 | 要么 `RETAIL_EMBEDDER_ONNX` 是空的——上游在这个组合下拒绝启动——要么路径在容器里不存在。确认文件在 `assets/console/models/` 里，且文件名与变量一致。 |
+| 切换前后注册的商品库对不上 | 不能混用。一个嵌入器产出的向量与另一个的不可比。在新模型上把所有 SKU 重新注册一遍。 |
+| 计划商用部署 | 用自采或许可宽松的数据重训嵌入器，并重建每一个商品库版本。随包给出的权重不能用于商用。 |
+
+## 步骤 3: 注册 SKU {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 注册今天就能用，而且与缺失的设备侧路径无关——在任何东西跑上 Orin 之前，
 商品库就可以建好并版本化。
@@ -311,7 +383,7 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 | 不确定该统一到哪个嵌入器 | 每 SKU 8 张图时 DINOv2-base 实测 top-1 84.67%，DINOv2-small 同档 79.11% 且只有四分之一大。两者都没在 Orin 上跑过。 |
 | 版本号不涨 | 注册没过质量闸门。响应里会说是哪一张图。 |
 
-## 步骤 3: 搭建 TensorRT 路径 {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
+## 步骤 4: 搭建 TensorRT 路径 {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
 
 写清楚缺什么、怎么构建 engine，以及在它的任何延迟数字有意义之前必须通过的 parity 检查。
 
@@ -331,14 +403,14 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 | parity 远低于 RKNN fp16 的 99.85% 参照 | 差这么多是解码或输出布局的问题，不是 fp16 精度的问题。 |
 | 想要一个可以引用的延迟数字 | 没有，而且从别的平台推一个出来是错的——同一个模型上 RK3588 与 Hailo-8 差了 6 倍。 |
 
-## 步骤 4: 验证注册、检索与设备产物 {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## 步骤 5: 验证注册、检索与设备产物 {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 复现今天确实能跑的软件闭环与管理端往返，并如实记下设备侧的缺口，
 而不是报一个绿色对勾。
 
 ### 前置条件
 
-- 步骤 1 与 2 已完成。步骤 3 是一项开发任务，可以仍然开着。
+- 步骤 1 到 3 已完成。步骤 4 是一项开发任务，可以仍然开着。
 - 一份跑过 `uv sync` 的上游仓库克隆。
 
 ### 部署完成

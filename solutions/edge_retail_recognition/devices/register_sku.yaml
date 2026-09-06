@@ -6,6 +6,7 @@ name_i18n:
 type: web_dashboard
 inherit_host_from: console_stack
 
+
 # A web_dashboard step rather than a preview one, for the same reason as the
 # fall-detection and unmanned-store packages: there is nothing to draw.
 # Registration is a form and a version number, and the console already renders
@@ -14,12 +15,21 @@ inherit_host_from: console_stack
 # inherit_host_from reuses the host entered in the console step, so the operator
 # does not type the address twice and cannot type it differently.
 #
-# This is also where the licence question becomes concrete. Registering a SKU
-# builds gallery vectors with the DINOv2 embedder fine-tuned on Products-10K,
-# which is non-commercial. That is fine for an evaluation and not fine for a
-# paid deployment; a commercial deployment has to retrain the embedder and
-# rebuild every gallery version, because vectors from one model are not
-# comparable to vectors from another.
+# What the vectors actually are depends on the previous step. Upstream defaults
+# `embedder_backend` to `fake` (server/config.py:57) and only builds
+# OnnxEmbedder when it is `onnx` (server/api.py:53). If the Place the Embedding
+# Model step was skipped, registration still succeeds and every vector is a
+# hash of the image bytes: the gallery mints versions, the UI works, and
+# retrieval is noise. GET /api/health does not report the backend and nothing
+# is logged, so the only way to know is to have set RETAIL_EMBEDDER=onnx
+# yourself.
+#
+# With the real embedder in place, the licence question becomes concrete. The
+# gallery vectors are built by DINOv2 fine-tuned on Products-10K, which is
+# non-commercial and not redistributable. That is fine for an evaluation and
+# not fine for a paid deployment; a commercial deployment has to retrain the
+# embedder and rebuild every gallery version, because vectors from one model
+# are not comparable to vectors from another.
 
 web_dashboard:
   url: "http://{{deploy.host}}:8080/"
@@ -35,10 +45,11 @@ web_dashboard:
     (evaluation/runs/2026-09-06-embed-small/), so the number of views is not a
     formality. Each registration mints a new immutable gallery version; the
     same sku_id is refused with 409 unless you explicitly ask to replace it.
-    Devices fetch the new version, verify its SHA256SUMS and switch atomically,
-    so allow one poll period plus the download before testing at the lane.
-    Rollback re-verifies the target version's SHA before switching and does not
-    mint a new version.
+    The console side of the version protocol is implemented — SHA256SUMS are
+    written per version, and rollback re-verifies the target version's SHA
+    before switching without minting a new one. The device-side runtime that
+    would fetch a version, verify it and switch atomically does not exist
+    upstream yet, so nothing picks the new version up on its own.
   description_i18n:
     zh: >-
       用 admin token 登录，打开商品库。每个 SKU 用 3 到 8 张图注册——至少正面、背面、
@@ -47,5 +58,6 @@ web_dashboard:
       在实测的检索集上，同一个模型每 SKU 的注册图从 1 张加到 8 张，top-1 从 51.11%
       涨到 79.11%（evaluation/runs/2026-09-06-embed-small/），所以视角数量不是走过场。
       每次注册生成一个新的不可变商品库版本；同一个 sku_id 会返回 409，除非你显式要求替换。
-      设备拉到新版本、校验 SHA256SUMS 后原子切换，所以去收银台测试之前请留出一个轮询周期
-      加下载时间。回滚在切换前重校目标版本的 SHA，且不产生新版本。
+      版本协议的管理端一侧已实现：每个版本都写 SHA256SUMS，回滚在切换前重校目标版本的
+      SHA，且不产生新版本。设备端那半——拉版本、校验、原子切换的运行时——上游还没有，
+      所以不会有任何东西自动把新版本取走。

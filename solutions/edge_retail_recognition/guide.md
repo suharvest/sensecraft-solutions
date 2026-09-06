@@ -54,7 +54,33 @@ console host, and writes the role token table.
 | `GET /v1/gallery` with the admin token returns an empty gallery | Correct before the first registration. |
 | Port 8089 already in use | Change the service port in the wizard. Devices must be given the same value — that is the port they pull the gallery from. |
 
-## Step 2: Register SKUs {#p1_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## Step 2: Place the Embedding Model {#p1_embed type=manual required=true config=devices/place_embedder.yaml}
+
+Puts the DINOv2 ONNX where the console mounts it and switches the server off
+the placeholder embedder.
+
+### Prerequisites
+
+- The console stack from Step 1, stopped or running — the file is placed next
+  to its compose file and picked up on the next `docker compose up -d server`.
+- `dinov2b_arcface_products10k_224_b1.onnx`, 348 MB, sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is not
+  shipped with this package: `use_scope: non-commercial`,
+  `redistributable: false` (JD Products-10K terms, inherited by weights
+  fine-tuned on it). The backbone `facebook/dinov2-base` is Apache-2.0; the
+  restriction comes from the training data.
+- 350 MB of free space on the console host.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Registration works but every lookup returns the wrong SKU | The server is on the placeholder embedder. Upstream defaults `embedder_backend` to `fake` (`server/config.py`), which hashes the image bytes into a vector. It is not reported by `GET /api/health` and not logged, so this symptom is the only signal. Set `RETAIL_EMBEDDER=onnx`, restart, and register every SKU again. |
+| `server` container exits immediately after setting `RETAIL_EMBEDDER=onnx` | Either `RETAIL_EMBEDDER_ONNX` is empty — upstream refuses to start in that combination — or the path does not exist inside the container. Check that the file is in `assets/console/models/` and that the name matches the variable. |
+| Galleries registered before and after the switch disagree | They cannot be mixed. Vectors from one embedder are not comparable to vectors from another. Register everything again on the new model. |
+| A commercial deployment is planned | Retrain the embedder on first-party or permissively licensed capture and rebuild every gallery version. The shipped weights cannot be used for it. |
+
+## Step 3: Register SKUs {#p1_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 Opens the console's product gallery. Register each SKU from 3 to 8 photographs;
 each registration mints a new immutable gallery version.
@@ -77,7 +103,7 @@ each registration mints a new immutable gallery version.
 | A new version appears but the device still misses the SKU | It has not fetched and switched yet. Allow one poll period plus the download; the switch happens only after SHA verification. |
 | Top-1 is much worse than the published figure | Check registration count first (one image per SKU measured 51.11%, eight measured 79.11% on the same model), then assume domain gap — the models were fine-tuned on e-commerce packshots. |
 
-## Step 3: Convert and Check the Detector on Rockchip {#p1_convert type=manual required=true config=devices/rk3588_convert.yaml}
+## Step 4: Convert and Check the Detector on Rockchip {#p1_convert type=manual required=true config=devices/rk3588_convert.yaml}
 
 Converts the ONNX to `.rknn` on an x86_64 host, copies it to the board, and
 settles where embedding runs.
@@ -102,14 +128,14 @@ settles where embedding runs.
 | INT8 agreement much worse than 98% | Check how the calibration set was sampled. Taking the first N files by name lands inside one capture batch, and the quantisation scales are then set by that batch alone. Sample evenly across the whole validation directory. |
 | The board has no cv2 or PIL | Do not install them if other projects share that Python. Letterbox elsewhere and ship one `(N, 640, 640, 3)` uint8 BGR `.npy`; the device script needs only numpy and rknnlite. |
 
-## Step 4: Verify Registration, Retrieval and the Device Artifact {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## Step 5: Verify Registration, Retrieval and the Device Artifact {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
 number for your own converted artifact, and records what is still unverified.
 
 ### Prerequisites
 
-- Steps 1 to 3 complete.
+- Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done, for the software loop
   and the CPU golden.
 - Photographs of your own SKUs from angles you did not register, for the
@@ -204,7 +230,33 @@ Same console stack as every preset — registration service, management UI, brok
 | The Pi cannot reach the service port | Devices pull the gallery over that port, not through the UI. Check it from the Pi, not from a browser on another network. |
 | Port 8089 already in use | Change it in the wizard and give devices the same value. |
 
-## Step 2: Register SKUs {#p2_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## Step 2: Place the Embedding Model {#p2_embed type=manual required=true config=devices/place_embedder.yaml}
+
+Puts the DINOv2 ONNX where the console mounts it and switches the server off
+the placeholder embedder.
+
+### Prerequisites
+
+- The console stack from Step 1, stopped or running — the file is placed next
+  to its compose file and picked up on the next `docker compose up -d server`.
+- `dinov2b_arcface_products10k_224_b1.onnx`, 348 MB, sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is not
+  shipped with this package: `use_scope: non-commercial`,
+  `redistributable: false` (JD Products-10K terms, inherited by weights
+  fine-tuned on it). The backbone `facebook/dinov2-base` is Apache-2.0; the
+  restriction comes from the training data.
+- 350 MB of free space on the console host.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Registration works but every lookup returns the wrong SKU | The server is on the placeholder embedder. Upstream defaults `embedder_backend` to `fake` (`server/config.py`), which hashes the image bytes into a vector. It is not reported by `GET /api/health` and not logged, so this symptom is the only signal. Set `RETAIL_EMBEDDER=onnx`, restart, and register every SKU again. |
+| `server` container exits immediately after setting `RETAIL_EMBEDDER=onnx` | Either `RETAIL_EMBEDDER_ONNX` is empty — upstream refuses to start in that combination — or the path does not exist inside the container. Check that the file is in `assets/console/models/` and that the name matches the variable. |
+| Galleries registered before and after the switch disagree | They cannot be mixed. Vectors from one embedder are not comparable to vectors from another. Register everything again on the new model. |
+| A commercial deployment is planned | Retrain the embedder on first-party or permissively licensed capture and rebuild every gallery version. The shipped weights cannot be used for it. |
+
+## Step 3: Register SKUs {#p2_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 Register each SKU from 3 to 8 photographs. Each registration mints a new
 immutable gallery version.
@@ -226,7 +278,7 @@ immutable gallery version.
 | A new version appears but the device still misses the SKU | Allow one poll period plus the download; the switch happens after SHA verification. |
 | Registration is slow | Embedding on the console host is CPU work. It is per-image, not per-frame, so this is a one-time cost per SKU. |
 
-## Step 3: Compile the HEF and Prepare the Pi {#p2_compile type=manual required=true config=devices/pi_hailo_compile.yaml}
+## Step 4: Compile the HEF and Prepare the Pi {#p2_compile type=manual required=true config=devices/pi_hailo_compile.yaml}
 
 Pins the HailoRT stack, compiles the detector HEF on an x86_64 host, and sets
 the embedder on the CPU with the frame budget that follows from it.
@@ -253,14 +305,14 @@ the embedder on the CPU with the frame budget that follows from it.
 | Another process holds `/dev/hailo0` | Stop it for the duration. Sharing the accelerator changes every number on this page. |
 | Embedding is far slower than 92 ms | Check thread count (the measurement used four) and check you are running the dynamic-INT8 model, not the fp32 one — fp32 measured 180.75 ms. |
 
-## Step 4: Verify Registration, Retrieval and the Device Artifact {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## Step 5: Verify Registration, Retrieval and the Device Artifact {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
 number for your own HEF, and records what is still unverified.
 
 ### Prerequisites
 
-- Steps 1 to 3 complete.
+- Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done.
 - Photographs of your own SKUs from unregistered angles.
 
@@ -341,7 +393,33 @@ presets. It is the only part of this preset that does.
 | `docker compose` not found | Install `docker-compose-plugin`. |
 | Port 8089 already in use | Change it in the wizard. |
 
-## Step 2: Register SKUs {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
+## Step 2: Place the Embedding Model {#p3_embed type=manual required=true config=devices/place_embedder.yaml}
+
+Puts the DINOv2 ONNX where the console mounts it and switches the server off
+the placeholder embedder.
+
+### Prerequisites
+
+- The console stack from Step 1, stopped or running — the file is placed next
+  to its compose file and picked up on the next `docker compose up -d server`.
+- `dinov2b_arcface_products10k_224_b1.onnx`, 348 MB, sha256
+  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is not
+  shipped with this package: `use_scope: non-commercial`,
+  `redistributable: false` (JD Products-10K terms, inherited by weights
+  fine-tuned on it). The backbone `facebook/dinov2-base` is Apache-2.0; the
+  restriction comes from the training data.
+- 350 MB of free space on the console host.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Registration works but every lookup returns the wrong SKU | The server is on the placeholder embedder. Upstream defaults `embedder_backend` to `fake` (`server/config.py`), which hashes the image bytes into a vector. It is not reported by `GET /api/health` and not logged, so this symptom is the only signal. Set `RETAIL_EMBEDDER=onnx`, restart, and register every SKU again. |
+| `server` container exits immediately after setting `RETAIL_EMBEDDER=onnx` | Either `RETAIL_EMBEDDER_ONNX` is empty — upstream refuses to start in that combination — or the path does not exist inside the container. Check that the file is in `assets/console/models/` and that the name matches the variable. |
+| Galleries registered before and after the switch disagree | They cannot be mixed. Vectors from one embedder are not comparable to vectors from another. Register everything again on the new model. |
+| A commercial deployment is planned | Retrain the embedder on first-party or permissively licensed capture and rebuild every gallery version. The shipped weights cannot be used for it. |
+
+## Step 3: Register SKUs {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
 Registration works today and is independent of the missing device path — the
 gallery can be built and versioned before anything runs on an Orin.
@@ -362,7 +440,7 @@ gallery can be built and versioned before anything runs on an Orin.
 | Unsure which embedder to standardise on | DINOv2-base measured 84.67% top-1 at eight images per SKU; DINOv2-small measured 79.11% at the same k and is a quarter of the size. Neither has run on an Orin. |
 | Gallery version does not increase | The registration failed the quality gate. The response says which image. |
 
-## Step 3: Build the TensorRT Path {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
+## Step 4: Build the TensorRT Path {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
 
 Describes exactly what is missing, how to build the engine, and the parity check
 that has to pass before any latency number from it means anything.
@@ -386,14 +464,14 @@ that has to pass before any latency number from it means anything.
 | Parity far below the RKNN fp16 reference of 99.85% | At that magnitude it is the decode or the output layout, not fp16 precision. |
 | Wanting a latency figure to quote | There is none, and inventing one from another platform would be wrong — RK3588 and Hailo-8 differ from each other by 6x on the same model. |
 
-## Step 4: Verify Registration, Retrieval and the Device Artifact {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
+## Step 5: Verify Registration, Retrieval and the Device Artifact {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop and the console round trip, which do work today,
 and records the device-side gap honestly rather than reporting a green tick.
 
 ### Prerequisites
 
-- Steps 1 and 2 complete. Step 3 is a build task and may still be open.
+- Steps 1 to 3 complete. Step 4 is a build task and may still be open.
 - A clone of the upstream repository with `uv sync` done.
 
 ### Deployment Complete

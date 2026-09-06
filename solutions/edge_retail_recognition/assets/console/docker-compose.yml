@@ -66,6 +66,24 @@ services:
       RETAIL_WEB_DB: /data/events.sqlite3
       RETAIL_MQTT_HOST: mosquitto
       RETAIL_MQTT_PORT: "1883"
+      # Embedding backend. Upstream server/config.py:57 defaults
+      # `embedder_backend` to `fake`, and server/api.py:53 picks OnnxEmbedder
+      # only when it is `onnx`; RETAIL_EMBEDDER / RETAIL_EMBEDDER_ONNX are the
+      # env names it reads (server/config.py:131-132). The default below is
+      # `fake` on purpose — the weights are not shipped with this package
+      # (Products-10K terms, non-commercial, not redistributable), so a
+      # freshly cloned package has no ONNX to load and `onnx` with a missing
+      # file would refuse to start.
+      #
+      # WITH `fake`, THE SERVICE STARTS AND REGISTRATION SUCCEEDS, BUT EVERY
+      # VECTOR IS A HASH OF THE IMAGE BYTES. Retrieval results are meaningless.
+      # Upstream prints no warning and GET /api/health does not report the
+      # backend (server/api.py:302-305), so nothing at runtime will tell you.
+      # Place the model as described in the "Place the Embedding Model" guide
+      # step, then set RETAIL_EMBEDDER=onnx in .env.
+      RETAIL_EMBEDDER: ${RETAIL_EMBEDDER:-fake}
+      RETAIL_EMBEDDER_ONNX: ${RETAIL_EMBEDDER_ONNX:-/models/dinov2b_arcface_products10k_224_b1.onnx}
+      RETAIL_EMBEDDER_ACCELERATOR: ${RETAIL_EMBEDDER_ACCELERATOR:-cpu}
       # The UI is served by the web container; the server does not mount static
       # files. Set this to the dist path instead if you drop the web service.
       RETAIL_WEB_UI_DIST: ""
@@ -74,6 +92,12 @@ services:
       # lose a version directory and the gallery.version / sha256 a device
       # reports no longer matches anything that exists.
       - gallery:/data
+      # The embedding model, placed by hand next to this compose file. Read
+      # only: nothing in the service writes it, and a gallery is only
+      # comparable to vectors produced by the same file. The directory may be
+      # empty — the mount succeeds either way and the service then runs with
+      # the FakeEmbedder described above.
+      - ./models:/models:ro
     ports:
       - "${SERVER_PORT:-8089}:8089"
     command: >-
