@@ -198,6 +198,37 @@ when the cameras are in place and adding a compute box is not.
   lands in the retry queue rather than silently dropping the notification, which
   is the intended behaviour but is not a working channel.
 
+## Voice Check-in (optional)
+
+Off by default, and off changes nothing about the rest of the solution. When
+enabled, a raised fall alarm makes the service speak a prompt into the room —
+"are you all right? please answer" — and listen for a few seconds, in parallel
+with the five-second evidence window rather than after it.
+
+A call for help, no answer at all, or an answer nobody can read confirms the
+alarm immediately and skips the remaining operator window. "I'm fine" does
+*not* close the alarm by default: it flags the alarm for review and lets the
+normal timing continue. Set `on_ok: dismiss` to close it instead. The asymmetry
+is the whole point — a mis-heard "I'm fine" would suppress a real fall, while a
+confirmed alarm nobody needed costs an operator a few seconds. For the same
+reason a distress word beats a safe word in the same sentence, and a phrase the
+keyword lists do not recognise confirms rather than waits.
+
+Audio hardware is a USB microphone and speaker on the LAN compute box, plus an
+OpenVoiceStream instance for TTS and streaming ASR. The cameras are not the
+audio path: neither reCamera model has a confirmed usable microphone, and the
+SG2002 cannot host local ASR at all. TTS and ASR compete with the detector for
+CPU, accelerator and memory on a shared box — one session at a time, a
+pre-generated prompt, and a fail-safe confirm on any OVS timeout are what keep
+that contention from costing an alarm.
+
+**Privacy.** Audio is never written to disk. Raw PCM lives in memory for one
+listening window and is released when the verdict is produced. Persisted are the
+verdict, the confidence, the latency and the transcribed text; setting
+`store_transcript: false` drops the text as well, leaving only the verdict in
+the audit trail. Notifications gain the same fields and still carry no snapshot
+and no video.
+
 ## Licensing note
 
 The alarm service and this package are the upstream project's own code. The

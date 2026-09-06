@@ -1,0 +1,130 @@
+version: "1.0"
+id: voice_checkin
+name: Voice Check-in (optional)
+type: manual
+
+# Optional across all three presets: it changes nothing about the alarm path
+# when left off, and `voice_checkin.enabled` defaults to false.
+required: false
+
+# Why manual rather than docker_deploy.
+#
+# This step deploys no container of its own. It turns on a module that is
+# already inside the alarm image and points it at an OpenVoiceStream instance
+# the site provides — the same LAN compute box, with a USB microphone and
+# speaker attached to it. Which box that is differs per preset (the Jetson, the
+# reComputer R, or the gateway on the reCamera preset), and the audio hardware
+# is not part of this solution's BOM, so there is nothing to place and nothing
+# to bring up automatically.
+#
+# Audio baseline: USB microphone and speaker on the LAN compute box. The
+# reCamera on-board microphone is NOT a supported input — neither the
+# reCamera One nor the reCamera Pro onboarding runs confirmed that a usable
+# microphone or speaker exists on the camera, and reCamera 2002 (SG2002) is
+# out of scope for local ASR entirely: the OVS support matrix covers Orin,
+# RK3576/RK3588 and RPi5 only.
+
+depends_on:
+  - openvoicestream
+
+config:
+  ovs_url: http://127.0.0.1:8621
+  audio_input: usb
+  audio_device: default
+  eldercare_config: /config/config.yaml
+
+verify:
+  - ovs_ready
+  - tts_playback
+  - synthetic_pcm_verdict
+
+steps:
+  - id: ovs_ready
+    name: Confirm OpenVoiceStream is reachable
+    name_i18n:
+      zh: 确认 OpenVoiceStream 可用
+    description: >-
+      Voice check-in needs an OpenVoiceStream instance on the same LAN, with a
+      USB microphone and speaker attached to the box running it. Bring it up
+      first (it is a separate deployment, not part of this solution), then from
+      the alarm host run `curl -sf http://<ovs-host>:8621/readyz` — it has to
+      return 200. If it does not, stop here: with no ASR the module would
+      report `no_answer` on every alarm, which fails safe but tells you
+      nothing.
+    description_i18n:
+      zh: >-
+        语音确认需要同一局域网内的 OpenVoiceStream 实例，麦克风与扬声器通过 USB 接在
+        跑它的那台机器上。先把它拉起来（它是独立部署，不属于本方案），然后在告警主机上执行
+        `curl -sf http://<ovs 地址>:8621/readyz`，必须返回 200。如果不通就停在这里：
+        没有 ASR 时本模块每次都会给出 `no_answer`——虽然是安全方向，但拿不到任何信息。
+    optional: false
+
+  - id: enable_voice
+    name: Turn the module on in eldercare.yaml
+    name_i18n:
+      zh: 在 eldercare.yaml 里打开本模块
+    description: >-
+      Open `config/eldercare.yaml` and add the `voice_checkin` block (the
+      shipped file has it commented with every default). Set `enabled: true`,
+      point `ovs_url` at the instance you just checked, set `language` to `zh`
+      or `en`, and pick the microphone: `audio_input: sounddevice` with
+      `audio_device: default` for a USB microphone via PortAudio, or
+      `audio_input: arecord` with the ALSA device name. Leave `on_ok` at
+      `needs_review` unless you have a reason not to — see the note below.
+      Restart with `docker compose restart eldercare-alarm`.
+    description_i18n:
+      zh: >-
+        打开 `config/eldercare.yaml`，加上 `voice_checkin` 段（随包的示例文件里已带全部默认值）。
+        把 `enabled` 设为 `true`，`ovs_url` 指向上一步验证过的实例，`language` 填 `zh` 或 `en`，
+        再选麦克风：USB 麦克风走 PortAudio 就用 `audio_input: sounddevice` +
+        `audio_device: default`，走 ALSA 就用 `audio_input: arecord` + ALSA 设备名。
+        除非有特别理由，`on_ok` 保持 `needs_review`——原因见下方说明。
+        改完执行 `docker compose restart eldercare-alarm`。
+    optional: false
+
+  - id: tts_playback
+    name: Verify the prompt is audible in the room
+    name_i18n:
+      zh: 验证提示音在房间里能听见
+    description: >-
+      Synthesize the prompt and play it on the box with the speaker:
+      `curl -s -X POST http://<ovs-host>:8621/tts -H 'Content-Type:
+      application/json' -d '{"text":"您还好吗？请回答。","sid":52}' --output
+      /tmp/prompt.wav && aplay /tmp/prompt.wav`. Stand where the fall would
+      happen and check you can hear it there, not just next to the speaker — a
+      prompt the resident cannot hear turns every check-in into `no_answer`.
+    description_i18n:
+      zh: >-
+        合成提示音并在接扬声器的那台机器上播放：
+        `curl -s -X POST http://<ovs 地址>:8621/tts -H 'Content-Type:
+        application/json' -d '{"text":"您还好吗？请回答。","sid":52}' --output
+        /tmp/prompt.wav && aplay /tmp/prompt.wav`。站到可能跌倒的位置去听，
+        不要只在扬声器旁边听——住户听不见提示音，每次确认都会变成 `no_answer`。
+    optional: false
+
+  - id: synthetic_pcm_verdict
+    name: Run one verdict end to end without a microphone
+    name_i18n:
+      zh: 不用麦克风跑通一次判定
+    description: >-
+      Feed the prompt WAV you just made back through ASR and classify the
+      result, so the whole text path is exercised with no room and no speaker
+      involved: `curl -s -X POST http://<ovs-host>:8621/asr -F
+      "file=@/tmp/prompt.wav" -F "language=auto"` prints the transcript, then on
+      the alarm host `docker compose exec eldercare-alarm python -c "from
+      eldercare.voice import classify; print(classify('救命','zh').verdict)"`
+      has to print `help`. Both succeeding means TTS, ASR and the keyword policy
+      are each working; what remains untested is only the acoustics of the room.
+    description_i18n:
+      zh: >-
+        把刚生成的提示音 WAV 再送回 ASR 并做判定，这样整条文本链路都跑到了，
+        不需要房间也不需要扬声器参与：
+        `curl -s -X POST http://<ovs 地址>:8621/asr -F "file=@/tmp/prompt.wav" -F
+        "language=auto"` 打印转写；再在告警主机上执行
+        `docker compose exec eldercare-alarm python -c "from eldercare.voice import
+        classify; print(classify('救命','zh').verdict)"`，必须打印 `help`。
+        两条都通过说明 TTS、ASR 与关键词判定各自都在工作，剩下没验的只有房间声学。
+    optional: false
+
+name_i18n:
+  zh: 语音确认（可选）

@@ -111,6 +111,55 @@ the place where a person acts on what comes out.
 | Alarms appear but no webhook arrives | Check the alarm's state. `escalated` means the send missed its deadline; the retry runs every 30 s and the alarm stays `escalated` on purpose. |
 | A `no_person` alarm fires while someone is in the room | The person is outside the zone rectangle, or occluded. Re-check the zone against the live view. |
 
+## Step 3: Voice Check-in (optional) {#voice_checkin type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+Optional, off by default. After a fall alarm is raised, the service can ask the
+resident out loud whether they are all right and act on the answer, in parallel
+with the five-second evidence window. It is off unless you turn it on, and
+turning it off again changes nothing else about the alarm path.
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+What the answer does:
+
+| Answer | Result |
+|---|---|
+| A call for help ("救命", "help", "I can't get up") | Confirmed immediately, skipping the rest of the operator window |
+| No answer at all | Confirmed immediately |
+| Something unreadable | Confirmed immediately |
+| "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
+suppress a real alarm; confirming an alarm nobody needed costs an operator a
+few seconds. So a distress word beats a safe word in the same sentence, and
+anything the keyword lists do not recognise confirms rather than waits.
+
+**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
+the length of one listening window and is released when the verdict is
+produced. What is persisted is the verdict, the confidence and the latency,
+plus the transcribed text — and `store_transcript: false` drops the text too,
+leaving only the verdict in the audit trail. Notifications carry the same
+fields and still carry no snapshot and no video.
+
+### Quick verification
+
+1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
+2. The synthesized prompt is audible from where a fall would happen.
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
+| Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
+| Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
+| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+
+
 ## Preset: IP Camera + reComputer R (Hailo) {#hailo}
 
 The same stack on a Hailo-8 accelerator. The detector's hot path is native C++
@@ -213,6 +262,55 @@ the place where a person acts on what comes out.
 | Alarms appear but no webhook arrives | `escalated` means the send missed its deadline; retries continue every 30 s and the state stays `escalated` by design. |
 | A `no_person` alarm fires while someone is in the room | The person is outside the zone rectangle, or occluded. Re-check the zone against the live view. |
 
+## Step 3: Voice Check-in (optional) {#voice_checkin type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+Optional, off by default. After a fall alarm is raised, the service can ask the
+resident out loud whether they are all right and act on the answer, in parallel
+with the five-second evidence window. It is off unless you turn it on, and
+turning it off again changes nothing else about the alarm path.
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+What the answer does:
+
+| Answer | Result |
+|---|---|
+| A call for help ("救命", "help", "I can't get up") | Confirmed immediately, skipping the rest of the operator window |
+| No answer at all | Confirmed immediately |
+| Something unreadable | Confirmed immediately |
+| "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
+suppress a real alarm; confirming an alarm nobody needed costs an operator a
+few seconds. So a distress word beats a safe word in the same sentence, and
+anything the keyword lists do not recognise confirms rather than waits.
+
+**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
+the length of one listening window and is released when the verdict is
+produced. What is persisted is the verdict, the confidence and the latency,
+plus the transcribed text — and `store_transcript: false` drops the text too,
+leaving only the verdict in the audit trail. Notifications carry the same
+fields and still carry no snapshot and no video.
+
+### Quick verification
+
+1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
+2. The synthesized prompt is audible from where a fall would happen.
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
+| Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
+| Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
+| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+
+
 ## Preset: reCamera + Alarm Gateway {#recamera}
 
 The cameras already run fall detection on their own — the 2002 as a native
@@ -303,3 +401,52 @@ where a person acts on them.
 | Page loads, list always empty | The subscription topic does not match. Compare `mqtt.subscriptions` against a live `mosquitto_sub -t '#' -v`. |
 | Alarms appear but no webhook arrives | `escalated` means the send missed its deadline; retries continue every 30 s and the state stays `escalated` by design. |
 | Zones behave as if merged | An empty `stream_ids` accepts any stream. Bind each zone explicitly when more than one camera feeds the gateway. |
+
+## Step 3: Voice Check-in (optional) {#voice_checkin type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+Optional, off by default. After a fall alarm is raised, the service can ask the
+resident out loud whether they are all right and act on the answer, in parallel
+with the five-second evidence window. It is off unless you turn it on, and
+turning it off again changes nothing else about the alarm path.
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+What the answer does:
+
+| Answer | Result |
+|---|---|
+| A call for help ("救命", "help", "I can't get up") | Confirmed immediately, skipping the rest of the operator window |
+| No answer at all | Confirmed immediately |
+| Something unreadable | Confirmed immediately |
+| "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
+suppress a real alarm; confirming an alarm nobody needed costs an operator a
+few seconds. So a distress word beats a safe word in the same sentence, and
+anything the keyword lists do not recognise confirms rather than waits.
+
+**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
+the length of one listening window and is released when the verdict is
+produced. What is persisted is the verdict, the confidence and the latency,
+plus the transcribed text — and `store_transcript: false` drops the text too,
+leaving only the verdict in the audit trail. Notifications carry the same
+fields and still carry no snapshot and no video.
+
+### Quick verification
+
+1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
+2. The synthesized prompt is audible from where a fall would happen.
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
+| Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
+| Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
+| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+
