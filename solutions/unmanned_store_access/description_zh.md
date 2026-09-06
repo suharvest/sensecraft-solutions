@@ -58,17 +58,20 @@ RFC3339 `issued_at`、TTL 上界，以及按身份隔离的重放表。重复投
 
 定义了七项边界指标。一项有数字，六项是空的，每一项都写明了原因而不是猜一个填上。
 
+下表来源均为上游仓库 `unmanned-store-access` 内的路径。
+
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
-| 人脸库激活 | 三次激活中最慢 11.6 ms（v1/v2/v3 为 11.6 / 3.7 / 3.5 ms） | macOS 开发机，loopback HTTP，无 TLS、无鉴权、零丢包，4 人 × 3 条 128 维嵌入，单次运行 | 本项目的软件闭环。**不是设备侧数字。** 真实激活由轮询周期（默认 30 s）加边缘网络下载主导，这两项都不在这次测量里 |
-| 识别 FAR / FRR | pending | — | 软件闭环里没有真实人脸模型，也没有正负对。需要硬件 |
-| 活体假体拒绝 / 真人误拒 | pending | — | 需要真实假体样本——照片、屏幕、面具——以及 Silent-Face 真跑起来 |
-| 端侧直控开锁时延 p95 | pending | — | 需要硬件上从摄像头到继电器的完整链路 |
-| MQTT 继电器开锁时延 p95 | pending | — | 需要真实 broker 与真实继电器节点 |
-| 断网可用时长 | pending | — | 需要设备长时间断网运行 |
-| 72 小时长稳：误开 / 崩溃 | pending | — | 需要硬件上 72 小时不间断运行 |
+| 人脸库激活，设备侧 | p50 491.6 ms、p95 507.8 ms（n=20）；`op:reload` 往返 p50 100.0 ms（n=25） | 标准版 reCamera（SG2002 / CV181x riscv64，固件 0.2.2），USB-RNDIS，2 人、16.5 KB 库。规模点各一次：402 人 / 2.86 MB 用 9 801.7 ms，1502 人 / 10.66 MB 用 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/`results.md §2 及同目录 `boundary.facedb-activation.yaml` |
+| 人脸库激活，软件闭环 | 三次激活中最慢 11.6 ms（v1/v2/v3 为 11.6 / 3.7 / 3.5 ms） | macOS 开发机，loopback HTTP，无 TLS、无鉴权、零丢包，4 人 × 3 条 128 维嵌入，单次运行 | `evaluation/runs/2026-09-06-c1-software/`results.md。**不是设备侧数字**，已被上一行取代 |
+| 识别 FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.recognition.yaml`。软件闭环里没有真实人脸模型，也没有正负对；两轮真机探针镜头前都没有人 |
+| 活体假体拒绝 / 真人误拒 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.liveness.yaml`。需要真实假体样本——照片、屏幕、面具——以及 Silent-Face 真跑起来 |
+| 端侧直控开锁时延 p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.latency-direct.yaml`。需要硬件上从摄像头到继电器的完整链路 |
+| MQTT 继电器开锁时延 p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.latency-p3.yaml`。第二轮真机探针后仍是 pending——网关侧继电器没有接过（`evaluation/runs/2026-09-06-recamera-std-p3-r2/`results.md §5）|
+| 断网可用时长 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.offline.yaml`。需要设备长时间断网运行 |
+| 72 小时长稳：误开 / 崩溃 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.soak72h.yaml`。需要硬件上 72 小时不间断运行 |
 
-软件闭环在那台机器上（也仅在那台机器上）确实立住的事情：52 项检查全过，覆盖三个人脸库
+软件闭环在那台机器上（也仅在那台机器上）确实立住的事情（`evaluation/runs/2026-09-06-c1-software/``results.md`）：52 项检查全过，覆盖三个人脸库
 版本的构建、发布、拉取、SHA 校验与原子切换；策略拒绝了照片（`liveness_failed`）、
 活体为 null 的结果（`liveness_unknown`）、黑名单人员、阈值以下的陌生人、空帧，
 以及去抖窗口内的重复出现；十帧里恰好两次开锁脉冲，宽度都是配置的 1500 ms；

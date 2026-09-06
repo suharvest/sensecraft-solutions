@@ -60,8 +60,9 @@ web_dashboard:
     local enrol that bypassed the cloud, and the next activation overwrites it.
     Treat that as something to investigate, not as a queue waiting to sync.
 
-    Timing, from the second on-device probe run (source:
-    `unmanned-store-access-recamera-std-probe-r2-2026-09-06.md` §2, standard
+    Timing, from the second on-device probe run (source: upstream
+    `unmanned-store-access/evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`
+    §2 and `boundary.facedb-activation.yaml` alongside it, standard
     reCamera at 192.168.42.1): a full activation — poll, Range download, per-file
     SHA, signature, atomic switch, gallery write, reload ack — measured
     p50 491.6 ms and p95 507.8 ms over 20 runs on a 2-person, 16.5 KB library;
@@ -89,8 +90,9 @@ web_dashboard:
       只可能来自绕过云端的本地 enroll，下一次激活会整份覆盖它。这要当成待查的异常，
       不是"排队等同步"。
 
-      时延，取自第二轮真机探针（来源：`unmanned-store-access-recamera-std-probe-r2-2026-09-06.md`
-      §2，标准版 reCamera，192.168.42.1）：一次完整激活——轮询、Range 下载、逐文件 SHA、
+      时延，取自第二轮真机探针（来源：上游
+      `unmanned-store-access/evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`
+      §2 及同目录 `boundary.facedb-activation.yaml`，标准版 reCamera，192.168.42.1）：一次完整激活——轮询、Range 下载、逐文件 SHA、
       验签、原子切换、落 gallery、reload ack——20 次实测 p50 491.6 ms、p95 507.8 ms，
       库是 2 人 16.5 KB；单独的 `op:reload` 往返 25 次实测 p50 100.0 ms。这些是激活
       时延，不是开门时延。识别到继电器动作的端到端时延尚未在真机上测过，需核实。

@@ -31,10 +31,11 @@ type: manual
 # provide. AGENTS.md's fallback order ends at a manual step with the reason
 # written down, so: manual, with the reason on the record.
 #
-# Source of every claim below: platforms/recamera-std/README.md in the upstream
-# repository, and the two on-device probe reports
-# unmanned-store-access-recamera-std-probe-2026-09-06.md and
-# unmanned-store-access-recamera-std-probe-r2-2026-09-06.md.
+# Source of every claim below, all paths in the upstream repository
+# unmanned-store-access: platforms/recamera-std/README.md, and the two
+# on-device probe runs evaluation/runs/2026-09-06-recamera-std-p3/results.md
+# and evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md (with
+# boundary.facedb-activation.yaml alongside each).
 
 steps:
   - id: std_reach_device

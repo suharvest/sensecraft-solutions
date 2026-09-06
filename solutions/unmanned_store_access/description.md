@@ -81,17 +81,21 @@ actuator, an in-memory MQTT broker and a fake recogniser.
 Seven boundary metrics are defined. One carries numbers and six are empty, each
 with the reason recorded rather than guessed at.
 
+All sources below are paths in the upstream repository `unmanned-store-access`.
+
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Face library activation | 11.6 ms slowest of three activations (v1/v2/v3: 11.6 / 3.7 / 3.5 ms) | macOS development machine, loopback HTTP, no TLS, no authentication, zero loss, 4 people × 3 embeddings of 128 dimensions, single run | This project's software loop. **Not a device-side figure.** Real activation is dominated by the poll period (30 s default) plus edge network download, and neither was in this measurement |
-| Recognition FAR / FRR | pending | — | No real face model and no positive/negative pairs in the software loop. Needs hardware |
-| Liveness spoof rejection / live false-reject | pending | — | Needs real spoof samples — photographs, screens, masks — and Silent-Face actually running |
-| Direct-path unlock latency p95 | pending | — | Needs the full camera-to-relay chain on hardware |
-| MQTT-relay unlock latency p95 | pending | — | Needs a real broker and a real relay node |
-| Offline endurance | pending | — | Needs a device running disconnected for a long period |
-| 72-hour soak: wrong opens / crashes | pending | — | Needs 72 hours of uninterrupted operation on hardware |
+| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); `op:reload` round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/`results.md §2 and `boundary.facedb-activation.yaml` alongside it |
+| Face library activation, software loop | 11.6 ms slowest of three activations (v1/v2/v3: 11.6 / 3.7 / 3.5 ms) | macOS development machine, loopback HTTP, no TLS, no authentication, zero loss, 4 people × 3 embeddings of 128 dimensions, single run | `evaluation/runs/2026-09-06-c1-software/`results.md. **Not a device-side figure**, and superseded by the row above |
+| Recognition FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.recognition.yaml`. No real face model and no positive/negative pairs in the software loop; both probe runs had nobody in front of the lens |
+| Liveness spoof rejection / live false-reject | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.liveness.yaml`. Needs real spoof samples — photographs, screens, masks — and Silent-Face actually running |
+| Direct-path unlock latency p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.latency-direct.yaml`. Needs the full camera-to-relay chain on hardware |
+| MQTT-relay unlock latency p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.latency-p3.yaml`. Still pending after the second probe run — no relay has been wired at the gateway (`evaluation/runs/2026-09-06-recamera-std-p3-r2/`results.md §5) |
+| Offline endurance | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.offline.yaml`. Needs a device running disconnected for a long period |
+| 72-hour soak: wrong opens / crashes | pending | — | `evaluation/runs/2026-09-06-c1-software/``boundary.soak72h.yaml`. Needs 72 hours of uninterrupted operation on hardware |
 
-What the software loop did establish, on that machine and no other: 52 of 52
+What the software loop did establish, on that machine and no other
+(`evaluation/runs/2026-09-06-c1-software/``results.md`): 52 of 52
 checks passing across three library versions built, published, pulled,
 SHA-verified and atomically switched; the policy denying a photograph
 (`liveness_failed`), a null liveness result (`liveness_unknown`), a blocklisted
