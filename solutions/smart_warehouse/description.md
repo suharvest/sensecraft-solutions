@@ -63,7 +63,7 @@ This solution turns complex system operations into **speaking** — say "Stock i
 
 ## Measured Boundaries
 
-Every number below comes from one load run on **harvest-pi (Raspberry Pi 5, arm64)** on 2026-09-05, image `sensecraft-missionpack.seeed.cn/solution/warehouse:latest` (arm64 manifest), backend commit `94b7e1d`. Data measured on other hardware is not listed here, and these figures are not a throughput guarantee for other devices, larger datasets or a MySQL backend.
+Every number below comes from one load run on **harvest-pi (Raspberry Pi 5, arm64)** on 2026-09-05, image `sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d` (arm64, backend commit `94b7e1d`) — the digest, not a tag, because `:latest` moves with every release. Data measured on other hardware is not listed here, and these figures are not a throughput guarantee for other devices, larger datasets or a MySQL backend.
 
 | Scenario | Level | Measured | Conditions | Source |
 |----------|-------|----------|------------|--------|

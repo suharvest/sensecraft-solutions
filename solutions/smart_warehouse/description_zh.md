@@ -64,7 +64,7 @@
 
 ## 实测边界
 
-下表数字全部来自 2026-09-05 在 **harvest-pi（Raspberry Pi 5，arm64）** 上的一轮压测，镜像 `sensecraft-missionpack.seeed.cn/solution/warehouse:latest`（arm64 manifest），后端 commit `94b7e1d`。其他硬件上测到的数据不列入此表；这些数字不构成对其他设备、更大数据量或 MySQL 后端的吞吐承诺。
+下表数字全部来自 2026-09-05 在 **harvest-pi（Raspberry Pi 5，arm64）** 上的一轮压测，镜像 `sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d`（arm64，后端 commit `94b7e1d`）——写 digest 不写 tag，`latest` 每次发布都会漂。其他硬件上测到的数据不列入此表；这些数字不构成对其他设备、更大数据量或 MySQL 后端的吞吐承诺。
 
 | 场景 | 压力档位 | 实测结果 | 条件 | 来源 |
 |------|----------|----------|------|------|

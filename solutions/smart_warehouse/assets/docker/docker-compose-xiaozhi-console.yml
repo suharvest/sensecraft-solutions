@@ -46,7 +46,13 @@ services:
       start_period: 120s
 
   xiaozhi-esp32-server-db:
-    image: mysql:latest
+    # 按 digest 固定到 MySQL 8.0（sha256:7dcddc01… 即 docker.io/library/mysql:8.0，
+    # 2026-09-06 用 docker buildx imagetools inspect 取；本仓库其他方案的 compose
+    # 用的是同一枚）。原来写的 `mysql:latest` 现在已经指向 MySQL 26.7
+    # （MYSQL_VERSION=26.7.0-1.el9），跨大版本漂移，智控台的 schema 没在上面验证过。
+    # 注意：如果宿主上已有由更高版本 MySQL 创建的 xiaozhi-mysql-data 卷，
+    # 降到 8.0 起不来，需要先删卷重建。
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     container_name: xiaozhi-esp32-server-db
     restart: unless-stopped
     healthcheck:
@@ -101,7 +107,10 @@ services:
 
   # MCP 接入点：外部 MCP server（仓管系统 mcp_pipe.py）连进来，按 agent 挂载工具
   mcp-endpoint:
-    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:latest
+    # 0.0.7 是 `latest` 在 2026-09-06 指向的版本，两者 digest 相同
+    # （docker buildx imagetools inspect ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server:{latest,0.0.7}
+    #  都是 sha256:33ca12e0…，与上游 ghcr.io/xinnan-tech/… 一致）。
+    image: ghcr.nju.edu.cn/xinnan-tech/mcp-endpoint-server@sha256:33ca12e06dcafb965fb27ecf2631070a267451331b65f0cb0e0332247b0491cc
     container_name: mcp-endpoint-server
     restart: unless-stopped
     ports:
