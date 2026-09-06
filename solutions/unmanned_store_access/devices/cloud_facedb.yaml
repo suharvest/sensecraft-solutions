@@ -1,0 +1,202 @@
+version: "1.0"
+id: cloud_facedb
+name: Face Library Server
+name_i18n:
+  zh: 人脸库服务
+type: docker_deploy
+
+# NOT VERIFIED ON HARDWARE, and not verified anywhere else either: the image
+# named in assets/cloud/docker-compose.yml has never been pushed. This step will
+# fail at image pull until it is built and retagged on the host — the compose
+# file's header comment carries the build command.
+#
+# This step and cloud_web share one compose project on one host, deliberately.
+# The console mints new library versions and the server publishes whichever
+# `current` points at, so they must share the `facedb` volume; separate compose
+# projects would give them separate volumes and the console's enrolments would
+# never reach any device. Running this step brings the whole cloud project up;
+# the cloud_web step then re-runs the same compose, which is idempotent, and
+# exists as its own step so the console gets its own credentials prompt and its
+# own verification.
+
+docker:
+  compose_file: assets/cloud/docker-compose.yml
+  compose_dir: assets/cloud
+  options:
+    project_name: unmanned_store_access_cloud
+    remove_orphans: true
+  services:
+    - name: facedb
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: ubuntu
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # Pulls two images and starts three containers. No model download, no engine
+  # build, nothing compiled on the device. 600 s is a pull budget, not a
+  # measurement — nothing has been timed, because the image does not exist.
+  command_timeout: 600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 5
+    description: >-
+      The image, the SQLite projection and the versioned library directories.
+      Library versions are never deleted — they are the audit trail — so this
+      grows with enrolment history, slowly (kilobytes per version at store
+      scale).
+
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/unmanned-store-access
+  compose_dir: assets/cloud
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check docker and the clock
+        run: |
+          set -e
+          if ! docker info >/dev/null 2>&1; then
+            echo "Docker is not usable by this user. Install docker and add the user to the docker group." >&2
+            exit 1
+          fi
+          docker compose version >/dev/null 2>&1 || {
+            echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2
+            exit 1
+          }
+          # This host's clock is the time reference for every door device that
+          # has no working RTC: they correct their event timestamps from this
+          # server's HTTP Date header. A wrong clock here silently misdates
+          # every audit record in the installation.
+          echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if command -v timedatectl >/dev/null 2>&1; then
+            timedatectl show -p NTPSynchronized --value | grep -q yes || \
+              echo "WARNING: NTP is not synchronised on this host. Door devices take their time correction from it." >&2
+          fi
+        name_i18n:
+          zh: 检查 docker 与时钟
+
+    after_upload:
+      - name: Clean macOS sidecar files and write the environment file
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/unmanned-store-access/cloud_facedb"
+          find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+          umask 077
+          cat > "$WORKDIR/.env" <<EOF
+          USA_FACEDB_SIGNING_KEY={{facedb_signing_key}}
+          USA_WEB_TOKENS={{web_admin_token}}:admin
+          MQTT_HOST=127.0.0.1
+          MQTT_PORT=1883
+          MQTT_TLS=0
+          FACEDB_PORT={{facedb_port}}
+          WEB_PORT=8088
+          EOF
+          echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
+        name_i18n:
+          zh: 清理 macOS 附属文件并写入环境文件
+
+    after:
+      - name: Confirm the two endpoints answer
+        timeout: 180
+        run: |
+          set -e
+          for i in $(seq 1 30); do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:{{facedb_port}}/v1/facedb/current" || echo 000)
+            case "$CODE" in
+              200) echo "facedb server up, a version is already published"; break ;;
+              404) echo "facedb server up, no version published yet — expected before the first enrolment"; break ;;
+              *)   sleep 5 ;;
+            esac
+          done
+          echo "broker check:"
+          docker exec usa-mosquitto sh -c "mosquitto_sub -h 127.0.0.1 -t 'access/v1/#' -C 0 -W 2" >/dev/null 2>&1 || true
+          docker ps --filter name=usa- --no-trunc
+        ignore_error: true
+        name_i18n:
+          zh: 确认两条接口已响应
+
+  user_inputs:
+    - id: host
+      name: Cloud Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: The address every door device will reach for the face library and MQTT. It has to be routable from the doors, not just from your laptop.
+      name_i18n:
+        zh: 云端主机 IP
+      description_i18n:
+        zh: 每一台门口设备访问人脸库与 MQTT 的地址。它必须从门口可路由，而不只是从你的笔记本可达。
+    - id: username
+      name: SSH Username
+      type: text
+      default: ubuntu
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: facedb_port
+      name: Face Library Port
+      type: text
+      default: "8080"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: 人脸库端口
+    - id: facedb_signing_key
+      name: Library Signing Key
+      type: password
+      required: true
+      description: >-
+        HMAC-SHA256 key over each manifest. A device configured with a plaintext
+        http:// library URL refuses to start without it, because a device whose
+        clock is months out cannot validate a TLS certificate and the integrity
+        check has to move up to the application layer. Generate one with
+        `openssl rand -hex 32`. It defends against tampering on the wire, not
+        against a device someone has opened — any leaked device key can forge a
+        library.
+      name_i18n:
+        zh: 人脸库签名密钥
+      description_i18n:
+        zh: >-
+          对每份 manifest 做 HMAC-SHA256 的密钥。配了明文 http:// 人脸库地址的设备
+          没有它就拒绝启动——时钟差了几个月的设备验不了 TLS 证书，完整性校验只能上移到
+          应用层。用 `openssl rand -hex 32` 生成。它防的是链路篡改，不防被撬开的设备：
+          任何一台设备的密钥泄漏都足以伪造人脸库。
+    - id: web_admin_token
+      name: Console Admin Token
+      type: password
+      required: true
+      description: >-
+        The admin-role bearer token for the management console. There is no
+        account system — a token maps to one of viewer, operator or admin, and
+        the service refuses to start with none configured. Additional
+        viewer/operator tokens are added to the same `.env` afterwards.
+      name_i18n:
+        zh: 管理界面 admin token
+      description_i18n:
+        zh: >-
+          管理界面 admin 角色的 bearer token。没有账号体系——一个 token 映射到
+          viewer / operator / admin 三档之一，一个都没配时服务拒绝启动。
+          之后可以在同一份 `.env` 里追加 viewer / operator 的 token。

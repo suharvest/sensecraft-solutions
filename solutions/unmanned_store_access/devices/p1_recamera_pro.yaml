@@ -1,0 +1,200 @@
+version: "1.0"
+id: p1_recamera_pro
+name: Install the Door App on reCamera
+name_i18n:
+  zh: 在 reCamera 上安装门禁应用
+type: manual
+
+# Why this step is manual, stated plainly rather than dressed up as automation.
+#
+# reCamera Pro is a Buildroot 2023.02.6 device with no docker, no node, no
+# opkg, no dpkg and no systemd. Applications are launched and supervised by
+# `appmgr` as ROOT: /etc/init.d/S94appmgr starts `python3 -m appmgr serve` on
+# loopback 8130, which in turn launches the kit framework
+# (/userdata/local/kit/run.py) against an app directory holding an app.py and a
+# manifest.json. This preset extends the face-recognition kit app already on
+# the device (/userdata/local/apps/face-recognition/ — SCRFD-500M +
+# ArcFace-MBF-512 with three-way fused liveness, control channel on loopback
+# 8125) with two things it lacks: a GPIO output and an HTTP face-library pull.
+#
+# The deployment engine has no step type for kit apps. The selection order in
+# AGENTS.md is: use a specific existing type, else fall back to http_debug or
+# web_dashboard, else a custom `run:` health check, and only then a pure manual
+# step with the reason written down. None of the first three fits — the install
+# is an scp of an app directory as root plus an appmgr restart, over SSH to a
+# device whose ssh_deb / recamera_cpp deployers both assume a package manager
+# this device does not have. The `prepare-*` skills carry no kit-app step type
+# either. So: manual, with the reason on the record. Adding a `recamera_kit_app`
+# deployer is a small engine change and would replace this file.
+#
+# The 3.3 V sysfs GPIO variant (reCamera PoE / HQ PoE, GPIO 490/487/488 per the
+# design spec) follows the same steps with different pin numbers. Neither
+# variant has been wired or measured.
+
+steps:
+  - id: reach_device
+    name: Reach the camera as root
+    name_i18n:
+      zh: 以 root 登录摄像头
+    description: >-
+      SSH to the camera. The control code has to run as root: the `admin`
+      account has no sudo, `su` is not setuid, and /sys/class/gpio and
+      /dev/video* are open to root only — an app running as `admin` gets EACCES
+      the moment it tries to write a pin. Root can log in over SSH with the same
+      password. Confirm the launcher is there before going further:
+      `ls /userdata/local/kit/run.py /userdata/local/appmgr` and
+      `/etc/init.d/S94appmgr status`.
+    description_i18n:
+      zh: >-
+        SSH 登录摄像头。控制代码必须以 root 运行：`admin` 账号没有 sudo，`su` 不是
+        suid，/sys/class/gpio 与 /dev/video* 只对 root 开放——以 `admin` 运行的应用
+        一写引脚就是 EACCES。root 可以用同一个密码 SSH 登录。继续之前先确认启动器
+        在位：`ls /userdata/local/kit/run.py /userdata/local/appmgr`，再跑
+        `/etc/init.d/S94appmgr status`。
+    optional: false
+
+  - id: check_existing_app
+    name: Check the face-recognition app and its control channel
+    name_i18n:
+      zh: 检查已有的人脸识别应用与它的控制通道
+    description: >-
+      Run `curl -s localhost:8125/gallery` on the device. A healthy reply names
+      the model tag and lists the enrolled users — for example
+      `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16",...}`.
+      Write down that `model_tag`: the cloud library must be built with a
+      matching tag, because embeddings from different models are not comparable
+      and a mismatched library recognises nobody rather than failing loudly. If
+      the port does not answer, the app is not running and there is nothing to
+      extend — sort that out before continuing.
+    description_i18n:
+      zh: >-
+        在设备上跑 `curl -s localhost:8125/gallery`。正常的回复会给出 model tag 与
+        已注册用户列表，例如
+        `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16",...}`。
+        把这个 `model_tag` 记下来：云端人脸库必须按相同的 tag 构建——不同模型的嵌入
+        不可比，tag 不匹配的库不会报错，只会谁都认不出来。如果这个端口没有响应，
+        说明应用没在跑，没有东西可扩展，先把它解决掉。
+    optional: false
+
+  - id: probe_gpio
+    name: Find a pin that is actually free, and measure it
+    name_i18n:
+      zh: 找一个真正空闲的引脚，并实测它
+    description: >-
+      Do not assume any pin is free. On the surveyed unit `gpio131` was already
+      exported by another application (direction out, value 0). List what is
+      taken with `ls /sys/class/gpio` and read each exported pin's `direction`
+      and `value`. Then measure the candidate pin with a meter: its idle level,
+      its driven level, and the current it can actually source — the Pro's
+      native outputs swing 12–21 V, while a UART or CAN pin reconfigured as GPIO
+      gives 3.3 V, and the relay module you buy has to match whichever you pick.
+      The actuator refuses to start on a pin whose current direction and value
+      disagree with the configured idle state, and it will not take the pin over
+      unless you explicitly ask it to. Leave that refusal in place.
+    description_i18n:
+      zh: >-
+        不要假定任何引脚空闲。被盘点的那台设备上 `gpio131` 已被另一个应用 export
+        （direction 为 out，值 0）。用 `ls /sys/class/gpio` 看已占用的引脚，并逐个读它们的
+        `direction` 与 `value`。然后用万用表实测候选引脚：空闲电平、驱动电平，以及它
+        实际能提供的电流——Pro 的原生输出摆幅是 12–21 V，而改配成 GPIO 的 UART 或
+        CAN 脚是 3.3 V，你买的继电器模块必须匹配你选的那一种。执行器在引脚当前的
+        direction / value 与配置的空闲状态不符时会拒绝启动，且不会自作主张接管它，
+        除非你显式要求。把这个拒绝保留着。
+    optional: false
+
+  - id: wire_relay
+    name: Wire LED first, relay second, lock last
+    name_i18n:
+      zh: 先接 LED，再接继电器，最后接锁
+    description: >-
+      In this order, and do not skip ahead. First an LED with a series resistor
+      on the pin: confirm the polarity and the pulse width are what you
+      configured. Then the relay module on its own supply, and confirm the
+      contact clicks once per pulse. Only then the lock, on a separate 12/24 V
+      supply, through the relay contact — a fail-safe magnetic lock through COM
+      and NC, a fail-secure strike through COM and NO. Getting the contact
+      backwards on a magnetic lock leaves the door open permanently and looks
+      like a working installation until someone tests it. The lock draws
+      300 mA–1 A; the pin drives milliamps and must never see lock current.
+    description_i18n:
+      zh: >-
+        严格按这个顺序，不要跳步。先在引脚上接一个 LED 加限流电阻：确认极性与脉宽
+        就是你配的那样。再接继电器模块（用它自己的供电），确认每个脉冲触点响一次。
+        最后才接锁——独立的 12/24 V 电源，经继电器触点——断电即开的电磁锁走 COM/NC，
+        断电即锁的电插锁走 COM/NO。电磁锁上的触点接反会让门长期敞着，而且在有人去
+        测之前看起来一切正常。锁的工作电流 300 mA–1 A；引脚只有 mA 级，绝不能承载
+        锁电流。
+    optional: false
+
+  - id: install_app
+    name: Install the door app and restart appmgr
+    name_i18n:
+      zh: 安装门禁应用并重启 appmgr
+    description: >-
+      Copy the app directory to /userdata/local/apps/ as root, fill its
+      manifest.json with the pin number, active level, pulse width, relay
+      contact and fail mode you measured in the previous two steps, plus the
+      cloud library URL, the signing key and the model tag from the second step.
+      None of the four actuator fields has a default and the app will not
+      construct its actuator while any is empty — that is the interlock, not a
+      bug. Then restart the supervisor: `/etc/init.d/S94appmgr restart`, and
+      confirm with `ps aux | grep kit/run.py` that the app came back as root.
+    description_i18n:
+      zh: >-
+        以 root 把应用目录拷到 /userdata/local/apps/，在它的 manifest.json 里填上前两步
+        实测出来的引脚号、有效电平、脉宽、继电器触点与失效模式，再加上云端人脸库地址、
+        签名密钥，以及第二步记下的 model tag。四个执行器字段都没有默认值，任何一个为空
+        应用都构造不出执行器——这是安全联锁，不是缺陷。然后重启监管进程：
+        `/etc/init.d/S94appmgr restart`，再用 `ps aux | grep kit/run.py` 确认应用以
+        root 身份回来了。
+    optional: false
+
+  - id: clock_and_transport
+    name: Decide the clock and transport question before you leave
+    name_i18n:
+      zh: 离开之前先定下时钟与传输方式
+    description: >-
+      The surveyed unit's clock was about seven months out and it has no NTP
+      client, so `curl https://…` fails with "certificate is not yet valid".
+      Two workable answers, and you have to pick one: give the device a way to
+      correct its time and then use HTTPS for the library, or keep the library
+      on a plaintext http:// LAN URL and rely on the HMAC signature over the
+      manifest. Nothing else is acceptable — a plaintext URL with no signing key
+      makes the app refuse to start, deliberately. Either way the app does not
+      set the system clock: it takes the offset from the server's Date header
+      and corrects its own event timestamps, because it has no business
+      rewriting the device's clock and no permission to.
+    description_i18n:
+      zh: >-
+        被盘点的那台设备时钟偏差约七个月，且没有 NTP 客户端，因此 `curl https://…`
+        会报 "certificate is not yet valid"。两个可行答案，必须二选一：给设备一个校时
+        手段然后人脸库走 HTTPS；或者人脸库停在局域网明文 http:// 地址，靠 manifest 上的
+        HMAC 签名保完整性。没有第三种——明文地址又不配签名密钥时应用会拒绝启动，
+        这是刻意的。无论选哪一种，应用都不会去改系统时钟：它从服务器 Date 头算出偏移，
+        只修正自己的事件时间戳——改设备时钟既不该由它做，它也没有权限。
+    optional: false
+
+  - id: verify_pulse
+    name: Confirm one recognition produces exactly one pulse
+    name_i18n:
+      zh: 确认一次识别只产生一个脉冲
+    description: >-
+      With the LED still in circuit if you can, stand in front of the camera as
+      an enrolled person. Expect exactly one pulse of the configured width, one
+      `access/v1/events` message with `decision.allow` true, and — if you step
+      back and forward again inside the debounce window — a second event with
+      reason `debounced` and no second pulse. Then hold a printed photograph of
+      the same person up to the camera: expect `liveness_failed` and no pulse at
+      all. If the photograph opens the door, stop and check that the recognition
+      service reports liveness as loaded; the adapter is supposed to refuse to
+      start otherwise, and a door that opens to a photograph means that check is
+      not in the path.
+    description_i18n:
+      zh: >-
+        条件允许的话让 LED 仍留在电路里，以一个已注册人员的身份站到摄像头前。预期是：
+        恰好一个配置宽度的脉冲、一条 `decision.allow` 为 true 的 `access/v1/events`
+        消息；如果在去抖窗口内退开再上前，会看到第二条 reason 为 `debounced` 的事件，
+        且没有第二个脉冲。然后把同一个人的打印照片举给摄像头：预期是 `liveness_failed`，
+        完全没有脉冲。如果照片把门打开了，立刻停下来，检查识别服务是否报告活体已加载——
+        适配层本应在活体未加载时拒绝启动，照片能开门说明这道检查根本不在链路上。
+    optional: false
