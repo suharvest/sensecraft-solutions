@@ -59,7 +59,7 @@
 | 缺件真值闭环 | **模板帧 6 / 6 匹配，换板后 6 / 6 缺失** | 期望件清单由一张 val 图的真值框生成（ROI = GT 框 ×1.6，6 条）；在那一帧上 `missing_count` = 0，换成别的板 6 条全部落空，`verdict_reasons` 里 `missing` 与 `defect` 并列出现 | 本项目 M2 实测，2026-09-05，同一台设备 |
 | 尺寸误差（ArUco 标定） | **最差相对误差 0.65%**（预算 1%） | 合成 ArUco 场景，mm/px +0.40%，长边 60 → 60.241 mm（+0.40%），短边 40 → 40.261 mm（+0.65%）；公差 ±1.0 mm，判 `ok`。未压缩 PNG 与 mp4v 编码后数值一致 | 同一次 M2 实测 |
 | Hailo INT8（HEF）精度 | **mAP50 0.9924，三条路径完全一致** | 20 张 val 图 / 118 个标注框；CPU onnxruntime、Hailo emulator `SDK_NATIVE`、emulator `SDK_QUANTIZED`（optimization level 1 + Bias Correction）给出相同的 mAP50 / P / R / FP / FN。逐框比对：CPU ↔ native 120/120 匹配，CPU ↔ quantized 119/120 | 本项目 M3a 实测，2026-09-05，跑在 x86 上的 Hailo Dataflow Compiler emulator 里——**未上板** |
-| Raspberry Pi 5 + Hailo-8 上板吞吐与时延 | **未实测** | 运行镜像已交叉构建出 arm64、HEF 在 emulator 里能加载，但没有在板子上跑过 | 待实测——在拿到数据之前不要在这里填数字 |
+| Raspberry Pi 5 + Hailo-8 上板吞吐与时延 | **未实测** | 2026-09-06 在 fleet `harvest-pi` 上原生构建了 arm64 运行镜像（444 MB）、核对了 HailoRT 4.21.0 三件套与 HEF 结构、容器内 Python ABI 匹配（3.11.2 对上 cp311 wheel），但真实推理没有跑通：板上唯一一块 Hailo-8 被一个不在本方案范围内、按约束不能停止的既有容器独占，`VDevice()` 持续报 `HAILO_OUT_OF_PHYSICAL_DEVICES` | 部署包已验证，硬件数字待独占访问窗口——`evaluation/runs/2026-09-06-rpi-hailo/results.md` |
 | 72 h soak | **打包时仍在进行中** | 单路、300 s 视频循环、10 fps；起跑基线：RSS 256–259 MiB，丢帧 0，tj 61–62 °C，重启 0 | 同一次 M4 实测；`boundary.soak.yaml` 的三档在跑完前为 null |
 | 半自动标注，box IoU | **均值 0.6896**，IoU ≥ 0.5 占 90.7%（1050 / 1158） | SAM2.1 Hiera-Small，仅给框提示，DeepPCB6 val 205 图 / 1158 框；IoU 是 SAM2 mask 的外接框与人工画的 GT 框的比对，跑在 spark（GB10）上，同机有另一个训练任务占着 GPU | `edge-inspection-assembly` 标注工具实测，2026-09-05。不是本 demo 的检测精度——标注工具的代理指标，见下方一节 |
 | 半自动标注，单框耗时 | **34.4 ms/框**（单图均值 194.5 ms） | 同上一行的运行与条件；比 50 张校准轮的 117 ms/图慢，是同机训练任务抢 GPU 导致的，不是模型变了 | 同一次标注工具实测 |
