@@ -43,9 +43,10 @@ success.
 - TensorRT dev packages present — the step needs `/usr/src/tensorrt/bin/trtexec`.
 - At least 10 GB free.
 - The camera's RTSP URL, tested in VLC first.
-- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet.** Build it
+- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet — tag pending rebuild.** Build it
   from the upstream project and tag it as the compose file expects, on the device
   or on a machine that can push:
+  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
   `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
   Without it the `eldercare-alarm` service fails to pull and the deploy fails.
 
@@ -73,7 +74,7 @@ will host the alarm service.
 
 ## Step 2: Open the Confirmation Page {#verify_orin_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-Enter the Jetson's address and port 8080. The page opens in your browser.
+Enter the Jetson's address and port 8080. The page opens in your browser. If you set `ELDERCARE_API_TOKEN` in the compose environment (see "Next steps" below), you land on a login screen first — enter that token and an operator name; leave the variable unset and you go straight to the alarm list.
 
 ### Deployment Complete
 
@@ -101,6 +102,10 @@ the place where a person acts on what comes out.
   the idempotency header — it is what makes a retry safe.
 - Put credentials and TLS on the broker before this device is reachable from
   outside the local network.
+- Set `ELDERCARE_API_TOKEN` in the `eldercare-alarm` service's `environment:`
+  (edit the generated compose file, then `docker compose up -d`) if the
+  confirmation console should sit behind a shared login instead of being open
+  to anyone who reaches port 8080.
 
 ### Troubleshooting
 
@@ -201,8 +206,9 @@ success.
   `/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so`.
 - At least 6 GB free.
 - The camera's RTSP URL, tested in VLC first.
-- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet.** Build it
+- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet — tag pending rebuild.** Build it
   from the upstream project and tag it as the compose file expects:
+  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
   `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
 
 ### Troubleshooting
@@ -226,7 +232,7 @@ Deploy on the device itself, when the app is running on it.
 
 ## Step 2: Open the Confirmation Page {#verify_hailo_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-Enter the device's address and port 8080. The page opens in your browser.
+Enter the device's address and port 8080. The page opens in your browser. If you set `ELDERCARE_API_TOKEN` in the compose environment (see "Next steps" below), you land on a login screen first — enter that token and an operator name; leave the variable unset and you go straight to the alarm list.
 
 ### Deployment Complete
 
@@ -252,6 +258,9 @@ the place where a person acts on what comes out.
 - Point `notifiers` at the system that should actually receive alarms.
 - Put credentials and TLS on the broker before the device is reachable from
   outside the local network.
+- Set `ELDERCARE_API_TOKEN` in the `eldercare-alarm` service's `environment:`
+  (edit the generated compose file, then `docker compose up -d`) to put the
+  confirmation console behind a shared login.
 
 ### Troubleshooting
 
@@ -347,9 +356,10 @@ configuration, start the stack, check ingest. Everything you need is in
 
 - Fall Detection already deployed and running on the cameras.
 - A gateway machine on the same network with Docker and the compose plugin.
-- **The alarm service image is not published yet.** Build it from the upstream
+- **The alarm service image is not published yet — tag pending rebuild.** Build it from the upstream
   project for the gateway's architecture and tag it, or set
   `ELDERCARE_ALARM_IMAGE` to your own tag:
+  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
   `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`
 - `mosquitto_sub` on the gateway, for reading the camera topic before you
   configure anything.
@@ -366,7 +376,7 @@ configuration, start the stack, check ingest. Everything you need is in
 
 ## Step 2: Open the Confirmation Page {#verify_recamera_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-Enter the gateway's address and port 8080. The page opens in your browser.
+Enter the gateway's address and port 8080. The page opens in your browser. If you set `ELDERCARE_API_TOKEN` on the gateway's alarm-service environment, you land on a login screen first — enter that token and an operator name; leave the variable unset and you go straight to the alarm list.
 
 ### Deployment Complete
 
@@ -392,6 +402,9 @@ where a person acts on them.
   otherwise a zone accepts frames from every stream.
 - Put credentials and TLS on the broker before the gateway is reachable from
   outside the local network.
+- Set `ELDERCARE_API_TOKEN` on the gateway's `eldercare-alarm` container
+  environment and restart it to put the confirmation console behind a shared
+  login.
 
 ### Troubleshooting
 

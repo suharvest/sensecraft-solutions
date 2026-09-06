@@ -54,16 +54,20 @@ steps:
       and install Docker with the compose plugin (`docker compose version` has
       to succeed). Copy `assets/recamera/` from this solution package onto it —
       `docker-compose.yml`, `config/mosquitto.conf` and `config/eldercare.yaml`.
-      Note that the alarm image is not published yet: build it from the
-      eldercare-alarm project (`docker build -f docker/Dockerfile -t
-      sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`)
-      or set `ELDERCARE_ALARM_IMAGE` to a tag you built yourself.
+      Note that the alarm image is not published yet (tag pending rebuild):
+      build it from the eldercare-alarm project — `cd eldercare/web/ui && npm
+      install && npm run build && cd -` first, the image now serves that React
+      build rather than a static page, then (`docker build -f docker/Dockerfile
+      -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0
+      .`) — or set `ELDERCARE_ALARM_IMAGE` to a tag you built yourself.
     description_i18n:
       zh: >-
         在与摄像头同网段的任意 x86_64 或 arm64 Linux 机器上装好 Docker 与 compose 插件
         （`docker compose version` 必须能跑通）。把本方案包里的 `assets/recamera/` 拷过去——
         `docker-compose.yml`、`config/mosquitto.conf`、`config/eldercare.yaml`。
-        注意告警镜像尚未发布：需要从 eldercare-alarm 项目自行构建
+        注意告警镜像尚未发布（tag 待重构建）：需要从 eldercare-alarm 项目自行构建——先
+        `cd eldercare/web/ui && npm install && npm run build && cd -`（镜像现在托管的是
+        这份 React 构建产物，不再是静态页面），再
         （`docker build -f docker/Dockerfile -t
         sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`），
         或把 `ELDERCARE_ALARM_IMAGE` 指向你自己构建的 tag。
