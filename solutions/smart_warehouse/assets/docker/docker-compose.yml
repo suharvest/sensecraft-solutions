@@ -1,6 +1,13 @@
 services:
   warehouse:
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse:latest
+    # 按 digest 固定。`latest` 会随每次发布漂走，同一份方案在不同时间部署会拿到
+    # 不同的后端。这枚 digest 是 2026-09-06 从 registry 读到的 `latest` 指向：
+    #   curl -sI -H 'Accept: application/vnd.oci.image.index.v1+json' \
+    #     https://sensecraft-missionpack.seeed.cn/v2/solution/warehouse/manifests/latest
+    #   Docker-Content-Digest: sha256:04e26201…
+    # registry 上现有的日期 tag（最新 20260820-*）都指向更早的构建，没有一个
+    # 对应这枚 digest，所以只能按 digest 引用。发新版时改这一行。
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d  # registry 无对应 tag，见上方说明
     container_name: mcp_warehouse
     ports:
       - "2125:2125"

@@ -1,0 +1,299 @@
+version: "1.0"
+id: chirpstack_stack
+name: ChirpStack and Bridge
+type: docker_deploy
+
+# Preset 3. Two routes share this one deployment step:
+#
+#   * R1000 route — the `local-lns` compose profile brings up ChirpStack v4, its
+#     gateway bridge, Postgres, Redis and the LNS-side broker beside the bridge.
+#   * M2 route    — the M2 gateway already runs ChirpStack. Only the bridge
+#     starts, pointed at the M2's own broker. Nothing else is needed here.
+#
+# The route is a user input rather than two device files because everything
+# except which services start is identical, and splitting it would duplicate
+# eleven inputs.
+#
+# NOT VERIFIED ON HARDWARE. Neither route has run against a real LNS during
+# packaging. On the R1000 route the unverified part with the most ways to fail
+# is the host-side `chirpstack-concentratord-sx1302` reaching the containerised
+# gateway bridge over ZMQ.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/chirpstack/docker-compose.yml
+  compose_dir: assets/chirpstack
+  remote_path: /home/{{username}}/agri-env-monitor
+  options:
+    project_name: agri-env-chirpstack
+    remove_orphans: true
+  services:
+    # Only the bridge is required: on the M2 route it is the only service that
+    # runs here, and marking the ChirpStack services required would fail that
+    # route on a healthy deployment.
+    - name: bridge
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # R1000 route pulls five images and migrates a database on first start.
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 8
+    description: ChirpStack, Postgres and Redis images plus the database volume
+
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: ChirpStack 与桥
+
+remote_overrides:
+  remote_path: /home/{{username}}/agri-env-monitor
+  compose_dir: assets/chirpstack
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    after_upload:
+      - name: Write the ChirpStack and bridge configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/agri-env-monitor/chirpstack_stack"
+          umask 077
+          gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+          cat > "$WORKDIR/.env" <<EOF
+          COMPOSE_PROJECT_NAME=agri-env-chirpstack
+          TZ={{timezone}}
+          CHIRPSTACK_DB_PASSWORD=$(gen 16)
+          CHIRPSTACK_REGION={{region}}
+          MQTT_OUT_HOST={{mqtt_host}}
+          MQTT_OUT_PORT={{mqtt_port}}
+          MQTT_USERNAME={{mqtt_username}}
+          MQTT_PASSWORD={{mqtt_password}}
+          CHIRPSTACK_MQTT_HOST={{lns_mqtt_host}}
+          CHIRPSTACK_MQTT_INTERNAL_PORT={{lns_mqtt_port}}
+          CHIRPSTACK_MQTT_USERNAME={{lns_mqtt_username}}
+          CHIRPSTACK_MQTT_PASSWORD={{lns_mqtt_password}}
+          CHIRPSTACK_APPLICATION_ID={{lns_application_id}}
+          BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
+          EOF
+          echo "wrote $WORKDIR/.env"
+        name_i18n:
+          zh: 写入 ChirpStack 与桥的配置
+
+      - name: Start ChirpStack when this host is the network server
+        # On the M2 route this is a no-op: the profile is not activated and the
+        # deployer's own `docker compose up` starts the bridge alone.
+        run: |
+          set -e
+          cd "/home/{{username}}/agri-env-monitor/chirpstack_stack"
+          if [ "{{lns_mode}}" = "local" ]; then
+            echo "Starting the local ChirpStack services (profile local-lns) ..."
+            docker compose --profile local-lns up -d
+            docker compose --profile local-lns ps
+          else
+            echo "lns_mode={{lns_mode}} — the network server runs on the M2, only the bridge starts here."
+          fi
+        name_i18n:
+          zh: 本机作为网络服务器时启动 ChirpStack
+
+    after:
+      - name: Confirm the bridge reached the network server
+        ignore_error: true
+        timeout: 300
+        run: |
+          for i in $(seq 1 30); do
+            if docker logs agri-env-bridge-chirpstack 2>&1 | grep -q "ChirpStack MQTT connected"; then
+              echo "Bridge is subscribed to application/+/device/+/event/up."
+              docker logs --tail 20 agri-env-bridge-chirpstack 2>&1
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "The bridge has not connected to the ChirpStack broker." >&2
+          echo "M2 route: check the address, port and credentials shown on the gateway's LoRa Network page." >&2
+          echo "R1000 route: check 'docker compose --profile local-lns ps' — the broker may not have started." >&2
+          docker logs --tail 40 agri-env-bridge-chirpstack 2>&1 || true
+        name_i18n:
+          zh: 确认桥已连上网络服务器
+
+  user_inputs:
+    - id: host
+      name: Host Address
+      type: text
+      required: true
+      placeholder: "192.168.1.60"
+      description: The machine that runs the bridge — the R1000 on the first route, or any Linux host on the M2 route
+      name_i18n:
+        zh: 主机地址
+      description_i18n:
+        zh: 运行桥的那台机器——第一条路线是 R1000，M2 路线上任意一台 Linux 主机都行
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: timezone
+      name: Time Zone
+      type: text
+      default: "Asia/Shanghai"
+      required: true
+      name_i18n:
+        zh: 时区
+    - id: lns_mode
+      name: Where the Network Server Runs
+      type: select
+      default: "m2"
+      required: true
+      description: Pick `m2` if the gateway runs its own network server — nothing but the bridge starts here. Pick `local` to run ChirpStack on this host with a WM1302 concentrator.
+      options:
+        - value: "m2"
+          label: On the M2 gateway (built-in ChirpStack)
+          label_i18n:
+            zh: 在 M2 网关上（内置 ChirpStack）
+        - value: "local"
+          label: On this host (ChirpStack + WM1302)
+          label_i18n:
+            zh: 在本机（ChirpStack + WM1302）
+      name_i18n:
+        zh: 网络服务器运行在哪里
+      description_i18n:
+        zh: 网关自带网络服务器就选 `m2`，本机只起桥。选 `local` 则在本机跑 ChirpStack，配 WM1302 集中器。
+    - id: region
+      name: Frequency Plan
+      type: select
+      default: "eu868"
+      required: true
+      description: Only used on the `local` route. It must match both the concentrator's band and the nodes' band — a mismatch looks exactly like a gateway that hears nothing.
+      options:
+        - value: "eu868"
+          label: EU868
+        - value: "us915"
+          label: US915
+        - value: "as923"
+          label: AS923
+        - value: "au915"
+          label: AU915
+        - value: "cn470"
+          label: CN470
+      name_i18n:
+        zh: 频段
+      description_i18n:
+        zh: 只在 `local` 路线用。必须同时与集中器频段和节点频段一致——不一致的表现就是网关什么都收不到。
+    - id: lns_mqtt_host
+      name: Network Server Broker Address
+      type: text
+      required: true
+      default: "chirpstack-mosquitto"
+      placeholder: "192.168.1.61"
+      description: On the M2 route, the M2's own address. On the `local` route leave the default — it is the broker inside this compose project.
+      name_i18n:
+        zh: 网络服务器 Broker 地址
+      description_i18n:
+        zh: M2 路线填 M2 自己的地址。`local` 路线保留默认值——那是本 compose 项目里的 broker。
+    - id: lns_mqtt_port
+      name: Network Server Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: 网络服务器 Broker 端口
+    - id: lns_mqtt_username
+      name: Network Server Broker Username
+      type: text
+      required: false
+      description: Leave empty on the `local` route. On the M2 route use the credentials shown on the gateway's LoRa Network page.
+      name_i18n:
+        zh: 网络服务器 Broker 用户名
+      description_i18n:
+        zh: "`local` 路线留空。M2 路线填网关 LoRa Network 页面上显示的凭据。"
+    - id: lns_mqtt_password
+      name: Network Server Broker Password
+      type: password
+      required: false
+      name_i18n:
+        zh: 网络服务器 Broker 密码
+    - id: lns_application_id
+      name: Application ID
+      type: text
+      default: "+"
+      required: true
+      description: The ChirpStack application UUID the bridge subscribes to. `+` subscribes to every application on that broker, which is the simplest thing that works for a single-tenant deployment.
+      name_i18n:
+        zh: Application ID
+      description_i18n:
+        zh: 桥要订阅的 ChirpStack application UUID。填 `+` 表示订阅该 broker 上的所有 application——单租户部署这样最省事。
+    - id: mqtt_host
+      name: Home Assistant Broker Address
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: The Mosquitto deployed with Home Assistant — where the bridge publishes entities
+      name_i18n:
+        zh: Home Assistant Broker 地址
+      description_i18n:
+        zh: 与 Home Assistant 一起部署的那个 Mosquitto——桥把实体发到这里
+    - id: mqtt_port
+      name: Home Assistant Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: Home Assistant Broker 端口
+    - id: mqtt_username
+      name: Home Assistant Broker Username
+      type: text
+      default: "agrienv"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: Home Assistant Broker 用户名
+    - id: mqtt_password
+      name: Home Assistant Broker Password
+      type: password
+      required: true
+      name_i18n:
+        zh: Home Assistant Broker 密码
+    - id: unavailable_after
+      name: Offline Threshold (seconds)
+      type: text
+      default: "7200"
+      required: true
+      description: No uplink for this long marks the node offline in Home Assistant
+      validation:
+        pattern: "^[0-9]{2,6}$"
+      name_i18n:
+        zh: 离线判定时长（秒）
+      description_i18n:
+        zh: 超过这么久没有上行就在 Home Assistant 里标记为离线

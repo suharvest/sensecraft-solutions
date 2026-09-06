@@ -53,11 +53,56 @@ the agent compiles it locally and plays a short 880 Hz tone after detection.
 - The cloud preset needs ongoing API access. Fully local presets can run offline after artifacts are cached.
 - Qwen defaults use the Beijing OpenAI-compatible endpoint. Replace the base URL and model ID for another region or provider.
 
+## Language and Device Support Matrix
+
+The conversation language is chosen at deploy time. The deployment turns
+(language, device) into exactly one speech profile before any service starts,
+and refuses a pair the board cannot serve rather than substituting a model that
+cannot read the language.
+
+Language options are the RK runtime's 30-language set - the narrower of the two
+available lists, since Qwen3-ASR upstream advertises 52 languages and Whisper
+99. Languages are handled in three groups: Chinese, English, and the remaining
+28.
+
+| Device | Chinese | English | Other 28 languages |
+|--------|---------|---------|--------------------|
+| Orin Nano 8GB | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
+| Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
+| Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS CustomVoice, pending measurement |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, model capability measured 2026-09-06 via offline whole-file `/asr` (no VAD endpoint): CER 1.05% short / 9.62% long. TTS RTF 0.194. (see docs/perf/rk3576-matrix-20260906.md) | Not supported - TTS on this board is Matcha zh-en only |
+
+The 1.05%/9.62% figures above measure what the decoder can transcribe when
+given a whole clip through the offline `POST /asr` endpoint (no VAD, no
+streaming). The **live conversational session** behaves differently: its
+low-latency turn detection (silero VAD, 400ms silence + 2.5s minimum audio)
+finalizes on the first natural pause in what it hears, so a long sentence
+with a mid-utterance pause gets replied to after its first clause (measured
+CER 84.06% zh / WER 63.38% en against the full reference text) — **that is
+the streaming endpoint's turn-taking design, not a recognition error**;
+re-testing with the decoder's own token budget and punctuation-stop setting
+relaxed (`ASR_MAX_NEW_TOKENS=256`, `ASR_FINAL_STOP_ON_PUNCT=0`) produced
+byte-identical transcripts, confirming the VAD endpoint — not the decoder — is
+what ends the turn early. Tuning the VAD endpoint to tolerate a mid-utterance
+pause in conversation is open follow-up work, not done here.
+| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, pending measurement | Qwen3-ASR + Kokoro RKNN, pending measurement |
+| Raspberry Pi 5 | Not supported | sherpa-onnx CPU, pending measurement | Not supported |
+
+"Pending measurement" means the components have on-device numbers but the
+end-to-end combination does not. The one measured accuracy figure in this table
+is Qwen3-ASR 0.6B int4 on Orin NX: CER 0 on the golden set, streaming and
+offline, 2026-07-04. Every other cell is deployable but unquantified; do not
+plan around a latency or accuracy number that is not written here.
+
+**Chinese is never served by Whisper.** Whisper's Chinese ceiling is 35-56% CER
+on every board measured, so Raspberry Pi 5 - which has no Qwen3-ASR backend -
+refuses Chinese instead of transcribing it badly.
+
 ## Deployment Comparison
 
 | Preset | Conversation model | Supported devices | Best for |
 |--------|--------------------|-------------------|----------|
-| Cloud or compatible endpoint | Qwen API or any OpenAI-compatible model | RK3576 / RK3588 / Orin Nano / Orin NX | Fastest path to full conversation |
+| Cloud or compatible endpoint | Qwen API or any OpenAI-compatible model | RK3576 / RK3588 / Orin Nano / Orin NX / Raspberry Pi 5 | Fastest path to full conversation |
 | Fully local conversation | RK1828 Qwen3-4B or Orin NX Qwen3.5-4B | RK3588 + RK1828 / Orin NX 16GB | Privacy, offline use, and fixed operating cost |
 
 ### Technical Stack

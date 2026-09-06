@@ -1,0 +1,19 @@
+# Hailo-8 HEF artefacts.
+#
+# EMPTY ON PURPOSE — no HEF exists for this solution.
+#
+# Baseline MobileNetV3-Small: never compiled. No `hailo parser` run, no
+# `hailo optimize`, no compiler run.
+#
+# Open-vocabulary SigLIP 2 vision tower: `hailo parser` passes end to end with
+# no unsupported op (DFC 3.31.0 / HailoRT 4.21.0, --hw-arch hailo8, HAR
+# af7de30b5c3c2938381f235821b3279120daa072c11e948faf451f9bcfeee471).
+# `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1)
+# FAILS at layer ne_activation_mul_and_add78 with
+# NegativeSlopeExponentNonFixable: "Desired shift is 16.0, but op has only 8
+# data bits". No optimized HAR, no HEF.
+#
+# Hailo path pending: the INT8 quantisation retry is in progress; if it fails
+# the fallback is distillation into a small student model.
+#
+# Source: ~/project/edge-waste-sorting evaluation/runs/2026-09-05-w1-hef/results.md

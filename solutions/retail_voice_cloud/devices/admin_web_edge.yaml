@@ -1,0 +1,25 @@
+version: "1.0"
+id: admin_web_edge
+name: Open the Admin Console
+name_i18n:
+  zh: 打开管理后台
+type: web_dashboard
+inherit_host_from: collector_rk3576
+
+# 用 web_dashboard 而不是 preview：这套链路的输出是转写文本与库里的记录，
+# 没有逐帧画面可叠加渲染，voice-web 自己那套页面已经把它渲染好了。
+# host 复用部署步骤填的采集端地址，用户不用再填一遍。
+# 与 admin_web.yaml 的差别只有 inherit_host_from：边缘采集套餐里栈跑在采集端上，
+# 两个套餐的步骤 id 必须各自唯一，所以分成两个 descriptor。
+
+web_dashboard:
+  url: "http://{{deploy.host}}:3000/"
+  title: Voice Admin Console
+  description: >-
+    Log in with the account you created on the collector. Recordings shows the
+    redacted transcripts — the original text is never written to the database,
+    so what is on screen is all there is. Deletion and export are admin-only.
+  description_i18n:
+    zh: >-
+      用你在采集端上创建的账号登录。「录音」页显示的是脱敏后的转写——
+      原文从不写进数据库，屏幕上看到的就是系统里全部的内容。删除与导出仅 admin 可用。

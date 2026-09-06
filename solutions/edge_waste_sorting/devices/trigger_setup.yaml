@@ -1,0 +1,160 @@
+version: "1.0"
+id: trigger_setup
+name: Wire the Trigger and Confirm One Classification
+name_i18n:
+  zh: 接好触发并确认一次分类
+type: manual
+
+# Why this step is manual.
+#
+# The thing being verified is a physical act — put an item under the camera and
+# press something — and no deployer capability covers "press a button on a
+# device and watch a message appear". The HTTP source can be poked from the
+# deploy step's `after` action and is; the button and motion sources cannot be
+# exercised without a person and an object. This step is therefore where the
+# solution actually gets verified end to end, and it stands as the verify step
+# for both presets.
+#
+# It is also where the GPIO callback gets explained, because that is
+# integration work, not a deployable artefact: the runtime calls back with a
+# category, and binding that callback to a relay or flap lives outside this
+# package.
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The same address you deployed to in the previous step
+    name_i18n:
+      zh: 设备 IP
+    description_i18n:
+      zh: 与上一步部署时填的地址相同
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "orin-nx"
+    required: true
+    description: The device name you set during deployment — it is the first segment of the MQTT topic
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: 部署时填的设备名——它是 MQTT 主题的第一段
+
+steps:
+  - id: place_item
+    name: Frame the drop area
+    name_i18n:
+      zh: 把投放区放进画面
+    description: >-
+      Open http://<device-ip>:8080/ and use the live preview to aim the camera
+      at the drop area. One item should fill a meaningful part of the frame.
+      Two rules the model cannot work around: it classifies one object per
+      image and has no detector, so two items in one shot produce one answer
+      for an undefined one of them; and an item that is small in the frame
+      classifies worse than anything measured on the solution page.
+    description_i18n:
+      zh: >-
+        打开 http://<设备IP>:8080/，用实时预览把相机对准投放区。
+        单件物品应当在画面里占到有意义的比例。有两条模型绕不过去的规则：
+        它一图一件、没有检测器，所以一帧里有两件物品只会得到一个答案，
+        且这个答案描述哪一件是未定义的；物品在画面里过小时，
+        分类效果会比方案页上任何实测数字都差。
+    optional: false
+
+  - id: subscribe
+    name: Subscribe to the results topic
+    name_i18n:
+      zh: 订阅结果主题
+    description: >-
+      From any machine on the same network run "mosquitto_sub -h <device-ip>
+      -t '<device-name>/waste/+/results' -v". Leave it running for the next
+      substep. The topic's middle segment is the stream id, but consumers must
+      read stream_id out of the payload rather than parsing the topic — the
+      topic template is runtime configuration and can be changed.
+    description_i18n:
+      zh: >-
+        在同网络的任意一台机器上运行 "mosquitto_sub -h <设备IP>
+        -t '<设备名>/waste/+/results' -v"，让它挂着进入下一小步。
+        主题中间那一段是流编号，但消费者必须从 payload 里读 stream_id，
+        不要解析主题——主题模板是运行时配置，随时可改。
+    optional: false
+
+  - id: fire_trigger
+    name: Fire a trigger — HTTP, button or motion
+    name_i18n:
+      zh: 触发一次——HTTP、按钮或移动侦测
+    description: >-
+      Put one item in the drop area and fire the trigger source you configured.
+      HTTP: "curl -X POST http://<device-ip>:8080/trigger". Button: wire a
+      normally-open momentary switch to the host GPIO input your integration
+      code reads and press it once. Motion: move the item into the frame and
+      hold still. Whichever source you use, the debounce window (800 ms by
+      default) merges a second trigger arriving inside it into the request
+      already in flight instead of queueing it — a bouncing button therefore
+      produces one classification, not two. Below roughly 300 ms that stops
+      being true.
+    description_i18n:
+      zh: >-
+        在投放区放一件物品，用你配置的触发源触发一次。
+        HTTP："curl -X POST http://<设备IP>:8080/trigger"。
+        按钮：把常开轻触开关接到集成代码读取的主机 GPIO 输入上，按一次。
+        移动侦测：把物品移进画面然后保持不动。
+        无论用哪个源，去抖窗口（默认 800 ms）都会把窗口内到达的第二次触发
+        合并进正在处理的请求，而不是排队——所以抖动的按钮只产生一次分类，
+        不是两次。低于约 300 ms 这条就不成立了。
+    optional: false
+
+  - id: verify_event
+    name: Verify — one event, with category equal to top3[0]
+    name_i18n:
+      zh: 验证——一条事件，且 category 等于 top3[0]
+    description: >-
+      Within a second or two the subscriber should print exactly one JSON
+      message with type "waste_sorting_result". Check four things in it:
+      "category.class_name" is one of the eight material classes;
+      "category.china_category" is the four-way category looked up from it;
+      "category" matches "top3[0]" and "confidence" matches
+      "top3[0].confidence" — the runtime rejects payloads where they do not, so
+      seeing the message at all means both held; and "image_ref" carries a path
+      or URI, never image bytes. If confidence came back below your configured
+      minimum, the category will be the fallback (residual) rather than the
+      argmax — that is the threshold working, not a failure.
+    description_i18n:
+      zh: >-
+        一两秒内订阅端应当恰好打印一条 type 为 "waste_sorting_result" 的
+        JSON 消息。检查其中四件事："category.class_name" 是八个物料类别之一；
+        "category.china_category" 是由它查表得到的四分类；
+        "category" 与 "top3[0]" 一致、"confidence" 与 "top3[0].confidence"
+        一致——运行时会拒掉不一致的 payload，所以能看到这条消息本身就说明
+        两条都成立；"image_ref" 里是路径或 URI，绝不会是图片字节。
+        如果置信度低于你配置的最低值，category 会是兜底类别（residual）
+        而不是 argmax——那是阈值在起作用，不是故障。
+    optional: false
+
+  - id: gpio_callback
+    name: Optional — bind the actuator callback
+    name_i18n:
+      zh: 可选——绑定执行机构回调
+    description: >-
+      Set "actuator": {"enabled": true, "min_confidence": 0.5} in
+      config/config.json and restart the container to have the runtime invoke
+      its async callback with the resolved four-way category on every
+      classification that clears the threshold. The runtime binds no pin: what
+      the callback does — drive a relay, move a flap, light a lane indicator —
+      is integration code you supply, which is why the same build runs on
+      boards with different headers. Leave "vlm.apply_fallback_to_gpio" false:
+      a flap must not wait on a call whose P50 is measured in seconds.
+    description_i18n:
+      zh: >-
+        在 config/config.json 里设 "actuator": {"enabled": true,
+        "min_confidence": 0.5} 并重启容器，运行时就会在每次过阈值的分类上
+        带着解析出的四分类调用异步回调。运行时不绑任何引脚：这个回调做什么——
+        驱动继电器、动翻盖、点亮分道指示灯——是你提供的集成代码，
+        正因如此同一份构建才能跑在排针不同的板子上。
+        保持 "vlm.apply_fallback_to_gpio" 为 false：
+        翻盖不能去等一个 P50 以秒计的调用。
+    optional: true

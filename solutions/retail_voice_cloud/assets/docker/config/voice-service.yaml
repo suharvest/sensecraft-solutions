@@ -1,0 +1,84 @@
+# voice-service 的冻结部署配置。
+#
+# 这里不放任何真实口令：数据库口令在部署时由运维改成与 .env 中一致的值，
+# 或改用外部 secret 注入。仓库里保持占位符。
+default:
+  mode: release
+  listen: 8081
+  # 签发/校验 JWT 的密钥。部署时必须改成随机值（openssl rand -hex 32），
+  # 沿用占位符等于没有鉴权。
+  jwt_key: CHANGE_ME_JWT_KEY
+  auto_migrate: true
+  base_url: http://127.0.0.1:8081
+  log_level: info
+  log_format: json
+
+mysql:
+  host: mysql
+  port: 3306
+  user: root
+  password: CHANGE_ME_MYSQL_PASSWORD
+  name: voice
+
+auth:
+  # 缺省即 true；写出来是为了让人看得见这份配置是开着鉴权的。
+  enabled: true
+  # api_tokens 留空：令牌走环境变量 VOICE_API_TOKENS，不写进文件。
+  api_tokens: []
+
+privacy:
+  # 入库前脱敏。关掉等于明文入库，只有排查脱敏规则时才临时关。
+  redaction_enabled: true
+  # 原文不落库。spec §3 的两个选项里选「不存」而不是「加密存」：
+  # 加密存意味着系统里仍有一份可解密的原文，删除证明要多覆盖密钥与密文一处。
+  store_original_text: false
+  raw_audio_retention_hours: 24
+  redacted_text_retention_days: 30
+
+asr:
+  # 级联删除声纹时调的地址，走 compose 默认网络的服务名 DNS。
+  #
+  # 不能写 127.0.0.1：voice-service 在自己的网络命名空间里，127.0.0.1 指向它自己，
+  # 声纹删除会 connection refused，而 erase 响应此前仍报 residue_count=0（Bug #5）。
+  # 服务名与端口对应 docker-compose 里的 asr-voiceprint 服务（容器内监听 8080）。
+  # asr-voiceprint 没启动（未开 voiceprint profile）时这个地址不可达，
+  # erase 会把失败记进 errors/failed_steps 并返回 status=partial，而不是假装删干净了。
+  base_url: http://asr-voiceprint:8080
+  api_token: ""
+  timeout: 10
+
+oss:
+  minio:
+    endpoint: minio:9000
+    access_key: CHANGE_ME_MINIO_USER
+    secret_key: CHANGE_ME_MINIO_PASSWORD
+    use_ssl: false
+    bucket_name: voice-audio
+    region: us-east-1
+    timeout: 30
+  processing:
+    max_file_size: 52428800
+
+keywords:
+  cache_schedule: "*/5 * * * *"
+
+# chat / openai 只服务 /api/v1/chat 路由。
+#
+# App 采集 + 隐私链路（/ws → /api/v1/recordings → /api/v1/privacy/*）完全不经过它，
+# 所以这里显式 enabled: false——启动校验会跳过本段，不必为了让进程起来伪造一个假 key。
+# 要启用：把 enabled 改成 true 并填齐 base_url / api_key / model，
+# 或者干脆删掉 enabled 这一行、只填 api_key（不写 enabled 时按 api_key 非空推断）。
+chat:
+  base_url: ""
+  api_key: ""
+  timeout: 30
+  enable_debug: false
+
+openai:
+  enabled: false
+  base_url: ""
+  api_key: ""
+  model: ""
+  timeout: 60
+  max_tokens: 1024
+  temperature: 0.2

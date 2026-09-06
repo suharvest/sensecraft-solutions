@@ -1,0 +1,26 @@
+7c81827d91f3cf4aab49ba16ee701e4bd889f85105baedc0f00d85f180f96653  dfine_s_neu6.onnx
+5a75ad6daac387366371604898cd8b80e392f0b79310bbda17cd5ac42f837572  best_stg1.pth
+48a6c8cc43eb57186843f752e2e8461ddd3326e0d3c575e71e6e960844683e89  dfine_s_coco.pth
+
+# metadata (not part of the checksum lines)
+# track          : dfine
+# status         : listing only — no CDN upload yet, same licence-clearance
+#                  gate as yolox_tiny_neu6 (dataset licence unconfirmed)
+# upstream       : https://github.com/Peterande/D-FINE
+# upstream_commit: 956d1709314c2c6a4df6f34de232054578a7449f
+# upstream_license: Apache-2.0 (Objects365-trained weights excluded, see
+#                    tracks/detector/PROVENANCE.md in the upstream repo)
+# torch_version  : 2.14.0+cu130
+# onnx_version   : 1.22.0
+# input          : images:1x3x640x640 opset16
+# outputs        : labels,boxes,scores (NMS-free)
+# num_classes    : 7 (label_offset -1)
+# classes        : crazing,inclusion,patches,pitted_surface,rolled-in_scale,scratches
+# CPU golden     : mAP50 0.7499 (evaluation/runs/2026-09-06-a1-cpu/results.md)
+# Hailo-8 / RKNN : parser rejects GridSample/GatherElements/TopK (Hailo) or
+#                  falls back to CustomOperatorLower for GridSample (RKNN,
+#                  unverified on hardware) — see
+#                  evaluation/runs/2026-09-06-a1-probe/results.md
+# size           : dfine_s_neu6.onnx = 41660728 bytes
+# size           : best_stg1.pth = 165193675 bytes
+# size           : dfine_s_coco.pth = 41841422 bytes

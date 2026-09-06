@@ -1,0 +1,98 @@
+version: "1.0"
+id: p4_grove_we2
+name: Grove Vision AI V2 Face Firmware
+name_i18n:
+  zh: Grove Vision AI V2 人脸固件
+type: himax_usb
+
+# THE FIRMWARE HAS NOT BEEN BUILT. The `path` fields below point at
+# assets/firmware/*.NOT-BUILT — text stubs, not images. That is deliberate: a
+# validator can resolve the reference, and anyone who runs this step gets an
+# immediate obvious failure rather than a plausible-looking binary flashed onto
+# a door controller. assets/firmware/MANIFEST.md records the source branch, the
+# flash layout, the destination CDN path and the four things that must be
+# measured first. Replace the stubs with the built artefacts, their real CDN
+# URLs and their real sha256 in one change.
+#
+# The design spec calls this segment `himax_firmware`; the deployment engine's
+# capability table names the type `himax_usb`, which is what this file uses.
+#
+# NO LIVENESS EXISTS FOR THIS CHIP. Neither this project, nor the Watcher
+# firmware, nor grove-vision-face-embedding has a liveness model for the WE2.
+# The P4 policy compensates by allowing nothing except an allowlisted person
+# inside a schedule, and the events carry liveness.passed = null. That is a
+# mitigation, not a fix, and it is why this preset must not go on a door where
+# a printed photograph would matter.
+#
+# Two unresolved values that must NOT be copied from any source repository:
+#   * the matching threshold — 0.4, 0.5 and 0.30 all appear across the source
+#     repositories and they cannot all be right. Sweep positive and negative
+#     pairs on the assembled hardware.
+#   * the model flash address — 0x400000 and 0x510000 both appear. Confirm
+#     against the built partition table.
+
+detection:
+  method: usb_serial
+  # Grove Vision AI Module V2 uses a WCH CH343 USB-serial bridge.
+  # 0x55D3 is the Grove Vision AI V2 product id (SenseCAP Watcher is 0x55D2).
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x55d3"
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+    - "/dev/cu.wchusbserial*"
+
+firmware:
+  source:
+    path: assets/firmware/we2_door_firmware.NOT-BUILT
+  flash_config:
+    baudrate: 921600
+    protocol: xmodem
+    timeout: 120
+    # On a discrete XIAO + Grove Vision AI V2 build the WE2 reset line is a
+    # hand-wired connection on the XIAO's D2 (GPIO_NUM_3) — the Watcher board
+    # drives it from an IO expander, which this build does not have. The
+    # flasher needs the ESP32 to hold that line asserted. Nobody has flashed a
+    # WE2 through this path yet.
+    requires_reset: true
+    models:
+      - id: face_detect_embed
+        name: Face Detection + Embedding (SCRFD + distilled MobileFaceNet)
+        path: assets/firmware/we2_face_model.NOT-BUILT
+        # Two addresses appear across the source repositories. Neither is
+        # written here as fact — confirm against the built partition table
+        # before this file names one.
+        flash_address: "0x000000"
+        offset: "0x0"
+        required: true
+        default: true
+        description: >-
+          Detection and 128-d embedding on the WE2, handed to the XIAO over
+          UART for matching. The weights inherit InsightFace's non-commercial
+          terms — they are not redistributed with this package, and a
+          commercial deployment has to retrain through the QAT pipeline rather
+          than ship these. There is no liveness model here and none exists.
+        name_i18n:
+          zh: 人脸检测 + 嵌入（SCRFD + 蒸馏 MobileFaceNet）
+        description_i18n:
+          zh: >-
+            检测与 128 维嵌入在 WE2 上完成，经 UART 交给 XIAO 做匹配。权重沿用
+            InsightFace 的非商用条款——本包不随附这些权重，商业部署必须走 QAT
+            流程重训而不是直接分发它们。这里没有活体模型，而且也不存在这样的模型。
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: The Grove Vision AI V2's USB serial port. Flash this module before the XIAO — the XIAO's application probes the vision link at startup and reports it as unavailable if the WE2 has no firmware.
+    auto_detect: true
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: Grove Vision AI V2 的 USB 串口。先烧这个模组再烧 XIAO——XIAO 的应用在启动时会探测视觉链路，WE2 没有固件时会直接报告链路不可用。
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 10

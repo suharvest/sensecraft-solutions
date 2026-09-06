@@ -1,0 +1,131 @@
+version: "1.0"
+id: annotate_with_sam2
+name: Generate Expected List and ROIs with the SAM2 Annotation Tool
+name_i18n:
+  zh: 用 SAM2 标注工具生成期望件清单与 ROI
+type: manual
+
+# Why this step is manual.
+#
+# tools/annotation/ is an offline workstation/spark tool, not something any
+# deployer type drives on the edge device — it needs a GPU-friendly machine
+# (or the CPU otsu backend), human review of the sampled overlays, and its
+# output is a JSON fragment the operator pastes into config.json on the
+# device, not a container to run there. This step documents the upstream
+# tools/annotation/README.md workflow; nothing here runs on the inspection
+# device itself.
+#
+# Optional and additive: skip it entirely and hand-write assembly.expected[]
+# as shown in Step 1's configuration section. This step only changes how that
+# list gets built, never what the runtime does with it.
+
+steps:
+  - id: run_annotate
+    name: Run annotate.py on your own images
+    name_i18n:
+      zh: 对自己的图像跑 annotate.py
+    description: >-
+      On a workstation or spark box with the upstream edge-inspection-assembly
+      repository (tools/annotation/), run: uv run python
+      tools/annotation/annotate.py --images <your station images> --backend
+      sam2 --model-id facebook/sam2.1-hiera-small --strategy box --out
+      runs/<name>. Use --backend otsu instead if no GPU is available; it is
+      slower to develop against SAM2's own IoU numbers but needs nothing
+      beyond numpy. Box-only prompting (the default "box" strategy) measured
+      better than adding center or negative points on this project's own
+      dataset (mean box IoU 0.6845 for box vs 0.6594 for box+center, 50-image
+      calibration) — start with box-only rather than adding points to "help"
+      the model. Set HF_ENDPOINT=https://hf-mirror.com before the first run so
+      the SAM2 checkpoint downloads from the mirror.
+    description_i18n:
+      zh: >-
+        在装有上游 edge-inspection-assembly 仓库（tools/annotation/）的工作站或
+        spark 上跑：uv run python tools/annotation/annotate.py --images
+        <你的工位图像目录> --backend sam2 --model-id
+        facebook/sam2.1-hiera-small --strategy box --out runs/<name>。没有
+        GPU 就换 --backend otsu；比 SAM2 自己的 IoU 数字差，但除了 numpy
+        什么都不需要。只给框的默认策略 "box" 在本项目自己的数据集上比加中心点
+        或背景点效果更好（50 张校准：box 均值 0.6845 vs box+center 0.6594）——
+        从只给框开始，不要为了"帮"模型而加点。第一次跑之前设
+        HF_ENDPOINT=https://hf-mirror.com，让 SAM2 权重走镜像下载。
+    optional: false
+
+  - id: review_masks
+    name: Auto-check, then sample and look at the overlays
+    name_i18n:
+      zh: 自动校验，再抽样看叠加图
+    description: >-
+      Run "uv run python tools/annotation/review.py auto --run runs/<name>
+      --threshold 0.5" to flag structural outliers automatically, then "uv run
+      python tools/annotation/review.py sample --run runs/<name> --images
+      <your images> --rate 0.1 --seed <any fixed number>" to export overlay
+      images (mask in red, box in blue) for a human to look at. This project's
+      own full-dataset run with automatic review only (no human pass) got
+      90.7% of boxes above IoU 0.5 and a 9.33% auto-flagged revision rate —
+      treat that as a "revise if flagged" default, not a promise of accuracy
+      on your images. Only annotations marked approved (by review.py apply
+      after a human writes decisions.jsonl, or left as approved by auto) feed
+      the next step.
+    description_i18n:
+      zh: >-
+        跑 "uv run python tools/annotation/review.py auto --run runs/<name>
+        --threshold 0.5" 自动标出结构异常，再跑 "uv run python
+        tools/annotation/review.py sample --run runs/<name> --images
+        <你的图像目录> --rate 0.1 --seed <任意固定数字>" 导出叠加图（mask 红色、
+        框蓝色）给人看。本项目自己在全量数据上只做自动审核（没有真人过）得到的是
+        90.7% 的框 IoU ≥ 0.5、9.33% 的自动标记修订率——把它当成"被标记就该改"的
+        默认值，不是对你自己图像的精度承诺。只有标为 approved 的标注（真人写
+        decisions.jsonl 后 review.py apply 回写，或自动审核留下的 approved）
+        会进下一步。
+    optional: false
+
+  - id: generate_roi_profile
+    name: Generate the assembly ROI profile
+    name_i18n:
+      zh: 生成装配 ROI profile
+    description: >-
+      Run "uv run python tools/annotation/roi_profile.py --run runs/<name>
+      --classes-from <your COCO categories> --roi-scale 1.6 --out
+      runs/<name>/roi_profile.json". It takes the image with the most approved
+      annotations, expands each mask's bounding box by roi-scale (1.6 by
+      default, so a real detection near the ROI edge still lands inside it),
+      and prints roi_profile_sha256 — a hash over the generated assembly
+      section only (not the run directory, timestamp or model name), so the
+      same ROI profile always hashes the same on any machine.
+    description_i18n:
+      zh: >-
+        跑 "uv run python tools/annotation/roi_profile.py --run runs/<name>
+        --classes-from <你的 COCO 类别文件> --roi-scale 1.6 --out
+        runs/<name>/roi_profile.json"。它取审核通过标注最多的那张图，把每个
+        mask 的外接框放大 roi-scale 倍（默认 1.6，让真实检测框在 ROI 边缘附近
+        也能落进去），并打印 roi_profile_sha256——只对生成的 assembly 段计算
+        （不含运行目录、时间戳、模型名），同一份 ROI 配置在任何机器上算出来
+        都是同一个 hash。
+    optional: false
+
+  - id: copy_into_config
+    name: Copy the generated assembly section back into config.json
+    name_i18n:
+      zh: 把生成的 assembly 段拷回 config.json
+    description: >-
+      Paste the "assembly" object from roi_profile.json into the matching
+      source's assembly block in config/config.json on the device (see Step
+      1's configuration section for the field layout: expected[], with class,
+      roi, min_count, label per slot). Also copy roi_profile_sha256 as a
+      top-level field alongside that source's assembly block if you want the
+      published MQTT events to carry it — the schema declares it as optional
+      and null when ROIs are hand-written, so leaving it out changes nothing
+      about validation. Restart the inspection container to pick up the new
+      expected list, then re-run the Quick verification steps from Step 3 to
+      confirm missing_count behaves as expected on a known-good and a
+      known-bad frame.
+    description_i18n:
+      zh: >-
+        把 roi_profile.json 里的 "assembly" 对象贴进设备上 config/config.json
+        对应源的 assembly 段（字段结构见 Step 1 配置部分：expected[]，每个装配位
+        带 class、roi、min_count、label）。如果想让发布的 MQTT 事件带上它，
+        再把 roi_profile_sha256 作为顶层字段拷到那一路源的 assembly 段旁边——
+        schema 里这个字段是可选的，手写 ROI 时为 null 也不影响校验。重启质检
+        容器让新期望清单生效，再回到 Step 3 的快速验证，在一个合格帧和一个
+        故意缺件的帧上确认 missing_count 行为符合预期。
+    optional: false

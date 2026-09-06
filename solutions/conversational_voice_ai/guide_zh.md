@@ -106,6 +106,30 @@ Jetson Orin，并已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit。
 | CUDA 初始化失败 | 核对 JetPack 6.2、TensorRT 10.3 和容器 runtime |
 | Orin Nano 内存不足 | 使用 `jetson-qwen3asr-matcha`，不要在 Nano 上同时启动本地 4B 模型 |
 
+### 部署目标 {#cloud_rpi5 type=remote device=rpi5 device_name="Raspberry Pi 5" config=devices/cloud_rpi5.yaml}
+
+在树莓派 5 上运行 CPU 语音链路，对话模型接云端或局域网。**仅支持英文**——该板没有 Qwen3-ASR 后端，Whisper 在该板的中文错误率为短句 50.30%、长句 57.74% CER，因此中文直接拒绝，而不是降级使用。
+
+### 接线
+
+1. 连接 AEC 麦克风与音箱
+2. 填写 SSH 信息与模型接口设置
+3. 对话语言保持英文；选择其他语言会在服务启动前终止部署
+
+reSpeaker 可以在部署前接好，也可以在 Agent 启动后热插拔。
+
+### 部署完成
+
+用英文提问。播放开始一秒内再次说话，当前回答应立即停止。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 部署报 "not supported" 终止 | 所选语言在该板不支持，改选英文 |
+| 回复偏慢 | CPU 上的 ASR 与 TTS 共用四核；关闭其他负载或改用带 NPU 的板卡 |
+| 热插拔后音频不恢复 | 确认 Compose 有动态 `/dev/snd` 挂载与 `116:*` cgroup 规则 |
+
 ## 步骤 2: 验证对话与打断 {#verify_cloud type=web_dashboard required=true config=devices/dashboard_cloud.yaml}
 
 在面板里观察 listening、thinking、speaking 和 barged-in 状态。
@@ -120,6 +144,22 @@ Jetson Orin，并已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit。
 |------|----------|
 | 状态变化但没有声音 | 检查默认播放设备，避免 PortAudio 选到没有输出通道的声卡 |
 | 房间噪声频繁打断 | 先确认 AEC 通道，再小幅提高客户端 VAD threshold，不要直接关闭麦克风 |
+
+## 步骤 3: 验证所选语言 {#voice_chat_cloud type=web_dashboard required=true config=devices/voice_chat_cloud.yaml}
+
+确认部署时选择的语言就是实际识别与语音回复使用的语言。
+
+### 部署完成
+
+用所选语言完成两到三轮对话，转写与语音回复都是该语言，即通过本项检查。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 回复语言不对 | 检查助手人设提示词，其中要求模型使用用户所用语言回答 |
+| 部署根本没启动 | 不支持的（语言，设备）组合会在服务启动前终止，请改选该板支持的语言 |
+| 转写语言正确但语音不对 | 该组合解析出的语音配置标记为待测，请上报语言与板卡型号，不要就地调参 |
 
 ## 套餐: 全本地对话 {#local_llm}
 
@@ -216,3 +256,19 @@ Jetson Orin，并已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit。
 |------|----------|
 | 断网后首次启动失败 | 首次运行所需镜像和模型还没有全部缓存，请联网完成一次启动 |
 | 回复过长 | 保持语音助手提示词为一到两句口语化回答，避免长文本拖慢合成 |
+
+## 步骤 3: 本地验证所选语言 {#voice_chat_local type=web_dashboard required=true config=devices/voice_chat_local.yaml}
+
+确认部署时选择的语言就是实际识别与语音回复使用的语言。
+
+### 部署完成
+
+用所选语言完成两到三轮对话，转写与语音回复都是该语言，即通过本项检查。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 回复语言不对 | 检查助手人设提示词，其中要求模型使用用户所用语言回答 |
+| 部署根本没启动 | 不支持的（语言，设备）组合会在服务启动前终止，请改选该板支持的语言 |
+| 转写语言正确但语音不对 | 该组合解析出的语音配置标记为待测，请上报语言与板卡型号，不要就地调参 |

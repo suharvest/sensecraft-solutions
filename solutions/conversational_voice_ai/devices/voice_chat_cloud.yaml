@@ -1,0 +1,23 @@
+version: "1.0"
+id: voice_chat_cloud
+name: Voice Chat in the Selected Language
+name_i18n:
+  zh: 用所选语言实际对话
+type: web_dashboard
+inherit_host_from: deploy_cloud
+web_dashboard:
+  url: "http://{{deploy.host}}:18000"
+  title: Voice Chat
+  title_i18n: {zh: 语音对话}
+  # Same console as the barge-in check, used for a different question: the
+  # barge-in step verifies the state machine, this one verifies that the
+  # language the operator picked is the language actually recognised and
+  # spoken back. The resolved profile is printed on the console header.
+  description: >-
+    Speak two or three sentences in the language you selected at deploy time and
+    confirm the transcript is in that language and the reply is spoken in it.
+    The console header shows which speech profile was resolved.
+  description_i18n:
+    zh: >-
+      用部署时选择的语言说两三句话，确认转写结果是该语言、语音回复也用该语言。
+      控制台顶部会显示本次解析出的语音配置名。

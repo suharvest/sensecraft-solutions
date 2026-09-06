@@ -1,0 +1,210 @@
+version: "1.0"
+id: cloud_web
+name: Management Console
+name_i18n:
+  zh: 管理界面
+type: docker_deploy
+
+# NOT VERIFIED ON HARDWARE. The image named in assets/cloud/docker-compose.yml
+# has never been pushed; this step fails at image pull until it is built on the
+# host, and the compose file's header carries the build command.
+#
+# Same compose project as cloud_facedb, on purpose — see that file's header for
+# why the two must share the `facedb` volume. Re-running the same compose is
+# idempotent; this step exists separately so the console's role tokens are
+# prompted and verified on their own rather than buried in the server step.
+
+docker:
+  compose_file: assets/cloud/docker-compose.yml
+  compose_dir: assets/cloud
+  options:
+    project_name: unmanned_store_access_cloud
+    remove_orphans: true
+  services:
+    - name: web
+      port: 8088
+      required: true
+
+ssh:
+  port: 22
+  default_user: ubuntu
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 2
+    description: The SQLite projection of the event stream. It is a projection, not the source of truth — deleting it and re-running the collector rebuilds it.
+
+deploy_timeout: 1200
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/unmanned-store-access
+  compose_dir: assets/cloud
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the library server is already up
+        run: |
+          set -e
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:{{facedb_port}}/v1/facedb/current" || echo 000)
+          case "$CODE" in
+            200|404) echo "facedb server reachable (HTTP $CODE)" ;;
+            *) echo "The face library server is not answering on port {{facedb_port}}. Deploy the Face Library Server step first." >&2; exit 1 ;;
+          esac
+        name_i18n:
+          zh: 检查人脸库服务是否已启动
+
+    after_upload:
+      - name: Merge the console tokens into the environment file
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/unmanned-store-access/cloud_web"
+          find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+          umask 077
+          ENVFILE="$WORKDIR/.env"
+          # The three roles in one table. viewer reads; operator adds
+          # unlock/hold_open/lock; admin adds enrol/delete/rollback. Empty
+          # entries are dropped so an unused role does not become an empty
+          # token that matches an empty header.
+          TOKENS="{{admin_token}}:admin"
+          [ -n "{{operator_token}}" ] && TOKENS="$TOKENS,{{operator_token}}:operator"
+          [ -n "{{viewer_token}}" ] && TOKENS="$TOKENS,{{viewer_token}}:viewer"
+          cat > "$ENVFILE" <<EOF
+          USA_WEB_TOKENS=$TOKENS
+          USA_FACEDB_SIGNING_KEY={{facedb_signing_key}}
+          USA_FACE_REC_API={{face_rec_api_url}}
+          MQTT_HOST=127.0.0.1
+          MQTT_PORT=1883
+          MQTT_TLS=0
+          FACEDB_PORT={{facedb_port}}
+          WEB_PORT={{web_port}}
+          EOF
+          echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
+        name_i18n:
+          zh: 把管理界面 token 合并进环境文件
+
+    after:
+      - name: Confirm the console answers and the token gate holds
+        timeout: 180
+        run: |
+          set -e
+          URL="http://127.0.0.1:{{web_port}}"
+          for i in $(seq 1 30); do
+            curl -fsS "$URL/api/health" >/dev/null 2>&1 && break
+            sleep 5
+          done
+          curl -fsS "$URL/api/health" || { echo "console did not come up" >&2; docker logs --tail 40 usa-web 2>&1 || true; exit 1; }
+          echo
+          # There is no anonymous read. A 200 here would be a finding, not a pass.
+          ANON=$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/events")
+          echo "anonymous GET /api/events -> HTTP $ANON (401 or 403 expected — anything else means the token gate is not in front of the data)"
+        ignore_error: true
+        name_i18n:
+          zh: 确认界面已响应且 token 闸门生效
+
+  user_inputs:
+    - id: host
+      name: Cloud Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      name_i18n:
+        zh: 云端主机 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: ubuntu
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: web_port
+      name: Console Port
+      type: text
+      default: "8088"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      description: Put a reverse proxy terminating TLS in front of this before anyone outside the local network can reach it. A shared bearer token over plain HTTP is not authentication.
+      name_i18n:
+        zh: 管理界面端口
+      description_i18n:
+        zh: 在本地网络之外能访问它之前，先在前面放一个终止 TLS 的反向代理。共享 bearer token 走明文 HTTP 等于没有鉴权。
+    - id: facedb_port
+      name: Face Library Port
+      type: text
+      default: "8080"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: 人脸库端口
+    - id: facedb_signing_key
+      name: Library Signing Key
+      type: password
+      required: true
+      description: The same key entered in the Face Library Server step. The console writes the signature that devices verify, so a mismatch here means every device rejects every new version — visibly, at the device, not here.
+      name_i18n:
+        zh: 人脸库签名密钥
+      description_i18n:
+        zh: 与「人脸库服务」步骤里填的是同一个密钥。签名由管理界面写入、由设备校验，填错的后果是每台设备拒绝每一个新版本——报错发生在设备侧，不在这里。
+    - id: admin_token
+      name: Admin Token
+      type: password
+      required: true
+      description: Enrol, delete and roll back. Give it to the people who are allowed to decide who gets through the door.
+      name_i18n:
+        zh: Admin Token
+      description_i18n:
+        zh: 可以注册、删除与回滚。发给有权决定"谁能进这道门"的人。
+    - id: operator_token
+      name: Operator Token
+      type: password
+      required: false
+      description: Remote unlock, hold-open and lock. Read access as well. Cannot change the person library.
+      name_i18n:
+        zh: Operator Token
+      description_i18n:
+        zh: 可以远程开门、常开与锁定，也能读。不能改人脸库。
+    - id: viewer_token
+      name: Viewer Token
+      type: password
+      required: false
+      description: Read only — events, device status, library versions, audit verification. Cannot open the door.
+      name_i18n:
+        zh: Viewer Token
+      description_i18n:
+        zh: 只读——事件、设备状态、人脸库版本、审计校验。不能开门。
+    - id: face_rec_api_url
+      name: Recognition Service URL (for enrolment)
+      type: text
+      required: false
+      placeholder: "http://192.168.1.60:18080"
+      description: >-
+        Where the console gets an embedding when you enrol someone. Point it at
+        the recognition service on a door device, or at one running on this
+        host. Leave it empty only on a bench: without it the console falls back
+        to a fake embedder, and a library built that way will not recognise
+        anybody.
+      name_i18n:
+        zh: 识别服务地址（供注册取向量）
+      description_i18n:
+        zh: >-
+          注册人员时管理界面从哪里取嵌入向量。指向某台门口设备上的识别服务，
+          或者指向本机上跑的一份。只有在台面测试时才留空：不填的话界面会退化成
+          假的取向量实现，这样建出来的库认不出任何人。

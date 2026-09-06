@@ -1,0 +1,442 @@
+version: "1.0"
+id: jetson_inspection
+name: NVIDIA Jetson Orin
+type: docker_deploy
+
+# INTERNAL VALIDATION ONLY — the model is trained on a re-hosted copy of NEU-DET
+# whose licence is unconfirmed. No public demo, customer-site demo or commercial
+# material until the licence is cleared or the dataset is replaced.
+
+# device_class=jetson pulls in the shared Jetson pre-deploy fixes (the JetPack
+# 6.x iptables raw-table workaround) and the hardware probe
+# (test -f /etc/nv_tegra_release) from the bundled device profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  options:
+    project_name: edge_inspection_surface
+    remove_orphans: true
+  services:
+    - name: inspection
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  # The first deploy builds a TensorRT engine on the device. Measured on an
+  # Orin NX 16GB / JetPack 6.2 / TRT 10.3: 291 s for YOLOX-Tiny
+  # (evaluation/runs/2026-09-05-m2-orin/results.md §1). The SSH command budget
+  # has to cover that plus the ONNX download.
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: ONNX model, the built TensorRT engine and the container image live on the device
+  - type: nvidia_runtime
+    description: Check the NVIDIA container runtime is available
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 首次部署要在设备上构建 TensorRT engine（Orin NX 实测 291 s，
+# evaluation/runs/2026-09-05-m2-orin/results.md），加上镜像拉取与 ONNX 下载，
+# 整轮约 10 分钟；这里给到约 6 倍余量，用于兜住卡死而不是限制正常构建。
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson Orin
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-inspection-surface
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Jetson runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+            exit 1
+          fi
+          if [ ! -d /usr/lib/python3.10/dist-packages/tensorrt ]; then
+            echo "The host tensorrt python package is missing; the compose file mounts it read-only" >&2
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # These run AFTER the deployer uploads assets/jetson/ to
+    # remote_path/<device-yaml-id>/ and BEFORE `docker compose up`. They must
+    # not move into `before`: config/config.json does not exist on the device
+    # until the upload finishes, and anything written earlier is overwritten.
+    after_upload:
+      - name: Clean macOS sidecar files from the uploaded assets
+        # Uploading assets from a Mac can carry AppleDouble sidecars (._name)
+        # and .DS_Store into the compose directory. `docker compose` then tries
+        # to read ._docker-compose.yml as YAML, or the config loader picks up
+        # ._config.json. Removing them here is cheaper than debugging it later.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/jetson_inspection"
+          find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+          echo "sidecar cleanup done"
+        name_i18n:
+          zh: 清理上传目录里的 macOS 附属文件
+
+      - name: Download the ONNX model and build the TensorRT engine
+        # A TensorRT engine is tied to the exact GPU architecture and TensorRT
+        # version, so it cannot be shipped prebuilt — it is built here, once,
+        # and it is never redistributed off this device.
+        # Measured on Orin NX 16GB / JetPack 6.2 / TRT 10.3: 291 s
+        # (evaluation/runs/2026-09-05-m2-orin/results.md §1). The upstream
+        # builder is backends/tensorrt/build.sh, which wraps
+        # platforms/jetson/tools/build_engine.sh and writes a build manifest
+        # next to the engine. The trtexec invocation below is that builder's
+        # static-shape path, inlined so the deploy needs no repo checkout.
+        #
+        # TRT_STATIC_SHAPE: this project exports a STATIC batch-1 ONNX. Passing
+        # --minShapes/--optShapes/--maxShapes makes trtexec 10.3 fail outright
+        # with "Static model does not take explicit shapes" (upstream
+        # IMPL-NOTES 38), so no explicit shapes are given here.
+        timeout: 2400
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/jetson_inspection"
+          MODELS_DIR="$WORKDIR/models"
+
+          # detector_track picks which ONNX gets built into a TensorRT engine.
+          # yolox is the only track measured on this board and the only one
+          # supported on the Hailo preset; dfine/rtdetrv2 are CPU-golden only
+          # so far (evaluation/runs/2026-09-06-a1-cpu/results.md) — no
+          # Orin/TensorRT figure exists for them yet, see the solution page.
+          case "{{detector_track}}" in
+            yolox)
+              MODEL_NAME=yolox_tiny_neu6
+              SHA=4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba
+              ;;
+            dfine)
+              MODEL_NAME=dfine_s_neu6
+              SHA=7c81827d91f3cf4aab49ba16ee701e4bd889f85105baedc0f00d85f180f96653
+              ;;
+            rtdetrv2)
+              MODEL_NAME=rtdetrv2_s_neu6
+              SHA=a2aa56779a19ec952360da90503d20eae65b1d46bc7a3c14a06c2c10b822a36a
+              ;;
+            *) echo "Unknown detector_track: {{detector_track}}" >&2; exit 1 ;;
+          esac
+          ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
+          ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
+
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, skipping build: $ENGINE"
+            exit 0
+          fi
+
+          if [ ! -s "$ONNX" ]; then
+            # TODO(CDN): the ONNX has NOT been uploaded yet. The licence of the
+            # training data is unconfirmed, so nothing is published until that
+            # is cleared. Until then, copy $MODEL_NAME.onnx onto the device
+            # at the path below by hand; the sha256 check still applies.
+            echo "Downloading $MODEL_NAME.onnx ..."
+            curl -fSL --retry 3 -o "$ONNX.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$MODEL_NAME.onnx"
+            echo "$SHA  $ONNX.part" | sha256sum -c -
+            mv -f "$ONNX.part" "$ONNX"
+          fi
+          echo "$SHA  $ONNX" | sha256sum -c -
+
+          # 291 s was measured for the yolox track on Orin NX 16GB / TRT 10.3
+          # (evaluation/runs/2026-09-05-m2-orin/results.md §1). dfine/rtdetrv2
+          # have not been engine-built or timed on this board — CPU-only
+          # golden so far (evaluation/runs/2026-09-06-a1-cpu/results.md).
+          echo "Building the TensorRT engine for {{detector_track}} ..."
+          # --version exits 1 on TensorRT 10.3, so it must not gate the build.
+          /usr/src/tensorrt/bin/trtexec --version || true
+          START=$(date +%s)
+          /usr/src/tensorrt/bin/trtexec \
+            --onnx="$ONNX" \
+            --saveEngine="$ENGINE.part" \
+            --fp16 \
+            --skipInference \
+            --builderOptimizationLevel=3 \
+            --timingCacheFile="$ENGINE.timing.cache"
+          mv -f "$ENGINE.part" "$ENGINE"
+          echo "engine built in $(( $(date +%s) - START ))s"
+          ls -l "$ENGINE"
+          sha256sum "$ENGINE"
+        name_i18n:
+          zh: 下载 ONNX 模型并构建 TensorRT 引擎
+
+      - name: Write the source, MQTT and Modbus configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-surface/jetson_inspection"
+          CONFIG="$WORKDIR/config/config.json"
+          mkdir -p "$WORKDIR/data"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          track = "{{detector_track}}"
+          model_names = {
+              "yolox": "yolox_tiny_neu6",
+              "dfine": "dfine_s_neu6",
+              "rtdetrv2": "rtdetrv2_s_neu6",
+          }
+          config["model"]["path"] = f"/models/{model_names[track]}.engine"
+          config["model"]["accelerator"] = "tensorrt"
+          config["model"]["track"] = track
+          # The freeze threshold measured on the held-out val set. 0.35 gives
+          # box P 0.765 / R 0.697; raising it trades recall for precision.
+          config["rules"]["min_score"] = float("{{min_score}}")
+          # The topic prefix is the device name the user chose, so one broker
+          # can carry several lines without collisions.
+          config["mqtt"]["topic"] = "{{device_name}}/inspection/{stream_id}/results"
+          config["modbus"]["unit_id"] = int("{{modbus_unit_id}}")
+          config["sources"] = [{
+              "stream_id": "{{stream_id}}",
+              "uri": "{{source_uri}}",
+              "kind": "rtsp",
+              "fps": int("{{source_fps}}"),
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"model      = {config['model']['path']} (track={track})")
+          print(f"min_score  = {config['rules']['min_score']}")
+          print(f"stream     = {config['sources'][0]['stream_id']} @ {config['sources'][0]['fps']} fps")
+          PY
+        name_i18n:
+          zh: 写入视频源、MQTT 与 Modbus 配置
+
+    after:
+      - name: Verify the inspector is publishing
+        timeout: 240
+        run: |
+          set -e
+          BROKER=edge-inspection-mosquitto
+          TOPIC="{{device_name}}/inspection/{{stream_id}}/results"
+          echo "Waiting for the health endpoint and the first MQTT result ..."
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null 2>&1; then
+                echo "MQTT result received on $TOPIC"
+                cat /tmp/healthz.json
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "No verified MQTT result yet." >&2
+          docker logs --tail 40 edge-inspection-app 2>&1 || true
+          echo "Check the source URI and the container logs." >&2
+        ignore_error: true
+        name_i18n:
+          zh: 验证检测器正在发布结果
+
+  user_inputs:
+    - id: host
+      name: Jetson IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: Jetson IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "orin-nx"
+      required: true
+      description: First segment of the MQTT topic — name this device after the line or cell so several installations stay separable on one broker
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按产线或工位命名，多台设备在同一个 broker 上就不会混
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "line1-cam1"
+      required: true
+      description: Appended to the MQTT topic so several cameras on one box stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机
+    - id: source_uri
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 相机 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: source_fps
+      name: Line Rate (FPS)
+      type: text
+      default: "10"
+      required: true
+      description: Frames per second pulled from the source. All measured latency figures were taken at 10 FPS.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: 产线节拍（FPS）
+      description_i18n:
+        zh: 从视频源取帧的速率。所有实测时延数字都是在 10 FPS 下取得的。
+    - id: detector_track
+      name: Detector Track
+      type: select
+      default: yolox
+      required: true
+      description: >-
+        Which detector architecture to build and run. yolox is the only track
+        measured on this board (TensorRT engine, 291 s build) and the only
+        one this solution ships on the Hailo preset. dfine and rtdetrv2 have
+        equal or better recall at matched precision in the CPU-only
+        comparison (single seed, see the solution page) but have not been
+        engine-built or timed on Orin yet — the 291 s build time and every
+        Jetson latency figure on this page are yolox-only until they are.
+      options:
+        - value: yolox
+          label: YOLOX-Tiny — the measured, deployed default
+          label_i18n:
+            zh: YOLOX-Tiny——有实测数据的默认部署项
+        - value: dfine
+          label: D-FINE-S — CPU golden shows higher recall at matched precision; no Orin engine timing yet
+          label_i18n:
+            zh: D-FINE-S——CPU 基准显示等精度下召回更高；尚无 Orin engine 实测耗时
+        - value: rtdetrv2
+          label: RT-DETRv2-S — CPU golden only, slower than D-FINE on CPU; no Orin engine timing yet
+          label_i18n:
+            zh: RT-DETRv2-S——仅有 CPU 基准，CPU 上比 D-FINE 慢；尚无 Orin engine 实测耗时
+      name_i18n:
+        zh: 检测器 Track
+      description_i18n:
+        zh: >-
+          选择构建并运行哪种检测器架构。yolox 是唯一在这块板上实测过的
+          track（TensorRT engine，构建 291 s），也是 Hailo 套餐上唯一提供的
+          一个。dfine 与 rtdetrv2 在 CPU-only 对比（单种子，见方案页）里
+          等精度下召回持平或更高，但还没有在 Orin 上构建过 engine 或计过时——
+          本页所有 291 s 构建耗时与 Jetson 时延数字，在补上之前只对 yolox 成立。
+    - id: min_score
+      name: Verdict Threshold
+      type: select
+      default: "0.35"
+      required: true
+      description: >-
+        Score above which a detection counts towards an NG verdict. 0.35 was
+        frozen against YOLOX's obj×cls score distribution on 290 val images —
+        see the solution page. It is not re-calibrated for dfine/rtdetrv2:
+        their sigmoid decoder scores are distributed differently, so the same
+        number does not mean the same confidence level on those tracks.
+      options:
+        - value: "0.25"
+          label: 0.25 — higher recall, more false alarms
+          label_i18n:
+            zh: 0.25——召回更高，误报更多
+        - value: "0.35"
+          label: 0.35 — the frozen deployment value (calibrated for yolox)
+          label_i18n:
+            zh: 0.35——部署冻结值（按 yolox 标定）
+        - value: "0.45"
+          label: 0.45 — higher precision, more misses
+          label_i18n:
+            zh: 0.45——精度更高，漏检更多
+      name_i18n:
+        zh: 判定阈值
+      description_i18n:
+        zh: >-
+          检测框计入 NG 判定的分数门限。0.35 是按 YOLOX 的 obj×cls 分数分布在
+          290 张 val 图上标定的冻结值，见方案页。dfine/rtdetrv2 没有单独重新
+          标定——它们的 sigmoid decoder 分数分布不同，同一个数值在那两个
+          track 上不代表同一个置信水平。
+    - id: modbus_unit_id
+      name: Modbus Unit ID
+      type: text
+      default: "1"
+      required: true
+      description: Modbus TCP unit id served on port 502. The register map in the guide assumes unit 1.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: Modbus 从站号
+      description_i18n:
+        zh: 502 端口上 Modbus TCP 的 unit id。指南里的寄存器表按 unit 1 写。

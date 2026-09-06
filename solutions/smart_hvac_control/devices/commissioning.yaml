@@ -1,0 +1,166 @@
+version: "1.0"
+id: commissioning
+name: Commission the Meter, Control Path and Alarms
+name_i18n:
+  zh: 电表、控制链路与告警调试
+type: manual
+
+# Why manual: every substep here is an authenticated multi-call console or HTTP
+# flow against a live plant (import a template, confirm candidate points, flip a
+# control mode, inject a fault, read an audit trail). No deployer capability can
+# drive that, and several substeps require the operator to look at physical
+# equipment. The last two substeps are the verification for this step.
+
+steps:
+  - id: confirm_image_tag
+    name: Confirm the running image tag
+    name_i18n:
+      zh: 确认运行中的镜像 tag
+    description: >-
+      Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` on the deployment host and
+      record the tag. The published tag `missionpack-knn:v1.6.5` does not carry the SDM630
+      meter template, the control rollback coordinator or the alarm envelope. The image that
+      does has not been built or pushed and its immutable tag is still to be assigned. On
+      v1.6.5, stop after the observe-mode substeps; the meter, rollback and alarm substeps
+      cannot be completed.
+    description_i18n:
+      zh: >-
+        在部署主机上执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 并记录 tag。
+        已发布的 `missionpack-knn:v1.6.5` 不含 SDM630 电表模板、控制回滚协调器和告警 envelope；
+        承载这些能力的镜像尚未构建、尚未 push，不可变 tag 待定。运行在 v1.6.5 上时，做完观察
+        模式的几个子步骤即可停止，电表、回滚和告警子步骤无法完成。
+    optional: false
+
+  - id: import_meter_template
+    name: Import the SDM630 meter template and confirm the points
+    name_i18n:
+      zh: 导入 SDM630 电表模板并确认点位
+    description: >-
+      In the console, add a Modbus source with the transport, host or serial device, and unit
+      id entered at deployment, then import the built-in `eastron_sdm630_v2` template. It
+      renders the same strict CSV a hand-written template would, so both go through one
+      parser and one 256-row limit. Confirm the ten rendered points: three line-to-neutral
+      voltages, three currents, total active power in kW (the raw watt register is scaled by
+      0.001), total power factor, frequency, and imported active energy in kWh. All ten are
+      read-only and count against the 2,000-point registry total, not against the 50 writable
+      points.
+    description_i18n:
+      zh: >-
+        在控制台按部署时填写的通讯方式、主机或串口、站号添加 Modbus 数据源，然后导入内置的
+        `eastron_sdm630_v2` 模板。该模板生成的严格 CSV 与人工填写的完全一致，两者走同一个
+        解析器、同样的 256 行上限。确认渲染出的十个点位：三个相电压、三个电流、总有功功率
+        （kW，原始瓦特寄存器按 0.001 缩放）、总功率因数、频率、进口有功电能（kWh）。十个点位
+        全部只读，计入 2,000 点注册表总额，不占用 50 个可写点。
+    optional: false
+
+  - id: validate_meter_readings
+    name: Validate the readings against the physical meter
+    name_i18n:
+      zh: 对照实际电表核验读数
+    description: >-
+      Compare each point against the meter's own display. Voltage and frequency are the
+      quickest tells: a byte- or word-order mismatch produces a plausible-looking number that
+      is wrong, not an obvious error. If the values are wrong, switch the float word order in
+      the deployment form and re-read before changing anything else. Confirm imported energy
+      only increases, and that it keeps its value across a restart of the source.
+    description_i18n:
+      zh: >-
+        把每个点位与电表本机显示对照。电压和频率最容易看出问题：字节序或字序不匹配时得到的
+        是一个看着合理但错误的数值，而不是一个明显的报错。若数值不对，先在部署表单里切换浮点
+        字序重新读取，再考虑其他改动。确认进口电能只增不减，并在数据源重启后保持累计值。
+    optional: false
+
+  - id: observe_mode_cycle
+    name: Run a full occupancy cycle in observe mode
+    name_i18n:
+      zh: 在观察模式下走完一个完整人流周期
+    description: >-
+      Import at least one week of historical operation as CSV or Excel, train the model, and
+      leave the control mode at observe. Let predictions run through at least one full
+      occupancy cycle without writing anything, and compare the recommended setpoint against
+      what the plant actually did. Do not proceed until the recommendations look defensible
+      to whoever operates the plant.
+    description_i18n:
+      zh: >-
+        导入至少一周的历史运行数据（CSV 或 Excel），训练模型，控制模式保持在观察。让预测在
+        不写入任何值的状态下走完至少一个完整的人流周期，并把推荐设定值与机组的实际行为对照。
+        在机组操作人员认可这些推荐值之前，不要进入下一步。
+    optional: false
+
+  - id: approve_safety_limits
+    name: Get the safety limits approved before enabling writes
+    name_i18n:
+      zh: 开启写入前先取得安全限值批准
+    description: >-
+      The shipped limits — 18-30 °C, 1 °C per 300 s, and the off/fan/cool/heat/auto mode
+      whitelist — are placeholders. Replace them with the plant's own commissioned values,
+      have a named site engineer approve them, and record that name in the deployment form.
+      Until a name is recorded the baseline reports itself as unapproved.
+    description_i18n:
+      zh: >-
+        出厂限值——18-30 °C、每 300 s 变化 1 °C、off/fan/cool/heat/auto 模式白名单——都是占位值。
+        请替换为本机组实际调试出来的数值，由具名现场工程师批准，并把该姓名填进部署表单。
+        在填入姓名之前，安全基线一直报告为未批准。
+    optional: false
+
+  - id: verify_write_readback
+    name: Verify a write and its field readback
+    name_i18n:
+      zh: 验证一次写入及其现场读回
+    description: >-
+      Switch one point to control mode and issue a single write inside the approved limits.
+      Verification passes when the command receipt shows the value that was sent, the delayed
+      readback returns a value within the configured tolerance, and the point's quality is
+      good. A readback whose quality is not good never verifies, whatever value it carries —
+      an acknowledgement alone is not proof the plant moved.
+    description_i18n:
+      zh: >-
+        把一个点位切到控制模式，在批准的限值范围内下发一次写入。验证通过的判据是：命令回执显示
+        的正是下发值、延迟读回的数值落在配置的容差内、该点位质量为 good。读回质量不为 good 时
+        一律不算核实通过，无论数值是多少——ACK 本身不能证明机组动了。
+    optional: false
+
+  - id: inject_faults_and_verify_rollback
+    name: Inject faults and verify rollback and alarms
+    name_i18n:
+      zh: 注入故障并验证回滚与告警
+    description: >-
+      Exercise the failure paths on purpose while the plant is still supervised. Take the
+      source offline (stop the controller connection or unplug the RS-485 adapter) during a
+      write and confirm a source-offline alarm plus a rollback; force a readback mismatch and
+      confirm a readback-mismatch alarm plus a rollback; stall a sample past the stale
+      threshold and confirm the cycle fails closed rather than writing on old data. Check that
+      BACnet points are released with Null at the priority they were written at, that Modbus
+      points are restored in the reverse of the order they were applied, and that a repeated
+      fault re-uses the open alarm instead of opening a second one. A compensation-failed
+      alarm is critical — it means the plant is in an unknown state and needs a person.
+    description_i18n:
+      zh: >-
+        在机组仍处于人工监督下时，有意走一遍失败路径。写入过程中让数据源离线（断开控制器连接或
+        拔掉 RS-485 适配器），确认出现 source-offline 告警并触发回滚；人为制造读回不一致，确认出现
+        readback-mismatch 告警并触发回滚；让样本超过过期阈值，确认预测周期 fail-closed 而不是拿旧
+        数据写入。核对 BACnet 点位是否按原优先级发 Null 释放、Modbus 点位是否按施加顺序逆序恢复，
+        以及同一故障重复出现时是否复用已打开的告警而不是开出第二条。compensation-failed 是
+        critical 告警——它意味着现场状态未知，必须有人介入。
+    optional: false
+
+  - id: export_evidence
+    name: Drain the spool and export the commissioning evidence
+    name_i18n:
+      zh: 排空 spool 并导出调试证据
+    description: >-
+      If northbound publishing is enabled, confirm `northbound.spool.queued` in
+      `GET /system/runtime-metrics` is back to 0 with `dropped` unchanged before signing off.
+      Then export, for the handover record: the image tag, the meter template id and the
+      confirmed word order, the approved safety limits and the approver's name, the command
+      audit trail for the verified write, the rollback journal entries from the fault
+      injection, and the alarm history with its acknowledgements. Container logs rotate at
+      10 MB with 4 backups, so copy anything you need out before it ages away.
+    description_i18n:
+      zh: >-
+        如果启用了北向上云，签收之前先确认 `GET /system/runtime-metrics` 中的
+        `northbound.spool.queued` 已回到 0 且 `dropped` 未增加。然后导出交接记录所需内容：镜像 tag、
+        电表模板 id 与确认后的字序、批准的安全限值与批准人姓名、已核实写入的命令审计记录、故障注入
+        产生的回滚日志条目、以及带确认状态的告警历史。容器日志按 10 MB 轮转、保留 4 份，需要的内容
+        请在被覆盖之前拷出来。
+    optional: false

@@ -1,3 +1,21 @@
+# Image tag policy
+#
+# Pinned to the immutable published tag `missionpack-knn:v1.6.5`. Never use `latest`:
+# the same tag must always resolve to the same content.
+#
+# NOT in v1.6.5: the Eastron SDM630 meter template, the control rollback coordinator and
+# the alarm envelope. Those live upstream on `feature/building-energy`; the image carrying
+# them has NOT been built and NOT been pushed, and its immutable tag is TO BE ASSIGNED.
+# v1.6.5 ignores the meter, safety and alarm environment variables that devices/deploy.yaml
+# passes, so deployment still succeeds — the commissioning step in the guide checks the tag
+# before relying on any of those features. Update this line when the tag is assigned.
+#
+# Modbus RTU: this profile attaches no host serial device, so an RS-485 meter needs the
+# serial-device deployment profile instead of this compose file.
+#
+# Logs are bounded twice: json-file rotation below (10 MB x 3) for the container's stdout,
+# and LOG_MAX_BYTES/LOG_BACKUP_COUNT for the application log inside the ./log volume.
+
 services:
   app:
     image: sensecraft-missionpack.seeed.cn/suzhou/missionpack-knn:v1.6.5

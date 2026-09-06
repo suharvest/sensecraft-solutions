@@ -1,0 +1,49 @@
+version: "1.0"
+id: register_person
+name: Enrol People and Publish the Library
+name_i18n:
+  zh: 注册人员并发布人脸库
+type: web_dashboard
+inherit_host_from: cloud_web
+
+# A web_dashboard step rather than a preview or a video_stream one, and the
+# reason is the same as the fall-detection package's: there is nothing to draw.
+# Enrolment is a form and a version number, not a stream with boxes on it, and
+# the console already renders the person library, the version history and the
+# deletion barrier. Reproducing that against data this step does not have would
+# be worse than sending the operator to the page that has it.
+#
+# inherit_host_from reuses the host entered in the console deployment step, so
+# the operator does not type the address twice and cannot type it differently.
+#
+# This step is also where the licence question becomes concrete: enrolling
+# people builds a library from InsightFace buffalo_l embeddings, which are
+# non-commercial. That is fine for a demonstration or an evaluation and not
+# fine for a paid deployment.
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8088/"
+  title: Management Console — Person Library
+  description: >-
+    Sign in with the admin token, open Person Library, and enrol each person
+    from 3 to 8 photographs. Fewer than three is rejected — one photograph
+    gives the matcher no idea how much this face varies, and a library built
+    that way fails in the field rather than at enrolment. Each enrolment mints
+    a new library version; devices pick it up on their next poll, so allow one
+    poll period (30 s by default) plus the download before testing at the door.
+    Deleting a person also mints a new version and writes a deletion barrier:
+    from then on, rolling back to any version that still contains them is
+    refused. Without that, one rollback would put a dismissed employee back
+    through the door.
+  description_i18n:
+    zh: >-
+      用 admin token 登录，打开「人员库」，为每个人用 3 到 8 张照片完成注册。
+      少于三张会被拒绝——一张照片给不了匹配器任何关于这张脸变化范围的信息，
+      这样建出来的库不会在注册时出问题，而是在现场出问题。每次注册生成一个新的
+      库版本；设备在下一次轮询时才拿到，所以去门口测试之前请留出一个轮询周期
+      （默认 30 s）加下载时间。删除人员同样生成新版本，并写入一条删除屏障：
+      此后回滚到任何仍包含该人的版本都会被拒绝。没有这条屏障，一次回滚就会把
+      已离职的人重新放进门。
+
+name_i18n:
+  zh: 注册人员并发布人脸库

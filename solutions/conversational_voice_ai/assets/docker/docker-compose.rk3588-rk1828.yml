@@ -1,8 +1,18 @@
 services:
+  # `extends` copies the service definition but not depends_on, so the
+  # LANGUAGE -> profile init step is re-declared here rather than inherited.
+  profile-init:
+    extends:
+      file: docker-compose.rk3588.yml
+      service: profile-init
+
   speech:
     extends:
       file: docker-compose.rk3588.yml
       service: speech
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
 
   llm:
     image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260731-kvreuse}
@@ -34,6 +44,11 @@ services:
       file: docker-compose.rk3588.yml
       service: agent
     environment:
+      # The agent turns these into the per-session v2v config (asr_language/
+      # tts_language), which is the only language knob the Qwen3-ASR and
+      # Qwen3-TTS backends have. Same operator input as profile-init above.
+      ASR_LANGUAGE: ${LANGUAGE:-zh}
+      TTS_LANGUAGE: ${LANGUAGE:-zh}
       OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
       OVS_AGENT_SERVER_LOOP: "0"
       PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
@@ -54,6 +69,7 @@ services:
         condition: service_healthy
 
 volumes:
+  resolved-profile:
   rk-asr-models:
     name: rk-asr-models
   rk-tts-models:

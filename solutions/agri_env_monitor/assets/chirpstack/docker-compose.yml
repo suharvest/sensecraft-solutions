@@ -1,0 +1,143 @@
+# Preset 3 — ChirpStack v4 (optional) + the bridge.
+#
+# Two routes share this file, selected by the `local-lns` compose profile:
+#
+#   * R1000 route  — ChirpStack, the MQTT Forwarder-facing broker, Postgres and
+#     Redis all run here beside the bridge. Start with
+#     `docker compose --profile local-lns up -d`.
+#   * M2 route     — the M2 gateway runs its own built-in ChirpStack. Only the
+#     bridge runs here and points at the M2's broker. Start with
+#     `docker compose up -d bridge` (no profile), and set
+#     CHIRPSTACK_MQTT_HOST to the M2's address.
+#
+# NOT VERIFIED ON HARDWARE. Neither route has been run against a real LNS during
+# packaging. In particular the host-side `chirpstack-concentratord-sx1302`
+# talking to the containerised gateway bridge over ZMQ is unverified — the
+# container network path for the ZMQ sockets is the first thing to check on the
+# R1000 route.
+#
+# IMAGE STATUS: `agri-env-bridge:0.1.0` is not published to any registry.
+# `docker manifest inspect agri-env-bridge:0.1.0` returns "denied: requested
+# access to the resource is denied / unauthorized: authentication required".
+# Build it locally from the agri-env-monitor repository or override BRIDGE_IMAGE.
+
+name: ${COMPOSE_PROJECT_NAME:-agri-env-chirpstack}
+
+services:
+  chirpstack-postgres:
+    image: postgres:15-alpine
+    container_name: agri-env-cs-postgres
+    profiles: ["local-lns"]
+    environment:
+      - POSTGRES_USER=chirpstack
+      - POSTGRES_PASSWORD=${CHIRPSTACK_DB_PASSWORD:?CHIRPSTACK_DB_PASSWORD must be set}
+      - POSTGRES_DB=chirpstack
+    volumes:
+      - cs-postgres:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  chirpstack-redis:
+    image: redis:7-alpine
+    container_name: agri-env-cs-redis
+    profiles: ["local-lns"]
+    command: ["redis-server", "--save", "300", "1"]
+    volumes:
+      - cs-redis:/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  # The LNS-side broker. It is separate from the Home Assistant broker on
+  # purpose: gateway and application traffic stays on the LoRaWAN side, and the
+  # bridge is the only thing that crosses over.
+  chirpstack-mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    container_name: agri-env-cs-mosquitto
+    profiles: ["local-lns"]
+    # Anonymous access here is limited to this compose network plus the local
+    # concentrator. Do not expose ${CHIRPSTACK_MQTT_PORT} to the internet;
+    # put credentials on it before the gateway leaves a trusted network.
+    command: ["mosquitto", "-c", "/mosquitto-no-auth.conf"]
+    ports:
+      - "${CHIRPSTACK_MQTT_PORT:-1884}:1883"
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  chirpstack:
+    image: ${CHIRPSTACK_IMAGE:-chirpstack/chirpstack:4.9}
+    container_name: agri-env-chirpstack
+    profiles: ["local-lns"]
+    depends_on:
+      - chirpstack-postgres
+      - chirpstack-redis
+      - chirpstack-mosquitto
+    environment:
+      - POSTGRESQL__DSN=postgres://chirpstack:${CHIRPSTACK_DB_PASSWORD}@chirpstack-postgres:5432/chirpstack?sslmode=disable
+      - REDIS__SERVERS=redis://chirpstack-redis:6379
+      - INTEGRATION__MQTT__SERVER=tcp://chirpstack-mosquitto:1883
+      # Region must match the concentrator's frequency plan and the node's
+      # band. A mismatch shows up as a gateway that receives nothing.
+      - REGION=${CHIRPSTACK_REGION:-eu868}
+    ports:
+      - "${CHIRPSTACK_WEB_PORT:-8080}:8080"
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  chirpstack-gateway-bridge:
+    image: ${CHIRPSTACK_GW_BRIDGE_IMAGE:-chirpstack/chirpstack-gateway-bridge:4.0}
+    container_name: agri-env-cs-gateway-bridge
+    profiles: ["local-lns"]
+    depends_on:
+      - chirpstack-mosquitto
+    environment:
+      - INTEGRATION__MQTT__AUTH__GENERIC__SERVERS=tcp://chirpstack-mosquitto:1883
+    ports:
+      # Semtech UDP packet forwarder port for the WM1302 concentrator.
+      - "1700:1700/udp"
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+  bridge:
+    image: ${BRIDGE_IMAGE:-agri-env-bridge:0.1.0}
+    container_name: agri-env-bridge-chirpstack
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - BRIDGE_LOG_LEVEL=${BRIDGE_LOG_LEVEL:-INFO}
+      - BRIDGE_DB=/data/agri_env.db
+      - BRIDGE_MEASUREMENTS=/app/config/measurements.yaml
+      - BRIDGE_UNAVAILABLE_AFTER=${BRIDGE_UNAVAILABLE_AFTER:-7200}
+      - MQTT_OUT_HOST=${MQTT_OUT_HOST:?MQTT_OUT_HOST must point at the Home Assistant host}
+      - MQTT_OUT_PORT=${MQTT_OUT_PORT:-1883}
+      - MQTT_OUT_USERNAME=${MQTT_USERNAME:-agrienv}
+      - MQTT_OUT_PASSWORD=${MQTT_PASSWORD:?MQTT_PASSWORD must be set}
+      - P1_ENABLED=false
+      - P2_ENABLED=false
+      - P3_ENABLED=true
+      # R1000 route: chirpstack-mosquitto. M2 route: the M2's own address.
+      - CHIRPSTACK_MQTT_HOST=${CHIRPSTACK_MQTT_HOST:-chirpstack-mosquitto}
+      - CHIRPSTACK_MQTT_PORT=${CHIRPSTACK_MQTT_INTERNAL_PORT:-1883}
+      - CHIRPSTACK_MQTT_USERNAME=${CHIRPSTACK_MQTT_USERNAME:-}
+      - CHIRPSTACK_MQTT_PASSWORD=${CHIRPSTACK_MQTT_PASSWORD:-}
+      # `+` subscribes to every application on that broker.
+      - CHIRPSTACK_APPLICATION_ID=${CHIRPSTACK_APPLICATION_ID:-+}
+    volumes:
+      - bridge-data:/data
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    restart: unless-stopped
+
+volumes:
+  cs-postgres:
+  cs-redis:
+  bridge-data:

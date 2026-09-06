@@ -1,0 +1,55 @@
+version: "1.0"
+id: confirm_ui
+name: Open the Confirmation Page
+type: web_dashboard
+
+# The verify step for every preset. Not a video_stream preview, deliberately:
+# what this solution produces is an alarm record with a state and an operator
+# decision, not a per-frame overlay. There is no skeleton to draw here — the
+# fall_detection solution already owns that view — so the thing to look at is
+# the alarm list itself.
+#
+# It carries its own host input rather than `inherit_host_from` because the
+# same page is the endpoint of three presets whose preceding step differs:
+# orin_alarm, hailo_alarm, or a gateway the manual reCamera step set up by
+# hand, which no preceding step recorded a host for.
+web_dashboard:
+  url: "http://{{alarm_host}}:{{alarm_port}}/"
+  title: Eldercare Alarm Console
+  description: A React app with two pages — Alarms (list, voice check-in verdict/transcript, a detail drawer with confirm/dismiss) and Zones (read-only). An empty alarm list on a quiet site is the correct result — it means the service is up. Confirming or dismissing an alarm records the operator against it, which is what the audit trail is for. If the deployment set `ELDERCARE_API_TOKEN`, the page opens on a login screen first — enter that token plus an operator name (used on confirm/dismiss receipts); leave it unset and the page skips straight to the alarm list.
+  description_i18n:
+    zh: React 应用，两页——告警（列表、语音确认结论/转写、详情抽屉里带确认与驳回）与区域（只读）。现场无事时告警列表为空即为正常——说明服务已在运行。确认或驳回会把操作者记到该条告警上，这正是审计链的用途。若部署时设置了 `ELDERCARE_API_TOKEN`，打开页面会先看到登录页——输入该口令与操作者姓名（会写进确认/驳回回执）；不设置该变量则直接进入告警列表。
+
+user_inputs:
+  - id: alarm_host
+    name: Alarm Service Host
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The device you just deployed to, or the gateway host on the reCamera preset
+    name_i18n:
+      zh: 告警服务地址
+    description_i18n:
+      zh: 刚部署的那台设备；reCamera 套餐下填网关主机地址
+  - id: alarm_port
+    name: Port
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    name_i18n:
+      zh: 端口
+  - id: alarm_token
+    name: Access Token (if configured)
+    type: text
+    required: false
+    placeholder: "leave blank if ELDERCARE_API_TOKEN was not set"
+    description: Only needed if the deployment step set `ELDERCARE_API_TOKEN`. The console's own login page is where this actually gets entered — this field is a reminder, not something the dashboard step submits for you.
+    name_i18n:
+      zh: 访问口令（如已配置）
+    description_i18n:
+      zh: 仅当部署步骤设置了 `ELDERCARE_API_TOKEN` 时需要。真正的输入口在控制台自己的登录页——这里只是个提醒，本步骤不会替你提交它。
+
+name_i18n:
+  zh: 打开确认页

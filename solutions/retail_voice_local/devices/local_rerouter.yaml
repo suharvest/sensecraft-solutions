@@ -1,0 +1,250 @@
+version: "1.0"
+id: local_rerouter
+name: Local Voice Stack on reRouter CM4
+name_i18n:
+  zh: reRouter CM4 本地语音栈
+type: docker_deploy
+
+# No device_class. OpenWrt-on-CM4 exposes no useful hardware identity probe —
+# it is a Debian-flavoured OpenWrt running Docker, and the shared pre-deploy
+# fixups for jetson / rk boards do not apply.
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose.cm4.yml
+  compose_dir: assets/docker
+  remote_path: /data-iot/retail-voice
+
+  environment:
+    TZ: Asia/Shanghai
+    OVS_PROFILE: rpi4-asr-zh-en
+    LANGUAGE_MODE: zh_en
+    OUTPUT_DIR: "{{OUTPUT_DIR}}"
+    AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
+    HF_ENDPOINT: "{{HF_ENDPOINT}}"
+    OVS_SPEAKER_EMB: "{{SPEAKER}}"
+    OVS_PUNCT: "{{PUNCT}}"
+
+  options:
+    project_name: retail_voice_local
+    remove_orphans: true
+    build: false
+
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+    - name: voice-client
+      port: 8090
+      health_check_endpoint: /
+      required: true
+
+  # No `models:` block. OpenVoiceStream fetches its own artifacts on first
+  # start into named volumes, honoring HF_ENDPOINT. There is no separate
+  # models.zip to stage as the older cloud package did.
+
+ssh:
+  port: 22
+  # OpenWrt default. Stock reRouter images ship with an empty root password;
+  # the password input below is therefore optional.
+  default_user: root
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # First start pulls two images and downloads the CPU ASR model set on a
+  # store uplink. No CM4 first-boot timing has been recorded, so this is a
+  # budget, not a measured value with margin.
+  command_timeout: 2400
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: audio_device
+    device_path: /dev/snd
+    description: Check that an ALSA capture device is present
+    description_i18n:
+      zh: 检查 ALSA 采集设备是否存在
+  - type: port_available
+    ports:
+      - 8621
+      - 8090
+    description: Check that the speech and client ports are free
+    description_i18n:
+      zh: 检查语音服务与客户端端口是否空闲
+  - type: disk_space
+    min_gb: 4
+    description: At least 4GB for the image, models and transcripts
+    description_i18n:
+      zh: 镜像、模型和转写结果至少需要 4GB 空间
+
+deploy_timeout: 2400
+
+user_inputs:
+  - id: LANGUAGE
+    name: Recognition language
+    name_i18n: {zh: 识别语种}
+    type: select
+    default: zh
+    required: true
+    reconfigurable: true
+    description: Primary language of the transcript. The CPU profile covers Chinese and English; pick the one spoken most in the store.
+    description_i18n: {zh: 转写的主要语种。CPU profile 覆盖中文和英文，选门店里说得最多的那个。}
+    options:
+      - {value: "zh", label: "Chinese", label_i18n: {zh: 中文}}
+      - {value: "en", label: "English", label_i18n: {zh: 英文}}
+  - id: OUTPUT_DIR
+    name: Output directory
+    name_i18n: {zh: 输出目录}
+    type: text
+    default: /data-iot/retail-voice
+    required: true
+    description: Absolute path on the device where transcripts (and audio, if kept) are written. Nothing rotates it — plan retention.
+    description_i18n: {zh: 设备上写入转写结果（以及保留的音频）的绝对路径。没有轮转机制，请自行规划保留期。}
+    validation:
+      pattern: "^/[A-Za-z0-9._/-]+$"
+      message: Use an absolute path with no spaces
+  - id: SPEAKER
+    name: Voiceprint labelling
+    name_i18n: {zh: 声纹标注}
+    type: select
+    default: "0"
+    required: false
+    reconfigurable: true
+    description: Adds a 28 MB CAM++ model and labels each utterance with a locally clustered speaker. Off by default on this 4GB board. Not identity verification.
+    description_i18n: {zh: 增加一个 28MB 的 CAM++ 模型，为每句标注一个本地聚类出的说话人。在这块 4GB 板子上默认关闭。不是身份核验。}
+    options:
+      - {value: "0", label: "Disabled (default)", label_i18n: {zh: 关闭（默认）}}
+      - {value: "1", label: "Enabled", label_i18n: {zh: 开启}}
+  - id: PUNCT
+    name: Punctuation
+    name_i18n: {zh: 标点恢复}
+    type: select
+    default: "0"
+    required: false
+    reconfigurable: true
+    description: Adds a 294 MB CT-Transformer model. Off by default here — on four Cortex-A72 cores it competes with recognition itself.
+    description_i18n: {zh: 增加一个 294MB 的 CT-Transformer 模型。此处默认关闭——在 4 个 Cortex-A72 核上它会与识别本身抢算力。}
+    options:
+      - {value: "0", label: "Disabled (default)", label_i18n: {zh: 关闭（默认）}}
+      - {value: "1", label: "Enabled", label_i18n: {zh: 开启}}
+  - id: AUDIO_CARD_ID
+    name: Microphone card ID
+    name_i18n: {zh: 麦克风声卡编号}
+    type: text
+    default: "1"
+    required: true
+    description: ALSA card number of the reSpeaker XVF3800. Run `arecord -l` on the device; the array shows as ArrayUAC10.
+    description_i18n: {zh: reSpeaker XVF3800 的 ALSA 声卡编号。在设备上运行 `arecord -l`，阵列显示为 ArrayUAC10。}
+    validation:
+      pattern: "^[0-9]+$"
+      message: Card ID is a number
+  - id: HF_ENDPOINT
+    name: Model download source
+    name_i18n: {zh: 模型下载源}
+    type: select
+    default: https://hf-mirror.com
+    required: false
+    reconfigurable: true
+    description: Where model artifacts are fetched from on first start. Only used once; afterwards the box needs no internet.
+    description_i18n: {zh: 首次启动时下载模型产物的来源。只用这一次，之后设备不需要联网。}
+    options:
+      - {value: "https://hf-mirror.com", label: "HF Mirror (China)", label_i18n: {zh: HF 镜像（国内）}}
+      - {value: "https://huggingface.co", label: "Hugging Face", label_i18n: {zh: Hugging Face 官方}}
+
+remote_overrides:
+  remote_path: /data-iot/retail-voice
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  environment:
+    TZ: Asia/Shanghai
+    OVS_PROFILE: rpi4-asr-zh-en
+    LANGUAGE_MODE: zh_en
+    OUTPUT_DIR: "{{OUTPUT_DIR}}"
+    AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
+    HF_ENDPOINT: "{{HF_ENDPOINT}}"
+    OVS_SPEAKER_EMB: "{{SPEAKER}}"
+    OVS_PUNCT: "{{PUNCT}}"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+    - name: voice-client
+      port: 8090
+      health_check_endpoint: /
+      required: true
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: audio_device
+      device_path: /dev/snd
+      description: Check audio device availability
+  actions:
+    before:
+      - name: Create the output directory
+        run: mkdir -p "{{OUTPUT_DIR}}/cache/asr" "{{OUTPUT_DIR}}/voice" "{{OUTPUT_DIR}}/voiceprints"
+        name_i18n:
+          zh: 创建输出目录
+      - name: Confirm the microphone array enumerated
+        # 2886:001a is the reSpeaker XVF3800. A miss here is almost always a
+        # cable in a non-host USB port, so report rather than fail the deploy.
+        run: |
+          lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - check the port before verifying"
+          arecord -l 2>/dev/null || true
+        ignore_error: true
+        name_i18n:
+          zh: 确认麦克风阵列已枚举
+    after_upload:
+      - name: Write the recognition language and voiceprint switch into the client config
+        # The config template ships placeholders; substituting after upload
+        # keeps one file for both presets.
+        run: |
+          set -e
+          CFG=$(find /data-iot/retail-voice -type f -name voice-client.yaml -path '*config*' 2>/dev/null | head -1)
+          [ -n "$CFG" ] || { echo "voice-client.yaml not found under the deploy directory" >&2; exit 1; }
+          if [ "{{SPEAKER}}" = "1" ]; then SPK=true; else SPK=false; fi
+          sed -i "s|__LANGUAGE__|{{LANGUAGE}}|; s|__AUDIO_CARD_ID__|{{AUDIO_CARD_ID}}|; s|__SPEAKER_ENABLED__|$SPK|" "$CFG"
+          grep -n 'default_language\|card_id\|enabled:' "$CFG" | head -5
+        name_i18n:
+          zh: 把识别语种和声纹开关写入客户端配置
+    after:
+      - name: Wait for the first transcript
+        # Not a hard gate: the box needs someone to speak. Reports whether the
+        # output directory has started filling.
+        run: |
+          for i in $(seq 1 12); do
+            if ls "{{OUTPUT_DIR}}"/cache/asr/*.json >/dev/null 2>&1; then
+              echo "transcripts are being written"; exit 0
+            fi
+            sleep 5
+          done
+          echo "no transcript yet - speak near the array and re-check, see the verification step"
+        ignore_error: true
+        name_i18n:
+          zh: 等待第一条转写结果
+  user_inputs:
+    - {id: host, name: Device IP, type: text, required: true, default: "192.168.49.1", placeholder: "192.168.49.1", name_i18n: {zh: 设备 IP}, description: "Default OpenWrt LAN gateway of the reRouter", description_i18n: {zh: reRouter 默认的 OpenWrt LAN 网关地址}}
+    - {id: username, name: SSH Username, type: text, required: true, default: "root", name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: false, placeholder: "(empty on a stock OpenWrt image)", name_i18n: {zh: SSH 密码}, description_i18n: {zh: 出厂 OpenWrt 镜像默认为空}}
+
+post_deployment:
+  open_browser: true
+  url: "http://{{host}}:8090"

@@ -1,14 +1,54 @@
 services:
+  # Resolves the operator's LANGUAGE choice plus this board's device id into
+  # exactly one OpenVoiceStream profile before anything else starts. The matrix
+  # and the resolver are byte-identical copies of
+  # openvoicestream:configs/matrix/language_device.yaml and
+  # openvoicestream:tools/resolve_profile.py.
+  #
+  # Exit 2 (unsupported pair, e.g. Chinese on Raspberry Pi 5) stops the whole
+  # `docker compose up` before a service starts, so an unsupported language
+  # fails visibly instead of being transcribed by a model that cannot read it.
+  # --no-verify-profile: configs/profiles/ lives inside the speech image at a
+  # path this compose does not pin; the openvoicestream test suite is what
+  # guarantees every profile the matrix names exists.
+  profile-init:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox080a0-7330af9}
+    container_name: conversational-voice-profile-init
+    init: true
+    network_mode: none
+    entrypoint:
+      - python3
+      - /opt/voice/config/resolve_profile.py
+      - --matrix=/opt/voice/config/language_device.yaml
+      - --language=${LANGUAGE:-zh}
+      - --device=orin_nx_v091
+      - --no-verify-profile
+      - --write-env=/opt/voice/resolved/ovs.env
+    volumes:
+      - ./resolve_profile.py:/opt/voice/config/resolve_profile.py:ro
+      - ./language_device.yaml:/opt/voice/config/language_device.yaml:ro
+      - resolved-profile:/opt/voice/resolved
+    restart: "no"
+
   speech:
     image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-jp62-trt103-edgellm-v091-vox080a0-7330af9}
     container_name: conversational-voice-speech
     runtime: nvidia
     ipc: host
     network_mode: host
-    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    command:
+      - /bin/sh
+      - -c
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8621'
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
     environment:
+      # Profile-owned ASR/TTS variables were removed here: the resolved
+      # OVS_PROFILE now supplies them, so a language switch that changes
+      # profile is not silently overridden by a value pinned in compose.
+      # The removed keys were byte-identical to the default profile's env.
       OVS_PROFILE: jetson-edgellm-v091-matcha
-      LANGUAGE_MODE: multilanguage
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
       HF_MODEL_CACHE_ROOT: /opt/models
       OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
@@ -16,6 +56,7 @@ services:
       STREAMING_ASR_PROVIDER: cuda
       CUDA_MODULE_LOADING: LAZY
     volumes:
+      - resolved-profile:/opt/voice/resolved:ro
       - speech-models-v091:/opt/models
       - voice-data:/opt/seeed-local-voice/data
       - /usr/local/cuda/lib64:/host-cuda:ro
@@ -92,6 +133,11 @@ services:
       - agent-state:/var/lib/ovs-agent
     environment:
       CONFIG_DIR: /opt/voice/config
+      # The agent turns these into the per-session v2v config (asr_language/
+      # tts_language), which is the only language knob the Qwen3-ASR and
+      # Qwen3-TTS backends have. Same operator input as profile-init above.
+      ASR_LANGUAGE: ${LANGUAGE:-zh}
+      TTS_LANGUAGE: ${LANGUAGE:-zh}
       OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
       OVS_AGENT_SERVER_LOOP: "0"
       PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
@@ -108,6 +154,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  resolved-profile:
   speech-models-v091:
   edge-llm-models-v091:
   voice-data:

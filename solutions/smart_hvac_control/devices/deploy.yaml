@@ -1,11 +1,21 @@
 version: "1.0"
 id: deploy
 name: HVAC Control System
+name_i18n:
+  zh: HVAC 控制系统
 type: docker_deploy
 
 # Single source-of-truth device YAML. Backend derives docker_local and
 # docker_remote views via derive_docker_views() — no need to maintain
 # parallel local.yaml + remote.yaml files.
+#
+# Image tag: assets/docker/docker-compose.yml pins `missionpack-knn:v1.6.5`.
+# That tag predates the SDM630 meter template, the control rollback coordinator
+# and the alarm envelope, so the meter, safety and alarm inputs below are
+# consumed only by the image that carries those features — which has not been
+# built or pushed, and whose immutable tag is still to be assigned. v1.6.5
+# ignores the environment variables it does not know, so deployment still
+# succeeds; the commissioning step in the guide checks the tag first.
 
 detection:
   method: local
@@ -19,6 +29,26 @@ docker:
   environment:
     TZ: Asia/Shanghai
     OPC_UA_SERVER: "{{opc_ua_server}}"
+    # Energy meter (Eastron SDM630, Modbus V2 register map)
+    METER_TEMPLATE_ID: eastron_sdm630_v2
+    METER_TRANSPORT: "{{meter_transport}}"
+    METER_HOST: "{{meter_host}}"
+    METER_TCP_PORT: "{{meter_tcp_port}}"
+    METER_UNIT_ID: "{{meter_unit_id}}"
+    METER_SERIAL_PORT: "{{meter_serial_port}}"
+    METER_BAUD_RATE: "{{meter_baud_rate}}"
+    METER_WORD_ORDER: "{{meter_word_order}}"
+    # Control mode and safety limits
+    CONTROL_MODE: "{{control_mode}}"
+    SAFETY_SETPOINT_MIN_C: "{{safety_setpoint_min_c}}"
+    SAFETY_SETPOINT_MAX_C: "{{safety_setpoint_max_c}}"
+    SAFETY_MAX_CHANGE_C: "{{safety_max_change_c}}"
+    SAFETY_CHANGE_WINDOW_SECONDS: "{{safety_change_window_seconds}}"
+    SAFETY_BASELINE_APPROVED_BY: "{{safety_baseline_approved_by}}"
+    # Alarms and readback verification
+    READBACK_DELAY_SECONDS: "{{readback_delay_seconds}}"
+    READBACK_TOLERANCE: "{{readback_tolerance}}"
+    ALARM_SAMPLE_STALE_SECONDS: "{{alarm_sample_stale_seconds}}"
 
   options:
     project_name: missionpack_knn
@@ -38,16 +68,283 @@ ssh:
 user_inputs:
   - id: opc_ua_server
     name: OPC-UA Server Address
+    name_i18n:
+      zh: OPC-UA 服务器地址
     type: text
     default: "opc.tcp://localhost:4841"
     placeholder: "opc.tcp://192.168.1.100:4840"
-    description: OPC-UA server address (use default for built-in simulator)
+    description: OPC-UA server address of the HVAC controller (keep the default to use the built-in simulator)
+    description_i18n:
+      zh: 暖通控制器的 OPC-UA 服务器地址（保留默认值即使用内置模拟器）
     required: false
 
+  # --- Energy meter -------------------------------------------------------
+  - id: meter_transport
+    name: Meter Transport
     name_i18n:
-      zh: OPC-UA 服务器地址
+      zh: 电表通讯方式
+    type: select
+    default: modbus_tcp
+    description: >-
+      How the SDM630 is reached. Modbus RTU additionally requires the serial-device
+      deployment profile; the standard Docker profile attaches no host serial device.
     description_i18n:
-      zh: OPC-UA 服务器地址（使用默认值连接内置模拟器）
+      zh: >-
+        SDM630 的接入方式。选 Modbus RTU 时还需要串口设备部署配置——标准 Docker 配置不会
+        挂载主机串口。
+    required: false
+    options:
+      - value: modbus_tcp
+        label: Modbus TCP (direct or through a TCP gateway)
+        label_i18n:
+          zh: Modbus TCP（直连或经 TCP 网关）
+      - value: modbus_rtu
+        label: Modbus RTU over RS-485
+        label_i18n:
+          zh: Modbus RTU（RS-485）
+      - value: none
+        label: No meter for now
+        label_i18n:
+          zh: 暂不接入电表
+
+  - id: meter_host
+    name: Meter Host
+    name_i18n:
+      zh: 电表主机地址
+    type: text
+    default: ""
+    placeholder: "192.168.1.50"
+    description: IP address of the meter or of the Modbus TCP gateway in front of it. Leave blank for Modbus RTU.
+    description_i18n:
+      zh: 电表或其前置 Modbus TCP 网关的 IP 地址。走 Modbus RTU 时留空。
+    required: false
+    row: 2
+
+  - id: meter_tcp_port
+    name: Meter TCP Port
+    name_i18n:
+      zh: 电表 TCP 端口
+    type: text
+    default: "502"
+    description: Modbus TCP port, normally 502
+    description_i18n:
+      zh: Modbus TCP 端口，通常为 502
+    required: false
+    row: 2
+
+  - id: meter_unit_id
+    name: Meter Unit ID
+    name_i18n:
+      zh: 电表站号
+    type: text
+    default: "1"
+    description: Modbus slave/unit address of the meter, 1-247. Required for both transports.
+    description_i18n:
+      zh: 电表的 Modbus 从站/站号地址，取值 1-247。两种通讯方式都需要。
+    required: false
+    validation:
+      pattern: "^([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-3][0-9]|24[0-7])$"
+    row: 2
+
+  - id: meter_serial_port
+    name: Serial Device
+    name_i18n:
+      zh: 串口设备
+    type: text
+    default: "/dev/ttyUSB0"
+    placeholder: "/dev/ttyUSB0"
+    description: Host serial device for Modbus RTU. Only used when the transport is Modbus RTU.
+    description_i18n:
+      zh: Modbus RTU 使用的主机串口设备。仅在通讯方式为 Modbus RTU 时生效。
+    required: false
+    validation:
+      pattern: "^/dev/[A-Za-z0-9_-]+$"
+    row: 3
+
+  - id: meter_baud_rate
+    name: Serial Baud Rate
+    name_i18n:
+      zh: 串口波特率
+    type: select
+    default: "9600"
+    description: RS-485 baud rate; must match the meter's configured rate
+    description_i18n:
+      zh: RS-485 波特率，必须与电表上配置的一致
+    required: false
+    row: 3
+    options:
+      - value: "9600"
+        label: "9600"
+      - value: "19200"
+        label: "19200"
+      - value: "38400"
+        label: "38400"
+
+  - id: meter_word_order
+    name: Float Word Order
+    name_i18n:
+      zh: 浮点字序
+    type: select
+    default: big_endian
+    description: >-
+      Word order for the meter's 32-bit float registers. The template default follows the
+      vendor document, but the order must be confirmed against the actual meter before the
+      scaled values are trusted.
+    description_i18n:
+      zh: >-
+        电表 32 位浮点寄存器的字序。模板默认值取自厂商文档，但在信任缩放后的数值之前，
+        必须用实际电表确认字序。
+    required: false
+    row: 3
+    options:
+      - value: big_endian
+        label: Big-endian words (vendor default)
+        label_i18n:
+          zh: 大端字序（厂商默认）
+      - value: little_endian
+        label: Little-endian words (byte-swapped gateways)
+        label_i18n:
+          zh: 小端字序（部分网关会交换字序）
+
+  # --- Control mode and safety limits ------------------------------------
+  # The four safety values below are PLACEHOLDERS pending site-engineer approval.
+  # The runtime reports the baseline as unapproved until an approver name is
+  # recorded, and an unapproved baseline is intended to be run in observe mode.
+  - id: control_mode
+    name: Control Mode
+    name_i18n:
+      zh: 控制模式
+    type: select
+    default: observe
+    description: >-
+      Observe runs predictions without writing anything to the plant. Switch to control only
+      after readback, rollback and alarms have been verified and the safety limits approved.
+    description_i18n:
+      zh: >-
+        观察模式只出预测、不向机组写入任何值。只有在读回、回滚和告警都验证通过、且安全限值
+        已获批准之后，才切换到控制模式。
+    required: false
+    options:
+      - value: observe
+        label: Observe only (no writes)
+        label_i18n:
+          zh: 仅观察（不写入）
+      - value: control
+        label: Control (writes enabled)
+        label_i18n:
+          zh: 控制（开启写入）
+
+  - id: safety_setpoint_min_c
+    name: Minimum Setpoint (°C)
+    name_i18n:
+      zh: 设定值下限（°C）
+    type: text
+    default: "18"
+    description: PENDING SITE APPROVAL — placeholder lower bound; no write below it is accepted
+    description_i18n:
+      zh: 待现场批准——占位下限；低于该值的写入一律拒绝
+    required: false
+    row: 4
+
+  - id: safety_setpoint_max_c
+    name: Maximum Setpoint (°C)
+    name_i18n:
+      zh: 设定值上限（°C）
+    type: text
+    default: "30"
+    description: PENDING SITE APPROVAL — placeholder upper bound; no write above it is accepted
+    description_i18n:
+      zh: 待现场批准——占位上限；高于该值的写入一律拒绝
+    required: false
+    row: 4
+
+  - id: safety_max_change_c
+    name: Maximum Change (°C)
+    name_i18n:
+      zh: 最大变化量（°C）
+    type: text
+    default: "1.0"
+    description: PENDING SITE APPROVAL — placeholder maximum setpoint movement within the window below
+    description_i18n:
+      zh: 待现场批准——占位值，指下述时间窗内设定值允许的最大变化量
+    required: false
+    row: 5
+
+  - id: safety_change_window_seconds
+    name: Change Window (seconds)
+    name_i18n:
+      zh: 变化时间窗（秒）
+    type: text
+    default: "300"
+    description: >-
+      PENDING SITE APPROVAL — window the maximum change applies over. The limit scales with
+      elapsed time and is capped at one step, so an idle period cannot bank a large jump.
+    description_i18n:
+      zh: >-
+        待现场批准——最大变化量所适用的时间窗。限值随经过时间线性放大但最多一步，
+        因此长时间空闲不会攒出一次大幅跳变。
+    required: false
+    row: 5
+
+  - id: safety_baseline_approved_by
+    name: Safety Baseline Approved By
+    name_i18n:
+      zh: 安全基线批准人
+    type: text
+    default: ""
+    placeholder: "Name of the site engineer who signed off the limits"
+    description: >-
+      Leave blank until a named site engineer approves the four limits above. While blank the
+      baseline reports itself as unapproved.
+    description_i18n:
+      zh: >-
+        在具名的现场工程师批准上述四项限值之前请留空。留空期间安全基线一直报告为未批准。
+    required: false
+
+  # --- Readback verification and alarms ----------------------------------
+  - id: readback_delay_seconds
+    name: Readback Delay (seconds)
+    name_i18n:
+      zh: 读回延迟（秒）
+    type: text
+    default: "10"
+    description: How long to wait after a write before reading the point back from the field
+    description_i18n:
+      zh: 写入后等待多久再从现场读回该点位
+    required: false
+    row: 6
+
+  - id: readback_tolerance
+    name: Readback Tolerance
+    name_i18n:
+      zh: 读回容差
+    type: text
+    default: "0.05"
+    description: >-
+      Absolute tolerance for comparing a numeric readback against the value that was sent.
+      A readback whose quality is not good never verifies, whatever its value.
+    description_i18n:
+      zh: >-
+        比对数值型读回值与下发值时的绝对容差。读回值质量不为 good 时一律不算核实通过，
+        无论数值是多少。
+    required: false
+    row: 6
+
+  - id: alarm_sample_stale_seconds
+    name: Stale Sample Threshold (seconds)
+    name_i18n:
+      zh: 样本过期阈值（秒）
+    type: text
+    default: "60"
+    description: >-
+      Age at which a sample counts as stale. A stale input raises a sample-stale alarm and
+      fails the prediction cycle closed rather than writing on old data.
+    description_i18n:
+      zh: >-
+        样本超过该时长即判定为过期。过期输入会触发 sample-stale 告警，并让预测周期
+        fail-closed，而不是拿旧数据去写入。
+    required: false
+    row: 6
 
 pre_checks:
   - type: docker_version
@@ -84,6 +381,3 @@ remote_overrides:
   post_deployment:
     open_browser: true
     url: "http://{{host}}:8280"
-
-name_i18n:
-  zh: HVAC 控制系统

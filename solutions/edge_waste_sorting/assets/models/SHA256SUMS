@@ -1,0 +1,49 @@
+# Baseline track model artefacts. Checksums only — no weights, no ONNX and no
+# engine/HEF is committed to this repository, and nothing has been uploaded to
+# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/
+# either. The deploy steps name that path, verify against these lines, and
+# carry a TODO(CDN) saying the file must be placed on the device by hand
+# until the upload happens.
+#
+# Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.
+#
+# Current baseline (m1c): EfficientNet-Lite0. MobileNetV3-Small (m1b, below)
+# was superseded because its INT8-quantised graph collapsed on every edge
+# chain tested (Hailo emulator, RK3576, RK3588) — see the solution page.
+e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_lite0_waste8.onnx
+47d0cedcc19009ed219d47da364a74c4215a3d797717b4658250ea69e0d8e23b  efficientnet_lite0_waste8_best.pth
+3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
+
+# metadata (not part of the checksum lines) — EfficientNet-Lite0 (m1c, current baseline)
+# arch           : efficientnet_lite0
+# input          : images:1x3x224x224 opset13
+# output         : logits:1x8
+# taxonomy       : material8/china4-v1
+# classes        : paper,cardboard,glass,metal,plastic,textile,organic,residual
+# size           : efficientnet_lite0_waste8.onnx = 13477056 bytes
+# size           : efficientnet_lite0_waste8_best.pth (best.pth on spark) = 13780837 bytes
+# size           : efficientnet_lite0_waste8.hef = 4519376 bytes (device artifact, wsl2-local, not committed)
+# measured       : val top-1 0.8877 / china4 0.9500 (7417 images, onnxruntime CPU)
+# int8 status    : Hailo-8 DFC emulator agreement 0.890 (no collapse, no Hailo-8 hardware used);
+#                  RK3588 radxa real-hardware agreement 0.90-1.00 across 4 variants (no collapse,
+#                  calib256+mmse matches fp16 exactly); RK3576 not retested with this backbone.
+#                  See evaluation/runs/2026-09-06-m1c-hef and 2026-09-06-m1c-rk3588-radxa in
+#                  ~/project/edge-waste-sorting.
+
+# --- superseded baseline (m1b), kept as the INT8-collapse contrast ---
+51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e  mobilenetv3s_waste8.onnx
+f888432c065cb5dbe3008a80fbc9f1e5fd575115fd52edb167cddb62d5b4405e  best.pth
+
+# metadata (not part of the checksum lines) — MobileNetV3-Small (m1b, superseded)
+# repo_commit    : 72cf6130783e39c2ad5ebe491e9a7662ed32997a
+# arch           : mobilenet_v3_small
+# input          : images:1x3x224x224 opset13
+# output         : logits:1x8
+# taxonomy       : material8/china4-v1
+# classes        : paper,cardboard,glass,metal,plastic,textile,organic,residual
+# size           : mobilenetv3s_waste8.onnx = 6118606 bytes
+# size           : best.pth = 6227497 bytes
+# measured       : val top-1 0.8792 / china4 0.9519 (7417 images, onnxruntime CPU)
+# int8 status    : Hailo-8 emulator agreement 0.115 (collapsed); RK3576 agreement 0.10 (collapsed);
+#                  RK3588 agreement 0.22 (collapsed); fp16 ~0.98 agreement on all three chains.
+#                  Superseded by efficientnet_lite0_waste8 above for this reason.

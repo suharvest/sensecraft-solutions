@@ -23,6 +23,8 @@ intro:
     - protocol-integration
     - unified-data
     - edge-control
+    - northbound-publish
+    - store-and-forward
     - recomputer-r
     - reterminal-dm
 
@@ -63,9 +65,15 @@ intro:
       description_i18n:
         zh: Modbus RTU 可选用 USB 转 RS-485 适配器；生产写控制需先通过真实硬件验证
     - type: bacnet_ip
-      description: A BACnet/IP network reachable from the selected network interface
+      description: >-
+        A BACnet/IP network reachable from the selected network interface. Scope is Who-Is
+        discovery plus ReadProperty/WriteProperty with priority and Null relinquish. COV
+        subscription, BBMD/Foreign-Device registration, and BACnet MS-TP are not implemented.
       description_i18n:
-        zh: 所选网卡能够访问的 BACnet/IP 网络
+        zh: >-
+          所选网卡能够访问的 BACnet/IP 网络。能力范围为 Who-Is 发现，以及带优先级的
+          ReadProperty/WriteProperty 与 Null 释放。未实现 COV 订阅、BBMD/外部设备注册和
+          BACnet MS-TP。
     - type: mqtt
       description: An MQTT broker and explicit topic-to-point mappings when MQTT is used as a data source
       description_i18n:
@@ -85,6 +93,36 @@ intro:
       port: 1883
       topic: missionpack/v1/{gateway}/points/{point_id}
       schema_type: MissionPack v1 JSON envelope
+    - type: mqtt
+      description: >-
+        Northbound publish to an external/cloud MQTT broker with on-disk store-and-forward:
+        batched telemetry (QoS1), retained per-source health and last-will status, and QoS0
+        heartbeat. Requires the pending image tag; see the deployment guide.
+      description_i18n:
+        zh: >-
+          向外部/云端 MQTT Broker 的北向上云通道，带落盘断网缓存补传：批量遥测（QoS1）、
+          每个数据源的 retained 健康与遗嘱状态、QoS0 心跳。需要待构建镜像 tag，见部署指南。
+      port: 8883
+      topic: missionpack/v1/{gateway}/telemetry
+      schema_type: MissionPack v1 batched telemetry envelope
+      payload_example: |-
+        {
+          "schema_version": "missionpack.northbound.v1",
+          "message_id": "0f3a...",
+          "gateway_id": "gw-01",
+          "created_at": "2026-09-05T05:01:19.045514Z",
+          "samples": [
+            {
+              "source_id": "ahu-bacnet",
+              "point_id": "analog-value:12",
+              "ts": "2026-09-05T05:01:18.900000Z",
+              "quality": "good",
+              "value": 23.5,
+              "source_revision": 4,
+              "point_revision": 7
+            }
+          ]
+        }
 
   device_catalog:
     recomputer_r10:

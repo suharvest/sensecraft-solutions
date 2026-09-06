@@ -1,0 +1,12 @@
+This is not a firmware image.
+
+The P4 firmware has not been built. The device YAMLs point here on purpose:
+a validator can resolve the reference, and anyone who tries to flash it gets an
+immediate, obvious failure instead of a plausible-looking binary.
+
+Replace this with the built artefact, upload it to
+https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/assets/firmware/
+and change the device YAML to that URL plus its sha256, in one change.
+
+See MANIFEST.md in this directory for the source branch, the flash layout, and
+the four things that must be measured before any of it reaches a door.

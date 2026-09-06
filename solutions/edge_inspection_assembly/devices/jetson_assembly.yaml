@@ -1,0 +1,342 @@
+version: "1.0"
+id: jetson_assembly
+name: reComputer J (Jetson Orin)
+name_i18n:
+  zh: reComputer J（Jetson Orin）
+type: docker_deploy
+
+# device_class=jetson pulls in the shared Jetson pre-deploy fixes (the JetPack
+# 6.x iptables raw-table workaround) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from the bundled device profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  options:
+    project_name: edge_inspection_assembly
+    remove_orphans: true
+  services:
+    - name: inspection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # The first deploy builds a TensorRT engine on the device (measured 306 s on
+  # an Orin NX 16GB engineering kit, JetPack 6.2 / TRT 10.3), so the SSH
+  # command budget has to cover it with room for a slower board.
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: ONNX model, TensorRT engine, runtime image and the mosquitto image live on the device
+  - type: nvidia_runtime
+    description: Check the NVIDIA container runtime is available
+
+# Wall-clock budget for the whole round on this device; exceeding it fails the
+# device. Measured end to end at about 10 minutes (engine build 306 s plus image
+# pull and container start); 3600 s is roughly 6x margin, there to catch a hang
+# rather than to bound a normal build.
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-inspection-assembly
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Jetson runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+
+      # The runtime image is NOT published to a registry yet: the compose file
+      # names edge-inspection-assembly-jetson:0.1.0-dev, which so far only ever
+      # existed as a local build on the evaluation device. Until it is pushed,
+      # this step is the honest failure point — it says what is missing and how
+      # to produce it, instead of letting `docker compose up` fail on a pull.
+      - name: Check the runtime image is available
+        run: |
+          set -e
+          IMAGE="${INSPECTION_IMAGE:-edge-inspection-assembly-jetson:0.1.0-dev}"
+          if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+            echo "image present:"
+            docker images "$IMAGE"
+            exit 0
+          fi
+          echo "Image $IMAGE is not on this device." >&2
+          echo "This tag is not published to a registry yet. Build it once from the" >&2
+          echo "upstream repository on this device:" >&2
+          echo "  docker build --network=host -f platforms/jetson/Dockerfile.slim -t $IMAGE ." >&2
+          echo "or set INSPECTION_IMAGE to a tag this device can pull." >&2
+          exit 1
+        name_i18n:
+          zh: 检查运行镜像是否可用
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # These run AFTER the deployer uploads assets/jetson/ to
+    # remote_path/<device-yaml-id>/ and BEFORE `docker compose up`. They must
+    # not move into `before`: config/config.json does not exist on the device
+    # until the upload finishes, and anything written earlier is overwritten.
+    after_upload:
+      - name: Build the TensorRT detection engine
+        # A TensorRT engine is tied to the exact GPU architecture and TensorRT
+        # version, so it cannot be shipped prebuilt — it is built here, once.
+        # Measured 306 s on an Orin NX 16GB engineering kit (JetPack 6.2,
+        # TRT 10.3) for YOLOX-Tiny 640x640 fp16, static shape.
+        timeout: 2400
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-assembly/jetson_assembly"
+          MODELS_DIR="$WORKDIR/models"
+          ONNX="$MODELS_DIR/yolox_tiny_deeppcb6.onnx"
+          ENGINE="$MODELS_DIR/yolox_tiny_deeppcb6.engine"
+          # sha256 of the ONNX this solution was measured with. It is checked
+          # after download and before the build; a mismatch means the file on
+          # the CDN is not the model these numbers came from.
+          SHA=1149b92e6d627f9ed6e50357c84f150c00d3e567263de32f81b135896a739e5e
+          # TODO(CDN): this object is not uploaded yet. Until it is, place
+          # yolox_tiny_deeppcb6.onnx in $MODELS_DIR by hand (the step skips the
+          # download when the file is already there and its sha matches).
+          URL=https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.onnx
+
+          mkdir -p "$MODELS_DIR" "$WORKDIR/data"
+
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, skipping build: $ENGINE"
+            exit 0
+          fi
+
+          if [ ! -s "$ONNX" ]; then
+            echo "Downloading the ONNX model ..."
+            curl -fSL --retry 3 -o "$ONNX.part" "$URL"
+            echo "$SHA  $ONNX.part" | sha256sum -c -
+            mv -f "$ONNX.part" "$ONNX"
+          else
+            echo "$SHA  $ONNX" | sha256sum -c -
+          fi
+
+          echo "Building the TensorRT engine — this takes several minutes ..."
+          # --version exits 1 on TensorRT 10.3, so it must not gate the build.
+          /usr/src/tensorrt/bin/trtexec --version || true
+          /usr/src/tensorrt/bin/trtexec \
+            --onnx="$ONNX" \
+            --saveEngine="$ENGINE.part" \
+            --fp16 \
+            --skipInference \
+            --builderOptimizationLevel=3 \
+            --timingCacheFile="$ENGINE.timing.cache" \
+            --minShapes=images:1x3x640x640 \
+            --optShapes=images:1x3x640x640 \
+            --maxShapes=images:1x3x640x640
+          mv -f "$ENGINE.part" "$ENGINE"
+          ls -l "$ENGINE"
+          sha256sum "$ENGINE"
+        name_i18n:
+          zh: 构建 TensorRT 检测引擎
+
+      - name: Write the camera, MQTT and inspection configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-inspection-assembly/jetson_assembly"
+          CONFIG="$WORKDIR/config/config.json"
+          # DEVICE_NAME is read by the compose file; MODELS_DIR / DATA_DIR keep
+          # the engine and any recorded material outside the image.
+          cat > "$WORKDIR/.env" <<EOF
+          DEVICE_NAME={{device_name}}
+          MODELS_DIR=./models
+          DATA_DIR=./data
+          EOF
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          def kind_of(uri: str) -> str:
+              if uri.startswith(("rtsp://", "rtsps://")):
+                  return "rtsp"
+              if uri.startswith("/dev/video"):
+                  return "usb"
+              return "file"
+
+          sources = config["sources"]
+          # The shipped config carries two example sources: the first one holds
+          # the assembly.expected[] example, the second the dimension block.
+          # Their business sections are kept as-is; only the video source and
+          # the stream id are rewritten from the deployment inputs.
+          assembly_src = dict(sources[0])
+          assembly_src["stream_id"] = "{{stream_id}}"
+          assembly_src["uri"] = "{{source_uri}}"
+          assembly_src["kind"] = kind_of("{{source_uri}}")
+          new_sources = [assembly_src]
+
+          dimension_uri = "{{dimension_source_uri}}".strip()
+          if dimension_uri:
+              dimension_src = dict(sources[1])
+              dimension_src["stream_id"] = "{{stream_id}}-gauge"
+              dimension_src["uri"] = dimension_uri
+              dimension_src["kind"] = kind_of(dimension_uri)
+              new_sources.append(dimension_src)
+
+          config["sources"] = new_sources
+          config["model"]["path"] = "/models/yolox_tiny_deeppcb6.engine"
+          config["model"]["accelerator"] = "tensorrt"
+          # The topic prefix is the device name the user chose, so one broker
+          # can carry several stations without collisions.
+          config.setdefault("mqtt", {})["topic"] = \
+              "{{device_name}}/inspection/{stream_id}/results"
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          for source in config["sources"]:
+              print(f"source {source['stream_id']}: kind={source['kind']} "
+                    f"assembly={'assembly' in source} dimension={'dimension' in source}")
+          PY
+        name_i18n:
+          zh: 写入摄像头、MQTT 与质检配置
+
+    after:
+      - name: Wait for the first verdict
+        ignore_error: true
+        timeout: 300
+        run: |
+          echo "Waiting for the runtime to report healthy and publish ..."
+          for i in $(seq 1 40); do
+            HEALTH=$(curl -fsS http://127.0.0.1:8080/healthz 2>/dev/null || true)
+            if [ -n "$HEALTH" ]; then
+              echo "$HEALTH"
+              case "$HEALTH" in
+                *'"frames_processed"'*) echo "Runtime is processing frames."; exit 0 ;;
+              esac
+            fi
+            sleep 5
+          done
+          echo "No health report yet — check the camera URI and the container logs." >&2
+          docker logs --tail 40 edge-inspection-assembly-app 2>&1 || true
+        name_i18n:
+          zh: 等待首次判定
+
+  user_inputs:
+    - id: host
+      name: Jetson IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: Jetson IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Station Name
+      type: text
+      default: "line1"
+      required: true
+      description: First segment of the MQTT topic — name the station (line, cell or site) so several stations stay separable on one broker
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 工位名称
+      description_i18n:
+        zh: MQTT 主题的第一段——给这个工位取名（产线、工段或站点），一个 broker 上多个工位就不会混在一起
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "line1-pcb"
+      required: true
+      description: Identifies this camera in the MQTT topic and in every event
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 在 MQTT 主题和每条事件里标识这路摄像头
+    - id: source_uri
+      name: Inspection Camera URI
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: The camera looking at the board or assembly. An RTSP URL, a /dev/videoN device, or a path to a recorded file inside the container's /data. Test an RTSP address in VLC first.
+      name_i18n:
+        zh: 质检摄像头地址
+      description_i18n:
+        zh: 对着板件或装配体的摄像头。可以是 RTSP 地址、/dev/videoN 设备，或容器内 /data 下的录制文件路径。RTSP 地址请先用 VLC 测一下。
+    - id: dimension_source_uri
+      name: Dimension Camera URI
+      type: text
+      required: false
+      placeholder: "rtsp://admin:password@192.168.1.65:554/Streaming/Channels/101"
+      description: Optional second camera for the dimension measurement, framed on the part together with its calibration reference. Leave empty to deploy the missing-part check only.
+      name_i18n:
+        zh: 尺寸测量摄像头地址
+      description_i18n:
+        zh: 可选的第二路摄像头，用于尺寸测量，画面里要同时有被测件和标定物。留空则只部署缺件检测。

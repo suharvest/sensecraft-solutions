@@ -1,0 +1,115 @@
+# 农业环境监测看板（Lovelace）
+#
+# 手工导入：Home Assistant → 概览 → 右上角三点 → 编辑仪表板 → 三点 → 原始配置编辑器
+# → 粘贴本文件全部内容 → 保存。
+#
+# 实体 ID 规则由桥决定：sensor.sensecap_<设备EUI小写>_<entity_key>
+#   entity_key 见 config/measurements.yaml（temperature / humidity / soil_temperature /
+#   soil_moisture / electrical_conductivity / rainfall_hourly / co2 / battery ...）
+# 下面列的是 tests/fixtures 里那三台演示设备，换成现场设备时整段替换 EUI 即可。
+
+title: 农业环境监测
+views:
+  - title: 总览
+    path: overview
+    icon: mdi:sprout
+    cards:
+      - type: entities
+        title: 空气温湿度
+        state_color: true
+        entities:
+          - entity: sensor.sensecap_2cf7f1c0000000aa_temperature
+            name: 大棚 1 空气温度
+          - entity: sensor.sensecap_2cf7f1c0000000aa_humidity
+            name: 大棚 1 空气湿度
+          - entity: sensor.sensecap_2cf7f1c0000000bb_temperature
+            name: 大棚 2 空气温度
+          - entity: sensor.sensecap_2cf7f1c0000000bb_humidity
+            name: 大棚 2 空气湿度
+          - entity: sensor.sensecap_2cf7f1c0000000bb_co2
+            name: 大棚 2 CO2
+
+      - type: entities
+        title: 土壤
+        state_color: true
+        entities:
+          - entity: sensor.sensecap_2cf7f1c0000000aa_soil_temperature
+            name: 地块 A 土壤温度
+          - entity: sensor.sensecap_2cf7f1c0000000aa_soil_moisture
+            name: 地块 A 土壤水分
+          - entity: sensor.sensecap_2cf7f1c0000000aa_electrical_conductivity
+            name: 地块 A 电导率
+          - entity: sensor.sensecap_2cf7f1c0000000cc_soil_temperature
+            name: 地块 B 土壤温度
+          - entity: sensor.sensecap_2cf7f1c0000000cc_soil_moisture
+            name: 地块 B 土壤水分
+          - entity: sensor.sensecap_2cf7f1c0000000cc_electrical_conductivity
+            name: 地块 B 电导率
+
+      - type: entities
+        title: 雨量
+        entities:
+          - entity: sensor.sensecap_2cf7f1c0000000aa_rainfall_hourly
+            name: 小时雨量
+
+      - type: entities
+        title: 设备可用性与电量
+        state_color: true
+        entities:
+          - entity: sensor.sensecap_2cf7f1c0000000aa_battery
+            name: 节点 AA 电量
+          - entity: sensor.sensecap_2cf7f1c0000000bb_battery
+            name: 节点 BB 电量
+          - entity: sensor.sensecap_2cf7f1c0000000cc_battery
+            name: 节点 CC 电量
+        footer:
+          type: buttons
+          entities: []
+        # 桥在 unavailable_after 之后把 availability 置 offline，
+        # 对应实体状态变成 unavailable，卡片里会直接显示"不可用"。
+
+  - title: 趋势
+    path: trends
+    icon: mdi:chart-line
+    cards:
+      - type: history-graph
+        title: 空气温湿度 24h
+        hours_to_show: 24
+        entities:
+          - sensor.sensecap_2cf7f1c0000000aa_temperature
+          - sensor.sensecap_2cf7f1c0000000aa_humidity
+          - sensor.sensecap_2cf7f1c0000000bb_temperature
+          - sensor.sensecap_2cf7f1c0000000bb_humidity
+
+      - type: history-graph
+        title: 土壤 24h
+        hours_to_show: 24
+        entities:
+          - sensor.sensecap_2cf7f1c0000000aa_soil_temperature
+          - sensor.sensecap_2cf7f1c0000000aa_soil_moisture
+          - sensor.sensecap_2cf7f1c0000000aa_electrical_conductivity
+          - sensor.sensecap_2cf7f1c0000000cc_soil_moisture
+
+      - type: history-graph
+        title: 雨量 7d
+        hours_to_show: 168
+        entities:
+          - sensor.sensecap_2cf7f1c0000000aa_rainfall_hourly
+
+  - title: 告警
+    path: alerts
+    icon: mdi:bell-alert
+    cards:
+      - type: markdown
+        title: 告警说明
+        content: >
+          阈值与持续时间在 `assets/homeassistant/automations.yaml` 里配置。
+          越界时创建 persistent_notification，恢复后自动关闭。
+          回填数据只写 HA 上线后的最新值，历史从上线时刻开始积累。
+      - type: entities
+        title: 告警自动化
+        entities:
+          - automation.agri_env_soil_moisture_low
+          - automation.agri_env_soil_moisture_recovered
+          - automation.agri_env_air_temperature_high
+          - automation.agri_env_air_temperature_recovered

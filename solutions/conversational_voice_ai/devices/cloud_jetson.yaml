@@ -9,13 +9,14 @@ docker:
   compose_file: assets/docker/docker-compose.jetson.yml
   options: {project_name: conversational_voice_ai}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: "{{DEVICE}}"
     LLM_BACKEND: openai_compat
     LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
     LLM_API_KEY: "{{LLM_API_KEY}}"
     LLM_MODEL: qwen3.5-flash
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     DEFAULT_MODE: chat
-    OVS_PROFILE: jetson-qwen3asr-matcha
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
@@ -24,6 +25,63 @@ docker:
     - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
 ssh: {port: 22, default_user: recomputer}
 user_inputs:
+  - id: LANGUAGE
+    name: Conversation language
+    name_i18n: {zh: 对话语言}
+    type: select
+    default: zh
+    required: true
+    reconfigurable: true
+    description: >-
+      Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+    description_i18n:
+      zh: >-
+        识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+    options:
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英语}}
+      - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+      - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+      - {value: de, label: German, label_i18n: {zh: 德语}}
+      - {value: fr, label: French, label_i18n: {zh: 法语}}
+      - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+      - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+      - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+      - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+      - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+      - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+      - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+      - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+      - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+      - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+      - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+      - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+      - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+      - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+      - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+      - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+      - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+      - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+      - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+      - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+      - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+      - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+      - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+      - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
+  - id: DEVICE
+    name: Jetson module
+    name_i18n: {zh: Jetson 模组}
+    type: select
+    default: orin_nano
+    required: true
+    description: >-
+      Which Jetson module this box carries. It selects the speech profile together with the conversation language.
+    description_i18n:
+      zh: >-
+        设备上的 Jetson 模组型号，与对话语言一起决定使用哪个语音配置。
+    options:
+      - {value: orin_nano, label: Orin Nano 8GB, label_i18n: {zh: Orin Nano 8GB}}
+      - {value: orin_nx, label: Orin NX 16GB, label_i18n: {zh: Orin NX 16GB}}
   - id: PIPELINE_MODE
     name: Conversation mode
     name_i18n: {zh: 对话方式}
@@ -63,18 +121,76 @@ remote_overrides:
   compose_dir: assets/docker
   detection: {method: network_scan, manual_entry: true}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: "{{DEVICE}}"
     LLM_BACKEND: openai_compat
     LLM_BASE_URL: "{{LLM_BASE_URL}}"
     LLM_API_KEY: "{{LLM_API_KEY}}"
     LLM_MODEL: "{{LLM_MODEL}}"
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     DEFAULT_MODE: chat
-    OVS_PROFILE: "{{OVS_PROFILE}}"
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
     WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
   user_inputs:
+    - id: LANGUAGE
+      name: Conversation language
+      name_i18n: {zh: 对话语言}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: >-
+        Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+      description_i18n:
+        zh: >-
+          识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英语}}
+        - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+        - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+        - {value: de, label: German, label_i18n: {zh: 德语}}
+        - {value: fr, label: French, label_i18n: {zh: 法语}}
+        - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+        - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+        - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+        - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+        - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+        - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+        - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+        - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+        - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+        - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+        - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+        - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+        - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+        - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+        - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+        - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+        - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+        - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+        - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+        - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+        - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+        - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+        - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+        - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
+    - id: DEVICE
+      name: Jetson module
+      name_i18n: {zh: Jetson 模组}
+      type: select
+      default: orin_nano
+      required: true
+      description: >-
+        Which Jetson module this box carries. It selects the speech profile together with the conversation language.
+      description_i18n:
+        zh: >-
+          设备上的 Jetson 模组型号，与对话语言一起决定使用哪个语音配置。
+      options:
+        - {value: orin_nano, label: Orin Nano 8GB, label_i18n: {zh: Orin Nano 8GB}}
+        - {value: orin_nx, label: Orin NX 16GB, label_i18n: {zh: Orin NX 16GB}}
     - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
     - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
@@ -126,12 +242,3 @@ remote_overrides:
           你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
       description: Editable system prompt applied to every conversation.
       description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}
-    - id: OVS_PROFILE
-      name: Jetson Voice Profile
-      name_i18n: {zh: Jetson 语音配置}
-      type: select
-      default: jetson-qwen3asr-matcha
-      required: true
-      options:
-        - {value: jetson-qwen3asr-matcha, label: Orin Nano - Qwen3 ASR + Matcha, label_i18n: {zh: Orin Nano - Qwen3 ASR + Matcha}}
-        - {value: jetson-qwen3asr-matcha-nx, label: Orin NX - Qwen3 ASR + Matcha, label_i18n: {zh: Orin NX - Qwen3 ASR + Matcha}}

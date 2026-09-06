@@ -1,0 +1,393 @@
+version: "1.0"
+id: hailo_waste
+name: Raspberry Pi 5 + Hailo-8
+type: docker_deploy
+device_class: hailo
+
+# BASELINE HEF COMPILED AND INT8-VERIFIED ON THE DFC EMULATOR ONLY. NO HAILO-8
+# HARDWARE HAS RUN IT.
+#
+# The baseline is EfficientNet-Lite0 (m1c), not the original MobileNetV3-Small
+# (m1b) — m1b's INT8-quantised HEF collapsed to near-random accuracy on this
+# same compile pipeline (agreement 0.115 vs CPU/native), so it was superseded.
+# EfficientNet-Lite0 compiled on the first attempt (no Squeeze-Excite branch,
+# so it never hit the avgpool shift-range issue m1b needed a model-script fix
+# for) and shows agreement 0.890 vs CPU/native on 200 val images on the DFC
+# 3.31.0 / HailoRT 4.21.0 emulator. That number is from the x86 compile host
+# (wsl2-local) — there is no Hailo-8 PCIe card anywhere in this project's
+# evaluation chain, so real board latency, thermal behaviour and accuracy
+# are unmeasured. The SigLIP 2 open-vocabulary tower is unaffected by this
+# work: its parser passes but `hailo optimize` (INT8 PTQ) still fails with
+# NegativeSlopeExponentNonFixable; see the solution page.
+#
+# The HEF itself has not been uploaded to any CDN yet (see the fetch step
+# below) — that is a packaging gap, not a model-quality gap. The three ABI
+# gates in `before` are exactly the checks that can only pass or fail on the
+# device.
+
+docker:
+  compose_file: assets/hailo/docker-compose.yml
+  compose_dir: assets/hailo
+  options:
+    project_name: edge_waste_sorting_hailo
+    remove_orphans: true
+  services:
+    - name: waste
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # No device-side compile on this platform — a HEF is precompiled elsewhere.
+  # The budget only has to cover the image pull and the HEF download.
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 4
+    description: >-
+      The runtime image plus a MobileNetV3-Small HEF (single-digit MB when it
+      exists) and the config; 4 GB leaves ample headroom
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 无设备端编译，主要耗时是镜像拉取与 HEF 下载。本项目在 Pi 上没有任何实测，
+# 这个数字按 A 项目（edge-inspection-surface）Hailo 套餐同量级取。
+deploy_timeout: 1800
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: Raspberry Pi 5 + Hailo-8
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-waste-sorting
+  compose_dir: assets/hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Hailo runtime and the ABI lock
+        run: |
+          set -e
+          if [ ! -c /dev/hailo0 ]; then
+            echo "No /dev/hailo0 — the Hailo-8 is not present or hailo_pci is not loaded" >&2
+            exit 1
+          fi
+          # Gate 1: HailoRT must match the Dataflow Compiler that produced the
+          # HEF. The only DFC used by this project so far is 3.31.0 / HailoRT
+          # 4.21.0 (the SigLIP 2 parse probe), so that is the version this
+          # deployment is written against. Driver, user-space library and python
+          # bindings all move together.
+          if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+            echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+            echo "Installed HailoRT:" >&2
+            ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+            exit 1
+          fi
+          command -v hailortcli >/dev/null 2>&1 && hailortcli --version 2>/dev/null | head -2 || true
+          command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+          # Both packages must be held. Holding only the driver lets apt
+          # silently upgrade the user-space library out from under the HEF.
+          if command -v apt-mark >/dev/null 2>&1; then
+            HELD=$(apt-mark showhold 2>/dev/null | grep -c hailo || true)
+            if [ "$HELD" -lt 2 ]; then
+              echo "WARNING: expected both hailort and hailort-pcie-driver on hold; found $HELD" >&2
+              echo "Run: sudo apt-mark hold hailort hailort-pcie-driver" >&2
+            fi
+          fi
+          # Gate 2: hailo_pci needs force_desc_page_size=4096. The Pi 5 kernel
+          # PAGE_SIZE is 16 KB and the Hailo-8 max_desc_page_size is 4 KB.
+          # Without it VDevice() and fw-control identify both succeed and the
+          # failure only surfaces at configure(hef).
+          if ! grep -rqs force_desc_page_size=4096 /etc/modprobe.d/; then
+            echo "hailo_pci is missing force_desc_page_size=4096 — configure(hef) will crash." >&2
+            echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+            exit 1
+          fi
+          # Gate 3: the host's hailo_platform bindings are mounted into the
+          # container, and _pyhailort.cpython-3XX-*.so only imports under the
+          # same Python minor. Bookworm is 3.11, trixie is 3.13.
+          echo "host python: $(python3 -V 2>&1)"
+          echo "Hailo runtime OK"
+        name_i18n:
+          zh: 校验 Hailo 运行环境与 ABI 锁
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    after_upload:
+      - name: Clean macOS sidecar files from the uploaded assets
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/hailo_waste"
+          find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+          echo "sidecar cleanup done"
+        name_i18n:
+          zh: 清理上传目录里的 macOS 附属文件
+
+      - name: Fetch and verify the HEF
+        # TODO(CDN): the EfficientNet-Lite0 HEF has not been uploaded to
+        # sensecraft-statics yet, so the download below will fail until it
+        # is. It is compiled and INT8-verified on the DFC emulator (agreement
+        # 0.890 vs CPU/native on 200 val images) but has never run on a real
+        # Hailo-8 -- copy it onto the device by hand at the path below in the
+        # meantime; the sha256 check still applies either way.
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/hailo_waste"
+          MODELS_DIR="$WORKDIR/models"
+          HEF="$MODELS_DIR/efficientnet_lite0_waste8.hef"
+          SHA=3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$HEF" ]; then
+            echo "HEF already present: $HEF"
+            echo "$SHA  $HEF" | sha256sum -c -
+            exit 0
+          fi
+
+          echo "Downloading efficientnet_lite0_waste8.hef ..."
+          if curl -fSL --retry 3 -o "$HEF.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.hef"; then
+            echo "$SHA  $HEF.part" | sha256sum -c -
+            mv -f "$HEF.part" "$HEF"
+          else
+            echo "No HEF available at the CDN path yet (TODO(CDN))." >&2
+            echo "Copy efficientnet_lite0_waste8.hef onto the device by hand at $HEF" >&2
+            echo "and verify: echo '$SHA  $HEF' | sha256sum -c -" >&2
+            echo "" >&2
+            echo "The board is now prepared: all three Hailo ABI gates passed." >&2
+            exit 1
+          fi
+        name_i18n:
+          zh: 获取并校验 HEF
+
+      - name: Write the source, trigger and MQTT configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/hailo_waste"
+          CONFIG="$WORKDIR/config/config.json"
+          mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          # Only the baseline track is offered here. The open-vocabulary tower
+          # has no HEF either — its INT8 quantisation currently fails.
+          config["model"]["path"] = "/models/efficientnet_lite0_waste8.hef"
+          config["model"]["accelerator"] = "hailo"
+          config["model"]["track"] = "baseline"
+          config["model"]["backbone"] = "efficientnet_lite0"
+          config["rules"]["min_confidence"] = float("{{min_confidence}}")
+          config["trigger"]["mode"] = "on_demand"
+          config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
+          config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+          config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+          config["mqtt"]["fallback_topic"] = "{{device_name}}/waste/{stream_id}/fallback"
+          config["sources"] = [{
+              "stream_id": "{{stream_id}}",
+              "uri": "{{source_uri}}",
+              "kind": "{{source_kind}}",
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"model    = {config['model']['path']} (track=baseline)")
+          print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+          print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        name_i18n:
+          zh: 写入视频源、触发与 MQTT 配置
+
+    after:
+      - name: Verify the runtime is up and answering triggers
+        timeout: 240
+        run: |
+          set -e
+          BROKER=edge-waste-mosquitto
+          TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+          for i in $(seq 1 24); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+              cat /tmp/healthz.json
+              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+              SUB=$!
+              sleep 1
+              curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+              if wait $SUB; then
+                echo "MQTT result received on $TOPIC"
+                docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "No verified MQTT result. Expected while no HEF exists." >&2
+          docker logs --tail 40 edge-waste-app 2>&1 || true
+        ignore_error: true
+        name_i18n:
+          zh: 验证运行时已启动并能响应触发
+
+  user_inputs:
+    - id: host
+      name: Raspberry Pi IP
+      type: text
+      required: true
+      placeholder: "192.168.1.101"
+      name_i18n:
+        zh: 树莓派 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: pi
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "pi5-hailo"
+      required: true
+      description: First segment of the MQTT topic — name this device after the bin or the drop-off point
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按垃圾桶或投放点命名
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "bin1-cam1"
+      required: true
+      description: Appended to the MQTT topic and also carried in the payload — consumers must read it there, not parse the topic
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题里，同时也在 payload 里——消费者必须从 payload 读，不要解析 topic
+    - id: source_kind
+      name: Camera Type
+      type: select
+      default: usb
+      required: true
+      options:
+        - value: usb
+          label: USB camera (/dev/videoN)
+          label_i18n:
+            zh: USB 摄像头（/dev/videoN）
+        - value: rtsp
+          label: IP camera (RTSP URL)
+          label_i18n:
+            zh: IP 摄像头（RTSP 地址）
+        - value: file
+          label: Video file — for bench testing without a camera
+          label_i18n:
+            zh: 视频文件——没有相机时的台面测试
+      name_i18n:
+        zh: 相机类型
+    - id: source_uri
+      name: Camera Address
+      type: text
+      required: true
+      default_template: "/dev/video0"
+      placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: For a USB camera also uncomment the matching /dev/videoN line in assets/hailo/docker-compose.yml. Never mount all of /dev.
+      name_i18n:
+        zh: 相机地址
+      description_i18n:
+        zh: 用 USB 相机时还要在 assets/hailo/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释。不要整个挂载 /dev。
+    - id: trigger_sources
+      name: Trigger Sources
+      type: select
+      default: "http"
+      required: true
+      description: Which sources fire a capture. HTTP is POST /trigger on port 8080.
+      options:
+        - value: "http"
+          label: HTTP only — POST /trigger
+          label_i18n:
+            zh: 仅 HTTP——POST /trigger
+        - value: "http,button"
+          label: HTTP + physical button
+          label_i18n:
+            zh: HTTP + 实体按钮
+        - value: "http,motion"
+          label: HTTP + motion in frame
+          label_i18n:
+            zh: HTTP + 画面移动侦测
+        - value: "http,button,motion"
+          label: All three
+          label_i18n:
+            zh: 三者全开
+      name_i18n:
+        zh: 触发源
+      description_i18n:
+        zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger。
+    - id: debounce_ms
+      name: Trigger Debounce (ms)
+      type: text
+      default: "800"
+      required: true
+      description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: 触发去抖（毫秒）
+      description_i18n:
+        zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队
+    - id: min_confidence
+      name: Minimum Confidence
+      type: text
+      default: "0.5"
+      required: true
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0); the on-device INT8 confidence distribution has not been measured on real Hailo-8 hardware.
+      validation:
+        pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+      name_i18n:
+        zh: 最低置信度
+      description_i18n:
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测；真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。

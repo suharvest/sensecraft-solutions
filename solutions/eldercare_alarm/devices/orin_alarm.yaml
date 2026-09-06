@@ -1,0 +1,497 @@
+version: "1.0"
+id: orin_alarm
+name: reComputer J (Orin)
+type: docker_deploy
+
+# device_class=jetson pulls in the shared Jetson pre-deploy fixes (the JetPack
+# 6.x iptables raw-table workaround) and the hardware detection probe
+# (test -f /etc/nv_tegra_release) from the bundled device profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/orin/docker-compose.yml
+  compose_dir: assets/orin
+  options:
+    project_name: eldercare_alarm_orin
+    remove_orphans: true
+  services:
+    - name: fall-detection
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: eldercare-alarm
+      port: 8080
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # The first deploy builds a TensorRT engine on the device (461 s measured for
+  # YOLO11s on Orin Nano / JetPack 6.2 / TRT 10.3, longer for YOLO11m), so the
+  # SSH command budget has to cover it.
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: Pose model, TensorRT engine, two container images and the SQLite audit store live on the device
+  - type: nvidia_runtime
+    description: Check the NVIDIA container runtime is available
+
+# Wall-clock budget for the whole deploy on this device; exceeding it fails the
+# device. The engine build is the long pole — about 9 minutes end to end when
+# measured on Orin, so this is roughly 6x headroom, there to catch a hang
+# rather than to bound a normal build.
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reComputer J（Orin）
+
+remote_overrides:
+  remote_path: /home/{{username}}/eldercare-alarm
+  compose_dir: assets/orin
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate Jetson runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # These run AFTER assets/orin/ is uploaded to remote_path/<device-yaml-id>/
+    # and BEFORE `docker compose up`. They must not move into `before`:
+    # config/fall-config.json does not exist on the device until the upload
+    # finishes, and anything written earlier would be overwritten by it.
+    after_upload:
+      - name: Build the TensorRT pose engine
+        # A TensorRT engine is tied to the exact GPU architecture and TensorRT
+        # version, so it cannot be shipped prebuilt — it is built here, once.
+        # Measured on Orin Nano / JetPack 6.2 / TRT 10.3: 461 s for YOLO11s.
+        # The timing cache written alongside it makes any rebuild much cheaper.
+        timeout: 2400
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/eldercare-alarm/orin_alarm"
+          MODEL="{{pose_model}}"
+          MODELS_DIR="$WORKDIR/models"
+          ENGINE="$MODELS_DIR/${MODEL}.sm87.trt10.3.fp16.engine"
+          ONNX="$MODELS_DIR/${MODEL}.onnx"
+
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, skipping build: $ENGINE"
+            exit 0
+          fi
+
+          case "$MODEL" in
+            yolo11s-pose) SHA=8918cfc11983ee4d38019308fe87be33116da21b715e1c1a0cb2f97e36ffb8d2 ;;
+            yolo11m-pose) SHA=7fe8762007efd17976bdf140b99eac9a8069accd7020a5873ad20dd4caaf633c ;;
+            *) echo "Unknown pose model: $MODEL" >&2; exit 1 ;;
+          esac
+
+          if [ ! -s "$ONNX" ]; then
+            echo "Downloading $MODEL ONNX ..."
+            curl -fSL --retry 3 -o "$ONNX.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/${MODEL}.onnx"
+            echo "$SHA  $ONNX.part" | sha256sum -c -
+            mv -f "$ONNX.part" "$ONNX"
+          fi
+
+          echo "Building TensorRT engine — this takes several minutes ..."
+          # --version exits 1 on TensorRT 10.3, so it must not gate the build.
+          /usr/src/tensorrt/bin/trtexec --version || true
+          /usr/src/tensorrt/bin/trtexec \
+            --onnx="$ONNX" \
+            --saveEngine="$ENGINE.part" \
+            --fp16 \
+            --skipInference \
+            --builderOptimizationLevel=3 \
+            --timingCacheFile="$ENGINE.timing.cache" \
+            --minShapes=images:1x3x640x640 \
+            --optShapes=images:1x3x640x640 \
+            --maxShapes=images:1x3x640x640
+          mv -f "$ENGINE.part" "$ENGINE"
+          ls -l "$ENGINE"
+        name_i18n:
+          zh: 构建 TensorRT 姿态引擎
+
+      - name: Write the detector configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/eldercare-alarm/orin_alarm"
+          CONFIG="$WORKDIR/config/fall-config.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          model = "{{pose_model}}"
+          config["engine_path"] = f"/models/{model}.sm87.trt10.3.fp16.engine"
+          # Without this the runtime skips publishing on frames with nobody in
+          # them, and the no_person timeout never receives an input to time out
+          # on. It is the one detector setting this solution depends on.
+          config["publish_empty_frames"] = True
+          mqtt = config.setdefault("mqtt", {})
+          mqtt["host"] = "{{broker_host}}"
+          mqtt["port"] = int("{{broker_port}}")
+          mqtt["username"] = "{{broker_username}}"
+          mqtt["password"] = "{{broker_password}}"
+          # The topic prefix is the device name the user chose, so one broker
+          # can carry several installations without collisions.
+          mqtt["topic"] = "{{device_name}}/fall-detection/results/{stream_id}"
+          config["streams"] = [{
+              "id": "{{stream_id}}",
+              "rtsp_url": "{{rtsp_url}}",
+              "enabled": True,
+              "reconnect_delay_ms": 1000,
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"engine_path         = {config['engine_path']}")
+          print(f"publish_empty_frames = {config['publish_empty_frames']}")
+          print(f"mqtt.topic          = {mqtt['topic']}")
+          PY
+        name_i18n:
+          zh: 写入检测器配置
+
+      - name: Write the alarm service configuration
+        # Rewrites config/eldercare.yaml from the form values. The uploaded
+        # copy is the documented default; this replaces it wholesale rather
+        # than patching, so there is exactly one thing to read on the device
+        # when a timeout behaves unexpectedly.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/eldercare-alarm/orin_alarm"
+          CONFIG="$WORKDIR/config/eldercare.yaml"
+          python3 - "$CONFIG" <<'PY'
+          import os, sys
+
+          path = sys.argv[1]
+          no_person_sec = int(float("{{no_person_timeout_min}}") * 60)
+          no_motion_sec = int(float("{{no_motion_timeout_min}}") * 60)
+          webhook = "{{webhook_url}}".strip()
+
+          lines = [
+              "# Generated by the eldercare_alarm deploy step. Edit on the device.",
+              "zones:",
+              "  - id: {{zone_id}}",
+              "    name: {{zone_id}}",
+              "    rect: [0.0, 0.0, 1.0, 1.0]",
+              '    stream_ids: ["{{stream_id}}"]',
+              f"    no_person_timeout_sec: {no_person_sec}",
+              f"    no_motion_timeout_sec: {no_motion_sec}",
+              "    motion_threshold: 0.02",
+              "    enabled: true",
+              "statemachine:",
+              "  evidence_sec: 5.0",
+              "  confirm_window_sec: 60.0",
+              "  notify_deadline_sec: 5.0",
+              "  retry_interval_sec: 30.0",
+              "  rearm_sec: 120.0",
+              "  confirm_timeout_action: confirmed",
+              "mqtt:",
+              '  host: "{{broker_host}}"',
+              "  port: {{broker_port}}",
+              '  username: "{{broker_username}}"',
+              '  password: "{{broker_password}}"',
+              "  client_id: eldercare-alarm",
+              "  keepalive_sec: 30",
+              "  qos: 1",
+              "  tls: false",
+              "  subscriptions:",
+              '    "{{device_name}}/fall-detection/results/+": fall_result_v1',
+              "notifiers:",
+          ]
+          if webhook:
+              lines += [
+                  "  - name: ops-webhook",
+                  "    type: webhook",
+                  "    enabled: true",
+                  "    options:",
+                  f"      url: \"{webhook}\"",
+                  "      timeout_sec: 5.0",
+              ]
+          else:
+              # No webhook configured: alarms are still recorded and shown in
+              # the confirmation UI, they are simply not pushed anywhere.
+              lines += ["  []"]
+          lines += [
+              "store:",
+              "  path: /data/eldercare.sqlite",
+              "  event_retention_days: 90",
+              "  media_retention_days: 7",
+              "  purge_interval_sec: 3600",
+              "  rate_limit: 5",
+              "  rate_limit_window_sec: 600",
+              "web:",
+              "  host: 0.0.0.0",
+              "  port: 8080",
+              "  media_dir: /data/media",
+              "  snapshot_enabled: false",
+              "",
+          ]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              handle.write("\n".join(lines))
+          os.replace(tmp, path)
+          print(f"zone            = {{zone_id}}")
+          print(f"no_person_sec   = {no_person_sec}")
+          print(f"no_motion_sec   = {no_motion_sec}")
+          print(f"webhook         = {'configured' if webhook else 'none'}")
+          PY
+        name_i18n:
+          zh: 写入告警服务配置
+
+    after:
+      - name: Verify the alarm service is receiving results
+        # This is the deploy-time health check: the detector has to publish on
+        # the topic the alarm service subscribes to, and the alarm service's
+        # API has to answer. Either half failing is a deployment failure, not a
+        # warning, so this step does not ignore_error.
+        timeout: 300
+        run: |
+          set -e
+          BROKER=eldercare_alarm_orin-mosquitto-1
+          TOPIC="{{device_name}}/fall-detection/results/{{stream_id}}"
+          echo "Waiting for the first detector result on $TOPIC ..."
+          OK=0
+          for i in $(seq 1 40); do
+            if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null 2>&1; then
+              echo "Detector result received on $TOPIC"
+              OK=1
+              break
+            fi
+            sleep 5
+          done
+          if [ "$OK" != 1 ]; then
+            echo "No detector result on $TOPIC — check the RTSP URL and the fall-detection logs." >&2
+            docker logs --tail 40 eldercare_alarm_orin-fall-detection-1 2>&1 || true
+            exit 1
+          fi
+          echo "Checking the alarm service API ..."
+          for i in $(seq 1 12); do
+            if curl -fsS --max-time 5 http://127.0.0.1:8080/api/alarms >/dev/null; then
+              echo "Alarm service answering on http://127.0.0.1:8080/api/alarms"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Alarm service did not answer on port 8080." >&2
+          docker logs --tail 40 eldercare_alarm_orin-eldercare-alarm-1 2>&1 || true
+          exit 1
+        name_i18n:
+          zh: 验证告警服务已收到检测结果
+
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer"
+      required: true
+      description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several installations stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多套装置就不会混在一起
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "cam-01"
+      required: true
+      description: Appended to the MQTT topic and bound to the zone below, so several cameras stay separable
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题后面，并与下面的区域绑定，用于区分多路摄像头
+    - id: pose_model
+      name: Pose Model
+      type: select
+      default: yolo11s-pose
+      required: true
+      description: YOLO11s suits Orin Nano; YOLO11m is more accurate and suits Orin NX
+      options:
+        - value: yolo11s-pose
+          label: YOLO11s — faster, more streams
+          label_i18n:
+            zh: YOLO11s——更快，可跑更多路
+        - value: yolo11m-pose
+          label: YOLO11m — more accurate
+          label_i18n:
+            zh: YOLO11m——更准
+      name_i18n:
+        zh: 姿态模型
+      description_i18n:
+        zh: Orin Nano 建议 YOLO11s；Orin NX 建议更准的 YOLO11m
+    - id: broker_host
+      name: MQTT Broker Host
+      type: text
+      default: "127.0.0.1"
+      required: true
+      description: Leave as 127.0.0.1 to use the broker this stack starts on the device. Point it at an existing broker to merge this installation into one you already run.
+      name_i18n:
+        zh: MQTT Broker 地址
+      description_i18n:
+        zh: 保持 127.0.0.1 就使用本套栈在设备上启动的 broker；填其他地址则接入你已有的 broker。
+    - id: broker_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      name_i18n:
+        zh: MQTT Broker 端口
+    - id: broker_username
+      name: MQTT Username
+      type: text
+      required: false
+      description: Leave empty for the bundled broker, which accepts anonymous connections on the LAN
+      name_i18n:
+        zh: MQTT 用户名
+      description_i18n:
+        zh: 使用内置 broker 时留空——它在局域网内允许匿名连接
+    - id: broker_password
+      name: MQTT Password
+      type: password
+      required: false
+      name_i18n:
+        zh: MQTT 密码
+    - id: zone_id
+      name: Zone Name
+      type: text
+      default: "bedroom"
+      required: true
+      description: The area this camera watches. The deploy creates one zone covering the whole frame; split it into sub-rectangles on the device afterwards if one camera covers two rooms.
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 区域名称
+      description_i18n:
+        zh: 这台摄像头看护的区域。部署会建立一个覆盖整幅画面的区域；若一台摄像头覆盖两个房间，之后在设备上把它拆成多个矩形。
+    - id: no_person_timeout_min
+      name: No-person Timeout (minutes)
+      type: text
+      default: "60"
+      required: true
+      description: How long the zone may stay empty before an alarm is raised. Set it above the longest normal absence — a bathroom zone needs a much shorter value than a bedroom.
+      validation:
+        pattern: "^[0-9]+(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 无人超时（分钟）
+      description_i18n:
+        zh: 区域内允许持续无人多久才告警。要设得高于正常的离开时长——卫生间区域应远短于卧室。
+    - id: no_motion_timeout_min
+      name: No-motion Timeout (minutes)
+      type: text
+      default: "30"
+      required: true
+      description: How long a person may stay in the zone without moving before an alarm is raised. Sleeping hours will trip this unless the zone excludes the bed or the value covers a nap.
+      validation:
+        pattern: "^[0-9]+(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 静止超时（分钟）
+      description_i18n:
+        zh: 区域内有人但持续不动多久才告警。睡眠时段会触发它，除非区域排除床位或阈值覆盖一次午睡。
+    - id: webhook_url
+      name: Webhook URL
+      type: text
+      required: false
+      placeholder: "http://192.168.1.50:9099/alarm"
+      description: Where a confirmed alarm is POSTed. The payload carries the alarm id, kind, zone, stream, timestamp and operator — no snapshot and no video. Leave empty to record alarms in the UI only.
+      name_i18n:
+        zh: Webhook 地址
+      description_i18n:
+        zh: 确认后的告警 POST 到哪里。负载只含告警 id、类型、区域、流、时间戳与操作者，不含快照或视频。留空则只在界面里记录。

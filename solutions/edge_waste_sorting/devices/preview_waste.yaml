@@ -1,0 +1,47 @@
+version: "1.0"
+id: preview_waste
+name: Watch the Live Classification
+type: web_dashboard
+
+# Not the video_stream preview some solutions use, and deliberately so. That
+# preview renders an overlay from an MQTT feed of boxes or skeletons pulled
+# alongside RTSP; a classifier emits neither — its output is a class name, a
+# category and three confidences, so an overlay renderer would have nothing to
+# draw. The runtime already serves its own page with the live view and the
+# recent results, so this step opens that instead of reproducing it against
+# data that does not exist.
+#
+# `host` is asked for again rather than inherited, because this same step is
+# shared byte-for-byte by both presets and can therefore not name a single
+# deploy step to inherit from.
+
+web_dashboard:
+  url: "http://{{host}}:8080/"
+  title: Waste Sorting Preview
+  description: >-
+    The runtime's own page. It carries the live view (/preview.mjpg), a trigger
+    button that posts to /trigger, the recent classifications with their top-3
+    and their Chinese four-way category (/events), and the health endpoint
+    (/healthz) with the inference time and the trigger, debounce and MQTT
+    counters. Plain HTTP on the device's own address.
+  description_i18n:
+    zh: >-
+      运行时自带的页面。上面有实时画面（/preview.mjpg）、一个向 /trigger
+      发请求的触发按钮、最近若干次分类及其 top3 与中国四分类（/events），
+      以及带推理耗时和触发、去抖、MQTT 计数的健康接口（/healthz）。
+      设备本机地址上的普通 HTTP。
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The same address you deployed to in the previous step
+    name_i18n:
+      zh: 设备 IP
+    description_i18n:
+      zh: 与上一步部署时填的地址相同
+
+name_i18n:
+  zh: 查看实时分类画面

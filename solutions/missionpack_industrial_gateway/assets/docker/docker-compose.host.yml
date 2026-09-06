@@ -1,3 +1,24 @@
+# Image tag policy
+#
+# Pinned to the immutable published tag `missionpack-knn:v1.6.7`. Never use `latest`:
+# the same tag must always resolve to the same content.
+#
+# NOT in v1.6.7: the northbound outbound MQTT publisher and its SQLite store-and-forward
+# spool (`PUT/POST/GET /system/northbound-publish/*`). That feature lives upstream on
+# `feature/northbound-publish` (`f831bae`); its image has NOT been built and NOT been
+# pushed, and its immutable tag is TO BE ASSIGNED. Until that tag is published, Step 3 of
+# the deployment guide cannot be completed and those endpoints return HTTP 404.
+# When the tag is assigned, update both `image:` lines below together — the
+# volume-init and gateway services must run the same tag.
+#
+# Why this base image rather than a fully self-contained one: the gateway is pure Python
+# and needs no host driver mounts, so the published image is the whole runtime. The
+# one-shot `volume-init` service exists only to migrate volume ownership left by earlier
+# root-based images, so the long-running service can stay non-root.
+#
+# Container logs are bounded by the runtime's own LOG_MAX_BYTES/LOG_BACKUP_COUNT rotation
+# into the persistent log volume.
+
 services:
   volume-init:
     image: sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.6.7

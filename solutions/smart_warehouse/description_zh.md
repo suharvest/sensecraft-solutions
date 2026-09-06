@@ -61,3 +61,25 @@
 |----------|----------|
 | 轻量场景（≤20人） | Watcher 内置人脸识别（最多存储 20 张人脸） |
 | 大规模场景（20人+） | 使用 R2000 + Watcher 摄像头（支持更多人脸） |
+
+## 实测边界
+
+下表数字全部来自 2026-09-05 在 **harvest-pi（Raspberry Pi 5，arm64）** 上的一轮压测，镜像 `sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:04e26201e732d11fb5a14cf1e193456386210d5fd8a4e864cc8b6d2b7a10d19d`（arm64，后端 commit `94b7e1d`）——写 digest 不写 tag，`latest` 每次发布都会漂。其他硬件上测到的数据不列入此表；这些数字不构成对其他设备、更大数据量或 MySQL 后端的吞吐承诺。
+
+| 场景 | 压力档位 | 实测结果 | 条件 | 来源 |
+|------|----------|----------|------|------|
+| 库存查询 `GET /api/materials/list` | 并发 10 | p95 404 ms，p99 2.7 s，错误率 0% — 稳定 | RPi5，Mac 客户端经 Tailscale（真实 WAN 跳数），该档位 60 s，50 个种子物料，1 个仓库，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 库存查询 `GET /api/materials/list` | 并发 20 | p95 824 ms，p99 5.3 s，错误率 0% — 下降（p95 越过 500 ms，且相对并发 10 翻倍） | RPi5，Mac 客户端经 Tailscale，该档位 60 s，50 个种子物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 库存查询 `GET /api/materials/list` | 并发 50 | p95 5.5 s，p99 8.7 s，错误率仍为 0% — 延迟已不可用 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，50 个种子物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/query_summary.json` |
+| 入库 `POST /api/materials/stock-in` | 并发 1 | p95 106 ms，错误率 0% — 稳定 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，全部请求打同一个物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| 入库 `POST /api/materials/stock-in` | 并发 5 / 10 / 20 / 50 | 错误率 77.4% / 100% / 100% / 100%，全部为 HTTP 409（批次号冲突）— 失败 | RPi5，Mac 客户端经 Tailscale，每档 60 s，全部请求打同一个物料，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_in_summary.json` |
+| 出库 `POST /api/materials/stock-out` | 并发 1 – 20 | 各档位成功请求均被压在约 60 次/分钟（95–98% 为 HTTP 429），p95 56–738 ms — 限流生效，非资源耗尽 | RPi5，Mac 客户端经 Tailscale，每档 60 s，单一来源 IP，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| 出库 `POST /api/materials/stock-out` | 并发 50 | p95 8.1 s，p99 10.1 s，并在 429 之外额外出现 50 个客户端连接异常 — 设备容量边界 | RPi5，Mac 客户端经 Tailscale，该档位 60 s，单一来源 IP，SQLite | `runs/2026-09-05-load/raw-harvest-pi/stock_out_summary.json` |
+| 服务中断 | 约 10 req/s 查询流量，中断 34 s | 中断期间 100% 请求失败，无排队无补发；服务恢复后约 1 s 内完全恢复，无积压、无脏数据 | RPi5，用停止并重启容器模拟中断（34 s 含启动时的迁移校验），Mac 客户端经 Tailscale，SQLite | `runs/2026-09-05-load/raw-harvest-pi/offline_summary.json` |
+| 角色与租户隔离 | 4 项单次探针 | 4 项全部符合预期：VIEW key 打写接口 403，VIEW key 打读接口 200，跨租户写 403，跨租户读 403 | RPi5，`DEPLOY_MODE=multi_tenant`，2 个租户、2 个仓库，view/operate/admin API key | `runs/2026-09-05-load/results.md` |
+
+## 已知限制
+
+- **并发对同一物料入库曾会返回 HTTP 409 —— 已在 `fix/a2-concurrency`（`106c2db`）修复，2026-09-06 在 harvest-pi 复测确认。** 上表的数字（并发 5 时 77.4%，并发 10 及以上 100%）来自修复前的镜像（`94b7e1d`）。根因：系统生成的 `batch_no` 走「读当天最大序号 + 1」，并发请求读到的是同一份已提交状态，因此算出同一个号，固定 5 次重试躲不开。修复把取号换成 `batch_no_sequences` 表上的原子自增，批次号格式 `YYYYMMDD-NNN` 与老数据不变。**复测结果（并发 5/10/20，同一物料撞号场景）：三档错误率均为 0%，共产生 1481 个批次，批次号 0 重复。** 延迟有所上升（p95 从修复前的 106-966ms 涨到 634ms-4.96s）——原子取号引入的写锁串行化是这次修复的代价，用可控的延迟换掉了不可控的 409 大面积失败。详见 `evaluation/runs/2026-09-06-a2-retest/results.md`。
+- **出库接口曾按来源 IP 限流 60 次/分钟 —— 已在 `fix/a2-concurrency`（`868e941`）修复，2026-09-06 在 harvest-pi 复测确认。** 上表的 95–98% 429 来自修复前的镜像。修复把限流键改成「已认证身份（API key / 会话）优先，取不到再退回来源 IP」，阈值由 `BUSINESS_RATE_LIMIT` 环境变量控制，默认 600 次/分钟（10 次/秒）；注册、找回密码、设备校验那几个防枚举限速仍按 IP 计数不变。**复测结果：两个共用同一出口 IP 的 API Key，在并发 10/20/50（对半分）下默认 600/min 阈值内 0 次 429——每个身份实测吞吐（约 5-6 次/秒）远低于阈值；专项隔离测试（临时把阈值调到 5/分钟做验证）证明两个 Key 的配额完全独立，一个 Key 打满自己的桶不影响另一个 Key。** 详见 `evaluation/runs/2026-09-06-a2-retest/results.md`。
+- **REST 层没有离线队列。** 网络或服务中断期间发出的请求直接失败，恢复后不会补发；重连与退避逻辑只覆盖 MCP 语音 WebSocket 通道，不覆盖 HTTP 库存接口。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无脏数据。**本条不在本轮修复范围内，规避方式二选一**：一是在网关侧保证网络可用性（有线优先、UPS 供电、把服务与客户端放在同一局域网内，避免中断跨越广域网），把不可用窗口压到设备重启时间；二是在客户端做写入队列——出入库请求先落本地，联通后按顺序补发并按批次号去重，这项排在二期。

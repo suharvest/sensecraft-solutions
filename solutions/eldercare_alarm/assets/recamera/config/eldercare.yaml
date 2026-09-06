@@ -1,0 +1,93 @@
+# Alarm service configuration. Units: *_sec seconds, *_ms milliseconds.
+# Coordinates are always normalised to [0, 1].
+#
+# Shipped as the documented default. On the Orin and Hailo presets the deploy
+# step REWRITES this file on the device from the values typed into the form
+# (zones, timeouts, broker, webhook), so edits made here before a deploy are
+# not preserved. Edit it on the device afterwards, or on the gateway for the
+# reCamera preset, where nothing rewrites it.
+#
+# Source: eldercare-alarm/config.example.yaml.
+
+# ---------------------------------------------------------------- zones
+# rect is a normalised frame rectangle [x_min, y_min, x_max, y_max]; a person
+# counts as inside it when the centre of their bbox falls in it. An empty
+# stream_ids accepts any stream; bind stream ids per zone for multi-camera.
+zones:
+  - id: bedroom
+    name: Bedroom
+    rect: [0.0, 0.0, 0.5, 1.0]
+    stream_ids: ["cam-01"]
+    no_person_timeout_sec: 3600      # nobody in the zone for 1 h -> no_person
+    no_motion_timeout_sec: 1800      # present but not moving for 30 min -> no_motion
+    motion_threshold: 0.02           # normalised bbox-centre displacement, same track
+    enabled: true
+  - id: living_room
+    name: Living room
+    rect: [0.5, 0.0, 1.0, 1.0]
+    stream_ids: ["cam-01"]
+    no_person_timeout_sec: 7200
+    no_motion_timeout_sec: 2700
+    motion_threshold: 0.02
+    enabled: true
+
+# ---------------------------------------------------------------- state machine
+statemachine:
+  evidence_sec: 5.0                  # raised: evidence window
+  confirm_window_sec: 60.0           # pending_confirm: how long an operator has
+  notify_deadline_sec: 5.0           # after confirmed, deadline to finish notifying
+  retry_interval_sec: 30.0           # retry interval after a failed send
+  rearm_sec: 120.0                   # cooldown per (zone, kind) after a case closes
+  confirm_timeout_action: confirmed  # confirmed | dismissed on confirm-window timeout
+
+# ---------------------------------------------------------------- input
+# Topics are runtime configuration. stream_id is always read from the payload,
+# never parsed out of the topic.
+mqtt:
+  host: 127.0.0.1   # the gateway broker in this compose; the cameras publish into it
+  port: 1883
+  username: ""
+  password: ""
+  client_id: eldercare-alarm
+  keepalive_sec: 30
+  qos: 1
+  tls: false
+  subscriptions:
+    "recamera/fall-detection/results": fall_result_v1        # reCamera 2002 (SG2002), single stream
+    "recamera/pro-01/fall-detection/state": recamera_pro_state  # reCamera Pro
+
+# ---------------------------------------------------------------- notify
+# Notification payloads carry no snapshot and no video. telegram / email are
+# interface stubs: a call raises NotifyError and lands in the retry queue.
+notifiers:
+  - name: ops-webhook
+    type: webhook
+    enabled: true
+    options:
+      url: http://127.0.0.1:9099/alarm
+      timeout_sec: 5.0
+  - name: alarm-bus
+    type: mqtt
+    enabled: false
+    options:
+      host: 127.0.0.1
+      port: 1883
+      topic: eldercare/alarm/{zone_id}
+      qos: 1
+      retain: false
+
+# ---------------------------------------------------------------- store
+store:
+  path: /data/eldercare.sqlite
+  event_retention_days: 90           # alarms, transitions, receipts
+  media_retention_days: 7            # snapshots and clips, purged daily by created_at
+  purge_interval_sec: 3600
+  rate_limit: 5                      # max queued notifications per (zone, kind) per window
+  rate_limit_window_sec: 600
+
+# ---------------------------------------------------------------- web
+web:
+  host: 0.0.0.0
+  port: 8080
+  media_dir: /data/media
+  snapshot_enabled: false            # snapshots/clips only appear in the UI when on

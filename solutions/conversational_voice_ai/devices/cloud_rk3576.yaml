@@ -9,13 +9,14 @@ docker:
   compose_file: assets/docker/docker-compose.rk3576.yml
   options: {project_name: conversational_voice_ai}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: rk3576
     LLM_BACKEND: openai_compat
     LLM_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
     LLM_API_KEY: "{{LLM_API_KEY}}"
     LLM_MODEL: qwen3.5-flash
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     DEFAULT_MODE: chat
-    OVS_PROFILE: rk3576-default
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
@@ -24,6 +25,21 @@ docker:
     - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
 ssh: {port: 22, default_user: cat}
 user_inputs:
+  - id: LANGUAGE
+    name: Conversation language
+    name_i18n: {zh: 对话语言}
+    type: select
+    default: zh
+    required: true
+    reconfigurable: true
+    description: >-
+      Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. RK3576 serves Chinese and English only: its TTS bundle is Matcha icefall zh-en, and the multilingual Kokoro bundle on this board is TTS-only, so no profile pairs it with an ASR backend yet. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+    description_i18n:
+      zh: >-
+        识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。RK3576 仅支持中文与英文：该板 TTS 为 Matcha icefall zh-en，多语 Kokoro 在该板只有 TTS-only profile，尚无与 ASR 组合的配置。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+    options:
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英语}}
   - id: PIPELINE_MODE
     name: Conversation mode
     name_i18n: {zh: 对话方式}
@@ -63,18 +79,34 @@ remote_overrides:
   compose_dir: assets/docker
   detection: {method: network_scan, manual_entry: true}
   environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: rk3576
     LLM_BACKEND: openai_compat
     LLM_BASE_URL: "{{LLM_BASE_URL}}"
     LLM_API_KEY: "{{LLM_API_KEY}}"
     LLM_MODEL: "{{LLM_MODEL}}"
     SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
     DEFAULT_MODE: chat
-    OVS_PROFILE: rk3576-default
     PIPELINE_MODE: "{{PIPELINE_MODE}}"
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
     WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
   user_inputs:
+    - id: LANGUAGE
+      name: Conversation language
+      name_i18n: {zh: 对话语言}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: >-
+        Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. RK3576 serves Chinese and English only: its TTS bundle is Matcha icefall zh-en, and the multilingual Kokoro bundle on this board is TTS-only, so no profile pairs it with an ASR backend yet. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+      description_i18n:
+        zh: >-
+          识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。RK3576 仅支持中文与英文：该板 TTS 为 Matcha icefall zh-en，多语 Kokoro 在该板只有 TTS-only profile，尚无与 ASR 组合的配置。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英语}}
     - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
     - {id: username, name: SSH Username, type: text, default: cat, required: true, name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}

@@ -1,0 +1,134 @@
+# Raspberry Pi 5, CPU only (sherpa-onnx / ONNX Runtime). No TensorRT, no RKNN,
+# no Hailo: this compose targets a bare Pi 5 with a USB AEC microphone array.
+#
+# Chinese is not offered on this board. There is no Qwen3-ASR backend for it,
+# and Whisper is not a substitute — its Chinese CER on a Pi 5 is 50.30% short /
+# 57.74% long on CPU (openvoicestream docs/perf/whisper-cross-device-20260827.md:59).
+# The profile-init step below exits 2 for LANGUAGE=zh and the deployment stops
+# there rather than starting a stack that cannot transcribe the chosen language.
+#
+# Image tags are the ones openvoicestream already publishes
+# (deploy/docker-compose.rpi.yml:13 for speech, the same ovs-agent tag the other
+# presets in this solution use). Neither was re-verified as pushed while writing
+# this file; verify with `docker manifest inspect` before a hardware run.
+services:
+  # Resolves the operator's LANGUAGE choice plus this board's device id into
+  # exactly one OpenVoiceStream profile before anything else starts. The matrix
+  # and the resolver are byte-identical copies of
+  # openvoicestream:configs/matrix/language_device.yaml and
+  # openvoicestream:tools/resolve_profile.py.
+  #
+  # --no-verify-profile: configs/profiles/ lives inside the speech image at a
+  # path this compose does not pin; the openvoicestream test suite is what
+  # guarantees every profile the matrix names exists.
+  profile-init:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-20260721}
+    container_name: conversational-voice-profile-init
+    init: true
+    network_mode: none
+    entrypoint:
+      - python3
+      - /opt/voice/config/resolve_profile.py
+      - --matrix=/opt/voice/config/language_device.yaml
+      - --language=${LANGUAGE:-en}
+      - --device=rpi5
+      - --no-verify-profile
+      - --write-env=/opt/voice/resolved/ovs.env
+    volumes:
+      - ./resolve_profile.py:/opt/voice/config/resolve_profile.py:ro
+      - ./language_device.yaml:/opt/voice/config/language_device.yaml:ro
+      - resolved-profile:/opt/voice/resolved
+    restart: "no"
+
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-20260721}
+    container_name: conversational-voice-speech
+    init: true
+    network_mode: host
+    # `set -a` exports whatever the resolver wrote, so the resolved OVS_PROFILE
+    # and language variables win over the compose-level defaults below.
+    command:
+      - /bin/sh
+      - -c
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8621'
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
+    volumes:
+      - resolved-profile:/opt/voice/resolved:ro
+      - speech-models:/opt/models
+      - voice-data:/opt/seeed-local-voice/data
+    environment:
+      OVS_PROFILE: ${OVS_PROFILE:-rpi5-default}
+      OVS_PROFILE_DEFAULT: rpi5-default
+      OVS_VAD_BACKEND: silero
+      OVS_VAD_SILENCE_MS: "400"
+      MODEL_DIR: /opt/models
+      ASR_BACKEND: sherpa
+      TTS_BACKEND: sherpa
+      STREAMING_ASR_PROVIDER: cpu
+      OFFLINE_ASR_PROVIDER: cpu
+      TTS_PROVIDER: cpu
+      STREAMING_ASR_NUM_THREADS: "4"
+      TTS_NUM_THREADS: "4"
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    restart: unless-stopped
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 600s
+
+  agent:
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260819-4480743-runtimekws}
+    container_name: conversational-voice-agent
+    init: true
+    network_mode: host
+    depends_on:
+      speech:
+        condition: service_healthy
+    command: ["ovs-agent", "run", "conversation", "--config", "/opt/voice/config/agent-config.yaml"]
+    # Bind the ALSA directory instead of snapshotting individual device nodes.
+    # Together with the wildcard cgroup rule this keeps USB audio hot-pluggable.
+    device_cgroup_rules:
+      - "c 116:* rwm"
+    group_add: ["29"]
+    volumes:
+      - /dev/snd:/dev/snd
+      - ./agent-config.yaml:/opt/voice/config/agent-config.yaml:ro
+      - ./audio_profiles.yaml:/opt/voice/config/audio_profiles.yaml:ro
+      - agent-state:/var/lib/ovs-agent
+    environment:
+      CONFIG_DIR: /opt/voice/config
+      # The agent turns these into the per-session v2v config (asr_language/
+      # tts_language), which is the only language knob the ASR/TTS backends
+      # have. Same operator input as profile-init above.
+      ASR_LANGUAGE: ${LANGUAGE:-en}
+      TTS_LANGUAGE: ${LANGUAGE:-en}
+      OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
+      OVS_AGENT_SERVER_LOOP: "0"
+      PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
+      WAKEWORD_BACKEND: ${WAKEWORD_BACKEND:-sherpa_onnx}
+      WAKEWORD_PHRASE: ${WAKEWORD_PHRASE:-你好小智}
+      WAKEWORD_THRESHOLD: ${WAKEWORD_THRESHOLD:-0.25}
+      WAKEWORD_MIC_SKIP_MS: ${WAKEWORD_MIC_SKIP_MS:-120}
+      LLM_BACKEND: ${LLM_BACKEND:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-EMPTY}
+      LLM_MODEL: ${LLM_MODEL:-qwen3.5-flash}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
+      DEFAULT_MODE: ${DEFAULT_MODE:-chat}
+    restart: unless-stopped
+    logging:
+      options: {max-size: "10m", max-file: "3"}
+
+volumes:
+  resolved-profile:
+  speech-models:
+  voice-data:
+    name: conversational-voice-data
+  agent-state:
+    name: conversational-voice-agent-state

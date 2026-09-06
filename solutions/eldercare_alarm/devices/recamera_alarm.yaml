@@ -1,0 +1,136 @@
+version: "1.0"
+id: recamera_alarm
+name: Alarm Gateway for reCamera
+type: manual
+
+# Why this step is manual rather than docker_deploy.
+#
+# On reCamera 2002 and reCamera Pro the detector is not a container: the 2002
+# runs a native process installed as a .deb, the Pro runs an App Center
+# application. Neither is installed by this solution — the fall_detection
+# solution already does that — and neither can host this alarm service, which
+# needs a filesystem, SQLite and a web server the camera does not offer.
+#
+# So the alarm service runs on a gateway next to the cameras, and that gateway
+# is whatever the integrator already has: a reComputer, a NUC, a home server.
+# A docker_deploy step would have to address it as a known device class with a
+# known user and a known compose target; there is none. The compose file is
+# shipped in assets/recamera/ and the substeps below say exactly what to run.
+#
+# This becomes automatable the day a generic "any Linux host over SSH" device
+# class exists — at that point this file turns into a docker_deploy pointing at
+# assets/recamera/docker-compose.yml with the same user_inputs as the Orin
+# preset, and nothing else about the solution changes.
+
+steps:
+  - id: confirm_event_stream
+    name: Confirm the cameras are publishing
+    name_i18n:
+      zh: 确认摄像头正在发布事件
+    description: >-
+      Deploy the Fall Detection solution on the cameras first — this one
+      consumes its output and installs nothing on the camera. Then subscribe to
+      the camera's topic from the gateway and watch messages arrive:
+      `mosquitto_sub -h <camera-or-broker-ip> -t '#' -v`. A reCamera 2002
+      publishes on `<device-name>/fall-detection/results` (single stream, no
+      stream-id suffix); a reCamera Pro publishes on
+      `<base>/fall-detection/state`. Write down which topic you actually see —
+      the next substep needs the exact string.
+    description_i18n:
+      zh: >-
+        先在摄像头上部署 Fall Detection 方案——本方案只消费它的输出，不在摄像头上装任何东西。
+        然后从网关订阅摄像头的主题，确认有消息进来：
+        `mosquitto_sub -h <摄像头或 broker 地址> -t '#' -v`。reCamera 2002 发布在
+        `<设备名>/fall-detection/results`（单流，无流编号后缀）；reCamera Pro 发布在
+        `<base>/fall-detection/state`。把你实际看到的主题记下来，下一步要按原样填。
+    optional: false
+
+  - id: prepare_gateway
+    name: Prepare the gateway host
+    name_i18n:
+      zh: 准备网关主机
+    description: >-
+      Pick any x86_64 or arm64 Linux machine on the same network as the cameras
+      and install Docker with the compose plugin (`docker compose version` has
+      to succeed). Copy `assets/recamera/` from this solution package onto it —
+      `docker-compose.yml`, `config/mosquitto.conf` and `config/eldercare.yaml`.
+      Note that the alarm image is not published yet (tag pending rebuild):
+      build it from the eldercare-alarm project — `cd eldercare/web/ui && npm
+      install && npm run build && cd -` first, the image now serves that React
+      build rather than a static page, then (`docker build -f docker/Dockerfile
+      -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0
+      .`) — or set `ELDERCARE_ALARM_IMAGE` to a tag you built yourself.
+    description_i18n:
+      zh: >-
+        在与摄像头同网段的任意 x86_64 或 arm64 Linux 机器上装好 Docker 与 compose 插件
+        （`docker compose version` 必须能跑通）。把本方案包里的 `assets/recamera/` 拷过去——
+        `docker-compose.yml`、`config/mosquitto.conf`、`config/eldercare.yaml`。
+        注意告警镜像尚未发布（tag 待重构建）：需要从 eldercare-alarm 项目自行构建——先
+        `cd eldercare/web/ui && npm install && npm run build && cd -`（镜像现在托管的是
+        这份 React 构建产物，不再是静态页面），再
+        （`docker build -f docker/Dockerfile -t
+        sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`），
+        或把 `ELDERCARE_ALARM_IMAGE` 指向你自己构建的 tag。
+    optional: false
+
+  - id: edit_config
+    name: Set the topics, zones and timeouts
+    name_i18n:
+      zh: 设置主题、区域与超时
+    description: >-
+      Open `config/eldercare.yaml` and change four things. Under
+      `mqtt.subscriptions`, replace the sample topics with the exact one you saw
+      in the first substep, mapped to `fall_result_v1` for a 2002 or
+      `recamera_pro_state` for a Pro. Under `mqtt.host`, point at the broker the
+      cameras publish to — `127.0.0.1` if you let this compose file host it and
+      configure the cameras to publish here. Under `zones`, set one entry per
+      area with its `rect`, its `stream_ids` and its
+      `no_person_timeout_sec` / `no_motion_timeout_sec`. Under `notifiers`, set
+      the webhook URL that should receive confirmed alarms, or disable it.
+    description_i18n:
+      zh: >-
+        打开 `config/eldercare.yaml` 改四处。`mqtt.subscriptions` 里把示例主题换成第一步实际
+        看到的那个，2002 映射到 `fall_result_v1`，Pro 映射到 `recamera_pro_state`。
+        `mqtt.host` 指向摄像头发布到的 broker——如果由本 compose 承载 broker 并让摄像头发到这里，
+        就填 `127.0.0.1`。`zones` 下按区域各写一条，含 `rect`、`stream_ids` 与
+        `no_person_timeout_sec` / `no_motion_timeout_sec`。`notifiers` 下填接收确认告警的
+        webhook 地址，或者把它关掉。
+    optional: false
+
+  - id: start_stack
+    name: Start the stack
+    name_i18n:
+      zh: 启动服务
+    description: >-
+      Run `docker compose up -d` in that directory, then `docker compose ps` —
+      both `mosquitto` and `eldercare-alarm` have to be Up. If
+      `eldercare-alarm` restarts in a loop, `docker compose logs eldercare-alarm`
+      will name the configuration key it rejected.
+    description_i18n:
+      zh: >-
+        在该目录下执行 `docker compose up -d`，再看 `docker compose ps`——
+        `mosquitto` 与 `eldercare-alarm` 都必须是 Up。若 `eldercare-alarm` 反复重启，
+        `docker compose logs eldercare-alarm` 会指出它拒绝的那个配置项。
+    optional: false
+
+  - id: check_ingest
+    name: Check that events are being ingested
+    name_i18n:
+      zh: 确认事件已被接收
+    description: >-
+      Run `curl -s http://127.0.0.1:8080/api/alarms` on the gateway. An empty
+      list is the correct answer on a quiet site — it proves the service is up
+      and answering. To prove the ingest path end to end, drop a zone's
+      `no_person_timeout_sec` to 60, restart the service, leave the area empty
+      for a minute, and confirm an alarm appears. Put the real value back
+      afterwards.
+    description_i18n:
+      zh: >-
+        在网关上执行 `curl -s http://127.0.0.1:8080/api/alarms`。现场无事时返回空列表就是
+        正确结果——它说明服务已起来并能应答。要端到端验证接收链路，把某个区域的
+        `no_person_timeout_sec` 临时改成 60，重启服务，让该区域空置一分钟，确认出现一条告警。
+        验证完把原值改回去。
+    optional: false
+
+name_i18n:
+  zh: reCamera 告警网关

@@ -1,0 +1,491 @@
+version: "1.0"
+id: jetson_waste
+name: NVIDIA Jetson Orin
+type: docker_deploy
+
+# NOT VERIFIED ON HARDWARE. Every figure on the solution page was measured with
+# onnxruntime on an Apple M4 CPU. No Jetson number exists for this project — the
+# engine build time below is not a measurement, it is a budget.
+#
+# device_class=jetson pulls in the shared Jetson pre-deploy fixes and the
+# hardware probe (test -f /etc/nv_tegra_release) from the bundled device profile.
+device_class: jetson
+
+docker:
+  compose_file: assets/jetson/docker-compose.yml
+  compose_dir: assets/jetson
+  options:
+    project_name: edge_waste_sorting
+    remove_orphans: true
+  services:
+    - name: waste
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # The first deploy builds a TensorRT engine on the device. MobileNetV3-Small
+  # at 224x224 is a 6 MB ONNX and should build in well under a minute; the
+  # open_vocab track is a 372 MB ViT-B/16 and has never been engine-built
+  # anywhere, so its build time is unknown. The command budget is sized for the
+  # unknown one, not the known one.
+  command_timeout: 3600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: >-
+      ONNX (13.5 MB baseline -- EfficientNet-Lite0, m1c -- plus 372 MB open_vocab), the built TensorRT engine and the
+      container image all live on the device
+  - type: nvidia_runtime
+    description: Check the NVIDIA container runtime is available
+
+# 这台设备整轮部署的墙钟预算，超时即判该设备失败。
+# 本项目在 Jetson 上没有任何实测耗时，这个数字不是实测值的倍数余量，
+# 而是按 A 项目（edge-inspection-surface，Orin NX 实测 YOLOX-Tiny engine
+# 构建 291 s）同量级取的预算：基线模型更小、应当更快，open_vocab 的
+# ViT-B/16 从未构建过、上限未知，所以按后者留余量。
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: NVIDIA Jetson Orin
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-waste-sorting
+  compose_dir: assets/jetson
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Jetson runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+            echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+            exit 1
+          fi
+          if [ ! -d /usr/lib/python3.10/dist-packages/tensorrt ]; then
+            echo "The host tensorrt python package is missing; the compose file mounts it read-only" >&2
+            exit 1
+          fi
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 校验 Jetson 运行环境
+
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+    # These run AFTER the deployer uploads assets/jetson/ to
+    # remote_path/<device-yaml-id>/ and BEFORE `docker compose up`. They must
+    # not move into `before`: config/config.json does not exist on the device
+    # until the upload finishes, and anything written earlier is overwritten.
+    after_upload:
+      - name: Clean macOS sidecar files from the uploaded assets
+        # Uploading from a Mac carries AppleDouble sidecars (._name) and
+        # .DS_Store into the compose directory; compose then tries to parse
+        # ._docker-compose.yml as YAML.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/jetson_waste"
+          find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+          echo "sidecar cleanup done"
+        name_i18n:
+          zh: 清理上传目录里的 macOS 附属文件
+
+      - name: Download the ONNX model and build the TensorRT engine
+        # A TensorRT engine is tied to the exact GPU architecture and TensorRT
+        # version, so it cannot be shipped prebuilt — it is built here, once,
+        # and never redistributed off this device.
+        #
+        # TRT_STATIC_SHAPE: both ONNX files are exported with a STATIC batch-1
+        # shape. Passing --minShapes/--optShapes/--maxShapes makes trtexec 10.3
+        # fail with "Static model does not take explicit shapes", so no explicit
+        # shapes are given here.
+        timeout: 2400
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/jetson_waste"
+          MODELS_DIR="$WORKDIR/models"
+
+          # model_track picks which ONNX gets built. baseline is the closed-set
+          # MobileNetV3-Small head; open_vocab is the SigLIP 2 vision tower,
+          # which also needs its prototype bank and prompt set (fetched below).
+          case "{{model_track}}" in
+            baseline)
+              MODEL_NAME=efficientnet_lite0_waste8
+              SHA=e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+              ;;
+            open_vocab)
+              MODEL_NAME=siglip2_vision_224
+              SHA=6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac
+              ;;
+            *) echo "Unknown model_track: {{model_track}}" >&2; exit 1 ;;
+          esac
+          ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
+          ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
+
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$ENGINE" ]; then
+            echo "Engine already present, skipping build: $ENGINE"
+            exit 0
+          fi
+
+          if [ ! -s "$ONNX" ]; then
+            # TODO(CDN): NOTHING HAS BEEN UPLOADED to this path yet. Until it
+            # is, copy $MODEL_NAME.onnx onto the device at $ONNX by hand; the
+            # sha256 check below still applies either way.
+            echo "Downloading $MODEL_NAME.onnx ..."
+            curl -fSL --retry 3 -o "$ONNX.part" \
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
+            echo "$SHA  $ONNX.part" | sha256sum -c -
+            mv -f "$ONNX.part" "$ONNX"
+          fi
+          echo "$SHA  $ONNX" | sha256sum -c -
+
+          if [ "{{model_track}}" = "open_vocab" ]; then
+            # The prototype bank and the prompt set are what turn the vision
+            # tower's 768-d embedding into eight class scores. Their sha256s are
+            # in assets/models/SHA256SUMS.open_vocab; the runtime republishes
+            # the prompt set's sha as the event's prompt_set_sha256.
+            # TODO(CDN): also not uploaded yet — copy by hand for now.
+            for f in prototypes-en-material8.npz prototypes-en-material8.meta.json; do
+              if [ ! -s "$MODELS_DIR/$f" ]; then
+                curl -fSL --retry 3 -o "$MODELS_DIR/$f.part" \
+                  "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$f" || {
+                    echo "Prototype file $f is not available. Copy it onto the device at $MODELS_DIR/$f." >&2
+                    exit 1; }
+                mv -f "$MODELS_DIR/$f.part" "$MODELS_DIR/$f"
+              fi
+            done
+            grep -E "prototypes-en-material8" "$WORKDIR/../assets/models/SHA256SUMS.open_vocab" 2>/dev/null || true
+          fi
+
+          echo "Building the TensorRT engine for {{model_track}} ..."
+          # --version exits 1 on TensorRT 10.3, so it must not gate the build.
+          /usr/src/tensorrt/bin/trtexec --version || true
+          START=$(date +%s)
+          /usr/src/tensorrt/bin/trtexec \
+            --onnx="$ONNX" \
+            --saveEngine="$ENGINE.part" \
+            --fp16 \
+            --skipInference \
+            --builderOptimizationLevel=3 \
+            --timingCacheFile="$ENGINE.timing.cache"
+          mv -f "$ENGINE.part" "$ENGINE"
+          echo "engine built in $(( $(date +%s) - START ))s"
+          ls -l "$ENGINE"
+          sha256sum "$ENGINE"
+        name_i18n:
+          zh: 下载 ONNX 模型并构建 TensorRT 引擎
+
+      - name: Write the source, trigger and MQTT configuration
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/jetson_waste"
+          CONFIG="$WORKDIR/config/config.json"
+          mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          track = "{{model_track}}"
+          model_names = {
+              "baseline": "efficientnet_lite0_waste8",
+              "open_vocab": "siglip2_vision_224",
+          }
+          onnx_sha = {
+              "baseline": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
+              "open_vocab": "6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac",
+          }
+          config["model"]["path"] = f"/models/{model_names[track]}.engine"
+          config["model"]["accelerator"] = "tensorrt"
+          config["model"]["track"] = track
+          config["model"]["onnx_sha256"] = onnx_sha[track]
+          if track == "open_vocab":
+              config["model"]["backbone"] = "siglip2_base_patch16_224"
+              config["model"]["prototypes"] = "/models/prototypes-en-material8.npz"
+              config["model"]["prompt_set"] = "/models/prompts/waste8-en-v1.json"
+              # Calibrated on val: temperature 0.0075 with template t02,
+              # 16-shot alpha 0.8 (tracks/open_vocab/artifacts/SHA256SUMS).
+              config["model"]["temperature"] = 0.0075
+          else:
+              config["model"]["backbone"] = "efficientnet_lite0"
+              config["model"].pop("prototypes", None)
+              config["model"].pop("prompt_set", None)
+              config["model"].pop("temperature", None)
+
+          # Below this confidence the event is published with
+          # rules.fallback_category instead of the argmax. On val, 4.5% of
+          # images fall below 0.5 for the baseline track.
+          config["rules"]["min_confidence"] = float("{{min_confidence}}")
+          config["trigger"]["mode"] = "on_demand"
+          config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
+          config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+          # The topic prefix is the device name the user chose, so one broker
+          # can carry several bins without collisions.
+          config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+          config["mqtt"]["fallback_topic"] = "{{device_name}}/waste/{stream_id}/fallback"
+          config["sources"] = [{
+              "stream_id": "{{stream_id}}",
+              "uri": "{{source_uri}}",
+              "kind": "{{source_kind}}",
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"model    = {config['model']['path']} (track={track})")
+          print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+          print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        name_i18n:
+          zh: 写入视频源、触发与 MQTT 配置
+
+    after:
+      - name: Verify the runtime is up and answering triggers
+        timeout: 240
+        run: |
+          set -e
+          BROKER=edge-waste-mosquitto
+          TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+          echo "Waiting for the health endpoint ..."
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+              cat /tmp/healthz.json
+              # Fire one HTTP trigger and wait for the resulting event. The
+              # button and motion sources cannot be exercised from here.
+              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+              SUB=$!
+              sleep 1
+              curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+              if wait $SUB; then
+                echo "MQTT result received on $TOPIC"
+                docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "No verified MQTT result yet." >&2
+          docker logs --tail 40 edge-waste-app 2>&1 || true
+          echo "Check the source URI and the container logs." >&2
+        ignore_error: true
+        name_i18n:
+          zh: 验证运行时已启动并能响应触发
+
+  user_inputs:
+    - id: host
+      name: Jetson IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: Jetson IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "orin-nx"
+      required: true
+      description: First segment of the MQTT topic — name this device after the bin or the drop-off point so several installations stay separable on one broker
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按垃圾桶或投放点命名，多台设备在同一个 broker 上就不会混
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "bin1-cam1"
+      required: true
+      description: Appended to the MQTT topic so several cameras on one box stay separable. It is also in the payload — consumers must read it there, not parse the topic.
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机。它同时也在 payload 里——消费者必须从 payload 读，不要解析 topic。
+    - id: source_kind
+      name: Camera Type
+      type: select
+      default: usb
+      required: true
+      options:
+        - value: usb
+          label: USB camera (/dev/videoN)
+          label_i18n:
+            zh: USB 摄像头（/dev/videoN）
+        - value: rtsp
+          label: IP camera (RTSP URL)
+          label_i18n:
+            zh: IP 摄像头（RTSP 地址）
+        - value: file
+          label: Video file — for bench testing without a camera
+          label_i18n:
+            zh: 视频文件——没有相机时的台面测试
+      name_i18n:
+        zh: 相机类型
+    - id: source_uri
+      name: Camera Address
+      type: text
+      required: true
+      default_template: "/dev/video0"
+      placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
+      name_i18n:
+        zh: 相机地址
+      description_i18n:
+        zh: 用 USB 相机时还要在 assets/jetson/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释——否则容器里看不到视频节点。不要整个挂载 /dev。
+    - id: model_track
+      name: Classifier Track
+      type: select
+      default: baseline
+      required: true
+      description: >-
+        baseline is the closed-set EfficientNet-Lite0 head (m1c): higher top-1
+        on this taxonomy than open_vocab (0.8877 vs 0.8501 on the same val
+        split) and roughly 4-5x faster on CPU (no Jetson TensorRT figure
+        exists for either track). The prior baseline, MobileNetV3-Small
+        (m1b), was superseded because it collapsed under INT8 quantisation on
+        every edge chain tested (Hailo, RK3576, RK3588) -- see the solution
+        page. open_vocab is the SigLIP 2 vision tower scored against text
+        prototypes: better calibrated, able to score open-set rejection and to
+        answer in either language, and able to add a class without retraining —
+        but 372 MB, never engine-built on any board, and no Jetson latency
+        figure exists for it. Neither track has been measured on hardware.
+      options:
+        - value: baseline
+          label: Baseline EfficientNet-Lite0 (m1c) — higher top-1, 13.5 MB, the default
+          label_i18n:
+            zh: 基线 EfficientNet-Lite0（m1c）——top-1 更高，13.5 MB，默认项
+        - value: open_vocab
+          label: Open-vocabulary SigLIP 2 — better calibrated, adds classes without retraining, 372 MB, no timing on any board
+          label_i18n:
+            zh: 开放词汇 SigLIP 2——校准更好、不重训就能加类，372 MB，任何板卡上都无实测耗时
+      name_i18n:
+        zh: 分类器 Track
+      description_i18n:
+        zh: >-
+          baseline 是闭集 EfficientNet-Lite0 头（m1c）：在这套分类法上 top-1
+          比 open_vocab 更高（同一份 val 上 0.8877 对 0.8501），CPU 上大约快
+          4-5 倍（两条 track 都没有 Jetson TensorRT 实测数字）。原基线
+          MobileNetV3-Small（m1b）已被取代，因为它在每一条测过的边缘链路
+          （Hailo、RK3576、RK3588）上都出现 INT8 量化塌缩——详见方案页。
+          open_vocab 是 SigLIP 2 视觉塔对文本原型打分：校准更好、能给开放集
+          拒识分数、中英文都能回答、不重训就能加类——但 372 MB，从未在任何
+          板卡上构建过 engine，也没有任何 Jetson 时延数字。两条 track 都没有
+          上板实测过。
+    - id: trigger_sources
+      name: Trigger Sources
+      type: select
+      default: "http"
+      required: true
+      description: Which sources fire a capture. HTTP is POST /trigger on port 8080 and is the only one this deployment can exercise by itself; button and motion need wiring or a framed scene.
+      options:
+        - value: "http"
+          label: HTTP only — POST /trigger
+          label_i18n:
+            zh: 仅 HTTP——POST /trigger
+        - value: "http,button"
+          label: HTTP + physical button
+          label_i18n:
+            zh: HTTP + 实体按钮
+        - value: "http,motion"
+          label: HTTP + motion in frame
+          label_i18n:
+            zh: HTTP + 画面移动侦测
+        - value: "http,button,motion"
+          label: All three
+          label_i18n:
+            zh: 三者全开
+      name_i18n:
+        zh: 触发源
+      description_i18n:
+        zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger，也是本次部署唯一能自己验证的一个；按钮与移动侦测需要接线或布好画面。
+    - id: debounce_ms
+      name: Trigger Debounce (ms)
+      type: text
+      default: "800"
+      required: true
+      description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued. Below roughly 300 ms a bouncing button will fire twice per press.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: 触发去抖（毫秒）
+      description_i18n:
+        zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队。低于约 300 ms 时，抖动的按钮一次按压会触发两次。
+    - id: min_confidence
+      name: Minimum Confidence
+      type: text
+      default: "0.5"
+      required: true
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. On the val set 4.5% of images fall below 0.5 for the baseline track; raising it sends more items to the residual bin rather than guessing.
+      validation:
+        pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+      name_i18n:
+        zh: 最低置信度
+      description_i18n:
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。基线 track 在 val 上有 4.5% 的图低于 0.5；调高它意味着更多东西被送进其他垃圾档，而不是去猜。

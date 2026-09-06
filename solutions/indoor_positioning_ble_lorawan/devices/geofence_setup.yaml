@@ -1,0 +1,99 @@
+version: "1.0"
+id: geofence_setup
+name: Set Up a Geofence Alarm
+type: manual
+
+# Why manual: the fence geometry is drawn on the map. The REST surface
+# (POST /api/geofences, POST /api/events) exists and is what the evaluation run
+# used, but the polygon itself is a human decision. The last substep is the
+# verification: replay or walk a track across the boundary and see the alarm.
+
+steps:
+  - id: draw_fence
+    name: Draw the fence
+    name_i18n:
+      zh: 画围栏
+    description: >-
+      In alarm settings, create a geofence. Geometry is either a GeoJSON polygon
+      (or multipolygon) or a circle given as a centre point plus radius_m, always
+      in WGS84. Polygons are evaluated with a prepared-geometry covers test,
+      circles with a haversine distance, so a fence can be as large as a site or
+      as small as a doorway - but see the hysteresis note below before drawing
+      anything narrower than a few GNSS fixes wide.
+    description_i18n:
+      zh: >-
+        在告警设置里新建围栏。几何形状是 GeoJSON 多边形（或多重多边形），
+        或者“中心点 + radius_m”的圆，一律用 WGS84。多边形走 prepared geometry 的
+        covers 判定，圆走 haversine 距离，所以围栏可以大到整个厂区、小到一个门口——
+        但在画得比几个 GNSS 点还窄之前，先看下面关于迟滞的说明。
+    optional: false
+  - id: bind_alarm_rule
+    name: Bind an alarm rule in geo mode
+    name_i18n:
+      zh: 绑定 geo 模式的告警规则
+    description: >-
+      Create the alarm rule with location_mode = geo (rather than the legacy ble
+      mode), point it at the fence, and choose the transition - enter, exit or
+      both. In geo mode the rule needs no beacon selection at all: the decision
+      is made on latitude and longitude. Enter alarms are broadcast as
+      tracker_checkin and exit alarms as tracker_position_detection, both with an
+      extra geofence block naming the fence and the direction.
+    description_i18n:
+      zh: >-
+        新建告警规则时把 location_mode 设为 geo（不是原来的 ble 模式），指向刚才的围栏，
+        并选择方向：进入、离开或两者。geo 模式完全不需要选信标，判定只看经纬度。
+        进入告警走 tracker_checkin 广播、离开告警走 tracker_position_detection，
+        两者都额外带一个 geofence 段，写明围栏与方向。
+    optional: false
+  - id: review_hysteresis_defaults
+    name: Review the hysteresis defaults before going live
+    name_i18n:
+      zh: 上线前过一遍迟滞默认值
+    description: >-
+      Defaults - a fence state flips only after 3 consecutive points on the new
+      side spanning at least 10 s; a point whose accuracy is worse than 25 m is
+      dropped; a point closer to the boundary than its own accuracy holds the
+      current state and does not advance the pending count; the very first
+      observation after a restart only seeds inside/outside and never raises an
+      alarm. Consequence for narrow fences - a crossing that takes less than
+      three uplinks may not be reported at all. Second consequence - in geo mode
+      the rule's time_range field does nothing, the fence confirmation replaces
+      it. Note that accuracy is null in every uplink this hardware produces, so
+      the accuracy gate and the buffer band never actually engage; the server log
+      prints one line per point saying so.
+    description_i18n:
+      zh: >-
+        默认值：新一侧连续 3 个点且跨度至少 10 s 才切换围栏状态；accuracy 差于 25 m 的
+        点直接丢弃；点到边界的距离小于自身 accuracy 时保持原状态、且不推进 pending 计数；
+        重启后的第一次观测只落地 inside/outside，不产生告警。对窄围栏的影响：
+        少于三条上行就穿过去的一次跨越可能完全不报。另一个影响：geo 模式下规则里的
+        time_range 不起作用，围栏自己的确认取代了它。注意这套硬件的上行里 accuracy
+        恒为 null，所以精度门槛与缓冲带实际从不生效，服务端日志会逐点打印这一条。
+    optional: false
+  - id: verify_geofence_alarm
+    name: "Verify: cross the boundary and see the alarm"
+    name_i18n:
+      zh: 验证：穿越边界并看到告警
+    description: >-
+      Walk a tracker across the fence, or replay a track (the repository ships
+      evaluation/traces/geofence_dwell.jsonl and
+      evaluation/replay_chirpstack.py for exactly this). Expected - one enter
+      alarm and one exit alarm, each landing on the third consecutive point on
+      the new side, and no alarm at all from loitering back and forth on the
+      line. On the reference run, 6 flips at the boundary produced 0 alarms. The
+      alarm must appear in the dashboard alarm list and as a WebSocket broadcast
+      carrying the geofence block; the stored record has pos_type gps and an
+      empty beacons array, which is what proves the decision did not come from
+      BLE.
+    description_i18n:
+      zh: >-
+        带着追踪器走过围栏，或者回放一条轨迹（仓库里的
+        evaluation/traces/geofence_dwell.jsonl 与 evaluation/replay_chirpstack.py
+        就是干这个的）。期望：一条进入告警、一条离开告警，各自落在新一侧的第 3 个连续点上；
+        在边界上来回徘徊则一条都不报——参考实测里门口翻转 6 次产生 0 条告警。
+        告警要同时出现在面板的告警列表里，以及带 geofence 段的 WebSocket 广播里；
+        入库记录的 pos_type 是 gps、beacons 是空数组，这两点证明判定没有依赖 BLE。
+    optional: false
+
+name_i18n:
+  zh: 配置地理围栏告警

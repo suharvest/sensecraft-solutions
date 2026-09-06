@@ -52,11 +52,45 @@
 - 云端套餐持续需要联网；全本地套餐在产物缓存完成后可以断网运行。
 - Qwen 云端默认使用北京地域 OpenAI 兼容地址；其他地域或供应商请替换接口地址和模型 ID。
 
+## 语言 × 设备支持矩阵
+
+对话语言在部署时选择。部署会先把（语言，设备）解析成唯一语音配置，再启动服务；
+该设备无法服务的组合直接拒绝，不会换一个读不懂该语言的模型顶上。
+
+语言选项取 RK runtime 的 30 语种口径——这是两份可用列表中较窄的一侧，Qwen3-ASR
+上游标称 52 语种，Whisper 为 99 语种。语言按中文、英文、其余 28 种三组处理。
+
+| 设备 | 中文 | 英文 | 其余 28 种语言 |
+|------|------|------|----------------|
+| Orin Nano 8GB | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
+| Orin NX 16GB（云端对话） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
+| Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS CustomVoice，待测 |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，2026-09-06 用离线整段 `/asr` 接口（不经 VAD 端点）实测的模型能力：CER 短句 1.05% / 长句 9.62%，TTS RTF 0.194（详见 docs/perf/rk3576-matrix-20260906.md） | 不支持——该板 TTS 仅有 Matcha zh-en |
+
+上面 1.05%/9.62% 是把整段音频一次性丢给离线 `POST /asr` 接口（不经 VAD、不走
+流式）测出的解码器能力。**实时对话会话**行为不同：其低延迟轮次检测（silero
+VAD，400ms 静音 + 2.5s 最小音频）在听到的第一个自然停顿处就判定说话结束并给出
+最终结果，导致一句带停顿的长句只会得到第一个分句的回复（对照完整参考文本算出
+的 CER 为中文 84.06%、英文 WER 63.38%）——**这是流式端点的轮次设计，不是识别
+错误**；已用放开解码器 token 上限与标点截断设定（`ASR_MAX_NEW_TOKENS=256`、
+`ASR_FINAL_STOP_ON_PUNCT=0`）复测过，结果与对话模式逐字一致，证实是 VAD 端点而
+非解码器在提前结束轮次。调整 VAD 端点使对话场景能挺过句中停顿是待办事项，本次
+未做。
+| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，待测 | Qwen3-ASR + Kokoro RKNN，待测 |
+| 树莓派 5 | 不支持 | sherpa-onnx CPU，待测 | 不支持 |
+
+"待测"指各组件有实测数据、端到端组合还没有。本表唯一的实测精度数字是 Orin NX 上的
+Qwen3-ASR 0.6B int4：golden set 流式与离线均 CER 0，2026-07-04。其余单元格可以部署但
+没有量化数据，不要按表中未写出的时延或精度数字做规划。
+
+**中文绝不交给 Whisper。** Whisper 在已实测的每块板上中文 CER 都在 35-56%，所以没有
+Qwen3-ASR 后端的树莓派 5 直接拒绝中文，而不是勉强识别。
+
 ## 方案对比
 
 | 套餐 | 对话模型 | 支持设备 | 适合谁 |
 |------|----------|----------|--------|
-| 云端或兼容接口 | Qwen API 或任意 OpenAI 兼容模型 | RK3576 / RK3588 / Orin Nano / Orin NX | 最快获得完整对话体验 |
+| 云端或兼容接口 | Qwen API 或任意 OpenAI 兼容模型 | RK3576 / RK3588 / Orin Nano / Orin NX / 树莓派 5 | 最快获得完整对话体验 |
 | 全本地对话 | RK1828 Qwen3-4B 或 Orin NX Qwen3.5-4B | RK3588 + RK1828 / Orin NX 16GB | 隐私、离线和固定成本场景 |
 
 ### 技术组合

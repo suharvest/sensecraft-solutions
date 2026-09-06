@@ -1,0 +1,230 @@
+version: "1.0"
+id: enable_vlm_fallback
+name: Enable VLM Fallback for Low-Confidence and Ambiguous Items (Optional)
+name_i18n:
+  zh: 启用 VLM 低置信 / 歧义兜底（可选）
+type: manual
+
+# Why this step is manual, and why it is Orin-only.
+#
+# There is no deployer capability for "point this container at an external
+# service and add a proxy exception" — it is one config.json section plus a
+# host-level environment check, not a deployable artefact. The VLM service
+# (edge-vision-vlm) is not part of this solution; it is assumed to be running
+# somewhere the sorting host can reach, typically an Orin box.
+#
+# The step is optional and additive: the VLM never enters the classification
+# path, never changes the main event's category, and every figure on the
+# solution page holds with vlm.enabled left at its default (false). A slow,
+# degraded or disabled VLM produces no fallback event and nothing else changes.
+#
+# STUB-ONLY EVIDENCE SO FAR. The wiring was verified end to end against the
+# real edge-vision-vlm app with its generation backend replaced by a stub
+# (evaluation/runs/2026-09-06-mvlmw-stub-localhost): 5 frames, 5 contract-valid
+# main events, 2 fallback events, 0 rejects. Request validation, taxonomy
+# matching and the response fields are the service's real code; the generated
+# text is not. vlm_latency_ms in that run is a hard-coded 12.5 ms. Real-model
+# latency and whether the VLM's category is actually better than the
+# classifier's are both PENDING VERIFICATION AGAINST A REAL SERVICE ON ORIN.
+
+user_inputs:
+  - id: vlm_base_url
+    name: VLM Service URL
+    type: text
+    required: true
+    placeholder: "http://192.168.1.50:8100"
+    description: Base URL of a reachable edge-vision-vlm instance. Typically a separate Orin box on the same network — this solution does not bundle or start that service.
+    name_i18n:
+      zh: VLM 服务地址
+    description_i18n:
+      zh: 一个可达的 edge-vision-vlm 实例地址。通常是同网络里另一台 Orin 主机——本方案不打包也不启动这个服务。
+  - id: vlm_timeout_ms
+    name: Client Timeout (ms)
+    type: text
+    default: "4000"
+    required: true
+    description: Hard client timeout for one /v1/fallback call. On expiry the call is abandoned and no fallback event is published — the main event is never affected.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 客户端超时（毫秒）
+    description_i18n:
+      zh: 一次 /v1/fallback 调用的硬超时。超时就放弃这次调用、不发兜底事件——主事件完全不受影响。
+  - id: vlm_min_confidence
+    name: Low-Confidence Trigger Threshold
+    type: text
+    default: "0.6"
+    required: true
+    description: >-
+      Call the VLM when the classifier's top-1 confidence is below this. It
+      must not be lower than rules.min_confidence — a fallback gate below the
+      reclassification gate is rejected by config validation.
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 低置信度触发阈值
+    description_i18n:
+      zh: >-
+        分类器 top-1 置信度低于这个值时调用 VLM。它不得低于 rules.min_confidence——
+        兜底门限低于改判门限会被配置校验拒掉。
+  - id: vlm_margin
+    name: Ambiguity Margin
+    type: text
+    default: "0.15"
+    required: true
+    description: >-
+      Call the VLM when top-1 minus top-2 is below this, even if top-1 cleared
+      the confidence threshold. This is the ambiguous-item gate: an argmax
+      between two close material classes is a coin flip that a confidence
+      threshold alone does not catch — glass against plastic is the largest
+      confusion in the measured matrix. Note the reachable range: under softmax
+      with a threshold g, the gap on the accepted side is at least 2g-1, so at
+      g=0.6 a margin below 0.2 can never fire.
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 歧义间隔
+    description_i18n:
+      zh: >-
+        当 top-1 减 top-2 小于这个值时调用 VLM，即使 top-1 已经过了置信度门限。
+        这是歧义物品的闸门：两个相近材质类之间的 argmax 是掷硬币，
+        单靠置信度阈值抓不住——玻璃对塑料就是实测混淆矩阵里最大的一格。
+        注意可达区间：softmax 下门限为 g 时，被接受一侧的差至少是 2g−1，
+        所以 g=0.6 时 margin 小于 0.2 永远不会触发。
+  - id: vlm_explain
+    name: Also Fetch a Longer Explanation
+    type: select
+    default: "false"
+    required: true
+    description: >-
+      After a fallback answer, also call POST /v1/explain and attach its text
+      to the same waste_fallback event. One extra call per fallback, so it
+      doubles the VLM load on ambiguous items. The one-line rationale is
+      always present without it.
+    options:
+      - value: "false"
+        label: "No — rationale only (one call per fallback)"
+        label_i18n:
+          zh: 否——只要一行 rationale（每次兜底一个调用）
+      - value: "true"
+        label: "Yes — also attach a longer explanation (two calls per fallback)"
+        label_i18n:
+          zh: 是——再附一段较长的解释（每次兜底两个调用）
+    name_i18n:
+      zh: 同时获取较长解释
+    description_i18n:
+      zh: >-
+        拿到兜底结论后再调一次 POST /v1/explain，把文本附到同一条
+        waste_fallback 事件上。每次兜底多一个调用，歧义物品上的 VLM 负载翻倍。
+        不开也总是有一行 rationale。
+
+steps:
+  - id: edit_vlm_config
+    name: Edit config.json to point at the VLM service
+    name_i18n:
+      zh: 编辑 config.json 指向 VLM 服务
+    description: >-
+      On the device, edit config/config.json and set the top-level vlm section:
+      {"enabled": true, "base_url": "<the VLM Service URL you entered>",
+      "timeout_ms": <the timeout you entered>, "explain_on_fallback": <your
+      explanation choice>, "apply_fallback_to_gpio": false, "trigger":
+      {"min_confidence": <your threshold>, "margin": <your margin>}}. Restart
+      the container (docker compose restart waste). Leave enabled at its
+      default false is always safe — the vlm section is optional and additive.
+      Keep apply_fallback_to_gpio false: a flap must not wait on a call whose
+      P50 is measured in seconds.
+    description_i18n:
+      zh: >-
+        在设备上编辑 config/config.json，设置顶层 vlm 段：
+        {"enabled": true, "base_url": "<你填的 VLM 服务地址>", "timeout_ms":
+        <你填的超时值>, "explain_on_fallback": <你选的解释开关>,
+        "apply_fallback_to_gpio": false, "trigger": {"min_confidence":
+        <你填的阈值>, "margin": <你填的间隔>}}。改完重启容器
+        （docker compose restart waste）。保持 enabled 为默认的 false
+        永远是安全的——vlm 段在 schema 里是可选 additive 字段。
+        apply_fallback_to_gpio 保持 false：翻盖不能去等一个 P50 以秒计的调用。
+    optional: false
+
+  - id: set_no_proxy
+    name: Exempt the VLM address from any host proxy
+    name_i18n:
+      zh: 让 VLM 地址绕开主机代理
+    description: >-
+      If the sorting host or its container runtime has HTTP_PROXY / HTTPS_PROXY
+      set, add the VLM host to no_proxy before testing — and include the
+      loopback: no_proxy=127.0.0.1,localhost,<vlm-host>. httpx honours
+      HTTP_PROXY, and a transparent proxy takes over even 127.0.0.1: with the
+      VLM service stopped, a connection that should be refused comes back as an
+      HTTP 502 from the proxy instead, which this runtime counts identically to
+      a real backend error. Same behaviour, misleading attribution. The stub
+      integration run set no_proxy='*' throughout, which is why it saw a clean
+      transport_error. The simplest fix on a device is to give the container no
+      proxy variables at all.
+    description_i18n:
+      zh: >-
+        如果分类主机或它的容器运行时设了 HTTP_PROXY / HTTPS_PROXY，
+        测试前先把 VLM 主机加进 no_proxy——并且要带上回环地址：
+        no_proxy=127.0.0.1,localhost,<vlm主机>。httpx 认 HTTP_PROXY，
+        而透明代理连 127.0.0.1 都会接管：VLM 服务停掉时，本该是
+        connection refused 的情况会变成代理自己返回的 HTTP 502，
+        本运行时把它和真正的后端错误记成同一类。行为一样，但归因会误导。
+        stub 联调全程带 no_proxy='*'，所以拿到的是干净的 transport_error。
+        设备上最省事的做法是干脆不给容器任何代理变量。
+    optional: false
+
+  - id: verify_fallback_event
+    name: Verify — subscribe and see one waste_fallback event
+    name_i18n:
+      zh: 验证——订阅并看到一条 waste_fallback 事件
+    description: >-
+      Subscribe with "mosquitto_sub -h <device-ip> -t
+      '<device-name>/waste/+/fallback' -C 1" and present an item the classifier
+      is unsure about — a crushed or backlit object, or something between two
+      material classes. Within the configured timeout one JSON event should
+      arrive with type waste_fallback, vlm_fallback_used true, a trigger of
+      low_confidence or ambiguous, vlm_model, vlm_latency_ms, and both
+      primary_confidence and primary_top3 carrying what the classifier said.
+      Match it to the main event by frame_id. If both gates trip at once the
+      event reports low_confidence, the stronger of the two. No event within
+      timeout_ms plus a few seconds means the VLM was unreachable, slow or the
+      breaker is open — check base_url from inside the container and check
+      no_proxy, see the previous substep. Silent degradation is by design; the
+      main results stream does not stop.
+    description_i18n:
+      zh: >-
+        用 "mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/fallback' -C 1"
+        订阅，然后拿一件分类器拿不准的东西给它看——压扁的、逆光的，
+        或者卡在两个材质类之间的。配置的超时之内应当收到一条 type 为
+        waste_fallback 的 JSON 事件，带 vlm_fallback_used 为 true、
+        trigger 为 low_confidence 或 ambiguous、vlm_model、vlm_latency_ms，
+        以及记录分类器原判的 primary_confidence 与 primary_top3。
+        按 frame_id 与主事件对齐。两条依据同时成立时事件报更强的那条
+        low_confidence。超过 timeout_ms 加几秒还没收到，说明 VLM 不可达、
+        慢，或者熔断已打开——在容器里检查 base_url 可达性，并检查 no_proxy，
+        见上一小步。静默降级是设计如此；主 results 流不会因此停止。
+    optional: false
+
+  - id: dont_trust_it_yet
+    name: Do not treat the VLM's category as the better answer yet
+    name_i18n:
+      zh: 暂时不要把 VLM 的类别当成更好的答案
+    description: >-
+      The fallback event carries the VLM's own category and its own confidence,
+      and neither is comparable with the classifier's softmax confidence. The
+      event never backfills the main event, deliberately. Whether the VLM is
+      actually more often right on the items that trip these gates has not been
+      measured — the only integration evidence so far is a stub run whose
+      generated text was fixed, and its vlm_latency_ms of 12.5 ms is a
+      hard-coded constant, not a model. Real latency and real accuracy are
+      pending verification against a real service on Orin. Until then, treat
+      the fallback stream as a second opinion to log and review, not as a
+      correction to act on.
+    description_i18n:
+      zh: >-
+        兜底事件带的是 VLM 自己的类别与自己的置信度，两者都不能与分类器的
+        softmax 置信度比较。事件刻意不回填主事件。VLM 在触发这些闸门的物品上
+        是不是真的更常判对，没有测过——目前唯一的联调证据是一次
+        stub 跑批，生成文本是固定的，其中 vlm_latency_ms 的 12.5 ms 是写死的
+        常数而不是某个模型的表现。真实时延与真实精度待在 Orin 上用真服务验证。
+        在那之前，把兜底流当作可以记录和复盘的第二意见，不要当作可以照做的更正。
+    optional: false

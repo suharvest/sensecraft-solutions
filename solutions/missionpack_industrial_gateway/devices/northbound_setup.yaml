@@ -1,0 +1,102 @@
+version: "1.0"
+id: northbound_setup
+name: Configure Northbound Publishing and Verify Store-and-Forward
+name_i18n:
+  zh: 配置北向上云并验证断网补传
+type: manual
+
+# Why manual: the northbound publisher is configured through authenticated
+# admin HTTP endpoints (PUT /system/northbound-publish/config, POST .../start,
+# GET .../status) that need an administrator session created in Step 2. There is
+# no deployer capability that can drive an authenticated multi-call admin flow,
+# and the credentials are write-only, so this step guides the operator instead of
+# scripting it. The last substep is the verification for this step.
+#
+# NOT WIRED INTO THE GUIDE YET. guide.md / guide_zh.md Step 3 deliberately omits
+# `config=devices/northbound_setup.yaml` and `verify=true` so the App never offers an
+# operation that returns HTTP 404 on the packaged image. Restore both attributes on the
+# Step 3 header once the image carrying the northbound publisher is published.
+#
+# Image tag: northbound outbound publishing is NOT in the currently published
+# tag (missionpack-knn:v1.6.7). It ships in the pending tag described in the
+# deployment guide. Confirm the running tag before following these substeps.
+
+steps:
+  - id: confirm_image_tag
+    name: Confirm the running image provides northbound publishing
+    name_i18n:
+      zh: 确认运行中的镜像包含北向上云能力
+    description: >-
+      Run `docker inspect -f '{{.Config.Image}}' missionpack-industrial-gateway` on the
+      deployment host and record the tag. Then open `GET /system/northbound-publish/status`
+      in the web console session. A tag without the feature returns HTTP 404 for that path;
+      in that case stop here and wait for the pending tag named in the deployment guide.
+    description_i18n:
+      zh: >-
+        在部署主机上执行 `docker inspect -f '{{.Config.Image}}' missionpack-industrial-gateway`
+        记录镜像 tag，然后在已登录的管理界面会话中访问 `GET /system/northbound-publish/status`。
+        不含该能力的 tag 会对这个路径返回 HTTP 404；此时请停在这一步，等待部署指南中列出的
+        待构建 tag。
+    optional: false
+
+  - id: configure_target
+    name: Configure the cloud broker target
+    name_i18n:
+      zh: 配置云端 Broker 目标
+    description: >-
+      Send `PUT /system/northbound-publish/config` with the broker host and port, the topic
+      prefix, the batch flush settings, the spool limits, and the TLS material. Use TLS 1.2
+      or newer with CA and hostname verification; mutual TLS is optional. Plaintext is
+      rejected outside the test and development runtime profiles, so a production gateway
+      must supply a CA bundle. Credentials are write-only — omitting a credential field on a
+      later PUT keeps the stored value, and status never echoes it back.
+    description_i18n:
+      zh: >-
+        通过 `PUT /system/northbound-publish/config` 提交 Broker 地址与端口、主题前缀、批量
+        flush 参数、spool 限额和 TLS 材料。必须使用 TLS 1.2 及以上并校验 CA 与主机名，双向
+        TLS 可选。除 test/development 运行档外明文一律拒绝，生产网关必须提供 CA 证书。凭据
+        字段只写：后续 PUT 省略某个凭据字段时保留已存值，status 接口从不回显凭据。
+    optional: false
+
+  - id: start_publisher
+    name: Start the publisher and check its status
+    name_i18n:
+      zh: 启动发布器并检查状态
+    description: >-
+      Send `POST /system/northbound-publish/start`, then poll
+      `GET /system/northbound-publish/status` until it reports running, connected, and a
+      queue capacity greater than zero. `POST /system/northbound-publish/stop` shuts the
+      link down again and publishes an offline status message. Subscribe to
+      `<prefix>/{gateway}/telemetry` on the cloud broker and confirm batched envelopes
+      arrive with a `schema_version`, a `message_id`, and a `samples` array.
+    description_i18n:
+      zh: >-
+        执行 `POST /system/northbound-publish/start`，随后轮询
+        `GET /system/northbound-publish/status`，直到返回 running、connected 且队列容量大于 0。
+        `POST /system/northbound-publish/stop` 关闭链路并发出 offline 状态消息。在云端 Broker
+        订阅 `<前缀>/{gateway}/telemetry`，确认收到的批量 envelope 含 `schema_version`、
+        `message_id` 和 `samples` 数组。
+    optional: false
+
+  - id: verify_store_and_forward
+    name: Verify offline buffering and replay
+    name_i18n:
+      zh: 验证断网缓存与补传
+    description: >-
+      Block the gateway from reaching the broker (stop the broker, or drop the route). Watch
+      `northbound.spool.queued` and `queued_bytes` in `GET /system/runtime-metrics` grow
+      while the link is down, then restore the broker. Verification passes when the cloud
+      subscriber receives the buffered batches in order after reconnect and
+      `northbound.spool.queued` returns to 0 with `dropped` unchanged. On the reference rig a
+      300 s outage at about 350 events/s buffered 18.33 MB across 325 batches at 60.1 KB/s
+      and drained fully; use a persistent broker with a durable subscriber session, because
+      an in-memory broker discards messages that arrive before your subscriber re-subscribes.
+    description_i18n:
+      zh: >-
+        切断网关到 Broker 的连接（停掉 Broker 或断掉路由）。断网期间在
+        `GET /system/runtime-metrics` 中观察 `northbound.spool.queued` 与 `queued_bytes` 持续
+        增长，然后恢复 Broker。验证通过的判据是：重连后云端订阅者按序收到缓存的批次，
+        `northbound.spool.queued` 回到 0 且 `dropped` 没有增加。参考压测台上 300 s 断网、约
+        350 events/s 时缓存了 18.33 MB / 325 批，增长率 60.1 KB/s，重连后全部排空。请用带持久化
+        的 Broker 与持久订阅会话，因为纯内存 Broker 会丢弃在你的订阅者重新订阅之前到达的消息。
+    optional: false
