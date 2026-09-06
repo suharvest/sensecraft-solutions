@@ -124,19 +124,30 @@ The FP16 engine was also compared box-for-box against the same ONNX on CPU
 TensorRT side, mean IoU 0.9972 (minimum 0.8311), mean score difference 0.0011,
 mAP50 difference 0.0003. FP16 changed no frame's OK/NG verdict.
 
-### Hailo-8 — compiled and emulated; 2026-09-06 on-device pass partially completed
+### Hailo-8 — on-device numbers from harvest-pi (2026-09-06)
 
-The Raspberry Pi 5 + Hailo-8 path has an INT8 HEF built with Dataflow Compiler
-3.31.0 / HailoRT 4.21.0, and its quantisation loss has been measured against the
-compiler's own emulator. A 2026-09-06 pass on fleet `harvest-pi` verified the
-HailoRT 4.21.0 driver/userspace/firmware triple, the HEF's tensor layout
-(`hailortcli parse-hef`), a native arm64 build of the runtime image, and the
-Python ABI match inside the container (3.11.2 against the cp311 wheel). **No
-accuracy, throughput or latency number for that board exists yet**: the sole
-Hailo-8 on harvest-pi was held exclusively by a pre-existing container outside
-this solution's scope that the task could not stop, so every `VDevice()`
-creation returned `HAILO_OUT_OF_PHYSICAL_DEVICES` and no real inference ran.
-See `evaluation/runs/2026-09-06-rpi-hailo/results.md` in the repository.
+The Raspberry Pi 5 + Hailo-8 path has an INT8 HEF (level-0, `optimization_level=0`)
+built with Dataflow Compiler 3.31.0 / HailoRT 4.21.0. On-device measurement on
+fleet `harvest-pi` (a 15-minute window with the board's sole Hailo-8 freed up
+from a pre-existing container that otherwise holds it exclusively):
+
+| Metric | Value | Conditions | Source |
+|---|---:|---|---|
+| Hardware inference FPS (`hailortcli run`) | 106.75 FPS | 854 frames / 8 s, HW latency 8.47 ms, no app-level pre/post-processing | `evaluation/runs/2026-09-06-rpi-hailo/results.md` §7.1 |
+| mAP50 vs CPU golden (290-image val set) | 0.7091 vs 0.7574 (CPU), delta -0.0483 | `evaluate_accuracy.py detect --backend hailo` + `compare` | Same run §7.2 |
+| Box match rate (IoU >= 0.5) | 86.66% (523 matched / 684 total boxes) | Same comparison | Same run §7.2 |
+| Application-level inference FPS | 91.49 FPS (p50 10.93 ms, p95 13.19 ms) | `detector.detect()` only, bare-metal process reusing an existing Hailo Python venv | Same run §7.4 |
+| Full-pipeline throughput | 46.14 FPS | Real `InspectionApp`: verdict + Modbus + MQTT + contract validation, source throttle removed | Same run §7.4 |
+| End-to-end latency at 10 FPS line rate | p50 11.61 ms, p95 14.99 ms, p99 16.63 ms | `e2e_latency.py`, capture-to-Modbus-coil | Same run §7.5 |
+| MQTT events | 20 captured, 3 sampled, all pass `contracts/validate_payload.py` (mqtt-event v1) | `mosquitto_sub` against the on-device broker | Same run §7.6 |
+| Bare-metal process RSS | ~126 MB | Not measured through a container this round; the Dockerfile/ABI path was already verified separately | Same run §7.7 |
+
+The two weakest classes (crazing AP50 0.3873, rolled-in_scale AP50 0.4483) lose
+the most to INT8 quantisation — consistent with the emulator-stage finding
+below, not a new problem introduced by the real board. Full detail, including
+the known gap that the `compare` JSON's match-count fields were not re-saved
+before device cleanup (the mAP50/score-delta numbers themselves are intact), is
+in `evaluation/runs/2026-09-06-rpi-hailo/results.md` §7.2 and §7.9.
 
 Two HEF builds were compiled from the same ONNX and compared on the same 20
 validation images (45 boxes), chosen to be disjoint from the calibration set and
@@ -167,7 +178,7 @@ a Hailo-8. Full-validation accuracy on the board is still outstanding.
 |---|---|---|---|
 | TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, `2026-09-05-m2-orin` §1 |
 | Jetson image | 375 MB | `edge-inspection-jetson:0.1.0-dev`; host TensorRT and CUDA mounted rather than baked in | This measurement, `2026-09-05-m2-orin` |
-| Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; natively built arm64 on harvest-pi on 2026-09-06 (444 MB), real inference not yet exercised (see Hailo-8 section) | Cross-build measurement `2026-09-05-m3-hef` §3.1; native build `2026-09-06-rpi-hailo` |
+| Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; natively built arm64 on harvest-pi on 2026-09-06 (444 MB); real inference now measured on that same board (see Hailo-8 section) | Cross-build measurement `2026-09-05-m3-hef` §3.1; native build `2026-09-06-rpi-hailo` |
 
 ## Detector Selection: Baseline vs Advanced
 
@@ -355,12 +366,12 @@ device during deployment — it is bound to that exact GPU architecture and
 TensorRT version and is never redistributed. Pick this when you need figures you
 can hold someone to.
 
-**IP camera + Raspberry Pi 5 (Hailo-8)** is the cheaper board and the unproven
-one. The HEF is compiled, its quantisation loss is measured against the
-compiler's emulator, and the runtime image cross-builds for arm64 — but nothing
-has run on the hardware. Three ABI gates have to pass on the device before it
-will start at all, and the deploy step checks each one. Pick this only if you are
-prepared to be the first to run it.
+**IP camera + Raspberry Pi 5 (Hailo-8)** is the cheaper board. It has now run
+on real hardware (harvest-pi, 2026-09-06): 106.75 FPS hardware inference,
+46.14 FPS full pipeline, mAP50 0.7091 against a CPU golden of 0.7574 (86.66%
+box match rate at IoU >= 0.5). Three ABI gates still have to pass on the device
+before it starts (Python minor version, HailoRT driver/userspace/firmware
+triple, `force_desc_page_size=4096`), and the deploy step checks each one.
 
 ## Usage Notes
 

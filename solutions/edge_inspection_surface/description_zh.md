@@ -102,17 +102,29 @@ FP16 engine 还与同一份 ONNX 的 CPU（onnxruntime）结果做过逐框比�
 643 对匹配，CPU 侧多 3 个框、TensorRT 侧一个不多，IoU 均值 0.9972（最小 0.8311），
 分数差均值 0.0011，mAP50 差 0.0003。FP16 没有改变任何一帧的 OK/NG 判定。
 
-### Hailo-8——已编译并在 emulator 上比对，2026-09-06 上板部分完成
+### Hailo-8——harvest-pi 真机实测数字（2026-09-06）
 
-Raspberry Pi 5 + Hailo-8 这条路径已有一份用 Dataflow Compiler 3.31.0 /
-HailoRT 4.21.0 编出的 INT8 HEF，量化损失也在编译器自带的 emulator 上量过。
-2026-09-06 在 fleet `harvest-pi` 上做过一轮真机验证：HailoRT 4.21.0 三件套
-（驱动/用户态/固件）核对通过、HEF 结构（`hailortcli parse-hef`）核对通过、
-运行镜像原生 arm64 构建通过、容器内 Python ABI（3.11.2 对上 cp311 wheel）
-核对通过——**但这块板卡的精度、吞吐、时延数字仍然不存在**：harvest-pi 上
-唯一一块 Hailo-8 被一个不在本方案范围内、且按约束不能停止的既有容器独占，
-`VDevice()` 创建持续报 `HAILO_OUT_OF_PHYSICAL_DEVICES`，本轮没有拿到一次
-真实推理。详见仓库 `evaluation/runs/2026-09-06-rpi-hailo/results.md`。
+Raspberry Pi 5 + Hailo-8 这条路径用的是 Dataflow Compiler 3.31.0 /
+HailoRT 4.21.0 编出的 INT8 HEF（level-0，`optimization_level=0`）。2026-09-06
+在 fleet `harvest-pi` 上（用户授权临时腾出这块板卡唯一的 Hailo-8，窗口约
+15 分钟）拿到了真机数字：
+
+| 指标 | 数值 | 条件 | 来源 |
+|---|---:|---|---|
+| 硬件推理 FPS（`hailortcli run`） | 106.75 FPS | 854 帧/8 秒，HW 延迟 8.47 ms，不含应用层前后处理 | `evaluation/runs/2026-09-06-rpi-hailo/results.md` 第 7.1 节 |
+| mAP50 对比 CPU golden（290 张全 val） | Hailo 0.7091 / CPU 0.7574，差 -0.0483 | `evaluate_accuracy.py detect --backend hailo` + `compare` | 同上 第 7.2 节 |
+| 逐框匹配率（IoU≥0.5） | 86.66%（523/684 对匹配框） | 同一次比对 | 同上 第 7.2 节 |
+| 应用层推理 FPS | 91.49 FPS（p50 10.93 ms，p95 13.19 ms） | 只计 `detector.detect()`，裸机进程复用现成 Hailo Python venv | 同上 第 7.4 节 |
+| 全链路吞吐 | 46.14 FPS | 真实 InspectionApp：判定+Modbus+MQTT+契约校验，源节流去掉 | 同上 第 7.4 节 |
+| 10 FPS 产线节拍下端到端时延 | p50 11.61 ms，p95 14.99 ms，p99 16.63 ms | `e2e_latency.py`，采集入队到 Modbus 写完 | 同上 第 7.5 节 |
+| MQTT 事件 | 抓 20 条，抽样 3 条全部过 `contracts/validate_payload.py`（mqtt-event v1） | `mosquitto_sub` 订阅设备上现成 broker | 同上 第 7.6 节 |
+| 裸机进程 RSS | 约 126 MB | 本轮未走容器化测，Dockerfile/ABI 链路此前已单独验证过 | 同上 第 7.7 节 |
+
+六类里 crazing（AP50 0.3873）和 rolled-in_scale（AP50 0.4483）对 INT8 量化
+损失最大，与下面 emulator 阶段的结论方向一致，不是上板才出现的新问题。
+`compare` 输出里 matched_pairs/a_only/b_only 这类计数字段本轮清理设备前
+没有单独落盘（mAP50 与分数差本身是完整数字），完整说明见
+`evaluation/runs/2026-09-06-rpi-hailo/results.md` 第 7.2、7.9 节。
 
 从同一份 ONNX 编了两版 HEF，在同样的 20 张验证图（45 个框）上比对——
 这 20 张与校准集不重叠，且跨六类均匀分布：
@@ -139,7 +151,7 @@ INT8 损失。它与硬件不保证 bit-exact，它自己报的耗时是 x86 GPU
 |---|---|---|---|
 | 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，`2026-09-05-m2-orin` §1 |
 | Jetson 镜像 | 375 MB | `edge-inspection-jetson:0.1.0-dev`；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，`2026-09-05-m2-orin` |
-| 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；2026-09-06 已在 harvest-pi 原生 arm64 构建通过（444 MB），真实推理未跑通（见 Hailo-8 一节） | 交叉构建实测 `2026-09-05-m3-hef` §3.1；原生构建 `2026-09-06-rpi-hailo` |
+| 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；2026-09-06 已在 harvest-pi 原生 arm64 构建通过（444 MB），同一块板上真实推理数字已测出（见 Hailo-8 一节） | 交叉构建实测 `2026-09-05-m3-hef` §3.1；原生构建 `2026-09-06-rpi-hailo` |
 
 ## 检测器选型：基线 vs 先进
 
@@ -292,10 +304,11 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 都取自 Orin NX 16GB。TensorRT engine 在部署过程中于设备上构建——它与那块 GPU
 架构和那个 TensorRT 版本绑定，不做分发。需要能拿出去对账的数字就选它。
 
-**IP 摄像头 + Raspberry Pi 5（Hailo-8）** 是更便宜、也未经验证的那条。
-HEF 已编译，量化损失在编译器 emulator 上量过，运行时镜像也能交叉构建成 arm64
-——但没有一样东西在硬件上跑过。设备上有三道 ABI 关卡要先过，容器才起得来，
-部署步骤会逐个检查。只有在你愿意做第一个跑通它的人时才选它。
+**IP 摄像头 + Raspberry Pi 5（Hailo-8）** 是更便宜的那条。已经在真机
+（harvest-pi，2026-09-06）跑出数字：硬件推理 106.75 FPS，全链路 46.14 FPS，
+mAP50 0.7091（对比 CPU golden 0.7574，逐框匹配率 86.66%）。设备上仍有三道
+ABI 关卡要先过（Python minor 版本、HailoRT 驱动/用户态/固件三件套、
+`force_desc_page_size=4096`），部署步骤会逐个检查。
 
 ## 使用须知
 
