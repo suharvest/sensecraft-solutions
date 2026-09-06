@@ -67,14 +67,17 @@ MINIO_BUCKET=voice-c4
 
 # 凭据每次运行现生成，不写进仓库：这个脚本会被拷到开发机、CI、客户现场跑，
 # 固定口令一旦提交就等于公开。openssl 在 macOS 与主流 Linux 上都自带；
-# 没有它就停下，不退回固定口令。
-if ! command -v openssl >/dev/null 2>&1; then
-  echo "❌ 找不到 openssl：本脚本用它生成一次性数据库/对象存储口令。" >&2
-  exit 1
+# 没有它就回退到 /dev/urandom（zsh 与 macOS 自带 bash 3.2 都能跑，不用
+# associative array 之外的现代特性）。
+if command -v openssl >/dev/null 2>&1; then
+  rand_hex() { openssl rand -hex "$1"; }
+else
+  echo "⚠️ 找不到 openssl，回退用 /dev/urandom 生成一次性口令。" >&2
+  rand_hex() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 fi
-MYSQL_ROOT_PW=$(openssl rand -hex 24)
-MINIO_ROOT_USER=proof$(openssl rand -hex 8)
-MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)
+MYSQL_ROOT_PW=$(rand_hex 24)
+MINIO_ROOT_USER=proof$(rand_hex 8)
+MINIO_ROOT_PASSWORD=$(rand_hex 24)
 
 # 公共镜像一律按 digest 固定，和方案包里的 compose 同一条规矩：tag 会漂，digest 不会。
 # 取值方式：docker buildx imagetools inspect <repo>:<tag>（2026-09-06 取）
@@ -83,7 +86,7 @@ MINIO_ROOT_PASSWORD=$(openssl rand -hex 24)
 #   curlimages/curl  8.22.0                       -> sha256:58adaa4e…
 #   mysql            8.0                          -> sha256:7dcddc01…（与本方案 compose 同一枚）
 #   golang           1.24                         -> sha256:d2d2bc1c…
-GO_IMAGE=${GO_IMAGE:-golang@sha256:d2d2bc1c84f7e60d7d2438a3836ae7d0c847f4888464e7ec9ba3a1339a1ee804}
+GO_IMAGE=${GO_IMAGE:-golang:1.24@sha256:d2d2bc1c84f7e60d7d2438a3836ae7d0c847f4888464e7ec9ba3a1339a1ee804}
 LOCAL_AUDIO_DIR=$(mktemp -d "${TMPDIR:-/tmp}/c4-proof-audio.XXXXXX")
 
 cleanup() {
@@ -109,13 +112,13 @@ docker network create "$NETWORK" >/dev/null
 docker run -d --name "$MYSQL_CONTAINER" --network "$NETWORK" \
   -e MYSQL_ROOT_PASSWORD="$MYSQL_ROOT_PW" -e MYSQL_DATABASE="$MYSQL_DB" \
   -p "${BIND_ADDR}:${MYSQL_PORT}:3306" \
-  mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b \
+  mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b \
   --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci >/dev/null
 
 docker run -d --name "$MINIO_CONTAINER" --network "$NETWORK" \
   -e MINIO_ROOT_USER="$MINIO_ROOT_USER" -e MINIO_ROOT_PASSWORD="$MINIO_ROOT_PASSWORD" \
   -p "${BIND_ADDR}:${MINIO_PORT}:9000" \
-  minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e \
+  minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e \
   server /data >/dev/null
 
 echo "== 2/5 等依赖就绪 =="
@@ -129,7 +132,7 @@ docker exec "$MYSQL_CONTAINER" mysqladmin ping -uroot -p"$MYSQL_ROOT_PW" --silen
 
 for i in $(seq 1 60); do
   if docker run --rm --network "$NETWORK" \
-      curlimages/curl@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777 \
+      curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777 \
       -sf "http://${MINIO_CONTAINER}:9000/minio/health/live" >/dev/null 2>&1; then
     break
   fi
@@ -138,7 +141,7 @@ done
 
 echo "== 3/5 建 bucket =="
 docker run --rm --network "$NETWORK" --entrypoint sh \
-  minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727 -c "
+  minio/mc:RELEASE.2025-08-13T08-35-41Z@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727 -c "
   mc alias set proof http://${MINIO_CONTAINER}:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} >/dev/null &&
   mc mb --ignore-existing proof/${MINIO_BUCKET} >/dev/null && echo bucket ready"
 
