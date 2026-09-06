@@ -62,7 +62,7 @@
 
 ## 步骤 2: 打开确认页面 {#verify_orin_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-填 Jetson 的地址与 8080 端口，页面会在浏览器里打开。
+填 Jetson 的地址与 8080 端口，页面会在浏览器里打开。若在部署环境里设置了 `ELDERCARE_API_TOKEN`（见下方“下一步”），会先看到登录页——输入该口令与操作者姓名；不设置该变量则直接进入告警列表。
 
 ### 部署完成
 
@@ -85,6 +85,8 @@
   对应的流编号上。
 - 把 `notifiers` 指向真正应该接收告警的系统，并保留幂等键请求头——重试之所以安全就靠它。
 - 设备能被局域网以外访问之前，先给 broker 加上账号密码与 TLS。
+- 在 `eldercare-alarm` 服务的 `environment:` 里设置 `ELDERCARE_API_TOKEN`（改生成的
+  compose 文件后 `docker compose up -d`），给确认控制台加一层共享登录。
 
 ### 故障排查
 
@@ -194,7 +196,7 @@
 
 ## 步骤 2: 打开确认页面 {#verify_hailo_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-填设备地址与 8080 端口，页面会在浏览器里打开。
+填设备地址与 8080 端口，页面会在浏览器里打开。若在部署环境里设置了 `ELDERCARE_API_TOKEN`（见下方“下一步”），会先看到登录页——输入该口令与操作者姓名；不设置该变量则直接进入告警列表。
 
 ### 部署完成
 
@@ -215,6 +217,8 @@
 - 把覆盖整幅画面的区域拆成按房间的矩形，并把每个区域绑到对应的流编号上。
 - 把 `notifiers` 指向真正应该接收告警的系统。
 - 设备能被局域网以外访问之前，先给 broker 加上账号密码与 TLS。
+- 在 `eldercare-alarm` 服务的 `environment:` 里设置 `ELDERCARE_API_TOKEN`（改生成的
+  compose 文件后 `docker compose up -d`），给确认控制台加一层共享登录。
 
 ### 故障排查
 
@@ -312,7 +316,7 @@ reCamera 的事件流尚未在硬件上为本方案核实过。确切的主题�
 
 ## 步骤 2: 打开确认页面 {#verify_recamera_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
 
-填网关地址与 8080 端口，页面会在浏览器里打开。
+填网关地址与 8080 端口，页面会在浏览器里打开。若在网关的告警服务环境里设置了 `ELDERCARE_API_TOKEN`，会先看到登录页——输入该口令与操作者姓名；不设置该变量则直接进入告警列表。
 
 ### 部署完成
 
@@ -333,6 +337,8 @@ reCamera 的事件流尚未在硬件上为本方案核实过。确切的主题�
 - 按区域各加一条，每条都有自己的矩形、流编号与超时。
 - 若多台摄像头汇到同一个网关，把每个区域显式绑到它的流编号上——否则区域会接受所有流的帧。
 - 网关能被局域网以外访问之前，先给 broker 加上账号密码与 TLS。
+- 在网关的 `eldercare-alarm` 容器环境里设置 `ELDERCARE_API_TOKEN` 并重启，给确认控制台
+  加一层共享登录。
 
 ### 故障排查
 
