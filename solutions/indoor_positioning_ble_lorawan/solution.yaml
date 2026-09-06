@@ -11,6 +11,14 @@ intro:
       caption: System Architecture
       caption_i18n:
         zh: 系统架构
+    # 2026-09-06: login.png / app-preview.png / map-view.png / outdoor-map.png 全部换成
+    # sensecraft-ui-kit v0.1.2 改造后的界面（solution-indoor-positioning 分支 feature/ui-kit），
+    # 1280x800 Playwright 截图。截图来源与 OSM/ODbL 署名见 gallery/ATTRIBUTION.md。
+    - type: image
+      src: gallery/login.png
+      caption: Sign-in page
+      caption_i18n:
+        zh: 登录页
     - type: image
       src: gallery/app-preview.png
       caption: Application Dashboard
@@ -21,7 +29,7 @@ intro:
       caption: Map Visualization
       caption_i18n:
         zh: 地图可视化
-    # TODO(CDN): the two screenshots below are still repo-relative. Upload to
+    # TODO(CDN): the screenshots in this gallery are still repo-relative. Upload to
     # files.seeedstudio.com/Solution/landpage_asset/indoor_positioning_ble_lorawan/
     # with a hashed filename and switch these src values before the hub page uses them.
     # Provenance and OSM/ODbL attribution: gallery/ATTRIBUTION.md
