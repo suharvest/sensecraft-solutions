@@ -1,11 +1,18 @@
 slv_url: "${OVS_SLV_URL:-ws://127.0.0.1:8621/v2v/stream}"
 
 slv_config:
-  asr_language: auto
-  # Follows the operator's LANGUAGE choice. The compose profile-init step has
-  # already refused any (language, device) pair the board cannot serve, so by
-  # the time this renders, LANGUAGE is a language this stack can speak.
-  tts_language: "${LANGUAGE:-zh}"
+  # Both follow the operator's language choice, which compose passes in as
+  # ASR_LANGUAGE/TTS_LANGUAGE. The profile-init step has already refused any
+  # (language, device) pair the board cannot serve, so by the time this
+  # renders it is a language this stack can speak.
+  #
+  # asr_language was `auto` here, which put a Chinese deployment on
+  # per-utterance language ID: this value becomes the v2v session's
+  # `asr_language`, and that is the only language knob the RK and Jetson
+  # Qwen3-ASR backends have (`transcribe(..., language="auto")`). Pinning it
+  # is what makes "the operator picked Chinese" reach the decoder.
+  asr_language: "${ASR_LANGUAGE:-auto}"
+  tts_language: "${TTS_LANGUAGE:-zh}"
   tts_speaker_id: null
   tts_speed: 1.0
   sample_rate: 16000
