@@ -65,7 +65,8 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——注册视角数量是本页最大的一个杠杆。
 在 Products-10K 留出 SKU 上（类别多得多），DINOv2-base k=8 的 top-1 是 78.92%。
 
-**检测准确率**（`evaluation/runs/2026-09-06-det-sku110k/`）。SKU-110K test 上
+**检测准确率**（`evaluation/runs/2026-09-06-det-sku110k/`，两个 boundary 文件均
+`status: measured`）。SKU-110K test 上
 640² preset 的 mAP50-95 是 52.84，1280² preset 是 56.32。两者都低于本项目自己的
 stable 门槛 60，因此两条边界都落在 failure 档，本页照实写。640 的 mAP50 是 88.26：
 框找得到，框不准。换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，

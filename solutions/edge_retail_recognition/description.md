@@ -89,10 +89,11 @@ to 51.11% — the number of registered views is the single largest lever on the
 page. On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
 across many more classes.
 
-**Detection accuracy** (`evaluation/runs/2026-09-06-det-sku110k/`). On SKU-110K
-test the 640² preset reaches 52.84 mAP50-95 and the 1280² preset 56.32. Both are
-below the project's own stable threshold of 60, so both boundaries sit in the
-failure tier and the package says so. mAP50 at 640 is 88.26: the boxes are
+**Detection accuracy** (`evaluation/runs/2026-09-06-det-sku110k/`, both boundary
+files `status: measured`). On SKU-110K test the 640² preset reaches 52.84
+mAP50-95 and the 1280² preset 56.32. Both are below the project's own stable
+threshold of 60, so both boundaries sit in the failure tier and the package
+says so. mAP50 at 640 is 88.26: the boxes are
 found, they are not placed tightly. Moving to 1280² lifts small-object mAP50-95
 from 17.49 to 26.88, which is why the shelf preset exists.
 
