@@ -1,4 +1,22 @@
-## 套餐: 端侧直控 —— reCamera Pro / PoE {#p1_recamera_pro}
+## 套餐: 端侧直控 —— reCamera Pro {#p1_recamera_pro}
+
+**怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
+reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
+"锁怎么被切换"，那一行就是你的套餐。
+
+| 门口设备 | 锁怎么被切换 | 套餐 |
+|---|---|---|
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
+| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
+| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+
+有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+但完全不驱动锁，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
+Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
+只按价格当成其他套餐的替代品。
+
 
 识别、活体、判定与触点全部在门口的一台设备里。人脸与锁之间没有任何网络环节，
 所以网络断了门照样开——网络只承载人脸库更新、事件与远程指令。
@@ -130,7 +148,31 @@
 | 上电时门被脉冲了一次 | 有效电平配反了。接回门锁之前先改对。 |
 | 一次靠近产生两个脉冲 | 去抖不在链路上，或者它的窗口比人停留在画面里的时间还短。 |
 
-## 步骤 5: 端到端验证这道门 {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 5: 核对人脸库是否已到设备 {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 6: 端到端验证这道门 {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 已注册人员开门一次；照片完全打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
 
@@ -179,6 +221,24 @@
 | 事件停了但门还能开 | broker 连接断了。这是预期行为——这个套餐的开门路径不过网络——但界面上应该能靠 retained 遗嘱看到设备已离线。 |
 
 ## 套餐: 工业盒子 —— reComputer Industrial J20 {#p2_industrial_box}
+
+**怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
+reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
+"锁怎么被切换"，那一行就是你的套餐。
+
+| 门口设备 | 锁怎么被切换 | 套餐 |
+|---|---|---|
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
+| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
+| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+
+有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+但完全不驱动锁，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
+Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
+只按价格当成其他套餐的替代品。
+
 
 适合门口已经有摄像头的场合。J20 拉取现有 RTSP 流，在容器里跑识别与活体，
 再用光隔数字输出驱动继电器。隔离本身就是重点：锁的供电与计算的供电不共用回流路径。
@@ -300,7 +360,31 @@
 | RTSP 流在你笔记本上能开，在 J20 上开不了 | 路由或凭据问题。在盒子本机上测。 |
 | 上电时门被脉冲了一次 | 有效电平配反了。接回门锁之前先改对。 |
 
-## 步骤 5: 端到端验证这道门 {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 5: 核对人脸库是否已到设备 {#p2_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 6: 端到端验证这道门 {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 已注册人员开门一次；照片打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
 
@@ -344,6 +428,24 @@
 | 容器反复重启 | `docker logs usa-access-node`。执行器或人脸库配置不合法导致的拒绝启动，看起来和崩溃一样，但它不是崩溃。 |
 
 ## 套餐: MQTT 继电器 —— 计算不在门口 {#p3_mqtt_relay}
+
+**怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
+reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
+"锁怎么被切换"，那一行就是你的套餐。
+
+| 门口设备 | 锁怎么被切换 | 套餐 |
+|---|---|---|
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
+| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
+| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+
+有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+但完全不驱动锁，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
+Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
+只按价格当成其他套餐的替代品。
+
 
 适合能跑识别的盒子离门很远，或者一台盒子要管好几道门。识别跑在 J30/J40/R2000 或
 标准 reCamera 上；开门指令经 MQTT 发到继电器节点——写 Modbus 点位的 R1000，
@@ -469,7 +571,243 @@
 | 脉宽被拒绝 | 指令层的范围是 500–5000 ms。继电器固件自身的线格式允许 100–10000 ms；两者不是同一约束，以更窄的为准。 |
 | 提示「LIVENESS IS NOT LOADED」 | 识别服务起来了但没带活体模型。修镜像。 |
 
-## 步骤 5: 端到端验证这道门 {#p3_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 5: 核对人脸库是否已到设备 {#p3_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 6: 端到端验证这道门 {#p3_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+
+已注册人员开门一次；照片打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
+
+### 前置条件
+
+- 步骤 1–4 已完成，锁已接在继电器节点上，且有人已注册。
+- 同一个人的一张打印照片。
+- 一个 operator token 与一个 viewer token。
+
+### 部署完成
+
+门已装好，四条要紧的行为都是直接观察到的。
+
+#### 快速验证
+
+1. 复现纯软件那一半：在上游仓库的克隆里跑
+   `uv run python tools/verify_software_loop.py`。参考运行的结果是 52 项全过。
+2. 以已注册身份站到摄像头前。预期一次触点闭合、一条放行事件、审计链增加一条记录。
+3. 在去抖窗口内退开再上前。预期 `debounced` 且没有第二个脉冲。
+4. 把打印照片举起来。预期 `liveness_failed` 且没有脉冲。
+5. 以 operator 身份下发一次远程开门。预期一次闭合和一张 executed 回执。
+   再以 viewer 身份重试：预期被拒绝。
+6. 删掉一位已注册人员，然后尝试回滚到仍包含此人的版本。预期一条点名该人员的拒绝。
+7. 短暂切断 broker，确认门**停止开启**——这个套餐里这是预期行为，
+   而知道这一点，正是判断你有没有为这道门选对套餐的依据。
+
+#### 后续步骤
+
+- 在装好的摄像头上标定阈值。
+- 把随包的 broker 配置换成 TLS、按设备身份与 topic ACL。这个套餐里 broker 在开门路径上，
+  值得与门本身同等的对待。
+- 如果这道门不能忍受 broker 停机，考虑第二个 broker 或本地兜底。真不能忍受的话，
+  P1 或 P2 才是更合适的套餐。
+- 把继电器 id、触点、脉宽与锁型随安装记录留档。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 照片能开门 | 活体不在链路上。把这道门停用。 |
+| 回执 executed，触点没闭合 | 读 `access/v1/relay/<id>/state`，继电器会说明原因。 |
+| 一次靠近门开了两次 | 要么去抖不在链路上，要么继电器的重复 id 表不在链路上。 |
+| 审计校验失败 | 日志被改过，或有两个进程在写它。把文件留着。 |
+| 感觉时延偏高 | 这条路径没有实测数字。不要拿端侧直控的预期去比它；多这一跳正是这个套餐的全部意义。 |
+
+## 套餐: 标准版 reCamera —— 摄像头内闭环，网关侧继电器 {#p5_recamera_std}
+
+**怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
+reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
+"锁怎么被切换"，那一行就是你的套餐。
+
+| 门口设备 | 锁怎么被切换 | 套餐 |
+|---|---|---|
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
+| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
+| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+
+有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+但完全不驱动锁，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
+Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
+只按价格当成其他套餐的替代品。
+
+识别由摄像头自己完成。标准版 reCamera 上的一个 App Center 应用在设备内的同一个原生
+进程里跑检测、嵌入、双头纹理活体加眨眼融合与余弦匹配，因此这个套餐不装任何识别容器，
+也不从摄像头拉视频。它加的是一个纯标准库的小守护进程，负责摄像头自己不做的三件事：
+拉版本化人脸库、把摄像头原生的结果流映射成事件契约、把所有阈值放在一个文件里。
+
+摄像头不驱动任何锁。事件经 MQTT 发出，继电器在网关侧——写 Modbus 点位的 R1000，
+或者驱动 Grove 继电器的 XIAO ESP32。
+
+| 设备 | 作用 |
+|---|---|
+| 云端 / 本地服务器 | 人脸库服务、管理界面、MQTT broker |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 识别、活体、判定——全在摄像头内 |
+| SenseCAP R1000 或 XIAO ESP32-S3 | 在门口闭合触点 |
+| 继电器模块 | 切换门锁 |
+| 门锁 + 独立 12/24 V 电源 | 绝不从继电器节点取电 |
+
+**重要。** 这不是通过认证的安防或生命安全系统。拉库这条链路在真机上跑过，
+门控那条没有。人脸嵌入模型权重是非商用的。
+
+已验证的与未验证的分开写，因为这两件事经常被混为一谈：
+
+- **真机已验证**（第二轮探针，标准版 reCamera，192.168.42.1）：拉库、逐文件 SHA、
+  manifest 验签、原子切换、落 gallery 与 `op:reload` ack；下载中断后的断点续传；
+  manifest 验不过的版本被拒绝；配置与正在运行的识别进程不一致时阈值一致性闸门拒绝启动。
+  完整激活 20 次实测 p50 491.6 ms、p95 507.8 ms（2 人、16.5 KB 库）；
+  `op:reload` 往返 25 次实测 p50 100.0 ms。
+- **未验证，也不要当成已验证来讲**：任何识别或活体指标——两轮探针镜头前都没有人，
+  采样的 220 帧全是 `face_count: 0`；识别到继电器动作的时延，因为还没接过继电器；
+  以及阈值，它们是设备出厂的现值，标着 `calibration = pending`。
+- **继电器节点的 `set` topic 绝不能是 retained。** retained 的开门指令会在每次重连时
+  重放，断电恢复后门会自己开。
+
+## 步骤 1: 部署人脸库服务 {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
+
+同一台云端主机，与其他套餐是同一步。
+
+### 前置条件
+
+- 一台装了 Docker 与 compose 插件、且从门禁主机与继电器节点都可达的 Linux 主机。
+- **它的时钟必须准确。**
+- **容器镜像尚未推送。** 先在主机上构建并重打 tag。
+- 一个签名密钥：`openssl rand -hex 32`。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 拉取镜像失败 | 镜像推送前这是预期结果。在主机上构建并重打 tag。 |
+| 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
+| 人脸库接口返回 404 | 首次注册之前这是正确的。 |
+| 出现 `NTP is not synchronised` 警告 | 在部署任何一道门之前先修好。 |
+| 继电器节点连不上 broker | 在这个套餐里这意味着门开不了。先把路由解决掉再往下走。 |
+
+## 步骤 2: 部署管理界面 {#p5_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml}
+
+配置三档角色 token，并在服务端旁边拉起管理界面。
+
+### 前置条件
+
+- 步骤 1 已完成且人脸库接口有响应。
+- 已定好 admin token，以及可选的 operator 与 viewer token。
+- 对外暴露之前先放一个终止 TLS 的反向代理。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 提示「人脸库服务没有响应」 | 步骤 1 没做完，或端口不一致。 |
+| 匿名 `GET /api/events` 返回 200 | token 闸门没挡在数据前面。 |
+| 界面起来了但人员库是空的 | 首次注册之前这是正确的。 |
+| 注册过的人一直认不出来 | 用了假的取向量实现。填上识别服务地址并重新注册。 |
+
+## 步骤 3: 注册人员 {#p5_register type=web_dashboard required=true config=devices/register_person.yaml}
+
+打开管理界面的人员库。每人 3 到 8 张照片。
+
+### 前置条件
+
+- 步骤 2 里的 admin token。
+- 每人 3–8 张照片。
+- 已配好识别服务地址。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 注册被拒，提示图片少于三张 | 这是设计如此。 |
+| 新版本已发布，门仍然拒绝这个人 | 等一个轮询周期加下载时间。 |
+| 回滚被拒并点名了某个人 | 删除屏障。生成一个新版本。 |
+| 设备报 `model_tag` 不匹配 | 按另一个嵌入模型构建的。 |
+
+## 步骤 4: 在摄像头上安装门禁守护进程 {#p5_install type=manual required=true config=devices/p5_recamera_std.yaml}
+
+以 root 把六个文件拷到摄像头上，填一个配置文件，前台跑一轮同步，然后让它常驻。
+
+### 前置条件
+
+- 摄像头的 root SSH 访问。是必须，不是更好：`/userdata/local/face-gallery/` 是
+  `root:root 0700`，守护进程要往那里写。
+- App Center 的 `face-recognition` 应用在位且能启动。
+- 摄像头能以明文 HTTP 访问人脸库服务，并且拿到云端那一步的签名密钥。
+- 一份上游仓库的克隆，用于取 `platforms/recamera-std/` 与
+  `contracts/validate_payload.py`。
+
+### 接线
+
+- 摄像头不接锁。它上面没有任何一路承载锁电流。
+- 继电器在网关节点上，用门锁自己那路 12/24 V 电源。
+- 断电即开的电磁锁走 COM/NC，断电即锁的电插锁走 COM/NO。接锁之前先用 LED 确认。
+- 事件要出摄像头，需要在默认的仅回环 listener 之外再配一个 MQTT listener。
+  那是站点网络的决定，守护进程不替你做——它不改 `/etc/mosquitto/mosquitto.conf`。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `RuntimeArgsMismatch: face-recognition is not running` | 先起识别应用。没有识别器的门禁守护进程做不了判定，所以它停下来而不是去猜。 |
+| `mqtt.mqtt_host='127.0.0.1' but face-recognition runs -m 'localhost'` | 闸门按字面比较命令行字符串。写 `localhost`。原厂设备上踩到的就是这一条。 |
+| 写 gallery 时 `PermissionError` | 守护进程没有以 root 运行。 |
+| 守护进程起来了但一个版本都没激活 | 核对 `key_id` 与密钥是否与管理界面一致，`match_threshold` 是否与 `USA_MATCH_THRESHOLD` 相等。 |
+| 设备上版本目录越堆越多 | 激活成功后由 `[facedb] keep_versions`（默认 3）约束。回滚不依赖它们——服务端会把旧内容以新版本号重新发布。 |
+| 想改某个阈值 | 配置文件里改，识别进程的启动参数里**也要**改。只改一边守护进程会拒绝启动，这正是它的用途。 |
+
+## 步骤 5: 核对人脸库是否已到设备 {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 6: 端到端验证这道门 {#p5_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 已注册人员开门一次；照片打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
 
@@ -516,6 +854,24 @@
 | 感觉时延偏高 | 这条路径没有实测数字。不要拿端侧直控的预期去比它；多这一跳正是这个套餐的全部意义。 |
 
 ## 套餐: XIAO + Grove Vision AI V2 —— 无活体 {#p4_xiao_grove}
+
+**怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
+reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
+"锁怎么被切换"，那一行就是你的套餐。
+
+| 门口设备 | 锁怎么被切换 | 套餐 |
+|---|---|---|
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
+| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
+| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+
+有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+但完全不驱动锁，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
+Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
+只按价格当成其他套餐的替代品。
+
 
 最便宜的一道门。Grove Vision AI V2 做检测与嵌入；XIAO ESP32-S3 用自己 flash 里的人脸库
 做匹配并驱动一个 Grove 继电器。它用与其他套餐完全相同的两条 HTTP 接口拉取同一份版本化人脸库。
@@ -680,7 +1036,31 @@ model tag 与继电器设置。
 | 人脸库始终不激活 | 检查 model tag 与签名密钥。任一不匹配都会在加载时被拒绝，这是刻意的。 |
 | 上电时继电器被脉冲了一次 | 对你装的这个模块来说有效电平配反了。接锁之前先改对。 |
 
-## 步骤 6: 端到端验证这道门 {#p4_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 6: 核对人脸库是否已到设备 {#p4_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 7: 端到端验证这道门 {#p4_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 白名单人员开门一次，删掉的人无法通过回滚复活，以及——这个套餐特有的一条——
 你亲自确认一次照片**确实**能开门，免得日后由别人来发现。
