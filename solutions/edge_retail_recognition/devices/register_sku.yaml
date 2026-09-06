@@ -6,6 +6,24 @@ name_i18n:
 type: web_dashboard
 inherit_host_from: console_stack
 
+# The port is not inherited — only the host is. Declaring it here with the same
+# default as console_stack.yaml `web_port` keeps a console deployed on a custom
+# port reachable from this step, instead of sending the operator to a hardcoded
+# 8080 that nothing is listening on. Same shape as
+# agri_env_monitor/devices/ha_dashboard.yaml.
+user_inputs:
+  - id: web_port
+    name: Management UI Port
+    type: text
+    required: true
+    default: "8080"
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    description: The port the console step published the management UI on. Change it here if you changed it there.
+    name_i18n:
+      zh: 管理界面端口
+    description_i18n:
+      zh: 管理端步骤把管理界面发布在哪个端口。那边改了，这边也要改。
 
 # A web_dashboard step rather than a preview one, for the same reason as the
 # fall-detection and unmanned-store packages: there is nothing to draw.
@@ -32,7 +50,7 @@ inherit_host_from: console_stack
 # are not comparable to vectors from another.
 
 web_dashboard:
-  url: "http://{{deploy.host}}:8080/"
+  url: "http://{{deploy.host}}:{{web_port}}/"
   title: Console — Product Gallery
   description: >-
     Sign in with the admin token and open the product gallery. Register each
