@@ -1,0 +1,96 @@
+# Console side — the SKU registration / query service, the management UI and a
+# broker. Derived from the upstream skeleton platforms/console/docker-compose.yml
+# (edge-retail-recognition @ d96326a). Two changes were made for packaging:
+#
+#   1. The upstream file uses `build:` against the repository root. A solution
+#      package has no repository to build from, so both services take an image
+#      reference instead.
+#   2. Neither image has been pushed anywhere. `RETAIL_SERVER_IMAGE` and
+#      `RETAIL_WEB_IMAGE` are therefore required with no default: compose stops
+#      at the first `up` until they are supplied. That is the intended
+#      behaviour, not a gap to paper over with a tag that resolves to nothing.
+#
+# Build them on the host from the upstream repository. The SPA is built on the
+# host first — the images do not run npm, because a node_modules tree on an
+# arm64 board is larger than the whole service and the built bundle has to
+# match the one that was reviewed:
+#
+#   npm --prefix web/ui ci && npm --prefix web/ui run build
+#   docker build -f platforms/console/Dockerfile.server -t <your-registry>/edge-retail-server:<tag> .
+#   docker build -f platforms/console/Dockerfile.web    -t <your-registry>/edge-retail-web:<tag> .
+#
+# Then set both variables to the tags you built — pin a digest if the registry
+# gives you one, because the gallery vectors written by one server build are
+# only comparable to vectors written by the same embedding model and the same
+# preprocessing.
+#
+# The broker configuration in config/mosquitto.conf is anonymous plaintext and
+# says so at the top: anyone who can reach port 1883 can publish forged
+# recognition events. Bench only.
+
+name: edge-retail-console
+
+x-logging: &bounded_logs
+  # Bounded logs. A checkout lane runs for months; unbounded json-file logging
+  # fills the rootfs and takes the till with it.
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    container_name: retail-mosquitto
+    restart: unless-stopped
+    <<: *bounded_logs
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+
+  server:
+    image: ${RETAIL_SERVER_IMAGE:?set RETAIL_SERVER_IMAGE to an image you built from the upstream repository}
+    container_name: retail-server
+    restart: unless-stopped
+    <<: *bounded_logs
+    depends_on:
+      - mosquitto
+    environment:
+      # Tokens are injected by the deployer. There is no built-in default and
+      # no anonymous read — the service refuses to start with none configured.
+      RETAIL_WEB_TOKENS: ${RETAIL_WEB_TOKENS:?set RETAIL_WEB_TOKENS as <token>:<role>[,...]}
+      RETAIL_GALLERY_ROOT: /data/gallery
+      RETAIL_WEB_DB: /data/events.sqlite3
+      RETAIL_MQTT_HOST: mosquitto
+      RETAIL_MQTT_PORT: "1883"
+      # The UI is served by the web container; the server does not mount static
+      # files. Set this to the dist path instead if you drop the web service.
+      RETAIL_WEB_UI_DIST: ""
+    volumes:
+      # The gallery is writable state and has to survive a container rebuild:
+      # lose a version directory and the gallery.version / sha256 a device
+      # reports no longer matches anything that exists.
+      - gallery:/data
+    ports:
+      - "${SERVER_PORT:-8089}:8089"
+    command: >-
+      uvicorn server.api:app_factory --factory --host 0.0.0.0 --port 8089
+
+  web:
+    image: ${RETAIL_WEB_IMAGE:?set RETAIL_WEB_IMAGE to an image you built from the upstream repository}
+    container_name: retail-web
+    restart: unless-stopped
+    <<: *bounded_logs
+    depends_on:
+      - server
+    volumes:
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  gallery:
+  mosquitto_data:
