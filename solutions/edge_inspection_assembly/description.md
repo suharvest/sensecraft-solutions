@@ -77,7 +77,7 @@ missing parts on your assemblies.
 | Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame `missing_count` = 0, on a different board all 6 go missing and `verdict_reasons` gains `missing` alongside `defect` | This project's M2 run, 2026-09-05, same device |
 | Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict `ok`. Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
 | Hailo INT8 (HEF) accuracy | **mAP50 0.9924, identical on all three paths** | 20 val images / 118 boxes; CPU onnxruntime, Hailo emulator `SDK_NATIVE`, and emulator `SDK_QUANTIZED` (optimization level 1 + Bias Correction) return the same mAP50 / P / R / FP / FN. Per-box: CPU ↔ native 120/120 matched; CPU ↔ quantized 119/120 | This project's M3a run, 2026-09-05, in the Hailo Dataflow Compiler emulator on x86 — **not on a device** |
-| Raspberry Pi 5 + Hailo-8 on-device throughput and latency | **not measured** | On 2026-09-06, fleet `harvest-pi` natively built the arm64 runtime image (444 MB), verified the HailoRT 4.21.0 driver/userspace/firmware triple and HEF layout, and confirmed the container's Python ABI (3.11.2 against the cp311 wheel) — but no real inference ran: the board's sole Hailo-8 was held exclusively by a pre-existing container outside this solution's scope that the task could not stop, so `VDevice()` returned `HAILO_OUT_OF_PHYSICAL_DEVICES` | Deployment package verified; hardware numbers pending an exclusive-access window — `evaluation/runs/2026-09-06-rpi-hailo/results.md` |
+| Raspberry Pi 5 + Hailo-8 on-device throughput and latency | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | On 2026-09-06, fleet `harvest-pi` (15-minute exclusive-access window). Hardware: 854 frames/8s (`hailortcli run`). Accuracy: 205-image val set, Hailo mAP50 0.9858 vs CPU golden (delta -0.0018). Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline (verdict+Modbus+MQTT+contract validation, throttle removed) 43.92 FPS. End-to-end latency at 10 fps line rate: P50 11.89 ms / P99 16.08 ms. 20 MQTT events captured, 3 sampled all pass `contracts/validate_payload.py` (mqtt-event v2) | This board's own M3b-pi-2 run, 2026-09-06 — `evaluation/runs/2026-09-06-rpi-hailo/results.md` §6 |
 | 72 h soak | **in progress at packaging time** | Single stream, looped 300 s video, 10 fps; baseline over the first samples: RSS 256–259 MiB, 0 dropped frames, tj 61–62 °C, 0 restarts | Same M4 run; the three tiers in `boundary.soak.yaml` are null until it finishes |
 | Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on spark (GB10) with another training job co-resident on the same GPU | `edge-inspection-assembly` annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
 | Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
@@ -171,14 +171,15 @@ taken on. A TensorRT engine is built on the device during the first deploy
 it when you want the numbers above to apply, or when you need more than one or
 two camera streams on one box.
 
-**Camera + Raspberry Pi 5 with Hailo-8** trades measured evidence for power and
-cost. The INT8 HEF is compiled off-device and downloaded at deploy time, so
-there is no build step on the board; accuracy has been checked in the Hailo
-emulator against the CPU baseline, but throughput, latency and stream capacity
-on the board itself have not been measured. The board also has three hard
-prerequisites — matching Python minor version, HailoRT 4.21.x held across
-driver, library and Python bindings, and `hailo_pci force_desc_page_size=4096` —
-that the guide walks through.
+**Camera + Raspberry Pi 5 with Hailo-8** trades power and cost for a smaller
+board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
+time, so there is no build step on the board. On real hardware (harvest-pi,
+2026-09-06): 106.75 FPS hardware inference, 43.92 FPS full pipeline, mAP50
+0.9858 against a CPU golden (delta -0.0018). Stream capacity on this board has
+not been measured — the multi-stream sweep above is Orin-only. The board also
+has three hard prerequisites — matching Python minor version, HailoRT 4.21.x
+held across driver, library and Python bindings, and
+`hailo_pci force_desc_page_size=4096` — that the guide walks through.
 
 ## Usage Notes
 
