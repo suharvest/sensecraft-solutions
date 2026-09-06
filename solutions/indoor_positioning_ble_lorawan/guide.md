@@ -24,10 +24,11 @@ was published earlier does not contain any of the outdoor features.
 
 ### Reference: outdoor maps and basemap choice
 
-The map dropdown gets one extra entry, **Outdoor**, next to your floor plans;
-there is also a standalone `/outdoor-map` route that subscribes to the same
-WebSocket, for a wall display. A tracker is drawn on exactly one of the two — the
-indoor Canvas view or the outdoor Leaflet view — never both.
+The dashboard is a single page at `/web/map` with an explicit layer switch
+between **Indoor** and **Outdoor**; `/web/map?layer=outdoor` is the direct link
+for a wall display, and it subscribes to the same WebSocket. A tracker is drawn
+on exactly one of the two — the indoor Canvas view or the outdoor Leaflet view —
+never both.
 
 Two basemap sources ship configured:
 
