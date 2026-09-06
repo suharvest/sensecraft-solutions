@@ -66,6 +66,13 @@
 | Orin NX 16GB（云端对话） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
 | Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS CustomVoice，待测 |
 | RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，2026-09-06 实测：WER 短句 16.95% / 长句 63.38%，TTS RTF 0.194（详见 docs/perf/rk3576-matrix-20260906.md） | 不支持——该板 TTS 仅有 Matcha zh-en |
+
+上面长句 63.38% 是流式端点检测提前截断导致的，不是听写能力的上限：该 profile
+的低延迟对话轮次检测（silero VAD，400ms 静音 + 2.5s 最小音频）在音频第一个自然
+停顿处就判定说话结束并给出最终结果，后面的音频解码器根本没看到。已用放开解码
+器 token 上限与标点截断设定（`ASR_MAX_NEW_TOKENS=256`、
+`ASR_FINAL_STOP_ON_PUNCT=0`）复测过，中英文的 WER/CER 与对话模式逐字一致，说明
+这两项设定不是根因。调整 VAD 端点参数使其能挺过句中停顿是待办事项，本次未做。
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，待测 | Qwen3-ASR + Kokoro RKNN，待测 |
 | 树莓派 5 | 不支持 | sherpa-onnx CPU，待测 | 不支持 |
 

@@ -40,14 +40,28 @@ metrics:
       30-language set per qwen3asr_rk config) transcribes English on the
       same deployed profile as Chinese; errors are mostly near-miss word
       substitutions (e.g. "Aerosmith" -> "Irish Smith"), not garbage output.
-  - name: ASR WER (long-form, 10-20s)
+  - name: ASR WER (long-form, 10-20s) — conversational mode (ASR_MAX_NEW_TOKENS=64, ASR_FINAL_STOP_ON_PUNCT=1, shipped default)
     unit: percent
     direction: lower_is_better
     value: "n=5, mean=63.38% (word), mean CER=62.58%"
+    observation: Same first-clause truncation pattern as the zh long cell.
+  - name: ASR WER (long-form, 10-20s) — dictation mode (ASR_MAX_NEW_TOKENS=256, ASR_FINAL_STOP_ON_PUNCT=0, env override, RK_ARTIFACT_CONTRACT_STRICT=0 required)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=63.38% (word) / 62.58% (CER) — byte-identical transcripts to conversational mode"
     observation: >-
-      Same first-clause truncation as the zh long cell (ASR_MAX_NEW_TOKENS=64,
-      ASR_FINAL_STOP_ON_PUNCT=1) — profile is tuned for short conversational
-      turns, not long-form English dictation either.
+      HYPOTHESIS FALSIFIED, same as the zh cell: the env override was
+      confirmed applied (server startup log shows the profile_loader override
+      + a runtime-contract-mismatch WARNING rather than a hard error, because
+      RK_ARTIFACT_CONTRACT_STRICT=0 was required to stop the artifact set's
+      runtime_contract check from crash-looping the container with
+      SystemExit(1)), but every English long-form transcript is byte-identical
+      to the conversational-mode run (e.g. en_long_03 still finalizes as "To
+      prevent possible infection of others." after 43 messages / 7.5s). The
+      cutoff tracks VAD endpoint detection (silero, 400ms silence,
+      QWEN3_ASR_FRONTEND_EOU_MIN_AUDIO_S=2.5s), not the decoder token budget
+      or punctuation-stop flag. See openvoicestream:docs/perf/rk3576-matrix-20260906.md
+      addendum for the full env-applied evidence and raw JSON.
   - name: TTS RTF (Matcha ORT + RKNN Vocos, icefall zh-en voice)
     unit: ratio (synth_time / audio_duration)
     direction: lower_is_better

@@ -28,25 +28,45 @@ conditions:
 resolver_profile: rk3576-default   # resolver output for (zh, rk3576); see docs/perf/rk3576-matrix-20260906.md
 
 metrics:
-  - name: ASR CER (short utterances)
+  - name: ASR CER (short utterances) — conversational mode, re-run unchanged in dictation mode
     unit: percent
     direction: lower_is_better
-    value: "n=5, mean=29.09%"
+    value: "n=5, mean=29.09% in both conversational and dictation mode (identical transcripts)"
     observation: >-
       2/5 files exact match (0% CER); 2 files with partial mid-utterance
-      truncation (zh_short_03 79%, zh_short_05 59%) consistent with
-      ASR_MAX_NEW_TOKENS=64 + ASR_FINAL_STOP_ON_PUNCT=1 cutting off after the
-      first clause on longer single utterances.
-  - name: ASR CER (long-form, 10-20s)
+      truncation (zh_short_03 79%, zh_short_05 59%) persist unchanged under
+      the dictation-mode env override (ASR_MAX_NEW_TOKENS=256,
+      ASR_FINAL_STOP_ON_PUNCT=0) — confirms the truncation is not caused by
+      the decoder token budget or punctuation-stop setting; see the long-form
+      metric below for the falsified hypothesis and the more likely VAD
+      root cause.
+  - name: ASR CER (long-form, 10-20s) — conversational mode (ASR_MAX_NEW_TOKENS=64, ASR_FINAL_STOP_ON_PUNCT=1, shipped default)
     unit: percent
     direction: lower_is_better
     value: "n=5, mean=84.06%"
     observation: >-
-      Every long file is truncated to its first clause (profile is tuned for
-      short conversational turns, not dictation) — this is not a decoder
-      accuracy failure, it is the streaming true_streaming pipeline stopping
-      at the first sentence-final punctuation. rk3576-default is unsuitable
-      for long-form transcription as configured.
+      Every long file is truncated to its first clause. This profile setting
+      is the shipped low-latency conversational-turn default — used for real
+      conversation, not for long-form dictation.
+  - name: ASR CER (long-form, 10-20s) — dictation mode (ASR_MAX_NEW_TOKENS=256, ASR_FINAL_STOP_ON_PUNCT=0, env override, RK_ARTIFACT_CONTRACT_STRICT=0 required)
+    unit: percent
+    direction: lower_is_better
+    value: "n=5, mean=84.06% (byte-identical transcripts to conversational mode)"
+    observation: >-
+      HYPOTHESIS FALSIFIED. Raising ASR_MAX_NEW_TOKENS to 256 and disabling
+      ASR_FINAL_STOP_ON_PUNCT produced zero change — every transcript is
+      byte-identical to the conversational-mode run. Env override confirmed
+      applied via server startup log (profile_loader "wants ... but env
+      overrides to ..." + rk_artifacts runtime-contract-mismatch WARNING,
+      not ERROR, because RK_ARTIFACT_CONTRACT_STRICT=0 was required to avoid
+      a hard SystemExit(1) crash-loop the artifact set's runtime_contract
+      enforces by default). The real cutoff mechanism is VAD-based endpoint
+      detection (silero VAD, VAD_ENDPOINT_SILENCE_MS=400,
+      QWEN3_ASR_FRONTEND_EOU_MIN_AUDIO_S=2.5) firing on the first natural
+      pause in the audio (1-3 server messages, ~2s eos_to_final even for
+      10-20s clips) — not the decoder token budget or punctuation-stop flag.
+      Identifying/tuning the actual VAD parameters is open follow-up work,
+      not attempted here.
   - name: TTS RTF (Matcha ORT + RKNN Vocos)
     unit: ratio (synth_time / audio_duration)
     direction: lower_is_better

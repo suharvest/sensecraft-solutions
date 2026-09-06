@@ -71,6 +71,17 @@ available lists, since Qwen3-ASR upstream advertises 52 languages and Whisper
 | Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
 | Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS CustomVoice, pending measurement |
 | RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, measured 2026-09-06: WER 16.95% short / 63.38% long, TTS RTF 0.194 (see docs/perf/rk3576-matrix-20260906.md) | Not supported - TTS on this board is Matcha zh-en only |
+
+The long-form 63.38% number above is a streaming-endpoint artifact, not a
+dictation-quality ceiling: the profile's low-latency conversational turn
+detection (silero VAD, 400ms silence + 2.5s minimum audio) finalizes on the
+first natural pause in the clip, so the decoder never sees the rest of the
+audio. This was re-tested with the decoder's own token budget and
+punctuation-stop setting relaxed (`ASR_MAX_NEW_TOKENS=256`,
+`ASR_FINAL_STOP_ON_PUNCT=0`) — the resulting WER/CER on both zh and en were
+byte-identical to the conversational-mode numbers, so those two settings are
+not the cause. Tuning the VAD endpoint parameters to survive a mid-utterance
+pause is open follow-up work, not done here.
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, pending measurement | Qwen3-ASR + Kokoro RKNN, pending measurement |
 | Raspberry Pi 5 | Not supported | sherpa-onnx CPU, pending measurement | Not supported |
 
