@@ -98,8 +98,15 @@ remote_overrides:
           find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
           find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
           umask 077
+          # The key goes into a file, not into the environment: an environment
+          # variable is readable from `docker inspect` by anyone in the docker
+          # group. The compose file mounts this at /run/secrets/facedb.key.
+          mkdir -p "$WORKDIR/assets/cloud/secret"
+          printf '%s' '{{facedb_signing_key}}' > "$WORKDIR/assets/cloud/secret/facedb.key"
+          chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
           cat > "$WORKDIR/.env" <<EOF
-          USA_FACEDB_SIGNING_KEY={{facedb_signing_key}}
+          USA_FACEDB_KEY_ID={{facedb_key_id}}
+          USA_MATCH_THRESHOLD={{match_threshold}}
           USA_WEB_TOKENS={{web_admin_token}}:admin
           MQTT_HOST=127.0.0.1
           MQTT_PORT=1883
@@ -108,6 +115,7 @@ remote_overrides:
           WEB_PORT=8088
           EOF
           echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
+          echo "key file written with mode $(stat -c '%a' "$WORKDIR/assets/cloud/secret/facedb.key" 2>/dev/null || stat -f '%Lp' "$WORKDIR/assets/cloud/secret/facedb.key")"
         name_i18n:
           zh: 清理 macOS 附属文件并写入环境文件
 
@@ -184,6 +192,51 @@ remote_overrides:
           没有它就拒绝启动——时钟差了几个月的设备验不了 TLS 证书，完整性校验只能上移到
           应用层。用 `openssl rand -hex 32` 生成。它防的是链路篡改，不防被撬开的设备：
           任何一台设备的密钥泄漏都足以伪造人脸库。
+    - id: facedb_key_id
+      name: Signing Key ID
+      type: text
+      default: "facedb-key-1"
+      required: true
+      validation:
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+      description: >-
+        Names the key without revealing it. It is written into every manifest
+        and compared byte for byte by each device, which is what makes key
+        rotation observable: change the key without changing this id and the
+        devices report a signature failure rather than silently accepting
+        either key.
+      name_i18n:
+        zh: 签名密钥 ID
+      description_i18n:
+        zh: >-
+          给密钥起个名字而不暴露它。它写进每一份 manifest，由设备逐字节比对——
+          这正是换密钥可被观测的原因：换了密钥却不改这个 id，设备会报验签失败，
+          而不是两个密钥都默默接受。
+    - id: match_threshold
+      name: Match Threshold
+      type: text
+      default: "0.40"
+      required: true
+      validation:
+        pattern: "^0\\.[0-9]{1,3}$"
+      description: >-
+        The single source of the similarity threshold. It is written into the
+        library's gallery.json and .fdb1 header, and every device's own
+        `match_threshold` has to equal it — the recognition process matches
+        against the library's value while the event reports the device's, so two
+        different numbers means the door opens at a threshold that appears
+        nowhere in the audit log. 0.40 is the current unvalidated default from
+        the device configuration, not a calibrated result: sweep positive and
+        negative pairs on your own population before treating it as one.
+      name_i18n:
+        zh: 匹配阈值
+      description_i18n:
+        zh: >-
+          相似度阈值的唯一来源。它写进人脸库的 gallery.json 与 .fdb1 库头，
+          每台设备自己的 `match_threshold` 必须与它相等——识别进程按库里的值判匹配，
+          事件里报的却是设备侧的值，两个数不同就意味着门开在一个审计日志里查不到的
+          阈值上。0.40 是设备配置里现有的暂定默认值，不是标定结果：在你自己的人群上
+          扫过正负对之后再把它当结论。
     - id: web_admin_token
       name: Console Admin Token
       type: password
