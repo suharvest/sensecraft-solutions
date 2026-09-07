@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Where did that forklift go? Is the equipment still in the warehouse? Did the tracked vehicle leave the yard? This solution uses battery-powered BLE beacons indoors, GNSS outdoors, and long-range LoRaWAN backhaul, and draws both on the same map. Indoor floor plans can be georeferenced onto the outdoor map, so a trail that starts in a building and continues in the yard stays on one screen.
+This solution tracks forklifts, equipment and vehicles across indoor and outdoor areas. It uses battery-powered BLE beacons indoors, GNSS outdoors, and long-range LoRaWAN backhaul, and draws both on the same map. Indoor floor plans can be georeferenced onto the outdoor map, so a trail that starts in a building and continues in the yard stays on one screen.
 
 ## Core Benefits
 
