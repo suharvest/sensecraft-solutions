@@ -1,8 +1,8 @@
 ## What This Solution Helps You Do
 
-For building, energy, and equipment-management integrators, the expensive part is often not the dashboard. It is rebuilding controller drivers, point mappings, and data conversions at every customer site. This solution brings OPC UA, Modbus, BACnet/IP, and MQTT into one point model, so upstream systems integrate with one MQTT read/write interface.
+For building, energy, and equipment-management integrators, this solution brings OPC UA, Modbus, BACnet/IP, and MQTT into one point model, so upstream systems integrate through a single MQTT read/write interface instead of a per-site set of controller drivers, point mappings, and data conversions.
 
-Site differences become configuration: add a controller, discover or enter points manually, verify data quality, and expose selected data to an energy platform, SCADA, cloud service, or customer application. Integrators no longer need a separate protocol-conversion layer for every project.
+Site differences become configuration: add a controller, discover or enter points manually, verify data quality, and expose selected data to an energy platform, SCADA, cloud service, or customer application. The protocol-conversion layer is configured once per site rather than rebuilt per project.
 
 The solution is designed first for the reComputer R1000/R1100 Series and reTerminal DM Series, including on-device touch operation on reTerminal DM.
 

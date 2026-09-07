@@ -28,7 +28,7 @@ A brand-new SO-ARM kit needs three one-time setup tasks from the upstream wiki b
 
 On the Jetson (or any Linux host with USB to the arm), follow the upstream walkthrough for each of the three tasks. Photos + interactive prompts are all on the wiki.
 
-1. **[Find the USB port](https://wiki.seeedstudio.com/lerobot_so100m_new/#find-the-usb-ports)** — `lerobot-find-port` tells you which `/dev/ttyACM*` is the arm
+1. **[Find the USB port](https://wiki.seeedstudio.com/lerobot_so100m_new/#find-the-usb-ports)** — `lerobot-find-port` reports which `/dev/ttyACM*` is the arm
 2. **[Configure motor IDs](https://wiki.seeedstudio.com/lerobot_so100m_new/#configure-the-motors)** — factory servos are all ID 1; plug one at a time, the script re-IDs them 1–6
 3. **[Calibrate](https://wiki.seeedstudio.com/lerobot_so100m_new/#calibrate)** — pose to mid-position + sweep each joint so `/observation` returns normalized -100..100 (body joints) / 0..100 (gripper)
 

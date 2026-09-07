@@ -91,7 +91,7 @@
 
 抓取要把相机像素换算成机械臂坐标，这个变换与相机在手腕上的安装位置有关，每台设备物理上都不同。在 `/opt/rebot-models/hand_eye.npz` 生成之前，抓取指令能检测到物体但不会动臂。一次性，约 30 分钟：
 
-1. 下载并打印[官方 ArUco 标定板 PDF](https://raw.githubusercontent.com/Seeed-Projects/reBot-DevArm-Grasp/main/aruco100x100.pdf)（DICT_4X4_50，ID 0，标称 100 mm），并**用尺子实测打印出来的黑色外框边长** —— 打印机会缩放！1 mm 误差 ≈ 1 cm 抓取偏差，这是标定翻车的头号原因。
+1. 下载并打印[官方 ArUco 标定板 PDF](https://raw.githubusercontent.com/Seeed-Projects/reBot-DevArm-Grasp/main/aruco100x100.pdf)（DICT_4X4_50，ID 0，标称 100 mm），并**用尺子实测打印出来的黑色外框边长**——打印机会缩放。边长填错 1 mm 对应约 1 cm 抓取偏差。
 2. 把标定板平贴在机械臂正前方约 65 cm 的桌面上。
 3. 按[仓库 RUNBOOK §3.2](https://github.com/suharvest/openvoicestream/blob/main/agent/ovs_agent/apps/voice_rebot_arm/RUNBOOK.md) 执行采集 + 求解 —— 机械臂在板上方扫过约 16 个位姿后求解变换（目标平均误差 < 5 mm）。
 4. 把生成的 `hand_eye.npz` 复制到 `/opt/rebot-models/`，重启 `rebot-arm` 容器。
