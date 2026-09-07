@@ -1,9 +1,11 @@
 # Baseline track model artefacts. Checksums only — no weights, no ONNX and no
-# engine/HEF is committed to this repository, and nothing has been uploaded to
-# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/
-# either. The deploy steps name that path, verify against these lines, and
-# carry a TODO(CDN) saying the file must be placed on the device by hand
-# until the upload happens.
+# engine/HEF is committed to this repository. Of these, only the deployable
+# Hailo-8 HEF (efficientnet_lite0_waste8_u8.hef, see SHA256SUMS.hef) has been
+# uploaded to
+# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/;
+# its deploy step downloads and verifies it against that line. Everything else
+# here is a reference checksum for artefacts produced during training/eval and
+# has not been uploaded anywhere.
 #
 # Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.
 #

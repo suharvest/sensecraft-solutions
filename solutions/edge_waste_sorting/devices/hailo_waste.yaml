@@ -20,8 +20,8 @@ device_class: hailo
 # work: its parser passes but `hailo optimize` (INT8 PTQ) still fails with
 # NegativeSlopeExponentNonFixable; see the solution page.
 #
-# The HEF itself has not been uploaded to any CDN yet (see the fetch step
-# below) — that is a packaging gap, not a model-quality gap. The three ABI
+# The HEF is fetched from the CDN by the step below (sha256-verified before
+# and after download, cache reused only if it still matches). The three ABI
 # gates in `before` are exactly the checks that can only pass or fail on the
 # device.
 

@@ -145,13 +145,13 @@ When the gallery is published, upload `architecture.svg` and switch
 ## Model artefacts
 
 `assets/models/` carries checksums only — `SHA256SUMS` (baseline),
-`SHA256SUMS.open_vocab`, and `SHA256SUMS.hef` which is deliberately empty
-because no HEF exists. No weights, ONNX, engine or HEF is in this repository,
-and none has been uploaded to
-`https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/`
-either. The download steps in `devices/` name that path and verify the
-checksums, and each carries a `TODO(CDN)` comment saying the file is not there
-yet and must be placed on the device by hand in the meantime.
+`SHA256SUMS.open_vocab`, and `SHA256SUMS.hef`. No weights, ONNX, engine or HEF
+is in this repository. Of these, only the deployable Hailo-8 HEF
+(`efficientnet_lite0_waste8_u8.hef`) has been uploaded to
+`https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/`;
+its download step in `devices/hailo_waste.yaml` names that path and verifies
+the checksum before and after download. Everything else listed in these
+checksum files has not been uploaded anywhere.
 
 Neither container image has been pushed to
 `sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-{jetson,hailo}`;
