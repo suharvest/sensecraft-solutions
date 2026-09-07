@@ -25,11 +25,12 @@
 - **域偏移还没有在硬件上采过。** 两个数据集都是单件干净物品的照片，不是真实垃圾桶。
   没有现场集，因此没有「湿的、压扁的、堆叠的、装袋的垃圾上掉多少精度」的数字。
   预期会掉。
-- **下面的精度/一致率数字不是在实际部署的 engine 上测的。** 它们来自另一个
+- **方案页上的 Jetson 精度/一致率数字（top-1 0.8755，与 CPU golden 一致率
+  0.9991，1060 张子集）不是在实际部署的 engine 上测的。** 它们来自另一个
   独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台 reComputer J4012
   （Orin NX），但不是本部署步骤产出的那个二进制。部署 engine 自身的构建耗时
-  （68 秒）与端到端 pipeline（4.122 ms）/ inference（3.533 ms）时延是在部署
-  二进制上实测的。
+  （68 秒）与端到端 pipeline（4.122 ms）/ inference（3.533 ms）时延——取自一条
+  实测的 MQTT 事件——是在部署二进制上实测的。
 
 ## 步骤 1: 部署垃圾分类 {#deploy_jetson_waste type=docker_deploy required=true config=devices/jetson_waste.yaml}
 

@@ -80,7 +80,7 @@ site.
 | Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Development-machine baseline, same run |
 | End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
 | End-to-end alert latency, Hailo-8 preset, real inference included | P50 2830 ms / P95 3061 ms | 10 independent fall triggers from an RTSP replay of a real fall clip, same shortened 1 s evidence + 1 s auto-confirm windows as the top row, real Hailo-8 pose inference feeding the alarm state machine | reComputer R2000 series with the Hailo-8 option, 2026-09-08 |
-| End-to-end alert latency, Jetson TensorRT preset (YOLO11s-pose), real inference included | P50 6665 ms / P95 16914 ms | 10 independent fall triggers from a looped RTSP replay of a real fall clip, shortened windows (1 s evidence + 5 s confirm + 3 s rearm, vs shipped 5 s + 60 s + 120 s), real TensorRT YOLO11s-pose inference feeding the alarm state machine; 9 of 10 samples fell in the 6.2-6.9 s range, one (16.9 s) landed in a confirm/notify retry backlog left over from before the test's webhook token was set and is kept in the P95 rather than dropped | reComputer J4012 (Orin NX), 2026-09-08 |
+| Alert latency, event timestamp to webhook received, Jetson TensorRT preset (YOLO11s-pose) | P50 6665 ms / P95 16914 ms | 10 independent fall triggers from a looped RTSP replay of a real fall clip, shortened windows (1 s evidence + 5 s confirm + 3 s rearm, vs shipped 5 s + 60 s + 120 s); the timed interval is event timestamp to webhook receipt, which starts after the real TensorRT YOLO11s-pose inference has already produced that event — inference time is not part of this number. 9 of 10 samples fell in the 6.2-6.9 s range, one (16.9 s) landed in a confirm/notify retry backlog left over from before the test's `ELDERCARE_OPERATORS` operator credential was set and is kept in the P95 rather than dropped | reComputer J4012 (Orin NX), 2026-09-08 |
 
 Read the first three rows (the loopback development-machine baseline) as the
 sum of the two configured windows plus about 60 ms of dispatch. With the
@@ -91,9 +91,9 @@ formula — for the Hailo-8 row, roughly 700-900 ms beyond the 2060 ms the
 windows alone predict — which is why they read higher than the loopback figure
 even on the same shortened windows. The Jetson row uses a different, longer
 set of shortened windows (1 s + 5 s + 3 s instead of 1 s + 1 s), so its 6.665 s
-P50 is not on the same formula as the other on-device rows; it exists to prove
-the confirm-window design adds seconds, not to be compared latency-for-latency
-against the Hailo-8 row.
+P50 is not on the same formula as the other on-device rows and uses a
+different confirm/rearm configuration than the Hailo-8 row, so the two
+numbers should not be compared latency-for-latency.
 
 The notifier rate-limits itself to 5 sends per 10 minutes. Past that it stops
 sending, by design — size your webhook expectations accordingly.

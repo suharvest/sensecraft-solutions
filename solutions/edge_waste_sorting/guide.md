@@ -29,12 +29,13 @@ Known weaknesses, all measured or explicitly unmeasured:
 - **Domain shift is unmeasured.** Both datasets are photographs of single clean
   items, not a real bin. There is no field set and therefore no number for how
   much accuracy drops on wet, crushed, stacked or bagged waste. Expect a drop.
-- **The accuracy/consistency figures below were not measured on the exact
-  deployed engine.** They come from a separately built FP16 engine — same
-  ONNX, same precision, same reComputer J4012 (Orin NX) — not the binary this
-  deployment step produces. The deployed engine's own build time (68 s) and
-  end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings are measured
-  on the deployed binary.
+- **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
+  agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
+  exact deployed engine.** They come from a separately built FP16 engine —
+  same ONNX, same precision, same reComputer J4012 (Orin NX) — not the binary
+  this deployment step produces. The deployed engine's own build time (68 s)
+  and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
+  reported MQTT event, are measured on the deployed binary.
 
 ## Step 1: Deploy Waste Sorting {#deploy_jetson_waste type=docker_deploy required=true config=devices/jetson_waste.yaml}
 
