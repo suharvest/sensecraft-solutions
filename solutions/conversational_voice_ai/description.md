@@ -85,7 +85,7 @@ refuses Chinese instead of transcribing it badly.
 | Chinese speech recognition accuracy | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4 on the golden set, streaming and offline, 2026-07-04 |
 | Chinese speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06, re-verified 2026-09-08 |
 | Chinese speech synthesis speed | RTF 0.172 | reComputer RK3576 | Matcha-TTS, "/tts" endpoint, 2026-09-08 |
-| Chinese end-to-end turn latency | 1837 ms stop-to-final (p50) | reComputer RK3576 | ASR finalize after audio stops, `/v2v/stream`, 2026-09-08 |
+| Chinese ASR finalization latency | 1589 ms stop-to-final (p50) | reComputer RK3576 | ASR finalize after audio stops (excludes LLM reply and TTS synthesis), `/v2v/stream`, 2026-09-08 |
 | English speech recognition accuracy | CER 1.11% short clips / 4.16% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06 |
 | English speech synthesis speed | RTF 0.194 | reComputer RK3576 | Matcha-TTS, "/tts" endpoint, 2026-09-06 |
 

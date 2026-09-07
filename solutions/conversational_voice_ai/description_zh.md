@@ -79,7 +79,7 @@
 | 中文识别准确率 | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4，golden set，流式与离线，2026-07-04 |
 | 中文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段「/asr」接口，2026-09-06，2026-09-08 复测确认 |
 | 中文语音合成速度 | RTF 0.172 | reComputer RK3576 | Matcha-TTS，「/tts」接口，2026-09-08 |
-| 中文端到端轮次时延 | stop-to-final p50 1837 ms | reComputer RK3576 | 音频结束到 ASR 最终结果，`/v2v/stream`，2026-09-08 |
+| 中文识别最终结果时延 | stop-to-final p50 1589 ms | reComputer RK3576 | 音频结束到 ASR 最终结果（不含 LLM 回复与语音合成），`/v2v/stream`，2026-09-08 |
 | 英文识别准确率 | CER 短句 1.11% / 长句 4.16% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段「/asr」接口，2026-09-06 |
 | 英文语音合成速度 | RTF 0.194 | reComputer RK3576 | Matcha-TTS，「/tts」接口，2026-09-06 |
 
