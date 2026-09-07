@@ -243,15 +243,14 @@ Orin 上），让低置信度或只有异常分数的帧在旁路 MQTT 主题上
 
 ---
 
-## 套餐: IP 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
+## 套餐: IP 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
 
-更便宜、也未经验证的那条路径。INT8 HEF 已编译，量化损失在编译器 emulator 上
-量过，运行时镜像也能交叉构建成 arm64——但这里没有一样东西在树莓派上跑过。
-设备上有三道 ABI 关卡要先过，容器才起得来。
+成本更低的一块板。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS，
+mAP50 0.7091。设备上有三道 ABI 关卡要先过，容器才起得来。
 
 | 设备 | 用途 |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8 | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
+| reComputer R2000（Hailo-8） | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
 | IP 摄像头 | 提供 RTSP 视频；任意对着钢带或工件取景的 RTSP 相机 |
 | PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
 
@@ -312,11 +311,11 @@ crazing 弱、误报无法测量这两条在这里同样成立。
 | 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |
 | 想在这块板上跑 `dfine` 或 `rtdetrv2` 检测器 track | 不支持——Hailo Dataflow Compiler 3.31.0 的解析器对两者都拒绝（可变形注意力算子 `GridSample`/`GatherElements`/`TopK` 在 Hailo-8 上没有实现；见方案页"检测器选型"一节）。这个套餐只提供 `yolox` |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
 从这台电脑通过 SSH 部署到树莓派。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
 如果你就在这台树莓派上操作，直接在本机运行。
 

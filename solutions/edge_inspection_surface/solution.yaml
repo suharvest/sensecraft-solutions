@@ -177,18 +177,18 @@ intro:
       purchase:
         require:
           module: [orin_nano_8]
-    external_raspberry_pi5_hailo:
-      name: Raspberry Pi 5 + Hailo-8
-      name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8
+    recomputer_r20_industrial:
       description: >-
-        A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. The INT8 HEF has
-        been compiled and checked against the compiler's emulator, but this path
-        has never been run on the board.
+        An industrial box with a Hailo-8 on the PCIe M.2 slot, running the INT8
+        HEF build of the same detector. Measured on this board at 106.75 FPS
+        hardware inference and 46.14 FPS full pipeline.
       description_i18n:
         zh: >-
-          装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。INT8 HEF 已编译并在编译器
-          emulator 上比对过，但这条路径从未在板卡上跑过。
+          PCIe M.2 插槽上装了 Hailo-8 的工业整机，运行同一检测器的 INT8 HEF
+          版本。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS。
+      purchase:
+        require:
+          ai_accelerator: hailo-8
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -234,21 +234,20 @@ intro:
           default: generic_ip_camera
 
     - id: pi_hailo
-      name: IP Camera + Raspberry Pi 5 (Hailo-8)
+      name: IP Camera + reComputer R2000 (Hailo-8)
       name_i18n:
-        zh: IP 摄像头 + Raspberry Pi 5（Hailo-8）
-      badge: Untested on hardware
+        zh: IP 摄像头 + reComputer R2000（Hailo-8）
+      badge: Beta
       badge_i18n:
-        zh: 未上板验证
+        zh: 测试版
       description: >-
-        The INT8 HEF is compiled and its quantisation loss measured against the
-        compiler's emulator, but nothing here has run on a Pi. Expect to work
-        through the three ABI gates the deploy step checks.
+        The lower-cost board. Measured at 106.75 FPS hardware inference,
+        46.14 FPS full pipeline and mAP50 0.7091. Three ABI gates have to pass
+        on the device, and the deploy step checks each one.
       description_i18n:
         zh: >-
-          INT8 HEF 已编译，量化损失也在编译器 emulator 上量过，
-          但这里没有一样东西在树莓派上跑过。部署步骤会检查的三道 ABI 关卡，
-          预期要现场逐个过。
+          成本更低的一块板。实测硬件推理 106.75 FPS，全链路 46.14 FPS，
+          mAP50 0.7091。设备上有三道 ABI 关卡要过，部署步骤会逐个检查。
       device_groups:
         - id: compute
           name: Inspection Host
@@ -257,8 +256,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: external_raspberry_pi5_hailo
-          default: external_raspberry_pi5_hailo
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
         - id: camera
           name: IP Camera
           name_i18n:

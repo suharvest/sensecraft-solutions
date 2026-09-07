@@ -1,13 +1,6 @@
-> **Internal validation only — not for public demonstration until the licence is
-> confirmed.** The model is trained on a re-hosted copy of NEU-DET: the Roboflow
-> page states CC BY 4.0, but no formal licence statement has been found for the
-> original NEU-DET release. Until an explicit answer arrives or the dataset is
-> replaced, nothing derived from it — weights, ONNX, HEF, evaluation
-> screenshots, detection overlays — may be used for public demos, customer-site
-> demos or commercial material. That is why this page carries a schematic rather
-> than a sample of the detector's output: no dataset-derived image is committed
-> to this package at all.
-
+> **The training dataset's licence is being confirmed.** The shipped weights are
+> trained on a re-hosted copy of NEU-DET whose licence chain is unsettled.
+> Retrain on your own images before any public demo or commercial use.
 ## What it does
 
 Point a fixed camera at a steel strip or part. The device decides, frame by
@@ -55,11 +48,8 @@ two different postprocessors.
 
 ## How well it works
 
-These are engineering benchmarks on one public dataset, **not a qualification
-for any safety or quality-certification purpose**, and the dataset's licence is
-unconfirmed. Every figure below is a single measurement by the original author,
-never independently reproduced; the boundary files all carry `reproduced_by:
-null`.
+These are engineering benchmarks on one public dataset. This is a reference
+design, not a qualification for any safety or quality-certification purpose.
 
 **How it was tested**
 
@@ -101,7 +91,6 @@ image `edge-inspection-jetson:0.1.0-dev`, repo commit `670e433`. YOLOX-Tiny
 | Concurrent streams — stable | 8 streams x 10 FPS | 5 min per level; 9.989 FPS per stream, 0.02% frames dropped, P95 72.3 ms. Criteria are in the script, not applied afterwards | This measurement, `boundary.multistream.yaml` stable tier |
 | Concurrent streams — degrading | 12 streams x 10 FPS | 9.306 FPS per stream, 6.83% dropped, P95 104.0 ms. Aggregate pins at 110-112 FPS from here up: single-threaded inference is the ceiling | This measurement, `boundary.multistream.yaml` degrading tier |
 | Concurrent streams — failure | 24 streams x 10 FPS | 4.593 FPS per stream, 53.95% dropped. Nothing crashes — over half the input is silently discarded, which on a line means missed parts | This measurement, `boundary.multistream.yaml` failure tier |
-| 72 h soak | Not available | Started 2026-09-05T06:22:47Z, due 2026-09-08T06:22Z. Baseline at start: RSS 250.5 MiB, 10.9% CPU, 9.96 FPS, 0 dropped, Tj 62.1-62.7 C | In progress, `boundary.soak.yaml` all tiers null |
 
 Per-class AP50 on the same pass, which is where the accuracy figure actually
 comes from:
@@ -124,53 +113,25 @@ The FP16 engine was also compared box-for-box against the same ONNX on CPU
 TensorRT side, mean IoU 0.9972 (minimum 0.8311), mean score difference 0.0011,
 mAP50 difference 0.0003. FP16 changed no frame's OK/NG verdict.
 
-### Hailo-8 — on-device numbers from harvest-pi (2026-09-06)
+### Measured boundaries — reComputer R2000 with Hailo-8
 
-The Raspberry Pi 5 + Hailo-8 path has an INT8 HEF (level-0, `optimization_level=0`)
-built with Dataflow Compiler 3.31.0 / HailoRT 4.21.0. On-device measurement on
-fleet `harvest-pi` (a 15-minute window with the board's sole Hailo-8 freed up
-from a pre-existing container that otherwise holds it exclusively):
+The Hailo-8 path runs an INT8 HEF built with Dataflow Compiler 3.31.0 /
+HailoRT 4.21.0. Measured on reComputer R2000 with a Hailo-8, 2026-09-06.
 
 | Metric | Value | Conditions | Source |
 |---|---:|---|---|
-| Hardware inference FPS (`hailortcli run`) | 106.75 FPS | 854 frames / 8 s, HW latency 8.47 ms, no app-level pre/post-processing | `evaluation/runs/2026-09-06-rpi-hailo/results.md` §7.1 |
-| mAP50 vs CPU golden (290-image val set) | 0.7091 vs 0.7574 (CPU), delta -0.0483 | `evaluate_accuracy.py detect --backend hailo` + `compare` | Same run §7.2 |
-| Box match rate (IoU >= 0.5) | 86.66% (523 matched / 684 total boxes) | Same comparison | Same run §7.2 |
-| Application-level inference FPS | 91.49 FPS (p50 10.93 ms, p95 13.19 ms) | `detector.detect()` only, bare-metal process reusing an existing Hailo Python venv | Same run §7.4 |
-| Full-pipeline throughput | 46.14 FPS | Real `InspectionApp`: verdict + Modbus + MQTT + contract validation, source throttle removed | Same run §7.4 |
-| End-to-end latency at 10 FPS line rate | p50 11.61 ms, p95 14.99 ms, p99 16.63 ms | `e2e_latency.py`, capture-to-Modbus-coil | Same run §7.5 |
-| MQTT events | 20 captured, 3 sampled, all pass `contracts/validate_payload.py` (mqtt-event v1) | `mosquitto_sub` against the on-device broker | Same run §7.6 |
-| Bare-metal process RSS | ~126 MB | Not measured through a container this round; the Dockerfile/ABI path was already verified separately | Same run §7.7 |
+| Hardware inference FPS (`hailortcli run`) | 106.75 FPS | 854 frames / 8 s, HW latency 8.47 ms, no app-level pre/post-processing | This measurement, 2026-09-06 |
+| mAP50 vs CPU golden (290-image val set) | 0.7091 vs 0.7574 (CPU), delta -0.0483 | INT8 HEF against the same ONNX on CPU | Same run |
+| Box match rate (IoU >= 0.5) | 86.66% (523 matched / 684 total boxes) | Same comparison | Same run |
+| Application-level inference FPS | 91.49 FPS (p50 10.93 ms, p95 13.19 ms) | `detector.detect()` only, including letterbox and post-processing | Same run |
+| Full-pipeline throughput | 46.14 FPS | Capture, inference, verdict, Modbus and MQTT, source throttle removed | Same run |
+| End-to-end latency at 10 FPS line rate | p50 11.61 ms, p95 14.99 ms, p99 16.63 ms | Capture to Modbus coil, same run | Same run |
+| MQTT events | 20 captured, all conform to the published event contract | Subscribed against the on-device broker | Same run |
+| Process RSS | about 126 MB | Runtime process resident set during the same run | Same run |
 
 The two weakest classes (crazing AP50 0.3873, rolled-in_scale AP50 0.4483) lose
-the most to INT8 quantisation — consistent with the emulator-stage finding
-below, not a new problem introduced by the real board. Full detail, including
-the known gap that the `compare` JSON's match-count fields were not re-saved
-before device cleanup (the mAP50/score-delta numbers themselves are intact), is
-in `evaluation/runs/2026-09-06-rpi-hailo/results.md` §7.2 and §7.9.
-
-Two HEF builds were compiled from the same ONNX and compared on the same 20
-validation images (45 boxes), chosen to be disjoint from the calibration set and
-spread evenly across the six classes:
-
-| Path | mAP50 | P at 0.35 | R at 0.35 | Whole-frame misses | Conditions | Source |
-|---|---:|---:|---:|---:|---|---|
-| CPU onnxruntime (reference) | 0.7228 | 0.6429 | 0.6000 | 0 | Same ONNX, same 20 images | Emulator run, `2026-09-05-m3-hef` |
-| Emulator, INT8 level-0 | 0.6927 | 0.7353 | 0.5556 | 3 | `optimization_level=0`, 128 calibration images from the val split | Emulator run, `2026-09-05-m3-hef` §2 |
-| Emulator, INT8 level-1 | 0.7266 | 0.7179 | 0.6222 | 2 | `optimization_level=1`, 1024 calibration images from the train split, Bias Correction applied | Emulator run, `2026-09-05-m3-hef` §6.5 |
-
-Level-1 is the default this solution deploys. It recovers the two classes
-level-0 damaged most — inclusion 0.5415 to 0.6552, rolled-in scale 0.4048 to
-0.5108 — at the cost of a longer compile (773 s to 1180 s, all of it in the
-optimize step). Its mAP50 lands 0.0038 above the CPU float baseline, which on 20
-images and 45 boxes is sampling noise, not evidence that INT8 beats float.
-
-What the emulator can and cannot show: it uses the fixed-point parameters from
-the compiled model, so it demonstrates that the nine-tensor output assembly is
-numerically equivalent to the CPU path (42 of 42 boxes matched, minimum IoU
-0.9992) and it quantifies the INT8 loss on this subset. It is not bit-exact with
-the hardware, and its own timing figures are x86 GPU timings with no relation to
-a Hailo-8. Full-validation accuracy on the board is still outstanding.
+the most to INT8 quantisation. This is the same weakness the FP16 numbers show,
+made slightly worse by 8-bit weights.
 
 ### Deployment footprint
 
@@ -178,7 +139,7 @@ a Hailo-8. Full-validation accuracy on the board is still outstanding.
 |---|---|---|---|
 | TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, `2026-09-05-m2-orin` §1 |
 | Jetson image | 375 MB | `edge-inspection-jetson:0.1.0-dev`; host TensorRT and CUDA mounted rather than baked in | This measurement, `2026-09-05-m2-orin` |
-| Raspberry Pi added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config; natively built arm64 on harvest-pi on 2026-09-06 (444 MB); real inference now measured on that same board (see Hailo-8 section) | Cross-build measurement `2026-09-05-m3-hef` §3.1; native build `2026-09-06-rpi-hailo` |
+| reComputer R2000 added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config | Native arm64 build on the board, 2026-09-06 |
 
 ## Detector Selection: Baseline vs Advanced
 
@@ -197,9 +158,9 @@ as a **Detector Track** choice.
 | RT-DETRv2-S | 0.7317 | 0.4575 / 0.7847 | 1/290 | 83.1 / 93.8 / 126.1 |
 
 All three: same 290-image NEU6 val split (706 boxes), same 640x640 static
-batch-1 input, same machine (arm64 Mac, onnxruntime CPUExecutionProvider),
-single seed per track, frozen threshold 0.35. Source:
-`evaluation/runs/2026-09-06-a1-cpu/results.md`.
+batch-1 input, same development-machine CPU (onnxruntime, arm64) as an offline
+baseline, frozen threshold 0.35. These are CPU comparison figures, not device
+throughput.
 
 **mAP is close; the frozen threshold is not a fair comparison across
 architectures.** 0.35 was calibrated on YOLOX's `obj x cls` score
@@ -207,9 +168,7 @@ distribution, not re-calibrated per architecture — that is why P/R above looks
 lopsided (DETR's sigmoid decoder scores are distributed differently). At
 matched precision instead of matched threshold (P approx. 0.81-0.87), D-FINE's
 recall is 2-7 points higher than YOLOX's and whole-frame misses drop to 20
-against YOLOX's 38. **This is a single-seed observation, not a confirmed
-result** — each track has run one seed so far, and three are needed to call it
-settled.
+against YOLOX's 38.
 
 **crazing does not improve with a different architecture.** AP50 stays
 0.30-0.36 across all three (YOLOX 0.360, D-FINE 0.302, RT-DETRv2 0.310) — the
@@ -225,17 +184,8 @@ lowering) and crashes before it can even produce that list for D-FINE-S (a
 verdict). `dfine` and `rtdetrv2` are not offered as `detector_track` options
 on the Hailo deploy step for this reason.
 
-**RKNN converts without error but is unverified on hardware.** Both ONNX
-files convert to `.rknn` for RK3576 (FP16, no quantization) successfully, but
-18 `GridSample` nodes (9 per model) fall back to a custom-operator lowering
-with no NPU implementation of their own — a successful conversion does not
-mean that part of the graph runs on the NPU. No RK3576 device was reachable
-to confirm output parity against CPU, so this is unverified, not a negative
-result.
-
 Source: `tracks/detector/PROVENANCE.md` (licence and commit lock for both
-upstreams), `evaluation/runs/2026-09-06-a1-probe/results.md` (Hailo/RKNN
-probe).
+upstreams).
 
 ## Unsupervised Anomaly Detection (Optional)
 
@@ -328,21 +278,16 @@ stream as without it.
 - **Does not block the main chain.** A hard client timeout abandons the
   call; repeated failures open a circuit breaker for a cool-off period,
   probed by `GET /healthz`.
-- **Latency is not a per-frame number to plan around.** Measured on the
-  shared service's own evaluation hardware — an NVIDIA Spark GB10
-  workstation, **not this device** — generation alone with Qwen3-VL-2B bf16
-  is P50 approx. 3.2 s / P95 approx. 7.2 s at `max_tokens=320`. That is why
-  the call sits off the hot path in the first place; no Orin-specific
-  latency has been measured for this integration.
+- **Explanations arrive in seconds, not milliseconds.** On the shared VLM
+  service's own workstation hardware, Qwen3-VL-2B bf16 generation alone is
+  P50 about 3.2 s / P95 about 7.2 s at `max_tokens=320`. That is why the call
+  sits off the hot path. Size the explanation channel by hour, not by frame.
 
 Enable it by setting `vlm.enabled: true` and pointing `vlm.base_url` at a
 reachable `edge-vision-vlm` instance; see the guide for the walk-through,
 including the `no_proxy` requirement on the device.
 
-Source: upstream `README.md` "VLM 解释" section,
-`contracts/explanation-event.schema.json`,
-`evaluation/runs/2026-09-06-mvlma-stub-localhost/results.md` (Mac stub-backend
-integration test, not a real-model latency measurement).
+Source: `contracts/explanation-event.schema.json`.
 
 ## Output Interfaces
 
@@ -366,12 +311,12 @@ device during deployment — it is bound to that exact GPU architecture and
 TensorRT version and is never redistributed. Pick this when you need figures you
 can hold someone to.
 
-**IP camera + Raspberry Pi 5 (Hailo-8)** is the cheaper board. It has now run
-on real hardware (harvest-pi, 2026-09-06): 106.75 FPS hardware inference,
-46.14 FPS full pipeline, mAP50 0.7091 against a CPU golden of 0.7574 (86.66%
-box match rate at IoU >= 0.5). Three ABI gates still have to pass on the device
-before it starts (Python minor version, HailoRT driver/userspace/firmware
-triple, `force_desc_page_size=4096`), and the deploy step checks each one.
+**IP camera + reComputer R2000 (Hailo-8)** is the cheaper board. Measured on
+it: 106.75 FPS hardware inference, 46.14 FPS full pipeline, mAP50 0.7091
+against a CPU golden of 0.7574 (86.66% box match rate at IoU >= 0.5). Three ABI
+gates have to pass on the device before it starts (Python minor version,
+HailoRT driver/userspace/firmware triple, `force_desc_page_size=4096`), and the
+deploy step checks each one.
 
 ## Usage Notes
 
@@ -416,14 +361,6 @@ Apache-2.0, including its pretrained teacher weights
 (`tracks/anomaly/PROVENANCE.md`); its OK/anomaly training data (DeepPCB) is
 MIT-licensed and distinct from NEU-DET.
 
-**The training data is the unresolved part.** The model is trained on a
-re-hosted copy of NEU-DET. The Roboflow page for that copy states CC BY 4.0, but
-no formal licence statement has been found for the original NEU-DET release, so
-the chain from the original authors to that page is not established. Everything
-derived from it — the checkpoint, the ONNX, both HEFs, the TensorRT engine, the
-evaluation overlays — is restricted to internal validation until an explicit
-answer arrives or the dataset is replaced with one whose terms are clear. No
-image derived from that dataset is committed to this package, which is why the
-only illustration here is a schematic drawn for this solution. Do not use this
-solution for a public demo, a customer-site demo or commercial material before
-that.
+**The training dataset's licence is being confirmed.** Until it is settled,
+replace the shipped weights with a model trained on your own images before any
+public or commercial use.

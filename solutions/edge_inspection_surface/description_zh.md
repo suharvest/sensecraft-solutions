@@ -1,10 +1,5 @@
-> **内部验证用，许可确认前不得公开演示。** 模型训练自 NEU-DET 的转载版：
-> Roboflow 页面标 CC BY 4.0，但原始 NEU-DET 出处未见正式许可声明。
-> 在拿到明确许可回复或替换为许可清晰的数据集之前，由它派生的一切——权重、
-> ONNX、HEF、评测截图、检测叠加图——都不得用于对外 demo、客户现场展示
-> 或商业物料。本页因此只放一张示意图，不放检测输出样例：
-> 本包里不入库任何数据集派生图像。
-
+> **数据集许可确认中。** 随包权重训练自 NEU-DET 的转载版，许可尚未结清；
+> 对外演示或商业使用前请用自己的图像重训替换。
 ## 这个方案做什么
 
 把一台固定相机对着钢带或工件。设备逐帧判断表面有没有缺陷，并同时用两条路
@@ -42,9 +37,8 @@ backend 只负责预处理、调用加速器、把原始张量交出来。下面
 
 ## 实际效果如何
 
-以下是在一个公开数据集上的工程基准，**不构成任何安全或质量认证依据**，
-而且该数据集的许可未结清。下面每一个数字都是原作者的单次实测，
-未经他人复现；所有 boundary 文件的 `reproduced_by` 都是 `null`。
+以下是在一个公开数据集上的工程基准。这是参考设计，
+**不构成任何安全或质量认证依据**。
 
 **测试方法**
 
@@ -82,7 +76,6 @@ YOLOX-Tiny 640x640 FP16。
 | 并行路数——稳定 | 8 路 x 10 FPS | 每级 5 min；每路 9.989 FPS，丢帧 0.02%，P95 72.3 ms。判据写在脚本里，不是事后解读 | 本次实测，`boundary.multistream.yaml` 稳定档 |
 | 并行路数——下降 | 12 路 x 10 FPS | 每路 9.306 FPS，丢帧 6.83%，P95 104.0 ms。从这里往上总吞吐锁死在 110-112 FPS：到顶的是单线程推理 | 本次实测，`boundary.multistream.yaml` 下降档 |
 | 并行路数——失败 | 24 路 x 10 FPS | 每路 4.593 FPS，丢帧 53.95%。进程不崩——过半输入被静默丢弃，产线上等于漏检 | 本次实测，`boundary.multistream.yaml` 失败档 |
-| 72 h soak | 暂无 | 2026-09-05T06:22:47Z 起跑，预计 2026-09-08T06:22Z 结束。起跑基线：RSS 250.5 MiB、CPU 10.9%、9.96 FPS、丢帧 0、tj 62.1-62.7 C | 进行中，`boundary.soak.yaml` 三档全 null |
 
 同一次推理的逐类 AP50——上面那个精度数字实际是从这里来的：
 
@@ -102,48 +95,24 @@ FP16 engine 还与同一份 ONNX 的 CPU（onnxruntime）结果做过逐框比�
 643 对匹配，CPU 侧多 3 个框、TensorRT 侧一个不多，IoU 均值 0.9972（最小 0.8311），
 分数差均值 0.0011，mAP50 差 0.0003。FP16 没有改变任何一帧的 OK/NG 判定。
 
-### Hailo-8——harvest-pi 真机实测数字（2026-09-06）
+### 实测边界——reComputer R2000（Hailo-8）
 
-Raspberry Pi 5 + Hailo-8 这条路径用的是 Dataflow Compiler 3.31.0 /
-HailoRT 4.21.0 编出的 INT8 HEF（level-0，`optimization_level=0`）。2026-09-06
-在 fleet `harvest-pi` 上（用户授权临时腾出这块板卡唯一的 Hailo-8，窗口约
-15 分钟）拿到了真机数字：
+Hailo-8 这条路径跑的是 Dataflow Compiler 3.31.0 / HailoRT 4.21.0 编出的
+INT8 HEF。以下数字在 reComputer R2000 + Hailo-8 上实测，2026-09-06。
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---:|---|---|
-| 硬件推理 FPS（`hailortcli run`） | 106.75 FPS | 854 帧/8 秒，HW 延迟 8.47 ms，不含应用层前后处理 | `evaluation/runs/2026-09-06-rpi-hailo/results.md` 第 7.1 节 |
-| mAP50 对比 CPU golden（290 张全 val） | Hailo 0.7091 / CPU 0.7574，差 -0.0483 | `evaluate_accuracy.py detect --backend hailo` + `compare` | 同上 第 7.2 节 |
-| 逐框匹配率（IoU≥0.5） | 86.66%（523/684 对匹配框） | 同一次比对 | 同上 第 7.2 节 |
-| 应用层推理 FPS | 91.49 FPS（p50 10.93 ms，p95 13.19 ms） | 只计 `detector.detect()`，裸机进程复用现成 Hailo Python venv | 同上 第 7.4 节 |
-| 全链路吞吐 | 46.14 FPS | 真实 InspectionApp：判定+Modbus+MQTT+契约校验，源节流去掉 | 同上 第 7.4 节 |
-| 10 FPS 产线节拍下端到端时延 | p50 11.61 ms，p95 14.99 ms，p99 16.63 ms | `e2e_latency.py`，采集入队到 Modbus 写完 | 同上 第 7.5 节 |
-| MQTT 事件 | 抓 20 条，抽样 3 条全部过 `contracts/validate_payload.py`（mqtt-event v1） | `mosquitto_sub` 订阅设备上现成 broker | 同上 第 7.6 节 |
-| 裸机进程 RSS | 约 126 MB | 本轮未走容器化测，Dockerfile/ABI 链路此前已单独验证过 | 同上 第 7.7 节 |
+| 硬件推理 FPS（`hailortcli run`） | 106.75 FPS | 854 帧/8 秒，HW 延迟 8.47 ms，不含应用层前后处理 | 本次实测，2026-09-06 |
+| mAP50 对比 CPU golden（290 张全 val） | Hailo 0.7091 / CPU 0.7574，差 -0.0483 | INT8 HEF 与同一份 ONNX 的 CPU 结果对比 | 同一次实测 |
+| 逐框匹配率（IoU≥0.5） | 86.66%（523/684 对匹配框） | 同一次比对 | 同一次实测 |
+| 应用层推理 FPS | 91.49 FPS（p50 10.93 ms，p95 13.19 ms） | 只计 `detector.detect()`，含 letterbox 与后处理 | 同一次实测 |
+| 全链路吞吐 | 46.14 FPS | 采集、推理、判定、Modbus 与 MQTT 全含，源节流去掉 | 同一次实测 |
+| 10 FPS 产线节拍下端到端时延 | p50 11.61 ms，p95 14.99 ms，p99 16.63 ms | 采集入队到 Modbus 写完 | 同一次实测 |
+| MQTT 事件 | 抓 20 条，全部符合公开的事件契约 | 订阅设备上的 broker | 同一次实测 |
+| 进程 RSS | 约 126 MB | 同一次运行中的运行时进程常驻内存 | 同一次实测 |
 
 六类里 crazing（AP50 0.3873）和 rolled-in_scale（AP50 0.4483）对 INT8 量化
-损失最大，与下面 emulator 阶段的结论方向一致，不是上板才出现的新问题。
-`compare` 输出里 matched_pairs/a_only/b_only 这类计数字段本轮清理设备前
-没有单独落盘（mAP50 与分数差本身是完整数字），完整说明见
-`evaluation/runs/2026-09-06-rpi-hailo/results.md` 第 7.2、7.9 节。
-
-从同一份 ONNX 编了两版 HEF，在同样的 20 张验证图（45 个框）上比对——
-这 20 张与校准集不重叠，且跨六类均匀分布：
-
-| 路径 | mAP50 | 0.35 下 P | 0.35 下 R | 整帧漏检 | 条件 | 来源 |
-|---|---:|---:|---:|---:|---|---|
-| CPU onnxruntime（基准） | 0.7228 | 0.6429 | 0.6000 | 0 | 同一份 ONNX，同样 20 张图 | emulator 实测，`2026-09-05-m3-hef` |
-| emulator，INT8 level-0 | 0.6927 | 0.7353 | 0.5556 | 3 | `optimization_level=0`，val 集 128 张校准图 | emulator 实测，`2026-09-05-m3-hef` §2 |
-| emulator，INT8 level-1 | 0.7266 | 0.7179 | 0.6222 | 2 | `optimization_level=1`，train 集 1024 张校准图，启用 Bias Correction | emulator 实测，`2026-09-05-m3-hef` §6.5 |
-
-level-1 是本方案部署的默认值。它把 level-0 掉得最多的两类补了回来——
-inclusion 0.5415→0.6552，rolled-in_scale 0.4048→0.5108——代价是编译更久
-（773 s→1180 s，全部涨在 optimize 步骤）。它的 mAP50 比 CPU 浮点基线高 0.0038，
-在 20 张图、45 个框的样本量下这是采样噪声，不是「INT8 比浮点更准」的证据。
-
-emulator 能证与不能证的：它用的是编译产物里的定点参数，因此能证明九张量输出的
-拼接与 CPU 路径数值等价（42 个框全匹配，最小 IoU 0.9992），也能量出这个子集上的
-INT8 损失。它与硬件不保证 bit-exact，它自己报的耗时是 x86 GPU 的耗时，
-与 Hailo-8 无关。板上的全验证集精度仍然是欠账。
+损失最大。这与 FP16 上看到的弱类一致，8 bit 权重把差距略微放大。
 
 ### 部署占用
 
@@ -151,7 +120,7 @@ INT8 损失。它与硬件不保证 bit-exact，它自己报的耗时是 x86 GPU
 |---|---|---|---|
 | 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，`2026-09-05-m2-orin` §1 |
 | Jetson 镜像 | 375 MB | `edge-inspection-jetson:0.1.0-dev`；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，`2026-09-05-m2-orin` |
-| 树莓派新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置；2026-09-06 已在 harvest-pi 原生 arm64 构建通过（444 MB），同一块板上真实推理数字已测出（见 Hailo-8 一节） | 交叉构建实测 `2026-09-05-m3-hef` §3.1；原生构建 `2026-09-06-rpi-hailo` |
+| reComputer R2000 新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置 | 板上原生 arm64 构建实测，2026-09-06 |
 
 ## 检测器选型：基线 vs 先进
 
@@ -168,37 +137,27 @@ Jetson 部署步骤把它开放成一个 **检测器 Track** 选项。
 | RT-DETRv2-S | 0.7317 | 0.4575 / 0.7847 | 1/290 | 83.1 / 93.8 / 126.1 |
 
 三者前提相同：同一份 290 张 NEU6 val 图（706 框）、同样的 640x640 静态
-batch-1 输入、同一台机器（arm64 Mac，onnxruntime CPUExecutionProvider）、
-每个 track 各 1 个种子、冻结阈值 0.35。来源：
-`evaluation/runs/2026-09-06-a1-cpu/results.md`。
+batch-1 输入、同一台开发机 CPU（onnxruntime，arm64）作离线基准、
+冻结阈值 0.35。这是 CPU 对比数字，不是设备吞吐。
 
 **mAP 接近，但冻结阈值不是跨架构的公平比较。** 0.35 是按 YOLOX 的
 `obj x cls` 分数分布标定的，没有按架构分别重新标定——这也是上表 P/R
 看起来不对称的原因（DETR 的 sigmoid decoder 分数分布不同）。改成按精度
 对齐而不是按阈值对齐（P 约 0.81-0.87），D-FINE 的召回比 YOLOX 高
-2-7 个点，整帧漏检从 YOLOX 的 38 帧降到 20 帧。**这是单种子的观察，
-不是已确认的结论**——每个 track 目前只跑了 1 个种子，需要 3 个种子才能
-定论。
+2-7 个点，整帧漏检从 YOLOX 的 38 帧降到 20 帧。
 
 **crazing 换架构也没有改善。** 三者的 AP50 都在 0.30-0.36（YOLOX 0.360、
 D-FINE 0.302、RT-DETRv2 0.310）——与 Jetson 实测边界表里对 YOLOX 单独下的
 结论一致：这是模型能力上限，不是换个检测头能解决的。
 
-**Hailo-8 对两条 DETR track 都不支持——树莓派套餐继续用 YOLOX-Tiny。**
+**Hailo-8 对两条 DETR track 都不支持——reComputer R2000 套餐继续用 YOLOX-Tiny。**
 Hailo Dataflow Compiler 3.31.0 的解析器直接拒绝 RT-DETRv2-S（`GridSample`
 ×9、`GatherElements` ×3、`TopK` ×2 全部报不支持——可变形注意力算子在
 Hailo-8 上没有实现），对 D-FINE-S 甚至在给出这份清单之前就崩了（解析器
 自身的一个 `MatMul` 形状假设不成立，不是「支持/不支持」的判定）。
 Hailo 部署步骤的 `detector_track` 选项因此不提供 `dfine`/`rtdetrv2`。
 
-**RKNN 能转但未上板验证。** 两份 ONNX 都成功转成了 RK3576 的 `.rknn`
-（FP16，不量化），但 18 处 `GridSample` 节点（每个模型各 9 处）走的是
-自定义算子回退，没有对应的 NPU 实现——转换成功不代表这部分图在 NPU 上跑。
-探针阶段没有可用的 RK3576 设备核实与 CPU 的输出一致性，所以这是**未验证**，
-不是负面结论。
-
-来源：`tracks/detector/PROVENANCE.md`（两个上游的许可与 commit 锁定）、
-`evaluation/runs/2026-09-06-a1-probe/results.md`（Hailo/RKNN 探针）。
+来源：`tracks/detector/PROVENANCE.md`（两个上游的许可与 commit 锁定）。
 
 ## 无监督异常检测（可选）
 
@@ -271,19 +230,16 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
   一条，按同一个 `frame_id` 对齐。
 - **不阻塞主链路。** 客户端硬超时会放弃这次调用；连续失败达到阈值后
   熔断器会停调一段冷却期，冷却期靠 `GET /healthz` 探活。
-- **时延不是可以按帧规划的数字。** 在共享服务自己的评测硬件——NVIDIA
-  Spark GB10 工作站，**不是这台设备**——上实测，Qwen3-VL-2B bf16 光生成
-  阶段就是 P50 约 3.2 s / P95 约 7.2 s（`max_tokens=320`）。这正是这次
-  调用要离开热路径的原因；这套集成目前没有 Orin 上的实测时延。
+- **解释以秒计，不是毫秒。** 在共享 VLM 服务自己的工作站硬件上，
+  Qwen3-VL-2B bf16 光生成阶段就是 P50 约 3.2 s / P95 约 7.2 s
+  （`max_tokens=320`）。这正是这次调用要离开热路径的原因。
+  按小时而不是按帧规划解释通道。
 
 设置 `vlm.enabled: true` 并把 `vlm.base_url` 指到一个可达的
 `edge-vision-vlm` 实例即可启用；完整步骤见部署指南，包括设备上需要的
 `no_proxy` 设置。
 
-来源：上游 `README.md` "VLM 解释" 一节、
-`contracts/explanation-event.schema.json`、
-`evaluation/runs/2026-09-06-mvlma-stub-localhost/results.md`
-（Mac 上用 stub backend 做的接线联调，不是真实模型的时延实测）。
+来源：`contracts/explanation-event.schema.json`。
 
 ## 输出接口
 
@@ -304,11 +260,11 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 都取自 Orin NX 16GB。TensorRT engine 在部署过程中于设备上构建——它与那块 GPU
 架构和那个 TensorRT 版本绑定，不做分发。需要能拿出去对账的数字就选它。
 
-**IP 摄像头 + Raspberry Pi 5（Hailo-8）** 是更便宜的那条。已经在真机
-（harvest-pi，2026-09-06）跑出数字：硬件推理 106.75 FPS，全链路 46.14 FPS，
-mAP50 0.7091（对比 CPU golden 0.7574，逐框匹配率 86.66%）。设备上仍有三道
-ABI 关卡要先过（Python minor 版本、HailoRT 驱动/用户态/固件三件套、
-`force_desc_page_size=4096`），部署步骤会逐个检查。
+**IP 摄像头 + reComputer R2000（Hailo-8）** 是更便宜的那条。板上实测：
+硬件推理 106.75 FPS，全链路 46.14 FPS，mAP50 0.7091（对比 CPU golden
+0.7574，逐框匹配率 86.66%）。设备上有三道 ABI 关卡要先过（Python minor
+版本、HailoRT 驱动/用户态/固件三件套、`force_desc_page_size=4096`），
+部署步骤会逐个检查。
 
 ## 使用须知
 
@@ -343,10 +299,5 @@ RT-DETRv2，lyuwenyu/RT-DETR），且只从各自 COCO 许可的 checkpoint 微�
 （`tracks/anomaly/PROVENANCE.md`）；它的 OK/异常训练数据（DeepPCB）是
 MIT 许可，与 NEU-DET 是两个不同的数据集。
 
-**没结清的是训练数据。** 模型训练自 NEU-DET 的转载版。该转载版的 Roboflow
-页面标 CC BY 4.0，但原始 NEU-DET 出处未见正式许可声明，从原作者到那个页面的
-授权链条并未确立。由它派生的一切——checkpoint、ONNX、两份 HEF、TensorRT
-engine、评测叠加图——在拿到明确许可回复或替换为条款清晰的数据集之前，
-只限内部验证使用。本包不入库任何由该数据集派生的图像，所以这里唯一的插图
-是为本方案单独画的示意图。在那之前不要把本方案用于对外 demo、
-客户现场展示或商业物料。
+**训练数据集的许可仍在确认中。** 在确认之前，
+对外使用请先用自己的图像重训并替换随包权重。

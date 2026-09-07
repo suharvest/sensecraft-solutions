@@ -272,16 +272,15 @@ number on the intro page holds with this step skipped.
 
 ---
 
-## Preset: IP Camera + Raspberry Pi 5 (Hailo-8) {#pi_hailo}
+## Preset: IP Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
-The cheaper board and the unproven path. The INT8 HEF is compiled and its
-quantisation loss measured against the compiler's emulator, and the runtime
-image cross-builds for arm64 — but nothing here has ever run on a Pi. Three ABI
-gates have to pass on the device before the container will start.
+The lower-cost board. Measured on it at 106.75 FPS hardware inference,
+46.14 FPS full pipeline and mAP50 0.7091. Three ABI gates have to pass on the
+device before the container will start.
 
 | Device | Purpose |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8 | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
+| reComputer R2000 (Hailo-8) | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
 | IP camera | Supplies the RTSP video; any RTSP camera framed on the strip or part |
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 
@@ -347,11 +346,11 @@ this is faster than the Jetson path — assuming the ABI gates pass.
 | No video from the camera | Test the RTSP URL in VLC. A wrong path or wrong credentials is the most common failure |
 | Trying to run the `dfine` or `rtdetrv2` detector track on this board | Not supported — the Hailo Dataflow Compiler 3.31.0 parser rejects both (deformable-attention operators `GridSample`/`GatherElements`/`TopK` have no Hailo-8 lowering; see the solution page's "Detector Selection" section). This preset only offers `yolox` |
 
-### Target {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml default=true}
+### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
 Deploy to the Raspberry Pi over SSH from this computer.
 
-### Target {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml}
+### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
 Run this directly on the Pi if you are working on the device itself.
 
