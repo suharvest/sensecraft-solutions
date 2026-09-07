@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-OpenClaw connects 20+ messaging apps — including WeChat, Telegram and Discord — to any AI model through one gateway, running entirely on your own reComputer device. There is one integration to maintain instead of one per platform, and messages do not leave the device.
+OpenClaw connects 20+ messaging apps — including WeChat, Telegram and Discord — to any AI model through one gateway running on your own reComputer device. There is one integration to maintain instead of one per platform. Two presets are available: with the local-model preset the AI runs on the device and message content is not sent to an AI provider; with the cloud-provider preset message content goes to the cloud AI service you configure.
 
 ## Core Value
 
