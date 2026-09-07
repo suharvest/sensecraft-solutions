@@ -1,6 +1,6 @@
 # Voice-Controlled Grasping Arm
 
-Say **"Hey Jarvis, grab the water bottle"** — the arm looks at the table through its wrist-mounted RGB-D camera, finds the bottle, plans a grasp and picks it up, then tells you what it did. Everything runs on the Jetson: wake word, speech recognition, the LLM that parses your intent, object detection, grasp planning and speech synthesis. No cloud, no online API.
+Say **"Hey Jarvis, grab the water bottle"** — the arm looks at the table through its wrist-mounted RGB-D camera, finds the bottle, plans a grasp and picks it up, then reports what it did. Everything runs on the Jetson: wake word, speech recognition, the LLM that parses your intent, object detection, grasp planning and speech synthesis. No cloud, no online API.
 
 ## What it can grasp
 
