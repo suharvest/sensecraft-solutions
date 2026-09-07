@@ -278,6 +278,24 @@ category，方案页上的每一个数字在它关闭时都成立。
   真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
 - **这里没有任何东西在树莓派上跑过。**
 
+## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
+
+放在相机旁边的独立主机，适合一台主机带多个投放点、或者相机本身换不掉的场合。
+分类器用 INT8 跑在 RK3588 的 NPU 上。
+
+开始之前你需要：能 SSH 登录板子、几百 MB 空闲空间，以及一个已经构建好的模型，
+或者一台装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机用来转换——转换跑不了
+在板子上。下面四个子步骤依次是核对模型、装 RKNN Lite 运行时、准备一帧输入、
+跑起来。
+
+有一点跳过就会卡住：Python 绑定的版本必须和板子上已有的 `librknnrt` 一致，
+对不上时只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，没有别的线索。
+
+在 RK3588 硬件上实测 val 全集 7417 张——这是本页唯一在全集而非子集上测过的
+配置：物料八类 top-1 0.8882、中国四分类 0.9507、与 fp32 CPU 基线的一致率
+0.9892、p50 3.165 ms、p95 3.857 ms，纯推理。fp16 给出完全相同的 top-1，
+p50 是 5.962 ms，即 INT8 快 1.88 倍而精度没有可测差异。
+
 ## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
 
 分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，

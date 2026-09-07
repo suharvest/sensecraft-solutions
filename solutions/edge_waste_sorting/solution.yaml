@@ -218,6 +218,20 @@ intro:
         zh: >-
           相机与分类器在同一个机身里。模型跑在 SG2002 自己的 TPU 上，
           分类路径上没有主机、没有加速卡、也没有一跳网络。
+    recomputer_rk3588:
+      description: >-
+        A separate box next to the camera, for when one host has to serve
+        several bins or the camera cannot be replaced. Its NPU runs the
+        classifier in INT8 at about half the time the fp16 build needs on the
+        same board, and it is the fastest of the options here.
+      description_i18n:
+        zh: >-
+          放在相机旁边的独立主机，适合一台主机带多个投放点、
+          或者相机本身换不掉的场合。它的 NPU 用 INT8 跑分类器，
+          耗时约为同一块板上 fp16 的一半，是这里最快的一个。
+      purchase:
+        require:
+          ai_accelerator: [rknpu]
     recamera_pro:
       description: >-
         The faster of the two all-in-one cameras: its NPU runs the classifier
@@ -375,6 +389,45 @@ intro:
           options:
             - device_ref: recamera_pro
           default: recamera_pro
+
+    - id: recomputer_rk3588
+      name: Camera + reComputer RK3588
+      name_i18n:
+        zh: 摄像头 + reComputer RK3588
+      description: >-
+        The classifier on an RK3588 NPU, in INT8. The only configuration
+        measured over the whole 7417-image validation set rather than a
+        subset: material top-1 0.8882, Chinese four-way 0.9507, p50 3.2 ms and
+        p95 3.9 ms for inference alone (capture and preprocessing excluded).
+        fp16 returns exactly the same top-1 at p50 6.0 ms, so INT8 is 1.9x
+        faster for no measured accuracy difference. Both land within 0.05 pp
+        of fp32 on a host over the same images.
+      description_i18n:
+        zh: >-
+          分类器跑在 RK3588 的 NPU 上，用 INT8。这是唯一一个在 val 全集
+          7417 张（而不是子集）上测过的配置：物料八类 top-1 0.8882、
+          中国四分类 0.9507、p50 3.2 ms、p95 3.9 ms（纯推理，不含取图与预处理）。
+          fp16 给出完全相同的 top-1，p50 是 6.0 ms，即 INT8 快 1.9 倍而精度
+          没有可测差异。两者与同一批图上主机 fp32 的差都在 0.05 pp 以内。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
 
   stats:
     difficulty: intermediate

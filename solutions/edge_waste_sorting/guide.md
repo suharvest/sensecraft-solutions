@@ -307,6 +307,28 @@ Known weaknesses, all measured or explicitly unmeasured:
   been measured on real Hailo-8 hardware.
 - **Nothing here has run on a Pi.**
 
+## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
+
+A separate box beside the camera, for when one host serves several bins or the
+camera cannot be replaced. The classifier runs on the RK3588 NPU in INT8.
+
+Before you start you need SSH access to the board, a few hundred MB free, and
+either the prebuilt model or an x86_64 Linux host with `rknn-toolkit2` 2.3.2 to
+convert it — the conversion does not run on the board. The four sub-steps take
+you through checking the model, installing the RKNN Lite runtime, preparing one
+input frame, and running it.
+
+One thing will stop you if you skip it: the Python binding has to match the
+`librknnrt` already on the board, and a mismatch surfaces as a bare
+`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
+
+Measured on RK3588 hardware over the full 7417-image validation set — the only
+configuration here measured on the whole set rather than a subset: material
+top-1 0.8882, Chinese four-way 0.9507, agreement with the fp32 CPU baseline
+0.9892, p50 3.165 ms, p95 3.857 ms, inference only. fp16 returns exactly the
+same top-1 at p50 5.962 ms, so INT8 is 1.88x faster for no measured accuracy
+difference.
+
 ## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
 
 The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
