@@ -176,3 +176,23 @@ All four source images come from the Roboflow "Garbage Classification 3 —
 Material Identification" dataset, CC BY 4.0, and are reproduced here under that
 licence with the attribution string recorded above. All four were classified
 correctly; none was swapped for a better-looking result.
+
+## Multi-item table-top frames
+
+`waste-multi-item-a-20260907.jpg` and `waste-multi-item-b-20260907.jpg` are the
+detector's own output on two multi-item frames, cropped from the 640 × 640
+annotated scene of `media/multi-item-still-1.jpg` and `multi-item-still-2.jpg`
+in the `edge-waste-sorting-deb` working tree (rendered 2026-09-07 by
+`tools/render_multi_demo.py`; the per-frame counts and classes are logged in
+`media/multi-item-manifest.json`). The crop removes the blank canvas under the
+scene; nothing inside the frame was altered.
+
+| File | Source | Items detected | Crop |
+|---|---|---|---|
+| `waste-multi-item-a-20260907.jpg` | `multi-item-still-1.jpg` (`synth_test_00034`) | 7 | 960 × 1050 → 640 × 640 |
+| `waste-multi-item-b-20260907.jpg` | `multi-item-still-2.jpg` (`synth_test_00053`) | 7 | 960 × 1050 → 640 × 640 |
+
+The objects in both frames are **TrashNet** (MIT, `garythung/trashnet`) items
+segmented out of their original photographs and composited onto a procedurally
+generated empty-table background (`data/synth_multi.py`); the background
+introduces no third-party asset. TrashNet's MIT licence covers redistribution.
