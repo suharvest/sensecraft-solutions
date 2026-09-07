@@ -305,15 +305,18 @@ intro:
       description: >-
         The whole classifier on the camera's own TPU. Measured on the device
         over 1060 validation images: material top-1 0.8792, Chinese four-way
-        top-1 0.9566, p50 24.3 ms, peak resident memory 11.6 MB. The model is
+        top-1 0.9566, p50 24.3 ms for inference alone (capture and
+        preprocessing excluded), peak resident memory 11.6 MB. The model is
         BF16; against fp32 on a host over the same 1060 images it is +0.47 pp,
-        which is sampling noise, so BF16 costs nothing measurable here.
+        within sampling noise, so no accuracy drop was observed on this
+        1060-image subset.
       description_i18n:
         zh: >-
           整个分类器跑在相机自己的 TPU 上。设备实测 1060 张验证图：
-          物料八类 top-1 0.8792、中国四分类 top-1 0.9566、p50 24.3 ms、
-          峰值常驻内存 11.6 MB。模型是 BF16；在同一批 1060 张图上比主机
-          fp32 高 0.47 pp，属采样噪声，即 BF16 在这里没有可测量的代价。
+          物料八类 top-1 0.8792、中国四分类 top-1 0.9566、p50 24.3 ms
+          （纯推理，不含取图与预处理）、峰值常驻内存 11.6 MB。模型是 BF16；
+          在同一批 1060 张图上比主机 fp32 高 0.47 pp，落在采样噪声内，
+          即在这 1060 张子集上没有观察到准确率下降。
       device_groups:
         - id: compute
           name: Camera and Classifier

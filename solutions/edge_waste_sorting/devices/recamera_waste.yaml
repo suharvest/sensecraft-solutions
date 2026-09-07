@@ -13,7 +13,8 @@ type: manual
 # The figures quoted in step 4 were measured on this hardware on 2026-09-07
 # over 1060 validation images: material top-1 0.8792, Chinese four-way top-1
 # 0.9566, agreement with the fp32 CPU baseline 0.9915, p50 24.276 ms,
-# p95 24.323 ms, peak resident memory 11.6 MB.
+# p95 24.323 ms (inference only, excluding capture and preprocessing), peak
+# resident memory 11.6 MB.
 
 name_i18n:
   zh: 在 reCamera 上部署分类器

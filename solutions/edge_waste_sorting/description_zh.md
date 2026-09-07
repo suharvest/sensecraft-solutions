@@ -100,8 +100,8 @@ NPU 上（Hailo-8 emulator、RK3588），Lite0 的时延与 MobileNetV3-Small �
 | 物料八类 top-1，held-out test | 0.8807 | test，7290 张 | 本项目 `evaluation/runs/2026-09-05-w1-cpu` 基线列 |
 | 推理时延（单图，CPU） | mean 1.886 ms / p50 1.769 ms / p95 2.276 ms | 仅 `session.run`，Apple M4 CPU，batch 1 | `evaluation/runs/2026-09-06-m1b-cpu` |
 | 置信度低于 0.5 的图 | 335 张（4.5%） | val | 同上 |
-| **真机实测 —— reCamera（SG2002）** | 物料八类 top-1 0.8792 / 四分类 top-1 0.9566 / 与 CPU 一致率 0.9915 | BF16 cvimodel 跑在相机自己的 TPU 上，1060 张 val，p50 24.276 ms / p95 24.323 ms，峰值常驻内存 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
-| reCamera 与同一批 1060 张图上的 fp32 CPU 之差 | +0.47 pp | 1060 张里 9 张预测翻转、净赚 5 张，属采样噪声，即 BF16 没有可测量的代价 | 同上 |
+| **真机实测 —— reCamera（SG2002）** | 物料八类 top-1 0.8792 / 四分类 top-1 0.9566 / 与 CPU 一致率 0.9915 | BF16 cvimodel 跑在相机自己的 TPU 上，1060 张 val；p50 24.276 ms / p95 24.323 ms 是纯推理，不含取图与预处理；峰值常驻内存 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
+| reCamera 与同一批 1060 张图上的 fp32 CPU 之差 | +0.47 pp | 1060 张里 9 张预测翻转、净赚 5 张，落在采样噪声内，即在这 1060 张子集上没有观察到准确率下降 | 同上 |
 | **INT8 塌缩——Hailo-8 emulator** | top-1 0.15，与 CPU/native 一致率 0.115（200 张 val） | 同一批 200 张图 fp16 一致率 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
 | **INT8 塌缩——RK3576（cat-remote，真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
 | **INT8 塌缩——RK3588（radxa，真机）** | 与 CPU golden 一致率 0.22 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3588-radxa` |
