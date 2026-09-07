@@ -5,8 +5,14 @@
 #   2. ASR_BACKEND / ASR_PLATFORM / OVS_PROFILE_DEFAULT 默认值改成 CPU 侧的取值。
 # 其余服务与冻结版逐字相同。
 #
-# 未验证：这条路径没有在 CM4 上实机跑过，mem_limit 7500m 也是按 RK3576 的内存写的，
-# CM4 4 GB 版本需要下调。上架前必须实测。
+# 未验证：这条路径没有在 CM4 上实机跑过。ovs-asr 的 mem_limit 原来固定写 7500m，
+# 那是按 8 GB LubanCat 的内存写的（见 docker-compose.local-rk3576.yml 同一条注释），
+# CM4/reRouter 只有 4 GB，跑不满会被 OOM kill。现在改成
+# OVS_ASR_MEM_LIMIT / OVS_ASR_MEMSWAP_LIMIT 两个环境变量（默认值仍是 7500m，
+# 不带该变量的部署行为不变），collector_rerouter.yaml 的 .env 里把它们下调到
+# 3000m/3600m——数值比照 docker-compose.local-rk3576.yml 里同为 4 GB 级 reComputer
+# RK3576 板子的取值，不是在 CM4 上实测出来的，上架前仍需实测这个 CPU/Sherpa 构建
+# 在 CM4 上的实际 RSS 并按需调整。
 #
 # 原样复制自 sensecraft_voice `deploy/edge-frozen/docker-compose.yml`
 # （四子仓 feature/c4-harden 分支），仅追加本段来源说明与下方 asr-voiceprint 的状态更新。
@@ -118,8 +124,8 @@ services:
     init: true
     network_mode: host
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
-    mem_limit: 7500m
-    memswap_limit: 7500m
+    mem_limit: ${OVS_ASR_MEM_LIMIT:-7500m}
+    memswap_limit: ${OVS_ASR_MEMSWAP_LIMIT:-7500m}
     volumes:
       - /dev:/dev
       - ovs-asr-models:/opt/asr/models

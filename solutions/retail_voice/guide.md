@@ -216,9 +216,12 @@ only — the audio is kept unredacted for its retention window and is covered by
 the deletion flow. Redaction scored precision 0.98 / recall 0.95 on a
 114-sample gold set, which means misses happen; low-confidence entities are
 flagged for review rather than masked. Speaker identification is off by
-default: the voiceprint container's image is published, but its models
-(~564 MB) are not fetched by this deployment and must be placed by hand — see
-Step 2's prerequisites — so `speaker.identified` stays false until they are.
+default: the voiceprint container's image is published, and on the two
+mic-capture (collector) targets its models (~564 MB) are fetched automatically
+as a best-effort deploy step; on the Stack Host (app capture) target that step
+does not run and the models must still be placed by hand — see Step 2's
+prerequisites. Either way `speaker.identified` stays false until the models
+are in place and the `voiceprint` profile is started.
 
 ## Step 1: Deploy the Voice Server Stack {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
@@ -241,7 +244,8 @@ console.
 6. All images (voice-service, voice-web, the ASR/voiceprint image, MySQL and
    MinIO) are published and pinned by digest in the compose file. The
    voiceprint container's models are the exception — its image is published
-   but the model files are not fetched by this step (see below).
+   but the model files are only fetched automatically on the two collector
+   (mic-capture) targets; on the Stack Host target they are not (see below).
 
 ### Wiring
 
@@ -268,13 +272,13 @@ array to wire and nothing here applies.
 | A call returns 403, not 401 | The credential is valid but its role is too low — deletion and export need admin |
 | MySQL cannot be reached from another machine | Intentional: MySQL and MinIO bind to 127.0.0.1 only. Use an SSH tunnel |
 | `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; if you enabled the profile, check its models are in place — see Step 2's prerequisites |
-| Voiceprint container exits with `tokens.txt does not exist` | Its models were not fetched by this deployment — run `download_models.sh` from the upstream `sensecraft-asr-service` repository and copy the output into `/data-iot/respeaker/models` |
+| Voiceprint container exits with `tokens.txt does not exist` | On the reRouter CM4 / reComputer RK3576 collector targets the deploy now downloads these models into `/data-iot/respeaker/models` automatically (a `before` step, best-effort — it warns but does not fail the deploy). Check that step's log for `MISSING`; a common cause is the device not reaching `hf-mirror.com`. Re-run it by hand: `cd /data-iot/respeaker && HF_ENDPOINT=https://hf-mirror.com bash -c '<the same fetch loop, see devices/collector_rerouter.yaml>'`, or fetch `download_models.sh` from the upstream `sensecraft-asr-service` repository and copy its output into `/data-iot/respeaker/models` |
 | Cloud analytics containers appear unexpectedly | They only start with `--profile cloud-analytics`; if they are running, someone enabled it, and text is leaving the host |
 | Mic-capture targets: voice-client restarts in a loop | The ALSA card ID is wrong; `cat /proc/asound/cards` on the device and redeploy with the right number |
 | Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
 | Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
 | Wrong ASR image on the reRouter CM4 target | `OVS_ASR_IMAGE` now defaults to the `rpi-20260721` arm64 CPU build pinned by digest; override it in the deploy inputs only to run a different build |
-| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here, and the compose memory limit is written for RK3576's memory — a 4 GB CM4 needs it lowered |
+| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here. The `ovs-asr` memory limit is lowered to 3000m/3600m for this target (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` in `.env`, vs. the 7500m default written for an 8 GB board) but that value is not measured on CM4 either — check `docker logs c4-ovs-asr` for an OOM kill and raise it if the host has headroom |
 
 ### Target {#stack_remote type=remote device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml default=true}
 
@@ -451,17 +455,22 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 2. Run the boundary measurements on the real hardware — concurrency, capture
    duration, WER and persist latency are all unmeasured, so no capacity claim
    should be made from this deployment yet.
-3. The voiceprint image is published, but this step only creates the models
-   directory — it does not populate it. Before starting `asr-voiceprint`, run
-   `download_models.sh` from the upstream `sensecraft-asr-service` repository
-   and copy its output (SenseVoice ASR, punctuation, speaker and VAD models,
-   ~564 MB total) into `/data-iot/respeaker/models` on this device. Then start
-   it with `docker compose --profile voiceprint up -d asr-voiceprint` — without
-   the models it exits with `tokens.txt does not exist` — and re-run the
-   deletion check with a voiceprint present.
+3. The voiceprint image is published, and the collector targets
+   (reComputer RK3576 / reRouter CM4) now download its models (SenseVoice ASR,
+   punctuation, speaker and VAD, ~564 MB total) into `/data-iot/respeaker/models`
+   as a best-effort deploy step — it warns rather than failing the deploy if the
+   device cannot reach the model mirror. Check that step's log before starting
+   `asr-voiceprint`; the Stack Host (app capture) target does not run this step
+   and still needs the models copied in by hand. Start voiceprint with
+   `docker compose --profile voiceprint up -d asr-voiceprint` — without the
+   models it exits with `tokens.txt does not exist` — and re-run the deletion
+   check with a voiceprint present.
 4. Decide the retention window with whoever owns the site's privacy notice; 24
    hours is a default, not a recommendation.
-5. On CM4, verify the CPU ASR path end to end and lower the ASR container memory
-   limit before treating that target as usable.
+5. On CM4, verify the CPU ASR path end to end. Its `ovs-asr` memory limit is
+   now parameterized (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`) and defaults
+   to 3000m/3600m for this target, but that number is carried over from a
+   different RK3576 board's measurement, not measured on CM4 itself — confirm
+   it holds before treating that target as usable.
 6. Keep the admin token off the device; it is for operators running deletion and
    export.

@@ -99,8 +99,14 @@ services:
     init: true
     network_mode: host
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
-    mem_limit: 7500m
-    memswap_limit: 7500m
+    # 7500m 默认值按 8 GB LubanCat 写（同一取值出现在 docker-compose.cloud.yml /
+    # docker-compose.collector-cm4.yml）。devices/collector_rk3576.yaml 部署的
+    # reComputer RK3576 Dev Kit 实测只有 3.9 GB RAM（见
+    # docker-compose.local-rk3576.yml 顶部注释），这份编排还没有针对它下调，
+    # 需要时可用 OVS_ASR_MEM_LIMIT / OVS_ASR_MEMSWAP_LIMIT 覆盖，用法参照
+    # collector_rerouter.yaml 里 CM4 的 3000m/3600m。
+    mem_limit: ${OVS_ASR_MEM_LIMIT:-7500m}
+    memswap_limit: ${OVS_ASR_MEMSWAP_LIMIT:-7500m}
     volumes:
       - /dev:/dev
       - ovs-asr-models:/opt/asr/models

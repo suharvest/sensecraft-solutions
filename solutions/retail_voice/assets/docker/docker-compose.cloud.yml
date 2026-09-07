@@ -105,8 +105,8 @@ services:
     init: true
     network_mode: host
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
-    mem_limit: 7500m
-    memswap_limit: 7500m
+    mem_limit: ${OVS_ASR_MEM_LIMIT:-7500m}
+    memswap_limit: ${OVS_ASR_MEMSWAP_LIMIT:-7500m}
     volumes:
       - /dev:/dev
       - ovs-asr-models:/opt/asr/models
