@@ -1,30 +1,40 @@
 # Hailo-8 HEF artefacts.
 #
-# Checksums only - no HEF is committed to this repository, and nothing has been
-# uploaded to the CDN yet. The deploy steps name the CDN path, verify against
-# these lines, and carry a TODO(CDN) saying the file must be placed on the
-# device by hand until the upload happens.
+# Checksums only - no HEF is committed to this repository. The deploy step
+# downloads the current one from the CDN and verifies it against the line
+# below before use; the CDN object name carries the tier (…_t2) so an earlier
+# build under the unversioned name cannot satisfy this sha by accident.
 #
 # Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.hef.
 # Built with DFC 3.31.0 / HailoRT 4.21.0, --hw-arch hailo8.
 
-4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e  efficientnet_lite0_waste8_u8.hef
+c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1  efficientnet_lite0_waste8_u8.hef
 3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
 2a13b4857d9e68b3111394b5faa2bc85d6ee3b1e08c881be9ffb984ddf0cbcd3  mobilenetv3s_waste8.hef
 
 # efficientnet_lite0_waste8_u8.hef - CURRENT, the one this solution deploys.
-#   4,576,932 bytes, built 2026-09-07. ImageNet mean/std are a normalization
+#   4,551,414 bytes, built 2026-09-07. ImageNet mean/std are a normalization
 #   layer inside the HEF, so the device feeds raw uint8 NHWC RGB and needs no
 #   float preprocessing on the host. That matches what the RKNN and cvimodel
 #   builds do, which is what keeps one preprocessing definition across every
 #   accelerator in this solution.
-#   Calibrated on 1024 uint8 training crops (calibration npy sha256
-#   592aa3ea1e70724bda912b1be2d79f8a2f762bd5b15056ea52ae7e6bc834509f). 1024 is
-#   the threshold below which DFC silently drops optimization level to 0 when
-#   the container has no GPU.
-#   Compile timings: parse 12s / optimize 191s / compile 38s, no
-#   AccelerasNumerizationError. Accuracy and latency on a Hailo-8 board have
-#   not been collected, so no board figure is quoted for it anywhere.
+#   Quantised with optimization_level=2 -- a quantisation-aware distillation
+#   finetune, 8 epochs -- with bias correction kept on and calibset_size set
+#   explicitly, over 2048 class-balanced uint8 training crops (calibration npy
+#   sha256 045359d79cd4ed20a9e239492000df3e2d1bf222a67ec13f44ae82835ddc4967).
+#   Compiling it needs a GPU visible inside the DFC container (docker run
+#   --gpus all); with no GPU the DFC reduces the optimization level and says so
+#   in one log line instead of failing.
+#   Compile timings: parse 7s / optimize 1255s / compile 39s.
+#   Measured on a Hailo-8 over the full 7417-image val set: material top-1
+#   0.8889 (fp32 CPU 0.8877 on the same images), China-4 0.9507, agreement vs
+#   CPU 0.9581, p50 3.166 ms / p95 3.249 ms.
+#   Published at solution-app/edge_waste_sorting/models/
+#   efficientnet_lite0_waste8_u8_t2.hef on sensecraft-statics.
+#
+# 4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e - superseded.
+#   The same graph at optimization_level=1, 4,576,932 bytes. Measured 0.8637
+#   top-1 on the same 7417 images, 2.40 points below fp32. Do not deploy it.
 #
 # efficientnet_lite0_waste8.hef - superseded packaging of the same backbone.
 #   4,519,376 bytes, built 2026-09-06. The graph carries no normalization

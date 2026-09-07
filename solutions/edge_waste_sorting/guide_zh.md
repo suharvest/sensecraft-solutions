@@ -380,10 +380,11 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 - 至少 4 GB 可用空间。
 - **容器镜像尚未 push。** 在设备上从上游仓库构建，然后要么把它 retag 成
   compose 文件里的名字，要么把 `WASTE_IMAGE` 设成你的本地 tag。
-- **HEF 还没上传到任何 CDN。** 步骤里的下载地址只是目标位置；上传落地前
-  请手工把 `efficientnet_lite0_waste8.hef` 拷到设备上。sha256 校验
-  （`3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00`）
-  无论走哪条路都照做。
+- **HEF 由部署器下发。** 步骤 1 从 CDN 拉
+  `efficientnet_lite0_waste8_u8_t2.hef`，用 sha256
+  `c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1`
+  校验后才使用。设备需要能访问 `sensecraft-statics.seeed.cc` 的 HTTPS，
+  不需要手工拷贝。
 
 ### 故障排查
 
@@ -393,7 +394,7 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 | `libhailort.so.4.21.0 not found` | 本部署 ABI 锁在 HailoRT 4.21。装这个版本；驱动、库与 python 绑定不要混版本。 |
 | `expected both hailort and hailort-pcie-driver on hold` | `sudo apt-mark hold hailort hailort-pcie-driver`。 |
 | `hailo_pci is missing force_desc_page_size=4096` | `echo 'options hailo_pci force_desc_page_size=4096' \| sudo tee /etc/modprobe.d/hailo.conf && sudo reboot`。 |
-| `No HEF for this solution` | CDN 上传还没落地。按步骤里给出的路径手工把 HEF 拷到设备上，校验上面的 sha256，再重跑这一步。 |
+| `No HEF for this solution` | 步骤 1 的下载或 sha256 校验没通过。重跑步骤 1；如果设备访问不了 `sensecraft-statics.seeed.cc`，在别处下好放到步骤里给出的路径，再按上面的 sha256 校验。 |
 | `_pyhailort` 导入报错 | 主机的绑定被挂进容器，只能在同一个 Python 小版本下导入。Bookworm 是 3.11，trixie 是 3.13。 |
 | 自己训的 MobileNetV3-Small 在 Hailo 上 INT8 表现很差 | 属预期——不要直接量化它。MobileNetV3-Small（m1b）在同一条编译链路上塌缩到接近随机水平（与 CPU/native 一致率 0.115）。EfficientNet-Lite0 正因为这个原因成为基线。 |
 
@@ -408,8 +409,7 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 ## 步骤 2: 查看实时分类画面 {#preview_hailo_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
 
 打开运行时自带的页面：实时画面、一个触发按钮、健康接口。如果步骤 1 没能
-拿到 HEF（CDN 还没上传，也没有手工拷贝），实时画面照样能起来，但分类结果
-起不来。
+拿到 HEF，实时画面照样能起来，但分类结果起不来。
 
 ### 故障排查
 
@@ -435,9 +435,8 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 
 ### 部署完成
 
-板子已经准备好，栈也在跑。如果 HEF 已经放到设备上，分类跑在 Hailo-8 真机
-上——这是本项目第一次真正验证这个数字，因为本项目自己没有 Hailo-8。
-如果 HEF 还缺（CDN 上传待定），分类被它卡住；触发与 MQTT 链路仍然可以验证。
+板子已经准备好，栈也在跑，分类跑在 Hailo-8 上。如果步骤 1 没把 HEF 拿到
+设备上，分类被它卡住；触发与 MQTT 链路仍然可以验证。
 
 #### 快速验证
 
@@ -494,11 +493,8 @@ payload 形状跨平台完全一致，只有 `model.accelerator` 不同。
 
 #### 下一步
 
-- 把你刚测到的真实 Hailo-8 精度与时延反馈回来——这是本项目第一次在真机上
-  验证这份 HEF。拿它对照方案页上 编译器的模拟器 的 0.89 一致率 / 0.755
-  准确率两个数字。
-- 如果 CDN 上传还没落地、你是手工把 HEF 拷上去的，记下这一点——下次部署
-  该下载步骤会失败。
+- 把你测到的精度与时延对照方案页上这份 HEF 的参照数据：val 全集 7417 张，
+  物料八类 top-1 0.8889、中国四分类 0.9507、p50 3.166 ms。
 - 保住你刚建立的 ABI 状态：两个 Hailo 包都 hold 着，
   `force_desc_page_size=4096` 保持在位。这份用 Hailo 编译器
   编出来的 HEF 需要的正是这一套。
@@ -508,9 +504,9 @@ payload 形状跨平台完全一致，只有 `model.accelerator` 不同。
 
 | 问题 | 解决办法 |
 |---|---|
-| 一条消息都没有 | 先确认设备上是不是真有 HEF（`ls` models 目录)——如果 CDN 上传还没落地，步骤 1 会在下载这一步失败。HEF 存在的话，去容器日志里找别的故障。 |
+| 一条消息都没有 | 先确认设备上是不是真有 HEF（`ls` models 目录)。不在就是步骤 1 在下载这一步失败了。在的话，去容器日志里找别的故障。 |
 | 触发计数不动 | 触发源没配上。检查 `config/config.json` 里的 `trigger.sources`。 |
 | 按一次按钮出两条消息 | 去抖时间对这个抖动的开关来说太短。调高 `trigger.debounce_ms`；低于约 300 ms 时抖动的按钮会触发两次。 |
 | `configure(hef)` 崩溃 | `force_desc_page_size=4096` 没设，或者设完没重启。 |
-| 置信度阈值的表现与 Orin 套餐不同 | 方案页上「4.3% 低于 0.5」是 CPU FP32 上的数字。这块板子的 INT8 置信度分布本来就是另一次独立测量——这是预期，不是 bug；但如果看到它坍缩到单一类别，拿它对照 模拟器 的 0.89 一致率，真机上出现明显差距值得反馈。 |
+| 置信度阈值的表现与 Orin 套餐不同 | 方案页上「4.3% 低于 0.5」是 CPU FP32 上的数字。这块板子的 INT8 置信度分布是另一次独立测量。这份 HEF 在真机上的参照值是与 CPU 一致率 0.9581；如果看到预测坍缩到单一类别，反馈回来。 |
 | 想在这里用开放词汇或 VLM 兜底 | 这个套餐不提供。SigLIP 2 的 INT8 量化在 `hailo optimize` 处失败，而 VLM 兜底步骤仅限 Orin。 |
