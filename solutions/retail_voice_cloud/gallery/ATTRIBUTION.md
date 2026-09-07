@@ -40,3 +40,14 @@ Two things to keep straight when reading it:
   not necessarily what `assets/docker/*.yml` currently pulls — treat the
   admin console image tag as **pending rebuild** until `sensecraft-voice-web`
   publishes a release from that branch.
+
+## recomputer-rk3576.jpg
+
+Official product photography for reComputer RK3576-30 (SKU 100052518, family
+`recomputer_rk3576`), downloaded 2026-09-07 from the Seeed media CDN:
+<https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/2/-/2-rk3576.jpg>
+(product page <https://www.seeedstudio.com/reComputer-RK3576-30-p-6815.html>).
+First-party Seeed material.
+
+It replaced `voice-web-recordings.png`, an admin-console screenshot that showed
+an empty dataset (all counters zero, "No data" table).

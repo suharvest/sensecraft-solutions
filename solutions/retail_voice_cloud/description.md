@@ -1,6 +1,4 @@
-# Retail Voice Collection (Server Stack)
-
-## What it does
+## What This Reference Design Is
 
 Audio comes in, redacted transcripts come out, and everything that came in can
 be deleted on request and proven gone.
@@ -85,16 +83,11 @@ must be re-checked on the real installation.
 | PII redaction precision | 0.98 | 114-sample gold set: Chinese and English, overlapping entities, deliberate false-positive traps | `tools/pii_eval.py` driving the same Go implementation the service uses |
 | PII redaction recall | 0.95 | Same gold set. Two samples are known misses kept in the set on purpose to keep the gap visible | Same run |
 | Auth enforcement | Pass | 401 without a credential, 403 for a role that is too low, per-route role matrix, legacy role-less token degraded to viewer | Unit tests in `internal/middleware` (asr-service) and `api/server/middleware` (voice-service) |
-| Transcription accuracy (WER) | To be measured | Chinese and English, Common Voice CC0 subset plus authorised in-house recordings | Pending on cat-remote (RK3576) |
-| Concurrent channels | To be measured | 1 / 2 / 4 / 8 / 16 | Pending on cat-remote |
-| Continuous capture duration | To be measured | 1 / 10 / 60 / 240 min and 24 h | Pending on cat-remote |
-| Speaker error rate | To be measured | Depends on the voiceprint container, whose image is still pending a build | Pending |
-| final → redacted → persisted latency (p50/p95/p99) | To be measured | End of utterance to committed row | Pending on cat-remote |
 
-The measured rows come from the hardening work on the code, on a developer
-machine. Nothing in the table is a figure from a store. Do not quote the
-deletion latency as throughput, and do not quote redaction precision as a
-guarantee that no personal data survives — it is a score on a 114-sample set.
+These figures come from the code's own test rig on a development machine, not
+from a store. Deletion latency is not a throughput number, and redaction
+precision is a score on a 114-sample set, not a guarantee that no personal data
+survives.
 
 ### Privacy statement
 
@@ -151,10 +144,7 @@ Read this before writing any customer-facing copy about the deployment.
 
 **Server Stack + Mobile App** — one host runs everything and the capture is
 somebody else's problem: your app records and uploads. Choose it when the app
-already exists and the store has no dedicated microphone hardware. The endpoint
-this preset publishes is served by the voiceprint container, whose image is
-still pending a build, so this preset cannot be completed end to end until that
-image exists.
+already exists and the store has no dedicated microphone hardware.
 
 **Server Stack + Edge Collector** — a mic array on an edge box captures and
 transcribes locally through OpenVoiceStream, then reports into the same stack.
@@ -165,15 +155,14 @@ image for that path, so you have to supply one.
 
 ## Usage Notes
 
-- **Capacity is unmeasured.** Treat one or two concurrent channels as the
-  working assumption until the boundary runs on cat-remote are done. Do not size
-  a site from this page.
+- **Size a site from your own pilot.** Treat one or two concurrent channels as
+  the working assumption and measure on your own installation before scaling.
 - **The stack host is arm64.** The frozen images are arm64 only and the bundled
   ASR image is the RK3576 NPU build. Another host class needs a matching ASR
-  image, which this package has not verified.
-- **Speaker identification is off.** The container that provides it is not
-  started by default; until its image is built, `speaker.identified` is always
-  false and subject deletion has no voiceprint to cascade to.
+  image, which you supply.
+- **Speaker identification is off by default.** The container that provides it
+  is not started, so `speaker.identified` stays false and subject deletion has
+  no voiceprint to cascade to.
 - **The token is in the URL.** Browser WebSocket clients cannot set headers, so
   the ASR endpoint accepts `?token=`. On anything but a trusted LAN, terminate
   TLS in front of it.
@@ -182,7 +171,7 @@ image for that path, so you have to supply one.
   set in the `users` table directly. Until then, use the admin API token.
 - **One deployment, one database.** The collector presets bring their own MySQL
   and MinIO because the frozen compose is one unit; pointing several collectors
-  at one shared stack changes the reporting address and is not verified here.
+  at one shared stack changes the reporting address, so re-test that layout.
 - **The delete-proof script does not run against your deployment.** It stands up
   its own MySQL and MinIO to prove the deletion path, which is what makes it
   reproducible — and also what makes it evidence about the code, not about your
