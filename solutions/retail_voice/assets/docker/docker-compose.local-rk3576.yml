@@ -92,7 +92,7 @@ services:
         max-file: "3"
 
   voice-client:
-    # NOT PUBLISHED — see the identical note in docker-compose.cm4.yml. Build
+    # NOT PUBLISHED — see the identical note in docker-compose.local-cm4.yml. Build
     # sensecraft-voice-client branch feature/c4-harden and tag it as below, or
     # override VOICE_CLIENT_IMAGE. The published v0.4 tag cannot drive this
     # stack: it speaks the older sensecraft-asr-server protocol and has no

@@ -19,9 +19,9 @@ detection:
     - docker_compose_installed
 
 docker:
-  compose_file: assets/docker/docker-compose.rk3576.yml
+  compose_file: assets/docker/docker-compose.local-rk3576.yml
   compose_dir: assets/docker
-  remote_path: /home/{{username}}/retail_voice_local
+  remote_path: /home/{{username}}/retail_voice
 
   environment:
     TZ: Asia/Shanghai
@@ -33,7 +33,7 @@ docker:
     OVS_PUNCT: "{{PUNCT}}"
 
   options:
-    project_name: retail_voice_local
+    project_name: retail_voice
     remove_orphans: true
     build: false
 
@@ -178,7 +178,7 @@ user_inputs:
       - {value: "https://huggingface.co", label: "Hugging Face", label_i18n: {zh: Hugging Face 官方}}
 
 remote_overrides:
-  remote_path: /home/{{username}}/retail_voice_local
+  remote_path: /home/{{username}}/retail_voice
   compose_dir: assets/docker
   detection:
     method: network_scan
@@ -230,7 +230,7 @@ remote_overrides:
       - name: Write the recognition language and voiceprint switch into the client config
         run: |
           set -e
-          CFG=$(find /home/{{username}}/retail_voice_local -type f -name voice-client.yaml -path '*config*' 2>/dev/null | head -1)
+          CFG=$(find /home/{{username}}/retail_voice -type f -name voice-client.yaml -path '*config*' 2>/dev/null | head -1)
           [ -n "$CFG" ] || { echo "voice-client.yaml not found under the deploy directory" >&2; exit 1; }
           if [ "{{SPEAKER}}" = "1" ]; then SPK=true; else SPK=false; fi
           sed -i "s|__LANGUAGE__|{{LANGUAGE}}|; s|__AUDIO_CARD_ID__|{{AUDIO_CARD_ID}}|; s|__SPEAKER_ENABLED__|$SPK|" "$CFG"

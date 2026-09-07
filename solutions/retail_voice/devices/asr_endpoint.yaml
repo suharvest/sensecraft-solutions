@@ -4,7 +4,7 @@ name: Publish the ASR Endpoint to the App
 name_i18n:
   zh: 把 ASR 端点交给 App
 type: manual
-inherit_host_from: cloud_stack
+inherit_host_from: deploy_stack
 
 # 为什么是 manual：另一端（手机 App）不在本仓库内，引擎没有可以驱动它的
 # deployer 类型。能自动做的只有「连一次端点确认它活着」，那部分写在 verify 里。

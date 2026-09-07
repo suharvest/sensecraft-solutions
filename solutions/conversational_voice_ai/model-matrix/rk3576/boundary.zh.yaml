@@ -102,7 +102,7 @@ metrics:
     direction: lower_is_better
     value: "short n=5, mean=1.05%; long n=5, mean=9.62%"
     observation: >-
-      POST /asr (whole-file, non-streaming; same interface retail_voice_local's
+      POST /asr (whole-file, non-streaming; same interface retail_voice's
       verify_asr.yaml uses) reads the entire WAV in one request — no VAD, no
       streaming endpoint logic. Every long file returns its full multi-clause
       text now (zh_long_01: 0% CER, vs "这并不是告别。" cut after clause 1 on
