@@ -12,10 +12,12 @@
 # open-vocabulary tower has no HEF — its INT8 quantisation fails at
 # `hailo optimize`.
 #
-# Image published 2026-09-07:
-#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev
-#   manifest digest sha256:c6c8522d4a800f4a82054081f13d85238c3b0e978499cc5c3368bead11c8ab67
-#   config digest   sha256:d4c3e12e07b95be1634895afe403a0160721a8d612a5fb05bd467ad6155040e4
+# Image published 2026-09-08 (0.1.1-dev supersedes 0.1.0-dev: rebuilt from
+# origin/main@8b791fb, which fixes the file-source-EOF crash — see
+# ~/project/edge-waste-sorting evaluation/runs/2026-09-08-harvest-pi-acceptance
+# §"0.1.1-dev 断流回归"):
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.1-dev
+#   manifest digest sha256:691a7b7b0016936ade3bc2bb6f1ed8e18adb83d7aa7601a323f4dea1d406ff3b
 #   355 MB local / 123.2 MB compressed over 10 layers.
 #
 # The image carries the HailoRT python bindings (cp311 wheel, 4.21.0) but no
@@ -27,7 +29,7 @@
 # not exist and docker would create an empty directory on the host.
 services:
   waste:
-    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev}
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.1-dev}
     container_name: edge-waste-app
     command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-pi5-hailo}"]
     restart: unless-stopped
