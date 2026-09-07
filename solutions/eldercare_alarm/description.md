@@ -126,7 +126,7 @@ form. "stream_id" is read from the message payload, never parsed out of the topi
 
 ## Deployment Comparison
 
-**IP Camera + reComputer J (Orin)** puts everything on one box: the detector, the
+**IP Camera + reComputer J30 / J40 (Orin)** puts everything on one box: the detector, the
 alarm service, the broker and the confirmation page. It takes the most streams of
 the three and builds its TensorRT engine on the device during the first deploy,
 which is why that deploy takes the longest — measured 455 s for the YOLO11s-pose

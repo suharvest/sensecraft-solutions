@@ -1,4 +1,4 @@
-# reComputer J / Jetson Orin: edgefallkit inference + the eldercare alarm
+# reComputer J30 / J40 / Jetson Orin: edgefallkit inference + the eldercare alarm
 # service + a local broker, on one device.
 #
 # Derived from eldercare-alarm/compose.orin.yml. Two changes were needed to
