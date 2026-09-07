@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Security cameras are everywhere, but someone still has to watch them 24/7 to spot a threat. This solution adds AI-powered gun detection to your existing cameras — the system watches every frame and alerts you the moment a gun appears.
+This solution adds gun detection to existing cameras. Every frame is analysed on the device, and an alert is raised when a gun is detected, without a person watching the feed.
 
 ## Core Value
 
