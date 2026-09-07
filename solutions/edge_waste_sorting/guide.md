@@ -357,33 +357,51 @@ INT8 is 2.9x faster than the same model in fp16 here and gives up nothing for
 it: across INT8, fp16 and fp32 on a host the top-1 spread over these 1060
 images is under 0.2 pp.
 
-## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
+## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 
+Installs the `.deb` and places the BF16 model at `/userdata/local/models/`.
 The whole classifier runs on the camera's own SG2002 TPU — no host, no
 accelerator card, no network hop in the classification path.
 
-Before you start you need SSH access to the camera, `sudo` on it, about 10 MB
-free on `/userdata`, and two files from the upstream `edge-waste-sorting`
-repository: the BF16 cvimodel and the cviruntime runner. The four sub-steps
-take you through checking both by sha256, copying them to `/userdata/waste`,
-preparing one raw frame, and classifying it.
+Before you start you need the camera reachable over USB or the network, the
+SSH password for the `recamera` user, and about 10 MB free on `/userdata`.
 
-Two things will stop you if you skip them. The classifier has to run under
-`sudo`, because the CVI device nodes are root-only — a normal-user run fails
-inside cviruntime with `device_init: 720`, which reads like corrupted TPU state
-but is only a permission error, and no reboot will help. And the frame you feed
-it must be raw uint8 with no normalisation: ImageNet mean and standard
-deviation are already inside the cvimodel, and applying them twice is the usual
-reason a working classifier starts returning a single class.
+### Wiring
 
-Measured on this hardware over 1060 validation images: material top-1 0.8792,
-Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline 0.9915,
-p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
-preprocessing), peak resident memory 11.6 MB.
+1. Connect the reCamera over USB-C, or make sure it is reachable on your network
+2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
+   the `recamera` user
+3. Deploy
+
+### What lands on the device
+
+| Path | What |
+|------|------|
+| `/usr/local/bin/waste-sorting` | The application |
+| `/etc/init.d/K92waste-sorting` | Its init script, parked |
+| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | The model, 8.3 MB |
+| `/etc/waste-sorting.conf` | Stream ID, MQTT target, confidence threshold and debounce frames, written from the fields below |
+
+The init script is installed parked (`K92`, not `S92`) on purpose. Only one
+application may hold the camera at a time, so starting it is the console's job.
 
 There is no INT8 cvimodel for this graph — TPU-MLIR 1.7 does not finish
-calibration for it — so no INT8 accuracy or latency figure exists and none is
-quoted anywhere on this page.
+calibration for it — so the model shipped here is BF16, and no INT8 accuracy
+or latency figure exists for this camera.
+
+Measured on this hardware over 1060 validation images, fed through the same
+preprocessing offline (center crop, no camera capture path): material top-1
+0.8792, Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline
+0.9915, p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
+preprocessing), peak resident memory 11.6 MB. End-to-end accuracy through the
+camera's own capture and crop has not been measured.
+
+### Troubleshooting
+
+| Issue | Solution |
+|------|----------|
+| App exits right after starting | The model failed to load. Confirm `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` is present and matches the sha256 in the device config — a partial or missing file makes the app exit before it ever touches the camera. |
+| `start` fails twice in a row right after another gallery app was stopped | The VPSS group is a driver-side resource that a process-level "is the camera free" check does not see. Reboot the camera; it recovers immediately. |
 
 ## Step 1: Deploy Waste Sorting on Hailo {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 

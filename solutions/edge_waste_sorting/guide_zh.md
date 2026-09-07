@@ -320,28 +320,47 @@ p95 6.047 ms——纯推理，不含取图与预处理。
 这里 INT8 比同一个模型的 fp16 快 2.9 倍，且没有为此付出代价：INT8、fp16 与
 主机 fp32 三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
 
-## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
+## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 
-整个分类器跑在相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，
-也没有一跳网络。
+安装 `.deb` 并把 BF16 模型放到 `/userdata/local/models/`。整个分类器跑在
+相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，也没有一跳网络。
 
-开始之前你需要：能 SSH 登录相机、在相机上能 `sudo`、`/userdata` 上约 10 MB
-空闲，以及来自上游仓库 `edge-waste-sorting` 的两个文件——BF16 cvimodel 和
-cviruntime runner。下面四个子步骤依次是用 sha256 核对这两个文件、把它们拷到
-`/userdata/waste`、准备一帧原始输入、跑一次分类。
+开始之前你需要：相机能通过 USB 或网络访问、`recamera` 用户的 SSH 密码，
+以及 `/userdata` 上约 10 MB 空闲。
 
-有两点跳过就会卡住。分类器必须用 `sudo` 跑，因为 CVI 的设备节点只有 root
-可读写——普通用户运行会在 cviruntime 内部报 `device_init: 720`，
-它看着像 TPU 状态损坏，其实只是权限问题，重启也没用。
-另外喂进去的帧必须是未归一化的原始 uint8：ImageNet 的均值与标准差已经在
-cvimodel 里了，再归一化一次是分类器突然只输出一个类别的常见原因。
+### 接线
 
-这块硬件上实测 1060 张验证图：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、
-与 fp32 CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms
-（纯推理，不含取图与预处理），峰值常驻内存 11.6 MB。
+1. 用 USB-C 连接 reCamera，或确认它在你的网络里可达
+2. 填入它的 IP 地址（USB 默认给的是 `192.168.42.1`）与 `recamera` 用户的
+   SSH 密码
+3. 部署
 
-这张图没有 INT8 cvimodel——TPU-MLIR 1.7 对它跑不完校准——因此不存在 INT8 的
-精度与时延数字，本页任何地方也不引用。
+### 落到设备上的内容
+
+| 路径 | 内容 |
+|------|------|
+| `/usr/local/bin/waste-sorting` | 应用本体 |
+| `/etc/init.d/K92waste-sorting` | 它的 init 脚本，停在 K 状态 |
+| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | 模型，8.3 MB |
+| `/etc/waste-sorting.conf` | 数据流 ID、MQTT 目标、置信度阈值与去抖帧数，取自下方字段 |
+
+init 脚本刻意停在 K 状态（`K92`，不是 `S92`）：同一时刻只能有一个应用占用
+摄像头，起哪个由控制台决定。
+
+这张图没有 INT8 cvimodel——TPU-MLIR 1.7 对它跑不完校准——所以这里发的是
+BF16 模型，这台相机上不存在 INT8 的精度或时延数字。
+
+这块硬件上实测 1060 张验证图，走的是同样的离线预处理（中心裁剪，不经过
+相机取图路径）：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、与 fp32
+CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不含取图与
+预处理），峰值常驻内存 11.6 MB。经相机自身取图与裁剪后的端到端精度没有测过。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|------|----------|
+| 应用一启动就退出 | 模型没加载成功。确认 `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` 存在且 sha256 与设备配置里的一致——文件缺失或不完整会让应用在碰摄像头之前就退出。 |
+| 停掉另一个画廊应用后，`start` 连续两次失败 | VPSS 组是驱动侧资源，进程级的"摄像头是否空闲"检查覆盖不到它。重启相机即可恢复。 |
 
 ## 步骤 1: 在 Hailo 上部署垃圾分类 {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
