@@ -4,6 +4,8 @@
 
 | File | Origin | Contains real face imagery |
 |---|---|---|
+| `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
+| `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
 | `ui-events.png` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-persons.png` | Screenshot of the management console, running on synthetic demo data | No |
@@ -15,7 +17,16 @@ that they all end at — the lock and its supply stay with the door-control part
 Boxes, arrows, product names, protocol names, port numbers and pin labels; no
 photograph, no captured frame, no face.
 
-## The three screenshots are synthetic
+## The two console-live screenshots are from a real run
+
+`console-devices-live.png` and `console-persons-live.png` were captured from the
+management console while a reCamera PoE unit was reporting in, on 2026-09-07. The
+console backend ran on a developer machine (not a store deployment); the device
+heartbeat (library version, model tag) came from the real unit. The person
+entries are enrolment fixtures, not photographs of identifiable people, and
+no face image is visible in either screenshot.
+
+## The three ui-*.png screenshots are synthetic
 
 All three were taken from `tools/screenshot_ui.py` in the upstream repository
 against the demo server (`tools/web_demo.py`), which runs on an in-memory MQTT
@@ -86,8 +97,8 @@ changes are marked.
 
 **Nothing has been uploaded.** The packaging convention is CDN-hosted images
 under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.png`;
-`solution.yaml` references these four files by their local paths instead. When
-the gallery is published, upload all four and switch `intro.cover_image` and
+`solution.yaml` references these six files by their local paths instead. When
+the gallery is published, upload all six and switch `intro.cover_image` and
 every `intro.gallery[].src` in the same change.
 
 `assets/firmware/` carries a manifest only — no binary. Neither container image

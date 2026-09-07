@@ -79,8 +79,18 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/console-devices-live.png
   gallery:
+    - type: image
+      src: gallery/console-devices-live.png
+      caption: The management console listing a live reCamera PoE unit — active face-library version and heartbeat per device
+      caption_i18n:
+        zh: 管理界面上的设备列表，数据来自一台在跑的 reCamera PoE——每台设备的人脸库版本与心跳
+    - type: image
+      src: gallery/console-persons-live.png
+      caption: The person library in the same console — enrol from 3-8 images, delete with a barrier, roll back only where the barrier allows
+      caption_i18n:
+        zh: 同一个管理界面里的人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束
     - type: image
       src: gallery/architecture.svg
       caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
