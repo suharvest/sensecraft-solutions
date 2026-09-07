@@ -15,15 +15,25 @@ the end-to-end combination does not.
 | Orin Nano 8GB | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
 | Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
 | Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
-| RK3576 | not measured | **measured 2026-09-06** (CER 1.05% short / 9.62% long, TTS RTF 0.194) | not supported |
+| RK3576 | **measured 2026-09-06, re-verified 2026-09-08** (CER 1.05% short / 9.62% long, TTS RTF 0.172, V2V stop_to_final p50 1837ms) | **measured 2026-09-06** (WER 16.95% short / 63.38% long; offline-CER 1.11% short / 4.16% long, TTS RTF 0.194) | not supported |
 | RK3588 | not measured | pending measurement | pending measurement |
 | Raspberry Pi 5 | not supported | pending measurement | not supported |
+
+Corrected 2026-09-08: this table previously read "Chinese: not measured" for
+RK3576 while carrying the Chinese offline-ASR numbers (1.05%/9.62%) mislabeled
+under the English column — both cells were actually measured on 2026-09-06
+(`boundary.zh.yaml` / `boundary.en.yaml`), the English offline-ASR CER is
+1.11%/4.16%, not 1.05%/9.62%. See `model-matrix/rk3576/boundary.zh.yaml`
+("re-verified 2026-09-08" metrics) for the Chinese re-verification (same
+corpus/methodology as 2026-09-06, run to confirm the numbers are still
+current on this device) plus the new TTS RTF and V2V turn-latency numbers.
 
 Measured accuracy sources:
 
 - Qwen3-ASR 0.6B int4 on Orin NX: CER 0 on the golden set, streaming and
   offline, 2026-07-04.
-- RK3576: `docs/perf/rk3576-matrix-20260906.md`.
+- RK3576: `docs/perf/rk3576-matrix-20260906.md` (zh+en, 2026-09-06);
+  `model-matrix/rk3576/boundary.zh.yaml` (zh re-verification, 2026-09-08).
 
 ## RK3576 streaming-vs-offline discrepancy (open follow-up)
 

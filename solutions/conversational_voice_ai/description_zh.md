@@ -77,10 +77,13 @@
 | 指标 | 数值 | 设备 | 测量口径 |
 |------|------|------|----------|
 | 中文识别准确率 | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4，golden set，流式与离线，2026-07-04 |
-| 英文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段 「/asr」 接口，2026-09-06 |
-| 语音合成速度 | RTF 0.194 | reComputer RK3576 | Matcha-TTS，同一轮实测，2026-09-06 |
+| 中文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段「/asr」接口，2026-09-06，2026-09-08 复测确认 |
+| 中文语音合成速度 | RTF 0.172 | reComputer RK3576 | Matcha-TTS，「/tts」接口，2026-09-08 |
+| 中文端到端轮次时延 | stop-to-final p50 1837 ms | reComputer RK3576 | 音频结束到 ASR 最终结果，`/v2v/stream`，2026-09-08 |
+| 英文识别准确率 | CER 短句 1.11% / 长句 4.16% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段「/asr」接口，2026-09-06 |
+| 英文语音合成速度 | RTF 0.194 | reComputer RK3576 | Matcha-TTS，「/tts」接口，2026-09-06 |
 
-两行 RK3576 数字为同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
+RK3576 各行为同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
 
 实时对话用低延迟轮次检测（silero VAD，400 ms 静音 + 2.5 s 最小音频）。
 它在第一个自然停顿处就回复，所以句中带停顿的长句只会得到前半句的答复。

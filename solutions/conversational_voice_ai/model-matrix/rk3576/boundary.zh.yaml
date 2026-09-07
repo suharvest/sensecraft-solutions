@@ -115,12 +115,57 @@ metrics:
       no env override needed — /asr does not go through the streaming
       ASR_MAX_NEW_TOKENS/ASR_FINAL_STOP_ON_PUNCT code path at all).
 
+  - name: ASR CER — offline /asr, re-verified 2026-09-08
+    unit: percent
+    direction: lower_is_better
+    value: "short n=5, mean=1.05%; long n=5, mean=9.62%"
+    observation: >-
+      Re-ran the same corpus/methodology as the 2026-09-06 cell above on
+      cat-remote (image unchanged, openvoicestream:rk-20260903.10). Numbers
+      are byte-identical to 2026-09-06 (this metric was previously mislabeled
+      as the English cell in description.md/description_zh.md — corrected
+      2026-09-08, see docs/internal-status.md). Container required one fix
+      to start: docker-compose.rk3576.yml hardcodes
+      QWEN3_ASR_VAD_FINAL_ASYNC=1, but the deployed RK artifact set's runtime
+      contract requires 0 (RKArtifactError on startup otherwise) — applied a
+      one-line override (QWEN3_ASR_VAD_FINAL_ASYNC=0) via a compose overlay,
+      no artifact/profile change.
+  - name: TTS RTF (Matcha ORT + RKNN Vocos), re-verified 2026-09-08
+    unit: ratio (synth_time / audio_duration)
+    direction: lower_is_better
+    value: "n=5, mean=0.172 (range 0.154-0.208)"
+    observation: >-
+      5 Chinese short sentences via POST /tts, x-rtf header. Lower than the
+      2026-09-06 mean (0.204) — that run's snapshot was taken during a
+      combined zh+en bench session (see resources_snapshot below); this run
+      was isolated (zh only, idle container otherwise). Not attributed
+      further, just recorded as a caveat.
+  - name: V2V stop_to_final (ASR latency after audio ends), re-verified 2026-09-08
+    unit: ms
+    direction: lower_is_better
+    value: "n=12 (2 utterances x 6 runs, 1 warmup discarded), p50=1837, p95=1844, mean=1491, min=946, max=1949"
+    observation: >-
+      measure_v2v_unified.py against /v2v/stream, --multi 2 --tts,
+      zh_short_01.wav. In line with the 2026-09-06 cell (n=10, p50=1771ms).
+  - name: V2V stop_to_tts_audio (first TTS PCM frame after audio ends, echo mode), re-verified 2026-09-08
+    unit: ms
+    direction: lower_is_better
+    value: "n=6 (1 warmup discarded), p50=2968, p95=3585, mean=3120, min=2960, max=3585"
+    observation: >-
+      Same echo-mode caveat as the 2026-09-06 cell (no LLM in the loop,
+      --multi 2 required to keep the session open past the single-session
+      limiter). Lower than 2026-09-06 (p50=3782ms) — same caveat about
+      session-window conditions as the TTS RTF re-verification above.
+
 resources_snapshot:
   docker_stats: "CPU 112.83%, MEM 2.76GiB/7.324GiB (37.69%), container conversational-voice-speech, snapshot taken during zh bench window"
   rknpu_load: "Core0: 0%, Core1: 18% (sudo cat /sys/kernel/debug/rknpu/load, snapshot taken idle-between-requests, not a peak reading)"
 
 raw_refs:
   - "docs/perf/rk3576-matrix-20260906.md (openvoicestream repo) — full resolver output, per-file ASR JSON lines, TTS header dumps, docker ps/df before-after"
+  - "2026-09-08 re-verification: raw JSON lines and measure_v2v_unified.py
+    stderr/stdout logged to fleet cat-remote job output during the bench
+    session (not committed to a file — device-side /tmp/*.log, ephemeral)."
 
 reproduced_by: null
 
