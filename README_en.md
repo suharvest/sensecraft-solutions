@@ -23,7 +23,7 @@ Deploy offline voice AI, computer vision, smart retail, robotics, and more — d
 | [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | Local LLM |
 | [AI Lab](solutions/ai_lab/) | Jetson | AI development environment |
 | [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | Depth estimation |
-| [Industrial Security](solutions/industrial_security_jetson/) | Jetson | Security / Vision |
+| [Industrial Security](solutions/edge_security/) | Jetson · RK3588 · Hailo | Security / Vision |
 | [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | Security / Vision |
 | [NVBlox + Orbbec](solutions/nvblox_orbbec/) | Jetson | 3D reconstruction |
 | [reCamera Heatmap (Grafana)](solutions/recamera_heatmap_grafana/) | reCamera | Analytics / Dashboard |
