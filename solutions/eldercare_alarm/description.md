@@ -80,7 +80,7 @@ site.
 | Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Development-machine baseline, same run |
 | End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
 | End-to-end alert latency, Hailo-8 preset, real inference included | P50 2830 ms / P95 3061 ms | 10 independent fall triggers from an RTSP replay of a real fall clip, same shortened 1 s evidence + 1 s auto-confirm windows as the top row, real Hailo-8 pose inference feeding the alarm state machine | reComputer R2000 series with the Hailo-8 option, 2026-09-08 |
-| Alert latency, event timestamp to webhook received, Jetson TensorRT preset (YOLO11s-pose) | P50 6665 ms / P95 16914 ms | 10 independent fall triggers from a looped RTSP replay of a real fall clip, shortened windows (1 s evidence + 5 s confirm + 3 s rearm, vs shipped 5 s + 60 s + 120 s); the timed interval is event timestamp to webhook receipt, which starts after the real TensorRT YOLO11s-pose inference has already produced that event — inference time is not part of this number. 9 of 10 samples fell in the 6.2-6.9 s range, one (16.9 s) landed in a confirm/notify retry backlog left over from before the test's `ELDERCARE_OPERATORS` operator credential was set and is kept in the P95 rather than dropped | reComputer J4012 (Orin NX), 2026-09-08 |
+| Alert latency, event timestamp to webhook received, Jetson TensorRT preset (YOLO11s-pose) | P50 6665 ms / P95 16914 ms | 10 independent fall triggers from a looped RTSP replay of a real fall clip, shortened windows (1 s evidence + 5 s confirm + 3 s rearm, vs shipped 5 s + 60 s + 120 s); the timed interval is event timestamp to webhook receipt, which starts after the real TensorRT YOLO11s-pose inference has already produced that event — inference time is not part of this number. 9 of 10 samples fell in the 6.2-6.9 s range, one (16.9 s) landed in a confirm/notify retry backlog left over from before the test's `ELDERCARE_OPERATORS` operator credential was set and is kept in the P95 rather than dropped | reComputer J40 series (Orin NX), 2026-09-08 |
 
 Read the first three rows (the loopback development-machine baseline) as the
 sum of the two configured windows plus about 60 ms of dispatch. With the
@@ -130,7 +130,7 @@ form. "stream_id" is read from the message payload, never parsed out of the topi
 alarm service, the broker and the confirmation page. It takes the most streams of
 the three and builds its TensorRT engine on the device during the first deploy,
 which is why that deploy takes the longest — measured 455 s for the YOLO11s-pose
-engine on a reComputer J4012 (Orin NX). Pick it when the cameras exist and the
+engine on a reComputer J40 series (Orin NX). Pick it when the cameras exist and the
 site has no gateway yet.
 
 **IP Camera + reComputer R2000 (Hailo)** is the same stack on a Hailo-8, with the
