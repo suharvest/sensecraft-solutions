@@ -28,8 +28,8 @@ Everything runs on a Raspberry Pi: audio capture, command parsing, action select
 | Part | Purpose |
 |------|---------|
 | LeKiwi Kit | 3-wheeled Kiwi-drive chassis with 3× STS3215 smart servos |
-| XIAO ESP32S3 | Motor controller — receives serial commands from Raspberry Pi |
-| Raspberry Pi 5 | Voice AI brain — runs the full voice pipeline |
+| XIAO ESP32S3 | Motor controller — receives serial commands from the Pi 5 |
+| Pi 5 (8GB) | Voice AI brain — runs the full voice pipeline |
 | reSpeaker Flex XVF3800 | 4-microphone array for far-field voice capture |
 | Speaker | Audio output for the robot's voice replies |
 | USB cables | Pi ↔ XIAO, Pi ↔ reSpeaker, Pi ↔ power |

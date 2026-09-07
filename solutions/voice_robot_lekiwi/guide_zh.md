@@ -6,7 +6,7 @@
 |------|------|
 | LeKiwi 套件 | 三轮 Kiwi-drive 底盘，含 3 个 STS3215 智能舵机 |
 | XIAO ESP32S3 | 电机控制器——接收树莓派发来的串口指令 |
-| 树莓派 5 | 语音 AI 大脑——运行唤醒词检测、语音识别、LLM 推理和语音合成 |
+| 树莓派（8GB 版） | 语音 AI 大脑——运行唤醒词检测、语音识别、LLM 推理和语音合成 |
 | reSpeaker Flex XVF3800 | 4 麦克风阵列，实现远场语音采集 |
 
 **你将获得：**
@@ -15,7 +15,7 @@
 - Groq AI 驱动：Whisper（语音识别）+ Llama 3（推理决策）+ Orpheus（语音回复）
 - Kiwi-drive 全向移动 + 紧急停止
 
-**需要准备：** LeKiwi 套件 · XIAO ESP32S3 · 树莓派 5 · reSpeaker Flex XVF3800 · 音箱 · Groq API 密钥（免费） · 树莓派能上网
+**需要准备：** LeKiwi 套件 · XIAO ESP32S3 · 树莓派（8GB 版） · reSpeaker Flex XVF3800 · 音箱 · Groq API 密钥（免费） · 树莓派能上网
 
 ## 步骤 1: 组装硬件 {#hardware type=manual required=true}
 
