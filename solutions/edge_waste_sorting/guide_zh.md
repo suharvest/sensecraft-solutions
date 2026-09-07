@@ -278,6 +278,22 @@ emulator 上完成了 INT8 核实（与 CPU/native 在 200 张 val 图上一致�
   真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
 - **这里没有任何东西在树莓派上跑过。**
 
+## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
+
+整个分类器跑在相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，
+也没有一跳网络。
+
+这一步是手动的，因为还没有为这个分类器打过 `.deb`。现有的产物是一个 BF16
+cvimodel 和一个很小的 cviruntime runner，都来自上游仓库 `edge-waste-sorting`；
+下面四个子步骤把它们拷到 `/userdata/waste`、准备一帧原始输入并跑一次分类。
+
+这块硬件上实测 1060 张验证图：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、
+与 fp32 CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms
+（纯推理，不含取图与预处理），峰值常驻内存 11.6 MB。
+
+这张图没有 INT8 cvimodel——TPU-MLIR 1.7 对它跑不完校准——因此不存在 INT8 的
+精度与时延数字，本页任何地方也不引用。
+
 ## 步骤 1: 在 Hailo 上部署垃圾分类 {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
 上传 compose 栈、检查三道 Hailo ABI 关卡，然后下载并校验 EfficientNet-Lite0

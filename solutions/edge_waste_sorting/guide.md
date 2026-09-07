@@ -307,6 +307,25 @@ Known weaknesses, all measured or explicitly unmeasured:
   been measured on real Hailo-8 hardware.
 - **Nothing here has run on a Pi.**
 
+## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
+
+The whole classifier runs on the camera's own SG2002 TPU — no host, no
+accelerator card, no network hop in the classification path.
+
+This step is manual because no `.deb` has been built for this classifier yet.
+What exists is a BF16 cvimodel and a small cviruntime runner, both from the
+upstream `edge-waste-sorting` repository, and the four sub-steps copy them to
+`/userdata/waste`, prepare one raw frame and classify it.
+
+Measured on this hardware over 1060 validation images: material top-1 0.8792,
+Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline 0.9915,
+p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
+preprocessing), peak resident memory 11.6 MB.
+
+There is no INT8 cvimodel for this graph — TPU-MLIR 1.7 does not finish
+calibration for it — so no INT8 accuracy or latency figure exists and none is
+quoted anywhere on this page.
+
 ## Step 1: Deploy Waste Sorting on Hailo {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
 Uploads the compose stack, checks the three Hailo ABI gates, then downloads
