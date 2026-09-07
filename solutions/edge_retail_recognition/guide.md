@@ -34,7 +34,7 @@ console host, and writes the role token table.
 - A Linux host with Docker and the compose plugin, reachable from the
   recognition device. No GPU needed.
 - **Both container images are published** at
-  `sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0`
+  `sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1`
   and `.../edge-retail-console-web:0.1.0` (linux/amd64 + linux/arm64);
   `RETAIL_SERVER_IMAGE` and `RETAIL_WEB_IMAGE` default to those tags. To
   deploy a local build instead, build the SPA first
@@ -225,7 +225,7 @@ Same console stack as every preset — registration service, management UI, brok
 ### Prerequisites
 
 - A Linux host with Docker and the compose plugin. No GPU needed.
-- **Both container images are published** (`edge-retail-console-server:0.1.0`,
+- **Both container images are published** (`edge-retail-console-server:0.1.1`,
   `edge-retail-console-web:0.1.0`); `RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE`
   default to them. To use a local build instead, build both on this host from
   the upstream repository, SPA first, and override the two variables. The
