@@ -153,6 +153,15 @@ intro:
             zh: 数据中枢主机
           type: single
           required: true
+          description: >-
+            A 2,000-point workload did not pass the capacity test on the R1000's
+            CM4-class platform, so pick the R1100 or reTerminal DM for point
+            counts at that scale. The R1000 stays available for smaller
+            deployments; no lower point-count tier has been measured yet.
+          description_i18n:
+            zh: >-
+              2,000 点这一负载在 R1000 的 CM4 级平台上未通过容量测试，该量级的点位数请选
+              R1100 或 reTerminal DM。R1000 仍可用于更小规模的部署；更低的点位档位尚未实测。
           options:
             - device_ref: recomputer_r10
             - device_ref: recomputer_r11
