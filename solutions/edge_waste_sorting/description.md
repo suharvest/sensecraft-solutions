@@ -241,7 +241,7 @@ compiler, with a training-recipe weight-decay defect on BatchNorm as a
 suspected but unconfirmed contributing factor. `evaluation/runs/2026-09-06-m1c-rk3588-radxa`,
 `evaluation/runs/2026-09-06-rk3588-radxa` (m1b contrast)
 
-SigLIP 2 vision tower on the same device, unaffected by the m1c work:
+SigLIP 2 vision tower on the same device; the m1c work does not touch this path:
 
 | Model / precision | Latency p50 / p95 | Agreement with CPU golden | Conditions |
 |---|---|---|---|

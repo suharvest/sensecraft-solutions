@@ -196,7 +196,7 @@ int8 图从未吃到——m1b 的 int8 反而比自己的 fp16 更慢，4.70 ms 
 `evaluation/runs/2026-09-06-m1c-rk3588-radxa`、
 `evaluation/runs/2026-09-06-rk3588-radxa`（m1b 对照）
 
-同一台设备上的 SigLIP 2 视觉塔，不受本轮 m1c 工作影响：
+同一台设备上的 SigLIP 2 视觉塔，m1c 的改动不涉及这条路径：
 
 | 模型 / 精度 | 时延 p50 / p95 | 与 CPU golden 的一致率 | 条件 |
 |---|---|---|---|
