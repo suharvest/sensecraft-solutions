@@ -56,24 +56,27 @@ Each number below carries the device it was measured on and the conditions it
 was measured under. The Hailo-8, RK3588 and RK3576 figures are reference
 values taken on the same accelerator chip platform as the matching reComputer
 preset; they will be updated after a re-test on the reComputer units. The
-reCamera Pro and Jetson Orin figures are measured on a reComputer unit
-itself — a reComputer J integrated-machine measurement, not a reference
-board.
+reCamera Pro figures are measured on the camera itself — it is the shipping
+product, not a reference board. The Jetson Orin figures are measured on a
+Seeed reComputer J unit itself — a reComputer J integrated-machine
+measurement, not a reference board.
 
 **Detection + embedding, reComputer J (Jetson Orin NX 16GB, TensorRT fp16).**
 Both stages run on the device's own GPU. Detector: 5.18 ms p50 / 5.28 ms p95,
 99.91% box agreement with the CPU golden on the same 50-image batch RK3588
 was checked against. Embedder: 4.23 ms p50 / 4.69 ms p95, 21 retrieval
-metrics within 0.24 percentage points of fp32. A 2956-frame checkout replay
-ran through the full device-side runtime — detector, embedder, gallery
-lookup, MQTT publish — with zero dropped frames: the only preset in this
-package where that full loop has run on hardware rather than stopping at
-model conversion. Under concurrent load, with both stages sharing the same
-GPU, latency degrades to 8.76 ms p50 / 9.53 ms p95 (detector) and 5.37 ms p50
-/ 5.83 ms p95 (embedder) — still faster than every other preset's detector
-path. All figures are n=300, inference only, on an engine built on the device
-it ran on. Measured on the Orin NX unit (reComputer J40) only; the smaller
-Orin Nano option in the same family (reComputer J30) has not been tested.
+metrics within about 0.24 percentage points of fp32. These independent-probe
+figures are n=300, inference only, on an engine built on the device it ran
+on. A 2956-frame checkout replay ran through the full device-side runtime —
+detector, embedder, gallery lookup, MQTT publish — with zero dropped frames:
+the only preset in this package where that full loop has run on hardware
+rather than stopping at model conversion. Under that concurrent load, with
+both stages sharing the same GPU and sampled from the replay's own health
+snapshot (1024 detections, 271 embeddings), latency degrades to 8.76 ms p50 /
+9.53 ms p95 (detector) and 5.37 ms p50 / 5.83 ms p95 (embedder) — still
+faster than every other preset's detector path. Measured on the Orin NX unit
+(reComputer J40) only; the smaller Orin Nano option in the same family
+(reComputer J30) has not been tested.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
