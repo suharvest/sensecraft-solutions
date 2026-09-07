@@ -37,11 +37,11 @@ intro:
       caption: >-
         Point detail — measured supply temperature, the setpoint that was written and the
         predicted setpoint on one 24-hour chart, so the prediction can be read against what
-        the field actually did. Fixture site, not a commissioned building.
+        the field actually did. A demo site, not a commissioned building.
       caption_i18n:
         zh: >-
           点位详情——实测送风温度、已下发的设定值与预测设定值叠在同一张 24 小时曲线上，
-          可以直接对照预测与现场实际。数据来自 e2e fixture 站点，非已交付的真实楼宇。
+          可以直接对照预测与现场实际。数据来自演示站点，非已交付的真实楼宇。
     - type: image
       src: gallery/console-point-trend-en.jpg
       caption: >-

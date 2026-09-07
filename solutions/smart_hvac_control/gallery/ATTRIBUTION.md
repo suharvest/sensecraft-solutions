@@ -180,7 +180,7 @@ scaled.
 
 | File | Before | After |
 |---|---|---|
-| `cover-point-trend-zh.jpg` | 3200 x 2400 | 1600 x 1000 (the history chart and its legend) |
+| `cover-point-trend-zh.jpg` | 3200 x 2400 | 1438 x 742 (the history-chart card only: heading, series selector, legend, axes) |
 | `console-point-trend-zh.jpg` | 3200 x 2400 | 2000 x 2400 (drawer, blank left column trimmed) |
 | `console-point-trend-en.jpg` | 3200 x 2400 | 2000 x 2400 |
 | `console-overview-zh.jpg` | 3200 x 2790 | 3200 x 2760 |
