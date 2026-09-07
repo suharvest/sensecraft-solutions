@@ -307,6 +307,31 @@ Known weaknesses, all measured or explicitly unmeasured:
   been measured on real Hailo-8 hardware.
 - **Nothing here has run on a Pi.**
 
+## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
+
+The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
+card, no network hop in the classification path.
+
+Before you start you need SSH access to the camera as root, about 10 MB free
+on `/userdata`, and either the prebuilt model or an x86_64 Linux host with
+`rknn-toolkit2` 2.3.2 to convert it — the conversion does not run on the
+camera. The four sub-steps take you through checking the model, installing the
+RKNN Lite runtime under `/userdata`, preparing one input frame, and running it.
+
+Two things will stop you if you skip them. The Python binding has to match the
+`librknnrt` already on the camera, and the classifier has to run as root
+because `/dev/rknpu` is root-only. Either mistake surfaces as a bare
+`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
+
+Measured on this hardware over 1060 validation images, with the camera's
+built-in application stopped: material top-1 0.8764, Chinese four-way top-1
+0.9566, agreement with the fp32 CPU baseline 0.9906, p50 5.824 ms, p95
+6.047 ms — inference only, excluding capture and preprocessing.
+
+INT8 is 2.9x faster than the same model in fp16 here and gives up nothing for
+it: across INT8, fp16 and fp32 on a host the top-1 spread over these 1060
+images is under 0.2 pp.
+
 ## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
 
 The whole classifier runs on the camera's own SG2002 TPU — no host, no

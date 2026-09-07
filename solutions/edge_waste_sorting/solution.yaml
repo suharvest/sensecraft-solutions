@@ -218,6 +218,19 @@ intro:
         zh: >-
           相机与分类器在同一个机身里。模型跑在 SG2002 自己的 TPU 上，
           分类路径上没有主机、没有加速卡、也没有一跳网络。
+    recamera_pro:
+      description: >-
+        The faster of the two all-in-one cameras: its NPU runs the classifier
+        in INT8 in roughly a fifth of the time the SG2002 model needs. On a
+        1060-image validation subset it reached material top-1 0.8764, against
+        0.8792 for the SG2002 camera on the same images. Pick it when the bin
+        has to keep up with a queue rather than a single drop.
+      description_i18n:
+        zh: >-
+          两款一体式相机里更快的那个：它的 NPU 用 INT8 跑分类器，耗时约为
+          SG2002 那款的五分之一。在一份 1060 张的验证子集上，它的物料八类
+          top-1 是 0.8764，同一批图上 SG2002 那款是 0.8792。投放点要应付
+          排队而不是单次投放时选它。
     generic_usb_camera:
       name: USB / IP Camera
       name_i18n:
@@ -327,6 +340,41 @@ intro:
           options:
             - device_ref: recamera_2002
           default: recamera_2002
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      description: >-
+        The whole classifier on the camera's own NPU, in INT8. Measured on the
+        device over 1060 validation images: material top-1 0.8764, Chinese
+        four-way top-1 0.9566, p50 5.8 ms and p95 6.0 ms — inference alone,
+        with the camera's built-in application stopped, capture and
+        preprocessing excluded. That is 2.9x the speed of the
+        same model in fp16 on this camera and 4.2x the reCamera figure. On
+        this camera INT8, fp16 and host fp32 land within 0.2 pp of each other
+        over these 1060 images, so quantisation showed no accuracy cost here.
+        On those same images this camera reached 0.8764 and the reCamera
+        0.8792 — one subset, not a general ranking of the two cameras.
+      description_i18n:
+        zh: >-
+          整个分类器跑在相机自己的 NPU 上，用 INT8。设备实测 1060 张验证图：
+          物料八类 top-1 0.8764、中国四分类 top-1 0.9566、p50 5.8 ms、
+          p95 6.0 ms（自带应用停止时的纯推理，不含取图与预处理）。这是同一台相机上 fp16 的
+          2.9 倍速度、reCamera 的 4.2 倍。在这台相机上，INT8、fp16 与主机 fp32
+          三者在这 1060 张图上的 top-1 相差不到 0.2 pp，即量化在这里没有表现出
+          精度代价。同一批图上它是 0.8764、reCamera 是 0.8792——这是一份子集上的
+          结果，不是两款相机的普遍排序。
+      device_groups:
+        - id: compute
+          name: Camera and Classifier
+          name_i18n:
+            zh: 相机与分类器
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
 
   stats:
     difficulty: intermediate
