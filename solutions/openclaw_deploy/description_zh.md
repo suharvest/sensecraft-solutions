@@ -18,7 +18,7 @@ OpenClaw（龙虾机器人）把微信、Telegram、Discord 等 20 多个聊天�
 | 个人 AI 助手 | 把你的微信或 Telegram 接到 ChatGPT/DeepSeek，直接在聊天软件里和 AI 对话 |
 | 团队机器人 | 在 Slack 或 Discord 工作群里部署共享 AI 助手，全团队都能用 |
 | 隐私优先 | 在设备上本地运行 AI 模型，对话内容不出内网 |
-| Jetson 边缘 AI | 部署在 reComputer Jetson 上，利用 GPU 加速本地模型 + 消息平台对接 |
+| Jetson 边缘 AI | 部署在 reComputer J40 上，利用 GPU 加速本地模型 + 消息平台对接 |
 
 ## 使用须知
 
@@ -36,7 +36,7 @@ OpenClaw（龙虾机器人）把微信、Telegram、Discord 等 20 多个聊天�
 
 | 方案 | AI 模式 | 核心设备 | 适合谁 |
 |------|----------|----------|--------|
-| **OpenClaw 算力网关** | 本地 AI 模型 | reComputer Jetson | 隐私优先、断网环境、高并发对话 |
+| **OpenClaw 算力网关** | 本地 AI 模型 | reComputer J40 | 隐私优先、断网环境、高并发对话 |
 | **OpenClaw 网关** | 云端 AI 服务 | reComputer R1100 / R2000 | 轻量部署、有稳定网络、成本敏感 |
 
 ### 性能与成本参考

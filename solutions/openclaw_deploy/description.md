@@ -18,7 +18,7 @@ OpenClaw connects 20+ messaging apps — including WeChat, Telegram and Discord 
 | Personal AI assistant | Connect your WeChat or Telegram to ChatGPT/DeepSeek — chat with AI right in your messaging app |
 | Team chatbot | Set up a shared AI assistant in your Slack or Discord workspace for the whole team |
 | Privacy-first AI | Run AI models locally on your device so conversations never leave your network |
-| Edge AI on Jetson | Deploy on reComputer Jetson for GPU-accelerated local AI with messaging integration |
+| Edge AI on Jetson | Deploy on reComputer J40 for GPU-accelerated local AI with messaging integration |
 
 ## What You Need
 
@@ -36,7 +36,7 @@ OpenClaw connects 20+ messaging apps — including WeChat, Telegram and Discord 
 
 | Option | AI Mode | Core Device | Best For |
 |--------|---------|-------------|----------|
-| **OpenClaw AI Compute Gateway** | Local AI model | reComputer Jetson | Privacy-first, offline environments, high concurrent chats |
+| **OpenClaw AI Compute Gateway** | Local AI model | reComputer J40 | Privacy-first, offline environments, high concurrent chats |
 | **OpenClaw Gateway** | Cloud AI providers | reComputer R1100 / R2000 | Lightweight setup, stable network, cost-conscious |
 
 ### Performance and Cost Reference
