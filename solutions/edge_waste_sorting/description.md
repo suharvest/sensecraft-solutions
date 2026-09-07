@@ -125,7 +125,7 @@ baseline changed, and because its fp16 numbers remain a valid contrast.
 | **Measured on hardware — reCamera (SG2002)** | material top-1 0.8792 / china-4 top-1 0.9566 / agreement vs CPU 0.9915 | BF16 cvimodel on the camera's own TPU, 1060 val images; p50 24.276 ms / p95 24.323 ms is inference only, excluding capture and preprocessing; peak RSS 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
 | reCamera vs fp32 CPU on the same 1060 images | +0.47 pp | 9 of 1060 predictions flipped, netting 5 — within sampling noise, so no accuracy drop was observed on this 1060-image subset | same |
 | **INT8 collapse — the Hailo compiler's simulator** | top-1 0.15, agreement 0.115 vs CPU/native (200 val images) | fp16 agreement on the same 200 images is 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
-| **INT8 collapse — RK3576 (cat-remote, real hardware)** | agreement 0.10 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 collapse — RK3576 (real hardware)** | agreement 0.10 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3576-cat` |
 | **INT8 collapse — RK3588 (real hardware)** | agreement 0.22 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3588-radxa` |
 
 **Root cause, not fully proven.** Excluding the SE branch numerically did not
@@ -217,8 +217,8 @@ error message itself names three possible causes; only one of them
 
 ### RK3588 — real hardware, baseline INT8 usable
 
-On-device measurement, real hardware — not a simulator. Converted on
-wsl2-local with rknn-toolkit2 2.3.2, run on a RK3588 development board with librknnrt
+On-device measurement, real hardware — not a simulator. Converted on a
+development host with rknn-toolkit2 2.3.2, run on a RK3588 development board with librknnrt
 **2.3.2** (the symlink names it 2.3.0; the in-library version is what
 matters), 50 val images, `core_mask=AUTO`, per-channel quantisation.
 
