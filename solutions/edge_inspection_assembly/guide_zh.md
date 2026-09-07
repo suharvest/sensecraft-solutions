@@ -1,4 +1,4 @@
-## 套餐: 摄像头 + reComputer J（Orin） {#jetson}
+## 套餐: 摄像头 + reComputer J30 / J40（Orin） {#jetson}
 
 有实测数据的一条路径。运行时、MQTT broker 与 Modbus server 都跑在同一台 Jetson
 Orin 上；首次部署时在设备上构建 TensorRT engine，约五分钟，engine 因此与这块板和

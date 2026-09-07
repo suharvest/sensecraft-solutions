@@ -1,4 +1,4 @@
-## Preset: Camera + reComputer J (Orin) {#jetson}
+## Preset: Camera + reComputer J30 / J40 (Orin) {#jetson}
 
 The measured path. The runtime, the MQTT broker and the Modbus server all run
 on one Jetson Orin box; a TensorRT engine is built on the device during the
