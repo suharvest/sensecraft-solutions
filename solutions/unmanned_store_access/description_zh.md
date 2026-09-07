@@ -64,6 +64,7 @@ P5 标准版 reCamera（摄像头内识别、继电器在网关侧）、P4 XIAO 
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
+| 人脸库激活，reCamera Pro（P1） | 全量激活 62.2 ms（v1）与 45.4 ms（v2）；库不变时空转 6.2 ms；识别事件到 GPIO 引脚回读 n=22，p50 1.448 ms / p95 2.709 ms | reCamera Pro（RV1126B，Buildroot 2023.02.6）以太网，1-2 人 / 不到 20 KB 的库。一致性闸门 `problems: []`；被篡改的 gallery 与用错误密钥签名的 manifest 都在设备侧被拒。那 22 条是注入的合成识别事件，回读走 sysfs 所以是上界，未接任何外部电路。阈值未标定；`gpio130` 的物理身份、电平与可供电流未实测。reCamera PoE：待真机，无任何数字 | `evaluation/runs/2026-09-07-recamera-pro-p1/results.md` 与同目录两个 `boundary.*.yaml` |
 | 人脸库激活，设备侧 | p50 491.6 ms、p95 507.8 ms（n=20）；`op:reload` 往返 p50 100.0 ms（n=25） | 标准版 reCamera（SG2002 / CV181x riscv64，固件 0.2.2），USB-RNDIS，2 人、16.5 KB 库。规模点各一次：402 人 / 2.86 MB 用 9 801.7 ms，1502 人 / 10.66 MB 用 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §2 及同目录 `boundary.facedb-activation.yaml` |
 | 人脸库激活，软件闭环 | 三次激活中最慢 11.6 ms（v1/v2/v3 为 11.6 / 3.7 / 3.5 ms） | macOS 开发机，loopback HTTP，无 TLS、无鉴权、零丢包，4 人 × 3 条 128 维嵌入，单次运行 | `evaluation/runs/2026-09-06-c1-software/results.md`。**不是设备侧数字**，已被上一行取代 |
 | 识别 FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.recognition.yaml`。软件闭环里没有真实人脸模型，也没有正负对；两轮真机探针镜头前都没有人 |
