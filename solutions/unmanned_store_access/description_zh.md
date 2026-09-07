@@ -172,6 +172,16 @@ InsightFace 自己的声明，原文引用：
 > The training data containing the annotation (and models trained with these
 > data) are available for non-commercial research purposes only.
 
+在 P1（reCamera Pro）上，`face_rec_api` 的 `buffalo_l` 还有一层与许可无关的
+操作层面的错配：设备自己跑的识别模型是 `rv1126b:scrfd500m+mbf512@fp16`，
+两个模型空间之间的余弦相似度约等于零。目前没有任何云端嵌入器能产出设备
+模型空间里的向量，因此**本包里 P1 的注册链路目前还产不出这台设备可用于
+生产的人脸库**（上游 `docs/user-guide.md` §5.1；
+`evaluation/runs/2026-09-07-recamera-pro-p1/results.md` §9.2）。要修好这条路径，
+需要一个能对账到设备模型空间的云端嵌入器，或者一条设备辅助注册的路径；
+两者目前都不存在。标准版 reCamera 路径（P5）不受影响——它在设备上做嵌入，
+不经这个管理界面注册。
+
 `buffalo_l` 正是"用这些数据训练出来的模型"。因此它**只能用于非商业研究用途**：
 `license_id: non-commercial`、`use_scope: non-commercial`、`redistributable: false`。
 本包不随附这些权重。

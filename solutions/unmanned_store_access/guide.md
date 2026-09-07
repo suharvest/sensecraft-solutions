@@ -132,12 +132,29 @@ the same compose project, so it shares the library volume with the server.
 | "The face library server is not answering" | Step 1 has not finished, or the library port differs. The step checks before touching anything. |
 | Anonymous `GET /api/events` returns 200 | The token gate is not in front of the data. Stop and investigate — the step prints this check's result. |
 | Console starts, person library empty | Correct before the first enrolment. |
-| Enrolled people are never recognised | The console fell back to a fake embedder because the recognition service URL was left empty. Set it and re-enrol; a library built that way cannot be repaired. |
+| Enrolled people are never recognised | The console fell back to a fake embedder because the recognition service URL was left empty. Set it and re-enrol — but see the P1 known limitation below before assuming that fixes it. |
 
 ## Step 3: Enrol People {#p1_register type=web_dashboard required=true config=devices/register_person.yaml}
 
 Opens the console's person library. Enrol each person from 3 to 8 photographs;
 each enrolment mints a new library version.
+
+**Known limitation — this does not yet produce a library the door can use in
+production.** The Pro camera's on-device recognizer runs
+`rv1126b:scrfd500m+mbf512@fp16`. No cloud embedding service today produces
+vectors in that model's space — the only embedder this console can call is the
+generic `face_rec_api` (`buffalo_l`), or, if that URL is left empty,
+`FakeEmbedder`. Cosine similarity between `buffalo_l` and the device's model is
+approximately zero, and the device only compares the `model_tag` string, so
+misconfiguring this raises no error at enrolment time — it just recognises
+nobody, in the field. Enrolling through this console today verifies the
+register → publish → distribute plumbing, not a face library the Pro can
+actually recognise against. Fixing this needs either a cloud embedder that
+reconciles to the device's model space or a device-assisted enrolment path;
+neither exists yet (upstream `docs/user-guide.md` §5.1;
+`evaluation/runs/2026-09-07-recamera-pro-p1/results.md` §5.1, §9.2). **This does
+not affect the standard reCamera path (P5)**, which embeds on-device and does
+not enrol through this cloud console.
 
 ### Prerequisites
 
@@ -145,8 +162,10 @@ each enrolment mints a new library version.
 - 3–8 photographs per person. Fewer than three is rejected: one photograph tells
   the matcher nothing about how much this face varies, and a library built that
   way fails in the field rather than at enrolment.
-- The recognition service URL configured in Step 2, so embeddings come from the
-  real model.
+- The recognition service URL configured in Step 2 — this makes embeddings come
+  from `face_rec_api` instead of the always-wrong `FakeEmbedder`, but does not
+  by itself make the library usable in production on P1; see the known
+  limitation above.
 
 ### Troubleshooting
 

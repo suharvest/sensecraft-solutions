@@ -229,6 +229,18 @@ Face detection and embedding use InsightFace's `buffalo_l`, through
 > The training data containing the annotation (and models trained with these
 > data) are available for non-commercial research purposes only.
 
+On P1 (reCamera Pro), `face_rec_api`'s `buffalo_l` is also the wrong embedder
+operationally, independent of licence: the device's own recognizer runs
+`rv1126b:scrfd500m+mbf512@fp16`, and cosine similarity between the two model
+spaces is approximately zero. No cloud-side embedder today produces vectors in
+the device's model space, so **P1's registration path in this package does not
+yet produce a face library usable in production on that device** (upstream
+`docs/user-guide.md` §5.1; `evaluation/runs/2026-09-07-recamera-pro-p1/results.md`
+§9.2). Fixing this needs either a cloud embedder reconciled to the device's
+model space or a device-assisted enrolment path; neither exists yet. The
+standard reCamera path (P5) is not affected — it embeds on-device and does not
+enrol through this console.
+
 `buffalo_l` is a model trained with that data. It is therefore usable for
 **non-commercial research purposes only**: `license_id: non-commercial`,
 `use_scope: non-commercial`, `redistributable: false`. The weights are not

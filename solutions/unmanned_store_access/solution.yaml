@@ -406,9 +406,9 @@ intro:
       name: On-Device — reCamera Pro / PoE
       name_i18n:
         zh: 端侧直控 —— reCamera Pro / PoE
-      badge: Library path verified on hardware; door path untested
+      badge: Library/GPIO paths verified on hardware; door and registration not production-ready
       badge_i18n:
-        zh: 库下发链路真机已验；开门链路未验
+        zh: 库下发/GPIO 回读真机已验；开门与注册链路未达可生产状态
       description: >-
         Everything at the door: the camera recognises, checks liveness, decides
         and pulses its own GPIO into a relay. Nothing but the face library and
@@ -421,8 +421,13 @@ intro:
         manual because that daemon is a flat set of Python modules under
         /userdata/f1-access, not an installable package and not an appmgr app:
         the recamera_pro_app deployer activates an already-installed appmgr app,
-        which is not what this is. On this preset the library path has run on
-        hardware; the lock has never been connected.
+        which is not what this is. On this preset the library path and a
+        synthetic-event GPIO readback have run on hardware; the lock has never
+        been connected. Registration through the console is not usable in
+        production on this device today: no cloud embedder yet produces
+        vectors in the Pro's own model space (`rv1126b:scrfd500m+mbf512@fp16`);
+        see the guide's Step 3 known limitation. The standard reCamera path
+        (P5) does not have this gap.
       description_i18n:
         zh: >-
           全部动作在门口完成：摄像头识别、验活体、做判定，再用自己的 GPIO 给继电器
@@ -432,7 +437,10 @@ intro:
           它不接管 appmgr、不接管识别应用、也不改它的启动参数。步骤之所以是人工步骤，
           是因为这个守护进程是 /userdata/f1-access 下一组平铺的 Python 模块，
           既不是安装包也不是 appmgr app——recamera_pro_app 部署器激活的是已安装的
-          appmgr app，与这里不是一回事。本套餐的库下发链路已在真机跑通；锁从未接过。
+          appmgr app，与这里不是一回事。本套餐的库下发链路与注入合成事件的 GPIO
+          回读已在真机跑通；锁从未接过。经管理界面注册目前在这台设备上不可用于
+          生产：还没有云端嵌入器能产出 Pro 自己模型空间（`rv1126b:scrfd500m+mbf512@fp16`）
+          的向量；见指南步骤 3 的已知限制。标准版 reCamera 路径（P5）没有这个缺口。
       device_groups:
         - id: cloud
           name: Cloud Host
