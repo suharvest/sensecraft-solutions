@@ -52,3 +52,25 @@ person-only YOLOv8n.
 | `cover.jpg`, `rules-editor.jpg`, `devices.jpg` | Earlier development-period screenshots. Kept for reference; no longer referenced by `solution.yaml`. |
 
 No images are taken from third-party sites.
+
+## jetson-rules-overlay.gif
+
+Carried over on 2026-09-07 from the Jetson-only industrial security package
+when that package was merged into this one; the file is byte-identical to its
+`gallery/demo.gif` (md5 `7a1f5b9a468f9f4fb3b0930715e997cb`). It is a real
+camera view with that package's detector drawing on it: one tracked person, a
+`restricted_area` polygon and a `gate_line` with a direction arrow.
+
+It is kept because it shows all three rule types in one frame, which no other
+asset here does. Two limits go with it:
+
+- **The overlay is that detector's, not this package's.** The presets here draw
+  zones in red and tripwires in amber, as `cover-corridor.jpg` shows. What
+  matches is the substance — person track, zone polygon, directed line — not the
+  colours or the label style.
+- **It is not evidence of any measured figure.** Every number on the solution
+  page comes from the benches cited in `description.md`.
+
+The same package's `demo1.gif` and `cover.png` were **not** carried over:
+`demo1.gif` shows the same overlay style with fewer rule types on screen, and
+this package already has its own cover taken from its own detector.
