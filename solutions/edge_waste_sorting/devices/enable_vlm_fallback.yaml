@@ -193,7 +193,7 @@ steps:
     description_i18n:
       zh: >-
         用 "mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/fallback' -C 1"
-        订阅，然后拿一件分类器拿不准的东西给它看——压扁的、逆光的，
+        订阅，然后在镜头前放一件分类器拿不准的东西——压扁的、逆光的，
         或者卡在两个材质类之间的。配置的超时之内应当收到一条 type 为
         waste_fallback 的 JSON 事件，带 vlm_fallback_used 为 true、
         trigger 为 low_confidence 或 ambiguous、vlm_model、vlm_latency_ms，
