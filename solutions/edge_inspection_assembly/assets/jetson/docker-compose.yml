@@ -6,13 +6,15 @@
 #
 # 独立 project 名 edge_inspection_assembly（与 devices/jetson_assembly.yaml 一致），不与设备上
 # 其它 compose project 混用。
-# 镜像 tag 尚未发布：edge-inspection-assembly-jetson:0.1.0-dev 到目前为止只在评测
-# 设备上本地构建过，没有推到 registry。部署前要么在设备上按上游仓库的
-# platforms/jetson/Dockerfile.slim 构建一次这个 tag，要么用 INSPECTION_IMAGE
-# 覆盖成设备能拉到的 tag。devices/jetson_assembly.yaml 的 before 动作会先检查这一点。
+# 镜像已发布到 registry（2026-09-07，spark 上原生 arm64 构建后推送）：
+# sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev
+# digest sha256:755f4b1d96052bf97e0cb84fc529d3cd61e6459f6a988144e593b06bdb7af997，
+# linux/arm64，10 层，压缩后 95,231,905 B。基座是 ubuntu:22.04，TensorRT 与 CUDA
+# 仍然从宿主机挂载，镜像里不含 GPU 组件。要用自建 tag 就设 INSPECTION_IMAGE 覆盖；
+# devices/jetson_assembly.yaml 的 before 动作会先检查镜像在不在本机。
 services:
   inspection:
-    image: ${INSPECTION_IMAGE:-edge-inspection-assembly-jetson:0.1.0-dev}
+    image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev}
     container_name: edge-inspection-assembly-app
     command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-line1}"]
     restart: unless-stopped
