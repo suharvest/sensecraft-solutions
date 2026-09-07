@@ -329,13 +329,13 @@ NPU 代替 GPU。
 
 ---
 
-## 套餐: IP 摄像头 + reComputer R（Hailo） {#hailo}
+## 套餐: IP 摄像头 + reComputer R2000（Hailo） {#hailo}
 
 把检测器跑在 Hailo-8 加速器上。热路径是原生 C++，不含 Python，宿主 CPU 占用很低。
 
 | 设备 | 作用 |
 |--------|---------|
-| 带 Hailo-8 的 reComputer R | 在 Hailo-8 上做姿态推理、跟踪、跌倒判定和 MQTT 输出 |
+| 带 Hailo-8 的 reComputer R2000 | 在 Hailo-8 上做姿态推理、跟踪、跌倒判定和 MQTT 输出 |
 | IP 摄像头 | 提供 RTSP 视频，任何支持 ONVIF 或 RTSP 的摄像头都可以 |
 
 **重要提示：** 这是一个辅助告警，不是经过认证的医疗或人身安全系统。Hailo 专属的时序权重已经冻结，在留出测试集上的姿态覆盖率为 92.02%。准确率在方案介绍页
@@ -363,11 +363,11 @@ NPU 代替 GPU。
 | 收不到摄像头画面 | 先用 VLC 测试 RTSP 地址，绝大多数问题是路径或用户名密码写错 |
 | 部署在验证阶段停止 | 检查检测器日志中的 `HAILO_BATCH` 行、容器健康状态和配置主题上的 MQTT 结果 |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_fall.yaml default=true}
 
 从这台电脑通过 SSH 部署到设备。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_fall.yaml}
 
 如果你就在该设备上操作，直接在本机运行。
 
