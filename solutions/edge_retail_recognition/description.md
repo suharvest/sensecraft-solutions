@@ -56,8 +56,24 @@ Each number below carries the device it was measured on and the conditions it
 was measured under. The Hailo-8, RK3588 and RK3576 figures are reference
 values taken on the same accelerator chip platform as the matching reComputer
 preset; they will be updated after a re-test on the reComputer units. The
-reCamera Pro figures are measured on the camera itself — it is the shipping
-product, not a reference board.
+reCamera Pro and Jetson Orin figures are measured on a reComputer unit
+itself — a reComputer J integrated-machine measurement, not a reference
+board.
+
+**Detection + embedding, reComputer J (Jetson Orin NX 16GB, TensorRT fp16).**
+Both stages run on the device's own GPU. Detector: 5.18 ms p50 / 5.28 ms p95,
+99.91% box agreement with the CPU golden on the same 50-image batch RK3588
+was checked against. Embedder: 4.23 ms p50 / 4.69 ms p95, 21 retrieval
+metrics within 0.24 percentage points of fp32. A 2956-frame checkout replay
+ran through the full device-side runtime — detector, embedder, gallery
+lookup, MQTT publish — with zero dropped frames: the only preset in this
+package where that full loop has run on hardware rather than stopping at
+model conversion. Under concurrent load, with both stages sharing the same
+GPU, latency degrades to 8.76 ms p50 / 9.53 ms p95 (detector) and 5.37 ms p50
+/ 5.83 ms p95 (embedder) — still faster than every other preset's detector
+path. All figures are n=300, inference only, on an engine built on the device
+it ran on. Measured on the Orin NX unit (reComputer J40) only; the smaller
+Orin Nano option in the same family (reComputer J30) has not been tested.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
@@ -102,12 +118,13 @@ mAP50-95, the 1280² preset 56.32. mAP50 at 640² is 88.26 — the boxes are fou
 they are not placed tightly. Moving to 1280² lifts small-object mAP50-95 from
 17.49 to 26.88, which is why the shelf preset exists.
 
-**The embedder runs on the CPU on RK3588 and the Hailo-8 preset, and on the
-NPU on RK3576 and reCamera Pro.** The Hailo quantisation attempts did not
-reach usable accuracy, and there is no RKNN conversion of the embedder for
-RK3588; RK3576 and reCamera Pro both have their own real RKNN embedding
-numbers above. On the CPU paths, budget 92 ms per crop and plan frame
-skipping or slot-level sampling for shelf frames.
+**The embedder runs on the CPU on RK3588 and the Hailo-8 preset, on the NPU on
+RK3576 and reCamera Pro, and on the GPU on the Jetson Orin preset.** The
+Hailo quantisation attempts did not reach usable accuracy, and there is no
+RKNN conversion of the embedder for RK3588; RK3576, reCamera Pro and the
+Jetson Orin preset each have their own real on-accelerator embedding numbers
+above. On the CPU paths, budget 92 ms per crop and plan frame skipping or
+slot-level sampling for shelf frames.
 
 **Detection + embedding, reCamera Pro.** Both stages run as fp16 RKNN on the
 camera's own onboard NPU. Measured on the camera itself with its bundled
@@ -136,12 +153,13 @@ both agree there is no directional bias).
 | reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
+| reComputer J (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | The fastest path measured, and the only one with a device-side runtime measured end to end (2956-frame replay, zero dropped frames) |
 
 The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
 accelerator chip platform as the matching reComputer preset; they will be
-updated after a re-test on the reComputer units. The reCamera Pro row is
-measured on the camera itself — it is the shipping product, not a reference
-board.
+updated after a re-test on the reComputer units. The reCamera Pro and
+reComputer J rows are measured on a reComputer unit itself — a reComputer J
+integrated-machine measurement, not a reference board.
 
 ## Usage Notes
 

@@ -241,9 +241,10 @@ Same console stack as every preset — registration service, management UI, brok
 ## Step 2: Place the Embedding Model {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
 Puts the DINOv2 ONNX where the console mounts it and switches the server off
-the placeholder embedder. This preset uses DINOv2-small, not the DINOv2-base
-file used by the RK3588/Jetson presets — the gallery is bound to whichever
-model built it, and the two are not interchangeable.
+the placeholder embedder. This preset uses a dynamically quantised INT8
+DINOv2-small, not the DINOv2-base file used by the RK3588 preset — the
+gallery is bound to whichever model built it, and the two are not
+interchangeable.
 
 ### Prerequisites
 
@@ -355,31 +356,26 @@ number for your own HEF, and records what is still unverified.
 | Die temperature or power draw missing | Not readable on this platform. HailoRT 4.21's `fw-control` has only `identify`, and the Pi's M.2 HAT is not on the current-monitoring list. Recorded as unavailable. |
 | Retrieval much worse than published | Domain gap. The models were fine-tuned on e-commerce packshots; measure on your own shelf and fine-tune from there. |
 
-## Preset: Jetson Orin — TensorRT, Not Yet Built {#p3_jetson_orin}
+## Preset: Jetson Orin — TensorRT {#p3_jetson_orin}
 
-The TensorRT path is in the design and not in the code. Choose this preset to
-build and measure it; it does not deploy a working system.
+Both stages run as TensorRT fp16 engines on the Orin NX's own GPU. Measured on
+a Seeed reComputer J unit itself — a reComputer J integrated-machine
+measurement, not a reference board: detector 5.18 ms p50 / 5.28 ms p95, 99.91%
+box agreement with the CPU reference (50 images, the same batch RK3588 was
+checked against); embedder 4.23 ms p50 / 4.69 ms p95, 21 retrieval metrics
+within 0.24 percentage points of fp32. A 2956-frame checkout replay ran
+through the full device-side runtime — detector, embedder, gallery lookup,
+MQTT publish — with zero dropped frames, which makes this the only preset
+where that full loop has run on hardware rather than stopping at model
+conversion. All figures are n=300, inference only, on an engine built on the
+device it ran on.
 
 | Device | Purpose |
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
-| reComputer J40 (Orin NX 16GB) or J30 (Orin Nano 8GB) | Where the TensorRT path would run |
+| reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
+| reComputer J30 (Orin Nano 8GB) | Same family, same role; not tested. The numbers on this page are from the Orin NX (J40) only |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
-
-**What exists.** The static batch-1 ONNX with opset 11 and its sha256, the
-pure-numpy YOLOX decode and NMS in `core_retail.postprocess` that every platform
-shares, the onnxruntime CPU golden the other two backends were checked against,
-and the parity procedure itself.
-
-**What does not.** A TensorRT detector in `backends/`. An engine build for the
-fixed `images:1x3x640x640` profile. A runtime container. The upstream
-repository's `platforms/` directory holds console, hailo and rknn — the Jetson
-entry in its README was inherited from the donor project and points at files
-that were never copied across. And the device-side pipeline is missing on all
-three platforms, not only this one.
-
-**No figure anywhere in this package was taken on a Jetson.** The boards
-earmarked for this work were on a soak run through 2026-09-08.
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -403,22 +399,25 @@ presets. It is the only part of this preset that does.
 | `docker compose` not found | Install `docker-compose-plugin`. |
 | Port 8089 already in use | Change it in the wizard. |
 
-## Step 2: Place the Embedding Model {#p3_embed type=manual required=true config=devices/place_embedder.yaml}
+## Step 2: Place the Embedding Model {#p3_embed type=manual required=true config=devices/place_embedder_jetson.yaml}
 
 Puts the DINOv2 ONNX where the console mounts it and switches the server off
-the placeholder embedder.
+the placeholder embedder. This preset uses the fp32 DINOv2-small ONNX — the
+same file the TensorRT engine in Step 4 is built from — not the DINOv2-base
+file used by the RK3588 preset or the dynamically quantised INT8 file used by
+the Hailo-8 preset: the gallery is bound to whichever model built it.
 
 ### Prerequisites
 
 - The console stack from Step 1, stopped or running — the file is placed next
   to its compose file and picked up on the next `docker compose up -d server`.
-- `dinov2b_arcface_products10k_224_b1.onnx`, 348 MB, sha256
-  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is not
+- `dinov2s_arcface_products10k_224_b1.onnx`, sha256
+  `7f0136ef6459fdd5461e39e95070c7e964fbe2df4b53309f15f452c60da615be`. It is not
   shipped with this package: `use_scope: non-commercial`,
   `redistributable: false` (JD Products-10K terms, inherited by weights
-  fine-tuned on it). The backbone `facebook/dinov2-base` is Apache-2.0; the
+  fine-tuned on it). The backbone `facebook/dinov2-small` is Apache-2.0; the
   restriction comes from the training data.
-- 350 MB of free space on the console host.
+- A few tens of MB of free space on the console host.
 
 ### Troubleshooting
 
@@ -431,15 +430,16 @@ the placeholder embedder.
 
 ## Step 3: Register SKUs {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
-Registration works today and is independent of the missing device path — the
-gallery can be built and versioned before anything runs on an Orin.
+Register each SKU from 3 to 8 photographs. Each registration mints a new
+immutable gallery version.
 
 ### Prerequisites
 
 - The admin token from Step 1.
 - 3–8 photographs per SKU, front, back and side, two lighting conditions.
-- A decision about which embedder builds the gallery, recorded, because whatever
-  eventually runs on the Orin has to be the same model.
+- The DINOv2-small embedder from Step 2: the gallery must be built with the
+  same model the reComputer J's TensorRT engine was compiled from, or
+  retrieval on this preset returns noise.
 
 ### Troubleshooting
 
@@ -447,49 +447,53 @@ gallery can be built and versioned before anything runs on an Orin.
 |---|---|
 | Registration refused with "fewer than three images" | By design. |
 | The same sku_id returns 409 | By design. Pass `replace=true` to replace it. |
-| Unsure which embedder to standardise on | DINOv2-base measured 84.67% top-1 at eight images per SKU; DINOv2-small measured 79.11% at the same k and is a quarter of the size. Neither has run on an Orin. |
+| Unsure which embedder to standardise on | DINOv2-small measured 79.11% top-1 at eight images per SKU on this preset's own TensorRT engine (21 retrieval metrics within 0.24pp of fp32); DINOv2-base (RK3588 preset) measured 84.67% at the same k but has not been converted for TensorRT. |
 | Gallery version does not increase | The registration failed the quality gate. The response says which image. |
 
-## Step 4: Build the TensorRT Path {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
+## Step 4: Build the TensorRT Engines {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
 
-Describes exactly what is missing, how to build the engine, and the parity check
-that has to pass before any latency number from it means anything.
+Builds the two fp16 engines on the board, verifies their SHA against the
+runtime config, and re-runs the parity check that produced the numbers on this
+page.
 
 ### Prerequisites
 
-- An Orin board with JetPack and TensorRT installed. The engine is built on the
-  board it will run on — engines are bound to the device and the TensorRT
-  version, and must not be distributed between boards.
+- A reComputer J (Orin NX 16GB, family key `recomputer_j40`) with JetPack 6.2
+  and TensorRT 10.3 — the versions the measured numbers were taken on. The
+  engine is built on the board it will run on — engines are bound to the
+  device and the TensorRT version, and must not be distributed between boards.
 - The detector ONNX. It is not shipped here: the weights are trained on
   SKU-110K, which is academic and non-commercial with derivative works
   forbidden.
 - The embedder ONNX from Step 2, if you have not placed it yet. Its licence is
   separate from the detector's and no less restrictive: `use_scope:
   non-commercial`, `redistributable: false`, inherited from the JD Products-10K
-  training data (the `facebook/dinov2-base` backbone itself is Apache-2.0). It
+  training data (the `facebook/dinov2-small` backbone itself is Apache-2.0). It
   must not be redistributed with this package or baked into an image, and a
   commercial deployment has to retrain it on first-party or permissively
   licensed capture and rebuild every gallery version, because vectors from one
   embedder are not comparable to vectors from another.
-- Willingness to write the backend. This step does not install one.
+- `platforms/jetson/build_engines.py` from the upstream repository at commit
+  `16d1347` or later.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| Looking for `platforms/jetson/tools/build_engine.sh` | It is not there. The README entry naming it was inherited from the donor project; the files were never copied across. |
+| `trtexec` fails with "Static model does not take explicit shapes" | Both ONNX graphs are static batch-1; do not pass `--shapes`. `build_engines.py` at commit `16d1347`+ already handles this — only pass `--shapes` for a graph with a genuinely dynamic batch axis. |
 | An engine built on one board fails on another | Expected. Engines bind to the device and the TensorRT version. Build per board. |
-| Parity far below the RKNN fp16 reference of 99.85% | At that magnitude it is the decode or the output layout, not fp16 precision. |
-| Wanting a latency figure to quote | There is none, and inventing one from another platform would be wrong — RK3588 and Hailo-8 differ from each other by 6x on the same model. |
+| `runtime.py --dry-run` exits with code 2 | The engine's recomputed sha256 does not match the value in `runtime.yaml`. Rebuild, or re-run `build_engines.py --update-config` to refresh the recorded hash. |
+| Parity far below 99.91% (the measured detector box-agreement rate) | At that magnitude it is the decode or the output layout, not fp16 precision. |
+| Retrieval delta far above 0.24 percentage points (the measured max across 21 metrics) | Check the ONNX sha256 against `7f0136ef…` — a different embedder weight, not fp16 loss, is the likely cause at that magnitude. |
 
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
-Reproduces the software loop and the console round trip, which do work today,
-and records the device-side gap honestly rather than reporting a green tick.
+Reproduces the software loop, the console round trip, and the device-side
+parity procedure that produced the numbers on this page.
 
 ### Prerequisites
 
-- Steps 1 to 3 complete. Step 4 is a build task and may still be open.
+- Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done.
 
 ### Deployment Complete
@@ -500,19 +504,27 @@ and records the device-side gap honestly rather than reporting a green tick.
 - The console returns an increasing gallery version with the admin token, and
   401 or 403 with none.
 - `GET /v1/gallery/current/download` returns a tar.gz whose SHA256SUMS verify.
-- The device-side parity check has nothing to run against yet, and that is the
-  accurate result to record.
+- `platforms/jetson/runtime.py --config platforms/jetson/runtime.yaml
+  --dry-run` passes: both engines' sha256 match `runtime.yaml`.
+- The detector parity check reports box agreement at or near 99.91% (50
+  images) and the retrieval delta check reports at or near 0.24 percentage
+  points across 21 metrics.
+- A checkout replay through `platforms/jetson/runtime.py` reports 0 dropped
+  frames (`frames_dropped`, `capture_drop`, `embed_drop` all 0 in
+  `/healthz`).
 
 #### Next steps
 
-- Write the TensorRT detector backend and build an engine on the board.
-- Run the parity check against the CPU golden before measuring latency.
-- Write the device-side pipeline, which is missing on every platform.
+- Run a soak beyond one 2956-frame replay if the deployment is 24/7.
+- If moving to the shelf scene, retime detection and embedding at the shelf
+  preset's 1280² input — the numbers on this page are all from the 640²
+  checkout preset.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| Expecting a deployable Jetson system | There is not one. The preset exists so the gap is described rather than silently absent. |
-| The software loop passes and this looks finished | The loop runs on a development machine against a FakeEmbedder. It proves protocol behaviour and nothing about any board. |
-| Wanting to mark this verified | No preset in this package may carry `verified: [hardware]`. Parts have run on hardware; this package has not. |
+| `runtime.py --dry-run` exits with code 2 | An engine's sha256 does not match `runtime.yaml`. Rebuild with `build_engines.py --update-config`, which writes the fresh hash back. |
+| Latency far above 5.18 ms (detector) or 4.23 ms (embedder) p50 | Check `nvpmodel -q` is on `MAXN_SUPER` and that nothing else is holding the GPU — the runtime's own concurrent-load figures (8.76 ms / 5.37 ms p50) are the two-model-sharing-one-GPU case, not a regression. |
+| The software loop passes and this looks finished | The loop runs on a development machine against a FakeEmbedder. It proves protocol behaviour, not device accuracy — the device-side parity check above is the one that does. |
+| Wanting to mark this verified | This preset is the one in the package with a real device-side runtime measurement (the checkout replay); the other presets stop at model conversion. |

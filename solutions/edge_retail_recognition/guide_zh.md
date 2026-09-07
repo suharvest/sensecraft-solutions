@@ -201,7 +201,7 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 ## 步骤 2: 放置嵌入模型 {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
 把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。这个套餐用的是
-DINOv2-small，不是 RK3588/Jetson 套餐用的 DINOv2-base 文件——商品库与建它的那个
+动态量化 INT8 的 DINOv2-small，不是 RK3588 套餐用的 DINOv2-base 文件——商品库与建它的那个
 模型绑定，两者不能互换。
 
 ### 前置条件
@@ -304,27 +304,22 @@ DINOv2-small，不是 RK3588/Jetson 套餐用的 DINOv2-base 文件——商品�
 | 取不到 die 温度或功耗 | 这个平台上读不到。HailoRT 4.21 的 `fw-control` 只有 `identify`，Pi 的 M.2 HAT 也不在支持电流监测的平台之列。记为 unavailable。 |
 | 检索明显低于公布数字 | 域差距。模型是在电商棚拍图上微调的；在你自己的货架上测，并从那里开始微调。 |
 
-## 套餐: Jetson Orin —— TensorRT，尚未搭建 {#p3_jetson_orin}
+## 套餐: Jetson Orin —— TensorRT {#p3_jetson_orin}
 
-TensorRT 这条路径在设计里，不在代码里。选这个套餐是去搭建并实测它；
-它不部署一套能用的系统。
+两段都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上。实测于一台 Seeed
+reComputer J 整机——是整机实测：检测器 p50 5.18 ms / p95 5.28 ms，
+与 CPU 参考的框一致率 99.91%（50 张，与 RK3588 用的同一批 golden）；嵌入器
+p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24 个百分点。
+一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、嵌入、库检索、
+MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来在真机上跑过的套餐，
+而不是止步于模型转换。以上数字均为 n=300、纯推理，engine 在运行它的这台设备上构建。
 
 | 设备 | 作用 |
 |---|---|
 | 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
-| reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB） | TensorRT 路径将要跑的地方 |
+| reComputer J40（Orin NX 16GB） | 检测与嵌入，两段都经 TensorRT fp16 跑在 GPU 上——实测机型 |
+| reComputer J30（Orin Nano 8GB） | 同一家族、同样角色；没有实测数字，本页数字全部来自 Orin NX（J40） |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
-
-**已有的东西。** 静态 batch-1、opset 11 的 ONNX 及其 sha256，
-`core_retail.postprocess` 里四平台共用的纯 numpy YOLOX 解码与 NMS，
-另外两个后端拿来对过的 onnxruntime CPU golden，以及那套 parity 流程本身。
-
-**没有的东西。** `backends/` 里的 TensorRT 检测器。针对固定 `images:1x3x640x640`
-profile 的 engine 构建。板上的运行时容器。上游仓库 `platforms/` 下只有 console、
-hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的文件从未拷过来。
-另外，设备侧主链三个平台都缺，不只是这一个。
-
-**本包里没有任何数字取自 Jetson。** 计划做这件事的板子在 2026-09-08 之前都在跑长稳。
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -346,20 +341,23 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 | 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
 | 8089 端口被占用 | 在向导里改掉。 |
 
-## 步骤 2: 放置嵌入模型 {#p3_embed type=manual required=true config=devices/place_embedder.yaml}
+## 步骤 2: 放置嵌入模型 {#p3_embed type=manual required=true config=devices/place_embedder_jetson.yaml}
 
-把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。
+把 DINOv2 ONNX 放到管理端挂载的位置，并把服务从占位嵌入器切过去。这个套餐用的是
+fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同一份文件——
+不是 RK3588 套餐用的 DINOv2-base，也不是 Hailo-8 套餐用的动态量化 INT8 文件：
+商品库与建它的那个模型绑定。
 
 ### 前置条件
 
 - 步骤 1 的管理端栈，停着或跑着都行——文件放在它的 compose 文件旁边，
   下一次 `docker compose up -d server` 时生效。
-- `dinov2b_arcface_products10k_224_b1.onnx`，348 MB，sha256
-  `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+- `dinov2s_arcface_products10k_224_b1.onnx`，sha256
+  `7f0136ef6459fdd5461e39e95070c7e964fbe2df4b53309f15f452c60da615be`。
   本包不含它：`use_scope: non-commercial`、`redistributable: false`
   （JD Products-10K 条款，在其上微调的权重继承该范围）。骨干
-  `facebook/dinov2-base` 是 Apache-2.0；限制来自训练数据。
-- 管理端主机上 350 MB 空闲空间。
+  `facebook/dinov2-small` 是 Apache-2.0；限制来自训练数据。
+- 管理端主机上几十 MB 空闲空间。
 
 ### 故障排查
 
@@ -372,14 +370,14 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 
 ## 步骤 3: 注册 SKU {#p3_register type=web_dashboard required=true config=devices/register_sku.yaml}
 
-注册今天就能用，而且与缺失的设备侧路径无关——在任何东西跑上 Orin 之前，
-商品库就可以建好并版本化。
+每个 SKU 用 3–8 张照片注册。每次注册生成一个新的不可变商品库版本。
 
 ### 前置条件
 
 - 步骤 1 里的 admin token。
 - 每个 SKU 3–8 张图，正面、背面、侧面，两种光照。
-- 定下用哪个嵌入器建库并记下来，因为最终跑在 Orin 上的必须是同一个模型。
+- 步骤 2 的 DINOv2-small 嵌入器：商品库必须用与 reComputer J 上 TensorRT engine
+  同一个模型构建，否则这个套餐的检索会返回噪声。
 
 ### 故障排查
 
@@ -387,42 +385,44 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 |---|---|
 | 注册被拒，提示图片少于三张 | 这是设计如此。 |
 | 同一个 sku_id 返回 409 | 设计如此。要替换就带 `replace=true`。 |
-| 不确定该统一到哪个嵌入器 | 每 SKU 8 张图时 DINOv2-base 实测 top-1 84.67%，DINOv2-small 同档 79.11% 且只有四分之一大。两者都没在 Orin 上跑过。 |
+| 不确定该统一到哪个嵌入器 | DINOv2-small 在这个套餐自己的 TensorRT engine 上、每 SKU 8 张图时实测 top-1 79.11%（21 项检索指标与 fp32 最大差 0.24pp）；DINOv2-base（RK3588 套餐）同档 84.67%，但没有转换过 TensorRT。 |
 | 版本号不涨 | 注册没过质量闸门。响应里会说是哪一张图。 |
 
-## 步骤 4: 搭建 TensorRT 路径 {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
+## 步骤 4: 构建 TensorRT engine {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
 
-写清楚缺什么、怎么构建 engine，以及在它的任何延迟数字有意义之前必须通过的 parity 检查。
+在板上构建两个 fp16 engine，用 runtime 配置里的 SHA 校验它们，
+并重跑那套产出本页数字的 parity 检查。
 
 ### 前置条件
 
-- 一块装好 JetPack 与 TensorRT 的 Orin 板。engine 在它将要运行的那块板上构建——
+- 一台 reComputer J（Orin NX 16GB，family key `recomputer_j40`），装好 JetPack 6.2
+  与 TensorRT 10.3——即实测数字所用的版本。engine 在它将要运行的那块板上构建——
   engine 与设备和 TensorRT 版本绑定，不得在板之间分发。
 - 检测器 ONNX。本包不含它：权重训练在 SKU-110K 上，仅限学术与非商用，且禁止衍生作品。
 - 步骤 2 的嵌入器 ONNX，如果还没放的话。它的许可与检测器的是两回事，限制不比后者松：
   `use_scope: non-commercial`、`redistributable: false`，继承自 JD Products-10K
-  训练数据（骨干 `facebook/dinov2-base` 本身是 Apache-2.0）。不得随本包分发，
+  训练数据（骨干 `facebook/dinov2-small` 本身是 Apache-2.0）。不得随本包分发，
   也不得打进镜像；商用部署必须用自采或许可宽松的数据重训它，并重建每一个商品库版本——
   一个嵌入器产出的向量与另一个的不可比。
-- 愿意把后端写出来。这一步不会替你装一个。
+- 上游仓库 commit `16d1347` 或更新版本里的 `platforms/jetson/build_engines.py`。
 
 ### 故障排查
 
 | 问题 | 解决办法 |
 |---|---|
-| 在找 `platforms/jetson/tools/build_engine.sh` | 它不在那里。README 里提到它的那条继承自捐赠项目，文件从未拷过来。 |
+| `trtexec` 报 "Static model does not take explicit shapes" | 两份 ONNX 都是静态 batch-1，不要传 `--shapes`。`build_engines.py`（commit `16d1347`+）已经处理了这一点——只有真正动态 batch 轴的图才需要传。 |
 | 一块板上构建的 engine 在另一块板上跑不了 | 这是预期的。engine 与设备和 TensorRT 版本绑定。按板构建。 |
-| parity 远低于 RKNN fp16 的 99.85% 参照 | 差这么多是解码或输出布局的问题，不是 fp16 精度的问题。 |
-| 想要一个可以引用的延迟数字 | 没有，而且从别的平台推一个出来是错的——同一个模型上 RK3588 与 Hailo-8 差了 6 倍。 |
+| `runtime.py --dry-run` 以 exit code 2 退出 | engine 重算出的 sha256 与 `runtime.yaml` 里记的对不上。重新构建，或重跑 `build_engines.py --update-config` 刷新记录的哈希。 |
+| parity 远低于实测的 99.91%（检测框一致率） | 差这么多是解码或输出布局的问题，不是 fp16 精度的问题。 |
+| 检索差值远高于实测的 0.24 个百分点（21 项指标最大差） | 核对 ONNX sha256 是否为 `7f0136ef…`——差这么多更可能是嵌入器权重不对，不是 fp16 损失。 |
 
 ## 步骤 5: 验证注册、检索与设备产物 {#p3_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
-复现今天确实能跑的软件闭环与管理端往返，并如实记下设备侧的缺口，
-而不是报一个绿色对勾。
+复现软件闭环、管理端往返，以及产出本页数字的那套设备侧 parity 流程。
 
 ### 前置条件
 
-- 步骤 1 到 3 已完成。步骤 4 是一项开发任务，可以仍然开着。
+- 步骤 1 到 4 已完成。
 - 一份跑过 `uv sync` 的上游仓库克隆。
 
 ### 部署完成
@@ -432,18 +432,24 @@ hailo、rknn——README 里的 jetson 条目继承自捐赠项目，指向的�
 - `uv run python tools/verify_software_loop.py` 通过。
 - 管理端带 admin token 时返回递增的版本号，不带 token 时返回 401 或 403。
 - `GET /v1/gallery/current/download` 返回的 tar.gz 里 SHA256SUMS 校验得过。
-- 设备侧的 parity 检查还没有可跑的对象，而这正是应当记下的准确结果。
+- `platforms/jetson/runtime.py --config platforms/jetson/runtime.yaml
+  --dry-run` 通过：两个 engine 的 sha256 都与 `runtime.yaml` 一致。
+- 检测 parity 检查报告框一致率接近 99.91%（50 张），检索差值检查报告
+  21 项指标最大差接近 0.24 个百分点。
+- 通过 `platforms/jetson/runtime.py` 跑一次收银台回放，`/healthz` 里
+  `frames_dropped`、`capture_drop`、`embed_drop` 都是 0。
 
 #### 后续步骤
 
-- 写出 TensorRT 检测器后端，并在板上构建 engine。
-- 测延迟之前先跑与 CPU golden 的 parity 检查。
-- 写出设备侧主链——它在每个平台上都缺。
+- 若要 7×24 部署，跑一次比单轮 2956 帧更长的长稳。
+- 若要切到货架场景，用货架 preset 的 1280² 输入重新计时——本页数字全部来自
+  640² 的收银台 preset。
 
 ### 故障排查
 
 | 问题 | 解决办法 |
 |---|---|
-| 期待一套可部署的 Jetson 系统 | 没有这样一套。这个套餐存在，是为了把缺口写出来而不是让它静静消失。 |
-| 软件闭环过了，看起来像做完了 | 闭环跑在开发机上的 FakeEmbedder 上。它证明协议行为，不证明任何一块板上的任何事。 |
-| 想把它标成已验证 | 本包里没有任何套餐可以带 `verified: [hardware]`。有些部分在硬件上跑过；这个包没有。 |
+| `runtime.py --dry-run` 以 exit code 2 退出 | 某个 engine 的 sha256 与 `runtime.yaml` 对不上。用 `build_engines.py --update-config` 重新构建，它会把新哈希写回配置。 |
+| 延迟明显高于检测 5.18 ms / 嵌入 4.23 ms p50 | 检查 `nvpmodel -q` 是否为 `MAXN_SUPER`，以及是否有别的进程占着 GPU——运行时自身的并发数字（8.76 ms / 5.37 ms p50）是两个模型共享同一块 GPU 的情形，不是回归。 |
+| 软件闭环过了，看起来像做完了 | 闭环跑在开发机上的 FakeEmbedder 上，证明的是协议行为，不是设备精度——上面的设备侧 parity 检查才是证明精度的那道检查。 |
+| 想把它标成已验证 | 这是本包里唯一有真机设备侧运行时实测（收银台回放）的套餐；其它套餐止步于模型转换。 |
