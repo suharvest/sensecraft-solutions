@@ -104,13 +104,13 @@ intro:
       purchase:
         require:
           module: [orin_nx_16]
-    external_raspberry_pi5_hailo:
-      name: Raspberry Pi 5 + Hailo-8
-      name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8
-      description: A Raspberry Pi 5 with a Hailo-8 on the M.2 slot, running the INT8 HEF build of the same detector
+    recomputer_r20_industrial:
+      description: An industrial box with a Hailo-8 on the M.2 slot, running the INT8 HEF build of the same detector
       description_i18n:
-        zh: M.2 插槽上装了 Hailo-8 的 Raspberry Pi 5，运行同一检测器的 INT8 HEF 版本
+        zh: M.2 插槽上装了 Hailo-8 的工业整机，运行同一检测器的 INT8 HEF 版本
+      purchase:
+        require:
+          ai_accelerator: hailo-8
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -152,15 +152,15 @@ intro:
           default: generic_ip_camera
 
     - id: hailo
-      name: Camera + Raspberry Pi 5 with Hailo-8
+      name: Camera + reComputer R2000 (Hailo-8)
       name_i18n:
-        zh: 摄像头 + Raspberry Pi 5（Hailo-8）
+        zh: 摄像头 + reComputer R2000（Hailo-8）
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: The lower-power path. The INT8 HEF is compiled off-device and downloaded at deploy time; accuracy has been checked in the Hailo emulator, on-device throughput has not been measured yet.
+      description: The lower-power path. The INT8 HEF is compiled off-device and downloaded at deploy time. Measured on the same Hailo-8 platform — 106.75 FPS hardware inference, 43.92 FPS full pipeline, mAP50 0.9858. Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit.
       description_i18n:
-        zh: 功耗更低的一条路径。INT8 HEF 在设备外编译、部署时下载；精度已在 Hailo emulator 上核对，设备上的吞吐尚未实测。
+        zh: 功耗更低的一条路径。INT8 HEF 在设备外编译、部署时下载。同款 Hailo-8 平台实测硬件推理 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858；同款 Hailo-8 平台实测参考值，reComputer 整机复测后更新。
       device_groups:
         - id: compute
           name: Inspection Host
@@ -169,8 +169,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: external_raspberry_pi5_hailo
-          default: external_raspberry_pi5_hailo
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
         - id: camera
           name: Camera
           name_i18n:

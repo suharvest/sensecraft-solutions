@@ -25,7 +25,7 @@ steps:
     name_i18n:
       zh: 对自己的图像跑 annotate.py
     description: >-
-      On a workstation or spark box with the upstream edge-inspection-assembly
+      On a GPU workstation with the upstream edge-inspection-assembly
       repository (tools/annotation/), run: uv run python
       tools/annotation/annotate.py --images <your station images> --backend
       sam2 --model-id facebook/sam2.1-hiera-small --strategy box --out

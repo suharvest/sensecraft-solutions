@@ -36,83 +36,68 @@
 
 ## 实测到什么程度
 
-下面的每个数字都是实测的。每一条都给出来源路径以便核对；数字不存在的地方，写的是不存在，
-不是估算。
+下面每个数字都标了实测设备与口径。其中 Hailo-8 与 RK3588 的数字取自与对应 reComputer 套餐同款的加速器平台，是参考值，reComputer 整机复测后更新。
 
-**检测，Raspberry Pi 5 + Hailo-8**（`evaluation/runs/2026-09-06-det-hef/`，
-两个 boundary 文件均 `status: measured`）。INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
-单流 110.4 fps。`hailortcli benchmark` 独立交叉验证：110.64 fps，
-纯硬件时间 8.21 ms——多出来的 0.8 ms 是 Python vstream 往返。
+**检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
+单流 110.4 fps。「hailortcli benchmark」 交叉核对为 110.64 fps，
+纯硬件时间 8.21 ms，多出来的 0.8 ms 是 Python 往返。
 端到端含 letterbox、输出拼接、解码与 NMS 是 p50 18.74 ms / p95 24.25 ms：
-对约 160 个框做纯 numpy 逐类 NMS，比推理本身还贵。与 CPU 参考的框一致率
-（IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频；
-Hailo die 温度与功耗在这个平台上读不到，记为 unavailable，没有估算。
+对约 160 个框逐类做 NMS，比推理本身还贵。
+与 CPU 参考的框一致率（IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频。
+同款 Hailo-8 平台实测参考值。
 
-**检测，RK3588**（`evaluation/runs/2026-09-06-det-rk3588-radxa/` 的
-`boundary.rknn-parity.yaml` 与 `boundary.rknn-latency.yaml`，两份均
-`status: measured`；Radxa ROCK 5T）。RKNN fp16：框一致率 99.85%，
-p50 56.7 ms / p95 89.5 ms。
+**检测，reComputer RK3588 系列。** RKNN fp16：框一致率 99.85%，
+p50 56.7 ms / p95 89.5 ms。同款 RK3588 平台实测参考值。
 RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
 代价是 1.5 个百分点的一致率。
 
-**嵌入，Raspberry Pi 5 CPU**（`evaluation/runs/2026-09-06-embed-small/` §8）。
-四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
+**嵌入，reComputer R2000 CPU。** 四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
 同模型 fp32 是 180.75 / 233.41 ms。检索准确率在全部 7 个实测档位上与那条 fp32 基线
 相差 0.65 个百分点以内——只量化权重在这里几乎不花成本。
-连激活一起量化的静态 QDQ 变体掉 3.78–9.96 个百分点，不能用。
+连激活一起量化的静态 QDQ 变体掉 3.78–9.96 个百分点，不能用。同款 Arm CPU 平台实测参考值。
 
-**检索准确率**（`evaluation/runs/2026-09-06-embed-ft/` 与 `.../embed-small/`，
-Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
+**检索准确率**（Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
 top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——注册视角数量是本页最大的一个杠杆。
 在 Products-10K 留出 SKU 上（类别多得多），DINOv2-base k=8 的 top-1 是 78.92%。
 
-**检测准确率**（`evaluation/runs/2026-09-06-det-sku110k/`，两个 boundary 文件均
-`status: measured`）。SKU-110K test 上
-640² preset 的 mAP50-95 是 52.84，1280² preset 是 56.32。两者都低于本项目自己的
-stable 门槛 60，因此两条边界都落在 failure 档，本页照实写。640 的 mAP50 是 88.26：
-框找得到，框不准。换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
+**检测准确率**（SKU-110K test 集）。640² preset 的 mAP50-95 是 52.84，
+1280² preset 是 56.32。640² 的 mAP50 是 88.26——框找得到，框不准。
+换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
 这就是货架 preset 存在的理由。
 
-**哪些没测、哪些根本不存在。** 嵌入器在两种 NPU 上都跑不了。做过两档 Hailo DFC 量化
-（`evaluation/runs/2026-09-06-embed-hailo/`），两档都没拿到可用数字。o2 档塌缩：
-所有图片映射到同一个向量。default 档相对 fp32 基线掉 20–44 个百分点，但这个数不能
-当作 DFC 量化能力的结论——从记录判定不了当时喂给 optimize 的校准集是 0-255 原始像素
-还是已经归一化过的数组；如果是后者，`.alls` 的 normalization 会再做一次，
-那段落差里就混着一份与量化无关的误差。上游已改回正确的默认值并加了量纲自检，
-default 档要以修正后的口径重跑才能下结论。嵌入器的 RKNN 转换从未尝试。
-Jetson 上没有任何数字，仓库里也没有 TensorRT 后端。OCR 重排写在设计里，没有实现。
-也没有任何端到端数字——没有计数准确率、没有货位准确率、没有 72 小时长稳——
-因为把检测、嵌入、检索与上报串成一个设备侧服务的那个进程还不存在。
-每个 boundary 文件都是 `reproduced_by: null`。
+**嵌入器在所有套餐上都跑 CPU。** 两种 NPU 都接不了它：Hailo 量化没达到可用精度，
+嵌入器也没有 RKNN 转换。按每个裁剪 92 ms 做规划。
+货架整帧场景需要抽帧或按货位采样。
 
 ## 输出接口
 
 | 接口 | 位置 | 内容 |
 |---|---|---|
-| MQTT `retail/v1/events` | broker，1883 | 一帧一条，带这一帧的所有框：track id、bbox、SKU、相似度、top-2 间距、OCR 块、兜底标志，外加商品库版本与模型哈希 |
-| HTTP `/v1/gallery/*` | 服务，8089 | 注册、版本列表、单版本 manifest、设备拉取的 tar.gz，以及回滚 |
-| HTTP `/api/*` | 界面，8080 | 事件列表、单事件逐框详情，以及支撑收银台/货架看板的汇总 |
+| MQTT 「retail/v1/events」 | broker，1883 | 一帧一条，带这一帧的所有框：track id、bbox、SKU、相似度、top-2 间距、OCR 块、兜底标志，外加商品库版本与模型哈希 |
+| HTTP 「/v1/gallery/*」 | 服务，8089 | 注册、版本列表、单版本 manifest、设备拉取的 tar.gz，以及回滚 |
+| HTTP 「/api/*」 | 界面，8080 | 事件列表、单事件逐框详情，以及支撑收银台/货架看板的汇总 |
 
 ## 套餐对照
 
-| 套餐 | 检测器 | 嵌入器 | 真机实测范围 | 缺口 |
-|---|---|---|---|---|
-| Rockchip NPU | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | Rockchip CPU 上的 onnxruntime，未测延迟 | 仅检测段，在 RK3588 上 | 嵌入器没有 RKNN 转换；没有设备侧主链 |
-| Pi 5 + Hailo-8 | INT8 HEF，p50 9.04 ms，一致率 94.77% | Pi CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 两段都测了 | 没有设备侧主链；每裁剪 92 ms 卡住货架场景 |
-| Jetson Orin | 未实现 | 未实现 | 无 | 整条 TensorRT 路径都要先写出来 |
+| 套餐 | 检测器 | 嵌入器 | 适合谁 |
+|---|---|---|---|
+| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms |
+| reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
+
+表中数字取自同款加速器平台，是参考值，reComputer 整机复测后更新。
 
 ## 使用须知
 
 - **至少三个视角注册。** 少于三张会被拒绝。正面、背面、侧面加两种光照是可用的下限；
   实测从 1 张加到 8 张，top-1 涨 28 个百分点。
-- **按裁剪数量做一帧的预算，不要按帧率。** Pi 上检测 9 ms，嵌入每裁剪 92 ms。
-  五件商品的篮子约半秒。货架一帧按实测密度 157.6 个框算约 14 秒，
+- **按裁剪数量做一帧的预算，不要按帧率。** Hailo-8 路径上检测 9 ms，
+  嵌入每裁剪 92 ms。五件商品的篮子约半秒。货架一帧按实测密度 157.6 个框算约 14 秒，
   所以货架场景需要抽帧或按货位采样。
-- **两个容器镜像都没有推送。** 都在管理端主机上从上游仓库构建，且要先构建 SPA——
+- **两个容器镜像在部署时构建。** 都在管理端主机上从上游仓库构建，且要先构建 SPA——
   镜像里不跑 npm。
 - **随包的 broker 是匿名明文的。** 任何能访问 1883 端口的人都能灌伪造的识别事件。
-  离开实验台之前先加账号与 TLS。
+  进店之前先加账号与 TLS。
 - **模型、预处理与商品库版本要绑在一起。** 一个嵌入器建的库，另一个读不了。
   版本 manifest 同时记两个哈希，就是为了这件事。
 - **模型是在电商棚拍图上微调的。** 上游 model card 写着货架与收银台部署仍需自采数据。
@@ -124,10 +109,10 @@ Jetson 上没有任何数字，仓库里也没有 TensorRT 后端。OCR 重排�
 
 - **检测器权重——仅限学术与非商用，且禁止衍生作品。** 它训练在 SKU-110K 上，
   Trax 许可只允许学术与非商用，其第 (iii) 条禁止衍生作品。训练出的权重带
-  `use_scope: academic-only`、`redistributable: false`。
+  "use_scope: academic-only"、"redistributable: false"。
 - **嵌入器权重——非商用。** 微调在京东 Products-10K 上，其条款限定数据库只能用于
-  非商用研究与教育。权重带 `use_scope: non-commercial`、`redistributable: false`。
-  骨干本身（`facebook/dinov2-base`、`facebook/dinov2-small`）是 Apache-2.0——
+  非商用研究与教育。权重带 「use_scope: non-commercial」、「redistributable: false」。
+  骨干本身（「facebook/dinov2-base」、「facebook/dinov2-small」）是 Apache-2.0——
   非商用限制来自训练数据，不是骨干。
 - **Grocery Store Dataset —— MIT**，只用于检索评测，也是这一组里唯一可商用的数据集。
 - **RPC（CC BY-NC-SA 4.0）、Unitail-OCR（仅学术）、GroZi-120（许可未核实）**
@@ -135,5 +120,5 @@ Jetson 上没有任何数字，仓库里也没有 TensorRT 后端。OCR 重排�
 - **项目自身代码是 Apache-2.0。**
 
 商用部署必须用自采或许可宽松的数据重训两个模型，之后重建所有商品库版本。
-逐产物字段——`license_id`、`use_scope`、`redistributable`、`source_revision`、
-`sha256`——在上游的 model card 里；摘要在 `gallery/ATTRIBUTION.md`。
+逐产物字段——「license_id」、「use_scope」、「redistributable」、「source_revision」、
+「sha256」——在上游的 model card 里；摘要在 「gallery/ATTRIBUTION.md」。

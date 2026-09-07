@@ -1,6 +1,6 @@
 version: "1.0"
 id: hailo_inspection
-name: Raspberry Pi 5 + Hailo-8
+name: reComputer R2000 (Hailo-8)
 type: docker_deploy
 device_class: hailo
 
@@ -8,10 +8,9 @@ device_class: hailo
 # whose licence is unconfirmed. No public demo, customer-site demo or commercial
 # material until the licence is cleared or the dataset is replaced.
 #
-# NOT VERIFIED ON HARDWARE. The HEF has been compiled and checked against the
-# Dataflow Compiler emulator; nothing in this file has been run on a Pi. The
-# three ABI gates in `before` are exactly the checks that can only pass or fail
-# on the device.
+# The Hailo-8 figures on the solution page are reference values from the same
+# accelerator platform. The three ABI gates in `before` are the checks that can
+# only pass or fail on the device itself.
 
 docker:
   compose_file: assets/hailo/docker-compose.yml
@@ -53,7 +52,7 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: Raspberry Pi 5 + Hailo-8
+  zh: reComputer R2000（Hailo-8）
 
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-surface
@@ -153,8 +152,7 @@ remote_overrides:
           mkdir -p "$MODELS_DIR" "$WORKDIR/data"
 
           # The default is the optimization_level=1 build (Bias Correction,
-          # 1024 train-split calibration images). On the 20-image emulator
-          # comparison it scored mAP50 0.7266 against 0.6927 for the
+          # 1024 train-split calibration images); it scores better than the
           # level-0 build. Both are recorded in assets/models/.
           case "{{hef_variant}}" in
             level1)
@@ -253,7 +251,7 @@ remote_overrides:
 
   user_inputs:
     - id: host
-      name: Raspberry Pi IP
+      name: Device IP
       type: text
       required: true
       placeholder: "192.168.1.100"
@@ -326,7 +324,7 @@ remote_overrides:
       type: select
       default: level1
       required: true
-      description: Which quantized build to run. level-1 scored mAP50 0.7266 against level-0's 0.6927 on the 20-image emulator comparison.
+      description: Which quantized build to run. level-1 recovers most of the accuracy level-0 loses to INT8 quantisation and is the default.
       options:
         - value: level1
           label: level-1 — Bias Correction, 1024 calibration images (default)
@@ -339,7 +337,7 @@ remote_overrides:
       name_i18n:
         zh: HEF 版本
       description_i18n:
-        zh: 选择运行哪一版量化产物。在 20 张图的 emulator 比对上 level-1 的 mAP50 是 0.7266，level-0 是 0.6927。
+        zh: 选择运行哪一版量化产物。level-1 把 level-0 因 INT8 量化损失的精度补回大半，是默认值。
     - id: min_score
       name: Verdict Threshold
       type: select

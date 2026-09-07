@@ -267,37 +267,38 @@ with this step skipped.
 ## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`,
-SAM2-assisted) on a workstation or spark box to turn your own images into an
+SAM2-assisted) on a GPU workstation to turn your own images into an
 `assembly.expected[]` template and a versioned `roi_profile_sha256`, instead of
 hand-writing ROIs. Nothing in this step runs on the inspection device itself.
 
 ### Prerequisites
 
-- A workstation or spark box with the upstream `edge-inspection-assembly`
+- A GPU workstation with the upstream `edge-inspection-assembly`
   repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
   is a weaker baseline).
 - Your own station images and a COCO-style category list, or a willingness to
   label a handful of classes by hand first.
 
-## Preset: Camera + Raspberry Pi 5 with Hailo-8 {#hailo}
+## Preset: Camera + reComputer R2000 (Hailo-8) {#hailo}
 
 Same runtime, INT8 model, less power. The HEF is compiled off-device and
-downloaded during the deploy, so there is no build step on the board. Accuracy
-was checked in the Hailo emulator against the CPU baseline; throughput, latency
-and stream capacity on the board itself have not been measured.
+downloaded during the deploy, so there is no build step on the board. Measured
+on the same Hailo-8 platform: 106.75 FPS hardware inference, 43.92 FPS full
+pipeline, mAP50 0.9858 against the CPU baseline — reference values, to be
+updated after a re-test on the reComputer unit. Stream capacity on this path is
+not part of that run; the multi-stream sweep is Orin-only.
 
 | Device | Purpose |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
+| reComputer R2000 with Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
 | Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
 
 **Important.** This is a demo package, not a certified metrology or safety
 product; the dimension module does not replace a calibrated gauge, and the
 shipped model is trained on the DeepPCB bare-board defect dataset rather than on
-assembly images. On this board add one more caveat: **nothing here has been run
-on a Raspberry Pi yet.** The image cross-builds for arm64 and the HEF loads in
-the emulator, but the first on-board run is yours. The same three weaknesses
-apply — picture-coordinate ROIs, calibration plane sensitivity, and one shared
+assembly images. The Hailo-8 figures quoted above are reference values from the
+same accelerator platform; re-test on your own unit before you plan around them.
+The same three weaknesses apply — picture-coordinate ROIs, calibration plane sensitivity, and one shared
 Modbus register bank across streams.
 
 ## Step 1: Deploy the Inspection Runtime {#deploy_hailo_assembly type=docker_deploy required=true config=devices/hailo_assembly.yaml}
@@ -341,14 +342,14 @@ them first:
 | HEF checksum mismatch | The file is not the one this solution was evaluated with; delete it and let the step fetch again |
 | No video from the camera | Test the RTSP URL in VLC first |
 
-### Target {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_assembly.yaml default=true}
+### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml default=true}
 
-Deploy over SSH from this computer to a Raspberry Pi on the network.
+Deploy over SSH from this computer to a reComputer R2000 on the network.
 
-### Target {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_assembly.yaml}
+### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml}
 
 Deploy onto the machine this app is running on. Only valid when that machine is
-the Raspberry Pi.
+the reComputer R2000.
 
 ## Step 2: Set Up the Dimension Calibration {#calibrate_dimension_hailo type=manual required=false config=devices/calibrate_dimension.yaml}
 
@@ -457,14 +458,14 @@ implying `defect_count > 0`.
 
 Optional, identical to the Jetson preset. Points the runtime at an external
 shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
-box — the Raspberry Pi does not run it) so NG frames get a plain-language
+box — the reComputer R2000 does not run it) so NG frames get a plain-language
 explanation on a side-channel MQTT topic. This never enters the frame loop and
 never changes a verdict.
 
 ### Prerequisites
 
 - An `edge-vision-vlm` instance already running and reachable from this
-  Raspberry Pi — this solution does not deploy or bundle that service.
+  reComputer R2000 — this solution does not deploy or bundle that service.
 - The runtime already deployed (Step 1), so a config edit and container
   restart are enough.
 
@@ -479,12 +480,12 @@ never changes a verdict.
 ## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 Optional, identical to the Jetson preset. Runs the upstream semi-automatic
-annotation tool on a workstation or spark box — nothing in this step runs on
-the Raspberry Pi.
+annotation tool on a GPU workstation — nothing in this step runs on
+the reComputer R2000.
 
 ### Prerequisites
 
-- A workstation or spark box with the upstream `edge-inspection-assembly`
+- A GPU workstation with the upstream `edge-inspection-assembly`
   repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
   is a weaker baseline).
 - Your own station images and a COCO-style category list, or a willingness to

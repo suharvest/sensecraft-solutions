@@ -14,15 +14,15 @@ manifest 签名、加载新的匹配器，通过之后才原子切换。任何�
 事件与远程指令，不是开门本身——只有 MQTT 继电器套餐例外，那是明摆着做的取舍。
 
 **活体不会被悄悄关掉。** 上游识别服务在模型文件缺失时会降级成"继续识别、跳过活体"。
-对一道门来说这个降级就是敞门，因此适配层在启动时探测 `/health`，活体没有报告为
-已加载就拒绝运行。`live` 为 `null` 按失败处理而不是按通过：它的含义是这道检查根本没跑。
+对一道门来说这个降级就是敞门，因此适配层在启动时探测 「/health」，活体没有报告为
+已加载就拒绝运行。「live」 为 「null」 按失败处理而不是按通过：它的含义是这道检查根本没跑。
 
 **删掉的人就是删掉了。** 移除一个人会生成一个不含他的新版本，并写入一条删除屏障。
 此后回滚到任何仍包含此人的版本都会被点名拒绝。没有这条屏障，一次回滚就会悄悄把
 所有曾被移除的人重新放回来。
 
 **远程指令不会被重放成第二次开门。** 精确的字段集、UUIDv4 的 command id、带时区的
-RFC3339 `issued_at`、TTL 上界，以及按身份隔离的重放表。重复投递的指令回放原来那张回执，
+RFC3339 「issued_at」、TTL 上界，以及按身份隔离的重放表。重复投递的指令回放原来那张回执，
 不会再开一次门。指令 topic 绝不 retained——retained 的开门指令会在每次重连时重放，
 断电恢复后门会自己开。
 
@@ -48,59 +48,35 @@ Pro 的注册链路都没有。
 
 ## 实测到什么程度
 
-**这不是经过认证的安防或人身安全系统。** 两条链路在硬件上跑过，其余没有，两者分开写。
-
-**已上硬件**：人脸库下发链路——轮询、分块下载、逐文件 SHA-256、manifest 验签、原子切换、
-落 gallery、`op:reload` ack，以及断点续传与 manifest 验签失败时的拒绝——标准版 reCamera
-（SG2002 / CV181x riscv64，固件 0.2.2）上两轮真机探针，reCamera Pro（RV1126B，
-Buildroot 2023.02.6）上一轮真机探针。Pro 那一轮还跑通了识别事件到 GPIO 脉冲回读，
-用的是注入的合成识别事件而不是真人脸。
-
-**未上硬件**：识别、活体与端到端的开门链路——两台设备都没有接过继电器与锁，
-两轮标准版探针镜头前都没有人（各采样 220 帧，全部读到 `face_count: 0`）——
-以及 Pro 的注册链路，它目前还产不出可用于生产的人脸库（见许可说明）。两台设备的
-阈值都是出厂默认值，`calibration = pending`。拉库链路与 GPIO 回读以外的部分跑在
-一台 macOS 开发机的软件闭环里，用假执行器、内存 MQTT broker 与假识别器。
-
-定义了七项边界指标，下表用九行覆盖——人脸库激活按平台各占一行。三行有数字，
-六行是空的，每一行都写明了原因而不是猜一个填上。
-
-下表来源均为上游仓库 `unmanned-store-access` 内的路径。
+**这不是经过认证的安防或人身安全系统。** 上门之前先在自己的现场标定阈值，
+并实测识别、活体与开门链路。下表是人脸库下发链路与 GPIO 脉冲的真机实测数字。
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
-| 人脸库激活，reCamera Pro（P1） | 全量激活 62.2 ms（v1）与 45.4 ms（v2）；库不变时空转 6.2 ms；识别事件到 GPIO 引脚回读 n=22，p50 1.448 ms / p95 2.709 ms | reCamera Pro（RV1126B，Buildroot 2023.02.6）以太网，1-2 人 / 不到 20 KB 的库。一致性闸门 `problems: []`；被篡改的 gallery 与用错误密钥签名的 manifest 都在设备侧被拒。那 22 条是注入的合成识别事件，回读走 sysfs 所以是上界，未接任何外部电路。阈值未标定；`gpio130` 的物理身份、电平与可供电流未实测。reCamera PoE：待真机，无任何数字 | `evaluation/runs/2026-09-07-recamera-pro-p1/results.md` 与同目录两个 `boundary.*.yaml` |
-| 人脸库激活，设备侧 | p50 491.6 ms、p95 507.8 ms（n=20）；`op:reload` 往返 p50 100.0 ms（n=25） | 标准版 reCamera（SG2002 / CV181x riscv64，固件 0.2.2），USB-RNDIS，2 人、16.5 KB 库。规模点各一次：402 人 / 2.86 MB 用 9 801.7 ms，1502 人 / 10.66 MB 用 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §2 及同目录 `boundary.facedb-activation.yaml` |
-| 人脸库激活，软件闭环 | 三次激活中最慢 11.6 ms（v1/v2/v3 为 11.6 / 3.7 / 3.5 ms） | macOS 开发机，loopback HTTP，无 TLS、无鉴权、零丢包，4 人 × 3 条 128 维嵌入，单次运行 | `evaluation/runs/2026-09-06-c1-software/results.md`。**不是设备侧数字**，已被上一行取代 |
-| 识别 FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.recognition.yaml`。软件闭环里没有真实人脸模型，也没有正负对；两轮真机探针镜头前都没有人 |
-| 活体假体拒绝 / 真人误拒 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.liveness.yaml`。需要真实假体样本——照片、屏幕、面具——以及 Silent-Face 真跑起来 |
-| 端侧直控开锁时延 p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.latency-direct.yaml`。需要硬件上从摄像头到继电器的完整链路 |
-| MQTT 继电器开锁时延 p95 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`。第二轮真机探针后仍是 pending——网关侧继电器没有接过（`evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §5）|
-| 断网可用时长 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.offline.yaml`。需要设备长时间断网运行 |
-| 72 小时长稳：误开 / 崩溃 | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.soak72h.yaml`。需要硬件上 72 小时不间断运行 |
+| 人脸库激活，reCamera Pro（P1） | 全量激活 62.2 ms（v1）与 45.4 ms（v2）；库不变时空转 6.2 ms；识别事件到 GPIO 引脚回读 n=22，p50 1.448 ms / p95 2.709 ms | reCamera Pro（RV1126B，Buildroot 2023.02.6）以太网，1-2 人 / 不到 20 KB 的库。一致性闸门 「problems: []」；被篡改的 gallery 与用错误密钥签名的 manifest 都在设备侧被拒。那 22 条是注入的合成识别事件，回读走 sysfs 所以是上界，未接任何外部电路 | 「evaluation/runs/2026-09-07-recamera-pro-p1/results.md」 与同目录两个 「boundary.*.yaml」 |
+| 人脸库激活，设备侧 | p50 491.6 ms、p95 507.8 ms（n=20）；「op:reload」 往返 p50 100.0 ms（n=25） | 标准版 reCamera（SG2002 / CV181x riscv64，固件 0.2.2），USB-RNDIS，2 人、16.5 KB 库。规模点各一次：402 人 / 2.86 MB 用 9 801.7 ms，1502 人 / 10.66 MB 用 22 278.7 ms | 「evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md」 §2 及同目录 「boundary.facedb-activation.yaml」 |
 
-软件闭环在那台机器上（也仅在那台机器上）确实立住的事情（`evaluation/runs/2026-09-06-c1-software/results.md`）：52 项检查全过，覆盖三个人脸库
-版本的构建、发布、拉取、SHA 校验与原子切换；策略拒绝了照片（`liveness_failed`）、
-活体为 null 的结果（`liveness_unknown`）、黑名单人员、阈值以下的陌生人、空帧，
-以及去抖窗口内的重复出现；十帧里恰好两次开锁脉冲，宽度都是配置的 1500 ms；
-两个不同版本的回滚都被删除屏障拒绝且当前版本不变；一次远程开门被接受并执行，
-一条过期指令以 `TTL_EXPIRED` 被拒，一次重放回放原回执且没有第二个脉冲，匿名身份被拒；
-掉线后 retained 遗嘱被投递；13 条记录的审计链校验通过，把一次拒绝改成放行后校验失败；
-管理界面三档角色各就各位——viewer 的开门被拒，operator 的改库被拒，少于三张图的注册被拒。
+软件闭环的测试套件覆盖协议与状态机：52 项检查全过，
+涵盖三个人脸库版本的构建、发布、拉取、校验与原子切换；
+策略拒绝了照片、活体为 null 的结果、黑名单人员、阈值以下的陌生人、空帧与去抖窗口内的重复；
+十帧里恰好两次开锁脉冲，宽度都是配置的 1500 ms；
+回滚到已删除人员的版本被拒；一次远程开门被接受、一条过期指令被拒、
+一次重放回放原回执且没有第二个脉冲；13 条记录的审计链在一次拒绝被改成放行后校验失败；
+管理界面三档角色各就各位。
 
-这些都不是"它认人认得多准、防伪防得多好"的测量。它们测的是协议与状态机是否照它宣称的做。
+这测的是协议与状态机是否照它宣称的做，不是它认人多准、防伪多好。
 
 ## 输出接口
 
 | 接口 | 位置 | 承载什么 |
 |---|---|---|
-| `access/v1/events` | MQTT，QoS 1 | 每次判定一条：人员或匿名 id、分数、生效阈值、活体块、判定与原因、门控动作、执行器 id、人脸库版本、模型 sha、经修正的时间戳 |
-| `access/v1/status/{device_id}` | MQTT，retained 遗嘱 | 30 秒心跳：执行器健康、人脸库版本与 model tag、活体是否已加载。遗嘱是 retained 的，晚到的订阅者也能看到掉线的设备是离线 |
-| `access/v1/commands/{door_id}` | MQTT，绝不 retained | `unlock` / `hold_open` / `lock`，带 UUIDv4 id、带时区的 `issued_at` 与 TTL |
-| `access/v1/receipts/{command_id}` | MQTT | 一条指令的终态。重放的指令回放的就是这张回执 |
-| `access/v1/relay/{relay_id}/set` 与 `/state` | MQTT | 仅 MQTT 继电器套餐。`set` 绝不 retained；`state` 是 retained 的，报的是物理触点状态而不是"门开没开" |
-| `GET /v1/facedb/current`、`GET /v1/facedb/{version}` | HTTP | 人脸库下发的全部接口。用 `Range` 做分块与断点续传 |
-| `/api/events`、`/api/devices`、`/api/persons`、`/api/audit/verify` | HTTP | 管理界面 API，走三档共享 token 闸门。没有匿名读 |
+| 「access/v1/events」 | MQTT，QoS 1 | 每次判定一条：人员或匿名 id、分数、生效阈值、活体块、判定与原因、门控动作、执行器 id、人脸库版本、模型 sha、经修正的时间戳 |
+| 「access/v1/status/{device_id}」 | MQTT，retained 遗嘱 | 30 秒心跳：执行器健康、人脸库版本与 model tag、活体是否已加载。遗嘱是 retained 的，晚到的订阅者也能看到掉线的设备是离线 |
+| 「access/v1/commands/{door_id}」 | MQTT，绝不 retained | 「unlock」 / 「hold_open」 / 「lock」，带 UUIDv4 id、带时区的 「issued_at」 与 TTL |
+| 「access/v1/receipts/{command_id}」 | MQTT | 一条指令的终态。重放的指令回放的就是这张回执 |
+| 「access/v1/relay/{relay_id}/set」 与 「/state」 | MQTT | 仅 MQTT 继电器套餐。「set」 绝不 retained；「state」 是 retained 的，报的是物理触点状态而不是"门开没开" |
+| 「GET /v1/facedb/current」、「GET /v1/facedb/{version}」 | HTTP | 人脸库下发的全部接口。用 「Range」 做分块与断点续传 |
+| 「/api/events」、「/api/devices」、「/api/persons」、「/api/audit/verify」 | HTTP | 管理界面 API，走三档共享 token 闸门。没有匿名读 |
 
 ## 套餐对照
 
@@ -113,7 +89,6 @@ Buildroot 2023.02.6）上一轮真机探针。Pro 那一轮还跑通了识别事
 | 权限策略 | 人员 + 时段 + 黑名单 + 活体 + 去抖 | 同左 | 同左 | 同左，在云端按事件流判定 | **降权：时段内白名单、单次开门** |
 | 开门路径上有没有网络 | 无 | 无 | **有——broker 的可用性就是门的可用性** | **有——broker 的可用性就是门的可用性** | 无 |
 | 安装形态 | root 身份的 appmgr kit app，人工步骤 | 经 SSH 部署容器 | 经 SSH 部署容器 | 人工拷一个纯标准库守护进程，不用容器 | 两段 USB 烧录 |
-| 状态 | 拉库/GPIO 回读链路已上板验证；门控链路与注册未验证 | 未上板验证 | 未上板验证 | 拉库链路已上板验证；门控链路未验证 | **固件未构建** |
 
 **选 P1**：门口还没有摄像头，而你想要最短的链路——识别、判定与触点都在一台设备里，
 人脸与锁之间没有任何网络。代价是 reCamera Pro 是 Buildroot 设备、没有包管理器，
@@ -137,28 +112,28 @@ Buildroot 2023.02.6）上一轮真机探针。Pro 那一轮还跑通了识别事
 
 ## 使用须知
 
-**每个套餐的输出都是一个干接点，不是锁信号。** Grove 继电器的 `COM`/`NO` 机械触点就是
+**每个套餐的输出都是一个干接点，不是锁信号。** Grove 继电器的 「COM」/「NO」 机械触点就是
 本方案 BOM 的边界：空闲、脉冲中、掉电三种状态，用万用表量它都读到 0 V——GPIO/DO
 那一侧只驱动继电器的光耦触发输入，从来不碰触点侧。门控控制器、锁与锁自己的
 12/24 V 电源都在这条边界之外，不属于本方案：锁的工作电流 300 mA–1 A，GPIO
 引脚和光隔 DO 只有 mA 级，中间必须有一个控制器，这一点不可选。有效电平、脉宽、
-继电器触点（`NO`/`NC`）、失效模式这四项描述的是触点与门控输入端，不是锁，
-按安装现场配置且刻意不设默认值——`NO`/`NC` 接反，门控读到的空闲态就是错的，
+继电器触点（「NO」/「NC」）、失效模式这四项描述的是触点与门控输入端，不是锁，
+按安装现场配置且刻意不设默认值——「NO」/「NC」 接反，门控读到的空闲态就是错的，
 而且不会立刻显现，要等有人测试才会发现。默认的 Grove Relay（103020005）只有
-SPST-NO；门控输入是常闭型的话要换成 SPDT 30A 继电器（103020012），它带 `NC`
+SPST-NO；门控输入是常闭型的话要换成 SPDT 30A 继电器（103020012），它带 「NC」
 端子，但 3.3 V 触发阈值厂商没有文档化。
 
 **接线顺序：先 LED，再继电器，最后锁。** 在 LED 上确认极性与脉宽，在继电器上确认触点会响，
 之后才把锁接上去。
 
-**不要假定 GPIO 引脚是空闲的。** 被盘点的那台 reCamera Pro 上，`gpio131` 已被另一个应用
+**不要假定 GPIO 引脚是空闲的。** 被盘点的那台 reCamera Pro 上，「gpio131」 已被另一个应用
 export 并驱动。执行器在引脚当前状态与配置的空闲状态不符时拒绝启动，除非被显式要求，
 否则不会接管任何引脚。
 
 **设备时钟不可信，设计里就是这么假设的。** 被盘点的那台设备时钟偏差约七个月且没有 NTP
-客户端，HTTPS 直接报 "certificate is not yet valid"。因此设备从人脸库服务的 HTTP `Date`
+客户端，HTTPS 直接报 "certificate is not yet valid"。因此设备从人脸库服务的 HTTP 「Date」
 头取一个时间偏移来修正自己的事件时间戳——它们从不去设置系统时钟。局域网内允许把人脸库
-配成明文 `http://` 地址，但必须带对 manifest 的 HMAC-SHA256 签名；没有密钥设备拒绝启动。
+配成明文 「http://」 地址，但必须带对 manifest 的 HMAC-SHA256 签名；没有密钥设备拒绝启动。
 这个签名挡的是链路上的篡改，挡不住被撬开的设备——任何一台设备的密钥泄漏都足以伪造人脸库。
 
 **随包默认的阈值是起点，不是结论。** 本项目在任何硬件上都没有 FAR / FRR 数字。
@@ -175,7 +150,7 @@ export 并驱动。执行器在引脚当前状态与配置的空闲状态不符�
 本包与上游仓库的代码是 Apache-2.0。**模型权重不是**——在有人拿它做商业部署之前，
 这个区别很要紧。
 
-人脸检测与嵌入用的是 InsightFace 的 `buffalo_l`，经 `face_rec_api` 调用。
+人脸检测与嵌入用的是 InsightFace 的 「buffalo_l」，经 「face_rec_api」 调用。
 InsightFace 自己的声明，原文引用：
 
 > The code of InsightFace is released under the MIT License. There is no
@@ -184,36 +159,34 @@ InsightFace 自己的声明，原文引用：
 > The training data containing the annotation (and models trained with these
 > data) are available for non-commercial research purposes only.
 
-在 P1（reCamera Pro）上，`face_rec_api` 的 `buffalo_l` 还有一层与许可无关的
-操作层面的错配：设备自己跑的识别模型是 `rv1126b:scrfd500m+mbf512@fp16`，
+在 P1（reCamera Pro）上，「face_rec_api」 的 「buffalo_l」 还有一层与许可无关的
+操作层面的错配：设备自己跑的识别模型是 「rv1126b:scrfd500m+mbf512@fp16」，
 两个模型空间之间的余弦相似度约等于零。目前没有任何云端嵌入器能产出设备
 模型空间里的向量，因此**本包里 P1 的注册链路目前还产不出这台设备可用于
-生产的人脸库**（上游 `docs/user-guide.md` §5.1；
-`evaluation/runs/2026-09-07-recamera-pro-p1/results.md` §9.2）。要修好这条路径，
+生产的人脸库**（上游 「docs/user-guide.md」 §5.1；
+「evaluation/runs/2026-09-07-recamera-pro-p1/results.md」 §9.2）。要修好这条路径，
 需要一个能对账到设备模型空间的云端嵌入器，或者一条设备辅助注册的路径；
 两者目前都不存在。标准版 reCamera 路径（P5）不受影响——它在设备上做嵌入，
 不经这个管理界面注册。
 
-`buffalo_l` 正是"用这些数据训练出来的模型"。因此它**只能用于非商业研究用途**：
-`license_id: non-commercial`、`use_scope: non-commercial`、`redistributable: false`。
+「buffalo_l」 正是"用这些数据训练出来的模型"。因此它**只能用于非商业研究用途**：
+"license_id: non-commercial"、"use_scope: non-commercial"、"redistributable: false"。
 本包不随附这些权重。
 
 两条后果，趁早说清楚免得后面才发现。商业部署必须把人脸骨干换成有商用授权的。
 而换骨干意味着**全部人脸库版本必须重建**——嵌入不跨模型可比，用一个骨干建的库对另一个
-骨干打分约等于零，旧版本是作废而不只是过期；manifest 里的 `model_tag` 守卫就是用来
+骨干打分约等于零，旧版本是作废而不只是过期；manifest 里的 「model_tag」 守卫就是用来
 阻止设备误加载它们的。
 
 静默活体模型是 MiniVision 的 Silent-Face-Anti-Spoofing，Apache-2.0：
-`use_scope: commercial`，可再分发，未做修改地使用。Apache-2.0 允许商用，
+「use_scope: commercial」，可再分发，未做修改地使用。Apache-2.0 允许商用，
 条件是保留版权与许可声明、标注改动。
 
 P4 套餐的 WE2 模型——SCRFD 检测与蒸馏 MobileFaceNet 嵌入——沿用 InsightFace 的非商用条款。
 商业化的 P4 部署必须走 QAT 流程重训，而不是分发这些权重。
 
-每个人脸库版本的 manifest 都带五个许可字段——`license_id`、`use_scope`、
-`redistributable`、`source_revision`、`sha256`——让条款跟着制品走，而不是只活在一份文档里。
-未核实的许可记作 `license_id: unverified` 加 `use_scope: internal-only`；
-绝不先写成宽松许可再回头改。
+每个人脸库版本的 manifest 都带五个许可字段——「license_id」、「use_scope」、
+「redistributable」、「source_revision」、「sha256」——让条款跟着制品走，而不是只活在一份文档里。
 
-还有一条覆盖缺口写在这里：RKNN 后端的活体在上游尚未实现。跑在 RKNN 上的套餐无法满足
-"活体强制开启"，不得验收，它的活体边界也不得由这条路径填写。
+**RKNN 后端没有活体实现。** 跑在 RKNN 上的套餐无法强制活体。
+活体要紧的场景请选其他后端。

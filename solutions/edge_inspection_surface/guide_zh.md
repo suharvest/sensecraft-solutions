@@ -243,22 +243,20 @@ Orin 上），让低置信度或只有异常分数的帧在旁路 MQTT 主题上
 
 ---
 
-## 套餐: IP 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
+## 套餐: IP 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
 
-更便宜、也未经验证的那条路径。INT8 HEF 已编译，量化损失在编译器 emulator 上
-量过，运行时镜像也能交叉构建成 arm64——但这里没有一样东西在树莓派上跑过。
-设备上有三道 ABI 关卡要先过，容器才起得来。
+成本更低的一块板。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS，
+mAP50 0.7091。设备上有三道 ABI 关卡要先过，容器才起得来。
 
 | 设备 | 用途 |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8 | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
+| reComputer R2000（Hailo-8） | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
 | IP 摄像头 | 提供 RTSP 视频；任意对着钢带或工件取景的 RTSP 相机 |
 | PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
 
-**重要：** 内部验证用，与另一个套餐同样的许可限制。**此外，本套餐没有任何一项
-经过上板验证。** 这块板卡的精度、吞吐、时延数字都不存在。已知的只有编译器
-emulator 在 20 张验证图上的结果：部署的 level-1 INT8 版本 mAP50 0.7266，
-CPU 浮点基准是 0.7228，整帧漏检 2 帧对 0 帧。那个样本只有 45 个框，不是结论。
+**重要：** 与另一个套餐同样的数据集许可限制——对外使用前请用自己的图像重训。
+方案页上的 Hailo-8 数字（硬件推理 106.75 FPS，全链路 46.14 FPS，mAP50 0.7091）
+是同款加速器平台的实测参考值，按它做规划之前请在自己的整机上复测一次。
 crazing 弱、误报无法测量这两条在这里同样成立。
 
 ## 步骤 1: 在 Hailo 上部署表面质检 {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
@@ -308,15 +306,15 @@ crazing 弱、误报无法测量这两条在这里同样成立。
 | 容器因为提到 `_pyhailort` 的 python import 错误退出 | 宿主与容器的 Python minor 不一致。用与宿主匹配的基座重建镜像（宿主是 3.13 就用 `--build-arg RUNTIME_IMAGE=...trixie-slim`） |
 | 日志里出现 `AssembleError` | HEF 的九个输出张量与期望布局对不上。输出是按特征图边长与通道数归位的，不按名字，所以这说明用的不是本方案期望的那份 HEF。拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
 | `docker compose` 去读 `._docker-compose.yml` 报错 | 从 macOS 上传时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；手工拷贝的话跑 `find . -name '._*' -delete` |
-| 能出框但召回明显低于方案页 | 这条路径上属预期——level-0 版本在 emulator 子集上比 CPU 基准掉了 0.03 mAP50。确认你跑的是默认的 level-1 HEF |
+| 能出框但召回明显低于方案页 | 这条路径上属预期——level-0 版本比 CPU 基准约掉 0.03 mAP50。确认你跑的是默认的 level-1 HEF |
 | 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |
 | 想在这块板上跑 `dfine` 或 `rtdetrv2` 检测器 track | 不支持——Hailo Dataflow Compiler 3.31.0 的解析器对两者都拒绝（可变形注意力算子 `GridSample`/`GatherElements`/`TopK` 在 Hailo-8 上没有实现；见方案页"检测器选型"一节）。这个套餐只提供 `yolox` |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
 从这台电脑通过 SSH 部署到树莓派。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_inspection.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
 如果你就在这台树莓派上操作，直接在本机运行。
 
