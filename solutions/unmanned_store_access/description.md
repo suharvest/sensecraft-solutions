@@ -183,12 +183,22 @@ firmware exists as source on a branch and has not been built.
 
 ## Usage Notes
 
-**The lock is always behind a relay, always on its own supply.** A lock draws
-300 mA to 1 A; a GPIO pin and an opto-isolated DO carry milliamps. Four settings
-— active level, pulse width, relay contact and fail mode — are configured per
-installation and deliberately have no defaults, because a fail-safe magnetic lock
-wired through the normally-open contact stands open permanently and looks like a
-working installation until somebody tests it.
+**The output of every preset is a dry contact, not a lock signal.** A Grove
+Relay's `COM`/`NO` mechanical contact is the whole BOM boundary: idle,
+mid-pulse and powered-off all read 0 V across it on a meter, because the
+GPIO/DO side only drives the relay's opto-isolated trigger — it never
+touches the contact side. The door controller, the lock and the lock's own
+12/24 V supply sit past that boundary and are not part of this design: a
+lock draws 300 mA to 1 A, while a GPIO pin or an opto-isolated DO carries
+milliamps, so a controller in between is not optional. Four settings —
+active level, pulse width, relay contact (`NO`/`NC`) and fail mode —
+describe the contact and the controller's input, not the lock, and are
+configured per installation with deliberately no defaults: get `NO`/`NC`
+backwards and the controller reads the wrong idle state, invisibly, until
+somebody tests it. The default Grove Relay (103020005) is SPST-NO only; a
+controller whose input is normally-closed needs the SPDT 30 A relay
+(103020012) instead, which has an `NC` terminal but an undocumented 3.3 V
+trigger threshold.
 
 **Wire in order: LED, then relay, then lock.** Confirm polarity and pulse width
 on an LED, confirm the contact clicks on the relay, and only then put a lock on
