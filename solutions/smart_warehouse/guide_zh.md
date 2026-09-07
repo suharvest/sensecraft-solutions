@@ -1,3 +1,39 @@
+# 开始之前
+
+本方案有五档套餐——从套餐 0（纯云端）到套餐三（全离线）——设置成本和数据留在本地的程度依次递增。按你选定的套餐阅读对应部分即可；各套餐自身的接线和故障排查仍在各步骤里。
+
+**各档套餐的设备与网络：**
+
+| 套餐 | 除 Watcher 外还需要 | 网络要求 |
+|---|---|---|
+| 套餐 0 · 云端版 | 无 | Watcher 需要 2.4GHz WiFi + 联网；其余全在 Seeed 云端 |
+| 套餐一 · 基础版 | reComputer R1125-10 | 配置期间 Watcher 与 reComputer 需和本机在同一局域网 |
+| 套餐二A · 升级版（单点位） | reComputer R21（Hailo-8）或 Jetson，用于人脸识别 | 同一局域网；人脸识别在本地，大模型调用仍可走云端 |
+| 套餐二B · 升级版（多点位） | reComputer Super J4012（Jetson Orin NX 16GB），最多 3 台 Watcher 共用 | 各点位 Watcher 需能访问共享的 J4012；只有大模型调用出本地网络 |
+| 套餐三 · 顶配版 | reComputer R2135-12（Hailo-8，跑仓库系统 + 人脸识别 + 语音 AI 服务）加 reComputer Robotics J5011（跑本地大模型和语音合成） | 部署完成后无需联网——包括大模型在内全部跑在你自己的这两台设备上 |
+
+每台 Watcher 都需要一次性的 WiFi 配对（各套餐的步骤 1）——仅支持 2.4GHz，不支持 5GHz。
+
+**首次管理员账号如何创建：** 套餐 0 没有管理员账号——你用 Watcher 的设备 ID 在 [warehouse.seeed.cn](https://warehouse.seeed.cn/) 自助注册。套餐一到三在部署完成后**首次访问浏览器** `http://<服务器IP>:2125` 时会弹出「设置管理员」对话框，填写管理员信息并确认后创建账号，没有独立的注册步骤。如果忘记密码，本指南记录的恢复办法是在设备管理中删除该应用（连同数据）后重新部署。
+
+**云端大模型 API Key——仅套餐二B、套餐三的私有云大模型选项需要**（另有一个独立的、可选的语音服务 API Key，见步骤 8 的 `OVS_API_KEYS` 说明，未开启该项时留空即可）： 语音 AI 服务这一步会要求填写 **LLM API Key**（字段 `llm_api_key`，选填）。填入你所选的 OpenAI 兼容服务商（例如 DeepSeek 或阿里云百炼）的控制台生成的密钥，不是 Seeed 签发的。套餐三的全本地大模型路径完全不需要 Key。套餐 0 到 2A 都不需要 API Key，走的是你的 SenseCraft 账号鉴权。
+
+**磁盘空间要求（每个部署步骤前自动校验，低于下限会直接失败）：**
+
+| 服务 | 最低可用磁盘 | 适用套餐 |
+|---|---|---|
+| 仓库系统（不含人脸识别） | 2 GB | 套餐一 |
+| 仓库系统 + 人脸识别（Hailo 或 Jetson） | 4 GB | 套餐二A、二B、三 |
+| 语音 AI 控制台（`xiaozhi-server`） | 6 GB | 套餐二B、三 |
+| Jetson 本地语音服务 | 15 GB（模型约 5 GB） | 套餐二B |
+| Jetson 本地语音 + 本地大模型 | 25 GB（模型/引擎约 10 GB） | 套餐三 |
+
+本方案没有单独的内存下限检查，部署引擎实际强制的就是上表的磁盘空间门槛。
+
+**镜像来源：** 应用容器（`warehouse`、`face-rec-api`、`xiaozhi-server`、`xiaozhi-manager`、`edge-llm-chat-service`、`seeed-local-voice`）在每个部署步骤中自动从 Seeed 私有仓库 `sensecraft-missionpack.seeed.cn` 拉取，无需手动登录。配套服务（`mysql:8.0`、`redis:8.0`、`mcp-endpoint-server`）来自 Docker Hub 及一个 GitHub 容器镜像的国内镜像源。这些都发生在你选择的部署目标上——选远程目标就在 reComputer/Jetson 上，选本机目标就在本机上。
+
+---
+
 ## 套餐: 套餐 0 · 云端版 {#trial}
 
 只需一台 Watcher，无需购买主机。库存数据和语音服务全部托管在 Seeed 云端，开箱即可体验完整的语音仓管功能。
@@ -114,6 +150,13 @@ SenseCraft 体验版已就绪！
 - SenseCraft 平台：[sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/)
 
 试着说「入库 10 箱苹果」测试语音库存管理。
+
+#### 验收清单
+
+1. **智能体已连接**——SenseCraft 平台上 Agent 卡片的 MCP Endpoint 状态显示「已连接」。
+2. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，几秒内应回复确认品名和新总量。
+3. **记录能查到**——刷新 [warehouse.seeed.cn](https://warehouse.seeed.cn/)，确认刚才的入库出现在今日记录里。
+4. **查询正常**——说「苹果还有多少」，回复数量应与刚入库后一致。
 
 ---
 
@@ -357,6 +400,14 @@ SenseCraft 体验版已就绪！
 - SenseCraft 平台：[sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/)
 
 试着说「入库 10 箱苹果」测试语音库存管理。
+
+#### 验收清单
+
+1. **健康检查通过**——`curl -f http://<服务器IP>:2125/health` 返回成功（部署步骤本身也在等这个检查）。
+2. **管理员能登录**——用步骤 5 创建的管理员账号登录 `http://<服务器IP>:2125`。
+3. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，应回复确认品名和新总量。
+4. **查询正常**——说「苹果还有多少」，回复应与仓库面板一致。
+5. **日志无 error**——在 reComputer 上执行 `docker logs --since 10m mcp_warehouse 2>&1 | grep -i error`，在以上两项检查期间应无输出。
 
 ---
 
@@ -615,6 +666,14 @@ SenseCraft 体验版已就绪！
 - 人脸识别服务：http://\<服务器IP\>:8001/health
 
 库存与人脸数据留在自己网络内。试着说「苹果还有多少」测试。
+
+#### 验收清单
+
+1. **两个健康检查都通过**——`curl -f http://<服务器IP>:2125/health` 与 `curl -f http://<服务器IP>:8001/health` 均返回成功。
+2. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，应回复确认品名和新总量。
+3. **查询正常**——说「苹果还有多少」，回复应与仓库面板一致。
+4. **人脸识别触发**——按步骤 8 录入人脸后，对着 Watcher 摄像头，确认仓库系统里出现识别记录。
+5. **日志无 error**——`for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
 
 ---
 
@@ -969,6 +1028,14 @@ SenseCraft 体验版已就绪！
 
 数据留在自己网络内。试着说「苹果还有多少」测试。
 
+#### 验收清单
+
+1. **健康检查通过**——`curl -f http://<服务器IP>:2125/health`（仓库）与 `curl -f http://<服务器IP>:8621/readyz`（语音服务）均返回成功。
+2. **各点位 Watcher 均已连接**——控制台上对应 Agent 卡片的 MCP Endpoint 状态显示「已连接」。
+3. **各点位语音入库有回声**——在每台 Watcher 上说「入库 10 箱苹果」，各自回复该点位的品名和总量。
+4. **查询正常**——在某台 Watcher 上说「苹果还有多少」，数量应只属于该点位，不与其他点位混淆。
+5. **日志无 error**——在 J4012 上 `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
+
 ---
 
 ## 套餐: 套餐三 · 顶配版 {#edge_computing}
@@ -1305,3 +1372,11 @@ SenseCraft 体验版已就绪！
 - 大模型接口：http://\<Jetson-IP\>:8000/v1/models
 
 部署完成后 100% 离线运行，无需联网。
+
+#### 验收清单
+
+1. **三个健康检查都通过**——`curl -f http://<服务器IP>:2125/health`（仓库，R2135-12 上）、`curl -f http://<Jetson-IP>:8621/readyz`（语音，J5011 上）、`curl -f http://<Jetson-IP>:8000/v1/models`（大模型，J5011 上）均返回成功。
+2. **断网也能用**——在路由器/网关处拔掉联网线（R2135-12、J5011 和 Watcher 之间的局域网连接保持不动），Watcher 在局域网内仍应可达。
+3. **断网状态下语音入库有回声**——保持断网，对 Watcher 说「入库 10 箱苹果」，应正常回复。
+4. **断网状态下查询正常**——说「苹果还有多少」，回复应与面板一致，全程保持断网。
+5. **日志无 error**——在 R2135-12 上 `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`；在 J5011 上 `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error`；在以上检查期间均应无输出。
