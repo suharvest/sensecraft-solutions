@@ -56,11 +56,19 @@ services:
       # OVS_PROFILE now supplies them, so a language switch that changes
       # profile is not silently overridden by a value pinned in compose.
       # The removed keys were byte-identical to the default profile's env.
-      # QWEN3_ASR_VAD_FINAL_ASYNC pinned to 0: the deployed RK artifact set's
-      # runtime_contract requires 0; the shipped profile default is 1, which
-      # crash-loops the container on startup (RKArtifactError: got '1',
-      # expected '0'). Evidence: openvoicestream aee7a9c8 and
-      # sensecraft-solutions 0dbcfd5 (cat-remote re-verification, 2026-09-08).
+      # QWEN3_ASR_VAD_FINAL_ASYNC pinned to 0 (async final regresses close-out
+      # on RK3576 — only RK3588 enables it, per the pre-8554442 A/B comment
+      # this repo used to carry). The current openvoicestream rk3576-default
+      # profile (configs/profiles/rk3576-default.json, checked at aee7a9c8)
+      # already defaults to "0" too, so this is a defensive pin, not a known
+      # profile-default mismatch: a cat-remote re-verification on 2026-09-08
+      # hit RKArtifactError: got '1', expected '0' at startup (sensecraft-
+      # solutions 0dbcfd5 / openvoicestream aee7a9c8), but that run used image
+      # rk-20260903.10 rather than this compose's default SPEECH_IMAGE tag
+      # (rk-qwen3asr-20260816-ea4e258-coldstart), and the exact source of the
+      # "1" on that device (older image's baked-in profile vs. a local
+      # override) was not isolated. Pinning here removes the ambiguity for
+      # any RK3576 deploy on this compose file regardless of image tag.
       QWEN3_ASR_VAD_FINAL_ASYNC: "0"
       OVS_PROFILE: ${OVS_PROFILE:-rk3576-default}
       OVS_PROFILE_DEFAULT: rk3576-default
