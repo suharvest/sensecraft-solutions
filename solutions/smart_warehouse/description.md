@@ -57,7 +57,7 @@ This solution replaces the warehouse system's menus and forms with **speech**: s
 | Scale | Recommendation |
 |-------|----------------|
 | Light use (≤20 users) | Watcher built-in face recognition (stores up to 20 faces) |
-| Heavy use (20+ users) | Use R2000 + Watcher camera (supports more faces) |
+| Heavy use (20+ users) | Use a reComputer R2135-12 (Hailo-8) + Watcher camera (supports more faces) |
 
 ## Measured Boundaries
 
