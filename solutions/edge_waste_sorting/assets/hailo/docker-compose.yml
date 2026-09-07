@@ -7,10 +7,10 @@
 # source: Modbus removed, models/captures volumes and names retargeted.
 #
 # The HEF this stack loads is `efficientnet_lite0_waste8_u8.hef` (DFC 3.31.0 /
-# HailoRT 4.21.0, 4,576,932 bytes, sha256 4e3b9640…). It is not on the CDN yet,
-# so `devices/hailo_waste.yaml` still carries a TODO(CDN) and falls back to
-# telling you to copy it onto the device by hand. The open-vocabulary tower has
-# no HEF — its INT8 quantisation fails at `hailo optimize`.
+# HailoRT 4.21.0, 4,551,414 bytes, sha256 c514a463…). It is published on the
+# CDN; `devices/hailo_waste.yaml` downloads and sha256-verifies it. The
+# open-vocabulary tower has no HEF — its INT8 quantisation fails at
+# `hailo optimize`.
 #
 # Image published 2026-09-07:
 #   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev
