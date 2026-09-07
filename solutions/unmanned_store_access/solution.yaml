@@ -52,11 +52,6 @@ intro:
       caption_i18n:
         zh: 同一个管理界面里的人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束
     - type: image
-      src: gallery/architecture.svg
-      caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
-      caption_i18n:
-        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器的干接点，接入门禁控制器输入端；门锁及其供电由门禁施工方负责
-    - type: image
       src: gallery/ui-events.png
       caption: Access events with the decision reason and the audit chain hash. Synthetic demo data — the people, scores and events are fixtures, not field results
       caption_i18n:
@@ -71,6 +66,11 @@ intro:
       caption: Device status and remote unlock, with the receipt that comes back. Synthetic demo data; the offline device is a replayed retained LWT
       caption_i18n:
         zh: 设备状态与远程开门，以及回来的回执。合成演示数据；显示离线的设备是回放的 retained LWT
+    - type: image
+      src: gallery/architecture.svg
+      caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
+      caption_i18n:
+        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器的干接点，接入门禁控制器输入端；门锁及其供电由门禁施工方负责
   category: sensing
   solution_type: solution
   tags:
