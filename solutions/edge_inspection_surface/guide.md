@@ -24,7 +24,9 @@ a real camera.
 ## Step 1: Deploy Surface Inspection {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
 Deploy the inspector and build its TensorRT engine on the Jetson. Allow about
-10 minutes; the engine build alone measured 291 s on an Orin NX.
+10 minutes; the engine build alone measured 291 s on an Orin NX, and 304 s on
+a from-scratch redeploy cross-check on the same board class (reComputer
+J4012). First start needs to wait for that build to finish.
 
 ### Prerequisites
 

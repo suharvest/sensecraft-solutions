@@ -29,14 +29,21 @@ Known weaknesses, all measured or explicitly unmeasured:
 - **Domain shift is unmeasured.** Both datasets are photographs of single clean
   items, not a real bin. There is no field set and therefore no number for how
   much accuracy drops on wet, crushed, stacked or bagged waste. Expect a drop.
-- **Nothing on this page has run on hardware.** Every figure comes from
-  onnxruntime on an Apple M4 CPU.
+- **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
+  agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
+  exact deployed engine.** They come from a separately built FP16 engine —
+  same ONNX, same precision, same reComputer J4012 (Orin NX) — not the binary
+  this deployment step produces. The deployed engine's own build time (68 s)
+  and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
+  reported MQTT event, are measured on the deployed binary.
 
 ## Step 1: Deploy Waste Sorting {#deploy_jetson_waste type=docker_deploy required=true config=devices/jetson_waste.yaml}
 
 Uploads the compose stack, downloads the ONNX, builds the TensorRT engine on
 the device, writes the source and trigger configuration, and starts the
-classifier alongside a local MQTT broker.
+classifier alongside a local MQTT broker. First start needs to wait for the
+engine build: the baseline (EfficientNet-Lite0) engine took 68 s on a
+reComputer J4012 (Orin NX).
 
 ### Prerequisites
 
@@ -81,6 +88,7 @@ either-language answers and adding a class without retraining.
 | `docker compose` not found | The step installs or links it. If it still fails, install `docker-compose-plugin` by hand. |
 | Compose fails parsing `._docker-compose.yml` | AppleDouble sidecars travelled from a Mac. The step deletes them; if you uploaded by hand, run the same `find … -name '._*' -delete`. |
 | Container starts, no camera | The `/dev/videoN` line in the compose file is still commented out. |
+| `edge-waste-mosquitto` restart-loops with `Address in use` | Another project's broker on this device already holds 1883 on `network_mode: host` (e.g. an edge_inspection_surface deployment). Change `config/mosquitto.conf` and `config/config.json`'s `mqtt.port` to a free port (e.g. 18831) and `docker compose up -d --force-recreate mosquitto`. |
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson Orin" config=devices/jetson_waste.yaml default=true}
 

@@ -283,7 +283,7 @@ so an untested claim either way would be a guess.
 
 | Platform | Status |
 |---|---|
-| Jetson Orin (TensorRT) | Deployment package shipped, baseline swapped to EfficientNet-Lite0 ONNX; engine has never been built on any Jetson |
+| Jetson Orin (TensorRT) | Deployed and engine-built on reComputer J4012 (Orin NX): baseline engine build 68 s; deployed engine's end-to-end pipeline reports 4.122 ms / inference 3.533 ms per trigger. Accuracy and consistency (top-1 0.8755, agreement 0.9991 vs CPU golden, 1060-image subset) were measured on a separately built FP16 engine — same ONNX, same precision, same device, but not the exact deployed binary |
 | reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
 | RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c), full 7417-image val set (agreement 0.9988 fp16 / 0.9893 int8, p50 5.575 ms / 2.728 ms); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
@@ -442,7 +442,10 @@ TensorRT engine is built on the device during deployment, because an engine is
 tied to the exact GPU architecture and TensorRT version and cannot be shipped
 prebuilt. It is also the only preset offering the open-vocabulary track: the
 SigLIP 2 tower at 67 ms per image on CPU needs an accelerator, and the Orin is
-the accelerator this package has. Nothing has been measured on it yet.
+the accelerator this package has. Measured on reComputer J4012 (Orin NX):
+baseline engine build 68 s, deployed pipeline 4.122 ms / inference 3.533 ms
+per trigger — see the Platform support table above for the accuracy and
+consistency figures and their engine-build caveat.
 
 **Camera + reComputer R2000 series (Hailo-8)** — prepares the board, validates
 the three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF. The
