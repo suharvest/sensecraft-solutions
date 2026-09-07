@@ -409,9 +409,6 @@ intro:
       name_i18n:
         zh: Grove 继电器
       product_url: https://www.seeedstudio.com/Grove-Relay.html
-      purchase:
-        require:
-          contact: spst_no
       description: >-
         SKU 103020005. SPST-NO, opto-isolated, 3.3-5 V trigger, mechanical
         (non-SSR) contact — nothing downstream of `COM`/`NO` carries any
@@ -438,9 +435,6 @@ intro:
       name_i18n:
         zh: Grove - SPDT 继电器（30A）
       product_url: https://www.seeedstudio.com/Grove-SPDT-Relay-30A.html
-      purchase:
-        require:
-          contact: spdt
       description: >-
         SKU 103020012. The alternative to the default Grove Relay, for a door
         controller whose input is normally-closed and therefore needs `NC` as
@@ -455,7 +449,7 @@ intro:
           而不只是 `COM`/`NO` 时才用它。厂商没有文档化 3.3 V 触发可靠性
           （数据手册只写了 5 V 标称线圈），任何一个套餐的 GPIO/DO 上都没有实测过，
           上板前先确认，或者给继电器的 VCC/GND 单独接一路 5 V 电源。
-    xiao_relay_addon:
+    generic_relay_module_xiao:
       name: XIAO 1-Channel Relay
       name_i18n:
         zh: XIAO 1-Channel Relay
@@ -749,9 +743,9 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: xiao_relay_addon
+            - device_ref: generic_relay_module_xiao
             - device_ref: generic_relay_module
-          default: xiao_relay_addon
+          default: generic_relay_module_xiao
 
     - id: p4_xiao_grove
       name: XIAO + Grove Vision AI V2 — No Liveness
