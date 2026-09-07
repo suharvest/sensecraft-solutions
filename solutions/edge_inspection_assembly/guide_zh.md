@@ -300,7 +300,7 @@ MQTT broker。
 | `libhailort.so.4.21.0 not found` | 这份 HEF 的 ABI 锁在 HailoRT 4.21.x。装对版本（驱动 / 库 / 绑定三者），不要改挂载路径绕过去 |
 | 容器里 `import hailo_platform` 失败 | 宿主与镜像的 Python minor 不一致；换匹配的基础镜像重建，或者在镜像里装 HailoRT 而不是挂宿主的 |
 | identify 正常但 `configure(hef)` 崩 | `/etc/modprobe.d/` 里缺 `force_desc_page_size=4096`；加上并重启 |
-| `Image ... is not on this device` | 运行镜像 tag 尚未发布；在板子上构建或 load |
+| `Image ... is not on this device` | 拉取步骤连不上镜像仓库或找不到该 tag；检查设备能否访问 `sensecraft-missionpack.seeed.cn`，或从上游仓库构建该 tag 后在板子上 load |
 | HEF 校验和不符 | 这个文件不是本方案评测用的那一份；删掉让该步骤重新获取 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址 |
 

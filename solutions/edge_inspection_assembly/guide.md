@@ -342,7 +342,7 @@ them first:
 | `libhailort.so.4.21.0 not found` | This HEF is ABI-locked to HailoRT 4.21.x. Install that version across driver, library and bindings rather than changing the mount |
 | Import of `hailo_platform` fails in the container | Host and image Python minor versions differ; rebuild the image on a matching base, or install HailoRT inside the image instead of mounting the host's |
 | `configure(hef)` crashes after a clean identify | `force_desc_page_size=4096` is missing from `/etc/modprobe.d/`; add it and reboot |
-| `Image ... is not on this device` | The runtime tag is not published yet; build or load it on the board |
+| `Image ... is not on this device` | The pull step could not reach the registry or the tag was not found; check network access to `sensecraft-missionpack.seeed.cn`, or build the tag from the upstream repository and load it on the board |
 | HEF checksum mismatch | The file is not the one this solution was evaluated with; delete it and let the step fetch again |
 | No video from the camera | Test the RTSP URL in VLC first |
 
