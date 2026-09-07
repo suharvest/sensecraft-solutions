@@ -50,12 +50,12 @@ actions:
       run: |
         set -e
         cat > /etc/waste-sorting.conf << EOF
-        STREAM_ID={{stream_id}}
-        MQTT_HOST={{mqtt_host}}
-        MQTT_PORT={{mqtt_port}}
-        MQTT_TOPIC=waste/{{stream_id}}/results
-        MIN_CONFIDENCE={{min_confidence}}
-        DEBOUNCE_FRAMES={{debounce_frames}}
+        STREAM_ID='{{stream_id}}'
+        MQTT_HOST='{{mqtt_host}}'
+        MQTT_PORT='{{mqtt_port}}'
+        MQTT_TOPIC='waste/{{stream_id}}/results'
+        MIN_CONFIDENCE='{{min_confidence}}'
+        DEBOUNCE_FRAMES='{{debounce_frames}}'
         EOF
       sudo: true
       name_i18n:
@@ -101,42 +101,67 @@ user_inputs:
     name: Stream ID
     type: text
     default: "recamera-cvi"
+    description: Letters, digits, underscore, dot and hyphen only
     required: false
     row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,64}$"
     name_i18n:
       zh: 数据流 ID
+    description_i18n:
+      zh: 仅限字母、数字、下划线、点和连字符
   - id: mqtt_host
     name: MQTT Host
     type: text
     default: "localhost"
+    description: Hostname or IP -- letters, digits, underscore, dot and hyphen only
     required: false
     row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,253}$"
     name_i18n:
       zh: MQTT 地址
+    description_i18n:
+      zh: 主机名或 IP——仅限字母、数字、下划线、点和连字符
   - id: mqtt_port
     name: MQTT Port
     type: text
     default: "1883"
+    description: Digits only, 1-5 characters
     required: false
     row: 1
+    validation:
+      pattern: "^[0-9]{1,5}$"
     name_i18n:
       zh: MQTT 端口
+    description_i18n:
+      zh: 仅限数字，1-5 位
   - id: min_confidence
     name: Confidence
     type: text
     default: "0.50"
+    description: A decimal between 0 and 1
     required: false
     row: 2
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
     name_i18n:
       zh: 置信度
+    description_i18n:
+      zh: 0 到 1 之间的小数
   - id: debounce_frames
     name: Debounce Frames
     type: text
     default: "3"
+    description: Digits only, 1-3 characters
     required: false
     row: 2
+    validation:
+      pattern: "^[0-9]{1,3}$"
     name_i18n:
       zh: 去抖帧数
+    description_i18n:
+      zh: 仅限数字，1-3 位
 
 post_deployment:
   open_browser: false
