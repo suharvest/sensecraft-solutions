@@ -1,6 +1,4 @@
-# 零售语音本地转写
-
-## 这个方案做什么
+## 这套参考设计是什么
 
 一只 reSpeaker XVF3800 麦克风阵列把一路 16 kHz 单声道音频送进门店里的小型边缘盒子。盒子自己完成语音识别，每断出一句就往本机磁盘上的目录里写一个 JSON 文件。没有云端账号，不上传，镜像和模型就位之后不需要对外连接。
 
@@ -30,13 +28,14 @@
 | 离线转写时延，RK3576 | 3.0 s 音频 → 热态约 780 ms（RTF 0.26） | reComputer RK3576 Dev Kit，Armbian bookworm，内核 6.1.115-vendor-seeed-rk3576，3.9 GB 内存；SenseVoice RKNN fp16 跑在 NPU；`POST /asr`，容器已热 | 沿用既有实测，见 `smart_retail_voice_ai/assets/docker/docker-compose.rk3576.yml` 文件头，2026-08-24 |
 | 内存占用，RK3576 | 容器 RSS 1.71 GiB | 同一次运行，ASR + 标点 + 声纹全部加载 | 同上 |
 | 重启到健康，RK3576 | 约 25 s | 同一块板，模型卷已填充 | 同上 |
-| 打包验收，RK3576（本次部署） | `POST /asr` 测 5 条短句（3 中 + 2 英）：全部返回 `"backend":"rk:sensevoice_rknn"` 且文本正确；壁钟时间 p50 678 ms，p95 810 ms（n=5，含 HTTP 开销） | `cat-remote` RK3576 板，通过 SSH 部署本方案原样的 `docker-compose.rk3576.yml` + `local_rk3576.yaml`，`rk3576-sensevoice` profile，容器 RSS 1.716 GiB，与上一行互相印证 | 真机打包验证，2026-09-06 |
+| 打包验收，RK3576（本次部署） | `POST /asr` 测 5 条短句（3 中 + 2 英）：全部返回 `"backend":"rk:sensevoice_rknn"` 且文本正确；壁钟时间 p50 678 ms，p95 810 ms（n=5，含 HTTP 开销） | reComputer RK3576，通过 SSH 部署本方案原样的 `docker-compose.rk3576.yml` + `local_rk3576.yaml`，`rk3576-sensevoice` profile，容器 RSS 1.716 GiB，与上一行互相印证 | 真机打包验证，2026-09-06 |
 | 语音结束到最终结果，RK3576（本次部署） | eos→final p50 861 ms，p95 1027 ms（n=5，同 5 条短句） | `/asr/stream?vad=none&punctuate=true&speaker_embedding=true`，100 ms PCM 分块，时延从客户端自己发出的空帧 EOF 算到收到 `asr_final`/`final` 消息——**这才是本方案实际部署的 SenseVoice profile**，与下面两行的 Paraformer 流式数字是不同 profile | 真机打包验证，2026-09-06 |
-| 流式识别准确率，RK3576 | 中文 CER 9.4%，英文 WER 34.6% | `cat-remote` RK3576，`bench/perf/corpus` short 集（5 中 + 5 英），Paraformer hybrid RKNN 编码器 + RKNN 解码器，`/asr/stream` 实时路径，40/80/160/240/400 帧桶——**与本方案部署的 SenseVoice 是不同 profile** | `openvoicestream/docs/perf/paraformer-rk3576-streaming-ab-20260608.md`，2026-06-08 |
+| 流式识别准确率，RK3576 | 中文 CER 9.4%，英文 WER 34.6% | reComputer RK3576，`bench/perf/corpus` short 集（5 中 + 5 英），Paraformer hybrid RKNN 编码器 + RKNN 解码器，`/asr/stream` 实时路径，40/80/160/240/400 帧桶——**与本方案部署的 SenseVoice 是不同 profile** | `openvoicestream/docs/perf/paraformer-rk3576-streaming-ab-20260608.md`，2026-06-08 |
 | 语音结束到最终结果，RK3576 | 326 ms / 347 ms（中 / 英均值） | 同一次运行，`/asr/stream` 带 500 ms prepare 提前量 | 同上 |
-| 声纹向量，RK3576 | RTF 0.09–0.13（1 s → 125 ms，3 s → 255 ms，5 s → 428 ms） | `cat-remote`，CAM++ 走 sherpa-onnx CPU，2 线程；10 人聚类 1.45 ms | `openvoicestream/docs/specs/diarization-capability.md`，2026-06-26 |
-| 声纹向量，CM4 同档（A72） | RTF 约 0.10（1 s → 114 ms，3 s → 303 ms，5 s → 508 ms），冷加载 1.66 s | `seeed-pi`，Raspberry Pi 4（Cortex-A72，4 核）——与 reRouter 内 CM4 同代 SoC；CAM++ 走 sherpa-onnx CPU | 同一文档，2026-06-26 |
-| **ASR 准确率与时延，CM4** | **未实测** | bench 矩阵里 RPi4 / CM4 的 `asr_zh_en` 行仍为 `TBD`。已公布的"比 RPi5 慢 2–3 倍"是估计值，不是实测 | `openvoicestream/docs/perf-test-runbook.md` 矩阵行；`docs/performance-comparison.md`「Devices not yet measured」 |
+| 声纹向量，RK3576 | RTF 0.09–0.13（1 s → 125 ms，3 s → 255 ms，5 s → 428 ms） | reComputer RK3576，CAM++ 走 sherpa-onnx CPU，2 线程；10 人聚类 1.45 ms | `openvoicestream/docs/specs/diarization-capability.md`，2026-06-26 |
+| 声纹向量，CM4 同档（A72） | RTF 约 0.10（1 s → 114 ms，3 s → 303 ms，5 s → 508 ms），冷加载 1.66 s | Raspberry Pi 4（Cortex-A72，4 核）代表 reRouter 内的 CM4——同代 SoC；CAM++ 走 sherpa-onnx CPU | 同一文档，2026-06-26 |
+
+**reRouter CM4 这条路先做试点再铺开。** 上面的 RK3576 数字不适用于 CM4 的 Cortex-A72 核。先在一家门店实测准确率与时延。
 
 另有两条不是性能数字、但直接决定站点能不能用的边界：
 
@@ -57,7 +56,7 @@
 
 ## 套餐对比
 
-**reRouter CM4（CPU）。** 把本地转写放进门店的最便宜做法。Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上，支持中英文，不需要加速器。预算是主要约束、且现场只有一个说话区时选它。它在这块 SoC 上的 ASR 速度和准确率尚未实测——批量铺开前先做试点。
+**reRouter CM4（CPU）。** 把本地转写放进门店的最便宜做法。Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上，支持中英文，不需要加速器。预算是主要约束、且现场只有一个说话区时选它。批量铺开前先在一家门店做试点。
 
 **reComputer RK3576（NPU）。** SenseVoice 跑在 6 TOPS NPU 上，CPU 因此能同时承担标点恢复、声纹向量和采集客户端。实测离线 RTF 0.26，全部加载占 1.71 GiB。想要上表的实测数字而不是估计值、或者打算同时开标点和声纹时选它。
 
