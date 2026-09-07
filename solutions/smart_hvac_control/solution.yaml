@@ -98,9 +98,9 @@ intro:
           下发的补偿命令。Modbus 设备为模拟器，写入-核对-补偿链路为真实逻辑。
     - type: image
       src: gallery/architecture.svg
-      caption: Schematic architecture diagram — meter and HVAC points, prediction, and the verified write path. Not a screenshot of a running system.
+      caption: Architecture — an SDM630 meter and an HVAC controller feed the point table, prediction sits alongside it, and writes go back out through a readback check
       caption_i18n:
-        zh: 系统架构示意图——电表与暖通点位、预测，以及带读回核实的写入链路。非运行界面截图。
+        zh: 架构——SDM630 电表与暖通控制器把点位送进总表，预测在旁边，写入经读回核实后再下发
 
   category: industrial_iot
   solution_type: solution

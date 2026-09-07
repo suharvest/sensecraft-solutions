@@ -104,3 +104,26 @@ every `intro.gallery[].src` in the same change.
 `assets/firmware/` carries a manifest only — no binary. Neither container image
 named in `assets/cloud/docker-compose.yml` or `assets/edge/docker-compose.yml`
 has been pushed; both files say so at the top.
+
+## 2026-09-07
+
+`console-devices-live.png` (1568 × 764 → 1568 × 375) and
+`console-persons-live.png` (1568 × 764 → 1568 × 420) were cropped to their
+tables. The architecture diagram moved from third place to last.
+
+## Cover: reserved
+
+The cover on this page has to be a frame from a reCamera Pro showing a person
+at the door and the recognition verdict the device returned. No such frame
+exists yet: both 2026-09-07 device runs
+(`evaluation/runs/2026-09-07-recamera-poe-p1/`, `-recamera-pro-app/`) record
+that the recognise-to-unlock path was never exercised end to end, because
+nobody stood in front of the lens and the network had neither a facedb service
+nor a broker. Their media are typeset renders of terminal output, not
+screenshots, and are not published here. Until that frame is captured, the
+device-status console screenshot stands in as the cover.
+
+Nothing on this page contains a face: the only enrolled identity in the runs is
+`poe-20260907-a`, whose enrolment image is `image_T1.jpg` from MiniVision's
+Silent-Face-Anti-Spoofing repository (Apache-2.0), a public sample rather than a
+photograph of a person who exists.

@@ -4,46 +4,38 @@ name: Campus-level BLE Beacon Positioning System
 intro:
   summary: Track assets and people indoors and outdoors on one map — BLE beacons inside, GNSS outside, with floor-plan georeferencing, geofence alarms and an offline basemap option.
   description_file: description.md
-  cover_image: gallery/cover.png
+  cover_image: gallery/floorplan-registration.png
   gallery:
     - type: image
-      src: gallery/map-view.png
-      caption: Map Visualization
+      src: gallery/floorplan-registration.png
+      caption: A floor plan pinned onto the street map — origin, rotation and scale set by dragging the four corner handles, so indoor coordinates line up with the outdoor world
       caption_i18n:
-        zh: 地图可视化
+        zh: 楼层平面图叠在街道地图上——拖动四个角把原点、旋转与比例定好，室内坐标就与室外对齐
     - type: image
-      src: gallery/architecture.png
-      caption: System Architecture
+      src: gallery/map-view.png
+      caption: The map dashboard — WebSocket connected, five maps, 49 beacons and two trackers registered
       caption_i18n:
-        zh: 系统架构
-    # 2026-09-06: login.png / app-preview.png / map-view.png / outdoor-map.png 全部换成
-    # sensecraft-ui-kit v0.1.2 改造后的界面（solution-indoor-positioning 分支 feature/ui-kit），
-    # 1280x800 Playwright 截图。截图来源与 OSM/ODbL 署名见 gallery/ATTRIBUTION.md。
+        zh: 地图看板——WebSocket 已连接，已登记 5 张地图、49 个信标与 2 个跟踪器
+    - type: image
+      src: gallery/outdoor-map.png
+      caption: Outdoor view on an OpenStreetMap basemap, with the offline PMTiles source selectable for sites without internet
+      caption_i18n:
+        zh: OpenStreetMap 底图上的室外视图，无外网现场可切到离线 PMTiles 底图
+    - type: image
+      src: gallery/app-preview.png
+      caption: The application dashboard
+      caption_i18n:
+        zh: 应用主界面
     - type: image
       src: gallery/login.png
       caption: Sign-in page
       caption_i18n:
         zh: 登录页
     - type: image
-      src: gallery/app-preview.png
-      caption: Application Dashboard
+      src: gallery/architecture.png
+      caption: System architecture
       caption_i18n:
-        zh: 应用仪表板
-    # TODO(CDN): the screenshots in this gallery are still repo-relative. Upload to
-    # files.seeedstudio.com/Solution/landpage_asset/indoor_positioning_ble_lorawan/
-    # with a hashed filename and switch these src values before the hub page uses them.
-    # Provenance and OSM/ODbL attribution: gallery/ATTRIBUTION.md
-    - type: image
-      src: gallery/outdoor-map.png
-      caption: Outdoor view on an OpenStreetMap basemap, with the offline (PMTiles) source selectable
-      caption_i18n:
-        zh: 室外视图，底图为 OpenStreetMap，可切换离线 PMTiles 源
-    - type: image
-      src: gallery/floorplan-registration.png
-      caption: Floor plan georeferenced onto the outdoor map (origin, rotation, scale)
-      caption_i18n:
-        zh: 平面图配准到室外地图（原点、旋转角、缩放）
-  repo_url: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
+        zh: 系统架构
   category: smart_building
   solution_type: solution
 

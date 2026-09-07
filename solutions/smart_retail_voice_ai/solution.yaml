@@ -4,13 +4,13 @@ name: Smart Retail Voice Collection
 intro:
   summary: Capture and analyze in-store conversations to understand what customers are saying and what help they need
   description_file: description.md
-  cover_image: gallery/cover.webp
+  cover_image: gallery/architecture.png
   gallery:
     - type: image
       src: gallery/architecture.png
-      caption: Hardware Setup
+      caption: The capture kit as it ships — a reRouter CM4, its power supply, a USB cable and a reSpeaker XVF3800 microphone array
       caption_i18n:
-        zh: 硬件组合
+        zh: 采集套件的全部东西——reRouter CM4、电源、USB 线，以及 reSpeaker XVF3800 麦克风阵列
     - type: image
       src: gallery/rerouter.png
       caption: reRouter CM4

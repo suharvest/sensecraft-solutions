@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cover.png
+  cover_image: gallery/live-points.png
   category: industrial_iot
   solution_type: solution
   tags:
@@ -30,15 +30,15 @@ intro:
 
   gallery:
     - type: image
-      src: gallery/access-runtime.png
-      caption: Configure industrial sources and inspect their live runtime state
-      caption_i18n:
-        zh: 配置工业数据源并查看实时运行状态
-    - type: image
       src: gallery/live-points.png
-      caption: Filter, monitor, and control points from one table
+      caption: Every point from every protocol in one table — source, host, address, value, unit, quality and timestamp, with read/write marked per point
       caption_i18n:
-        zh: 在一个总表中筛选、监控和控制全部点位
+        zh: 所有协议的点位汇在一张表里——来源、主机、地址、当前值、单位、质量与时间戳，逐点标出可读可写
+    - type: image
+      src: gallery/access-runtime.png
+      caption: The source list — protocol, configured state, runtime state, acquisition mode and last successful poll for each industrial source
+      caption_i18n:
+        zh: 数据源列表——每个工业源的协议、配置状态、运行状态、采集方式与最近一次成功采集时间
     - type: image
       src: gallery/data-service.png
       caption: Configure the embedded MQTT service and inspect its topic contract

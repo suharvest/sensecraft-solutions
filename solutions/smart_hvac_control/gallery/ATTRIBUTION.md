@@ -146,3 +146,17 @@ and the original PNGs alongside the ones committed here) is in
 
 Transcript for these two (driver scripts, raw receipts, health payloads, pytest
 output) is in `Solution_HVAC_SmartControl/evaluation/runs/2026-09-06-b2-wire-e2e/`.
+
+## 2026-09-07
+
+`access-registration.png` (1440 × 900 → 1440 × 346) and
+`control-readback-compensated.png` (1440 × 900 → 1440 × 866) were cropped to
+their content. The other four screenshots already filled their frames and are
+byte-identical to before. The gallery order was already correct: console
+screenshots first, the architecture diagram last.
+
+## Missing: a photograph of the equipment
+
+There is no picture of the meter, the HVAC unit or the gateway in a plant room
+or a control cabinet. Every image on this page is a console screenshot, and the
+cover should be a photograph of the equipment on site. It has to be supplied.

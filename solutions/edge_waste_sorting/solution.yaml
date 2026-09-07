@@ -31,8 +31,23 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/waste-grid-4up-local-20260907.jpg
+  cover_image: gallery/waste-multi-item-pair-20260907.jpg
   gallery:
+    - type: image
+      src: gallery/waste-multi-item-pair-20260907.jpg
+      caption: Two table tops of loose rubbish, every item boxed and labelled with its material and score. Left — a bottle, foil trays, folded paper and a printed card. Right — a drinks can, a red carton, a tube and paper scraps
+      caption_i18n:
+        zh: 两张摊着垃圾的台面，每件都画框并标出材质与分数。左：瓶子、锡纸盒、折叠纸与印刷卡片；右：易拉罐、红色纸盒、软管与纸屑
+    - type: image
+      src: gallery/waste-recamera-sg2002-20260907.jpg
+      caption: >-
+        Four results produced on a reCamera's own SG2002 TPU, not on a host -
+        BF16 cvimodel, predicted class, Chinese four-way category and the
+        per-frame inference time as measured on the device
+      caption_i18n:
+        zh: >-
+          四张在 reCamera 自己的 SG2002 TPU 上跑出来的结果，不是主机代跑——
+          BF16 cvimodel，标注预测类别、中国四分类与设备实测的单帧推理耗时
     - type: image
       src: gallery/waste-grid-4up-local-20260907.jpg
       caption: Four real CPU inference results (onnxruntime, Apple M4) on TrashNet (MIT) validation images — one per requested category, predicted class and confidence drawn on each frame
@@ -58,16 +73,6 @@ intro:
       caption: "“Other” (trash) sample misclassified as plastic at low confidence — kept as-is, not cherry-picked; consistent with the model's documented CPU baseline"
       caption_i18n:
         zh: "“其它”样例被低置信度误判为塑料——如实保留、未挑选好看的结果，与模型已记录的 CPU 基线一致"
-    - type: image
-      src: gallery/waste-recamera-sg2002-20260907.jpg
-      caption: >-
-        Four results produced on a reCamera's own SG2002 TPU, not on a host -
-        BF16 cvimodel, predicted class, Chinese four-way category and the
-        per-frame inference time as measured on the device
-      caption_i18n:
-        zh: >-
-          四张在 reCamera 自己的 SG2002 TPU 上跑出来的结果，不是主机代跑——
-          BF16 cvimodel，标注预测类别、中国四分类与设备实测的单帧推理耗时
     - type: image
       src: gallery/architecture.svg
       caption: Trigger to camera to device — one shot in, material class and Chinese four-way category out on MQTT, with a GPIO callback alongside
