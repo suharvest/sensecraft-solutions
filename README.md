@@ -29,7 +29,7 @@
 | [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | 本地大模型 |
 | [AI Lab](solutions/ai_lab/) | Jetson | AI 开发环境 |
 | [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | 深度估计 |
-| [Industrial Security](solutions/industrial_security_jetson/) | Jetson | 安防 / 视觉 |
+| [Industrial Security](solutions/edge_security/) | Jetson · RK3588 · Hailo | 安防 / 视觉 |
 | [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | 安防 / 视觉 |
 | [NVBlox + Orbbec](solutions/nvblox_orbbec/) | Jetson | 三维重建 |
 | [reCamera Heatmap (Grafana)](solutions/recamera_heatmap_grafana/) | reCamera | 分析 / 看板 |
