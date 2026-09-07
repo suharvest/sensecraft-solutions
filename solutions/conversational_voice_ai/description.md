@@ -86,6 +86,9 @@ refuses Chinese instead of transcribing it badly.
 | English speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip `/asr` endpoint, 2026-09-06 |
 | Speech synthesis speed | RTF 0.194 | reComputer RK3576 | Matcha-TTS, same run, 2026-09-06 |
 
+The two RK3576 rows are reference values taken on the same RK3576 platform;
+they will be updated after a re-test on the reComputer unit.
+
 Live conversation uses a low-latency turn detector (silero VAD, 400 ms silence
 plus 2.5 s minimum audio). It replies at the first natural pause, so a long
 sentence with a mid-sentence pause is answered after its first clause. Speak in

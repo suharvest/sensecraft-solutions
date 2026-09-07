@@ -35,6 +35,8 @@
 | 声纹向量，RK3576 | RTF 0.09–0.13（1 s → 125 ms，3 s → 255 ms，5 s → 428 ms） | reComputer RK3576，CAM++ 走 sherpa-onnx CPU，2 线程；10 人聚类 1.45 ms | `openvoicestream/docs/specs/diarization-capability.md`，2026-06-26 |
 | 声纹向量，CM4 同档（A72） | RTF 约 0.10（1 s → 114 ms，3 s → 303 ms，5 s → 508 ms），冷加载 1.66 s | Raspberry Pi 4（Cortex-A72，4 核）代表 reRouter 内的 CM4——同代 SoC；CAM++ 走 sherpa-onnx CPU | 同一文档，2026-06-26 |
 
+表中 RK3576 各行为同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
+
 **reRouter CM4 这条路先做试点再铺开。** 上面的 RK3576 数字不适用于 CM4 的 Cortex-A72 核。先在一家门店实测准确率与时延。
 
 另有两条不是性能数字、但直接决定站点能不能用的边界：

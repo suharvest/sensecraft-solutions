@@ -71,7 +71,7 @@ steps:
       Copy the `.rknn` and record its sha256 on both sides. On the board,
       confirm the runtime: `strings /usr/lib/librknnrt.so | grep -i "librknnrt
       version"`. A toolkit/runtime mismatch does not always fail loudly — it can
-      load and produce wrong numbers. The measured run used a reComputer RK3588
+      load and produce wrong numbers. The reference run used an RK3588 platform
       with librknnrt 2.3.2 and driver 0.9.8. Note that the board in that run
       had no cv2 or PIL in its system Python and none were installed, to avoid
       contaminating a machine other projects were using: images were
@@ -82,7 +82,7 @@ steps:
         把 `.rknn` 拷过去，两边都记下 sha256。在板上确认运行时：
         `strings /usr/lib/librknnrt.so | grep -i "librknnrt version"`。
         toolkit 与运行时版本不匹配不一定会明着报错——它可能加载成功但算出错的数。
-        实测那一轮用的是 reComputer RK3588，librknnrt 2.3.2、driver 0.9.8。
+        参考那一轮跑在 RK3588 平台上，librknnrt 2.3.2、driver 0.9.8。
         注意那台机器的系统 Python 里没有 cv2 和 PIL，也没有装——为了不污染其它项目在用的
         那个 python：图片在别处 letterbox 好，打包成一个 `(N, 640, 640, 3)` uint8 BGR
         的 `.npy` 传过去，设备端脚本只需要 numpy 和 rknnlite。

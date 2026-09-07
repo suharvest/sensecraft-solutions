@@ -76,7 +76,7 @@ missing parts on your assemblies.
 | Multi-stream capacity | **stable 8 / degrading 12 / failure 24 streams** | 640² at 10 fps per stream, 5 min per level, whole sweep run twice; MQTT and Modbus were disabled during this test, so a real deployment with I/O reaches fewer streams | Same M4 run |
 | Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame `missing_count` = 0, on a different board all 6 go missing and `verdict_reasons` gains `missing` alongside `defect` | This project's M2 run, 2026-09-05, same device |
 | Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict `ok`. Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
-| reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s (`hailortcli run`). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | This project's M3b-pi-2 run on reComputer R2000 with Hailo-8, 2026-09-06 |
+| reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s (`hailortcli run`). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit, 2026-09-06 |
 | Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on spark (GB10) with another training job co-resident on the same GPU | `edge-inspection-assembly` annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
 | Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
 
@@ -169,9 +169,10 @@ two camera streams on one box.
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
-time, so there is no build step on the board. Measured on this board: 106.75 FPS
+time, so there is no build step on the board. Measured on the same Hailo-8 platform: 106.75 FPS
 hardware inference, 43.92 FPS full pipeline, mAP50 0.9858 against a CPU golden
-(delta -0.0018). The multi-stream sweep above is Orin-only. This board also
+(delta -0.0018) — reference values, to be updated after a re-test on the
+reComputer unit. The multi-stream sweep above is Orin-only. This board also
 has three hard prerequisites — matching Python minor version, HailoRT 4.21.x
 held across driver, library and Python bindings, and
 `hailo_pci force_desc_page_size=4096` — that the guide walks through.

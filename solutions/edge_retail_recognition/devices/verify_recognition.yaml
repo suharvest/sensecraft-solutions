@@ -71,7 +71,7 @@ steps:
       Run the CPU golden with `evaluation/run_golden.py` on the same ONNX,
       then run your converted artifact on the board and match boxes at IoU ≥
       0.5 with a 0.25 score threshold. Compare against the measured references:
-      RKNN fp16 on a reComputer RK3588 reached 99.85% box agreement at 56.7 ms p50
+      RKNN fp16 on an RK3588 platform reached 99.85% box agreement at 56.7 ms p50
       and its INT8 variant 98.35% at 26.0 ms p50
       (evaluation/runs/2026-09-06-det-rk3588-radxa/results.md); the Hailo INT8
       HEF on a Raspberry Pi 5 reached 94.77% on 200 images and 94.68% on 300,
@@ -85,7 +85,7 @@ steps:
       zh: >-
         用 `evaluation/run_golden.py` 在同一份 ONNX 上取 CPU golden，
         再在板上跑你转换出的产物，按分数阈值 0.25、IoU ≥ 0.5 匹配框。
-        与实测参照对比：reComputer RK3588 上 RKNN fp16 的框一致率 99.85%、p50 56.7 ms，
+        与实测参照对比：RK3588 平台上 RKNN fp16 的框一致率 99.85%、p50 56.7 ms，
         INT8 变体 98.35%、p50 26.0 ms
         （evaluation/runs/2026-09-06-det-rk3588-radxa/results.md）；
         Raspberry Pi 5 上 Hailo INT8 HEF 在 200 张上 94.77%、300 张上 94.68%，

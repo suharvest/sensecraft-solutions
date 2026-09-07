@@ -180,12 +180,14 @@ intro:
     recomputer_r20_industrial:
       description: >-
         An industrial box with a Hailo-8 on the PCIe M.2 slot, running the INT8
-        HEF build of the same detector. Measured on this board at 106.75 FPS
-        hardware inference and 46.14 FPS full pipeline.
+        HEF build of the same detector. Measured on the same Hailo-8 platform
+        at 106.75 FPS hardware inference and 46.14 FPS full pipeline —
+        reference values, to be updated after a re-test on the reComputer unit.
       description_i18n:
         zh: >-
           PCIe M.2 插槽上装了 Hailo-8 的工业整机，运行同一检测器的 INT8 HEF
-          版本。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS。
+          版本。同款 Hailo-8 平台实测硬件推理 106.75 FPS，全链路 46.14 FPS；
+          参考值，reComputer 整机复测后更新。
       purchase:
         require:
           ai_accelerator: hailo-8
@@ -241,13 +243,16 @@ intro:
       badge_i18n:
         zh: 测试版
       description: >-
-        The lower-cost board. Measured at 106.75 FPS hardware inference,
-        46.14 FPS full pipeline and mAP50 0.7091. Three ABI gates have to pass
-        on the device, and the deploy step checks each one.
+        The lower-cost board. Measured on the same Hailo-8 platform at
+        106.75 FPS hardware inference, 46.14 FPS full pipeline and mAP50 0.7091
+        — reference values, to be updated after a re-test on the reComputer
+        unit. Three ABI gates have to pass on the device, and the deploy step
+        checks each one.
       description_i18n:
         zh: >-
-          成本更低的一块板。实测硬件推理 106.75 FPS，全链路 46.14 FPS，
-          mAP50 0.7091。设备上有三道 ABI 关卡要过，部署步骤会逐个检查。
+          成本更低的一块板。同款 Hailo-8 平台实测硬件推理 106.75 FPS，
+          全链路 46.14 FPS，mAP50 0.7091；参考值，reComputer 整机复测后更新。
+          设备上有三道 ABI 关卡要过，部署步骤会逐个检查。
       device_groups:
         - id: compute
           name: Inspection Host

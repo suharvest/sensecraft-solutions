@@ -53,7 +53,9 @@ it cannot.
 ## How well it works
 
 Each number below carries the device it was measured on and the conditions it
-was measured under.
+was measured under. The Hailo-8 and RK3588 figures are reference values taken on
+the same accelerator platform as the matching reComputer preset; they will be
+updated after a re-test on the reComputer units.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with `hailortcli benchmark`
@@ -62,11 +64,12 @@ round trip. End to end, including letterboxing, output assembly, decode and NMS,
 it is 18.74 ms p50 / 24.25 ms p95: the per-class NMS over roughly 160 boxes
 costs more than the inference itself. Box agreement with the CPU reference is
 94.77% on 200 images and 94.68% on 300, at IoU >= 0.5. No thermal throttling
-over the run.
+over the run. Reference value on the same Hailo-8 platform.
 
 **Detection, reComputer RK3588 series.** RKNN fp16: 99.85% box agreement,
 56.7 ms p50 / 89.5 ms p95. RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms
-p95 — 2.2x faster for 1.5 percentage points of agreement.
+p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
+the same RK3588 platform.
 
 **Embedding, reComputer R2000 CPU.** Dynamically quantised INT8
 DINOv2-small on four threads: 91.95 ms p50 / 105.98 ms p95 per crop, against
@@ -74,7 +77,7 @@ DINOv2-small on four threads: 91.95 ms p50 / 105.98 ms p95 per crop, against
 percentage points of that fp32 baseline across all seven measured
 configurations — weight-only quantisation costs essentially nothing here. The
 static QDQ variant that also quantises activations loses 3.78 to 9.96 points and
-is not usable.
+is not usable. Reference value on the same Arm CPU platform.
 
 **Retrieval accuracy** (Grocery Store Dataset, 81 classes, fp32). DINOv2-base at
 eight registration images per SKU: 84.67% top-1, 96.66% top-5. DINOv2-small at
@@ -108,21 +111,24 @@ slot-level sampling for shelf frames.
 | reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50 |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 
+Figures in this table are reference values from the same accelerator platforms;
+they will be updated after a re-test on the reComputer units.
+
 ## Usage Notes
 
 - **Register from at least three views.** Fewer than three is refused. Front,
   back, side, two lighting conditions is the working minimum; the measured jump
   from one image to eight is 28 percentage points of top-1.
-- **Budget the frame by crop count, not by frame rate.** On the Pi, detection is
-  9 ms and embedding is 92 ms per crop. A five-item basket is about half a
-  second. A shelf frame at the measured density of 157.6 boxes is about 14
-  seconds, so shelf use needs frame skipping or slot-level sampling.
-- **Neither container image has been pushed.** Both are built on the console
-  host from the upstream repository, with the SPA built first — the images do
-  not run npm.
+- **Budget the frame by crop count, not by frame rate.** On the Hailo-8 path,
+  detection is 9 ms and embedding is 92 ms per crop. A five-item basket is about
+  half a second. A shelf frame at the measured density of 157.6 boxes is about
+  14 seconds, so shelf use needs frame skipping or slot-level sampling.
+- **The container images are built at deploy time.** Both are built on the
+  console host from the upstream repository, with the SPA built first — the
+  images do not run npm.
 - **The bundled broker is anonymous plaintext.** Anyone who can reach port 1883
-  can publish forged recognition events. Add accounts and TLS before this leaves
-  a bench.
+  can publish forged recognition events. Add accounts and TLS before this goes
+  into a store.
 - **Keep the model, the preprocessing and the gallery version together.** A
   gallery built with one embedder is not readable by another. The version
   manifest records both hashes for exactly this reason.

@@ -116,7 +116,8 @@ mAP50 difference 0.0003. FP16 changed no frame's OK/NG verdict.
 ### Measured boundaries — reComputer R2000 with Hailo-8
 
 The Hailo-8 path runs an INT8 HEF built with Dataflow Compiler 3.31.0 /
-HailoRT 4.21.0. Measured on reComputer R2000 with a Hailo-8, 2026-09-06.
+HailoRT 4.21.0. Measured 2026-09-06 on the same Hailo-8 platform. These are
+reference values, to be updated after a re-test on the reComputer unit.
 
 | Metric | Value | Conditions | Source |
 |---|---:|---|---|
@@ -139,7 +140,7 @@ made slightly worse by 8-bit weights.
 |---|---|---|---|
 | TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, `2026-09-05-m2-orin` §1 |
 | Jetson image | 375 MB | `edge-inspection-jetson:0.1.0-dev`; host TensorRT and CUDA mounted rather than baked in | This measurement, `2026-09-05-m2-orin` |
-| reComputer R2000 added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config | Native arm64 build on the board, 2026-09-06 |
+| reComputer R2000 added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config | Native arm64 build on the same Hailo-8 platform, 2026-09-06; reference value |
 
 ## Detector Selection: Baseline vs Advanced
 
@@ -312,8 +313,10 @@ TensorRT version and is never redistributed. Pick this when you need figures you
 can hold someone to.
 
 **IP camera + reComputer R2000 (Hailo-8)** is the cheaper board. Measured on
-it: 106.75 FPS hardware inference, 46.14 FPS full pipeline, mAP50 0.7091
-against a CPU golden of 0.7574 (86.66% box match rate at IoU >= 0.5). Three ABI
+the same Hailo-8 platform: 106.75 FPS hardware inference, 46.14 FPS full
+pipeline, mAP50 0.7091 against a CPU golden of 0.7574 (86.66% box match rate at
+IoU >= 0.5) — reference values, to be updated after a re-test on the reComputer
+unit. Three ABI
 gates have to pass on the device before it starts (Python minor version,
 HailoRT driver/userspace/firmware triple, `force_desc_page_size=4096`), and the
 deploy step checks each one.

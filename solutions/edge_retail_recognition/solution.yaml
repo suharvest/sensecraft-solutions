@@ -47,9 +47,9 @@ intro:
   gallery:
     - type: image
       src: gallery/recomputer-rk3588.png
-      caption: reComputer RK3588 — the device the RK3588 detector numbers on this page were measured on. The UI screenshots further down are synthetic fixtures, not a real recognition run
+      caption: reComputer RK3588 — the host for the RK3588 detector preset. The RK3588 numbers on this page are reference values from the same platform. The UI screenshots further down are synthetic fixtures, not a real recognition run
       caption_i18n:
-        zh: reComputer RK3588——本页 RK3588 检测器数字的实测设备。下面的界面截图是合成演示数据，不是真实识别结果
+        zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值。下面的界面截图是合成演示数据，不是真实识别结果
     - type: image
       src: gallery/architecture.svg
       caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
@@ -235,15 +235,17 @@ intro:
           Rockchip 套餐引用的数字全部来自 RK3588。
     recomputer_r20_industrial:
       description: >-
-        An industrial box with a Hailo-8 on the M.2 slot. The detector HEF was
-        measured on this hardware at 9.04 ms p50 and 94.77% box agreement with
-        the CPU golden. The embedder runs on the box's own CPU as a dynamically
-        quantised INT8 DINOv2-small at 91.95 ms per crop.
+        An industrial box with a Hailo-8 on the M.2 slot. On the same Hailo-8
+        platform the detector HEF measured 9.04 ms p50 and 94.77% box agreement
+        with the CPU golden, and the embedder ran on the CPU as a dynamically
+        quantised INT8 DINOv2-small at 91.95 ms per crop — reference values, to
+        be updated after a re-test on the reComputer unit.
       description_i18n:
         zh: >-
-          M.2 插槽上装了 Hailo-8 的工业整机。检测器 HEF 在这套硬件上实测
-          p50 9.04 ms，与 CPU golden 的框一致率 94.77%。嵌入段跑在整机自己的
-          CPU 上，是动态量化 INT8 的 DINOv2-small，单个裁剪 91.95 ms。
+          M.2 插槽上装了 Hailo-8 的工业整机。同款 Hailo-8 平台实测：检测器 HEF
+          p50 9.04 ms，与 CPU golden 的框一致率 94.77%；嵌入段跑 CPU，是动态量化
+          INT8 的 DINOv2-small，单个裁剪 91.95 ms。以上为参考值，
+          reComputer 整机复测后更新。
       purchase:
         require:
           ai_accelerator: hailo-8
@@ -344,18 +346,21 @@ intro:
       badge_i18n:
         zh: 推荐
       description: >-
-        Both stages measured on one board. The detector is an INT8 HEF at
-        9.04 ms p50 and 94.77% box agreement; the embedder is a dynamically
-        quantised INT8 DINOv2-small on the four CPU cores at 91.95 ms per crop,
-        within 0.65 pp of its own fp32 retrieval accuracy. That 92 ms is the
+        Both stages measured on one board of the same Hailo-8 platform — the
+        detector an INT8 HEF at 9.04 ms p50 and 94.77% box agreement, the
+        embedder a dynamically quantised INT8 DINOv2-small on the four CPU cores
+        at 91.95 ms per crop, within 0.65 pp of its own fp32 retrieval accuracy.
+        Reference values, to be updated after a re-test on the reComputer unit.
+        That 92 ms is the
         number to plan around — a checkout basket of a few items is comfortable,
         a shelf frame with 160 boxes is not, and shelf use needs frame skipping
         or slot-level sampling.
       description_i18n:
         zh: >-
-          两段都在同一块板上实测的套餐。检测器是 INT8 HEF，p50 9.04 ms、
-          框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，跑在四个 CPU 核上，
-          单个裁剪 91.95 ms，检索准确率与自身 fp32 相差 0.65pp 以内。
+          两段都在同款 Hailo-8 平台的同一块板上实测。检测器是 INT8 HEF，
+          p50 9.04 ms、框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，
+          跑在四个 CPU 核上，单个裁剪 91.95 ms，检索准确率与自身 fp32 相差
+          0.65pp 以内。以上为参考值，reComputer 整机复测后更新。
           这 92 ms 是做规划时要盯的数——收银台一次几件商品够用，货架一帧 160 个框不够用，
           货架场景需要抽帧或按货位采样。
       device_groups:

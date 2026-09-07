@@ -35,6 +35,9 @@ Every number below was measured on the OpenVoiceStream speech service — the sa
 | Voiceprint embedding, RK3576 | RTF 0.09–0.13 (1 s → 125 ms, 3 s → 255 ms, 5 s → 428 ms) | reComputer RK3576, CAM++ via sherpa-onnx on the CPU, 2 threads; clustering over 10 speakers 1.45 ms | `openvoicestream/docs/specs/diarization-capability.md`, 2026-06-26 |
 | Voiceprint embedding, CM4 class (A72) | RTF ≈0.10 (1 s → 114 ms, 3 s → 303 ms, 5 s → 508 ms), cold load 1.66 s | Raspberry Pi 4 (Cortex-A72, 4 cores) as a stand-in for the CM4 in the reRouter — the same SoC generation; CAM++ via sherpa-onnx on the CPU | Same document, 2026-06-26 |
 
+The RK3576 rows are reference values taken on the same RK3576 platform; they
+will be updated after a re-test on the reComputer unit.
+
 **Pilot the reRouter CM4 path before rolling it out.** The RK3576 numbers above do not carry over to the CM4's Cortex-A72 cores; measure accuracy and latency on one store first.
 
 Two boundaries that are not performance numbers but decide whether a site will work at all:

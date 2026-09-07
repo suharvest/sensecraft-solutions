@@ -158,9 +158,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: The lower-power path. The INT8 HEF is compiled off-device and downloaded at deploy time. Measured on this board — 106.75 FPS hardware inference, 43.92 FPS full pipeline, mAP50 0.9858.
+      description: The lower-power path. The INT8 HEF is compiled off-device and downloaded at deploy time. Measured on the same Hailo-8 platform — 106.75 FPS hardware inference, 43.92 FPS full pipeline, mAP50 0.9858. Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit.
       description_i18n:
-        zh: 功耗更低的一条路径。INT8 HEF 在设备外编译、部署时下载。这块板实测硬件推理 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858。
+        zh: 功耗更低的一条路径。INT8 HEF 在设备外编译、部署时下载。同款 Hailo-8 平台实测硬件推理 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858；同款 Hailo-8 平台实测参考值，reComputer 整机复测后更新。
       device_groups:
         - id: compute
           name: Inspection Host

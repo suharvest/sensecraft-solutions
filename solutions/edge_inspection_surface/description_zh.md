@@ -98,7 +98,8 @@ FP16 engine 还与同一份 ONNX 的 CPU（onnxruntime）结果做过逐框比�
 ### 实测边界——reComputer R2000（Hailo-8）
 
 Hailo-8 这条路径跑的是 Dataflow Compiler 3.31.0 / HailoRT 4.21.0 编出的
-INT8 HEF。以下数字在 reComputer R2000 + Hailo-8 上实测，2026-09-06。
+INT8 HEF。以下数字为 2026-09-06 在同款 Hailo-8 平台上的实测参考值，
+reComputer 整机复测后更新。
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---:|---|---|
@@ -120,7 +121,7 @@ INT8 HEF。以下数字在 reComputer R2000 + Hailo-8 上实测，2026-09-06。
 |---|---|---|---|
 | 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，`2026-09-05-m2-orin` §1 |
 | Jetson 镜像 | 375 MB | `edge-inspection-jetson:0.1.0-dev`；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，`2026-09-05-m2-orin` |
-| reComputer R2000 新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置 | 板上原生 arm64 构建实测，2026-09-06 |
+| reComputer R2000 新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置 | 同款 Hailo-8 平台原生 arm64 构建实测，2026-09-06，参考值 |
 
 ## 检测器选型：基线 vs 先进
 
@@ -260,9 +261,11 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 都取自 Orin NX 16GB。TensorRT engine 在部署过程中于设备上构建——它与那块 GPU
 架构和那个 TensorRT 版本绑定，不做分发。需要能拿出去对账的数字就选它。
 
-**IP 摄像头 + reComputer R2000（Hailo-8）** 是更便宜的那条。板上实测：
-硬件推理 106.75 FPS，全链路 46.14 FPS，mAP50 0.7091（对比 CPU golden
-0.7574，逐框匹配率 86.66%）。设备上有三道 ABI 关卡要先过（Python minor
+**IP 摄像头 + reComputer R2000（Hailo-8）** 是更便宜的那条。
+同款 Hailo-8 平台实测：硬件推理 106.75 FPS，全链路 46.14 FPS，
+mAP50 0.7091（对比 CPU golden 0.7574，逐框匹配率 86.66%）。
+这些是参考值，reComputer 整机复测后更新。
+设备上有三道 ABI 关卡要先过（Python minor
 版本、HailoRT 驱动/用户态/固件三件套、`force_desc_page_size=4096`），
 部署步骤会逐个检查。
 
