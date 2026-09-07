@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Managing parking lots shouldn't require expensive sensors on every spot. This solution turns a single reCamera into a smart parking monitor — it watches a row of parking spaces, tells you which ones are free and which are taken, all in real time.
+Managing parking lots shouldn't require expensive sensors on every spot. This solution turns a single reCamera into a smart parking monitor — it watches a row of parking spaces and reports which ones are free and which are taken, in real time.
 
 ## Key Benefits
 
