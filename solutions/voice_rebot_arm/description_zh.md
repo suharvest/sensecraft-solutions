@@ -45,7 +45,7 @@ reSpeaker 麦克风 ─▶ 唤醒词 ─▶ 流式 ASR ─▶ Qwen3.5-4B（Tenso
 
 ## 硬件要求
 
-- reComputer J4012 / Jetson Orin NX 16 GB（JetPack 6）—— compose 文件挂载宿主机 CUDA/TensorRT
+- reComputer J40 系列 / Jetson Orin NX 16 GB（JetPack 6）—— compose 文件挂载宿主机 CUDA/TensorRT
 - reBot B601-DM 机械臂（USB 串口）+ 腕装 Orbbec Gemini 2（USB 3.0）
 - reSpeaker USB 麦克风 + 任意音箱
 - 首次启动需下载约 8.5 GB 模型（LLM 引擎、语音引擎、检测器），另有约 1.4 GB 容器镜像
