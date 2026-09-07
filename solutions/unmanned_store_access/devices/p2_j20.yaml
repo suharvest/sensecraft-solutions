@@ -128,7 +128,8 @@ remote_overrides:
           mq["port"] = int("{{mqtt_port}}")
           mq["tls"] = "{{mqtt_tls}}" == "true"
           cfg["policy"]["threshold"] = float("{{threshold}}")
-          cfg["recognition"]["rtsp_url"] = "{{rtsp_url}}"
+          cfg.setdefault("camera", {})["rtsp_url"] = "{{rtsp_url}}"
+          cfg["door_id"] = "{{door_id}}"
           tmp = path + ".tmp"
           with open(tmp, "w") as fh:
               json.dump(cfg, fh, indent=2); fh.write("\n")
@@ -147,6 +148,9 @@ remote_overrides:
           MQTT_PORT={{mqtt_port}}
           MQTT_TLS=$([ "{{mqtt_tls}}" = "true" ] && echo 1 || echo 0)
           DEVICE_ID={{device_id}}
+          DOOR_ID={{door_id}}
+          RTSP_URL={{rtsp_url}}
+          FACEDB_URL={{facedb_url}}
           EOF
         name_i18n:
           zh: 写入门禁配置
@@ -212,6 +216,24 @@ remote_overrides:
         zh: 门 / 设备名称
       description_i18n:
         zh: 会拼进 MQTT 主题，也会写进每一条审计记录。按门命名，多道门在同一个 broker 上才分得开。
+    - id: door_id
+      name: Door ID (command topic)
+      type: text
+      default: "front"
+      required: true
+      description: >-
+        The remote-unlock topic is access/v1/commands/<door id>, so this is what
+        the console addresses when someone opens the door from the dashboard. It
+        is separate from the device name: one box may drive one door but be
+        replaced, and the door keeps its identity across that swap.
+      validation:
+        pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+      name_i18n:
+        zh: 门编号（指令主题）
+      description_i18n:
+        zh: >-
+          远程开门的主题是 access/v1/commands/<门编号>，控制台从面板开门时寻址的就是它。
+          它与设备名分开：一台盒子可能被换掉，但那道门的编号跨越这次更换保持不变。
     - id: rtsp_url
       name: Camera RTSP URL
       type: text
@@ -249,12 +271,21 @@ remote_overrides:
       name: Access Node Image
       type: text
       required: true
-      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-edge:0.1.0-c1"
-      description: "This image does not exist yet: the upstream repository has no access-node daemon (functionality gap, not a packaging gap). Build one from the upstream library and set the tag here once it exists."
+      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
+      description: >-
+        The door-side process: pulls RTSP, asks face-rec-api for an embedding
+        and a liveness score, decides against the local face database, and
+        pulses the dry-contact relay. Built for linux/amd64 and linux/arm64 and
+        carries no weights. Change this only to pin a digest or run your own
+        build.
       name_i18n:
         zh: 门禁节点镜像
       description_i18n:
-        zh: 这个镜像还不存在：上游仓库目前没有门禁节点守护进程（是功能未开发，不是打包遗漏）。等上游有了对应的可运行程序，从中构建并把 tag 填在这里。
+        zh: >-
+          门边那个进程：拉 RTSP、向 face-rec-api 要嵌入和活体分、对本地人脸库判定、
+          驱动干接点继电器。amd64 与 arm64 两个架构，镜像里不带权重。
+          只有要钉 digest 或换自己的构建时才改它。
     - id: do_gpio
       name: DO sysfs GPIO Number
       type: text

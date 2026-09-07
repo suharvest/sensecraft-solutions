@@ -4,7 +4,7 @@
 # the `web` service removed — the console runs on the cloud host, once, not on
 # every door.
 #
-# ONE OF THE TWO IMAGES IS PUBLISHED.
+# BOTH IMAGES ARE PUBLISHED.
 #
 #   face-rec-api  The upstream recognition service, published 2026-09-07 as
 #                 solution/face-rec-api:0.1.0-usa-jetson (linux/arm64, built
@@ -21,12 +21,18 @@
 #                 (-v .../models:/models) rather than shipped in the image.
 #                 CUDA / TensorRT libs come from the host JetPack install too,
 #                 so the container needs `--runtime nvidia`.
-#   access-node   This project's own device-side process. STILL NOT BUILT: the
-#                 repository has no daemon for it — core_access.AccessNode is a
-#                 library class that tools/verify_software_loop.py wires by hand,
-#                 and nothing in the repo reads the access-node.json in
-#                 ../edge/config. ACCESS_NODE_IMAGE therefore still has no
-#                 default and the deploy stops here.
+#   access-node   This project's own device-side process, published as
+#                 solution/unmanned-store-access-node:0.1.0 for linux/amd64 and
+#                 linux/arm64. It reads the access-node.json in ../edge/config,
+#                 pulls RTSP, asks face-rec-api for an embedding and a liveness
+#                 score, decides locally, and pulses a dry-contact relay. The
+#                 command plane, the versioned face database and the local
+#                 hash-chained audit log run in the same process.
+#                 It carries no weights: recognition and liveness both happen in
+#                 face-rec-api, and access-node only matches against the face
+#                 database version it has on disk.
+#                 ACCESS_NODE_IMAGE overrides the default, for a site that pins
+#                 a digest or runs its own build.
 #
 # Service boundaries, which are also the security boundaries: face-rec-api only
 # produces embeddings and a liveness score; access-node makes every decision and
@@ -59,7 +65,7 @@ services:
       retries: 3
 
   access-node:
-    image: ${ACCESS_NODE_IMAGE:?set ACCESS_NODE_IMAGE — this image has never been built}
+    image: ${ACCESS_NODE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0}
     container_name: usa-access-node
     restart: unless-stopped
     <<: *bounded_logs
@@ -74,6 +80,12 @@ services:
       - facedb:/var/lib/unmanned-store-access/facedb
       - audit:/var/lib/unmanned-store-access/audit
       - ./config/access-node.json:/etc/unmanned-store-access/access-node.json:ro
+      # The pin lock and owner marker (core_access/pinlock.py). Bind it from the
+      # host so a device agent running outside the container holds the SAME lock
+      # on the same pin — two processes pulsing one door relay is either a
+      # duplicate deployment or a pin misassignment, and the node refuses to
+      # start rather than fight over the contact.
+      - /run/unmanned-store-access:/run/unmanned-store-access
     environment:
       USA_CONFIG: /etc/unmanned-store-access/access-node.json
       USA_FACE_REC_API: http://face-rec-api:8080
@@ -81,6 +93,24 @@ services:
       USA_MQTT_PORT: ${MQTT_PORT:-8883}
       USA_MQTT_TLS: ${MQTT_TLS:-1}
       USA_DEVICE_ID: ${DEVICE_ID:?set DEVICE_ID}
+      USA_DOOR_ID: ${DOOR_ID:-front}
+      # The RTSP URL the wizard asked for. It is also written into
+      # config/access-node.json; the environment wins because the orchestration
+      # layer is newer than the template.
+      USA_RTSP_URL: ${RTSP_URL:?set RTSP_URL}
+      USA_FACEDB_URL: ${FACEDB_URL:?set FACEDB_URL}
+    healthcheck:
+      # /readyz, not /healthz. Liveness ("is the process up") is almost always
+      # 200 and restarting on a degraded upstream only loses the events the
+      # restart drops. Readiness is the one that answers "can this door be
+      # opened by a face right now": face-rec-api reachable with liveness
+      # loaded, camera streaming, face database non-empty, pin lock held.
+      test: ["CMD", "access-node", "healthcheck",
+             "--url", "http://127.0.0.1:8099/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   facedb:

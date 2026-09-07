@@ -17,6 +17,16 @@
   ],
 
   "device_id": "REPLACED_BY_DEPLOY",
+  "door_id": "REPLACED_BY_DEPLOY",
+
+  "camera": {
+    "rtsp_url": "REPLACED_BY_DEPLOY",
+    "_max_frame_age_note": "The grabber thread keeps only the newest frame; the recogniser consumes at whatever rate face-rec-api answers. A frame older than this is dropped instead of recognised: opening the door on a three-second-old face opens it for whoever is standing there now, not for the person who was matched.",
+    "max_frame_age_ms": 800,
+    "stall_timeout_s": 5.0,
+    "reconnect_min_s": 1.0,
+    "reconnect_max_s": 30.0
+  },
 
   "recognition": {
     "base_url": "http://face-rec-api:8080",
@@ -36,7 +46,11 @@
   "actuator": {
     "kind": "sysfs_gpio",
     "actuator_id": "door-front",
+    "backend": "sysfs",
+    "_backend_note": "sysfs drives /sys/class/gpio (bind-mounted into the container by the compose file). libgpiod drives /dev/gpiochipN instead and needs gpiochip + line below plus a --device passthrough; use it on kernels where the sysfs interface is gone.",
     "gpio": null,
+    "gpiochip": null,
+    "line": null,
     "active_high": null,
     "pulse_ms": null,
     "relay_contact": null,
@@ -49,6 +63,7 @@
     "url": "REPLACED_BY_DEPLOY",
     "poll_interval_s": 30,
     "signature_key": null,
+    "signature_key_id": "default",
     "model_tag": null,
     "local_root": "/var/lib/unmanned-store-access/facedb"
   },
