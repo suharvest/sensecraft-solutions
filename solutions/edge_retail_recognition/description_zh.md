@@ -66,9 +66,15 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
 这就是货架 preset 存在的理由。
 
-**嵌入器在所有套餐上都跑 CPU。** 两种 NPU 都接不了它：Hailo 量化没达到可用精度，
-嵌入器也没有 RKNN 转换。按每个裁剪 92 ms 做规划。
+**除 reCamera Pro 外，嵌入器在所有套餐上都跑 CPU。** reComputer 两种 NPU 都接不了它：
+Hailo 量化没达到可用精度，嵌入器在这些板子上也没有 RKNN 转换。按每个裁剪 92 ms 做规划。
 货架整帧场景需要抽帧或按货位采样。
+
+**检测 + 嵌入，reCamera Pro。** 两段都以 fp16 RKNN 跑在摄像头板载 NPU 上。
+测量条件：自带应用停止、纯推理。检测 p50 112.3 ms / p95 120.4 ms，与 CPU 参考的
+框一致率 99.91%（50 张）；嵌入 p50 77.5 ms / p95 77.9 ms，与 fp32 的余弦相似度均值
+0.998，300 张子集上留一法 top-1 差 −0.33 个百分点（协议与上文 Grocery Store 检索
+不同，绝对值不可比，但两边都指向同一个结论：没有方向性偏差）。
 
 ## 输出接口
 
@@ -84,6 +90,7 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 |---|---|---|---|
 | reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
+| reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
 
 表中数字取自同款加速器平台，是参考值，reComputer 整机复测后更新。
 
