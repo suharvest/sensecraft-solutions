@@ -10,9 +10,9 @@
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 | 一台 x86_64 机器 | 模型转换。rknn-toolkit2 不在板上运行 |
 
-**这套硬件上测到了什么。** 检测段，在 reComputer RK3588 上：RKNN fp16 与 CPU 参考的
-框一致率 99.85%、p50 56.7 ms，INT8 变体 98.35%、p50 26.0 ms
-（`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`）。
+**这套硬件上测到了什么。** 检测段，在同款 RK3588 芯片平台上（与 reComputer RK3588
+同一颗芯片）：RKNN fp16 与 CPU 参考的框一致率 99.85%、p50 56.7 ms，INT8 变体
+98.35%、p50 26.0 ms（源评测记录见 `docs/internal-status.md`）。
 RK3576 上什么都没测；上面的数字只来自 RK3588。
 
 **没测到什么。** 这块板上的嵌入器从没测过延迟。它没有 RKNN 转换，也没有尝试过。
@@ -168,7 +168,7 @@ p50 18.74 ms / p95 24.25 ms——对约 160 个框做 NMS 比推理本身还贵�
 嵌入：四线程下每个裁剪 p50 91.95 ms / p95 105.98 ms，在 7 个档位上与自身 fp32 的
 检索准确率相差 0.65 个百分点以内（`evaluation/runs/2026-09-06-embed-small/` §8）。
 
-**为什么嵌入器在 CPU 上。** 两档 Hailo DFC 量化都没过 ≤3 个百分点的验收线。
+**为什么嵌入器在 CPU 上。** 两档 Hailo 量化都没过 ≤3 个百分点的验收线。
 default 档 top-1 掉 21–44 个百分点；激进档直接塌缩，8171 张评测图产出同一个向量、
 AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 嵌入器没有生成 HEF，因此那条路径也没有设备延迟数据。
@@ -252,7 +252,7 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 ### 前置条件
 
 - Pi 上 HailoRT 与 PCIe 驱动同版本且都 hold 住，固件也对得上。
-  实测那一轮全程 4.21.0，编译侧是 DFC 3.31.0。
+  实测那一轮全程 4.21.0，编译侧版本见 `devices/pi_hailo_compile.yaml`（3.31.0）。
 - `/etc/modprobe.d/hailo.conf` 里带 `force_desc_page_size=4096`。
   Pi 5 是 16 KB 页而 Hailo-8 要 4 KB descriptor。
 - `/dev/hailo0` 存在且没有别的进程占着。实测数字是独占加速器时的值。

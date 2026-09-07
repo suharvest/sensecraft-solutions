@@ -12,11 +12,11 @@ separate host.
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 | An x86_64 machine | Model conversion. rknn-toolkit2 does not run on the board |
 
-**What has been measured on this hardware.** The detector, on a reComputer RK3588:
-RKNN fp16 agrees with the CPU reference on 99.85% of boxes at 56.7 ms p50, and
-the INT8 variant on 98.35% at 26.0 ms p50
-(`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`). Nothing was measured
-on RK3576; the numbers above are RK3588 only.
+**What has been measured on this hardware.** The detector, on the same RK3588
+chip platform as the reComputer RK3588: RKNN fp16 agrees with the CPU
+reference on 99.85% of boxes at 56.7 ms p50, and the INT8 variant on 98.35% at
+26.0 ms p50 (source evaluation run listed in `docs/internal-status.md`).
+Nothing was measured on RK3576; the numbers above are RK3588 only.
 
 **What has not.** The embedder on this board has never been timed. There is no
 RKNN conversion of it and none was attempted. There is also no device-side
@@ -202,7 +202,7 @@ Embedding: 91.95 ms p50 / 105.98 ms p95 per crop on four threads, within 0.65
 percentage points of its own fp32 retrieval accuracy across seven configurations
 (`evaluation/runs/2026-09-06-embed-small/` §8).
 
-**Why the embedder is on the CPU.** Both Hailo DFC quantisation attempts failed
+**Why the embedder is on the CPU.** Both Hailo quantisation attempts failed
 the ≤3 point acceptance threshold. The default profile lost 21 to 44 points of
 top-1; the aggressive profile collapsed, producing an identical vector for all
 8171 evaluation images with AUROC exactly 50.00
@@ -297,8 +297,9 @@ the embedder on the CPU with the frame budget that follows from it.
 ### Prerequisites
 
 - HailoRT and the PCIe driver at the same version on the Pi, both held, with the
-  firmware matching. The measured run used 4.21.0 throughout, against DFC 3.31.0
-  on the compile side.
+  firmware matching. The measured run used 4.21.0 throughout, against the
+  compiler version noted in `devices/pi_hailo_compile.yaml` (3.31.0) on the
+  compile side.
 - `/etc/modprobe.d/hailo.conf` carrying `force_desc_page_size=4096`. The Pi 5
   uses 16 KB pages and the Hailo-8 expects 4 KB descriptors.
 - `/dev/hailo0` present and not held by another process. The measured numbers
