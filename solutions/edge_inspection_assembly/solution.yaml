@@ -25,6 +25,11 @@ intro:
       caption_i18n:
         zh: DeepPCB 验证集图像上的检测输出——每个框都来自 ONNX 模型的真实检测结果，由 CPU 冒烟脚本绘制，不是示意图
     - type: image
+      src: gallery/detection-overlay-2.jpg
+      caption: A second board — each defect box carries its type and score next to the ground-truth box it was matched against
+      caption_i18n:
+        zh: 另一块板子——每个缺陷框旁标出类型与分数，并与配对上的真值框并排显示
+    - type: image
       src: gallery/dimension-nominal.png
       caption: Dimension fixture at nominal size — the ArUco marker on the left gives mm-per-pixel, the block on the right is measured against it (60 x 40 mm, verdict OK)
       caption_i18n:
@@ -34,6 +39,11 @@ intro:
       caption: The same scene with an oversize part — measured 62.25 mm against a 60 mm nominal and 1 mm tolerance, verdict NG, Modbus HR10=6225 / HR11=2
       caption_i18n:
         zh: 同一场景下的超差件——名义 60 mm、公差 1 mm，量到 62.25 mm，判定 NG，Modbus HR10=6225 / HR11=2
+    - type: image
+      src: gallery/dimension-rotated.png
+      caption: The same part rotated 25 degrees — measured 60.35 x 40.17 mm at 0.10040 mm/px, verdict OK
+      caption_i18n:
+        zh: 同一目标旋转 25°——按 0.10040 mm/px 量到 60.35 × 40.17 mm，判定 OK
 
   category: sensing
   solution_type: solution
