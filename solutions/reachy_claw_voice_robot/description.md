@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Turn your Reachy Mini desktop robot into a real-time voice companion. The robot listens to its surroundings, thinks with a local AI model, speaks back, and expresses emotions through head movements and antenna poses — all with under 1 second end-to-end latency, running entirely on your Jetson device.
+Turn your Reachy Mini desktop robot into a voice-interactive robot. It listens, generates a reply with a local AI model, speaks it back, and moves its head and antennas with the reply — end-to-end latency under 1 second, running entirely on your Jetson device.
 
 ## Core Value
 
