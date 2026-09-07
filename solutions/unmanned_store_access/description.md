@@ -58,27 +58,34 @@ recognition with the relay at the gateway, and P4 XIAO + Grove Vision AI V2.
 
 Not for: doors where a failure to open is a safety event, and doors where the
 consequences of a wrongly admitted person are severe. Nothing here is a
-certified security product. Only the face-library distribution path has been
-exercised on hardware — on a standard reCamera, sources below. Recognition,
-liveness and the door path have not.
+certified security product. The face-library distribution path has been
+exercised on hardware on both the standard reCamera and reCamera Pro (P1),
+including Pro's recognition-to-GPIO pulse readback, sources below. Recognition,
+liveness, the door path, and Pro's registration path have not.
 
 ## How well it works
 
-**This is not a certified security or life-safety system.** One link has been
+**This is not a certified security or life-safety system.** Two links have been
 exercised on hardware and the rest has not, so the two are stated separately.
 
 **On hardware**: the face-library distribution path — poll, chunked download,
 per-file SHA-256, manifest signature, atomic switch, gallery write and
 `op:reload` ack, plus resume after an interrupted download and rejection of a
-version whose manifest does not verify. Two probe runs on a standard reCamera
-(SG2002 / CV181x riscv64, firmware 0.2.2).
+version whose manifest does not verify — on both a standard reCamera (SG2002 /
+CV181x riscv64, firmware 0.2.2, two probe runs) and a reCamera Pro (RV1126B,
+Buildroot 2023.02.6, one probe run). The Pro run also exercised
+recognition-to-GPIO pulse readback, using injected synthetic recognition events
+rather than a live face.
 
-**Not on hardware**: recognition, liveness and the door path. Nobody stood in
-front of the lens in either probe run — each run sampled 220 frames, all
-reading `face_count: 0` — no relay has been wired, and the thresholds are the
-device's shipped values carrying `calibration = pending`. Everything outside
-the library path runs as a pure software loop on a macOS development machine,
-with a fake actuator, an in-memory MQTT broker and a fake recogniser.
+**Not on hardware**: recognition, liveness and the door path end to end — no
+relay or lock has been wired on either device, and nobody stood in front of
+either lens (each standard-reCamera probe run sampled 220 frames, all reading
+`face_count: 0`) — and, on the Pro, the registration path, which cannot yet
+produce a face library usable in production (see Licensing note). Thresholds on
+both devices are shipped defaults carrying `calibration = pending`. Everything
+outside the library-distribution and GPIO-readback paths runs as a pure
+software loop on a macOS development machine, with a fake actuator, an
+in-memory MQTT broker and a fake recogniser.
 
 Seven boundary metrics are defined. One carries numbers and six are empty, each
 with the reason recorded rather than guessed at.
@@ -140,7 +147,7 @@ they claim.
 | Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | Same, evaluated in the cloud from the event stream | **Weakened: allowlist within a schedule, single-shot** |
 | Network on the unlock path | No | No | **Yes — broker availability is door availability** | **Yes — broker availability is door availability** | No |
 | Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Manual copy of a standard-library daemon, no container | Two-segment USB flash |
-| State | Untested on hardware | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
+| State | Library/GPIO-readback path exercised on hardware; door path and registration untested | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
 
 **Choose P1** when the door has no camera yet and you want the shortest possible
 chain: recognition, decision and contact all in one device, nothing on the
