@@ -31,12 +31,13 @@ give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
 
 Nothing was measured on RK3576; the numbers above are RK3588 only.
 
-**What has not.** End-to-end latency from a frame to a recognised item on the
-console has not been measured for this configuration. There is also no
-device-side service that joins detection, embedding, lookup and publishing —
-that process does not exist in the upstream repository for any platform. This
-preset converts both models, proves the conversions on the board, and stops
-there.
+**What has not.** End-to-end latency — from a frame to a recognised item visible
+on the console — has not been measured for this configuration. The device-side
+process that joins detection, embedding, lookup and publishing does exist
+upstream (`platforms/rk3588/runtime.py` against `platforms/rk3588/runtime.yaml`),
+but this preset does not deploy or supervise it: it converts both models, proves
+the conversions on the board, and stops there. Running that process on your own
+line is your step.
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -183,10 +184,11 @@ number for your own converted artifact, and records what is still unverified.
 
 - Fine-tune both models on capture from your own shelf. The upstream model card
   says outright that shelf and checkout deployment needs first-party data.
-- Write the device-side pipeline. Detection, embedding, gallery lookup and
-  publishing exist as separate pieces; nothing joins them yet.
-- Time the embedder on this board. It has never been measured on RK3588, and it
-  is the stage that decides whether shelf frames are workable.
+- Run the device-side process on your own line. `platforms/rk3588/runtime.py`
+  joins detection, embedding, lookup and publishing against
+  `platforms/rk3588/runtime.yaml`; this preset does not deploy or supervise it.
+- Measure end-to-end latency on your own frames. The per-stage numbers above are
+  measured; frame-to-console is not.
 
 ### Troubleshooting
 
