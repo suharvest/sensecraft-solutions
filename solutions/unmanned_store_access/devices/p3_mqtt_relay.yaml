@@ -13,7 +13,7 @@ type: docker_deploy
 # NO door wiring. The unlock leaves over MQTT and a separate node closes the
 # contact. Two relay backends are offered:
 #
-#   mqtt_modbus  A SenseCAP R1000 writing a Modbus point. The write goes through
+#   mqtt_modbus  A reComputer R1000 writing a Modbus point. The write goes through
 #                the gateway's own point-command path (prepare, then execute the
 #                prepared command) rather than around it — bypassing the point
 #                policy would put the door outside whatever interlocks the site
@@ -309,9 +309,9 @@ remote_overrides:
           label_i18n:
             zh: XIAO ESP32-S3 + Grove 继电器——订阅 access/v1/relay/{id}/set
         - value: mqtt_modbus
-          label: SenseCAP R1000 — writes a Modbus point through the gateway's point-command path
+          label: reComputer R1000 — writes a Modbus point through the gateway's point-command path
           label_i18n:
-            zh: SenseCAP R1000——经网关点位指令通道写一个 Modbus 点位
+            zh: reComputer R1000——经网关点位指令通道写一个 Modbus 点位
       name_i18n:
         zh: 继电器后端
       description_i18n:

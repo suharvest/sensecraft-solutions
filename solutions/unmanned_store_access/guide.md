@@ -638,7 +638,7 @@ than sharing the direct one.
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | reComputer J30 / J40 / R2000 | Recognition, liveness, decision |
 | RTSP camera at the door | Video source |
-| SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
+| reComputer R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
 | Relay module | COM/NO dry contact into the door controller's input |
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
@@ -886,7 +886,7 @@ Relay.
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Recognition, liveness, decision — all on the camera |
-| SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
+| reComputer R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
 | Relay module | COM/NO dry contact into the door controller's input |
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*

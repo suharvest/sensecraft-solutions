@@ -354,19 +354,17 @@ intro:
         zh: >-
           同一角色下更小的 Orin Nano 选项。它以同样的方式承载识别，本机同样没有门控接线；
           它在站点其他负载之外还剩多少余量跑识别服务，没有测过。
-    generic_modbus_relay_gateway:
-      name: SenseCAP R1000 + Modbus Relay
-      name_i18n:
-        zh: SenseCAP R1000 + Modbus 继电器
+    recomputer_r10:
       description: >-
         One of the two relay options for the MQTT preset. The unlock is written
         as a point on the gateway, going through its point-command path rather
-        than around it. Suits sites that already run an R1000 for other
-        industrial IO.
+        than around it. Suits sites that already run a reComputer R1000 for
+        other industrial IO. The relay itself is a separate item below.
       description_i18n:
         zh: >-
           MQTT 套餐的两个继电器选项之一。开门写成网关上的一个点位，走它自己的点位
-          指令通道而不是绕过它。适合站点上本来就用 R1000 接其他工业 IO 的情况。
+          指令通道而不是绕过它。适合站点上本来就用 reComputer R1000 接其他工业 IO
+          的情况。继电器本身在下面单列。
     xiao_esp32s3:
       description: >-
         The other relay option for the MQTT preset, and the door-side board of
@@ -670,7 +668,7 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: generic_modbus_relay_gateway
+            - device_ref: recomputer_r10
             - device_ref: xiao_esp32s3
           default: xiao_esp32s3
         - id: relay_module
@@ -743,7 +741,7 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: generic_modbus_relay_gateway
+            - device_ref: recomputer_r10
             - device_ref: xiao_esp32s3
           default: xiao_esp32s3
         - id: relay_module
