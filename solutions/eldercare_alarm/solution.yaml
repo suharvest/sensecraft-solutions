@@ -14,8 +14,13 @@ intro:
 
   # Local paths, not CDN URLs. Nothing has been uploaded yet; gallery/ATTRIBUTION.md
   # holds the target CDN paths and the upload TODO.
-  cover_image: gallery/eldercare-alarm-architecture.svg
+  cover_image: gallery/eldercare-alarm-console-zh.png
   gallery:
+    - type: image
+      src: gallery/eldercare-alarm-console-zh.png
+      caption: The confirmation console — alarm list, voice check-in verdicts, confirm/dismiss. Screenshot of the React UI (eldercare-alarm/eldercare/web/ui) against replayed demo data, no camera footage. See gallery/ATTRIBUTION.md.
+      caption_i18n:
+        zh: 确认控制台——告警列表、语音确认结论、确认/驳回。React 前端（eldercare-alarm/eldercare/web/ui）截图，数据来自回放器演示场景，不含摄像头画面，来源见 gallery/ATTRIBUTION.md
     - type: image
       src: gallery/eldercare-alarm-architecture.svg
       caption: Event flow — the detector publishes MQTT, the alarm service adds zones, timeouts, a state machine and an audit store
@@ -26,11 +31,6 @@ intro:
       caption: Alarm states — an evidence window, an operator window, then notification with escalation on a missed deadline
       caption_i18n:
         zh: 告警状态——取证窗口、人工确认窗口，随后通知；超过期限则升级
-    - type: image
-      src: gallery/eldercare-alarm-console-zh.png
-      caption: The confirmation console — alarm list, voice check-in verdicts, confirm/dismiss. Screenshot of the React UI (eldercare-alarm/eldercare/web/ui) against replayed demo data, no camera footage. See gallery/ATTRIBUTION.md.
-      caption_i18n:
-        zh: 确认控制台——告警列表、语音确认结论、确认/驳回。React 前端（eldercare-alarm/eldercare/web/ui）截图，数据来自回放器演示场景，不含摄像头画面，来源见 gallery/ATTRIBUTION.md
   category: sensing
   solution_type: solution
   tags:

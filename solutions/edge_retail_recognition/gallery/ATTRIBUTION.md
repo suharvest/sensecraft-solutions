@@ -4,11 +4,19 @@
 
 | File | Origin | Contains dataset imagery |
 |---|---|---|
+| `recomputer-rk3588.png` | Official Seeed Studio product photo, reComputer RK3588-30 (SKU 100071234), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/3/5/3588_26_.png` (product page: https://www.seeedstudio.com/reComputer-RK3588-30-p-6817.html) | No |
 | `architecture.svg` | Drawn for this solution | No |
 | `ui-events.png` | Upstream `docs/ui/events.png`, captured from `tools/web_demo.py` | No |
 | `ui-event-detail.png` | Upstream `docs/ui/event-detail.png`, same source | No |
 | `ui-gallery.png` | Upstream `docs/ui/gallery.png`, same source | No |
 | `ui-board.png` | Upstream `docs/ui/board.png`, same source | No |
+
+`recomputer-rk3588.png` is the cover image and first gallery entry. The four
+`ui-*.png` shots are synthetic fixtures from `tools/web_demo.py` — made-up SKU
+names, generated placeholder images and contract-shaped example events, not a
+real recognition run — so none of them is used as the cover; the official
+product photo of the reComputer RK3588 this solution's detector numbers were
+measured on is used instead.
 
 `architecture.svg` is the data path only — camera, detector, crop, embedder,
 gallery lookup, aggregation, and the outputs with their ports. Boxes, arrows,

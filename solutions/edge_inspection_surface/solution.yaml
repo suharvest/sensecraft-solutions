@@ -25,8 +25,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/recomputer-super-j4012.jpg
   gallery:
+    - type: image
+      src: gallery/recomputer-super-j4012.jpg
+      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on. No detection sample is shown here; see the licence note below
+      caption_i18n:
+        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备。这里不展示检测样图，原因见下方许可说明
     - type: image
       src: gallery/architecture.svg
       caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
@@ -72,7 +77,7 @@ intro:
       description: >-
         One JSON message per frame, carrying the verdict and every detection in
         that frame in one payload rather than one message per box. Boxes are
-        normalised [cx, cy, w, h]; `slot` is a within-frame index ordered by
+        normalised [cx, cy, w, h]; "slot" is a within-frame index ordered by
         score, not a track id. Every message is validated against the contract
         schema before it is published; a message that fails is counted and
         dropped rather than sent.
@@ -81,7 +86,7 @@ intro:
       description_i18n:
         zh: >-
           一帧一条 JSON，判定与该帧内所有检测框放在同一条消息里，不逐框发。
-          框是归一化的 [cx, cy, w, h]；`slot` 是帧内按分数降序的下标，不是 track id。
+          框是归一化的 [cx, cy, w, h]；「slot」 是帧内按分数降序的下标，不是 track id。
           每条消息发布前都过一遍契约 schema 校验，不合格的计数并丢弃，不发出去。
     - type: http
       port: 8080
