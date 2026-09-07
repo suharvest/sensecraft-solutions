@@ -18,7 +18,7 @@ detection:
     - docker_compose_installed
 
 docker:
-  compose_file: assets/docker/docker-compose.cm4.yml
+  compose_file: assets/docker/docker-compose.local-cm4.yml
   compose_dir: assets/docker
   remote_path: /data-iot/retail-voice
 
@@ -33,7 +33,7 @@ docker:
     OVS_PUNCT: "{{PUNCT}}"
 
   options:
-    project_name: retail_voice_local
+    project_name: retail_voice
     remove_orphans: true
     build: false
 
