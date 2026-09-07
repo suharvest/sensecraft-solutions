@@ -589,14 +589,14 @@ Vision AI V2 preset has no liveness model — a printed photograph opens that do
 — so it is not a substitute for the others on price alone.
 
 
-For when the box that can run recognition is nowhere near the door, or when one
-box serves several doors. Recognition runs on a J30/J40/R2000; the unlock
+For when the box that runs recognition is not at the door, or when one box
+serves several doors. Recognition runs on a J30/J40/R2000; the unlock
 travels over MQTT to a relay node — an R1000 writing a Modbus point, or a XIAO
 ESP32 driving a Grove Relay.
 
-The trade is explicit: the broker is on the unlock path, so its availability is
-the door's availability. That is why this preset carries its own latency
-boundary rather than sharing the direct one.
+The broker is on the unlock path, so its availability is the door's
+availability. This preset therefore carries its own latency boundary rather
+than sharing the direct one.
 
 | Device | Purpose |
 |---|---|
@@ -788,9 +788,9 @@ directly.
    receipt. Repeat as a viewer: expect a refusal.
 6. Delete an enrolled person, then try to roll back to a version that contained
    them. Expect a refusal naming that person.
-7. Disconnect the broker briefly and confirm the door **stops opening** — in
-   this preset that is the expected behaviour, and knowing it is what tells you
-   whether you chose the right preset for this door.
+7. Disconnect the broker briefly and confirm the door **stops opening**. In
+   this preset that is the expected behaviour: the broker is on the unlock
+   path.
 
 #### Next steps
 
@@ -1042,9 +1042,9 @@ directly.
    receipt. Repeat as a viewer: expect a refusal.
 6. Delete an enrolled person, then try to roll back to a version that contained
    them. Expect a refusal naming that person.
-7. Disconnect the broker briefly and confirm the door **stops opening** — in
-   this preset that is the expected behaviour, and knowing it is what tells you
-   whether you chose the right preset for this door.
+7. Disconnect the broker briefly and confirm the door **stops opening**. In
+   this preset that is the expected behaviour: the broker is on the unlock
+   path.
 
 #### Next steps
 

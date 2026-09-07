@@ -171,8 +171,8 @@ steps:
       `[pro] fail_mode` are mandatory and have no defaults — a magnetic lock
       that opens on power loss is `relay_contact = NC` with
       `fail_mode = fail_safe`; a strike that stays locked is `NO` with
-      `fail_secure`; and until you have measured, the honest value is
-      `unverified` on both, which is legal but named in a warning on every
+      `fail_secure`; and until you have measured, both are
+      `unverified`, which is legal but named in a warning on every
       start and means no lock may be connected. This solution's default posture
       is fail-safe, because trapping people inside is worse than letting them
       out; choosing fail-secure is a fire-safety decision, not a config default.
@@ -185,7 +185,7 @@ steps:
         之前看起来一切正常。锁的工作电流 300 mA-1 A；引脚只有 mA 级，绝不能承载锁电流。
         然后把你接的东西**声明进配置**：`[pro] relay_contact` 与 `[pro] fail_mode`
         必填且没有默认值——断电开门的电磁锁是 `relay_contact = NC` + `fail_mode = fail_safe`；
-        断电锁死的电插锁是 `NO` + `fail_secure`；量之前诚实的值是两项都写 `unverified`，
+        断电锁死的电插锁是 `NO` + `fail_secure`；量之前两项都写 `unverified`，
         它合法，但每次启动都会被横幅点名，且意味着不得接锁。本方案的默认口径是断电开门，
         因为门禁失效时把人关在里面比放人出去更危险；选 fail_secure 是一个需要消防评估的
         决定，不是配置默认值能承担的。
