@@ -20,7 +20,7 @@ This solution does it with one camera module and a USB cable. The Grove Vision A
 |----------|--------------|
 | Shop entrance | A counting line across the doorway gives footfall in and out per direction |
 | Queue monitoring | A zone over the queue area gives a live count to drive staffing decisions |
-| Meeting room / office | A zone tells you whether the room is genuinely occupied, without a booking system |
+| Meeting room / office | A zone reports whether the room is genuinely occupied, without a booking system |
 | Corridor and stairwell flow | Multiple lines along a path show which way traffic is moving |
 | Exhibition booth | A zone around the booth measures dwell, a line at the entrance measures visits |
 
