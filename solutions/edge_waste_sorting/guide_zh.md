@@ -1,4 +1,4 @@
-## 套餐: 摄像头 + reComputer J（Orin） {#orin}
+## 套餐: 摄像头 + reComputer J30 / J40（Orin） {#orin}
 
 唯一有模型文件的套餐。TensorRT engine 在部署过程中于设备上构建，因为 engine
 绑定具体 GPU 架构与 TensorRT 版本，无法预编分发。它也是唯一提供开放词汇 track

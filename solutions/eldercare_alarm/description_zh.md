@@ -92,7 +92,7 @@ EdgeFallKit 检测器的准确率。那组数字——GMDCSA-24 v2.1，按人切
 
 ## 方案对比
 
-**IP 摄像头 + reComputer J（Orin）** 把所有东西放在一台上：检测器、告警服务、broker 与确认
+**IP 摄像头 + reComputer J30 / J40（Orin）** 把所有东西放在一台上：检测器、告警服务、broker 与确认
 页面。三个套餐里它能带的路数最多；首次部署会在设备上构建 TensorRT 引擎，这也是它耗时最长的
 原因——在 reComputer J4012（Orin NX）上实测 YOLO11s-pose engine 构建耗时 455 秒。
 现场已有摄像头、但还没有网关主机时选它。

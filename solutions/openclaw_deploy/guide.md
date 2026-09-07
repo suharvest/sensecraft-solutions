@@ -4,7 +4,7 @@ Deploy OpenClaw AI messaging gateway, with optional local AI model powered by yo
 
 | Device | Purpose |
 |--------|---------|
-| reComputer Jetson | Runs OpenClaw gateway and local AI model with GPU acceleration |
+| reComputer J40 | Runs OpenClaw gateway and local AI model with GPU acceleration |
 
 **What you'll get:**
 - AI chatbot gateway supporting 20+ messaging platforms
@@ -41,7 +41,7 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 
 ### Target {#local type=local config=devices/openclaw_deploy.yaml default=true}
 
-Deploy on your reComputer Jetson device (running this software locally on the Jetson).
+Deploy on your reComputer J40 device (running this software locally on the Jetson).
 
 ### Wiring
 
@@ -66,11 +66,11 @@ Deploy on your reComputer Jetson device (running this software locally on the Je
 
 ### Target {#jetson_remote type=remote config=devices/openclaw_deploy.yaml}
 
-Deploy to a reComputer Jetson device over SSH, with GPU-accelerated local AI model.
+Deploy to a reComputer J40 device over SSH, with GPU-accelerated local AI model.
 
 ### Wiring
 
-1. Connect reComputer Jetson to the same network as your deployment machine
+1. Connect reComputer J40 to the same network as your deployment machine
 2. Enter Jetson IP address, SSH username, and password
 3. Optionally check **Enable Local AI Model** and select a model
 4. Click **Deploy** to start services

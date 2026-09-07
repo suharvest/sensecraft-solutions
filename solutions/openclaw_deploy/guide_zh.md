@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer Jetson | 运行 OpenClaw 网关和 GPU 加速的本地 AI 模型 |
+| reComputer J40 | 运行 OpenClaw 网关和 GPU 加速的本地 AI 模型 |
 
 **部署完成后你可以：**
 - AI 聊天网关支持 20+ 消息平台
@@ -41,7 +41,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署目标 {#local type=local config=devices/openclaw_deploy.yaml default=true}
 
-在 reComputer Jetson 设备上本地部署（需在 Jetson 上打开本软件）。
+在 reComputer J40 设备上本地部署（需在 Jetson 上打开本软件）。
 
 ### 接线
 
@@ -66,11 +66,11 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署目标 {#jetson_remote type=remote config=devices/openclaw_deploy.yaml}
 
-通过 SSH 部署到 reComputer Jetson 设备，利用 GPU 加速本地模型。
+通过 SSH 部署到 reComputer J40 设备，利用 GPU 加速本地模型。
 
 ### 接线
 
-1. 将 reComputer Jetson 连接到同一局域网
+1. 将 reComputer J40 连接到同一局域网
 2. 输入 Jetson IP 地址、SSH 用户名和密码
 3. 可选勾选 **启用本地模型** 并选择模型
 4. 点击 **部署** 启动服务

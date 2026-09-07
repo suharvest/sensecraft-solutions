@@ -126,9 +126,9 @@ intro:
 
   presets:
     - id: jetson
-      name: Camera + reComputer J (Orin)
+      name: Camera + reComputer J30 / J40 (Orin)
       name_i18n:
-        zh: 摄像头 + reComputer J（Orin）
+        zh: 摄像头 + reComputer J30 / J40（Orin）
       badge: Beta
       badge_i18n:
         zh: 测试版

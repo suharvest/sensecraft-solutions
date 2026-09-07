@@ -312,7 +312,7 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 ## 套餐: Jetson Orin —— TensorRT {#p3_jetson_orin}
 
 两段都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上。实测于一台 Seeed
-reComputer J 整机——是整机实测：检测器 p50 5.18 ms / p95 5.28 ms，
+reComputer J40 整机——是整机实测：检测器 p50 5.18 ms / p95 5.28 ms，
 与 CPU 参考的框一致率 99.91%（50 张，与 RK3588 用的同一批 golden）；嵌入器
 p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24 个百分点。
 一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、嵌入、库检索、
@@ -384,7 +384,7 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
 
 - 步骤 1 里的 admin token。
 - 每个 SKU 3–8 张图，正面、背面、侧面，两种光照。
-- 步骤 2 的 DINOv2-small 嵌入器：商品库必须用与 reComputer J 上 TensorRT engine
+- 步骤 2 的 DINOv2-small 嵌入器：商品库必须用与 reComputer J30 / J40 上 TensorRT engine
   同一个模型构建，否则这个套餐的检索会返回噪声。
 
 ### 故障排查
@@ -403,7 +403,7 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
 
 ### 前置条件
 
-- 一台 reComputer J（Orin NX 16GB，family key `recomputer_j40`），装好 JetPack 6.2
+- 一台 reComputer J40（Orin NX 16GB，family key `recomputer_j40`），装好 JetPack 6.2
   与 TensorRT 10.3——即实测数字所用的版本。engine 在它将要运行的那块板上构建——
   engine 与设备和 TensorRT 版本绑定，不得在板之间分发。
 - 检测器 ONNX。本包不含它：权重训练在 SKU-110K 上，仅限学术与非商用，且禁止衍生作品。

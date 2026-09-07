@@ -1,7 +1,7 @@
 /**
  * Multi-person Fall Detection overlay — ADAPTER
  *
- * Shared by the reComputer J (Jetson), reComputer RK (RKNN) and reComputer R
+ * Shared by the reComputer J30 / J40 (Jetson), reComputer RK3576 / RK3588 (RKNN) and reComputer R
  * (Hailo) presets. Maps their multi-stream fall-detection MQTT payload to a
  * RecameraOverlay `model` and delegates all drawing to the shared renderer
  * (window.RecameraOverlay). This file contains ONLY field mapping and the

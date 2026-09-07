@@ -1,4 +1,4 @@
-## Preset: Camera + reComputer J (Orin) {#orin}
+## Preset: Camera + reComputer J30 / J40 (Orin) {#orin}
 
 The only preset with a model file. The TensorRT engine is built on the device
 during deployment, because an engine is tied to the exact GPU architecture and

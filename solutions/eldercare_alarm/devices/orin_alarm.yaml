@@ -1,6 +1,6 @@
 version: "1.0"
 id: orin_alarm
-name: reComputer J (Orin)
+name: reComputer J30 / J40 (Orin)
 type: docker_deploy
 
 # device_class=jetson pulls in the shared Jetson pre-deploy fixes (the JetPack
@@ -52,7 +52,7 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: reComputer J（Orin）
+  zh: reComputer J30 / J40（Orin）
 
 remote_overrides:
   remote_path: /home/{{username}}/eldercare-alarm
@@ -351,11 +351,11 @@ remote_overrides:
       type: text
       default: recomputer
       required: true
-      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      description: "Common defaults: recomputer (Seeed reComputer J30 / J40 series), nvidia, or ubuntu."
       name_i18n:
         zh: SSH 用户名
       description_i18n:
-        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+        zh: "常见默认值：recomputer（Seeed reComputer J30 / J40 系列）、nvidia 或 ubuntu。"
     - id: password
       name: SSH Password
       type: password

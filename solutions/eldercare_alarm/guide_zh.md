@@ -1,4 +1,4 @@
-## 套餐: IP 摄像头 + reComputer J（Orin） {#orin}
+## 套餐: IP 摄像头 + reComputer J30 / J40（Orin） {#orin}
 
 所有东西放在一台 Jetson 上：EdgeFallKit 检测器、告警服务、MQTT broker 与确认页面。
 代价是部署时间——首次运行要在设备上构建 TensorRT 引擎，需要好几分钟，这也是这个套餐的超时
@@ -53,11 +53,11 @@ engine 构建耗时 455 秒，首次启动需要等这一步完成。
 | 验证阶段卡在告警 API | `docker logs eldercare_alarm_orin-eldercare-alarm-1` 会指出它拒绝的配置项。生成的文件是部署目录下的 `config/eldercare.yaml`。 |
 | 现场无事时始终没有告警 | 这是预期——超时就是为此存在的。要验证链路，把无人超时改成 1 分钟、重新部署，然后离开房间。 |
 
-### 部署目标 {#orin_remote type=remote device=orin device_name="reComputer J" config=devices/orin_alarm.yaml default=true}
+### 部署目标 {#orin_remote type=remote device=orin device_name="reComputer J30 / J40" config=devices/orin_alarm.yaml default=true}
 
 通过 SSH 部署到网络上的 Jetson。这是常规做法：应用跑在你的笔记本上，栈装到设备上。
 
-### 部署目标 {#orin_local type=local device=orin device_name="reComputer J" config=devices/orin_alarm.yaml}
+### 部署目标 {#orin_local type=local device=orin device_name="reComputer J30 / J40" config=devices/orin_alarm.yaml}
 
 直接在 Jetson 上部署，适用于应用就跑在将要承载告警服务的这台机器上的情况。
 

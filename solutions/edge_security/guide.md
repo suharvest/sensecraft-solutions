@@ -65,7 +65,7 @@ three containers are installed and started.
 | Workbench shows no device | The detector publishes its status every 30 s. Wait a cycle, then check that `mqtt_host` in `config/detector.yaml` is `mosquitto`. |
 | Alerts fire twice for one person standing still | The detector is falling behind the stream, so the tracker retires the track and a new track id re-enters the zone. On this preset one 720p camera uses 7.24 ms of a 200 ms frame, so suspect the camera or the network before the detector. |
 
-### Target {#jetson_hub_host type=remote device_name="reComputer J" config=devices/jetson_hub_stack.yaml default=true}
+### Target {#jetson_hub_host type=remote device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml default=true}
 
 ## Step 2: Open the Alert Workbench {#dashboard_edge_security_jetson_hub type=web_dashboard required=true config=devices/jetson_hub_dashboard.yaml}
 

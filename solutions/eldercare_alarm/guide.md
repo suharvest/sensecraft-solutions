@@ -1,4 +1,4 @@
-## Preset: IP Camera + reComputer J (Orin) {#orin}
+## Preset: IP Camera + reComputer J30 / J40 (Orin) {#orin}
 
 Everything on one Jetson: the EdgeFallKit detector, the alarm service, an MQTT
 broker and the confirmation page. The trade is deploy time — the first run builds
@@ -62,12 +62,12 @@ success.
 | Verification fails on the alarm API | `docker logs eldercare_alarm_orin-eldercare-alarm-1` names the configuration key it rejected. The generated file is `config/eldercare.yaml` under the deploy directory. |
 | Alarms never appear on a quiet site | Expected — that is what the timeouts are for. To prove the path, drop the no-person timeout to 1 minute, redeploy, and leave the room. |
 
-### Target {#orin_remote type=remote device=orin device_name="reComputer J" config=devices/orin_alarm.yaml default=true}
+### Target {#orin_remote type=remote device=orin device_name="reComputer J30 / J40" config=devices/orin_alarm.yaml default=true}
 
 Deploy over SSH to a Jetson on the network. This is the normal case: the app runs
 on your laptop and the stack goes to the device.
 
-### Target {#orin_local type=local device=orin device_name="reComputer J" config=devices/orin_alarm.yaml}
+### Target {#orin_local type=local device=orin device_name="reComputer J30 / J40" config=devices/orin_alarm.yaml}
 
 Deploy on the Jetson itself, when the app is running on the same machine that
 will host the alarm service.

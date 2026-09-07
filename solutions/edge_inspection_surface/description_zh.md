@@ -258,7 +258,7 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 
 ## 部署方式对比
 
-**IP 摄像头 + reComputer J（Orin）** 是有实测的那条路径。上面表里每一个数字
+**IP 摄像头 + reComputer J30 / J40（Orin）** 是有实测的那条路径。上面表里每一个数字
 都取自 Orin NX 16GB。TensorRT engine 在部署过程中于设备上构建——它与那块 GPU
 架构和那个 TensorRT 版本绑定，不做分发。需要能拿出去对账的数字就选它。
 

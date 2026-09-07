@@ -437,7 +437,7 @@ to log, not a correction to act on.
 
 ## Deployment Comparison
 
-**Camera + reComputer J (Orin)** — the only preset with a model file. The
+**Camera + reComputer J30 / J40 (Orin)** — the only preset with a model file. The
 TensorRT engine is built on the device during deployment, because an engine is
 tied to the exact GPU architecture and TensorRT version and cannot be shipped
 prebuilt. It is also the only preset offering the open-vocabulary track: the

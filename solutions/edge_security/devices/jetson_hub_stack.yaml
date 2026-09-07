@@ -410,9 +410,9 @@ remote_overrides:
       type: text
       default: recomputer
       required: true
-      description: "Common defaults: recomputer (Seeed reComputer J series), nvidia, or ubuntu."
+      description: "Common defaults: recomputer (Seeed reComputer J30 / J40 series), nvidia, or ubuntu."
       description_i18n:
-        zh: "常见默认值：recomputer（Seeed reComputer J 系列）、nvidia 或 ubuntu。"
+        zh: "常见默认值：recomputer（Seeed reComputer J30 / J40 系列）、nvidia 或 ubuntu。"
     - id: password
       name: SSH Password
       name_i18n:

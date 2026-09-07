@@ -1,4 +1,4 @@
-## Preset: IP Camera + reComputer J (Orin) {#orin}
+## Preset: IP Camera + reComputer J30 / J40 (Orin) {#orin}
 
 The measured path. A Jetson Orin pulls the camera's RTSP stream, runs YOLOX-Tiny
 on TensorRT FP16, and serves the verdict on Modbus TCP and MQTT. The engine is
