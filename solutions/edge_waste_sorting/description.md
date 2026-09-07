@@ -9,8 +9,8 @@ quantisation on all three edge chains tested (the Hailo compiler's simulator, RK
 EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
 figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
 and RK3588 sections carry real INT8 numbers, both from hardware: RK3588 from an
-RK3588 board, Hailo-8 from a Raspberry Pi 5 with a Hailo-8 M.2 module (the
-shipping form of that accelerator is the reComputer R2000).
+RK3588 board, Hailo-8 from a reComputer R2000 series unit with a
+Hailo-8 M.2 module.
 The reCamera section is the exception — those numbers were taken on the camera
 itself.
 
@@ -192,10 +192,9 @@ to the digit.
 **What these figures do and do not support.** They support: the INT8 HEF runs
 the full 7417-image val set on a real Hailo-8 at parity with the host fp32
 baseline, with the tightest latency distribution of any platform on this page
-(p95 − p50 = 0.08 ms). They do not support: **the bench is a Raspberry Pi 5
-with a Hailo-8 M.2 module, not a reComputer R2000 chassis** — same accelerator
-and same HailoRT, different enclosure, thermals and power delivery, so
-sustained-load behaviour does not carry over. Only INT8 was measured: the
+(p95 − p50 = 0.08 ms). They do not support: sustained-load behaviour under
+different thermals and power delivery than this measurement's enclosure — that
+has not been separately verified. Only INT8 was measured: the
 Hailo-8 has no fp16 path, so the quantisation cost is measured against a host
 rather than against fp16 on the same board, as it is on RK3588. The finetune
 used the train split, which shares its source and capture conditions with val,
