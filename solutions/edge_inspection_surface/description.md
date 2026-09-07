@@ -104,9 +104,10 @@ comes from:
 | rolled-in_scale | 104 | 0.6149 | 0.5481 |
 | crazing | 131 | 0.3603 | 0.3969 |
 
-Crazing has the lowest AP50 of the six classes at 0.3603, with recall 0.3969 at
-the 0.35 threshold. Changing the threshold does not move either number. A line
-whose dominant defect is crazing needs a retrained model.
+Crazing has the lowest AP50 of the six classes at 0.3603. Overall figures from
+the same pass, by threshold: 0.35 gives P 0.7652 / R 0.6969, 0.6 gives P 0.865 /
+R 0.5807, and 0.9 gives R 0.0241 with crazing and rolled-in_scale recall at 0
+(conditions in the boundary table above).
 
 The FP16 engine was also compared box-for-box against the same ONNX on CPU
 (onnxruntime): 643 matched pairs, 3 boxes on the CPU side only and none on the
@@ -171,9 +172,9 @@ matched precision instead of matched threshold (P approx. 0.81-0.87), D-FINE's
 recall is 2-7 points higher than YOLOX's and whole-frame misses drop to 20
 against YOLOX's 38.
 
-**Crazing AP50 does not change with a different architecture.** It stays
-0.30-0.36 across all three (YOLOX 0.360, D-FINE 0.302, RT-DETRv2 0.310),
-matching the YOLOX figure in the Jetson boundary table.
+**Crazing AP50 across the three detector tracks:** YOLOX 0.360, D-FINE 0.302,
+RT-DETRv2 0.310 (same validation set, same evaluation protocol). The YOLOX
+figure matches the Jetson boundary table.
 
 **Hailo-8 does not support either DETR track — the reComputer R2000 preset stays
 on YOLOX-Tiny.** The Hailo Dataflow Compiler 3.31.0 parser rejects
@@ -323,9 +324,8 @@ deploy step checks each one.
 ## Usage Notes
 
 - **The threshold is a business decision.** 0.35
-  is the deployed value. Going to 0.6 buys precision 0.765 to 0.865 and costs
-  whole-frame misses 7 to 39 out of 290. Decide which error your line can absorb
-  before changing it.
+  is the deployed value. At 0.6, precision goes from 0.765 to 0.865 and
+  whole-frame misses go from 7 to 39 out of 290.
 - **False alarms are unmeasured.** Every image in the validation split carries a
   defect, so nothing here says how often a clean strip is called NG. That number
   has to come from your own line.
