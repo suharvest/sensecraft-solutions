@@ -22,9 +22,23 @@ steps:
       zh: 取转换好的模型
     description: >-
       The model comes from the upstream repository `edge-waste-sorting`; it is
-      not committed to this package and not on the CDN. Convert it with
-      `platforms/rknn/rknn_convert_m1c.py --target rv1126b`, or take the
-      artifact from that repo's evaluation run, then check it:
+      not committed to this package and not on the CDN. Either take the built
+      artifact from that repository's `evaluation/runs/2026-09-07-recamera-pro/`
+      run, or convert it yourself on an x86_64 Linux host with
+      `rknn-toolkit2` 2.3.2 installed — the conversion does not run on the
+      camera:
+
+        # from the root of the edge-waste-sorting checkout;
+        # models/efficientnet_lite0_waste8.onnx is 13,477,056 bytes,
+        # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+        python platforms/rknn/rknn_convert_m1c.py \
+          --onnx models/efficientnet_lite0_waste8.onnx \
+          --data-root data/cls/waste8 \
+          --out-dir out-rv1126b \
+          --target rv1126b --calib-sizes 256 --algos mmse
+
+      `--data-root` must contain a `train/` directory of class folders; the
+      script samples 256 calibration images from it. Then check the result:
 
         sha256sum efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
         # 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723
@@ -36,8 +50,21 @@ steps:
     description_i18n:
       zh: >-
         模型来自上游仓库 `edge-waste-sorting`，没有提交进本包，也不在 CDN 上。
-        用 `platforms/rknn/rknn_convert_m1c.py --target rv1126b` 转换，或者
-        直接从那个仓库的评测目录里取，然后核对：
+        要么直接取那个仓库 `evaluation/runs/2026-09-07-recamera-pro/` 里已经
+        构建好的产物，要么自己在装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux
+        主机上转换——转换过程跑不了在相机上：
+
+          # 在 edge-waste-sorting 检出目录的根下执行；
+          # models/efficientnet_lite0_waste8.onnx 为 13,477,056 字节，
+          # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+          python platforms/rknn/rknn_convert_m1c.py \
+            --onnx models/efficientnet_lite0_waste8.onnx \
+            --data-root data/cls/waste8 \
+            --out-dir out-rv1126b \
+            --target rv1126b --calib-sizes 256 --algos mmse
+
+        `--data-root` 下必须有一个按类分文件夹的 `train/` 目录，脚本从中抽
+        256 张校准图。然后核对结果：
 
           sha256sum efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
           # 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723
