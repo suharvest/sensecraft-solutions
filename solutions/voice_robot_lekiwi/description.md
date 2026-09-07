@@ -9,7 +9,7 @@ Everything runs on a Raspberry Pi — it listens for your voice, understands wha
 - **Hands-free control** — Say "Hey Jarvis" and give a command. The robot listens, understands, and moves
 - **Natural language** — No memorizing keybindings. Just speak what you want — "go forward", "slide left", "keep turning"
 - **Voice replies** — The robot talks back. You'll hear confirmation and status through speakers
-- **Omnidirectional movement** — Kiwi-drive lets the robot move forward, backward, strafe, and rotate seamlessly
+- **Omnidirectional movement** — Kiwi-drive lets the robot move forward, backward, strafe, and rotate
 
 ## Use Cases
 
