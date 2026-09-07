@@ -169,7 +169,9 @@
 | 手机 App（你的，不在本包内） | 采集音频并上传到 ASR 端点 |
 | reSpeaker XVF3800 + reComputer RK3576 或 reRouter CM4 | App 之外的采集端选择 |
 
-**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别是关的：声纹容器的镜像尚未构建，`speaker.identified` 恒为 false，步骤 2 的 ASR 端点在那个镜像出来之前无法端到端跑通。
+**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别默认是关的：声纹容器的镜像已发布，但这次部署不会拉取它需要的模型
+（约 564MB），要手动放好——见步骤 2 的前置条件——放好之前 `speaker.identified`
+恒为 false。
 
 ## 步骤 1: 部署语音服务端栈 {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
@@ -186,10 +188,9 @@ voice-service 与管理后台。
 4. 首次部署要拉好几 GB 镜像，其中大部分是语音容器。网络慢的话，
    部署里耗时最长的是这一段，不是启动。
 5. 主机必须是 arm64。冻结镜像没有 amd64 变体，随包的 ASR 镜像是 RK3576 NPU 构建。
-6. 其中三个镜像还没进 registry。`docker manifest inspect` 对 voice-service、voice-web
-   和声纹镜像返回 "artifact not found"，而语音、MySQL、MinIO 三个能解析出来。
-   先把它们推上去，并用 `docker buildx imagetools inspect` 复核 digest，
-   这一步才拉得到东西。
+6. 所有镜像（voice-service、voice-web、ASR/声纹镜像、MySQL、MinIO）都已发布，
+   compose 文件里按 digest 固定。例外是声纹容器的模型——它的镜像已发布，
+   但这一步不会拉取模型文件（见下文）。
 
 ### 接线
 
@@ -210,13 +211,13 @@ voice-service 与管理后台。
 | 所有 API 调用都 401 | 你发的令牌不在 `VOICE_API_TOKENS` 里；格式是 `name:role:token`，逗号分隔 |
 | 返回的是 403 而不是 401 | 凭据有效但角色档位不够——删除与导出需要 admin |
 | 别的机器连不上 MySQL | 有意为之：MySQL 与 MinIO 只绑 127.0.0.1。要远程连走 SSH 隧道 |
-| 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；它的镜像尚未构建 |
-| 拉 voice-service 或 voice-web 报 "not found" | 这两个镜像还没推到 registry——先构建并推送，再确认 compose 里的 digest 与 registry 返回的一致 |
+| 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；如果你开了这个 profile，检查模型是否放好——见步骤 2 的前置条件 |
+| 声纹容器报 `tokens.txt does not exist` 退出 | 这次部署没有拉取它的模型——去上游 `sensecraft-asr-service` 仓库跑 `download_models.sh`，把产物拷到 `/data-iot/respeaker/models` |
 | 莫名出现云端分析容器 | 它只在 `--profile cloud-analytics` 时启动；如果在跑，说明有人开了它，文本正在离开这台主机 |
 | 麦克风采集目标：voice-client 反复重启 | ALSA 声卡编号不对；在设备上 `cat /proc/asound/cards`，用正确的编号重新部署 |
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
 | `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
-| 部署报 `set OVS_ASR_IMAGE ...` | 只会出现在 reRouter CM4 目标上：本包没有固定 CPU 版 ASR 镜像，需要你提供引用 |
+| reRouter CM4 目标要换 ASR 镜像 | `OVS_ASR_IMAGE` 现在默认是 `rpi-20260721` 的 arm64 CPU 构建（按 digest 固定）；要跑别的构建时才在部署输入里覆盖 |
 | CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证，compose 里的内存上限是按 RK3576 的内存写的——4 GB 的 CM4 要调低 |
 
 ### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}
@@ -361,9 +362,13 @@ voice-service 与管理后台。
 1. 任何内容离开局域网之前，先在 ASR 端点前面加 TLS 终结。
 2. 在真实硬件上跑边界测试——并发、连续时长、WER、落库时延目前都没测，
    所以现在不能用这套部署给出任何容量结论。
-3. 构建并推送声纹镜像，然后用
-   `docker compose --profile voiceprint up -d asr-voiceprint` 起它，
-   再在有声纹的情况下重跑一次删除检查。
+3. 声纹镜像已发布，但这一步只建了模型目录、没有下载模型。启动
+   `asr-voiceprint` 之前，先从上游 `sensecraft-asr-service` 仓库跑
+   `download_models.sh`，把产物（SenseVoice ASR、标点、声纹、VAD 模型，
+   共约 564MB）拷到本设备的 `/data-iot/respeaker/models`。然后再用
+   `docker compose --profile voiceprint up -d asr-voiceprint` 起它——不放
+   模型会以 `tokens.txt does not exist` 报错退出——再在有声纹的情况下重跑
+   一次删除检查。
 4. 和现场隐私告知的负责人一起定保留期；24 小时是默认值，不是建议值。
 5. CM4 上先把 CPU 版 ASR 路径端到端验一遍，并调低 ASR 容器的内存上限，
    再把那个目标当作可用。

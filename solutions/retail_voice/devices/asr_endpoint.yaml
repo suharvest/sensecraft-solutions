@@ -113,24 +113,30 @@ steps:
     description: >-
       /ws on port 8080 is served by the asr-service container (asr-voiceprint in
       the compose file), which also owns speaker identification. That container
-      is in the `voiceprint` profile and does not start by default: the source
-      gap that blocked its build has been fixed, but the image is still pending
-      a build and has not been pushed, so the compose file references it by tag
-      rather than digest. Until it is built and pullable there is no
-      /ws?token= endpoint to hand over, and `speaker.identified` would be false
-      anyway. Start it with
-      `docker compose --profile voiceprint up -d asr-voiceprint` once the image
-      is available, and confirm with the wscat probe above before telling the
-      app side the endpoint is live. The edge-collector preset does not depend
-      on this: it transcribes through OpenVoiceStream instead.
+      is in the `voiceprint` profile and does not start by default. Its image
+      is published and pinned by digest, but its five model files (SenseVoice
+      ASR, punctuation, speaker and VAD, ~564 MB) are not: this deployment step
+      only creates `/data-iot/respeaker/models`, it does not populate it. Run
+      `download_models.sh` from the upstream `sensecraft-asr-service`
+      repository and copy its output there first. Until the models are in
+      place the container exits at startup with `tokens.txt does not exist`,
+      so there is no /ws?token= endpoint to hand over, and `speaker.identified`
+      would be false anyway. Start it with
+      `docker compose --profile voiceprint up -d asr-voiceprint` once the
+      models are in place, and confirm with the wscat probe above before
+      telling the app side the endpoint is live. The edge-collector preset
+      does not depend on this: it transcribes through OpenVoiceStream instead.
     description_i18n:
       zh: >-
         8080 上的 /ws 由 asr-service 容器（compose 里的 asr-voiceprint）提供，
-        说话人识别也在它身上。这个容器在 `voiceprint` profile 里，默认不启动：
-        挡住它构建的源码缺口已经补上，但镜像仍待构建验证且未 push，
-        所以 compose 里引用的是 tag 而不是 digest。
-        在镜像构建好并能拉到之前，没有 /ws?token= 端点可交付，
-        `speaker.identified` 也只会是 false。镜像就绪后用
+        说话人识别也在它身上。这个容器在 `voiceprint` profile 里，默认不启动。
+        它的镜像已发布并按 digest 固定，但它要用的五个模型文件
+        （SenseVoice ASR、标点、声纹、VAD，共约 564MB）还没有：这一步只建了
+        `/data-iot/respeaker/models` 目录，没有填充内容。要先从上游
+        `sensecraft-asr-service` 仓库跑 `download_models.sh`，把产物拷到那个
+        目录。模型就位之前，容器启动就会以 `tokens.txt does not exist` 报错
+        退出，也就没有 /ws?token= 端点可交付，`speaker.identified` 也只会是
+        false。模型就位后用
         `docker compose --profile voiceprint up -d asr-voiceprint` 起它，
         并用上面的 wscat 探测确认之后，再告诉 App 侧端点可用。
         边缘采集套餐不依赖这一条：它走 OpenVoiceStream 转写。

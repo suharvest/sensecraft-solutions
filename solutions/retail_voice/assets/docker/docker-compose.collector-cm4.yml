@@ -1,7 +1,7 @@
 # reRouter CM4 采集端用的编排。基线是同目录的 docker-compose.yml（C4 冻结版），
 # 差异只有 ovs-asr 一个服务，逐条列在下面它自己的注释里：
-#   1. 镜像不写死：冻结版固定的是 RK3576 NPU 构建，CM4 上跑不了；
-#      本包没有为 CM4 固定过 OVS CPU 构建的 digest，因此改为必填的 OVS_ASR_IMAGE。
+#   1. 镜像换成 arm64 CPU 构建：冻结版固定的是 RK3576 NPU 构建，CM4 上跑不了。
+#      默认值是 solution/seeed-local-voice:rpi-20260721 的 digest，可用 OVS_ASR_IMAGE 覆盖。
 #   2. ASR_BACKEND / ASR_PLATFORM / OVS_PROFILE_DEFAULT 默认值改成 CPU 侧的取值。
 # 其余服务与冻结版逐字相同。
 #
@@ -30,6 +30,16 @@
 #   sensecraft-voice-service 67ac9dbf76cb
 #   sensecraft-voice-web     b154c0a956ac
 # 本次 C4 加固在各子仓的 feature/c4-harden 分支上，镜像 digest 见 IMAGE-DIGESTS.md。
+#
+# 重新发布（2026-09-08）：respeaker/ 项目下原先引用的四个 artifact 已被清理，
+# 且当前 Harbor 账号在 respeaker/ 项目无写权限，无法推回原路径，因此改推到
+# solution/ 项目。镜像在 spark（GB10, aarch64）用各子仓现有 Dockerfile 原生构建：
+#   solution/sensecraft-asr-server   @sha256:d8c87cee…  ← sensecraft-asr-service  feature/c4-harden 0e30d80
+#   solution/sensecraft-voice-client @sha256:136ae96c…  ← sensecraft-voice-client feature/c4-harden 0917415
+#   solution/sensecraft-voice-service@sha256:0f424773…  ← sensecraft-voice-service feature/c4-harden a896868
+#   solution/sensecraft-voice-web    @sha256:95e3a794…  ← sensecraft-voice-web    feature/ui-kit    502756e
+# 除 voice-service 为 arm64+amd64 外，其余均为 linux/arm64 单架构。
+# 语音/声纹模型不打进镜像，按各服务的挂载点在部署时提供。
 #
 # 用法：
 #   cp .env.example .env      # 填数据库密码与 API 令牌，.env 不入库
@@ -92,10 +102,14 @@ services:
   # （deploy/docker-compose.rk.yml、deploy/IMAGE-TAGS.md），不改那个仓库。
   # digest 取自 IMAGE-TAGS.md 的 rk-20260903.10 一行。
   ovs-asr:
-    # 冻结版这里写死的是 RK3576 NPU 构建（rk-20260903.10）。CM4 没有 RKNN，
-    # 那个镜像跑不了；而本包没有为 CM4 固定过一个 OVS CPU 构建的 digest，
-    # 编不出来就不写——所以镜像从环境变量来，部署时必须显式给一个。
-    image: ${OVS_ASR_IMAGE:?set OVS_ASR_IMAGE to an OVS CPU build for arm64 CM4}
+    # 冻结版这里写死的是 RK3576 NPU 构建（rk-20260903.10）。CM4 没有 RKNN，那个镜像跑不了。
+    # 默认改为 OpenVoiceStream 的 arm64 CPU 构建 seeed-local-voice:rpi-20260721
+    # （deploy/docker/Dockerfile.rpi，sherpa-onnx + onnxruntime CPU EP，无 NPU 依赖），
+    # 按 index digest 固定。Paraformer ASR / Matcha TTS 模型不在镜像里，
+    # 首次启动由 server/core/model_downloader.py 从 sensecraft-statics CDN 拉到
+    # 下面的 ovs-asr-models / ovs-tts-models 卷。
+    # 要换别的构建时用环境变量覆盖：OVS_ASR_IMAGE=<repo>@sha256:<digest>
+    image: ${OVS_ASR_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:b7c492ac24712264a32ce92e8a10b5160540de1188bba2d9ff85f99a96668eef}
     container_name: c4-ovs-asr
     restart: unless-stopped
     # CM4 上没有 NPU 字符设备要透传，但保留 privileged 与 /dev 挂载
@@ -130,14 +144,17 @@ services:
 
   # 端侧声纹服务。C4 加固后 /ws 与声纹接口都要令牌。
   #
-  # 状态（2026-09-05）：此前构不出的原因——缺 internal/audio_cache——已解决，
-  # 源码从远端 feature/omi-remote(77d7b61) 取回并提交到 feature/c4-harden(3d6abd3)。
-  # 镜像仍待构建验证，tag sensecraft-asr-server:c4-<sha> 尚未 push，
-  # 所以这里用 tag 而不是 digest，服务仍留在 voiceprint profile 里默认不启动。
-  # 开启条件：镜像已构建并能从本机拉到，且 .env 里配了 ASR_API_TOKENS。
+  # 状态（2026-09-08）：镜像已在 spark 上按 sensecraft-asr-service
+  # feature/c4-harden(0e30d80) 构建并推送，linux/arm64，digest 见下。
+  # tag 别名：solution/sensecraft-asr-server:c4-frozen 与 :c4-0e30d80。
+  # 项目路径从 respeaker/ 改为 solution/：respeaker/ 上的旧 artifact 已被清理，
+  # 且本账号在该项目无写权限，无法重新发布到原路径。
+  # 服务仍留在 voiceprint profile 里默认不启动。
+  # 开启条件：.env 里配了 ASR_API_TOKENS；声纹模型按 download_models.sh 放到
+  # /data-iot/respeaker/models（模型不打进镜像）。
   #   docker compose --profile voiceprint up -d asr-voiceprint
   asr-voiceprint:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-asr-server:c4-frozen
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-asr-server@sha256:d8c87cee8fed366b7384c8814fd1859b724a0d22cc75cd0aba871f15af8d7713
     container_name: c4-asr-voiceprint
     profiles: ["voiceprint"]
     restart: unless-stopped
@@ -157,7 +174,7 @@ services:
       start_period: 60s
 
   voice-client:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client@sha256:ec13774f3493e274d3be7a2afd58a8b4b1f17b674950bde766ab4fe451b1ebb6
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5
     container_name: c4-voice-client
     restart: unless-stopped
     depends_on:
@@ -187,7 +204,7 @@ services:
       - SYS_RAWIO
 
   voice-service:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-service@sha256:6e67dbd1b73ff95424104c4a7d382e0e079a7cb23245093876b2bafff027214e
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
     container_name: c4-voice-service
     restart: unless-stopped
     depends_on:
@@ -213,7 +230,7 @@ services:
       start_period: 30s
 
   voice-web:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-web@sha256:117c50acf12915810735bea4bd5a443b77d17699b04724d63e615fb251a5d18c
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:95e3a794de3cc30f7a4be93dd2a31902316522b31b5a64b88cf76e95e55ed80b
     container_name: c4-voice-web
     restart: unless-stopped
     depends_on:
@@ -229,7 +246,7 @@ services:
   # 但「离线」这条卖点在启用后就不成立了，所以做成显式 opt-in。
   #   docker compose --profile cloud-analytics up -d
   cloud-analytics:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-service@sha256:6e67dbd1b73ff95424104c4a7d382e0e079a7cb23245093876b2bafff027214e
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
     container_name: c4-cloud-analytics
     profiles: ["cloud-analytics"]
     restart: unless-stopped

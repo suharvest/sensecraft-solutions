@@ -215,10 +215,10 @@ is only ever one deploy.
 only — the audio is kept unredacted for its retention window and is covered by
 the deletion flow. Redaction scored precision 0.98 / recall 0.95 on a
 114-sample gold set, which means misses happen; low-confidence entities are
-flagged for review rather than masked. Speaker identification is off: the
-voiceprint container's image has not been built, so `speaker.identified`
-stays false and the ASR endpoint of Step 2 cannot be completed end to end until
-that image exists.
+flagged for review rather than masked. Speaker identification is off by
+default: the voiceprint container's image is published, but its models
+(~564 MB) are not fetched by this deployment and must be placed by hand — see
+Step 2's prerequisites — so `speaker.identified` stays false until they are.
 
 ## Step 1: Deploy the Voice Server Stack {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
@@ -238,11 +238,10 @@ console.
    a slow link this is the long part of the deployment, not the startup.
 5. The host must be arm64. The frozen images have no amd64 variant, and the
    bundled ASR image is the RK3576 NPU build.
-6. Three of the images are not on the registry yet. `docker manifest inspect`
-   answers "artifact not found" for voice-service, voice-web and the voiceprint
-   image, while the speech, MySQL and MinIO images resolve. Push them and
-   re-check their digests with `docker buildx imagetools inspect` before this
-   step can pull anything.
+6. All images (voice-service, voice-web, the ASR/voiceprint image, MySQL and
+   MinIO) are published and pinned by digest in the compose file. The
+   voiceprint container's models are the exception — its image is published
+   but the model files are not fetched by this step (see below).
 
 ### Wiring
 
@@ -268,13 +267,13 @@ array to wire and nothing here applies.
 | Every API call returns 401 | The token you are sending is not in `VOICE_API_TOKENS`; the format is `name:role:token`, comma-separated |
 | A call returns 403, not 401 | The credential is valid but its role is too low — deletion and export need admin |
 | MySQL cannot be reached from another machine | Intentional: MySQL and MinIO bind to 127.0.0.1 only. Use an SSH tunnel |
-| `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; its image has not been built |
-| Pull fails with "not found" on voice-service or voice-web | Those images have not been pushed to the registry yet — build and push them, then confirm the digest in the compose file matches what the registry returns |
+| `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; if you enabled the profile, check its models are in place — see Step 2's prerequisites |
+| Voiceprint container exits with `tokens.txt does not exist` | Its models were not fetched by this deployment — run `download_models.sh` from the upstream `sensecraft-asr-service` repository and copy the output into `/data-iot/respeaker/models` |
 | Cloud analytics containers appear unexpectedly | They only start with `--profile cloud-analytics`; if they are running, someone enabled it, and text is leaving the host |
 | Mic-capture targets: voice-client restarts in a loop | The ALSA card ID is wrong; `cat /proc/asound/cards` on the device and redeploy with the right number |
 | Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
 | Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
-| Deploy fails with `set OVS_ASR_IMAGE ...` | Only the reRouter CM4 target: no CPU ASR image is pinned by this package, so you must supply the reference |
+| Wrong ASR image on the reRouter CM4 target | `OVS_ASR_IMAGE` now defaults to the `rpi-20260721` arm64 CPU build pinned by digest; override it in the deploy inputs only to run a different build |
 | Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here, and the compose memory limit is written for RK3576's memory — a 4 GB CM4 needs it lowered |
 
 ### Target {#stack_remote type=remote device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml default=true}
@@ -452,8 +451,13 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 2. Run the boundary measurements on the real hardware — concurrency, capture
    duration, WER and persist latency are all unmeasured, so no capacity claim
    should be made from this deployment yet.
-3. Build and push the voiceprint image, then start it with
-   `docker compose --profile voiceprint up -d asr-voiceprint`, and re-run the
+3. The voiceprint image is published, but this step only creates the models
+   directory — it does not populate it. Before starting `asr-voiceprint`, run
+   `download_models.sh` from the upstream `sensecraft-asr-service` repository
+   and copy its output (SenseVoice ASR, punctuation, speaker and VAD models,
+   ~564 MB total) into `/data-iot/respeaker/models` on this device. Then start
+   it with `docker compose --profile voiceprint up -d asr-voiceprint` — without
+   the models it exits with `tokens.txt does not exist` — and re-run the
    deletion check with a voiceprint present.
 4. Decide the retention window with whoever owns the site's privacy notice; 24
    hours is a default, not a recommendation.

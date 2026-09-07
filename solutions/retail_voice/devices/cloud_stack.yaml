@@ -83,7 +83,8 @@ remote_overrides:
           ARCH=$(uname -m)
           echo "arch: $ARCH"
           if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
-            echo "WARNING: the frozen images are arm64 only; this host is $ARCH" >&2
+            echo "The published images (voice-service, voice-web, ASR) are arm64 only; this host is $ARCH. Stopping before compose pulls fail obscurely." >&2
+            exit 1
           fi
         name_i18n:
           zh: 检查 Docker 与主机架构
