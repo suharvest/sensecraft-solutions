@@ -241,14 +241,14 @@ http://localhost:8042
 | 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 | 没有摄像头画面 | 视觉服务首次启动需构建 TRT 引擎（约 5 分钟）。检查：`docker logs vision-trt` |
 
-## 套餐: R2000 + Hailo-8 {#r2000_hailo}
+## 套餐: AI Industrial R21 + Hailo-8 {#r2000_hailo}
 
-在单台 R2000（树莓派 5 + Hailo-8）上部署完整的 Reachy 语音机器人栈。视觉跑在 Hailo NPU 上，语音和 LLM 通过远程 Jetson 语音助手提供。
+在单台 AI Industrial R21（Hailo-8）上部署完整的 Reachy 语音机器人栈。视觉跑在 Hailo NPU 上，语音和 LLM 通过远程 Jetson 语音助手提供。
 
 | 设备 | 用途 |
 |------|------|
-| reComputer R2000（Pi 5 + Hailo-8） | 机器人控制、对话、Hailo 加速视觉 |
-| Reachy Mini | 通过 USB 连接到 R2000 的桌面机器人 |
+| reComputer AI Industrial R21（Hailo-8） | 机器人控制、对话、Hailo 加速视觉 |
+| Reachy Mini | 通过 USB 连接到 AI Industrial R21 的桌面机器人 |
 | Jetson（远程） | 语音（ASR/TTS）+ Edge LLM（TensorRT-Edge-LLM）——在步骤 1 中部署 |
 
 **将会部署：**
@@ -257,8 +257,8 @@ http://localhost:8042
 - **视觉分析** — 人脸检测、情绪识别、人物追踪（Hailo-8 NPU）
 
 **前置条件：**
-- Reachy Mini 通过 USB 连接到 R2000
-- USB 摄像头接在 R2000 上
+- Reachy Mini 通过 USB 连接到 AI Industrial R21
+- USB 摄像头接在 AI Industrial R21 上
 - Hailo-8 AI HAT 已插入 M.2 插槽，`/boot/firmware/config.txt` 已启用 PCIe Gen3
 - Jetson 设备已安装 JetPack 6.x，可通过 SSH 连接，需要联网（语音服务将在步骤 1 中部署）
 
@@ -327,7 +327,7 @@ curl http://localhost:8621/health
 
 ## 步骤 2: 部署 Reachy 语音机器人（Hailo） {#reachy_hailo_deploy type=docker_deploy required=true config=devices/reachy_hailo_deploy.yaml target_inherit_from=hailo_speech_service}
 
-将机器人控制、对话和 Hailo 加速的视觉服务一步部署到 R2000。部署器会在缺失时自动安装 Hailo 栈。
+将机器人控制、对话和 Hailo 加速的视觉服务一步部署到 AI Industrial R21。部署器会在缺失时自动安装 Hailo 栈。
 
 
 ### 部署完成
@@ -362,14 +362,14 @@ curl http://localhost:8621/health
 
 ### 部署目标 {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
-通过 SSH 一键部署到 R2000。
+通过 SSH 一键部署到 AI Industrial R21。
 
 ### 接线
 
-1. 用 USB 线将 Reachy Mini 连接到 R2000
-2. 将 USB 摄像头插入 R2000
-3. 确保 R2000 已联网且 SSH 可访问
-4. 输入 R2000 的 IP 地址和 SSH 凭据（默认用户名: `pi`）
+1. 用 USB 线将 Reachy Mini 连接到 AI Industrial R21
+2. 将 USB 摄像头插入 AI Industrial R21
+3. 确保 AI Industrial R21 已联网且 SSH 可访问
+4. 输入 AI Industrial R21 的 IP 地址和 SSH 凭据（默认用户名: `pi`）
 5. 输入**语音助手主机**——运行语音 + LLM 的 Jetson IP（例如 `192.168.1.100`）
 6. 配置数据目录（默认: `~/reachy-data`）
 7. 可选启用**全屏展示模式**，设备开机后自动全屏打开仪表盘
@@ -404,7 +404,7 @@ ssh pi@<r2000-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 
 ### 部署目标 {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
 
-直接在当前机器上部署（需要 R2000 + Hailo-8，Reachy Mini 通过 USB 连接）。
+直接在当前机器上部署（需要 AI Industrial R21 + Hailo-8，Reachy Mini 通过 USB 连接）。
 
 ### 接线
 
@@ -430,15 +430,15 @@ http://localhost:8042
 | 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
 | 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
 
-# 服务总览（R2000 套餐）
+# 服务总览（AI Industrial R21 套餐）
 
 | 服务 | 主机 | 端口 | 作用 |
 |------|------|------|------|
 | 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
 | Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
-| 机器人控制 | R2000 | 38001 | Reachy daemon（电机） |
-| 对话引擎 | R2000 | 8042 | 对话 + 仪表盘 |
-| 视觉（Hailo） | R2000 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
+| 机器人控制 | AI Industrial R21 | 38001 | Reachy daemon（电机） |
+| 对话引擎 | AI Industrial R21 | 8042 | 对话 + 仪表盘 |
+| 视觉（Hailo） | AI Industrial R21 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
 
 ---
 
