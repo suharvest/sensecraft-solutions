@@ -4,18 +4,29 @@
 # the `web` service removed — the console runs on the cloud host, once, not on
 # every door.
 #
-# NEITHER IMAGE IS AVAILABLE YET.
+# ONE OF THE TWO IMAGES IS PUBLISHED.
 #
-#   face-rec-api  The upstream recognition service. The design spec requires a
-#                 DIGEST-pinned reference, not a tag: two doors running the
-#                 same tag but different digests would hold embeddings that are
-#                 not comparable, and the failure shows up as people not being
-#                 recognised rather than as a version mismatch. There is no
-#                 published digest yet, so FACE_REC_API_IMAGE is required with
-#                 no default and the deploy stops here until it is set.
-#   access-node   This project's own device-side process. C1 was a pure software
-#                 loop with no device process at all, so this image has never
-#                 been built. ACCESS_NODE_IMAGE likewise has no default.
+#   face-rec-api  The upstream recognition service, published 2026-09-07 as
+#                 solution/face-rec-api:0.1.0-usa-jetson (linux/arm64, built
+#                 from face_rec_api Dockerfile.jetson-usa). The default below is
+#                 a DIGEST, not a tag, and that is deliberate: two doors running
+#                 the same tag but different digests would hold embeddings that
+#                 are not comparable, and the failure shows up as people not
+#                 being recognised rather than as a version mismatch.
+#                 FACE_REC_API_IMAGE still overrides it, for a site that pins a
+#                 different build.
+#                 The image carries no weights. TensorRT engines are JetPack +
+#                 SM specific and the InsightFace-derived weights are under a
+#                 non-commercial licence, so both are mounted from the host
+#                 (-v .../models:/models) rather than shipped in the image.
+#                 CUDA / TensorRT libs come from the host JetPack install too,
+#                 so the container needs `--runtime nvidia`.
+#   access-node   This project's own device-side process. STILL NOT BUILT: the
+#                 repository has no daemon for it — core_access.AccessNode is a
+#                 library class that tools/verify_software_loop.py wires by hand,
+#                 and nothing in the repo reads the access-node.json in
+#                 ../edge/config. ACCESS_NODE_IMAGE therefore still has no
+#                 default and the deploy stops here.
 #
 # Service boundaries, which are also the security boundaries: face-rec-api only
 # produces embeddings and a liveness score; access-node makes every decision and
@@ -32,7 +43,7 @@ x-logging: &bounded_logs
 
 services:
   face-rec-api:
-    image: ${FACE_REC_API_IMAGE:?set FACE_REC_API_IMAGE to a digest-pinned image}
+    image: ${FACE_REC_API_IMAGE:-sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac}
     container_name: usa-face-rec-api
     restart: unless-stopped
     <<: *bounded_logs
