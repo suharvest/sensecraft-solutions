@@ -448,7 +448,7 @@ immutable gallery version.
 |---|---|
 | Registration refused with "fewer than three images" | By design. |
 | The same sku_id returns 409 | By design. Pass `replace=true` to replace it. |
-| Unsure which embedder to standardise on | DINOv2-small measured 79.11% top-1 at eight images per SKU on this preset's own TensorRT engine (21 retrieval metrics within 0.24pp of fp32); DINOv2-base (RK3588 preset) measured 84.67% at the same k but has not been converted for TensorRT. |
+| Unsure which embedder to standardise on | DINOv2-small measured 79.20% top-1 at eight images per SKU on this preset's own TensorRT engine (fp32 reference is 79.11%; 21 retrieval metrics stay within 0.24pp of fp32 across the board); DINOv2-base (RK3588 preset) measured 84.67% at the same k but has not been converted for TensorRT. |
 | Gallery version does not increase | The registration failed the quality gate. The response says which image. |
 
 ## Step 4: Build the TensorRT Engines {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}

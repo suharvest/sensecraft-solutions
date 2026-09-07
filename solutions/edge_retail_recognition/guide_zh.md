@@ -385,7 +385,7 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
 |---|---|
 | 注册被拒，提示图片少于三张 | 这是设计如此。 |
 | 同一个 sku_id 返回 409 | 设计如此。要替换就带 `replace=true`。 |
-| 不确定该统一到哪个嵌入器 | DINOv2-small 在这个套餐自己的 TensorRT engine 上、每 SKU 8 张图时实测 top-1 79.11%（21 项检索指标与 fp32 最大差 0.24pp）；DINOv2-base（RK3588 套餐）同档 84.67%，但没有转换过 TensorRT。 |
+| 不确定该统一到哪个嵌入器 | DINOv2-small 在这个套餐自己的 TensorRT engine 上、每 SKU 8 张图时实测 top-1 79.20%（fp32 参照是 79.11%；21 项检索指标全部与 fp32 保持在 0.24pp 以内）；DINOv2-base（RK3588 套餐）同档 84.67%，但没有转换过 TensorRT。 |
 | 版本号不涨 | 注册没过质量闸门。响应里会说是哪一张图。 |
 
 ## 步骤 4: 构建 TensorRT engine {#p3_build type=manual required=true config=devices/jetson_trt_build.yaml}
