@@ -79,23 +79,28 @@ remote_overrides:
         name_i18n:
           zh: 校验 Jetson 运行环境
 
-      # The runtime image is NOT published to a registry yet: the compose file
-      # names edge-inspection-assembly-jetson:0.1.0-dev, which so far only ever
-      # existed as a local build on the evaluation device. Until it is pushed,
-      # this step is the honest failure point — it says what is missing and how
-      # to produce it, instead of letting `docker compose up` fail on a pull.
+      # The runtime image is published (2026-09-07, linux/arm64, digest
+      # sha256:755f4b1d96052bf97e0cb84fc529d3cd61e6459f6a988144e593b06bdb7af997).
+      # This step pulls it if it is not already local, so a registry or network
+      # problem fails here with a clear message instead of inside
+      # `docker compose up`.
       - name: Check the runtime image is available
         run: |
           set -e
-          IMAGE="${INSPECTION_IMAGE:-edge-inspection-assembly-jetson:0.1.0-dev}"
+          IMAGE="${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev}"
           if docker image inspect "$IMAGE" >/dev/null 2>&1; then
             echo "image present:"
             docker images "$IMAGE"
             exit 0
           fi
-          echo "Image $IMAGE is not on this device." >&2
-          echo "This tag is not published to a registry yet. Build it once from the" >&2
-          echo "upstream repository on this device:" >&2
+          echo "Image $IMAGE not local, pulling..."
+          if docker pull "$IMAGE"; then
+            docker images "$IMAGE"
+            exit 0
+          fi
+          echo "Could not pull $IMAGE." >&2
+          echo "Check this device can reach sensecraft-missionpack.seeed.cn, or build" >&2
+          echo "the tag once from the upstream repository on this device:" >&2
           echo "  docker build --network=host -f platforms/jetson/Dockerfile.slim -t $IMAGE ." >&2
           echo "or set INSPECTION_IMAGE to a tag this device can pull." >&2
           exit 1

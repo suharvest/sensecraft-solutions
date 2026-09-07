@@ -66,25 +66,35 @@ intro:
       caption_i18n:
         zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值
     - type: image
-      src: gallery/ui-events.png
+      src: gallery/ui-events.jpg
       caption: Recognition events by scene, SKU, device and time. Synthetic demo data from the upstream web_demo tool — the SKUs, scores and events are fixtures, not field results
       caption_i18n:
         zh: 按场景、SKU、设备与时间过滤的识别事件。上游 web_demo 工具产生的合成演示数据——SKU、分数与事件都是测试夹具，不是现场结果
     - type: image
-      src: gallery/ui-event-detail.png
+      src: gallery/ui-event-detail.jpg
       caption: One event, box by box — similarity, top-2 margin, the OCR block and whether a fallback was used. Synthetic demo data
       caption_i18n:
         zh: 单条事件的逐框详情——相似度、top-2 间距、OCR 块，以及是否用过兜底。合成演示数据
     - type: image
-      src: gallery/ui-gallery.png
+      src: gallery/ui-gallery.jpg
       caption: The product gallery — register a SKU from 3–8 photographs, browse versions, roll back. Synthetic demo data; no real SKU was registered
       caption_i18n:
         zh: 商品库——用 3–8 张图注册一个 SKU、浏览版本、回滚。合成演示数据，没有注册过任何真实 SKU
     - type: image
-      src: gallery/ui-board.png
+      src: gallery/ui-board.jpg
       caption: The checkout and shelf board — the most recent basket and the four-state slot snapshot. Synthetic demo data
       caption_i18n:
         zh: 收银台与货架看板——最近一次清单与货位四态快照。合成演示数据
+    - type: image
+      src: gallery/ui-board-en.jpg
+      caption: The same board in English — basket line items on the left, slot verdicts on the right
+      caption_i18n:
+        zh: 同一看板的英文界面——左侧是清单条目，右侧是货位判定
+    - type: image
+      src: gallery/ui-events-en.jpg
+      caption: The event list in English — scene, device, SKU and time filters over the same fixture events
+      caption_i18n:
+        zh: 事件列表的英文界面——同一批夹具事件，按场景、设备、SKU 与时间过滤
     - type: image
       src: gallery/architecture.svg
       caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
@@ -218,14 +228,14 @@ intro:
       description: >-
         Runs the registration service, the management UI and the broker in
         containers. Present in all three presets — the gallery and the UI are
-        shared infrastructure, not a per-preset extra. Neither container image
-        has been pushed to a registry; both are built on this host from the
-        upstream repository.
+        shared infrastructure, not a per-preset extra. Both container images
+        are published; override the image variables to deploy a local build
+        instead.
       description_i18n:
         zh: >-
           以容器运行注册服务、管理界面与 broker。三个套餐都要它——商品库与管理界面是
-          共用基础设施，不是某个套餐的附加项。两个容器镜像都没有推送到 registry，
-          都在这台主机上从上游仓库构建。
+          共用基础设施，不是某个套餐的附加项。两个容器镜像均已发布；要部署自建版本，
+          覆盖对应的镜像变量即可。
     recomputer_rk3588:
       description: >-
         Runs the detector on the RK3588 NPU. The RKNN fp16 conversion of the

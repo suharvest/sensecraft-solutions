@@ -34,11 +34,13 @@ Deploy the inspector and build its TensorRT engine on the Jetson. Allow about
 3. Your camera's RTSP URL including credentials, for example
    `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`. Test it in
    VLC first.
-4. **The container image has not been published.** The compose file names
+4. The container image is published. The compose file names
    `sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev`,
-   but nothing has been pushed to that tag. Build it from the upstream repo's
-   `platforms/jetson/Dockerfile.slim` on the device and retag it, or set
-   `INSPECTION_IMAGE` to your local tag before deploying.
+   built for linux/arm64 and pushed on 2026-09-07, digest
+   `sha256:0d1b42e20a61a7aa89d072921dfe9e07e078bcb88ec9699b3f579caa1f28fe3b`.
+   The device pulls it during deploy. If it cannot reach the registry, build the
+   tag from the upstream repo's `platforms/jetson/Dockerfile.slim` on the device
+   and retag it, or set `INSPECTION_IMAGE` to your local tag before deploying.
 5. **The ONNX model has not been uploaded to the CDN either**, for the same
    licence reason. The deploy step will try to download
    `yolox_tiny_neu6.onnx` and verify sha256
@@ -317,11 +319,13 @@ this is faster than the Jetson path — assuming the ABI gates pass.
    needs the image rebuilt on a trixie base.
 4. At least 4 GB free disk. The measured footprint added is about 452 MB — the
    runtime image at about 443 MB, the 8.9 MB HEF, and the config.
-5. **The container image has not been published.** The compose file names
+5. The container image is published. The compose file names
    `sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev`,
-   but nothing has been pushed to it. Build it from the upstream repo's
-   `platforms/rpi-hailo/Dockerfile` and set `INSPECTION_IMAGE`, or retag your
-   local build.
+   built for linux/arm64 and pushed on 2026-09-07, digest
+   `sha256:f078a2875dcdfd1a00a2bb5763baded9b251ea9d98c44114704b57a025384fb3`; its
+   python3 is 3.11.2, matching Pi OS bookworm. If the device cannot reach the
+   registry, build it from the upstream repo's `platforms/rpi-hailo/Dockerfile`
+   and set `INSPECTION_IMAGE`, or retag your local build.
 6. **The HEF has not been uploaded to the CDN**, for the same licence reason. The
    deploy step will try to download it and verify sha256
    `02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565` for the

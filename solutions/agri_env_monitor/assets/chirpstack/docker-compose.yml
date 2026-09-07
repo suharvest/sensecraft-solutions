@@ -16,10 +16,11 @@
 # container network path for the ZMQ sockets is the first thing to check on the
 # R1000 route.
 #
-# IMAGE STATUS: `agri-env-bridge:0.1.0` is not published to any registry.
-# `docker manifest inspect agri-env-bridge:0.1.0` returns "denied: requested
-# access to the resource is denied / unauthorized: authentication required".
-# Build it locally from the agri-env-monitor repository or override BRIDGE_IMAGE.
+# IMAGE STATUS: published at
+# sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0
+# (linux/amd64 + linux/arm64, built 2026-09-07 from agri-env-monitor @ 230073f).
+# BRIDGE_IMAGE defaults to that tag below; build locally from the
+# agri-env-monitor repository or override BRIDGE_IMAGE to use your own instead.
 
 name: ${COMPOSE_PROJECT_NAME:-agri-env-chirpstack}
 
@@ -108,7 +109,7 @@ services:
     restart: unless-stopped
 
   bridge:
-    image: ${BRIDGE_IMAGE:-agri-env-bridge:0.1.0}
+    image: ${BRIDGE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0}
     container_name: agri-env-bridge-chirpstack
     environment:
       - TZ=${TZ:-Asia/Shanghai}
