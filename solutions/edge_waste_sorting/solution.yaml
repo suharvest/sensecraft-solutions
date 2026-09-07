@@ -6,13 +6,20 @@
 # and derivative works with attribution; the attribution string is in
 # gallery/ATTRIBUTION.md and repeated in both description files.
 #
-# As of 2026-09-07, five real classification screenshots (one per category,
-# four total, plus one 2x2 grid) are committed, sourced from TrashNet (MIT)
-# validation images per the escape hatch this package always documented. See
-# gallery/ATTRIBUTION.md for the per-image source table.
+# Classification screenshots are committed under gallery/, sourced from
+# TrashNet (MIT) and GC3 (CC BY 4.0) validation images per the escape hatch
+# this package always documented. See gallery/ATTRIBUTION.md for the per-image
+# source table.
 #
-# NOTHING HERE HAS RUN ON HARDWARE. Every figure on this page comes from
-# onnxruntime on an Apple M4 CPU. No preset carries `verified:`.
+# The cover and the second gallery image are device results — reCamera Pro
+# (RV1126B NPU, INT8 RKNN) and reCamera (SG2002 TPU, BF16 cvimodel). The
+# remaining figures are onnxruntime on an Apple M4 CPU and say so. No preset
+# carries `verified:`.
+#
+# Every figure on this page is single-item classification, which is what the
+# four platform packages ship. The repository also carries a multi-item
+# detector; it has only been evaluated on a synthetic set and is not part of
+# any package, so no figure on this page shows it.
 version: "1.0"
 id: edge_waste_sorting
 name: Waste Sorting at the Bin
@@ -31,13 +38,22 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/waste-multi-item-pair-20260907.jpg
+  cover_image: gallery/waste-npu-4up-20260908.jpg
   gallery:
     - type: image
-      src: gallery/waste-multi-item-pair-20260907.jpg
-      caption: Two table tops of loose rubbish, every item boxed and labelled with its material and score. Left — a bottle, foil trays, folded paper and a printed card. Right — a drinks can, a red carton, a tube and paper scraps
+      src: gallery/waste-npu-4up-20260908.jpg
+      caption: >-
+        Four single items classified on a reCamera Pro's own RV1126B NPU —
+        INT8 RKNN model, one item per frame. Each frame carries the material
+        class the device returned, the Chinese four-way disposal category, the
+        confidence and the measured inference time: a tin can and a plastic
+        bottle to recyclables, windfall apples to kitchen waste, a crumpled
+        wrapper to residual
       caption_i18n:
-        zh: 两张摊着垃圾的台面，每件都画框并标出材质与分数。左：瓶子、锡纸盒、折叠纸与印刷卡片；右：易拉罐、红色纸盒、软管与纸屑
+        zh: >-
+          四件物品在 reCamera Pro 自己的 RV1126B NPU 上的分类结果——INT8 RKNN
+          模型，一帧一件。每帧标出设备返回的物料类别、中国四分类、置信度与
+          实测推理耗时：铁罐与塑料瓶归可回收物，落果归厨余，皱纸归其它
     - type: image
       src: gallery/waste-recamera-sg2002-20260907.jpg
       caption: >-

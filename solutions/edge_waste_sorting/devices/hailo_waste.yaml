@@ -114,10 +114,9 @@ remote_overrides:
             echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
             exit 1
           fi
-          # Gate 3: the host's hailo_platform bindings are mounted into the
-          # container, and _pyhailort.cpython-3XX-*.so only imports under the
-          # same Python minor. Bookworm is 3.11, trixie is 3.13.
-          echo "host python: $(python3 -V 2>&1)"
+          # The image carries its own HailoRT python bindings (cp311 wheel);
+          # only the host's libhailort.so.4.21.0 is mounted in (checked in
+          # Gate 1 above), so there is no separate Python-minor gate here.
           echo "Hailo runtime OK"
         name_i18n:
           zh: 校验 Hailo 运行环境与 ABI 锁

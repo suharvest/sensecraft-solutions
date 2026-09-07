@@ -14,10 +14,16 @@
 # never the whole dist-packages, because the host's numpy would shadow the
 # image's own pinned one.
 #
-# IMAGE NOT PUBLISHED. Nothing has been pushed to the tag below; it is the
-# intended registry destination only. Until it is pushed, build the image from
-# the upstream repo on the device and either retag it to this name or set
-# WASTE_IMAGE to the local tag.
+# Image published 2026-09-07:
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.0-dev
+#   manifest digest sha256:c199966f4c5c1b8837918f2d8a4fd182f1f6867415b76aa765642a528c3a3619
+#   config digest   sha256:77b1a488fb035da3cf8be5fd7e7d843b6ccf939a3fe0b4c0544a82b4bde8ccd9
+#   259 MB local / 91.3 MB compressed over 8 layers.
+#
+# The TensorRT engine is not in the image and not in /models: build it once on
+# the Orin with
+#   backends/tensorrt/build_engine.sh /models/mobilenetv3s_waste8.onnx \
+#       /models/mobilenetv3s_waste8.engine
 services:
   waste:
     image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.0-dev}
