@@ -43,35 +43,35 @@
 
 下表全部是服务端的回放实测：合成上行发到本地 MQTT broker，从面板 WebSocket 侧抓结果，**没有真实 T1000、也没有真实网关参与**，所以任何一行都不能说明无线覆盖，也不能说明报出来的位置离地面真值有多远。相对真值的定位误差还没测，待 T1000 真机。
 
-除非某一行另有说明，公共条件为：`solution-indoor-positioning` 分支 `feature/outdoor` @ `443bce6`，跑在 Jetson Orin Nano Super（Ubuntu 22.04.5、aarch64、未用 GPU）上，当作普通 arm64 主机——没走 Docker，直接 `uv sync` + `uvicorn`。回放器与 WebSocket 抓包在 Mac 上，经 Tailscale 访问该设备（ping 平均 4.2 ms、丢包 0%）。每一档只跑了 2-4 min，不是评测规程要求的 30 min。
+除非某一行另有说明，公共条件为：「solution-indoor-positioning」 分支 「feature/outdoor」 @ 「443bce6」，跑在 Jetson Orin Nano Super（Ubuntu 22.04.5、aarch64、未用 GPU）上，当作普通 arm64 主机——没走 Docker，直接 「uv sync」 + 「uvicorn」。回放器与 WebSocket 抓包在 Mac 上，经 Tailscale 访问该设备（ping 平均 4.2 ms、丢包 0%）。每一档只跑了 2-4 min，不是评测规程要求的 30 min。
 
 | 指标 | 实测 | 条件 | 来源 |
 |---|---|---|---|
-| 容量，稳定档 | 200 个并发标签，端到端 P95 828 ms，上行丢失 0% | 每标签每 30 s 一条上行，800 条上行，2 min | 本次实测，`runs/2026-09-05-orin-nano/boundary.capacity.yaml` |
+| 容量，稳定档 | 200 个并发标签，端到端 P95 828 ms，上行丢失 0% | 每标签每 30 s 一条上行，800 条上行，2 min | 本次实测，容量边界记录 |
 | 容量，下降档 | 500 标签，P95 2.35 s，丢失 0% | 同上，2000 条上行，2 min；只有 2 s 时延这一条不满足 | 同上 |
-| 容量，1000 标签时 | P95 4.1 s，丢失 0%，进程仍在服务 | 同上；未测到失败档，没有继续加压 | 同上 |
-| 更新频率 | 50 标签、2 s 上行间隔，P95 220 ms，4500 条上行丢失 0% | 3 min；30 s / 10 s / 5 s 三档同样稳定（P95 分别 89 / 163 / 146 ms） | 本次实测，`boundary.update_frequency.yaml` |
-| SOS 告警时延 | P50 24 ms，P95 29 ms，max 29 ms，n=20 | 单标签、无并发负载；上行时间戳到 WebSocket 广播 | 本次实测，`boundary.sos_latency.yaml` |
-| 离线判定 | 903 s 与 950 s | 复现 2 次，理论值域 [900 s, 960 s]，来自硬编码的 15 min 阈值与 60 s 轮询 | 本次实测，`boundary.offline_latency.yaml` |
-| 围栏告警时延 | P50 14 ms，max 14 ms，2 条告警 | macOS 同机 loopback 冒烟，单标签、17 条上行——不是上面那台 Jetson 的数据，也不能外推到真实部署 | `runs/2026-09-05-geofence-smoke/results.md` |
+| 容量，1000 标签时 | P95 4.1 s，丢失 0%，进程仍在服务 | 同上，加压止于 1000 标签 | 同上 |
+| 更新频率 | 50 标签、2 s 上行间隔，P95 220 ms，4500 条上行丢失 0% | 3 min；30 s / 10 s / 5 s 三档同样稳定（P95 分别 89 / 163 / 146 ms） | 本次实测，「boundary.update_frequency.yaml」 |
+| SOS 告警时延 | P50 24 ms，P95 29 ms，max 29 ms，n=20 | 单标签、无并发负载；上行时间戳到 WebSocket 广播 | 本次实测，「boundary.sos_latency.yaml」 |
+| 离线判定 | 903 s 与 950 s | 复现 2 次，理论值域 [900 s, 960 s]，来自硬编码的 15 min 阈值与 60 s 轮询 | 本次实测，「boundary.offline_latency.yaml」 |
+| 围栏告警时延 | P50 14 ms，max 14 ms，2 条告警 | macOS 同机 loopback 冒烟，单标签、17 条上行——不是上面那台 Jetson 的数据，也不能外推到真实部署 | 「runs/2026-09-05-geofence-smoke/results.md」 |
 | 围栏迟滞 | 门口来回翻转 6 次产生 0 条告警；enter 与 exit 各在第 3 个连续点触发 | 同一次冒烟 | 同上 |
-| 配准误差 | 原点 2 km 内、\|纬度\| <= 60° 时 <= 0.21 m | 方位角扫描（每 15°，半径 500/1000/2000 m，lat0 取 0/22.5/45/60）的最差值；预算 0.7 m | `runs/2026-09-05-georef/results.md` |
+| 配准误差 | 原点 2 km 内、\|纬度\| <= 60° 时 <= 0.21 m | 方位角扫描（每 15°，半径 500/1000/2000 m，lat0 取 0/22.5/45/60）的最差值；预算 0.7 m | 「runs/2026-09-05-georef/results.md」 |
 | 配准，双端一致性 | Python 与 JavaScript 相差 2.7e-20°；往返闭合 7.5e-10 m | 两端单元测试读同一份 fixture | 同上 |
 
 沿用实施记录的已知偏差：
 
-- **`accuracy` 恒为 `null`。** SenseCAP 与 ChirpStack 的上行都没有 GNSS 精度测点，字段贯通到了 WebSocket 但没有数据源。围栏引擎把缺失的 `accuracy` 当作通过精度门槛并逐点打日志，因此围栏边界附近的精度缓冲带只有单元测试覆盖，没有跑过实况。`alt` 同理。
+- **「accuracy」 恒为 「null」。** SenseCAP 与 ChirpStack 的上行都没有 GNSS 精度测点，字段贯通到了 WebSocket 但没有数据源。围栏引擎把缺失的 「accuracy」 当作通过精度门槛并逐点打日志，因此围栏边界附近的精度缓冲带只有单元测试覆盖，没有跑过实况。「alt」 同理。
 - SOS 与围栏时延都没有叠加并发负载，所以 500 个以上标签时告警时延如何，这两行都不回答。
 - 离线阈值（15 min）与轮询周期（60 s）是硬编码的，未接配置。
-- PMTiles 离线底图没有端到端跑通：构建环境访问不到 `build.protomaps.com`，归档未生成。
+- PMTiles 离线底图没有端到端跑通：构建环境访问不到 「build.protomaps.com」，归档未生成。
 
 ## 输出接口
 
 | 接口 | 地址 | 载荷 |
 |---|---|---|
-| WebSocket | `ws://<host>:5173/ws` | `tracker_update` 的 `position` 为 `{x, y, coordSystem: "metric"}` 或 `{lat, lon, accuracy, coordSystem: "wgs84"}`；`tracker_checkin` / `tracker_position_detection` 在围栏进出时额外带一个 `geofence` 段；另有 `tracker_sos`、`tracker_offline` |
-| REST | `GET/PUT /api/configuration/dashboard/maps/{mapName}/registration` | `{origin_lat, origin_lon, rotation_deg, scale}` |
-| REST | `POST /api/geofences`、`POST /api/events` | 围栏几何（GeoJSON 多边形，或点加 `radius_m`）与引用它的告警规则 |
+| WebSocket | 「ws://<host>:5173/ws」 | 「tracker_update」 的 「position」 为 「{x, y, coordSystem: "metric"}」 或 「{lat, lon, accuracy, coordSystem: "wgs84"}」；「tracker_checkin」 / 「tracker_position_detection」 在围栏进出时额外带一个 「geofence」 段；另有 「tracker_sos」、「tracker_offline」 |
+| REST | "GET/PUT /api/configuration/dashboard/maps/{mapName}/registration" | "{origin_lat, origin_lon, rotation_deg, scale}" |
+| REST | 「POST /api/geofences」、「POST /api/events」 | 围栏几何（GeoJSON 多边形，或点加 「radius_m」）与引用它的告警规则 |
 | LoRaWAN 上行 | SenseCAP OpenStream，或 ChirpStack 的 MQTT 主题 | 字段映射见部署指南 |
 
 开源，可对接第三方 LoRaWAN 网络服务器（ChirpStack、TTN 等）以及 SenseCAP 平台。
@@ -90,5 +90,5 @@
 
 - 配准只在离原点约 2 km 范围内有意义；局部切平面近似在 \|纬度\| 85° 以上直接拒绝，误差随半径与纬度增长。
 - 室内外展示切换需要攒够证据：20 s 内 3 个 GNSS fix 且 15 s 没有已配置信标才转室外，连续两次每次 ≥2 个已配置信标才转回室内。设备刚上线的头两个包仍走简化规则（有经纬度即室外）。
-- geo 模式下告警规则里的 `time_range` 无效——围栏自带的「连续 3 点 + 10 s」确认取代了它。
-- 随包的 MQTT broker 配置只适合台架调试。要出实验室，前面得换成带凭据的 broker。
+- geo 模式下告警规则里的 「time_range」 无效——围栏自带的「连续 3 点 + 10 s」确认取代了它。
+- 随包的 MQTT broker 配置只适合开通调试。上线前换成带凭据的 broker。

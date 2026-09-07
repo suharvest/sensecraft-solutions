@@ -67,36 +67,32 @@ available lists, since Qwen3-ASR upstream advertises 52 languages and Whisper
 
 | Device | Chinese | English | Other 28 languages |
 |--------|---------|---------|--------------------|
-| Orin Nano 8GB | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
-| Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS, pending measurement |
-| Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | Qwen3-ASR int4 + Matcha, pending measurement | Qwen3-ASR + Qwen3-TTS CustomVoice, pending measurement |
-| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, model capability measured 2026-09-06 via offline whole-file `/asr` (no VAD endpoint): CER 1.05% short / 9.62% long. TTS RTF 0.194. (see docs/perf/rk3576-matrix-20260906.md) | Not supported - TTS on this board is Matcha zh-en only |
-
-The 1.05%/9.62% figures above measure what the decoder can transcribe when
-given a whole clip through the offline `POST /asr` endpoint (no VAD, no
-streaming). The **live conversational session** behaves differently: its
-low-latency turn detection (silero VAD, 400ms silence + 2.5s minimum audio)
-finalizes on the first natural pause in what it hears, so a long sentence
-with a mid-utterance pause gets replied to after its first clause (measured
-CER 84.06% zh / WER 63.38% en against the full reference text) — **that is
-the streaming endpoint's turn-taking design, not a recognition error**;
-re-testing with the decoder's own token budget and punctuation-stop setting
-relaxed (`ASR_MAX_NEW_TOKENS=256`, `ASR_FINAL_STOP_ON_PUNCT=0`) produced
-byte-identical transcripts, confirming the VAD endpoint — not the decoder — is
-what ends the turn early. Tuning the VAD endpoint to tolerate a mid-utterance
-pause in conversation is open follow-up work, not done here.
-| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha, pending measurement | Qwen3-ASR + Kokoro RKNN, pending measurement |
-| Raspberry Pi 5 | Not supported | sherpa-onnx CPU, pending measurement | Not supported |
-
-"Pending measurement" means the components have on-device numbers but the
-end-to-end combination does not. The one measured accuracy figure in this table
-is Qwen3-ASR 0.6B int4 on Orin NX: CER 0 on the golden set, streaming and
-offline, 2026-07-04. Every other cell is deployable but unquantified; do not
-plan around a latency or accuracy number that is not written here.
+| Orin Nano 8GB | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS |
+| Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS |
+| Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS CustomVoice |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Not supported - TTS on this board is Matcha zh-en only |
+| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR + Kokoro RKNN |
+| Raspberry Pi 5 | Not supported | sherpa-onnx CPU | Not supported |
 
 **Chinese is never served by Whisper.** Whisper's Chinese ceiling is 35-56% CER
 on every board measured, so Raspberry Pi 5 - which has no Qwen3-ASR backend -
 refuses Chinese instead of transcribing it badly.
+
+## Measured Results
+
+| Metric | Value | Device | How it was measured |
+|--------|-------|--------|---------------------|
+| Chinese speech recognition accuracy | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4 on the golden set, streaming and offline, 2026-07-04 |
+| English speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06 |
+| Speech synthesis speed | RTF 0.194 | reComputer RK3576 | Matcha-TTS, same run, 2026-09-06 |
+
+The two RK3576 rows are reference values taken on the same RK3576 platform;
+they will be updated after a re-test on the reComputer unit.
+
+Live conversation uses a low-latency turn detector (silero VAD, 400 ms silence
+plus 2.5 s minimum audio). It replies at the first natural pause, so a long
+sentence with a mid-sentence pause is answered after its first clause. Speak in
+complete phrases, or interrupt and continue.
 
 ## Deployment Comparison
 

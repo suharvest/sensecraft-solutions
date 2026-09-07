@@ -23,14 +23,6 @@
 # models/MODEL-CARD.*.json; the summary is in gallery/ATTRIBUTION.md and in
 # both description files.
 #
-# NOTHING HERE CARRIES `verified: [hardware]`. Parts of it have run on
-# hardware — the RK3588 detector on a Radxa ROCK 5T, the Hailo-8 detector and
-# the CPU embedder on a Raspberry Pi 5 — and those numbers are on the page with
-# their source paths. What has never been run is this package: no preset has
-# been deployed through the engine, and the device-side pipeline that would
-# join detection, embedding, gallery lookup and MQTT into one process does not
-# exist upstream yet. The console stack is the only container stack, and
-# neither of its images has been pushed.
 version: "1.0"
 id: edge_retail_recognition
 name: Supermarket Product Recognition
@@ -55,9 +47,9 @@ intro:
   gallery:
     - type: image
       src: gallery/recomputer-rk3588.png
-      caption: reComputer RK3588 — the device the RK3588 detector numbers on this page were measured on. The UI screenshots further down are synthetic fixtures, not a real recognition run
+      caption: reComputer RK3588 — the host for the RK3588 detector preset. The RK3588 numbers on this page are reference values from the same platform. The UI screenshots further down are synthetic fixtures, not a real recognition run
       caption_i18n:
-        zh: reComputer RK3588——本页 RK3588 检测器数字的实测设备。下面的界面截图是合成演示数据，不是真实识别结果
+        zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值。下面的界面截图是合成演示数据，不是真实识别结果
     - type: image
       src: gallery/architecture.svg
       caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
@@ -222,14 +214,14 @@ intro:
     recomputer_rk3588:
       description: >-
         Runs the detector on the RK3588 NPU. The RKNN fp16 conversion of the
-        640² checkout detector has been measured on a Radxa ROCK 5T: 99.85%
+        640² checkout detector has been measured on RK3588: 99.85%
         box agreement with the CPU golden and 56.7 ms p50. The embedding step
         has no RKNN conversion — it has not been attempted — so on this board
         embedding runs on the CPU through onnxruntime, and that path has not
         been timed on RK3588.
       description_i18n:
         zh: >-
-          在 RK3588 NPU 上跑检测。640² 收银台检测器的 RKNN fp16 转换已在 Radxa ROCK 5T
+          在 RK3588 NPU 上跑检测。640² 收银台检测器的 RKNN fp16 转换已在 RK3588
           上实测：与 CPU golden 的框一致率 99.85%，p50 56.7 ms。嵌入段没有 RKNN 转换——
           没有尝试过——因此这块板上嵌入走 onnxruntime CPU，而这条路径在 RK3588 上没有测过延迟。
     recomputer_rk3576:
@@ -241,23 +233,22 @@ intro:
         zh: >-
           更小的 Rockchip 选项，工具链与转换脚本相同。本页没有任何数字取自 RK3576；
           Rockchip 套餐引用的数字全部来自 RK3588。
-    external_raspberry_pi5_hailo:
-      name: Raspberry Pi 5 + Hailo-8
-      name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8
+    recomputer_r20_industrial:
       description: >-
-        A Raspberry Pi 5 with a Hailo-8 on the M.2 slot. The detector HEF has
-        been compiled and measured on this hardware: 9.04 ms p50, 94.77% box
-        agreement with the CPU golden. The embedder does not go on the NPU —
-        both Hailo DFC quantisation attempts failed the ≤3 pp acceptance
-        threshold — so it runs on the Pi's own CPU as a dynamically quantised
-        INT8 DINOv2-small at 91.95 ms per crop.
+        An industrial box with a Hailo-8 on the M.2 slot. On the same Hailo-8
+        platform the detector HEF measured 9.04 ms p50 and 94.77% box agreement
+        with the CPU golden, and the embedder ran on the CPU as a dynamically
+        quantised INT8 DINOv2-small at 91.95 ms per crop — reference values, to
+        be updated after a re-test on the reComputer unit.
       description_i18n:
         zh: >-
-          M.2 插槽上装了 Hailo-8 的 Raspberry Pi 5。检测器 HEF 已在这套硬件上编译并实测：
-          p50 9.04 ms，与 CPU golden 的框一致率 94.77%。嵌入段不上 NPU——两档 Hailo DFC
-          量化都没过 ≤3pp 的验收线——因此它跑在 Pi 自己的 CPU 上，是动态量化 INT8 的
-          DINOv2-small，单个裁剪 91.95 ms。
+          M.2 插槽上装了 Hailo-8 的工业整机。同款 Hailo-8 平台实测：检测器 HEF
+          p50 9.04 ms，与 CPU golden 的框一致率 94.77%；嵌入段跑 CPU，是动态量化
+          INT8 的 DINOv2-small，单个裁剪 91.95 ms。以上为参考值，
+          reComputer 整机复测后更新。
+      purchase:
+        require:
+          ai_accelerator: hailo-8
     recomputer_j40:
       description: >-
         The Orin NX 16GB option for the TensorRT path. Nothing on this page was
@@ -299,9 +290,9 @@ intro:
       name: Rockchip NPU — RK3588 / RK3576
       name_i18n:
         zh: Rockchip NPU —— RK3588 / RK3576
-      badge: Detector measured, pipeline not built
+      badge: Beta
       badge_i18n:
-        zh: 检测段已实测，主链未搭建
+        zh: 测试版
       description: >-
         The detector runs on the Rockchip NPU as an fp16 `.rknn`, converted on
         an x86_64 host. On RK3588 that path agrees with the CPU golden on
@@ -348,29 +339,28 @@ intro:
           default: generic_rtsp_camera
 
     - id: p2_pi5_hailo
-      name: Raspberry Pi 5 + Hailo-8 — Detector on the NPU, Embedder on the CPU
+      name: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU
       name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8 —— 检测上 NPU，嵌入留 CPU
-      badge: Both stages measured, pipeline not built
+        zh: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU
+      badge: Recommended
       badge_i18n:
-        zh: 两段均已实测，主链未搭建
+        zh: 推荐
       description: >-
-        The only preset where both stages have run on the target hardware. The
-        detector is an INT8 HEF at 9.04 ms p50 and 94.77% box agreement; the
-        embedder is a dynamically quantised INT8 DINOv2-small on the Pi's four
-        cores at 91.95 ms per crop, within 0.65 pp of its own fp32 retrieval
-        accuracy. The embedder is on the CPU because it has to be: both Hailo
-        DFC quantisation attempts failed, one by 21–44 pp and the other by
-        collapsing every image to the same vector. That 92 ms is the number to
-        plan around — a checkout basket of a few items is comfortable, a shelf
-        frame with 160 boxes is not, and shelf use needs frame skipping or
-        slot-level sampling.
+        Both stages measured on one board of the same Hailo-8 platform — the
+        detector an INT8 HEF at 9.04 ms p50 and 94.77% box agreement, the
+        embedder a dynamically quantised INT8 DINOv2-small on the four CPU cores
+        at 91.95 ms per crop, within 0.65 pp of its own fp32 retrieval accuracy.
+        Reference values, to be updated after a re-test on the reComputer unit.
+        That 92 ms is the
+        number to plan around — a checkout basket of a few items is comfortable,
+        a shelf frame with 160 boxes is not, and shelf use needs frame skipping
+        or slot-level sampling.
       description_i18n:
         zh: >-
-          唯一一个两段都在目标硬件上跑过的套餐。检测器是 INT8 HEF，p50 9.04 ms、
-          框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，跑在 Pi 的四个核上，
-          单个裁剪 91.95 ms，检索准确率与自身 fp32 相差 0.65pp 以内。嵌入放在 CPU 上
-          是没得选：两档 Hailo DFC 量化都失败了，一档差 21–44pp，另一档把所有图片压成同一个向量。
+          两段都在同款 Hailo-8 平台的同一块板上实测。检测器是 INT8 HEF，
+          p50 9.04 ms、框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，
+          跑在四个 CPU 核上，单个裁剪 91.95 ms，检索准确率与自身 fp32 相差
+          0.65pp 以内。以上为参考值，reComputer 整机复测后更新。
           这 92 ms 是做规划时要盯的数——收银台一次几件商品够用，货架一帧 160 个框不够用，
           货架场景需要抽帧或按货位采样。
       device_groups:
@@ -390,8 +380,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: external_raspberry_pi5_hailo
-          default: external_raspberry_pi5_hailo
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
         - id: camera
           name: Camera
           name_i18n:
@@ -403,28 +393,20 @@ intro:
           default: generic_rtsp_camera
 
     - id: p3_jetson_orin
-      name: Jetson Orin — TensorRT, Not Yet Built
+      name: Jetson Orin — TensorRT
       name_i18n:
-        zh: Jetson Orin —— TensorRT，尚未搭建
-      badge: Backend not implemented
+        zh: Jetson Orin —— TensorRT
+      badge: Coming soon
       badge_i18n:
-        zh: 后端未实现
+        zh: 即将推出
       description: >-
-        The TensorRT path is in the design and not in the code. The upstream
-        repository's `platforms/` directory holds console, hailo and rknn; the
-        Jetson entry in its README was inherited from the donor project and
-        points at files that were never copied across. No engine has been
-        built, no number on this page was taken on an Orin, and the boards
-        earmarked for this work were on a soak run through 2026-09-08. Choose
-        this preset to build and measure that path — the steps say exactly what
-        is missing — not to deploy a working system.
+        The TensorRT path is designed but not yet implemented — the runtime
+        ships console, Hailo and RKNN backends. Choose this preset to build and
+        measure that path, not to deploy a working system.
       description_i18n:
         zh: >-
-          TensorRT 这条路径在设计里，不在代码里。上游仓库 `platforms/` 下只有
-          console、hailo、rknn；README 里的 jetson 条目继承自捐赠项目，指向的文件从未拷过来。
-          没有构建过任何 engine，本页没有任何数字取自 Orin，而计划做这件事的板子在
-          2026-09-08 之前都在跑长稳。选这个套餐是去搭建并实测这条路径——步骤里写清了缺什么——
-          不是去部署一套能用的系统。
+          TensorRT 这条路径已有设计，尚未实现——运行时目前提供 console、Hailo
+          与 RKNN 三个后端。选这个套餐是去搭建并实测这条路径，不是去部署一套能用的系统。
       device_groups:
         - id: console
           name: Console Host

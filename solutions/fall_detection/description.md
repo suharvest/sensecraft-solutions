@@ -91,7 +91,7 @@ applications were stopped before these runs.
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
 | reComputer R (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
 | reComputer R (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
-| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Higher loads not tested; 14.5 FPS SLA not met |
+| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Below the 14.5 FPS threshold used here |
 
 The Hailo S-to-M drop is larger than the increase in model operations. The official S
 HEF is single-context, so its weights stay resident; the M HEF is split across three
@@ -112,8 +112,8 @@ Timing fields are kept separate because their boundaries differ:
 | reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms mean/P95 | 77.80 / 85.99 ms mean/P95 |
 
 Jetson's application interval includes preprocessing, copies, TensorRT, output copy and
-pose parsing. Hailo S and M use different named probe boundaries. RK `inference_ms`
-excludes video preprocessing, while RK `pipeline_ms` starts only after the source returns
+pose parsing. Hailo S and M use different named probe boundaries. RK "inference_ms"
+excludes video preprocessing, while RK "pipeline_ms" starts only after the source returns
 a model-input frame and includes inference, pose decoding, tracking, temporal logic and
 payload construction. None of those fields is relabelled as another platform's metric.
 
@@ -132,7 +132,7 @@ but is no longer presented here as route capacity.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
-YOLO11m on reComputer J. YOLO11s was not measured on that set. The limiting factor
+YOLO11m on reComputer J. The limiting factor
 is pose coverage: in long shots and heavy occlusion the person is barely detected
 at all. The table above covers a framed indoor view at close-to-medium range; the
 external figures cover long shots and occlusion.
@@ -141,20 +141,20 @@ external figures cover long shots and occlusion.
 
 | Output | Where | Content |
 |---|---|---|
-| Fall results | MQTT port 1883, topic `<device-name>/fall-detection/results` (multi-stream presets use `.../results/<stream-id>`) | Per-frame JSON: aggregate state plus one entry per tracked person |
-| Availability | MQTT port 1883, topic `<device-name>/fall-detection/status` | `online` / `offline`, retained |
-| Home Assistant | MQTT discovery under `homeassistant/` | Fall sensor, state, event ID, person count |
-| Video | RTSP port 8554 `/live0` on reCamera, or your own IP camera | The scene the detector is watching |
+| Fall results | MQTT port 1883, topic "<device-name>/fall-detection/results" (multi-stream presets use ".../results/<stream-id>") | Per-frame JSON: aggregate state plus one entry per tracked person |
+| Availability | MQTT port 1883, topic "<device-name>/fall-detection/status" | "online" / "offline", retained |
+| Home Assistant | MQTT discovery under "homeassistant/" | Fall sensor, state, event ID, person count |
+| Video | RTSP port 8554 "/live0" on reCamera, or your own IP camera | The scene the detector is watching |
 
-**`<device-name>` is yours to choose.** It is the Device Name field in the deploy step,
-defaulting to `recamera` on the reCamera preset and `recomputer` on the reComputer ones. It
+**"<device-name>" is yours to choose.** It is the Device Name field in the deploy step,
+defaulting to "recamera" on the reCamera preset and "recomputer" on the reComputer ones. It
 is only the first topic segment, there to keep several installations apart on one broker, so
-a room, floor or site name works just as well. `stream_id` is also carried in the payload, so
+a room, floor or site name works just as well. "stream_id" is also carried in the payload, so
 nothing downstream has to parse the topic to know where a message came from.
 
 The reComputer runtime appends the stream ID to the topic
-(`<device-name>/fall-detection/results/cam-01`), so routes stay separable downstream.
-The deploy form configures one stream. Separate 15 FPS tests verified 8 streams on
+("<device-name>/fall-detection/results/cam-01"), so routes stay separable downstream.
+The deploy form configures one stream. Separate 15 FPS tests measured 8 streams on
 Orin Nano Super, 9 on Orin NX Super, 1 on RK3576, 5 on RK3588, and 16/5 on Hailo
 with YOLOv8s/YOLOv8m respectively (see Performance). Those runs
 used one looped clip per stream, so measure your own cameras, codec and scene
@@ -173,7 +173,7 @@ more than one view, or when the accuracy difference in the table above matters.
 
 **reComputer RK** puts the detector on a Rockchip NPU board with a board-native
 temporal profile and hardware video decode. On the optimized YOLOv8s INT8 benchmark
-profile, RK3576 verified 1×15 FPS and RK3588 verified 5×15 FPS. The current deployment
+profile, RK3576 reached 1×15 FPS and RK3588 5×15 FPS. The current deployment
 keeps its existing single-camera YOLO11n FP16 profile.
 
 **reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8. The default S

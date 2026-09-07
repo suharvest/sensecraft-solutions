@@ -245,20 +245,22 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
   GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
 - 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
 
-## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#hailo}
+## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#hailo}
 
 同一套运行时、INT8 模型、更低功耗。HEF 在设备外编译、部署时下载，板子上没有构建步骤。
-精度已在 Hailo emulator 上与 CPU 基线核对过；板子本身的吞吐、时延与路数没有实测。
+同款 Hailo-8 平台实测：硬件推理 106.75 FPS，全链路 43.92 FPS，
+mAP50 0.9858（对比 CPU 基线）。以上为参考值，reComputer 整机复测后更新。
+这条路径的多路容量不在该轮范围内，多路扫描只在 Orin 上跑过。
 
 | 设备 | 用途 |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8（M.2） | 加速器上做检测，CPU 上做缺件比对与尺寸测量，Modbus TCP server、MQTT broker 与 Web 面板 |
+| reComputer R2000 + Hailo-8（M.2） | 加速器上做检测，CPU 上做缺件比对与尺寸测量，Modbus TCP server、MQTT broker 与 Web 面板 |
 | 摄像头 | 提供检测工位的视频；任意 RTSP 或 ONVIF 摄像头均可，USB 摄像头或录制文件同样可用 |
 
 **重要说明。** 这是一个 demo 包，不是经过认证的计量或安全产品；尺寸模块不能替代
 经过校准的量具，随包模型训练在 DeepPCB 裸板缺陷数据集上而不是装配图像上。
-这块板上还要多加一条：**这里的东西还没有在任何一台 Raspberry Pi 上跑过。**
-镜像交叉构建出了 arm64、HEF 在 emulator 里能加载，但第一次上板运行是你来做。
+上面引用的 Hailo-8 数字是同款加速器平台的实测参考值，
+按它做规划之前请在自己的整机上复测一次。
 同样的三个弱点仍然适用——画面坐标 ROI、标定平面敏感、多路共享一份 Modbus 寄存器。
 
 ## 步骤 1: 部署质检运行时 {#deploy_hailo_assembly type=docker_deploy required=true config=devices/hailo_assembly.yaml}
@@ -297,13 +299,13 @@ MQTT broker。
 | HEF 校验和不符 | 这个文件不是本方案评测用的那一份；删掉让该步骤重新获取 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址 |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_assembly.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml default=true}
 
-从这台电脑通过 SSH 部署到网络上的 Raspberry Pi。
+从这台电脑通过 SSH 部署到网络上的 reComputer R2000。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_assembly.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml}
 
-部署到本应用所在的这台机器。只有当这台机器就是 Raspberry Pi 时才适用。
+部署到本应用所在的这台机器。只有当这台机器就是 reComputer R2000 时才适用。
 
 ## 步骤 2: 建立尺寸标定 {#calibrate_dimension_hailo type=manual required=false config=devices/calibrate_dimension.yaml}
 

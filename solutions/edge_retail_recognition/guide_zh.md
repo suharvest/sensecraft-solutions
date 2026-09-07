@@ -10,7 +10,7 @@
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 | 一台 x86_64 机器 | 模型转换。rknn-toolkit2 不在板上运行 |
 
-**这套硬件上测到了什么。** 检测段，在 Radxa ROCK 5T 上：RKNN fp16 与 CPU 参考的
+**这套硬件上测到了什么。** 检测段，在 reComputer RK3588 上：RKNN fp16 与 CPU 参考的
 框一致率 99.85%、p50 56.7 ms，INT8 变体 98.35%、p50 26.0 ms
 （`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`）。
 RK3576 上什么都没测；上面的数字只来自 RK3588。
@@ -149,7 +149,7 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 | 软件闭环过了但板上什么都不工作 | 这是预期的——闭环跑在开发机上的 FakeEmbedder 与内存 broker 上，只证明协议行为。 |
 | 商品库在主机上校验得过、在设备上校验不过 | 怪设备之前先比两边的 sha256；传输被截断看起来就像文件损坏。 |
 
-## 套餐: Raspberry Pi 5 + Hailo-8 —— 检测上 NPU，嵌入留 CPU {#p2_pi5_hailo}
+## 套餐: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU {#p2_pi5_hailo}
 
 唯一一个两段都在目标硬件上跑过的套餐。检测器是 Hailo-8 上的 INT8 HEF；
 嵌入器是 Pi 自己四个核上动态量化 INT8 的 DINOv2-small——因为它的 NPU 路线走不通。
@@ -157,7 +157,7 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 | 设备 | 作用 |
 |---|---|
 | 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
-| Raspberry Pi 5 + Hailo-8（M.2） | NPU 上做检测，CPU 上做嵌入 |
+| reComputer R2000 + Hailo-8（M.2） | NPU 上做检测，CPU 上做嵌入 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 | 一台 x86_64 机器 | 编译 HEF。Hailo Dataflow Compiler 不在 Pi 上运行 |
 

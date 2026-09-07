@@ -7,6 +7,11 @@ intro:
   cover_image: gallery/cover.png
   gallery:
     - type: image
+      src: gallery/map-view.png
+      caption: Map Visualization
+      caption_i18n:
+        zh: 地图可视化
+    - type: image
       src: gallery/architecture.png
       caption: System Architecture
       caption_i18n:
@@ -24,11 +29,6 @@ intro:
       caption: Application Dashboard
       caption_i18n:
         zh: 应用仪表板
-    - type: image
-      src: gallery/map-view.png
-      caption: Map Visualization
-      caption_i18n:
-        zh: 地图可视化
     # TODO(CDN): the screenshots in this gallery are still repo-relative. Upload to
     # files.seeedstudio.com/Solution/landpage_asset/indoor_positioning_ble_lorawan/
     # with a hashed filename and switch these src values before the hub page uses them.
