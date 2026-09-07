@@ -100,5 +100,12 @@ instances and are looser than the counts the runtime settles on. Item counts
 should be read from the run's `raw/score.checkout.json`, not from the frames.
 
 The products in all three files are photographs from the **Grocery Store
-Dataset** (MIT), which permits commercial use and redistribution; the shelf
-scenes were composed from it by `tools/make_shelf_grocery_sim.py`.
+Dataset** by Klasson, Zhang and Kjellström — <https://github.com/marcusklasson/GroceryStoreDataset>,
+MIT licence (<https://github.com/marcusklasson/GroceryStoreDataset/blob/master/LICENSE>),
+which permits commercial use and redistribution. The shelf scenes were composed
+from it by `tools/make_shelf_grocery_sim.py`; the licence and its terms are
+recorded upstream in `evaluation/data/README.md`.
+
+The detector was trained on **SKU-110K** (<https://github.com/eg4000/SKU110K_CVPR19>)
+and the embedder on **Products-10K** (<https://products-10k.github.io/>); neither
+dataset's images appear in this gallery.

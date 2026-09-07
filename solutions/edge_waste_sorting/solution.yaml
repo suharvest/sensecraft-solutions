@@ -31,8 +31,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/waste-recamera-sg2002-20260907.jpg
+  cover_image: gallery/waste-multi-item-pair-20260907.jpg
   gallery:
+    - type: image
+      src: gallery/waste-multi-item-pair-20260907.jpg
+      caption: Two table tops of loose rubbish, every item boxed and labelled with its material and score. Left — a bottle, foil trays, folded paper and a printed card. Right — a drinks can, a red carton, a tube and paper scraps
+      caption_i18n:
+        zh: 两张摊着垃圾的台面，每件都画框并标出材质与分数。左：瓶子、锡纸盒、折叠纸与印刷卡片；右：易拉罐、红色纸盒、软管与纸屑
     - type: image
       src: gallery/waste-recamera-sg2002-20260907.jpg
       caption: >-
@@ -43,16 +48,6 @@ intro:
         zh: >-
           四张在 reCamera 自己的 SG2002 TPU 上跑出来的结果，不是主机代跑——
           BF16 cvimodel，标注预测类别、中国四分类与设备实测的单帧推理耗时
-    - type: image
-      src: gallery/waste-multi-item-a-20260907.jpg
-      caption: Seven items on one table top, each in its own box with the predicted material and confidence
-      caption_i18n:
-        zh: 一张台面上七件物品，每件一个框，标注预测材质与置信度
-    - type: image
-      src: gallery/waste-multi-item-b-20260907.jpg
-      caption: A second table top — a drinks can, a carton, a bottle and paper scraps, each boxed and labelled
-      caption_i18n:
-        zh: 另一张台面——易拉罐、纸盒、瓶子与纸屑，逐件画框标注
     - type: image
       src: gallery/waste-grid-4up-local-20260907.jpg
       caption: Four real CPU inference results (onnxruntime, Apple M4) on TrashNet (MIT) validation images — one per requested category, predicted class and confidence drawn on each frame

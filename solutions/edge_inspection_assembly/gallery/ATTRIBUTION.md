@@ -75,3 +75,11 @@ Source file: `evaluation/runs/2026-09-05-m1-smoke/dimension_rotated_25deg.png`,
 rectangle rotated 25° — not a photograph of a part. The measured values printed
 on the frame (60.35 × 40.17 mm at 0.10040 mm/px, verdict OK) are the script's
 own output.
+
+## detection-overlay-pair.jpg
+
+`detection-overlay.jpg` (640 × 640) and `detection-overlay-2.jpg` (640 × 640)
+placed side by side at native resolution with an 8 px white gutter, 1288 × 640.
+Nothing was scaled. It is the cover, because a 640 px frame is too small to
+carry a page. Both source frames are DeepPCB (MIT); the two single files stay in
+this directory.

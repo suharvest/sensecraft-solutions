@@ -25,18 +25,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/defect-overlay-inclusion.jpg
+  cover_image: gallery/defect-overlay-pair.jpg
   gallery:
     - type: image
-      src: gallery/defect-overlay-inclusion.jpg
-      caption: Detector output on a rolled steel strip — blue boxes are inclusions found by the model, thin white boxes are the labelled ones, each box carrying its score
+      src: gallery/defect-overlay-pair.jpg
+      caption: Two frames of rolled steel strip with the defects boxed. Left — four long inclusions down the strip, each blue box carrying its score against the thin white labelled box. Right — a pitted surface, where the flaw spreads across the sheet instead of sitting in one place
       caption_i18n:
-        zh: 钢带表面的检测输出——蓝框是模型找到的夹杂，细白框是标注框，每个框带出分数
-    - type: image
-      src: gallery/defect-overlay-pitted.jpg
-      caption: The same detector on a pitted surface — a defect class that spreads instead of sitting in one spot
-      caption_i18n:
-        zh: 同一检测器在麻点表面上的输出——这类缺陷是散开的，不集中在一处
+        zh: 两帧钢带表面，缺陷已圈出。左：沿钢带分布的四处长条夹杂，每个蓝框带出分数，旁边细白框是标注；右：麻点表面，缺陷散布在整片上而不集中在一处
     - type: image
       src: gallery/recomputer-super-j4012.jpg
       caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on

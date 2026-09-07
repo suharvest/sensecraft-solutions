@@ -17,18 +17,13 @@ intro:
   # https://files.seeedstudio.com/Solution/landpage_asset/edge-inspection-assembly/
   # with a content-hash suffix and replace these paths, per the packaging
   # checklist §2. Sources and licences: gallery/ATTRIBUTION.md.
-  cover_image: gallery/detection-overlay.jpg
+  cover_image: gallery/detection-overlay-pair.jpg
   gallery:
     - type: image
-      src: gallery/detection-overlay.jpg
-      caption: A bare printed circuit board with six defects boxed — open circuits, mouse bites, a spur and a pin hole, each labelled with its class and score beside the box it was matched to
+      src: gallery/detection-overlay-pair.jpg
+      caption: Two bare printed circuit boards with their defects boxed. Left — open circuits, mouse bites, a spur and a pin hole across the copper. Right — a second board with its own set. Every box carries the class and the score, drawn beside the labelled box it was matched to
       caption_i18n:
-        zh: 一块裸板上圈出六处缺陷——断路、鼠咬、毛刺与针孔，每个框旁标注类别与分数，并与配对的真值框并排
-    - type: image
-      src: gallery/detection-overlay-2.jpg
-      caption: A second board — each defect box carries its type and score next to the ground-truth box it was matched against
-      caption_i18n:
-        zh: 另一块板子——每个缺陷框旁标出类型与分数，并与配对上的真值框并排显示
+        zh: 两块裸板，缺陷都已圈出。左：铜箔上的断路、鼠咬、毛刺与针孔；右：另一块板上的另一组。每个框都带类别与分数，并与配对的标注框并排
     - type: image
       src: gallery/dimension-nominal.png
       caption: Dimension fixture at nominal size — the ArUco marker on the left gives mm-per-pixel, the block on the right is measured against it (60 x 40 mm, verdict OK)

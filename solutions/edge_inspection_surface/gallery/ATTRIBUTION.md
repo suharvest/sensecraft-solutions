@@ -1,30 +1,35 @@
 # Gallery attribution
 
-## Standing rule: no dataset-derived image is committed
+## Standing rule: exactly two dataset-derived frames, and only to show function
 
-**Until the dataset licence question below is answered, this package commits no
-image derived from the training or validation data** — no detection overlay, no
-evaluation screenshot, no sample frame, in this directory or anywhere else in
-the solution. This matches the upstream repository, which excludes
-`evaluation/fixtures/` and `evaluation/runs/**/*.jpg` from version control and
-commits only the numerical smoke report.
+**Two detection frames are published here and no more** —
+`defect-overlay-inclusion.jpg` and `defect-overlay-pitted.jpg`, described at the
+bottom of this file. They exist so a reader can see what the solution does. No
+further image derived from the training or validation data is committed in this
+directory or anywhere else in the solution: no evaluation screenshot, no sample
+frame, no dataset excerpt. The underlying photographs carry non-commercial
+terms (see "The licence problem" below) and are not redistributed as data.
 
-The rule covers the whole package, not just this directory: `assets/models/`
-holds manifests and checksums only, and nothing has been uploaded to a CDN.
+Until 2026-09-07 the rule here was zero such images. It was relaxed to two on
+that date, deliberately and with the scope written down, because a page that
+shows only a product photograph does not tell anyone what it is for.
+
+The rest of the package is unchanged: `assets/models/` holds manifests and
+checksums only, and nothing has been uploaded to a CDN.
 
 ## What is in this directory
 
 | File | Origin | Contains dataset imagery |
 |---|---|---|
+| `defect-overlay-inclusion.jpg` | `evaluation/runs/2026-09-05-m1-smoke/overlay_inclusion_110_jpg.rf.14d4ab42696fedc3d48775e0cce5fd57.jpg` | Yes — one NEU-DET frame, published to show function |
+| `defect-overlay-pitted.jpg` | `evaluation/runs/2026-09-05-m1-smoke/overlay_pitted_surface_100_jpg.rf.50a2cc31fe13105a21b22f930e481d7f.jpg` | Yes — one NEU-DET frame, published to show function |
 | `recomputer-super-j4012.jpg` | Official Seeed Studio product photo, reComputer Super J4012 (SKU 114110314), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/s/u/suprt_j4012.jpg` (product page: https://www.seeedstudio.com/reComputer-Super-J4012-p-6443.html) | No |
 | `architecture.svg` | Drawn for this solution | No |
 
-`recomputer-super-j4012.jpg` is the cover image and first gallery entry. It is
-the official product photo of the reComputer Super J4012 this solution's
-numbers were measured on — used in place of a real detection screenshot because
-the dataset-licence restriction above forbids shipping any image derived from
-NEU-DET (see "Standing rule" and "The licence problem" below). It carries no
-dataset content at all, so it is not covered by that restriction.
+`recomputer-super-j4012.jpg` is the third gallery entry. It is the official
+product photo of the reComputer Super J4012 this solution's numbers were
+measured on. It carries no dataset content. It was the cover until 2026-09-07,
+when the two detection frames took over the front of the gallery.
 
 `architecture.svg` is the data path only — camera, edge device, the OK/NG step,
 and the three outputs with their ports. Boxes, arrows, product names, protocol
@@ -85,11 +90,21 @@ be placed on the device by hand in the meantime.
 
 ## defect-overlay-inclusion.jpg / defect-overlay-pitted.jpg
 
-Added 2026-09-07. Both are the detector's own output, copied unchanged (apart
-from JPEG re-encoding) from
-`evaluation/runs/2026-09-05-m1-smoke/overlay_inclusion_110_*.jpg` and
-`overlay_pitted_surface_100_*.jpg` in the `edge-inspection-surface` working
-tree, 640 × 640 each. The blue boxes and scores are the ONNX model's
+Added 2026-09-07. Both are the detector's own output, taken from these two
+files in the `edge-inspection-surface` working tree:
+
+| Published file | Source file |
+|---|---|
+| `defect-overlay-inclusion.jpg` | `evaluation/runs/2026-09-05-m1-smoke/overlay_inclusion_110_jpg.rf.14d4ab42696fedc3d48775e0cce5fd57.jpg` |
+| `defect-overlay-pitted.jpg` | `evaluation/runs/2026-09-05-m1-smoke/overlay_pitted_surface_100_jpg.rf.50a2cc31fe13105a21b22f930e481d7f.jpg` |
+
+Each source frame is 640 × 640, copied unchanged apart from JPEG re-encoding.
+`defect-overlay-pair.jpg` (1288 × 640) is the two of them placed side by side
+at native resolution with an 8 px white gutter — inclusion on the left, pitted
+on the right. Nothing was scaled and no pixel inside either frame was altered.
+It is the cover; the two single frames stay in this directory but are not
+listed in `intro.gallery`, so the page still shows two NEU-DET frames and no
+more. The blue boxes and scores are the ONNX model's
 predictions; the thin white boxes are the labels they were matched against.
 
 **Detection-result screenshots. The underlying photographs come from NEU-DET

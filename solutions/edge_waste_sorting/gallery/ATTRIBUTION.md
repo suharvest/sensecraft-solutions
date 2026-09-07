@@ -196,3 +196,16 @@ The objects in both frames are **TrashNet** (MIT, `garythung/trashnet`) items
 segmented out of their original photographs and composited onto a procedurally
 generated empty-table background (`data/synth_multi.py`); the background
 introduces no third-party asset. TrashNet's MIT licence covers redistribution.
+
+## waste-multi-item-pair-20260907.jpg
+
+`waste-multi-item-a-20260907.jpg` and `waste-multi-item-b-20260907.jpg` placed
+side by side at native resolution with an 8 px white gutter, 1288 × 640, no
+scaling. It is the cover. The source objects are TrashNet (MIT) items on a
+procedurally generated background, as recorded above.
+
+The device grid `waste-recamera-sg2002-20260907.jpg` is 768 px wide and stays in
+the gallery as the second image rather than the cover. It cannot be re-rendered
+any wider without upscaling: the tiles it is built from are GC3 instance crops
+of 415 × 415 and smaller (the organic crop is 125 × 66), so the grid has no
+larger native form.
