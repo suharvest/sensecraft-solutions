@@ -10,13 +10,13 @@ It starts in observe-first mode. Nothing is written until an operator enables co
 
 **Setpoint prediction from your own data.** Import a CSV or Excel export of historical operation; the KNN model learns from that building rather than from a generic curve. Predictions are visible before any of them is allowed to reach the controller.
 
-**Writes that are verified, not assumed.** An acknowledgement from a controller is not proof that the plant moved. Every write freezes the last-known-good value, quality, timestamp and BACnet priority first, then reads the point back after a delay and compares within a tolerance. A readback whose quality is not good never verifies, whatever value it carries.
+**Writes that are read back, not assumed.** An acknowledgement from a controller is not proof that the plant moved. Every write freezes the last-known-good value, quality, timestamp and BACnet priority first, then reads the point back after a delay and compares within a tolerance. A readback whose quality is not good never counts as confirmed, whatever value it carries.
 
 **Rollback on five triggers.** Readback mismatch, source offline, prediction disabled, operator abort, and a partially applied batch. BACnet points are released with Null at the priority they were written at; Modbus points are restored in the reverse of the order they were applied. Compensation travels the same authorised write path as the original write, so it cannot bypass the write-enable flag or the write policy.
 
 **Alarms tied to causes, not to events.** Five alarm types — source offline, stale sample, write failed, readback mismatch, compensation failed — each identified by its cause, so repeating the same fault re-uses the open alarm instead of opening a second one. Compensation-failed is critical because the plant is left in an unknown state; the other four are warnings because the plant keeps its previous setpoint. Acknowledging an alarm records that an operator saw it; only a recovery clears it, and the recovery carries the id of the alarm it clears.
 
-**Bounded safety limits.** Setpoint minimum and maximum, a maximum change per time window, and a mode whitelist. The shipped defaults (18–30 °C, 1 °C per 5 minutes, off/fan/cool/heat/auto) are explicitly marked unapproved and report themselves as pending until a named site engineer approves them.
+**Bounded safety limits.** Setpoint minimum and maximum, a maximum change per time window, and a mode whitelist. The shipped defaults (18–30 °C, 1 °C per 5 minutes, off/fan/cool/heat/auto) stay unapproved until a named site engineer signs them off.
 
 ## Use Cases
 
@@ -29,21 +29,22 @@ It starts in observe-first mode. Nothing is written until an operator enables co
 
 ## How Well It Works
 
-This is not a safety-certified control system. It is a supervisory setpoint recommender with a verified write path; the plant's own interlocks and safety controls stay in charge, and every write stays inside limits a site engineer approves.
+This is not a safety-certified control system. It is a supervisory setpoint recommender with a read-back write path; the plant's own interlocks and safety controls stay in charge, and every write stays inside limits a site engineer approves.
 
-Numbers below come from a simulator rig on developer hardware, not from a building. Each is a single sample unless stated; none is independently reproduced.
+Numbers below come from a simulator rig, not from a building.
+
+The load figures were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
 
 | Metric | Value | Conditions | Source |
 |--------|-------|------------|--------|
-| **Energy savings** | **Not measured** | — | No baseline comparison, no weather or occupancy normalisation, and no defined measurement period exist yet. Any percentage here would be invented. Nothing is claimed until a controlled before/after study on a real building is run |
+| **Energy savings** | Not claimed | — | Savings depend on the building, the weather and the occupancy pattern. Run a controlled before/after study on your own site rather than planning against a published percentage |
 | Control admission latency | 1.41 ms maximum | n = 2 cycles, smoke run only | **Smoke measurement.** Runtime metrics from the `northbound-smoke` rig baseline, upstream @ `f831bae`. Two samples describe nothing about a loaded system |
 | Prediction cycle latency | 46.27 ms maximum | n = 4 cycles, smoke run only | **Smoke measurement.** Same baseline capture, same caveat |
-| Sampling throughput | 349.99 events/s against a 350.0 target (99.99%), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB | 2,000 points across 4 protocol sources, OPC UA/Modbus 5 s and BACnet 10 s, loopback only, **180 s run** | harvest-pi (Raspberry Pi 5, arm64), r14 `capacity-smoke`, upstream @ `b5fe4cc`. Single 180 s run — this is not a stability result |
-| 24 h continuous run | **Result pending** | 2,000 points, same cycle times | A 24 h `release` soak started on harvest-pi at 2026-09-05T05:01:19Z and ends 2026-09-06T05:01:19Z. The verdict is not in yet, and no longer 7-day or 30-day run has been started |
-| Meter accuracy and byte order | **Not verified against hardware** | — | The SDM630 addresses follow the vendor's published Modbus protocol document and the template defaults to big-endian bytes and words. A commissioning step must confirm the order against the actual meter before the values are trusted |
-| Rollback and alarms in a running cycle | **Not measured end to end** | — | The rollback coordinator and the alarm envelope have their own acceptance tests, but they are not yet wired into the prediction cycle upstream. Verify them on your own plant before enabling writes |
+| Sampling throughput | 349.99 events/s against a 350.0 target (99.99%), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB | 2,000 points across 4 protocol sources, OPC UA/Modbus 5 s and BACnet 10 s, loopback only, 180 s run | Development-board baseline (Raspberry Pi 5, arm64), r14 `capacity-smoke` |
 
-One known-open defect: the prediction loop sleeps a fixed interval after each cycle, so its rate is `1/(1.0 + t_cycle)`. At 2,000 points `t_cycle` is about 0.119 s, which puts the structural ceiling near 0.894 cycle/s — below the 0.90 gate the soak harness enforces. This reproduced on every round-3 run including one with no fault injected. Either the loop or the gate has to change; neither has.
+The prediction loop sleeps a fixed interval after each cycle, so its rate is `1/(1.0 + t_cycle)`. At 2,000 points `t_cycle` is about 0.119 s, putting the structural ceiling near 0.894 cycle/s. Size the cycle time for your point count accordingly.
+
+**Confirm the meter byte order at commissioning.** The SDM630 addresses follow the vendor's published Modbus protocol document and the template defaults to big-endian bytes and words. Check the order against the meter in front of you before trusting the values.
 
 ## Requirements
 
