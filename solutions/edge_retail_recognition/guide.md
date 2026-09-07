@@ -33,12 +33,15 @@ console host, and writes the role token table.
 
 - A Linux host with Docker and the compose plugin, reachable from the
   recognition device. No GPU needed.
-- **Neither container image has been pushed.** Build both on this host from the
-  upstream repository, with the SPA built first
+- **Both container images are published** at
+  `sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0`
+  and `.../edge-retail-console-web:0.1.0` (linux/amd64 + linux/arm64);
+  `RETAIL_SERVER_IMAGE` and `RETAIL_WEB_IMAGE` default to those tags. To
+  deploy a local build instead, build the SPA first
   (`npm --prefix web/ui ci && npm --prefix web/ui run build`), then
-  `platforms/console/Dockerfile.server` and `platforms/console/Dockerfile.web`.
-  The images do not run npm. The step checks both images are present locally
-  before touching compose.
+  `platforms/console/Dockerfile.server` and `platforms/console/Dockerfile.web`,
+  and override the two variables. The step checks both images are present
+  locally or pullable before touching compose.
 - At least an admin token decided. There is no default token and no anonymous
   read; the service refuses to start with an empty token table.
 - A reverse proxy terminating TLS in front of the UI before anyone outside the
@@ -48,7 +51,7 @@ console host, and writes the role token table.
 
 | Issue | Solution |
 |---|---|
-| "MISSING: `<image>`" before compose runs | Expected until you build them. Build on this host from the upstream repository and use the tags you built. |
+| "MISSING: `<image>`" before compose runs | The published default could not be pulled — check registry reachability. Only relevant with a self-built override if the tag was never built on this host. |
 | `docker compose` not found | Install `docker-compose-plugin`. |
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate — the step prints this check's result. |
 | `GET /v1/gallery` with the admin token returns an empty gallery | Correct before the first registration. |
@@ -222,9 +225,11 @@ Same console stack as every preset — registration service, management UI, brok
 ### Prerequisites
 
 - A Linux host with Docker and the compose plugin. No GPU needed.
-- **Neither container image has been pushed.** Build both on this host from the
-  upstream repository, SPA first. The step checks both are present locally
-  before touching compose.
+- **Both container images are published** (`edge-retail-console-server:0.1.0`,
+  `edge-retail-console-web:0.1.0`); `RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE`
+  default to them. To use a local build instead, build both on this host from
+  the upstream repository, SPA first, and override the two variables. The
+  step checks both are present locally or pullable before touching compose.
 - At least an admin token. There is no default and no anonymous read.
 - A reverse proxy terminating TLS in front of the UI before it is reachable from
   outside the local network.
@@ -233,7 +238,7 @@ Same console stack as every preset — registration service, management UI, brok
 
 | Issue | Solution |
 |---|---|
-| "MISSING: `<image>`" before compose runs | Expected until you build them. |
+| "MISSING: `<image>`" before compose runs | The published default could not be pulled — check registry reachability. Only relevant with a self-built override that was never built on this host. |
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate. |
 | The Pi cannot reach the service port | Devices pull the gallery over that port, not through the UI. Check it from the Pi, not from a browser on another network. |
 | Port 8089 already in use | Change it in the wizard and give devices the same value. |
@@ -388,8 +393,10 @@ hardware.
 ### Prerequisites
 
 - A Linux host with Docker and the compose plugin. No GPU needed.
-- **Neither container image has been pushed.** Build both on this host from the
-  upstream repository, SPA first.
+- **Both container images are published**; `RETAIL_SERVER_IMAGE`/
+  `RETAIL_WEB_IMAGE` default to them. Build both on this host from the
+  upstream repository, SPA first, and override the two variables to use a
+  local build instead.
 - At least an admin token. No default, no anonymous read.
 - A reverse proxy terminating TLS in front of the UI before external access.
 
@@ -397,7 +404,7 @@ hardware.
 
 | Issue | Solution |
 |---|---|
-| "MISSING: `<image>`" before compose runs | Expected until you build them. |
+| "MISSING: `<image>`" before compose runs | The published default could not be pulled — check registry reachability. Only relevant with a self-built override that was never built on this host. |
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate. |
 | `docker compose` not found | Install `docker-compose-plugin`. |
 | Port 8089 already in use | Change it in the wizard. |

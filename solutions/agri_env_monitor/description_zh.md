@@ -100,8 +100,10 @@ Web 界面里的一项设置，这是走到完全本地部署的最短路径；�
 - **不要把 broker 暴露到公网。** 它涉及主机上 `.env` 里的凭据；
   ChirpStack 套餐里 LNS 侧的 broker 还在 compose 网络内不带认证运行。
   这两点在可信局域网内没问题，在别处不行。
-- **桥的镜像还没发布。** `agri-env-bridge:0.1.0` 目前只是一个 tag 引用；
-  部署前先本地构建，或者把 `BRIDGE_IMAGE` 指向你自己的 registry。
+- **桥的镜像已发布**在
+  `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+  （linux/amd64 + linux/arm64）。`BRIDGE_IMAGE` 默认指向该 tag；要部署自建版本，
+  把它指向你自己的 registry。
 
 ## 许可说明
 
