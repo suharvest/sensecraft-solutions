@@ -33,12 +33,14 @@ and its MQTT broker.
 - JetPack 6.x (L4T r36.x) with the TensorRT dev packages, so that
   `/usr/src/tensorrt/bin/trtexec` exists and runs.
 - Docker with the NVIDIA runtime configured, and at least 10 GB free.
-- The runtime image `edge-inspection-assembly-jetson:0.1.0-dev` present on the
-  device. **This tag is not published to a registry yet** — build it once on the
-  board from the upstream repository (`docker build --network=host -f
-  platforms/jetson/Dockerfile.slim -t edge-inspection-assembly-jetson:0.1.0-dev .`)
-  or set `INSPECTION_IMAGE` to a tag the device can pull. The deploy checks for
-  it before doing anything else.
+- The runtime image `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev`
+  pullable from the device (`docker pull` it once, or let compose pull it). It
+  was built for linux/arm64 and pushed on 2026-09-07, digest
+  `sha256:755f4b1d96052bf97e0cb84fc529d3cd61e6459f6a988144e593b06bdb7af997`.
+  If the device cannot reach the registry, build the tag on the board
+  (`docker build --network=host -f platforms/jetson/Dockerfile.slim -t
+  sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev .`)
+  or set `INSPECTION_IMAGE`. The deploy checks for it before doing anything else.
 - The camera reachable from the Jetson. Test an RTSP address in VLC first.
 - Ports 1883, 502 and 8080 free on the host — the containers use host
   networking so the PLC can reach Modbus directly.
@@ -47,7 +49,7 @@ and its MQTT broker.
 
 | Issue | Solution |
 |-------|----------|
-| `Image ... is not on this device` | The runtime tag is not published yet; build it on the board or point `INSPECTION_IMAGE` at a tag you can pull |
+| `Image ... is not on this device` | Run `docker pull sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev` first; if the registry is unreachable, build the tag on the board or point `INSPECTION_IMAGE` at a tag you can pull |
 | Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and 10 GB is free; delete a half-built `*.engine.part` from an interrupted run before retrying |
 | ONNX checksum mismatch | The model file is not the one these measurements came from. Remove it and let the step download again |
 | No video from the camera | Test the RTSP URL in VLC; a wrong path or wrong credentials is the most common failure |
@@ -324,10 +326,12 @@ them first:
   pages and the Hailo-8's maximum descriptor page is 4 KB. Without it `VDevice()`
   and `hailortcli fw-control identify` both succeed and `configure(hef)` is where
   it breaks.
-- The runtime image `edge-inspection-assembly-rpi-hailo:0.1.0-dev` present on the
-  device. **This tag is not published to a registry yet** — it has been
-  cross-built for arm64 but never pushed. Build it on the board, or load it from
-  an exported tar, or set `INSPECTION_IMAGE`.
+- The runtime image `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev`
+  pullable from the device. It was built for linux/arm64 and pushed on
+  2026-09-07, digest
+  `sha256:695aa8011186595764e0cbb680c2cad6b88d6c0fe54e075ad6e19eae3d33f944`; its
+  python3 is 3.11.2, matching Pi OS bookworm. If the registry is unreachable,
+  build it on the board, load it from an exported tar, or set `INSPECTION_IMAGE`.
 - At least 4 GB free, `/dev/hailo0` present, and ports 1883, 502 and 8080 free.
 
 ### Troubleshooting
@@ -354,7 +358,7 @@ the reComputer R2000.
 ## Step 2: Set Up the Dimension Calibration {#calibrate_dimension_hailo type=manual required=false config=devices/calibrate_dimension.yaml}
 
 Identical to the Jetson preset, with one substitution: the self-check runs
-inside `edge-inspection-assembly-rpi-hailo:0.1.0-dev`. Skip this step if the
+inside `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev`. Skip this step if the
 station only needs the missing-part check.
 
 ### Prerequisites

@@ -27,11 +27,14 @@ Orin 上；首次部署时在设备上构建 TensorRT engine，约五分钟，en
 - JetPack 6.x（L4T r36.x）并装了 TensorRT dev 包，`/usr/src/tensorrt/bin/trtexec`
   存在且可执行。
 - Docker 已配好 NVIDIA runtime，磁盘至少 10 GB 可用。
-- 设备上有运行镜像 `edge-inspection-assembly-jetson:0.1.0-dev`。
-  **这个 tag 尚未发布到 registry**——先按上游仓库在板子上构建一次
+- 设备能拉到运行镜像 `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev`
+  （先 `docker pull` 一次，或让 compose 自己拉）。该镜像 2026-09-07 按 linux/arm64
+  构建并推送，digest
+  `sha256:755f4b1d96052bf97e0cb84fc529d3cd61e6459f6a988144e593b06bdb7af997`。
+  设备连不上 registry 时，在板子上构建这个 tag
   （`docker build --network=host -f platforms/jetson/Dockerfile.slim -t
-  edge-inspection-assembly-jetson:0.1.0-dev .`），或把 `INSPECTION_IMAGE`
-  指到设备能拉到的 tag。部署会先检查这一条再做别的事。
+  sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev .`），
+  或把 `INSPECTION_IMAGE` 指到设备能拉到的 tag。部署会先检查这一条再做别的事。
 - 摄像头对 Jetson 可达。RTSP 地址请先用 VLC 测一下。
 - 主机上 1883、502、8080 端口空闲——容器用 host 网络，PLC 才能直接访问 Modbus。
 
@@ -39,7 +42,7 @@ Orin 上；首次部署时在设备上构建 TensorRT engine，约五分钟，en
 
 | 问题 | 解决办法 |
 |-------|----------|
-| `Image ... is not on this device` | 运行镜像 tag 尚未发布；在板子上构建，或把 `INSPECTION_IMAGE` 指到能拉到的 tag |
+| `Image ... is not on this device` | 先 `docker pull sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev`；registry 不可达时在板子上构建，或把 `INSPECTION_IMAGE` 指到能拉到的 tag |
 | engine 构建失败 | 确认 `/usr/src/tensorrt/bin/trtexec` 存在、磁盘有 10 GB；重试前删掉上次中断留下的 `*.engine.part` |
 | ONNX 校验和不符 | 模型文件不是这组实测数据对应的那一份。删掉让该步骤重新下载 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址；路径或用户名密码写错是最常见的失败原因 |
@@ -282,8 +285,10 @@ MQTT broker。
 - **`hailo_pci` 要带 `force_desc_page_size=4096`。** Pi 5 内核 PAGE_SIZE 是 16 KB，
   Hailo-8 的最大描述符页是 4 KB。不加它时 `VDevice()` 与
   `hailortcli fw-control identify` 都能过，偏偏在 `configure(hef)` 那一步崩。
-- 设备上有运行镜像 `edge-inspection-assembly-rpi-hailo:0.1.0-dev`。
-  **这个 tag 尚未发布到 registry**——它交叉构建出了 arm64，但没有推过。
+- 设备能拉到运行镜像 `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev`。
+  该镜像 2026-09-07 按 linux/arm64 构建并推送，digest
+  `sha256:695aa8011186595764e0cbb680c2cad6b88d6c0fe54e075ad6e19eae3d33f944`，
+  镜像内 python3 为 3.11.2，与 Pi OS bookworm 一致。registry 不可达时，
   在板子上构建、从导出的 tar 里 load，或者设 `INSPECTION_IMAGE`。
 - 磁盘至少 4 GB 可用，`/dev/hailo0` 存在，1883、502、8080 端口空闲。
 
@@ -310,7 +315,7 @@ MQTT broker。
 ## 步骤 2: 建立尺寸标定 {#calibrate_dimension_hailo type=manual required=false config=devices/calibrate_dimension.yaml}
 
 与 Jetson 套餐相同，只换一处：自检在
-`edge-inspection-assembly-rpi-hailo:0.1.0-dev` 里跑。
+`sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev` 里跑。
 只做缺件比对的工位可以跳过这一步。
 
 ### 前置条件
