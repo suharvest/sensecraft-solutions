@@ -63,9 +63,11 @@ your account, backfills their history, then subscribes to the live stream.
    mode-600 `.env` file on the target host.
 2. The broker address, port, username and password from step 1. Use the host's
    LAN address rather than `127.0.0.1` if the bridge runs on a different machine.
-3. The bridge image. `agri-env-bridge:0.1.0` is **not published to any
-   registry** yet — build it from the upstream project before deploying, or set
-   `BRIDGE_IMAGE` to a tag you host yourself.
+3. The bridge image. Published at
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it. Build from the
+   upstream project and set `BRIDGE_IMAGE` to your own tag to deploy a local
+   build instead.
 4. A decision on the backfill window. The OpenAPI reaches back three months at
    most and serves one month per request, so three months means three times the
    requests per device.
@@ -77,7 +79,7 @@ your account, backfills their history, then subscribes to the live stream.
 | Bridge log shows a DNS failure for the cloud host | The two candidate hostnames are both unconfirmed. Redeploy with the other option in the MQTT host selector |
 | Bridge log shows an authentication failure | Check the Access ID and Access Key pair, and that the key has not been revoked in the Portal |
 | Devices appear but no values | Backfill puts only the latest value per entity into Home Assistant. If the nodes report hourly, the first live update can be up to an hour away |
-| `no such image` on deploy | The image tag is not published. Build it locally and re-run |
+| `no such image` on deploy | Only relevant with a self-built `BRIDGE_IMAGE` override — build it locally and re-run |
 | Nothing reaches the broker | Check the broker address is the LAN address, not `127.0.0.1`, when the bridge is not on the Home Assistant host |
 
 ### Target {#cloud_bridge_remote type=remote device_name="Bridge Host" config=devices/cloud_bridge.yaml default=true}
@@ -228,8 +230,10 @@ bridge beside it. Allow 15–30 min for the first run.
    `127.0.0.1` produces a Console you cannot sign in to from another machine.
 3. Ports 1885 (Console) and 1700/udp (packet forwarder) free.
 4. The broker address, port, username and password from step 1.
-5. The bridge image. `agri-env-bridge:0.1.0` is **not published to any
-   registry** — build it or override `BRIDGE_IMAGE`.
+5. The bridge image. Published at
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it; build your own
+   and override `BRIDGE_IMAGE` to use a local build instead.
 6. The application ID and API key are asked for here but created in step 4.
    Deploy this step, create them in the Console, then restart the bridge with
    `docker compose restart bridge`.
@@ -430,8 +434,10 @@ bring up ChirpStack on this host as well.
 2. On the `local` route: at least 8 GB free disk, and a frequency plan matching
    the concentrator and the nodes.
 3. The broker address, port, username and password from step 1.
-4. The bridge image. `agri-env-bridge:0.1.0` is **not published to any
-   registry** — build it or override `BRIDGE_IMAGE`.
+4. The bridge image. Published at
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it; build your own
+   and override `BRIDGE_IMAGE` to use a local build instead.
 5. The application ID. `+` subscribes to every application on that broker, which
    is the simplest thing that works for a single-tenant site.
 
@@ -442,7 +448,7 @@ bring up ChirpStack on this host as well.
 | Bridge log shows no `ChirpStack MQTT connected` | On the `m2` route, re-check the address and credentials from the gateway's LoRa Network page. On the `local` route, check `docker compose --profile local-lns ps` |
 | ChirpStack services did not start on the `local` route | The profile is only activated when `lns_mode` is `local`. Re-run the step with the right choice |
 | Web interface on 8080 is unreachable | Only the `local` route runs one. On the `m2` route ChirpStack lives inside the gateway |
-| `no such image` on deploy | The bridge image tag is not published. Build it locally and re-run |
+| `no such image` on deploy | Only relevant with a self-built `BRIDGE_IMAGE` override — build it locally and re-run |
 
 ### Target {#chirpstack_remote type=remote device_name="Bridge Host" config=devices/chirpstack_stack.yaml default=true}
 
