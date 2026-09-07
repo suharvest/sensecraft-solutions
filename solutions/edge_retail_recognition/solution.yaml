@@ -51,8 +51,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/recomputer-rk3588.png
   gallery:
+    - type: image
+      src: gallery/recomputer-rk3588.png
+      caption: reComputer RK3588 — the device the RK3588 detector numbers on this page were measured on. The UI screenshots further down are synthetic fixtures, not a real recognition run
+      caption_i18n:
+        zh: reComputer RK3588——本页 RK3588 检测器数字的实测设备。下面的界面截图是合成演示数据，不是真实识别结果
     - type: image
       src: gallery/architecture.svg
       caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
