@@ -225,7 +225,7 @@ intro:
           name_i18n:
             zh: IP 摄像头
       name_i18n:
-        zh: IP 摄像头 + 树莓派 5（Hailo）
+        zh: IP 摄像头 + reComputer Industrial R20（Hailo）
 
     - id: jetson
       name: Upgrade Existing Cameras
