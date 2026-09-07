@@ -358,7 +358,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 
 ## 部署方式对比
 
-**摄像头 + reComputer J（Orin）**——唯一有模型文件的套餐。TensorRT engine
+**摄像头 + reComputer J30 / J40（Orin）**——唯一有模型文件的套餐。TensorRT engine
 在部署过程中于设备上构建，因为 engine 绑定具体 GPU 架构与 TensorRT 版本，
 无法预编分发。它也是唯一提供开放词汇 track 的套餐：SigLIP 2 视觉塔在 CPU 上
 单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。已在
