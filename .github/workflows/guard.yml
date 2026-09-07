@@ -44,6 +44,7 @@ jobs:
       - name: Product names must be real product families
         run: |
           uv sync
+          uv run --with pytest pytest tests/test_product_name_lint.py -q
           uv run python scripts/ci/lint_product_names.py
       - name: Validate all solutions against the contract
         run: |
