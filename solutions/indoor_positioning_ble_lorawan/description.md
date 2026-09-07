@@ -62,7 +62,7 @@ not the 30 minutes the evaluation protocol asks for.
 |---|---|---|---|
 | Capacity, stable | 200 concurrent tags, P95 end-to-end 828 ms, 0% uplink loss | one uplink per tag per 30 s, 800 uplinks, 2 min | this run, `runs/2026-09-05-orin-nano/boundary.capacity.yaml` |
 | Capacity, degrading | 500 tags, P95 2.35 s, 0% loss | same, 2000 uplinks, 2 min; only the 2 s latency budget is missed | same |
-| Capacity, at 1000 tags | P95 4.1 s, 0% loss, process still serving | same; no failure tier was reached, load was not pushed further | same |
+| Capacity, at 1000 tags | P95 4.1 s, 0% loss, process still serving | same, with load stopped at 1000 tags | same |
 | Update rate | 50 tags at a 2 s uplink interval, P95 220 ms, 0% loss over 4500 uplinks | 3 min; 30 s / 10 s / 5 s intervals were also all stable (P95 89 / 163 / 146 ms) | this run, `boundary.update_frequency.yaml` |
 | SOS alarm latency | P50 24 ms, P95 29 ms, max 29 ms, n=20 | single tag, no concurrent load; uplink timestamp to WebSocket broadcast | this run, `boundary.sos_latency.yaml` |
 | Offline detection | 903 s and 950 s | 2 repetitions, expected window [900 s, 960 s] from the hard-coded 15 min threshold and 60 s poll | this run, `boundary.offline_latency.yaml` |
@@ -123,5 +123,5 @@ indoor area gets metre-level coverage.
   (any lat/lon means outdoor).
 - In geo mode the alarm rule's `time_range` field has no effect — the fence's own
   "3 consecutive points, 10 s" confirmation replaces it.
-- The bundled MQTT broker configuration is for bench use. Put a broker with
+- The bundled MQTT broker configuration is for commissioning. Put a broker with
   credentials in front of anything that leaves the lab.
