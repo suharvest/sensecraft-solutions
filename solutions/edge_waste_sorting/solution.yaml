@@ -218,6 +218,17 @@ intro:
         zh: >-
           相机与分类器在同一个机身里。模型跑在 SG2002 自己的 TPU 上，
           分类路径上没有主机、没有加速卡、也没有一跳网络。
+    recamera_pro:
+      description: >-
+        The faster of the two all-in-one cameras. Its NPU runs the classifier
+        in INT8 at roughly a fifth of the time the SG2002 model needs, at the
+        same accuracy, so it is the one to pick when the bin has to keep up
+        with a queue rather than a single drop.
+      description_i18n:
+        zh: >-
+          两款一体式相机里更快的那个。它的 NPU 用 INT8 跑分类器，耗时约为
+          SG2002 那款的五分之一，精度相同；投放点要应付排队而不是单次投放时
+          选它。
     generic_usb_camera:
       name: USB / IP Camera
       name_i18n:
@@ -327,6 +338,38 @@ intro:
           options:
             - device_ref: recamera_2002
           default: recamera_2002
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      description: >-
+        The whole classifier on the camera's own NPU, in INT8. Measured on the
+        device over 1060 validation images: material top-1 0.8764, Chinese
+        four-way top-1 0.9566, p50 5.8 ms and p95 6.0 ms for inference alone
+        (capture and preprocessing excluded). That is 2.9x the speed of the
+        same model in fp16 on this camera and 4.2x the reCamera figure, at the
+        same accuracy — across INT8, fp16 and fp32 on a host the top-1 spread
+        over these 1060 images is under 0.2 pp, so quantisation showed no
+        accuracy cost here.
+      description_i18n:
+        zh: >-
+          整个分类器跑在相机自己的 NPU 上，用 INT8。设备实测 1060 张验证图：
+          物料八类 top-1 0.8764、中国四分类 top-1 0.9566、p50 5.8 ms、
+          p95 6.0 ms（纯推理，不含取图与预处理）。这是同一台相机上 fp16 的
+          2.9 倍速度、reCamera 的 4.2 倍，精度相同——INT8、fp16 与主机 fp32
+          三者在这 1060 张图上的 top-1 相差不到 0.2 pp，即量化在这里没有
+          表现出精度代价。
+      device_groups:
+        - id: compute
+          name: Camera and Classifier
+          name_i18n:
+            zh: 相机与分类器
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
 
   stats:
     difficulty: intermediate
