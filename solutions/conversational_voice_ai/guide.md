@@ -16,15 +16,22 @@ before you trust it; a plain USB mic with no hardware AEC will re-capture the
 speaker output and cause false interruptions or echo loops, because this
 package does not do echo cancellation in software.
 
+**Network, by preset:** the cloud-LLM preset needs continuous internet for
+every turn — each reply is a live call to the API endpoint below. The
+fully-local preset needs internet only for the first deploy, to pull images
+and models; once those are cached it keeps working with the network
+disconnected (see Step 3's offline check).
+
 **Model download location and size:** models are pulled into named Docker
-volumes on first deploy, not onto the host filesystem directly — nothing to
-stage or pre-download by hand:
+volumes on the target device during first deploy — not a host directory you
+manage, and nothing to stage or pre-download from this computer:
 
 | Target | Volume(s) | What lands there |
 |---|---|---|
-| RK3576 / RK3588 (cloud LLM) | `speech-models` | Local ASR + TTS models |
+| RK3576 / RK3588 (cloud LLM) | `rk-asr-models`, `rk-tts-models` | Local ASR + TTS models |
 | RK3588 + RK1828 (local LLM) | `rk-asr-models`, `rk-tts-models`, `rk1828-llm-models` | Speech models plus Qwen3-4B on the RK1828 card |
 | Orin Nano / Orin NX (cloud LLM) | `speech-models` (Jetson image) | Local ASR + TTS models |
+| Raspberry Pi 5 (cloud LLM) | `speech-models` (RPi image) | Local ASR + TTS models |
 | Orin NX 16GB (local LLM) | `speech-models-v091`, `edge-llm-models-v091` | Qwen3-ASR + Matcha-TTS, plus the Qwen3.5-4B engine at `/workspace/models/qwen3.5-4b-gdn-mtp-8k` |
 
 **API key — cloud-LLM preset only:** the deploy form asks for an **API Key**
@@ -44,6 +51,12 @@ needs no API key.
 | Orin Nano / Orin NX (cloud LLM) | 15 GB |
 | RK3588 + RK1828 (local LLM) | 18 GB |
 | Orin NX 16GB (local LLM) | 25 GB |
+
+**Where the images come from:** every container (`ovs-agent`,
+`openvoicestream`, `seeed-local-voice`, `edge-llm-chat-service`,
+`edge-llm-rk1828`) is pulled from Seeed's private registry,
+`sensecraft-missionpack.seeed.cn`, automatically during the deploy step — no
+manual login needed. This happens on the target device, not on this computer.
 
 **First-response acceptance command:** after deployment, confirm the speech
 service is actually up before testing by voice —
@@ -220,7 +233,7 @@ Two or three turns transcribed in the selected language, answered aloud in the s
 2. **First response lands** — ask one question; a spoken reply starts within a few seconds.
 3. **Barge-in works** — speak again within one second of playback starting; the current answer stops immediately.
 4. **Language matches** — two or three turns are transcribed and answered in the language selected at deploy time.
-5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the device returns nothing during the checks above.
+5. **No error-level logs** — on the device, `docker compose -p conversational_voice_ai -f ~/conversational_voice_ai/assets/docker/docker-compose.<target>.yml logs --since 10m | grep -i error` returns nothing during the checks above (use the compose file for your target — `rk3576`, `rk3588`, `jetson`, or `rpi5` — from the Target section you deployed).
 
 ### Troubleshooting
 
@@ -340,7 +353,7 @@ Two or three turns transcribed in the selected language, answered aloud in the s
 2. **First response lands offline** — disconnect external networking, ask one question, and confirm a spoken reply starts within a few seconds.
 3. **Barge-in works** — speak again within one second of playback starting; the current answer stops immediately.
 4. **Language matches** — two or three turns are transcribed and answered in the language selected at deploy time.
-5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the device returns nothing during the checks above.
+5. **No error-level logs** — on the device, `docker compose -p conversational_voice_ai -f ~/conversational_voice_ai/assets/docker/docker-compose.<target>.yml logs --since 10m | grep -i error` returns nothing during the checks above (use `orin-nx-local` or `rk3588-rk1828` for `<target>`, matching the Target section you deployed).
 
 ### Troubleshooting
 

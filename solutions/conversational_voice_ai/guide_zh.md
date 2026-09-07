@@ -4,13 +4,16 @@
 
 **麦克风阵列——必需项，不是可选项：** 需要一台能输出**硬件 AEC/已处理采集通道**的 USB 麦克风阵列，不是普通 USB 麦克风。默认已验证型号是 **reSpeaker XVF3800**（2 通道和 6 通道固件布局都能自动识别）。Agent 按**稳定的 USB 产品标识**识别它——会忽略 HDMI/DP 伪输入设备，拔插后无需重启容器即可恢复——因此可以在部署前接好，也可以在 Agent 启动后热插拔。识别不出的麦克风会退化为使用第一个采集通道，需要自行做声学验证；普通无硬件 AEC 的 USB 麦克风会把扬声器的声音重新采集进去，造成误打断或回声循环，因为本方案不在软件层做回声消除。
 
-**模型下载位置与大小：** 模型在首次部署时拉进 Docker 具名数据卷，不落在宿主机文件系统里，不需要手动预下载：
+**网络要求，按套餐区分：** 云端大模型套餐每一轮对话都要联网——每次回复都是一次实时的接口调用。全本地套餐只在首次部署时需要联网，用于拉取镜像和模型；缓存完成后即使断网也能继续工作（见步骤 3 的断网验收）。
+
+**模型下载位置与大小：** 模型在首次部署时拉进目标设备上的 Docker 具名数据卷——不是你管理的宿主机目录，也不需要在本机预先下载：
 
 | 目标 | 数据卷 | 存放内容 |
 |---|---|---|
-| RK3576 / RK3588（云端大模型） | `speech-models` | 本地 ASR + TTS 模型 |
+| RK3576 / RK3588（云端大模型） | `rk-asr-models`、`rk-tts-models` | 本地 ASR + TTS 模型 |
 | RK3588 + RK1828（本地大模型） | `rk-asr-models`、`rk-tts-models`、`rk1828-llm-models` | 语音模型，加上 RK1828 卡上的 Qwen3-4B |
 | Orin Nano / Orin NX（云端大模型） | `speech-models`（Jetson 镜像） | 本地 ASR + TTS 模型 |
+| 树莓派 5（云端大模型） | `speech-models`（RPi 镜像） | 本地 ASR + TTS 模型 |
 | Orin NX 16GB（本地大模型） | `speech-models-v091`、`edge-llm-models-v091` | Qwen3-ASR + Matcha-TTS，以及位于 `/workspace/models/qwen3.5-4b-gdn-mtp-8k` 的 Qwen3.5-4B 引擎 |
 
 **API Key——仅云端大模型套餐需要：** 部署表单会要求填写 **API Key**（必填）和**模型 ID**（默认 `qwen3.5-flash`），对应你使用的 OpenAI 兼容接口。默认供应商是阿里云百炼北京地域——从该控制台生成 Key（换供应商时从对应控制台生成）。全本地套餐不需要 API Key。
@@ -25,6 +28,8 @@
 | Orin Nano / Orin NX（云端大模型） | 15 GB |
 | RK3588 + RK1828（本地大模型） | 18 GB |
 | Orin NX 16GB（本地大模型） | 25 GB |
+
+**镜像来源：** 每个容器（`ovs-agent`、`openvoicestream`、`seeed-local-voice`、`edge-llm-chat-service`、`edge-llm-rk1828`）都在部署步骤中自动从 Seeed 私有仓库 `sensecraft-missionpack.seeed.cn` 拉取，无需手动登录。这些都发生在目标设备上，不在本机。
 
 **首句响应验收命令：** 部署完成后，先确认语音服务已就绪，再用语音测试——执行 `curl -fsS http://<设备IP>:8621/health` 应返回成功（这也是容器自身健康检查所用的探测）。然后说一句话，确认几秒内有回复播放；完整验收流程（含打断测试）见下方各套餐末尾的验收清单。
 
@@ -191,7 +196,7 @@ reSpeaker 可以在部署前接好，也可以在 Agent 启动后热插拔。
 2. **首句响应到达**——问一个问题，几秒内有语音回复开始播放。
 3. **打断有效**——在回复开始播放一秒内再说一句话，当前回答应立即停止。
 4. **语言一致**——两到三轮对话的转写与语音回复都是部署时选定的语言。
-5. **日志无 error**——在设备上执行 `docker compose logs --since 10m | grep -i error`，以上检查期间应无输出。
+5. **日志无 error**——在设备上执行 `docker compose -p conversational_voice_ai -f ~/conversational_voice_ai/assets/docker/docker-compose.<target>.yml logs --since 10m | grep -i error`，以上检查期间应无输出（`<target>` 替换为你部署时选的板卡：`rk3576`、`rk3588`、`jetson` 或 `rpi5`）。
 
 ### 故障排查
 
@@ -311,7 +316,7 @@ reSpeaker 可以在部署前接好，也可以在 Agent 启动后热插拔。
 2. **断网状态下首句响应到达**——断开外部联网，问一个问题，几秒内有语音回复开始播放。
 3. **打断有效**——在回复开始播放一秒内再说一句话，当前回答应立即停止。
 4. **语言一致**——两到三轮对话的转写与语音回复都是部署时选定的语言。
-5. **日志无 error**——在设备上执行 `docker compose logs --since 10m | grep -i error`，以上检查期间应无输出。
+5. **日志无 error**——在设备上执行 `docker compose -p conversational_voice_ai -f ~/conversational_voice_ai/assets/docker/docker-compose.<target>.yml logs --since 10m | grep -i error`，以上检查期间应无输出（`<target>` 替换为 `orin-nx-local` 或 `rk3588-rk1828`，对应你部署时选的板卡）。
 
 ### 故障排查
 
