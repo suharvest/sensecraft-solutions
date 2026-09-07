@@ -38,7 +38,7 @@
 
 下面每个数字都标了实测设备与口径。其中 Hailo-8、RK3588 与 RK3576 的数字取自与对应
 reComputer 套餐同款的加速器芯片平台，是参考值，reComputer 整机复测后更新。
-reCamera Pro 的数字是在摄像头本机上实测的；Jetson Orin 的数字是在 reComputer J
+reCamera Pro 的数字是在摄像头本机上实测的；Jetson Orin 的数字是在 reComputer J40
 整机上实测的。
 
 **检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
@@ -81,7 +81,7 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 RKNN 转换；RK3576、reCamera Pro 与 Jetson Orin 套餐都有自己实测的加速器嵌入数字
 （见上下文）。走 CPU 的路径按每个裁剪 92 ms 做规划，货架整帧场景需要抽帧或按货位采样。
 
-**检测 + 嵌入，reComputer J（Jetson Orin NX 16GB，TensorRT fp16）。** 两段都跑在
+**检测 + 嵌入，reComputer J40（Jetson Orin NX 16GB，TensorRT fp16）。** 两段都跑在
 设备自己的 GPU 上。检测器：p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率
 99.91%（50 张，与 RK3588 用的同一批）。嵌入器：p50 4.23 ms / p95 4.69 ms，
 21 项检索指标与 fp32 最大差约 0.24 个百分点。以上独立探针数字均为 n=300、纯推理，
@@ -117,11 +117,11 @@ Orin NX 机型（reComputer J40）上实测；同一家族里更小的 Orin Nano
 | reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项 |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
-| reComputer J（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条，也是唯一有端到端设备侧运行时实测（2956 帧回放零掉帧）的套餐 |
+| reComputer J40（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条，也是唯一有端到端设备侧运行时实测（2956 帧回放零掉帧）的套餐 |
 
 Hailo-8、RK3588 与 RK3576 三行取自同款加速器芯片平台，是参考值，reComputer 整机
-复测后更新。reCamera Pro 一行是在摄像头本机上实测的；reComputer J 一行是在
-reComputer J 整机上实测的。
+复测后更新。reCamera Pro 一行是在摄像头本机上实测的；reComputer J40 一行是在
+reComputer J40 整机上实测的。
 
 ## 使用须知
 

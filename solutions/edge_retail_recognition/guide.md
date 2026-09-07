@@ -365,7 +365,7 @@ number for your own HEF, and records what is still unverified.
 ## Preset: Jetson Orin — TensorRT {#p3_jetson_orin}
 
 Both stages run as TensorRT fp16 engines on the Orin NX's own GPU. Measured on
-a Seeed reComputer J unit itself — a reComputer J integrated-machine
+a Seeed reComputer J40 unit itself — a reComputer J40 integrated-machine
 measurement, not a reference board: detector 5.18 ms p50 / 5.28 ms p95, 99.91%
 box agreement with the CPU reference (50 images, the same batch RK3588 was
 checked against); embedder 4.23 ms p50 / 4.69 ms p95, 21 retrieval metrics
@@ -448,7 +448,7 @@ immutable gallery version.
 - The admin token from Step 1.
 - 3–8 photographs per SKU, front, back and side, two lighting conditions.
 - The DINOv2-small embedder from Step 2: the gallery must be built with the
-  same model the reComputer J's TensorRT engine was compiled from, or
+  same model the reComputer J40's TensorRT engine was compiled from, or
   retrieval on this preset returns noise.
 
 ### Troubleshooting
@@ -468,7 +468,7 @@ page.
 
 ### Prerequisites
 
-- A reComputer J (Orin NX 16GB, family key `recomputer_j40`) with JetPack 6.2
+- A reComputer J40 (Orin NX 16GB, family key `recomputer_j40`) with JetPack 6.2
   and TensorRT 10.3 — the versions the measured numbers were taken on. The
   engine is built on the board it will run on — engines are bound to the
   device and the TensorRT version, and must not be distributed between boards.

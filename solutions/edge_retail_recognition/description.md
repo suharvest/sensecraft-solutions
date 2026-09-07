@@ -58,10 +58,10 @@ values taken on the same accelerator chip platform as the matching reComputer
 preset; they will be updated after a re-test on the reComputer units. The
 reCamera Pro figures are measured on the camera itself — it is the shipping
 product, not a reference board. The Jetson Orin figures are measured on a
-Seeed reComputer J unit itself — a reComputer J integrated-machine
+Seeed reComputer J40 unit itself — a reComputer J40 integrated-machine
 measurement, not a reference board.
 
-**Detection + embedding, reComputer J (Jetson Orin NX 16GB, TensorRT fp16).**
+**Detection + embedding, reComputer J40 (Jetson Orin NX 16GB, TensorRT fp16).**
 Both stages run on the device's own GPU. Detector: 5.18 ms p50 / 5.28 ms p95,
 99.91% box agreement with the CPU golden on the same 50-image batch RK3588
 was checked against. Embedder: 4.23 ms p50 / 4.69 ms p95, 21 retrieval
@@ -156,12 +156,12 @@ both agree there is no directional bias).
 | reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
-| reComputer J (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | The fastest path measured, and the only one with a device-side runtime measured end to end (2956-frame replay, zero dropped frames) |
+| reComputer J40 (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | The fastest path measured, and the only one with a device-side runtime measured end to end (2956-frame replay, zero dropped frames) |
 
 The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
 accelerator chip platform as the matching reComputer preset; they will be
 updated after a re-test on the reComputer units. The reCamera Pro and
-reComputer J rows are measured on a reComputer unit itself — a reComputer J
+reComputer J40 rows are measured on a reComputer unit itself — a reComputer J40
 integrated-machine measurement, not a reference board.
 
 ## Usage Notes

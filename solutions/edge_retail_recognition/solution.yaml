@@ -305,7 +305,7 @@ intro:
       description: >-
         The Orin NX 16GB option for the TensorRT path. Runs both the detector
         and the embedder as TensorRT fp16 engines on the GPU — measured on a
-        Seeed reComputer J unit itself, not a reference board: detector 5.18 ms
+        Seeed reComputer J40 unit itself, not a reference board: detector 5.18 ms
         p50 / 5.28 ms p95, 99.91% box agreement with the CPU golden (50
         images, the same batch RK3588 was checked against); embedder 4.23 ms
         p50 / 4.69 ms p95, 21 retrieval metrics within 0.24 percentage points
@@ -314,7 +314,7 @@ intro:
       description_i18n:
         zh: >-
           TensorRT 路线的 Orin NX 16GB 选项。检测器与嵌入器都以 TensorRT fp16
-          engine 跑在 GPU 上——实测于一台 Seeed reComputer J 整机，不是台架：
+          engine 跑在 GPU 上——实测于一台 Seeed reComputer J40 整机，不是台架：
           检测器 p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率 99.91%
           （50 张，与 RK3588 用的同一批 golden）；嵌入器 p50 4.23 ms / p95 4.69 ms，
           21 项检索指标与 fp32 最大差 0.24 个百分点。一次 2956 帧的收银台回放
@@ -325,12 +325,12 @@ intro:
             - orin_nx_16
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option in the same reComputer J family. Not
+        The smaller Orin Nano 8GB option in the same reComputer J30 / J40 family. Not
         tested — every number on this page for this preset comes from the
         Orin NX unit (recomputer_j40) only.
       description_i18n:
         zh: >-
-          同一 reComputer J 家族里更小的 Orin Nano 8GB 选项。未测——本页这个套餐
+          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。未测——本页这个套餐
           的所有数字都只来自 Orin NX 机型（recomputer_j40）。
       purchase:
         require:
@@ -508,8 +508,8 @@ intro:
         zh: 测试版
       description: >-
         Both the detector and the embedder run as TensorRT fp16 engines on the
-        Orin NX's own GPU — measured on a Seeed reComputer J unit itself, a
-        reComputer J integrated-machine measurement rather than a reference
+        Orin NX's own GPU — measured on a Seeed reComputer J40 unit itself, a
+        reComputer J40 integrated-machine measurement rather than a reference
         board. Detector 5.18 ms p50 / 5.28 ms p95, 99.91% box agreement with
         the CPU reference (50 images); embedder 4.23 ms p50 / 4.69 ms p95, 21
         retrieval metrics within 0.24 percentage points of fp32. A 2956-frame
@@ -523,7 +523,7 @@ intro:
       description_i18n:
         zh: >-
           检测器与嵌入器都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上——
-          实测于一台 Seeed reComputer J 整机，是整机实测，不是台架。检测器 p50
+          实测于一台 Seeed reComputer J40 整机，是整机实测，不是台架。检测器 p50
           5.18 ms / p95 5.28 ms，与 CPU 参考的框一致率 99.91%（50 张）；
           嵌入器 p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24
           个百分点。一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、
