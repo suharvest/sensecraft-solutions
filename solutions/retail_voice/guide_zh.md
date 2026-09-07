@@ -216,7 +216,7 @@ voice-service 与管理后台。
 | 麦克风采集目标：voice-client 反复重启 | ALSA 声卡编号不对；在设备上 `cat /proc/asound/cards`，用正确的编号重新部署 |
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
 | `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
-| 部署报 `set OVS_ASR_IMAGE ...` | 只会出现在 reRouter CM4 目标上：本包没有固定 CPU 版 ASR 镜像，需要你提供引用 |
+| reRouter CM4 目标要换 ASR 镜像 | `OVS_ASR_IMAGE` 现在默认是 `rpi-20260721` 的 arm64 CPU 构建（按 digest 固定）；要跑别的构建时才在部署输入里覆盖 |
 | CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证，compose 里的内存上限是按 RK3576 的内存写的——4 GB 的 CM4 要调低 |
 
 ### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}

@@ -21,6 +21,16 @@
 #   sensecraft-voice-web     b154c0a956ac
 # 本次 C4 加固在各子仓的 feature/c4-harden 分支上，镜像 digest 见 IMAGE-DIGESTS.md。
 #
+# 重新发布（2026-09-08）：respeaker/ 项目下原先引用的四个 artifact 已被清理，
+# 且当前 Harbor 账号在 respeaker/ 项目无写权限，无法推回原路径，因此改推到
+# solution/ 项目。镜像在 spark（GB10, aarch64）用各子仓现有 Dockerfile 原生构建：
+#   solution/sensecraft-asr-server   @sha256:d8c87cee…  ← sensecraft-asr-service  feature/c4-harden 0e30d80
+#   solution/sensecraft-voice-client @sha256:136ae96c…  ← sensecraft-voice-client feature/c4-harden 0917415
+#   solution/sensecraft-voice-service@sha256:0f424773…  ← sensecraft-voice-service feature/c4-harden a896868
+#   solution/sensecraft-voice-web    @sha256:95e3a794…  ← sensecraft-voice-web    feature/ui-kit    502756e
+# 除 voice-service 为 arm64+amd64 外，其余均为 linux/arm64 单架构。
+# 语音/声纹模型不打进镜像，按各服务的挂载点在部署时提供。
+#
 # 用法：
 #   cp .env.example .env      # 填数据库密码与 API 令牌，.env 不入库
 #   docker compose -f deploy/edge-frozen/docker-compose.yml up -d
@@ -114,14 +124,17 @@ services:
 
   # 端侧声纹服务。C4 加固后 /ws 与声纹接口都要令牌。
   #
-  # 状态（2026-09-05）：此前构不出的原因——缺 internal/audio_cache——已解决，
-  # 源码从远端 feature/omi-remote(77d7b61) 取回并提交到 feature/c4-harden(3d6abd3)。
-  # 镜像仍待构建验证，tag sensecraft-asr-server:c4-<sha> 尚未 push，
-  # 所以这里用 tag 而不是 digest，服务仍留在 voiceprint profile 里默认不启动。
-  # 开启条件：镜像已构建并能从本机拉到，且 .env 里配了 ASR_API_TOKENS。
+  # 状态（2026-09-08）：镜像已在 spark 上按 sensecraft-asr-service
+  # feature/c4-harden(0e30d80) 构建并推送，linux/arm64，digest 见下。
+  # tag 别名：solution/sensecraft-asr-server:c4-frozen 与 :c4-0e30d80。
+  # 项目路径从 respeaker/ 改为 solution/：respeaker/ 上的旧 artifact 已被清理，
+  # 且本账号在该项目无写权限，无法重新发布到原路径。
+  # 服务仍留在 voiceprint profile 里默认不启动。
+  # 开启条件：.env 里配了 ASR_API_TOKENS；声纹模型按 download_models.sh 放到
+  # /data-iot/respeaker/models（模型不打进镜像）。
   #   docker compose --profile voiceprint up -d asr-voiceprint
   asr-voiceprint:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-asr-server:c4-frozen
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-asr-server@sha256:d8c87cee8fed366b7384c8814fd1859b724a0d22cc75cd0aba871f15af8d7713
     container_name: c4-asr-voiceprint
     profiles: ["voiceprint"]
     restart: unless-stopped
@@ -149,7 +162,7 @@ services:
       start_period: 60s
 
   voice-client:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-client@sha256:ec13774f3493e274d3be7a2afd58a8b4b1f17b674950bde766ab4fe451b1ebb6
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5
     container_name: c4-voice-client
     restart: unless-stopped
     depends_on:
@@ -179,7 +192,7 @@ services:
       - SYS_RAWIO
 
   voice-service:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-service@sha256:6e67dbd1b73ff95424104c4a7d382e0e079a7cb23245093876b2bafff027214e
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
     container_name: c4-voice-service
     restart: unless-stopped
     depends_on:
@@ -205,7 +218,7 @@ services:
       start_period: 30s
 
   voice-web:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-web@sha256:117c50acf12915810735bea4bd5a443b77d17699b04724d63e615fb251a5d18c
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:95e3a794de3cc30f7a4be93dd2a31902316522b31b5a64b88cf76e95e55ed80b
     container_name: c4-voice-web
     restart: unless-stopped
     depends_on:
@@ -221,7 +234,7 @@ services:
   # 但「离线」这条卖点在启用后就不成立了，所以做成显式 opt-in。
   #   docker compose --profile cloud-analytics up -d
   cloud-analytics:
-    image: sensecraft-missionpack.seeed.cn/respeaker/sensecraft-voice-service@sha256:6e67dbd1b73ff95424104c4a7d382e0e079a7cb23245093876b2bafff027214e
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
     container_name: c4-cloud-analytics
     profiles: ["cloud-analytics"]
     restart: unless-stopped

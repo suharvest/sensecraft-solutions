@@ -10,9 +10,11 @@ type: docker_deploy
 #
 # 未验证的部分（不要当成已跑通）：
 #   - CM4 上没有实机跑过这套编排；
-#   - 本包没有为 CM4 固定 OVS CPU 构建的镜像 digest，所以 OVS_ASR_IMAGE 是必填项；
+#   - OVS_ASR_IMAGE 现在有默认值（seeed-local-voice:rpi-20260721 的 digest，arm64 CPU 构建），
+#     但这个镜像同样没有在 CM4 上实机跑过；
 #   - compose 里 ovs-asr 的 mem_limit 7500m 是按 RK3576 写的，CM4 4 GB 版本要下调。
-# 手上没有可用的 CM4 版 OVS 镜像时，用 RK3576 采集端，或只部署服务端栈走手机 App 采集。
+# 要跑别的 OVS 构建时在下面的输入项里覆盖；不确定时用 RK3576 采集端，
+# 或只部署服务端栈走手机 App 采集。
 
 docker:
   compose_file: assets/docker/docker-compose.collector-cm4.yml
@@ -200,12 +202,13 @@ remote_overrides:
       name: OVS ASR Image
       type: text
       required: true
-      placeholder: "sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:<cm4-cpu-tag>"
-      description: An OpenVoiceStream CPU build for arm64. This package pins no digest for CM4 — supply the reference you intend to run, ideally by digest.
+      default: "sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:b7c492ac24712264a32ce92e8a10b5160540de1188bba2d9ff85f99a96668eef"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:b7c492ac24712264a32ce92e8a10b5160540de1188bba2d9ff85f99a96668eef"
+      description: An OpenVoiceStream CPU build for arm64. The default is the rpi-20260721 CPU build pinned by digest; replace it only if you intend to run a different build.
       name_i18n:
         zh: OVS ASR 镜像
       description_i18n:
-        zh: arm64 的 OpenVoiceStream CPU 构建。本包没有为 CM4 固定 digest——填你实际要跑的引用，尽量用 digest。
+        zh: arm64 的 OpenVoiceStream CPU 构建。默认值是 rpi-20260721 CPU 构建的 digest；要跑别的构建时才改。
     - id: audio_card_id
       name: ALSA Card ID
       type: text
