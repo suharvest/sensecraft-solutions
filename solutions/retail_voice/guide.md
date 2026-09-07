@@ -216,9 +216,12 @@ only — the audio is kept unredacted for its retention window and is covered by
 the deletion flow. Redaction scored precision 0.98 / recall 0.95 on a
 114-sample gold set, which means misses happen; low-confidence entities are
 flagged for review rather than masked. Speaker identification is off by
-default: the voiceprint container's image is published, but its models
-(~564 MB) are not fetched by this deployment and must be placed by hand — see
-Step 2's prerequisites — so `speaker.identified` stays false until they are.
+default: the voiceprint container's image is published, and on the two
+mic-capture (collector) targets its models (~564 MB) are fetched automatically
+as a best-effort deploy step; on the Stack Host (app capture) target that step
+does not run and the models must still be placed by hand — see Step 2's
+prerequisites. Either way `speaker.identified` stays false until the models
+are in place and the `voiceprint` profile is started.
 
 ## Step 1: Deploy the Voice Server Stack {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
@@ -241,7 +244,8 @@ console.
 6. All images (voice-service, voice-web, the ASR/voiceprint image, MySQL and
    MinIO) are published and pinned by digest in the compose file. The
    voiceprint container's models are the exception — its image is published
-   but the model files are not fetched by this step (see below).
+   but the model files are only fetched automatically on the two collector
+   (mic-capture) targets; on the Stack Host target they are not (see below).
 
 ### Wiring
 

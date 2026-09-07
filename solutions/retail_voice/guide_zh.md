@@ -169,8 +169,8 @@
 | 手机 App（你的，不在本包内） | 采集音频并上传到 ASR 端点 |
 | reSpeaker XVF3800 + reComputer RK3576 或 reRouter CM4 | App 之外的采集端选择 |
 
-**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别默认是关的：声纹容器的镜像已发布，但这次部署不会拉取它需要的模型
-（约 564MB），要手动放好——见步骤 2 的前置条件——放好之前 `speaker.identified`
+**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别默认是关的：声纹容器的镜像已发布，两个麦克风采集目标会在部署时尽力自动拉取它需要的模型
+（约 564MB）；栈主机（App 采集）目标没有这一步，仍要手动放好——见步骤 2 的前置条件。不管哪种方式，模型没就位、`voiceprint` profile 没启动之前，`speaker.identified`
 恒为 false。
 
 ## 步骤 1: 部署语音服务端栈 {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
@@ -190,7 +190,7 @@ voice-service 与管理后台。
 5. 主机必须是 arm64。冻结镜像没有 amd64 变体，随包的 ASR 镜像是 RK3576 NPU 构建。
 6. 所有镜像（voice-service、voice-web、ASR/声纹镜像、MySQL、MinIO）都已发布，
    compose 文件里按 digest 固定。例外是声纹容器的模型——它的镜像已发布，
-   但这一步不会拉取模型文件（见下文）。
+   但模型文件只在两个采集端（麦克风）目标上自动拉取；栈主机目标不会（见下文）。
 
 ### 接线
 

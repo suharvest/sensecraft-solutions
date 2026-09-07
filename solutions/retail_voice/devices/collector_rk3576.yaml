@@ -131,6 +131,7 @@ remote_overrides:
             local url="$1" out="$2" min_bytes="$3" size
             if ! curl -fL --retry 5 --connect-timeout 30 --max-time 300 -o "$out" "$url"; then
               echo "download failed: $url" >&2
+              rm -f "$out"
               return 1
             fi
             size=$(wc -c < "$out" 2>/dev/null | tr -d '[:space:]')
