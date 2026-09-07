@@ -193,10 +193,7 @@ intro:
       purchase:
         require:
           module: [orin_nano_8]
-    recomputer_r20:
-      name: reComputer R2000 (Hailo-8)
-      name_i18n:
-        zh: reComputer R2000（Hailo-8）
+    recomputer_r20_industrial:
       description: >-
         A reComputer R2000 with a Hailo-8 on the M.2 slot. It runs the
         EfficientNet-Lite0 HEF, which takes uint8 frames directly so the host
@@ -210,9 +207,6 @@ intro:
           HEF 已编译并记账；本页不给这块板的精度与时延数字，因为还没有
           在它上面采过。
     recamera_2002:
-      name: reCamera
-      name_i18n:
-        zh: reCamera
       description: >-
         Camera and classifier in one body. The model runs on the SG2002's own
         TPU, so there is no host, no accelerator card and no network hop in
@@ -289,8 +283,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_r20
-          default: recomputer_r20
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
         - id: camera
           name: Camera
           name_i18n:
