@@ -456,24 +456,34 @@ intro:
       product_url: https://www.seeedstudio.com/Relay-add-on-module-for-XIAO-p-6310.html
       description: >-
         SKU 114993555. A stackable add-on board for the XIAO ESP32-S3 rather
-        than a Grove-cabled module — the standard reCamera / gateway route's
-        relay, driven by the XIAO's own GPIO. No wiki page has been found for
-        it (product page only), so its contact form, isolation and trigger
-        voltage are unverified by any Seeed document; treat it the same as
-        the Grove Relay for dry-contact purposes (`COM`/`NO`, no default
-        `relay_contact`) until that is confirmed on hardware. There is no
-        cataloged accessory family for this SKU yet — the Grove Relay
-        (103020005) is a documented substitute when a standalone Grove-cabled
-        relay is preferred over the add-on board.
+        than a Grove-cabled module — driven by the XIAO's own D1 pin, which
+        the board's schematic (Hongfa HF32FA-G relay, NPN low-side driver)
+        wires as active-high: GPIO high closes the relay. It exposes only two
+        screw-terminal contacts — SPST-NO, no `NC` — rated 10 A / 250 VAC, so
+        only a fail-secure posture is physically possible with this module; a
+        door controller that needs `NC` (fail-safe) requires the Grove Relay
+        or the Grove - SPDT Relay(30A) instead. The coil draws its 5 V from
+        the XIAO's own USB/VBUS rail, not a separate supply, and there is no
+        opto-isolation between the control side and the coil driver — the
+        contact side (`NO` to the door controller) is the only isolated part.
+        No wiki page exists for it (product page and schematic PDF only).
+        Source: internal schematic review, `docs/reports/f1-relay-module-selection-2026-09-07.md`
+        appendix B. There is no cataloged accessory family for this SKU yet —
+        the Grove Relay (103020005) is a documented substitute when a
+        standalone Grove-cabled relay is preferred over the add-on board.
       description_i18n:
         zh: >-
           SKU 114993555。XIAO ESP32-S3 的叠板式扩展板，不是 Grove 排线模组——
-          标准版 reCamera / 网关路线的继电器，由 XIAO 自己的 GPIO 驱动。没找到
-          对应 wiki 页（只有商品页），触点形式、隔离与触发电压没有任何 Seeed
-          文档核实过；在上板确认之前，按干接点处理方式与 Grove Relay 一致
-          （`COM`/`NO`，`relay_contact` 不设默认值）。这颗 SKU 目前没有对应的
-          采购族——如果更想用独立的 Grove 排线继电器而不是这块扩展板，Grove
-          Relay（103020005）是有文档记录的替代。
+          由 XIAO 自己的 D1 引脚驱动，原理图（Hongfa HF32FA-G 继电器、NPN
+          低边驱动）走线是高电平触发：GPIO 拉高即吸合。对外只引出 2 个螺丝端子——
+          SPST-NO，没有 `NC`，额定 10A/250VAC，因此这颗模块物理上只能做
+          fail-secure；门控输入需要 `NC`（fail-safe）就要换成 Grove Relay 或
+          Grove - SPDT Relay(30A)。线圈的 5V 取自 XIAO 自身的 USB/VBUS 轨，不是
+          独立供电；控制侧与线圈驱动之间没有光耦隔离——只有触点侧（`NO` 到门控
+          输入）是隔离的。没有独立 wiki 页（只有商品页和原理图 PDF）。来源：
+          内部原理图核实，`docs/reports/f1-relay-module-selection-2026-09-07.md`
+          附录 B。这颗 SKU 目前没有对应的采购族——如果更想用独立的 Grove 排线
+          继电器而不是这块扩展板，Grove Relay（103020005）是有文档记录的替代。
     generic_rtsp_camera:
       name: RTSP / IP Camera
       name_i18n:
