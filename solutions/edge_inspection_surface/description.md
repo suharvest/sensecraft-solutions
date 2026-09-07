@@ -71,7 +71,7 @@ design, not a qualification for any safety or quality-certification purpose.
 
 ### Measured boundaries — Jetson Orin NX
 
-Board: Jetson Orin NX 16GB (Seeed reComputer Super J4012), L4T R36.4.3 /
+Board: Jetson Orin NX 16GB (Seeed reComputer J40 series), L4T R36.4.3 /
 JetPack 6.2, TensorRT 10.3.0.30, power mode MAXN_SUPER (read, not changed),
 image "edge-inspection-jetson:0.1.0-dev", repo commit "670e433". YOLOX-Tiny
 640x640 FP16.

@@ -56,7 +56,7 @@ backend 只负责预处理、调用加速器、把原始张量交出来。下面
 
 ### 实测边界——Jetson Orin NX
 
-板卡：Jetson Orin NX 16GB（Seeed reComputer Super J4012），L4T R36.4.3 /
+板卡：Jetson Orin NX 16GB（Seeed reComputer J40 系列），L4T R36.4.3 /
 JetPack 6.2，TensorRT 10.3.0.30，功耗模式 MAXN_SUPER（只读未改），
 镜像 「edge-inspection-jetson:0.1.0-dev」，仓库 commit 「670e433」。
 YOLOX-Tiny 640x640 FP16。
