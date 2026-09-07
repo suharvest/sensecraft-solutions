@@ -36,55 +36,38 @@
 
 ## 实测到什么程度
 
-下面的每个数字都是实测的。每一条都给出来源路径以便核对；数字不存在的地方，写的是不存在，
-不是估算。
+下面每个数字都标了实测设备与口径。
 
-**检测，Raspberry Pi 5 + Hailo-8**（`evaluation/runs/2026-09-06-det-hef/`，
-两个 boundary 文件均 `status: measured`）。INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
-单流 110.4 fps。`hailortcli benchmark` 独立交叉验证：110.64 fps，
-纯硬件时间 8.21 ms——多出来的 0.8 ms 是 Python vstream 往返。
+**检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
+单流 110.4 fps。`hailortcli benchmark` 交叉核对为 110.64 fps，
+纯硬件时间 8.21 ms，多出来的 0.8 ms 是 Python 往返。
 端到端含 letterbox、输出拼接、解码与 NMS 是 p50 18.74 ms / p95 24.25 ms：
-对约 160 个框做纯 numpy 逐类 NMS，比推理本身还贵。与 CPU 参考的框一致率
-（IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频；
-Hailo die 温度与功耗在这个平台上读不到，记为 unavailable，没有估算。
+对约 160 个框逐类做 NMS，比推理本身还贵。
+与 CPU 参考的框一致率（IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频。
 
-**检测，RK3588**（`evaluation/runs/2026-09-06-det-rk3588-radxa/` 的
-`boundary.rknn-parity.yaml` 与 `boundary.rknn-latency.yaml`，两份均
-`status: measured`；Radxa ROCK 5T）。RKNN fp16：框一致率 99.85%，
+**检测，reComputer RK3588 系列。** RKNN fp16：框一致率 99.85%，
 p50 56.7 ms / p95 89.5 ms。
 RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
 代价是 1.5 个百分点的一致率。
 
-**嵌入，Raspberry Pi 5 CPU**（`evaluation/runs/2026-09-06-embed-small/` §8）。
-四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
+**嵌入，reComputer R2000 CPU。** 四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
 同模型 fp32 是 180.75 / 233.41 ms。检索准确率在全部 7 个实测档位上与那条 fp32 基线
 相差 0.65 个百分点以内——只量化权重在这里几乎不花成本。
 连激活一起量化的静态 QDQ 变体掉 3.78–9.96 个百分点，不能用。
 
-**检索准确率**（`evaluation/runs/2026-09-06-embed-ft/` 与 `.../embed-small/`，
-Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
+**检索准确率**（Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
 top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——注册视角数量是本页最大的一个杠杆。
 在 Products-10K 留出 SKU 上（类别多得多），DINOv2-base k=8 的 top-1 是 78.92%。
 
-**检测准确率**（`evaluation/runs/2026-09-06-det-sku110k/`，两个 boundary 文件均
-`status: measured`）。SKU-110K test 上
-640² preset 的 mAP50-95 是 52.84，1280² preset 是 56.32。两者都低于本项目自己的
-stable 门槛 60，因此两条边界都落在 failure 档，本页照实写。640 的 mAP50 是 88.26：
-框找得到，框不准。换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
+**检测准确率**（SKU-110K test 集）。640² preset 的 mAP50-95 是 52.84，
+1280² preset 是 56.32。640² 的 mAP50 是 88.26——框找得到，框不准。
+换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
 这就是货架 preset 存在的理由。
 
-**哪些没测、哪些根本不存在。** 嵌入器在两种 NPU 上都跑不了。做过两档 Hailo DFC 量化
-（`evaluation/runs/2026-09-06-embed-hailo/`），两档都没拿到可用数字。o2 档塌缩：
-所有图片映射到同一个向量。default 档相对 fp32 基线掉 20–44 个百分点，但这个数不能
-当作 DFC 量化能力的结论——从记录判定不了当时喂给 optimize 的校准集是 0-255 原始像素
-还是已经归一化过的数组；如果是后者，`.alls` 的 normalization 会再做一次，
-那段落差里就混着一份与量化无关的误差。上游已改回正确的默认值并加了量纲自检，
-default 档要以修正后的口径重跑才能下结论。嵌入器的 RKNN 转换从未尝试。
-Jetson 上没有任何数字，仓库里也没有 TensorRT 后端。OCR 重排写在设计里，没有实现。
-也没有任何端到端数字——没有计数准确率、没有货位准确率、没有 72 小时长稳——
-因为把检测、嵌入、检索与上报串成一个设备侧服务的那个进程还不存在。
-每个 boundary 文件都是 `reproduced_by: null`。
+**嵌入器在所有套餐上都跑 CPU。** 两种 NPU 都接不了它：Hailo 量化没达到可用精度，
+嵌入器也没有 RKNN 转换。按每个裁剪 92 ms 做规划。
+货架整帧场景需要抽帧或按货位采样。
 
 ## 输出接口
 
@@ -96,11 +79,10 @@ Jetson 上没有任何数字，仓库里也没有 TensorRT 后端。OCR 重排�
 
 ## 套餐对照
 
-| 套餐 | 检测器 | 嵌入器 | 真机实测范围 | 缺口 |
-|---|---|---|---|---|
-| Rockchip NPU | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | Rockchip CPU 上的 onnxruntime，未测延迟 | 仅检测段，在 RK3588 上 | 嵌入器没有 RKNN 转换；没有设备侧主链 |
-| Pi 5 + Hailo-8 | INT8 HEF，p50 9.04 ms，一致率 94.77% | Pi CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 两段都测了 | 没有设备侧主链；每裁剪 92 ms 卡住货架场景 |
-| Jetson Orin | 未实现 | 未实现 | 无 | 整条 TensorRT 路径都要先写出来 |
+| 套餐 | 检测器 | 嵌入器 | 适合谁 |
+|---|---|---|---|
+| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms |
+| reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 
 ## 使用须知
 

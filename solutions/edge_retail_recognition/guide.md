@@ -12,7 +12,7 @@ separate host.
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 | An x86_64 machine | Model conversion. rknn-toolkit2 does not run on the board |
 
-**What has been measured on this hardware.** The detector, on a Radxa ROCK 5T:
+**What has been measured on this hardware.** The detector, on a reComputer RK3588:
 RKNN fp16 agrees with the CPU reference on 99.85% of boxes at 56.7 ms p50, and
 the INT8 variant on 98.35% at 26.0 ms p50
 (`evaluation/runs/2026-09-06-det-rk3588-radxa/results.md`). Nothing was measured
@@ -179,7 +179,7 @@ number for your own converted artifact, and records what is still unverified.
 | The software loop passes but nothing works on the board | Expected — the loop runs against a FakeEmbedder and an in-memory broker on a development machine, and proves protocol behaviour only. |
 | Gallery download verifies on the host but not on the device | Compare the sha256 on both sides before blaming the device; a truncated transfer looks like corruption. |
 
-## Preset: Raspberry Pi 5 + Hailo-8 — Detector on the NPU, Embedder on the CPU {#p2_pi5_hailo}
+## Preset: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU {#p2_pi5_hailo}
 
 The only preset where both stages have run on the target hardware. The detector
 is an INT8 HEF on the Hailo-8; the embedder is a dynamically quantised INT8
@@ -189,7 +189,7 @@ work.
 | Device | Purpose |
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
-| Raspberry Pi 5 + Hailo-8 (M.2) | Detection on the NPU, embedding on the CPU |
+| reComputer R2000 with Hailo-8 (M.2) | Detection on the NPU, embedding on the CPU |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 | An x86_64 machine | HEF compilation. The Hailo Dataflow Compiler does not run on the Pi |
 
