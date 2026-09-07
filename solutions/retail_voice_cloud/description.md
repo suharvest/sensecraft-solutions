@@ -38,7 +38,7 @@ audio format.
   frames and answers with JSON — connection acknowledgement, voice-activity
   status, and a final transcript per utterance carrying the speaker fields.
 - **Redaction before storage, not after.** Phone numbers, ID numbers, names and
-  addresses are replaced with typed placeholders (`[[PHONE]]`, `[[NAME]]`) on
+  addresses are replaced with typed placeholders ("[[PHONE]]", "[[NAME]]") on
   the way into the database. The original text is never written — not encrypted,
   not written. Keyword matching runs on the redacted text, so the keyword table
   holds redacted text too.
@@ -77,12 +77,12 @@ must be re-checked on the real installation.
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Deletion residue (database, object store, local audio) | 0 | Subject-scope deletion, checked against SHA-256 manifests taken before and after, across all three stores | C4 hardening, `delete_proof.sh` integration test on its own MySQL 8.0 + MinIO — not a field installation |
+| Deletion residue (database, object store, local audio) | 0 | Subject-scope deletion, checked against SHA-256 manifests taken before and after, across all three stores | C4 hardening, "delete_proof.sh" integration test on its own MySQL 8.0 + MinIO — not a field installation |
 | Rows before / after deletion | 22 → 4 | The 4 remaining rows are the PII-free tombstone and audit entries; no row holds subject data | Same run as above |
 | Deletion latency | 14 ms | Single subject, small seeded dataset, all services on one host | Same run as above; not a load figure |
-| PII redaction precision | 0.98 | 114-sample gold set: Chinese and English, overlapping entities, deliberate false-positive traps | `tools/pii_eval.py` driving the same Go implementation the service uses |
+| PII redaction precision | 0.98 | 114-sample gold set: Chinese and English, overlapping entities, deliberate false-positive traps | "tools/pii_eval.py" driving the same Go implementation the service uses |
 | PII redaction recall | 0.95 | Same gold set. Two samples are known misses kept in the set on purpose to keep the gap visible | Same run |
-| Auth enforcement | Pass | 401 without a credential, 403 for a role that is too low, per-route role matrix, legacy role-less token degraded to viewer | Unit tests in `internal/middleware` (asr-service) and `api/server/middleware` (voice-service) |
+| Auth enforcement | Pass | 401 without a credential, 403 for a role that is too low, per-route role matrix, legacy role-less token degraded to viewer | Unit tests in "internal/middleware" (asr-service) and "api/server/middleware" (voice-service) |
 
 These figures come from the code's own test rig on a development machine, not
 from a store. Deletion latency is not a throughput number, and redaction
@@ -94,7 +94,7 @@ survives.
 Read this before writing any customer-facing copy about the deployment.
 
 - **Original transcripts are never stored.** The configuration option exists
-  (`privacy.store_original_text`) and defaults to false; turning it on would put
+  ("privacy.store_original_text") and defaults to false; turning it on would put
   original text in a store the deletion flow was not extended to cover.
 - **Audio is not redacted.** Only text is. Raw audio is kept on the host for a
   retention window — 24 hours by default, shortenable at deploy time to 6 or 1 —
@@ -103,8 +103,8 @@ Read this before writing any customer-facing copy about the deployment.
 - **Exports carry the manifest, not the audio**, for the same reason.
 - **Low-confidence entities are flagged, not masked.** Redaction masks above a
   0.85 confidence threshold and marks the rest for review, which is why recall
-  is 0.95 and not higher. Counts land in `pii_masked_count` and
-  `pii_review_count`; the matched spans do not, because storing them would put
+  is 0.95 and not higher. Counts land in "pii_masked_count" and
+  "pii_review_count"; the matched spans do not, because storing them would put
   the location of the personal data back in the database.
 - **Turning on the cloud-analytics profile sends text off the host.** The text
   is redacted, but "nothing leaves the premises" stops being true.
@@ -113,12 +113,12 @@ Read this before writing any customer-facing copy about the deployment.
 
 - **Numbers spoken as a continuous string come back as Chinese numeral words.**
   The ASR does not apply inverse text normalization to an isolated digit run,
-  even with `recognition.use_inverse_text_normalization` on: "13812345678"
+  even with "recognition.use_inverse_text_normalization" on: "13812345678"
   spoken in one breath transcribes as "幺三八幺二三四五六七八", not as Arabic
   digits. Every phone-number regex in the redactor matches Arabic digits, so
   before this was handled such a line was stored with the number in the clear
-  and `pii_masked_count: 0`.
-  A dedicated rule (`cn_mobile_spoken`) now masks the 11-character Chinese
+  and "pii_masked_count: 0".
+  A dedicated rule ("cn_mobile_spoken") now masks the 11-character Chinese
   numeral mobile-number pattern, including the 幺 reading used when people read
   a number out. **What is still not covered:** ID card numbers, landline
   numbers and any other numeric identifier read out as Chinese numeral words.
@@ -133,12 +133,12 @@ Read this before writing any customer-facing copy about the deployment.
 
 | Interface | Port | Path | Content |
 |---|---|---|---|
-| WebSocket | 8080 | `/ws?token=<operator>` | Client sends raw PCM binary frames (16 kHz, mono, signed 16-bit little-endian, ≤ 2 MiB per message). Server sends JSON: `connection` on connect, `vad` on speech/silence transitions, `final` per utterance, `error` on failure. |
-| HTTP | 8081 | `/api/v1/recordings` | Transcript ingest (operator) and query (viewer). Text is redacted before insert. |
-| HTTP | 8081 | `/api/v1/privacy/erase` | Hard delete by subject / device / session, cascading MySQL, MinIO and the voiceprint. Admin only. |
-| HTTP | 8081 | `/api/v1/privacy/export` | Subject export: redacted transcripts plus audio manifest. Admin only. |
-| HTTP | 3000 | `/` | Admin console — recordings, keywords, devices, export and delete. |
-| HTTP | 8621 | `/health` | OpenVoiceStream health, used by the orchestration probe. |
+| WebSocket | 8080 | "/ws?token=<operator>" | Client sends raw PCM binary frames (16 kHz, mono, signed 16-bit little-endian, ≤ 2 MiB per message). Server sends JSON: "connection" on connect, "vad" on speech/silence transitions, "final" per utterance, "error" on failure. |
+| HTTP | 8081 | "/api/v1/recordings" | Transcript ingest (operator) and query (viewer). Text is redacted before insert. |
+| HTTP | 8081 | "/api/v1/privacy/erase" | Hard delete by subject / device / session, cascading MySQL, MinIO and the voiceprint. Admin only. |
+| HTTP | 8081 | "/api/v1/privacy/export" | Subject export: redacted transcripts plus audio manifest. Admin only. |
+| HTTP | 3000 | "/" | Admin console — recordings, keywords, devices, export and delete. |
+| HTTP | 8621 | "/health" | OpenVoiceStream health, used by the orchestration probe. |
 
 ## Deployment Comparison
 
@@ -161,14 +161,14 @@ image for that path, so you have to supply one.
   ASR image is the RK3576 NPU build. Another host class needs a matching ASR
   image, which you supply.
 - **Speaker identification is off by default.** The container that provides it
-  is not started, so `speaker.identified` stays false and subject deletion has
+  is not started, so "speaker.identified" stays false and subject deletion has
   no voiceprint to cascade to.
 - **The token is in the URL.** Browser WebSocket clients cannot set headers, so
-  the ASR endpoint accepts `?token=`. On anything but a trusted LAN, terminate
+  the ASR endpoint accepts "?token=". On anything but a trusted LAN, terminate
   TLS in front of it.
 - **A console account is viewer by default,** and there is no API to promote it.
   Deleting and exporting from the console needs an admin-role account, which is
-  set in the `users` table directly. Until then, use the admin API token.
+  set in the "users" table directly. Until then, use the admin API token.
 - **One deployment, one database.** The collector presets bring their own MySQL
   and MinIO because the frozen compose is one unit; pointing several collectors
   at one shared stack changes the reporting address, so re-test that layout.
@@ -179,8 +179,8 @@ image for that path, so you have to supply one.
 
 ## Licensing note
 
-The services in this stack are Seeed's own (`sensecraft-asr-service`,
-`sensecraft-voice-client`, `sensecraft-voice-service`, `sensecraft-voice-web`)
+The services in this stack are Seeed's own ("sensecraft-asr-service",
+"sensecraft-voice-client", "sensecraft-voice-service", "sensecraft-voice-web")
 plus OpenVoiceStream for recognition. MySQL and MinIO are pulled as upstream
 images under their own licences — MySQL under GPLv2 with the FOSS exception, and
 MinIO's current releases under AGPLv3, which is worth reading before the object

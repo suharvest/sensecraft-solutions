@@ -38,11 +38,11 @@ The load figures were taken on a **development-board baseline (Raspberry Pi 5, n
 | Metric | Value | Conditions | Source |
 |--------|-------|------------|--------|
 | **Energy savings** | Not claimed | — | Savings depend on the building, the weather and the occupancy pattern. Run a controlled before/after study on your own site rather than planning against a published percentage |
-| Control admission latency | 1.41 ms maximum | n = 2 cycles, smoke run only | **Smoke measurement.** Runtime metrics from the `northbound-smoke` rig baseline, upstream @ `f831bae`. Two samples describe nothing about a loaded system |
+| Control admission latency | 1.41 ms maximum | n = 2 cycles, smoke run only | **Smoke measurement.** Runtime metrics from the "northbound-smoke" rig baseline, upstream @ "f831bae". Two samples describe nothing about a loaded system |
 | Prediction cycle latency | 46.27 ms maximum | n = 4 cycles, smoke run only | **Smoke measurement.** Same baseline capture, same caveat |
-| Sampling throughput | 349.99 events/s against a 350.0 target (99.99%), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB | 2,000 points across 4 protocol sources, OPC UA/Modbus 5 s and BACnet 10 s, loopback only, 180 s run | Development-board baseline (Raspberry Pi 5, arm64), r14 `capacity-smoke` |
+| Sampling throughput | 349.99 events/s against a 350.0 target (99.99%), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB | 2,000 points across 4 protocol sources, OPC UA/Modbus 5 s and BACnet 10 s, loopback only, 180 s run | Development-board baseline (Raspberry Pi 5, arm64), r14 "capacity-smoke" |
 
-The prediction loop sleeps a fixed interval after each cycle, so its rate is `1/(1.0 + t_cycle)`. At 2,000 points `t_cycle` is about 0.119 s, putting the structural ceiling near 0.894 cycle/s. Size the cycle time for your point count accordingly.
+The prediction loop sleeps a fixed interval after each cycle, so its rate is "1/(1.0 + t_cycle)". At 2,000 points "t_cycle" is about 0.119 s, putting the structural ceiling near 0.894 cycle/s. Size the cycle time for your point count accordingly.
 
 **Confirm the meter byte order at commissioning.** The SDM630 addresses follow the vendor's published Modbus protocol document and the template defaults to big-endian bytes and words. Check the order against the meter in front of you before trusting the values.
 
@@ -72,4 +72,4 @@ Docker Engine 20.10 or newer, about 1 GB free disk, and host ports 8280 (console
 - **Confirm the meter's byte order.** Vendor defaults are not universal. Read a register with a known physical value before believing the scaled points.
 - **Modbus RTU needs the serial-device profile.** The standard Docker profile attaches no host serial device. Keep production writes disabled until the exact adapter and the target controller have passed hardware-in-the-loop validation.
 - **Central plant only.** This addresses central HVAC systems, not split-unit air conditioners.
-- **Image tag.** The published image `missionpack-knn:v1.6.5` predates the meter template, the rollback coordinator and the alarm envelope. The image carrying them has not been built or pushed and its immutable tag is still to be assigned. Check the tag before following the commissioning steps in the deployment guide.
+- **Image tag.** The published image "missionpack-knn:v1.6.5" predates the meter template, the rollback coordinator and the alarm envelope. The image carrying them has not been built or pushed and its immutable tag is still to be assigned. Check the tag before following the commissioning steps in the deployment guide.

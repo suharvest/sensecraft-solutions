@@ -83,7 +83,7 @@ refuses Chinese instead of transcribing it badly.
 | Metric | Value | Device | How it was measured |
 |--------|-------|--------|---------------------|
 | Chinese speech recognition accuracy | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4 on the golden set, streaming and offline, 2026-07-04 |
-| English speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip `/asr` endpoint, 2026-09-06 |
+| English speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06 |
 | Speech synthesis speed | RTF 0.194 | reComputer RK3576 | Matcha-TTS, same run, 2026-09-06 |
 
 The two RK3576 rows are reference values taken on the same RK3576 platform;

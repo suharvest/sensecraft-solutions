@@ -39,7 +39,7 @@
 下面每个数字都标了实测设备与口径。其中 Hailo-8 与 RK3588 的数字取自与对应 reComputer 套餐同款的加速器平台，是参考值，reComputer 整机复测后更新。
 
 **检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
-单流 110.4 fps。`hailortcli benchmark` 交叉核对为 110.64 fps，
+单流 110.4 fps。「hailortcli benchmark」 交叉核对为 110.64 fps，
 纯硬件时间 8.21 ms，多出来的 0.8 ms 是 Python 往返。
 端到端含 letterbox、输出拼接、解码与 NMS 是 p50 18.74 ms / p95 24.25 ms：
 对约 160 个框逐类做 NMS，比推理本身还贵。
@@ -74,9 +74,9 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 
 | 接口 | 位置 | 内容 |
 |---|---|---|
-| MQTT `retail/v1/events` | broker，1883 | 一帧一条，带这一帧的所有框：track id、bbox、SKU、相似度、top-2 间距、OCR 块、兜底标志，外加商品库版本与模型哈希 |
-| HTTP `/v1/gallery/*` | 服务，8089 | 注册、版本列表、单版本 manifest、设备拉取的 tar.gz，以及回滚 |
-| HTTP `/api/*` | 界面，8080 | 事件列表、单事件逐框详情，以及支撑收银台/货架看板的汇总 |
+| MQTT 「retail/v1/events」 | broker，1883 | 一帧一条，带这一帧的所有框：track id、bbox、SKU、相似度、top-2 间距、OCR 块、兜底标志，外加商品库版本与模型哈希 |
+| HTTP 「/v1/gallery/*」 | 服务，8089 | 注册、版本列表、单版本 manifest、设备拉取的 tar.gz，以及回滚 |
+| HTTP 「/api/*」 | 界面，8080 | 事件列表、单事件逐框详情，以及支撑收银台/货架看板的汇总 |
 
 ## 套餐对照
 
@@ -109,10 +109,10 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 
 - **检测器权重——仅限学术与非商用，且禁止衍生作品。** 它训练在 SKU-110K 上，
   Trax 许可只允许学术与非商用，其第 (iii) 条禁止衍生作品。训练出的权重带
-  `use_scope: academic-only`、`redistributable: false`。
+  "use_scope: academic-only"、"redistributable: false"。
 - **嵌入器权重——非商用。** 微调在京东 Products-10K 上，其条款限定数据库只能用于
-  非商用研究与教育。权重带 `use_scope: non-commercial`、`redistributable: false`。
-  骨干本身（`facebook/dinov2-base`、`facebook/dinov2-small`）是 Apache-2.0——
+  非商用研究与教育。权重带 「use_scope: non-commercial」、「redistributable: false」。
+  骨干本身（「facebook/dinov2-base」、「facebook/dinov2-small」）是 Apache-2.0——
   非商用限制来自训练数据，不是骨干。
 - **Grocery Store Dataset —— MIT**，只用于检索评测，也是这一组里唯一可商用的数据集。
 - **RPC（CC BY-NC-SA 4.0）、Unitail-OCR（仅学术）、GroZi-120（许可未核实）**
@@ -120,5 +120,5 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 - **项目自身代码是 Apache-2.0。**
 
 商用部署必须用自采或许可宽松的数据重训两个模型，之后重建所有商品库版本。
-逐产物字段——`license_id`、`use_scope`、`redistributable`、`source_revision`、
-`sha256`——在上游的 model card 里；摘要在 `gallery/ATTRIBUTION.md`。
+逐产物字段——「license_id」、「use_scope」、「redistributable」、「source_revision」、
+「sha256」——在上游的 model card 里；摘要在 「gallery/ATTRIBUTION.md」。

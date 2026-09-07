@@ -58,7 +58,7 @@ the same accelerator platform as the matching reComputer preset; they will be
 updated after a re-test on the reComputer units.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
-9.10 ms p95, 110.4 fps single-stream. Cross-checked with `hailortcli benchmark`
+9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
 at 110.64 fps and 8.21 ms of pure hardware time — the extra 0.8 ms is the Python
 round trip. End to end, including letterboxing, output assembly, decode and NMS,
 it is 18.74 ms p50 / 24.25 ms p95: the per-class NMS over roughly 160 boxes
@@ -100,9 +100,9 @@ slot-level sampling for shelf frames.
 
 | Interface | Where | Carries |
 |---|---|---|
-| MQTT `retail/v1/events` | Broker, 1883 | One message per frame with every box: track id, bbox, SKU, similarity, top-2 margin, OCR block, fallback flag, plus the gallery version and the model hashes |
-| HTTP `/v1/gallery/*` | Service, 8089 | Registration, version listing, per-version manifest, the tar.gz devices pull, and rollback |
-| HTTP `/api/*` | UI, 8080 | Event list, per-box event detail, and the summary behind the checkout/shelf board |
+| MQTT "retail/v1/events" | Broker, 1883 | One message per frame with every box: track id, bbox, SKU, similarity, top-2 margin, OCR block, fallback flag, plus the gallery version and the model hashes |
+| HTTP "/v1/gallery/*" | Service, 8089 | Registration, version listing, per-version manifest, the tar.gz devices pull, and rollback |
+| HTTP "/api/*" | UI, 8080 | Event list, per-box event detail, and the summary behind the checkout/shelf board |
 
 ## Deployment Comparison
 
@@ -144,11 +144,11 @@ and the constraints are inherited by anything trained on them:
 - **Detector weights — academic and non-commercial only, derivative works
   forbidden.** They are trained on SKU-110K, whose Trax licence permits academic
   and non-commercial use and whose clause (iii) forbids derivative works. The
-  trained weights carry `use_scope: academic-only`, `redistributable: false`.
+  trained weights carry "use_scope: academic-only", "redistributable: false".
 - **Embedder weights — non-commercial.** Fine-tuned on JD Products-10K, whose
   terms restrict the database to non-commercial research and education. The
-  weights carry `use_scope: non-commercial`, `redistributable: false`. The
-  backbones themselves (`facebook/dinov2-base`, `facebook/dinov2-small`) are
+  weights carry "use_scope: non-commercial", "redistributable: false". The
+  backbones themselves ("facebook/dinov2-base", "facebook/dinov2-small") are
   Apache-2.0 — the restriction comes from the training data, not the backbone.
 - **Grocery Store Dataset — MIT**, used for retrieval evaluation only, and the
   only commercially usable dataset in the set.
@@ -159,6 +159,6 @@ and the constraints are inherited by anything trained on them:
 
 A commercial deployment must retrain both models on first-party or permissively
 licensed capture, and rebuild every gallery version afterwards. Per-artifact
-fields — `license_id`, `use_scope`, `redistributable`, `source_revision`,
-`sha256` — are in the upstream model cards; the summary is in
-`gallery/ATTRIBUTION.md`.
+fields — "license_id", "use_scope", "redistributable", "source_revision",
+"sha256" — are in the upstream model cards; the summary is in
+"gallery/ATTRIBUTION.md".

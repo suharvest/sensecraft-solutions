@@ -112,8 +112,8 @@ Timing fields are kept separate because their boundaries differ:
 | reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms mean/P95 | 77.80 / 85.99 ms mean/P95 |
 
 Jetson's application interval includes preprocessing, copies, TensorRT, output copy and
-pose parsing. Hailo S and M use different named probe boundaries. RK `inference_ms`
-excludes video preprocessing, while RK `pipeline_ms` starts only after the source returns
+pose parsing. Hailo S and M use different named probe boundaries. RK "inference_ms"
+excludes video preprocessing, while RK "pipeline_ms" starts only after the source returns
 a model-input frame and includes inference, pose decoding, tracking, temporal logic and
 payload construction. None of those fields is relabelled as another platform's metric.
 
@@ -141,19 +141,19 @@ external figures cover long shots and occlusion.
 
 | Output | Where | Content |
 |---|---|---|
-| Fall results | MQTT port 1883, topic `<device-name>/fall-detection/results` (multi-stream presets use `.../results/<stream-id>`) | Per-frame JSON: aggregate state plus one entry per tracked person |
-| Availability | MQTT port 1883, topic `<device-name>/fall-detection/status` | `online` / `offline`, retained |
-| Home Assistant | MQTT discovery under `homeassistant/` | Fall sensor, state, event ID, person count |
-| Video | RTSP port 8554 `/live0` on reCamera, or your own IP camera | The scene the detector is watching |
+| Fall results | MQTT port 1883, topic "<device-name>/fall-detection/results" (multi-stream presets use ".../results/<stream-id>") | Per-frame JSON: aggregate state plus one entry per tracked person |
+| Availability | MQTT port 1883, topic "<device-name>/fall-detection/status" | "online" / "offline", retained |
+| Home Assistant | MQTT discovery under "homeassistant/" | Fall sensor, state, event ID, person count |
+| Video | RTSP port 8554 "/live0" on reCamera, or your own IP camera | The scene the detector is watching |
 
-**`<device-name>` is yours to choose.** It is the Device Name field in the deploy step,
-defaulting to `recamera` on the reCamera preset and `recomputer` on the reComputer ones. It
+**"<device-name>" is yours to choose.** It is the Device Name field in the deploy step,
+defaulting to "recamera" on the reCamera preset and "recomputer" on the reComputer ones. It
 is only the first topic segment, there to keep several installations apart on one broker, so
-a room, floor or site name works just as well. `stream_id` is also carried in the payload, so
+a room, floor or site name works just as well. "stream_id" is also carried in the payload, so
 nothing downstream has to parse the topic to know where a message came from.
 
 The reComputer runtime appends the stream ID to the topic
-(`<device-name>/fall-detection/results/cam-01`), so routes stay separable downstream.
+("<device-name>/fall-detection/results/cam-01"), so routes stay separable downstream.
 The deploy form configures one stream. Separate 15 FPS tests measured 8 streams on
 Orin Nano Super, 9 on Orin NX Super, 1 on RK3576, 5 on RK3588, and 16/5 on Hailo
 with YOLOv8s/YOLOv8m respectively (see Performance). Those runs

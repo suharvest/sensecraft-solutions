@@ -97,7 +97,7 @@ Hailo 这种吞吐断崖。
 | reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms 均值/P95 | 77.80 / 85.99 ms 均值/P95 |
 
 Jetson 的应用推理包括预处理、数据拷贝、TensorRT、输出拷贝和姿态解析。Hailo S 与 M 使用的
-探针起点不同。RK 的 `inference_ms` 不含视频预处理；`pipeline_ms` 从视频源返回模型输入帧
+探针起点不同。RK 的 「inference_ms」 不含视频预处理；「pipeline_ms」 从视频源返回模型输入帧
 之后开始，包括推理、姿态解码、跟踪、时序判断和消息构造。这里不把某个平台的指标改名后
 当成另一个平台的同口径数据。
 
@@ -118,17 +118,17 @@ RK3588 原型把 DMA-BUF→RGA→RKNN 放进原生热路径：5 路 15 FPS 时�
 
 | 输出 | 位置 | 内容 |
 |---|---|---|
-| 跌倒结果 | MQTT 1883 端口，主题 `<设备名>/fall-detection/results`（多路套餐为 `.../results/<流编号>`） | 每帧一条 JSON：整体状态加每个被跟踪者一条记录 |
-| 在线状态 | MQTT 1883 端口，主题 `<设备名>/fall-detection/status` | `online` / `offline`，retained |
-| Home Assistant | `homeassistant/` 下的 MQTT 自动发现 | 跌倒传感器、状态、事件编号、人数 |
-| 视频 | reCamera 的 RTSP 8554 端口 `/live0`，或你自己的 IP 摄像头 | 检测器正在看的画面 |
+| 跌倒结果 | MQTT 1883 端口，主题 「<设备名>/fall-detection/results」（多路套餐为 「.../results/<流编号>」） | 每帧一条 JSON：整体状态加每个被跟踪者一条记录 |
+| 在线状态 | MQTT 1883 端口，主题 「<设备名>/fall-detection/status」 | 「online」 / 「offline」，retained |
+| Home Assistant | 「homeassistant/」 下的 MQTT 自动发现 | 跌倒传感器、状态、事件编号、人数 |
+| 视频 | reCamera 的 RTSP 8554 端口 「/live0」，或你自己的 IP 摄像头 | 检测器正在看的画面 |
 
-**`<设备名>` 是你自己取的**，在部署步骤里作为「设备名称」填写，默认 reCamera 套餐为
-`recamera`、reComputer 套餐为 `recomputer`。它只是主题的第一段，用来区分同一个 broker 上的
-多台设备——按房间、楼层或站点命名都可以。`stream_id` 同时写在 payload 里，下游不必靠解析主题来判断来源。
+**「<设备名>」 是你自己取的**，在部署步骤里作为「设备名称」填写，默认 reCamera 套餐为
+「recamera」、reComputer 套餐为 「recomputer」。它只是主题的第一段，用来区分同一个 broker 上的
+多台设备——按房间、楼层或站点命名都可以。「stream_id」 同时写在 payload 里，下游不必靠解析主题来判断来源。
 
 reComputer 套餐可以用一台设备接入多路摄像头，并把流编号拼在主题后面
-（`recamera/fall-detection/results/cam-01`），下游能把每路分开处理。本方案端到端
+（「recamera/fall-detection/results/cam-01」），下游能把每路分开处理。本方案端到端
 部署预设配的是单路；15 FPS 多路容量另行实测：Orin Nano Super 8 路、Orin NX Super 9 路、
 RK3576 1 路、RK3588 5 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见性能一节）。
 这些实测每路用的是同一段循环片源，

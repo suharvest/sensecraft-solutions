@@ -77,7 +77,7 @@
 | 指标 | 数值 | 设备 | 测量口径 |
 |------|------|------|----------|
 | 中文识别准确率 | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4，golden set，流式与离线，2026-07-04 |
-| 英文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段 `/asr` 接口，2026-09-06 |
+| 英文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段 「/asr」 接口，2026-09-06 |
 | 语音合成速度 | RTF 0.194 | reComputer RK3576 | Matcha-TTS，同一轮实测，2026-09-06 |
 
 两行 RK3576 数字为同款 RK3576 平台实测参考值，reComputer 整机复测后更新。

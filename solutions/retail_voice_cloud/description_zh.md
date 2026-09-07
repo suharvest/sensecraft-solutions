@@ -34,7 +34,7 @@
 - **一个可以交给 App 的 ASR 端点。** 一条 WebSocket，收原始 PCM 帧，回 JSON——
   连接确认、语音活动状态，以及每句话一条带说话人字段的最终转写。
 - **脱敏发生在入库之前，不是之后。** 手机号、身份证号、姓名、地址在写进数据库的路上
-  被替换成带类型的占位符（`[[PHONE]]`、`[[NAME]]`）。原文从不写入——不是加密存，是不存。
+  被替换成带类型的占位符（「[[PHONE]]」、「[[NAME]]」）。原文从不写入——不是加密存，是不存。
   关键词匹配跑在脱敏后的文本上，所以关键词表里存的也是脱敏后的文本。
 - **带残留数的硬删除。** 一次调用按主体、设备或会话删除，级联清掉数据库行、
   MinIO 里的对象和声纹，顺序是先对象后行——先删行就再也拿不到对象路径了。
@@ -61,12 +61,12 @@
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
-| 删除残留（数据库、对象存储、本地音频） | 0 | 按主体删除，用删除前后的 SHA-256 清单在三处对照 | C4 加固，`delete_proof.sh` 在脚本自建的 MySQL 8.0 + MinIO 上的集成测试——不是现场安装 |
+| 删除残留（数据库、对象存储、本地音频） | 0 | 按主体删除，用删除前后的 SHA-256 清单在三处对照 | C4 加固，「delete_proof.sh」 在脚本自建的 MySQL 8.0 + MinIO 上的集成测试——不是现场安装 |
 | 删除前 / 后行数 | 22 → 4 | 剩下的 4 行是无 PII 的墓碑与审计记录，没有一行含主体数据 | 同上一次运行 |
 | 删除耗时 | 14 ms | 单个主体、小规模造数、所有服务在同一台机器上 | 同上一次运行；不是吞吐指标 |
-| 脱敏 precision | 0.98 | 114 条金标准集：中英文、重叠实体、故意设置的误触发样本 | `tools/pii_eval.py` 调用服务真正使用的那份 Go 实现 |
+| 脱敏 precision | 0.98 | 114 条金标准集：中英文、重叠实体、故意设置的误触发样本 | 「tools/pii_eval.py」 调用服务真正使用的那份 Go 实现 |
 | 脱敏 recall | 0.95 | 同一金标准集。其中两条是有意保留的必漏样本，用来让这个缺口一直可见 | 同上一次运行 |
-| 鉴权生效 | 通过 | 缺凭据 401、档位不足 403、逐路由角色矩阵、无 role 的旧令牌降级为 viewer | `internal/middleware`（asr-service）与 `api/server/middleware`（voice-service）单测 |
+| 鉴权生效 | 通过 | 缺凭据 401、档位不足 403、逐路由角色矩阵、无 role 的旧令牌降级为 viewer | 「internal/middleware」（asr-service）与 「api/server/middleware」（voice-service）单测 |
 
 这些数字来自代码自带的测试台，跑在开发机上，不是门店数据。
 删除耗时不是吞吐数字。脱敏 precision 是 114 条样本上的分数，
@@ -76,14 +76,14 @@
 
 给这套部署写任何对外文案之前先读这一节。
 
-- **原文转写从不落库。** 配置项存在（`privacy.store_original_text`），默认 false；
+- **原文转写从不落库。** 配置项存在（「privacy.store_original_text」），默认 false；
   打开它等于把原文放进一个删除流程还没覆盖到的地方。
 - **音频没有做脱敏。** 只有文本做了。原音频在主机上按保留期存放——默认 24 小时，
   部署时可缩短到 6 小时或 1 小时——并被删除流程覆盖。
   页面绝不能写「音频已脱敏」，因为没有：v1 不做哔声与切段。
 - **导出给的是清单不是音频本体**，理由同上。
 - **低置信实体只标记不遮蔽。** 遮蔽阈值是 0.85 置信度，低于它的进复核队列，
-  这就是 recall 只到 0.95 的原因。计数落在 `pii_masked_count` 与 `pii_review_count`，
+  这就是 recall 只到 0.95 的原因。计数落在 「pii_masked_count」 与 「pii_review_count」，
   命中位置不落库——存下来等于把个人信息的位置又写回数据库。
 - **打开 cloud-analytics profile 会把文本发出这台机器。** 文本是脱敏过的，
   但「内容不出场地」这句话从此不成立。
@@ -91,11 +91,11 @@
 ### 已知限制
 
 - **连续说出的数字串会转写成中文数字词。**
-  即使 `recognition.use_inverse_text_normalization` 打开，ASR 对孤立数字串也不做
+  即使 「recognition.use_inverse_text_normalization」 打开，ASR 对孤立数字串也不做
   逆文本正则化：一口气念出的 "13812345678" 转写结果是 "幺三八幺二三四五六七八"，
   不是阿拉伯数字。脱敏侧所有手机号正则都只匹配阿拉伯数字，所以在这条被处理之前，
-  这样一条记录会带着明文号码入库、`pii_masked_count: 0`。
-  现已补了一条 `cn_mobile_spoken` 规则，覆盖 11 位中文数字手机号形态（含报号常用的
+  这样一条记录会带着明文号码入库、「pii_masked_count: 0」。
+  现已补了一条 「cn_mobile_spoken」 规则，覆盖 11 位中文数字手机号形态（含报号常用的
   「幺」）。**仍未覆盖的：** 身份证号、座机号，以及其它以中文数字词念出的数字标识。
   部署方若在意这些，先用自己的录音验证，不要直接依赖脱敏；真正限制暴露面的是
   原音频保留期这项控制。
@@ -106,12 +106,12 @@
 
 | 接口 | 端口 | 路径 | 内容 |
 |---|---|---|---|
-| WebSocket | 8080 | `/ws?token=<operator>` | 客户端发原始 PCM 二进制帧（16 kHz、单声道、有符号 16 位小端，单条 ≤ 2 MiB）。服务端回 JSON：连接时 `connection`，语音/静音切换时 `vad`，每句话一条 `final`，出错 `error`。 |
-| HTTP | 8081 | `/api/v1/recordings` | 转写上报（operator）与查询（viewer）。文本在插入前完成脱敏。 |
-| HTTP | 8081 | `/api/v1/privacy/erase` | 按主体 / 设备 / 会话硬删除，级联 MySQL、MinIO 与声纹。仅 admin。 |
-| HTTP | 8081 | `/api/v1/privacy/export` | 按主体导出：脱敏文本加音频清单。仅 admin。 |
-| HTTP | 3000 | `/` | 管理后台——录音、关键词、设备、导出与删除。 |
-| HTTP | 8621 | `/health` | OpenVoiceStream 健康检查，编排探活用。 |
+| WebSocket | 8080 | 「/ws?token=<operator>」 | 客户端发原始 PCM 二进制帧（16 kHz、单声道、有符号 16 位小端，单条 ≤ 2 MiB）。服务端回 JSON：连接时 「connection」，语音/静音切换时 「vad」，每句话一条 「final」，出错 「error」。 |
+| HTTP | 8081 | 「/api/v1/recordings」 | 转写上报（operator）与查询（viewer）。文本在插入前完成脱敏。 |
+| HTTP | 8081 | 「/api/v1/privacy/erase」 | 按主体 / 设备 / 会话硬删除，级联 MySQL、MinIO 与声纹。仅 admin。 |
+| HTTP | 8081 | 「/api/v1/privacy/export」 | 按主体导出：脱敏文本加音频清单。仅 admin。 |
+| HTTP | 3000 | 「/」 | 管理后台——录音、关键词、设备、导出与删除。 |
+| HTTP | 8621 | 「/health」 | OpenVoiceStream 健康检查，编排探活用。 |
 
 ## 套餐对比
 
@@ -130,11 +130,11 @@ App 已经存在、门店又没有专门的麦克风硬件时选它。
 - **栈主机是 arm64。** 冻结镜像只有 arm64，随包的 ASR 镜像是 RK3576 NPU 构建。
   换主机类别需要你提供对应的 ASR 镜像。
 - **说话人识别默认关闭。** 提供它的容器不启动，
-  `speaker.identified` 恒为 false，按主体删除也没有声纹可级联。
-- **令牌在 URL 里。** 浏览器 WebSocket 客户端不能设自定义头，所以 ASR 端点接受 `?token=`。
+  「speaker.identified」 恒为 false，按主体删除也没有声纹可级联。
+- **令牌在 URL 里。** 浏览器 WebSocket 客户端不能设自定义头，所以 ASR 端点接受 「?token=」。
   出了可信局域网就要在它前面终结 TLS。
 - **后台账号默认是 viewer**，而且没有改角色的接口。
-  要在后台里删除和导出需要 admin 角色的账号，这个值目前直接在 `users` 表里改。
+  要在后台里删除和导出需要 admin 角色的账号，这个值目前直接在 「users」 表里改。
   在那之前用 admin API 令牌。
 - **一套部署一套库。** 采集端套餐自带 MySQL 与 MinIO，因为冻结 compose 是一个整体；
   多个采集端指向同一套栈要改上报地址，这种布局请自行复测。
@@ -143,8 +143,8 @@ App 已经存在、门店又没有专门的麦克风硬件时选它。
 
 ## 许可说明
 
-栈里的服务是 Seeed 自有的（`sensecraft-asr-service`、`sensecraft-voice-client`、
-`sensecraft-voice-service`、`sensecraft-voice-web`），加上负责识别的 OpenVoiceStream。
+栈里的服务是 Seeed 自有的（「sensecraft-asr-service」、「sensecraft-voice-client」、
+「sensecraft-voice-service」、「sensecraft-voice-web」），加上负责识别的 OpenVoiceStream。
 MySQL 与 MinIO 按各自许可从上游拉取——MySQL 是 GPLv2 加 FOSS 例外，
 MinIO 当前版本是 AGPLv3，把对象存储嵌进商业产品之前值得先读一遍。
 脱敏没有用第三方模型：姓名与地址词表用的是公有领域的《百家姓》与省级行政区名单。

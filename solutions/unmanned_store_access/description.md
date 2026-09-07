@@ -22,8 +22,8 @@ preset where that trade is made explicitly.
 **Liveness that cannot be silently switched off.** The upstream recognition
 service degrades to "keep recognising, skip liveness" when the model file is
 missing. For a door that degradation is an open door, so the adapter probes
-`/health` at startup and refuses to run unless liveness reports as loaded. A
-`live` value of `null` is treated as a failure, not a pass: it means the check
+"/health" at startup and refuses to run unless liveness reports as loaded. A
+"live" value of "null" is treated as a failure, not a pass: it means the check
 did not run.
 
 **A face library with a delete that stays deleted.** Removing a person mints a
@@ -32,7 +32,7 @@ version that still contains them is refused by name. Without the barrier, one
 rollback quietly re-admits everyone who has ever been removed.
 
 **Remote commands that cannot be replayed into a second unlock.** Exact field
-set, UUIDv4 command id, RFC3339 `issued_at` with a timezone, a TTL bound, and a
+set, UUIDv4 command id, RFC3339 "issued_at" with a timezone, a TTL bound, and a
 per-identity replay table. A redelivered command returns the original receipt
 and does not open the door again. The command topic is never retained — a
 retained unlock replays on every reconnect, so the door would open by itself
@@ -70,8 +70,8 @@ distribution path and the GPIO pulse, measured on hardware.
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Face library activation, reCamera Pro (P1) | Full activation 62.2 ms (v1) and 45.4 ms (v2); up-to-date no-op round 6.2 ms; recognition event to GPIO pin readback n=22, p50 1.448 ms / p95 2.709 ms | reCamera Pro (RV1126B, Buildroot 2023.02.6) on Ethernet, 1-2 people / under 20 KB library. Consistency gate `problems: []`; a tampered gallery and a wrongly signed manifest were both rejected on the device. The 22 events were injected synthetic recognition results, the readback is sysfs so the values are an upper bound, and no external circuit was connected | `evaluation/runs/2026-09-07-recamera-pro-p1/results.md` and the two `boundary.*.yaml` alongside it |
-| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); `op:reload` round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §2 and `boundary.facedb-activation.yaml` alongside it |
+| Face library activation, reCamera Pro (P1) | Full activation 62.2 ms (v1) and 45.4 ms (v2); up-to-date no-op round 6.2 ms; recognition event to GPIO pin readback n=22, p50 1.448 ms / p95 2.709 ms | reCamera Pro (RV1126B, Buildroot 2023.02.6) on Ethernet, 1-2 people / under 20 KB library. Consistency gate "problems: []"; a tampered gallery and a wrongly signed manifest were both rejected on the device. The 22 events were injected synthetic recognition results, the readback is sysfs so the values are an upper bound, and no external circuit was connected | "evaluation/runs/2026-09-07-recamera-pro-p1/results.md" and the two "boundary.*.yaml" alongside it |
+| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); "op:reload" round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | "evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md" §2 and "boundary.facedb-activation.yaml" alongside it |
 
 A software-loop test suite covers the protocol and the state machine: 52 of 52
 checks across three library versions built, published, pulled, hash-checked and
@@ -90,8 +90,8 @@ The P4 preset's WE2 models — SCRFD detection and a distilled MobileFaceNet
 embedding — inherit InsightFace's non-commercial terms. A commercial P4
 deployment has to retrain through the QAT pipeline rather than ship these.
 
-Every face library version's manifest carries five licence fields — `license_id`,
-`use_scope`, `redistributable`, `source_revision`, `sha256` — so the terms travel
+Every face library version's manifest carries five licence fields — "license_id",
+"use_scope", "redistributable", "source_revision", "sha256" — so the terms travel
 with the artefact rather than living only in a document.
 
 **The RKNN backend has no liveness implementation.** A preset running on RKNN
