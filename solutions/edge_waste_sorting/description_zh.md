@@ -233,7 +233,7 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 
 | 平台 | 状态 |
 |---|---|
-| Jetson Orin（TensorRT） | 部署包已发，基线换成 EfficientNet-Lite0 ONNX；从未在任何 Jetson 上构建过 engine |
+| Jetson Orin（TensorRT） | 已在 reComputer J4012（Orin NX）上完成部署与 engine 构建：基线 engine 构建 68 秒；部署容器端到端报 pipeline 4.122 ms / inference 3.533 ms（每次触发）。精度与一致率（top-1 0.8755，与 CPU golden 一致率 0.9991，1060 张子集）取自另一个独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台设备，但不是同一个部署二进制 |
 | reComputer R2000（Hailo-8） | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
 | RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c），val 全集 7417 张（一致率 fp16 0.9988 / int8 0.9893，p50 5.575 ms / 2.728 ms）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
@@ -361,8 +361,10 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 **摄像头 + reComputer J（Orin）**——唯一有模型文件的套餐。TensorRT engine
 在部署过程中于设备上构建，因为 engine 绑定具体 GPU 架构与 TensorRT 版本，
 无法预编分发。它也是唯一提供开放词汇 track 的套餐：SigLIP 2 视觉塔在 CPU 上
-单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。
-目前它上面什么都还没实测过。
+单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。已在
+reComputer J4012（Orin NX）上实测：基线 engine 构建 68 秒，部署容器端到端
+pipeline 4.122 ms / inference 3.533 ms（每次触发）——精度与一致率数字及其
+engine 口径说明见上方"平台支持"表。
 
 **摄像头 + reComputer R2000 系列（Hailo-8）**——把板子准备好、验证三道 Hailo
 ABI 关卡，下载 EfficientNet-Lite0 HEF。出货的这枚 HEF 已在 Hailo-8 真机上跑完
