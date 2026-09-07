@@ -65,15 +65,17 @@ name_i18n:
 intro:
   summary: >-
     Recognise a face at the door, require passive liveness, check the person,
-    schedule and blocklist, and pulse a relay that switches an independently
-    powered lock — with the face library versioned in the cloud, pulled over
-    HTTP with SHA and signature checks, and every decision written to a
-    hash-chained audit log.
+    schedule and blocklist, and pulse a relay whose dry contact goes to the
+    door controller's input — the lock and its supply stay with the
+    door-control party — with the face library versioned in the cloud,
+    pulled over HTTP with SHA and signature checks, and every decision
+    written to a hash-chained audit log.
   summary_i18n:
     zh: >-
       门口识别人脸，强制通过静默活体，再核对人员、时段与黑名单，最后给继电器
-      一个脉冲去切换独立供电的门锁——人脸库在云端版本化，设备走 HTTP 拉取并校验
-      SHA 与签名，每一次判定都写进带哈希链的审计日志。
+      一个脉冲，其干接点接入门禁控制器的输入端——门锁及其供电由门禁施工方负责，
+      人脸库在云端版本化，设备走 HTTP 拉取并校验 SHA 与签名，每一次判定都写进
+      带哈希链的审计日志。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -81,9 +83,9 @@ intro:
   gallery:
     - type: image
       src: gallery/architecture.svg
-      caption: Cloud face library and console above the presets — every one of them ends at a relay and a lock on its own supply
+      caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
       caption_i18n:
-        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器和独立供电的门锁
+        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器的干接点，接入门禁控制器输入端；门锁及其供电由门禁施工方负责
     - type: image
       src: gallery/ui-events.png
       caption: Access events with the decision reason and the audit chain hash. Synthetic demo data — the people, scores and events are fixtures, not field results

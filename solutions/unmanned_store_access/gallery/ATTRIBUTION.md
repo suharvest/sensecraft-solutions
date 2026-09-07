@@ -10,7 +10,8 @@
 | `ui-devices.png` | Screenshot of the management console, running on synthetic demo data | No |
 
 `architecture.svg` is the data path only — the cloud face library and console,
-the four presets, and the relay and independently powered lock they all end at.
+the four presets, and the relay's dry contact into the door controller's input
+that they all end at — the lock and its supply stay with the door-control party.
 Boxes, arrows, product names, protocol names, port numbers and pin labels; no
 photograph, no captured frame, no face.
 
