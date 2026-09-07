@@ -6,9 +6,9 @@
 # and derivative works with attribution; the attribution string is in
 # gallery/ATTRIBUTION.md and repeated in both description files.
 #
-# As of 2026-09-07, four real classification screenshots (one per category
-# plus a 2x2 grid) are committed, sourced from TrashNet (MIT) validation
-# images per the escape hatch this package always documented. See
+# As of 2026-09-07, five real classification screenshots (one per category,
+# four total, plus one 2x2 grid) are committed, sourced from TrashNet (MIT)
+# validation images per the escape hatch this package always documented. See
 # gallery/ATTRIBUTION.md for the per-image source table.
 #
 # NOTHING HERE HAS RUN ON HARDWARE. Every figure on this page comes from

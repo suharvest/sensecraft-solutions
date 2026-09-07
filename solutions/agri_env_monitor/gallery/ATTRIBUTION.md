@@ -15,7 +15,7 @@ Assistant on a local host, and no WAN link.
 
 Same caveat: a diagram, not a screenshot.
 
-## Pending: Home Assistant dashboard screenshot
+## Pending: Home Assistant dashboard screenshot (superseded 2026-09-07)
 
 **Both gallery images are placeholders for the screenshot that should lead this
 page.** The local smoke run (2026-09-05) produced the entity set the dashboard
@@ -29,6 +29,12 @@ To replace these: run the stack, import
 `assets/homeassistant/agri_env_dashboard.yaml`, and capture the overview view.
 Any screenshot that goes on this page must come from a real run — a mock-up
 would misrepresent what the dashboard shows. Until then the diagrams stand in.
+
+**Superseded 2026-09-07**: this section described the placeholder state as of
+2026-09-05. It has since been replaced by real screenshots and a GIF from a
+Docker replay run — see "2026-09-07 real local run" below. `architecture.svg`
+is kept as the cover image (architecture diagram, not a screenshot);
+`offline-acceptance.svg` is no longer referenced by the gallery.
 
 ## measurementId table — licence unconfirmed
 
