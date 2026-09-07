@@ -7,10 +7,10 @@
 | 套餐 | 除 Watcher 外还需要 | 网络要求 |
 |---|---|---|
 | 套餐 0 · 云端版 | 无 | Watcher 需要 2.4GHz WiFi + 联网；其余全在 Seeed 云端 |
-| 套餐一 · 基础版 | reComputer R1125-10 | 配置期间 Watcher 与 reComputer 需和本机在同一局域网 |
-| 套餐二A · 升级版（单点位） | reComputer R2135-12（Hailo-8）或 Jetson，用于人脸识别 | 同一局域网；人脸识别在本地，大模型调用仍可走云端 |
-| 套餐二B · 升级版（多点位） | reComputer Super J4012（Jetson Orin NX 16GB），最多 3 台 Watcher 共用 | 各点位 Watcher 需能访问共享的 J4012；只有大模型调用出本地网络 |
-| 套餐三 · 顶配版 | reComputer R2135-12（Hailo-8，跑仓库系统 + 人脸识别 + 语音 AI 服务）加 reComputer Robotics J5011（跑本地大模型和语音合成） | 部署完成后无需联网——包括大模型在内全部跑在你自己的这两台设备上 |
+| 套餐一 · 基础版 | reComputer R1100 系列（4 GB 内存起） | 配置期间 Watcher 与 reComputer 需和本机在同一局域网 |
+| 套餐二A · 升级版（单点位） | reComputer R2000 系列（带 Hailo-8，4 GB 内存起）或 Jetson，用于人脸识别 | 同一局域网；人脸识别在本地，大模型调用仍可走云端 |
+| 套餐二B · 升级版（多点位） | reComputer J40 系列（Jetson Orin NX，16 GB 内存），最多 3 台 Watcher 共用 | 各点位 Watcher 需能访问共享的 reComputer J40；只有大模型调用出本地网络 |
+| 套餐三 · 顶配版 | reComputer R2000 系列（带 Hailo-8，4 GB 内存起，跑仓库系统 + 人脸识别 + 语音 AI 服务）加 reComputer J50 系列（跑本地大模型和语音合成） | 部署完成后无需联网——包括大模型在内全部跑在你自己的这两台设备上 |
 
 每台 Watcher 都需要一次性的 WiFi 配对（各套餐的步骤 1）——仅支持 2.4GHz，不支持 5GHz。
 
