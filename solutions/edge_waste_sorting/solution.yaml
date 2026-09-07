@@ -222,13 +222,15 @@ intro:
       description: >-
         A separate box next to the camera, for when one host has to serve
         several bins or the camera cannot be replaced. Its NPU runs the
-        classifier in INT8 at about half the time the fp16 build needs on the
-        same board, and it is the fastest of the options here.
+        classifier in INT8 in about half the time the fp16 build needs on the
+        same board. Both the 8 GB and 16 GB variants carry the same NPU and
+        run this model, which is 4 MB.
       description_i18n:
         zh: >-
           放在相机旁边的独立主机，适合一台主机带多个投放点、
           或者相机本身换不掉的场合。它的 NPU 用 INT8 跑分类器，
-          耗时约为同一块板上 fp16 的一半，是这里最快的一个。
+          耗时约为同一块板上 fp16 的一半。8 GB 与 16 GB 两个规格带的是同一颗
+          NPU，都能跑这个模型——模型本身 4 MB。
     recamera_pro:
       description: >-
         The faster of the two all-in-one cameras: its NPU runs the classifier

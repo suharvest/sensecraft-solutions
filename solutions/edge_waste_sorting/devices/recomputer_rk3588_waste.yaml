@@ -48,10 +48,10 @@ steps:
         sha256sum efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
         # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
 
-      That is the INT8 build, 4,044,169 bytes, and it is the one to deploy. An
-      fp16 build exists (`6225423e…`, 7,399,919 bytes); it returns the same
-      top-1 at roughly twice the latency, so it is only worth using to isolate
-      a suspected quantisation problem.
+      That is the INT8 build, 4,044,169 bytes, and it is the one this preset
+      deploys. An fp16 build exists (`6225423e…`, 7,399,919 bytes); it returns
+      the same material top-1 at roughly twice the latency, and serves as the
+      comparison point when a quantisation problem is suspected.
     description_i18n:
       zh: >-
         模型来自上游仓库 `edge-waste-sorting`，没有提交进本包，也不在 CDN 上。
@@ -74,9 +74,9 @@ steps:
           sha256sum efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
           # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
 
-        这是 INT8 版，4,044,169 字节，部署用它。另有 fp16 版
-        （`6225423e…`，7,399,919 字节），top-1 相同但时延约为两倍，
-        只有在怀疑量化出问题、需要对照时才值得用。
+        这是 INT8 版，4,044,169 字节，本套餐部署的就是它。另有 fp16 版
+        （`6225423e…`，7,399,919 字节），物料 top-1 与它相同、时延约为两倍，
+        用作怀疑量化出问题时的对照。
     optional: false
 
   - id: install_runtime
