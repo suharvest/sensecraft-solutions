@@ -56,6 +56,12 @@ services:
       # OVS_PROFILE now supplies them, so a language switch that changes
       # profile is not silently overridden by a value pinned in compose.
       # The removed keys were byte-identical to the default profile's env.
+      # QWEN3_ASR_VAD_FINAL_ASYNC pinned to 0: the deployed RK artifact set's
+      # runtime_contract requires 0; the shipped profile default is 1, which
+      # crash-loops the container on startup (RKArtifactError: got '1',
+      # expected '0'). Evidence: openvoicestream aee7a9c8 and
+      # sensecraft-solutions 0dbcfd5 (cat-remote re-verification, 2026-09-08).
+      QWEN3_ASR_VAD_FINAL_ASYNC: "0"
       OVS_PROFILE: ${OVS_PROFILE:-rk3576-default}
       OVS_PROFILE_DEFAULT: rk3576-default
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
