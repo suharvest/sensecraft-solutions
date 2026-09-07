@@ -777,7 +777,9 @@ intro:
       description: >-
         The cheapest door: a Grove Vision AI V2 detects and embeds, a XIAO
         ESP32-S3 matches against a library held in its own flash and drives a
-        Grove Relay. It pulls the same versioned library over the same HTTP
+        relay — by default the XIAO 1-Ch Relay add-on board on the XIAO's own
+        D1 pin (high level = engaged), with a Grove Relay on any spare GPIO as
+        the fallback. It pulls the same versioned library over the same HTTP
         endpoints. It has no liveness model, so the policy is deliberately
         weakened to an allowlist within a schedule, single-shot — do not put it
         on a door where a printed photograph would matter. The firmware exists
@@ -786,10 +788,12 @@ intro:
       description_i18n:
         zh: >-
           最便宜的一道门：Grove Vision AI V2 做检测与嵌入，XIAO ESP32-S3 用自己
-          flash 里的人脸库做匹配并驱动一个 Grove 继电器。它用同样的 HTTP 接口拉取
-          同一份版本化人脸库。它没有活体模型，因此策略被刻意降权成"时段内白名单、
-          单次开门"——不要把它装在"举一张打印照片就会出事"的门上。固件目前只有分支上的
-          源码，尚未构建，烧录步骤里还没有二进制。
+          flash 里的人脸库做匹配并驱动一个继电器——默认是 XIAO 1-Ch Relay 扩展板，
+          接在 XIAO 自己的 D1 引脚（高电平=吸合），备选是接在任意空闲 GPIO 上的
+          Grove 继电器。它用同样的 HTTP 接口拉取同一份版本化人脸库。它没有活体
+          模型，因此策略被刻意降权成"时段内白名单、单次开门"——不要把它装在"举一张
+          打印照片就会出事"的门上。固件目前只有分支上的源码，尚未构建，烧录步骤里
+          还没有二进制。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -825,8 +829,9 @@ intro:
           type: single
           required: true
           options:
+            - device_ref: generic_relay_module_xiao
             - device_ref: generic_relay_module
-          default: generic_relay_module
+          default: generic_relay_module_xiao
 
   stats:
     difficulty: advanced
