@@ -82,22 +82,29 @@ remote_overrides:
         name_i18n:
           zh: 校验 Hailo 运行环境
 
-      # The runtime image is NOT published to a registry yet. It has been
-      # cross-built for arm64 on a Mac (9 layers, 103,591,916 B of content) but
-      # never pushed and never run on a board, so this step fails early and
-      # says how to produce it rather than letting the compose pull fail.
+      # The runtime image is published (2026-09-07, linux/arm64, 9 layers,
+      # 104,619,382 B compressed, digest
+      # sha256:695aa8011186595764e0cbb680c2cad6b88d6c0fe54e075ad6e19eae3d33f944).
+      # It has never been run on a board. This step pulls it if it is not local,
+      # so a registry problem fails here rather than inside the compose pull.
       - name: Check the runtime image is available
         run: |
           set -e
-          IMAGE="${INSPECTION_IMAGE:-edge-inspection-assembly-rpi-hailo:0.1.0-dev}"
+          IMAGE="${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev}"
           if docker image inspect "$IMAGE" >/dev/null 2>&1; then
             echo "image present:"
             docker images "$IMAGE"
             exit 0
           fi
-          echo "Image $IMAGE is not on this device." >&2
-          echo "This tag is not published to a registry yet. Build it from the upstream" >&2
-          echo "repository (on the board, or cross-built and loaded from a tar):" >&2
+          echo "Image $IMAGE not local, pulling..."
+          if docker pull "$IMAGE"; then
+            docker images "$IMAGE"
+            exit 0
+          fi
+          echo "Could not pull $IMAGE." >&2
+          echo "Check this device can reach sensecraft-missionpack.seeed.cn, or build" >&2
+          echo "the tag from the upstream repository (on the board, or cross-built and" >&2
+          echo "loaded from a tar):" >&2
           echo "  docker build -f platforms/rpi-hailo/Dockerfile -t $IMAGE ." >&2
           echo "Its Python minor version must match this host's python3 --version." >&2
           exit 1

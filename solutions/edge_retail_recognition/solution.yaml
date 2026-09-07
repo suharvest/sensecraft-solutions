@@ -218,14 +218,14 @@ intro:
       description: >-
         Runs the registration service, the management UI and the broker in
         containers. Present in all three presets — the gallery and the UI are
-        shared infrastructure, not a per-preset extra. Neither container image
-        has been pushed to a registry; both are built on this host from the
-        upstream repository.
+        shared infrastructure, not a per-preset extra. Both container images
+        are published; override the image variables to deploy a local build
+        instead.
       description_i18n:
         zh: >-
           以容器运行注册服务、管理界面与 broker。三个套餐都要它——商品库与管理界面是
-          共用基础设施，不是某个套餐的附加项。两个容器镜像都没有推送到 registry，
-          都在这台主机上从上游仓库构建。
+          共用基础设施，不是某个套餐的附加项。两个容器镜像均已发布；要部署自建版本，
+          覆盖对应的镜像变量即可。
     recomputer_rk3588:
       description: >-
         Runs the detector on the RK3588 NPU. The RKNN fp16 conversion of the

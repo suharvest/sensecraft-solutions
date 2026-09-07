@@ -15,11 +15,12 @@
 # and must hold BOTH packages: `apt-mark hold hailort hailort-pcie-driver`.
 # Holding only the driver lets apt silently upgrade the user-space library.
 #
-# IMAGE NOT PUBLISHED YET. The tag below is the intended registry destination;
-# nothing has been pushed to it. Until it is pushed, build the image from the
-# upstream repo (platforms/rpi-hailo/Dockerfile) and set INSPECTION_IMAGE, or
-# retag the local build to this name. The image has been cross-built for
-# linux/arm64 on macOS but has never been run on a Pi.
+# Image published 2026-09-07 (built natively for arm64 and pushed from spark):
+# sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev
+# digest sha256:f078a2875dcdfd1a00a2bb5763baded9b251ea9d98c44114704b57a025384fb3,
+# linux/arm64, 10 layers, 104,620,820 B compressed. Its python3 is 3.11.2, the
+# same minor as Pi OS bookworm's hailo_platform bindings. The image has not been
+# run on a Pi. Set INSPECTION_IMAGE to override with a local build.
 services:
   inspection:
     image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev}

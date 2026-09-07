@@ -14,10 +14,12 @@
 # dist-packages, because the host's numpy 2.2.6 and its broken cv2 would
 # shadow the image's own pinned numpy 1.26.4 (upstream IMPL-NOTES 41/42).
 #
-# IMAGE NOT PUBLISHED YET. The tag below is the intended registry destination;
-# nothing has been pushed to it. Until it is pushed, build the image from the
-# upstream repo (platforms/jetson/Dockerfile.slim) on the device and either
-# retag it to this name or set INSPECTION_IMAGE to the local tag.
+# Image published 2026-09-07 (built natively for arm64 and pushed from spark):
+# sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev
+# digest sha256:0d1b42e20a61a7aa89d072921dfe9e07e078bcb88ec9699b3f579caa1f28fe3b,
+# linux/arm64, 9 layers, 95,198,631 B compressed. Base is ubuntu:22.04; TensorRT
+# and CUDA stay mounted from the host, no GPU component is baked in.
+# Set INSPECTION_IMAGE to override with a local build.
 services:
   inspection:
     image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev}
