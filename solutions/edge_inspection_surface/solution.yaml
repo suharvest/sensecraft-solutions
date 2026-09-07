@@ -25,21 +25,32 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/recomputer-super-j4012.jpg
+  cover_image: gallery/defect-overlay-inclusion.jpg
   gallery:
     - type: image
-      src: gallery/recomputer-super-j4012.jpg
-      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on. No detection sample is shown here; see the licence note below
+      src: gallery/defect-overlay-inclusion.jpg
+      caption: Detector output on a rolled steel strip — blue boxes are inclusions found by the model, thin white boxes are the labelled ones, each box carrying its score
       caption_i18n:
-        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备。这里不展示检测样图，原因见下方许可说明
+        zh: 钢带表面的检测输出——蓝框是模型找到的夹杂，细白框是标注框，每个框带出分数
+    - type: image
+      src: gallery/defect-overlay-pitted.jpg
+      caption: The same detector on a pitted surface — a defect class that spreads instead of sitting in one spot
+      caption_i18n:
+        zh: 同一检测器在麻点表面上的输出——这类缺陷是散开的，不集中在一处
+    - type: image
+      src: gallery/recomputer-super-j4012.jpg
+      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on
+      caption_i18n:
+        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备
     - type: image
       src: gallery/architecture.svg
       caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
       caption_i18n:
         zh: 从相机到设备再到产线——RTSP 进来，判定通过 Modbus TCP 与 MQTT 出去，旁边是预览页
-  # No detection sample image is shipped. Every overlay this project can produce
-  # is drawn on a dataset image whose licence is unconfirmed, so none is
-  # committed here. See gallery/ATTRIBUTION.md.
+  # Two detection frames are shipped so the page shows what the solution does.
+  # Their underlying images come from NEU-DET, an academic dataset without a
+  # formal licence grant, so only these two are used and only to illustrate
+  # function. See gallery/ATTRIBUTION.md.
   category: sensing
   solution_type: solution
   tags:

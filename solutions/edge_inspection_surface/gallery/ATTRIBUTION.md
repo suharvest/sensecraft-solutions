@@ -82,3 +82,19 @@ repository, and none have been uploaded to
 either. The download steps in `devices/` name that path and verify the checksum,
 and each carries a `TODO(CDN)` comment saying the file is not there yet and must
 be placed on the device by hand in the meantime.
+
+## defect-overlay-inclusion.jpg / defect-overlay-pitted.jpg
+
+Added 2026-09-07. Both are the detector's own output, copied unchanged (apart
+from JPEG re-encoding) from
+`evaluation/runs/2026-09-05-m1-smoke/overlay_inclusion_110_*.jpg` and
+`overlay_pitted_surface_100_*.jpg` in the `edge-inspection-surface` working
+tree, 640 × 640 each. The blue boxes and scores are the ONNX model's
+predictions; the thin white boxes are the labels they were matched against.
+
+**Detection-result screenshots. The underlying photographs come from NEU-DET
+(Northeastern University) surface-defect dataset — publicly circulated academic
+data — and are used here only to show what the solution does. They are not
+redistributed for training or as a dataset, and no further NEU-DET image is
+published on this page. Non-commercial terms apply to the underlying images.**
+Two frames is the whole of it, by decision on 2026-09-07.
