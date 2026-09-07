@@ -31,8 +31,8 @@ ssh:
   auth_methods:
     - password
   connection_timeout: 30
-  # The first deploy builds a TensorRT engine on the device. MobileNetV3-Small
-  # at 224x224 is a 6 MB ONNX and should build in well under a minute; the
+  # The first deploy builds a TensorRT engine on the device. EfficientNet-Lite0
+  # at 224x224 is a 13.5 MB ONNX and should build in well under a minute; the
   # open_vocab track is a 372 MB ViT-B/16 and has never been engine-built
   # anywhere, so its build time is unknown. The command budget is sized for the
   # unknown one, not the known one.
@@ -150,7 +150,7 @@ remote_overrides:
           MODELS_DIR="$WORKDIR/models"
 
           # model_track picks which ONNX gets built. baseline is the closed-set
-          # MobileNetV3-Small head; open_vocab is the SigLIP 2 vision tower,
+          # EfficientNet-Lite0 head; open_vocab is the SigLIP 2 vision tower,
           # which also needs its prototype bank and prompt set (fetched below).
           case "{{model_track}}" in
             baseline)

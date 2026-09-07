@@ -53,7 +53,7 @@ pre_checks:
   - type: disk_space
     min_gb: 4
     description: >-
-      The runtime image plus a MobileNetV3-Small HEF (single-digit MB when it
+      The runtime image plus an EfficientNet-Lite0 HEF (single-digit MB when it
       exists) and the config; 4 GB leaves ample headroom
 
 # 这台设备整轮部署的墙钟预算，超时即判该设备失败。

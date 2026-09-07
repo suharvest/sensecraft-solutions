@@ -24,8 +24,8 @@
 #
 # The TensorRT engine is not in the image and not in /models: build it once on
 # the Orin with
-#   backends/tensorrt/build_engine.sh /models/mobilenetv3s_waste8.onnx \
-#       /models/mobilenetv3s_waste8.engine
+#   backends/tensorrt/build_engine.sh /models/efficientnet_lite0_waste8.onnx \
+#       /models/efficientnet_lite0_waste8.engine
 services:
   waste:
     image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.1-dev}
