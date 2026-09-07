@@ -89,9 +89,11 @@ transcript list and belong to a different package.
 
 `architecture.png` is a photograph of the hardware kit, not of the software.
 It doesn't tell a reader what the demo does — retail voice transcription —
-without reading the caption, and the project rule for this page set is that
-the cover must communicate that on sight. Hardware flat-lays and architecture
-diagrams are both excluded as covers under that rule.
+without reading the caption. This is not a documented rule in this repository
+(`skills/author-solution/SKILL.md` asks for a dashboard cover with real data,
+but does not itself ban hardware or architecture photos elsewhere); it is the
+editorial call made for this page, on the request that a cover here show the
+software rather than the box it ships in.
 
 The cover is now `recordings-console.png`: the SenseCraft Voice recordings
 console (`sensecraft_voice/sensecraft-voice-web`, page `/recordings`),
@@ -102,10 +104,15 @@ data adapted for a higher-resolution capture
 script). SHA-256: `5e48deb5dbc746e77bd44d6d0d4788ce010fd3edb2a0de158d104426141d8317`.
 
 Source of the on-screen content:
-- The console itself was run locally (`npm run dev`) against the real
-  frontend build, so the chrome, layout and Chinese copy are the shipped UI,
-  not a mockup.
-- The table rows are not real customer recordings. Per the source script's
+- The console itself was run locally (`npm run dev`) against the current
+  `sensecraft-voice-web` frontend source, so the chrome, layout and Chinese
+  copy come from the real codebase, not a mockup. This capture was not
+  checked against the specific pinned image digest this solution's server
+  stack deploys — if that digest is ever behind the repository's `main`,
+  the screenshot could show a UI slightly newer than what a deployment
+  currently runs.
+- The table rows are not real customer recordings, and no PII-redaction
+  pipeline ran over them. Per the source script's
   own comment, the backend API was stubbed with `page.route()` so the
   screenshot "不依赖真实环境，也不会把真实 PII 截进图里" (doesn't depend on a
   real environment and doesn't capture real PII into the image). No live
