@@ -59,6 +59,16 @@ intro:
       caption_i18n:
         zh: "“其它”样例被低置信度误判为塑料——如实保留、未挑选好看的结果，与模型已记录的 CPU 基线一致"
     - type: image
+      src: gallery/waste-recamera-sg2002-20260907.jpg
+      caption: >-
+        Four results produced on a reCamera's own SG2002 TPU, not on a host -
+        BF16 cvimodel, predicted class, Chinese four-way category and the
+        per-frame inference time as measured on the device
+      caption_i18n:
+        zh: >-
+          四张在 reCamera 自己的 SG2002 TPU 上跑出来的结果，不是主机代跑——
+          BF16 cvimodel，标注预测类别、中国四分类与设备实测的单帧推理耗时
+    - type: image
       src: gallery/architecture.svg
       caption: Trigger to camera to device — one shot in, material class and Chinese four-way category out on MQTT, with a GPIO callback alongside
       caption_i18n:
@@ -92,7 +102,7 @@ intro:
         payload that fails the contract is counted and dropped rather than
         sent.
       schema_type: json
-      payload_example: '{"type":"waste_sorting_result","version":"1.0.0","taxonomy_version":"material8/china4-v1","device":"orin-nx","stream_id":"bin1-cam1","frame_id":4207,"timestamp":1757030400123,"trigger":"button","inference_time_ms":3.7,"pipeline_ms":42.5,"category":{"class_id":4,"class_name":"plastic","china_category":"recyclable","china_category_zh":"可回收物"},"confidence":0.913,"top3":[{"rank":0,"class_id":4,"class_name":"plastic","confidence":0.913,"china_category":"recyclable"},{"rank":1,"class_id":2,"class_name":"glass","confidence":0.052,"china_category":"recyclable"},{"rank":2,"class_id":7,"class_name":"residual","confidence":0.021,"china_category":"residual"}],"image_ref":{"kind":"local","uri":"/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"},"model":{"name":"mobilenetv3s_waste8","backbone":"mobilenet_v3_small","input":"images:1x3x224x224","onnx_sha256":"51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e","accelerator":"tensorrt"}}'
+      payload_example: '{"type":"waste_sorting_result","version":"1.0.0","taxonomy_version":"material8/china4-v1","device":"orin-nx","stream_id":"bin1-cam1","frame_id":4207,"timestamp":1757030400123,"trigger":"button","inference_time_ms":3.7,"pipeline_ms":42.5,"category":{"class_id":4,"class_name":"plastic","china_category":"recyclable","china_category_zh":"可回收物"},"confidence":0.913,"top3":[{"rank":0,"class_id":4,"class_name":"plastic","confidence":0.913,"china_category":"recyclable"},{"rank":1,"class_id":2,"class_name":"glass","confidence":0.052,"china_category":"recyclable"},{"rank":2,"class_id":7,"class_name":"residual","confidence":0.021,"china_category":"residual"}],"image_ref":{"kind":"local","uri":"/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"},"model":{"name":"efficientnet_lite0_waste8","backbone":"efficientnet_lite0","input":"images:1x3x224x224","onnx_sha256":"e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391","accelerator":"tensorrt"}}'
       description_i18n:
         zh: >-
           一次分类一条 JSON，不逐类别发。内容包括物料类别、由它查表得到的
@@ -183,19 +193,34 @@ intro:
       purchase:
         require:
           module: [orin_nano_8]
-    external_raspberry_pi5_hailo:
-      name: Raspberry Pi 5 + Hailo-8
+    recomputer_r20:
+      name: reComputer R2000 (Hailo-8)
       name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8
+        zh: reComputer R2000（Hailo-8）
       description: >-
-        A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. The baseline
-        MobileNetV3-Small HEF has not been compiled yet, so this preset ships
-        without a model file and the deploy step stops at the ABI gates.
+        A reComputer R2000 with a Hailo-8 on the M.2 slot. It runs the
+        EfficientNet-Lite0 HEF, which takes uint8 frames directly so the host
+        does no float preprocessing. The HEF is compiled and checksummed; the
+        page quotes no accuracy or latency for this board because none has
+        been collected on one.
       description_i18n:
         zh: >-
-          装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。基线 MobileNetV3-Small
-          的 HEF 尚未编译，因此这个套餐没有模型文件，
-          部署步骤会停在 ABI 关卡处。
+          M.2 插槽上装了 Hailo-8 的 reComputer R2000。它跑
+          EfficientNet-Lite0 的 HEF，输入直接吃 uint8，主机不做浮点预处理。
+          HEF 已编译并记账；本页不给这块板的精度与时延数字，因为还没有
+          在它上面采过。
+    recamera_2002:
+      name: reCamera
+      name_i18n:
+        zh: reCamera
+      description: >-
+        Camera and classifier in one body. The model runs on the SG2002's own
+        TPU, so there is no host, no accelerator card and no network hop in
+        the classification path.
+      description_i18n:
+        zh: >-
+          相机与分类器在同一个机身里。模型跑在 SG2002 自己的 TPU 上，
+          分类路径上没有主机、没有加速卡、也没有一跳网络。
     generic_usb_camera:
       name: USB / IP Camera
       name_i18n:
@@ -241,23 +266,21 @@ intro:
             - device_ref: generic_usb_camera
           default: generic_usb_camera
 
-    - id: pi_hailo
-      name: Camera + Raspberry Pi 5 (Hailo-8)
+    - id: recomputer_r20
+      name: Camera + reComputer R2000 (Hailo-8)
       name_i18n:
-        zh: 摄像头 + Raspberry Pi 5（Hailo-8）
-      badge: HEF pending
-      badge_i18n:
-        zh: HEF 待编译
+        zh: 摄像头 + reComputer R2000（Hailo-8）
       description: >-
-        The baseline MobileNetV3-Small on Hailo-8. The HEF has not been
-        compiled — the deploy step checks the three ABI gates and then stops
-        at the missing model file. Choose this preset to prepare the board,
-        not to get a running classifier today.
+        EfficientNet-Lite0 on the Hailo-8, from the uint8 HEF
+        (sha256 4e3b9640…) so the host hands the accelerator raw frames
+        instead of normalising them first. Accuracy and latency for this
+        board are not published on this page; the reCamera preset is where
+        the measured numbers are.
       description_i18n:
         zh: >-
-          基线 MobileNetV3-Small 跑在 Hailo-8 上。HEF 尚未编译——
-          部署步骤会走完三道 ABI 关卡，然后停在缺失的模型文件上。
-          选这个套餐是为了把板子准备好，不是为了今天拿到能跑的分类器。
+          EfficientNet-Lite0 跑在 Hailo-8 上，用的是 uint8 输入的 HEF
+          （sha256 4e3b9640…），主机直接把原始帧交给加速器，不必先做归一化。
+          本页不给这块板的精度与时延；实测数字在 reCamera 那个套餐里。
       device_groups:
         - id: compute
           name: Sorting Host
@@ -266,8 +289,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: external_raspberry_pi5_hailo
-          default: external_raspberry_pi5_hailo
+            - device_ref: recomputer_r20
+          default: recomputer_r20
         - id: camera
           name: Camera
           name_i18n:
@@ -277,6 +300,33 @@ intro:
           options:
             - device_ref: generic_usb_camera
           default: generic_usb_camera
+
+    - id: recamera
+      name: reCamera (SG2002)
+      name_i18n:
+        zh: reCamera（SG2002）
+      description: >-
+        The whole classifier on the camera's own TPU. Measured on the device
+        over 1060 validation images: material top-1 0.8792, Chinese four-way
+        top-1 0.9566, p50 24.3 ms, peak resident memory 11.6 MB. The model is
+        BF16; against fp32 on a host over the same 1060 images it is +0.47 pp,
+        which is sampling noise, so BF16 costs nothing measurable here.
+      description_i18n:
+        zh: >-
+          整个分类器跑在相机自己的 TPU 上。设备实测 1060 张验证图：
+          物料八类 top-1 0.8792、中国四分类 top-1 0.9566、p50 24.3 ms、
+          峰值常驻内存 11.6 MB。模型是 BF16；在同一批 1060 张图上比主机
+          fp32 高 0.47 pp，属采样噪声，即 BF16 在这里没有可测量的代价。
+      device_groups:
+        - id: compute
+          name: Camera and Classifier
+          name_i18n:
+            zh: 相机与分类器
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
 
   stats:
     difficulty: intermediate

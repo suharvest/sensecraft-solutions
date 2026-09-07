@@ -5,6 +5,7 @@
 | File | Origin | Contains dataset imagery |
 |---|---|---|
 | `architecture.svg` | Drawn for this solution | No |
+| `waste-recamera-sg2002-20260907.jpg` | Rendered from real on-device output | Yes (GC3, CC BY 4.0) |
 
 `architecture.svg` is the data path only — trigger, camera, the debounce,
 classify and four-way lookup stages, and the outputs with their ports. Boxes,
@@ -155,3 +156,23 @@ yet and must be placed on the device by hand in the meantime.
 Neither container image has been pushed to
 `sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-{jetson,hailo}`;
 both compose files say so at the top and name the local-build fallback.
+
+## reCamera (SG2002) on-device results grid
+
+`waste-recamera-sg2002-20260907.jpg` is the only figure on this page produced
+by an accelerator rather than a host CPU. The four frames were classified by
+the BF16 cvimodel running on a reCamera's own SG2002 TPU on 2026-09-07; the
+class, the Chinese four-way category and the per-frame inference time drawn on
+each tile are the values the device returned, not re-rendered estimates.
+
+| Tile | Source image | Device prediction | Confidence | Latency |
+|---|---|---|---|---|
+| top-left | `gc3_cardboard1013_jpg.rf.2c73fe8c…_0.jpg` | cardboard | 0.961 | 24.28 ms |
+| top-right | `gc3_glass1025_jpg.rf.ea7059c7…_0.jpg` | glass | 0.898 | 24.28 ms |
+| bottom-left | `gc3_paper1005_jpg.rf.31c04abaf…_0.jpg` | paper | 0.932 | 24.20 ms |
+| bottom-right | `gc3_biodegradable1004_jpg.rf.645d3199…_0.jpg` | organic | 0.946 | 24.28 ms |
+
+All four source images come from the Roboflow "Garbage Classification 3 —
+Material Identification" dataset, CC BY 4.0, and are reproduced here under that
+licence with the attribution string recorded above. All four were classified
+correctly; none was swapped for a better-looking result.
