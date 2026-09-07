@@ -21,9 +21,9 @@ intro:
   gallery:
     - type: image
       src: gallery/detection-overlay.jpg
-      caption: Detector output on a DeepPCB validation image — every box is a detection from the ONNX model, drawn by the CPU smoke script, not a mock-up
+      caption: A bare printed circuit board with six defects boxed — open circuits, mouse bites, a spur and a pin hole, each labelled with its class and score beside the box it was matched to
       caption_i18n:
-        zh: DeepPCB 验证集图像上的检测输出——每个框都来自 ONNX 模型的真实检测结果，由 CPU 冒烟脚本绘制，不是示意图
+        zh: 一块裸板上圈出六处缺陷——断路、鼠咬、毛刺与针孔，每个框旁标注类别与分数，并与配对的真值框并排
     - type: image
       src: gallery/detection-overlay-2.jpg
       caption: A second board — each defect box carries its type and score next to the ground-truth box it was matched against

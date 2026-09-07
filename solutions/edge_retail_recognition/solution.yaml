@@ -47,14 +47,14 @@ intro:
   gallery:
     - type: image
       src: gallery/shelf-ok-rk3588-20260907.jpg
-      caption: Twenty shelf slots read in one scan on an RK3588 board — milk cartons, bananas, apples and peppers each boxed with the slot verdict, one slot empty
+      caption: One shelf, four rows of five slots, read in a single scan on an RK3588 board. Each slot holds the photograph the camera saw — milk cartons, bananas, apples, peppers — inside a box coloured by its verdict, green ok and orange empty; the strip along the bottom names the board, the scan window and the mismatch count, 0 of 20 here
       caption_i18n:
-        zh: RK3588 板子上一次扫描读完二十个货位——牛奶盒、香蕉、苹果、彩椒逐格画框并给出货位判定，其中一格空置
+        zh: 一个货架，四行五列共二十个货位，在 RK3588 板子上一次扫描读完。每格里是相机看到的画面——牛奶盒、香蕉、苹果、彩椒——外面的框按判定着色，绿色为 ok、橙色为空置；底部横条给出板子型号、扫描窗口与不符数，这里是 0/20
     - type: image
       src: gallery/shelf-wrong-sku-rk3588-20260907.jpg
-      caption: The same shelf with a slot holding the wrong product — that slot turns red and is labelled wrong_sku, the rest stay ok
+      caption: The same twenty-slot layout after a slot was restocked with the wrong product — that box turns red and reads wrong_sku while the other nineteen stay green
       caption_i18n:
-        zh: 同一货架上有一格摆错了商品——该格转红并标注 wrong_sku，其余保持 ok
+        zh: 同一个二十格布局，某一格补错了商品——该格的框转红并标注 wrong_sku，其余十九格仍为绿色
     - type: image
       src: gallery/checkout-tracks-rk3588-20260907.gif
       caption: A checkout replay on the RK3588 board — each item keeps its track id and instance number as it moves across the counter
