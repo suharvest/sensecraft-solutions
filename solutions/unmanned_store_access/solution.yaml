@@ -39,8 +39,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/console-devices-live.png
+  cover_image: gallery/cover-recognition.jpg
   gallery:
+    - type: image
+      src: gallery/cover-recognition.jpg
+      caption: Two people walking through an office toward the camera — a green box on the person matched against the enrolled template, a red box on the one who is not enrolled. A reCamera Pro produced both verdicts by running a stock clip through its face pipeline offline; it is not a live capture at a door
+      caption_i18n:
+        zh: 办公区里两个人朝镜头走来——绿框是比中底库的人，红框是没登记的人。两个判定都由 reCamera Pro 离线跑一段素材视频得到，不是门口现场实拍
     - type: image
       src: gallery/console-devices-live.png
       caption: The management console listing a live reCamera PoE unit — active face-library version and heartbeat per device

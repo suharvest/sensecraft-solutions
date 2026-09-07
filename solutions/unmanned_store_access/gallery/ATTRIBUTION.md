@@ -4,6 +4,7 @@
 
 | File | Origin | Contains real face imagery |
 |---|---|---|
+| `cover-recognition.jpg` | A frame of a Pexels-licensed stock clip, overlaid with the verdicts a reCamera Pro returned for that frame (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-pro-app/media/cover/cover.jpg`) | Yes — two stock-footage actors |
 | `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
 | `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
@@ -54,10 +55,16 @@ performance.
 
 ## No biometric data is committed anywhere
 
-No face image, no embedding, no `.npz`, and no face library version is in this
-package or in the upstream repository's version control. The upstream evaluation
-run under `evaluation/runs/2026-09-06-c1-software/raw/` holds NDJSON logs,
-manifests and timings — identifiers and hashes, never face data.
+No embedding, no `.npz`, and no face library version is in this package or in the
+upstream repository's version control. The upstream evaluation run under
+`evaluation/runs/2026-09-06-c1-software/raw/` holds NDJSON logs, manifests and
+timings — identifiers and hashes, never face data.
+
+`cover-recognition.jpg` is the one file here that shows faces, and they belong to
+stock-footage actors under the Pexels License, not to anyone enrolled in a
+deployment. The template that produced its verdicts was averaged from other
+frames of the same clip, lived only in the process that scored the frames, and
+was never written to the device's face library — see the cover section below.
 
 ## Third-party model licences
 
@@ -96,9 +103,9 @@ changes are marked.
 ## CDN
 
 **Nothing has been uploaded.** The packaging convention is CDN-hosted images
-under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.png`;
-`solution.yaml` references these six files by their local paths instead. When
-the gallery is published, upload all six and switch `intro.cover_image` and
+under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.<ext>`;
+`solution.yaml` references these seven files by their local paths instead. When
+the gallery is published, upload all seven and switch `intro.cover_image` and
 every `intro.gallery[].src` in the same change.
 
 `assets/firmware/` carries a manifest only — no binary. Neither container image
@@ -111,19 +118,39 @@ has been pushed; both files say so at the top.
 `console-persons-live.png` (1568 × 764 → 1568 × 420) were cropped to their
 tables. The architecture diagram moved from third place to last.
 
-## Cover: reserved
+## Cover: the verdicts are real, the footage is stock
 
-The cover on this page has to be a frame from a reCamera Pro showing a person
-at the door and the recognition verdict the device returned. No such frame
-exists yet: both 2026-09-07 device runs
-(`evaluation/runs/2026-09-07-recamera-poe-p1/`, `-recamera-pro-app/`) record
-that the recognise-to-unlock path was never exercised end to end, because
-nobody stood in front of the lens and the network had neither a facedb service
-nor a broker. Their media are typeset renders of terminal output, not
-screenshots, and are not published here. Until that frame is captured, the
-device-status console screenshot stands in as the cover.
+`cover-recognition.jpg` is frame 17 of a 250-frame run in which a reCamera Pro
+scored a stock clip through the deployed face pipeline. Every box, label and
+cosine on the image is that device's output for that frame.
 
-Nothing on this page contains a face: the only enrolled identity in the runs is
-`poe-20260907-a`, whose enrolment image is `image_T1.jpg` from MiniVision's
-Silent-Face-Anti-Spoofing repository (Apache-2.0), a public sample rather than a
-photograph of a person who exists.
+| | |
+|---|---|
+| Footage | Pexels video 4435043, <https://www.pexels.com/video/man-woman-walking-office-4435043/> |
+| Author | Edmond Dantès |
+| Licence | Pexels License — free for commercial use, attribution not required |
+| Source spec | 3840 × 2160, 25 fps, 10.0 s, MD5 `f7ea86f4ff7cb40fc44c91e4ace40322` |
+| Recognition | `recamera-pro-root` (reCamera Pro, RV1126B), `model_tag rv1126b:scrfd500m+mbf512@fp16` |
+| Pipeline | letterbox 640 → `scrfd500m_640_fp16.rknn` → `scrfd.decode` → five-point align to 112 → `arcface_mbf_fp16.rknn` → cosine |
+| Run | 250 frames in 51.8 s, offline from JPGs; script `tools/recamera_pro_cover/run_offline.py` in the upstream repository |
+
+The gallery it matched against was temporary: the 512-D template was averaged
+from 18 chips of the same person in frames 205–225, held in the scoring
+process's memory, and never written to `/userdata/local/face-gallery/`, whose
+only file and its timestamp were unchanged after the run. Frame 17 is outside
+205–225, so the cosine printed on the cover is independent of the frames the
+template came from. `EMP-042` is a label invented for this clip and matches no
+employee. At threshold 0.38 the matched person scored 0.486–0.951 across the
+clip and the unenrolled person −0.047–0.123; the two ranges do not overlap and
+no frame was misclassified. Per-frame output: `evaluation/runs/2026-09-07-recamera-pro-app/media/cover/raw/offline-run.json`.
+
+What this cover does **not** show: a person standing at a real door, a live
+camera stream, a liveness verdict, or a relay firing. Recognition ran on JPG
+frames, so it exercises detection, alignment, embedding and matching on the
+target NPU and nothing downstream of them. The recognise-to-unlock path end to
+end is still unexercised — the 2026-09-07 runs
+(`evaluation/runs/2026-09-07-recamera-poe-p1/`, `-recamera-pro-app/`) record why.
+
+The only identity enrolled in those runs is `poe-20260907-a`, whose enrolment
+image is `image_T1.jpg` from MiniVision's Silent-Face-Anti-Spoofing repository
+(Apache-2.0), a public sample rather than a photograph of a person who exists.
