@@ -192,14 +192,18 @@ picking a deploy target**, not a second deployment:
 
 - **From a mobile app you already ship** — pick a Stack Host target. The stack
   publishes an ASR endpoint for the app to point at and runs no capture client.
-  Then do Step 2.
+  Then do Step 2 to hand the endpoint over.
 - **From a mic array on this box** — pick a reComputer RK3576 or reRouter CM4
   mic-capture target. The same stack, plus a capture client bound to the array.
-  Skip Step 2.
 
-You cannot end up with neither: Step 1 is required and every target is one of
-those two paths. You also cannot end up with two databases, because there is
-only ever one deploy.
+**You can have both.** The ASR endpoint is up on all four targets, so an app can
+point at the same stack host after you picked a mic-capture target — that needs
+**both things**: the mic-capture target, and Step 2 completed. With the array
+alone, Step 2 is not needed.
+
+You cannot end up with neither: Step 1 is required and every target brings at
+least one capture path. You also cannot end up with two databases, because there
+is only ever one deploy.
 
 | Device | Purpose |
 |--------|---------|
@@ -288,21 +292,24 @@ are working. Same compose, same inputs, no SSH credentials.
 
 Audio comes from a mic array on this box. The same stack plus a capture client
 bound to the array, on the NPU path — the ASR backend is the RK3576 build and
-needs no extra input. Skip Step 2.
+needs no extra input. With the array alone, Step 2 is not needed; to feed an app
+into the same stack as well, do Step 2 too.
 
 ### Target {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4 (mic capture)" config=devices/collector_rerouter.yaml}
 
 The same stack plus the capture client on the CPU path. Its compose variant
 takes the ASR image as a required input, because this package pins none for
-CM4. Unverified on real hardware. Skip Step 2.
+CM4. Unverified on real hardware. With the array alone, Step 2 is not needed; to
+feed an app into the same stack as well, do Step 2 too.
 
 ---
 
 ## Step 2: Configure the ASR Endpoint in the Mobile App {#asr_endpoint type=manual required=false config=devices/asr_endpoint.yaml}
 
-Only if the audio comes from an app. Hand the endpoint and the operator token to
-the app, then connect once yourself to confirm the endpoint answers. Skip it if
-you are using the edge collector in Step 3.
+Only when an app uploads audio — whether Step 1 picked a Stack Host target, or
+picked a mic-capture target and you also want an app feeding the same stack.
+Hand the endpoint and the operator token to the app, then connect once yourself
+to confirm the endpoint answers. Skip it if the mic array is the only source.
 
 ### Prerequisites
 
