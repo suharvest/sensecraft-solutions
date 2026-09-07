@@ -1,10 +1,10 @@
 version: "1.0"
-id: verify_cloud
+id: verify_stack
 name: Verify Transcription and Deletion
 name_i18n:
   zh: 验收转写与删除
 type: manual
-inherit_host_from: cloud_stack
+inherit_host_from: deploy_stack
 
 # 为什么是 manual 而不是自动 verify：这一步要验的是「说一句话之后，
 # 库里出现的是脱敏后的文本，删掉之后三处都没有残留」。前半段需要有人对着麦克风
@@ -95,6 +95,22 @@ steps:
         看最后几行：`RESIDUE_COUNT=0`、`RESIDUE_DB_REPORTED=0`，以及一个 `DELETE_LATENCY_MS` 值。
         残留数不为 0 就是这一步没过。
     optional: false
+
+  - id: local_audio_gone
+    name: Check the third store — the local audio directory
+    name_i18n:
+      zh: 核第三处——本地音频目录
+    description: >-
+      Edge-collector layout only. On the collector,
+      `ls /data-iot/respeaker/recordings` must no longer hold the deleted
+      session's file. Database and object store are the first two stores; this
+      is the third, and it is the one a deletion API cannot report on by itself.
+    description_i18n:
+      zh: >-
+        仅边缘采集布局需要。在采集端上 `ls /data-iot/respeaker/recordings`，
+        已删会话的文件必须不在了。数据库与对象存储是前两处，这里是第三处——
+        也是删除接口自己报不出来的那一处。
+    optional: true
 
   - id: export_check
     name: Check the export before you rely on it

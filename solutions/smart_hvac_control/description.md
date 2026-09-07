@@ -33,7 +33,7 @@ This is not a safety-certified control system. It is a supervisory setpoint reco
 
 Numbers below come from a simulator rig, not from a building.
 
-The load figures were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
+The load figures in the table were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis, so it indicates what the platform does and is not a measurement of the shipping product. On that platform the control path measured: control admission latency 14.41 ms maximum over 28 samples, prediction cycle latency 426.79 ms maximum over 36 samples, and a read-back that came back consistent with what was written in 0.90 ms with no retries. Of 14 samples the safety gate classed as unsafe, 0 resulted in a write. These are smoke-run samples on an idle system and say nothing about behaviour under load; in particular they are not a validation of the write path. The prediction cycle here is roughly nine times slower than the development-board baseline, so size the cycle time for your point count on the platform you actually deploy. A run on an R1000 in its shipping 4 GB / 8 GB configuration is still to be done.
 
 | Metric | Value | Conditions | Source |
 |--------|-------|------------|--------|
