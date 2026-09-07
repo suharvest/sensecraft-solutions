@@ -286,7 +286,8 @@ so an untested claim either way would be a guess.
   it. Every table reports `n/a` for this class, not 0. The model has never
   predicted it once.
 - **`hazardous` (有害垃圾) has no material class mapped to it.** It is in the
-  enum so the schema stays stable, but this build will never emit it.
+  enum so the schema stays stable, but the model shipped in this package never
+  emits it.
 - **GC3 reuses TrashNet source photographs, and the deduplication catches it.**
   Grouping is by source batch + origin image + perceptual hash (dhash 8×8,
   Hamming ≤ 3), unioned into connected components; 430 near-duplicate merges,
