@@ -325,9 +325,12 @@ One thing will stop you if you skip it: the Python binding has to match the
 Measured on RK3588 hardware over the full 7417-image validation set — the only
 configuration here measured on the whole set rather than a subset: material
 top-1 0.8882, Chinese four-way 0.9507, agreement with the fp32 CPU baseline
-0.9892, p50 3.165 ms, p95 3.857 ms, inference only. fp16 returns exactly the
-same top-1 at p50 5.962 ms, so INT8 is 1.88x faster for no measured accuracy
-difference.
+0.9892, p50 3.165 ms, p95 3.857 ms, inference only. fp16 gives the same
+material top-1 at p50 5.962 ms, so INT8 is 1.88x faster with no difference on
+that metric.
+
+These are reference figures from the same RK3588 platform; they will be
+updated once a reComputer unit has been re-measured.
 
 ## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
 

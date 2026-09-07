@@ -293,8 +293,10 @@ category，方案页上的每一个数字在它关闭时都成立。
 
 在 RK3588 硬件上实测 val 全集 7417 张——这是本页唯一在全集而非子集上测过的
 配置：物料八类 top-1 0.8882、中国四分类 0.9507、与 fp32 CPU 基线的一致率
-0.9892、p50 3.165 ms、p95 3.857 ms，纯推理。fp16 给出完全相同的 top-1，
-p50 是 5.962 ms，即 INT8 快 1.88 倍而精度没有可测差异。
+0.9892、p50 3.165 ms、p95 3.857 ms，纯推理。fp16 的物料 top-1 与它完全相同，
+p50 是 5.962 ms，即 INT8 快 1.88 倍且在这一项上没有差异。
+
+以上为同款 RK3588 平台的实测参考值，reComputer 整机复测后更新。
 
 ## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
 
