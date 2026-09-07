@@ -73,7 +73,11 @@ all counters zero, "No data" table. Replaced on 2026-09-07 with official
 reComputer RK3576-30 product photography (SKU 100052518, family
 `recomputer_rk3576`); source recorded in `gallery/ATTRIBUTION.md`.
 
-On the merge (2026-09-07) the cover became `respeaker.jpg`, the reSpeaker
-XVF3800 product photograph, under the rule that a cover shows a real object
-rather than a rendered scene. `cover.webp` — the in-store counter scene — stays
-in the gallery but is no longer the cover.
+On 2026-09-07 the cover became `architecture.png` — despite the name, a
+flat-lay photograph of the actual kit — under the rule that a cover shows a real
+object rather than a rendered scene. `cover.webp`, the in-store counter scene,
+does not read as a photograph at full size and is no longer referenced by
+`intro.cover_image` or `intro.gallery`; the file stays in the directory.
+
+Still missing from the gallery: a photograph of the kit installed at a counter,
+and a console screenshot showing real transcripts.

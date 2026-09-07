@@ -22,9 +22,11 @@ SHA-256 of the copies, recorded so a later divergence is visible:
 
 ## What each file shows
 
-- **`respeaker.jpg`** — Seeed product photography of the reSpeaker XVF3800.
-  It is the cover: both presets use this array, and it is a photograph of the
-  real object rather than a rendered scene.
+- **`architecture.png`** — despite the name, a flat-lay photograph of the actual
+  kit: a reRouter CM4, its power supply, a USB cable and a reSpeaker XVF3800.
+  It is the cover and leads the gallery — see the 2026-09-07 note below.
+- **`respeaker.jpg`** — Seeed product photography of the reSpeaker XVF3800,
+  the array both presets use.
 - **`rerouter.png`** — Seeed product photography of the reRouter CM4.
 - **`recomputer-rk3576.jpg`** — official product photography for reComputer
   RK3576-30 (SKU 100052518, family `recomputer_rk3576`), downloaded 2026-09-07
@@ -34,9 +36,9 @@ SHA-256 of the copies, recorded so a later divergence is visible:
   First-party Seeed material. It replaced `voice-web-recordings.png`, an
   admin-console screenshot that showed an empty dataset (all counters zero,
   "No data" table).
-- **`architecture.png`**, **`cover.webp`** — the hardware combination: a
-  reSpeaker XVF3800 array feeding a small edge box, on a store counter. Setup
-  imagery, not a capture of this design's output.
+- **`cover.webp`** — a reRouter and a reSpeaker on a table in a shop. Not
+  referenced by `intro.cover_image` or `intro.gallery` any more; see the
+  2026-09-07 note below. The file stays in this directory.
 - **`wan_lan.png`**, **`boot-mode.png`** — wiring and boot-jumper diagrams used
   by the reRouter firmware step in the guide.
 
