@@ -120,25 +120,25 @@ intro:
         Carries the event id, the corrected timestamp, the device, the person
         or anonymous id, the similarity score, the liveness block, the decision
         with its reason, the door action taken, the actuator id, the face
-        library version and the model sha. `facedb_version` is null before the
+        library version and the model sha. "facedb_version" is null before the
         first successful sync — that is "no library at all", which is a
         different thing from version 0 and is reported as the distinct denial
-        reason `no_facedb`.
+        reason "no_facedb".
       schema_type: json
       payload_example: '{"schema":"access-event/v1","event_id":"6f1a2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d","time":"2026-09-06T03:20:11Z","device_id":"door-front-01","person_id":"p_alice","anonymous_id":null,"score":0.7412,"threshold":0.62,"liveness":{"passed":true,"score":0.958},"decision":{"allow":true,"reason":"allowed"},"door_action":"pulse","actuator_id":"door-front","facedb_version":3,"model_sha":"3a7f...","clock":{"valid":true,"reason":null,"offset_ms":12}}'
       description_i18n:
         zh: >-
           每一次识别判定一条 JSON——放行与拒绝都发。内容包括事件 id、经修正的时间戳、
           设备、人员或匿名 id、相似度分数、活体块、带原因的判定、执行的门控动作、
-          执行器 id、人脸库版本与模型 sha。首次同步成功之前 `facedb_version` 是
+          执行器 id、人脸库版本与模型 sha。首次同步成功之前 「facedb_version」 是
           null——那是"根本没有库"，与版本 0 不是一回事，会以单独的拒绝原因
-          `no_facedb` 上报。
+          「no_facedb」 上报。
     - type: mqtt
       port: 8883
       topic: access/v1/commands/{door_id}
       description: >-
         Remote unlock, hold-open and lock. The gate is strict: an exact field
-        set, a UUIDv4 command id, an RFC3339 `issued_at` with a timezone, a TTL
+        set, a UUIDv4 command id, an RFC3339 "issued_at" with a timezone, a TTL
         bound, and a per-identity replay table. A redelivered command does not
         open the door a second time — it replays the original receipt, so the
         caller still gets something to reconcile against. Never retained: a
@@ -148,7 +148,7 @@ intro:
       description_i18n:
         zh: >-
           远程开门、常开与锁定。闸门是严格的：字段集必须精确匹配、command_id 必须是
-          UUIDv4、`issued_at` 必须是带时区的 RFC3339、TTL 有上界，并有按身份隔离的
+          UUIDv4、「issued_at」 必须是带时区的 RFC3339、TTL 有上界，并有按身份隔离的
           重放表。重复投递不会第二次开门——它回放原来那张回执，调用方仍拿得到可对账的
           凭据。绝不 retained：retained 的开门指令会在每次重连时重放一遍。
     - type: mqtt
@@ -171,16 +171,16 @@ intro:
       endpoint: /v1/facedb/current, /v1/facedb/{version}
       description: >-
         The whole face library distribution surface — two endpoints, no MQTT
-        push. Devices poll `current`, compare the version, and only then fetch
-        files, with `Range` for chunked and resumable downloads. Activation
+        push. Devices poll "current", compare the version, and only then fetch
+        files, with "Range" for chunked and resumable downloads. Activation
         latency therefore equals the poll period (30 s by default); that is the
         price paid for a device side that needs nothing but an HTTP client, and
         for never having a "notification lost but library changed" state.
       schema_type: json
       description_i18n:
         zh: >-
-          人脸库下发的全部接口——两条，没有 MQTT 推送。设备轮询 `current` 比对版本，
-          变了才取文件，分块与断点续传走标准 `Range`。因此激活时延等于轮询周期
+          人脸库下发的全部接口——两条，没有 MQTT 推送。设备轮询 「current」 比对版本，
+          变了才取文件，分块与断点续传走标准 「Range」。因此激活时延等于轮询周期
           （默认 30 s）；换来的是设备侧只需要一个 HTTP 客户端，也不存在"通知丢了
           但库已经变了"的不一致态。
     - type: http
@@ -233,13 +233,13 @@ intro:
         console and an MQTT broker. Any amd64 or arm64 Linux box with Docker
         works; it does not need a GPU. It must be reachable from every door
         device, and its clock must be right, because devices with no RTC take
-        their time correction from its HTTP `Date` header.
+        their time correction from its HTTP "Date" header.
       required: true
       description_i18n:
         zh: >-
           一台承载云端的主机——人脸库服务、管理界面与 MQTT broker。任意装了 Docker 的
           amd64 或 arm64 Linux 机器都行，不需要 GPU。它必须对每一台门口设备可达，
-          并且自身时钟必须准确——没有 RTC 的设备靠它的 HTTP `Date` 头做时间修正。
+          并且自身时钟必须准确——没有 RTC 的设备靠它的 HTTP 「Date」 头做时间修正。
 
   device_catalog:
     external_cloud_host:

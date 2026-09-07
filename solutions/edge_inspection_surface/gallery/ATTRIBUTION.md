@@ -16,7 +16,15 @@ holds manifests and checksums only, and nothing has been uploaded to a CDN.
 
 | File | Origin | Contains dataset imagery |
 |---|---|---|
+| `recomputer-super-j4012.jpg` | Official Seeed Studio product photo, reComputer Super J4012 (SKU 114110314), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/s/u/suprt_j4012.jpg` (product page: https://www.seeedstudio.com/reComputer-Super-J4012-p-6443.html) | No |
 | `architecture.svg` | Drawn for this solution | No |
+
+`recomputer-super-j4012.jpg` is the cover image and first gallery entry. It is
+the official product photo of the reComputer Super J4012 this solution's
+numbers were measured on — used in place of a real detection screenshot because
+the dataset-licence restriction above forbids shipping any image derived from
+NEU-DET (see "Standing rule" and "The licence problem" below). It carries no
+dataset content at all, so it is not covered by that restriction.
 
 `architecture.svg` is the data path only — camera, edge device, the OK/NG step,
 and the three outputs with their ports. Boxes, arrows, product names, protocol
