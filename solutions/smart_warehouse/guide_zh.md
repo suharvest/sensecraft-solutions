@@ -403,11 +403,11 @@ SenseCraft 体验版已就绪！
 
 #### 验收清单
 
-1. **健康检查通过**——`curl http://<服务器IP>:2125/health` 返回成功（部署步骤本身也在等这个检查）。
+1. **健康检查通过**——`curl -f http://<服务器IP>:2125/health` 返回成功（部署步骤本身也在等这个检查）。
 2. **管理员能登录**——用步骤 5 创建的管理员账号登录 `http://<服务器IP>:2125`。
 3. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，应回复确认品名和新总量。
 4. **查询正常**——说「苹果还有多少」，回复应与仓库面板一致。
-5. **日志无 error**——在 reComputer 上执行 `docker compose logs --since 10m | grep -i error`，在以上两项检查期间应无输出。
+5. **日志无 error**——在 reComputer 上执行 `docker compose -p mcp_warehouse -f ~/mcp_warehouse/assets/docker/docker-compose.yml logs --since 10m | grep -i error`，在以上两项检查期间应无输出。
 
 ---
 

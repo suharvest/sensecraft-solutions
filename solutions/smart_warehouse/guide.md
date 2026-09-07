@@ -427,11 +427,11 @@ Your voice-controlled warehouse system is ready!
 
 #### Acceptance checklist
 
-1. **Health endpoint responds** — `curl http://<server-ip>:2125/health` returns success (this is the same check the deploy step already waits on).
+1. **Health endpoint responds** — `curl -f http://<server-ip>:2125/health` returns success (this is the same check the deploy step already waits on).
 2. **Admin login works** — log in to `http://<server-ip>:2125` with the administrator account created in Step 5.
 3. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
 4. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
-5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the reComputer returns nothing during the two checks above.
+5. **No error-level logs** — on the reComputer, `docker compose -p mcp_warehouse -f ~/mcp_warehouse/assets/docker/docker-compose.yml logs --since 10m | grep -i error` returns nothing during the two checks above.
 
 Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
