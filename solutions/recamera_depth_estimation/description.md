@@ -1,6 +1,6 @@
 ## What it does
 
-A depth camera tells you how far things are. It also costs more, needs a second
+A depth camera measures how far things are. It also costs more, needs a second
 lens or a projector, and gives you one more thing to mount and align.
 
 This runs a monocular depth model on the reCamera you already have. One ordinary

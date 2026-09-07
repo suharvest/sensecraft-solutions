@@ -1,9 +1,17 @@
 version: "1.0"
 id: edge_security
-# Successor to `industrial_security_jetson`. This package now covers the
-# TensorRT capability that was the older solution's only remaining advantage,
-# measured on an Orin NX 16GB. The older package stays published until this one
-# ships; retiring it is a separate release action.
+# The Jetson-only industrial security package was merged into this one on
+# 2026-09-07 and its directory deleted: same topic, different deployment
+# routes, so one solution with several presets rather than two pages. Its
+# capability is the jetson_hub preset here, measured on an Orin NX 16GB.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md "extra 字段处理"). It is kept as a written
+# record of where the old package went, not as an alias: nothing redirects
+# industrial_security_jetson to this id. The retirement itself is recorded in
+# solutions/.deprecated.json, which generate_solution_manifest.py copies into
+# the manifest's `deprecated` array — a marker, not a redirect.
 replaces: industrial_security_jetson
 name: Industrial Security (Multi-Platform Edge)
 name_i18n:
@@ -33,6 +41,11 @@ intro:
       caption: Drawing rules on the camera's own frame, proxied by the hub from the RK3588 detector's preview endpoint — four clicks close a second zone over the near corridor, two clicks lay a second line across the corridor mouth, its direction is switched from both ways to forward, and Save turns the header into "Persisted 15:37:03 · rev 2".
       caption_i18n:
         zh: 在摄像头自己的画面上画规则，底图由 hub 从 RK3588 检测器的预览接口代理而来——四次点击围出近处走廊的第二个区域，两次点击在走廊口拉出第二条线，方向从双向改为 forward，保存后标题变成「Persisted 15:37:03 · rev 2」。
+    - type: image
+      src: gallery/jetson-rules-overlay.gif
+      caption: The three rules on one frame, from the Jetson package this one absorbed — a tracked person, a restricted-area polygon, and a gate line whose arrow marks the direction the rule counts. The substance is what this package judges; the overlay colours are that detector's, not the ones drawn by the presets here.
+      caption_i18n:
+        zh: 三条规则同框，取自本方案并入的那个 Jetson 包——被跟踪的人、禁区多边形，以及箭头标出判定方向的越线。判定内容与本方案一致；叠框配色是那个检测器的，不是本方案各套餐画出来的样子。
     - type: image
       src: gallery/architecture-diagram.png
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench

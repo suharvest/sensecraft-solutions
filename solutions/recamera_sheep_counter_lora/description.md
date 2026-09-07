@@ -1,6 +1,6 @@
 ## What This Solution Does for You
 
-Managing livestock at a remote farm or off-grid paddock is hard when you can't see the gate. This solution turns a reCamera into an automatic sheep counter that broadcasts IN / OUT / INSIDE totals over LoRa — reaching your phone and a Home Assistant dashboard, even kilometres away, with no WiFi at the gate.
+This solution turns a reCamera into an automatic sheep counter at the gate. It broadcasts IN / OUT / INSIDE totals over LoRa to a phone and a Home Assistant dashboard several kilometres away, with no WiFi at the gate.
 
 ## Core Value
 

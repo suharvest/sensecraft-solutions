@@ -91,7 +91,7 @@ Finish one-time hand-eye calibration before using grasp commands.
 
 Grasping converts camera pixels into arm coordinates through a transform that is physically unique to your unit (how the camera sits on the wrist). Until `/opt/rebot-models/hand_eye.npz` exists, grasp commands detect objects but decline to move the arm. One-time, ~30 minutes:
 
-1. Download and print the [official ArUco calibration PDF](https://raw.githubusercontent.com/Seeed-Projects/reBot-DevArm-Grasp/main/aruco100x100.pdf) (DICT_4X4_50, ID 0, nominal 100 mm), then **measure the printed black outer square with a ruler** — printers rescale! A 1 mm error ≈ 1 cm grasp offset; this is the #1 calibration mistake.
+1. Download and print the [official ArUco calibration PDF](https://raw.githubusercontent.com/Seeed-Projects/reBot-DevArm-Grasp/main/aruco100x100.pdf) (DICT_4X4_50, ID 0, nominal 100 mm), then **measure the printed black outer square with a ruler** — printers rescale. A 1 mm error in that value corresponds to about a 1 cm grasp offset.
 2. Tape the board flat on the table ~65 cm in front of the arm base.
 3. Follow the collection + solve procedure in the [repository RUNBOOK §3.2](https://github.com/suharvest/openvoicestream/blob/main/agent/ovs_agent/apps/voice_rebot_arm/RUNBOOK.md) — the arm sweeps ~16 poses over the board, then solves the transform (target mean error < 5 mm).
 4. Copy the resulting `hand_eye.npz` to `/opt/rebot-models/` and restart the `rebot-arm` container.

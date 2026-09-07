@@ -7,7 +7,6 @@
   "gpt_oss_20b": "sha256:1fccf57700386c2ffa2374228a1cb7604f7af18572fb1c825b4c15e1ad3c83e4",
   "gun_detection_frigate": "sha256:3ebfe3e5279727ab890da9771a7796009a82c9f4c85acfe0b63d27c65e3a81ae",
   "indoor_positioning_ble_lorawan": "sha256:2e692eaf09ac5213ef4eba5b70498c43cdced6876fd37ec14a43892b763f6096",
-  "industrial_security_jetson": "sha256:2e0e87f38df188a9ac1c6f6cd2b3b2b44d2def9b209295506f8e9e1f3da7a2c0",
   "jetson_voice_assistant": "sha256:fd2e68ad5a38fcfb43e925056762362d42838453cfafe1c0cbb87d003cec15f7",
   "missionpack_industrial_gateway": "sha256:888223884eb50909da07a08c690500b9ec1bc087ac8bc5cef2d9b2583fac16de",
   "openclaw_deploy": "sha256:1303416e46351391f450b1e4279af99edbe60fcc9680c403014ba88ebaaf8187",

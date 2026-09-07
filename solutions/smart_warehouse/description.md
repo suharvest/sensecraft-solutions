@@ -1,8 +1,6 @@
 ## What This Solution Does
 
-Warehouse management systems are powerful, but the learning curve is steep — training sessions, memorizing menu locations, mastering complex workflows. Many warehouse workers prefer writing on paper first, then asking someone to enter data later.
-
-This solution turns complex system operations into **speaking** — say "Stock in 10 Watchers" and it's done, ask "How many items on shelf A3?" and get an instant answer. No training needed, just talk.
+This solution replaces the warehouse system's menus and forms with **speech**: say "Stock in 10 Watchers" and the record is written; ask "How many items on shelf A3?" and the answer comes back. Workers enter data where they are standing, instead of walking to a terminal or writing it down for later entry.
 
 ## Core Value
 
@@ -63,7 +61,7 @@ This solution turns complex system operations into **speaking** — say "Stock i
 
 ## Measured Boundaries
 
-Every number below comes from load runs on **a development-board baseline (Raspberry Pi 5, arm64 — not a package device)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
+Every number below comes from load runs on **a development-board baseline (Raspberry Pi 5, arm64 — not a package device)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend. The same digest-pinned image was deployed on 2026-09-07 to the **reComputer R1000's CM4 platform in a 2 GB configuration** — a reference value, not a shipping configuration, since the R1000 ships with 4 GB or 8 GB. That run covers restart recovery only: 9.48 s and 9.04 s from container restart to a healthy service, two runs polled at 250 ms on the device's own loopback (`evaluation/runs/2026-09-07-recomputer-r1000/results.md` in the warehouse_system project). The load figures in the table have not yet been reproduced on that platform and will be added after a run on a 4 GB / 8 GB R1000.
 
 | Scenario | Level | Measured | Conditions | Source |
 |----------|-------|----------|------------|--------|
@@ -80,4 +78,4 @@ Every number below comes from load runs on **a development-board baseline (Raspb
 
 - **Concurrent stock-in trades latency for correctness.** Batch numbers are allocated from an atomic counter, so writes to the same material serialise. Concurrency raises p95 rather than causing conflicts, and batch numbers stay unique. Give a busy site more warehouses or spread stock-in across materials rather than raising concurrency on one.
 - **Stock-out is rate limited per authenticated caller.** The threshold is "BUSINESS_RATE_LIMIT", 600 requests per minute by default, counted per API key or session — terminals behind one NAT do not share a budget. Anti-enumeration limits on registration, password recovery and device verification stay keyed on the source IP. Raise the threshold before a site exceeds 10 requests per second on one key.
-- **The REST layer has no offline queue.** Requests issued while the network or the service is down fail immediately and are never replayed after recovery; the reconnect/backoff logic covers only the MCP voice WebSocket channel, not HTTP inventory calls. Measured: 100% of requests failed during a 34 s outage, with no backlog and no dirty data after recovery. **This one is out of scope for this round of fixes. Two ways around it**: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out requests land locally first and replay in order once connectivity returns, de-duplicated by batch number. The client-side queue is scheduled for phase 2.
+- **The REST layer has no offline queue.** Requests issued while the network or the service is down fail immediately and are never replayed after recovery; the reconnect/backoff logic covers only the MCP voice WebSocket channel, not HTTP inventory calls. Measured: 100% of requests failed during a 34 s outage, with no backlog and no dirty data after recovery. **Two ways around it**: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out requests land locally first and replay in order once connectivity returns, de-duplicated by batch number. That client-side queue is not part of this package.

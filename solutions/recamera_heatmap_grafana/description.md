@@ -1,8 +1,8 @@
 ## What This Solution Does
 
-Rearranging shelves and moving promotions around based on gut feeling rarely works well. This solution uses AI cameras to track customer movement and generate intuitive traffic distribution maps, showing you which areas are hot spots and which are dead zones — so you can make data-driven decisions for store operations.
+This solution uses AI cameras to track customer movement and generate traffic distribution maps, showing which areas of the store get the most footfall and which get the least.
 
-And you don't have to stress about device selection — reCamera works out of the box for single-camera setups, while IP cameras + AI boxes can handle more channels. The same algorithm runs on different hardware with consistent results, so you can try before you commit.
+Two hardware paths are available: a single reCamera, or IP cameras plus an AI box for more channels. The same algorithm runs on both.
 
 ## Key Benefits
 

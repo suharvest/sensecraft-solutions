@@ -1,15 +1,15 @@
 ## What This Solution Does
 
-This solution turns your LeKiwi robot into a voice-controlled companion. Speak natural commands like "move forward" or "turn left" — the robot understands, replies with a voice confirmation, and moves. No remote, no phone app, no keyboard. Just talk.
+This solution makes the LeKiwi robot voice-controlled. Speak natural commands like "move forward" or "turn left"; the robot parses the command, replies with a voice confirmation, and moves. No remote, phone app or keyboard is used.
 
-Everything runs on a Raspberry Pi — it listens for your voice, understands what you want, decides what to do, and talks back through speakers. A XIAO ESP32S3 controls the motors that drive the wheels. The guided deployment walks you through firmware flashing, servo ID setup, and the voice container.
+Everything runs on a Raspberry Pi: audio capture, command parsing, action selection and speech playback. A XIAO ESP32S3 controls the motors that drive the wheels. The guided deployment walks you through firmware flashing, servo ID setup, and the voice container.
 
 ## Core Benefits
 
 - **Hands-free control** — Say "Hey Jarvis" and give a command. The robot listens, understands, and moves
 - **Natural language** — No memorizing keybindings. Just speak what you want — "go forward", "slide left", "keep turning"
 - **Voice replies** — The robot talks back. You'll hear confirmation and status through speakers
-- **Omnidirectional movement** — Kiwi-drive lets the robot move forward, backward, strafe, and rotate seamlessly
+- **Omnidirectional movement** — Kiwi-drive lets the robot move forward, backward, strafe, and rotate
 
 ## Use Cases
 

@@ -1,6 +1,6 @@
 ## What This Capability Does
 
-Z-Image-Turbo turns text descriptions into photorealistic images on your Jetson Orin NX — no cloud, no subscription, no internet required. Send a text prompt, get back a PNG. Upload a reference image with a prompt, and it edits the image intelligently.
+Z-Image-Turbo turns text descriptions into photorealistic images on your Jetson Orin NX — no cloud, no subscription, no internet required. Send a text prompt, get back a PNG. Upload a reference image with a prompt, and it returns an edited version of that image.
 
 All computation stays on your device. The model is packaged as a simple HTTP API you can call from any application.
 

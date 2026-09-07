@@ -547,8 +547,6 @@ _LEGACY_LONG_STEP_DESCRIPTIONS: set[str] = {
     "smart_warehouse/private_cloud/watcher_config",
     "smart_warehouse/private_cloud_multi/watcher_config",
     "smart_warehouse/edge_computing/watcher_config",
-    # IP camera + RTSP discovery setup with multiple alternative paths.
-    "industrial_security_jetson/default/init_camera",
     # Heatmap calibration walkthrough.
     "recamera_heatmap_grafana/recamera/heatmap",
     # Default voice-command reference table — a lookup users want visible on

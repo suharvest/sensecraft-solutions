@@ -1,187 +1,170 @@
 version: "1.0"
 id: recamera_waste
-name: Deploy the Classifier on reCamera
-type: manual
+name: reCamera Waste Sorting
+type: recamera_cpp
+device_class: recamera
 
-# Manual, not recamera_cpp, and that is a deliberate limit rather than an
-# oversight: the recamera_cpp deployer installs a .deb, and no .deb has been
-# built for this classifier. What exists is a BF16 cvimodel and a small
-# cviruntime runner, both produced in the upstream repo. Naming a CDN path
-# that holds nothing would pass validation here and fail on the device, so the
-# steps below spell out the copy and the check instead.
-#
-# The figures quoted in step 4 were measured on this hardware on 2026-09-07
-# over 1060 validation images: material top-1 0.8792, Chinese four-way top-1
-# 0.9566, agreement with the fp32 CPU baseline 0.9915, p50 24.276 ms,
-# p95 24.323 ms (inference only, excluding capture and preprocessing), peak
-# resident memory 11.6 MB.
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  # Gallery app: the deb ships /etc/init.d/K92waste-sorting (K, not S).
+  # The camera is exclusive -- two apps opening VPSS at once fails to stream at
+  # best and wedges the driver at worst -- so every gallery app stays parked at
+  # K and the console's appMgr starts exactly one.
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/packages/waste-sorting_0.1.0_riscv64.deb
+    name: waste-sorting
+    includes_init_script: true
+    checksum:
+      sha256: c0480880ee67599437fe15d955411f41001ad789b79573f9781c8a543386b58a
+
+  # The model is not inside the deb -- it is a model, not code, with its own
+  # checksum and cache. BF16, not INT8: TPU-MLIR 1.7's run_calibration.py still
+  # cannot finish calibration for this graph on the SG2002, so no INT8 build
+  # exists. Without the model the app fails to load and exits immediately, so
+  # this file must land before the service starts.
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: efficientnet_lite0_waste8_cv181x_bf16.cvimodel
+      checksum:
+        sha256: 42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25
+
+  service_name: waste-sorting
+  service_priority: 92
+  auto_start: true
+
+actions:
+  after:
+    - name: Generate waste-sorting config
+      run: |
+        set -e
+        cat > /etc/waste-sorting.conf << EOF
+        STREAM_ID='{{stream_id}}'
+        MQTT_HOST='{{mqtt_host}}'
+        MQTT_PORT='{{mqtt_port}}'
+        MQTT_TOPIC='waste/{{stream_id}}/results'
+        MIN_CONFIDENCE='{{min_confidence}}'
+        DEBOUNCE_FRAMES='{{debounce_frames}}'
+        EOF
+      sudo: true
+      name_i18n:
+        zh: 生成分类器配置
+    - name: Enable external MQTT access
+      # fail_fast: false -- idempotent check ('grep -q ... && exit 0'); set -e
+      # would kill grep's non-match exit status on the first deploy.
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+      name_i18n:
+        zh: 启用 MQTT 外部访问
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "recamera-cvi"
+    description: Letters, digits, underscore, dot and hyphen only
+    required: false
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,64}$"
+    name_i18n:
+      zh: 数据流 ID
+    description_i18n:
+      zh: 仅限字母、数字、下划线、点和连字符
+  - id: mqtt_host
+    name: MQTT Host
+    type: text
+    default: "localhost"
+    description: Hostname or IP -- letters, digits, underscore, dot and hyphen only
+    required: false
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,253}$"
+    name_i18n:
+      zh: MQTT 地址
+    description_i18n:
+      zh: 主机名或 IP——仅限字母、数字、下划线、点和连字符
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    description: Digits only, 1-5 characters
+    required: false
+    row: 1
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: 仅限数字，1-5 位
+  - id: min_confidence
+    name: Confidence
+    type: text
+    default: "0.50"
+    description: A decimal between 0 and 1
+    required: false
+    row: 2
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 置信度
+    description_i18n:
+      zh: 0 到 1 之间的小数
+  - id: debounce_frames
+    name: Debounce Frames
+    type: text
+    default: "3"
+    description: Digits only, 1-3 characters
+    required: false
+    row: 2
+    validation:
+      pattern: "^[0-9]{1,3}$"
+    name_i18n:
+      zh: 去抖帧数
+    description_i18n:
+      zh: 仅限数字，1-3 位
+
+post_deployment:
+  open_browser: false
 
 name_i18n:
-  zh: 在 reCamera 上部署分类器
-
-steps:
-  - id: fetch_artifacts
-    name: Get the model and the runner
-    name_i18n:
-      zh: 取模型与 runner
-    description: >-
-      Both artifacts come from the upstream repository `edge-waste-sorting`;
-      neither is committed to this package and neither is on the CDN yet.
-      Build them with `platforms/cvi/convert_cvimodel_m1c.sh` (the cvimodel)
-      and the riscv64 musl cross toolchain (the runner), or take them from
-      that repo's evaluation run. Check both before copying anything:
-
-        sha256sum efficientnet_lite0_waste8_cv181x_bf16.cvimodel
-        # 42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25
-        sha256sum waste_cvi_runner
-        # 6fe5ff3b13ef3c6113611f07f3bf6a67a51fae894d0515314e32e2e591494917
-
-      The cvimodel is 8,674,096 bytes and the runner 15,816 bytes.
-    description_i18n:
-      zh: >-
-        两个产物都来自上游仓库 `edge-waste-sorting`，都没有提交进本包，也还没上 CDN。
-        用 `platforms/cvi/convert_cvimodel_m1c.sh` 生成 cvimodel，用 riscv64 musl
-        交叉工具链编 runner，或者直接从那个仓库的评测目录里取。拷贝之前先核对：
-
-          sha256sum efficientnet_lite0_waste8_cv181x_bf16.cvimodel
-          # 42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25
-          sha256sum waste_cvi_runner
-          # 6fe5ff3b13ef3c6113611f07f3bf6a67a51fae894d0515314e32e2e591494917
-
-        cvimodel 是 8,674,096 字节，runner 是 15,816 字节。
-    optional: false
-
-  - id: copy_to_device
-    name: Copy both onto the camera
-    name_i18n:
-      zh: 拷到相机上
-    description: >-
-      The camera answers on its USB-RNDIS address by default. `/userdata` is
-      the only writable partition that survives a reboot, and the two files
-      together need under 10 MB of it.
-
-        ssh recamera@192.168.42.1 'mkdir -p /userdata/waste'
-        scp efficientnet_lite0_waste8_cv181x_bf16.cvimodel \
-            waste_cvi_runner recamera@192.168.42.1:/userdata/waste/
-        ssh recamera@192.168.42.1 'chmod +x /userdata/waste/waste_cvi_runner'
-
-      If the host key changed, the camera was reflashed or factory-reset; clear
-      the old entry with `ssh-keygen -R 192.168.42.1` rather than disabling
-      host key checking.
-    description_i18n:
-      zh: >-
-        相机默认在 USB-RNDIS 地址上应答。`/userdata` 是唯一重启后还在的可写分区，
-        两个文件加起来占用不到 10 MB。
-
-          ssh recamera@192.168.42.1 'mkdir -p /userdata/waste'
-          scp efficientnet_lite0_waste8_cv181x_bf16.cvimodel \
-              waste_cvi_runner recamera@192.168.42.1:/userdata/waste/
-          ssh recamera@192.168.42.1 'chmod +x /userdata/waste/waste_cvi_runner'
-
-        host key 变了说明相机被重刷或恢复过出厂设置，用
-        `ssh-keygen -R 192.168.42.1` 清掉旧记录，不要关掉 host key 校验。
-    optional: false
-
-  - id: prepare_frame
-    name: Prepare one input frame
-    name_i18n:
-      zh: 准备一帧输入
-    description: >-
-      The runner reads raw frames, not JPEGs: 224x224x3 uint8 RGB, one after
-      another, no header. Resize the short side to 256, centre-crop 224, then
-      write the bytes in RGB order. ImageNet mean and standard deviation are
-      already inside the cvimodel, so do not normalise here — doing it twice
-      is the usual reason a working model starts predicting one class.
-
-        python3 -c "
-        import cv2, numpy as np
-        im = cv2.imread('sample.jpg')
-        h, w = im.shape[:2]; s = 256 / min(h, w)
-        im = cv2.resize(im, (round(w*s), round(h*s)))
-        y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-        im = im[y:y+224, x:x+224, ::-1]
-        np.ascontiguousarray(im, dtype=np.uint8).tofile('sample.bin')"
-    description_i18n:
-      zh: >-
-        runner 读的是原始帧而不是 JPEG：224x224x3 的 uint8 RGB，一帧接一帧，没有文件头。
-        短边缩到 256、中心裁 224，然后按 RGB 顺序写字节。ImageNet 的均值与标准差
-        已经烘焙在 cvimodel 里，这里不要再归一化——归一化两次是模型突然只输出
-        一个类别的常见原因。
-
-          python3 -c "
-          import cv2, numpy as np
-          im = cv2.imread('sample.jpg')
-          h, w = im.shape[:2]; s = 256 / min(h, w)
-          im = cv2.resize(im, (round(w*s), round(h*s)))
-          y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-          im = im[y:y+224, x:x+224, ::-1]
-          np.ascontiguousarray(im, dtype=np.uint8).tofile('sample.bin')"
-    optional: false
-
-  - id: run_and_verify
-    name: Classify one frame as root and read the output
-    name_i18n:
-      zh: 以 root 跑一帧并读输出
-    description: >-
-      The CVI device nodes are root-only, so the classifier must run under
-      sudo:
-
-        ssh recamera@192.168.42.1
-        cd /userdata/waste
-        sudo env LD_LIBRARY_PATH=/mnt/system/lib:/usr/lib \
-          ./waste_cvi_runner efficientnet_lite0_waste8_cv181x_bf16.cvimodel \
-          sample.bin 1 out.jsonl
-
-      Expected on stderr, and the input line is the one worth reading:
-
-        input  : name=images_raw fmt=7 shape=[1,224,224,3] logical=150528 physical=150528
-        output : name=logits_Gemm_f32 fmt=0 count=8
-        done 1 images
-
-      `out.jsonl` then holds one line per frame with the per-frame inference
-      time and eight raw logits, in the class order paper, cardboard, glass,
-      metal, plastic, textile, organic, residual:
-
-        {"i":0,"latency_ms":24.2658,"logits":[0.149,0.930,0.637,2.031,-0.389,-0.543,0.443,-0.309]}
-
-      Softmax and the four-way lookup are not done here — they live in the
-      shared core layer so that every accelerator returns the same thing.
-      On this hardware the inference time settles around 24.3 ms per frame.
-
-      Two failures are worth naming. `Assertion failed ... device_init: 720`
-      means the run is not root: `ls -la /dev/ion` will show `root root`. It
-      reads like corrupted TPU state, but a reboot neither helps nor is needed.
-      And if `physical` is ever larger than `logical` on the input line, the
-      rows are padded to a hardware alignment; the bundled runner copies row by
-      row, and a replacement must do the same or every row after the first is
-      read at the wrong offset.
-    description_i18n:
-      zh: >-
-        CVI 的设备节点只有 root 可读写，所以分类器必须用 sudo 跑：
-
-          ssh recamera@192.168.42.1
-          cd /userdata/waste
-          sudo env LD_LIBRARY_PATH=/mnt/system/lib:/usr/lib \
-            ./waste_cvi_runner efficientnet_lite0_waste8_cv181x_bf16.cvimodel \
-            sample.bin 1 out.jsonl
-
-        stderr 上的预期输出如下，其中 input 那行最值得看：
-
-          input  : name=images_raw fmt=7 shape=[1,224,224,3] logical=150528 physical=150528
-          output : name=logits_Gemm_f32 fmt=0 count=8
-          done 1 images
-
-        `out.jsonl` 里一帧一行，带单帧推理耗时与 8 个原始 logits，
-        顺序是 paper、cardboard、glass、metal、plastic、textile、organic、residual：
-
-          {"i":0,"latency_ms":24.2658,"logits":[0.149,0.930,0.637,2.031,-0.389,-0.543,0.443,-0.309]}
-
-        softmax 与四分类查表不在这里做——它们在共用的 core 层，
-        这样每种加速器返回的东西才一致。这块硬件上单帧推理耗时稳定在 24.3 ms 附近。
-
-        两种失败值得点名。`Assertion failed ... device_init: 720` 表示没用 root 跑，
-        `ls -la /dev/ion` 会显示 `root root`；它看着像 TPU 状态损坏，但重启既没用也不需要。
-        另外，input 那行的 physical 一旦大于 logical，说明行被按硬件对齐补齐了；
-        随包的 runner 是逐行拷贝的，自己换 runner 也必须这么做，
-        否则第一行之后的每一行都会按错误的偏移读取。
-    optional: false
+  zh: reCamera 垃圾分类
