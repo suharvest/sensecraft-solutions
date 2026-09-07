@@ -381,7 +381,9 @@ device it ran on.
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
 The console stack is real and deploys the same way here as in the other two
-presets. It is the only part of this preset that does.
+presets. Unlike the RK3588 and Hailo-8 presets, this one does not stop at the
+console — Step 4 also builds a device-side runtime that has run end to end on
+hardware.
 
 ### Prerequisites
 
@@ -513,6 +515,38 @@ parity procedure that produced the numbers on this page.
 - A checkout replay through `platforms/jetson/runtime.py` reports 0 dropped
   frames (`frames_dropped`, `capture_drop`, `embed_drop` all 0 in
   `/healthz`).
+
+#### Running it end to end
+
+The measured checkout replay used synthetic footage, not a live camera feed
+— reproducing the full chain on your own board means supplying the four
+pieces `runtime.yaml` expects:
+
+1. **Frames.** `sources[0].uri` in `runtime.yaml` points at
+   `local/frames_checkout`, read as a looping directory of JPEGs at the
+   configured `fps`. For a synthetic dry run,
+   `uv run python tools/make_checkout_sim.py --grocery-root
+   /path/to/GroceryStoreDataset/dataset --skus 30 --events 40 --fps 15
+   --seed 20260907 --out evaluation/data/checkout_sim` produces
+   `<out>/frames/`; copy or symlink it to
+   `platforms/jetson/local/frames_checkout`. For a real camera, change
+   `sources[0].kind` to `usb` and `uri` to the device path (e.g.
+   `/dev/video0`), or point it at an RTSP source per the comment in
+   `runtime.yaml`.
+2. **Gallery.** `python3 platforms/make_runtime_gallery.py --config
+   platforms/jetson/runtime.yaml --skus-json
+   evaluation/data/checkout_sim/gallery_skus.json` builds the version at
+   `gallery.root` (`local/gallery`) from the same tool's registration
+   photos, embedded with whichever model `runtime.yaml` names — the console
+   registration flow from Steps 1-3 is the alternative path once real SKUs
+   exist.
+3. **MQTT.** `runtime.yaml`'s `mqtt.host` ships pointed at the evaluation
+   broker; change it to a broker your deployment controls before running
+   anything that publishes real events.
+4. **Start it.** `python3 platforms/jetson/runtime.py --config
+   platforms/jetson/runtime.yaml` (add `--dry-run` first, per Step 4). A
+   `systemd` unit template is at `platforms/jetson/retail-runtime.service`
+   if this should survive a reboot.
 
 #### Next steps
 

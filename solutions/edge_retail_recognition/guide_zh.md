@@ -323,7 +323,8 @@ MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来在
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
-管理端是真的，在这里的部署方式与另外两个套餐一样。它也是这个套餐里唯一如此的部分。
+管理端是真的，在这里的部署方式与另外两个套餐一样。与 RK3588、Hailo-8 套餐不同，
+这个套餐不止步于管理端——步骤 4 还会构建一套已经在真机上跑通端到端的设备侧运行时。
 
 ### 前置条件
 
@@ -438,6 +439,30 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
   21 项指标最大差接近 0.24 个百分点。
 - 通过 `platforms/jetson/runtime.py` 跑一次收银台回放，`/healthz` 里
   `frames_dropped`、`capture_drop`、`embed_drop` 都是 0。
+
+#### 把链路跑通
+
+实测的收银台回放用的是合成素材，不是真实摄像头画面——在自己的板子上复现整条链路
+需要补齐 `runtime.yaml` 要的四样东西：
+
+1. **画面。** `runtime.yaml` 里 `sources[0].uri` 指向 `local/frames_checkout`，
+   按配置的 `fps` 循环读一个 JPEG 目录。跑合成素材可以用
+   `uv run python tools/make_checkout_sim.py --grocery-root
+   /path/to/GroceryStoreDataset/dataset --skus 30 --events 40 --fps 15
+   --seed 20260907 --out evaluation/data/checkout_sim` 产出 `<out>/frames/`，
+   拷贝或软链到 `platforms/jetson/local/frames_checkout`。接真摄像头就把
+   `sources[0].kind` 改成 `usb`，`uri` 改成设备路径（如 `/dev/video0`），
+   或按 `runtime.yaml` 里的注释接 RTSP 源。
+2. **商品库。** `python3 platforms/make_runtime_gallery.py --config
+   platforms/jetson/runtime.yaml --skus-json
+   evaluation/data/checkout_sim/gallery_skus.json` 会用上面那个工具产出的注册图，
+   以 `runtime.yaml` 里配的那个模型嵌入，在 `gallery.root`（`local/gallery`）
+   下建出一个版本——等有了真实 SKU，步骤 1–3 的管理端注册流程是另一条路。
+3. **MQTT。** `runtime.yaml` 的 `mqtt.host` 出厂指向的是评测用的 broker；
+   要发真实事件之前，先改成自己部署可控的 broker。
+4. **启动。** `python3 platforms/jetson/runtime.py --config
+   platforms/jetson/runtime.yaml`（照步骤 4，先加 `--dry-run` 跑一遍）。要开机
+   自启就用 `platforms/jetson/retail-runtime.service` 这份 systemd 单元模板。
 
 #### 后续步骤
 
