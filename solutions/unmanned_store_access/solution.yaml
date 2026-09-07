@@ -199,6 +199,28 @@ intro:
           unlock / hold_open / lock，admin 可注册、删除与回滚。没有匿名读，一个 token
           都没配时服务直接拒绝启动。共享 token 走明文 HTTP 等于没有鉴权，必须在
           反代后面终止 TLS。
+    - type: dry_contact
+      port: null
+      endpoint: 'COM / NO (NC on the SPDT alternative)'
+      description: >-
+        The physical output of every preset: a relay's mechanical contact, not
+        a voltage. Idle, mid-pulse and powered-off all read 0 V across
+        `COM`/`NO` on a meter — nothing on this side is ever driven or
+        pulled. A door controller wires its own input across those two
+        terminals; whoever owns that controller decides what a momentary
+        closure does, and the lock, the lock's supply and the controller
+        itself are outside this design's BOM. `relay_contact` (`NO`/`NC`) and
+        `fail_mode` describe the state of this contact and of the
+        controller's input, not the lock, and neither has a default.
+      schema_type: null
+      description_i18n:
+        zh: >-
+          每个套餐真正对外的物理输出：一个继电器的机械触点，不是一路电压。
+          空闲、脉冲中、掉电三种状态，用万用表量 `COM`/`NO` 都读到 0
+          V——这一侧从不被我们驱动或拉低。门控控制器把自己的输入接到这两个端子上，
+          瞬时闭合之后怎么动作由控制器的所有者决定；锁、锁电源与门控控制器本身
+          都不在本方案 BOM 内。`relay_contact`（`NO`/`NC`）与 `fail_mode`
+          描述的是这个触点与门控输入端的状态，不是锁，因此都不设默认值。
 
   input_requirements:
     - type: rtsp
@@ -217,16 +239,19 @@ intro:
           本方案没有刻画过它们的边界。
     - type: other
       description: >-
-        A relay or dry-contact module rated for the lock, and a 12/24 V supply
-        for the lock that is separate from the compute board's supply. This is
-        not optional and not substitutable: a lock draws 300 mA to 1 A, while a
-        GPIO pin or an opto-isolated DO carries milliamps.
+        A relay module (see `output_interfaces` type `dry_contact`) between
+        the compute board's GPIO/DO and a door controller of the site's own
+        choosing. This design's BOM ends at the relay's `COM`/`NO` contact —
+        the door controller, the lock and the lock's supply are not part of
+        it and are not substitutable with a GPIO pin: a lock draws 300 mA to
+        1 A, while a GPIO pin or an opto-isolated DO carries milliamps.
       required: true
       description_i18n:
         zh: >-
-          一个额定电流覆盖门锁的继电器或干接点模块，外加一路与计算板供电分开的
-          12/24 V 锁电源。这一条不可选、不可替代：锁的工作电流 300 mA–1 A，
-          而 GPIO 引脚和光隔 DO 只有 mA 级。
+          一个继电器模块（见 `output_interfaces` 里 `dry_contact` 那一条），
+          接在计算板的 GPIO/DO 与现场自选的门控控制器之间。本方案的 BOM 到继电器的
+          `COM`/`NO` 触点为止——门控控制器、锁与锁电源都不在其中，也不能用 GPIO
+          引脚替代：锁的工作电流 300 mA–1 A，而 GPIO 引脚和光隔 DO 只有 mA 级。
     - type: other
       description: >-
         A host for the cloud side — the face library server, the management
@@ -380,19 +405,81 @@ intro:
           所有来源仓库里都没有这颗芯片的活体实现——因此 P4 套餐被限制为"时段内的
           白名单"，且不得用于"举一张打印照片给摄像头就会出事"的门。
     generic_relay_module:
-      name: Grove Relay / 4-Channel SPDT Relay
+      name: Grove Relay
       name_i18n:
-        zh: Grove 继电器 / 四路 SPDT 继电器
+        zh: Grove 继电器
+      product_url: https://www.seeedstudio.com/Grove-Relay.html
+      purchase:
+        require:
+          contact: spst_no
       description: >-
-        The part that actually switches the lock, in every preset. Wire a
-        fail-safe magnetic lock through COM and NC, a fail-secure strike
-        through COM and NO. Getting this backwards leaves the door open
-        permanently, which is why `relay_contact` has no default value.
+        SKU 103020005. SPST-NO, opto-isolated, 3.3-5 V trigger, mechanical
+        (non-SSR) contact — nothing downstream of `COM`/`NO` carries any
+        voltage of ours, in any state. This is the whole output of every
+        preset: whoever owns the door controller wires its input to `COM` and
+        `NO` and decides what a momentary closure does from there. It has no
+        `NC` terminal, so a door controller whose input is normally-closed
+        instead needs SKU 103020012 (Grove - SPDT Relay(30A)) in its place.
+        `relay_contact` has no default value on purpose — get NO/NC backwards
+        and the controller reads the wrong idle state, which is not the same
+        failure as leaving a lock open, but is just as invisible until
+        someone tests it.
       description_i18n:
         zh: >-
-          每个套餐里真正切换门锁的部件。断电即开的电磁锁走 COM/NC，断电即锁的
-          电插锁走 COM/NO。接反会让门长期敞着——这正是 `relay_contact` 不设默认值
-          的原因。
+          SKU 103020005。SPST-NO、光耦隔离、3.3–5 V 触发、机械触点（非
+          SSR）——`COM`/`NO` 下游任何状态都不出现我们的电压。这就是每个套餐的
+          全部输出：门控控制器的所有者把自己输入接到 `COM` 和 `NO`，瞬时闭合之后
+          怎么动作由他决定。它没有 `NC` 端子，门控输入是常闭型的话要换成 SKU
+          103020012（Grove - SPDT Relay(30A)）。`relay_contact` 故意不设默认值——
+          NO/NC 接反，门控读到的空闲态就是错的，这不等同于把锁开着，但同样要等
+          有人测试才会发现。
+    generic_relay_module_spdt:
+      name: Grove - SPDT Relay(30A)
+      name_i18n:
+        zh: Grove - SPDT 继电器（30A）
+      product_url: https://www.seeedstudio.com/Grove-SPDT-Relay-30A.html
+      purchase:
+        require:
+          contact: spdt
+      description: >-
+        SKU 103020012. The alternative to the default Grove Relay, for a door
+        controller whose input is normally-closed and therefore needs `NC` as
+        well as `COM`/`NO`. Its 3.3 V trigger reliability is not documented by
+        the vendor (the datasheet gives only a 5 V nominal coil) and has not
+        been measured on any preset's GPIO/DO — confirm on hardware before
+        relying on it, or feed the relay's own VCC/GND from a separate 5 V
+        source.
+      description_i18n:
+        zh: >-
+          SKU 103020012。默认 Grove Relay 的备选——门控输入是常闭型、需要 `NC`
+          而不只是 `COM`/`NO` 时才用它。厂商没有文档化 3.3 V 触发可靠性
+          （数据手册只写了 5 V 标称线圈），任何一个套餐的 GPIO/DO 上都没有实测过，
+          上板前先确认，或者给继电器的 VCC/GND 单独接一路 5 V 电源。
+    xiao_relay_addon:
+      name: XIAO 1-Channel Relay
+      name_i18n:
+        zh: XIAO 1-Channel Relay
+      product_url: https://www.seeedstudio.com/Relay-add-on-module-for-XIAO-p-6310.html
+      description: >-
+        SKU 114993555. A stackable add-on board for the XIAO ESP32-S3 rather
+        than a Grove-cabled module — the standard reCamera / gateway route's
+        relay, driven by the XIAO's own GPIO. No wiki page has been found for
+        it (product page only), so its contact form, isolation and trigger
+        voltage are unverified by any Seeed document; treat it the same as
+        the Grove Relay for dry-contact purposes (`COM`/`NO`, no default
+        `relay_contact`) until that is confirmed on hardware. There is no
+        cataloged accessory family for this SKU yet — the Grove Relay
+        (103020005) is a documented substitute when a standalone Grove-cabled
+        relay is preferred over the add-on board.
+      description_i18n:
+        zh: >-
+          SKU 114993555。XIAO ESP32-S3 的叠板式扩展板，不是 Grove 排线模组——
+          标准版 reCamera / 网关路线的继电器，由 XIAO 自己的 GPIO 驱动。没找到
+          对应 wiki 页（只有商品页），触点形式、隔离与触发电压没有任何 Seeed
+          文档核实过；在上板确认之前，按干接点处理方式与 Grove Relay 一致
+          （`COM`/`NO`，`relay_contact` 不设默认值）。这颗 SKU 目前没有对应的
+          采购族——如果更想用独立的 Grove 排线继电器而不是这块扩展板，Grove
+          Relay（103020005）是有文档记录的替代。
     generic_rtsp_camera:
       name: RTSP / IP Camera
       name_i18n:
@@ -469,6 +556,7 @@ intro:
           required: true
           options:
             - device_ref: generic_relay_module
+            - device_ref: generic_relay_module_spdt
           default: generic_relay_module
 
     - id: p2_industrial_box
@@ -524,6 +612,7 @@ intro:
           required: true
           options:
             - device_ref: generic_relay_module
+            - device_ref: generic_relay_module_spdt
           default: generic_relay_module
 
     - id: p3_mqtt_relay
@@ -660,8 +749,9 @@ intro:
           type: single
           required: true
           options:
+            - device_ref: xiao_relay_addon
             - device_ref: generic_relay_module
-          default: generic_relay_module
+          default: xiao_relay_addon
 
     - id: p4_xiao_grove
       name: XIAO + Grove Vision AI V2 — No Liveness
