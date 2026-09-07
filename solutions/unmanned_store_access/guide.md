@@ -195,6 +195,19 @@ running before.
   liveness. It stays **disarmed** (no pin exported, no access event published)
   until the next step gives it an access config file.
 
+### Install f1-access from the App Center
+
+If f1-access is not installed yet, do this on the camera's own web console
+first — this deployment step cannot install it for you.
+
+1. Log in to the camera's web console.
+2. Open the **App Center**.
+3. Find **F1 Door Access** and choose **Install**. Wait for it to finish; it
+   is a full recognition app plus six on-device models, so first install
+   takes longer than a config change.
+4. Once installed, run this step to **activate** it — the App Center install
+   only places the app; the camera does not switch to it on its own.
+
 ### Troubleshooting
 
 | Issue | Solution |

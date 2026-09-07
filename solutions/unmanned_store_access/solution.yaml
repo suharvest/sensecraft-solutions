@@ -256,19 +256,19 @@ intro:
     recamera_pro:
       description: >-
         Runs recognition, liveness and the door logic on the camera itself,
-        as f1-access — a published App Center package installed and activated
-        as a root appmgr kit app (recamera_pro_app deployer), not a package
-        this solution installs. Its native outputs swing 12–21 V, and a UART
-        or CAN pin can be reconfigured to 3.3 V instead. The device survey
-        found "gpio131" already exported by another application, so no pin
-        may be assumed free.
+        as F1 Door Access — a published App Center package installed once
+        from the camera's own App Center and activated by this deployment,
+        not a package this solution installs from scratch. Its native
+        outputs swing 12–21 V, and a UART or CAN pin can be reconfigured to
+        3.3 V instead. The device survey found "gpio131" already exported by
+        another application, so no pin may be assumed free.
       description_i18n:
         zh: >-
-          识别、活体与门控判定都跑在摄像头本机，作为 f1-access——一个已发布的
-          App Center 包，以 root 身份作为 appmgr kit app 安装并激活
-          （recamera_pro_app 部署器），不是本方案安装的包。它的原生输出摆幅
-          12–21 V，也可以把 UART 或 CAN 脚改配成 3.3 V。真机盘点发现 「gpio131」
-          已被另一个应用 export，所以任何引脚都不能假定空闲。
+          识别、活体与门控判定都跑在摄像头本机，作为「F1 门禁」——一个已发布的
+          App Center 包，从摄像头自己的应用中心装一次，再由这次部署激活，
+          不是本方案从零安装的包。它的原生输出摆幅 12–21 V，也可以把 UART
+          或 CAN 脚改配成 3.3 V。真机盘点发现 「gpio131」已被另一个应用
+          export，所以任何引脚都不能假定空闲。
     recamera_2002:
       description: >-
         The standard reCamera, and a different shape from the Pro rather than a
@@ -473,11 +473,11 @@ intro:
         Everything at the door: the camera recognises, checks liveness, decides
         and pulses its own GPIO into a relay. Nothing but the face library and
         the audit upload crosses the network, so the door keeps working while
-        the network is down. The app itself, f1-access, is a published App
-        Center package (recamera_pro_app deployer, catalog id "f1-access") that
-        combines the face-recognition app's recognition cascade with the door
-        logic — the deploy step only activates an already-installed app, as
-        appmgr on the Pro is single-active. What stays manual is measuring a
+        the network is down. The app itself, F1 Door Access, is a published
+        App Center package that combines the face-recognition app's
+        recognition cascade with the door logic — installed once from the
+        camera's own App Center, then activated by this deployment. What
+        stays manual is measuring a
         genuinely free GPIO pin, wiring LED then relay then the door
         controller, and writing the access config file that carries the facedb
         key and the measured wiring posture — those are per-installation
@@ -493,10 +493,10 @@ intro:
         zh: >-
           全部动作在门口完成：摄像头识别、验活体、做判定，再用自己的 GPIO 给继电器
           一个脉冲。除了人脸库与审计上传，没有别的东西过网络，所以网络断了门依然能开。
-          应用本身 f1-access 是一个已发布的 App Center 包（recamera_pro_app 部署器，
-          catalog id "f1-access"），把人脸识别应用的识别级联与门控逻辑合成一体——
-          部署步骤只是激活一个已安装的应用，因为 Pro 上的 appmgr 是单活的。仍需人工
-          完成的是实测一个真正空闲的 GPIO 引脚、按 LED → 继电器 → 门控的顺序接线，
+          应用本身「F1 门禁」是一个已发布的 App Center 包，把人脸识别应用的识别
+          级联与门控逻辑合成一体——从摄像头自己的应用中心装一次，再由这次部署
+          激活。仍需人工完成的是实测一个真正空闲的 GPIO 引脚、按 LED → 继电器 →
+          门控的顺序接线，
           以及写入携带 facedb 密钥与实测接线口径的门禁配置文件——这些是每次安装
           各不相同的电气事实与每台设备各一份的凭据，部署器替不了。本套餐的库下发
           链路与注入合成事件的 GPIO 回读已在真机跑通；锁从未接过。经管理界面注册
