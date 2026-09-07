@@ -25,8 +25,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/recomputer-super-j4012.jpg
   gallery:
+    - type: image
+      src: gallery/recomputer-super-j4012.jpg
+      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on. No detection sample is shown here; see the licence note below
+      caption_i18n:
+        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备。这里不展示检测样图，原因见下方许可说明
     - type: image
       src: gallery/architecture.svg
       caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
