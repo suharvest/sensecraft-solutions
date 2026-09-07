@@ -202,15 +202,16 @@ intro:
       description: >-
         A reComputer R2000 with a Hailo-8 on the M.2 slot. It runs the
         EfficientNet-Lite0 HEF, which takes uint8 frames directly so the host
-        does no float preprocessing. The HEF is compiled and checksummed; the
-        page quotes no accuracy or latency for this board because none has
-        been collected on one.
+        does no float preprocessing. Its inference time is the steadiest of
+        any option here — 3.2 ms, with the 95th percentile only 0.06 ms above
+        the median — and it is also the one platform where quantising this
+        model costs accuracy: 2.4 points against the same model on a host.
       description_i18n:
         zh: >-
           M.2 插槽上装了 Hailo-8 的 reComputer R2000。它跑
           EfficientNet-Lite0 的 HEF，输入直接吃 uint8，主机不做浮点预处理。
-          HEF 已编译并记账；本页不给这块板的精度与时延数字，因为还没有
-          在它上面采过。
+          它的推理耗时是这里最稳的——3.2 ms，95 分位只比中位数高 0.06 ms；
+          同时它也是唯一一个量化会掉精度的平台：比主机上同一个模型低 2.4 个百分点。
       purchase:
         require:
           ai_accelerator: [hailo-8]
@@ -223,6 +224,19 @@ intro:
         zh: >-
           相机与分类器在同一个机身里。模型跑在 SG2002 自己的 TPU 上，
           分类路径上没有主机、没有加速卡、也没有一跳网络。
+    recomputer_rk3588:
+      description: >-
+        A separate box next to the camera, for when one host has to serve
+        several bins or the camera cannot be replaced. Its NPU runs the
+        classifier in INT8 in about half the time the fp16 build needs on the
+        same board. Both the 8 GB and 16 GB variants carry the same NPU and
+        run this model, which is 4 MB.
+      description_i18n:
+        zh: >-
+          放在相机旁边的独立主机，适合一台主机带多个投放点、
+          或者相机本身换不掉的场合。它的 NPU 用 INT8 跑分类器，
+          耗时约为同一块板上 fp16 的一半。8 GB 与 16 GB 两个规格带的是同一颗
+          NPU，都能跑这个模型——模型本身 4 MB。
     recamera_pro:
       description: >-
         The faster of the two all-in-one cameras: its NPU runs the classifier
@@ -288,14 +302,27 @@ intro:
       description: >-
         EfficientNet-Lite0 on the Hailo-8, from the uint8 HEF
         (sha256 4e3b9640…) so the host hands the accelerator raw frames
-        instead of normalising them first. Accuracy and latency for this
-        board are not published on this page; the reCamera preset is where
-        the measured numbers are.
+        instead of normalising them first. Measured over the whole
+        7417-image validation set: material top-1 0.8637, Chinese four-way
+        0.9369, p50 3.166 ms and p95 3.228 ms for inference alone (capture and
+        preprocessing excluded).
+
+        The accuracy is 2.4 points below fp32 run on a host over the same
+        images, which is the largest quantisation cost of any platform on this
+        page — the RK3588 preset matches its host baseline exactly at the same
+        3.2 ms. What this one gives instead is consistency: the gap between
+        the median and the 95th percentile is 0.06 ms, against 0.69 ms on
+        RK3588.
       description_i18n:
         zh: >-
           EfficientNet-Lite0 跑在 Hailo-8 上，用的是 uint8 输入的 HEF
           （sha256 4e3b9640…），主机直接把原始帧交给加速器，不必先做归一化。
-          本页不给这块板的精度与时延；实测数字在 reCamera 那个套餐里。
+          在 val 全集 7417 张上实测：物料八类 top-1 0.8637、中国四分类 0.9369、
+          p50 3.166 ms、p95 3.228 ms（纯推理，不含取图与预处理）。
+
+          精度比同一批图上主机 fp32 低 2.4 个百分点，是本页所有平台里量化代价
+          最大的一个——RK3588 套餐在同样 3.2 ms 下与自己的主机基线完全持平。
+          它换来的是一致性：中位数与 95 分位只差 0.06 ms，RK3588 是 0.69 ms。
       device_groups:
         - id: compute
           name: Sorting Host
@@ -380,6 +407,52 @@ intro:
           options:
             - device_ref: recamera_pro
           default: recamera_pro
+
+    - id: recomputer_rk3588
+      name: Camera + reComputer RK3588
+      name_i18n:
+        zh: 摄像头 + reComputer RK3588
+      description: >-
+        The classifier on an RK3588 NPU, in INT8. The only configuration
+        measured over the whole 7417-image validation set rather than a
+        subset: material top-1 0.8882, Chinese four-way 0.9507, p50 3.2 ms and
+        p95 3.9 ms for inference alone (capture and preprocessing excluded).
+        fp16 gives the same material top-1 at p50 6.0 ms, so INT8 is 1.9x
+        faster with no difference on that metric; the four-way figure and the
+        agreement with the host baseline do differ slightly between them.
+        Both land within 0.05 pp of fp32 run on a host over these same images.
+        Every device on this page is compared against a host baseline computed
+        on the images that device saw, and the sets differ — so these top-1
+        values are not a ranking of one device against another.
+      description_i18n:
+        zh: >-
+          分类器跑在 RK3588 的 NPU 上，用 INT8。这是唯一一个在 val 全集
+          7417 张（而不是子集）上测过的配置：物料八类 top-1 0.8882、
+          中国四分类 0.9507、p50 3.2 ms、p95 3.9 ms（纯推理，不含取图与预处理）。
+          fp16 的物料 top-1 与它完全相同，p50 是 6.0 ms，即 INT8 快 1.9 倍
+          且在这一项上没有差异；四分类与对主机基线的一致率两者略有不同。
+          两者与同一批图上主机 fp32 的差都在 0.05 pp 以内。本页每台设备都是
+          与它自己看过的那批图上的主机基线相比，而各设备的图集不同——
+          所以这些 top-1 数值不能当作设备之间的排序。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
 
   stats:
     difficulty: intermediate

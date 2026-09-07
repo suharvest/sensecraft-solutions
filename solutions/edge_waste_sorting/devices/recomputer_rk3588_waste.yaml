@@ -1,0 +1,222 @@
+version: "1.0"
+id: recomputer_rk3588_waste
+name: Deploy the Classifier on reComputer RK3588
+type: manual
+
+# Manual for the same reason as the two camera presets: a converted .rknn and
+# the Python runtime exist, a packaged application does not, and naming a CDN
+# path that holds nothing would validate here and fail on the device.
+#
+# Figures in step 4 were measured on RK3588 hardware on 2026-09-07 over the
+# full 7417-image validation set -- the only configuration in this solution
+# measured on the whole set rather than a subset. INT8: material top-1 0.8882,
+# Chinese four-way 0.9507, agreement with the fp32 CPU baseline 0.9892,
+# p50 3.165 ms, p95 3.857 ms. fp16 returns the same top-1 at p50 5.962 ms.
+#
+# The board used carries the same SoC, NPU, kernel driver (0.9.8) and
+# librknnrt (2.3.2) as the shipping unit, but not its enclosure, thermal
+# design or power delivery, so sustained-load behaviour is not covered by
+# these numbers.
+
+name_i18n:
+  zh: 在 reComputer RK3588 上部署分类器
+
+steps:
+  - id: fetch_model
+    name: Get the converted model
+    name_i18n:
+      zh: 取转换好的模型
+    description: >-
+      The model comes from the upstream repository `edge-waste-sorting`; it is
+      not committed to this package and not on the CDN. Either take the built
+      artifact from that repository's `evaluation/runs/2026-09-07-devices/`
+      run, or convert it yourself on an x86_64 Linux host with
+      `rknn-toolkit2` 2.3.2 — the conversion does not run on the board:
+
+        # from the root of the edge-waste-sorting checkout;
+        # models/efficientnet_lite0_waste8.onnx is 13,477,056 bytes,
+        # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+        python platforms/rknn/rknn_convert_m1c.py \
+          --onnx models/efficientnet_lite0_waste8.onnx \
+          --data-root data/cls/waste8 \
+          --out-dir out-rk3588 \
+          --target rk3588 --calib-sizes 256 --algos mmse
+
+      `--data-root` must contain a `train/` directory of class folders; the
+      script samples 256 calibration images from it. The build lands in
+      `out-rk3588/`, so check and copy it from there:
+
+        sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+        # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+
+        ssh <user>@<board> 'mkdir -p ~/waste'
+        scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
+            <user>@<board>:~/waste/
+
+      Every command in the later steps runs from `~/waste` on the board.
+
+      That is the INT8 build, 4,044,169 bytes, and it is the one this preset
+      deploys. An fp16 build exists (`6225423e…`, 7,399,919 bytes); it returns
+      the same material top-1 at roughly twice the latency, and serves as the
+      comparison point when a quantisation problem is suspected.
+    description_i18n:
+      zh: >-
+        模型来自上游仓库 `edge-waste-sorting`，没有提交进本包，也不在 CDN 上。
+        要么直接取那个仓库 `evaluation/runs/2026-09-07-devices/` 里已经构建好的
+        产物，要么自己在装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机上转换——
+        转换过程跑不了在板子上：
+
+          # 在 edge-waste-sorting 检出目录的根下执行；
+          # models/efficientnet_lite0_waste8.onnx 为 13,477,056 字节，
+          # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+          python platforms/rknn/rknn_convert_m1c.py \
+            --onnx models/efficientnet_lite0_waste8.onnx \
+            --data-root data/cls/waste8 \
+            --out-dir out-rk3588 \
+            --target rk3588 --calib-sizes 256 --algos mmse
+
+        `--data-root` 下必须有一个按类分文件夹的 `train/` 目录，脚本从中抽
+        256 张校准图。产物落在 `out-rk3588/`，从那里核对并拷贝：
+
+          sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+          # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+
+          ssh <user>@<board> 'mkdir -p ~/waste'
+          scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
+              <user>@<board>:~/waste/
+
+        后面几步的命令都在板子的 `~/waste` 目录下执行。
+
+        这是 INT8 版，4,044,169 字节，本套餐部署的就是它。另有 fp16 版
+        （`6225423e…`，7,399,919 字节），物料 top-1 与它相同、时延约为两倍，
+        用作怀疑量化出问题时的对照。
+    optional: false
+
+  - id: install_runtime
+    name: Install the RKNN Lite runtime
+    name_i18n:
+      zh: 装 RKNN Lite 运行时
+    description: >-
+      The binding's version must match the `librknnrt` already on the board.
+      Check it first — a mismatch fails at `init_runtime` with an opaque
+      `RKNN_ERR_FAIL` rather than a version message:
+
+        strings /usr/lib/librknnrt.so | grep 'librknnrt version'
+        # librknnrt version: 2.3.2 (...)
+
+      The wheels ship in the Rockchip `rknn-toolkit2` repository under
+      `rknn-toolkit-lite2/packages/`, one per Python minor version; take the
+      `aarch64` wheel whose version equals the `librknnrt` above and whose
+      `cpXX` tag matches the board's `python3 -V`. Copy it to `~/waste` and
+      install it into a virtualenv:
+
+        python3 -m venv --system-site-packages ~/waste/venv
+        ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
+
+      `--system-site-packages` reuses the system numpy, which on this board is
+      already a version the binding accepts.
+    description_i18n:
+      zh: >-
+        绑定的版本必须和板子上已有的 `librknnrt` 一致。先查一下——版本对不上时
+        会在 `init_runtime` 处抛一个语焉不详的 `RKNN_ERR_FAIL`，
+        而不是版本不匹配的提示：
+
+          strings /usr/lib/librknnrt.so | grep 'librknnrt version'
+          # librknnrt version: 2.3.2 (...)
+
+        wheel 随 Rockchip 的 `rknn-toolkit2` 仓库发布，在
+        `rknn-toolkit-lite2/packages/` 下按 Python 小版本各有一个；取版本号与上面
+        `librknnrt` 相同、`cpXX` 标签与板子 `python3 -V` 匹配的那个 `aarch64` wheel。
+        拷到 `~/waste` 后装进 venv：
+
+          python3 -m venv --system-site-packages ~/waste/venv
+          ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
+
+        `--system-site-packages` 复用系统的 numpy——这块板上的版本绑定本来就接受。
+    optional: false
+
+  - id: prepare_frame
+    name: Prepare one input frame
+    name_i18n:
+      zh: 准备一帧输入
+    description: >-
+      The model takes a 224x224x3 uint8 RGB array. Resize the short side to
+      256, centre-crop 224, keep RGB order. ImageNet mean and standard
+      deviation are baked into the `.rknn` at conversion time, so do not
+      normalise here — doing it twice is the usual reason a working classifier
+      starts returning one class.
+
+        python3 -c "
+        import cv2, numpy as np
+        im = cv2.imread('sample.jpg')
+        h, w = im.shape[:2]; s = 256 / min(h, w)
+        im = cv2.resize(im, (round(w*s), round(h*s)))
+        y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
+        np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
+    description_i18n:
+      zh: >-
+        模型吃的是 224x224x3 的 uint8 RGB 数组。短边缩到 256、中心裁 224，
+        保持 RGB 顺序。ImageNet 的均值与标准差在转换时已经烘焙进 `.rknn`，
+        这里不要再归一化——归一化两次是分类器突然只输出一个类别的常见原因。
+
+          python3 -c "
+          import cv2, numpy as np
+          im = cv2.imread('sample.jpg')
+          h, w = im.shape[:2]; s = 256 / min(h, w)
+          im = cv2.resize(im, (round(w*s), round(h*s)))
+          y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
+          np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
+    optional: false
+
+  - id: run_and_verify
+    name: Classify one frame
+    name_i18n:
+      zh: 跑一帧
+    description: >-
+      Load the model, pick the NPU core assignment and run one frame:
+
+        ~/waste/venv/bin/python - <<'PY'
+        from rknnlite.api import RKNNLite
+        import numpy as np
+        r = RKNNLite(verbose=False)
+        assert r.load_rknn('efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn') == 0
+        assert r.init_runtime(core_mask=RKNNLite.NPU_CORE_AUTO) == 0
+        out = r.inference(inputs=[np.load('sample.npy')[None]])
+        print(np.asarray(out[0]).reshape(-1))
+        PY
+
+      Expect eight raw logits, in the class order paper, cardboard, glass,
+      metal, plastic, textile, organic, residual. Softmax and the four-way
+      lookup are not done here — they live in the shared core layer so every
+      accelerator returns the same thing.
+
+      A warning about `RKNN_QUERY_INPUT_DYNAMIC_RANGE` on a static-shape model
+      is expected and harmless; the runtime prints it for every static build.
+
+      Inference settles around 3.2 ms per frame. That figure was taken with
+      other workloads present on the board rather than on an idle machine, and
+      it is inference only — capture and preprocessing are not included.
+    description_i18n:
+      zh: >-
+        加载模型、选好 NPU 核分配，然后跑一帧：
+
+          ~/waste/venv/bin/python - <<'PY'
+          from rknnlite.api import RKNNLite
+          import numpy as np
+          r = RKNNLite(verbose=False)
+          assert r.load_rknn('efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn') == 0
+          assert r.init_runtime(core_mask=RKNNLite.NPU_CORE_AUTO) == 0
+          out = r.inference(inputs=[np.load('sample.npy')[None]])
+          print(np.asarray(out[0]).reshape(-1))
+          PY
+
+        预期输出 8 个原始 logits，顺序是 paper、cardboard、glass、metal、
+        plastic、textile、organic、residual。softmax 与四分类查表不在这里做——
+        它们在共用的 core 层，这样每种加速器返回的东西才一致。
+
+        静态 shape 模型上出现 `RKNN_QUERY_INPUT_DYNAMIC_RANGE` 的告警是预期内的，
+        无害；每个静态构建运行时都会打。
+
+        单帧推理稳定在 3.2 ms 附近。这个数字是在板上还有其它负载的情况下测的，
+        不是空载；而且是纯推理，不含取图与预处理。
+    optional: false
