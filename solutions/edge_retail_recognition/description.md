@@ -100,20 +100,23 @@ mAP50-95, the 1280² preset 56.32. mAP50 at 640² is 88.26 — the boxes are fou
 they are not placed tightly. Moving to 1280² lifts small-object mAP50-95 from
 17.49 to 26.88, which is why the shelf preset exists.
 
-**The embedder runs on the CPU, on every preset except reCamera Pro.** Neither
-NPU takes it on the reComputer boards: the Hailo quantisation attempts did not
+**The embedder runs on the CPU on RK3588 and the Hailo-8 preset, and on the
+NPU on RK3576 and reCamera Pro.** The Hailo quantisation attempts did not
 reach usable accuracy, and there is no RKNN conversion of the embedder for
-those boards. Budget 92 ms per crop and plan frame skipping or slot-level
-sampling for shelf frames.
+RK3588; RK3576 and reCamera Pro both have their own real RKNN embedding
+numbers above. On the CPU paths, budget 92 ms per crop and plan frame
+skipping or slot-level sampling for shelf frames.
 
 **Detection + embedding, reCamera Pro.** Both stages run as fp16 RKNN on the
 camera's own onboard NPU. Measured on the camera itself with its bundled
 applications stopped, inference only: detection 112.3 ms p50 / 120.4 ms p95,
 99.91% box agreement with the CPU reference on 50 images; embedding 77.5 ms
-p50 / 77.9 ms p95, mean cosine similarity 0.998 against fp32 and a top-1 delta
-of -0.33 percentage points on a 300-image subset (leave-one-out — a different
-protocol from the Grocery Store retrieval numbers above, so the absolute
-values are not comparable, but both agree there is no directional bias).
+p50 / 77.9 ms p95, mean cosine similarity 0.998 against fp32, and a top-1
+difference of 0.33 percentage points (fp32 minus RKNN = -0.33pp, i.e. RKNN
+scored slightly higher) on a 300-image subset (leave-one-out — a different
+protocol from the Grocery Store retrieval numbers above, which use the RK3588
+run's full k-shot gallery, so the absolute values are not comparable, but
+both agree there is no directional bias).
 
 ## Output Interfaces
 
