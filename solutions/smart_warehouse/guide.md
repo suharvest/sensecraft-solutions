@@ -1,3 +1,65 @@
+# Before you start
+
+This guide has five presets — Tier 0 (cloud-only) through Tier 3 (fully
+offline) — that trade off setup effort against how much stays on your network.
+Read the parts below that apply to the tier you picked; the per-tier steps
+still carry their own wiring and troubleshooting.
+
+**Devices and network, by tier:**
+
+| Tier | Extra hardware beyond the Watcher | Network |
+|---|---|---|
+| Tier 0 · Cloud | None | Watcher needs 2.4GHz WiFi + internet; everything else is Seeed's cloud |
+| Tier 1 · Basic | reComputer R1125-10 | Watcher and reComputer on the same LAN as this computer during setup |
+| Tier 2A · Advanced (Single Site) | reComputer R21 (Hailo-8) or Jetson, for face recognition | Same LAN; face recognition stays local, LLM call can still be cloud |
+| Tier 2B · Advanced (Multi Site) | reComputer Super J4012 (Jetson Orin NX 16GB), shared by up to 3 Watchers | Each site's Watcher reaches the shared J4012 over the network; only the LLM call leaves the site |
+| Tier 3 · Premium | reComputer Super J4012 (Jetson Orin NX 16GB) | No internet needed after deployment — everything, including the LLM, runs on the J4012 |
+
+Every Watcher needs a one-time WiFi pairing (Step 1 in the tiered presets) —
+2.4GHz only, the device does not support 5GHz.
+
+**Creating the first administrator account:** Tier 0 has no admin account —
+you self-register with your Watcher's device ID at
+[warehouse.seeed.cn](https://warehouse.seeed.cn/). Tiers 1–3 create their own
+admin account on **first browser visit** to `http://<server-ip>:2125` after
+deployment: the page shows a "Set Administrator" dialog before anything else
+loads, and there is no separate signup step. If you forget that password,
+the only recovery path documented in this guide is deleting the app (with
+its data) from Device Management and redeploying — there is no password
+reset.
+
+**API keys — only needed for Tier 2B and Tier 3's private-cloud LLM option:**
+the Voice AI Service step asks for an **LLM API Key** (field `llm_api_key`,
+optional, format `sk-...`). Generate it from whichever OpenAI-compatible
+provider you point the deployment at (e.g. DeepSeek's or Alibaba Cloud Model
+Studio's console) — it is not a Seeed-issued key. Tier 3's fully local
+LLM path needs no key at all. Tiers 0–2A need no API key; they authenticate
+through your SenseCraft account instead.
+
+**Disk space, by service (checked automatically before each deploy step; deployment fails below the minimum):**
+
+| Service | Minimum free disk | Preset(s) |
+|---|---|---|
+| Warehouse system (no face recognition) | 2 GB | Tier 1 |
+| Warehouse + face recognition (Hailo or Jetson) | 4 GB | Tier 2A, 2B, 3 |
+| Voice AI console (`xiaozhi-server`) | 6 GB | Tier 2B, 3 |
+| Local speech service on Jetson | 15 GB (models are ~5 GB) | Tier 2B |
+| Local speech + local LLM on Jetson | 25 GB (models/engines are ~10 GB) | Tier 3 |
+
+There is no separate minimum-memory check in this package; the disk-space
+gate above is what the deployment engine enforces.
+
+**Where the images come from:** application containers (`warehouse`,
+`face-rec-api`, `xiaozhi-server`, `xiaozhi-manager`, `edge-llm-chat-service`,
+`seeed-local-voice`) are pulled from Seeed's private registry,
+`sensecraft-missionpack.seeed.cn`, automatically during each deploy step — no
+manual login is required. Supporting services (`mysql:8.0`, `redis:8.0`, the
+`mcp-endpoint-server`) come from Docker Hub and a GitHub Container Registry
+mirror. All of this happens on the target device during deployment, not on
+this computer.
+
+---
+
 ## Preset: Tier 0 · Cloud {#trial}
 
 Only a Watcher is needed - no host required. Inventory data and voice service are hosted on the Seeed cloud, so you can experience the full voice warehouse workflow out of the box.
@@ -114,6 +176,13 @@ Your SenseCraft trial is ready!
 - SenseCraft Platform: [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/)
 
 Try saying "Stock in 10 boxes of apples" to test voice inventory management.
+
+#### Acceptance checklist
+
+1. **Agent connected** — on the SenseCraft platform, the Agent card shows "Connected" for its MCP Endpoint status.
+2. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total within a few seconds.
+3. **The record shows up** — reload [warehouse.seeed.cn](https://warehouse.seeed.cn/) and confirm the stock-in appears in today's records.
+4. **A query works** — say "How many apples left?" and confirm the count matches what you just stocked in.
 
 ---
 
@@ -355,6 +424,14 @@ Your voice-controlled warehouse system is ready!
 **Access points:**
 - Warehouse System: http://\<server-ip\>:2125
 - SenseCraft Platform: [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/)
+
+#### Acceptance checklist
+
+1. **Health endpoint responds** — `curl http://<server-ip>:2125/health` returns success (this is the same check the deploy step already waits on).
+2. **Admin login works** — log in to `http://<server-ip>:2125` with the administrator account created in Step 5.
+3. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
+4. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the reComputer returns nothing during the two checks above.
 
 Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
@@ -615,6 +692,14 @@ Your private cloud warehouse system is ready!
 - Face Recognition Service: http://\<server-ip\>:8001/health
 
 Inventory and face data stay on your network. Try saying "How many apples left?" to test.
+
+#### Acceptance checklist
+
+1. **Both health endpoints respond** — `curl http://<server-ip>:2125/health` and `curl http://<server-ip>:8001/health` both return success.
+2. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
+3. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
+4. **Face recognition fires** — after enrolling a face (Step 8), face the Watcher camera and confirm a recognition record appears in the warehouse system.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` returns nothing during the checks above.
 
 ---
 
@@ -970,6 +1055,14 @@ Your multi-site private cloud warehouse system is ready!
 
 Your data stays on your network. Try saying "How many apples left?" to test.
 
+#### Acceptance checklist
+
+1. **Health endpoints respond** — `curl http://<server-ip>:2125/health` (warehouse) and `curl http://<server-ip>:8621/readyz` (speech service) both return success.
+2. **Each site's Watcher is connected** — its Agent card on the console shows "Connected" for the MCP Endpoint.
+3. **Voice stock-in echoes back, per site** — say "Stock in 10 boxes of apples" on each Watcher; each replies confirming the item and total for its own site.
+4. **A query works** — say "How many apples left?" on one Watcher and confirm the count is scoped to that site, not mixed with another.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the J4012 returns nothing during the checks above.
+
 ---
 
 ## Preset: Tier 3 · Premium {#edge_computing}
@@ -1307,3 +1400,11 @@ Your fully offline warehouse system is ready!
 - LLM endpoint: http://\<jetson-ip\>:8000/v1/models
 
 100% offline operation - no internet required after deployment.
+
+#### Acceptance checklist
+
+1. **All three health endpoints respond** — `curl http://<server-ip>:2125/health` (warehouse), `curl http://<server-ip>:8621/readyz` (speech), and `curl http://<jetson-ip>:8000/v1/models` (LLM) all return success.
+2. **It survives disconnection** — unplug the J4012's internet uplink; the Watcher must still be reachable over the local network.
+3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
+4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the J4012 returns nothing during the checks above.
