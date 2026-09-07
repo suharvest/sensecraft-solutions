@@ -177,15 +177,15 @@ work at all:
 
 ### Privacy statement — stack preset
 
-Read this before writing any customer-facing copy about the deployment.
+What the pipeline does and does not protect.
 
 - **Original transcripts are never stored.** The configuration option exists
   ("privacy.store_original_text") and defaults to false; turning it on would put
   original text in a store the deletion flow was not extended to cover.
 - **Audio is not redacted.** Only text is. Raw audio is kept on the host for a
   retention window — 24 hours by default, shortenable at deploy time to 6 or 1 —
-  and is covered by the deletion flow. The page must never claim "the audio is
-  redacted", because it is not: v1 does no bleeping or segment removal.
+  and is covered by the deletion flow. The audio itself is not redacted: v1
+  does no bleeping and no segment removal.
 - **Exports carry the manifest, not the audio**, for the same reason.
 - **Low-confidence entities are flagged, not masked.** Redaction masks above a
   0.85 confidence threshold and marks the rest for review, which is why recall
