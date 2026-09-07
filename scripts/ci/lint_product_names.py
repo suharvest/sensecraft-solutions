@@ -47,7 +47,11 @@ IR_NAME = "architecture.ir.yaml"
 
 CODE_FENCE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE = re.compile(r"`[^`]*`")
-URL = re.compile(r"https?://\S+|\S+\.(?:png|jpg|jpeg|svg|webp|gif|yaml|yml|json|md)\b")
+LINK_TARGET = re.compile(r"\]\([^)]*\)")
+URL = re.compile(
+    r"https?://\S+"
+    r"|(?<![\]\w])[\w./-]+\.(?:png|jpg|jpeg|svg|webp|gif|yaml|yml|json|md)\b"
+)
 TABLE_ROW = re.compile(r"^\s*\|")
 
 
@@ -87,7 +91,12 @@ def load_rules(path: Path) -> dict[str, Any]:
 
 
 def _strip_noise(line: str) -> str:
-    return URL.sub(" ", INLINE_CODE.sub(" ", line))
+    """Drop what is addressing rather than prose: code spans and link targets.
+
+    A markdown link keeps its visible text -- ``[reComputer J](...)`` is a
+    product name on the page, and only the parenthesised target goes.
+    """
+    return URL.sub(" ", LINK_TARGET.sub("]", INLINE_CODE.sub(" ", line)))
 
 
 def units_from_text_file(path: Path, rel: str) -> list[Unit]:
@@ -141,7 +150,11 @@ def units_from_solution_yaml(path: Path, rel: str) -> list[Unit]:
             if text.strip():
                 units.append(Unit(rel, _find_line(lines, text), text, prose))
 
+    add(data.get("name"), prose=True)
+    add(data.get("name_i18n"), prose=True)
     intro = data.get("intro") or {}
+    add(intro.get("summary"), prose=True)
+    add(intro.get("summary_i18n"), prose=True)
     for preset in intro.get("presets") or []:
         add(preset.get("name"), prose=True)
         add(preset.get("name_i18n"), prose=True)
@@ -249,8 +262,9 @@ def _model_regex(rules: dict[str, Any]) -> re.Pattern[str]:
     brands = "|".join(re.escape(b) for b in rules["brands"])
     quals = "|".join(re.escape(q) for q in rules["qualifiers"])
     return re.compile(
-        rf"\b({brands})\b(?:[\s ]+(?:{quals})\b)*[\s ]+"
-        r"([A-Za-z]{0,3}\d{1,4}[A-Za-z]{0,3}(?:-[A-Za-z0-9]{1,3})?)\b"
+        rf"(?<![A-Za-z0-9])({brands})(?![A-Za-z0-9])"
+        rf"(?:[\s ]+(?:{quals})(?![A-Za-z0-9]))*[\s ]+"
+        r"([A-Za-z]{1,3}\d{1,4}[A-Za-z]{0,3}(?:-[A-Za-z0-9]{1,4})?)(?![\w-])"
     )
 
 
@@ -381,8 +395,11 @@ def check_preset_families(
             for option in group.get("options") or []:
                 if option.get("device_ref"):
                     refs.add(option["device_ref"])
-        families = {(catalog.get(ref) or {}).get("family_id", ref) for ref in refs}
-        families |= refs
+        families = set()
+        for ref in refs:
+            entry = catalog.get(ref)
+            entry = entry if isinstance(entry, dict) else {}
+            families.add(entry.get("family_id") or ref)
         if not families & set(family_models):
             continue  # preset has no catalogued compute device; nothing to compare
 

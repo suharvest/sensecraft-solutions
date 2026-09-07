@@ -338,7 +338,7 @@
   "cross_checks": [
     {
       "id": "j30-orin-nx",
-      "left": "\\bJ30(1[01]B?|10B?)\\b|reComputer\\s+J30\\s*(系列|Series)",
+      "left": "(?<![A-Za-z0-9])J30(?:\\d{1,2}B?)?(?![\\w-])|reComputer\\s+J30\\s*(系列|Series)",
       "right": "Orin\\s+NX",
       "severity": "error",
       "message": "J30 系列装的是 Jetson Orin Nano，不是 Orin NX。Orin NX 对应 J40 系列",
@@ -347,7 +347,7 @@
     },
     {
       "id": "j40-orin-nano",
-      "left": "\\bJ40(1[12]B?|1B?)\\b|reComputer\\s+J40\\s*(系列|Series)",
+      "left": "(?<![A-Za-z0-9])J40(?:\\d{1,2}B?)?(?![\\w-])|reComputer\\s+J40\\s*(系列|Series)",
       "right": "Orin\\s+Nano",
       "severity": "error",
       "message": "J40 系列装的是 Jetson Orin NX，不是 Orin Nano。Orin Nano 对应 J30 系列",
@@ -357,9 +357,9 @@
     {
       "id": "hailo-non-hailo-sku",
       "left": "\\bHailo\\b",
-      "right": "\\bR(2135|2035)-10\\b",
+      "right": "(?<![A-Za-z0-9])R2[01]\\d\\d-10(?![\\w-])",
       "severity": "warn",
-      "message": "R2135-10 / R2035-10 是不带 Hailo 加速器的 SKU；带 Hailo-8 的是 -12 后缀（R2135-12 / R2035-12）"
+      "message": "R20xx-10 / R21xx-10 是不带 Hailo 加速器的 SKU；带 Hailo-8 的是 -12 后缀（R2135-12 / R2035-12）"
     }
   ],
   "family_models": {

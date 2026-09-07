@@ -428,3 +428,87 @@ def test_unparseable_yaml_is_skipped_rather_than_raised(tmp_path, rules):
         scan(tmp_path, rules, "solutions/demo/solution.yaml", "intro: [unclosed\n")
         == []
     )
+
+
+# --------------------------------------------------------------------------
+# boundaries: CJK neighbours, link targets, over-long suffixes
+# --------------------------------------------------------------------------
+
+
+def test_a_markdown_link_keeps_its_visible_product_name(tmp_path, rules):
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/description.md",
+        "See [reComputer J](https://example.com/doc.md) for the host.",
+    )
+    assert "bare-recomputer-j" in rule_ids(findings)
+
+
+def test_a_brand_pressed_against_chinese_text_is_still_found(tmp_path, rules):
+    """`re` counts CJK as word characters, so \\b never fires between 用 and r."""
+    findings = scan(
+        tmp_path, rules, "solutions/demo/description.md", "采用reComputer J9012 做主机"
+    )
+    assert "unknown-model" in rule_ids(findings)
+
+
+def test_a_module_name_after_the_brand_is_not_read_as_a_model(tmp_path, rules):
+    findings = scan(
+        tmp_path, rules, "solutions/demo/description.md", "reComputer Orin NX 16GB"
+    )
+    assert "unknown-model" not in rule_ids(findings)
+
+
+def test_an_over_long_suffix_is_not_truncated_to_a_legal_prefix(tmp_path, rules):
+    findings = scan(
+        tmp_path, rules, "solutions/demo/description.md", "reComputer RK3576-9999"
+    )
+    assert "unknown-model" in rule_ids(findings)
+
+
+def test_hailo_warns_on_every_no_accelerator_suffix(tmp_path, rules):
+    findings = scan(
+        tmp_path, rules, "solutions/demo/description.md", "Hailo-8 搭 R2045-10"
+    )
+    assert "hailo-non-hailo-sku" in rule_ids(findings)
+
+
+def test_a_bare_series_number_still_triggers_the_cross_check(tmp_path, rules):
+    findings = scan(
+        tmp_path, rules, "solutions/demo/description.md", "J3011 装的是 Orin NX 16GB"
+    )
+    assert "j30-orin-nx" in rule_ids(findings)
+
+
+def test_the_solution_name_and_summary_are_scanned(tmp_path, rules):
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/solution.yaml",
+        "name: Fall detection on reComputer J\n"
+        "intro:\n"
+        "  summary: Runs on a Raspberry Pi 5 at the bedside.\n"
+        "  device_catalog: {}\n"
+        "  presets: []\n",
+    )
+    assert {"bare-recomputer-j", "bench-pi5-delivery"} <= rule_ids(findings)
+
+
+def test_a_device_refs_family_id_wins_over_its_catalog_key(tmp_path, rules):
+    """A key named after one family pointing at another must not launder it."""
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/solution.yaml",
+        "intro:\n"
+        "  device_catalog:\n"
+        "    recomputer_j30:\n"
+        "      family_id: recomputer_j40\n"
+        "  presets:\n"
+        "    - id: p1\n"
+        "      name: IP Camera + reComputer J30 Series\n"
+        "      device_groups:\n"
+        "        - {id: g1, device_ref: recomputer_j30}\n",
+    )
+    assert "preset-family-mismatch" in rule_ids(findings)
