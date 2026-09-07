@@ -69,10 +69,8 @@ services:
         max-file: "3"
 
   eldercare-alarm:
-    # NOT PUSHED YET — same situation as the Orin compose. This tag does not
-    # exist in the registry as of packaging (2026-09-05); build it from
-    # eldercare-alarm/docker/Dockerfile and retag, or push it, before
-    # deploying this preset.
+    # Published to Harbor 2026-09-08:
+    # sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
     image: sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0
     command: ["--config", "/config/config.yaml"]
     restart: unless-stopped
