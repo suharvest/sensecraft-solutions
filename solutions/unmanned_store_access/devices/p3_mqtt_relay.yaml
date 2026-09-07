@@ -5,9 +5,9 @@ name_i18n:
   zh: 门禁主机 + MQTT 继电器
 type: docker_deploy
 
-# NOT VERIFIED ON HARDWARE. Same image situation as the J20 preset: the
-# recognition service is published (digest below is the default), this
-# project's device-side image has never been built.
+# NOT VERIFIED ON HARDWARE. Same image situation as the J20 preset: both the
+# recognition service and this project's own device-side daemon are published
+# (both defaults below can be overridden to pin a digest or run your own build).
 #
 # The difference from P2 is the whole point of this preset: the compute box has
 # NO door wiring. The unlock leaves over MQTT and a separate node closes the
@@ -109,8 +109,18 @@ remote_overrides:
           act = cfg["actuator"]
           act["kind"] = "{{relay_backend}}"
           act["actuator_id"] = "{{relay_id}}"
+          # access-node's config parser requires both fields for kind in
+          # (mqtt_modbus, mqtt_esp32): relay_id (the topic/point address the
+          # actuator publishes to) and a real boolean active_high (the schema
+          # rejects None). mqtt_esp32 ignores active_high — it keys off
+          # relay_contact (NO/NC) instead, see MqttEsp32Actuator.lock()/open_hold().
+          # mqtt_modbus does use it to pick the on/off point value; True matches
+          # a normally-open contact's positive-logic convention and is the only
+          # option this preset's wizard collects — verify it against the actual
+          # R1000 point wiring before relying on it for a fail-safe lock.
           act["gpio"] = None          # no local pin in this preset, by design
-          act["active_high"] = None
+          act["active_high"] = True
+          act["relay_id"] = "{{relay_id}}"
           act["pulse_ms"] = int("{{pulse_ms}}")
           # relay_contact and fail_mode still belong to the access node even
           # though the contact is elsewhere: the relay firmware does not know
@@ -272,8 +282,8 @@ remote_overrides:
       name: Access Node Image
       type: text
       required: true
-      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
-      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
+      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
       description: >-
         The door-side process: pulls RTSP, asks face-rec-api for an embedding
         and a liveness score, decides against the local face database, and

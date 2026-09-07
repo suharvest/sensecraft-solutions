@@ -513,7 +513,7 @@ continuing.
 
 | Issue | Solution |
 |---|---|
-| `set FACE_REC_API_IMAGE` | The recognition image is required with no default: it must be a digest you chose, not a tag. `ACCESS_NODE_IMAGE` does have a default and needs setting only to pin a digest or run your own build. |
+| `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | Neither should happen with an unmodified compose file — both images have a default digest/tag baked in. Seeing this means something cleared the variable or edited the compose file; supply a digest/tag or restore the default. |
 | `access-node` container restarts, `docker logs` says `config error:` | The config gate refused a value. Run `docker compose exec access-node access-node check-config` to see which one; the four wiring fields and the placeholder strings are the usual causes. |
 | `access-node` stays `unhealthy` but the logs show no error | `/readyz` is the healthcheck, and it is red whenever a face cannot open the door. `docker compose exec access-node access-node healthcheck` prints which of the four gates is down: face-rec-api, camera, face database, or the pin lock. |
 | "gpio N is ALREADY EXPORTED" | Something else is driving that output. Confirm it is the door DO before continuing. |

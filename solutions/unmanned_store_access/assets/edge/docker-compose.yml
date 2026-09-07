@@ -22,7 +22,7 @@
 #                 CUDA / TensorRT libs come from the host JetPack install too,
 #                 so the container needs `--runtime nvidia`.
 #   access-node   This project's own device-side process, published as
-#                 solution/unmanned-store-access-node:0.1.0 for linux/amd64 and
+#                 solution/unmanned-store-access-node:0.1.1 for linux/amd64 and
 #                 linux/arm64. It reads the access-node.json in ../edge/config,
 #                 pulls RTSP, asks face-rec-api for an embedding and a liveness
 #                 score, decides locally, and pulses a dry-contact relay. The
@@ -65,7 +65,7 @@ services:
       retries: 3
 
   access-node:
-    image: ${ACCESS_NODE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0}
+    image: ${ACCESS_NODE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1}
     container_name: usa-access-node
     restart: unless-stopped
     <<: *bounded_logs

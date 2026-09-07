@@ -6,15 +6,12 @@ name_i18n:
 type: docker_deploy
 device_class: jetson
 
-# NOT VERIFIED ON HARDWARE. One of the two images now exists: the recognition
-# service was published on 2026-09-07 as
-# solution/face-rec-api:0.1.0-usa-jetson (linux/arm64), and its digest is the
-# default for `face_rec_api_image` below. This project's own device-side image
-# has never been built — the C1 milestone was a pure software loop and the
-# upstream repository still has no daemon that reads access-node.json — so
-# `access_node_image` is still required with no default and this step stops at
-# the first `docker compose up` until it is supplied. That is the intended
-# behaviour, not a gap to paper over with a placeholder tag.
+# NOT VERIFIED ON HARDWARE. Both images now exist: the recognition service was
+# published on 2026-09-07 as solution/face-rec-api:0.1.0-usa-jetson
+# (linux/arm64), and this project's own device-side daemon as
+# solution/unmanned-store-access-node:0.1.1 (linux/amd64 + linux/arm64). Both
+# digests/tags are the defaults for `face_rec_api_image` / `access_node_image`
+# below; either can still be overridden to pin a digest or run your own build.
 #
 # The DO pin numbers (sysfs 463/464/465/462 for DO1–DO4) come from the design
 # spec and have not been confirmed on hardware. Whether the target image exposes
@@ -109,7 +106,14 @@ remote_overrides:
           cfg.pop("_comment", None)
           cfg["device_id"] = "{{device_id}}"
           act = cfg["actuator"]
-          act["kind"] = "j20_do"
+          # sysfs_gpio, not j20_do: the wizard measures and writes the concrete
+          # sysfs GPIO number (spec's DO1-4 -> 463/464/465/462 mapping is marked
+          # unconfirmed for this box), and access-node's j20_do kind wants a
+          # do_channel (1..4) it resolves through that same unconfirmed table
+          # instead of taking the measured number directly. sysfs_gpio backend
+          # sysfs only requires `gpio`, which is exactly what was measured above.
+          act["kind"] = "sysfs_gpio"
+          act["backend"] = "sysfs"
           act["actuator_id"] = "{{device_id}}"
           # Every one of these four is measured, never defaulted. A wrong
           # relay_contact on a fail-safe lock is a permanently open door and
@@ -134,7 +138,7 @@ remote_overrides:
           with open(tmp, "w") as fh:
               json.dump(cfg, fh, indent=2); fh.write("\n")
           os.replace(tmp, path)
-          print(f"actuator = j20_do gpio={act['gpio']} active_high={act['active_high']} "
+          print(f"actuator = {act['kind']} gpio={act['gpio']} active_high={act['active_high']} "
                 f"pulse={act['pulse_ms']}ms contact={act['relay_contact']} fail={act['fail_mode']}")
           print(f"facedb   = {fdb['url']} poll={fdb['poll_interval_s']}s signed={'yes' if fdb['signature_key'] else 'NO'}")
           if fdb["url"].startswith("http://") and not fdb["signature_key"]:
@@ -271,8 +275,8 @@ remote_overrides:
       name: Access Node Image
       type: text
       required: true
-      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
-      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.0"
+      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
       description: >-
         The door-side process: pulls RTSP, asks face-rec-api for an embedding
         and a liveness score, decides against the local face database, and
