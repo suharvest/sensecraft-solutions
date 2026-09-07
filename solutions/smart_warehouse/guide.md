@@ -164,7 +164,7 @@ Try these voice commands — the conversation itself is your verification that t
 | Watcher not responding | Confirm the Agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the SenseCraft page to see latest data |
 | Cannot see records | Confirm your Watcher is bound to your SenseCraft account |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5 before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
 | Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
 | Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
@@ -193,7 +193,7 @@ Use [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service for voice AI. Si
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R1125-10 | Runs warehouse management system |
+| reComputer R1100 series | Runs warehouse management system |
 | USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
@@ -284,7 +284,7 @@ Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Invento
 
 Deploy the inventory management service with voice control and web dashboard.
 
-**Capacity planning (measured on a Raspberry Pi 5, 50 materials, SQLite, 60 s per concurrency level, client over Tailscale)**: inventory queries stayed under 500 ms p95 up to 10 concurrent clients (p95 404 ms), reached 824 ms p95 at 20, and 5.5 s p95 at 50 with no errors. On this class of hardware plan for up to 10 concurrent query clients per box, serialize stock-in per material, and budget 60 stock-out operations per minute per exit IP. Anything beyond that — more concurrent clients, larger datasets, the MySQL backend — has not been measured and needs its own run. To re-check on your own hardware, run one level from the `warehouse_system` repo: `uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`.
+**Capacity planning (measured on a faster arm64 development board, not the R1100's CM4-class SoC, 50 materials, SQLite, 60 s per concurrency level, client over Tailscale)**: inventory queries stayed under 500 ms p95 up to 10 concurrent clients (p95 404 ms), reached 824 ms p95 at 20, and 5.5 s p95 at 50 with no errors. On this class of hardware plan for up to 10 concurrent query clients per box, serialize stock-in per material, and budget 60 stock-out operations per minute per exit IP. Anything beyond that — more concurrent clients, larger datasets, the MySQL backend — has not been measured and needs its own run. To re-check on your own hardware, run one level from the `warehouse_system` repo: `uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`.
 
 ### Target {#warehouse_local type=local config=devices/warehouse_deploy.yaml}
 
@@ -304,13 +304,13 @@ Run the warehouse system on this computer.
 
 ### Target {#warehouse_remote type=remote config=devices/warehouse_deploy.yaml default=true}
 
-Deploy to reComputer R1125-10 edge device.
+Deploy to reComputer R1100 series edge device.
 
 ### Wiring
 
 ![Wiring](gallery/R1100_connected.png)
 
-1. Connect R1125-10 to power and ethernet, ensure it's on the same network as your computer
+1. Connect R1100 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
 3. Enter username `recomputer`, password `12345678`
 4. Click Deploy and wait for installation to complete
@@ -385,7 +385,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5 before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
 | Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
 | Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
@@ -444,7 +444,7 @@ Tier 1 plus local high-accuracy face recognition: voice AI runs on the [SenseCra
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
+| reComputer R2000 series (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
 | USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
@@ -534,7 +534,7 @@ Deploy the warehouse system together with the high-accuracy face recognition ser
 
 ### Target {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to a device with a Hailo-8 accelerator (reComputer R2135-12 or Raspberry Pi + Hailo-8).
+Deploy to a device with a Hailo-8 accelerator (reComputer R2000 series or Raspberry Pi + Hailo-8).
 
 ### Wiring
 
@@ -652,7 +652,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5 before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
 | Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
 | Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
@@ -705,12 +705,12 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 
 ## Preset: Tier 2B · Advanced (Multi Site) {#private_cloud_multi}
 
-One reComputer Super J4012 runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
+One reComputer J40 series runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
 
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher × 1-3 | Voice assistant, one per site |
-| reComputer Super J4012 (Jetson Orin NX 16GB) | Runs warehouse system + face recognition (TensorRT) + speech service + voice AI service |
+| reComputer J40 series (Jetson Orin NX 16GB) | Runs warehouse system + face recognition (TensorRT) + speech service + voice AI service |
 | USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
@@ -773,18 +773,18 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ## Step 3: Warehouse System + Face Recognition {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
-Deploy the inventory management service together with the high-accuracy face recognition service — one Compose file, two containers, both on the J4012. Face inference runs on TensorRT and uses the host's JetPack CUDA/TensorRT (bind-mounted, not baked into the image).
+Deploy the inventory management service together with the high-accuracy face recognition service — one Compose file, two containers, both on the J40 series device. Face inference runs on TensorRT and uses the host's JetPack CUDA/TensorRT (bind-mounted, not baked into the image).
 
 ### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
-Deploy to the reComputer Super J4012.
+Deploy to the reComputer J40 series.
 
 ### Wiring
 
 ![Wiring](gallery/R1100_connected.png)
 
-1. Connect the J4012 to power and ethernet, ensure it's on the same network as your computer
-2. Check your router for the J4012's IP address and enter it
+1. Connect the J40 series device to power and ethernet, ensure it's on the same network as your computer
+2. Check your router for the J40 series device's IP address and enter it
 3. Enter username `recomputer`, password `12345678`
 4. Click Deploy and wait for installation to complete
 
@@ -794,12 +794,12 @@ Deploy to the reComputer Super J4012.
 |-------|----------|
 | Connection timeout | Check ethernet cable, verify IP address is correct |
 | SSH auth failed | Verify credentials, first-time setup requires monitor connection |
-| Face service won't start | Confirm JetPack is installed on the J4012 — the container bind-mounts host CUDA/TensorRT |
+| Face service won't start | Confirm JetPack is installed on the J40 series device — the container bind-mounts host CUDA/TensorRT |
 | Face service takes minutes on first start | On a JetPack version other than 6.2 the backend rebuilds the TensorRT engines from ONNX; this is one-off |
 
 ### Target {#warehouse_2b_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
 
-Run directly on this machine — only applicable when it is the J4012 itself.
+Run directly on this machine — only applicable when it is the J40 series device itself.
 
 ### Wiring
 
@@ -837,20 +837,20 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-Deploy OpenVoiceStream on the J4012 to provide speech recognition, synthesis and voiceprint. The voice AI service in the next step lands on the same J4012 and connects to it.
+Deploy OpenVoiceStream on the J40 series device to provide speech recognition, synthesis and voiceprint. The voice AI service in the next step lands on the same J40 series device and connects to it.
 
 This tier runs speech locally and calls a cloud LLM, so no local large model is deployed — that leaves the Jetson's GPU budget for concurrent speech sessions alongside the face recognition service from Step 3.
 
 ### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
-Deploy directly on this machine — only applicable when it is the J4012 itself. Models download automatically — no offline package needed.
+Deploy directly on this machine — only applicable when it is the J40 series device itself. Models download automatically — no offline package needed.
 
 ### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
 ### Wiring
 
-1. Connect the J4012 to power and ethernet
-2. Enter the J4012's IP address and SSH credentials (the same device as Step 3)
+1. Connect the J40 series device to power and ethernet
+2. Enter the J40 series device's IP address and SSH credentials (the same device as Step 3)
 3. Click Deploy and wait for the models to download and the service to start
 
 The service listens on **8621** and admits **3 concurrent voice sessions**, one per Watcher. A 4th is rejected with `4429 too_many_sessions`. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
@@ -878,7 +878,7 @@ Local models are pinned to the top of every list — no paging needed.
 
 Deploy the voice AI service and its management console, which give the Watcher its voice interaction capability. Select "**Private Cloud**" mode and fill in:
 
-- **Voice Service Address**: the **J4012's** LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
+- **Voice Service Address**: the **J40 series device's** LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
 - **LLM API URL / model name / API key**: your cloud LLM (DeepSeek, Qwen, etc.)
 
 Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
@@ -895,7 +895,7 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 
 ### Wiring
 
-1. Enter J4012 IP address and SSH credentials
+1. Enter J40 series device IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
 
 ### Troubleshooting
@@ -922,13 +922,13 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 4. **Don't join WiFi yet** — tap "**Advanced Options**" at the top of the page and enter this OTA address:
 
    ```
-   http://<J4012 IP>:18002/xiaozhi/ota/
+   http://<J40 series device IP>:18002/xiaozhi/ota/
    ```
 
    Tap Save. This is what decides which server the device talks to — skip it and the Watcher falls back to the default public server.
 5. Go back to the setup page, wait about 5 seconds for the WiFi scan to finish, pick a **2.4GHz** network, enter the password, then tap "Connect"
 6. The device reboots automatically once connected
-7. Open `http://<J4012 IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
+7. Open `http://<J40 series device IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
 > **Enabling face recognition**: the recognition service was deployed alongside the
 > warehouse system in Step 3 (its own container on port 8001). After Wi-Fi setup, say
@@ -964,7 +964,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 **A. Log in to the console**
 
-1. Open `http://<J4012 IP>:18002` in your browser
+1. Open `http://<J40 series device IP>:18002` in your browser
 2. Username `admin`, initial password `Seeed@2026`
 3. ⚠️ **Change the password immediately after your first login** (account menu in the top right → Change Password)
 
@@ -989,7 +989,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 **E. Add it to the warehouse system**
 
-10. Open `http://<J4012 IP>:2125` in your browser
+10. Open `http://<J40 series device IP>:2125` in your browser
 11. Go to "Agent Configuration" on the left sidebar, click "Add Agent", fill in the name
 12. Paste the endpoint URL you just copied into the Endpoint field
 13. Click "Save and Start"
@@ -1031,7 +1031,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5 before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
 | Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
 | Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
@@ -1061,7 +1061,7 @@ Your data stays on your network. Try saying "How many apples left?" to test.
 2. **Each site's Watcher is connected** — its Agent card on the console shows "Connected" for the MCP Endpoint.
 3. **Voice stock-in echoes back, per site** — say "Stock in 10 boxes of apples" on each Watcher; each replies confirming the item and total for its own site.
 4. **A query works** — say "How many apples left?" on one Watcher and confirm the count is scoped to that site, not mixed with another.
-5. **No error-level logs** — on the J4012, `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
+5. **No error-level logs** — on the J40 series device, `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
 
 ---
 
@@ -1072,8 +1072,8 @@ Run everything locally including LLM and TTS - no internet required after deploy
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2135-12 (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
-| reComputer Robotics J5011 | Runs local LLM and TTS, fully offline |
+| reComputer R2000 series (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
+| reComputer J50 series | Runs local LLM and TTS, fully offline |
 
 **What you'll get:**
 - 100% offline operation - works without internet
@@ -1082,7 +1082,7 @@ Run everything locally including LLM and TTS - no internet required after deploy
 
 ✅ Face recognition supported
 
-**Requirements:** reComputer Robotics J5011 · Internet needed for initial deployment only
+**Requirements:** reComputer J50 series · Internet needed for initial deployment only
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32_t3 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -1153,13 +1153,13 @@ Run the warehouse system on this computer.
 
 ### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to reComputer R2135-12 edge device.
+Deploy to reComputer R2000 series edge device.
 
 ### Wiring
 
 ![Wiring](gallery/R1100_connected.png)
 
-1. Connect R2135-12 to power and ethernet, ensure it's on the same network as your computer
+1. Connect R2000 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
 3. Enter username `recomputer`, password `12345678`
 4. Click Deploy and wait for installation to complete
@@ -1205,7 +1205,7 @@ Deploy directly on this Jetson (the same device running SenseCraft Solution). Mo
 
 ### Wiring
 
-1. Connect Jetson (reComputer Robotics J5011) to power and ethernet
+1. Connect Jetson (reComputer J50 series) to power and ethernet
 2. Enter Jetson IP address and SSH credentials
 3. Click Deploy and wait for the models to download and services to start
 
@@ -1228,7 +1228,7 @@ Two containers come up: voice service on **8621**, LLM on **8000**. **Note this 
 
 Local models are pinned to the top of every list — no paging needed.
 
-Deploy the voice AI service and its management console on the R2135-12. Select "**Edge Computing**" mode and fill in two addresses:
+Deploy the voice AI service and its management console on the R2000 series device. Select "**Edge Computing**" mode and fill in two addresses:
 
 - **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1` — the value is read from inside a container)
 - **Local LLM Address**: the same Jetson's LAN IP, port 8000 (leave empty if co-located)
@@ -1247,14 +1247,14 @@ Model addresses, the device access address and the MCP endpoint are then configu
 
 ### Wiring
 
-1. Enter R2135-12 IP address and SSH credentials
+1. Enter R2000 series device IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect to Jetson | Check if R2135-12 and Jetson are on the same network |
+| Cannot connect to Jetson | Check if R2000 series device and Jetson are on the same network |
 | Response is slow | Confirm Jetson service is running, visit `http://Jetson-IP:8000/v1/models` to check |
 
 ---
@@ -1376,7 +1376,7 @@ Check the warehouse web interface to see inventory changes after speaking.
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a Raspberry Pi 5 before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
+| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
 | Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
 | Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
 
@@ -1403,8 +1403,8 @@ Your fully offline warehouse system is ready!
 
 #### Acceptance checklist
 
-1. **All three health endpoints respond** — `curl -f http://<server-ip>:2125/health` (warehouse, on the R2135-12), `curl -f http://<jetson-ip>:8621/readyz` (speech, on the J5011), and `curl -f http://<jetson-ip>:8000/v1/models` (LLM, on the J5011) all return success.
-2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the R2135-12 and J5011 connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
+1. **All three health endpoints respond** — `curl -f http://<server-ip>:2125/health` (warehouse, on the R2000 series device), `curl -f http://<jetson-ip>:8621/readyz` (speech, on the J50 series device), and `curl -f http://<jetson-ip>:8000/v1/models` (LLM, on the J50 series device) all return success.
+2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the R2000 series device and J50 series device connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
 3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
 4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
-5. **No error-level logs** — on the R2135-12, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J5011, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
+5. **No error-level logs** — on the R2000 series device, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J50 series device, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
