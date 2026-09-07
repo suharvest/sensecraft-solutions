@@ -4,6 +4,8 @@
 
 | File | Origin | Contains real face imagery |
 |---|---|---|
+| `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
+| `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
 | `ui-events.png` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-persons.png` | Screenshot of the management console, running on synthetic demo data | No |
@@ -15,7 +17,14 @@ that they all end at — the lock and its supply stay with the door-control part
 Boxes, arrows, product names, protocol names, port numbers and pin labels; no
 photograph, no captured frame, no face.
 
-## The three screenshots are synthetic
+## The two console-live screenshots are from a real run
+
+`console-devices-live.png` and `console-persons-live.png` were captured from the
+management console while a reCamera PoE unit was reporting in, on 2026-09-07. The
+person entries are enrolment fixtures, not photographs of identifiable people, and
+no face image is visible in either screenshot.
+
+## The three ui-*.png screenshots are synthetic
 
 All three were taken from `tools/screenshot_ui.py` in the upstream repository
 against the demo server (`tools/web_demo.py`), which runs on an in-memory MQTT
