@@ -273,13 +273,13 @@ Grafana 面板已经运行（登录账号 `admin` / `admin`）。
 
 ---
 
-## 套餐: IP 摄像头 + 树莓派 5（Hailo） {#hailo}
+## 套餐: IP 摄像头 + reComputer R2000（Hailo） {#hailo}
 
 保留现有 IP 摄像头，加一块 Hailo-8 加速卡在本地跑检测。热路径是原生 C++，容器里没有 Torch / Ultralytics / ONNX Runtime / Python。
 
 | 设备 | 用途 |
 |------|------|
-| 树莓派 5 + Hailo-8（或 reComputer R 系列） | 在加速卡上运行人流检测，结果发到 MQTT |
+| reComputer R2000 系列（带 Hailo-8） | 在加速卡上运行人流检测，结果发到 MQTT |
 | IP 摄像头（RTSP） | 任何支持 RTSP 输出的摄像头 |
 | 电脑 或 同一块板卡 | 运行 MQTT broker + InfluxDB + Grafana 看板 + 视频网关 |
 
