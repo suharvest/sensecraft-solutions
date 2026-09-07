@@ -93,9 +93,13 @@ def _strip_noise(line: str) -> str:
 
 def units_from_text_file(path: Path, rel: str) -> list[Unit]:
     units: list[Unit] = []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    # An odd number of fence markers means the file's fences do not pair up, and
+    # honouring them would silently swallow everything after the stray one.
+    fenced = sum(1 for line in lines if CODE_FENCE.match(line)) % 2 == 0
     in_fence = False
-    for number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        if CODE_FENCE.match(raw):
+    for number, raw in enumerate(lines, 1):
+        if fenced and CODE_FENCE.match(raw):
             in_fence = not in_fence
             continue
         if in_fence:
@@ -355,6 +359,8 @@ def check_preset_families(
     lines = path.read_text(encoding="utf-8").splitlines()
     intro = data.get("intro") or {}
     catalog = intro.get("device_catalog") or {}
+    if not isinstance(catalog, dict):
+        return []
     family_models: dict[str, list[str]] = rules["family_models"]
     family_aliases: dict[str, list[str]] = rules.get("family_aliases", {})
 
@@ -376,7 +382,7 @@ def check_preset_families(
             for option in group.get("options") or []:
                 if option.get("device_ref"):
                     refs.add(option["device_ref"])
-        families = {catalog.get(ref, {}).get("family_id", ref) for ref in refs}
+        families = {(catalog.get(ref) or {}).get("family_id", ref) for ref in refs}
         families |= refs
         if not families & set(family_models):
             continue  # preset has no catalogued compute device; nothing to compare

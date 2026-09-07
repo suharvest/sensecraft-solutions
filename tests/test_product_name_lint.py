@@ -378,3 +378,53 @@ def test_sync_note_points_at_the_hub_copy(rules):
     assert "seeed-solutions-hub" in " ".join(rules["sync"]["copies"])
     assert rules["prefer_family"] is True
     assert rules["soc_family_map"]["Raspberry Pi 5"].startswith("reComputer R2000")
+
+
+# --------------------------------------------------------------------------
+# scanner robustness
+# --------------------------------------------------------------------------
+
+
+def test_fenced_code_is_skipped(tmp_path, rules):
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/description.md",
+        "intro\n```bash\necho reComputer R\n```\noutro\n",
+    )
+    assert not findings
+
+
+def test_an_unclosed_fence_does_not_swallow_the_rest_of_the_file(tmp_path, rules):
+    """An odd fence count is malformed markdown; over-report rather than skip."""
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/description.md",
+        "```bash\necho hi\nand then: reComputer R\n",
+    )
+    assert "bare-recomputer-r" in rule_ids(findings)
+
+
+def test_a_null_device_catalog_entry_does_not_crash(tmp_path, rules):
+    findings = scan(
+        tmp_path,
+        rules,
+        "solutions/demo/solution.yaml",
+        "intro:\n"
+        "  device_catalog:\n"
+        "    recomputer_j40:\n"
+        "  presets:\n"
+        "    - id: p1\n"
+        "      name: reComputer J30 Series\n"
+        "      device_groups:\n"
+        "        - {id: g1, device_ref: recomputer_j40}\n",
+    )
+    assert "preset-family-mismatch" in rule_ids(findings)
+
+
+def test_unparseable_yaml_is_skipped_rather_than_raised(tmp_path, rules):
+    assert (
+        scan(tmp_path, rules, "solutions/demo/solution.yaml", "intro: [unclosed\n")
+        == []
+    )
