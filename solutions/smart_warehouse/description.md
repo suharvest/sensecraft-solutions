@@ -1,8 +1,6 @@
 ## What This Solution Does
 
-Warehouse management systems are powerful, but the learning curve is steep — training sessions, memorizing menu locations, mastering complex workflows. Many warehouse workers prefer writing on paper first, then asking someone to enter data later.
-
-This solution turns complex system operations into **speaking** — say "Stock in 10 Watchers" and it's done, ask "How many items on shelf A3?" and get an instant answer. No training needed, just talk.
+This solution replaces the warehouse system's menus and forms with **speech**: say "Stock in 10 Watchers" and the record is written; ask "How many items on shelf A3?" and the answer comes back. Workers enter data where they are standing, instead of walking to a terminal or writing it down for later entry.
 
 ## Core Value
 
