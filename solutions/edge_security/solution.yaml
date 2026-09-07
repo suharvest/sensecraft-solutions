@@ -32,6 +32,21 @@ intro:
       caption_i18n:
         zh: RK3588 板卡上运行的检测器取下的一帧。四个人被跟踪，其中三人站在走廊尽头的红色禁区里，一人正朝镜头方向走过琥珀色越线；箭头指向规则判为 forward 的方向。角标数值取自板卡自己的上报——yolov8n int8 跑在 NPU 上，解码走 Rockchip 硬解，13.3 fps，单次推理 35.7 ms。
     - type: image
+      src: gallery/workbench-video-wall.jpg
+      caption: The workbench video wall. Four tiles, each carrying the detector's boxes with track id and score plus that stream's restricted zone and tripwire, and each with its own confidence slider reading a different value - 0.35, 0.45, 0.50, 0.40. The strip above reads 3 of 4 streams live, one down, one on software decode. The fourth tile is greyed because its device is offline and says so. Captured against the kit's mock hub, so the picture inside each tile is a colour-bar test image rather than a camera; everything else is the shipped console.
+      caption_i18n:
+        zh: 工作台的视频墙。四格，每格叠检测器给出的框（带 track id 和分数）以及该路自己的禁区与越线，每格还有独立的置信度滑块，读数各不相同——0.35、0.45、0.50、0.40。上方一条写着 4 路里 3 路在线、1 路离线、1 路软解码。第四格因为设备离线而转灰并写明原因。取自本套件的 mock hub，所以格子里的画面是彩条测试图而不是摄像头；其余都是实际发布的控制台。
+    - type: image
+      src: gallery/workbench-video-wall-fullscreen.jpg
+      caption: The same wall on F - fullscreen, nine tiles, top bar gone. This is the mode for an HDMI screen in a control room; Esc brings the navigation back. Five of these nine cameras were attached from the browser without touching a config file or restarting a container.
+      caption_i18n:
+        zh: 同一面墙按下 F 之后——全屏、九格、顶栏消失。这就是控制室接 HDMI 大屏的模式，Esc 退回导航。这九路里有五路是在浏览器里挂上去的，没有动配置文件，也没有重启容器。
+    - type: image
+      src: gallery/workbench-add-camera.gif
+      caption: Adding a camera while the system runs. The RTSP address is typed in, its password masked in the echo below the field, and the button stays on "connecting to the camera" until the detector has actually opened the source - so when the dialog closes, the new tile on the wall is already producing frames rather than queued.
+      caption_i18n:
+        zh: 系统运行中加一路摄像头。填入 RTSP 地址，下方回显时密码打码；按钮停在「正在连接摄像头」直到检测器真的把流打开——所以对话框一关，墙上新出现的那一格就已经在出图，而不是排在队列里。
+    - type: image
       src: gallery/workbench-alert.gif
       caption: The workbench while an RK3588 board keeps reporting. Line-crossing alerts from rk3588-01/cam-0 drop in at the top of the list, each carrying the corridor frame the detector captured at that moment, and clicking Acknowledge turns the row green with the operator name and time while the pending count drops and the acknowledged count rises.
       caption_i18n:

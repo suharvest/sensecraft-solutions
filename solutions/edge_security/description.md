@@ -26,20 +26,31 @@ hardware join later without touching the hub.
 instead of polling, and the rule layer can sit on a different machine from the
 detectors.
 
-**What is not a like-for-like replacement.** The older package was one process
-with a video-wall dashboard; this one is a detector layer plus a hub, and four
-of its browser conveniences did not survive that split:
+**Four browser conveniences did not survive the split at first, and have since
+been restored.** The older package was one process with a video-wall dashboard;
+this one is a detector layer plus a hub, and rebuilding them across that split
+took a control channel the contract did not have:
 
 | What the older dashboard did | Here |
 |---|---|
-| Add a camera from the dashboard's camera-management panel, while running | **Replaced, and it costs more.** One detector container handles one camera; a second camera means a second container with its own `device_id`, `stream_id` and `preview_port`, or another board. There is no button for it |
-| Adaptive grid showing every camera's annotated video on one page | **Gone.** The workbench is an alert list with a snapshot per alert, not a video wall |
-| HDMI fullscreen mode, toggled with the F key | **Gone.** There is no wall-display mode |
-| Tune the detection confidence from the dashboard | **Replaced by a config file.** `conf_threshold` in `config/detector.yaml`, applied on redeploy — not a live control in the browser |
-| Continuous annotated video on the main panel | **Replaced.** A snapshot is stored per alert, and the rules editor draws on a still frame proxied from the detector |
+| Adaptive grid showing every camera's annotated video on one page | **Restored.** The workbench has a video wall: 1/2/4/6/9 tiles, each with the detector's boxes and that stream's zone and line drawn over the picture |
+| HDMI fullscreen mode, toggled with the F key | **Restored.** `F` enters and leaves, `Esc` leaves |
+| Tune the detection confidence from the dashboard | **Restored, per stream.** A slider on each tile, pushed to the running detector — no restart — and written back to `config/detector.yaml` so it survives one |
+| Add a camera from the dashboard's camera-management panel, while running | **Restored.** RTSP address and a name in a dialog; the detector attaches the stream and the tile appears. One detector process now carries several cameras |
+| Continuous annotated video on the main panel | **Restored as tiles, not as a proxy.** Each tile embeds the stream's own live address and the browser fetches it directly; the hub carries only the overlay JSON |
 
-If a control-room video wall is what the site actually wants, this package does
-not give it back, and that is the one real regression in the merge.
+One difference from the old dashboard is deliberate and worth knowing before
+sizing a deployment: **the video does not pass through the hub.** The old
+package served the annotated MJPEG itself, which costs it a stream per viewer.
+Here the browser talks to the camera side directly, so the hub's cost is a few
+JSON requests a second no matter how many people are watching — but the browser
+must be able to reach the detector's own address, which on a segmented network
+means a route the old single-box design never needed.
+
+The other difference is what the console says when a change fails. Pushing a
+setting to a detector over MQTT can time out, and a timeout is not a failure and
+not a success: the dialog stays open and says the result is unknown rather than
+redrawing as if the site had changed.
 
 **One number did not carry over.** The older package advertised YOLO26n at
 "~268 QPS, ~3.7 ms" and "30+ FPS on Orin NX" without naming a bench or a clip.

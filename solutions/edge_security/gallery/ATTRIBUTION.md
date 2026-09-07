@@ -74,3 +74,25 @@ asset here does. Two limits go with it:
 The same package's `demo1.gif` and `cover.png` were **not** carried over:
 `demo1.gif` shows the same overlay style with fewer rule types on screen, and
 this package already has its own cover taken from its own detector.
+
+## The four workbench assets (2026-09-07)
+
+`workbench-video-wall.jpg`, `workbench-video-wall-fullscreen.jpg`,
+`workbench-confidence-slider.jpg` and `workbench-add-camera.gif` are a different
+kind of asset from the ones above, and the difference matters when reading them.
+
+They were captured against `web/mock-server.js` in the edge-security-kit
+repository, not against a board. **The picture inside each tile is the repo's
+colour-bar test image, not a camera.** Everything around it is the shipped
+frontend talking to the shipped hub API: the grid and its layouts, the overlay
+boxes with their track ids and scores, the zone polygons and directed lines, the
+per-stream confidence sliders and their values, the summary strip, the offline
+tile, and the add-camera dialog including its masked RTSP echo.
+
+They are here because the four features are UI, and a claim about UI with
+nothing to compare it against is a claim that quietly rots. A capture with a
+real corridor behind the tiles is worth making on the next board run; until then
+these say what the console does without implying a scene that was not filmed.
+
+Source set and reproduction steps: `media/workbench-2026-09-07/README.md` in
+suharvest/edge-security-kit.
