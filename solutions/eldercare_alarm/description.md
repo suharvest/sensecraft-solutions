@@ -162,9 +162,10 @@ when the cameras are in place and adding a compute box is not.
   the one the cameras already publish to. The bundled broker allows anonymous
   connections for commissioning on a trusted LAN — put credentials and TLS on it
   before the device is reachable from anywhere else.
-- **The alarm service image is not published yet.** As of packaging it exists only
-  as a local build from the upstream project's "docker/Dockerfile". Build and
-  retag it, or push it, before a deploy of the Orin or Hailo preset can succeed.
+- **The alarm service image is published on Harbor** for both `arm64`
+  (`eldercare-alarm-arm64:0.1.0`) and `amd64` (`eldercare-alarm-amd64:0.1.0`);
+  the Orin and Hailo deploy steps pull it directly rather than building it on
+  the device.
 - **Telegram and email are interface stubs.** Selecting them raises an error that
   lands in the retry queue rather than silently dropping the notification, which
   is the intended behaviour but is not a working channel.

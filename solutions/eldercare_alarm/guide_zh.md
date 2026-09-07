@@ -19,7 +19,7 @@
 区域是画面上的归一化矩形，重新对准摄像头会在无声无息中让它们失效。而 `no_motion` 告警在
 睡眠时段一定会触发，除非区域排除床位或超时长于一次午睡。
 
-开始之前还有一件事：告警服务镜像尚未发布，见下面的前置条件。
+告警服务镜像（`eldercare-alarm-arm64:0.1.0`）已发布到 Harbor，部署步骤直接拉取。
 
 ## 步骤 1: 部署告警栈 {#deploy_orin_alarm type=docker_deploy required=true config=devices/orin_alarm.yaml}
 
@@ -35,10 +35,10 @@
 - 已安装 TensorRT 开发包——这一步需要 `/usr/src/tensorrt/bin/trtexec`。
 - 至少 10 GB 可用空间。
 - 摄像头的 RTSP 地址，先用 VLC 测通。
-- **`eldercare-alarm-arm64:0.1.0` 镜像还不在 registry 里。** 在设备上或在能推送的机器上，
-  从上游项目构建并打成 compose 文件期望的 tag：
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
-  没有它，`eldercare-alarm` 服务拉不到镜像，部署会失败。
+- 部署前确认设备能连上 registry：
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0`。
+  镜像已发布（sha256 `11623704f2af…`）；这里拉取失败说明是 registry/网络问题，
+  不是镜像不存在。
 
 ### 故障排查
 
@@ -47,7 +47,7 @@
 | `This target is not a NVIDIA Jetson` | 地址指到了别的机器。核对 IP 与 SSH 用户名。 |
 | `trtexec not found` | 从 JetPack SDK 组件里安装 TensorRT 开发包。 |
 | 引擎构建超时 | YOLO11m 比 YOLO11s 慢不少。重跑一次部署——ONNX 文件与时序缓存都保留着，第二次快得多。 |
-| `eldercare-alarm-arm64` 报 `pull access denied` | 在该镜像构建或推送之前属预期现象，见前置条件。 |
+| `eldercare-alarm-arm64` 报 `pull access denied` | 检查 registry 鉴权与设备的网络可达性——镜像本身已发布。 |
 | 验证阶段报 `No detector result` | 检测器没看到摄像头。先在 Jetson 上用 VLC 测 RTSP 地址，再看 `docker logs eldercare_alarm_orin-fall-detection-1`。 |
 | 验证阶段卡在告警 API | `docker logs eldercare_alarm_orin-eldercare-alarm-1` 会指出它拒绝的配置项。生成的文件是部署目录下的 `config/eldercare.yaml`。 |
 | 现场无事时始终没有告警 | 这是预期——超时就是为此存在的。要验证链路，把无人超时改成 1 分钟、重新部署，然后离开房间。 |
@@ -157,7 +157,7 @@
 超时已经把这一点考虑进去。
 
 此外这个套餐与 HailoRT 4.21 存在 ABI 绑定——GStreamer 插件、用户库与内核驱动必须都是这个
-版本。以及同上：告警服务镜像尚未发布。
+版本。告警服务镜像（`eldercare-alarm-arm64:0.1.0`）已发布到 Harbor，部署步骤直接拉取。
 
 ## 步骤 1: 部署告警栈 {#deploy_hailo_alarm type=docker_deploy required=true config=devices/hailo_alarm.yaml}
 
@@ -171,9 +171,10 @@
   `/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so`。
 - 至少 6 GB 可用空间。
 - 摄像头的 RTSP 地址，先用 VLC 测通。
-- **`eldercare-alarm-arm64:0.1.0` 镜像还不在 registry 里。** 从上游项目构建并打成
-  compose 文件期望的 tag：
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
+- 部署前确认设备能连上 registry：
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0`。
+  镜像已发布（sha256 `11623704f2af…`）；这里拉取失败说明是 registry/网络问题，
+  不是镜像不存在。
 
 ### 故障排查
 
@@ -182,7 +183,7 @@
 | `No /dev/hailo0` | 加速器没插好或驱动没加载。`hailortcli fw-control identify` 应该能返回。 |
 | `libhailort.so.4.21.0 not found` | 装的是别的 HailoRT 小版本。插件、用户库与驱动要一起换，只改挂载没用。 |
 | HEF 下载失败或校验不过 | 该地址是 Hailo Model Zoo v2.15 官方构建。重跑这一步，未完成的分片会续传。 |
-| `eldercare-alarm-arm64` 报 `pull access denied` | 在该镜像构建或推送之前属预期现象，见前置条件。 |
+| `eldercare-alarm-arm64` 报 `pull access denied` | 检查 registry 鉴权与设备的网络可达性——镜像本身已发布。 |
 | 验证阶段报 `No detector result` | 先看容器健康状态——这一步会打印出来。再从设备上核对 RTSP 地址，并看 `docker logs eldercare_alarm_hailo-fall-detection-1`。 |
 | 验证阶段卡在告警 API | `docker logs eldercare_alarm_hailo-eldercare-alarm-1` 会指出它拒绝的配置项。 |
 
@@ -299,9 +300,10 @@ reCamera 的事件流尚未在硬件上为本方案核实过。确切的主题�
 
 - 摄像头上已经部署并运行着 Fall Detection。
 - 同网段有一台装好 Docker 与 compose 插件的网关机器。
-- **告警服务镜像尚未发布。** 按网关的架构从上游项目构建并打 tag，或把
-  `ELDERCARE_ALARM_IMAGE` 指向你自己的 tag：
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`
+- 告警服务镜像已发布到 Harbor，两种架构都有（`eldercare-alarm-amd64:0.1.0`、
+  `eldercare-alarm-arm64:0.1.0`）。起栈前先按网关架构确认能连上 registry：
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-<arch>:0.1.0`，
+  或把 `ELDERCARE_ALARM_IMAGE` 指向你自己的 tag。
 - 网关上有 `mosquitto_sub`，用于在配置之前先读一下摄像头的主题。
 
 ### 故障排查
@@ -311,7 +313,7 @@ reCamera 的事件流尚未在硬件上为本方案核实过。确切的主题�
 | `mosquitto_sub -t '#'` 什么都没有 | 摄像头发到的是它自己的 broker，不是这一个。把 `mqtt.host` 指向摄像头的 broker，或者把摄像头改成发到网关。 |
 | 主题和两个示例都对不上 | 以你实际看到的为准。2002 的主题映射到 `fall_result_v1`，Pro 的映射到 `recamera_pro_state`。不要靠主题形状猜。 |
 | `eldercare-alarm` 反复重启 | `docker compose logs eldercare-alarm` 会指出它拒绝的配置项。 |
-| 报 `pull access denied` | 在镜像构建或推送之前属预期现象，见前置条件。 |
+| 报 `pull access denied` | 检查 registry 鉴权与网关的网络可达性——镜像本身已发布。 |
 | 跌倒能报但 `no_person` 从不触发 | 摄像头可能在无人时不发布。让画面里没人，盯着主题看——如果消息停了，那么在检测器被改成持续发布之前，这类告警在这台摄像头上就用不了。 |
 
 ## 步骤 2: 打开确认页面 {#verify_recamera_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}
