@@ -273,13 +273,13 @@ If the backend runs on this same board, leave the MQTT address at `127.0.0.1`.
 
 ---
 
-## Preset: IP Camera + reComputer R2000 (Hailo) {#hailo}
+## Preset: IP Camera + reComputer Industrial R20 (Hailo) {#hailo}
 
 Keep your existing IP cameras — a Hailo-8 accelerator runs the detector locally. The hot path is native C++: no Torch, Ultralytics, ONNX Runtime or Python in the container.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R2000 series (with Hailo-8) | Runs people-flow detection on the accelerator, publishes to MQTT |
+| reComputer Industrial R20 series (with Hailo-8) | Runs people-flow detection on the accelerator, publishes to MQTT |
 | IP camera (RTSP) | Any camera with an RTSP output |
 | Computer, or the same board | Runs the MQTT broker + InfluxDB + Grafana dashboard + video gateway |
 
