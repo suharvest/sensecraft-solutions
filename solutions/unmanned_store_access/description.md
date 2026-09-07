@@ -87,8 +87,9 @@ outside the library-distribution and GPIO-readback paths runs as a pure
 software loop on a macOS development machine, with a fake actuator, an
 in-memory MQTT broker and a fake recogniser.
 
-Seven boundary metrics are defined. One carries numbers and six are empty, each
-with the reason recorded rather than guessed at.
+Seven boundary metrics are defined, covered by nine rows in the table below —
+face-library activation has a row per platform. Three rows carry numbers and
+six are empty, each with the reason recorded rather than guessed at.
 
 All sources below are paths in the upstream repository `unmanned-store-access`.
 
