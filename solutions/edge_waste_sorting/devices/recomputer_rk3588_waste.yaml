@@ -43,10 +43,17 @@ steps:
           --target rk3588 --calib-sizes 256 --algos mmse
 
       `--data-root` must contain a `train/` directory of class folders; the
-      script samples 256 calibration images from it. Then check the result:
+      script samples 256 calibration images from it. The build lands in
+      `out-rk3588/`, so check and copy it from there:
 
-        sha256sum efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+        sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
         # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+
+        ssh <user>@<board> 'mkdir -p ~/waste'
+        scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
+            <user>@<board>:~/waste/
+
+      Every command in the later steps runs from `~/waste` on the board.
 
       That is the INT8 build, 4,044,169 bytes, and it is the one this preset
       deploys. An fp16 build exists (`6225423e…`, 7,399,919 bytes); it returns
@@ -69,10 +76,16 @@ steps:
             --target rk3588 --calib-sizes 256 --algos mmse
 
         `--data-root` 下必须有一个按类分文件夹的 `train/` 目录，脚本从中抽
-        256 张校准图。然后核对结果：
+        256 张校准图。产物落在 `out-rk3588/`，从那里核对并拷贝：
 
-          sha256sum efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+          sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
           # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+
+          ssh <user>@<board> 'mkdir -p ~/waste'
+          scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
+              <user>@<board>:~/waste/
+
+        后面几步的命令都在板子的 `~/waste` 目录下执行。
 
         这是 INT8 版，4,044,169 字节，本套餐部署的就是它。另有 fp16 版
         （`6225423e…`，7,399,919 字节），物料 top-1 与它相同、时延约为两倍，
@@ -91,11 +104,14 @@ steps:
         strings /usr/lib/librknnrt.so | grep 'librknnrt version'
         # librknnrt version: 2.3.2 (...)
 
-      Then install the matching `rknn_toolkit_lite2` wheel for the board's
-      Python into a virtualenv:
+      The wheels ship in the Rockchip `rknn-toolkit2` repository under
+      `rknn-toolkit-lite2/packages/`, one per Python minor version; take the
+      `aarch64` wheel whose version equals the `librknnrt` above and whose
+      `cpXX` tag matches the board's `python3 -V`. Copy it to `~/waste` and
+      install it into a virtualenv:
 
         python3 -m venv --system-site-packages ~/waste/venv
-        ~/waste/venv/bin/pip install rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
+        ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
 
       `--system-site-packages` reuses the system numpy, which on this board is
       already a version the binding accepts.
@@ -108,10 +124,13 @@ steps:
           strings /usr/lib/librknnrt.so | grep 'librknnrt version'
           # librknnrt version: 2.3.2 (...)
 
-        然后把与板子 Python 版本匹配的 `rknn_toolkit_lite2` wheel 装进 venv：
+        wheel 随 Rockchip 的 `rknn-toolkit2` 仓库发布，在
+        `rknn-toolkit-lite2/packages/` 下按 Python 小版本各有一个；取版本号与上面
+        `librknnrt` 相同、`cpXX` 标签与板子 `python3 -V` 匹配的那个 `aarch64` wheel。
+        拷到 `~/waste` 后装进 venv：
 
           python3 -m venv --system-site-packages ~/waste/venv
-          ~/waste/venv/bin/pip install rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
+          ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
 
         `--system-site-packages` 复用系统的 numpy——这块板上的版本绑定本来就接受。
     optional: false
