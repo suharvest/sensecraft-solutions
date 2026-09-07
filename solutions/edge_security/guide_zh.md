@@ -53,7 +53,7 @@ TensorRT 引擎在部署过程中于你的设备上构建，约需五到六分�
 | 工作台里看不到设备 | 检测器每 30 秒上报一次状态，等一个周期；再确认 `config/detector.yaml` 里的 `mqtt_host` 是 `mosquitto`。 |
 | 一个人站着不动却连续报警两次 | 检测器跟不上视频流，跟踪目标被回收后换了新的 track id，等于又"进"了一次区域。本套餐下一路 720p 摄像头在 200 ms 的帧周期里只花 7.24 ms，所以先怀疑摄像头或网络，再怀疑检测器。 |
 
-### 部署目标 {#jetson_hub_host type=remote device_name="reComputer J" config=devices/jetson_hub_stack.yaml default=true}
+### 部署目标 {#jetson_hub_host type=remote device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml default=true}
 
 ## 步骤 2: 打开告警工作台 {#dashboard_edge_security_jetson_hub type=web_dashboard required=true config=devices/jetson_hub_dashboard.yaml}
 
