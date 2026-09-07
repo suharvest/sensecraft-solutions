@@ -27,7 +27,7 @@ once you fill in the details and confirm — there is no separate signup step.
 If you forget that password, the recovery path documented in this guide is
 deleting the app (with its data) from Device Management and redeploying.
 
-**API keys — only needed for Tier 2B and Tier 3's private-cloud LLM option:**
+**Cloud LLM API keys — only needed for Tier 2B and Tier 3's private-cloud LLM option** (a separate, optional voice-service API key also exists — see Step 8's `OVS_API_KEYS` note — leave that one blank unless you enabled it):
 the Voice AI Service step asks for an **LLM API Key** (field `llm_api_key`,
 optional). Fill in the key given by whichever OpenAI-compatible
 provider you point the deployment at (e.g. DeepSeek's or Alibaba Cloud Model
@@ -431,7 +431,7 @@ Your voice-controlled warehouse system is ready!
 2. **Admin login works** — log in to `http://<server-ip>:2125` with the administrator account created in Step 5.
 3. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
 4. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
-5. **No error-level logs** — on the reComputer, `docker logs --since 10m mcp_warehouse | grep -i error` returns nothing during the two checks above.
+5. **No error-level logs** — on the reComputer, `docker logs --since 10m mcp_warehouse 2>&1 | grep -i error` returns nothing during the two checks above.
 
 Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
@@ -699,7 +699,7 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 2. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
 3. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
 4. **Face recognition fires** — after enrolling a face (Step 8), face the Watcher camera and confirm a recognition record appears in the warehouse system.
-5. **No error-level logs** — `for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c; done | grep -i error` returns nothing during the checks above.
+5. **No error-level logs** — `for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
 
 ---
 
@@ -1061,7 +1061,7 @@ Your data stays on your network. Try saying "How many apples left?" to test.
 2. **Each site's Watcher is connected** — its Agent card on the console shows "Connected" for the MCP Endpoint.
 3. **Voice stock-in echoes back, per site** — say "Stock in 10 boxes of apples" on each Watcher; each replies confirming the item and total for its own site.
 4. **A query works** — say "How many apples left?" on one Watcher and confirm the count is scoped to that site, not mixed with another.
-5. **No error-level logs** — on the J4012, `for c in mcp_warehouse mcp_face_rec seeed-voice-v091 xiaozhi-server; do docker logs --since 10m $c; done | grep -i error` returns nothing during the checks above.
+5. **No error-level logs** — on the J4012, `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
 
 ---
 
@@ -1407,4 +1407,4 @@ Your fully offline warehouse system is ready!
 2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the R2135-12 and J5011 connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
 3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
 4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
-5. **No error-level logs** — on the R2135-12, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c; done | grep -i error` returns nothing; on the J5011, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c; done | grep -i error` returns nothing, during the checks above.
+5. **No error-level logs** — on the R2135-12, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J5011, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.

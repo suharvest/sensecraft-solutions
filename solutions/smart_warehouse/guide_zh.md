@@ -16,7 +16,7 @@
 
 **首次管理员账号如何创建：** 套餐 0 没有管理员账号——你用 Watcher 的设备 ID 在 [warehouse.seeed.cn](https://warehouse.seeed.cn/) 自助注册。套餐一到三在部署完成后**首次访问浏览器** `http://<服务器IP>:2125` 时会弹出「设置管理员」对话框，填写管理员信息并确认后创建账号，没有独立的注册步骤。如果忘记密码，本指南记录的恢复办法是在设备管理中删除该应用（连同数据）后重新部署。
 
-**API Key——仅套餐二B、套餐三的私有云大模型选项需要：** 语音 AI 服务这一步会要求填写 **LLM API Key**（字段 `llm_api_key`，选填）。填入你所选的 OpenAI 兼容服务商（例如 DeepSeek 或阿里云百炼）的控制台生成的密钥，不是 Seeed 签发的。套餐三的全本地大模型路径完全不需要 Key。套餐 0 到 2A 都不需要 API Key，走的是你的 SenseCraft 账号鉴权。
+**云端大模型 API Key——仅套餐二B、套餐三的私有云大模型选项需要**（另有一个独立的、可选的语音服务 API Key，见步骤 8 的 `OVS_API_KEYS` 说明，未开启该项时留空即可）： 语音 AI 服务这一步会要求填写 **LLM API Key**（字段 `llm_api_key`，选填）。填入你所选的 OpenAI 兼容服务商（例如 DeepSeek 或阿里云百炼）的控制台生成的密钥，不是 Seeed 签发的。套餐三的全本地大模型路径完全不需要 Key。套餐 0 到 2A 都不需要 API Key，走的是你的 SenseCraft 账号鉴权。
 
 **磁盘空间要求（每个部署步骤前自动校验，低于下限会直接失败）：**
 
@@ -407,7 +407,7 @@ SenseCraft 体验版已就绪！
 2. **管理员能登录**——用步骤 5 创建的管理员账号登录 `http://<服务器IP>:2125`。
 3. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，应回复确认品名和新总量。
 4. **查询正常**——说「苹果还有多少」，回复应与仓库面板一致。
-5. **日志无 error**——在 reComputer 上执行 `docker logs --since 10m mcp_warehouse | grep -i error`，在以上两项检查期间应无输出。
+5. **日志无 error**——在 reComputer 上执行 `docker logs --since 10m mcp_warehouse 2>&1 | grep -i error`，在以上两项检查期间应无输出。
 
 ---
 
@@ -673,7 +673,7 @@ SenseCraft 体验版已就绪！
 2. **语音入库有回声**——对 Watcher 说「入库 10 箱苹果」，应回复确认品名和新总量。
 3. **查询正常**——说「苹果还有多少」，回复应与仓库面板一致。
 4. **人脸识别触发**——按步骤 8 录入人脸后，对着 Watcher 摄像头，确认仓库系统里出现识别记录。
-5. **日志无 error**——`for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c; done | grep -i error`，在以上检查期间应无输出。
+5. **日志无 error**——`for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
 
 ---
 
@@ -1034,7 +1034,7 @@ SenseCraft 体验版已就绪！
 2. **各点位 Watcher 均已连接**——控制台上对应 Agent 卡片的 MCP Endpoint 状态显示「已连接」。
 3. **各点位语音入库有回声**——在每台 Watcher 上说「入库 10 箱苹果」，各自回复该点位的品名和总量。
 4. **查询正常**——在某台 Watcher 上说「苹果还有多少」，数量应只属于该点位，不与其他点位混淆。
-5. **日志无 error**——在 J4012 上 `for c in mcp_warehouse mcp_face_rec seeed-voice-v091 xiaozhi-server; do docker logs --since 10m $c; done | grep -i error`，在以上检查期间应无输出。
+5. **日志无 error**——在 J4012 上 `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
 
 ---
 
@@ -1379,4 +1379,4 @@ SenseCraft 体验版已就绪！
 2. **断网也能用**——在路由器/网关处拔掉联网线（R2135-12、J5011 和 Watcher 之间的局域网连接保持不动），Watcher 在局域网内仍应可达。
 3. **断网状态下语音入库有回声**——保持断网，对 Watcher 说「入库 10 箱苹果」，应正常回复。
 4. **断网状态下查询正常**——说「苹果还有多少」，回复应与面板一致，全程保持断网。
-5. **日志无 error**——在 R2135-12 上 `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c; done | grep -i error`；在 J5011 上 `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c; done | grep -i error`；在以上检查期间均应无输出。
+5. **日志无 error**——在 R2135-12 上 `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`；在 J5011 上 `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error`；在以上检查期间均应无输出。
