@@ -1,0 +1,232 @@
+version: "1.0"
+id: p1_recamera_pro_wiring
+name: Wire the Relay and Arm the Gate
+name_i18n:
+  zh: 接线继电器并让门禁上线
+type: manual
+
+# f1-access (activated in the previous step) is disarmed until an access
+# config file exists on the device: recognition keeps running, but no pin is
+# exported and no access/v1/events message is published. That file carries a
+# per-device facedb HMAC key and the measured wiring posture (relay_contact /
+# fail_mode / gpio) — both are credentials or per-installation electrical
+# facts, so they are prepared here on the device itself rather than shipped
+# through the App Center config block in the previous step.
+#
+# GPIO130 IS UNVERIFIED ELECTRICALLY. Read-only evidence says it is free
+# (pinmux-pins: "pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)"; gpioinfo
+# agrees), and it has been driven and read back with nothing connected
+# (idle 0, one pulse, back to 0, no stuck-active, no reclaim). Its physical
+# identity on the board, idle/driven voltage and available drive current have
+# NOT been measured with a meter on any unit, and no LED, relay or door
+# controller has ever been connected. Do not skip the meter step below on the
+# strength of these numbers alone.
+
+steps:
+  - id: reach_device
+    name: Reach the camera as root
+    name_i18n:
+      zh: 以 root 登录摄像头
+    description: >-
+      SSH to the camera. Editing the access config under
+      /userdata/local/appdata/f1-access/ and writing the facedb signing key
+      both require root: /sys/class/gpio is open to root only, and the app
+      itself runs as root under appmgr's supervisor. Confirm the app is
+      installed and active first: `curl -s
+      http://127.0.0.1:8130/api/appMgr/list` should show `f1-access` with
+      `active: true`. If it is not active, the previous step
+      (devices/p1_recamera_pro.yaml) has not completed.
+    description_i18n:
+      zh: >-
+        SSH 登录摄像头。编辑 /userdata/local/appdata/f1-access/ 下的门禁配置、
+        写入 facedb 签名密钥都需要 root：/sys/class/gpio 只对 root 开放，
+        应用本身也是以 root 身份由 appmgr 的 supervisor 托管运行。先确认应用
+        已装且已激活：`curl -s http://127.0.0.1:8130/api/appMgr/list` 应显示
+        `f1-access`，`active: true`。如果不是，说明上一步
+        （devices/p1_recamera_pro.yaml）还没完成。
+    optional: false
+
+  - id: probe_gpio
+    name: Find a pin that is actually free, and measure it
+    name_i18n:
+      zh: 找一个真正空闲的引脚，并实测它
+    description: >-
+      Do not assume any pin is free. The surveyed unit had `gpio131` already
+      exported by another application (direction out, value 0) — the app
+      rejects `gpio = 131` while parsing the config, because it is in
+      `KNOWN_BUSY_GPIO`. The shipped default is `gpio130`, on read-only
+      evidence only: pinmux-pins reports
+      `pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)` and gpioinfo
+      agrees. One trap worth naming: libgpiod's `gpiochipN` numbering is not
+      the ordering of the sysfs bases — on this device libgpiod `gpiochip7`
+      maps to sysfs base 128, so inferring the base from the chip number is
+      off by a whole bank. List what is taken with `ls /sys/class/gpio` and
+      read each exported pin's `direction` and `value`. Then measure your
+      candidate pin with a meter — idle level, driven level, and the current
+      it can actually source — and confirm against the silkscreen or
+      schematic which line on the board it is. reCamera Pro's native outputs
+      swing 12-21 V while a UART or CAN pin reconfigured as GPIO gives 3.3 V,
+      and the relay module you buy has to match whichever you have. NONE OF
+      THIS HAS BEEN MEASURED on any unit: gpio130 has only ever been verified
+      to the level of "write value, read back 1". The app refuses to arm a
+      pin whose current direction and value disagree with the configured idle
+      state, and will not take it over unless explicitly told to. Leave that
+      refusal in place.
+    description_i18n:
+      zh: >-
+        不要假定任何引脚空闲。被盘点的那台设备上 `gpio131` 已被另一个应用 export
+        （direction 为 out，值 0），应用解析配置时会拒绝 `gpio = 131`，因为它在
+        `KNOWN_BUSY_GPIO` 里。出厂默认是 `gpio130`，依据仅为只读证据：
+        pinmux-pins 显示 `pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)`，
+        gpioinfo 同样是 unused。一个值得点名的坑：libgpiod 的 `gpiochipN` 编号
+        不等于 sysfs base 的顺序——这台设备上 libgpiod `gpiochip7` 对应 sysfs
+        base 128，按编号推 base 会错整整一个 bank。用 `ls /sys/class/gpio` 看
+        已占用的引脚，并逐个读它们的 `direction` 与 `value`。然后用万用表实测
+        候选引脚：空闲电平、驱动电平、实际可供电流，并对照丝印或原理图确认它是
+        板上哪一路。reCamera Pro 的原生输出摆幅 12-21 V，而改配成 GPIO 的 UART
+        或 CAN 脚是 3.3 V，你买的继电器模块必须匹配你手上的那一种。**这些一项
+        都没有实测过**：gpio130 只验到了"写 value 后能回读到 1"这一层。
+        引脚当前的 direction / value 与配置的空闲状态不符时应用拒绝上任，
+        且不会自作主张接管，除非显式要求。把这个拒绝保留着。
+    optional: false
+
+  - id: wire_relay
+    name: Wire LED first, relay second, door controller last, and declare the contact
+    name_i18n:
+      zh: 先接 LED，再接继电器，最后接门禁控制器，并声明触点口径
+    description: >-
+      In this order, and do not skip ahead. First an LED with a series
+      resistor on the pin: confirm the polarity and the pulse width are what
+      you configured. Then the relay module on its own supply, and confirm
+      the contact clicks once per pulse. Only then the relay's COM/NO dry
+      contact into the door controller's input — the lock, its supply and the
+      door controller are the door-control party's scope, outside this
+      solution's BOM. Getting the contact backwards leaves the door
+      controller in the wrong idle state and looks like a working
+      installation until somebody tests it. That is why `relay_contact` and
+      `fail_mode` have no default: `[pro] relay_contact` and `[pro] fail_mode`
+      in face-recognition.conf are mandatory and must be set from what you
+      measured on the controller, not from an assumption. Until measured, the
+      honest value is `unverified` on both, which is legal but named in a
+      warning on every start and means no door controller may be connected.
+      This solution's default posture is fail-safe (a fail-safe lock wired to
+      `NC` and `fail_mode = fail_safe`), because trapping people inside is
+      worse than letting them out; a fail-secure strike (`NO` / `fail_secure`)
+      is a fire-safety decision, not a config default.
+    description_i18n:
+      zh: >-
+        严格按这个顺序，不要跳步。先在引脚上接一个 LED 加限流电阻：确认极性与
+        脉宽就是你配的那样。再接继电器模块（用它自己的供电），确认每个脉冲触点
+        响一次。最后才把继电器的 COM/NO 干接点接入门禁控制器的输入端——锁、它的
+        供电与门禁控制器都是门禁施工方的范围，不在本方案 BOM 内。触点接反会让
+        门禁控制器停在错误的空闲状态，而且在有人去测之前看起来一切正常。这正是
+        `relay_contact` 与 `fail_mode` 没有默认值的原因：face-recognition.conf
+        里的 `[pro] relay_contact` 与 `[pro] fail_mode` 必填，必须按你在控制器上
+        实测的结果填写，不能凭假设。量之前诚实的值是两项都写 `unverified`——
+        合法，但每次启动都会被横幅点名，且意味着不得接门禁控制器。本方案的默认
+        口径是断电开门（`NC` + `fail_mode = fail_safe`），因为门禁失效时把人关在
+        里面比放人出去更危险；选断电锁死（`NO` + `fail_secure`）是一个需要消防
+        评估的决定，不是配置默认值能承担的。
+    optional: false
+
+  - id: configure_gate
+    name: Write the access config and the facedb key
+    name_i18n:
+      zh: 写入门禁配置与 facedb 密钥
+    description: >-
+      As root: `mkdir -p /userdata/local/appdata/f1-access`, copy the sample
+      `cp /userdata/local/apps/f1-access/face-recognition.conf.sample
+      /userdata/local/appdata/f1-access/face-recognition.conf`, and edit it:
+      `[device] device_id`/`actuator_id`, `[facedb] url`
+      (`http://<cloud host>:8080`), `[facedb] key_id` matching the console's
+      key id, `[mqtt] host`/`port`, `[recognition] match_threshold` equal to
+      the console's configured threshold, `[pro] gpio` to the line measured
+      in the previous step, `[pro] relay_contact`/`fail_mode` from the
+      previous step, and `[policy] pulse_ms` (500-5000 ms; this solution's
+      default is 1500 ms). Leave the model paths, `model_tag`, `model_sha`
+      and the `[pro]` loopback endpoints alone — they describe what is
+      actually installed on the device. Then write the signing key's
+      *contents*, not the file: `printf '%s' '<hex>' >
+      /userdata/local/appdata/f1-access/facedb.key && chmod 600
+      /userdata/local/appdata/f1-access/facedb.key`. This directory is
+      appdata, not the install directory, so it survives an app upgrade and
+      an uninstall.
+    description_i18n:
+      zh: >-
+        以 root 身份：`mkdir -p /userdata/local/appdata/f1-access`，拷贝样例
+        `cp /userdata/local/apps/f1-access/face-recognition.conf.sample
+        /userdata/local/appdata/f1-access/face-recognition.conf`，再编辑：
+        `[device] device_id`/`actuator_id`、`[facedb] url`
+        （`http://<云端主机>:8080`）、`[facedb] key_id` 与控制台一致、
+        `[mqtt] host`/`port`、`[recognition] match_threshold` 等于控制台配置的
+        阈值、`[pro] gpio` 改成上一步实测的那一路、`[pro] relay_contact`/
+        `fail_mode` 按上一步填、`[policy] pulse_ms`（500-5000 ms；本方案默认
+        1500 ms）。模型路径、`model_tag`、`model_sha` 与 `[pro]` 的回环端点
+        不要动——它们描述的是设备上实际装着的东西。然后写签名密钥的**内容**
+        而不是拷文件：`printf '%s' '<hex 串>' >
+        /userdata/local/appdata/f1-access/facedb.key && chmod 600
+        /userdata/local/appdata/f1-access/facedb.key`。这个目录是 appdata，
+        不是安装目录，因此能跨应用升级与卸载存活。
+    optional: false
+
+  - id: check_gate_armed
+    name: Confirm the gate is armed, not just the app active
+    name_i18n:
+      zh: 确认门禁已上线，不只是应用在跑
+    description: >-
+      An active f1-access app and an armed door are different things: without
+      the config file from the previous step, recognition runs and nothing
+      else happens. Check locally, without depending on the network:
+      `cat /run/f1-access/health.json` and read `state` — `armed` means the
+      gate is running with the pin it configured; `disarmed` means the app is
+      alive but the gate did not come up, with the reason named (missing
+      config, a failed consistency check, or the watchdog); `dead` means the
+      process was SIGKILLed and the pin has already been reset by the
+      watchdog. Also check
+      `grep 'gate armed\|NOT armed' /userdata/local/apps/f1-access/logs/app.log`.
+      Two warnings are expected until wiring is measured: `relay_contact
+      =unverified fail_mode=unverified` and `calibration=pending` — a
+      non-empty gate warning is not itself a fault, but `state != armed` is.
+    description_i18n:
+      zh: >-
+        应用在跑与门禁已上线是两回事：没有上一步的配置文件，识别照常运行，
+        其余什么都不会发生。本地检查，不依赖网络：
+        `cat /run/f1-access/health.json`，看 `state`——`armed` 表示门禁在跑，
+        用的是它配置的那个引脚；`disarmed` 表示应用活着但门禁没上线，原因会点名
+        （配置缺失、一致性检查不过、或看门狗）；`dead` 表示进程被 SIGKILL，
+        引脚已由看门狗复位。也检查
+        `grep 'gate armed\|NOT armed' /userdata/local/apps/f1-access/logs/app.log`。
+        接线量测完之前，`relay_contact=unverified fail_mode=unverified` 与
+        `calibration=pending` 两条 WARNING 是预期内的——非空的门禁提醒本身不算
+        故障，但 `state != armed` 算。
+    optional: false
+
+  - id: verify_pin_readback
+    name: "Verify: one pulse, read back on the pin"
+    name_i18n:
+      zh: "验证：打一个脉冲，在引脚上回读"
+    description: >-
+      With the app's built-in test hook (or with the app briefly stopped via
+      `activate` to another app and the pin driven the same way the daemon
+      does), drive one pulse and read it back, proving the line can be
+      driven and returns to the un-actuated level afterwards. Three things
+      have to hold: the value before and after the pulse is the un-actuated
+      level, health does not report `stuck_active`, and the line is exported
+      only while the app is active. `stuck_active` true means the door may
+      still be open — that is a site visit, not a log entry. Measured on
+      hardware with nothing connected: idle 0, one pulse, back to 0, no
+      takeover and no reclaim. This proves the pin, not the door: relay
+      pull-in and lock action are pending, and until the wiring step above
+      has actually been done with a meter, an LED and a relay, this preset is
+      not an access-control acceptance.
+    description_i18n:
+      zh: >-
+        用应用自带的测试钩子（或把应用短暂 `activate` 切到别的应用，按守护进程
+        同样的方式驱动引脚），打一个脉冲并回读，证明这一路能被驱动、且脉冲结束
+        后能落回未触发电平。三件事必须成立：脉冲前后的值都是未触发电平、health
+        不报 `stuck_active`、这一路只在应用激活期间被 export。`stuck_active` 为
+        真意味着门可能还开着——这是一次现场出勤，不是一条日志。真机实测（未接
+        任何外部电路）：空闲 0、打一个脉冲、回到 0，没有接管也没有回收。这一步
+        证明的是引脚，不是门：继电器吸合与锁动作都还是待办，在上一步真的用
+        万用表、LED 与继电器做完之前，本套餐不构成门禁验收。
+    optional: false

@@ -26,23 +26,23 @@ the door. Nothing on the network sits between a face and the relay, so the door
 keeps working while the network is down — the network carries library updates,
 events and remote commands only.
 
-The cost is the install. reCamera Pro is a Buildroot device with no Docker, no
-dpkg and no systemd. What gets installed is a flat set of twelve Python
-standard-library modules under `/userdata/f1-access`, run as root **beside** the
-camera's existing face-recognition app — it pulls the signed library, reloads the
-app over loopback HTTP, maps the app's result stream onto the event contract and
-pulses one sysfs GPIO. It does not touch appmgr, the `/etc/init.d` scripts, or
-the app's launch arguments. Those steps are manual because that is neither a
-package nor an appmgr app, with the reason recorded in the device file rather
-than dressed up.
+The install itself is a published App Center package, `f1-access`: it ships
+through the App Center rather than with this solution, and Step 4 configures
+it and makes it the active appmgr app — appmgr on the Pro is single-active, so
+this stops whatever app ran before. What remains manual is what a deployer
+cannot do for you: measuring a genuinely free GPIO pin with a meter, wiring
+LED then relay then the door controller in that order, and writing the access
+config file that carries the facedb key and the measured wiring posture
+(Step 5). Reason: those are per-installation electrical facts and per-device
+credentials, not something a device file can assert on your behalf.
 
 **reCamera PoE** is the second door option on this preset. It runs the standard
 SG2002 firmware, its control plane is MQTT rather than loopback HTTP, and it
 installs with `platforms/recamera-poe/install.sh` instead of a manual copy; the
 relay goes on one of the three IO lines of its baseboard 6-pin header
 (D1 = sysfs 490, the only line not multiplexed). Nothing about the PoE unit has
-been on hardware — pending hardware, and the header's level polarity and drive
-current are undocumented by the vendor and unmeasured.
+been on hardware: the header's level polarity and drive current are
+undocumented by the vendor and unmeasured.
 
 | Device | Purpose |
 |---|---|
@@ -67,7 +67,8 @@ recognition results**, not a person; the pin readback is sysfs, so the values ar
 an upper bound; and **no external circuit has ever been connected** — no meter
 reading of `gpio130`, no LED, no relay, no door controller, and its physical identity on the
 board is still unconfirmed. The thresholds are the recognition app's own
-defaults, not calibration results (`calibration = pending`).
+defaults; no calibration against measured recognition/rejection pairs has been
+run.
 
 **Important.** This is not a certified security or life-safety system. The face
 embedding weights are non-commercial (see the licensing section on the solution
@@ -177,25 +178,61 @@ not enrol through this cloud console.
 | Rollback refused naming a person | The deletion barrier. Mint a new version instead; that refusal is the mechanism working. |
 | `model_tag` mismatch on the device | The library was built against a different embedding model. Rebuild it against the one the door actually runs. |
 
-## Step 4: Install the Door Daemon on the Camera {#p1_install type=manual required=true config=devices/p1_recamera_pro.yaml}
+## Step 4: Activate F1 Door Access from the App Center {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
 
-Reach the camera as root, find and measure a free pin, wire LED then relay then
-the door controller and declare the contact, copy the daemon in, run the gate,
-and leave it running.
+f1-access is a published reCamera Pro App Center package (catalog id
+`f1-access`) that combines the face-recognition app's recognition cascade with
+the door logic: it drives one sysfs GPIO dry contact and publishes
+`access/v1/events`. This step configures it and makes it the active appmgr
+app — appmgr is single-active, so activating f1-access stops whatever app was
+running before.
 
 ### Prerequisites
 
+- f1-access installed from the device's App Center. This step activates an
+  already-installed app; it does not upload or install packages.
+- Nothing else is required yet — the app comes up recognising and running
+  liveness. It stays **disarmed** (no pin exported, no access event published)
+  until the next step gives it an access config file.
+
+### Install f1-access from the App Center
+
+If f1-access is not installed yet, do this on the camera's own web console
+first — this deployment step cannot install it for you.
+
+1. Log in to the camera's web console.
+2. Open the **App Center**.
+3. Find **F1 Door Access** and choose **Install**. Wait for it to finish; it
+   is a full recognition app plus six on-device models, so first install
+   takes longer than a config change.
+4. Once installed, run this step to **activate** it — the App Center install
+   only places the app; the camera does not switch to it on its own.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Activation times out before 180 s | The manifest loads six `.rknn` models; a first activation right after install can be slow while the filesystem cache is cold. Retry once before treating it as a fault. |
+| `require_installed` fails | f1-access is not on this device's App Center yet. Install it there first — this step cannot install packages. |
+| Another app stays active after this step | Check `GET /api/appMgr/list` for `last_exit`; `entry.cgi`'s `/model/inference` endpoint can wedge after long high load and make `activate` report a timeout. A reboot clears it. |
+
+## Step 5: Wire the Relay and Arm the Gate {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
+
+Reach the camera as root, find and measure a free pin, wire LED then relay then
+the door controller and declare the contact, write the access config and the
+facedb key, and confirm the gate came up armed — not just the app active.
+
+### Prerequisites
+
+- The app active from the previous step, confirmed with
+  `curl -s http://127.0.0.1:8130/api/appMgr/list`.
 - Root SSH access to the camera. The `admin` account has no sudo, `su` is not
-  setuid, and `/sys/class/gpio` is root-only — an app running as `admin` gets
-  EACCES the moment it writes a pin.
-- The existing face-recognition app running: `curl -s localhost:8125/gallery` on
-  the device should return a model tag and a user list. Write the model tag
-  down; the library must be built to match it.
+  setuid, and `/sys/class/gpio` is root-only.
 - A meter. Pin numbers, polarity and available drive current are measured, never
-  assumed. Nothing in the wiring sub-section below has been done on any unit.
-- The upstream repository, for the twelve files that get copied to
-  `/userdata/f1-access`. The operator guide it mirrors is
-  `docs/user-guide.md` chapters 2 and 4.
+  assumed. Nothing in the wiring sub-section below has been done on any unit —
+  gpio130 has only ever had its value written and read back as 1, with nothing
+  external connected.
+- A facedb key id and secret matching the console's, from Step 2.
 
 ### Wiring
 
@@ -227,19 +264,17 @@ letting them out.
 
 | Issue | Solution |
 |---|---|
-| `EACCES` writing to `/sys/class/gpio` | The app is running as `admin`. It must run as root under `appmgr`. |
-| The actuator refuses to start, naming a pin | The pin is already exported with a direction or value that disagrees with the configured idle state. Find out what owns it. Do not force a takeover to make the message go away. |
-| `certificate is not yet valid` on the library URL | The device clock is months out and it has no NTP client. Either give it a way to correct time and use HTTPS, or move the library to a plaintext LAN URL with the signing key set. |
-| The app refuses to start on a plaintext library URL | No signing key. That refusal is deliberate: on a plaintext URL the manifest signature is the whole integrity boundary. |
+| `EACCES` writing to `/sys/class/gpio` | You are not root over SSH. The app itself already runs as root under appmgr's supervisor; the SSH session editing appdata also needs to be root. |
+| The gate refuses to arm, naming a pin | The pin is already exported with a direction or value that disagrees with the configured idle state. Find out what owns it. Do not force a takeover to make the message go away. |
+| `state` in `/run/f1-access/health.json` stays `disarmed` | No access config at `/userdata/local/appdata/f1-access/face-recognition.conf`, or it failed the consistency gate. Check `app.log` for the named reason. |
 | The door pulses once at boot | The active level is inverted. Fix it before reconnecting the door controller. |
 | Two pulses per approach | The debounce is not in the path, or its window is shorter than the time somebody spends in frame. |
 | The start-up banner keeps naming `relay_contact=unverified fail_mode=unverified` | The wiring posture has not been declared. Measure, then set both. Do not connect the door controller before that. |
-| `health()["stuck_active"]` is true | The daemon failed to drive the pin back to the un-actuated level, so the door may still be open. That is a site visit, not a log entry. |
-| `reclaimed` is non-null at start-up | The previous process was killed (`/run/f1-access/gpio<N>.owner` survived) and this start reclaimed the line. Find out why it did not exit cleanly; stop the daemon with SIGTERM, never `kill -9`. |
+| `health()["stuck_active"]` is true | The gate failed to drive the pin back to the un-actuated level, so the door may still be open. That is a site visit, not a log entry. |
 | `gpio = 131` is rejected while parsing the config | It is in `KNOWN_BUSY_GPIO` — already exported by another application on hardware. |
 | `pulse_ms must be 500..5000 ms` | The pulse width is outside the legal range. |
 
-## Step 5: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+## Step 6: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
 Open the console's device page and confirm that the version you published is the
 version the door device is actually matching against. Do this before putting a
@@ -267,14 +302,14 @@ failed, and only this page tells them apart.
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
 
-## Step 6: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 7: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An enrolled person opens the door once; a photograph does not open it at all; a
 remote unlock produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the door controller connected, and someone enrolled in the current
+- Steps 1–5 finished, the door controller connected, and someone enrolled in the current
   library version.
 - A printed photograph of that same person.
 - An operator token and a viewer token, to check that the role gate holds in
@@ -509,7 +544,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -611,7 +646,7 @@ than sharing the direct one.
 **Important.** This is not a certified security or life-safety system, and no
 part of this preset has run on hardware. Six of the seven boundary metrics are
 empty. A standard reCamera is not an option here — it is preset P5, whose
-library-delivery path has been verified on real hardware. The face embedding
+library-delivery path has run on real hardware. The face embedding
 weights are non-commercial.
 
 Known weaknesses, none of them measured:
@@ -753,7 +788,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -859,27 +894,27 @@ Relay.
 library path has been exercised on a real unit; the door path has not. The face
 embedding weights are non-commercial.
 
-What is verified and what is not, stated separately because they are usually
-conflated:
+What has run on hardware and what has not, stated separately because they are
+usually conflated:
 
-- **Verified on hardware** (second probe run, standard reCamera at
+- **Ran on hardware** (second probe run, standard reCamera at
   192.168.42.1): library pull, per-file SHA, manifest signature, atomic switch,
   gallery write and `op:reload` ack; resume after an interrupted download;
-  rejection of a version whose manifest does not verify; the threshold
-  consistency gate refusing to start when the config and the running recognition
-  process disagree. Full activation measured p50 491.6 ms and p95 507.8 ms over
-  20 runs on a 2-person, 16.5 KB library; the `op:reload` round trip measured
-  p50 100.0 ms over 25 runs. Source:
+  rejection of a version whose manifest signature does not check out; the
+  threshold consistency gate refusing to start when the config and the running
+  recognition process disagree. Full activation measured p50 491.6 ms and p95
+  507.8 ms over 20 runs on a 2-person, 16.5 KB library; the `op:reload` round
+  trip measured p50 100.0 ms over 25 runs. Source:
   `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
-- **Not verified, and not to be presented as if it were**: any recognition or
-  liveness figure — nobody stood in front of the lens during either probe run
-  and each run sampled 220 frames that all read `face_count: 0` (see
-  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
-  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
+- **Not run on hardware, and not to be presented as if it were**: any
+  recognition or liveness figure — nobody stood in front of the lens during
+  either probe run and each run sampled 220 frames that all read
+  `face_count: 0` (see `evaluation/runs/2026-09-06-recamera-std-p3/results.md`
+  and `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
   recognition-to-relay latency, because no relay has been wired (see
   `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`); and the
-  thresholds, which are the device's shipped values carrying
-  `calibration = pending`.
+  thresholds, which are the device's shipped values with no calibration run
+  against them yet.
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power
   cut.
@@ -1007,7 +1042,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -1300,7 +1335,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -1363,6 +1398,6 @@ observed directly.
 |---|---|
 | A photograph opens the door | Expected on this preset. There is no liveness model for this chip. If it matters, move the door to P1, P2 or P3. |
 | Nobody is recognised after a library update | `model_tag` mismatch, or the library was built with the server-side backbone. Embeddings do not cross models. |
-| The door stops responding after a library download | The download targets the inactive slot and the pointer only flips on a verified sha256. If it stopped, look at the sync log, not at the slot. |
+| The door stops responding after a library download | The download targets the inactive slot and the pointer only flips once the sha256 matches. If it stopped, look at the sync log, not at the slot. |
 | Matching gets slower as the library grows | Expected and unmeasured. Match time scales with the number of records. |
 | The controller reconnects but the door opened by itself | Something published the relay `set` topic retained. It must never be. |
