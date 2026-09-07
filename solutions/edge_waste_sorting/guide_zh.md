@@ -320,8 +320,9 @@ p50 是 5.962 ms，即 INT8 快 1.88 倍且在这一项上没有差异。
 与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
 不含取图与预处理，且相机自带应用在跑。
 
-这里 INT8 比同一个模型的 fp16 快 2.9 倍，且没有为此付出代价：INT8、fp16 与
-主机 fp32 三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
+INT8 与 fp16 的对比是在这块硬件上另一轮测的，两者都在相机自带应用停止的条件下：
+p50 分别为 5.824 ms 与 16.956 ms，即 INT8 快 2.9 倍。INT8、fp16 与主机 fp32
+三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
 
 ## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 

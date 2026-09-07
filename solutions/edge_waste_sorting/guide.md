@@ -354,14 +354,15 @@ record carrying the top-3 with per-class confidence, the material class and the
 Chinese four-way category, the inference time and both model hashes — the same
 shape this solution publishes on every other platform.
 
-Measured on this hardware over 1060 validation images: material top-1 0.8764,
-Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline 0.9906,
-p50 6.380 ms, p95 7.014 ms — inference only, excluding capture and
-preprocessing, with the camera's built-in application running.
+Measured on this hardware over 1060 validation images: eight-class material
+top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
+baseline 0.9906, p50 6.380 ms, p95 7.014 ms — inference only, excluding
+capture and preprocessing, with the camera's built-in application running.
 
-INT8 is 2.9x faster than the same model in fp16 here and gives up nothing for
-it: across INT8, fp16 and fp32 on a host the top-1 spread over these 1060
-images is under 0.2 pp.
+INT8 and fp16 were also measured against each other on this hardware in a
+separate round, both with the built-in application stopped: p50 5.824 ms and
+16.956 ms, so INT8 is 2.9x faster. Across INT8, fp16 and fp32 on a host, the
+top-1 spread over these 1060 images is under 0.2 pp.
 
 ## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 

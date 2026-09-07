@@ -9,6 +9,10 @@ type: recamera_pro_app
 # repository does not hold. If the target's App Center does not list it, the
 # step says so and names what is installed instead.
 #
+# The model is not inside the package. The App Center delivers it separately
+# into /userdata/local/models/waste-sorting/, which is where the app reads it
+# from; guide.md and guide_zh.md name the same path for this step.
+#
 # Verified on this hardware on 2026-09-08: install, activate, /healthz, events
 # on waste/{stream_id}/results, stop, uninstall. Over 1060 validation images the
 # INT8 model agrees with the fp32 CPU baseline on 0.9906, material top-1 0.8764,
