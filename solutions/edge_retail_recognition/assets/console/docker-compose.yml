@@ -6,11 +6,14 @@
 #      package has no repository to build from, so both services take an image
 #      reference instead.
 #   2. Both images are published at
-#      sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
-#      and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64,
-#      built 2026-09-07 from edge-retail-recognition @ a787f41). RETAIL_SERVER_IMAGE
-#      and RETAIL_WEB_IMAGE default to those tags below; override either
-#      variable to point at your own build instead.
+#      sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1
+#      and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64).
+#      web:0.1.0 was built 2026-09-07 from edge-retail-recognition @ a787f41.
+#      server:0.1.1 was built 2026-09-08 from edge-retail-recognition @ 7e443c1
+#      (fixes onnxruntime missing from the `server` extra — RETAIL_EMBEDDER=onnx
+#      crash-looped on 0.1.0). RETAIL_SERVER_IMAGE and RETAIL_WEB_IMAGE default
+#      to those tags below; override either variable to point at your own
+#      build instead.
 #
 # To build your own instead of using the published tags, build on the host
 # from the upstream repository. The SPA is built on the host first — the
@@ -60,7 +63,7 @@ services:
       - "${MQTT_PORT:-1883}:1883"
 
   server:
-    image: ${RETAIL_SERVER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0}
+    image: ${RETAIL_SERVER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1}
     container_name: retail-server
     restart: unless-stopped
     <<: *bounded_logs

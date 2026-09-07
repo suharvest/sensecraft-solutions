@@ -26,7 +26,7 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 ### 前置条件
 
 - 一台装了 Docker 与 compose 插件、且从识别设备可达的 Linux 主机。不需要 GPU。
-- **两个容器镜像均已发布**（`edge-retail-console-server:0.1.0`、
+- **两个容器镜像均已发布**（`edge-retail-console-server:0.1.1`、
   `edge-retail-console-web:0.1.0`），`RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE`
   默认指向它们。要用自建版本，先在这台主机上构建 SPA
   （`npm --prefix web/ui ci && npm --prefix web/ui run build`），再用
