@@ -305,9 +305,16 @@ p95 6.047 ms——纯推理，不含取图与预处理。
 整个分类器跑在相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，
 也没有一跳网络。
 
-这一步是手动的，因为还没有为这个分类器打过 `.deb`。现有的产物是一个 BF16
-cvimodel 和一个很小的 cviruntime runner，都来自上游仓库 `edge-waste-sorting`；
-下面四个子步骤把它们拷到 `/userdata/waste`、准备一帧原始输入并跑一次分类。
+开始之前你需要：能 SSH 登录相机、在相机上能 `sudo`、`/userdata` 上约 10 MB
+空闲，以及来自上游仓库 `edge-waste-sorting` 的两个文件——BF16 cvimodel 和
+cviruntime runner。下面四个子步骤依次是用 sha256 核对这两个文件、把它们拷到
+`/userdata/waste`、准备一帧原始输入、跑一次分类。
+
+有两点跳过就会卡住。分类器必须用 `sudo` 跑，因为 CVI 的设备节点只有 root
+可读写——普通用户运行会在 cviruntime 内部报 `device_init: 720`，
+它看着像 TPU 状态损坏，其实只是权限问题，重启也没用。
+另外喂进去的帧必须是未归一化的原始 uint8：ImageNet 的均值与标准差已经在
+cvimodel 里了，再归一化一次是分类器突然只输出一个类别的常见原因。
 
 这块硬件上实测 1060 张验证图：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、
 与 fp32 CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms
