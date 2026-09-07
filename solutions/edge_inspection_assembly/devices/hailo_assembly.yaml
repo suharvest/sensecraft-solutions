@@ -236,7 +236,7 @@ remote_overrides:
 
   user_inputs:
     - id: host
-      name: Raspberry Pi IP
+      name: Device IP
       type: text
       required: true
       placeholder: "192.168.1.100"

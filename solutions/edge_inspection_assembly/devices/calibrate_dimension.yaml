@@ -78,7 +78,7 @@ steps:
     description: >-
       Run "docker run --rm --entrypoint python3
       edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py" on
-      the device (use the -rpi-hailo tag on a Raspberry Pi). It synthesises a
+      the device (use the -rpi-hailo tag on the Hailo-8 host). It synthesises a
       scene with a known millimetres-per-pixel, detects the marker and measures
       the target, then prints the relative errors and a verdict. Exit code 0
       with "verdict": "ok" is a pass; on the evaluation device it reported

@@ -176,7 +176,7 @@ against YOLOX's 38.
 same conclusion the Jetson boundary caveats already state for YOLOX alone: a
 model-capability limit, not something a different detector head fixes.
 
-**Hailo-8 does not support either DETR track — the Raspberry Pi preset stays
+**Hailo-8 does not support either DETR track — the reComputer R2000 preset stays
 on YOLOX-Tiny.** The Hailo Dataflow Compiler 3.31.0 parser rejects
 RT-DETRv2-S outright (`GridSample` x9, `GatherElements` x3, `TopK` x2 all
 reported unsupported — deformable-attention operators with no Hailo-8

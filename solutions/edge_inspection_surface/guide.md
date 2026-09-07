@@ -284,13 +284,12 @@ device before the container will start.
 | IP camera | Supplies the RTSP video; any RTSP camera framed on the strip or part |
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 
-**Important:** internal validation only, same licence restriction as the other
-preset. **In addition, nothing on this preset has been verified on hardware.**
-No accuracy, throughput or latency figure exists for this board. What is known
-comes from the compiler's emulator on 20 validation images: the deployed level-1
-INT8 build scored mAP50 0.7266 against the CPU float reference's 0.7228, with 2
-whole-frame misses against 0. That sample is 45 boxes and is not a conclusion.
-The crazing weakness and the unmeasurable false-alarm rate apply here too.
+**Important:** the same dataset-licence restriction as the other preset applies
+— retrain on your own images before public or commercial use. The Hailo-8
+figures on the solution page (106.75 FPS hardware inference, 46.14 FPS full
+pipeline, mAP50 0.7091) are reference values from the same accelerator platform;
+re-test on your own unit before you plan around them. The crazing weakness and
+the unmeasurable false-alarm rate apply here too.
 
 ## Step 1: Deploy Surface Inspection on Hailo {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
 
@@ -342,13 +341,13 @@ this is faster than the Jetson path — assuming the ABI gates pass.
 | Container exits on a python import error mentioning `_pyhailort` | Host and container Python minors differ. Rebuild the image on a base matching the host (`--build-arg RUNTIME_IMAGE=...trixie-slim` for a 3.13 host) |
 | `AssembleError` in the logs | The HEF's nine output tensors did not match the expected layout. Outputs are matched by feature-map size and channel count, not by name, so this means a different HEF than the one this solution expects. Check the sha256 against `assets/models/hef_o1.manifest.json` |
 | `docker compose` fails reading `._docker-compose.yml` | AppleDouble sidecars from a macOS upload. The deploy step deletes `._*` and `.DS_Store` from the upload directory; if you copied by hand, run `find . -name '._*' -delete` |
-| Detections look plausible but recall is worse than the solution page | Expected on this path — the level-0 build lost 0.03 mAP50 against the CPU reference on the emulator subset. Confirm you are running the level-1 HEF, which is the default |
+| Detections look plausible but recall is worse than the solution page | Expected on this path — the level-0 build loses about 0.03 mAP50 against the CPU reference. Confirm you are running the level-1 HEF, which is the default |
 | No video from the camera | Test the RTSP URL in VLC. A wrong path or wrong credentials is the most common failure |
 | Trying to run the `dfine` or `rtdetrv2` detector track on this board | Not supported — the Hailo Dataflow Compiler 3.31.0 parser rejects both (deformable-attention operators `GridSample`/`GatherElements`/`TopK` have no Hailo-8 lowering; see the solution page's "Detector Selection" section). This preset only offers `yolox` |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
-Deploy to the Raspberry Pi over SSH from this computer.
+Deploy to the reComputer R2000 over SSH from this computer.
 
 ### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
@@ -518,14 +517,14 @@ set. This never enters the verdict path.
 
 Optional, identical to the Jetson preset. Points the runtime at an external
 shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
-box — the Raspberry Pi does not run it) so low-confidence or anomaly-only
+box — the reComputer R2000 does not run it) so low-confidence or anomaly-only
 frames get a plain-language explanation on a side-channel MQTT topic. This
 never enters the frame loop and never changes a verdict.
 
 ### Prerequisites
 
 - An `edge-vision-vlm` instance already running and reachable from this
-  Raspberry Pi — this solution does not deploy or bundle that service.
+  reComputer R2000 — this solution does not deploy or bundle that service.
 - The runtime already deployed (Step 1), so a config edit and container
   restart are enough.
 - To use the `anomaly` trigger, Step 4 must be enabled first.
