@@ -77,7 +77,7 @@ YAML。
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 5 路，每路 14.97–15.01 FPS | 6 路，每路 14.43–14.49 FPS |
 | reComputer R（Hailo-8） | YOLOv8s-Pose 量化 HEF，1 context | 16 路，每路 14.52–14.57 FPS；关闭 MQTT | 17 路低于 14.5 FPS |
 | reComputer R（Hailo-8） | YOLOv8m-Pose 量化 HEF，3 contexts | 5 路，每路 14.98–15.02 FPS；关闭 MQTT | 6 路低于 14.5 FPS |
-| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 路实时相机，13.05 FPS | 未测试更高负载；未达到 14.5 FPS SLA |
+| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 路实时相机，13.05 FPS | 低于此处采用的 14.5 FPS 门槛 |
 
 Hailo 从 S 到 M 的下降大于模型计算量的增长。官方 S HEF 是 single-context，权重可以常驻；
 M HEF 被编译成 3 个 context，需要承担上下文切换和内存搬运。这是该编译产物的特性，不是
@@ -112,7 +112,7 @@ RK3588 原型把 DMA-BUF→RGA→RKNN 放进原生热路径：5 路 15 FPS 时�
 但不再作为这里的路数数据。
 
 在独立外部集 RealBiomFall 的 34 段跌倒视频上，两组已测配置的召回率都下降：reCamera 为
-58.8%，reComputer J 上部署的 YOLO11m 为 52.9%；YOLO11s 未测。主要限制是远景和严重遮挡
+58.8%，reComputer J 上部署的 YOLO11m 为 52.9%。主要限制是远景和严重遮挡
 下的姿态覆盖率。上面的容量表代表近中距离、完整人体入镜的固定室内机位，不代表这些外部场景。
 ## 输出接口
 
