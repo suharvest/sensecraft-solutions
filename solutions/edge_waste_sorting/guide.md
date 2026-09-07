@@ -32,7 +32,7 @@ Known weaknesses, all measured or explicitly unmeasured:
 - **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
   agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
   exact deployed engine.** They come from a separately built FP16 engine —
-  same ONNX, same precision, same reComputer J4012 (Orin NX) — not the binary
+  same ONNX, same precision, same reComputer J40 series (Orin NX) — not the binary
   this deployment step produces. The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
   reported MQTT event, are measured on the deployed binary.
@@ -43,7 +43,7 @@ Uploads the compose stack, downloads the ONNX, builds the TensorRT engine on
 the device, writes the source and trigger configuration, and starts the
 classifier alongside a local MQTT broker. First start needs to wait for the
 engine build: the baseline (EfficientNet-Lite0) engine took 68 s on a
-reComputer J4012 (Orin NX).
+reComputer J40 series (Orin NX).
 
 ### Prerequisites
 

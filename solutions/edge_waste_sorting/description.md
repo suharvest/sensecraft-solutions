@@ -125,7 +125,7 @@ baseline changed, and because its fp16 numbers remain a valid contrast.
 | **Measured on hardware — reCamera (SG2002)** | material top-1 0.8792 / china-4 top-1 0.9566 / agreement vs CPU 0.9915 | BF16 cvimodel on the camera's own TPU, 1060 val images; p50 24.276 ms / p95 24.323 ms is inference only, excluding capture and preprocessing; peak RSS 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
 | reCamera vs fp32 CPU on the same 1060 images | +0.47 pp | 9 of 1060 predictions flipped, netting 5 — within sampling noise, so no accuracy drop was observed on this 1060-image subset | same |
 | **INT8 collapse — the Hailo compiler's simulator** | top-1 0.15, agreement 0.115 vs CPU/native (200 val images) | fp16 agreement on the same 200 images is 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
-| **INT8 collapse — RK3576 (cat-remote, real hardware)** | agreement 0.10 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 collapse — RK3576 (real hardware)** | agreement 0.10 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3576-cat` |
 | **INT8 collapse — RK3588 (real hardware)** | agreement 0.22 vs CPU golden | fp16 agreement 0.98 on the same device | `evaluation/runs/2026-09-06-rk3588-radxa` |
 
 **Root cause, not fully proven.** Excluding the SE branch numerically did not
@@ -217,8 +217,8 @@ error message itself names three possible causes; only one of them
 
 ### RK3588 — real hardware, baseline INT8 usable
 
-On-device measurement, real hardware — not a simulator. Converted on
-wsl2-local with rknn-toolkit2 2.3.2, run on a RK3588 development board with librknnrt
+On-device measurement, real hardware — not a simulator. Converted on a
+development host with rknn-toolkit2 2.3.2, run on a RK3588 development board with librknnrt
 **2.3.2** (the symlink names it 2.3.0; the in-library version is what
 matters), 50 val images, `core_mask=AUTO`, per-channel quantisation.
 
@@ -283,7 +283,7 @@ so an untested claim either way would be a guess.
 
 | Platform | Status |
 |---|---|
-| Jetson Orin (TensorRT) | Deployed and engine-built on reComputer J4012 (Orin NX): baseline engine build 68 s; deployed engine's end-to-end pipeline reports 4.122 ms / inference 3.533 ms per trigger. Accuracy and consistency (top-1 0.8755, agreement 0.9991 vs CPU golden, 1060-image subset) were measured on a separately built FP16 engine — same ONNX, same precision, same device, but not the exact deployed binary |
+| Jetson Orin (TensorRT) | Deployed and engine-built on reComputer J40 series (Orin NX): baseline engine build 68 s; deployed engine's end-to-end pipeline reports 4.122 ms / inference 3.533 ms per trigger. Accuracy and consistency (top-1 0.8755, agreement 0.9991 vs CPU golden, 1060-image subset) were measured on a separately built FP16 engine — same ONNX, same precision, same device, but not the exact deployed binary |
 | reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
 | RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c), full 7417-image val set (agreement 0.9988 fp16 / 0.9893 int8, p50 5.575 ms / 2.728 ms); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
@@ -442,7 +442,7 @@ TensorRT engine is built on the device during deployment, because an engine is
 tied to the exact GPU architecture and TensorRT version and cannot be shipped
 prebuilt. It is also the only preset offering the open-vocabulary track: the
 SigLIP 2 tower at 67 ms per image on CPU needs an accelerator, and the Orin is
-the accelerator this package has. Measured on reComputer J4012 (Orin NX):
+the accelerator this package has. Measured on reComputer J40 series (Orin NX):
 baseline engine build 68 s, deployed pipeline 4.122 ms / inference 3.533 ms
 per trigger — see the Platform support table above for the accuracy and
 consistency figures and their engine-build caveat.

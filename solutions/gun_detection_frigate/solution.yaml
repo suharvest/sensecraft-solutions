@@ -49,8 +49,8 @@ intro:
       description_i18n:
         zh: 在 NVIDIA Jetson 上使用 TensorRT GPU 加速部署
     - id: r2000_hailo
-      name: reComputer R2000 + Hailo
-      description: Deploy with Hailo NPU acceleration on reComputer R2000
+      name: reComputer AI Industrial R21 + Hailo
+      description: Deploy with Hailo NPU acceleration on reComputer AI Industrial R21
       device_groups:
         - id: edge_device
           name: Edge AI Device
@@ -62,9 +62,9 @@ intro:
           name_i18n:
             zh: 边缘 AI 设备
       name_i18n:
-        zh: reComputer R2000 + Hailo
+        zh: reComputer AI Industrial R21 + Hailo
       description_i18n:
-        zh: 在 reComputer R2000 上使用 Hailo NPU 加速部署
+        zh: 在 reComputer AI Industrial R21 上使用 Hailo NPU 加速部署
   stats:
     difficulty: beginner
     estimated_time: 10min

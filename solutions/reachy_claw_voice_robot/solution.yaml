@@ -2,7 +2,7 @@ version: "1.0"
 id: reachy_claw_voice_robot
 name: Conversational Desktop Robot
 intro:
-  summary: "Turn a desktop robot into a voice companion — listens, thinks, speaks, and expresses emotions in under 1 second. Works with Reachy Mini. Three deployment options: Jetson all-in-one, R2000 with Hailo-8 NPU, or CM4 wireless."
+  summary: "Turn a desktop robot into a voice companion — listens, thinks, speaks, and expresses emotions in under 1 second. Works with Reachy Mini. Three deployment options: Jetson all-in-one, reComputer AI Industrial R21 with Hailo-8 NPU, or CM4 wireless."
   description_file: description.md
   cover_image: gallery/cover.png
   category: voice_ai
@@ -56,22 +56,22 @@ intro:
         zh: 语音、视觉和机器人控制全部跑在同一台 Jetson 上——最简部署
     - id: r2000_hailo
       verify_exempt: true
-      name: R2000 + Hailo-8 (Vision on NPU)
-      description: Everything on one R2000 (Pi 5 + Hailo-8) with vision on the NPU — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
+      name: reComputer AI Industrial R21 + Hailo-8 (Vision on NPU)
+      description: Everything on one reComputer AI Industrial R21 (Hailo-8) with vision on the NPU — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
       device_groups:
         - id: hailo_device
-          name: R2000 Device (Hailo)
+          name: reComputer AI Industrial R21 Device (Hailo)
           type: single
           required: true
           options:
             - device_ref: recomputer_r21_industrial_ai
           default: recomputer_r21_industrial_ai
           name_i18n:
-            zh: R2000 设备（Hailo）
+            zh: reComputer AI Industrial R21 设备（Hailo）
       name_i18n:
-        zh: R2000 + Hailo-8（NPU 视觉）
+        zh: reComputer AI Industrial R21 + Hailo-8（NPU 视觉）
       description_i18n:
-        zh: 所有服务运行在 R2000（树莓派 5 + Hailo-8）上，视觉跑在 NPU——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
+        zh: 所有服务运行在 reComputer AI Industrial R21（Hailo-8）上，视觉跑在 NPU——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
     - id: cm4
       verify_exempt: true
       name: Reachy Mini Wireless (CM4)
@@ -95,7 +95,7 @@ intro:
     estimated_time: 30min
 
   summary_i18n:
-    zh: "让桌面机器人成为语音伙伴——听、想、说、表达情绪，响应不到 1 秒。支持 Reachy Mini，三种部署方案：Jetson 一体化、R2000 + Hailo-8 NPU、或 CM4 无线版。"
+    zh: "让桌面机器人成为语音伙伴——听、想、说、表达情绪，响应不到 1 秒。支持 Reachy Mini，三种部署方案：Jetson 一体化、reComputer AI Industrial R21 + Hailo-8 NPU、或 CM4 无线版。"
   description_file_i18n:
     zh: description_zh.md
 deployment:

@@ -104,7 +104,7 @@ NPU 上（Hailo 编译器自带的模拟器、RK3588），Lite0 的时延与 Mob
 | **真机实测 —— reCamera（SG2002）** | 物料八类 top-1 0.8792 / 四分类 top-1 0.9566 / 与 CPU 一致率 0.9915 | BF16 cvimodel 跑在相机自己的 TPU 上，1060 张 val；p50 24.276 ms / p95 24.323 ms 是纯推理，不含取图与预处理；峰值常驻内存 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
 | reCamera 与同一批 1060 张图上的 fp32 CPU 之差 | +0.47 pp | 1060 张里 9 张预测翻转、净赚 5 张，落在采样噪声内，即在这 1060 张子集上没有观察到准确率下降 | 同上 |
 | **INT8 塌缩——Hailo 编译器自带的模拟器** | top-1 0.15，与 CPU/native 一致率 0.115（200 张 val） | 同一批 200 张图 fp16 一致率 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
-| **INT8 塌缩——RK3576（cat-remote，真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 塌缩——RK3576（真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
 | **INT8 塌缩——RK3588（真机）** | 与 CPU golden 一致率 0.22 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3588-radxa` |
 
 **根因未完全证实。** 排除 SE 分支的数值链路并不能修复塌缩，ORT PTQ 独立于
@@ -174,7 +174,7 @@ Hailo-8 M.2，不是 reComputer R2000 整机**——加速器与 HailoRT 相同�
 
 ### RK3588——真机实测，基线 INT8 已可用
 
-设备侧实测，真机而非模拟器。在 wsl2-local 上用 rknn-toolkit2 2.3.2 转换，
+设备侧实测，真机而非模拟器。在开发主机上用 rknn-toolkit2 2.3.2 转换，
 在 RK3588 开发板 上跑，librknnrt **2.3.2**（软链名字写的是 2.3.0，
 以库内版本为准），50 张 val 图，`core_mask=AUTO`，per-channel 量化。
 
@@ -233,7 +233,7 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 
 | 平台 | 状态 |
 |---|---|
-| Jetson Orin（TensorRT） | 已在 reComputer J4012（Orin NX）上完成部署与 engine 构建：基线 engine 构建 68 秒；部署容器端到端报 pipeline 4.122 ms / inference 3.533 ms（每次触发）。精度与一致率（top-1 0.8755，与 CPU golden 一致率 0.9991，1060 张子集）取自另一个独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台设备，但不是同一个部署二进制 |
+| Jetson Orin（TensorRT） | 已在 reComputer J40 系列（Orin NX）上完成部署与 engine 构建：基线 engine 构建 68 秒；部署容器端到端报 pipeline 4.122 ms / inference 3.533 ms（每次触发）。精度与一致率（top-1 0.8755，与 CPU golden 一致率 0.9991，1060 张子集）取自另一个独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台设备，但不是同一个部署二进制 |
 | reComputer R2000（Hailo-8） | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
 | RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c），val 全集 7417 张（一致率 fp16 0.9988 / int8 0.9893，p50 5.575 ms / 2.728 ms）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
@@ -362,7 +362,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 在部署过程中于设备上构建，因为 engine 绑定具体 GPU 架构与 TensorRT 版本，
 无法预编分发。它也是唯一提供开放词汇 track 的套餐：SigLIP 2 视觉塔在 CPU 上
 单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。已在
-reComputer J4012（Orin NX）上实测：基线 engine 构建 68 秒，部署容器端到端
+reComputer J40 系列（Orin NX）上实测：基线 engine 构建 68 秒，部署容器端到端
 pipeline 4.122 ms / inference 3.533 ms（每次触发）——精度与一致率数字及其
 engine 口径说明见上方"平台支持"表。
 

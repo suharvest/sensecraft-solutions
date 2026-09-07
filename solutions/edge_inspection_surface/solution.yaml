@@ -34,9 +34,9 @@ intro:
         zh: 两帧钢带表面，缺陷已圈出。左：沿钢带分布的四处长条夹杂，每个蓝框带出分数，旁边细白框是标注；右：麻点表面，缺陷散布在整片上而不集中在一处
     - type: image
       src: gallery/recomputer-super-j4012.jpg
-      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on
+      caption: reComputer J40 series (Jetson Orin NX 16GB) — the device this solution's numbers were measured on
       caption_i18n:
-        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备
+        zh: reComputer J40 系列（Jetson Orin NX 16GB）——本方案数字的实测设备
     - type: image
       src: gallery/architecture.svg
       caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
@@ -164,11 +164,11 @@ intro:
     recomputer_j40:
       description: >-
         Runs the detector on TensorRT. Every measured figure on this page was
-        taken on an Orin NX 16GB (reComputer Super J4012).
+        taken on an Orin NX 16GB (reComputer J40 series).
       description_i18n:
         zh: >-
           用 TensorRT 运行检测器。本页所有实测数字都取自 Orin NX 16GB
-          （reComputer Super J4012）。
+          （reComputer J40 系列）。
       purchase:
         require:
           module: [orin_nx_16]

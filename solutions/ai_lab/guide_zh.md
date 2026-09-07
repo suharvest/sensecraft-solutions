@@ -49,7 +49,7 @@
 
 ### 部署目标 {#cv_rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/cv_rk3588_deploy.yaml}
 
-通过 SSH 一键部署到 RK3588 设备（reComputer / ROCK 5T）。
+通过 SSH 一键部署到 reComputer RK3588 系列设备。
 
 ### 接线
 
@@ -70,7 +70,7 @@
 | 问题 | 解决方案 |
 |------|----------|
 | SSH 连接失败 | 检查 IP 地址、用户名、密码 |
-| RK3588 平台未检测到 | 确认设备为 RK3588 系列（reComputer / ROCK 5T） |
+| RK3588 平台未检测到 | 确认设备为 reComputer RK3588 系列 |
 | 未检测到摄像头 | 检查 USB 摄像头是否已连接。无摄像头时仍可通过图片上传 API 进行检测 |
 | 镜像拉取缓慢 | 检查网络连接，镜像约 1-2GB |
 

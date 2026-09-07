@@ -6,7 +6,7 @@
 |--------|---------|
 | reBot B601-DM | 六自由度机械臂，平行夹爪（最大开口 0.100 m）—— USB 串口 |
 | Orbbec Gemini 2 | 腕装 RGB-D 相机（眼在手）—— USB 3.0 |
-| reComputer Super J4012 | Jetson Orin NX 16GB —— 运行全部四个容器 |
+| reComputer J40 系列 | Jetson Orin NX 16GB —— 运行全部四个容器 |
 | reSpeaker USB 麦克风 + 音箱 | 远场语音输入，TTS 回复输出 |
 
 **你将获得：**

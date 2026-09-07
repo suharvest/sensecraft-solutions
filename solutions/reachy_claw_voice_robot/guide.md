@@ -241,14 +241,14 @@ http://localhost:8042
 | Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 | No camera feed | Vision service builds TRT engines on first boot (~5 min). Check: `docker logs vision-trt` |
 
-## Preset: R2000 + Hailo-8 {#r2000_hailo}
+## Preset: AI Industrial R21 + Hailo-8 {#r2000_hailo}
 
-Deploy the full Reachy voice robot stack on a single R2000 (Raspberry Pi 5 + Hailo-8). Vision runs on the Hailo NPU, while speech and LLM are consumed from a remote Jetson voice assistant.
+Deploy the full Reachy voice robot stack on a single AI Industrial R21 (Hailo-8). Vision runs on the Hailo NPU, while speech and LLM are consumed from a remote Jetson voice assistant.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R2000 (Pi 5 + Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
-| Reachy Mini | Desktop robot connected to the R2000 via USB |
+| reComputer AI Industrial R21 (Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
+| Reachy Mini | Desktop robot connected to the AI Industrial R21 via USB |
 | Jetson (remote) | Speech (ASR/TTS) + Edge LLM (TensorRT-Edge-LLM) — deployed in Step 1 |
 
 **What gets deployed:**
@@ -257,8 +257,8 @@ Deploy the full Reachy voice robot stack on a single R2000 (Raspberry Pi 5 + Hai
 - **Vision Analysis** — face detection, emotion recognition, and person tracking (Hailo-8 NPU)
 
 **Prerequisites:**
-- Reachy Mini connected to R2000 via USB
-- USB camera attached to R2000
+- Reachy Mini connected to AI Industrial R21 via USB
+- USB camera attached to AI Industrial R21
 - Hailo-8 AI HAT seated in M.2 slot, PCIe Gen3 enabled in `/boot/firmware/config.txt`
 - Jetson device with JetPack 6.x, SSH access, and internet (speech service will be deployed in Step 1)
 
@@ -327,7 +327,7 @@ curl http://localhost:8621/health
 
 ## Step 2: Deploy Reachy Voice Robot (Hailo) {#reachy_hailo_deploy type=docker_deploy required=true config=devices/reachy_hailo_deploy.yaml target_inherit_from=hailo_speech_service}
 
-Deploy the robot control, conversation, and Hailo-accelerated vision services to your R2000 in one step. The deployer will automatically install the Hailo stack if missing.
+Deploy the robot control, conversation, and Hailo-accelerated vision services to your AI Industrial R21 in one step. The deployer will automatically install the Hailo stack if missing.
 
 
 ### Deployment Complete
@@ -362,14 +362,14 @@ The robot runs in **Conversation Mode** by default — it listens and responds. 
 
 ### Target {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
-Deploy to your R2000 over SSH with one click.
+Deploy to your AI Industrial R21 over SSH with one click.
 
 ### Wiring
 
-1. Connect Reachy Mini to R2000 via USB cable
-2. Plug the USB camera into the R2000
-3. Ensure the R2000 is on the network and SSH is accessible
-4. Enter the R2000's IP address and SSH credentials (default user: `pi`)
+1. Connect Reachy Mini to AI Industrial R21 via USB cable
+2. Plug the USB camera into the AI Industrial R21
+3. Ensure the AI Industrial R21 is on the network and SSH is accessible
+4. Enter the AI Industrial R21's IP address and SSH credentials (default user: `pi`)
 5. Enter the **Voice Assistant Host** — the IP of the Jetson running speech + LLM (e.g. `192.168.1.100`)
 6. Configure the data directory (default: `~/reachy-data`)
 7. Optionally enable **Kiosk Mode** to auto-launch the dashboard fullscreen on boot
@@ -404,7 +404,7 @@ ssh pi@<r2000-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
 
 ### Target {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
 
-Deploy directly on the current machine (requires R2000 with Hailo-8 and Reachy Mini connected via USB).
+Deploy directly on the current machine (requires reComputer AI Industrial R21 with Hailo-8 and Reachy Mini connected via USB).
 
 ### Wiring
 
@@ -430,15 +430,15 @@ http://localhost:8042
 | Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
 | Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
 
-# Service Overview (R2000 preset)
+# Service Overview (AI Industrial R21 preset)
 
 | Service | Host | Port | Purpose |
 |---------|------|------|---------|
 | Speech Service | Jetson (remote) | 8621 | ASR + TTS |
 | Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
-| Robot Control | R2000 | 38001 | Reachy daemon (motors) |
-| Conversation Engine | R2000 | 8042 | Dialogue + dashboard |
-| Vision (Hailo) | R2000 | 8630 / 8631 | Face detection + emotion + tracking |
+| Robot Control | AI Industrial R21 | 38001 | Reachy daemon (motors) |
+| Conversation Engine | AI Industrial R21 | 8042 | Dialogue + dashboard |
+| Vision (Hailo) | AI Industrial R21 | 8630 / 8631 | Face detection + emotion + tracking |
 
 ---
 

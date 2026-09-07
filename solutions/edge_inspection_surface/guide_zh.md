@@ -20,7 +20,7 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 ## 步骤 1: 部署表面质检 {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
 在 Jetson 上部署检测器并构建它的 TensorRT engine。预留约 10 分钟；
-仅 engine 构建一项在 Orin NX 上实测 291 s，在同型号板卡（reComputer J4012）
+仅 engine 构建一项在 Orin NX 上实测 291 s，在同型号板卡（reComputer J40 系列）
 上做全新部署交叉验证实测 304 s。首次启动需要等这一步构建完成。
 
 ### 前置条件

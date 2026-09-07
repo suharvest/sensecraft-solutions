@@ -49,9 +49,12 @@ intro:
       description_i18n:
         zh: AI 语音助手，所有套餐必选
     recomputer_r11:
-      description: Edge gateway, runs warehouse management system
+      description: Edge gateway, runs warehouse management system. Choose a 4 GB memory configuration or higher.
       description_i18n:
-        zh: 边缘网关，运行仓库管理系统
+        zh: 边缘网关，运行仓库管理系统。请选择 4 GB 内存及以上配置
+      purchase:
+        require:
+          ram_gb: "4.."
     recomputer_r21_industrial:
       description: Edge gateway, runs warehouse system + voice AI service, face recognition needs the Hailo-8 accelerator
       description_i18n:

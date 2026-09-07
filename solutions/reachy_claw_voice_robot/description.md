@@ -27,7 +27,7 @@ Pick one based on your hardware budget and deployment needs:
 | Preset | Hardware | When to choose |
 |--------|----------|----------------|
 | **Jetson All-in-One** | 1× Jetson Orin NX 16GB | Simplest setup. Speech, vision, and brain on one box. |
-| **R2000 + Hailo-8** | 1× reComputer R2000 (Pi 5 + Hailo-8) | Low-power NPU-accelerated vision. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
+| **AI Industrial R21 + Hailo-8** | 1× reComputer AI Industrial R21 (Hailo-8) | Low-power NPU-accelerated vision. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
 | **Reachy Mini Wireless (CM4)** | 1× Reachy Mini Wireless with onboard CM4 | Self-contained edge deployment on the robot itself. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
 
 ## What You Need
@@ -40,13 +40,13 @@ Pick one based on your hardware budget and deployment needs:
 | NVIDIA Jetson Orin NX 16GB | Runs all AI services — conversation, speech, vision, and robot control |
 | USB cable | Connects Reachy Mini to Jetson |
 
-**Hardware (R2000 + Hailo-8 preset):**
+**Hardware (AI Industrial R21 + Hailo-8 preset):**
 
 | Device | Purpose |
 |--------|---------|
-| Reachy Mini (by Pollen Robotics) | Desktop robot, USB-connected to the R2000 |
-| reComputer R2000 (Pi 5 + Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
-| USB camera | Plugged into the R2000 |
+| Reachy Mini (by Pollen Robotics) | Desktop robot, USB-connected to the AI Industrial R21 |
+| reComputer AI Industrial R21 (Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
+| USB camera | Plugged into the AI Industrial R21 |
 
 **Hardware (Reachy Mini Wireless CM4 preset):**
 

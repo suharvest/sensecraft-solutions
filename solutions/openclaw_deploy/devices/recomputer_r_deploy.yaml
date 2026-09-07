@@ -1,6 +1,6 @@
 version: "1.0"
 id: recomputer_r_deploy
-name: reComputer R (Local or Remote)
+name: reComputer R1100 series (Local or Remote)
 type: docker_deploy
 
 # Single source-of-truth device YAML for the `openclaw_recomputer_r`
@@ -165,7 +165,7 @@ post_deployment:
   browser_url: "http://localhost:18789"
 
 name_i18n:
-  zh: reComputer R（本机或远程）
+  zh: reComputer R1100 系列（本机或远程）
 
 remote_overrides:
   remote_path: /home/{{username}}/openclaw_recomputer_r

@@ -26,7 +26,7 @@ a real camera.
 Deploy the inspector and build its TensorRT engine on the Jetson. Allow about
 10 minutes; the engine build alone measured 291 s on an Orin NX, and 304 s on
 a from-scratch redeploy cross-check on the same board class (reComputer
-J4012). First start needs to wait for that build to finish.
+J40 series). First start needs to wait for that build to finish.
 
 ### Prerequisites
 

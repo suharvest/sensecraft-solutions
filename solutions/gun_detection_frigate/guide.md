@@ -183,13 +183,13 @@ docker compose restart
 - Set up recording retention policies (`record.retain.days`)
 - [Frigate Documentation](https://docs.frigate.video/)
 
-## Preset: reComputer R2000 + Hailo {#r2000_hailo}
+## Preset: reComputer AI Industrial R21 + Hailo {#r2000_hailo}
 
-Real-time gun detection using Frigate NVR with Hailo AI accelerator on reComputer R2000.
+Real-time gun detection using Frigate NVR with Hailo AI accelerator on reComputer AI Industrial R21.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R2000 + Hailo | Edge AI with Hailo NPU acceleration |
+| reComputer AI Industrial R21 + Hailo | Edge AI with Hailo NPU acceleration |
 | IP Camera (optional) | RTSP video source for monitoring |
 
 **What you'll get:**
@@ -231,11 +231,11 @@ You can test your RTSP URL with VLC: **Media > Open Network Stream > paste the U
 
 ## Step 2: Deploy Frigate {#deploy_frigate_r2000 type=docker_deploy required=true config=devices/r2000_hailo_deploy.yaml}
 
-Deploy Frigate NVR with Hailo-accelerated gun detection to your reComputer R2000.
+Deploy Frigate NVR with Hailo-accelerated gun detection to your reComputer AI Industrial R21.
 
 ### Target {#r2000_remote type=remote config=devices/r2000_hailo_deploy.yaml default=true}
 
-Deploy to a remote reComputer R2000 via SSH.
+Deploy to a remote reComputer AI Industrial R21 via SSH.
 
 ### Wiring
 

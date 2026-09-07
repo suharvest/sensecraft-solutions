@@ -79,9 +79,9 @@ intro:
               label_i18n:
                 zh: RK3576 (reComputer)
             - device_ref: recomputer_rk3588
-              label: RK3588 (reComputer / ROCK 5T)
+              label: reComputer RK3588 series
               label_i18n:
-                zh: RK3588 (reComputer / ROCK 5T)
+                zh: reComputer RK3588 系列
           default: recomputer_rk3576
           name_i18n:
             zh: 边缘设备
