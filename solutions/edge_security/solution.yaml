@@ -4,7 +4,14 @@ id: edge_security
 # 2026-09-07 and its directory deleted: same topic, different deployment
 # routes, so one solution with several presets rather than two pages. Its
 # capability is the jetson_hub preset here, measured on an Orin NX 16GB.
-# `replaces` stays so a consumer holding the old id resolves to this one.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md "extra 字段处理"). It is kept as a written
+# record of where the old package went, not as an alias: nothing redirects
+# industrial_security_jetson to this id. The retirement itself is recorded in
+# solutions/.deprecated.json, which generate_solution_manifest.py copies into
+# the manifest's `deprecated` array — a marker, not a redirect.
 replaces: industrial_security_jetson
 name: Industrial Security (Multi-Platform Edge)
 name_i18n:

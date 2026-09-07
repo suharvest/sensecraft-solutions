@@ -22,17 +22,47 @@ hardware join later without touching the hub.
 | Multiple cameras on one box | One detector container per camera, several detectors into one hub — and the detectors no longer have to be the same hardware |
 | Orin NX 16GB and Orin Nano 8GB | Both, as `recomputer_j40` and `recomputer_j30` |
 
-Nothing was dropped. Two things changed shape: alerts now also leave over MQTT
-so an NVR or PLC can subscribe instead of polling, and the rule layer can sit on
-a different machine from the detectors.
+**What is gained**: alerts also leave over MQTT, so an NVR or PLC can subscribe
+instead of polling, and the rule layer can sit on a different machine from the
+detectors.
+
+**What is not a like-for-like replacement.** The older package was one process
+with a video-wall dashboard; this one is a detector layer plus a hub, and four
+of its browser conveniences did not survive that split:
+
+| What the older dashboard did | Here |
+|---|---|
+| Add a camera from the dashboard's camera-management panel, while running | **Replaced, and it costs more.** One detector container handles one camera; a second camera means a second container with its own `device_id`, `stream_id` and `preview_port`, or another board. There is no button for it |
+| Adaptive grid showing every camera's annotated video on one page | **Gone.** The workbench is an alert list with a snapshot per alert, not a video wall |
+| HDMI fullscreen mode, toggled with the F key | **Gone.** There is no wall-display mode |
+| Tune the detection confidence from the dashboard | **Replaced by a config file.** `conf_threshold` in `config/detector.yaml`, applied on redeploy — not a live control in the browser |
+| Continuous annotated video on the main panel | **Replaced.** A snapshot is stored per alert, and the rules editor draws on a still frame proxied from the detector |
+
+If a control-room video wall is what the site actually wants, this package does
+not give it back, and that is the one real regression in the merge.
 
 **One number did not carry over.** The older package advertised YOLO26n at
 "~268 QPS, ~3.7 ms" and "30+ FPS on Orin NX" without naming a bench or a clip.
 Those figures were never reproduced here, so they are not in the table below.
 Every row there names the board it was measured on.
 
-There is no migration path between the two packages, because they never shared
-a data store. An existing install keeps working until it is redeployed.
+### The old id and the gap it leaves
+
+There is no migration path between the two packages: they never shared a data
+store, so an existing install keeps working until it is redeployed.
+
+The old id is **not** an alias for this one. `replaces:` in `solution.yaml` is
+not a field the spec defines — it is absent from `spec/solution.schema.json` and
+from every model in `packages/`, so it is silently dropped on load and resolves
+nothing. It is kept only as a written record of where the package went. The id
+is listed in `solutions/.deprecated.json`, which the manifest generator copies
+into the manifest's `deprecated` array; that marks it retired, it does not
+redirect it.
+
+So anything still holding `industrial_security_jetson` — a bookmark, a link, a
+pinned deployment reference — gets a 404 from the moment the directory is
+deleted until whoever consumes the manifest is pointed at `edge_security`. That
+window is real and nothing in this package closes it.
 
 ## What This Solution Does
 
