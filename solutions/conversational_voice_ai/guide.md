@@ -1,3 +1,59 @@
+# Before you start
+
+This guide has two presets — speech local with the LLM call in the cloud, or
+everything local — across six board targets. Both need the same microphone,
+differ in disk space and API key requirements, and are verified the same way.
+
+**Microphone array — required, not optional:** you need a USB microphone array
+that exposes a **hardware AEC/processed capture channel**, not a plain USB
+mic. The validated default is the **reSpeaker XVF3800** (2-channel and
+6-channel firmware layouts are both auto-detected). The Agent picks it up by
+**stable USB product identity** — it ignores HDMI/DP pseudo-inputs and
+recovers after unplug/replug without a container restart — so it can be
+connected before deployment or hot-plugged after. An unrecognized microphone
+falls back to the first capture channel and needs its own acoustic check
+before you trust it; a plain USB mic with no hardware AEC will re-capture the
+speaker output and cause false interruptions or echo loops, because this
+package does not do echo cancellation in software.
+
+**Model download location and size:** models are pulled into named Docker
+volumes on first deploy, not onto the host filesystem directly — nothing to
+stage or pre-download by hand:
+
+| Target | Volume(s) | What lands there |
+|---|---|---|
+| RK3576 / RK3588 (cloud LLM) | `speech-models` | Local ASR + TTS models |
+| RK3588 + RK1828 (local LLM) | `rk-asr-models`, `rk-tts-models`, `rk1828-llm-models` | Speech models plus Qwen3-4B on the RK1828 card |
+| Orin Nano / Orin NX (cloud LLM) | `speech-models` (Jetson image) | Local ASR + TTS models |
+| Orin NX 16GB (local LLM) | `speech-models-v091`, `edge-llm-models-v091` | Qwen3-ASR + Matcha-TTS, plus the Qwen3.5-4B engine at `/workspace/models/qwen3.5-4b-gdn-mtp-8k` |
+
+**API key — cloud-LLM preset only:** the deploy form asks for an **API Key**
+(required) and a **Model ID** (default `qwen3.5-flash`) for whichever
+OpenAI-compatible endpoint you use. The default provider is Alibaba Cloud
+Model Studio's Beijing endpoint — generate the key from that console (or your
+chosen provider's console if you swap the base URL). The fully-local preset
+needs no API key.
+
+**Disk space, by target (checked automatically before each deploy step):**
+
+| Target | Minimum free disk |
+|---|---|
+| RK3576 (cloud LLM) | 12 GB |
+| RK3588 (cloud LLM) | 12 GB |
+| Raspberry Pi 5 (cloud LLM, English only) | 10 GB |
+| Orin Nano / Orin NX (cloud LLM) | 15 GB |
+| RK3588 + RK1828 (local LLM) | 18 GB |
+| Orin NX 16GB (local LLM) | 25 GB |
+
+**First-response acceptance command:** after deployment, confirm the speech
+service is actually up before testing by voice —
+`curl -fsS http://<device-ip>:8621/health` should return success (this is the
+same probe the container's own healthcheck uses). Then speak one question and
+confirm a reply plays within a few seconds; see each preset's acceptance
+checklist below for the full sequence, including the barge-in test.
+
+---
+
 ## Preset: Cloud or OpenAI-Compatible LLM {#cloud_llm}
 
 Speech remains local while recognized text is sent to Qwen API or another OpenAI-compatible endpoint. The default is Alibaba Cloud Model Studio's Beijing endpoint; replace the base URL, key, and model ID for another provider.
@@ -158,6 +214,14 @@ Confirm that the language chosen at deploy time is the language recognized and s
 
 Two or three turns transcribed in the selected language, answered aloud in the same language, pass this check.
 
+#### Acceptance checklist
+
+1. **Health endpoint responds** — `curl -fsS http://<device-ip>:8621/health` returns success.
+2. **First response lands** — ask one question; a spoken reply starts within a few seconds.
+3. **Barge-in works** — speak again within one second of playback starting; the current answer stops immediately.
+4. **Language matches** — two or three turns are transcribed and answered in the language selected at deploy time.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the device returns nothing during the checks above.
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -269,6 +333,14 @@ Confirm that the language chosen at deploy time is the language recognized and s
 ### Deployment Complete
 
 Two or three turns transcribed in the selected language, answered aloud in the same language, pass this check.
+
+#### Acceptance checklist
+
+1. **Health endpoint responds** — `curl -fsS http://<device-ip>:8621/health` returns success.
+2. **First response lands offline** — disconnect external networking, ask one question, and confirm a spoken reply starts within a few seconds.
+3. **Barge-in works** — speak again within one second of playback starting; the current answer stops immediately.
+4. **Language matches** — two or three turns are transcribed and answered in the language selected at deploy time.
+5. **No error-level logs** — `docker compose logs --since 10m | grep -i error` on the device returns nothing during the checks above.
 
 ### Troubleshooting
 
