@@ -31,7 +31,7 @@ The prediction workflow remains available as an optional plugin. Multi-protocol 
 
 These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty and do not extrapolate to other devices.
 
-The load figures were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
+The load figures in the table were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. A second run on 2026-09-07 covered the **reComputer R1000's CM4 platform in a 2 GB configuration** — a reference value, not a shipping configuration, since the R1000 ships with 4 GB or 8 GB. On that platform the frozen "capacity-smoke" profile did not complete: it stopped after 90.2 s of its 180 s target with "QUEUE_BOUND_EXCEEDED". Tightening the cycle to 2 s or 1 s never reached a running state at all — the Modbus source failed all 500 of its points with "BATCH_DEADLINE_EXCEEDED". Free memory stayed above 1 GB throughout and the board never throttled, so this is a CPU and timing boundary rather than a memory one. Numbers on a 4 GB / 8 GB R1000 will be added after that re-run.
 
 | Metric | Value | Conditions | Source |
 |--------|-------|------------|--------|
