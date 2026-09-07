@@ -88,18 +88,32 @@ actions:
         EOF
       sudo: true
 
-> **Cloud materials**: `deb_package.path` and `models[].path` accept URLs (e.g., `https://cdn.example.com/package.deb`). Files are automatically downloaded and cached before deployment.
->
-> **No `mqtt_config:` / `conflict_services:` blocks.** Older revisions of this skill and
-> device yamls used those two top-level `binary.*` blocks. Neither exists in the shipping
-> reference (`solutions/recamera_ecosystem/devices/apps/recamera_yolo11.yaml`):
-> MQTT/threshold parameters go through `actions.after` writing `/etc/<name>.conf` (see
-> above), and conflicting-service handling is done inside the init script itself
-> (`stop_conflicting_services()`), not declared in the device yaml. In particular, never
-> put `sscma-supervisor` in a stop/disable list: it is the sole boot-time orchestrator
-> (`S93sscma-supervisor` runs `app_restore` to start whichever gallery app was last
-> selected) — disabling it leaves the device with nothing to start at boot. See
-> `recamera_yolo11.yaml:107-123` for the actual comment explaining this.
+    - name: Enable external MQTT access
+      # fail_fast: false — idempotent check ('grep -q ... && exit 0'); set -e
+      # would kill grep's non-match exit status on the first deploy.
+      fail_fast: false
+      run: |
+        CONF="/etc/mosquitto/mosquitto.conf"
+        grep -q 'listener 1883 0.0.0.0' "$CONF" 2>/dev/null && exit 0
+        echo "listener 1883 0.0.0.0" >> "$CONF"
+        echo "allow_anonymous true" >> "$CONF"
+        killall mosquitto 2>/dev/null || true
+        sleep 1
+        /usr/sbin/mosquitto -c "$CONF" -d
+      sudo: true
+    - name: Disable Node-RED autostart
+      # fail_fast: false — a glob that matches nothing returns the literal
+      # pattern string under sh; set -e would kill the loop on that.
+      # sscma-supervisor is deliberately NOT in this list — see the note below.
+      fail_fast: false
+      run: |
+        for svc in node-red sscma-node; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
 
 # User inputs
 user_inputs:
@@ -155,6 +169,21 @@ steps:
 post_deployment:
   open_browser: false
 ```
+
+> **Cloud materials**: `deb_package.path` and `models[].path` accept URLs (e.g., `https://cdn.example.com/package.deb`). Files are automatically downloaded and cached before deployment.
+
+> **No top-level `mqtt_config:` / `conflict_services:` blocks.** Older revisions of this
+> skill used those two `binary.*` blocks. Neither exists in the shipping reference
+> (`solutions/recamera_ecosystem/devices/apps/recamera_yolo11.yaml`): MQTT external access
+> and disabling Node-RED/sscma-node autostart are done via `actions.after` shell steps (see
+> the "Enable external MQTT access" / "Disable Node-RED autostart" steps above, restored
+> from `recamera_yolo11.yaml:93-123`), and conflict handling for *other gallery apps
+> sharing the camera* is done inside the init script's own `stop_conflicting_services()`
+> (see the SysVinit template below), not declared in the device yaml. In particular, never
+> put `sscma-supervisor` in a stop/disable list: it is the sole boot-time orchestrator
+> (`S93sscma-supervisor` runs `app_restore` to start whichever gallery app was last
+> selected) — disabling it leaves the device with nothing to start at boot. See
+> `recamera_yolo11.yaml:107-123` for the comment explaining this.
 
 ## Creating the .deb Package
 
@@ -263,6 +292,19 @@ cvi_device_holders() {
 
 # "Process gone" != "driver has released VPSS/VENC/ION" (kernel-side release
 # is async), so poll for the real criterion after the process disappears.
+#
+# NOTE: this is necessary, not sufficient. fuser only sees fd-level holders;
+# a VPSS *group* (CVI_VPSS_CreateGrp) is a driver-side resource that can be
+# left behind even when no process holds /dev/ion or /dev/cvi-* anymore — the
+# fd-level check reports "free" while the next app's CVI_VPSS_CreateGrp still
+# fails. That failure mode isn't detectable from stop() at all; the only
+# observed mitigations are (a) the app's own readiness gate at start (fail
+# start on a ready-file timeout rather than reporting success once the PID
+# exists) and (b) recognizing the CVI_VPSS_CreateGrp(grp:N) failure in the
+# app's log and prompting a device reboot — do not auto-reboot from inside
+# the init script itself. See
+# `edge-waste-sorting-deb/evaluation/runs/2026-09-07-recamera-deb/results.md`
+# §8.5 for a real occurrence and the reasoning against auto-reboot.
 wait_devices_released() {
     budget=$1
     i=0
@@ -277,12 +319,42 @@ wait_devices_released() {
     return 1
 }
 
+# run_with_timeout <seconds> <cmd...> : background it, poll, KILL if it
+# outlives the budget. Used so a single wedged conflicting service can't blow
+# stop_conflicting_services()'s (and therefore this stop()'s) own budget.
+run_with_timeout() {
+    budget=$1; shift
+    "$@" >/dev/null 2>&1 &
+    p=$!
+    t=0
+    limit=$((budget * 2))
+    while [ $t -lt $limit ] && kill -0 $p 2>/dev/null; do
+        sleep 0.5
+        t=$((t + 1))
+    done
+    kill -0 $p 2>/dev/null && kill -KILL $p 2>/dev/null
+}
+
+# Stop other camera-using services before starting. Scope is deliberately
+# narrow: only the two native services that always compete for the camera
+# (sscma-node, node-red). It does NOT touch other K92* gallery apps (appMgr
+# is single-active — if one is running, it's the one appMgr chose, not a
+# leftover to clean up here) and it never touches sscma-supervisor (the boot
+# orchestrator — see the note in the device yaml section above).
+stop_conflicting_services() {
+    for script in /etc/init.d/[SK]91sscma-node /etc/init.d/[SK]03node-red; do
+        [ -x "$script" ] && run_with_timeout 3 "$script" stop
+    done
+}
+
 start() {
     echo "Starting $NAME..."
     if [ -f "$PIDFILE" ] && kill -0 $(cat "$PIDFILE") 2>/dev/null; then
         echo "$NAME already running"
         return 0
     fi
+
+    stop_conflicting_services
 
     $DAEMON \
         --model "$MODEL_PATH" \
@@ -303,21 +375,32 @@ stop() {
     PID=$(cat "$PIDFILE" 2>/dev/null)
     [ -z "$PID" ] && { rm -f "$PIDFILE"; echo "$NAME is not running"; return 0; }
 
-    # Send TERM, then wait for the process to actually exit — releasing
-    # VPSS/camera (stopStream, RTSP/VENC deinit) can take seconds. Reporting
-    # OK before it's gone lets the next app start while this one still owns
-    # the camera -> VPSS collision / kernel oops.
+    # app_stop's own timeout is 15s (main.sh:1335, _app_do_stop:
+    # `_app_run_timeout 15 "$1" stop`); a script that runs past it is reported
+    # as a hard 124 timeout regardless of what the daemon actually did. Split
+    # the budget so the worst case stays under that: 4s TERM grace, then EITHER
+    # 4s device-release wait (process already gone) OR escalate to KILL and
+    # spend the remaining 3s+3s on KILL-wait + release-wait. Worst case is
+    # 4+3+3=10s or 4+4=8s — both comfortably under 15s.
     kill "$PID" 2>/dev/null
     i=0
-    while [ $i -lt 16 ]; do            # up to ~8s graceful (16 x 0.5s)
+    while [ $i -lt 8 ]; do              # up to 4s graceful (8 x 0.5s)
         [ -d "/proc/$PID" ] || break
         sleep 0.5
         i=$((i + 1))
     done
+
+    if [ ! -d "/proc/$PID" ] && wait_devices_released 4; then
+        rm -f "$PIDFILE"
+        echo "$NAME stopped"
+        return 0
+    fi
+
+    # Still alive after TERM, or devices still held: escalate to KILL.
     if [ -d "/proc/$PID" ]; then
         kill -KILL "$PID" 2>/dev/null
         j=0
-        while [ $j -lt 6 ]; do          # up to ~3s after KILL
+        while [ $j -lt 6 ]; do          # up to 3s after KILL (6 x 0.5s)
             [ -d "/proc/$PID" ] || break
             sleep 0.5
             j=$((j + 1))
@@ -327,12 +410,10 @@ stop() {
         echo "$NAME failed to stop (PID $PID still alive)"
         return 1
     fi
+    if ! wait_devices_released 3; then
+        return 1
+    fi
     rm -f "$PIDFILE"
-
-    # Process gone is only necessary; the device nodes are what actually get
-    # handed to the next app. Total stop() budget must stay well under the
-    # app_stop 15s timeout — the process-exit wait above already used most of it.
-    wait_devices_released 5 || return 1
     echo "$NAME stopped"
     return 0
 }
@@ -351,10 +432,17 @@ case "$1" in
         start
         ;;
     stop)
+        # Propagate the exit code: main.sh's _app_do_stop treats 0 as an
+        # authoritative "camera released" signal (main.sh:1326-1335) — a
+        # script that always exits 0 here lies to the caller.
         stop
+        exit $?
         ;;
     restart)
-        stop
+        # A failed stop means the camera/process state is unknown; starting
+        # anyway on top of that is how two owners end up on the same VPSS
+        # group. Propagate the failure instead of ignoring it.
+        stop || exit $?
         sleep 1
         start
         ;;
@@ -409,11 +497,15 @@ dpkg-deb --build yolo11-detector_0.1.1_riscv64
    since that creates two competing answers for "who owns boot").
 2. **Transfer**: Upload the `.deb` and model files to `/userdata` on the device (the
    supervisor installer only operates on files under `/userdata`).
-3. **Install**: run the supervisor's own installer, `main.sh app_install`, which internally
-   does `_app_run_timeout 120 opkg install --force-reinstall "$deb"`
-   (`solutions/supervisor/rootfs/usr/share/supervisor/scripts/main.sh:1484`) — do not call
-   `opkg install` directly against a path under `/tmp`; that bypasses the market
-   registration `app_install` also performs.
+3. **Install**: run the supervisor's own installer, `main.sh app_install` (`main.sh:1461-1493`).
+   It validates the path (must match `/userdata/*.deb`, no `..`, a regular file — not a
+   symlink), then runs `_app_run_timeout 120 opkg install --force-reinstall "$deb"`
+   (`main.sh:1484`) and reports back `EXIT:<code>` plus the tail of `opkg`'s output. It does
+   not do anything beyond that — no separate "market registration" step; the gallery
+   manifest under `/userdata/local/apps/` is what a package's own `postinst` copies in. Do
+   not call `opkg install` directly against a path under `/tmp`: `app_install` rejects
+   anything outside `/userdata`, so a `/tmp` path only works if something else invokes
+   `opkg` directly, bypassing this validation.
 4. **Deploy models**: Copy to `/userdata/local/models/` (models are never bundled inside
    the `.deb` — see below).
 5. **Configure**: `actions.after` writes deployment-time parameters (MQTT host/port,
@@ -477,12 +569,14 @@ mosquitto_sub -h localhost -t "sscma/v0/#" -v
   `unmanned-store-access-deb/docs/SPEC.md:408-450` (§14.3, "一个受管应用，两个进程") for a
   worked example of a single `K92<name>` script that owns two of its own cooperating
   processes.
-- **Each package must be self-contained and mutually exclusive with any package it
-  overlaps with.** Two apps that both want the camera/VPSS cannot coexist; declare
-  `Conflicts: <other-package>` and `Replaces: <other-package>` in `DEBIAN/control` for any
-  same-class package, and re-check with `opkg list-installed` in `preinst` since not all
-  `opkg` versions enforce `Conflicts` consistently
-  (`unmanned-store-access-deb/docs/SPEC.md:346-364`, §14.1).
+- **Each package should be self-contained rather than depending on another gallery app's
+  package.** Only declare `Conflicts: <other-package>` / `Replaces: <other-package>` in
+  `DEBIAN/control` when the two packages genuinely provide overlapping functionality or
+  both hold the same camera/VPSS exclusively (e.g. a package meant to supersede an
+  existing gallery app of the same class) — it is a recommendation for that specific
+  situation, not a blanket requirement for every package. When it does apply, also
+  re-check with `opkg list-installed` in `preinst`, since not all `opkg` versions enforce
+  `Conflicts` consistently (`unmanned-store-access-deb/docs/SPEC.md:346-364`, §14.1).
 - **Models are never bundled inside the `.deb`.** They are declared in the device yaml's
   `binary.models[]` and deployed to `/userdata/local/models` as a separate transfer step,
   the same way `recamera_yolo11.yaml:30-55` does it. Two independent reasons: (1) `/`'s
