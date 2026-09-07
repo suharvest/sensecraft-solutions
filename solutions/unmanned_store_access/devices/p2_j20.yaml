@@ -6,11 +6,14 @@ name_i18n:
 type: docker_deploy
 device_class: jetson
 
-# NOT VERIFIED ON HARDWARE. Neither image exists: the recognition service has no
-# published digest and this project's own device-side image has never been
-# built, because the C1 milestone was a pure software loop with no device
-# process. Both variables are required with no default, so this step stops at
-# the first `docker compose up` until they are supplied — which is the intended
+# NOT VERIFIED ON HARDWARE. One of the two images now exists: the recognition
+# service was published on 2026-09-07 as
+# solution/face-rec-api:0.1.0-usa-jetson (linux/arm64), and its digest is the
+# default for `face_rec_api_image` below. This project's own device-side image
+# has never been built — the C1 milestone was a pure software loop and the
+# upstream repository still has no daemon that reads access-node.json — so
+# `access_node_image` is still required with no default and this step stops at
+# the first `docker compose up` until it is supplied. That is the intended
 # behaviour, not a gap to paper over with a placeholder tag.
 #
 # The DO pin numbers (sysfs 463/464/465/462 for DO1–DO4) come from the design
@@ -224,28 +227,34 @@ remote_overrides:
       name: Recognition Image (digest-pinned)
       type: text
       required: true
+      default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac"
       placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
       description: >-
         A digest, not a tag. Two doors on the same tag but different digests
         hold embeddings that are not comparable, and the symptom is people not
-        being recognised rather than an obvious version error. No digest has
-        been published for this project yet.
+        being recognised rather than an obvious version error. The default is
+        the 2026-09-07 build (solution/face-rec-api:0.1.0-usa-jetson, arm64),
+        which ships no weights: mount the TensorRT engines built on this box
+        with tools/build_engine.sh, and run with `--runtime nvidia`.
       name_i18n:
         zh: 识别服务镜像（digest 锁定）
       description_i18n:
         zh: >-
           写 digest，不要写 tag。同一个 tag 但 digest 不同的两道门，嵌入不可比，
-          症状是"认不出人"而不是显眼的版本错误。本项目目前还没有发布过 digest。
+          症状是"认不出人"而不是显眼的版本错误。默认值是 2026-09-07 的构建
+          （solution/face-rec-api:0.1.0-usa-jetson，arm64）。镜像里不带权重：
+          用本机 tools/build_engine.sh 生成的 TensorRT engine 挂进去，并加
+          `--runtime nvidia`。
     - id: access_node_image
       name: Access Node Image
       type: text
       required: true
       placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-edge:0.1.0-c1"
-      description: This image has never been built. Build it from the upstream repository and set the tag you built here.
+      description: "This image does not exist yet: the upstream repository has no access-node daemon (functionality gap, not a packaging gap). Build one from the upstream library and set the tag here once it exists."
       name_i18n:
         zh: 门禁节点镜像
       description_i18n:
-        zh: 这个镜像从未构建过。请从上游仓库构建后，把你构建出的 tag 填在这里。
+        zh: 这个镜像还不存在：上游仓库目前没有门禁节点守护进程（是功能未开发，不是打包遗漏）。等上游有了对应的可运行程序，从中构建并把 tag 填在这里。
     - id: do_gpio
       name: DO sysfs GPIO Number
       type: text

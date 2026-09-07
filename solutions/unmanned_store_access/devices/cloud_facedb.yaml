@@ -5,10 +5,10 @@ name_i18n:
   zh: 人脸库服务
 type: docker_deploy
 
-# NOT VERIFIED ON HARDWARE, and not verified anywhere else either: the image
-# named in assets/cloud/docker-compose.yml has never been pushed. This step will
-# fail at image pull until it is built and retagged on the host — the compose
-# file's header comment carries the build command.
+# NOT VERIFIED ON HARDWARE. The image named in assets/cloud/docker-compose.yml
+# was pushed on 2026-09-07 (two-arch manifest, amd64 + arm64) and both
+# architectures were pull-tested and started; what has not been done is a run of
+# this deployment step against a real cloud host.
 #
 # This step and cloud_web share one compose project on one host, deliberately.
 # The console mints new library versions and the server publishes whichever
@@ -113,6 +113,15 @@ remote_overrides:
           MQTT_TLS=0
           FACEDB_PORT={{facedb_port}}
           WEB_PORT=8088
+          # This step's compose file also defines the web service, so
+          # \`docker compose up\` starts it here even though only facedb and
+          # mosquitto are required=true below. USA_FACE_REC_API is not known
+          # yet at this step (it is a Management Console input) and the app
+          # hard-fails startup with embedder=auto and no recognition service
+          # configured, so allow the fake embedder here to keep web from
+          # crash-looping; the Management Console step overwrites this .env
+          # with USA_FACE_REC_API set and restarts the project with it.
+          USA_ALLOW_FAKE=1
           EOF
           echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
           echo "key file written with mode $(stat -c '%a' "$WORKDIR/assets/cloud/secret/facedb.key" 2>/dev/null || stat -f '%Lp' "$WORKDIR/assets/cloud/secret/facedb.key")"

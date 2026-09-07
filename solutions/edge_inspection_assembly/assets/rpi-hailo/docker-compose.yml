@@ -11,13 +11,16 @@
 # Dataflow Compiler 对得上。本仓库的 HEF 由 DFC 3.31.0 / HailoRT 4.21.0 编出
 # （models/hef.manifest.json 的 dfc 段），所以设备侧必须是 HailoRT **4.21.x**，
 # 并且 `apt-mark hold hailort hailort-pcie-driver` 两个都 hold（同 #15）。
-# 镜像 tag 尚未发布：edge-inspection-assembly-rpi-hailo:0.1.0-dev 只在 Mac 上
-# 交叉构建过（arm64，9 层，内容 103,591,916 B），没有推到 registry，也没有在板子上
-# 跑过。部署前在设备上构建这个 tag，或用 INSPECTION_IMAGE 覆盖。
-# devices/hailo_assembly.yaml 的 before 动作会先检查这一点。
+# 镜像已发布到 registry（2026-09-07，spark 上原生 arm64 构建后推送）：
+# sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev
+# digest sha256:695aa8011186595764e0cbb680c2cad6b88d6c0fe54e075ad6e19eae3d33f944，
+# linux/arm64，9 层，压缩后 104,619,382 B。镜像内 python3 为 3.11.2，与 Pi OS
+# bookworm 的 hailo_platform 绑定同一个 minor。镜像未在板子上跑过。
+# 要用自建 tag 就设 INSPECTION_IMAGE 覆盖；devices/hailo_assembly.yaml 的
+# before 动作会先检查镜像在不在本机。
 services:
   inspection:
-    image: ${INSPECTION_IMAGE:-edge-inspection-assembly-rpi-hailo:0.1.0-dev}
+    image: ${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev}
     container_name: edge-inspection-assembly-app
     command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-line1}"]
     restart: unless-stopped

@@ -77,7 +77,7 @@ steps:
       zh: 在运行镜像里跑一次 ArUco 自检
     description: >-
       Run "docker run --rm --entrypoint python3
-      edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py" on
+      sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py" on
       the device (use the -rpi-hailo tag on the Hailo-8 host). It synthesises a
       scene with a known millimetres-per-pixel, detects the marker and measures
       the target, then prints the relative errors and a verdict. Exit code 0
@@ -90,7 +90,7 @@ steps:
     description_i18n:
       zh: >-
         在设备上执行 "docker run --rm --entrypoint python3
-        edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py"
+        sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev /app/tools/check_aruco.py"
         （树莓派上换成 -rpi-hailo 那个 tag）。它会合成一张已知 mm/px 的场景图，
         检测标记并测量目标，然后打印相对误差与结论。退出码 0 且 "verdict": "ok"
         算过；评测设备上的输出是 cv2 4.10.0、has_aruco true、最差误差 0.65%

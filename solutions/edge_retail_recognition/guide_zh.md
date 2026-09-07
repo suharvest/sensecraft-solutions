@@ -26,10 +26,13 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 ### 前置条件
 
 - 一台装了 Docker 与 compose 插件、且从识别设备可达的 Linux 主机。不需要 GPU。
-- **两个容器镜像都没有推送。** 在这台主机上从上游仓库构建，先构建 SPA
+- **两个容器镜像均已发布**（`edge-retail-console-server:0.1.0`、
+  `edge-retail-console-web:0.1.0`），`RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE`
+  默认指向它们。要用自建版本，先在这台主机上构建 SPA
   （`npm --prefix web/ui ci && npm --prefix web/ui run build`），再用
-  `platforms/console/Dockerfile.server` 与 `platforms/console/Dockerfile.web`。
-  镜像里不跑 npm。这一步在动 compose 之前会先检查两个镜像是否已在本机。
+  `platforms/console/Dockerfile.server` 与 `platforms/console/Dockerfile.web`
+  构建镜像（镜像里不跑 npm），并覆盖这两个变量。这一步在动 compose 之前会先
+  检查两个镜像是否已在本机或可拉取。
 - 至少定好一个 admin token。没有默认 token，也没有匿名读；token 表为空时服务拒绝启动。
 - 在本地网络之外能访问界面之前，先在它前面放一个终止 TLS 的反向代理。
 
@@ -37,7 +40,7 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 
 | 问题 | 解决办法 |
 |---|---|
-| compose 运行前提示 "MISSING: `<image>`" | 在你构建之前这是预期结果。在这台主机上从上游仓库构建，用你构建出的 tag。 |
+| compose 运行前提示 "MISSING: `<image>`" | 发布的默认镜像拉取失败——检查能否访问镜像仓库。只有覆盖成自建 tag 但还没在本机构建时才相关。 |
 | 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查——这一步会打印这条检查的结果。 |
 | 带 admin token 的 `GET /v1/gallery` 返回空库 | 首次注册之前这是正确的。 |
@@ -184,7 +187,9 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 ### 前置条件
 
 - 一台装了 Docker 与 compose 插件的 Linux 主机。不需要 GPU。
-- **两个容器镜像都没有推送。** 在这台主机上从上游仓库构建，先构建 SPA。
+- **两个容器镜像均已发布**，`RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE` 默认
+  指向它们。要用自建版本，在这台主机上从上游仓库构建，先构建 SPA，再覆盖
+  这两个变量。
   这一步在动 compose 之前会先检查两个镜像是否已在本机。
 - 至少一个 admin token。没有默认值，也没有匿名读。
 - 在界面能从本地网络之外访问之前，先在它前面放一个终止 TLS 的反向代理。
@@ -193,7 +198,7 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 
 | 问题 | 解决办法 |
 |---|---|
-| compose 运行前提示 "MISSING: `<image>`" | 在你构建之前这是预期结果。 |
+| compose 运行前提示 "MISSING: `<image>`" | 发布的默认镜像拉取失败——检查能否访问镜像仓库。只有覆盖成自建 tag 但还没在本机构建时才相关。 |
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查。 |
 | Pi 访问不到服务端口 | 设备是从那个端口拉商品库的，不是走界面。在 Pi 上试，不要在另一个网络的浏览器上试。 |
 | 8089 端口被占用 | 在向导里改掉，并把同一个值给设备。 |
@@ -329,7 +334,9 @@ MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来在
 ### 前置条件
 
 - 一台装了 Docker 与 compose 插件的 Linux 主机。不需要 GPU。
-- **两个容器镜像都没有推送。** 在这台主机上从上游仓库构建，先构建 SPA。
+- **两个容器镜像均已发布**，`RETAIL_SERVER_IMAGE`/`RETAIL_WEB_IMAGE` 默认
+  指向它们。要用自建版本，在这台主机上从上游仓库构建，先构建 SPA，再覆盖
+  这两个变量。
 - 至少一个 admin token。没有默认值，没有匿名读。
 - 对外开放之前，在界面前面放一个终止 TLS 的反向代理。
 
@@ -337,7 +344,7 @@ MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来在
 
 | 问题 | 解决办法 |
 |---|---|
-| compose 运行前提示 "MISSING: `<image>`" | 在你构建之前这是预期结果。 |
+| compose 运行前提示 "MISSING: `<image>`" | 发布的默认镜像拉取失败——检查能否访问镜像仓库。只有覆盖成自建 tag 但还没在本机构建时才相关。 |
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查。 |
 | 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
 | 8089 端口被占用 | 在向导里改掉。 |
