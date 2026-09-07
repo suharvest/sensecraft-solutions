@@ -293,28 +293,35 @@ intro:
           ai_accelerator: hailo-8
     recomputer_j40:
       description: >-
-        The Orin NX 16GB option for the TensorRT path. Nothing on this page was
-        measured on Jetson, and the upstream repository has no TensorRT backend
-        yet: `platforms/` holds console, hailo and rknn only. Choosing this
-        preset means building that path, not deploying it.
+        The Orin NX 16GB option for the TensorRT path. Runs both the detector
+        and the embedder as TensorRT fp16 engines on the GPU — measured on a
+        Seeed reComputer J unit itself, not a reference board: detector 5.18 ms
+        p50 / 5.28 ms p95, 99.91% box agreement with the CPU golden (50
+        images, the same batch RK3588 was checked against); embedder 4.23 ms
+        p50 / 4.69 ms p95, 21 retrieval metrics within 0.24 percentage points
+        of fp32. A 2956-frame checkout replay ran through the full
+        device-side runtime with zero dropped frames.
       description_i18n:
         zh: >-
-          TensorRT 路线的 Orin NX 16GB 选项。本页没有任何数字取自 Jetson，
-          上游仓库也还没有 TensorRT 后端：`platforms/` 下只有 console、hailo、rknn。
-          选这个套餐是去把这条路径建起来，不是去部署它。
+          TensorRT 路线的 Orin NX 16GB 选项。检测器与嵌入器都以 TensorRT fp16
+          engine 跑在 GPU 上——实测于一台 Seeed reComputer J 整机，不是台架：
+          检测器 p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率 99.91%
+          （50 张，与 RK3588 用的同一批 golden）；嵌入器 p50 4.23 ms / p95 4.69 ms，
+          21 项检索指标与 fp32 最大差 0.24 个百分点。一次 2956 帧的收银台回放
+          跑通了完整的设备侧运行时，零掉帧。
       purchase:
         require:
           module:
             - orin_nx_16
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option for the same role, with the same
-        caveat — no TensorRT backend exists upstream and no figure here was
-        taken on either board.
+        The smaller Orin Nano 8GB option in the same reComputer J family. Not
+        tested — every number on this page for this preset comes from the
+        Orin NX unit (recomputer_j40) only.
       description_i18n:
         zh: >-
-          同一角色下更小的 Orin Nano 8GB 选项，附带同样的限定——上游没有 TensorRT 后端，
-          这里也没有任何数字取自这两块板中的任何一块。
+          同一 reComputer J 家族里更小的 Orin Nano 8GB 选项。未测——本页这个套餐
+          的所有数字都只来自 Orin NX 机型（recomputer_j40）。
       purchase:
         require:
           module:
@@ -486,17 +493,34 @@ intro:
       name: Jetson Orin — TensorRT
       name_i18n:
         zh: Jetson Orin —— TensorRT
-      badge: Coming soon
+      badge: Beta
       badge_i18n:
-        zh: 即将推出
+        zh: 测试版
       description: >-
-        The TensorRT path is designed but not yet implemented — the runtime
-        ships console, Hailo and RKNN backends. Choose this preset to build and
-        measure that path, not to deploy a working system.
+        Both the detector and the embedder run as TensorRT fp16 engines on the
+        Orin NX's own GPU — measured on a Seeed reComputer J unit itself, a
+        reComputer J integrated-machine measurement rather than a reference
+        board. Detector 5.18 ms p50 / 5.28 ms p95, 99.91% box agreement with
+        the CPU reference (50 images); embedder 4.23 ms p50 / 4.69 ms p95, 21
+        retrieval metrics within 0.24 percentage points of fp32. A 2956-frame
+        checkout replay ran through the full device-side runtime — detector,
+        embedder, gallery lookup, MQTT publish — with zero dropped frames,
+        which makes this the only preset where that full loop has run on
+        hardware rather than stopping at model conversion. Under concurrent
+        load, with both stages sharing the GPU, latency degrades to 8.76 ms
+        p50 (detector) and 5.37 ms p50 (embedder) — still the fastest
+        detector path measured across all presets.
       description_i18n:
         zh: >-
-          TensorRT 这条路径已有设计，尚未实现——运行时目前提供 console、Hailo
-          与 RKNN 三个后端。选这个套餐是去搭建并实测这条路径，不是去部署一套能用的系统。
+          检测器与嵌入器都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上——
+          实测于一台 Seeed reComputer J 整机，是整机实测，不是台架。检测器 p50
+          5.18 ms / p95 5.28 ms，与 CPU 参考的框一致率 99.91%（50 张）；
+          嵌入器 p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24
+          个百分点。一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、
+          嵌入、库检索、MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来
+          在真机上跑过的套餐，而不是止步于模型转换。并发负载下（两段共享同一块
+          GPU）延迟降到检测 p50 8.76 ms、嵌入 p50 5.37 ms——仍是所有套餐里最快
+          的检测路径。
       device_groups:
         - id: console
           name: Console Host
