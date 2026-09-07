@@ -246,6 +246,14 @@ compiler, with a training-recipe weight-decay defect on BatchNorm as a
 suspected but unconfirmed contributing factor. `evaluation/runs/2026-09-06-m1c-rk3588-radxa`,
 `evaluation/runs/2026-09-06-rk3588-radxa` (m1b contrast)
 
+**Confirmed on the full 7417-image val set** (same device, same `calib256+mmse`
+recipe): fp16 agreement **0.9988**, accuracy vs ground truth 0.8882, p50 5.575 ms;
+int8 agreement **0.9893**, accuracy 0.8881, p50 2.728 ms — int8 is 51% faster
+than fp16 and both land within 0.05 points of the fp32 CPU baseline (0.8877 on
+the same 7417 images). The 50-image sweep above is what selected `calib256+mmse`
+among the four INT8 variants; this is the number that carries to deployment.
+`evaluation/runs/2026-09-08-rk3588-fullval`
+
 SigLIP 2 vision tower on the same device; the m1c work does not touch this path:
 
 | Model / precision | Latency p50 / p95 | Agreement with CPU golden | Conditions |
@@ -277,9 +285,9 @@ so an untested claim either way would be a guess.
 |---|---|
 | Jetson Orin (TensorRT) | Deployment package shipped, baseline swapped to EfficientNet-Lite0 ONNX; engine has never been built on any Jetson |
 | reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
-| RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
+| RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c), full 7417-image val set (agreement 0.9988 fp16 / 0.9893 int8, p50 5.575 ms / 2.728 ms); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
-| CPU (onnxruntime) | Every accuracy figure on this page |
+| CPU (onnxruntime) | Every model-level accuracy figure on this page that is not otherwise attributed to a Hailo-8 or RK3588 hardware run |
 
 ### Caveats that change what you can claim
 
@@ -436,13 +444,18 @@ prebuilt. It is also the only preset offering the open-vocabulary track: the
 SigLIP 2 tower at 67 ms per image on CPU needs an accelerator, and the Orin is
 the accelerator this package has. Nothing has been measured on it yet.
 
-**Camera + Raspberry Pi 5 (Hailo-8)** — prepares the board, validates the
-three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF compiled and
-quantised cleanly with agreement 0.89 in the compiler's simulator. **No Hailo-8
-hardware has run this HEF** — board-level accuracy and latency are unmeasured.
-Choose it to get a real classifier running on real Hailo-8 silicon for the
-first time; treat the first on-device result as the actual verification, not
-this page's simulator number.
+**Camera + reComputer R2000 series (Hailo-8)** — prepares the board, validates
+the three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF. The
+shipped HEF has run on Hailo-8 hardware over the full 7417-image val set
+(material top-1 0.8889, Chinese four-way 0.9507, agreement vs fp32 CPU 0.9581,
+p50 3.166 ms). A from-scratch deploy of the container itself was separately
+verified on the same hardware: `/healthz`, `/trigger` and the MQTT output all
+returned a real classification matching the golden label for that one image,
+and a direct `infer_shard.py` run against a 1060-image subset of the same val
+set — using the same HEF but not going through the deployed container's HTTP
+or MQTT path — measured agreement 0.9425 and accuracy vs ground truth 0.8453
+at p50 3.167 ms, consistent with the full-set figures above.
+`evaluation/runs/2026-09-08-harvest-pi-acceptance`
 
 ## Usage Notes
 

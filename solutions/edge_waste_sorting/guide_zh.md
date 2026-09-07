@@ -248,15 +248,19 @@ category，方案页上的每一个数字在它关闭时都成立。
 
 ## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
 
-把一台装了 Hailo-8 的 Pi 5 准备好、验证三道只能在设备上检查的 ABI 关卡，
-然后下载 EfficientNet-Lite0（m1c）的 HEF。该 HEF 编译顺利，并在 Hailo 编译器
-模拟器 上完成了 INT8 核实（与 CPU/native 在 200 张 val 图上一致率
-0.89）——**目前还没有 Hailo-8 真机跑过它**。选这个套餐是为了拿到这个分类器
-第一次真机上板的结果；把 模拟器 数字当作编译期健全性检查，不是硬件验证。
+把一台装了 Hailo-8 的 Pi 5（对应出货形态是 reComputer R2000 系列）准备好、
+验证三道只能在设备上检查的 ABI 关卡，然后下载 EfficientNet-Lite0（m1c）的
+HEF。出货的这枚 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张：物料 top-1
+0.8889、中国四分类 0.9507、与 fp32 CPU 一致率 0.9581、p50 3.166 ms、
+p95 3.249 ms（纯推理）。这份容器的从零部署也在同一台真机上单独做过验证：
+一次 `/healthz`、`/trigger` 与 MQTT 触发拿到的分类结果与该图的真值一致；
+另外用 `infer_shard.py` 直接对同一份 val 集的 1060 张子集跑了一遍——用的
+是同一枚 HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425、
+对真值准确率 0.8453、p50 3.167 ms，与全集数字量级一致。
 
 | 设备 | 用途 |
 |---|---|
-| Raspberry Pi 5 + Hailo-8（PCIe M.2） | 本应在 NPU 上运行分类器——HEF 还不存在 |
+| Raspberry Pi 5 + Hailo-8（PCIe M.2） | 在 NPU 上运行分类器 |
 | USB 或 IP 摄像头 | 俯视投放区——一次拍一件 |
 | 实体按钮（可选） | 一个触发源；接线与 GPIO 读取是本包之外的集成工作 |
 | 继电器、翻盖或指示灯（可选） | 由 actuator 回调驱动，回调带四分类结果、不绑引脚 |
@@ -265,18 +269,17 @@ category，方案页上的每一个数字在它关闭时都成立。
 一张表，不是主管部门的认定结果，各城市口径本来就有差异。这里的任何输出都不应
 作为收费、处罚或合规判定的唯一依据。
 
-已知弱点，全部要么实测过、要么明确标为还没有在硬件上采过：
+已知弱点：
 
-- **HEF 只在 模拟器 上验证过，不是硬件验证。** 基线（EfficientNet-Lite0，
-  m1c）在 编译器的模拟器 上编译顺利、没有 INT8 塌缩（一致率 0.89），但没有
-  Hailo-8 真机跑过它。开放词汇视觉塔的 INT8 量化仍然在 `hailo optimize`
-  处失败。如果你自己训练并量化 MobileNetV3-Small，不要假设它的 INT8 也能像
-  这个基线一样跑通——它在同一条编译链路上塌缩过（详见方案页）。
+- **台架是 Pi 5 + M.2 模块，不是 reComputer R2000 整机。** 加速器与
+  HailoRT 相同，外壳、散热与供电不同——长时间满载的表现没有据此外推过。
+  开放词汇视觉塔的 INT8 量化仍然在 `hailo optimize` 处失败。如果你自己
+  训练并量化 MobileNetV3-Small，不要假设它的 INT8 也能像这个基线一样
+  跑通——它在同一条编译链路上塌缩过（详见方案页）。
 - **一图一件。** 没有检测器。
 - **`textile` 从未被训练或测试过**，`hazardous` 永远不会发出。
-- **域偏移还没有在硬件上采过**，而且方案页上所有 CPU 精度数字都是 FP32——
-  真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
-- **这里没有任何东西在树莓派上跑过。**
+- **域偏移还没有实测过。** val 全集 7417 张与部署验证用的 1060 张子集
+  都是公开数据集里单件物品的照片，不是现场投放点的图像。
 
 ## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -291,34 +294,39 @@ category，方案页上的每一个数字在它关闭时都成立。
 有一点跳过就会卡住：Python 绑定的版本必须和板子上已有的 `librknnrt` 一致，
 对不上时只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，没有别的线索。
 
-在 RK3588 硬件上实测 val 全集 7417 张——这是本页唯一在全集而非子集上测过的
-配置：物料八类 top-1 0.8882、中国四分类 0.9507、与 fp32 CPU 基线的一致率
-0.9892、p50 3.165 ms、p95 3.857 ms，纯推理。fp16 的物料 top-1 与它完全相同，
-p50 是 5.962 ms，即 INT8 快 1.88 倍且在这一项上没有差异。
+在 RK3588 硬件上实测 val 全集 7417 张：INT8（calib256+mmse）物料 top-1
+0.8881、与 fp32 CPU 基线的一致率 0.9893、p50 2.728 ms、p95 3.417 ms，纯
+推理。fp16 物料 top-1 0.8882、一致率 0.9988、p50 5.575 ms、p95 9.904 ms——
+INT8 比 fp16 快 51%，准确率没有实质差异。
 
-以上为同款 RK3588 平台的实测参考值，reComputer 整机复测后更新。
+以上为 RK3588 开发板的实测参考值，不是 reComputer 整机；reComputer 整机
+复测后更新。
 
-## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
+## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
 
 分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
 也没有一跳网络。
 
-开始之前你需要：能以 root 身份 SSH 登录相机、`/userdata` 上约 10 MB 空闲，
-以及一个已经构建好的模型，或者一台装了 `rknn-toolkit2` 2.3.2 的 x86_64
-Linux 主机用来转换——转换跑不了在相机上。下面四个子步骤依次是核对模型、
-把 RKNN Lite 运行时装进 `/userdata`、准备一帧输入、跑起来。
+它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
+应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
+同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。模型不在应用包里，
+由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。
 
-有两点跳过就会卡住。Python 绑定的版本必须和相机上已有的 `librknnrt` 一致；
-分类器必须以 root 运行，因为 `/dev/rknpu` 只有 root 可读写。
-这两种错误都只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，
-没有别的线索。
+你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
+东西，也没有要手工拷贝的文件。
 
-这块硬件上实测 1060 张验证图（相机自带应用已停止）：物料八类 top-1 0.8764、
-中国四分类 top-1 0.9566、与 fp32 CPU 基线的一致率 0.9906、p50 5.824 ms、
-p95 6.047 ms——纯推理，不含取图与预处理。
+填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
+在相机上看；填了 broker，每一次分类都会以一条 JSON 记录发到
+`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
+推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
 
-这里 INT8 比同一个模型的 fp16 快 2.9 倍，且没有为此付出代价：INT8、fp16 与
-主机 fp32 三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
+这块硬件上实测 1060 张验证图：物料八类 top-1 0.8764、中国四分类 top-1 0.9566、
+与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
+不含取图与预处理，且相机自带应用在跑。
+
+INT8 与 fp16 的对比是在这块硬件上另一轮测的，两者都在相机自带应用停止的条件下：
+p50 分别为 5.824 ms 与 16.956 ms，即 INT8 快 2.9 倍。INT8、fp16 与主机 fp32
+三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
 
 ## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 
@@ -422,9 +430,9 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 
 ## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_hailo type=manual required=true verify=true config=devices/trigger_setup.yaml}
 
-端到端验证。如果步骤 1 已经把 HEF 放到了设备上，这一步会产出一次真实分类，
-第一次跑在 Hailo-8 真机上——本项目自己的 模拟器 数字不能替代这个结果。
-如果 HEF 还缺，先把取景与订阅这两小步跑掉，除模型之外的部分就都确认过了。
+端到端验证。如果步骤 1 已经把 HEF 放到了设备上，这一步会确认你自己的部署
+拿到与步骤 1 里 val 全集 7417 张实测一致的结果。如果 HEF 还缺，先把取景与
+订阅这两小步跑掉，除模型之外的部分就都确认过了。
 
 ### 前置条件
 

@@ -15,7 +15,7 @@ the end-to-end combination does not.
 | Orin Nano 8GB | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
 | Orin NX 16GB (cloud LLM) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
 | Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha, ASR CER 0 measured | pending measurement | pending measurement |
-| RK3576 | **measured 2026-09-06, re-verified 2026-09-08** (CER 1.05% short / 9.62% long, TTS RTF 0.172, V2V stop_to_final p50 1837ms) | **measured 2026-09-06** (WER 16.95% short / 63.38% long; offline-CER 1.11% short / 4.16% long, TTS RTF 0.194) | not supported |
+| RK3576 | **measured 2026-09-06, re-verified 2026-09-08** (CER 1.05% short / 9.62% long, TTS RTF 0.172, V2V stop_to_final p50 1589ms) | **measured 2026-09-06** (WER 16.95% short / 63.38% long; offline-CER 1.11% short / 4.16% long, TTS RTF 0.194) | not supported |
 | RK3588 | not measured | pending measurement | pending measurement |
 | Raspberry Pi 5 | not supported | pending measurement | not supported |
 

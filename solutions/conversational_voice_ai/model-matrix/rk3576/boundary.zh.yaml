@@ -143,14 +143,19 @@ metrics:
   - name: V2V stop_to_final (ASR latency after audio ends), re-verified 2026-09-08
     unit: ms
     direction: lower_is_better
-    value: "n=12 (2 utterances x 6 runs, 1 warmup discarded), p50=1837, p95=1844, mean=1491, min=946, max=1949"
+    value: "n=12 (2 utterances x 6 runs, 1 warmup discarded), p50=1589, p95=1844, mean=1491, min=946, max=1949"
     observation: >-
       measure_v2v_unified.py against /v2v/stream, --multi 2 --tts,
       zh_short_01.wav. In line with the 2026-09-06 cell (n=10, p50=1771ms).
+      Corrected 2026-09-08: the addendum's prose (openvoicestream
+      docs/perf/rk3576-matrix-20260906.md) quoted p50=1837ms for this metric,
+      but that figure is the stop_to_endpoint_ms row's p50 from the same raw
+      table, not stop_to_final_ms's own p50 (1589ms) — recorded here from the
+      raw table directly.
   - name: V2V stop_to_tts_audio (first TTS PCM frame after audio ends, echo mode), re-verified 2026-09-08
     unit: ms
     direction: lower_is_better
-    value: "n=6 (1 warmup discarded), p50=2968, p95=3585, mean=3120, min=2960, max=3585"
+    value: "n=6 (1 warmup discarded), p50=3017, p95=3585, mean=3120, min=2960, max=3585"
     observation: >-
       Same echo-mode caveat as the 2026-09-06 cell (no LLM in the loop,
       --multi 2 required to keep the session open past the single-session

@@ -269,17 +269,23 @@ every figure on the solution page holds with it off.
 
 ## Preset: Camera + Raspberry Pi 5 (Hailo-8) {#pi_hailo}
 
-Prepares a Pi 5 with a Hailo-8, validates the three ABI gates that can only be
-checked on the device, and downloads the EfficientNet-Lite0 (m1c) HEF. The HEF
-compiled cleanly and was INT8-checked against the the compiler's simulator (agreement
-0.89 vs CPU/native on 200 val images) — **no Hailo-8 hardware has run it yet**.
-Choose this preset to get the first real on-device result for this classifier;
-treat the simulator number as a compile-time sanity check, not a hardware
-verification.
+Prepares a Pi 5 with a Hailo-8 (the reComputer R2000 series shipping form
+factor), validates the three ABI gates that can only be checked on the
+device, and downloads the EfficientNet-Lite0 (m1c) HEF. The shipped HEF has
+run on Hailo-8 hardware over the full 7417-image val set: material top-1
+0.8889, Chinese four-way 0.9507, agreement with the fp32 CPU baseline 0.9581,
+p50 3.166 ms, p95 3.249 ms, inference only. A from-scratch deploy of this
+same container was separately verified on the same hardware: `/healthz`,
+`/trigger` and the MQTT output all returned a real classification matching
+the golden label for that one image, and a direct `infer_shard.py` run
+against a 1060-image subset of the same val set — same HEF, not going through
+the container's HTTP or MQTT path — measured agreement 0.9425 and accuracy
+vs ground truth 0.8453 at p50 3.167 ms, consistent with the full-set figures
+above.
 
 | Device | Purpose |
 |---|---|
-| Raspberry Pi 5 + Hailo-8 (PCIe M.2) | Would run the classifier on the NPU — the HEF does not exist yet |
+| Raspberry Pi 5 + Hailo-8 (PCIe M.2) | Runs the classifier on the NPU |
 | USB or IP camera | Looks down into the drop area — one item per shot |
 | Physical button (optional) | A trigger source; wiring and the GPIO read are integration work outside this package |
 | Relay, flap or indicator (optional) | Driven by the actuator callback, which carries the four-way category and binds no pin |
@@ -292,20 +298,20 @@ decision.
 
 Known weaknesses, all measured or explicitly unmeasured:
 
-- **The HEF is simulator-measured, not hardware-measured.** The baseline
-  (EfficientNet-Lite0, m1c) compiles cleanly and shows no INT8 collapse on the
-  the compiler's simulator (agreement 0.89), but no Hailo-8 hardware has run it. The
-  open-vocabulary tower still fails INT8 quantisation at `hailo optimize`. If
-  you train and self-quantise MobileNetV3-Small yourself, do not assume INT8
-  works for it the way it does for this baseline — it collapsed on this exact
-  compile pipeline (see the solution page).
+- **The bench is a Pi 5 + M.2 module, not a reComputer R2000 chassis.** Same
+  accelerator and same HailoRT, different enclosure, thermals and power
+  delivery — long-running full-load behaviour has not been extrapolated from
+  this bench. The open-vocabulary tower still fails INT8 quantisation at
+  `hailo optimize`. If you train and self-quantise MobileNetV3-Small
+  yourself, do not assume INT8 works for it the way it does for this
+  baseline — it collapsed on this exact compile pipeline (see the solution
+  page).
 - **One item per image.** There is no detector.
 - **`textile` has never been trained or tested**, and `hazardous` is never
   emitted.
-- **Domain shift is unmeasured**, and every CPU accuracy figure on the
-  solution page is FP32 — the on-device INT8 confidence distribution has not
-  been measured on real Hailo-8 hardware.
-- **Nothing here has run on a Pi.**
+- **Domain shift is unmeasured.** The 7417-image val set and the 1060-image
+  deploy-verification subset are both public-dataset photographs of single
+  items, not live drop-off imagery.
 
 ## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -322,40 +328,47 @@ One thing will stop you if you skip it: the Python binding has to match the
 `librknnrt` already on the board, and a mismatch surfaces as a bare
 `RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
 
-Measured on RK3588 hardware over the full 7417-image validation set — the only
-configuration here measured on the whole set rather than a subset: material
-top-1 0.8882, Chinese four-way 0.9507, agreement with the fp32 CPU baseline
-0.9892, p50 3.165 ms, p95 3.857 ms, inference only. fp16 gives the same
-material top-1 at p50 5.962 ms, so INT8 is 1.88x faster with no difference on
-that metric.
+Measured on RK3588 hardware over the full 7417-image validation set: INT8
+(calib256+mmse) gives material top-1 0.8881, agreement with the fp32 CPU
+baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
+material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
+INT8 is 51% faster with no material difference on accuracy.
 
-These are reference figures from the same RK3588 platform; they will be
-updated once a reComputer unit has been re-measured.
+These are reference figures from an RK3588 development board, not a
+reComputer chassis; they will be updated once a reComputer unit has been
+re-measured.
 
-## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
+## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
 
 The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
 card, no network hop in the classification path.
 
-Before you start you need SSH access to the camera as root, about 10 MB free
-on `/userdata`, and either the prebuilt model or an x86_64 Linux host with
-`rknn-toolkit2` 2.3.2 to convert it — the conversion does not run on the
-camera. The four sub-steps take you through checking the model, installing the
-RKNN Lite runtime under `/userdata`, preparing one input frame, and running it.
+It ships as an App Center application, `waste-sorting`. Install it from the App
+Center on the camera's web console, then this step names it, applies your
+settings and makes it the active app. The App Center runs one app at a time, so
+activating it stops whatever was running before. The model is not inside the
+package: the App Center delivers it separately into
+`/userdata/local/models/waste-sorting/`.
 
-Two things will stop you if you skip them. The Python binding has to match the
-`librknnrt` already on the camera, and the classifier has to run as root
-because `/dev/rknpu` is root-only. Either mistake surfaces as a bare
-`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
+You need the web console's admin credentials and about 10 MB free on
+`/userdata`. There is nothing to build and nothing to copy by hand.
 
-Measured on this hardware over 1060 validation images, with the camera's
-built-in application stopped: material top-1 0.8764, Chinese four-way top-1
-0.9566, agreement with the fp32 CPU baseline 0.9906, p50 5.824 ms, p95
-6.047 ms — inference only, excluding capture and preprocessing.
+Fill in a device name and, if you want the events elsewhere, a broker address.
+Leave the broker empty and results stay readable on the camera. With a broker,
+every classification arrives on `waste/<device name>/results` as one JSON
+record carrying the top-3 with per-class confidence, the material class and the
+Chinese four-way category, the inference time and both model hashes — the same
+shape this solution publishes on every other platform.
 
-INT8 is 2.9x faster than the same model in fp16 here and gives up nothing for
-it: across INT8, fp16 and fp32 on a host the top-1 spread over these 1060
-images is under 0.2 pp.
+Measured on this hardware over 1060 validation images: eight-class material
+top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
+baseline 0.9906, p50 6.380 ms, p95 7.014 ms — inference only, excluding
+capture and preprocessing, with the camera's built-in application running.
+
+INT8 and fp16 were also measured against each other on this hardware in a
+separate round, both with the built-in application stopped: p50 5.824 ms and
+16.956 ms, so INT8 is 2.9x faster. Across INT8, fp16 and fp32 on a host, the
+top-1 spread over these 1060 images is under 0.2 pp.
 
 ## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
 
@@ -467,10 +480,9 @@ classification results do not.
 ## Step 3: Wire the Trigger and Confirm One Classification {#trigger_setup_hailo type=manual required=true verify=true config=devices/trigger_setup.yaml}
 
 The end-to-end verification. If the HEF was placed on the device in Step 1,
-this produces a real classification, running on Hailo-8 hardware for the
-first time — this project's own simulator numbers are not a substitute for
-this result. If the HEF is still missing, run the framing and subscription
-substeps now so everything but the model is confirmed.
+this confirms your own deployment reaches the same result as the 7417-image
+val-set measurement in Step 1. If the HEF is still missing, run the framing
+and subscription substeps now so everything but the model is confirmed.
 
 ### Prerequisites
 
@@ -561,5 +573,5 @@ parsing the topic.
 | Trigger counter does not move | The trigger source is not configured. Check `trigger.sources` in `config/config.json`. |
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
-| Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.89 simulator agreement figure; a large gap from that number on real hardware is worth reporting. |
+| Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.9581 hardware agreement figure from the full val-set measurement; a large gap from that number is worth reporting. |
 | Want open-vocabulary or VLM fallback here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`, and the VLM fallback steps are Orin-only. |

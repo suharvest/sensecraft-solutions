@@ -22,9 +22,16 @@ SHA-256 of the copies, recorded so a later divergence is visible:
 
 ## What each file shows
 
+- **`recordings-console.png`** — the SenseCraft Voice recordings console
+  (录音管理), showing the transcript list with speaker labels (顾客 A / 店员 B /
+  顾客 C / 店长 D), per-record status (中间结果 / 最终结果) and PII placeholders
+  ([[NAME]], [[PHONE]], [[LOCATION]]) already redacted. It is the cover and
+  leads the gallery — see the 2026-09-08 note below.
 - **`architecture.png`** — despite the name, a flat-lay photograph of the actual
   kit: a reRouter CM4, its power supply, a USB cable and a reSpeaker XVF3800.
-  It is the cover and leads the gallery — see the 2026-09-07 note below.
+  No longer the cover (see 2026-09-08 note) but kept in the gallery — it shows
+  the hardware, not the software, so it still adds information the console
+  screenshot doesn't.
 - **`respeaker.jpg`** — Seeed product photography of the reSpeaker XVF3800,
   the array both presets use.
 - **`rerouter.png`** — Seeed product photography of the reRouter CM4.
@@ -72,7 +79,49 @@ The cover is now `architecture.png` — despite the name, a flat-lay photograph
 of the actual kit (reRouter CM4, power supply, USB cable, reSpeaker XVF3800),
 first-party Seeed material, unmodified.
 
-**Still missing:** a photograph of the kit installed at a counter, and a console
-screenshot showing real transcripts. The only console screenshots available in
-this repository (`solutions/smart_retail_voice_ai/gallery/edge-client*.png`)
-show an empty transcript list and belong to a different package.
+**Still missing (as of 2026-09-07):** a photograph of the kit installed at a
+counter, and a console screenshot showing real transcripts. The only console
+screenshots available in this repository
+(`solutions/smart_retail_voice_ai/gallery/edge-client*.png`) show an empty
+transcript list and belong to a different package.
+
+## 2026-09-08 — cover changed again, to a real console screenshot
+
+`architecture.png` is a photograph of the hardware kit, not of the software.
+It doesn't tell a reader what the demo does — retail voice transcription —
+without reading the caption. This is not a documented rule in this repository
+(`skills/author-solution/SKILL.md` asks for a dashboard cover with real data,
+but does not itself ban hardware or architecture photos elsewhere); it is the
+editorial call made for this page, on the request that a cover here show the
+software rather than the box it ships in.
+
+The cover is now `recordings-console.png`: the SenseCraft Voice recordings
+console (`sensecraft_voice/sensecraft-voice-web`, page `/recordings`),
+captured at 3200×2000 px (1600×1000 CSS viewport, device scale factor 2) with
+Playwright, using the repository's own `scripts/shot-recordings.mjs` fixture
+data adapted for a higher-resolution capture
+(`scripts/shot-cover.mjs`, not committed to that repo — a one-off local
+script). SHA-256: `5e48deb5dbc746e77bd44d6d0d4788ce010fd3edb2a0de158d104426141d8317`.
+
+Source of the on-screen content:
+- The console itself was run locally (`npm run dev`) against the current
+  `sensecraft-voice-web` frontend source, so the chrome, layout and Chinese
+  copy come from the real codebase, not a mockup. This capture was not
+  checked against the specific pinned image digest this solution's server
+  stack deploys — if that digest is ever behind the repository's `main`,
+  the screenshot could show a UI slightly newer than what a deployment
+  currently runs.
+- The table rows are not real customer recordings, and no PII-redaction
+  pipeline ran over them. Per the source script's
+  own comment, the backend API was stubbed with `page.route()` so the
+  screenshot "不依赖真实环境，也不会把真实 PII 截进图里" (doesn't depend on a
+  real environment and doesn't capture real PII into the image). No live
+  microphone, no real store, no real customer or employee is behind any row.
+  The transcript text is placeholder retail dialogue the fixture authors
+  wrote for this purpose, with `[[NAME]]`, `[[PHONE]]`, `[[LOCATION]]` already
+  in the redacted placeholder form the real pipeline produces after PII
+  removal — i.e. the redaction *format* shown is real, the *conversations*
+  are not.
+
+`architecture.png` stays in the gallery (see "What each file shows" above) —
+it still documents the physical kit, just no longer as the cover.
