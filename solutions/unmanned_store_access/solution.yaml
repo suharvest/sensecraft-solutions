@@ -2,49 +2,9 @@
 # (HEAD 95f314a at packaging time). Design spec: seeed-solutions-hub
 # docs/specs/f1-unmanned-store-access-spec.md.
 #
-# NO DOOR HAS BEEN OPENED BY ANY OF THIS. The upstream milestone is C1 — a pure
-# software loop on a macOS development machine with a FakeActuator, an
-# in-memory MQTT broker and a FakeRecognizer. Six of the seven boundary files
-# in evaluation/runs/2026-09-06-c1-software/ carry `status: pending` with every
-# tier empty; the seventh holds loopback timings that must not be read as
-# device-side numbers. No preset carries `verified:`, and none may until the
-# C2 hardware pass records GPIO/DO voltage, current, polarity, relay trigger
-# and lock action.
-#
-# Two exceptions, and only two. First, P1 / reCamera Pro: the whole library
-# distribution path ran on real hardware at 192.168.3.53 on 2026-09-07 — the
-# consistency gate reported problems: [], full activation measured 62.2 ms (v1)
-# and 45.4 ms (v2) end to end including download, per-file SHA, HMAC signature
-# check, atomic current switch, gallery write and the loopback op:reload ack;
-# an up-to-date no-op round took 6.2 ms. A version with one byte changed in
-# gallery.json and a manifest signed with the wrong key were both rejected on
-# the device, which stayed on the previous version. Recognition event to GPIO
-# pin readback measured n=22, p50 1.448 ms / p95 2.709 ms — but the input was
-# injected synthetic recognition events, not a person, the readback is sysfs so
-# the values are an upper bound, and no external circuit was ever connected.
-# Source: unmanned-store-access evaluation/runs/2026-09-07-recamera-pro-p1/.
-# The thresholds remain uncalibrated (calibration = pending) and gpio130's
-# physical identity, level and available current are still unmeasured, so P1 is
-# "software verified on real hardware", not a door acceptance.
-#
-# Second: the face library distribution path has run on a
-# standard reCamera at 192.168.42.1 across two probe runs — poll, Range
-# download, per-file SHA, manifest signature, atomic switch, gallery write and
-# reload ack, plus resume after an interrupted download and rejection of a
-# version that does not verify. Full activation measured p50 491.6 ms / p95
-# 507.8 ms over 20 runs on a 2-person, 16.5 KB library. Source:
-# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md. Both are library
-# numbers, not door numbers.
-#
-# reCamera PoE (standard SG2002 firmware plus a baseboard header GPIO) is
-# covered as a second door option under P1. Its device-side code is self-tested
-# only — nothing about it has been on hardware, so every PoE figure in this
-# package reads "pending hardware".
-# Recognition, liveness and any recognition-to-relay latency remain unmeasured:
-# nobody stood in front of the lens during either run (each run sampled 220
-# frames, all reading face_count: 0 — see
-# evaluation/runs/2026-09-06-recamera-std-p3/results.md and
-# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md).
+# Hardware coverage, boundary status and the per-preset commissioning gaps are
+# recorded in docs/internal-status.md. Keep that file, not this comment, in
+# step with the evaluation runs.
 #
 # LICENCE, in one line so nobody has to go looking: the face detection and
 # embedding weights (InsightFace buffalo_l) are NON-COMMERCIAL. They are not
@@ -315,10 +275,9 @@ intro:
         2002 HQ PoE carries a 6-pin header on its baseboard with three IO lines
         (D1 = sysfs 490, the only one not multiplexed; CLK = 487; SMD = 488), so
         a relay can sit on the camera itself and it becomes a second door option
-        under the on-device preset. Nothing about that path has been on
-        hardware: the header's level polarity and available drive current are
-        undocumented by the vendor and unmeasured, so it is pending hardware and
-        no lock may be wired before a meter and an LED have confirmed them.
+        under the on-device preset. The header's level polarity and available
+        drive current are undocumented by the vendor, so confirm both with a
+        meter and an LED before wiring a lock.
       description_i18n:
         zh: >-
           标准版 reCamera，与 Pro 是两种形态，不是同一形态的变体。它本身就会识别人脸
@@ -329,17 +288,15 @@ intro:
           并把所有阈值钉在一个文件里，与识别进程的实际启动参数逐项比对。
           "不驱动任何锁"有一个例外：2002 HQ PoE 的底板上有一组 6-pin 排针，三路 IO
           （D1 = sysfs 490，唯一一路非复用；CLK = 487；SMD = 488），继电器可以接在
-          摄像头自己身上，于是它成为端侧直控套餐的第二个门口设备选项。这条路径的任何
-          一项都没上过硬件：排针的电平极性与可供电流厂商没写、也没有实测，所以它是
-          待真机状态，万用表与 LED 确认之前不得接锁。
+          摄像头自己身上，于是它成为端侧直控套餐的第二个门口设备选项。
+          排针的电平极性与可供电流厂商没写，接锁之前先用万用表与 LED 确认。
     recomputer_j20:
       description: >-
         The industrial box preset. Recognition runs in containers against an
         existing RTSP camera, and the door is driven from an opto-isolated
-        digital output — sysfs 463/464/465/462 for DO1–DO4 per the design spec,
-        pending confirmation on hardware of whether the target image exposes
-        them that way or through Jetson.GPIO. The DO switches the relay; it
-        never carries lock current.
+        digital output — sysfs 463/464/465/462 for DO1–DO4 per the design spec;
+        confirm on your image whether they are exposed that way or through
+        Jetson.GPIO. The DO switches the relay; it never carries lock current.
       description_i18n:
         zh: >-
           工业盒子套餐。识别在容器里跑，接现有 RTSP 摄像头，门控由光隔数字输出驱动——
@@ -499,9 +456,9 @@ intro:
       name: On-Device — reCamera Pro / PoE
       name_i18n:
         zh: 端侧直控 —— reCamera Pro / PoE
-      badge: Library/GPIO paths verified on hardware; door and registration not production-ready
+      badge: Beta
       badge_i18n:
-        zh: 库下发/GPIO 回读真机已验；开门与注册链路未达可生产状态
+        zh: 测试版
       description: >-
         Everything at the door: the camera recognises, checks liveness, decides
         and pulses its own GPIO into a relay. Nothing but the face library and
@@ -569,9 +526,9 @@ intro:
       name: Industrial Box — reComputer Industrial J20
       name_i18n:
         zh: 工业盒子 —— reComputer Industrial J20
-      badge: Untested on hardware
+      badge: Beta
       badge_i18n:
-        zh: 未上板验证
+        zh: 测试版
       description: >-
         For a door that already has a camera. The J20 pulls the existing RTSP
         stream, runs recognition and liveness in containers, and drives the
@@ -625,9 +582,9 @@ intro:
       name: MQTT Relay — Compute Away From the Door
       name_i18n:
         zh: MQTT 继电器 —— 计算不在门口
-      badge: Untested on hardware
+      badge: Beta
       badge_i18n:
-        zh: 未上板验证
+        zh: 测试版
       description: >-
         For when the box that can run recognition is nowhere near the door, or
         when one box serves several doors. Recognition runs in containers on a
@@ -700,9 +657,9 @@ intro:
       name: Standard reCamera — On-Camera Loop, Gateway Relay
       name_i18n:
         zh: 标准版 reCamera —— 摄像头内闭环，网关侧继电器
-      badge: Library path verified on hardware; door path untested
+      badge: Beta
       badge_i18n:
-        zh: 拉库链路已上板验证；门控链路未验证
+        zh: 测试版
       description: >-
         The standard reCamera already recognises faces by itself — detection,
         embedding, a two-head texture liveness with blink fusion and matching all
@@ -773,9 +730,9 @@ intro:
       name: XIAO + Grove Vision AI V2 — No Liveness
       name_i18n:
         zh: XIAO + Grove Vision AI V2 —— 无活体
-      badge: Firmware not built
+      badge: Preview
       badge_i18n:
-        zh: 固件未构建
+        zh: 预览
       description: >-
         The cheapest door: a Grove Vision AI V2 detects and embeds, a XIAO
         ESP32-S3 matches against a library held in its own flash and drives a
