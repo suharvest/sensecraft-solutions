@@ -346,8 +346,9 @@ intro:
       description: >-
         The whole classifier on the camera's own NPU, in INT8. Measured on the
         device over 1060 validation images: material top-1 0.8764, Chinese
-        four-way top-1 0.9566, p50 5.8 ms and p95 6.0 ms for inference alone
-        (capture and preprocessing excluded). That is 2.9x the speed of the
+        four-way top-1 0.9566, p50 5.8 ms and p95 6.0 ms — inference alone,
+        with the camera's built-in application stopped, capture and
+        preprocessing excluded. That is 2.9x the speed of the
         same model in fp16 on this camera and 4.2x the reCamera figure, at the
         same accuracy — across INT8, fp16 and fp32 on a host the top-1 spread
         over these 1060 images is under 0.2 pp, so quantisation showed no
@@ -356,7 +357,7 @@ intro:
         zh: >-
           整个分类器跑在相机自己的 NPU 上，用 INT8。设备实测 1060 张验证图：
           物料八类 top-1 0.8764、中国四分类 top-1 0.9566、p50 5.8 ms、
-          p95 6.0 ms（纯推理，不含取图与预处理）。这是同一台相机上 fp16 的
+          p95 6.0 ms（自带应用停止时的纯推理，不含取图与预处理）。这是同一台相机上 fp16 的
           2.9 倍速度、reCamera 的 4.2 倍，精度相同——INT8、fp16 与主机 fp32
           三者在这 1060 张图上的 top-1 相差不到 0.2 pp，即量化在这里没有
           表现出精度代价。
