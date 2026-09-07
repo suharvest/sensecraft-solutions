@@ -307,7 +307,7 @@ to parse the topic.
 
 ## Deployment Comparison
 
-**IP camera + reComputer J (Orin)** is the measured path. Every number in the
+**IP camera + reComputer J30 / J40 (Orin)** is the measured path. Every number in the
 tables above was taken on an Orin NX 16GB. The TensorRT engine is built on the
 device during deployment — it is bound to that exact GPU architecture and
 TensorRT version and is never redistributed. Pick this when you need figures you

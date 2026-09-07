@@ -207,9 +207,9 @@ intro:
 
   presets:
     - id: orin
-      name: IP Camera + reComputer J (Orin)
+      name: IP Camera + reComputer J30 / J40 (Orin)
       name_i18n:
-        zh: IP 摄像头 + reComputer J（Orin）
+        zh: IP 摄像头 + reComputer J30 / J40（Orin）
       badge: Recommended
       badge_i18n:
         zh: 推荐

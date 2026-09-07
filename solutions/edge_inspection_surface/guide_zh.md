@@ -1,4 +1,4 @@
-## 套餐: IP 摄像头 + reComputer J（Orin） {#orin}
+## 套餐: IP 摄像头 + reComputer J30 / J40（Orin） {#orin}
 
 有实测的那条路径。Jetson Orin 拉取相机的 RTSP 流，用 TensorRT FP16 跑
 YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程中于设备上
