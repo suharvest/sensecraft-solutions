@@ -4,7 +4,7 @@ name: Open the Admin Console
 name_i18n:
   zh: 打开管理后台
 type: web_dashboard
-inherit_host_from: cloud_stack
+inherit_host_from: deploy_stack
 
 # 用 web_dashboard 而不是 preview：这套链路的输出是转写文本与库里的记录，
 # 没有逐帧画面可叠加渲染，voice-web 自己那套页面已经把它渲染好了。
