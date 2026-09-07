@@ -122,7 +122,7 @@ watch exactly one contract-valid event arrive on MQTT.
 
 ### Deployment Complete
 
-The stack is running and one classification has been verified end to end.
+The stack is running and one classification has been measured end to end.
 
 #### Quick verification
 
@@ -214,7 +214,7 @@ cross-lingual answers and the ability to add a class without retraining.
 
 ### Prerequisites
 
-- Step 1 finished with `model_track: baseline`, verified working. Do not debug
+- Step 1 finished with `model_track: baseline`, measured working. Do not debug
   two changes at once.
 - 372 MB for the vision tower ONNX plus space for its engine, on top of what is
   already there.
@@ -247,14 +247,14 @@ every figure on the solution page holds with it off.
 
 - A reachable `edge-vision-vlm` instance. This solution does not bundle or
   start that service — typically it runs on a separate Orin box.
-- Step 3 verified, so you know the main stream is healthy before adding a
+- Step 3 measured, so you know the main stream is healthy before adding a
   second one.
 - `vlm.trigger.min_confidence` must not be below `rules.min_confidence`;
   config validation rejects a fallback gate below the reclassification gate.
-- Understand what has and has not been verified: the wiring was proved against
+- Understand what has and has not been measured: the wiring was proved against
   the real service with a stubbed generation backend (5 frames, 5 valid main
   events, 2 fallback events, 0 rejects). Real-model latency and whether the
-  VLM is actually more often right are pending verification on Orin.
+  VLM is actually more often right are outstanding verification on Orin.
 
 ### Troubleshooting
 
@@ -271,10 +271,10 @@ every figure on the solution page holds with it off.
 
 Prepares a Pi 5 with a Hailo-8, validates the three ABI gates that can only be
 checked on the device, and downloads the EfficientNet-Lite0 (m1c) HEF. The HEF
-compiled cleanly and was INT8-verified against the DFC emulator (agreement
+compiled cleanly and was INT8-checked against the the compiler's simulator (agreement
 0.89 vs CPU/native on 200 val images) — **no Hailo-8 hardware has run it yet**.
 Choose this preset to get the first real on-device result for this classifier;
-treat the emulator number as a compile-time sanity check, not a hardware
+treat the simulator number as a compile-time sanity check, not a hardware
 verification.
 
 | Device | Purpose |
@@ -292,9 +292,9 @@ decision.
 
 Known weaknesses, all measured or explicitly unmeasured:
 
-- **The HEF is emulator-verified, not hardware-verified.** The baseline
+- **The HEF is simulator-measured, not hardware-measured.** The baseline
   (EfficientNet-Lite0, m1c) compiles cleanly and shows no INT8 collapse on the
-  DFC emulator (agreement 0.89), but no Hailo-8 hardware has run it. The
+  the compiler's simulator (agreement 0.89), but no Hailo-8 hardware has run it. The
   open-vocabulary tower still fails INT8 quantisation at `hailo optimize`. If
   you train and self-quantise MobileNetV3-Small yourself, do not assume INT8
   works for it the way it does for this baseline — it collapsed on this exact
@@ -306,6 +306,25 @@ Known weaknesses, all measured or explicitly unmeasured:
   solution page is FP32 — the on-device INT8 confidence distribution has not
   been measured on real Hailo-8 hardware.
 - **Nothing here has run on a Pi.**
+
+## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=manual required=true config=devices/recamera_waste.yaml}
+
+The whole classifier runs on the camera's own SG2002 TPU — no host, no
+accelerator card, no network hop in the classification path.
+
+This step is manual because no `.deb` has been built for this classifier yet.
+What exists is a BF16 cvimodel and a small cviruntime runner, both from the
+upstream `edge-waste-sorting` repository, and the four sub-steps copy them to
+`/userdata/waste`, prepare one raw frame and classify it.
+
+Measured on this hardware over 1060 validation images: material top-1 0.8792,
+Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline 0.9915,
+p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
+preprocessing), peak resident memory 11.6 MB.
+
+There is no INT8 cvimodel for this graph — TPU-MLIR 1.7 does not finish
+calibration for it — so no INT8 accuracy or latency figure exists and none is
+quoted anywhere on this page.
 
 ## Step 1: Deploy Waste Sorting on Hailo {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
@@ -373,7 +392,7 @@ classification results do not.
 
 The end-to-end verification. If the HEF was placed on the device in Step 1,
 this produces a real classification, running on Hailo-8 hardware for the
-first time — this project's own emulator numbers are not a substitute for
+first time — this project's own simulator numbers are not a substitute for
 this result. If the HEF is still missing, run the framing and subscription
 substeps now so everything but the model is confirmed.
 
@@ -390,7 +409,7 @@ substeps now so everything but the model is confirmed.
 The board is prepared and the stack is running. If the HEF was placed on the
 device, classification runs on Hailo-8 hardware — this is the first real
 verification of that number, since this project has no Hailo-8 of its own. If
-the HEF is still missing (CDN upload pending), classification is blocked on
+the HEF is still missing (CDN upload outstanding), classification is blocked on
 it; the trigger and MQTT path can still be exercised.
 
 #### Quick verification
@@ -454,12 +473,12 @@ parsing the topic.
 
 - Report back the real Hailo-8 accuracy and latency you just measured — this
   is the first hardware verification for this HEF anywhere in the project.
-  Compare it against the DFC emulator's 0.89 agreement / 0.755 accuracy
+  Compare it against the the compiler's simulator's 0.89 agreement / 0.755 accuracy
   figures on the solution page.
-- If the CDN upload is still pending and you copied the HEF on by hand, note
+- If the CDN upload is still outstanding and you copied the HEF on by hand, note
   that for the next deploy — the download step will otherwise fail.
 - Keep the ABI state you just established: both Hailo packages held, and
-  `force_desc_page_size=4096` in place. This HEF, compiled against DFC
+  `force_desc_page_size=4096` in place. This HEF, compiled against the Hailo compiler
   3.31.0 / HailoRT 4.21.0, needs exactly this.
 - Point MQTT at a broker with credentials before this leaves the bench.
 
@@ -471,5 +490,5 @@ parsing the topic.
 | Trigger counter does not move | The trigger source is not configured. Check `trigger.sources` in `config/config.json`. |
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
-| Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.89 emulator agreement figure; a large gap from that number on real hardware is worth reporting. |
+| Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.89 simulator agreement figure; a large gap from that number on real hardware is worth reporting. |
 | Want open-vocabulary or VLM fallback here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`, and the VLM fallback steps are Orin-only. |

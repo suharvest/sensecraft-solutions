@@ -13,6 +13,8 @@
 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_lite0_waste8.onnx
 47d0cedcc19009ed219d47da364a74c4215a3d797717b4658250ea69e0d8e23b  efficientnet_lite0_waste8_best.pth
 3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
+4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e  efficientnet_lite0_waste8_u8.hef
+42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25  efficientnet_lite0_waste8_cv181x_bf16.cvimodel
 
 # metadata (not part of the checksum lines) — EfficientNet-Lite0 (m1c, current baseline)
 # arch           : efficientnet_lite0
@@ -24,6 +26,17 @@ e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_l
 # size           : efficientnet_lite0_waste8_best.pth (best.pth on spark) = 13780837 bytes
 # size           : efficientnet_lite0_waste8.hef = 4519376 bytes (device artifact, wsl2-local, not committed)
 # measured       : val top-1 0.8877 / china4 0.9500 (7417 images, onnxruntime CPU)
+# measured (SG2002): reCamera real hardware, BF16 cvimodel, 1060 val images -
+#                  material top-1 0.8792, china4 top-1 0.9566, agreement vs CPU
+#                  0.9915, p50 24.276 ms, p95 24.323 ms, peak RSS 11.6 MB.
+#                  +0.47 pp over fp32 CPU on the same 1060 images (9 flipped
+#                  predictions) - BF16 costs nothing measurable on this chip.
+#                  See evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md.
+# cv181x int8    : not built - TPU-MLIR 1.7 run_calibration.py does not complete
+#                  for this graph, so no INT8 figure exists for SG2002.
+# hailo u8 hef   : efficientnet_lite0_waste8_u8.hef is the deployable packaging
+#                  (uint8 device input). Compiled 2026-09-07; no Hailo-8 board
+#                  figures collected.
 # int8 status    : Hailo-8 DFC emulator agreement 0.890 (no collapse, no Hailo-8 hardware used);
 #                  RK3588 radxa real-hardware agreement 0.90-1.00 across 4 variants (no collapse,
 #                  calib256+mmse matches fp16 exactly); RK3576 not retested with this backbone.

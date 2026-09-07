@@ -1,19 +1,48 @@
 # Hailo-8 HEF artefacts.
 #
-# EMPTY ON PURPOSE — no HEF exists for this solution.
+# Checksums only - no HEF is committed to this repository, and nothing has been
+# uploaded to the CDN yet. The deploy steps name the CDN path, verify against
+# these lines, and carry a TODO(CDN) saying the file must be placed on the
+# device by hand until the upload happens.
 #
-# Baseline MobileNetV3-Small: never compiled. No `hailo parser` run, no
-# `hailo optimize`, no compiler run.
+# Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.hef.
+# Built with DFC 3.31.0 / HailoRT 4.21.0, --hw-arch hailo8.
+
+4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e  efficientnet_lite0_waste8_u8.hef
+3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
+2a13b4857d9e68b3111394b5faa2bc85d6ee3b1e08c881be9ffb984ddf0cbcd3  mobilenetv3s_waste8.hef
+
+# efficientnet_lite0_waste8_u8.hef - CURRENT, the one this solution deploys.
+#   4,576,932 bytes, built 2026-09-07. ImageNet mean/std are a normalization
+#   layer inside the HEF, so the device feeds raw uint8 NHWC RGB and needs no
+#   float preprocessing on the host. That matches what the RKNN and cvimodel
+#   builds do, which is what keeps one preprocessing definition across every
+#   accelerator in this solution.
+#   Calibrated on 1024 uint8 training crops (calibration npy sha256
+#   592aa3ea1e70724bda912b1be2d79f8a2f762bd5b15056ea52ae7e6bc834509f). 1024 is
+#   the threshold below which DFC silently drops optimization level to 0 when
+#   the container has no GPU.
+#   Compile timings: parse 12s / optimize 191s / compile 38s, no
+#   AccelerasNumerizationError. Accuracy and latency on a Hailo-8 board have
+#   not been collected, so no board figure is quoted for it anywhere.
+#
+# efficientnet_lite0_waste8.hef - superseded packaging of the same backbone.
+#   4,519,376 bytes, built 2026-09-06. The graph carries no normalization
+#   layer, so it needs ImageNet-normalised float input prepared on the host.
+#   Kept for continuity with the DFC emulator comparison that produced
+#   agreement 0.890 against CPU/native on 200 validation images.
+#
+# mobilenetv3s_waste8.hef - superseded backbone, kept as the INT8 contrast.
+#   2,498,997 bytes. Compiles cleanly but the INT8 graph collapses to a single
+#   class (agreement 0.115 vs CPU/native on 200 validation images). Not
+#   deployable; this is the failure that caused the switch to
+#   EfficientNet-Lite0.
 #
 # Open-vocabulary SigLIP 2 vision tower: `hailo parser` passes end to end with
-# no unsupported op (DFC 3.31.0 / HailoRT 4.21.0, --hw-arch hailo8, HAR
-# af7de30b5c3c2938381f235821b3279120daa072c11e948faf451f9bcfeee471).
+# no unsupported op (HAR
+# af7de30b5c3c2938381f235821b3279120daa072c11e948faf451f9bcfeee471), but
 # `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1)
-# FAILS at layer ne_activation_mul_and_add78 with
+# fails at layer ne_activation_mul_and_add78 with
 # NegativeSlopeExponentNonFixable: "Desired shift is 16.0, but op has only 8
-# data bits". No optimized HAR, no HEF.
-#
-# Hailo path pending: the INT8 quantisation retry is in progress; if it fails
-# the fallback is distillation into a small student model.
-#
-# Source: ~/project/edge-waste-sorting evaluation/runs/2026-09-05-w1-hef/results.md
+# data bits". No optimized HAR, no HEF. Source:
+# ~/project/edge-waste-sorting evaluation/runs/2026-09-05-w1-hef/results.md
