@@ -177,7 +177,7 @@
 
 ### 部署目标 {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
-## 套餐: IP 摄像头 + reComputer J {#jetson}
+## 套餐: IP 摄像头 + reComputer J30 / J40 {#jetson}
 
 保留你现有的摄像头。由 Jetson Orin 拉取它们的 RTSP 流，运行更大的姿态模型，并对
 每一路里的多个人独立跟踪。
@@ -258,7 +258,7 @@ Jetson 已经可以进入有人值守的现场试运行。结果发往
 
 ---
 
-## 套餐: IP 摄像头 + reComputer RK {#rk}
+## 套餐: IP 摄像头 + reComputer RK3576 / RK3588 {#rk}
 
 把检测器跑在瑞芯微 NPU 板卡上。算法和 MQTT 输出与其他套餐一致，只是用板卡自带的
 NPU 代替 GPU。
@@ -296,7 +296,7 @@ NPU 代替 GPU。
 
 ### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_fall.yaml}
 
-### 部署目标 {#rk_local type=local device=rk3588 device_name="reComputer RK" config=devices/rk_auto_fall.yaml}
+### 部署目标 {#rk_local type=local device=rk3588 device_name="reComputer RK3576 / RK3588" config=devices/rk_auto_fall.yaml}
 
 ---
 

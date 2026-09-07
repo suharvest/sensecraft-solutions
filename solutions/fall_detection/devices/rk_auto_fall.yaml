@@ -1,6 +1,6 @@
 version: "1.0"
 id: rk_auto_fall
-name: reComputer RK
+name: reComputer RK3576 / RK3588
 type: docker_deploy
 
 docker:
@@ -37,7 +37,7 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: reComputer RK
+  zh: reComputer RK3576 / RK3588
 
 remote_overrides:
   remote_path: /home/{{username}}/fall-detection-rk

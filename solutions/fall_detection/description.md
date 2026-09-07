@@ -85,8 +85,8 @@ applications were stopped before these runs.
 
 | Device | Pose frontend | Highest tested live/RTSP load | Next boundary / coverage |
 |---|---|---:|---:|
-| reComputer J (Orin Nano Super) | YOLO11s-Pose TensorRT FP16 | 8 streams, 14.95 FPS each | 9 streams, 13.36 FPS each |
-| reComputer J (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
+| reComputer J30 (Orin Nano Super) | YOLO11s-Pose TensorRT FP16 | 8 streams, 14.95 FPS each | 9 streams, 13.36 FPS each |
+| reComputer J40 (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
 | reComputer RK3576 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 1 stream, 14.83–15.01 FPS | 2 streams, 12.81–12.83 FPS |
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
 | reComputer R2000 (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
@@ -132,7 +132,7 @@ but is no longer presented here as route capacity.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
 both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
-YOLO11m on reComputer J. The limiting factor
+YOLO11m on reComputer J40. The limiting factor
 is pose coverage: in long shots and heavy occlusion the person is barely detected
 at all. The table above covers a framed indoor view at close-to-medium range; the
 external figures cover long shots and occlusion.
@@ -166,12 +166,12 @@ density before committing to a count.
 a unit you mount and power. Pick it for a single room and the shortest path to a
 working alert.
 
-**IP camera + reComputer J** keeps the cameras you already have and puts the
+**IP camera + reComputer J30 / J40** keeps the cameras you already have and puts the
 detector on a Jetson Orin, taking more than one stream at once with a larger pose
 model and higher measured accuracy. Pick it when the cameras exist, when you need
 more than one view, or when the accuracy difference in the table above matters.
 
-**reComputer RK** puts the detector on a Rockchip NPU board with a board-native
+**reComputer RK3576 / RK3588** puts the detector on a Rockchip NPU board with a board-native
 temporal profile and hardware video decode. On the optimized YOLOv8s INT8 benchmark
 profile, RK3576 reached 1×15 FPS and RK3588 5×15 FPS. The current deployment
 keeps its existing single-camera YOLO11n FP16 profile.

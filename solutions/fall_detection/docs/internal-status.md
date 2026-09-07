@@ -11,7 +11,7 @@ loads were not tested. That row is below the 14.5 FPS threshold used for every
 other platform's capacity boundary, so it is not a comparable capacity number.
 
 **RealBiomFall external-set recall.** Measured for reCamera (58.8%) and for
-YOLO11m as deployed on reComputer J (52.9%). YOLO11s was not measured on that
+YOLO11m as deployed on reComputer J40 (52.9%). YOLO11s was not measured on that
 set.
 
 ## Wording changed on the page

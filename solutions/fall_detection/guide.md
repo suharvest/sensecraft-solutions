@@ -186,7 +186,7 @@ live view with skeletons is the console's own page, opened by this step.
 
 ### Target {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
-## Preset: IP Camera + reComputer J {#jetson}
+## Preset: IP Camera + reComputer J30 / J40 {#jetson}
 
 Keep the cameras you already have. A Jetson Orin pulls their RTSP streams, runs a
 larger pose model, and tracks several people per stream independently.
@@ -275,7 +275,7 @@ own tracking state and gets its own MQTT topic.
 
 ---
 
-## Preset: IP Camera + reComputer RK {#rk}
+## Preset: IP Camera + reComputer RK3576 / RK3588 {#rk}
 
 Run the detector on a Rockchip NPU board. Same algorithm and same MQTT output as
 the other presets, using the board's own NPU instead of a GPU.
@@ -316,7 +316,7 @@ Deploy the detector to your Rockchip board. Allow about 5 minutes.
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_fall.yaml}
 
-### Target {#rk_local type=local device=rk3588 device_name="reComputer RK" config=devices/rk_auto_fall.yaml}
+### Target {#rk_local type=local device=rk3588 device_name="reComputer RK3576 / RK3588" config=devices/rk_auto_fall.yaml}
 
 ---
 

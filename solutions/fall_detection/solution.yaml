@@ -15,9 +15,9 @@ intro:
   gallery:
     - type: image
       src: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/cover-70f929f3.png
-      caption: Confirmed fall on reComputer J — skeleton, track state and evidence count from the live MQTT message
+      caption: Confirmed fall on reComputer J30 / J40 — skeleton, track state and evidence count from the live MQTT message
       caption_i18n:
-        zh: reComputer J 上确认的一次跌倒——骨架、跟踪状态和证据计数来自实时 MQTT 消息
+        zh: reComputer J30 / J40 上确认的一次跌倒——骨架、跟踪状态和证据计数来自实时 MQTT 消息
     - type: image
       src: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/live-fall-demo-f4ef5180.gif
       caption: State transition from normal to fallen, shown in the reCamera Pro App Center preview
@@ -164,9 +164,9 @@ intro:
             - device_ref: recamera_pro
           default: recamera_pro
     - id: jetson
-      name: IP Camera + reComputer J
+      name: IP Camera + reComputer J30 / J40
       name_i18n:
-        zh: IP 摄像头 + reComputer J
+        zh: IP 摄像头 + reComputer J30 / J40
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -200,9 +200,9 @@ intro:
           default: generic_ip_camera
 
     - id: rk
-      name: IP Camera + reComputer RK
+      name: IP Camera + reComputer RK3576 / RK3588
       name_i18n:
-        zh: IP 摄像头 + reComputer RK
+        zh: IP 摄像头 + reComputer RK3576 / RK3588
       badge: Beta
       badge_i18n:
         zh: 测试版

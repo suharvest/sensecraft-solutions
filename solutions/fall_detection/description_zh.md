@@ -71,8 +71,8 @@ YAML。
 
 | 设备 | 姿态前端 | 最高实测实时/RTSP 负载 | 下一边界 / 覆盖范围 |
 |---|---|---:|---:|
-| reComputer J（Orin Nano Super） | YOLO11s-Pose TensorRT FP16 | 8 路，每路 14.95 FPS | 9 路，每路 13.36 FPS |
-| reComputer J（Orin NX Super） | YOLO11s-Pose TensorRT FP16 | 9 路，每路 14.93 FPS | 10 路，每路 13.05 FPS |
+| reComputer J30（Orin Nano Super） | YOLO11s-Pose TensorRT FP16 | 8 路，每路 14.95 FPS | 9 路，每路 13.36 FPS |
+| reComputer J40（Orin NX Super） | YOLO11s-Pose TensorRT FP16 | 9 路，每路 14.93 FPS | 10 路，每路 13.05 FPS |
 | reComputer RK3576 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 1 路，14.83–15.01 FPS | 2 路，12.81–12.83 FPS |
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 5 路，每路 14.97–15.01 FPS | 6 路，每路 14.43–14.49 FPS |
 | reComputer R2000（Hailo-8） | YOLOv8s-Pose 量化 HEF，1 context | 16 路，每路 14.52–14.57 FPS；关闭 MQTT | 17 路低于 14.5 FPS |
@@ -112,7 +112,7 @@ RK3588 原型把 DMA-BUF→RGA→RKNN 放进原生热路径：5 路 15 FPS 时�
 但不再作为这里的路数数据。
 
 在独立外部集 RealBiomFall 的 34 段跌倒视频上，两组已测配置的召回率都下降：reCamera 为
-58.8%，reComputer J 上部署的 YOLO11m 为 52.9%。主要限制是远景和严重遮挡
+58.8%，reComputer J40 上部署的 YOLO11m 为 52.9%。主要限制是远景和严重遮挡
 下的姿态覆盖率。上面的容量表代表近中距离、完整人体入镜的固定室内机位，不代表这些外部场景。
 ## 输出接口
 
@@ -139,11 +139,11 @@ RK3576 1 路、RK3588 5 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见
 **reCamera 2002** 是一体化的——摄像头、推理、MQTT 都在一个装上通电就能用的设备
 里。单个房间、想最快跑通一条告警链路，选它。
 
-**IP 摄像头 + reComputer J** 保留你现有的摄像头，把检测器放到 Jetson Orin 上，
+**IP 摄像头 + reComputer J30 / J40** 保留你现有的摄像头，把检测器放到 Jetson Orin 上，
 一台同时接入多路，用更大的姿态模型换更高的实测准确率。摄像头已经有了、需要多个
 视角，或者在意上面那张表里的准确率差距时，选它。
 
-**reComputer RK** 把检测器放到瑞芯微 NPU 板卡上，带有板卡专属的时序权重和硬件视频
+**reComputer RK3576 / RK3588** 把检测器放到瑞芯微 NPU 板卡上，带有板卡专属的时序权重和硬件视频
 解码。最佳性能测试配置使用 YOLOv8s INT8，RK3576 验证 1×15 FPS，RK3588 验证
 5×15 FPS；当前部署仍保留原有单相机 YOLO11n FP16 配置。
 
