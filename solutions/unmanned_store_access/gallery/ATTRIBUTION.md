@@ -121,13 +121,15 @@ Their replacements were taken the same way — `uv run python tools/web_demo.py
 token in `localStorage` — but at a **1600 x 1000 viewport with
 `deviceScaleFactor: 2`**, so every capture is 3200 x 2000 before cropping. The
 device page was captured after issuing one unlock, so the command receipt is in
-the frame rather than an empty panel. Cropped to content and saved as JPEG
+the frame rather than an empty panel. The event list is a **full-page** capture so
+that all ten rows and the pager are in the frame instead of being cut at the
+viewport edge; that is why its source height exceeds 2000. Cropped to content and saved as JPEG
 quality 90; nothing inside the frame was altered or scaled.
 
 | File | Before | After |
 |---|---|---|
-| `ui-events.jpg` | 3200 x 2000 | 3183 x 2000 (right page edge trimmed) |
-| `ui-events-en.jpg` | 3200 x 2000 | 3183 x 2000 |
+| `ui-events.jpg` | 3200 x 2314 (full page) | 3183 x 2250 |
+| `ui-events-en.jpg` | 3200 x 2398 (full page) | 3183 x 2352 |
 | `ui-devices.jpg` | 3200 x 2000 | 3183 x 1660 |
 | `ui-devices-en.jpg` | 3200 x 2000 | 3183 x 1660 |
 | `ui-status.jpg` | 3200 x 2000 | 3183 x 1197 |
