@@ -93,6 +93,10 @@ remote_overrides:
           MQTT_TLS=0
           FACEDB_PORT={{facedb_port}}
           WEB_PORT={{web_port}}
+          # Recognition Service URL is optional (bench use). Without it the app
+          # now hard-fails on embedder=auto unless USA_ALLOW_FAKE=1 is set, so
+          # set it whenever no real recognition service was configured.
+          USA_ALLOW_FAKE=$( [ -n "{{face_rec_api_url}}" ] && echo 0 || echo 1 )
           EOF
           echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
         name_i18n:

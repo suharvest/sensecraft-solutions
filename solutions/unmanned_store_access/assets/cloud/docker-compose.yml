@@ -109,9 +109,13 @@ services:
       # the device control and status pages have nothing to show.
       USA_DEVICE_ENDPOINTS: ${USA_DEVICE_ENDPOINTS:-[]}
       # Enrolment takes its embedding from a recognition service. Leave this
-      # unset only on a bench: without it the console falls back to a
-      # FakeEmbedder, and a library built that way cannot recognise anyone.
+      # unset only on a bench: without it, and with USA_ALLOW_FAKE unset, the
+      # app now hard-fails startup (embedder=auto -> FakeEmbedder is refused
+      # unless explicitly allowed) rather than silently degrading. Set
+      # USA_ALLOW_FAKE=1 to let it start anyway; a library built that way
+      # cannot recognise anyone.
       USA_FACE_REC_API: ${USA_FACE_REC_API:-}
+      USA_ALLOW_FAKE: ${USA_ALLOW_FAKE:-0}
       USA_MQTT_HOST: ${MQTT_HOST:?set MQTT_HOST}
       USA_MQTT_PORT: ${MQTT_PORT:-8883}
       USA_MQTT_TLS: ${MQTT_TLS:-1}

@@ -113,6 +113,15 @@ remote_overrides:
           MQTT_TLS=0
           FACEDB_PORT={{facedb_port}}
           WEB_PORT=8088
+          # This step's compose file also defines the web service, so
+          # \`docker compose up\` starts it here even though only facedb and
+          # mosquitto are required=true below. USA_FACE_REC_API is not known
+          # yet at this step (it is a Management Console input) and the app
+          # hard-fails startup with embedder=auto and no recognition service
+          # configured, so allow the fake embedder here to keep web from
+          # crash-looping; the Management Console step overwrites this .env
+          # with USA_FACE_REC_API set and restarts the project with it.
+          USA_ALLOW_FAKE=1
           EOF
           echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
           echo "key file written with mode $(stat -c '%a' "$WORKDIR/assets/cloud/secret/facedb.key" 2>/dev/null || stat -f '%Lp' "$WORKDIR/assets/cloud/secret/facedb.key")"

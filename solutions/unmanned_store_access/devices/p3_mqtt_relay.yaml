@@ -251,11 +251,11 @@ remote_overrides:
       type: text
       required: true
       placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-edge:0.1.0-c1"
-      description: This image has never been built. Build it from the upstream repository and set the tag you built here.
+      description: "This image does not exist yet: the upstream repository has no access-node daemon (functionality gap, not a packaging gap). Build one from the upstream library and set the tag here once it exists."
       name_i18n:
         zh: 门禁节点镜像
       description_i18n:
-        zh: 这个镜像从未构建过。请从上游仓库构建后，把你构建出的 tag 填在这里。
+        zh: 这个镜像还不存在：上游仓库目前没有门禁节点守护进程（是功能未开发，不是打包遗漏）。等上游有了对应的可运行程序，从中构建并把 tag 填在这里。
     - id: relay_backend
       name: Relay Backend
       type: select
