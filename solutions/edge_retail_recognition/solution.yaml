@@ -226,13 +226,23 @@ intro:
           没有尝试过——因此这块板上嵌入走 onnxruntime CPU，而这条路径在 RK3588 上没有测过延迟。
     recomputer_rk3576:
       description: >-
-        The smaller Rockchip option, same toolchain and same conversion script.
-        Nothing on this page was measured on RK3576; the numbers quoted for the
-        Rockchip preset are all from RK3588.
+        The smaller Rockchip option, same toolchain and same conversion
+        script, with its own two-core NPU (RK3588 has three). Measured on the
+        same RK3576 chip platform, inference only: detector RKNN fp16, dual
+        NPU core, 51.05 ms p50 / 54.18 ms p95, 99.91% box agreement with the
+        CPU reference; embedder RKNN fp16, dual NPU core, 56.38 ms p50 /
+        62.17 ms p95, 21 retrieval metrics within 0.36 percentage points of
+        fp32, mean cosine similarity 0.99966. Reference value on the same
+        RK3576 platform; will be updated after a re-test on the reComputer
+        unit.
       description_i18n:
         zh: >-
-          更小的 Rockchip 选项，工具链与转换脚本相同。本页没有任何数字取自 RK3576；
-          Rockchip 套餐引用的数字全部来自 RK3588。
+          更小的 Rockchip 选项，工具链与转换脚本相同，NPU 只有两核（RK3588 是三核）。
+          同款 RK3576 芯片平台实测，纯推理：检测器 RKNN fp16，双核，
+          p50 51.05 ms / p95 54.18 ms，与 CPU 参考的框一致率 99.91%；
+          嵌入器 RKNN fp16，双核，p50 56.38 ms / p95 62.17 ms，21 项检索指标
+          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。
+          同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
     recamera_pro:
       description: >-
         All-in-one AI camera with an onboard Rockchip NPU, running both stages
@@ -314,20 +324,20 @@ intro:
         The detector runs on the Rockchip NPU as an fp16 `.rknn`, converted on
         an x86_64 host. On RK3588 that path agrees with the CPU golden on
         99.85% of boxes at 56.7 ms p50, and the INT8 variant is 2.2x faster at
-        98.35%. Embedding has no RKNN conversion and falls back to
-        onnxruntime on the Rockchip CPU, untimed. There is no device-side
-        service that joins the two — this preset converts the model, proves the
-        conversion on the board, and stops there. reCamera Pro's onboard NPU is
-        a different, single-core chip with its own measured detector and
-        embedder numbers — see its device description below.
+        98.35%; embedding has no RKNN conversion on RK3588 and falls back to
+        onnxruntime on the CPU, untimed. RK3576 and reCamera Pro each have a
+        different core count and their own measured detector and embedder
+        numbers — see their device descriptions below. There is no
+        device-side service that joins the two stages — this preset converts
+        the model, proves the conversion on the board, and stops there.
       description_i18n:
         zh: >-
           检测器以 fp16 `.rknn` 跑在 Rockchip NPU 上，转换在 x86_64 主机上完成。
           在 RK3588 上这条路径与 CPU golden 的框一致率 99.85%、p50 56.7 ms，
-          INT8 变体快 2.2 倍、一致率 98.35%。嵌入段没有 RKNN 转换，退到 Rockchip CPU 上的
-          onnxruntime，未测延迟。没有把两段串起来的设备侧服务——这个套餐做的是转换模型、
-          在板上证明转换正确，到此为止。reCamera Pro 板载 NPU 是另一颗单核芯片，
-          检测与嵌入都有自己的实测数字——见下方设备说明。
+          INT8 变体快 2.2 倍、一致率 98.35%；嵌入段在 RK3588 上没有 RKNN 转换，
+          退到 CPU 上的 onnxruntime，未测延迟。RK3576 与 reCamera Pro 核数各不相同，
+          都有自己的检测与嵌入实测数字——见下方各自的设备说明。没有把两段串起来的
+          设备侧服务——这个套餐做的是转换模型、在板上证明转换正确，到此为止。
       device_groups:
         - id: console
           name: Console Host

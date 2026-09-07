@@ -51,6 +51,13 @@ p50 56.7 ms / p95 89.5 ms。同款 RK3588 平台实测参考值。
 RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
 代价是 1.5 个百分点的一致率。
 
+**检测 + 嵌入，reComputer RK3576。** RK3576 是双核 NPU（RK3588 是三核）。
+同款 RK3576 芯片平台实测，纯推理：检测用双核 RKNN fp16，p50 51.05 ms /
+p95 54.18 ms，与 CPU 参考的框一致率 99.91%。嵌入用双核 RKNN fp16，
+p50 56.38 ms / p95 62.17 ms；21 项检索指标里与 fp32 差距最大的一项是
+0.36 个百分点，与 fp32 的余弦相似度均值 0.99966。同款 RK3576 平台实测参考值，
+reComputer 整机复测后更新。
+
 **嵌入，reComputer R2000 CPU。** 四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
 同模型 fp32 是 180.75 / 233.41 ms。检索准确率在全部 7 个实测档位上与那条 fp32 基线
 相差 0.65 个百分点以内——只量化权重在这里几乎不花成本。
@@ -89,6 +96,7 @@ Hailo 量化没达到可用精度，嵌入器在这些板子上也没有 RKNN �
 | 套餐 | 检测器 | 嵌入器 | 适合谁 |
 |---|---|---|---|
 | reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms |
+| reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项 |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
 

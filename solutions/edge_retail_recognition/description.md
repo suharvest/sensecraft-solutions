@@ -71,6 +71,15 @@ over the run. Reference value on the same Hailo-8 platform.
 p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
 the same RK3588 platform.
 
+**Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
+(RK3588 has three). Measured on the same RK3576 chip platform, inference
+only: detection, RKNN fp16 on both NPU cores, 51.05 ms p50 / 54.18 ms p95,
+99.91% box agreement with the CPU reference. Embedding, RKNN fp16 on both NPU
+cores, 56.38 ms p50 / 62.17 ms p95; across 21 retrieval metrics the largest
+gap from fp32 is 0.36 percentage points, and mean cosine similarity against
+fp32 is 0.99966. Reference value on the same RK3576 platform; will be updated
+after a re-test on the reComputer unit.
+
 **Embedding, reComputer R2000 CPU.** Dynamically quantised INT8
 DINOv2-small on four threads: 91.95 ms p50 / 105.98 ms p95 per crop, against
 180.75 / 233.41 ms for the same model in fp32. Retrieval accuracy is within 0.65
@@ -119,6 +128,7 @@ values are not comparable, but both agree there is no directional bias).
 | Preset | Detector | Embedder | Best for |
 |---|---|---|---|
 | reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50 |
+| reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
 
