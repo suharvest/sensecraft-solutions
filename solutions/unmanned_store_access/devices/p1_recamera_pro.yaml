@@ -1,41 +1,52 @@
 version: "1.0"
 id: p1_recamera_pro
-name: Install the Door App on reCamera
+name: Install the Door Daemon on the Camera
 name_i18n:
-  zh: 在 reCamera 上安装门禁应用
+  zh: 在摄像头上安装门禁守护进程
 type: manual
 
 # Why this step is manual, stated plainly rather than dressed up as automation.
 #
 # reCamera Pro is a Buildroot 2023.02.6 device with no docker, no node, no
-# opkg, no dpkg and no systemd. Applications are launched and supervised by
-# `appmgr` as ROOT: /etc/init.d/S94appmgr starts `python3 -m appmgr serve` on
-# loopback 8130, which in turn launches the kit framework
-# (/userdata/local/kit/run.py) against an app directory holding an app.py and a
-# manifest.json. This preset extends the face-recognition kit app already on
-# the device (/userdata/local/apps/face-recognition/ — SCRFD-500M +
-# ArcFace-MBF-512 with three-way fused liveness, control channel on loopback
-# 8125) with two things it lacks: a GPIO output and an HTTP face-library pull.
+# opkg, no dpkg and no systemd. What gets installed here is NOT an application
+# package and NOT an appmgr app: it is a flat set of twelve Python standard-
+# library modules copied into /userdata/f1-access, run as root, sitting BESIDE
+# the camera's existing face-recognition app. It pulls the signed face library
+# over HTTP, tells the app to reload it over loopback 8125, subscribes to the
+# app's WebSocket result stream on 8124, and pulses one sysfs GPIO. It does not
+# touch appmgr, the /etc/init.d S/K scripts, or the recognition app's launch
+# arguments; its entire write scope is [facedb] root, [facedb] gallery_out and
+# a log file.
 #
-# The deployment engine has no step type for kit apps. The selection order in
-# AGENTS.md is: use a specific existing type, else fall back to http_debug or
-# web_dashboard, else a custom `run:` health check, and only then a pure manual
-# step with the reason written down. None of the first three fits — the install
-# is an scp of an app directory as root plus an appmgr restart, over SSH to a
-# device whose ssh_deb / recamera_cpp deployers both assume a package manager
-# this device does not have. The `prepare-*` skills carry no kit-app step type
-# either. So: manual, with the reason on the record. Adding a `recamera_kit_app`
-# deployer is a small engine change and would replace this file.
+# The selection order in AGENTS.md is: use a specific existing type, else fall
+# back to http_debug or web_dashboard, else a custom `run:` health check, and
+# only then a pure manual step with the reason written down. The engine does
+# have a `recamera_pro_app` deployer, but it configures an app that is already
+# installed and makes it the active appmgr app — this daemon is neither an
+# appmgr app nor the active one, and making it active would stop the
+# recognition app it depends on. `ssh_deb` and `recamera_cpp` both assume a
+# package manager this device does not have. So: manual, with the reason on the
+# record. A `recamera_flat_daemon` deployer would replace this file.
 #
-# This descriptor covers reCamera Pro only. The standard reCamera (SG2002 —
-# 2002, 2002w, 2002 HQ PoE) is a different shape entirely and has its own
-# descriptor, devices/p3_recamera_std.yaml: it recognises on the camera, sends
-# events over MQTT and drives no lock at all, with the relay at the gateway.
-# Putting both under one preset made the standard unit look like a Pro with
-# different pin numbers, which it is not — its control plane is MQTT, not the
-# Pro's loopback 8125 HTTP.
+# Upstream, which is the single source for every path and command below:
+#   platforms/recamera-pro/README.md            device-side design and the gate
+#   platforms/recamera-pro/face-recognition.conf every threshold, with sources
+#   docs/user-guide.md / docs/user-guide_zh.md   the operator guide these steps
+#                                                mirror (chapters 2 and 4)
+#   evaluation/runs/2026-09-07-recamera-pro-p1/  the hardware acceptance record
 #
-# Nothing here has been wired or measured on hardware.
+# WHAT HAS AND HAS NOT BEEN ON HARDWARE. The library path in steps 5-7 ran on a
+# real reCamera Pro on 2026-09-07 (gate problems: [], activation 62.2 ms / 45.4
+# ms, two tampered versions rejected on the device, GPIO pin readback n=22 p50
+# 1.448 ms / p95 2.709 ms with injected synthetic events). Nothing in steps 3
+# and 4 has: no meter reading, no LED, no relay, no lock, and gpio130's
+# physical identity on the board is unconfirmed. The thresholds are the
+# recognition app's own defaults, not calibration results.
+#
+# reCamera PoE is the second door option on this preset. It runs the standard
+# SG2002 firmware and uses `platforms/recamera-poe/install.sh` instead of the
+# manual copy below; its differences are called out inside the steps and in the
+# guide. Nothing about the PoE unit has been on hardware — pending hardware.
 
 steps:
   - id: reach_device
@@ -43,43 +54,56 @@ steps:
     name_i18n:
       zh: 以 root 登录摄像头
     description: >-
-      SSH to the camera. The control code has to run as root: the `admin`
-      account has no sudo, `su` is not setuid, and /sys/class/gpio and
-      /dev/video* are open to root only — an app running as `admin` gets EACCES
-      the moment it tries to write a pin. Root can log in over SSH with the same
-      password. Confirm the launcher is there before going further:
-      `ls /userdata/local/kit/run.py /userdata/local/appmgr` and
-      `/etc/init.d/S94appmgr status`.
+      SSH to the camera. The daemon has to run as root: the `admin` account has
+      no sudo, `su` is not setuid, and /userdata/local/face-gallery and
+      /sys/class/gpio are open to root only — running as `admin` gets EACCES the
+      moment it writes the gallery or a pin. Root can log in over SSH.
+      Confirm the shape before going further: `uname -a` should report Linux
+      6.1.157 aarch64, and `python3 -V` should report 3.11.x. Do not go looking
+      for docker, systemctl, opkg or dpkg; none of them exists on this device.
+      On a reCamera PoE the same rule holds but the shell is BusyBox ash on
+      Buildroot 2021 — there is no bash either.
     description_i18n:
       zh: >-
-        SSH 登录摄像头。控制代码必须以 root 运行：`admin` 账号没有 sudo，`su` 不是
-        suid，/sys/class/gpio 与 /dev/video* 只对 root 开放——以 `admin` 运行的应用
-        一写引脚就是 EACCES。root 可以用同一个密码 SSH 登录。继续之前先确认启动器
-        在位：`ls /userdata/local/kit/run.py /userdata/local/appmgr`，再跑
-        `/etc/init.d/S94appmgr status`。
+        SSH 登录摄像头。守护进程必须以 root 运行：`admin` 账号没有 sudo，`su` 不是
+        suid，/userdata/local/face-gallery 与 /sys/class/gpio 只对 root 开放——以
+        `admin` 运行，一写 gallery 或一写引脚就是 EACCES。root 可以 SSH 登录。
+        继续之前先确认形态：`uname -a` 应为 Linux 6.1.157 aarch64，`python3 -V`
+        应为 3.11.x。不要去找 docker、systemctl、opkg、dpkg，这台设备上一个都没有。
+        reCamera PoE 上同样必须 root，但那是 Buildroot 2021 的 BusyBox ash，
+        连 bash 都没有。
     optional: false
 
   - id: check_existing_app
-    name: Check the face-recognition app and its control channel
+    name: Check the recognition app and write down its model tag
     name_i18n:
-      zh: 检查已有的人脸识别应用与它的控制通道
+      zh: 检查识别应用并记下它的 model tag
     description: >-
-      Run `curl -s localhost:8125/gallery` on the device. A healthy reply names
-      the model tag and lists the enrolled users — for example
-      `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16",...}`.
-      Write down that `model_tag`: the cloud library must be built with a
-      matching tag, because embeddings from different models are not comparable
-      and a mismatched library recognises nobody rather than failing loudly. If
-      the port does not answer, the app is not running and there is nothing to
-      extend — sort that out before continuing.
+      On the device run `ps -o pid,args | grep '[k]it/run.py'` — a healthy unit
+      shows the app launched by appmgr as root, `.../kit/run.py
+      .../face-recognition/app.py --sink ws --port 8124`. Then run
+      `curl -s localhost:8125/gallery`; a healthy reply names the model tag and
+      lists the enrolled users, for example
+      `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16","users":2,...}`.
+      Write that `model_tag` down: the cloud console's `USA_MODEL_TAG` must
+      match it exactly, because embeddings from different models are not
+      comparable and a mismatched library is rejected silently as
+      `GalleryMismatch` — no error, it just recognises nobody. If port 8125 does
+      not answer, the app is not running and there is nothing to extend; sort
+      that out first. On a reCamera PoE there is no loopback 8125: the control
+      plane is MQTT `recamera/face-recognition/cmd` and the model tag is
+      `cvi:scrfd500m+mbf512@bf16`.
     description_i18n:
       zh: >-
-        在设备上跑 `curl -s localhost:8125/gallery`。正常的回复会给出 model tag 与
-        已注册用户列表，例如
-        `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16",...}`。
-        把这个 `model_tag` 记下来：云端人脸库必须按相同的 tag 构建——不同模型的嵌入
-        不可比，tag 不匹配的库不会报错，只会谁都认不出来。如果这个端口没有响应，
-        说明应用没在跑，没有东西可扩展，先把它解决掉。
+        在设备上跑 `ps -o pid,args | grep '[k]it/run.py'`，正常的机器会看到 appmgr 以
+        root 启动的应用 `.../kit/run.py .../face-recognition/app.py --sink ws --port 8124`。
+        再跑 `curl -s localhost:8125/gallery`，正常的回复会给出 model tag 与已注册用户，
+        例如 `{"op":"list","ok":true,"model_tag":"rv1126b:scrfd500m+mbf512@fp16","users":2,...}`。
+        把这个 `model_tag` 记下来：云端控制台的 `USA_MODEL_TAG` 必须与它一字不差——
+        不同模型的嵌入不可比，tag 不匹配的库会被应用以 `GalleryMismatch` 静默拒绝，
+        不报错，只是谁都认不出来。8125 端口没有响应就说明应用没在跑，没有东西可扩展，
+        先解决它。reCamera PoE 上没有回环 8125：控制面是 MQTT
+        `recamera/face-recognition/cmd`，model tag 是 `cvi:scrfd500m+mbf512@bf16`。
     optional: false
 
   - id: probe_gpio
@@ -88,30 +112,51 @@ steps:
       zh: 找一个真正空闲的引脚，并实测它
     description: >-
       Do not assume any pin is free. On the surveyed unit `gpio131` was already
-      exported by another application (direction out, value 0). List what is
-      taken with `ls /sys/class/gpio` and read each exported pin's `direction`
-      and `value`. Then measure the candidate pin with a meter: its idle level,
-      its driven level, and the current it can actually source — the Pro's
-      native outputs swing 12–21 V, while a UART or CAN pin reconfigured as GPIO
-      gives 3.3 V, and the relay module you buy has to match whichever you pick.
-      The actuator refuses to start on a pin whose current direction and value
-      disagree with the configured idle state, and it will not take the pin over
-      unless you explicitly ask it to. Leave that refusal in place.
+      exported by another application (direction out, value 0), and the daemon
+      never touches it — `gpio = 131` is rejected while the config is parsed,
+      because it is in `KNOWN_BUSY_GPIO`. The shipped configuration uses
+      `gpio130` on read-only evidence: pinmux-pins reports
+      `pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)` and gpioinfo agrees.
+      One trap worth naming: libgpiod's `gpiochipN` numbering is not the
+      ordering of the sysfs bases — on this device libgpiod `gpiochip7` maps to
+      sysfs base 128, so inferring the base from the chip number is off by a
+      whole bank. List what is taken with `ls /sys/class/gpio` and read each
+      exported pin's `direction` and `value`. Then measure your candidate pin
+      with a meter — idle level, driven level, and the current it can actually
+      source — and confirm against the silkscreen or schematic which line on the
+      board it is. reCamera Pro's native outputs swing 12-21 V while a UART or
+      CAN pin reconfigured as GPIO gives 3.3 V, and the relay module you buy has
+      to match whichever you have. NONE OF THIS HAS BEEN MEASURED on any unit:
+      gpio130 has only ever been verified to the level of "write value, read
+      back 1". The daemon refuses to start on a pin whose current direction and
+      value disagree with the configured idle state, and will not take it over
+      unless you explicitly ask. Leave that refusal in place. On a reCamera PoE
+      the pin is on the baseboard's 6-pin header — D1 = sysfs 490 (the only line
+      not muxed with another function), CLK = 487, SMD = 488 — and its level
+      polarity and drive current are undocumented and unmeasured.
     description_i18n:
       zh: >-
         不要假定任何引脚空闲。被盘点的那台设备上 `gpio131` 已被另一个应用 export
-        （direction 为 out，值 0）。用 `ls /sys/class/gpio` 看已占用的引脚，并逐个读它们的
-        `direction` 与 `value`。然后用万用表实测候选引脚：空闲电平、驱动电平，以及它
-        实际能提供的电流——Pro 的原生输出摆幅是 12–21 V，而改配成 GPIO 的 UART 或
-        CAN 脚是 3.3 V，你买的继电器模块必须匹配你选的那一种。执行器在引脚当前的
-        direction / value 与配置的空闲状态不符时会拒绝启动，且不会自作主张接管它，
-        除非你显式要求。把这个拒绝保留着。
+        （direction 为 out，值 0），守护进程全程不碰它——配 `gpio = 131` 在配置解析阶段
+        就被拒，因为它在 `KNOWN_BUSY_GPIO` 里。出厂配置用 `gpio130`，依据是只读证据：
+        pinmux-pins 显示 `pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)`，
+        gpioinfo 同样是 unused。一个值得点名的坑：libgpiod 的 `gpiochipN` 编号不等于
+        sysfs base 的顺序——这台设备上 libgpiod `gpiochip7` 对应 sysfs base 128，
+        按编号推 base 会错整整一个 bank。用 `ls /sys/class/gpio` 看已占用的引脚，
+        并逐个读它们的 `direction` 与 `value`。然后用万用表实测候选引脚：空闲电平、
+        驱动电平、实际可供电流，并对照丝印或原理图确认它是板上哪一路。reCamera Pro 的
+        原生输出摆幅 12-21 V，而改配成 GPIO 的 UART 或 CAN 脚是 3.3 V，你买的继电器
+        模块必须匹配你手上的那一种。**这些一项都没有实测过**：gpio130 只验到了
+        “写 value 后能回读到 1”这一层。引脚当前的 direction / value 与配置的空闲状态
+        不符时守护进程拒绝启动，且不会自作主张接管，除非你显式要求。把这个拒绝保留着。
+        reCamera PoE 上引脚在底板 6-pin 排针——D1 = sysfs 490（唯一一路非复用）、
+        CLK = 487、SMD = 488——它的电平极性与可供电流厂商没写，也没有实测。
     optional: false
 
   - id: wire_relay
-    name: Wire LED first, relay second, lock last
+    name: Wire LED first, relay second, lock last, and declare the contact
     name_i18n:
-      zh: 先接 LED，再接继电器，最后接锁
+      zh: 先接 LED，再接继电器，最后接锁，并声明触点口径
     description: >-
       In this order, and do not skip ahead. First an LED with a series resistor
       on the pin: confirm the polarity and the pulse width are what you
@@ -121,127 +166,257 @@ steps:
       and NC, a fail-secure strike through COM and NO. Getting the contact
       backwards on a magnetic lock leaves the door open permanently and looks
       like a working installation until someone tests it. The lock draws
-      300 mA–1 A; the pin drives milliamps and must never see lock current.
+      300 mA-1 A; the pin drives milliamps and must never see lock current.
+      Then declare what you wired, in the config: `[pro] relay_contact` and
+      `[pro] fail_mode` are mandatory and have no defaults — a magnetic lock
+      that opens on power loss is `relay_contact = NC` with
+      `fail_mode = fail_safe`; a strike that stays locked is `NO` with
+      `fail_secure`; and until you have measured, the honest value is
+      `unverified` on both, which is legal but named in a warning on every
+      start and means no lock may be connected. This solution's default posture
+      is fail-safe, because trapping people inside is worse than letting them
+      out; choosing fail-secure is a fire-safety decision, not a config default.
     description_i18n:
       zh: >-
         严格按这个顺序，不要跳步。先在引脚上接一个 LED 加限流电阻：确认极性与脉宽
         就是你配的那样。再接继电器模块（用它自己的供电），确认每个脉冲触点响一次。
         最后才接锁——独立的 12/24 V 电源，经继电器触点——断电即开的电磁锁走 COM/NC，
-        断电即锁的电插锁走 COM/NO。电磁锁上的触点接反会让门长期敞着，而且在有人去
-        测之前看起来一切正常。锁的工作电流 300 mA–1 A；引脚只有 mA 级，绝不能承载
-        锁电流。
+        断电即锁的电插锁走 COM/NO。电磁锁上的触点接反会让门长期敞着，而且在有人去测
+        之前看起来一切正常。锁的工作电流 300 mA-1 A；引脚只有 mA 级，绝不能承载锁电流。
+        然后把你接的东西**声明进配置**：`[pro] relay_contact` 与 `[pro] fail_mode`
+        必填且没有默认值——断电开门的电磁锁是 `relay_contact = NC` + `fail_mode = fail_safe`；
+        断电锁死的电插锁是 `NO` + `fail_secure`；量之前诚实的值是两项都写 `unverified`，
+        它合法，但每次启动都会被横幅点名，且意味着不得接锁。本方案的默认口径是断电开门，
+        因为门禁失效时把人关在里面比放人出去更危险；选 fail_secure 是一个需要消防评估的
+        决定，不是配置默认值能承担的。
     optional: false
 
-  - id: install_app
-    name: Install the door app and restart appmgr
+  - id: install_daemon
+    name: Copy the daemon, place the signing key, edit the config
     name_i18n:
-      zh: 安装门禁应用并重启 appmgr
+      zh: 拷贝守护进程、放签名密钥、改配置
     description: >-
-      Copy the app directory to /userdata/local/apps/ as root, fill its
-      manifest.json with the pin number, active level, pulse width, relay
-      contact and fail mode you measured in the previous two steps, plus the
-      cloud library URL, the signing key and the model tag from the second step.
-      None of the four actuator fields has a default and the app will not
-      construct its actuator while any is empty — that is the interlock, not a
-      bug. Then restart the supervisor: `/etc/init.d/S94appmgr restart`, and
-      confirm with `ps aux | grep kit/run.py` that the app came back as root.
+      As root, `mkdir -p /userdata/f1-access` and scp twelve files into it from
+      the upstream repository: `agent_config.py`, `event_adapter.py`,
+      `facedb_agent.py` and `mqtt_min.py` from `platforms/recamera-std/`;
+      `gpio_out.py`, `cmd_client.py`, `ws_results.py`, `pro_config.py`,
+      `pro_adapter.py`, `run_pro.py` and `face-recognition.conf` from
+      `platforms/recamera-pro/`; and `validate_payload.py` from `contracts/`.
+      It is a flat directory with no package structure — miss one file and
+      `run_pro.py --check` fails with ImportError, so check with
+      `ls -1 /userdata/f1-access | wc -l` (12 before the key is placed). Write
+      the signing key's contents, not the file, with
+      `printf '%s' '<hex>' > /userdata/f1-access/facedb.key && chmod 600` it.
+      Then edit `face-recognition.conf`: `[device] device_id` and `actuator_id`,
+      `[facedb] url` (`http://<cloud host>:8770`), `[facedb] key_id` to match
+      `USA_FACEDB_KEY_ID`, `[facedb] build_epoch` no earlier than the cloud's
+      first published version, `[mqtt] host`/`port`, `[recognition]
+      match_threshold` EQUAL to `USA_MATCH_THRESHOLD`, `[pro] gpio` to the line
+      you measured, `[pro] relay_contact` and `fail_mode` from the previous
+      step, and `[policy] pulse_ms` (500-5000 ms, default 1500). Leave the model
+      paths, `model_tag`, `model_sha` and the `[pro]` loopback endpoints alone —
+      they describe what is actually installed on the device. Keep
+      `[pro] gpio_allow_takeover` at `false`. On a reCamera PoE, skip all of
+      this and run `platforms/recamera-poe/install.sh install` instead: the same
+      target directory, but the script handles the copy, keeps an existing conf
+      rather than overwriting site edits, and manages the process with a PID
+      file. Its GPIO section is `[gpio]` with `pin = 490`, not `[pro]`.
     description_i18n:
       zh: >-
-        以 root 把应用目录拷到 /userdata/local/apps/，在它的 manifest.json 里填上前两步
-        实测出来的引脚号、有效电平、脉宽、继电器触点与失效模式，再加上云端人脸库地址、
-        签名密钥，以及第二步记下的 model tag。四个执行器字段都没有默认值，任何一个为空
-        应用都构造不出执行器——这是安全联锁，不是缺陷。然后重启监管进程：
-        `/etc/init.d/S94appmgr restart`，再用 `ps aux | grep kit/run.py` 确认应用以
-        root 身份回来了。
+        以 root 跑 `mkdir -p /userdata/f1-access`，再从上游仓库 scp 十二个文件进去：
+        `platforms/recamera-std/` 的 `agent_config.py`、`event_adapter.py`、
+        `facedb_agent.py`、`mqtt_min.py`；`platforms/recamera-pro/` 的 `gpio_out.py`、
+        `cmd_client.py`、`ws_results.py`、`pro_config.py`、`pro_adapter.py`、
+        `run_pro.py`、`face-recognition.conf`；以及 `contracts/validate_payload.py`。
+        这是一个平铺目录，没有包结构——少一个文件 `run_pro.py --check` 就 ImportError，
+        所以用 `ls -1 /userdata/f1-access | wc -l` 核对（放密钥前应为 12）。
+        写签名密钥要写**内容**而不是拷文件：`printf '%s' '<hex 串>' >
+        /userdata/f1-access/facedb.key` 再 `chmod 600`。然后改 `face-recognition.conf`：
+        `[device] device_id` 与 `actuator_id`、`[facedb] url`（`http://<云端主机>:8770`）、
+        `[facedb] key_id` 与 `USA_FACEDB_KEY_ID` 一致、`[facedb] build_epoch` 不早于云端
+        第一次发布的时间、`[mqtt] host`/`port`、`[recognition] match_threshold`
+        **等于** `USA_MATCH_THRESHOLD`、`[pro] gpio` 改成你实测的那一路、
+        `[pro] relay_contact` 与 `fail_mode` 按上一步填、`[policy] pulse_ms`
+        （500-5000 ms，默认 1500）。模型路径、`model_tag`、`model_sha` 与 `[pro]` 的
+        回环端点不要动——它们描述的是设备上实际装着的东西。`[pro] gpio_allow_takeover`
+        保持 `false`。reCamera PoE 上不做上面这些，改跑
+        `platforms/recamera-poe/install.sh install`：同一个目标目录，但脚本负责拷贝、
+        不覆盖现场改过的 conf、并用 PID 文件管进程。它的 GPIO 段是 `[gpio]`、
+        `pin = 490`，不是 `[pro]`。
     optional: false
 
-  - id: clock_and_transport
-    name: Decide the clock and transport question before you leave
+  - id: gate_and_first_sync
+    name: Run the gate, then one sync round
     name_i18n:
-      zh: 离开之前先定下时钟与传输方式
+      zh: 跑闸门，再跑一轮同步
     description: >-
-      The surveyed unit's clock was about seven months out and it has no NTP
-      client, so `curl https://…` fails with "certificate is not yet valid".
-      Two workable answers, and you have to pick one: give the device a way to
-      correct its time and then use HTTPS for the library, or keep the library
-      on a plaintext http:// LAN URL and rely on the HMAC signature over the
-      manifest. Nothing else is acceptable — a plaintext URL with no signing key
-      makes the app refuse to start, deliberately. Either way the app does not
-      set the system clock: it takes the offset from the server's Date header
-      and corrects its own event timestamps, because it has no business
-      rewriting the device's clock and no permission to.
+      `cd /userdata/f1-access && python3 run_pro.py -c face-recognition.conf
+      --check` touches nothing and must end with `"problems": []` (the JSON is
+      pretty-printed over several lines). The gate checks five things: the
+      recognition process is running and is the app and result port the conf
+      names; the `model_tag` reported by loopback 8125 equals the conf's; the
+      `gallery_out` path is the file the app actually loads, derived from
+      `model_tag`; `embed_model` exists and its sha256 equals `model_sha`; and
+      the app's `config.json` has `liveness_enabled` true, because a door that
+      reports a liveness verdict it never computed is worse than one that
+      refuses to start. A non-empty `problems` is a fault to fix, never a gate
+      to switch off. Two warnings are expected until the wiring is measured and
+      the thresholds calibrated: `relay_contact=unverified fail_mode=unverified`
+      and `calibration=pending`. Then `python3 run_pro.py -c
+      face-recognition.conf --once` runs one sync round; with a version
+      published it logs `activated` with a reload ack, and with none it returns
+      `no_current`, which is not an error. Measured on hardware: full activation
+      62.2 ms and 45.4 ms, an up-to-date round 6.2 ms. On a reCamera PoE the
+      equivalents are `install.sh check` and `install.sh start` — pending
+      hardware, no PoE figure exists.
     description_i18n:
       zh: >-
-        被盘点的那台设备时钟偏差约七个月，且没有 NTP 客户端，因此 `curl https://…`
-        会报 "certificate is not yet valid"。两个可行答案，必须二选一：给设备一个校时
-        手段然后人脸库走 HTTPS；或者人脸库停在局域网明文 http:// 地址，靠 manifest 上的
-        HMAC 签名保完整性。没有第三种——明文地址又不配签名密钥时应用会拒绝启动，
-        这是刻意的。无论选哪一种，应用都不会去改系统时钟：它从服务器 Date 头算出偏移，
-        只修正自己的事件时间戳——改设备时钟既不该由它做，它也没有权限。
+        `cd /userdata/f1-access && python3 run_pro.py -c face-recognition.conf
+        --check` 不碰任何东西，必须以 `"problems": []` 结束（JSON 是多行缩进的）。
+        闸门比五项：识别进程在跑且就是 conf 指的那个 app 与那个结果流端口；回环 8125
+        自报的 `model_tag` 等于 conf 的；`gallery_out` 就是应用真正加载的那个文件
+        （由 `model_tag` 推出）；`embed_model` 存在且 sha256 等于 `model_sha`；
+        应用 `config.json` 的 `liveness_enabled` 为真——门禁上报一个它没算过的活体结论，
+        比起不来更糟。`problems` 非空是要修的故障，不是可以关掉的开关。
+        接线量完、阈值标定完之前，`relay_contact=unverified fail_mode=unverified`
+        与 `calibration=pending` 两条 WARNING 是预期内的。然后
+        `python3 run_pro.py -c face-recognition.conf --once` 跑一轮同步：云端已发布版本时
+        记 `activated` 并带 reload ack，没有版本时返回 `no_current`，这不是错。
+        真机实测：全量激活 62.2 ms 与 45.4 ms，库不变时空转 6.2 ms。
+        reCamera PoE 上对应的是 `install.sh check` 与 `install.sh start`——待真机，
+        目前没有任何 PoE 实测值。
+    optional: false
+
+  - id: run_daemon
+    name: Run it, and know how to stop it
+    name_i18n:
+      zh: 让它常驻，并知道怎么停
+    description: >-
+      There is no systemd. Start it with `cd /userdata/f1-access && nohup
+      python3 run_pro.py -c face-recognition.conf >> /var/log/f1-access.log 2>&1
+      &`, check with `ps -o pid,args | grep '[r]un_pro.py'`, and read
+      `/var/log/f1-access.log`. Stop it with a plain `kill` — SIGTERM only,
+      never `kill -9`: a clean exit drives the pin back to the un-actuated
+      level, unexports the line it exported, and removes the ownership marker
+      /run/f1-access/gpio<N>.owner, whereas -9 leaves the pin wherever it was,
+      and mid-pulse that means the door stays open. If the process was killed
+      anyway, the surviving marker tells the next start that this line was its
+      own, so it reclaims it and drives it back to un-actuated rather than
+      refusing to start — that shows up as `reclaimed` in the health output, and
+      it is a signal to find out why the previous process did not exit cleanly.
+      After stopping, `ls /sys/class/gpio` and `ls /run/f1-access` should both
+      be clean. The daemon does NOT come back by itself after a power cycle;
+      auto-start needs an extra /etc/init.d script this solution does not ship,
+      and should not be added before the electrical verification is done. Do not
+      touch appmgr, the /etc/init.d S/K scripts, or the recognition app's launch
+      arguments. On a reCamera PoE use `install.sh start|status|stop|restart`
+      instead; its `stop` also has no `kill -9` path and reports
+      `did not exit after SIGTERM; check the GPIO level before killing it`
+      rather than escalating.
+    description_i18n:
+      zh: >-
+        设备上没有 systemd。启动：`cd /userdata/f1-access && nohup python3 run_pro.py
+        -c face-recognition.conf >> /var/log/f1-access.log 2>&1 &`；用
+        `ps -o pid,args | grep '[r]un_pro.py'` 看是否在跑；日志在 `/var/log/f1-access.log`。
+        停止用普通的 `kill`——只发 SIGTERM，绝不用 `kill -9`：正常退出会把引脚压回未触发
+        电平、unexport 它自己 export 的那一路、并删掉归属标记 /run/f1-access/gpio<N>.owner；
+        `-9` 会把引脚留在当时的电平上，正在脉冲中就意味着门一直开着。如果还是被杀了，
+        残留的归属标记会告诉下次启动“这一路上次是我的”，于是回收它并压回未触发电平，
+        而不是当成别人的引脚拒绝启动——这体现为 health 里的 `reclaimed`，
+        它是一个“去查上次为什么没正常退出”的信号。停掉之后 `ls /sys/class/gpio` 与
+        `ls /run/f1-access` 都应该是干净的。断电重启后守护进程**不会自动拉起**：
+        开机自启需要另加一个 /etc/init.d 脚本，本方案不提供，也不该在电气验证做完之前加。
+        不要动 appmgr、不要动 /etc/init.d 的 S/K 脚本、不要改识别应用的启动参数。
+        reCamera PoE 上改用 `install.sh start|status|stop|restart`；它的 `stop`
+        同样没有 `kill -9` 的路径，超时会报
+        `did not exit after SIGTERM; check the GPIO level before killing it`，而不是升级信号。
     optional: false
 
   - id: verify_activation
-    name: Confirm the library pull activated before testing the door
+    name: "Verify: the published version is the version the device is matching against"
     name_i18n:
-      zh: 测门之前先确认拉库已激活
+      zh: "验证：发布出去的版本就是设备正在匹配的版本"
     description: >-
       Check the library path on its own, before any face is put in front of the
       camera — a door that does not open because the library never activated
       looks exactly like a door that does not open because recognition failed.
-      Three values in the app's manifest.json have to agree with the console:
-      `key_id` with `USA_FACEDB_KEY_ID`, the signing secret with whatever
-      `USA_FACEDB_SECRET_FILE` (or `USA_FACEDB_SECRET`) holds, and
-      `match_threshold` with `USA_MATCH_THRESHOLD`. The first two disagreeing
-      means every new version is rejected at the device; the third disagreeing
-      means the door opens on a threshold that appears nowhere in the audit log.
-      Then enrol or rename one person in the console to mint a version, wait a
-      poll period plus the download, and run
-      `curl -sH "Authorization: Bearer <viewer token>"
+      Enrol or rename one person in the console to mint a version, wait one poll
+      period plus the download (30 s by default; measured 45 s end to end on
+      hardware), then run `curl -sH "Authorization: Bearer <viewer token>"
       http://<cloud host>:8088/api/devices/status`. This camera's row must show
-      `active_version` equal to `desired_version`, `signature.verified` true and
-      `reload.error` null. `desired_version` behind the server's `current` means
-      it has not polled yet; `desired_version` matching while `active_version`
-      lags means it saw the version and could not activate it, and `last_error`
-      says why. Expect `clock.valid` false on a device with no NTP — the
-      integrity boundary is the manifest signature, not the clock.
+      `active_version` equal to `desired_version`, `up_to_date` true and
+      `last_error` null. Read the failures apart rather than together:
+      `device_seen_version` behind the server's version means it has not polled
+      yet; `device_seen_version` matching while `active_version` lags means it
+      saw the version and could not activate it, and `last_error` says why —
+      usually a signing key id or secret that differs from the console's, a
+      `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest
+      with no `artifacts.gallery_v2`. Three fields read as alarming and are not:
+      `signature.verified` is null in steady state (it is true only in the
+      window right after a sync, and a real failure appears in `last_error`);
+      `clock.valid` is false on a device with no NTP, and the integrity boundary
+      is the manifest signature, not the clock; and `configured` is false plus
+      `online`/`heartbeat` null on this preset, because P1 sets no
+      `USA_DEVICE_ENDPOINTS` — its reload goes over the device's own loopback,
+      not MQTT — and the daemon publishes sync status rather than heartbeats.
+      Use `last_seen` to tell whether it is still reporting.
     description_i18n:
       zh: >-
-        在把任何一张脸放到摄像头前之前，先单独验证人脸库这条链路——"库根本没激活"导致的
-        门打不开，和"识别没通过"导致的门打不开，看起来一模一样。应用 manifest.json 里
-        有三个值必须与管理界面一致：`key_id` 对 `USA_FACEDB_KEY_ID`，签名密钥对
-        `USA_FACEDB_SECRET_FILE`（或 `USA_FACEDB_SECRET`）里的内容，`match_threshold`
-        对 `USA_MATCH_THRESHOLD`。前两个不一致的结果是每个新版本都在设备侧被拒；
-        第三个不一致的结果是门开在一个审计日志里根本查不到的阈值上。然后在管理界面注册或
-        改名一个人以生成新版本，等一个轮询周期加下载时间，跑
-        `curl -sH "Authorization: Bearer <viewer token>" http://<云端主机>:8088/api/devices/status`。
-        这台摄像头那一行必须是 `active_version` 等于 `desired_version`、
-        `signature.verified` 为 true、`reload.error` 为 null。`desired_version` 落后于
-        服务端 `current` 说明它还没轮询到；`desired_version` 对上了而 `active_version`
-        落后，说明它看到了却没激活成功，`last_error` 会说原因。没有 NTP 的设备上
-        `clock.valid` 为 false 是预期内的——完整性边界在 manifest 签名上，不在时钟上。
+        在把任何一张脸放到摄像头前之前，先单独验证人脸库这条链路——“库根本没激活”导致的
+        门打不开，和“识别没通过”导致的门打不开，看起来一模一样。在控制台注册或改名一个人
+        以生成新版本，等一个轮询周期加下载时间（默认 30 s；真机实测端到端 45 s），
+        然后跑 `curl -sH "Authorization: Bearer <viewer token>"
+        http://<云端主机>:8088/api/devices/status`。这台摄像头那一行必须是
+        `active_version` 等于 `desired_version`、`up_to_date` 为 true、`last_error` 为 null。
+        两种失败要分开读：`device_seen_version` 落后于服务端版本说明它还没轮询到；
+        `device_seen_version` 对上了而 `active_version` 落后，说明它看到了却没激活成功，
+        `last_error` 会说原因——通常是签名 key id 或密钥与控制台不一致、`match_threshold`
+        与 `USA_MATCH_THRESHOLD` 不等、或者 manifest 里没有 `artifacts.gallery_v2`。
+        有三个字段看着吓人但不是故障：稳态下 `signature.verified` 是 null（只有刚同步完
+        那个窗口里才是 true，真正的验签失败会出现在 `last_error`）；没有 NTP 的设备上
+        `clock.valid` 为 false，完整性边界在 manifest 签名上而不在时钟上；
+        本套餐上 `configured` 为 false、`online`/`heartbeat` 为 null，因为 P1 不配
+        `USA_DEVICE_ENDPOINTS`——它的 reload 走设备本机回环而不是 MQTT——
+        且守护进程上报的是同步状态而不是心跳。设备是否还在上报看 `last_seen`。
     optional: false
 
-  - id: verify_pulse
-    name: Confirm one recognition produces exactly one pulse
+  - id: verify_pin_readback
+    name: "Verify: one pulse, read back on the pin"
     name_i18n:
-      zh: 确认一次识别只产生一个脉冲
+      zh: "验证：打一个脉冲，在引脚上回读"
     description: >-
-      With the LED still in circuit if you can, stand in front of the camera as
-      an enrolled person. Expect exactly one pulse of the configured width, one
-      `access/v1/events` message with `decision.allow` true, and — if you step
-      back and forward again inside the debounce window — a second event with
-      reason `debounced` and no second pulse. Then hold a printed photograph of
-      the same person up to the camera: expect `liveness_failed` and no pulse at
-      all. If the photograph opens the door, stop and check that the recognition
-      service reports liveness as loaded; the adapter is supposed to refuse to
-      start otherwise, and a door that opens to a photograph means that check is
-      not in the path.
+      With the daemon stopped, drive one pulse through the daemon's own GPIO
+      code and read it back, which proves the line can be driven and returns to
+      the un-actuated level afterwards. On the device, in /userdata/f1-access,
+      run python3 against `from gpio_out import GpioOutput`, construct
+      `GpioOutput(<pin>, active_high=<as configured>, pulse_ms=500,
+      min_interval_ms=0, relay_contact=..., fail_mode=...)`, then `setup()`,
+      print `read_value()`, print `pulse()`, print `read_value()` again, print
+      `health()`, and `close()` — the exact snippet is in the user guide,
+      chapter 2.5. Three things have to hold: the value before and after the
+      pulse is the un-actuated level, `health()["stuck_active"]` is false, and
+      after `close()` the line is gone from /sys/class/gpio. `stuck_active` true
+      means the daemon failed to drive the pin back — the door may still be
+      open, and that is a site visit, not a log entry. Measured on hardware with
+      nothing connected: idle 0, assert_latency_ms 0.284, back to 0, no takeover
+      and no reclaim. `pulse_ms` outside 500-5000 ms raises GpioConfigError at
+      construction. This proves the pin, not the door: relay pull-in and lock
+      action are pending, and until the previous wiring step has actually been
+      done with a meter, an LED and a relay, this preset is not an
+      access-control acceptance.
     description_i18n:
       zh: >-
-        条件允许的话让 LED 仍留在电路里，以一个已注册人员的身份站到摄像头前。预期是：
-        恰好一个配置宽度的脉冲、一条 `decision.allow` 为 true 的 `access/v1/events`
-        消息；如果在去抖窗口内退开再上前，会看到第二条 reason 为 `debounced` 的事件，
-        且没有第二个脉冲。然后把同一个人的打印照片举给摄像头：预期是 `liveness_failed`，
-        完全没有脉冲。如果照片把门打开了，立刻停下来，检查识别服务是否报告活体已加载——
-        适配层本应在活体未加载时拒绝启动，照片能开门说明这道检查根本不在链路上。
+        守护进程停着的时候，用它自己的 GPIO 代码打一个脉冲并回读，证明这一路能被驱动、
+        且脉冲结束后能落回未触发电平。在设备 /userdata/f1-access 下用 python3
+        `from gpio_out import GpioOutput`，构造 `GpioOutput(<引脚>,
+        active_high=<按配置>, pulse_ms=500, min_interval_ms=0, relay_contact=...,
+        fail_mode=...)`，然后 `setup()`、打印 `read_value()`、打印 `pulse()`、
+        再打印一次 `read_value()`、打印 `health()`、`close()`——完整片段在使用说明 2.5 节。
+        三件事必须成立：脉冲前后的值都是未触发电平、`health()["stuck_active"]` 为 false、
+        `close()` 之后 /sys/class/gpio 里不再有这一路。`stuck_active` 为真意味着守护进程
+        没能把引脚压回去——门可能还开着，这是一次现场出勤，不是一条日志。
+        真机实测（未接任何外部电路）：空闲 0、assert_latency_ms 0.284、回到 0、
+        没有接管也没有回收。`pulse_ms` 超出 500-5000 ms 在构造时就 GpioConfigError。
+        这一步证明的是引脚，不是门：继电器吸合与锁动作都还是待办，
+        在上一步真的用万用表、LED 与继电器做完之前，本套餐不构成门禁验收。
     optional: false
