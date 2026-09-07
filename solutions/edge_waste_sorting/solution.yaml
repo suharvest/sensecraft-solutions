@@ -229,9 +229,6 @@ intro:
           放在相机旁边的独立主机，适合一台主机带多个投放点、
           或者相机本身换不掉的场合。它的 NPU 用 INT8 跑分类器，
           耗时约为同一块板上 fp16 的一半，是这里最快的一个。
-      purchase:
-        require:
-          ai_accelerator: [rknpu]
     recamera_pro:
       description: >-
         The faster of the two all-in-one cameras: its NPU runs the classifier
