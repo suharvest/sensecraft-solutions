@@ -199,6 +199,13 @@ int8 图从未吃到——m1b 的 int8 反而比自己的 fp16 更慢，4.70 ms 
 `evaluation/runs/2026-09-06-m1c-rk3588-radxa`、
 `evaluation/runs/2026-09-06-rk3588-radxa`（m1b 对照）
 
+**在 val 全集 7417 张上做了确认**（同一台设备、同一套 `calib256+mmse` 配方）：
+fp16 一致率 **0.9988**，对真值准确率 0.8882，p50 5.575 ms；int8 一致率
+**0.9893**，准确率 0.8881，p50 2.728 ms——int8 比 fp16 快 51%，两者对 fp32
+CPU 基线（同一批 7417 张图上是 0.8877）都在 0.05 个百分点以内。上面 50 张的
+扫参用来在四个 INT8 变体里选出 `calib256+mmse`；这里是进部署的数字。
+`evaluation/runs/2026-09-08-rk3588-fullval`
+
 同一台设备上的 SigLIP 2 视觉塔，m1c 的改动不涉及这条路径：
 
 | 模型 / 精度 | 时延 p50 / p95 | 与 CPU golden 的一致率 | 条件 |
@@ -228,7 +235,7 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 |---|---|
 | Jetson Orin（TensorRT） | 部署包已发，基线换成 EfficientNet-Lite0 ONNX；从未在任何 Jetson 上构建过 engine |
 | Raspberry Pi 5 + Hailo-8 | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
-| RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
+| RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c），val 全集 7417 张（一致率 fp16 0.9988 / int8 0.9893，p50 5.575 ms / 2.728 ms）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
 | CPU（onnxruntime） | 本页所有精度数字 |
 
@@ -357,11 +364,13 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。
 目前它上面什么都还没实测过。
 
-**摄像头 + Raspberry Pi 5（Hailo-8）**——把板子准备好、验证三道 Hailo ABI
-关卡，下载已编译并在 Hailo 编译器自带的模拟器 上完成 INT8 核实（一致率 0.89）的
-EfficientNet-Lite0 HEF。**没有 Hailo-8 真机跑过这份 HEF**——板级精度与
-时延还没有在硬件上采过。选它是为了第一次在真实 Hailo-8 硅片上跑起一个真分类器；把
-第一次上板结果当作真正的验证，而不是本页这个模拟器数字。
+**摄像头 + reComputer R2000 系列（Hailo-8）**——把板子准备好、验证三道 Hailo
+ABI 关卡，下载 EfficientNet-Lite0 HEF。出货的这枚 HEF 已在 Hailo-8 真机上跑完
+val 全集 7417 张（物料 top-1 0.8889、中国四分类 0.9507、与 fp32 CPU 一致率
+0.9581、p50 3.166 ms），部署容器本身也在同一台真机上做过从零部署的端到端
+验证——`/healthz`、`/trigger` 与 MQTT 输出——用的是同一份 val 集的 1060 张
+子集（一致率 0.9425、对真值准确率 0.8453、p50 3.167 ms），确认部署镜像走的
+是与离线评测同一条 HailoRT 推理路径。`evaluation/runs/2026-09-08-harvest-pi-acceptance`
 
 ## 使用须知
 

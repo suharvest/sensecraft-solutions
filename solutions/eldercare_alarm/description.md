@@ -79,6 +79,7 @@ site.
 | No-person detection lateness, relative to the configured timeout | P50 65 ms / P95 77 ms late | 3 replays, 10 FPS × 11 s, 5 s timeout, 0.1 s tick, single zone, in-process (no broker) | Development-machine baseline, same run |
 | Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Development-machine baseline, same run |
 | End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
+| End-to-end alert latency, Hailo-8 preset, real inference included | P50 2830 ms / P95 3061 ms | 10 independent fall triggers from an RTSP replay of a real fall clip, same shortened 1 s evidence + 1 s auto-confirm windows as the top row, real Hailo-8 pose inference feeding the alarm state machine | reComputer R2000 series with the Hailo-8 option, 2026-09-08 |
 
 Read the latency rows as the sum of the two configured windows plus about 60 ms
 of dispatch. With the shipped defaults (5 s + 60 s) the same path takes just over
