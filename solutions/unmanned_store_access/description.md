@@ -58,35 +58,44 @@ recognition with the relay at the gateway, and P4 XIAO + Grove Vision AI V2.
 
 Not for: doors where a failure to open is a safety event, and doors where the
 consequences of a wrongly admitted person are severe. Nothing here is a
-certified security product. Only the face-library distribution path has been
-exercised on hardware — on a standard reCamera, sources below. Recognition,
-liveness and the door path have not.
+certified security product. The face-library distribution path has been
+exercised on hardware on both the standard reCamera and reCamera Pro (P1),
+including Pro's recognition-to-GPIO pulse readback, sources below. Recognition,
+liveness, the door path, and Pro's registration path have not.
 
 ## How well it works
 
-**This is not a certified security or life-safety system.** One link has been
+**This is not a certified security or life-safety system.** Two links have been
 exercised on hardware and the rest has not, so the two are stated separately.
 
 **On hardware**: the face-library distribution path — poll, chunked download,
 per-file SHA-256, manifest signature, atomic switch, gallery write and
 `op:reload` ack, plus resume after an interrupted download and rejection of a
-version whose manifest does not verify. Two probe runs on a standard reCamera
-(SG2002 / CV181x riscv64, firmware 0.2.2).
+version whose manifest does not verify — on both a standard reCamera (SG2002 /
+CV181x riscv64, firmware 0.2.2, two probe runs) and a reCamera Pro (RV1126B,
+Buildroot 2023.02.6, one probe run). The Pro run also exercised
+recognition-to-GPIO pulse readback, using injected synthetic recognition events
+rather than a live face.
 
-**Not on hardware**: recognition, liveness and the door path. Nobody stood in
-front of the lens in either probe run — each run sampled 220 frames, all
-reading `face_count: 0` — no relay has been wired, and the thresholds are the
-device's shipped values carrying `calibration = pending`. Everything outside
-the library path runs as a pure software loop on a macOS development machine,
-with a fake actuator, an in-memory MQTT broker and a fake recogniser.
+**Not on hardware**: recognition, liveness and the door path end to end — no
+relay or lock has been wired on either device, and nobody stood in front of
+either lens (each standard-reCamera probe run sampled 220 frames, all reading
+`face_count: 0`) — and, on the Pro, the registration path, which cannot yet
+produce a face library usable in production (see Licensing note). Thresholds on
+both devices are shipped defaults carrying `calibration = pending`. Everything
+outside the library-distribution and GPIO-readback paths runs as a pure
+software loop on a macOS development machine, with a fake actuator, an
+in-memory MQTT broker and a fake recogniser.
 
-Seven boundary metrics are defined. One carries numbers and six are empty, each
-with the reason recorded rather than guessed at.
+Seven boundary metrics are defined, covered by nine rows in the table below —
+face-library activation has a row per platform. Three rows carry numbers and
+six are empty, each with the reason recorded rather than guessed at.
 
 All sources below are paths in the upstream repository `unmanned-store-access`.
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
+| Face library activation, reCamera Pro (P1) | Full activation 62.2 ms (v1) and 45.4 ms (v2); up-to-date no-op round 6.2 ms; recognition event to GPIO pin readback n=22, p50 1.448 ms / p95 2.709 ms | reCamera Pro (RV1126B, Buildroot 2023.02.6) on Ethernet, 1-2 people / under 20 KB library. Consistency gate `problems: []`; a tampered gallery and a wrongly signed manifest were both rejected on the device. The 22 events were injected synthetic recognition results, the readback is sysfs so the values are an upper bound, and no external circuit was connected. Thresholds uncalibrated; `gpio130`'s physical identity, level and drive current unmeasured. reCamera PoE: pending hardware, no figure | `evaluation/runs/2026-09-07-recamera-pro-p1/results.md` and the two `boundary.*.yaml` alongside it |
 | Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); `op:reload` round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md` §2 and `boundary.facedb-activation.yaml` alongside it |
 | Face library activation, software loop | 11.6 ms slowest of three activations (v1/v2/v3: 11.6 / 3.7 / 3.5 ms) | macOS development machine, loopback HTTP, no TLS, no authentication, zero loss, 4 people × 3 embeddings of 128 dimensions, single run | `evaluation/runs/2026-09-06-c1-software/results.md`. **Not a device-side figure**, and superseded by the row above |
 | Recognition FAR / FRR | pending | — | `evaluation/runs/2026-09-06-c1-software/boundary.recognition.yaml`. No real face model and no positive/negative pairs in the software loop; both probe runs had nobody in front of the lens |
@@ -139,7 +148,7 @@ they claim.
 | Policy | Person + schedule + blocklist + liveness + debounce | Same | Same | Same, evaluated in the cloud from the event stream | **Weakened: allowlist within a schedule, single-shot** |
 | Network on the unlock path | No | No | **Yes — broker availability is door availability** | **Yes — broker availability is door availability** | No |
 | Install form | Root appmgr kit app, manual steps | Containers over SSH | Containers over SSH | Manual copy of a standard-library daemon, no container | Two-segment USB flash |
-| State | Untested on hardware | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
+| State | Library/GPIO-readback path exercised on hardware; door path and registration untested | Untested on hardware | Untested on hardware | Library path exercised on hardware; door path untested | **Firmware not built** |
 
 **Choose P1** when the door has no camera yet and you want the shortest possible
 chain: recognition, decision and contact all in one device, nothing on the
@@ -227,6 +236,18 @@ Face detection and embedding use InsightFace's `buffalo_l`, through
 >
 > The training data containing the annotation (and models trained with these
 > data) are available for non-commercial research purposes only.
+
+On P1 (reCamera Pro), `face_rec_api`'s `buffalo_l` is also the wrong embedder
+operationally, independent of licence: the device's own recognizer runs
+`rv1126b:scrfd500m+mbf512@fp16`, and cosine similarity between the two model
+spaces is approximately zero. No cloud-side embedder today produces vectors in
+the device's model space, so **P1's registration path in this package does not
+yet produce a face library usable in production on that device** (upstream
+`docs/user-guide.md` §5.1; `evaluation/runs/2026-09-07-recamera-pro-p1/results.md`
+§9.2). Fixing this needs either a cloud embedder reconciled to the device's
+model space or a device-assisted enrolment path; neither exists yet. The
+standard reCamera path (P5) is not affected — it embeds on-device and does not
+enrol through this console.
 
 `buffalo_l` is a model trained with that data. It is therefore usable for
 **non-commercial research purposes only**: `license_id: non-commercial`,
