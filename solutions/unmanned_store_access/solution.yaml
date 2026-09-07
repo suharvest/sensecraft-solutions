@@ -683,6 +683,16 @@ intro:
             - device_ref: generic_modbus_relay_gateway
             - device_ref: xiao_esp32s3
           default: xiao_esp32s3
+        - id: relay_module
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+            - device_ref: generic_relay_module_xiao
+          default: generic_relay_module
 
     - id: p5_recamera_std
       name: Standard reCamera — On-Camera Loop, Gateway Relay
