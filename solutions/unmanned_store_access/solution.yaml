@@ -83,9 +83,9 @@ intro:
   gallery:
     - type: image
       src: gallery/console-devices-live.png
-      caption: The management console listing the devices reporting in from a live reCamera PoE unit — face library version, model tag and actuator health per device
+      caption: The management console listing a live reCamera PoE unit — active face-library version and heartbeat per device
       caption_i18n:
-        zh: 管理界面上的设备列表，数据来自一台在跑的 reCamera PoE——每台设备的人脸库版本、模型标签与执行器状态
+        zh: 管理界面上的设备列表，数据来自一台在跑的 reCamera PoE——每台设备的人脸库版本与心跳
     - type: image
       src: gallery/console-persons-live.png
       caption: The person library in the same console — enrol from 3-8 images, delete with a barrier, roll back only where the barrier allows
