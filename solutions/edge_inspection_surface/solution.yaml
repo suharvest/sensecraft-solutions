@@ -202,9 +202,9 @@ intro:
       name: IP Camera + reComputer J (Orin)
       name_i18n:
         zh: IP 摄像头 + reComputer J（Orin）
-      badge: Internal
+      badge: Recommended
       badge_i18n:
-        zh: 内部验证
+        zh: 推荐
       description: >-
         The measured path. TensorRT FP16 on Jetson Orin, with the engine built on
         the device during deployment.

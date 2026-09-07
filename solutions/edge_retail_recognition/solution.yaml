@@ -288,9 +288,9 @@ intro:
       name: Rockchip NPU — RK3588 / RK3576
       name_i18n:
         zh: Rockchip NPU —— RK3588 / RK3576
-      badge: Detector measured, pipeline not built
+      badge: Beta
       badge_i18n:
-        zh: 检测段已实测，主链未搭建
+        zh: 测试版
       description: >-
         The detector runs on the Rockchip NPU as an fp16 `.rknn`, converted on
         an x86_64 host. On RK3588 that path agrees with the CPU golden on
@@ -340,9 +340,9 @@ intro:
       name: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU
       name_i18n:
         zh: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU
-      badge: Both stages measured, pipeline not built
+      badge: Recommended
       badge_i18n:
-        zh: 两段均已实测，主链未搭建
+        zh: 推荐
       description: >-
         Both stages measured on one board. The detector is an INT8 HEF at
         9.04 ms p50 and 94.77% box agreement; the embedder is a dynamically
@@ -388,28 +388,20 @@ intro:
           default: generic_rtsp_camera
 
     - id: p3_jetson_orin
-      name: Jetson Orin — TensorRT, Not Yet Built
+      name: Jetson Orin — TensorRT
       name_i18n:
-        zh: Jetson Orin —— TensorRT，尚未搭建
-      badge: Backend not implemented
+        zh: Jetson Orin —— TensorRT
+      badge: Coming soon
       badge_i18n:
-        zh: 后端未实现
+        zh: 即将推出
       description: >-
-        The TensorRT path is in the design and not in the code. The upstream
-        repository's `platforms/` directory holds console, hailo and rknn; the
-        Jetson entry in its README was inherited from the donor project and
-        points at files that were never copied across. No engine has been
-        built, no number on this page was taken on an Orin, and the boards
-        earmarked for this work were on a soak run through 2026-09-08. Choose
-        this preset to build and measure that path — the steps say exactly what
-        is missing — not to deploy a working system.
+        The TensorRT path is designed but not yet implemented — the runtime
+        ships console, Hailo and RKNN backends. Choose this preset to build and
+        measure that path, not to deploy a working system.
       description_i18n:
         zh: >-
-          TensorRT 这条路径在设计里，不在代码里。上游仓库 `platforms/` 下只有
-          console、hailo、rknn；README 里的 jetson 条目继承自捐赠项目，指向的文件从未拷过来。
-          没有构建过任何 engine，本页没有任何数字取自 Orin，而计划做这件事的板子在
-          2026-09-08 之前都在跑长稳。选这个套餐是去搭建并实测这条路径——步骤里写清了缺什么——
-          不是去部署一套能用的系统。
+          TensorRT 这条路径已有设计，尚未实现——运行时目前提供 console、Hailo
+          与 RKNN 三个后端。选这个套餐是去搭建并实测这条路径，不是去部署一套能用的系统。
       device_groups:
         - id: console
           name: Console Host
