@@ -448,7 +448,7 @@ immutable gallery version.
 - The admin token from Step 1.
 - 3–8 photographs per SKU, front, back and side, two lighting conditions.
 - The DINOv2-small embedder from Step 2: the gallery must be built with the
-  same model the reComputer J40's TensorRT engine was compiled from, or
+  same model the reComputer J30 / J40's TensorRT engine was compiled from, or
   retrieval on this preset returns noise.
 
 ### Troubleshooting

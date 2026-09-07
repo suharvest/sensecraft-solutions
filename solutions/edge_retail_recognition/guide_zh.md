@@ -384,7 +384,7 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
 
 - 步骤 1 里的 admin token。
 - 每个 SKU 3–8 张图，正面、背面、侧面，两种光照。
-- 步骤 2 的 DINOv2-small 嵌入器：商品库必须用与 reComputer J40 上 TensorRT engine
+- 步骤 2 的 DINOv2-small 嵌入器：商品库必须用与 reComputer J30 / J40 上 TensorRT engine
   同一个模型构建，否则这个套餐的检索会返回噪声。
 
 ### 故障排查
