@@ -11,8 +11,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.png
+  cover_image: gallery/recordings-console.png
   gallery:
+    - type: image
+      src: gallery/recordings-console.png
+      caption: The recordings console — transcripts with speaker labels, per-record status and PII placeholders like [[NAME]] and [[PHONE]] already redacted
+      caption_i18n:
+        zh: 录音管理控制台——带说话人标签和逐条状态的转写列表，[[NAME]]、[[PHONE]] 等敏感字段已脱敏
     - type: image
       src: gallery/architecture.png
       caption: The capture kit as it ships — a reRouter CM4, its power supply, a USB cable and a reSpeaker XVF3800 microphone array
