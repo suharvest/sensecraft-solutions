@@ -11,14 +11,35 @@
 # C2 hardware pass records GPIO/DO voltage, current, polarity, relay trigger
 # and lock action.
 #
-# One exception, and only one: the face library distribution path has run on a
+# Two exceptions, and only two. First, P1 / reCamera Pro: the whole library
+# distribution path ran on real hardware at 192.168.3.53 on 2026-09-07 — the
+# consistency gate reported problems: [], full activation measured 62.2 ms (v1)
+# and 45.4 ms (v2) end to end including download, per-file SHA, HMAC signature
+# check, atomic current switch, gallery write and the loopback op:reload ack;
+# an up-to-date no-op round took 6.2 ms. A version with one byte changed in
+# gallery.json and a manifest signed with the wrong key were both rejected on
+# the device, which stayed on the previous version. Recognition event to GPIO
+# pin readback measured n=22, p50 1.448 ms / p95 2.709 ms — but the input was
+# injected synthetic recognition events, not a person, the readback is sysfs so
+# the values are an upper bound, and no external circuit was ever connected.
+# Source: unmanned-store-access evaluation/runs/2026-09-07-recamera-pro-p1/.
+# The thresholds remain uncalibrated (calibration = pending) and gpio130's
+# physical identity, level and available current are still unmeasured, so P1 is
+# "software verified on real hardware", not a door acceptance.
+#
+# Second: the face library distribution path has run on a
 # standard reCamera at 192.168.42.1 across two probe runs — poll, Range
 # download, per-file SHA, manifest signature, atomic switch, gallery write and
 # reload ack, plus resume after an interrupted download and rejection of a
 # version that does not verify. Full activation measured p50 491.6 ms / p95
 # 507.8 ms over 20 runs on a 2-person, 16.5 KB library. Source:
-# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md. That is a library
-# number, not a door number, and it is the only measured figure in this package.
+# evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md. Both are library
+# numbers, not door numbers.
+#
+# reCamera PoE (standard SG2002 firmware plus a baseboard header GPIO) is
+# covered as a second door option under P1. Its device-side code is self-tested
+# only — nothing about it has been on hardware, so every PoE figure in this
+# package reads "pending hardware".
 # Recognition, liveness and any recognition-to-relay latency remain unmeasured:
 # nobody stood in front of the lens during either run (each run sampled 220
 # frames, all reading face_count: 0 — see
@@ -263,7 +284,14 @@ intro:
         installed on it is a small standard-library daemon that pulls the face
         library, maps the native result stream onto the event contract, and pins
         every threshold in one file against the recognition process's actual
-        arguments.
+        arguments. One variant is the exception to "drives no lock": the
+        2002 HQ PoE carries a 6-pin header on its baseboard with three IO lines
+        (D1 = sysfs 490, the only one not multiplexed; CLK = 487; SMD = 488), so
+        a relay can sit on the camera itself and it becomes a second door option
+        under the on-device preset. Nothing about that path has been on
+        hardware: the header's level polarity and available drive current are
+        undocumented by the vendor and unmeasured, so it is pending hardware and
+        no lock may be wired before a meter and an LED have confirmed them.
       description_i18n:
         zh: >-
           标准版 reCamera，与 Pro 是两种形态，不是同一形态的变体。它本身就会识别人脸
@@ -272,6 +300,11 @@ intro:
           继电器在网关侧，这正是它属于 MQTT 套餐而不是端侧直控套餐的原因。装在它上面的是
           一个纯标准库的小守护进程，负责拉人脸库、把原生结果流映射成事件契约，
           并把所有阈值钉在一个文件里，与识别进程的实际启动参数逐项比对。
+          "不驱动任何锁"有一个例外：2002 HQ PoE 的底板上有一组 6-pin 排针，三路 IO
+          （D1 = sysfs 490，唯一一路非复用；CLK = 487；SMD = 488），继电器可以接在
+          摄像头自己身上，于是它成为端侧直控套餐的第二个门口设备选项。这条路径的任何
+          一项都没上过硬件：排针的电平极性与可供电流厂商没写、也没有实测，所以它是
+          待真机状态，万用表与 LED 确认之前不得接锁。
     recomputer_j20:
       description: >-
         The industrial box preset. Recognition runs in containers against an
@@ -373,24 +406,33 @@ intro:
       name: On-Device — reCamera Pro / PoE
       name_i18n:
         zh: 端侧直控 —— reCamera Pro / PoE
-      badge: Untested on hardware
+      badge: Library path verified on hardware; door path untested
       badge_i18n:
-        zh: 未上板验证
+        zh: 库下发链路真机已验；开门链路未验
       description: >-
         Everything at the door: the camera recognises, checks liveness, decides
         and pulses its own GPIO into a relay. Nothing but the face library and
         the audit upload crosses the network, so the door keeps working while
-        the network is down. On reCamera Pro the app is a root appmgr kit app,
-        not a package — this preset extends the camera's existing
-        face-recognition app, and its steps are manual because the deployment
-        engine has no kit-app step type today.
+        the network is down. What gets installed is a small standard-library
+        daemon that runs beside the camera's existing face-recognition app —
+        pulling the signed face library, mapping the app's result stream onto
+        the event contract, and driving one sysfs GPIO. It does not take over
+        appmgr, the recognition app, or its launch arguments. The steps are
+        manual because that daemon is a flat set of Python modules under
+        /userdata/f1-access, not an installable package and not an appmgr app:
+        the recamera_pro_app deployer activates an already-installed appmgr app,
+        which is not what this is. On this preset the library path has run on
+        hardware; the lock has never been connected.
       description_i18n:
         zh: >-
           全部动作在门口完成：摄像头识别、验活体、做判定，再用自己的 GPIO 给继电器
           一个脉冲。除了人脸库与审计上传，没有别的东西过网络，所以网络断了门依然能开。
-          在 reCamera Pro 上应用是 root 身份的 appmgr kit app 而不是一个安装包——
-          这个套餐是在摄像头已有的人脸识别应用上做扩展，而它的步骤之所以是人工步骤，
-          是因为部署引擎目前没有 kit app 这个步骤类型。
+          装上去的是一个纯标准库的小守护进程，跑在摄像头已有的人脸识别应用**旁边**：
+          拉签名人脸库、把应用的结果流映射成事件契约、驱动一路 sysfs GPIO。
+          它不接管 appmgr、不接管识别应用、也不改它的启动参数。步骤之所以是人工步骤，
+          是因为这个守护进程是 /userdata/f1-access 下一组平铺的 Python 模块，
+          既不是安装包也不是 appmgr app——recamera_pro_app 部署器激活的是已安装的
+          appmgr app，与这里不是一回事。本套餐的库下发链路已在真机跑通；锁从未接过。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -409,6 +451,7 @@ intro:
           required: true
           options:
             - device_ref: recamera_pro
+            - device_ref: recamera_2002
           default: recamera_pro
         - id: relay
           name: Relay
