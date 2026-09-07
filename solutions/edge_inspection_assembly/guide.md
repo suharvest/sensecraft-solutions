@@ -279,7 +279,7 @@ hand-writing ROIs. Nothing in this step runs on the inspection device itself.
 - Your own station images and a COCO-style category list, or a willingness to
   label a handful of classes by hand first.
 
-## Preset: Camera + Raspberry Pi 5 with Hailo-8 {#hailo}
+## Preset: Camera + reComputer R2000 (Hailo-8) {#hailo}
 
 Same runtime, INT8 model, less power. The HEF is compiled off-device and
 downloaded during the deploy, so there is no build step on the board. Accuracy
@@ -288,7 +288,7 @@ and stream capacity on the board itself have not been measured.
 
 | Device | Purpose |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
+| reComputer R2000 with Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
 | Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
 
 **Important.** This is a demo package, not a certified metrology or safety

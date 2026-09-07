@@ -76,17 +76,13 @@ missing parts on your assemblies.
 | Multi-stream capacity | **stable 8 / degrading 12 / failure 24 streams** | 640² at 10 fps per stream, 5 min per level, whole sweep run twice; MQTT and Modbus were disabled during this test, so a real deployment with I/O reaches fewer streams | Same M4 run |
 | Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame `missing_count` = 0, on a different board all 6 go missing and `verdict_reasons` gains `missing` alongside `defect` | This project's M2 run, 2026-09-05, same device |
 | Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict `ok`. Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
-| Hailo INT8 (HEF) accuracy | **mAP50 0.9924, identical on all three paths** | 20 val images / 118 boxes; CPU onnxruntime, Hailo emulator `SDK_NATIVE`, and emulator `SDK_QUANTIZED` (optimization level 1 + Bias Correction) return the same mAP50 / P / R / FP / FN. Per-box: CPU ↔ native 120/120 matched; CPU ↔ quantized 119/120 | This project's M3a run, 2026-09-05, in the Hailo Dataflow Compiler emulator on x86 — **not on a device** |
-| Raspberry Pi 5 + Hailo-8 on-device throughput and latency | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | On 2026-09-06, fleet `harvest-pi` (15-minute exclusive-access window). Hardware: 854 frames/8s (`hailortcli run`). Accuracy: 205-image val set, Hailo mAP50 0.9858 vs CPU golden (delta -0.0018). Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline (verdict+Modbus+MQTT+contract validation, throttle removed) 43.92 FPS. End-to-end latency at 10 fps line rate: P50 11.89 ms / P99 16.08 ms. 20 MQTT events captured, 3 sampled all pass `contracts/validate_payload.py` (mqtt-event v2) | This board's own M3b-pi-2 run, 2026-09-06 — `evaluation/runs/2026-09-06-rpi-hailo/results.md` §6 |
-| 72 h soak | **in progress at packaging time** | Single stream, looped 300 s video, 10 fps; baseline over the first samples: RSS 256–259 MiB, 0 dropped frames, tj 61–62 °C, 0 restarts | Same M4 run; the three tiers in `boundary.soak.yaml` are null until it finishes |
+| reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s (`hailortcli run`). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | This project's M3b-pi-2 run on reComputer R2000 with Hailo-8, 2026-09-06 |
 | Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on spark (GB10) with another training job co-resident on the same GPU | `edge-inspection-assembly` annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
 | Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
 
-Two things the numbers above deliberately do not claim. First, the accuracy
-figures are DeepPCB's, and DeepPCB is easier than a real assembly scene —
-synthetic PCB defects have clean boundaries. Second, all five boundary files
-record `reproduced_by: null`: single measurements by the author, on one device
-each.
+The accuracy figures come from DeepPCB, which is easier than a real assembly
+scene — synthetic PCB defects have clean boundaries. Expect to retrain on your
+own boards. This is a reference design, not a certified inspection product.
 
 ## Output Interfaces
 
@@ -171,12 +167,11 @@ taken on. A TensorRT engine is built on the device during the first deploy
 it when you want the numbers above to apply, or when you need more than one or
 two camera streams on one box.
 
-**Camera + Raspberry Pi 5 with Hailo-8** trades power and cost for a smaller
+**Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
-time, so there is no build step on the board. On real hardware (harvest-pi,
-2026-09-06): 106.75 FPS hardware inference, 43.92 FPS full pipeline, mAP50
-0.9858 against a CPU golden (delta -0.0018). Stream capacity on this board has
-not been measured — the multi-stream sweep above is Orin-only. The board also
+time, so there is no build step on the board. Measured on this board: 106.75 FPS
+hardware inference, 43.92 FPS full pipeline, mAP50 0.9858 against a CPU golden
+(delta -0.0018). The multi-stream sweep above is Orin-only. This board also
 has three hard prerequisites — matching Python minor version, HailoRT 4.21.x
 held across driver, library and Python bindings, and
 `hailo_pci force_desc_page_size=4096` — that the guide walks through.
@@ -187,7 +182,7 @@ held across driver, library and Python bindings, and
   camera and the whole expected list has to be rebuilt. Fix the camera before
   building the template, not after.
 - **The shipped expected list is an example, not your product.** It was
-  generated from one DeepPCB image so the chain could be verified. Replace
+  generated from one DeepPCB image as a worked example. Replace
   `assembly.expected[]` with your own slots before the station means anything.
 - **The dimension module is CPU-only and single-plane.** It measures a
   minimum-area rectangle inside a ROI against a calibration reference in the

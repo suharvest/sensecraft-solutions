@@ -245,14 +245,14 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
   GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
 - 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
 
-## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#hailo}
+## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#hailo}
 
 同一套运行时、INT8 模型、更低功耗。HEF 在设备外编译、部署时下载，板子上没有构建步骤。
 精度已在 Hailo emulator 上与 CPU 基线核对过；板子本身的吞吐、时延与路数没有实测。
 
 | 设备 | 用途 |
 |--------|---------|
-| Raspberry Pi 5 + Hailo-8（M.2） | 加速器上做检测，CPU 上做缺件比对与尺寸测量，Modbus TCP server、MQTT broker 与 Web 面板 |
+| reComputer R2000 + Hailo-8（M.2） | 加速器上做检测，CPU 上做缺件比对与尺寸测量，Modbus TCP server、MQTT broker 与 Web 面板 |
 | 摄像头 | 提供检测工位的视频；任意 RTSP 或 ONVIF 摄像头均可，USB 摄像头或录制文件同样可用 |
 
 **重要说明。** 这是一个 demo 包，不是经过认证的计量或安全产品；尺寸模块不能替代

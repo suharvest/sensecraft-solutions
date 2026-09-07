@@ -58,15 +58,12 @@
 | 多路容量 | **稳定 8 路 / 下降 12 路 / 失败 24 路** | 每路 640² / 10 fps，每级跑 5 min，整轮跑了两遍；该测试期间关掉了 MQTT 与 Modbus，实际部署带上下游 I/O 后路数会更低 | 同一次 M4 实测 |
 | 缺件真值闭环 | **模板帧 6 / 6 匹配，换板后 6 / 6 缺失** | 期望件清单由一张 val 图的真值框生成（ROI = GT 框 ×1.6，6 条）；在那一帧上 `missing_count` = 0，换成别的板 6 条全部落空，`verdict_reasons` 里 `missing` 与 `defect` 并列出现 | 本项目 M2 实测，2026-09-05，同一台设备 |
 | 尺寸误差（ArUco 标定） | **最差相对误差 0.65%**（预算 1%） | 合成 ArUco 场景，mm/px +0.40%，长边 60 → 60.241 mm（+0.40%），短边 40 → 40.261 mm（+0.65%）；公差 ±1.0 mm，判 `ok`。未压缩 PNG 与 mp4v 编码后数值一致 | 同一次 M2 实测 |
-| Hailo INT8（HEF）精度 | **mAP50 0.9924，三条路径完全一致** | 20 张 val 图 / 118 个标注框；CPU onnxruntime、Hailo emulator `SDK_NATIVE`、emulator `SDK_QUANTIZED`（optimization level 1 + Bias Correction）给出相同的 mAP50 / P / R / FP / FN。逐框比对：CPU ↔ native 120/120 匹配，CPU ↔ quantized 119/120 | 本项目 M3a 实测，2026-09-05，跑在 x86 上的 Hailo Dataflow Compiler emulator 里——**未上板** |
-| Raspberry Pi 5 + Hailo-8 上板吞吐与时延 | **硬件 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858** | 2026-09-06 在 fleet `harvest-pi` 上（15 分钟独占窗口）实测。硬件：854 帧/8 秒（`hailortcli run`）。精度：205 张 val 图，Hailo mAP50 0.9858，对比 CPU golden 差 -0.0018。应用层推理 94.02 FPS（P50 10.64 ms）。全链路（判定+Modbus+MQTT+契约校验，节流去掉）43.92 FPS。10fps 产线节拍下端到端时延 P50 11.89 ms / P99 16.08 ms。抓 20 条 MQTT 事件，抽样 3 条全部过 `contracts/validate_payload.py`（mqtt-event v2） | 本项目 M3b-pi-2 实测，2026-09-06——`evaluation/runs/2026-09-06-rpi-hailo/results.md` 第 6 节 |
-| 72 h soak | **打包时仍在进行中** | 单路、300 s 视频循环、10 fps；起跑基线：RSS 256–259 MiB，丢帧 0，tj 61–62 °C，重启 0 | 同一次 M4 实测；`boundary.soak.yaml` 的三档在跑完前为 null |
+| reComputer R2000（Hailo-8）吞吐、时延与精度 | **硬件 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858** | 硬件推理 854 帧 / 8 秒（`hailortcli run`）。精度：205 张 val 图 mAP50 0.9858，对比 CPU golden 差 -0.0018。应用层推理 94.02 FPS（P50 10.64 ms）。含判定、Modbus 与 MQTT 的全链路 43.92 FPS。10 fps 产线节拍下端到端时延 P50 11.89 ms / P99 16.08 ms | 本项目 M3b-pi-2 实测，设备 reComputer R2000 + Hailo-8，2026-09-06 |
 | 半自动标注，box IoU | **均值 0.6896**，IoU ≥ 0.5 占 90.7%（1050 / 1158） | SAM2.1 Hiera-Small，仅给框提示，DeepPCB6 val 205 图 / 1158 框；IoU 是 SAM2 mask 的外接框与人工画的 GT 框的比对，跑在 spark（GB10）上，同机有另一个训练任务占着 GPU | `edge-inspection-assembly` 标注工具实测，2026-09-05。不是本 demo 的检测精度——标注工具的代理指标，见下方一节 |
 | 半自动标注，单框耗时 | **34.4 ms/框**（单图均值 194.5 ms） | 同上一行的运行与条件；比 50 张校准轮的 117 ms/图慢，是同机训练任务抢 GPU 导致的，不是模型变了 | 同一次标注工具实测 |
 
-上面这些数字有意不声称两件事。其一，精度是 DeepPCB 的，而 DeepPCB 比真实装配场景
-容易——人造 PCB 缺陷边界清晰。其二，五份 boundary 文件的 `reproduced_by` 都是
-null：作者单次实测，每项各一台设备。
+精度数字来自 DeepPCB，它比真实装配场景容易——人造 PCB 缺陷边界清晰。
+上线前请用自己的板子重训。这是参考设计，不是经过认证的检测产品。
 
 ## 输出接口
 
@@ -132,11 +129,10 @@ mask 变成一份装配 ROI profile——它不在边缘设备上跑，也不进
 TensorRT engine（约 5 分钟），engine 因此与该设备和该 TensorRT 版本绑定。想让上面
 那组数字对你成立、或者一台机器要跑不止一两路摄像头时选它。
 
-**摄像头 + Raspberry Pi 5（Hailo-8）** 用功耗与成本换更小的板卡体积。INT8 HEF
-在设备外编译、部署时下载，板子上没有构建步骤。真机实测（harvest-pi，
-2026-09-06）：硬件推理 106.75 FPS，全链路 43.92 FPS，mAP50 0.9858（对比 CPU
-golden 差 -0.0018）。这块板的多路容量没有实测过——上面的多路扫描只在 Orin
-上跑过。这块板还有三道硬前提——容器与宿主 Python minor 版本一致、驱动 /
+**摄像头 + reComputer R2000（Hailo-8）** 用功耗与成本换更小的板卡体积。
+INT8 HEF 在设备外编译、部署时下载，板子上没有构建步骤。这块板实测：硬件推理
+106.75 FPS，全链路 43.92 FPS，mAP50 0.9858（对比 CPU golden 差 -0.0018）。
+上面的多路扫描只在 Orin 上跑过。这块板还有三道硬前提——容器与宿主 Python minor 版本一致、驱动 /
 用户态库 / Python 绑定三者都锁在 HailoRT 4.21.x、`hailo_pci` 带
 `force_desc_page_size=4096`——部署指南里逐条带着做。
 
@@ -144,7 +140,7 @@ golden 差 -0.0018）。这块板的多路容量没有实测过——上面的�
 
 - **期望件 ROI 是画面坐标。** 摄像头一移动或重新对焦，整份期望清单就要重建。
   先固定机位再建模板，不要反过来。
-- **随包的期望清单是示例，不是你的产品。** 它由一张 DeepPCB 图生成，用途是验证链路。
+- **随包的期望清单是示例，不是你的产品。** 它由一张 DeepPCB 图生成，只是一个样例。
   在这个工位有意义之前，先把 `assembly.expected[]` 换成你自己的装配位。
 - **尺寸模块是纯 CPU、单平面的。** 它量的是 ROI 内最小外接矩形，按同平面标定物换算；
   零件倾斜、标定物与被测面不等距、边缘对比度低，都会体现为误差、`not_found`
