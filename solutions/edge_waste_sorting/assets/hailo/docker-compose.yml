@@ -6,17 +6,25 @@
 # directory yet — platforms/README.md lists it as pending. Changes from that
 # source: Modbus removed, models/captures volumes and names retargeted.
 #
-# NO HEF EXISTS. The baseline MobileNetV3-Small has not been compiled for
-# Hailo-8 by this project, and the open-vocabulary tower's INT8 quantisation
-# currently fails at `hailo optimize`. This stack will start and then fail to
-# load a model. See devices/hailo_waste.yaml.
+# The HEF this stack loads is `efficientnet_lite0_waste8_u8.hef` (DFC 3.31.0 /
+# HailoRT 4.21.0, 4,576,932 bytes, sha256 4e3b9640…). It is not on the CDN yet,
+# so `devices/hailo_waste.yaml` still carries a TODO(CDN) and falls back to
+# telling you to copy it onto the device by hand. The open-vocabulary tower has
+# no HEF — its INT8 quantisation fails at `hailo optimize`.
 #
-# IMAGE NOT PUBLISHED. Nothing has been pushed to the tag below.
+# Image published 2026-09-07:
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev
+#   manifest digest sha256:c6c8522d4a800f4a82054081f13d85238c3b0e978499cc5c3368bead11c8ab67
+#   config digest   sha256:d4c3e12e07b95be1634895afe403a0160721a8d612a5fb05bd467ad6155040e4
+#   355 MB local / 123.2 MB compressed over 10 layers.
 #
-# The image carries no HailoRT of its own: the HEF is ABI-locked to the host's
-# HailoRT 4.21 (driver, user-space library and python bindings move together),
-# so the host's runtime is mounted read-only rather than pinned inside the
-# image where it could drift away from the driver.
+# The image carries the HailoRT python bindings (cp311 wheel, 4.21.0) but no
+# user-space library of its own: the HEF is ABI-locked to the host's HailoRT
+# 4.21 (driver and library move together), so the host's `libhailort.so.4.21.0`
+# is mounted read-only rather than pinned inside the image where it could drift
+# away from the driver. The host's python bindings are NOT mounted — the
+# hailort deb does not install them, so that mount pointed at a path that does
+# not exist and docker would create an empty directory on the host.
 services:
   waste:
     image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.0-dev}
@@ -35,11 +43,10 @@ services:
       - ${MODELS_DIR:-./models}:/models:ro
       - ${DATA_DIR:-./data}:/data:ro
       - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
-      # Host HailoRT user-space library and python bindings. _pyhailort's .so
-      # only imports under the same Python minor as the host built it for —
-      # Bookworm is 3.11, trixie is 3.13.
+      # Host HailoRT user-space library only. The python bindings live in the
+      # image (cp311 wheel); _pyhailort's .so dlopens this host library, so the
+      # two must stay on the same 4.21.x.
       - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
-      - /usr/lib/python3/dist-packages/hailo_platform:/host-python/hailo_platform:ro
     # For a USB camera add the individual /dev/videoN nodes here. Never mount
     # all of /dev.
     # devices:
