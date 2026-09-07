@@ -11,18 +11,33 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/ha-overview-local-20260907.jpg
   gallery:
+    - type: image
+      src: gallery/ha-overview-local-20260907.jpg
+      caption: Home Assistant overview after a local replay of the fixture MQTT payloads — real decoded values for all three demo devices, captured on a Mac Docker Compose run
+      caption_i18n:
+        zh: 本机 Docker Compose 回放 fixture MQTT 数据后的 Home Assistant 总览——三台示例设备的真实解码数值
+    - type: image
+      src: gallery/ha-history-graph-local-20260907.jpg
+      caption: History-graph cards for air, soil and rainfall entities, captured right after a fixture replay on the local stack
+      caption_i18n:
+        zh: 空气、土壤与降雨实体的历史曲线卡片，紧随本机回放 fixture 数据后截取
+    - type: image
+      src: gallery/ha-alert-triggered-local-20260907.jpg
+      caption: A real threshold automation firing on replayed fixture data — high air temperature alert
+      caption_i18n:
+        zh: 回放 fixture 数据触发的真实阈值自动化——空气温度过高告警
+    - type: image
+      src: gallery/agri-env-refresh-local-20260907.gif
+      caption: Before/after a fixture replay — cards go from unavailable to populated with live values, showing the bridge-to-Home-Assistant pipeline actually refreshing state
+      caption_i18n:
+        zh: 回放 fixture 数据前后对比——卡片从"不可用"变为实时数值，展示桥接到 Home Assistant 的真实刷新链路
     - type: image
       src: gallery/architecture.svg
       caption: Three ingest paths, one bridge, one set of entity ids in Home Assistant
       caption_i18n:
         zh: 三条接入路径、一个桥、Home Assistant 里同一套实体 ID
-    - type: image
-      src: gallery/offline-acceptance.svg
-      caption: Offline acceptance — the M2 gateway is the network server and nothing leaves the site
-      caption_i18n:
-        zh: 无公网验收——M2 网关就是网络服务器，数据不出场地
   category: sensing
   solution_type: solution
   tags:

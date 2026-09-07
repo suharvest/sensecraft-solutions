@@ -6,8 +6,10 @@
 # and derivative works with attribution; the attribution string is in
 # gallery/ATTRIBUTION.md and repeated in both description files.
 #
-# No dataset-derived image is committed anywhere in this package. The only
-# gallery asset is a schematic drawn for this solution.
+# As of 2026-09-07, five real classification screenshots (one per category,
+# four total, plus one 2x2 grid) are committed, sourced from TrashNet (MIT)
+# validation images per the escape hatch this package always documented. See
+# gallery/ATTRIBUTION.md for the per-image source table.
 #
 # NOTHING HERE HAS RUN ON HARDWARE. Every figure on this page comes from
 # onnxruntime on an Apple M4 CPU. No preset carries `verified:`.
@@ -29,18 +31,41 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/architecture.svg
+  cover_image: gallery/waste-grid-4up-local-20260907.jpg
   gallery:
+    - type: image
+      src: gallery/waste-grid-4up-local-20260907.jpg
+      caption: Four real CPU inference results (onnxruntime, Apple M4) on TrashNet (MIT) validation images — one per requested category, predicted class and confidence drawn on each frame
+      caption_i18n:
+        zh: 四张真实 CPU 推理结果（onnxruntime，Apple M4），取自 TrashNet（MIT）验证集图片——每类一张，帧上标注预测类别与置信度
+    - type: image
+      src: gallery/waste-paper-local-20260907.jpg
+      caption: Paper, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 纸张，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-metal-local-20260907.jpg
+      caption: Metal, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 金属，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-plastic-local-20260907.jpg
+      caption: Plastic, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 塑料，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-residual-local-20260907.jpg
+      caption: "“Other” (trash) sample misclassified as plastic at low confidence — kept as-is, not cherry-picked; consistent with the model's documented CPU baseline"
+      caption_i18n:
+        zh: "“其它”样例被低置信度误判为塑料——如实保留、未挑选好看的结果，与模型已记录的 CPU 基线一致"
     - type: image
       src: gallery/architecture.svg
       caption: Trigger to camera to device — one shot in, material class and Chinese four-way category out on MQTT, with a GPIO callback alongside
       caption_i18n:
         zh: 从触发到相机再到设备——拍一张进去，物料类别与中国四分类通过 MQTT 出来，旁边是 GPIO 回调
-  # No classification sample image is shipped. Both datasets permit
-  # redistribution, but the upstream repository keeps every dataset-derived
-  # image out of version control (data/raw, data/cls, data/crops and the
-  # evaluation overlays are all gitignored), and this package follows it.
-  # See gallery/ATTRIBUTION.md.
+  # Real classification screenshots were added 2026-09-07, sourced from
+  # TrashNet (MIT) validation images per the escape hatch this package always
+  # documented. See gallery/ATTRIBUTION.md for the per-image source table.
   category: sensing
   solution_type: solution
   tags:
