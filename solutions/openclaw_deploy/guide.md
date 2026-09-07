@@ -102,7 +102,7 @@ Deploy to a reComputer J40 device over SSH, with GPU-accelerated local AI model.
 
 ## Preset: OpenClaw Gateway {#openclaw_recomputer_r}
 
-Deploy OpenClaw AI messaging gateway on reComputer R series. Lightweight deployment — gateway only, no local AI model needed.
+Deploy OpenClaw AI messaging gateway on reComputer R1100 series. Lightweight deployment — gateway only, no local AI model needed.
 
 | Device | Purpose |
 |--------|---------|
@@ -117,7 +117,7 @@ Deploy OpenClaw AI messaging gateway on reComputer R series. Lightweight deploym
 
 ## Step 1: Deploy OpenClaw {#deploy_openclaw_r type=docker_deploy required=true config=devices/recomputer_r_deploy.yaml}
 
-Deploy the OpenClaw AI gateway on your reComputer R.
+Deploy the OpenClaw AI gateway on your reComputer R1100 series device.
 
 
 ### Deployment Complete
@@ -165,11 +165,11 @@ Deploy on the machine you're currently using.
 
 ### Target {#r_remote type=remote config=devices/recomputer_r_deploy.yaml}
 
-Deploy to a reComputer R device over SSH.
+Deploy to a reComputer R1100 series device over SSH.
 
 ### Wiring
 
-1. Connect reComputer R to the same network as your deployment machine
+1. Connect the reComputer R1100 series device to the same network as your deployment machine
 2. Enter device IP address, SSH username, and password
 3. Click **Deploy** to start services
 
