@@ -5,7 +5,7 @@ Deploy a voice-controlled robotic arm in one step: a single Docker container on 
 | Device | Purpose |
 |--------|---------|
 | SO-ARM101 Follower Arm | 6-DoF robotic arm — receives `send_action` via USB serial |
-| reComputer Super J4012 | Jetson Orin NX 16GB — runs the voice + arm container |
+| reComputer J40 series | Jetson Orin NX 16GB — runs the voice + arm container |
 | reSpeaker Flex XVF3800 | 4-microphone array for far-field voice capture |
 | Speaker | Output for the assistant's voice replies |
 
