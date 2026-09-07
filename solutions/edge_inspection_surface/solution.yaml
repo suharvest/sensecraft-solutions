@@ -77,7 +77,7 @@ intro:
       description: >-
         One JSON message per frame, carrying the verdict and every detection in
         that frame in one payload rather than one message per box. Boxes are
-        normalised [cx, cy, w, h]; `slot` is a within-frame index ordered by
+        normalised [cx, cy, w, h]; "slot" is a within-frame index ordered by
         score, not a track id. Every message is validated against the contract
         schema before it is published; a message that fails is counted and
         dropped rather than sent.
@@ -86,7 +86,7 @@ intro:
       description_i18n:
         zh: >-
           一帧一条 JSON，判定与该帧内所有检测框放在同一条消息里，不逐框发。
-          框是归一化的 [cx, cy, w, h]；`slot` 是帧内按分数降序的下标，不是 track id。
+          框是归一化的 [cx, cy, w, h]；「slot」 是帧内按分数降序的下标，不是 track id。
           每条消息发布前都过一遍契约 schema 校验，不合格的计数并丢弃，不发出去。
     - type: http
       port: 8080
