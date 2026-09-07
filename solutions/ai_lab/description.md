@@ -55,7 +55,7 @@ curl http://<device-ip>:8001/v1/chat/completions \
 | LLM token speed | Depends on variant — 1.5B fastest, 7B strongest |
 | Memory needed | 4GB for 1.5B LLM · 8GB+ for 7B LLM and Vision Chat |
 | Disk needed | 3–10GB per preset, depending on model |
-| Supported hardware | reComputer RK3576 (all presets) · reComputer RK3588 / ROCK 5T (Object Detection only) |
+| Supported hardware | reComputer RK3576 (all presets) · reComputer RK3588 series (Object Detection only) |
 
 ## Good to Know
 

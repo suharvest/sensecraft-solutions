@@ -55,7 +55,7 @@ curl http://<device-ip>:8001/v1/chat/completions \
 | 大模型速度 | 取决于变体——1.5B 最快，7B 推理最强 |
 | 内存要求 | 1.5B LLM 需 4GB · 7B LLM 与视觉对话需 8GB+ |
 | 磁盘要求 | 每个预设 3–10GB，取决于所选模型 |
-| 支持硬件 | reComputer RK3576（全部预设） · reComputer RK3588 / ROCK 5T（仅目标检测） |
+| 支持硬件 | reComputer RK3576（全部预设） · reComputer RK3588 系列（仅目标检测） |
 
 ## 使用须知
 
