@@ -63,7 +63,7 @@ This solution turns complex system operations into **speaking** — say "Stock i
 
 ## Measured Boundaries
 
-Every number below comes from load runs on **a development-board baseline (Raspberry Pi 5, arm64 — not a package device)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
+Every number below comes from load runs on **a development-board baseline (Raspberry Pi 5, arm64 — not a package device)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend. The same digest-pinned image was deployed on 2026-09-07 to the **reComputer R1000's CM4 platform in a 2 GB configuration** — a reference value, not a shipping configuration, since the R1000 ships with 4 GB or 8 GB. That run covers restart recovery only: 9.48 s and 9.04 s from container restart to a healthy service, two runs polled at 250 ms on the device's own loopback (`evaluation/runs/2026-09-07-recomputer-r1000/results.md` in the warehouse_system project). The load figures in the table have not yet been reproduced on that platform and will be added after a run on a 4 GB / 8 GB R1000.
 
 | Scenario | Level | Measured | Conditions | Source |
 |----------|-------|----------|------------|--------|

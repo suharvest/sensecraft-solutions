@@ -31,7 +31,7 @@ The prediction workflow remains available as an optional plugin. Multi-protocol 
 
 These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty and do not extrapolate to other devices.
 
-The load figures were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. Measurements on the package devices — reComputer R1000 / R2000 — will be added when those runs are done.
+The load figures in the table were taken on a **development-board baseline (Raspberry Pi 5, not a package device)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis, so it indicates what the platform does and is not a measurement of the shipping product. At the 2,000-point workload in the table, that platform did not pass the capacity test, and this workload is not recommended on an R1000-class device. A lower point count may well be fine, but no lower tier has been measured, so there is no supported ceiling to quote yet. Memory was not the constraint — over 1 GB stayed free and the board never throttled — which points to a CPU and timing limit rather than a memory one; that attribution is an inference from those two observations, not a measured cause. A run on an R1000 in its shipping 4 GB / 8 GB configuration, and a lower-point-count tier, are both still to be done.
 
 | Metric | Value | Conditions | Source |
 |--------|-------|------------|--------|
