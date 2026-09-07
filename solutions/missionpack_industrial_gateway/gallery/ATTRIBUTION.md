@@ -12,9 +12,9 @@ MQTT) core, not the KNN prediction feature.
 Files created 2026-08-18 (per directory mtimes); confirmed on this local
 review 2026-09-07.
 
-## cover.png / access-runtime.png
+## cover.png
 
-Both are real screenshots of the **Access** page (`Configure industrial
+A real screenshot of the **Access** page (`Configure industrial
 protocol sources and stage discovered devices`), taken against a running
 instance of the console. The one configured source shown, `HVAC OPC UA 模拟站`
 (source ID `opcua-hvac-main`, protocol `opcua`, state `enabled`/`Online`,
@@ -28,27 +28,9 @@ display name and source ID are operator-entered free text, not hardcoded
 fixture strings, so they do not appear via grep in the source tree — that is
 expected of a real running instance, not evidence the strings are made up.
 
-`cover.png` is a tighter crop of the same page (no top app-bar/login chrome);
-`access-runtime.png` is the full-chrome capture. Neither is a mock-up or a
-hand-drawn illustration.
-
-## live-points.png
-
-Real screenshot of the **点位总表 / Point Table** page (zh-CN, `EN` toggle
-visible), showing one live point (`opcua-hvac-main` → `ahu-01` →
-`pt:opcua-hvac-main:ahu-01:supply.temp`, value 21.5 °C, quality `良好`/Good,
-timestamp 2026/8/18 12:50:58) sourced from the same OPC UA simulator source as
-above.
-
-## data-service.png
-
-Real screenshot of the **统一数据服务 / Data Service** page: embedded MQTT
-broker status (`内置 (amqtt)`, running, TLS disabled, "control security:
-remote control disabled" banner), gateway ID `hvac-edge-01`, and the MQTT
-topic contract table (`missionpack/v1/{gateway}/command/{command_id}` etc.).
-The page explicitly and honestly states `Sparkplug 等级: not-implemented`,
-matching `solution.yaml`'s own "not Sparkplug B compatible" disclosure — this
-is the product's real status readout, not a mocked-up claim.
+`cover.png` is a tighter crop of that page with no top app-bar chrome. It is
+not a mock-up or a hand-drawn illustration. It is kept only as the `demo.mp4`
+thumbnail; the page cover moved to the console overview below.
 
 ## demo.mp4
 
@@ -75,15 +57,35 @@ reTerminal DM chassis, USB-to-RS-485 adapter, wired field device). Replace or
 extend this gallery with those once a commissioned site or bench setup is
 available.
 
-## 2026-09-07
+## 2026-09-07 — console screenshots re-captured
 
-`access-runtime.png` (1280 × 800 → 1280 × 299) and `live-points.png`
-(1280 × 800 → 1280 × 358) were cropped to their tables; the empty canvas below
-each was removed and nothing inside the frame changed. `data-service.png` and
-`cover.png` are unchanged — `cover.png` is still the thumbnail on the video.
+`live-points.png`, `access-runtime.png` and `data-service.png` are gone. They
+were 1280 x 800 captures of a one-source instance (a single live point in the
+point table), cropped to their tables afterwards rather than re-taken.
 
-The cover is now `live-points.png`, the point table, instead of the near-empty
-source list that was there before.
+The `console-*.jpg` files replace them. They come from the console dashboard
+branch (`Solution_HVAC_SmartControl`, `feature/building-energy`, e54dfb1;
+capture set at `docs/console-react/dashboard-2026-09-07/`) run against the
+**e2e fixture site** — 4 protocols, 13 devices, 120 points, with two sources
+deliberately offline so the offline path is visible. It is a fixture, not a
+commissioned site: the values are generated, and the alarms and quality flags
+are what the fixture seeds.
+
+Captured with Playwright + Chrome at `deviceScaleFactor: 2`, full page. Cropped
+to content and saved as JPEG quality 90; nothing inside the frame was altered
+or scaled.
+
+| File | Before | After |
+|---|---|---|
+| `cover-console-overview-zh.jpg` | 3200 x 2790 | 3200 x 1810 (KPI row, both trend charts, protocol table) |
+| `console-overview-zh.jpg` | 3200 x 2790 | 3200 x 2760 |
+| `console-overview-en.jpg` | 3200 x 2790 | 3200 x 2760 |
+| `console-topology-zh.jpg` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
+| `console-topology-en.jpg` | 3200 x 2646 | 2480 x 2646 |
+
+The cover is now `cover-console-overview-zh.jpg`. `cover.png` stays as the
+`demo.mp4` thumbnail; `demo.mp4` itself is unchanged and still shows the older
+UI.
 
 ## Missing: a photograph of the gateway installed
 
