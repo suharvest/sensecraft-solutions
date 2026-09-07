@@ -24,8 +24,8 @@ are normalised rectangles over the frame, so re-aiming the camera silently
 invalidates them. And the `no_motion` alarm will fire during sleep unless the
 zone excludes the bed or the timeout is longer than a nap.
 
-One more thing before you start: the alarm service image is not published yet.
-See the Prerequisites below.
+The alarm service image (`eldercare-alarm-arm64:0.1.0`) is published on Harbor
+and the deploy step pulls it directly.
 
 ## Step 1: Deploy the Alarm Stack {#deploy_orin_alarm type=docker_deploy required=true config=devices/orin_alarm.yaml}
 
@@ -43,12 +43,10 @@ success.
 - TensorRT dev packages present — the step needs `/usr/src/tensorrt/bin/trtexec`.
 - At least 10 GB free.
 - The camera's RTSP URL, tested in VLC first.
-- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet — tag pending rebuild.** Build it
-  from the upstream project and tag it as the compose file expects, on the device
-  or on a machine that can push:
-  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
-  Without it the `eldercare-alarm` service fails to pull and the deploy fails.
+- Confirm the device can reach the registry before deploying:
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0`.
+  The image is published (sha256 `11623704f2af…`); a pull failure here means a
+  registry/network problem, not a missing image.
 
 ### Troubleshooting
 
@@ -57,7 +55,7 @@ success.
 | `This target is not a NVIDIA Jetson` | The address points at a different machine. Check the IP and the SSH user. |
 | `trtexec not found` | Install the TensorRT dev packages from the JetPack SDK components. |
 | Engine build times out | YOLO11m takes considerably longer than YOLO11s. Re-run the deploy — the ONNX file and the timing cache are kept, so the second attempt is much faster. |
-| `pull access denied` on `eldercare-alarm-arm64` | Expected until that image is built or pushed. See the Prerequisites. |
+| `pull access denied` on `eldercare-alarm-arm64` | Check registry auth and network reachability from the device — the image itself is published. |
 | Verification fails with `No detector result` | The detector is not seeing the camera. Check the RTSP URL in VLC from the Jetson itself, then `docker logs eldercare_alarm_orin-fall-detection-1`. |
 | Verification fails on the alarm API | `docker logs eldercare_alarm_orin-eldercare-alarm-1` names the configuration key it rejected. The generated file is `config/eldercare.yaml` under the deploy directory. |
 | Alarms never appear on a quiet site | Expected — that is what the timeouts are for. To prove the path, drop the no-person timeout to 1 minute, redeploy, and leave the room. |
@@ -188,8 +186,9 @@ reduce detection, zones break silently when the camera is re-aimed, and
 `no_motion` fires during sleep unless the zone or the timeout accounts for it.
 
 This preset is additionally ABI-locked to HailoRT 4.21 — the GStreamer plugin,
-the user library and the kernel driver all have to be that version. And, as
-above, the alarm service image is not published yet.
+the user library and the kernel driver all have to be that version. As above,
+the alarm service image (`eldercare-alarm-arm64:0.1.0`) is published on
+Harbor and the deploy step pulls it directly.
 
 ## Step 1: Deploy the Alarm Stack {#deploy_hailo_alarm type=docker_deploy required=true config=devices/hailo_alarm.yaml}
 
@@ -206,10 +205,10 @@ success.
   `/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so`.
 - At least 6 GB free.
 - The camera's RTSP URL, tested in VLC first.
-- **The `eldercare-alarm-arm64:0.1.0` image is not in the registry yet — tag pending rebuild.** Build it
-  from the upstream project and tag it as the compose file expects:
-  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .`
+- Confirm the device can reach the registry before deploying:
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0`.
+  The image is published (sha256 `11623704f2af…`); a pull failure here means a
+  registry/network problem, not a missing image.
 
 ### Troubleshooting
 
@@ -218,7 +217,7 @@ success.
 | `No /dev/hailo0` | The accelerator is not seated or its driver is not loaded. `hailortcli fw-control identify` should answer. |
 | `libhailort.so.4.21.0 not found` | A different HailoRT minor version is installed. Move plugin, user library and driver together — changing only the mount will not work. |
 | HEF download fails or the checksum fails | The URL is the official Hailo Model Zoo v2.15 build. Re-run the step; the partial file resumes. |
-| `pull access denied` on `eldercare-alarm-arm64` | Expected until that image is built or pushed. See the Prerequisites. |
+| `pull access denied` on `eldercare-alarm-arm64` | Check registry auth and network reachability from the device — the image itself is published. |
 | Verification fails with `No detector result` | Check the container health first — the step prints it. Then check the RTSP URL from the device and `docker logs eldercare_alarm_hailo-fall-detection-1`. |
 | Verification fails on the alarm API | `docker logs eldercare_alarm_hailo-eldercare-alarm-1` names the configuration key it rejected. |
 
@@ -356,11 +355,12 @@ configuration, start the stack, check ingest. Everything you need is in
 
 - Fall Detection already deployed and running on the cameras.
 - A gateway machine on the same network with Docker and the compose plugin.
-- **The alarm service image is not published yet — tag pending rebuild.** Build it from the upstream
-  project for the gateway's architecture and tag it, or set
-  `ELDERCARE_ALARM_IMAGE` to your own tag:
-  `cd eldercare/web/ui && npm install && npm run build && cd -` first (the image now serves that React build, not a static page — see the upstream README §1.1), then
-  `docker build -f docker/Dockerfile -t sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0 .`
+- The alarm service image is published on Harbor for both architectures
+  (`eldercare-alarm-amd64:0.1.0`, `eldercare-alarm-arm64:0.1.0`). Confirm the
+  gateway can reach the registry before starting the stack:
+  `docker pull sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-<arch>:0.1.0`
+  matching the gateway's architecture, or set `ELDERCARE_ALARM_IMAGE` to your
+  own tag.
 - `mosquitto_sub` on the gateway, for reading the camera topic before you
   configure anything.
 
@@ -371,7 +371,7 @@ configuration, start the stack, check ingest. Everything you need is in
 | `mosquitto_sub -t '#'` shows nothing | The camera is publishing to its own broker, not this one. Point `mqtt.host` at the camera's broker, or configure the camera to publish to the gateway. |
 | Topic does not match either sample | Use what you actually see. A 2002 topic maps to `fall_result_v1`, a Pro topic to `recamera_pro_state`. Do not guess from the topic shape. |
 | `eldercare-alarm` restarts in a loop | `docker compose logs eldercare-alarm` names the configuration key it rejected. |
-| `pull access denied` | Expected until the image is built or pushed. See the Prerequisites. |
+| `pull access denied` | Check registry auth and network reachability from the gateway — the image itself is published. |
 | Falls appear but `no_person` never fires | The camera may not publish on empty frames. Watch the topic with nobody in view — if messages stop, that alarm kind cannot work on this camera until the detector is configured to keep publishing. |
 
 ## Step 2: Open the Confirmation Page {#verify_recamera_alarm type=web_dashboard required=false config=devices/confirm_ui.yaml}

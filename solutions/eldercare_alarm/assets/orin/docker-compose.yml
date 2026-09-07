@@ -81,14 +81,8 @@ services:
         max-file: "3"
 
   eldercare-alarm:
-    # NOT PUSHED YET. This tag does not exist in the registry as of packaging
-    # (2026-09-05) — the upstream project builds it locally as
-    # `eldercare-alarm:0.1.0` from eldercare-alarm/docker/Dockerfile, and
-    # eldercare-alarm/release/PINNING.md records only local arm64 and amd64
-    # builds. Before a deploy of this preset can succeed, either push this tag
-    # or build on the device and retag:
-    #   docker build -f docker/Dockerfile -t \
-    #     sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0 .
+    # Published to Harbor 2026-09-08:
+    # sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
     image: sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0
     command: ["--config", "/config/config.yaml"]
     restart: unless-stopped
