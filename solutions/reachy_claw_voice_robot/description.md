@@ -6,7 +6,7 @@ Turn your Reachy Mini desktop robot into a voice-interactive robot. It listens, 
 
 | Value | Description |
 |-------|-------------|
-| Real-time Conversation | Under 1 second from hearing your voice to speaking back — fast enough for natural dialogue |
+| Real-time Conversation | Under 1 second from hearing your voice to speaking back |
 | Emotional Expressions | 14 distinct emotions (happy, curious, surprised, etc.) shown through head movements and antenna poses |
 | Fully Local | Everything runs on your Jetson — no cloud, no subscription, no internet required after setup |
 | Monologue Mode | Robot automatically generates "inner thoughts" for exhibition/demo scenarios without any user interaction |
