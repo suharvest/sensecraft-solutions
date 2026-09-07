@@ -212,7 +212,7 @@ voice-service 与管理后台。
 | 返回的是 403 而不是 401 | 凭据有效但角色档位不够——删除与导出需要 admin |
 | 别的机器连不上 MySQL | 有意为之：MySQL 与 MinIO 只绑 127.0.0.1。要远程连走 SSH 隧道 |
 | 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；如果你开了这个 profile，检查模型是否放好——见步骤 2 的前置条件 |
-| 声纹容器报 `tokens.txt does not exist` 退出 | 这次部署没有拉取它的模型——去上游 `sensecraft-asr-service` 仓库跑 `download_models.sh`，把产物拷到 `/data-iot/respeaker/models` |
+| 声纹容器报 `tokens.txt does not exist` 退出 | reRouter CM4 / reComputer RK3576 采集端目标的部署现在会自动把模型下到 `/data-iot/respeaker/models`（`before` 阶段的一步，尽力而为——失败只告警不中断部署）。先查那一步日志里有没有 `MISSING`，常见原因是设备连不上 `hf-mirror.com`。手工补下：`cd /data-iot/respeaker && HF_ENDPOINT=https://hf-mirror.com` 加上同样的下载循环（见 `devices/collector_rerouter.yaml`），或去上游 `sensecraft-asr-service` 仓库跑 `download_models.sh`，把产物拷到 `/data-iot/respeaker/models` |
 | 莫名出现云端分析容器 | 它只在 `--profile cloud-analytics` 时启动；如果在跑，说明有人开了它，文本正在离开这台主机 |
 | 麦克风采集目标：voice-client 反复重启 | ALSA 声卡编号不对；在设备上 `cat /proc/asound/cards`，用正确的编号重新部署 |
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
@@ -362,13 +362,14 @@ voice-service 与管理后台。
 1. 任何内容离开局域网之前，先在 ASR 端点前面加 TLS 终结。
 2. 在真实硬件上跑边界测试——并发、连续时长、WER、落库时延目前都没测，
    所以现在不能用这套部署给出任何容量结论。
-3. 声纹镜像已发布，但这一步只建了模型目录、没有下载模型。启动
-   `asr-voiceprint` 之前，先从上游 `sensecraft-asr-service` 仓库跑
-   `download_models.sh`，把产物（SenseVoice ASR、标点、声纹、VAD 模型，
-   共约 564MB）拷到本设备的 `/data-iot/respeaker/models`。然后再用
-   `docker compose --profile voiceprint up -d asr-voiceprint` 起它——不放
-   模型会以 `tokens.txt does not exist` 报错退出——再在有声纹的情况下重跑
-   一次删除检查。
+3. 声纹镜像已发布；采集端目标（reComputer RK3576 / reRouter CM4）的部署
+   现在会自动把它的模型（SenseVoice ASR、标点、声纹、VAD，共约 564MB）
+   下载到 `/data-iot/respeaker/models`——这一步是尽力而为，设备连不上镜像
+   只会告警，不会中断部署。启动 `asr-voiceprint` 之前先看这一步的日志；
+   服务端栈（Stack Host / 手机 App 采集）目标没有这一步，模型仍要手工拷进去。
+   然后用 `docker compose --profile voiceprint up -d asr-voiceprint` 起它——
+   不放模型会以 `tokens.txt does not exist` 报错退出——再在有声纹的情况下
+   重跑一次删除检查。
 4. 和现场隐私告知的负责人一起定保留期；24 小时是默认值，不是建议值。
 5. CM4 上先把 CPU 版 ASR 路径端到端验一遍。它的 `ovs-asr` 内存上限现在
    可以通过 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` 配置，该目标默认

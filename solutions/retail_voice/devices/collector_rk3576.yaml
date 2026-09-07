@@ -102,6 +102,72 @@ remote_overrides:
         name_i18n:
           zh: 创建主机数据目录
 
+      # asr-voiceprint 镜像已发布，但它的模型不打进镜像（见 docker-compose.yml
+      # 里 asr-voiceprint 的注释）。上一步只建了空目录，声纹容器起来会报
+      # `tokens.txt does not exist` 退出。这一步把 download_models.sh
+      # （sensecraft-asr-service 仓库同名脚本）下载的四组模型直接落到
+      # /data-iot/respeaker/models 下，走 HF_ENDPOINT（默认 hf-mirror）。
+      # 失败只告警不中断部署：voiceprint 默认在 profile 里不启动，主链路不依赖它。
+      - name: Download voiceprint/ASR aux models (asr, speaker, punctuation, vad)
+        sudo: true
+        ignore_error: true
+        timeout: 900
+        run: |
+          cd /data-iot/respeaker
+          if [ -s models/asr/model.int8.onnx ] && [ -s models/asr/tokens.txt ] \
+             && [ -s models/speaker/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx ] \
+             && [ -s models/punctuation/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12/model.onnx ] \
+             && [ -s models/vad/silero_vad/silero_vad.onnx ]; then
+            echo "voiceprint models already present, skipping download"
+            exit 0
+          fi
+          mkdir -p models/vad/silero_vad models/asr models/speaker \
+                   models/punctuation/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12
+          HF_BASE="${HF_ENDPOINT:-https://hf-mirror.com}"
+          HF_BASE="${HF_BASE%/}"
+          ASR_MODEL_REPO="csukuangfj/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17"
+          GH_BASE="${GH_BASE:-https://github.com}"
+          fetch() {
+            local url="$1" out="$2" min_bytes="$3" size
+            if ! curl -fL --retry 5 --connect-timeout 30 --max-time 300 -o "$out" "$url"; then
+              echo "download failed: $url" >&2
+              return 1
+            fi
+            size=$(wc -c < "$out" 2>/dev/null | tr -d '[:space:]')
+            if [ -z "$size" ] || [ "$size" -lt "$min_bytes" ]; then
+              echo "$out is ${size:-0} bytes, below the $min_bytes floor — likely an error page: $url" >&2
+              rm -f "$out"
+              return 1
+            fi
+          }
+          fetch "$HF_BASE/$ASR_MODEL_REPO/resolve/main/model.int8.onnx" models/asr/model.int8.onnx 200000000 || true
+          fetch "$HF_BASE/$ASR_MODEL_REPO/resolve/main/tokens.txt" models/asr/tokens.txt 100000 || true
+          fetch "$HF_BASE/csukuangfj/speaker-embedding-models/resolve/main/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx" \
+            models/speaker/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx 10000000 || true
+          fetch "$HF_BASE/csukuangfj/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12/resolve/main/model.onnx" \
+            models/punctuation/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12/model.onnx 10000000 || true
+          fetch "${GH_BASE%/}/k2-fsa/sherpa-onnx/releases/download/asr-models/silero_vad_v4.onnx" \
+            models/vad/silero_vad/silero_vad.onnx 500000 || true
+          chmod -R 0775 /data-iot/respeaker/models
+          echo "--- voiceprint model files after download ---"
+          ok=1
+          for f in models/asr/model.int8.onnx models/asr/tokens.txt \
+                   models/speaker/3dspeaker_speech_campplus_sv_zh_en_16k-common_advanced.onnx \
+                   models/punctuation/sherpa-onnx-punct-ct-transformer-zh-en-vocab272727-2024-04-12/model.onnx \
+                   models/vad/silero_vad/silero_vad.onnx; do
+            if [ -s "$f" ]; then
+              echo "OK   $f ($(wc -c < "$f") bytes)"
+            else
+              echo "MISSING $f" >&2
+              ok=0
+            fi
+          done
+          if [ "$ok" != "1" ]; then
+            echo "one or more voiceprint models did not download — the voiceprint profile will not start until this is fixed (see guide Troubleshooting)" >&2
+          fi
+        name_i18n:
+          zh: 下载声纹/ASR 附属模型（asr、speaker、punctuation、vad）
+
     after_upload:
       - name: Write .env and the service configuration
         run: |

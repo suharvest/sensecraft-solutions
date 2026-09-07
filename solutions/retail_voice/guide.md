@@ -268,7 +268,7 @@ array to wire and nothing here applies.
 | A call returns 403, not 401 | The credential is valid but its role is too low — deletion and export need admin |
 | MySQL cannot be reached from another machine | Intentional: MySQL and MinIO bind to 127.0.0.1 only. Use an SSH tunnel |
 | `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; if you enabled the profile, check its models are in place — see Step 2's prerequisites |
-| Voiceprint container exits with `tokens.txt does not exist` | Its models were not fetched by this deployment — run `download_models.sh` from the upstream `sensecraft-asr-service` repository and copy the output into `/data-iot/respeaker/models` |
+| Voiceprint container exits with `tokens.txt does not exist` | On the reRouter CM4 / reComputer RK3576 collector targets the deploy now downloads these models into `/data-iot/respeaker/models` automatically (a `before` step, best-effort — it warns but does not fail the deploy). Check that step's log for `MISSING`; a common cause is the device not reaching `hf-mirror.com`. Re-run it by hand: `cd /data-iot/respeaker && HF_ENDPOINT=https://hf-mirror.com bash -c '<the same fetch loop, see devices/collector_rerouter.yaml>'`, or fetch `download_models.sh` from the upstream `sensecraft-asr-service` repository and copy its output into `/data-iot/respeaker/models` |
 | Cloud analytics containers appear unexpectedly | They only start with `--profile cloud-analytics`; if they are running, someone enabled it, and text is leaving the host |
 | Mic-capture targets: voice-client restarts in a loop | The ALSA card ID is wrong; `cat /proc/asound/cards` on the device and redeploy with the right number |
 | Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
@@ -451,14 +451,16 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 2. Run the boundary measurements on the real hardware — concurrency, capture
    duration, WER and persist latency are all unmeasured, so no capacity claim
    should be made from this deployment yet.
-3. The voiceprint image is published, but this step only creates the models
-   directory — it does not populate it. Before starting `asr-voiceprint`, run
-   `download_models.sh` from the upstream `sensecraft-asr-service` repository
-   and copy its output (SenseVoice ASR, punctuation, speaker and VAD models,
-   ~564 MB total) into `/data-iot/respeaker/models` on this device. Then start
-   it with `docker compose --profile voiceprint up -d asr-voiceprint` — without
-   the models it exits with `tokens.txt does not exist` — and re-run the
-   deletion check with a voiceprint present.
+3. The voiceprint image is published, and the collector targets
+   (reComputer RK3576 / reRouter CM4) now download its models (SenseVoice ASR,
+   punctuation, speaker and VAD, ~564 MB total) into `/data-iot/respeaker/models`
+   as a best-effort deploy step — it warns rather than failing the deploy if the
+   device cannot reach the model mirror. Check that step's log before starting
+   `asr-voiceprint`; the Stack Host (app capture) target does not run this step
+   and still needs the models copied in by hand. Start voiceprint with
+   `docker compose --profile voiceprint up -d asr-voiceprint` — without the
+   models it exits with `tokens.txt does not exist` — and re-run the deletion
+   check with a voiceprint present.
 4. Decide the retention window with whoever owns the site's privacy notice; 24
    hours is a default, not a recommendation.
 5. On CM4, verify the CPU ASR path end to end. Its `ovs-asr` memory limit is
