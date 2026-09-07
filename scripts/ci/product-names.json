@@ -1,0 +1,509 @@
+{
+  "schema_version": 1,
+  "sync": {
+    "canonical": "sensecraft-solutions:scripts/ci/product-names.json",
+    "copies": [
+      "seeed-solutions-hub:scripts/lib/product-names.json"
+    ],
+    "note": "两个仓库各持一份完全相同的规则数据。改动任意一份后必须同步另一份，否则两侧 lint 结果会不一致。"
+  },
+  "sources": {
+    "product_catalog": "Seeed Studio 产品库（seeed-product skill / solution_bot/data/products/*.json），型号清单由产品名抽取",
+    "family_manifest": "sensecraft-solutions:spec/product-family-manifest.json（118 个 family）",
+    "mapping_owner": "用户 2026-09-08 给定的算力设备产品族映射与 prefer_family 规则"
+  },
+  "prefer_family": true,
+  "prefer_family_note": "对外文本优先写产品族名（reComputer R2000 系列 / J40 系列 / R10 系列 / RK3588 系列）。具体 SKU 只在 BOM、型号表、表格行里写；出现在正文散文里给 warn。",
+  "brands": [
+    "reComputer",
+    "reTerminal",
+    "SenseCAP"
+  ],
+  "known_models": {
+    "reComputer": [
+      "J101",
+      "J1010",
+      "J1020",
+      "J201",
+      "J202",
+      "J2011",
+      "J2012",
+      "J2021",
+      "J2022",
+      "J3010",
+      "J3010B",
+      "J3011",
+      "J3011B",
+      "J401",
+      "J401B",
+      "J4011",
+      "J4011B",
+      "J4012",
+      "J4012B",
+      "J501",
+      "J5011",
+      "J5012",
+      "R1013-10",
+      "R1024-10",
+      "R1025-10",
+      "R1035-10",
+      "R1113-10",
+      "R1124-10",
+      "R1125-10",
+      "R1225",
+      "R2035-10",
+      "R2035-12",
+      "R2036-12",
+      "R2045-10",
+      "R2045-12",
+      "R2046-10",
+      "R2046-12",
+      "R2130-12",
+      "R2140-12",
+      "R2135-10",
+      "R2135-12",
+      "R2136-12",
+      "R2145-10",
+      "R2145-12",
+      "R2146-10",
+      "R2146-12",
+      "R2235-12",
+      "R2236-12",
+      "R2245-12",
+      "R2246-12",
+      "RK3576",
+      "RK3588",
+      "RK3576-20",
+      "RK3576-30",
+      "RK3576-2302",
+      "RK3588-30",
+      "RK3588-40",
+      "RK3588-2303"
+    ],
+    "reTerminal": [
+      "DM",
+      "E1001",
+      "E1002",
+      "E1003",
+      "E1004",
+      "D1001"
+    ],
+    "SenseCAP": [
+      "A1101",
+      "A1102",
+      "BC03",
+      "D1",
+      "D1L",
+      "D1Pro",
+      "D1S",
+      "M1",
+      "M2",
+      "M4",
+      "S1000",
+      "S2100",
+      "S2101",
+      "S2102",
+      "S2103",
+      "S2104",
+      "S2105",
+      "S2106",
+      "S2107",
+      "S2108",
+      "S210x",
+      "S2110",
+      "S2120",
+      "S4",
+      "S500",
+      "S700",
+      "S800",
+      "S900",
+      "T1000",
+      "T1000-A",
+      "T1000-B",
+      "T1000-E",
+      "T2000",
+      "T2000-A",
+      "T2000-B",
+      "T2000-C"
+    ]
+  },
+  "known_series": {
+    "reComputer": [
+      "J20",
+      "J30",
+      "J40",
+      "J50",
+      "R1000",
+      "R1100",
+      "R1200",
+      "R2000",
+      "R2100",
+      "R2200",
+      "R10",
+      "R11",
+      "R12",
+      "R20",
+      "R21",
+      "R22",
+      "RK3576",
+      "RK3588"
+    ],
+    "reTerminal": [
+      "DM",
+      "E"
+    ],
+    "SenseCAP": [
+      "M1",
+      "M2",
+      "M4",
+      "S2100",
+      "T1000",
+      "T2000",
+      "ONE"
+    ]
+  },
+  "preferred_family_names": {
+    "reComputer J30 Series": [
+      "J3010",
+      "J3010B",
+      "J3011",
+      "J3011B"
+    ],
+    "reComputer J40 Series": [
+      "J4011",
+      "J4011B",
+      "J4012",
+      "J4012B"
+    ],
+    "reComputer J50 Series": [
+      "J5011",
+      "J5012"
+    ],
+    "reComputer R1000 Series": [
+      "R1013-10",
+      "R1024-10",
+      "R1025-10",
+      "R1035-10"
+    ],
+    "reComputer R1100 Series": [
+      "R1113-10",
+      "R1124-10",
+      "R1125-10"
+    ],
+    "reComputer R2000 Series": [
+      "R2035-10",
+      "R2035-12",
+      "R2036-12",
+      "R2045-10",
+      "R2045-12",
+      "R2046-10",
+      "R2046-12",
+      "R2130-12",
+      "R2140-12",
+      "R2135-10",
+      "R2135-12",
+      "R2136-12",
+      "R2145-10",
+      "R2145-12",
+      "R2146-10",
+      "R2146-12"
+    ],
+    "reComputer RK3576 Series": [
+      "RK3576-20",
+      "RK3576-30",
+      "RK3576-2302"
+    ],
+    "reComputer RK3588 Series": [
+      "RK3588-30",
+      "RK3588-40",
+      "RK3588-2303"
+    ]
+  },
+  "soc_family_map": {
+    "Raspberry Pi 5": "reComputer R2000 系列",
+    "Raspberry Pi CM5": "reComputer R2000 系列",
+    "CM5": "reComputer R2000 系列",
+    "Raspberry Pi 4": "reComputer R10 系列 或 reTerminal DM",
+    "Raspberry Pi CM4": "reComputer R10 系列 或 reTerminal DM",
+    "CM4": "reComputer R10 系列 或 reTerminal DM",
+    "Jetson Orin Nano": "reComputer J30 系列",
+    "Jetson Orin NX": "reComputer J40 系列",
+    "Jetson AGX Orin": "reComputer J50 系列",
+    "RK3588": "reComputer RK3588 系列",
+    "RK3576": "reComputer RK3576 系列"
+  },
+  "qualifiers": [
+    "AI",
+    "Industrial",
+    "Industiral",
+    "Classic",
+    "Classical",
+    "Jetson",
+    "Robotics",
+    "Mini",
+    "Super",
+    "Series",
+    "系列",
+    "Carrier",
+    "Board",
+    "NVR",
+    "Edge",
+    "Studio",
+    "Seeed",
+    "Nano",
+    "Orin",
+    "NX",
+    "Xavier",
+    "AGX",
+    "Thor",
+    "LoRaWAN",
+    "Gateway"
+  ],
+  "blacklist": [
+    {
+      "id": "bare-recomputer-j",
+      "pattern": "reComputer\\s+J(?![0-9A-Za-z])",
+      "severity": "error",
+      "message": "'reComputer J' 不是产品名。Orin Nano 写 reComputer J30 系列，Orin NX 写 reComputer J40 系列"
+    },
+    {
+      "id": "bare-recomputer-r",
+      "pattern": "reComputer\\s+R(?![0-9A-Za-z])",
+      "severity": "error",
+      "message": "'reComputer R' 不是产品名。Hailo 机型写 reComputer R2000 系列，Pi 4 级写 reComputer R10 系列"
+    },
+    {
+      "id": "recomputer-r20-r21-bare",
+      "pattern": "reComputer\\s+R2[01](?![0-9])",
+      "severity": "error",
+      "message": "'reComputer R20'/'reComputer R21' 不是对外产品名，写 'reComputer R2000 系列' 或完整型号（R2135-12）"
+    },
+    {
+      "id": "sensecap-r1000",
+      "pattern": "SenseCAP\\s+R1[01]0[0-9]",
+      "severity": "error",
+      "message": "R1000/R1100 属于 reComputer，不是 SenseCAP。写 reComputer R10 系列"
+    },
+    {
+      "id": "recomputer-r-hailo",
+      "pattern": "reComputer\\s+R\\s*[（(]\\s*Hailo",
+      "severity": "error",
+      "message": "'reComputer R (Hailo)' 不是产品名，写 reComputer R2000 系列（Hailo-8）"
+    }
+  ],
+  "bench_only_names": [
+    {
+      "id": "bench-radxa",
+      "pattern": "\\bRadxa\\b",
+      "message": "Radxa 是台架板，不是交付设备。RK3588/RK3576 写 reComputer RK3588 / RK3576 系列"
+    },
+    {
+      "id": "bench-rock5t",
+      "pattern": "\\bROCK\\s*5[TAB]?\\b",
+      "message": "ROCK 5 系列是台架板，不是交付设备。写 reComputer RK3588 系列"
+    },
+    {
+      "id": "bench-lubancat",
+      "pattern": "\\bLubanCat\\b",
+      "message": "LubanCat 是台架板，不是交付设备。写 reComputer RK3576 系列"
+    },
+    {
+      "id": "bench-fleet-id",
+      "pattern": "\\b(harvest-pi|cat-remote|orin-nx|orin-nano|wsl2?-local|seeed-pi)\\b",
+      "message": "fleet 设备名是内部台架标识，不能出现在对外文本里"
+    },
+    {
+      "id": "bench-pi5-delivery",
+      "pattern": "Raspberry\\s+Pi\\s*5|树莓派\\s*5",
+      "message": "Raspberry Pi 5 是台架机，不是交付设备。同主控写 reComputer R2000 系列"
+    },
+    {
+      "id": "bench-pi4-delivery",
+      "pattern": "Raspberry\\s+Pi\\s*4|树莓派\\s*4",
+      "message": "Raspberry Pi 4 是台架机，不是交付设备。同主控写 reComputer R10 系列或 reTerminal DM"
+    }
+  ],
+  "bench_allow_paths": [
+    "/docs/",
+    "/runs/",
+    "/bench/",
+    "evaluation",
+    "internal-status",
+    "run-record",
+    "ATTRIBUTION"
+  ],
+  "bench_allow_markers": [
+    "lint:bench-ok"
+  ],
+  "cross_checks": [
+    {
+      "id": "j30-orin-nx",
+      "left": "\\bJ30(1[01]B?|10B?)\\b|reComputer\\s+J30\\s*(系列|Series)",
+      "right": "Orin\\s+NX",
+      "severity": "error",
+      "message": "J30 系列装的是 Jetson Orin Nano，不是 Orin NX。Orin NX 对应 J40 系列",
+      "unless": "\\bJ40\\b|\\bJ401[12]B?\\b",
+      "unless_note": "同一格里同时列出 J40 时，Orin NX 归 J40，不算错配"
+    },
+    {
+      "id": "j40-orin-nano",
+      "left": "\\bJ40(1[12]B?|1B?)\\b|reComputer\\s+J40\\s*(系列|Series)",
+      "right": "Orin\\s+Nano",
+      "severity": "error",
+      "message": "J40 系列装的是 Jetson Orin NX，不是 Orin Nano。Orin Nano 对应 J30 系列",
+      "unless": "\\bJ30\\b|\\bJ301[01]B?\\b",
+      "unless_note": "同一格里同时列出 J30 时，Orin Nano 归 J30，不算错配"
+    },
+    {
+      "id": "hailo-non-hailo-sku",
+      "left": "\\bHailo\\b",
+      "right": "\\bR(2135|2035)-10\\b",
+      "severity": "warn",
+      "message": "R2135-10 / R2035-10 是不带 Hailo 加速器的 SKU；带 Hailo-8 的是 -12 后缀（R2135-12 / R2035-12）"
+    }
+  ],
+  "family_models": {
+    "recomputer_j20": [
+      "J2011",
+      "J2012",
+      "J2021",
+      "J2022"
+    ],
+    "recomputer_j30": [
+      "J3010",
+      "J3010B",
+      "J3011",
+      "J3011B"
+    ],
+    "recomputer_j40": [
+      "J4011",
+      "J4011B",
+      "J4012",
+      "J4012B"
+    ],
+    "recomputer_j50": [
+      "J5011",
+      "J5012"
+    ],
+    "recomputer_r10": [
+      "R1013-10",
+      "R1024-10",
+      "R1025-10",
+      "R1035-10"
+    ],
+    "recomputer_r11": [
+      "R1113-10",
+      "R1124-10",
+      "R1125-10"
+    ],
+    "recomputer_r12": [
+      "R1225"
+    ],
+    "recomputer_r20_industrial": [
+      "R2035-10",
+      "R2035-12",
+      "R2036-12",
+      "R2045-10",
+      "R2045-12",
+      "R2046-10",
+      "R2046-12"
+    ],
+    "recomputer_r21_ai": [
+      "R2130-12",
+      "R2140-12"
+    ],
+    "recomputer_r21_industrial": [
+      "R2135-10",
+      "R2135-12",
+      "R2136-12",
+      "R2145-10",
+      "R2145-12",
+      "R2146-10",
+      "R2146-12"
+    ],
+    "recomputer_r21_industrial_ai": [
+      "R2135-12",
+      "R2136-12",
+      "R2145-12",
+      "R2146-12"
+    ],
+    "recomputer_r22_industrial": [
+      "R2235-12",
+      "R2236-12",
+      "R2245-12",
+      "R2246-12"
+    ],
+    "recomputer_rk3576": [
+      "RK3576",
+      "RK3576-20",
+      "RK3576-30",
+      "RK3576-2302"
+    ],
+    "recomputer_rk3588": [
+      "RK3588",
+      "RK3588-30",
+      "RK3588-40",
+      "RK3588-2303"
+    ],
+    "reterminal_dm": [
+      "DM"
+    ],
+    "reterminal_d1001": [
+      "D1001"
+    ],
+    "reterminal_e_series": [
+      "E1001",
+      "E1002",
+      "E1003",
+      "E1004"
+    ]
+  },
+  "family_aliases": {
+    "recomputer_j20": [
+      "J20"
+    ],
+    "recomputer_j30": [
+      "J30"
+    ],
+    "recomputer_j40": [
+      "J40"
+    ],
+    "recomputer_j50": [
+      "J50"
+    ],
+    "recomputer_r10": [
+      "R1000",
+      "R10"
+    ],
+    "recomputer_r11": [
+      "R1100",
+      "R11"
+    ],
+    "recomputer_r20_industrial": [
+      "R20",
+      "R2000"
+    ],
+    "recomputer_r21_industrial": [
+      "R21",
+      "R2100"
+    ],
+    "recomputer_r21_ai": [
+      "R21",
+      "R2100"
+    ],
+    "recomputer_r21_industrial_ai": [
+      "R21",
+      "R2100"
+    ],
+    "recomputer_r22_industrial": [
+      "R22",
+      "R2200"
+    ],
+    "recomputer_rk3576": [
+      "RK3576"
+    ],
+    "recomputer_rk3588": [
+      "RK3588"
+    ]
+  }
+}
