@@ -140,6 +140,7 @@ made slightly worse by 8-bit weights.
 | Item | Value | Conditions | Source |
 |---|---|---|---|
 | TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, "2026-09-05-m2-orin" §1 |
+| TensorRT engine build on device, fresh-deploy cross-check | 304 s | Same board, same ONNX, engine deleted and rebuilt from a clean deploy; requires `TRT_STATIC_SHAPE=true` on the build script or trtexec fails with "Static model does not take explicit shapes"; +4.5% vs the 291 s figure above, normal run-to-run variation | This measurement, "2026-09-08-orin-nx-acceptance" |
 | Jetson image | 375 MB | "edge-inspection-jetson:0.1.0-dev"; host TensorRT and CUDA mounted rather than baked in | This measurement, "2026-09-05-m2-orin" |
 | reComputer R2000 added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config | Native arm64 build on the same Hailo-8 platform, 2026-09-06; reference value |
 

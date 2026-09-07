@@ -25,13 +25,18 @@
 - **域偏移还没有在硬件上采过。** 两个数据集都是单件干净物品的照片，不是真实垃圾桶。
   没有现场集，因此没有「湿的、压扁的、堆叠的、装袋的垃圾上掉多少精度」的数字。
   预期会掉。
-- **本页没有任何内容在硬件上跑过。** 每一个数字都来自 Apple M4 CPU 上的
-  onnxruntime。
+- **下面的精度/一致率数字不是在实际部署的 engine 上测的。** 它们来自另一个
+  独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台 reComputer J4012
+  （Orin NX），但不是本部署步骤产出的那个二进制。部署 engine 自身的构建耗时
+  （68 秒）与端到端 pipeline（4.122 ms）/ inference（3.533 ms）时延是在部署
+  二进制上实测的。
 
 ## 步骤 1: 部署垃圾分类 {#deploy_jetson_waste type=docker_deploy required=true config=devices/jetson_waste.yaml}
 
 上传 compose 栈、下载 ONNX、在设备上构建 TensorRT engine、写入视频源与触发
-配置，然后连同本地 MQTT broker 一起启动分类器。
+配置，然后连同本地 MQTT broker 一起启动分类器。首次启动需要等待 engine
+构建：基线（EfficientNet-Lite0）engine 在 reComputer J4012（Orin NX）上耗时
+68 秒。
 
 ### 前置条件
 
@@ -72,6 +77,7 @@ top-1 换来更好的校准、开放集拒识、中英文都能回答，以及�
 | 找不到 `docker compose` | 该步骤会安装或建链接。仍然失败就手工装 `docker-compose-plugin`。 |
 | Compose 解析 `._docker-compose.yml` 失败 | AppleDouble 附属文件从 Mac 带过来了。该步骤会删掉它们；手工上传的话，自己跑一遍同样的 `find … -name '._*' -delete`。 |
 | 容器起来了但没有相机 | compose 文件里的 `/dev/videoN` 那行还注释着。 |
+| `edge-waste-mosquitto` 一直重启，报 `Address in use` | 设备上另一个项目的 broker 已用 `network_mode: host` 占住 1883（例如这台设备之前跑过 edge_inspection_surface）。把 `config/mosquitto.conf` 和 `config/config.json` 里的 `mqtt.port` 都改成空闲端口（如 18831），再 `docker compose up -d --force-recreate mosquitto`。 |
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson Orin" config=devices/jetson_waste.yaml default=true}
 
