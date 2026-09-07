@@ -43,18 +43,28 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/recomputer-rk3588.png
+  cover_image: gallery/shelf-ok-rk3588-20260907.jpg
   gallery:
     - type: image
-      src: gallery/recomputer-rk3588.png
-      caption: reComputer RK3588 — the host for the RK3588 detector preset. The RK3588 numbers on this page are reference values from the same platform. The UI screenshots further down are synthetic fixtures, not a real recognition run
+      src: gallery/shelf-ok-rk3588-20260907.jpg
+      caption: One shelf, four rows of five slots, read in a single scan on an RK3588 board. Each slot holds the photograph the camera saw — milk cartons, bananas, apples, peppers — inside a box coloured by its verdict, green ok and orange empty; the strip along the bottom names the board, the scan window and the mismatch count, 0 of 20 here
       caption_i18n:
-        zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值。下面的界面截图是合成演示数据，不是真实识别结果
+        zh: 一个货架，四行五列共二十个货位，在 RK3588 板子上一次扫描读完。每格里是相机看到的画面——牛奶盒、香蕉、苹果、彩椒——外面的框按判定着色，绿色为 ok、橙色为空置；底部横条给出板子型号、扫描窗口与不符数，这里是 0/20
     - type: image
-      src: gallery/architecture.svg
-      caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
+      src: gallery/shelf-wrong-sku-rk3588-20260907.jpg
+      caption: The same twenty-slot layout after a slot was restocked with the wrong product — that box turns red and reads wrong_sku while the other nineteen stay green
       caption_i18n:
-        zh: 一帧进去，SKU→数量清单出来——检测、嵌入与库检索在设备上，注册与查看在管理界面
+        zh: 同一个二十格布局，某一格补错了商品——该格的框转红并标注 wrong_sku，其余十九格仍为绿色
+    - type: image
+      src: gallery/checkout-tracks-rk3588-20260907.gif
+      caption: A checkout replay on the RK3588 board — each item keeps its track id and instance number as it moves across the counter
+      caption_i18n:
+        zh: RK3588 板子上的一段结账回放——物品经过收银台时各自保持跟踪 id 与实例编号
+    - type: image
+      src: gallery/recomputer-rk3588.png
+      caption: reComputer RK3588 — the host for the RK3588 detector preset. The RK3588 numbers on this page are reference values from the same platform
+      caption_i18n:
+        zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值
     - type: image
       src: gallery/ui-events.png
       caption: Recognition events by scene, SKU, device and time. Synthetic demo data from the upstream web_demo tool — the SKUs, scores and events are fixtures, not field results
@@ -75,6 +85,11 @@ intro:
       caption: The checkout and shelf board — the most recent basket and the four-state slot snapshot. Synthetic demo data
       caption_i18n:
         zh: 收银台与货架看板——最近一次清单与货位四态快照。合成演示数据
+    - type: image
+      src: gallery/architecture.svg
+      caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
+      caption_i18n:
+        zh: 一帧进去，SKU→数量清单出来——检测、嵌入与库检索在设备上，注册与查看在管理界面
   category: sensing
   solution_type: solution
   tags:

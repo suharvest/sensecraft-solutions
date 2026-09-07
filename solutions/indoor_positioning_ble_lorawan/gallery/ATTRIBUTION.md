@@ -21,3 +21,22 @@ the hub landing page picks them up they have to be uploaded to
 `https://files.seeedstudio.com/Solution/landpage_asset/indoor_positioning_ble_lorawan/`
 with the usual `<name>-<hash>.png` filename, and `solution.yaml` switched to the
 CDN URLs. Not done in this change.
+
+## 2026-09-07
+
+Gallery reordered: the floor-plan registration view leads, the remaining
+console screenshots follow, the architecture diagram is last. `login.png` was
+cropped from 1280 × 800 to 1270 × 723 and `floorplan-registration.png` from
+1280 × 720 to 1280 × 718 to drop empty canvas; the other screenshots were
+already filled to their edges and are byte-identical to before.
+
+`cover.png`, `beacon.png`, `t1000.png`, `gateway.png` and `wiki-overview.jpg`
+stay in this directory but are not referenced by `intro.gallery`: the first is a
+duplicate of `map-view.png`, the next three are product photographs on a white
+background, and the last is a stitched montage of the wiki page.
+
+## Missing: a photograph of the hardware on site
+
+There is no picture of a beacon on a wall, a tracker on a trolley or a gateway
+in a corridor. All six published images are console screenshots. A site
+photograph is what this page's cover should be and has to be supplied.

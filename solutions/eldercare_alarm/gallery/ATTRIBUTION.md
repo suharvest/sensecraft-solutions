@@ -59,3 +59,25 @@ only footage available for it today is GMDCSA-24 material carried by the
 upstream `fall_detection` solution — reusing it here would need the same
 face-obscuring and MIT attribution treatment. Capture first-party footage on
 a commissioned site before adding one.
+
+## fall-alarm-frame.jpg (added 2026-09-07)
+
+1280 × 720, copied unchanged from
+`https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/cover-70f929f3.png`,
+the frame the `fall_detection` solution publishes as its own cover. It is the
+detector's output — pose skeleton, track state and the evidence counter — on a
+clip from **GMDCSA-24**
+(<https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos>,
+MIT; cite the dataset and paper as its authors ask). No one in the frame is a
+real resident of a care home.
+
+The alarm service on this page consumes exactly this kind of detector event, so
+the frame shows the input rather than a scene captured by this package. A frame
+recorded against this package's own deployment would be better and has not been
+captured yet.
+
+## Console crops (2026-09-07)
+
+`eldercare-alarm-console-zh.png` and `-en.png` were cropped down to their
+content (1280 × 800 → 1280 × 436 and 1280 × 458); the blank canvas below the
+alarm table was removed and nothing inside the frame changed.

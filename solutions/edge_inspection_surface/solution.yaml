@@ -25,21 +25,27 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/recomputer-super-j4012.jpg
+  cover_image: gallery/defect-overlay-pair.jpg
   gallery:
     - type: image
-      src: gallery/recomputer-super-j4012.jpg
-      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on. No detection sample is shown here; see the licence note below
+      src: gallery/defect-overlay-pair.jpg
+      caption: Two frames of rolled steel strip with the defects boxed. Left — four long inclusions down the strip, each blue box carrying its score against the thin white labelled box. Right — a pitted surface, where the flaw spreads across the sheet instead of sitting in one place
       caption_i18n:
-        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备。这里不展示检测样图，原因见下方许可说明
+        zh: 两帧钢带表面，缺陷已圈出。左：沿钢带分布的四处长条夹杂，每个蓝框带出分数，旁边细白框是标注；右：麻点表面，缺陷散布在整片上而不集中在一处
+    - type: image
+      src: gallery/recomputer-super-j4012.jpg
+      caption: reComputer Super J4012 (Jetson Orin NX 16GB) — the device this solution's numbers were measured on
+      caption_i18n:
+        zh: reComputer Super J4012（Jetson Orin NX 16GB）——本方案数字的实测设备
     - type: image
       src: gallery/architecture.svg
       caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
       caption_i18n:
         zh: 从相机到设备再到产线——RTSP 进来，判定通过 Modbus TCP 与 MQTT 出去，旁边是预览页
-  # No detection sample image is shipped. Every overlay this project can produce
-  # is drawn on a dataset image whose licence is unconfirmed, so none is
-  # committed here. See gallery/ATTRIBUTION.md.
+  # Two detection frames are shipped so the page shows what the solution does.
+  # Their underlying images come from NEU-DET, an academic dataset without a
+  # formal licence grant, so only these two are used and only to illustrate
+  # function. See gallery/ATTRIBUTION.md.
   category: sensing
   solution_type: solution
   tags:

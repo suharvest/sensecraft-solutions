@@ -74,3 +74,19 @@ one configured live. No hardware-in-the-loop photo (reComputer R1000/R1100 or
 reTerminal DM chassis, USB-to-RS-485 adapter, wired field device). Replace or
 extend this gallery with those once a commissioned site or bench setup is
 available.
+
+## 2026-09-07
+
+`access-runtime.png` (1280 × 800 → 1280 × 299) and `live-points.png`
+(1280 × 800 → 1280 × 358) were cropped to their tables; the empty canvas below
+each was removed and nothing inside the frame changed. `data-service.png` and
+`cover.png` are unchanged — `cover.png` is still the thumbnail on the video.
+
+The cover is now `live-points.png`, the point table, instead of the near-empty
+source list that was there before.
+
+## Missing: a photograph of the gateway installed
+
+No picture exists of the reComputer R or reTerminal DM in a cabinet, on a DIN
+rail or wired to a meter. Every image on this page is a console screenshot, and
+the cover should be a photograph of the hardware on site. It has to be supplied.

@@ -17,13 +17,13 @@ intro:
   # https://files.seeedstudio.com/Solution/landpage_asset/edge-inspection-assembly/
   # with a content-hash suffix and replace these paths, per the packaging
   # checklist §2. Sources and licences: gallery/ATTRIBUTION.md.
-  cover_image: gallery/detection-overlay.jpg
+  cover_image: gallery/detection-overlay-pair.jpg
   gallery:
     - type: image
-      src: gallery/detection-overlay.jpg
-      caption: Detector output on a DeepPCB validation image — every box is a detection from the ONNX model, drawn by the CPU smoke script, not a mock-up
+      src: gallery/detection-overlay-pair.jpg
+      caption: Two bare printed circuit boards with their defects boxed. Left — open circuits, mouse bites, a spur and a pin hole across the copper. Right — a second board with its own set. Every box carries the class and the score, drawn beside the labelled box it was matched to
       caption_i18n:
-        zh: DeepPCB 验证集图像上的检测输出——每个框都来自 ONNX 模型的真实检测结果，由 CPU 冒烟脚本绘制，不是示意图
+        zh: 两块裸板，缺陷都已圈出。左：铜箔上的断路、鼠咬、毛刺与针孔；右：另一块板上的另一组。每个框都带类别与分数，并与配对的标注框并排
     - type: image
       src: gallery/dimension-nominal.png
       caption: Dimension fixture at nominal size — the ArUco marker on the left gives mm-per-pixel, the block on the right is measured against it (60 x 40 mm, verdict OK)
@@ -34,6 +34,11 @@ intro:
       caption: The same scene with an oversize part — measured 62.25 mm against a 60 mm nominal and 1 mm tolerance, verdict NG, Modbus HR10=6225 / HR11=2
       caption_i18n:
         zh: 同一场景下的超差件——名义 60 mm、公差 1 mm，量到 62.25 mm，判定 NG，Modbus HR10=6225 / HR11=2
+    - type: image
+      src: gallery/dimension-rotated.png
+      caption: The same part rotated 25 degrees — measured 60.35 x 40.17 mm at 0.10040 mm/px, verdict OK
+      caption_i18n:
+        zh: 同一目标旋转 25°——按 0.10040 mm/px 量到 60.35 × 40.17 mm，判定 OK
 
   category: sensing
   solution_type: solution

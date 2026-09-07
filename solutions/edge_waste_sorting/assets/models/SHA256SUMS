@@ -17,6 +17,8 @@ e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_l
 42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25  efficientnet_lite0_waste8_cv181x_bf16.cvimodel
 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723  efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
 0889b198d12041359216ea477896ec14b4804fc31ab1ed0444de69b8ed12de1f  efficientnet_lite0_waste8.rv1126b.fp16.rknn
+140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03  efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+6225423eb29ac5ee1de48abc2d0458c105beaeb8a5b8e84ce9c8014ab7cb5138  efficientnet_lite0_waste8.rk3588.fp16.rknn
 
 # metadata (not part of the checksum lines) — EfficientNet-Lite0 (m1c, current baseline)
 # arch           : efficientnet_lite0
@@ -34,6 +36,20 @@ e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_l
 #                  +0.47 pp over fp32 CPU on the same 1060 images (9 flipped
 #                  predictions) - BF16 costs nothing measurable on this chip.
 #                  See evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md.
+# measured (Hailo-8): reComputer R2000 class, u8 HEF INT8, full 7417-image
+#                  validation set - material top-1 0.8637, china4 0.9369,
+#                  agreement vs CPU 0.9320, p50 3.166 ms, p95 3.228 ms.
+#                  2.40 pp below fp32 on a host over the same images: the only
+#                  platform measured here where quantisation costs accuracy.
+#                  Not a collapse - MobileNetV3-Small on this chain agreed
+#                  0.115 and scored 0.15, near the 7-class random baseline.
+#                  See evaluation/runs/2026-09-07-devices/results-hailo8.md.
+# measured (RK3588): real hardware, full 7417-image validation set - INT8
+#                  (calib256+mmse) material top-1 0.8882, china4 0.9507,
+#                  agreement vs CPU 0.9892, p50 3.165 ms, p95 3.857 ms; fp16
+#                  top-1 0.8882 (identical), agreement 0.9988, p50 5.962 ms.
+#                  INT8 is 1.88x faster for no measured accuracy difference.
+#                  See evaluation/runs/2026-09-07-devices/results-rk3588.md.
 # measured (RV1126B): reCamera Pro real hardware, 1060 val images, built-in
 #                  application stopped - INT8 (calib256+mmse) material top-1
 #                  0.8764, china4 0.9566, agreement vs CPU 0.9906, p50 5.824 ms,
