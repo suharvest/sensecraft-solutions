@@ -12,7 +12,11 @@ type: docker_deploy
 #   - CM4 上没有实机跑过这套编排；
 #   - OVS_ASR_IMAGE 现在有默认值（seeed-local-voice:rpi-20260721 的 digest，arm64 CPU 构建），
 #     但这个镜像同样没有在 CM4 上实机跑过；
-#   - compose 里 ovs-asr 的 mem_limit 7500m 是按 RK3576 写的，CM4 4 GB 版本要下调。
+#   - ovs-asr 的 mem_limit/memswap_limit 通过 OVS_ASR_MEM_LIMIT/OVS_ASR_MEMSWAP_LIMIT
+#     两个环境变量下调到 3000m/3600m（compose 默认值 7500m 是按 8 GB LubanCat 写的，
+#     CM4 只有 4 GB）。3000m/3600m 是比照 docker-compose.local-rk3576.yml 里同为
+#     4 GB 级 reComputer RK3576 板子的取值，不是在 CM4 上实测出来的——这个
+#     CPU/Sherpa 构建在 CM4 上的实际 RSS 待实测，上架前必须补测并按需调整。
 # 要跑别的 OVS 构建时在下面的输入项里覆盖；不确定时用 RK3576 采集端，
 # 或只部署服务端栈走手机 App 采集。
 
@@ -145,6 +149,11 @@ remote_overrides:
           OVS_PROFILE_DEFAULT=rpi4-asr-zh-en
           ASR_PLATFORM=cpu
           OVS_ADMIN_KEY=
+          # CM4 只有 4 GB RAM；compose 默认的 7500m 是按 8 GB LubanCat 写的，会被 OOM kill。
+          # 下调值比照 docker-compose.local-rk3576.yml 里同为 4 GB 级 reComputer RK3576
+          # 板子的取值，未在 CM4 上实测——上架前需要实测这个 CPU/Sherpa 构建的实际 RSS。
+          OVS_ASR_MEM_LIMIT=3000m
+          OVS_ASR_MEMSWAP_LIMIT=3600m
           ENVEOF
 
           CFG=config/voice-service.yaml

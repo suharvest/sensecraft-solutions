@@ -218,7 +218,7 @@ voice-service 与管理后台。
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
 | `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
 | reRouter CM4 目标要换 ASR 镜像 | `OVS_ASR_IMAGE` 现在默认是 `rpi-20260721` 的 arm64 CPU 构建（按 digest 固定）；要跑别的构建时才在部署输入里覆盖 |
-| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证，compose 里的内存上限是按 RK3576 的内存写的——4 GB 的 CM4 要调低 |
+| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证。这个目标的 `ovs-asr` 内存上限已调低到 3000m/3600m（`.env` 里的 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`，默认值原本按 8 GB 的板子写的是 7500m），但这个数值同样没有在 CM4 上实测——查 `docker logs c4-ovs-asr` 有没有被 OOM kill，主机有余量的话再调高 |
 
 ### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}
 
@@ -370,6 +370,8 @@ voice-service 与管理后台。
    模型会以 `tokens.txt does not exist` 报错退出——再在有声纹的情况下重跑
    一次删除检查。
 4. 和现场隐私告知的负责人一起定保留期；24 小时是默认值，不是建议值。
-5. CM4 上先把 CPU 版 ASR 路径端到端验一遍，并调低 ASR 容器的内存上限，
-   再把那个目标当作可用。
+5. CM4 上先把 CPU 版 ASR 路径端到端验一遍。它的 `ovs-asr` 内存上限现在
+   可以通过 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` 配置，该目标默认
+   3000m/3600m，但这个数值是比照另一块 RK3576 板子的实测抄来的，
+   没有在 CM4 上实测——确认它扛得住之后再把这个目标当作可用。
 6. admin 令牌不要留在设备上；它是给跑删除与导出的运维用的。

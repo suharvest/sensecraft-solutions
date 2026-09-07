@@ -274,7 +274,7 @@ array to wire and nothing here applies.
 | Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
 | Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
 | Wrong ASR image on the reRouter CM4 target | `OVS_ASR_IMAGE` now defaults to the `rpi-20260721` arm64 CPU build pinned by digest; override it in the deploy inputs only to run a different build |
-| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here, and the compose memory limit is written for RK3576's memory — a 4 GB CM4 needs it lowered |
+| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here. The `ovs-asr` memory limit is lowered to 3000m/3600m for this target (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` in `.env`, vs. the 7500m default written for an 8 GB board) but that value is not measured on CM4 either — check `docker logs c4-ovs-asr` for an OOM kill and raise it if the host has headroom |
 
 ### Target {#stack_remote type=remote device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml default=true}
 
@@ -461,7 +461,10 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
    deletion check with a voiceprint present.
 4. Decide the retention window with whoever owns the site's privacy notice; 24
    hours is a default, not a recommendation.
-5. On CM4, verify the CPU ASR path end to end and lower the ASR container memory
-   limit before treating that target as usable.
+5. On CM4, verify the CPU ASR path end to end. Its `ovs-asr` memory limit is
+   now parameterized (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`) and defaults
+   to 3000m/3600m for this target, but that number is carried over from a
+   different RK3576 board's measurement, not measured on CM4 itself — confirm
+   it holds before treating that target as usable.
 6. Keep the admin token off the device; it is for operators running deletion and
    export.
