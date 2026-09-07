@@ -89,33 +89,53 @@ steps:
     optional: false
 
   - id: rk_embed
-    name: Decide where embedding runs, and accept that it is the CPU
+    name: Convert the embedder to RKNN fp16 and split the NPU cores
     name_i18n:
-      zh: 定下嵌入跑在哪里——答案是 CPU
+      zh: 把嵌入器转成 RKNN fp16，并把 NPU 核分开
     description: >-
-      There is no RKNN conversion of the embedder. It has not been attempted:
-      the upstream `backends/` directory holds an onnxruntime detector and a
-      Hailo detector, and the embedder exists as a protocol with an
-      onnxruntime reference implementation (`OnnxEmbedder`) that the other
-      backends are meant to be checked against. On this board the embedder
-      therefore runs on the Rockchip CPU through onnxruntime, and that path has
-      never been timed on RK3588 — the Pi 5 figure of 91.95 ms per crop for the
-      dynamically quantised DINOv2-small is the closest reference and is a
-      different CPU. Two artifacts exist upstream: the DINOv2-base fp32 ONNX
-      (348 MB, Grocery Store top-1 84.67% at eight registration images) and the
-      DINOv2-small dynamic-INT8 ONNX (23.5 MB, top-1 79.11% at the same k).
-      There is no fp16 variant of either. Budget the crop count accordingly:
-      a checkout basket is a handful of crops per frame, a shelf frame in the
-      measured set averaged 157.6 boxes.
+      The embedder is DINOv2-small with an ArcFace head, converted the same way
+      as the detector but without quantisation: `float_dtype='float16'`,
+      `do_quantization=False`. All 166 layers land on the NPU; only two I/O
+      operators stay on the CPU. Normalisation moves into the model
+      (`mean_values` / `std_values` in `rknn.config`), so the board feeds NHWC
+      RGB uint8, not NCHW float32.
+
+      Measured on RK3588 (librknnrt 2.3.2, driver 0.9.8): retrieval differs from
+      the fp32 ONNX CPU reference by at most 0.85 pp across 21 metrics; one crop
+      takes 48.93 ms p50 / 56.47 ms p95 on three cores, against 93.45 / 94.86 ms
+      for the same model on the CPU with four threads.
+
+      Set the core masks before you run both models. With detector and embedder
+      both on all three cores, the embedder slows to 88.94 ms p50 (1.82x) and
+      the detector to 76.91 ms — total core occupancy does not rise, the time
+      goes into queueing. Splitting them (detector core 2, embedder cores 0+1)
+      gives 53.19 ms for the embedder and 60.88 ms for the detector.
+
+      Two constraints on the mask itself, both measured on this driver. `AUTO`
+      uses core 0 only: cores 1 and 2 read 0% for the whole run, so `AUTO` is a
+      single-core setting, not an automatic one. And core_mask is not a free
+      bitmask — `init_runtime` returns -1 for 5 (cores 0+2) and 6 (cores 1+2)
+      with `The core mode 6 is not supported currently.`, so "one core for
+      detection, two for embedding" has exactly one valid arrangement:
+      detector `2`, embedder `01`.
     description_i18n:
       zh: >-
-        嵌入器没有 RKNN 转换，也没有尝试过：上游 `backends/` 下只有一个 onnxruntime
-        检测器和一个 Hailo 检测器，嵌入器是一个协议加一份 onnxruntime 参考实现
-        （`OnnxEmbedder`），其它后端本来要拿它当 golden 对。因此这块板上嵌入走
-        Rockchip CPU 上的 onnxruntime，而这条路径在 RK3588 上从没测过延迟——
-        最接近的参照是 Pi 5 上动态量化 DINOv2-small 单裁剪 91.95 ms，那是另一颗 CPU。
-        上游有两份产物：DINOv2-base fp32 ONNX（348 MB，每 SKU 8 张注册图时
-        Grocery Store top-1 84.67%）与 DINOv2-small 动态 INT8 ONNX（23.5 MB，
-        同一档 top-1 79.11%）。两者都没有 fp16 变体。按裁剪数量做预算：
-        收银台一帧几个裁剪，实测那批货架图平均一帧 157.6 个框。
+        嵌入器是 DINOv2-small 加 ArcFace 头，转换方式与检测器相同，但不量化：
+        `float_dtype='float16'`、`do_quantization=False`。166 层全部落在 NPU 上，
+        CPU 上只剩两个 I/O 算子。归一化搬进模型里（`rknn.config` 的 `mean_values` /
+        `std_values`），所以板上喂 NHWC RGB uint8，不喂 NCHW float32。
+
+        RK3588 实测（librknnrt 2.3.2，driver 0.9.8）：检索与 fp32 ONNX CPU 参考
+        在 21 个指标上最大差 0.85 pp；单裁剪三核 48.93 ms p50 / 56.47 ms p95，
+        对照同一模型在 CPU 上四线程的 93.45 / 94.86 ms。
+
+        两个模型都跑之前先设核掩码。检测与嵌入都占三个核时，嵌入慢到 88.94 ms
+        p50（1.82 倍），检测 76.91 ms——三个核的总占用没有变高，时间花在排队上。
+        分开之后（检测 core 2、嵌入 core 0+1）嵌入 53.19 ms、检测 60.88 ms。
+
+        掩码本身有两条实测出来的限制。`AUTO` 只用 core 0：整轮里 core 1 与 core 2
+        都读到 0%，所以它是单核档，不是"自动"档。core_mask 也不是自由位掩码——
+        `init_runtime` 对 5（core 0+2）与 6（core 1+2）返回 -1，运行时打
+        `The core mode 6 is not supported currently.`，所以"一个核做检测、两个核
+        做嵌入"只有一种排法：检测 `2`、嵌入 `01`。
     optional: false

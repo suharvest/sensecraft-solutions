@@ -1,28 +1,42 @@
 ## Preset: Rockchip NPU — RK3588 / RK3576 {#p1_rockchip}
 
-The detector runs on the Rockchip NPU as an fp16 `.rknn`; the embedder runs on
-the Rockchip CPU through onnxruntime, because no RKNN conversion of the embedder
-exists. The console — registration, gallery, UI, broker — runs in containers on a
-separate host.
+Both models run on the Rockchip NPU as fp16 `.rknn`: the detector and the
+embedder. The console — registration, gallery, UI, broker — runs in containers
+on a separate host.
 
 | Device | Purpose |
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
-| reComputer RK3588 or RK3576 | Detection on the NPU, embedding on the CPU |
+| reComputer RK3588 series | Detection and embedding, both on the NPU |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 | An x86_64 machine | Model conversion. rknn-toolkit2 does not run on the board |
 
-**What has been measured on this hardware.** The detector, on the same RK3588
-chip platform as the reComputer RK3588: RKNN fp16 agrees with the CPU
-reference on 99.85% of boxes at 56.7 ms p50, and the INT8 variant on 98.35% at
-26.0 ms p50 (source evaluation run listed in `docs/internal-status.md`).
+**What has been measured on this hardware**, all on an RK3588 board
+(librknnrt 2.3.2, driver 0.9.8):
+
+| Segment | Number |
+|---|---|
+| Detector, RKNN fp16 vs CPU reference | 99.85% box agreement, 56.7 ms p50 |
+| Detector, RKNN INT8 vs CPU reference | 98.35% box agreement, 26.0 ms p50 |
+| Embedder (DINOv2-small + ArcFace), RKNN fp16 vs fp32 ONNX CPU | largest gap 0.85 pp across 21 retrieval metrics |
+| Embedder, RKNN fp16, one crop, three NPU cores | 48.93 ms p50 / 56.47 ms p95 |
+| Embedder, same model on the CPU (dynamic INT8, 4 threads) | 93.45 ms p50 / 94.86 ms p95 |
+| Detector and embedder sharing all three cores | embedder 88.94 ms p50, detector 76.91 ms p50 |
+| Detector on core 2, embedder on cores 0+1 | embedder 53.19 ms p50, detector 60.88 ms p50 |
+
+Two facts follow from the last two rows and are worth setting before you deploy:
+give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
+`RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
+`AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
+
 Nothing was measured on RK3576; the numbers above are RK3588 only.
 
-**What has not.** The embedder on this board has never been timed. There is no
-RKNN conversion of it and none was attempted. There is also no device-side
-service that joins detection, embedding, lookup and publishing — that process
-does not exist in the upstream repository for any platform. This preset converts
-the model, proves the conversion on the board, and stops there.
+**What has not.** End-to-end latency from a frame to a recognised item on the
+console has not been measured for this configuration. There is also no
+device-side service that joins detection, embedding, lookup and publishing —
+that process does not exist in the upstream repository for any platform. This
+preset converts both models, proves the conversions on the board, and stops
+there.
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
