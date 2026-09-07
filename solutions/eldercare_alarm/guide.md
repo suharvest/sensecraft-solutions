@@ -165,7 +165,7 @@ fields and still carry no snapshot and no video.
 | The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
 
 
-## Preset: IP Camera + reComputer R (Hailo) {#hailo}
+## Preset: IP Camera + reComputer R2000 (Hailo) {#hailo}
 
 The same stack on a Hailo-8 accelerator. The detector's hot path is native C++
 and the pose model arrives as a precompiled HEF, so there is no on-device engine
@@ -173,7 +173,7 @@ build and the deploy is minutes rather than tens of minutes.
 
 | Device | Purpose |
 |---|---|
-| reComputer R with Hailo-8 | Runs the detector, the alarm service, the broker and the confirmation page |
+| reComputer R2000 with Hailo-8 | Runs the detector, the alarm service, the broker and the confirmation page |
 | IP camera | Supplies the RTSP view the detector watches |
 
 **Important**
@@ -223,11 +223,11 @@ success.
 | Verification fails with `No detector result` | Check the container health first — the step prints it. Then check the RTSP URL from the device and `docker logs eldercare_alarm_hailo-fall-detection-1`. |
 | Verification fails on the alarm API | `docker logs eldercare_alarm_hailo-eldercare-alarm-1` names the configuration key it rejected. |
 
-### Target {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_alarm.yaml default=true}
+### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_alarm.yaml default=true}
 
 Deploy over SSH to the device on the network.
 
-### Target {#hailo_local type=local device=hailo device_name="reComputer R" config=devices/hailo_alarm.yaml}
+### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_alarm.yaml}
 
 Deploy on the device itself, when the app is running on it.
 
