@@ -43,9 +43,9 @@ intro:
   gallery:
     - type: image
       src: gallery/cover-recognition.jpg
-      caption: Two people walking through an office toward the camera — a green box on the person matched against the enrolled template, a red box on the one who is not enrolled. A reCamera Pro produced both verdicts by running a stock clip through its face pipeline offline; it is not a live capture at a door
+      caption: Two people walking through an office toward the camera — a green box on the person the face-matching template scored as enrolled, a red box on the one scored as not enrolled. A reCamera Pro produced both scores by running a stock clip through its face pipeline offline; this shows only the face-match step, not a door decision, and it is not a live capture at a door
       caption_i18n:
-        zh: 办公区里两个人朝镜头走来——绿框是比中底库的人，红框是没登记的人。两个判定都由 reCamera Pro 离线跑一段素材视频得到，不是门口现场实拍
+        zh: 办公区里两个人朝镜头走来——绿框是人脸模板判定为已登记的人，红框是判定为未登记的人。两个判定都由 reCamera Pro 离线跑一段素材视频得到；这里展示的只是人脸匹配这一步，不是门禁放行判定，也不是门口现场实拍
     - type: image
       src: gallery/console-devices-live.png
       caption: The management console listing a live reCamera PoE unit — active face-library version and heartbeat per device

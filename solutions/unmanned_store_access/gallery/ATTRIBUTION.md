@@ -138,8 +138,10 @@ The gallery it matched against was temporary: the 512-D template was averaged
 from 18 chips of the same person in frames 205–225, held in the scoring
 process's memory, and never written to `/userdata/local/face-gallery/`, whose
 only file and its timestamp were unchanged after the run. Frame 17 is outside
-205–225, so the cosine printed on the cover is independent of the frames the
-template came from. `EMP-042` is a label invented for this clip and matches no
+205–225 and did not contribute to the template, so the cosine printed on the
+cover comes from a frame the template was not built from — the frame and the
+template still come from the same clip, same actors, and same lighting, not a
+separate test sample. `EMP-042` is a label invented for this clip and matches no
 employee. At threshold 0.38 the matched person scored 0.486–0.951 across the
 clip and the unenrolled person −0.047–0.123; the two ranges do not overlap and
 no frame was misclassified. Per-frame output: `evaluation/runs/2026-09-07-recamera-pro-app/media/cover/raw/offline-run.json`.
