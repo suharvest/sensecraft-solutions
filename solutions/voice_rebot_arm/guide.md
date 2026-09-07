@@ -115,6 +115,6 @@ The arm scans, announces what it found, grasps, lifts and carries it home. Then 
 | First attempt fails, retry works | Rare scan-pose IK flakiness — mostly fixed by the built-in IK fallback; a retry covers the rest |
 | Grasp lands centimeters off | Recalibrate — and re-measure the printed marker size (step 1 above) |
 | Arm joints fault (`status_code=12`) | The stack clears this latched fault automatically at startup; if it persists after a container restart, power-cycle the arm |
-| Arm was power-cycled and now ignores commands | The container's motor state is stale — `docker restart voice-rebot-arm` after any arm power cycle |
+| Arm was power-cycled and now ignores commands | `docker restart voice-rebot-arm`. The container re-resolves the serial port by USB identity, so this works even when the power cycle moved the arm to a different `/dev/ttyACM*`. |
 | Detection slower than the quoted numbers | The prebuilt engine did not load and the stack fell back to ONNX Runtime. Check the first line of `docker logs voice-rebot-arm`, then `docker logs voice-rebot-arm-model-init-1` for the reason |
 | Restarting the stack re-downloads several GB | Something removed the named volumes — `docker compose down -v` deletes them. Use plain `down` (or `restart`); the engines live in `speech-models` and `edgellm-v090` and are re-verified, not re-fetched, when they survive |
