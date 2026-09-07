@@ -138,7 +138,7 @@ stated conditions. Nothing here is interpolated from a similar board.
 | Streaming accuracy, RK3576 | zh CER 9.4%, en WER 34.6% | reComputer RK3576, "bench/perf/corpus" short set (5 zh + 5 en files), Paraformer hybrid RKNN encoder + RKNN decoder, "/asr/stream" realtime, 40/80/160/240/400 frame buckets — **a different profile from the SenseVoice one deployed here** | "openvoicestream/docs/perf/paraformer-rk3576-streaming-ab-20260608.md", 2026-06-08 |
 | End-of-speech to final result, RK3576 | 326 ms / 347 ms (zh / en mean) | Same run, "/asr/stream" with 500 ms prepare lead | Same |
 | Voiceprint embedding, RK3576 | RTF 0.09–0.13 (1 s → 125 ms, 3 s → 255 ms, 5 s → 428 ms) | reComputer RK3576, CAM++ via sherpa-onnx on the CPU, 2 threads; clustering over 10 speakers 1.45 ms | "openvoicestream/docs/specs/diarization-capability.md", 2026-06-26 |
-| Voiceprint embedding, CM4 class (A72) | RTF ≈0.10 (1 s → 114 ms, 3 s → 303 ms, 5 s → 508 ms), cold load 1.66 s | reRouter CM4 series (Cortex-A72, 4 cores); CAM++ via sherpa-onnx on the CPU | Same document, 2026-06-26 |
+| Voiceprint embedding, CM4 class (A72) | RTF ≈0.10 (1 s → 114 ms, 3 s → 303 ms, 5 s → 508 ms), cold load 1.66 s | Raspberry Pi 4 (Cortex-A72, 4 cores) as a stand-in for the CM4 in the reRouter CM4 series — the same SoC generation; CAM++ via sherpa-onnx on the CPU | Same document, 2026-06-26 |
 
 The RK3576 rows are reference values taken on the same RK3576 platform; they
 will be updated after a re-test on the reComputer unit.

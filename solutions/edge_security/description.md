@@ -113,7 +113,7 @@ the same assertions.
 
 ### Detector
 
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
+| | **Jetson Orin NX 16GB** | **RK3588 (Radxa Rock 5T)** |
 |---|---|---|
 | Accelerator | GPU, TensorRT 10.3.0, FP16 | NPU, RKNN 2.3.2, int8 |
 | Inference, in-pipeline p50 | **4.13 ms** | 41.9 ms (int8) / 72.3 ms (fp16) |
@@ -125,14 +125,14 @@ the same assertions.
 | Engine / model build on device | 307–361 s, one-off | none (model ships prebuilt) |
 
 The Jetson figures are from an Orin NX 16GB on JetPack 6.1 (L4T R36.4.3); the
-RK3588 figures from a reComputer RK3588 series unit on kernel 6.1.84.
+RK3588 figures from a Radxa Rock 5T on kernel 6.1.84.
 
 ### End to end, against a ground-truth video
 
 The timing errors come from a 130 s clip whose crossing and entry instants are
 known frame by frame, replayed over RTSP into the live pipeline.
 
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
+| | **Jetson Orin NX 16GB** | **RK3588 (Radxa Rock 5T)** |
 |---|---|---|
 | Capture to alert | 117.4 ms p50, 297.0 ms p95 | not measured separately |
 | Line-crossing instant vs. truth | 0.109–0.268 s error | 0.085–0.248 s error |

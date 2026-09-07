@@ -39,5 +39,5 @@ Adds “listen and speak” capability to robots, devices, and applications. Spe
 | Disk Required | 7.5 GB | 4.4 GB | 4.4 GB | 2.8 GB |
 | Languages | zh+en / 52 (Qwen3) | zh+en / 52 (Qwen3) | zh+en / 52 (Qwen3) | zh+en |
 
-**Supported Hardware:** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · reComputer R10 series / reComputer R2000 series
+**Supported Hardware:** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · Raspberry Pi 4/5
 **Network:** Internet needed for first deployment (downloads image + models). Works fully offline after setup.

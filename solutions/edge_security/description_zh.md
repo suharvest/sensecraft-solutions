@@ -101,7 +101,7 @@ hub 自带的浏览器工作台，中英文均可：
 
 ### 检测器
 
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 系列** |
+| | **Jetson Orin NX 16GB** | **RK3588（Radxa Rock 5T）** |
 |---|---|---|
 | 加速器 | GPU，TensorRT 10.3.0，FP16 | NPU，RKNN 2.3.2，int8 |
 | 流水线内推理 p50 | **4.13 ms** | 41.9 ms（int8）／72.3 ms（fp16） |
@@ -113,14 +113,14 @@ hub 自带的浏览器工作台，中英文均可：
 | 设备上的引擎／模型构建 | 307–361 s，一次性 | 无（模型预先转好随镜像下发） |
 
 Jetson 数据取自一台 Orin NX 16GB，系统 JetPack 6.1（L4T R36.4.3）；RK3588 数据取自
-一台 reComputer RK3588 系列，内核 6.1.84。
+一块 Radxa Rock 5T，内核 6.1.84。
 
 ### 端到端，与真值视频比对
 
 时刻偏差来自一段 130 s 的视频：其中每一次越线和进入区域的发生帧是已知的，通过 RTSP
 回放进真实流水线后逐条比对。
 
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 系列** |
+| | **Jetson Orin NX 16GB** | **RK3588（Radxa Rock 5T）** |
 |---|---|---|
 | 采集到告警 | P50 117.4 ms，P95 297.0 ms | 未单独测量 |
 | 越线时刻与真值的偏差 | 0.109–0.268 s | 0.085–0.248 s |

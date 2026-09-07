@@ -39,5 +39,5 @@
 | 磁盘需求 | 7.5 GB | 4.4 GB | 4.4 GB | 2.8 GB |
 | 支持语言 | 中英 / 52 种（Qwen3） | 中英 / 52 种（Qwen3） | 中英 / 52 种（Qwen3） | 中英 |
 
-**支持硬件：** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · reComputer R10 系列 / reComputer R2000 系列
+**支持硬件：** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · 树莓派 4/5
 **网络要求：** 首次部署需要联网（下载镜像和模型），部署完成后可完全离线使用

@@ -57,12 +57,14 @@ intro:
         require:
           module: [orin_nx_16]
     # external_ prefix: not a Seeed catalogue product, so it is declared
-    # local-only and carries no purchase constraints. It is the reComputer
-    # R2000 series (Raspberry Pi CM5).
+    # local-only and carries no purchase constraints. It is here because it is
+    # the board this preset was measured on. The Seeed board of the same class
+    # is the reComputer Industrial R20 series (Raspberry Pi CM5); nothing has
+    # been run on one.
     external_raspberry_pi_5:
-      description: Runs the CPU speech stack on a Raspberry Pi 5. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it. This is the reComputer R2000 series (Raspberry Pi CM5).
+      description: Runs the CPU speech stack on a Raspberry Pi 5. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it. The Seeed board of the same class is the reComputer Industrial R20 series (Raspberry Pi CM5); the figures on this page were taken on a Raspberry Pi 5, not on a reComputer.
       description_i18n:
-        zh: 在树莓派 5 上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。即 reComputer R2000 系列（Raspberry Pi CM5）。
+        zh: 在树莓派 5 上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。同级别的 Seeed 板卡是 reComputer Industrial R20 系列（Raspberry Pi CM5）；本页数字取自树莓派 5，不是 reComputer 整机。
     respeaker_xvf3800:
       description: USB microphone array with hardware echo cancellation, noise suppression, and beamforming.
       description_i18n:
