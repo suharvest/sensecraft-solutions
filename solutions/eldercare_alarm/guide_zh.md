@@ -138,14 +138,14 @@ engine 构建耗时 455 秒，首次启动需要等这一步完成。
 | 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
 
 
-## 套餐: IP 摄像头 + reComputer R（Hailo） {#hailo}
+## 套餐: IP 摄像头 + reComputer R2000（Hailo） {#hailo}
 
 同一套栈跑在 Hailo-8 加速器上。检测器热路径为原生 C++，姿态模型是预编译好的 HEF，
 因此不需要在设备上构建引擎，部署耗时是几分钟而不是几十分钟。
 
 | 设备 | 用途 |
 |---|---|
-| 带 Hailo-8 的 reComputer R | 运行检测器、告警服务、broker 与确认页面 |
+| 带 Hailo-8 的 reComputer R2000 | 运行检测器、告警服务、broker 与确认页面 |
 | IP 摄像头 | 提供检测器观察的 RTSP 画面 |
 
 **重要提示**
@@ -188,11 +188,11 @@ engine 构建耗时 455 秒，首次启动需要等这一步完成。
 | 验证阶段报 `No detector result` | 先看容器健康状态——这一步会打印出来。再从设备上核对 RTSP 地址，并看 `docker logs eldercare_alarm_hailo-fall-detection-1`。 |
 | 验证阶段卡在告警 API | `docker logs eldercare_alarm_hailo-eldercare-alarm-1` 会指出它拒绝的配置项。 |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_alarm.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_alarm.yaml default=true}
 
 通过 SSH 部署到网络上的设备。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R" config=devices/hailo_alarm.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_alarm.yaml}
 
 直接在设备上部署，适用于应用就跑在这台机器上的情况。
 

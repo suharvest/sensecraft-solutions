@@ -133,7 +133,7 @@ which is why that deploy takes the longest — measured 455 s for the YOLO11s-po
 engine on a reComputer J4012 (Orin NX). Pick it when the cameras exist and the
 site has no gateway yet.
 
-**IP Camera + reComputer R (Hailo)** is the same stack on a Hailo-8, with the
+**IP Camera + reComputer R2000 (Hailo)** is the same stack on a Hailo-8, with the
 detector's hot path in native C++ and the pose model downloaded as a compiled HEF
 instead of built on device. It is ABI-locked to HailoRT 4.21 — plugin, user
 library and driver all move together — so pick it when that hardware and that

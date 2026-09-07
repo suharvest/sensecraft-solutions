@@ -43,7 +43,7 @@ BACnet/IP broadcast discovery may not cross Docker Desktop's bridge network. Use
 | Image download fails | Confirm the host can reach `sensecraft-missionpack.seeed.cn` and has at least 4 GB free |
 | Health check stays pending | Inspect `docker logs missionpack-industrial-gateway` and confirm `/readyz` returns HTTP 200 |
 
-### Target {#gateway_edge type=remote device_name="reComputer R / reTerminal DM" config=devices/gateway.yaml}
+### Target {#gateway_edge type=remote device_name="reComputer R1000 / R1100 / reTerminal DM" config=devices/gateway.yaml}
 
 Deploy over SSH to a reComputer R1000/R1100 Series or reTerminal DM device on the controller network.
 
@@ -51,7 +51,7 @@ Deploy over SSH to a reComputer R1000/R1100 Series or reTerminal DM device on th
 
 ![Connection architecture](gallery/architecture.svg)
 
-1. Connect the selected reComputer R or reTerminal DM Ethernet interface to the controller network and record its IP address.
+1. Connect the selected reComputer R1000 / R1100 or reTerminal DM Ethernet interface to the controller network and record its IP address.
 2. If Modbus RTU is required, use the serial-device installer/profile to attach the USB-to-RS-485 adapter; do not enable production writes before hardware validation.
 3. Enter the device SSH address and credentials, then start deployment.
 

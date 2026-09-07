@@ -11,7 +11,7 @@ still carry their own wiring and troubleshooting.
 |---|---|---|
 | Tier 0 · Cloud | None | Watcher needs 2.4GHz WiFi + internet; everything else is Seeed's cloud |
 | Tier 1 · Basic | reComputer R1125-10 | Watcher and reComputer on the same LAN as this computer during setup |
-| Tier 2A · Advanced (Single Site) | reComputer R21 (Hailo-8) or Jetson, for face recognition | Same LAN; face recognition stays local, LLM call can still be cloud |
+| Tier 2A · Advanced (Single Site) | reComputer R2135-12 (Hailo-8) or Jetson, for face recognition | Same LAN; face recognition stays local, LLM call can still be cloud |
 | Tier 2B · Advanced (Multi Site) | reComputer Super J4012 (Jetson Orin NX 16GB), shared by up to 3 Watchers | Each site's Watcher reaches the shared J4012 over the network; only the LLM call leaves the site |
 | Tier 3 · Premium | reComputer R2135-12 (Hailo-8, runs warehouse + face recognition + voice AI service) plus reComputer Robotics J5011 (runs the local LLM and TTS) | No internet needed after deployment — everything, including the LLM, runs on your own two devices |
 

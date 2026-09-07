@@ -75,8 +75,8 @@ YAML。
 | reComputer J（Orin NX Super） | YOLO11s-Pose TensorRT FP16 | 9 路，每路 14.93 FPS | 10 路，每路 13.05 FPS |
 | reComputer RK3576 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 1 路，14.83–15.01 FPS | 2 路，12.81–12.83 FPS |
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8，MPP NV12 链路 | 5 路，每路 14.97–15.01 FPS | 6 路，每路 14.43–14.49 FPS |
-| reComputer R（Hailo-8） | YOLOv8s-Pose 量化 HEF，1 context | 16 路，每路 14.52–14.57 FPS；关闭 MQTT | 17 路低于 14.5 FPS |
-| reComputer R（Hailo-8） | YOLOv8m-Pose 量化 HEF，3 contexts | 5 路，每路 14.98–15.02 FPS；关闭 MQTT | 6 路低于 14.5 FPS |
+| reComputer R2000（Hailo-8） | YOLOv8s-Pose 量化 HEF，1 context | 16 路，每路 14.52–14.57 FPS；关闭 MQTT | 17 路低于 14.5 FPS |
+| reComputer R2000（Hailo-8） | YOLOv8m-Pose 量化 HEF，3 contexts | 5 路，每路 14.98–15.02 FPS；关闭 MQTT | 6 路低于 14.5 FPS |
 | reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 路实时相机，13.05 FPS | 低于此处采用的 14.5 FPS 门槛 |
 
 Hailo 从 S 到 M 的下降大于模型计算量的增长。官方 S HEF 是 single-context，权重可以常驻；
@@ -147,7 +147,7 @@ RK3576 1 路、RK3588 5 路，Hailo YOLOv8s 为 16 路、YOLOv8m 为 5 路（见
 解码。最佳性能测试配置使用 YOLOv8s INT8，RK3576 验证 1×15 FPS，RK3588 验证
 5×15 FPS；当前部署仍保留原有单相机 YOLO11n FP16 配置。
 
-**reComputer R（Hailo）** 在 Hailo-8 上跑原生 C++ 热路径。默认 S 模型实测可带 16 路
+**reComputer R2000（Hailo）** 在 Hailo-8 上跑原生 C++ 热路径。默认 S 模型实测可带 16 路
 15 FPS，官方 M 模型在运行时自动切换 shared batch 后可带 5 路。当前部署表单仍配置单路。
 已经安装这类硬件时可以选它；时序门限已经冻结，但部署状态机的准确率还没有单独测过。
 

@@ -97,7 +97,7 @@ EdgeFallKit 检测器的准确率。那组数字——GMDCSA-24 v2.1，按人切
 原因——在 reComputer J4012（Orin NX）上实测 YOLO11s-pose engine 构建耗时 455 秒。
 现场已有摄像头、但还没有网关主机时选它。
 
-**IP 摄像头 + reComputer R（Hailo）** 是同一套栈跑在 Hailo-8 上，检测器热路径为原生 C++，
+**IP 摄像头 + reComputer R2000（Hailo）** 是同一套栈跑在 Hailo-8 上，检测器热路径为原生 C++，
 姿态模型是下载已编译好的 HEF 而不是在设备上构建。它与 HailoRT 4.21 的 ABI 绑定——插件、
 用户库与驱动必须同版本一起动——所以这类硬件和这个运行时版本已经装好时选它。
 

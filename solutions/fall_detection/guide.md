@@ -352,14 +352,14 @@ per camera.
 
 ---
 
-## Preset: IP Camera + reComputer R (Hailo) {#hailo}
+## Preset: IP Camera + reComputer R2000 (Hailo) {#hailo}
 
 Run the detector on a Hailo-8 accelerator. The hot path is native C++ with no
 Python, so the host CPU stays largely free.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer R with Hailo-8 | Pose inference on the Hailo-8, tracking, fall logic and MQTT |
+| reComputer R2000 with Hailo-8 | Pose inference on the Hailo-8, tracking, fall logic and MQTT |
 | IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
 
 **Important:** this is an assistive alert, not a certified medical or life-safety
@@ -389,11 +389,11 @@ Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
 | Deployment stops before verification | Check the detector log for the `HAILO_BATCH` line, container health, and an MQTT result on the configured topic |
 
-### Target {#hailo_remote type=remote device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml default=true}
+### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_fall.yaml default=true}
 
 Deploy to the device over SSH from this computer.
 
-### Target {#hailo_local type=local device=hailo device_name="reComputer R" config=devices/hailo_fall.yaml}
+### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_fall.yaml}
 
 Run this directly on the device if you are working on it.
 

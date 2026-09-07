@@ -89,8 +89,8 @@ applications were stopped before these runs.
 | reComputer J (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
 | reComputer RK3576 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 1 stream, 14.83–15.01 FPS | 2 streams, 12.81–12.83 FPS |
 | reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
-| reComputer R (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
-| reComputer R (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
+| reComputer R2000 (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
+| reComputer R2000 (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
 | reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Below the 14.5 FPS threshold used here |
 
 The Hailo S-to-M drop is larger than the increase in model operations. The official S
@@ -176,7 +176,7 @@ temporal profile and hardware video decode. On the optimized YOLOv8s INT8 benchm
 profile, RK3576 reached 1×15 FPS and RK3588 5×15 FPS. The current deployment
 keeps its existing single-camera YOLO11n FP16 profile.
 
-**reComputer R (Hailo)** runs a native C++ hot path on a Hailo-8. The default S
+**reComputer R2000 (Hailo)** runs a native C++ hot path on a Hailo-8. The default S
 model carried 16 measured 15 FPS streams; the official M model carried 5 after
 the runtime switched it to shared batching. The current deployment form still configures
 one camera. Pick it when this hardware is already installed; its temporal profile

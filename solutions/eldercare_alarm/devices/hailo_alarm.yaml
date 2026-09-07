@@ -1,6 +1,6 @@
 version: "1.0"
 id: hailo_alarm
-name: reComputer R with Hailo-8
+name: reComputer R2000 with Hailo-8
 type: docker_deploy
 device_class: hailo
 
@@ -42,7 +42,7 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: reComputer R（Hailo-8）
+  zh: reComputer R2000（Hailo-8）
 
 remote_overrides:
   remote_path: /home/{{username}}/eldercare-alarm-hailo

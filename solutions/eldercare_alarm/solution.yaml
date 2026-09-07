@@ -185,9 +185,9 @@ intro:
           default: generic_ip_camera
 
     - id: hailo
-      name: IP Camera + reComputer R (Hailo)
+      name: IP Camera + reComputer R2000 (Hailo)
       name_i18n:
-        zh: IP 摄像头 + reComputer R（Hailo）
+        zh: IP 摄像头 + reComputer R2000（Hailo）
       badge: Beta
       badge_i18n:
         zh: 测试版
