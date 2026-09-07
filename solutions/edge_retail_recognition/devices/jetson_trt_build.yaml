@@ -39,13 +39,16 @@ steps:
       quotes them; keep the quotes when a real hash replaces them. Both ONNX
       graphs are static batch-1 — do not pass `--shapes`; a dynamic-shape flag
       on a static graph fails `trtexec` outright with "Static model does not
-      take explicit shapes" (this repository hit and fixed that bug in commit
-      `9c53eb7`; `build_engines.py` at `16d1347`+ already only adds `--shapes`
-      for a genuinely dynamic batch axis). Engines are bound to the device and
-      the TensorRT version that built them: do not copy an engine between
-      boards, rebuild on each one. Engines are not shipped in this package for
-      the same reason. On the measured unit this took 334.47 s for the
-      detector and 81.54 s for the embedder.
+      take explicit shapes", so leave that flag for a genuinely dynamic batch
+      axis only. Engines are bound to the device and the TensorRT version that
+      built them: do not copy an engine between boards, rebuild on each one.
+      Engines are not shipped in this package for the same reason. On the
+      measured unit this took 334.47 s for the detector and 81.54 s for the
+      embedder. Each `.build.json` also records `onnx_sha256_recomputed` —
+      the source ONNX's sha256 as `build_engines.py` saw it at build time —
+      check that it equals the `onnx_sha256` you started from before trusting
+      the engine at all: a mismatch here means the wrong ONNX went into the
+      build, not a TensorRT problem.
     description_i18n:
       zh: >-
         在板上，从上游仓库执行：`python3 platforms/jetson/build_engines.py
@@ -58,12 +61,14 @@ steps:
         并把实测的 `artifact_sha256` 写回 `runtime.yaml`（出厂时这两个字段是
         加了引号的 64 个 0——不加引号会被 YAML 读成整数 0；换成真哈希时保留引号）。
         两份 ONNX 都是静态 batch-1——不要传 `--shapes`，给静态图指定动态 shape
-        会让 `trtexec` 直接报 "Static model does not take explicit shapes" 失败
-        （本仓库在 commit `9c53eb7` 踩过并修了这个 bug；`build_engines.py`
-        在 `16d1347` 之后的版本已经只对真正动态的 batch 轴加 `--shapes`）。engine
-        与构建它的设备和 TensorRT 版本绑定：不要在板之间拷贝，每块板各构一次。
-        engine 也因此不随本包分发。在实测这台设备上，检测器耗时 334.47 秒，
-        嵌入器 81.54 秒。
+        会让 `trtexec` 直接报 "Static model does not take explicit shapes" 失败，
+        这个 flag 只留给真正动态的 batch 轴用。engine 与构建它的设备和 TensorRT
+        版本绑定：不要在板之间拷贝，每块板各构一次。engine 也因此不随本包分发。
+        在实测这台设备上，检测器耗时 334.47 秒，嵌入器 81.54 秒。每份
+        `.build.json` 还记了一个 `onnx_sha256_recomputed`——`build_engines.py`
+        在构建时重算出的源 ONNX sha256——先核对它与你出发时的 `onnx_sha256`
+        是否一致，再去相信这个 engine：这里对不上，说明进去构建的 ONNX 本身
+        就不对，不是 TensorRT 的问题。
     optional: false
 
   - id: trt_dryrun
@@ -72,25 +77,26 @@ steps:
       zh: 跑运行时之前先校验 engine
     description: >-
       `python3 platforms/jetson/runtime.py --config
-      platforms/jetson/runtime.yaml --dry-run` recomputes the sha256 of each
-      engine file and compares it against the value `build_engines.py` wrote
-      into the config; a mismatch exits with code 2 rather than loading an
-      engine of unknown provenance. This is the gate that stands between "an
-      engine file exists" and "this is the engine the config says it is." It
-      also checks the two engines' source ONNX sha256 against the
-      `onnx_sha256` fields in `runtime.yaml` — a cache hit downstream requires
-      the ONNX sha256, the target device, the builder profile and the runtime
-      ABI to all match.
+      platforms/jetson/runtime.yaml --dry-run` loads the config, recomputes
+      the sha256 of each engine file on disk and compares it against the
+      `artifact_sha256` `build_engines.py` wrote into the config; a mismatch
+      exits with code 2 rather than loading an engine of unknown provenance.
+      This is the gate that stands between "an engine file exists" and "this
+      is the engine the config says it is." It only checks the engine files
+      themselves — it does not re-verify the `onnx_sha256` fields against a
+      live ONNX, since the runtime has no ONNX file to check against at this
+      point; that check happened in the previous step, against
+      `onnx_sha256_recomputed` in each `.build.json`.
     description_i18n:
       zh: >-
         `python3 platforms/jetson/runtime.py --config
-        platforms/jetson/runtime.yaml --dry-run` 会重算每个 engine 文件的
-        sha256，与 `build_engines.py` 写进配置里的值比对；对不上就以 exit code
-        2 退出，而不是加载一个来路不明的 engine。这道检查隔开的是「engine 文件
-        存在」和「这就是配置里说的那个 engine」。它同时核对两个 engine 的源
-        ONNX sha256 与 `runtime.yaml` 里 `onnx_sha256` 字段是否一致——下游要
-        命中缓存，ONNX sha256、目标设备、构建 profile 与运行时 ABI 四项必须
-        全部一致。
+        platforms/jetson/runtime.yaml --dry-run` 会读配置、重算磁盘上每个
+        engine 文件的 sha256，与 `build_engines.py` 写进配置里的 `artifact_sha256`
+        比对；对不上就以 exit code 2 退出，而不是加载一个来路不明的 engine。
+        这道检查隔开的是「engine 文件存在」和「这就是配置里说的那个 engine」。
+        它只校验 engine 文件本身——不会重新核对 `onnx_sha256` 字段对不对得上
+        一份活的 ONNX，因为运行时这一步手上没有 ONNX 文件可比；那道核对在上一步
+        已经做过，对的是每份 `.build.json` 里的 `onnx_sha256_recomputed`。
     optional: false
 
   - id: trt_parity
