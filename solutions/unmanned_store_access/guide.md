@@ -3,10 +3,10 @@
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
 cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the lock is
-switched, and that is the preset.
+from this table. Find the device you have, read across to how the relay is
+driven, and that is the preset.
 
-| Door device | How the lock is switched | Preset |
+| Door device | How the relay is driven | Preset |
 |---|---|---|
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
@@ -15,14 +15,14 @@ switched, and that is the preset.
 | Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no lock at all, so it takes the
+Pro: it recognises on the camera but drives no relay itself, so it takes the
 gateway-relay path even when the gateway is standing next to it. And the Grove
 Vision AI V2 preset has no liveness model — a printed photograph opens that door
 — so it is not a substitute for the others on price alone.
 
 
 Recognition, liveness, the decision and the contact all live in one device at
-the door. Nothing on the network sits between a face and the lock, so the door
+the door. Nothing on the network sits between a face and the relay, so the door
 keeps working while the network is down — the network carries library updates,
 events and remote commands only.
 
@@ -48,8 +48,9 @@ current are undocumented by the vendor and unmeasured.
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | reCamera Pro or reCamera PoE / HQ PoE | Camera, recognition, liveness, decision, GPIO output |
-| Relay module | Switches the lock. Sized for the lock, matched to the pin's voltage |
-| Lock + its own 12/24 V supply | Never powered from the camera |
+| Relay module | COM/NO dry contact into the door controller's input. Sized to the module fitted, matched to the pin's voltage |
+
+*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **What has run on hardware, and what has not.** On 2026-09-07 the face-library
 path of this preset ran on a real reCamera Pro: the consistency gate reported
@@ -64,7 +65,7 @@ p95 2.709 ms. The device was restored byte for byte afterwards.
 Read those numbers for what they are. The 22 events were **injected synthetic
 recognition results**, not a person; the pin readback is sysfs, so the values are
 an upper bound; and **no external circuit has ever been connected** — no meter
-reading of `gpio130`, no LED, no relay, no lock, and its physical identity on the
+reading of `gpio130`, no LED, no relay, no door controller, and its physical identity on the
 board is still unconfirmed. The thresholds are the recognition app's own
 defaults, not calibration results (`calibration = pending`).
 
@@ -179,8 +180,8 @@ not enrol through this cloud console.
 ## Step 4: Install the Door Daemon on the Camera {#p1_install type=manual required=true config=devices/p1_recamera_pro.yaml}
 
 Reach the camera as root, find and measure a free pin, wire LED then relay then
-lock and declare the contact, copy the daemon in, run the gate, and leave it
-running.
+the door controller and declare the contact, copy the daemon in, run the gate,
+and leave it running.
 
 ### Prerequisites
 
@@ -205,18 +206,22 @@ In this order, and do not skip ahead.
 2. **Relay module on its own supply.** Confirm the contact clicks once per
    pulse. Match the module to the pin: reCamera Pro's native outputs swing
    12–21 V, while a UART or CAN pin reconfigured as GPIO gives 3.3 V.
-3. **Lock, on a separate 12/24 V supply, through the relay contact.** A
-   fail-safe magnetic lock through COM and NC; a fail-secure strike through COM
-   and NO. The lock draws 300 mA–1 A and the pin must never see that current.
+3. **The relay's COM/NO dry contact into the door controller's input.** The
+   lock, its power supply, and the door controller itself are supplied and
+   wired by the door-control party — outside this solution's BOM. The relay
+   presents only a floating, unpowered contact pair; the pin must never see
+   the controller's own current.
 
-Getting the contact backwards on a magnetic lock leaves the door open
-permanently and looks like a working installation until somebody tests it. This
-is why `relay_contact` and `fail_mode` have no default values: a fail-safe
-magnetic lock is `relay_contact = NC` with `fail_mode = fail_safe`, a fail-secure
-strike is `NO` with `fail_secure`, and until you have measured, both read
-`unverified` — legal, named in a warning on every start, and meaning no lock may
-be connected. This solution's default posture is fail-safe, because trapping
-people inside is worse than letting them out.
+Getting the contact backwards leaves the door controller in the wrong idle
+state and looks like a working installation until somebody tests it. This
+is why `relay_contact` and `fail_mode` have no default values: they record
+which contact pair (`NC` or `NO`) you wired and which state (`fail_safe` or
+`fail_secure`) the door controller should end up in on a power cut — set
+both from what you measured on the controller, not from an assumption. Until
+you have measured, both read `unverified` — legal, named in a warning on every
+start, and meaning no door controller may be connected yet. This solution's
+default posture is fail-safe, because trapping people inside is worse than
+letting them out.
 
 ### Troubleshooting
 
@@ -226,9 +231,9 @@ people inside is worse than letting them out.
 | The actuator refuses to start, naming a pin | The pin is already exported with a direction or value that disagrees with the configured idle state. Find out what owns it. Do not force a takeover to make the message go away. |
 | `certificate is not yet valid` on the library URL | The device clock is months out and it has no NTP client. Either give it a way to correct time and use HTTPS, or move the library to a plaintext LAN URL with the signing key set. |
 | The app refuses to start on a plaintext library URL | No signing key. That refusal is deliberate: on a plaintext URL the manifest signature is the whole integrity boundary. |
-| The door pulses once at boot | The active level is inverted. Fix it before reconnecting the lock. |
+| The door pulses once at boot | The active level is inverted. Fix it before reconnecting the door controller. |
 | Two pulses per approach | The debounce is not in the path, or its window is shorter than the time somebody spends in frame. |
-| The start-up banner keeps naming `relay_contact=unverified fail_mode=unverified` | The wiring posture has not been declared. Measure, then set both. Do not connect a lock before that. |
+| The start-up banner keeps naming `relay_contact=unverified fail_mode=unverified` | The wiring posture has not been declared. Measure, then set both. Do not connect the door controller before that. |
 | `health()["stuck_active"]` is true | The daemon failed to drive the pin back to the un-actuated level, so the door may still be open. That is a site visit, not a log entry. |
 | `reclaimed` is non-null at start-up | The previous process was killed (`/run/f1-access/gpio<N>.owner` survived) and this start reclaimed the line. Find out why it did not exit cleanly; stop the daemon with SIGTERM, never `kill -9`. |
 | `gpio = 131` is rejected while parsing the config | It is in `KNOWN_BUSY_GPIO` — already exported by another application on hardware. |
@@ -269,7 +274,7 @@ remote unlock produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the lock connected, and someone enrolled in the current
+- Steps 1–4 finished, the door controller connected, and someone enrolled in the current
   library version.
 - A printed photograph of that same person.
 - An operator token and a viewer token, to check that the role gate holds in
@@ -309,9 +314,9 @@ directly rather than inferred from a container being up.
   topic that accepts anonymous publishes is not access control. Move to TLS,
   per-device identities and topic ACLs.
 - Put a TLS-terminating reverse proxy in front of the console.
-- Record what you measured — pin, level, current, pulse width, contact, lock
-  type — with the installation. The next person to touch it has no way to
-  recover those from the software.
+- Record what you measured — pin, level, current, pulse width, contact, and
+  door controller type — with the installation. The next person to touch it
+  has no way to recover those from the software.
 
 ### Troubleshooting
 
@@ -328,10 +333,10 @@ directly rather than inferred from a container being up.
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
 cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the lock is
-switched, and that is the preset.
+from this table. Find the device you have, read across to how the relay is
+driven, and that is the preset.
 
-| Door device | How the lock is switched | Preset |
+| Door device | How the relay is driven | Preset |
 |---|---|---|
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
@@ -340,7 +345,7 @@ switched, and that is the preset.
 | Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no lock at all, so it takes the
+Pro: it recognises on the camera but drives no relay itself, so it takes the
 gateway-relay path even when the gateway is standing next to it. And the Grove
 Vision AI V2 preset has no liveness model — a printed photograph opens that door
 — so it is not a substitute for the others on price alone.
@@ -348,16 +353,17 @@ Vision AI V2 preset has no liveness model — a printed photograph opens that do
 
 For a door that already has a camera. The J20 pulls the existing RTSP stream,
 runs recognition and liveness in containers, and drives the relay from an
-opto-isolated digital output. The isolation is the point: the lock's supply and
-the compute's supply never share a return path.
+opto-isolated digital output. The isolation is the point: the door
+controller's supply and the compute's supply never share a return path.
 
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | reComputer Industrial J20 | Recognition, liveness, decision, opto-isolated DO |
 | RTSP camera at the door | Video source |
-| Relay module | Switches the lock |
-| Lock + its own 12/24 V supply | Never powered from the box |
+| Relay module | COM/NO dry contact into the door controller's input |
+
+*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **Important.** This is not a certified security or life-safety system, and no
 part of it has run on hardware. Six of the seven boundary metrics are empty. The
@@ -452,18 +458,19 @@ recognition and the access node.
   this project's device image, which you must build yourself.
 - The four actuator settings measured on the installed hardware: sysfs number,
   active level, pulse width, relay contact, and the fail mode that matches the
-  lock you actually bought.
+  door controller you are wiring to.
 - At least 15 GB free.
 
 ### Wiring
 
-Same order as every other preset: LED, then relay, then lock.
+Same order as every other preset: LED, then relay, then the door controller.
 
 1. **LED with a series resistor on the DO.** Confirm polarity and pulse width.
 2. **Relay module.** Confirm the contact clicks once per pulse. The DO switches
    the relay and nothing else.
-3. **Lock, on a separate 12/24 V supply, through the relay contact.** COM and NC
-   for a fail-safe magnetic lock, COM and NO for a fail-secure strike.
+3. **The relay's COM/NO dry contact into the door controller's input.** The
+   lock, its power supply, and the door controller itself are supplied and
+   wired by the door-control party — outside this solution's BOM.
 
 The deploy step prints whether the chosen sysfs pin is already exported and what
 its direction and value are. If something else owns it, find out what before
@@ -478,7 +485,7 @@ continuing.
 | "LIVENESS IS NOT LOADED" | The recognition service came up without its liveness model. The access node will refuse to start, correctly. Fix the image, do not bypass the check. |
 | The step refuses a plaintext library URL | No signing key was given. On a plaintext URL the manifest signature is the whole integrity boundary. |
 | RTSP stream opens on your laptop but not on the J20 | Routing or credentials. Test from the box itself. |
-| The door pulses at boot | The active level is inverted. Fix it before reconnecting the lock. |
+| The door pulses at boot | The active level is inverted. Fix it before reconnecting the door controller. |
 
 ## Step 5: Check the Library Reached the Device {#p2_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
@@ -514,7 +521,7 @@ produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the lock connected, someone enrolled in the current
+- Steps 1–4 finished, the door controller connected, someone enrolled in the current
   version.
 - A printed photograph of that same person.
 - An operator token and a viewer token.
@@ -546,8 +553,8 @@ directly.
 - Replace the bundled broker configuration with TLS, per-device identities and
   topic ACLs.
 - Put a TLS-terminating reverse proxy in front of the console.
-- Record the DO number, level, pulse width, contact and lock type with the
-  installation.
+- Record the DO number, level, pulse width, contact and door controller type
+  with the installation.
 
 ### Troubleshooting
 
@@ -564,10 +571,10 @@ directly.
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
 cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the lock is
-switched, and that is the preset.
+from this table. Find the device you have, read across to how the relay is
+driven, and that is the preset.
 
-| Door device | How the lock is switched | Preset |
+| Door device | How the relay is driven | Preset |
 |---|---|---|
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
@@ -576,7 +583,7 @@ switched, and that is the preset.
 | Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no lock at all, so it takes the
+Pro: it recognises on the camera but drives no relay itself, so it takes the
 gateway-relay path even when the gateway is standing next to it. And the Grove
 Vision AI V2 preset has no liveness model — a printed photograph opens that door
 — so it is not a substitute for the others on price alone.
@@ -597,8 +604,9 @@ boundary rather than sharing the direct one.
 | reComputer J30 / J40 / R2000 | Recognition, liveness, decision |
 | RTSP camera at the door | Video source |
 | SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
-| Relay module | Switches the lock |
-| Lock + its own 12/24 V supply | Never powered from the relay node |
+| Relay module | COM/NO dry contact into the door controller's input |
+
+*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **Important.** This is not a certified security or life-safety system, and no
 part of this preset has run on hardware. Six of the seven boundary metrics are
@@ -693,9 +701,9 @@ the broker.
 - **Both image references**, neither of which exists yet.
 - The relay node already on the broker, with an id that is unique across the
   site.
-- The relay contact and fail mode that match the lock — recorded here even
-  though the contact is elsewhere, because the relay firmware does not know what
-  kind of lock is on the other side of it and must not.
+- The relay contact and fail mode that match the door controller — recorded
+  here even though the contact is elsewhere, because the relay firmware does
+  not know what is on the other side of it and must not.
 
 ### Wiring
 
@@ -705,8 +713,9 @@ connections at all.
 1. **LED with a series resistor on the relay node's output.** Confirm polarity
    and pulse width.
 2. **Relay module.** Confirm the contact closes once per `set` message.
-3. **Lock, on a separate 12/24 V supply, through the relay contact.** COM and NC
-   for a fail-safe magnetic lock, COM and NO for a fail-secure strike.
+3. **The relay's COM/NO dry contact into the door controller's input.** The
+   lock, its power supply, and the door controller itself are supplied and
+   wired by the door-control party — outside this solution's BOM.
 
 The pulse is ended by the relay's own firmware timer, so a dropped packet cannot
 leave the door standing open.
@@ -756,7 +765,7 @@ produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the lock connected at the relay node, someone enrolled.
+- Steps 1–4 finished, the door controller connected at the relay node, someone enrolled.
 - A printed photograph of that same person.
 - An operator token and a viewer token.
 
@@ -791,7 +800,7 @@ directly.
   the same care as the door itself.
 - Consider a second broker or a local fallback if the door cannot tolerate
   broker downtime. If it cannot, P1 or P2 is the better preset.
-- Record the relay id, contact, pulse width and lock type with the installation.
+- Record the relay id, contact, pulse width and door controller type with the installation.
 
 ### Troubleshooting
 
@@ -808,10 +817,10 @@ directly.
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
 cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the lock is
-switched, and that is the preset.
+from this table. Find the device you have, read across to how the relay is
+driven, and that is the preset.
 
-| Door device | How the lock is switched | Preset |
+| Door device | How the relay is driven | Preset |
 |---|---|---|
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
@@ -820,7 +829,7 @@ switched, and that is the preset.
 | Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no lock at all, so it takes the
+Pro: it recognises on the camera but drives no relay itself, so it takes the
 gateway-relay path even when the gateway is standing next to it. And the Grove
 Vision AI V2 preset has no liveness model — a printed photograph opens that door
 — so it is not a substitute for the others on price alone.
@@ -833,8 +842,8 @@ adds a small standard-library daemon for the three things the camera does not do
 by itself: pull the versioned face library, map the camera's native result
 stream onto the event contract, and hold every threshold in one file.
 
-The camera drives no lock. Events leave over MQTT and the relay is at the
-gateway — an R1000 writing a Modbus point, or a XIAO ESP32 driving a Grove
+The camera drives no relay itself. Events leave over MQTT and the relay is at
+the gateway — an R1000 writing a Modbus point, or a XIAO ESP32 driving a Grove
 Relay.
 
 | Device | Purpose |
@@ -842,8 +851,9 @@ Relay.
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Recognition, liveness, decision — all on the camera |
 | SenseCAP R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
-| Relay module | Switches the lock |
-| Lock + its own 12/24 V supply | Never powered from the relay node |
+| Relay module | COM/NO dry contact into the door controller's input |
+
+*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **Important.** This is not a certified security or life-safety system. The
 library path has been exercised on a real unit; the door path has not. The face
@@ -952,10 +962,14 @@ synchronisation in the foreground, then leave it resident.
 
 ### Wiring
 
-- The camera is not wired to the lock. Nothing on it carries lock current.
-- The relay lives at the gateway node, on the lock's own 12/24 V supply.
-- Fail-safe magnetic lock: COM and NC. Fail-secure strike: COM and NO. Confirm
-  with an LED before the lock goes on.
+- The camera is not wired to the relay or the door controller. Nothing on it
+  carries that current.
+- The relay lives at the gateway node. Its COM/NO dry contact goes to the door
+  controller's input; the lock, its power supply, and the door controller
+  itself are supplied and wired by the door-control party — outside this
+  solution's BOM.
+- Confirm the relay's idle state with an LED before wiring it to the
+  controller.
 - Getting events off the camera needs an MQTT listener beyond the default
   loopback-only one. That is a site networking decision, and the daemon does not
   make it for you — it does not edit `/etc/mosquitto/mosquitto.conf`.
@@ -1005,7 +1019,7 @@ produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the lock connected at the relay node, someone enrolled.
+- Steps 1–4 finished, the door controller connected at the relay node, someone enrolled.
 - A printed photograph of that same person.
 - An operator token and a viewer token.
 
@@ -1040,7 +1054,7 @@ directly.
   the same care as the door itself.
 - Consider a second broker or a local fallback if the door cannot tolerate
   broker downtime. If it cannot, P1 or P2 is the better preset.
-- Record the relay id, contact, pulse width and lock type with the installation.
+- Record the relay id, contact, pulse width and door controller type with the installation.
 
 ### Troubleshooting
 
@@ -1057,10 +1071,10 @@ directly.
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
 cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the lock is
-switched, and that is the preset.
+from this table. Find the device you have, read across to how the relay is
+driven, and that is the preset.
 
-| Door device | How the lock is switched | Preset |
+| Door device | How the relay is driven | Preset |
 |---|---|---|
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
@@ -1069,7 +1083,7 @@ switched, and that is the preset.
 | Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no lock at all, so it takes the
+Pro: it recognises on the camera but drives no relay itself, so it takes the
 gateway-relay path even when the gateway is standing next to it. And the Grove
 Vision AI V2 preset has no liveness model — a printed photograph opens that door
 — so it is not a substitute for the others on price alone.
@@ -1090,8 +1104,9 @@ holding up a printed photograph would matter.
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
 | Grove Vision AI V2 (Himax WE2) | Detection and 128-d embedding |
 | XIAO ESP32-S3 (PSRAM variant) | Matching, policy, library sync, relay output |
-| Grove Relay | Switches the lock |
-| Lock + its own 12/24 V supply | Never powered from the XIAO |
+| Relay | COM/NO (Grove Relay) or the fixed D1 output (XIAO 1-Ch Relay add-on) dry contact into the door controller's input |
+
+*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **Important.** This is not a certified security or life-safety system. **The
 firmware has not been built** — it exists as source on a branch, and the flash
@@ -1239,8 +1254,9 @@ and the relay settings.
 
 | XIAO pin | Signal |
 |---|---|
-| D0 / GPIO1 | Relay output. The board's default is active high, fail-secure — normally-open wiring, so losing power leaves the lock engaged |
-| D1 / GPIO2 | Optional request-to-exit button, to ground, internal pull-up |
+| D1 / GPIO2 | Relay output for the default XIAO 1-Ch Relay add-on board (SKU 114993555). Its D1 pin is fixed by the add-on board's own schematic (Hongfa HF32FA-G, NPN low-side driver) and cannot be reassigned; GPIO high = relay engaged, from the schematic, not measured on this preset's hardware. It exposes only a normally-open (SPST-NO) contact — no `NC` terminal — so only a fail-secure posture is physically possible with this module |
+| D0 / GPIO1 | Relay output if a Grove Relay is fitted instead of the default add-on board — any spare GPIO works, with a software-configurable active level and `relay_contact`/`fail_mode` (`NC` available for a fail-safe posture) |
+| D1 / GPIO2 | Optional request-to-exit button, to ground, internal pull-up — only free when the Grove Relay route is used; the default XIAO 1-Ch Relay add-on above already claims D1 |
 | GPIO21 | On-board status LED, active low |
 
 The two library slots at `0x680000` and `0x6c0000` are **not** flashed. They are
@@ -1260,7 +1276,7 @@ Change the wiring and the `relay_contact` setting together, never one alone.
 | Serial port not found | The XIAO uses native USB-Serial-JTAG, vendor `0x303a`. |
 | The vision link reports unavailable at startup | Flash the Grove Vision AI V2 first, and check the three UART and reset connections. |
 | The library never activates | Check the model tag and the signing key. A mismatch on either is rejected at load, deliberately. |
-| The relay pulses at boot | The active level is inverted for the module you fitted. Fix it before connecting the lock. |
+| The relay pulses at boot | The active level is inverted for the module you fitted. Fix it before connecting the door controller. |
 
 ## Step 6: Check the Library Reached the Device {#p4_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
@@ -1297,7 +1313,7 @@ open it, so that nobody discovers that later.
 
 ### Prerequisites
 
-- Steps 1–5 finished, the lock connected, someone allowlisted in the current
+- Steps 1–5 finished, the door controller connected, someone allowlisted in the current
   version.
 - A printed photograph of that same person, to demonstrate the known limitation
   rather than to test a defence that does not exist.
@@ -1339,7 +1355,7 @@ observed directly.
   The ~880-person figure is arithmetic, not a tested limit.
 - Record, with the installation and wherever the site's access controls are
   documented, that this door has no liveness check.
-- Record the relay pin, contact, pulse width and lock type.
+- Record the relay pin, contact, pulse width and door controller type.
 
 ### Troubleshooting
 
