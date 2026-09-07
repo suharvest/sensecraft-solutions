@@ -14,15 +14,15 @@ intro:
   cover_image: gallery/cover.webp
   gallery:
     - type: image
-      src: gallery/architecture.png
-      caption: Capture hardware for the edge collector preset
-      caption_i18n:
-        zh: 边缘采集套餐使用的采集硬件
-    - type: image
       src: gallery/recomputer-rk3576.jpg
       caption: reComputer RK3576 — the NPU host for the edge collector preset
       caption_i18n:
         zh: reComputer RK3576——边缘采集套餐的 NPU 主机
+    - type: image
+      src: gallery/architecture.png
+      caption: Capture hardware for the edge collector preset
+      caption_i18n:
+        zh: 边缘采集套餐使用的采集硬件
     - type: image
       src: gallery/rerouter.png
       caption: reRouter CM4 collector
