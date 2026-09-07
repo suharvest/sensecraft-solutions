@@ -1,12 +1,12 @@
 ## Preset: Deploy Speech Service {#default}
 
-Deploy a streaming speech recognition (ASR) and voice synthesis (TTS) service on your edge device — Jetson Orin, RK3576, RK3588, or Raspberry Pi 5.
+Deploy a streaming speech recognition (ASR) and voice synthesis (TTS) service on your edge device — Jetson Orin, RK3576, RK3588, or the reComputer R2000 series.
 
 | Device | Engine | Best For |
 |--------|--------|----------|
 | NVIDIA Jetson Orin | TensorRT-EdgeLLM / sherpa-onnx (GPU) | Lowest latency, multilingual, voice clone |
 | RK3576 / RK3588 | RKNN (NPU) | Efficient on-device ASR + TTS |
-| Raspberry Pi 5 | sherpa-onnx (CPU) | Low-cost Chinese+English voice I/O |
+| reComputer R2000 series | sherpa-onnx (CPU) | Low-cost Chinese+English voice I/O |
 
 **What you'll get:**
 - Real-time streaming speech recognition (WebSocket)

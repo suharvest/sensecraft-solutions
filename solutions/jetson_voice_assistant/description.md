@@ -30,7 +30,7 @@ Adds “listen and speak” capability to robots, devices, and applications. Spe
 
 ## Technical Specs
 
-| Spec | Jetson Orin NX | RK3588 | RK3576 | Raspberry Pi 5 |
+| Spec | Jetson Orin NX | RK3588 | RK3576 | reComputer R2000 series |
 |------|---------------|--------|--------|----------------|
 | Speech to text | Paraformer / Qwen3 (TensorRT) | Qwen3 (RKNN) | Qwen3 (RKNN) | Paraformer (ONNX) |
 | Text to speech | Matcha-TTS / Qwen3 (TensorRT) | Matcha (RKNN) | Matcha (RKNN) | Matcha (ONNX) |
@@ -39,5 +39,5 @@ Adds “listen and speak” capability to robots, devices, and applications. Spe
 | Disk Required | 7.5 GB | 4.4 GB | 4.4 GB | 2.8 GB |
 | Languages | zh+en / 52 (Qwen3) | zh+en / 52 (Qwen3) | zh+en / 52 (Qwen3) | zh+en |
 
-**Supported Hardware:** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · Raspberry Pi 4/5
+**Supported Hardware:** Jetson Orin Nano/NX/AGX · RK3576 · RK3588 · reComputer R10 series / reComputer R2000 series
 **Network:** Internet needed for first deployment (downloads image + models). Works fully offline after setup.

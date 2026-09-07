@@ -1,12 +1,12 @@
 ## 套餐: 部署语音服务 {#default}
 
-在你的边缘设备上部署流式语音识别（ASR）和语音合成（TTS）服务——支持 Jetson Orin、RK3576、RK3588 和树莓派 5。
+在你的边缘设备上部署流式语音识别（ASR）和语音合成（TTS）服务——支持 Jetson Orin、RK3576、RK3588 和 reComputer R2000 系列。
 
 | 设备 | 推理引擎 | 最适合 |
 |------|---------|--------|
 | NVIDIA Jetson Orin | TensorRT-EdgeLLM / sherpa-onnx（GPU） | 最低延迟，多语言，声音克隆 |
 | RK3576 / RK3588 | RKNN（NPU） | 高效端侧语音识别 + 语音合成 |
-| 树莓派 5 | sherpa-onnx（CPU） | 低成本中英文语音输入输出 |
+| reComputer R2000 系列 | sherpa-onnx（CPU） | 低成本中英文语音输入输出 |
 
 **部署完成后你可以：**
 - 实时流式语音识别（WebSocket）
@@ -164,7 +164,7 @@ curl http://<设备 IP>:8621/health
 | SSH 连接失败 | 确认 IP 和凭据正确。默认用户名：`pi` |
 | 服务未启动 | 检查 Docker 是否已安装：`docker --version` |
 | 健康检查失败 | 首次启动需约 30 秒预热模型 |
-| ASR 不工作 | 树莓派 4 ASR-only 配置无 TTS。树莓派 5 建议用 `rpi5-default` |
+| ASR 不工作 | reComputer R10 系列 ASR-only 配置无 TTS。reComputer R2000 系列建议用 `rpi5-default` |
 
 ## 步骤 2: 语音演示 {#voice_demo type=voice_chat required=false config=devices/voice_demo.yaml}
 
