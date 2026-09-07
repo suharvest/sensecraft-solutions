@@ -43,7 +43,7 @@ BACnet/IP 广播发现可能无法穿过 Docker Desktop 的桥接网络。本机
 | 镜像下载失败 | 确认设备能够访问 `sensecraft-missionpack.seeed.cn`，并至少有 4 GB 可用空间 |
 | 健康检查一直等待 | 查看 `docker logs missionpack-industrial-gateway`，并确认 `/readyz` 返回 HTTP 200 |
 
-### 部署目标 {#gateway_edge type=remote device_name="reComputer R / reTerminal DM" config=devices/gateway.yaml}
+### 部署目标 {#gateway_edge type=remote device_name="reComputer R1000 / R1100 / reTerminal DM" config=devices/gateway.yaml}
 
 通过 SSH 部署到控制器网络中的 reComputer R1000/R1100 系列或 reTerminal DM 设备。
 
@@ -51,7 +51,7 @@ BACnet/IP 广播发现可能无法穿过 Docker Desktop 的桥接网络。本机
 
 ![连接架构](gallery/architecture.svg)
 
-1. 将所选 reComputer R 或 reTerminal DM 网口连接到控制器网络，并记录设备 IP 地址。
+1. 将所选 reComputer R1000 / R1100 或 reTerminal DM 网口连接到控制器网络，并记录设备 IP 地址。
 2. 如需 Modbus RTU，请使用串口设备安装方式挂载 USB 转 RS-485 适配器；真实硬件验证完成前不要开启生产写控制。
 3. 输入设备的 SSH 地址和凭据，然后开始部署。
 
