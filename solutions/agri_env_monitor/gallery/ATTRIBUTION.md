@@ -133,3 +133,27 @@ MQTT payload fixtures (three synthetic-but-fixed demo device EUIs — the same
 convention as the 2026-09-05 smoke run, not live sensors). Licence: none of
 these HA UI screenshots contain third-party dataset content; HA and Mosquitto
 are Apache-2.0 / EPL, screenshotted as running software, not redistributed.
+
+## Crop, 2026-09-07
+
+`ha-overview-local-20260907.jpg` was cropped from 1600 × 779 to 1600 × 285 —
+the empty dashboard canvas below the four cards was removed, nothing inside the
+frame changed. The other two screenshots were already filled to their edges and
+are untouched.
+
+## Missing: a photograph of the sensors in the field
+
+This page has no picture of the hardware where it is installed — a soil probe
+in a bed, a weather station on a mast, a gateway on a greenhouse wall. Every
+image here is a Home Assistant screenshot. A field photograph is the right
+cover for this page and has to be supplied; none exists in this working tree or
+in the hub repository.
+
+Second pass the same day: the overview was cropped again on the right, 1600 ×
+285 → 1372 × 285, dropping the empty column beside the last card. The
+navigation rail on the left is kept — it is what makes the picture read as Home
+Assistant.
+
+`ha-history-graph-local-20260907.jpg` is left at 1600 × 779. Its cards are laid
+out in a single narrow column about 320 px wide, so cropping to the charts would
+leave an image too narrow to use; it stays a gallery image and not the cover.

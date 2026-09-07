@@ -51,3 +51,20 @@ First-party Seeed material.
 
 It replaced `voice-web-recordings.png`, an admin-console screenshot that showed
 an empty dataset (all counters zero, "No data" table).
+
+## 2026-09-07 — cover changed
+
+The cover was `cover.webp`, a picture of a reRouter and a reSpeaker on a table
+in a shop. Whatever its origin, it does not read as a photograph: the laptop
+keys and the shelving behind it do not hold up at full size, and this page
+cannot carry a rendered scene as its cover. It is no longer referenced by
+`intro.cover_image` or `intro.gallery`; the file stays in this directory.
+
+The cover is now `architecture.png` — despite the name, a flat-lay photograph
+of the actual kit (reRouter CM4, power supply, USB cable, reSpeaker XVF3800),
+first-party Seeed material, unmodified.
+
+**Still missing:** a photograph of the kit installed at a counter, and a console
+screenshot showing real transcripts. The only console screenshots available in
+this repository (`solutions/smart_retail_voice_ai/gallery/edge-client*.png`)
+show an empty transcript list and belong to a different package.
