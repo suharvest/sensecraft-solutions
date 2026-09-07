@@ -152,10 +152,14 @@
 
 ## 套餐: 服务端栈 {#cloud_stack}
 
-一台主机跑完整链路：语音识别、声纹、入库前脱敏的服务、MySQL、MinIO，以及带导出和硬删除的管理后台。音频有两条来路，用其中一条或两条都用：
+一台主机跑完整链路：语音识别、声纹、入库前脱敏的服务、MySQL、MinIO，以及带导出和硬删除的管理后台。它是一台机器上的一次部署——compose 是一个整体，自带数据库和对象存储，之后没有东西需要往上加。
 
-- **来自你已有的手机 App**——这套栈对外提供 ASR 端点供它指向。走步骤 1、2、4、5。
-- **来自边缘采集端上的麦克风阵列**——本地采集并转写，再上报进同一套栈，通常就是同一个盒子。走步骤 1、3、4、5。
+所以音频从哪来这件事，是**在步骤 1 里选部署目标时一次性决定的**，不是第二次部署：
+
+- **来自你已有的手机 App**——选「栈主机」目标。这套栈对外提供 ASR 端点供 App 指向，本机不跑采集客户端。之后做步骤 2。
+- **来自本机上的麦克风阵列**——选 reComputer RK3576 或 reRouter CM4 的采集目标。同一套栈，外加一个绑定到阵列的采集客户端。跳过步骤 2。
+
+不会出现两条都没选的情况：步骤 1 是必选的，而每个目标都属于上面两条路之一。也不会出现两套数据库，因为自始至终只有一次部署。
 
 | 设备 | 用途 |
 |--------|---------|
@@ -185,6 +189,16 @@ voice-service 与管理后台。
    先把它们推上去，并用 `docker buildx imagetools inspect` 复核 digest，
    这一步才拉得到东西。
 
+### 接线
+
+仅两个麦克风采集目标需要。App 采集目标上没有阵列要接，这一节不适用。
+
+1. 部署之前先把 reSpeaker XVF3800 插到盒子的 USB 口上。
+2. 执行 `cat /proc/asound/cards` 记下声卡编号——它要填进 ALSA 声卡编号字段。通常是 1，接了别的音频设备就会变。
+3. 把阵列放在对话发生的位置：收银台或服务台，距离约 1 米。波束成形解决的是方向问题，不是距离问题。
+4. 不要放在会传导盒子风扇振动的台面上。
+5. 不要再接第二个麦克风。链路是单路采集的，多一块声卡只会让声卡编号变得不确定。
+
 ### 故障排查
 
 | 问题 | 解决办法 |
@@ -197,14 +211,27 @@ voice-service 与管理后台。
 | 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；它的镜像尚未构建 |
 | 拉 voice-service 或 voice-web 报 "not found" | 这两个镜像还没推到 registry——先构建并推送，再确认 compose 里的 digest 与 registry 返回的一致 |
 | 莫名出现云端分析容器 | 它只在 `--profile cloud-analytics` 时启动；如果在跑，说明有人开了它，文本正在离开这台主机 |
+| 麦克风采集目标：voice-client 反复重启 | ALSA 声卡编号不对；在设备上 `cat /proc/asound/cards`，用正确的编号重新部署 |
+| 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
+| `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
+| 部署报 `set OVS_ASR_IMAGE ...` | 只会出现在 reRouter CM4 目标上：本包没有固定 CPU 版 ASR 镜像，需要你提供引用 |
+| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证，compose 里的内存上限是按 RK3576 的内存写的——4 GB 的 CM4 要调低 |
 
-### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机" config=devices/cloud_stack.yaml default=true}
+### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}
 
-通过 SSH 部署到网络上的一台主机。这是常规路径。
+音频来自你的 App。通过 SSH 部署到网络上的一台主机；这套栈对外提供 ASR 端点，本机不跑采集客户端。接着做步骤 2。
 
-### 部署目标: {#stack_local type=local device=stack_host device_name="栈主机" config=devices/cloud_stack.yaml}
+### 部署目标: {#stack_local type=local device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml}
 
-部署到本机，适用于栈就跑在你操作的这台机器上。同一份 compose、同样的输入，不需要 SSH 凭据。
+同样是 App 采集的那套栈，部署到本机，适用于栈就跑在你操作的这台机器上。同一份 compose、同样的输入，不需要 SSH 凭据。
+
+### 部署目标: {#collector_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576（麦克风采集）" config=devices/collector_rk3576.yaml}
+
+音频来自本机上的麦克风阵列。同一套栈，外加绑定到阵列的采集客户端，走 NPU 路径——ASR 后端是 RK3576 构建，不需要额外输入。跳过步骤 2。
+
+### 部署目标: {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4（麦克风采集）" config=devices/collector_rerouter.yaml}
+
+同一套栈加采集客户端，走 CPU 路径。它那份 compose 变体把 ASR 镜像作为必填输入，因为本包没有为 CM4 固定镜像。未在真实硬件上验证。跳过步骤 2。
 
 ---
 
@@ -240,42 +267,7 @@ voice-service 与管理后台。
 
 ---
 
-## 步骤 3: 部署边缘采集端 {#deploy_collector type=docker_deploy required=false config=devices/collector_rk3576.yaml}
-
-仅当音频来自麦克风阵列而不是 App 时需要。同一套冻结栈，外加绑定到本机阵列的采集客户端——通常就是步骤 1 部署的那个盒子。如果你在步骤 2 配置了 App 端点，跳过这一步。
-
-### 接线
-
-1. 部署之前先把 reSpeaker XVF3800 插到边缘盒子的 USB 口上。
-2. 执行 `cat /proc/asound/cards` 记下声卡编号——它要填进 ALSA 声卡编号字段。
-   通常是 1，接了别的音频设备就会变。
-3. 把阵列放在对话发生的位置：收银台或服务台，距离约 1 米。
-   波束成形解决的是方向问题，不是距离问题。
-4. 不要放在会传导盒子风扇振动的台面上。
-5. 不要再接第二个麦克风。链路是单路采集的，多一块声卡只会让声卡编号变得不确定。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|-------|----------|
-| voice-client 反复重启 | ALSA 声卡编号不对；在设备上 `cat /proc/asound/cards`，用正确的编号重新部署 |
-| 容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
-| `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
-| 部署报 `set OVS_ASR_IMAGE ...` | 只会出现在 CM4 目标上：本包没有固定 CPU 版 ASR 镜像，需要你提供引用 |
-| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证，compose 里的内存上限是按 RK3576 的内存写的——4 GB 的 CM4 要调低 |
-
-### 部署目标: {#collector_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/collector_rk3576.yaml default=true}
-
-NPU 路径。ASR 后端是 RK3576 构建，不需要额外输入。
-
-### 部署目标: {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/collector_rerouter.yaml}
-
-CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包没有为 CM4 固定镜像。
-未在真实硬件上验证。
-
----
-
-## 步骤 4: 打开管理后台 {#admin_web type=web_dashboard required=false config=devices/admin_web.yaml}
+## 步骤 3: 打开管理后台 {#admin_web type=web_dashboard required=false config=devices/admin_web.yaml}
 
 打开 `http://<栈主机>:3000/`——录音、关键词、设备、导出与删除都在这里。
 
@@ -304,7 +296,7 @@ CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包�
 
 ---
 
-## 步骤 5: 验收转写与删除 {#verify_stack type=manual required=true verify=true config=devices/verify_stack.yaml}
+## 步骤 4: 验收转写与删除 {#verify_stack type=manual required=true verify=true config=devices/verify_stack.yaml}
 
 说一句话，确认落库的是脱敏后的内容，删掉它，再证明删干净了。
 
@@ -356,7 +348,7 @@ CPU 路径。用的是 ASR 镜像必填的那份 compose 变体，因为本包�
 
 1. 栈主机上 `docker ps` 能看到 `c4-mysql`、`c4-minio`、`c4-ovs-asr`、
    `c4-voice-service`、`c4-voice-web` 都在跑；部署了采集端时还有 `c4-voice-client`。
-2. `curl -sf http://<栈主机>:8081/healthz` 正常返回。
+2. `curl -sf http://<栈主机>:8081/healthz` 正常返回；麦克风采集目标上 `curl -sf http://<栈主机>:8621/health` 也正常返回——那是采集客户端喂的那个识别器。
 3. 不带令牌的请求返回 401；用 viewer 令牌调删除接口返回 403。
 4. 最新一条录音里是占位符，不是原始个人信息。
 5. 删除接口返回 `status: complete` 且残留数为 0（`partial` 加非零残留

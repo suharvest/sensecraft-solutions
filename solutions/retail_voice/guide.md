@@ -183,12 +183,23 @@ The store box now transcribes locally.
 
 One host runs the whole pipeline: speech recognition, voiceprint, a service that
 redacts text before it is stored, MySQL, MinIO and an admin console with export
-and hard delete. Audio reaches it two ways, and you can use either or both:
+and hard delete. It is one deployment on one box — the compose is a single unit
+and brings its own database and object store, so there is nothing to add to it
+afterwards.
 
-- **From a mobile app you already ship** — the stack publishes an ASR endpoint
-  for it to point at. Steps 1, 2, 4 and 5.
-- **From a mic array on an edge collector** — captures and transcribes locally,
-  then reports into the same stack, usually on the same box. Steps 1, 3, 4 and 5.
+Where the audio comes from is therefore **a choice you make once, in Step 1, by
+picking a deploy target**, not a second deployment:
+
+- **From a mobile app you already ship** — pick a Stack Host target. The stack
+  publishes an ASR endpoint for the app to point at and runs no capture client.
+  Then do Step 2.
+- **From a mic array on this box** — pick a reComputer RK3576 or reRouter CM4
+  mic-capture target. The same stack, plus a capture client bound to the array.
+  Skip Step 2.
+
+You cannot end up with neither: Step 1 is required and every target is one of
+those two paths. You also cannot end up with two databases, because there is
+only ever one deploy.
 
 | Device | Purpose |
 |--------|---------|
@@ -229,6 +240,21 @@ console.
    re-check their digests with `docker buildx imagetools inspect` before this
    step can pull anything.
 
+### Wiring
+
+Only for the two mic-capture targets. On an app-capture target there is no
+array to wire and nothing here applies.
+
+1. Plug the reSpeaker XVF3800 into a USB port on the box before deploying.
+2. Run `cat /proc/asound/cards` and note the card number — it goes into the ALSA
+   Card ID field. It is usually 1, but it moves when other audio devices are
+   attached.
+3. Place the array where the conversation happens: a counter or service desk at
+   roughly one metre. Beamforming helps with direction, not with distance.
+4. Keep it off surfaces that carry vibration from the box's own fan.
+5. Do not connect a second microphone. The pipeline is single-capture, and a
+   second card only makes the card number ambiguous.
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -241,15 +267,34 @@ console.
 | `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; its image has not been built |
 | Pull fails with "not found" on voice-service or voice-web | Those images have not been pushed to the registry yet — build and push them, then confirm the digest in the compose file matches what the registry returns |
 | Cloud analytics containers appear unexpectedly | They only start with `--profile cloud-analytics`; if they are running, someone enabled it, and text is leaving the host |
+| Mic-capture targets: voice-client restarts in a loop | The ALSA card ID is wrong; `cat /proc/asound/cards` on the device and redeploy with the right number |
+| Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
+| Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
+| Deploy fails with `set OVS_ASR_IMAGE ...` | Only the reRouter CM4 target: no CPU ASR image is pinned by this package, so you must supply the reference |
+| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here, and the compose memory limit is written for RK3576's memory — a 4 GB CM4 needs it lowered |
 
-### Target {#stack_remote type=remote device=stack_host device_name="Stack Host" config=devices/cloud_stack.yaml default=true}
+### Target {#stack_remote type=remote device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml default=true}
 
-Deploy over SSH to a host on the network. This is the normal path.
+Audio comes from your app. Deploy over SSH to a host on the network; the stack
+publishes the ASR endpoint and runs no capture client of its own. Continue with
+Step 2.
 
-### Target {#stack_local type=local device=stack_host device_name="Stack Host" config=devices/cloud_stack.yaml}
+### Target {#stack_local type=local device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml}
 
-Deploy onto this machine, when the stack runs where you are working. Same
-compose, same inputs, no SSH credentials.
+The same app-capture stack, deployed onto this machine when it runs where you
+are working. Same compose, same inputs, no SSH credentials.
+
+### Target {#collector_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576 (mic capture)" config=devices/collector_rk3576.yaml}
+
+Audio comes from a mic array on this box. The same stack plus a capture client
+bound to the array, on the NPU path — the ASR backend is the RK3576 build and
+needs no extra input. Skip Step 2.
+
+### Target {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4 (mic capture)" config=devices/collector_rerouter.yaml}
+
+The same stack plus the capture client on the CPU path. Its compose variant
+takes the ASR image as a required input, because this package pins none for
+CM4. Unverified on real hardware. Skip Step 2.
 
 ---
 
@@ -291,47 +336,7 @@ you are using the edge collector in Step 3.
 
 ---
 
-## Step 3: Deploy the Edge Collector {#deploy_collector type=docker_deploy required=false config=devices/collector_rk3576.yaml}
-
-Only if the audio comes from a mic array instead of an app. The same frozen
-stack, plus the capture client bound to the array on this host — normally the
-box you deployed in Step 1. Skip it if you configured the app endpoint in
-Step 2.
-
-### Wiring
-
-1. Plug the reSpeaker XVF3800 into a USB port on the edge box before deploying.
-2. Run `cat /proc/asound/cards` and note the card number — it goes into the ALSA
-   Card ID field. It is usually 1, but it moves when other audio devices are
-   attached.
-3. Place the array where the conversation happens: a counter or service desk at
-   roughly one metre. Beamforming helps with direction, not with distance.
-4. Keep it off surfaces that carry vibration from the box's own fan.
-5. Do not connect a second microphone. The pipeline is single-capture, and a
-   second card only makes the card number ambiguous.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| voice-client restarts in a loop | The ALSA card ID is wrong; `cat /proc/asound/cards` on the device and redeploy with the right number |
-| Container runs but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
-| Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
-| Deploy fails with `set OVS_ASR_IMAGE ...` | Only the CM4 target: no CPU ASR image is pinned by this package, so you must supply the reference |
-| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here, and the compose memory limit is written for RK3576's memory — a 4 GB CM4 needs it lowered |
-
-### Target {#collector_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/collector_rk3576.yaml default=true}
-
-The NPU path. The ASR backend is the RK3576 build and needs no extra input.
-
-### Target {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/collector_rerouter.yaml}
-
-The CPU path. Uses a compose variant whose ASR image is a required input,
-because this package pins none for CM4. Unverified on real hardware.
-
----
-
-## Step 4: Open the Admin Console {#admin_web type=web_dashboard required=false config=devices/admin_web.yaml}
+## Step 3: Open the Admin Console {#admin_web type=web_dashboard required=false config=devices/admin_web.yaml}
 
 Opens `http://<stack-host>:3000/` — the recordings, keywords, devices, export and
 delete surface.
@@ -364,7 +369,7 @@ delete surface.
 
 ---
 
-## Step 5: Verify Transcription and Deletion {#verify_stack type=manual required=true verify=true config=devices/verify_stack.yaml}
+## Step 4: Verify Transcription and Deletion {#verify_stack type=manual required=true verify=true config=devices/verify_stack.yaml}
 
 Say one sentence, check that what landed is redacted, delete it, and prove the
 deletion.
@@ -423,7 +428,9 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 1. `docker ps` on the stack host shows `c4-mysql`, `c4-minio`, `c4-ovs-asr`,
    `c4-voice-service` and `c4-voice-web` all up — plus `c4-voice-client` when a
    collector is deployed.
-2. `curl -sf http://<stack-host>:8081/healthz` returns without error.
+2. `curl -sf http://<stack-host>:8081/healthz` returns without error, and on a
+   mic-capture target `curl -sf http://<stack-host>:8621/health` does too —
+   that is the recognizer the capture client feeds.
 3. A request with no token returns 401; a viewer token on the delete route
    returns 403.
 4. The newest recording shows placeholders, not raw personal data.
