@@ -122,28 +122,28 @@ intro:
       port: 8089
       endpoint: /v1/gallery/skus, /v1/gallery, /v1/gallery/{version}, /v1/gallery/current/download, /v1/gallery/rollback/{version}
       description: >-
-        The whole registration surface. `POST /v1/gallery/skus` takes a sku_id,
+        The whole registration surface. "POST /v1/gallery/skus" takes a sku_id,
         a display name, aliases, a licence field and 3 to 8 images, runs them
         through a quality gate, embeds them and mints a new immutable gallery
-        version; the same sku_id returns 409 unless `replace=true`. The
+        version; the same sku_id returns 409 unless "replace=true". The
         console side of the versioning protocol is implemented — versions are
-        immutable, `current/download` serves a tar.gz with SHA256SUMS inside,
+        immutable, "current/download" serves a tar.gz with SHA256SUMS inside,
         and rollback re-verifies the target version's SHA before switching
         without minting a new one. The device-side runtime that would fetch a
         version, verify its checksums and switch atomically does not exist yet
         (in progress — see upstream spec).
-        Authorisation is `Bearer <token>` with viewer < operator < admin, and
+        Authorisation is "Bearer <token>" with viewer < operator < admin, and
         there is no anonymous read — the token table is injected at deploy
         time and the code carries no default token.
       schema_type: json
       description_i18n:
         zh: >-
-          注册接口的全部。`POST /v1/gallery/skus` 接收 sku_id、显示名、别名、许可字段
+          注册接口的全部。「POST /v1/gallery/skus」 接收 sku_id、显示名、别名、许可字段
           与 3–8 张图，过质量闸门后做嵌入，生成一个新的不可变商品库版本；同一个 sku_id
-          返回 409，除非显式 `replace=true`。控制台侧的版本协议已实现——版本不可变，
-          `current/download` 提供带 SHA256SUMS 的 tar.gz，回滚在切换前重校目标版本的
+          返回 409，除非显式 「replace=true」。控制台侧的版本协议已实现——版本不可变，
+          「current/download」 提供带 SHA256SUMS 的 tar.gz，回滚在切换前重校目标版本的
           SHA 且不产生新版本。设备端运行时——拉取版本、校验 checksum、原子切换——
-          尚未实现（开发中，见上游 spec）。鉴权是 `Bearer <token>`，角色 viewer < operator < admin，
+          尚未实现（开发中，见上游 spec）。鉴权是 「Bearer <token>」，角色 viewer < operator < admin，
           没有匿名读——token 表在部署时注入，代码里没有任何默认 token。
     - type: http
       port: 8080
@@ -193,14 +193,14 @@ intro:
     - type: other
       description: >-
         An x86_64 machine for model conversion. Neither the RKNN toolkit nor
-        the Hailo Dataflow Compiler runs on the target board, so the `.rknn`
-        and the `.hef` are produced off-device and copied over. This is a
+        the Hailo Dataflow Compiler runs on the target board, so the ".rknn"
+        and the ".hef" are produced off-device and copied over. This is a
         one-time step per model, not per deployment.
       required: true
       description_i18n:
         zh: >-
           一台 x86_64 机器用于模型转换。RKNN toolkit 与 Hailo Dataflow Compiler
-          都不在目标板上运行，`.rknn` 与 `.hef` 都在别的机器上产出后拷过去。
+          都不在目标板上运行，「.rknn」 与 「.hef」 都在别的机器上产出后拷过去。
           这是每个模型一次的事，不是每次部署都要做。
 
   device_catalog:
