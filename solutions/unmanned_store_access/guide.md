@@ -97,9 +97,9 @@ or on-prem host, and writes the signing key and the first console token.
 - **Its clock must be right.** Door devices with no working RTC take their time
   correction from this server's HTTP `Date` header, so a wrong clock here
   misdates every audit record in the installation.
-- **The container image has not been pushed.** The compose file names the tag it
-  will have and carries the build command in its header. Build it on the host
-  from the upstream repository and retag before running this step.
+- **The container image is published** (`unmanned-store-access-cloud:0.1.0-c1`,
+  two-arch manifest); the compose file's default already points at it. Override
+  it only if you rebuilt from source.
 - A signing key: `openssl rand -hex 32`. It is required, not optional — a device
   on a plaintext library URL refuses to start without it.
 
@@ -410,8 +410,9 @@ Known weaknesses, none of them measured:
 - **The DO pin numbers are unconfirmed.** The design spec records DO1–DO4 as
   sysfs 463/464/465/462; whether the target image exposes them that way, or
   through Jetson.GPIO instead, is open.
-- **Neither container image exists.** No published digest for the recognition
-  service, and this project's device image has never been built.
+- **The access-node container image does not exist.** The recognition-service
+  image is published, but this project's device image (`ACCESS_NODE_IMAGE`)
+  has never been built — the daemon it would run does not exist yet either.
 - **Backlit doorways and glass reflections** have not been characterised.
 
 ## Step 1: Deploy the Face Library Server {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
@@ -423,8 +424,8 @@ the broker and the console container, and writes the signing key.
 
 - A Linux host with Docker and the compose plugin, reachable from the door.
 - **Its clock must be right** — door devices take their time correction from it.
-- **The container image has not been pushed.** Build it on the host and retag it
-  to the name in the compose file first.
+- **The container image is published**; the compose file's default already
+  points at it.
 - A signing key: `openssl rand -hex 32`.
 
 ### Troubleshooting
@@ -669,7 +670,8 @@ Same cloud host, same step as the other presets.
 - A Linux host with Docker and the compose plugin, reachable from both the
   access host and the relay node.
 - **Its clock must be right.**
-- **The container image has not been pushed.** Build and retag on the host.
+- **The container image is published**; the compose file's default already
+  points at it.
 - A signing key: `openssl rand -hex 32`.
 
 ### Troubleshooting
@@ -928,7 +930,8 @@ Same cloud host, same step as the other presets.
 - A Linux host with Docker and the compose plugin, reachable from both the
   access host and the relay node.
 - **Its clock must be right.**
-- **The container image has not been pushed.** Build and retag on the host.
+- **The container image is published**; the compose file's default already
+  points at it.
 - A signing key: `openssl rand -hex 32`.
 
 ### Troubleshooting
@@ -1173,7 +1176,8 @@ endpoints as everything else.
 - A Linux host with Docker and the compose plugin, reachable from the XIAO's
   Wi-Fi network.
 - **Its clock must be right.** The XIAO has no RTC at all.
-- **The container image has not been pushed.** Build and retag on the host.
+- **The container image is published**; the compose file's default already
+  points at it.
 - A signing key: `openssl rand -hex 32`. On this preset it is not a hardening
   option — with no RTC the XIAO cannot validate a TLS certificate, so the
   manifest signature is the entire integrity boundary.

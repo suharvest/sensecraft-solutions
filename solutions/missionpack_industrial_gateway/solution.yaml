@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/live-points.png
+  cover_image: gallery/cover-console-overview-zh.jpg
   category: industrial_iot
   solution_type: solution
   tags:
@@ -30,20 +30,25 @@ intro:
 
   gallery:
     - type: image
-      src: gallery/live-points.png
-      caption: Every point from every protocol in one table — source, host, address, value, unit, quality and timestamp, with read/write marked per point
+      src: gallery/console-overview-zh.jpg
+      caption: Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success and write-readback rates, points grouped by protocol, and one card per source with its last successful poll
       caption_i18n:
-        zh: 所有协议的点位汇在一张表里——来源、主机、地址、当前值、单位、质量与时间戳，逐点标出可读可写
+        zh: 站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、按协议分组的点位，以及每个数据源一张卡片带最近一次成功采集时间
     - type: image
-      src: gallery/access-runtime.png
-      caption: The source list — protocol, configured state, runtime state, acquisition mode and last successful poll for each industrial source
+      src: gallery/console-overview-en.jpg
+      caption: The same overview in English — four protocols, thirteen devices, one hundred and twenty points on a single page
       caption_i18n:
-        zh: 数据源列表——每个工业源的协议、配置状态、运行状态、采集方式与最近一次成功采集时间
+        zh: 同一总览的英文界面——四种协议、13 台设备、120 个点位在同一页
     - type: image
-      src: gallery/data-service.png
-      caption: Configure the embedded MQTT service and inspect its topic contract
+      src: gallery/console-topology-zh.jpg
+      caption: Device topology — source to protocol to device to point, with quality and writability on every leaf and offline sources greyed out
       caption_i18n:
-        zh: 配置内置 MQTT 服务并查看统一主题契约
+        zh: 设备拓扑——数据源 → 协议 → 设备 → 点位，每个叶子标出质量与可写性，离线数据源置灰
+    - type: image
+      src: gallery/console-topology-en.jpg
+      caption: The same tree in English — an offline Modbus source still shows its points, marked unknown rather than dropped
+      caption_i18n:
+        zh: 同一棵树的英文界面——离线的 Modbus 源仍然列出点位，标为"未知"而不是消失
     - type: video
       src: gallery/demo.mp4
       thumbnail: gallery/cover.png

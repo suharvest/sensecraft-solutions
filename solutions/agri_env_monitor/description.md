@@ -132,9 +132,10 @@ uses.
   `.env` files on the host and, on the ChirpStack preset, the LNS-side broker runs
   without authentication on the compose network. Both are safe on a trusted LAN
   and not elsewhere.
-- **The bridge image is not published yet.** `agri-env-bridge:0.1.0` exists as a
-  tag reference only; build it locally before deploying, or point `BRIDGE_IMAGE`
-  at your own registry.
+- **The bridge image is published** at
+  `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+  (linux/amd64 + linux/arm64). `BRIDGE_IMAGE` defaults to that tag; point it at
+  your own registry to deploy a local build instead.
 
 ## Licensing note
 

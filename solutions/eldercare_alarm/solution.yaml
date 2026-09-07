@@ -22,15 +22,42 @@ intro:
       caption_i18n:
         zh: 告警是怎么产生的——房间地面上的人，跟踪目标上画出姿态骨架，横幅给出跌倒判定与取证计数
     - type: image
-      src: gallery/eldercare-alarm-console-zh.png
-      caption: The confirmation console — alarm list, voice check-in verdicts, confirm/dismiss. Screenshot of the React UI (eldercare-alarm/eldercare/web/ui) against replayed demo data, no camera footage. See gallery/ATTRIBUTION.md.
+      src: gallery/panel-dashboard-zh.jpg
+      caption: Site overview — 8 rooms, 10 cameras, 18 zones, a 24-hour alarm trend split by type, and one card per room carrying its own live thumbnail and open-alarm count
       caption_i18n:
-        zh: 确认控制台——告警列表、语音确认结论、确认/驳回。React 前端（eldercare-alarm/eldercare/web/ui）截图，数据来自回放器演示场景，不含摄像头画面，来源见 gallery/ATTRIBUTION.md
+        zh: 站点总览——8 个房间、10 路摄像头、18 个识别区域，24 小时按类型分色的告警趋势，每个房间一张卡片带自己的画面缩略图与未处置数
     - type: image
-      src: gallery/eldercare-alarm-console-en.png
-      caption: The same console in English — two alarms, both already escalated, with the webhook result on each row
+      src: gallery/panel-dashboard-en.jpg
+      caption: The same overview in English — the panel switches language without a reload
       caption_i18n:
-        zh: 同一控制台的英文界面——两条告警都已升级，每行右侧是 webhook 的发送结果
+        zh: 同一总览的英文界面——面板切换语言不需要重新加载
+    - type: image
+      src: gallery/panel-room-detail-zh.jpg
+      caption: Room 108 — camera online state, live-view switch, and the alarm list with confirm / dismiss / mark-handled on each row
+      caption_i18n:
+        zh: 108 房详情——摄像头在线状态、实时画面开关，告警列表每行都有确认／驳回／标记已处置
+    - type: image
+      src: gallery/panel-room-offline-zh.jpg
+      caption: >-
+        Room 107 with an unreachable camera — the room reads unknown and
+        stream-lost, with the last frame never received, instead of normal
+      caption_i18n:
+        zh: 107 房摄像头连不上——房间显示"未知 + 断流 + 最近一帧：从未收到"，而不是"正常"
+    - type: image
+      src: gallery/panel-config-live-view-zh.jpg
+      caption: Zone configuration on the live WebRTC picture — two zone rectangles drawn on a 4:3 stream, the letterbox bars stay outside the boxes because coordinates map to the picture, not the container
+      caption_i18n:
+        zh: 在 WebRTC 实时画面上配置识别区域——两个区域矩形画在 4:3 画面上，两侧黑边在框外，说明坐标按画面而不是按容器映射
+    - type: image
+      src: gallery/panel-config-conflict-409-zh.jpg
+      caption: Another administrator saved first — this page gets a 409 and a reload dialog instead of silently overwriting
+      caption_i18n:
+        zh: 另一位管理员先保存——本页拿到 409 与"重新载入"对话框，而不是静默覆盖
+    - type: image
+      src: gallery/panel-draw-save-reload.gif
+      caption: Redraw the bed zone on the live picture, save (config version 2 to 3, one more row in the change log), reload and see it come back
+      caption_i18n:
+        zh: 在实时画面上重画床区 → 保存（配置版本 2→3，变更记录多一行）→ 刷新回显
     - type: image
       src: gallery/eldercare-alarm-architecture.svg
       caption: Event flow — the detector publishes MQTT, the alarm service adds zones, timeouts, a state machine and an audit store

@@ -8,8 +8,9 @@ The original baseline (MobileNetV3-Small, "m1b") collapsed under INT8
 quantisation on all three edge chains tested (the Hailo compiler's simulator, RK3576, RK3588);
 EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
 figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
-and RK3588 sections carry real INT8 numbers from an RK3588 board. The Hailo-8
-figures come from the compiler's simulator rather than from a Hailo-8 board.
+and RK3588 sections carry real INT8 numbers, both from hardware: RK3588 from an
+RK3588 board, Hailo-8 from a Raspberry Pi 5 with a Hailo-8 M.2 module (the
+shipping form of that accelerator is the reComputer R2000).
 The reCamera section is the exception — those numbers were taken on the camera
 itself.
 
@@ -179,23 +180,27 @@ same softmax/top-k/mapping code path. The baseline column was recomputed on
 this split for the comparison; its val top-1 matches the standalone m1b report
 to the digit.
 
-### Hailo-8 — baseline compiles and quantises cleanly, measured in the compiler's simulator
+### Hailo-8 — measured on hardware, and the quantisation cost has been tuned away
 
 | Path | Status |
 |---|---|
-| Baseline EfficientNet-Lite0 (m1c) → HEF | **Compiled successfully, one attempt, no fix needed.** `hailo optimize` and `compiler` both exit 0 on the first try — Lite0 has no Squeeze-Excite branch, so it never hits the `avgpool` shift-range issue m1b needed a model-script fix for. On 200 val images (the Hailo compiler's simulator): INT8 vs CPU/native top-1 agreement **0.890**, accuracy vs ground truth **0.755** (native/CPU is 0.795 on the same images) — a 4-point drop, not a collapse. Cosine similarity to CPU: mean 0.948, min 0.441. **All of these numbers are from the the compiler's own simulator on an x86 host; no Hailo-8 PCIe card was used.** `evaluation/runs/2026-09-06-m1c-hef` |
+| Baseline EfficientNet-Lite0 (m1c) → HEF | **Compiled successfully, one attempt, no fix needed.** `hailo optimize` and `compiler` both exit 0 on the first try — Lite0 has no Squeeze-Excite branch, so it never hits the `avgpool` shift-range issue m1b needed a model-script fix for. **Measured on hardware over the full 7417-image val set (Pi 5 + Hailo-8 M.2): material top-1 0.8889, Chinese four-way 0.9507, agreement vs fp32 CPU 0.9581, p50 3.166 ms / p95 3.249 ms for inference alone.** That is +0.12 points against the fp32 CPU baseline on the same images (0.8877), so quantisation costs nothing measurable here. `evaluation/runs/2026-09-07-hailo-quant-tuning` |
+| That number was tuned, it is not the first build | The first HEF (`optimization_level=1`, 1024 calibration images) measured top-1 0.8637 and agreement 0.9320 on the same images — **2.40 points below fp32**. The cause was not a small calibration set (the DFC consumes only 64 entries by default, and raising that to 1024 changed nothing) but the weight-quantisation error itself; switching to `optimization_level=2`'s quantisation-aware distillation finetune lifted output SNR from 12.01 dB to 23.18 dB and closed the gap. Compile time goes from 241 s to 1301 s and the container must be started with `--gpus all`. `evaluation/runs/2026-09-07-hailo-quant-tuning` |
 | Baseline MobileNetV3-Small (m1b) → HEF | Compiled, but INT8 collapses: simulator agreement 0.115, accuracy vs ground truth 0.150 (near the 1/7 random baseline). Superseded by Lite0 for this reason — see the contrast table above. `evaluation/runs/2026-09-06-m1b-hef` |
 | SigLIP 2 vision tower → HEF | The m1c work does not touch this path. `hailo parser` passes end to end with no unsupported op. `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1) **fails** with `NegativeSlopeExponentNonFixable` at layer `ne_activation_mul_and_add78` — "Desired shift is 16.0, but op has only 8 data bits". No optimized HAR, no compiler run, no HEF. |
 
-**What "0.89 agreement" does and does not support.** It supports: EfficientNet-Lite0
-INT8-quantises without the pattern collapse MobileNetV3-Small showed on the
-same compile pipeline and the same calibration set, and `hailo optimize`
-needed no SE-branch workaround to get there. It does not support: that the HEF
-classifies waste correctly on a real Hailo-8 — no Hailo-8 hardware exists in
-this project's evaluation chain, so board-level latency, thermal behaviour and
-accuracy are all unmeasured. The calibration set (256 images) is also below
-the ~1024-image threshold the compiler documentation typically recommends, and was
-reused unchanged from the m1b run rather than resampled for Lite0.
+**What these figures do and do not support.** They support: the INT8 HEF runs
+the full 7417-image val set on a real Hailo-8 at parity with the host fp32
+baseline, with the tightest latency distribution of any platform on this page
+(p95 − p50 = 0.08 ms). They do not support: **the bench is a Raspberry Pi 5
+with a Hailo-8 M.2 module, not a reComputer R2000 chassis** — same accelerator
+and same HailoRT, different enclosure, thermals and power delivery, so
+sustained-load behaviour does not carry over. Only INT8 was measured: the
+Hailo-8 has no fp16 path, so the quantisation cost is measured against a host
+rather than against fp16 on the same board, as it is on RK3588. The finetune
+used the train split, which shares its source and capture conditions with val,
+so "+0.12 points over fp32" is more safely read as the quantisation cost having
+fallen inside measurement noise than as quantisation improving on float.
 
 **The open-vocabulary tower's INT8 quantisation is the open item; if it
 cannot be made to work the fallback is distillation into a small student
@@ -271,7 +276,7 @@ so an untested claim either way would be a guess.
 | Platform | Status |
 |---|---|
 | Jetson Orin (TensorRT) | Deployment package shipped, baseline swapped to EfficientNet-Lite0 ONNX; engine has never been built on any Jetson |
-| reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF compiles and quantises cleanly, with agreement 0.89 in the compiler's simulator. No figures from a Hailo-8 board. The open-vocabulary tower still fails INT8 quantisation |
+| reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
 | RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
 | CPU (onnxruntime) | Every accuracy figure on this page |

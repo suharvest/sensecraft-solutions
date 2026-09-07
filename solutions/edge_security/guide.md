@@ -99,6 +99,55 @@ The broker, the hub and one detector are running on the machine you chose.
 4. Save, then walk into the area. The alert appears in **Workbench** within a
    second, with the snapshot the hub requested from the detector.
 
+#### The video wall
+
+**Workbench → Video wall.** An adaptive grid — 1, 2, 4, 6 or 9 tiles, or Auto,
+which picks the smallest layout that fits every stream. Each tile carries the
+detector's boxes with their track id and score, plus that stream's restricted
+zone and tripwire, so you are looking at what the rule will be judged against
+rather than only at who is in frame.
+
+The strip above the grid is the part to read before any picture: how many
+streams are live out of how many, how many are down, how many fell back to
+software decode, and the total frame rate.
+
+**`F` puts it fullscreen** and `Esc` brings it back — that is the mode for an
+HDMI screen in a control room. The top bar disappears and the tiles fill the
+display.
+
+A tile whose device is offline, or whose stream is reconnecting, goes grey and
+says so, falling back to the last frame the hub cached. It never keeps painting
+a live picture for a camera that stopped sending one.
+
+#### Tuning confidence without a restart
+
+Each tile at the 1, 2 and 4 layouts carries a confidence slider. Move it and the
+detector uses the new threshold from its next frame — no restart, no redeploy.
+The value is also written back into `config/detector.yaml`, so it survives one.
+
+Lower is more sensitive and produces more false alarms; higher is more
+conservative. Below about 0.25 an int8 model starts reporting low-confidence
+boxes rather than finding people it was missing.
+
+Every change is recorded: `GET /api/audit` lists who moved what, from what to
+what, and whether the detector took it. **If the console says the result is
+unknown, it means the detector did not answer** — reload the Devices page and
+read the value the detector itself reports rather than assuming either outcome.
+
+#### Adding a camera from the browser
+
+**Video wall → Add camera.** Pick the detector to attach it to, paste the RTSP
+address, give it a name, and the stream ID is prefilled with the next free one.
+The button stays on *Connecting to the camera…* until the detector has actually
+opened the source, so a 201 means the tile is live rather than queued. The
+password in the address is masked in the echo line below the field.
+
+One detector process carries several cameras: they share the accelerator and the
+model session, each with its own capture loop and tracker. Add one, watch the
+detector's CPU figure on the Devices page, and add the next only if there is
+room. The trash icon on a tile detaches a camera; alerts it already produced are
+kept.
+
 #### Working the alert list
 
 Each alert can be acknowledged or marked a false positive, with an undo bar for
@@ -351,6 +400,55 @@ proxies from the detector. A polygon becomes a restricted zone; a line becomes a
 tripwire whose arrow shows which direction counts as forward. Rules are stored
 in normalized coordinates, so they survive a resolution change — but not a
 camera move, since the boundary is drawn on that view.
+
+#### The video wall
+
+**Workbench → Video wall.** An adaptive grid — 1, 2, 4, 6 or 9 tiles, or Auto,
+which picks the smallest layout that fits every stream. Each tile carries the
+detector's boxes with their track id and score, plus that stream's restricted
+zone and tripwire, so you are looking at what the rule will be judged against
+rather than only at who is in frame.
+
+The strip above the grid is the part to read before any picture: how many
+streams are live out of how many, how many are down, how many fell back to
+software decode, and the total frame rate.
+
+**`F` puts it fullscreen** and `Esc` brings it back — that is the mode for an
+HDMI screen in a control room. The top bar disappears and the tiles fill the
+display.
+
+A tile whose device is offline, or whose stream is reconnecting, goes grey and
+says so, falling back to the last frame the hub cached. It never keeps painting
+a live picture for a camera that stopped sending one.
+
+#### Tuning confidence without a restart
+
+Each tile at the 1, 2 and 4 layouts carries a confidence slider. Move it and the
+detector uses the new threshold from its next frame — no restart, no redeploy.
+The value is also written back into `config/detector.yaml`, so it survives one.
+
+Lower is more sensitive and produces more false alarms; higher is more
+conservative. Below about 0.25 an int8 model starts reporting low-confidence
+boxes rather than finding people it was missing.
+
+Every change is recorded: `GET /api/audit` lists who moved what, from what to
+what, and whether the detector took it. **If the console says the result is
+unknown, it means the detector did not answer** — reload the Devices page and
+read the value the detector itself reports rather than assuming either outcome.
+
+#### Adding a camera from the browser
+
+**Video wall → Add camera.** Pick the detector to attach it to, paste the RTSP
+address, give it a name, and the stream ID is prefilled with the next free one.
+The button stays on *Connecting to the camera…* until the detector has actually
+opened the source, so a 201 means the tile is live rather than queued. The
+password in the address is masked in the echo line below the field.
+
+One detector process carries several cameras: they share the accelerator and the
+model session, each with its own capture loop and tracker. Add one, watch the
+detector's CPU figure on the Devices page, and add the next only if there is
+room. The trash icon on a tile detaches a camera; alerts it already produced are
+kept.
 
 #### What it publishes
 
