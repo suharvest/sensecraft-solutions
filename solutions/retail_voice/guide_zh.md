@@ -163,7 +163,7 @@
 | 手机 App（你的，不在本包内） | 采集音频并上传到 ASR 端点 |
 | reSpeaker XVF3800 + reComputer RK3576 或 reRouter CM4 | App 之外的采集端选择 |
 
-**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别是关的：声纹容器的镜像仍待构建，`speaker.identified` 恒为 false，步骤 2 的 ASR 端点在那个镜像出来之前无法端到端跑通。
+**重要：** 这不是合规认证。脱敏只覆盖文本——音频在保留期内是未脱敏的，但被删除流程覆盖。脱敏在 114 条金标准集上的成绩是 precision 0.98 / recall 0.95，也就是会漏；低置信实体是标记复核而不是遮蔽。说话人识别是关的：声纹容器的镜像尚未构建，`speaker.identified` 恒为 false，步骤 2 的 ASR 端点在那个镜像出来之前无法端到端跑通。
 
 ## 步骤 1: 部署语音服务端栈 {#deploy_stack type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
@@ -194,7 +194,7 @@ voice-service 与管理后台。
 | 所有 API 调用都 401 | 你发的令牌不在 `VOICE_API_TOKENS` 里；格式是 `name:role:token`，逗号分隔 |
 | 返回的是 403 而不是 401 | 凭据有效但角色档位不够——删除与导出需要 admin |
 | 别的机器连不上 MySQL | 有意为之：MySQL 与 MinIO 只绑 127.0.0.1。要远程连走 SSH 隧道 |
-| 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；它的镜像仍待构建验证 |
+| 8080 上的 `/ws` 连不上 | 声纹容器在 `voiceprint` profile 里默认不启动；它的镜像尚未构建 |
 | 拉 voice-service 或 voice-web 报 "not found" | 这两个镜像还没推到 registry——先构建并推送，再确认 compose 里的 digest 与 registry 返回的一致 |
 | 莫名出现云端分析容器 | 它只在 `--profile cloud-analytics` 时启动；如果在跑，说明有人开了它，文本正在离开这台主机 |
 

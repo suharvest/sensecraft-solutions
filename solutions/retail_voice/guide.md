@@ -201,7 +201,7 @@ only — the audio is kept unredacted for its retention window and is covered by
 the deletion flow. Redaction scored precision 0.98 / recall 0.95 on a
 114-sample gold set, which means misses happen; low-confidence entities are
 flagged for review rather than masked. Speaker identification is off: the
-voiceprint container's image is still pending a build, so `speaker.identified`
+voiceprint container's image has not been built, so `speaker.identified`
 stays false and the ASR endpoint of Step 2 cannot be completed end to end until
 that image exists.
 
@@ -238,7 +238,7 @@ console.
 | Every API call returns 401 | The token you are sending is not in `VOICE_API_TOKENS`; the format is `name:role:token`, comma-separated |
 | A call returns 403, not 401 | The credential is valid but its role is too low — deletion and export need admin |
 | MySQL cannot be reached from another machine | Intentional: MySQL and MinIO bind to 127.0.0.1 only. Use an SSH tunnel |
-| `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; its image is still pending a build |
+| `/ws` on 8080 refuses to connect | The voiceprint container is in the `voiceprint` profile and does not start by default; its image has not been built |
 | Pull fails with "not found" on voice-service or voice-web | Those images have not been pushed to the registry yet — build and push them, then confirm the digest in the compose file matches what the registry returns |
 | Cloud analytics containers appear unexpectedly | They only start with `--profile cloud-analytics`; if they are running, someone enabled it, and text is leaving the host |
 
