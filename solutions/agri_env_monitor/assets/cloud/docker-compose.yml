@@ -6,22 +6,18 @@
 # Home Assistant MQTT discovery entities on the broker deployed by
 # assets/docker/docker-compose.yml.
 #
-# IMAGE STATUS: `agri-env-bridge:0.1.0` is NOT published to any registry yet.
-# `docker manifest inspect agri-env-bridge:0.1.0` was run while packaging and
-# returned "denied: requested access to the resource is denied /
-# unauthorized: authentication required" — the registry has no such
-# repository. Until it is pushed to
-# sensecraft-missionpack.seeed.cn/solution/, build it locally from the
+# IMAGE STATUS: published at
+# sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0
+# (linux/amd64 + linux/arm64, built 2026-09-07 from agri-env-monitor @ 230073f).
+# BRIDGE_IMAGE defaults to that tag below; build locally from the
 # agri-env-monitor repository (`docker build -f deploy/Dockerfile -t
-# agri-env-bridge:0.1.0 .`) or override BRIDGE_IMAGE with your own tag.
-# The tag is written out here rather than left blank so the intended reference
-# is unambiguous once it is published.
+# agri-env-bridge:0.1.0 .`) or override BRIDGE_IMAGE to use your own instead.
 
 name: ${COMPOSE_PROJECT_NAME:-agri-env-cloud}
 
 services:
   bridge:
-    image: ${BRIDGE_IMAGE:-agri-env-bridge:0.1.0}
+    image: ${BRIDGE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0}
     container_name: agri-env-bridge-cloud
     environment:
       - TZ=${TZ:-Asia/Shanghai}

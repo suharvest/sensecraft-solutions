@@ -5,12 +5,12 @@ name_i18n:
   zh: 注册管理端
 type: docker_deploy
 
-# NOT VERIFIED ON HARDWARE. Neither image exists: `edge-retail-server` and
-# `edge-retail-web` have never been pushed to any registry, because the upstream
-# project builds them from a repository checkout. Both variables are required
-# with no default, so this step stops at the first `docker compose up` until
-# they are supplied — that is the intended behaviour, not a gap to paper over
-# with a placeholder tag.
+# NOT VERIFIED ON HARDWARE. Both images are published at
+# sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+# and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64, built
+# 2026-09-07 from edge-retail-recognition @ a787f41) and are the defaults for
+# server_image / web_image below. Override either input to build and deploy
+# your own instead.
 #
 # The SPA is built on the host before the image is built. The images do not run
 # npm: a node_modules tree on an arm64 board is larger than the service itself,
@@ -67,19 +67,21 @@ remote_overrides:
 
   actions:
     before:
-      - name: Check Docker and that both images are present
+      - name: Check Docker and that both images are present or pullable
         run: |
           set -e
           docker compose version >/dev/null 2>&1 || {
             echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
-          # Neither image is published. Failing here with the image name printed
-          # is more useful than failing inside `compose up` with a registry
-          # error that points at a host that never had it.
+          # Default tags are published to sensecraft-missionpack.seeed.cn/solution/;
+          # a self-built override may only exist locally. Accept either: present
+          # locally, or pullable from wherever the tag resolves.
           for IMG in "{{server_image}}" "{{web_image}}"; do
             if docker image inspect "$IMG" >/dev/null 2>&1; then
               echo "present: $IMG"
+            elif docker pull "$IMG" >/dev/null 2>&1; then
+              echo "pulled: $IMG"
             else
-              echo "MISSING: $IMG — build it from the upstream repository on this host (see the compose file header) or push it to a registry this host can reach." >&2
+              echo "MISSING: $IMG — not present locally and not pullable. If this is a self-built tag, build it from the upstream repository on this host (see the compose file header); if it is the published default, check registry reachability from this host." >&2
               exit 1
             fi
           done
@@ -165,19 +167,23 @@ remote_overrides:
       name: Registration Service Image
       type: text
       required: true
-      placeholder: "edge-retail-server:0.1.0-dev"
+      default: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0"
       description: >-
-        This image has never been published. Build it on this host from the
-        upstream repository with platforms/console/Dockerfile.server and put
-        the tag you built here. Pin a digest if your registry gives you one:
-        gallery vectors written by one build are only comparable to vectors
-        written by the same embedding model and the same preprocessing, and the
-        symptom of a mismatch is "nothing is recognised", not a version error.
+        Published at sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+        (linux/amd64 + linux/arm64). To use your own build instead, build it on
+        this host from the upstream repository with
+        platforms/console/Dockerfile.server and put the tag you built here.
+        Pin a digest if your registry gives you one: gallery vectors written by
+        one build are only comparable to vectors written by the same embedding
+        model and the same preprocessing, and the symptom of a mismatch is
+        "nothing is recognised", not a version error.
       name_i18n:
         zh: 注册服务镜像
       description_i18n:
         zh: >-
-          这个镜像从未发布过。在这台主机上用上游仓库的
+          已发布在 sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+          （linux/amd64 + linux/arm64）。要用自建镜像的话，在这台主机上用上游仓库的
           platforms/console/Dockerfile.server 构建，把构建出的 tag 填在这里。
           registry 给得出 digest 就钉 digest：一个构建写出的商品库向量，只与同一个嵌入模型、
           同一套预处理写出的向量可比，对不上的症状是"什么都认不出来"，不是显眼的版本错误。
@@ -185,17 +191,21 @@ remote_overrides:
       name: Management UI Image
       type: text
       required: true
-      placeholder: "edge-retail-web:0.1.0-dev"
+      default: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-web:0.1.0"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-web:0.1.0"
       description: >-
-        Also never published. Build the SPA first
-        (`npm --prefix web/ui ci && npm --prefix web/ui run build`), then build
-        this image with platforms/console/Dockerfile.web. The image does not
-        run npm.
+        Published at sensecraft-missionpack.seeed.cn/solution/edge-retail-console-web:0.1.0
+        (linux/amd64 + linux/arm64). To build your own instead, build the SPA
+        first (`npm --prefix web/ui ci && npm --prefix web/ui run build`), then
+        build this image with platforms/console/Dockerfile.web. The image does
+        not run npm.
       name_i18n:
         zh: 管理界面镜像
       description_i18n:
         zh: >-
-          同样从未发布过。先构建 SPA（`npm --prefix web/ui ci && npm --prefix web/ui run build`），
+          已发布在 sensecraft-missionpack.seeed.cn/solution/edge-retail-console-web:0.1.0
+          （linux/amd64 + linux/arm64）。要自建的话，先构建 SPA
+          （`npm --prefix web/ui ci && npm --prefix web/ui run build`），
           再用 platforms/console/Dockerfile.web 构建这个镜像。镜像里不跑 npm。
     - id: admin_token
       name: Admin Token

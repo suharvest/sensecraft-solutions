@@ -55,8 +55,10 @@ OpenAPI 回填也从未在真实响应上验证过。
 1. 一对 SenseCAP API 密钥——Access ID 与 Access Key——在 SenseCAP Portal 的
    「安全 → Access API Keys」里获取。Access Key 只写入目标主机上权限 600 的 `.env` 文件。
 2. 步骤 1 的 broker 地址、端口、用户名与密码。桥在另一台机器上时，填局域网地址而不是 `127.0.0.1`。
-3. 桥的镜像。`agri-env-bridge:0.1.0` **尚未发布到任何 registry**——
-   部署前先从上游项目构建，或把 `BRIDGE_IMAGE` 指向你自己托管的 tag。
+3. 桥的镜像。已发布在
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   （linux/amd64 + linux/arm64），`BRIDGE_IMAGE` 默认指向它。要部署自建版本，
+   从上游项目构建后把 `BRIDGE_IMAGE` 指向你自己的 tag。
 4. 定好回填窗口。OpenAPI 最多回溯三个月、单次一个月，所以选三个月意味着每台设备三倍的请求量。
 
 ### 故障排查
@@ -66,7 +68,7 @@ OpenAPI 回填也从未在真实响应上验证过。
 | 桥的日志显示云端域名 DNS 失败 | 两个候选域名都未经确认。用 MQTT 域名选择框里的另一个重新部署 |
 | 桥的日志显示认证失败 | 检查 Access ID 与 Access Key 是否配对，以及该密钥是否已在 Portal 里被吊销 |
 | 设备出现了但没有数值 | 回填只把每个实体的最新值送进 Home Assistant。节点如果按小时上报，第一条实时更新可能要等一小时 |
-| 部署时报 `no such image` | 镜像 tag 未发布。先本地构建再重跑 |
+| 部署时报 `no such image` | 仅在覆盖了自建 `BRIDGE_IMAGE` 时才相关——本地构建后再重跑 |
 | 什么都没进 broker | 桥不在 Home Assistant 主机上时，broker 地址要填局域网地址，不能是 `127.0.0.1` |
 
 ### 部署目标 {#cloud_bridge_remote type=remote device_name="Bridge Host" config=devices/cloud_bridge.yaml default=true}
@@ -201,8 +203,10 @@ stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过�
    填 `127.0.0.1` 会导致别的机器登不进 Console。
 3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
 4. 步骤 1 的 broker 地址、端口、用户名与密码。
-5. 桥的镜像。`agri-env-bridge:0.1.0` **尚未发布到任何 registry**——
-   自行构建或覆盖 `BRIDGE_IMAGE`。
+5. 桥的镜像。已发布在
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   （linux/amd64 + linux/arm64），`BRIDGE_IMAGE` 默认指向它；要用自建版本就
+   自行构建后覆盖 `BRIDGE_IMAGE`。
 6. application ID 与 API key 在这一步要填，但要到步骤 4 才创建。
    先部署本步骤，在 Console 里创建它们，再用
    `docker compose restart bridge` 重启桥。
@@ -386,8 +390,10 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
 2. `local` 路线：至少 8 GB 空闲磁盘，以及与集中器和节点一致的频率计划。
 3. 步骤 1 的 broker 地址、端口、用户名与密码。
-4. 桥的镜像。`agri-env-bridge:0.1.0` **尚未发布到任何 registry**——
-   自行构建或覆盖 `BRIDGE_IMAGE`。
+4. 桥的镜像。已发布在
+   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
+   （linux/amd64 + linux/arm64），`BRIDGE_IMAGE` 默认指向它；要用自建版本就
+   自行构建后覆盖 `BRIDGE_IMAGE`。
 5. application ID。填 `+` 表示订阅该 broker 上的所有 application，
    单租户场地这样最省事。
 
@@ -398,7 +404,7 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 | 桥的日志里没有 `ChirpStack MQTT connected` | `m2` 路线上重新核对网关 LoRa Network 页面上的地址与凭据；`local` 路线上查 `docker compose --profile local-lns ps` |
 | `local` 路线上 ChirpStack 服务没起来 | 只有 `lns_mode` 为 `local` 时才会激活那个 profile。选对之后重跑本步骤 |
 | 8080 上的 Web 界面访问不到 | 只有 `local` 路线才会起 Web 界面。`m2` 路线上 ChirpStack 在网关里面 |
-| 部署时报 `no such image` | 桥的镜像 tag 未发布。先本地构建再重跑 |
+| 部署时报 `no such image` | 仅在覆盖了自建 `BRIDGE_IMAGE` 时才相关——本地构建后再重跑 |
 
 ### 部署目标 {#chirpstack_remote type=remote device_name="Bridge Host" config=devices/chirpstack_stack.yaml default=true}
 

@@ -6,6 +6,7 @@
 |---|---|---|
 | `architecture.svg` | Drawn for this solution | No |
 | `waste-recamera-sg2002-20260907.jpg` | Rendered from real on-device output | Yes (GC3, CC BY 4.0) |
+| `waste-npu-4up-20260908.jpg` | Rendered from real on-device output (cover) | Yes (TrashNet MIT + GC3 CC BY 4.0) |
 
 `architecture.svg` is the data path only — trigger, camera, the debounce,
 classify and four-way lookup stages, and the outputs with their ports. Boxes,
@@ -139,19 +140,19 @@ and `solution.yaml` does not use it yet — `architecture.svg` is referenced by
 its local path. Uploading is a separate step and is safe for this file, since it
 carries no dataset content; it has simply not been done.
 
-When the gallery is published, upload `architecture.svg` and switch
+When the gallery is published, upload the gallery files and switch
 `intro.cover_image` and `intro.gallery[].src` to the CDN URLs in one change.
 
 ## Model artefacts
 
 `assets/models/` carries checksums only — `SHA256SUMS` (baseline),
-`SHA256SUMS.open_vocab`, and `SHA256SUMS.hef` which is deliberately empty
-because no HEF exists. No weights, ONNX, engine or HEF is in this repository,
-and none has been uploaded to
-`https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/`
-either. The download steps in `devices/` name that path and verify the
-checksums, and each carries a `TODO(CDN)` comment saying the file is not there
-yet and must be placed on the device by hand in the meantime.
+`SHA256SUMS.open_vocab`, and `SHA256SUMS.hef`. No weights, ONNX, engine or HEF
+is in this repository. Of these, only the deployable Hailo-8 HEF
+(`efficientnet_lite0_waste8_u8.hef`) has been uploaded to
+`https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/`;
+its download step in `devices/hailo_waste.yaml` names that path and verifies
+the checksum before and after download. Everything else listed in these
+checksum files has not been uploaded anywhere.
 
 Neither container image has been pushed to
 `sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-{jetson,hailo}`;
@@ -159,8 +160,9 @@ both compose files say so at the top and name the local-build fallback.
 
 ## reCamera (SG2002) on-device results grid
 
-`waste-recamera-sg2002-20260907.jpg` is the only figure on this page produced
-by an accelerator rather than a host CPU. The four frames were classified by
+`waste-recamera-sg2002-20260907.jpg` is the second of the two figures on this
+page produced by an accelerator rather than a host CPU (the other is the cover,
+next section). The four frames were classified by
 the BF16 cvimodel running on a reCamera's own SG2002 TPU on 2026-09-07; the
 class, the Chinese four-way category and the per-frame inference time drawn on
 each tile are the values the device returned, not re-rendered estimates.
@@ -177,35 +179,69 @@ Material Identification" dataset, CC BY 4.0, and are reproduced here under that
 licence with the attribution string recorded above. All four were classified
 correctly; none was swapped for a better-looking result.
 
-## Multi-item table-top frames
+## Cover — `waste-npu-4up-20260908.jpg` (reCamera Pro RV1126B NPU)
 
-`waste-multi-item-a-20260907.jpg` and `waste-multi-item-b-20260907.jpg` are the
-detector's own output on two multi-item frames, cropped from the 640 × 640
-annotated scene of `media/multi-item-still-1.jpg` and `multi-item-still-2.jpg`
-in the `edge-waste-sorting-deb` working tree (rendered 2026-09-07 by
-`tools/render_multi_demo.py`; the per-frame counts and classes are logged in
-`media/multi-item-manifest.json`). The crop removes the blank canvas under the
-scene; nothing inside the frame was altered.
+The cover and `intro.gallery[0]`. 1600 × 1200, four 800 × 600 tiles, no gutter
+and no padding. Every label on it is a value the device returned.
 
-| File | Source | Items detected | Crop |
-|---|---|---|---|
-| `waste-multi-item-a-20260907.jpg` | `multi-item-still-1.jpg` (`synth_test_00034`) | 7 | 960 × 1050 → 640 × 640 |
-| `waste-multi-item-b-20260907.jpg` | `multi-item-still-2.jpg` (`synth_test_00053`) | 7 | 960 × 1050 → 640 × 640 |
+**Run.** 2026-09-08, reCamera Pro (RV1126B), `192.168.10.29`, Linux 6.1.157
+aarch64. Model `efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn`
+(sha256 `59cf7d18…`), runtime `librknnrt` 2.3.2 and `rknn_toolkit_lite2` 2.3.2
+— the same artefacts and the same device as
+`evaluation/runs/2026-09-07-recamera-pro/`. The runner is the repository's own
+`platforms/infer_shard.py --backend rknn`, unmodified. Preprocessing (short
+side 256 → centre crop 224 → RGB uint8) was done on the host by the
+repository's own `platforms/prep_val_bundle.py::preprocess_u8_rgb`; mean/std
+are baked into the `.rknn`.
 
-The objects in both frames are **TrashNet** (MIT, `garythung/trashnet`) items
-segmented out of their original photographs and composited onto a procedurally
-generated empty-table background (`data/synth_multi.py`); the background
-introduces no third-party asset. TrashNet's MIT licence covers redistribution.
+**Selection.** 84 candidate validation images (12 per class) were scored in one
+pass; the per-class hit rates from that pass are metal 12/12, paper 12/12,
+cardboard 12/12, glass 12/12, organic 12/12, plastic 11/12, residual 10/12.
+Four tiles were chosen to cover three of the four Chinese disposal categories
+and to be legible at card size. They are correctly classified images, picked
+from the correct ones — the cover is not a sample of model accuracy, and the
+accuracy figures that are one are in `evaluation/runs/2026-09-07-recamera-pro/`
+(material top-1 0.8764, china-category top-1 0.9566 on a 1060-image subset).
 
-## waste-multi-item-pair-20260907.jpg
+| Tile | Source image (repo-relative, `data/cls/waste8/val/`) | Licence | Device prediction | Confidence | Latency |
+|---|---|---|---|---:|---:|
+| top-left | `metal/trashnet_metal107.jpg` | TrashNet, MIT | metal → 可回收物 | 0.9765 | 12.46 ms |
+| top-right | `plastic/trashnet_plastic126.jpg` | TrashNet, MIT | plastic → 可回收物 | 0.9763 | 6.22 ms |
+| bottom-left | `organic/gc3_biodegradable1473_jpg.rf.c1b1479501de22632772ed267fb828ae_1.jpg` | GC3, CC BY 4.0 | organic → 厨余垃圾 | 0.9682 | 5.93 ms |
+| bottom-right | `residual/trashnet_trash13.jpg` | TrashNet, MIT | residual → 其它垃圾 | 0.9917 | 5.88 ms |
 
-`waste-multi-item-a-20260907.jpg` and `waste-multi-item-b-20260907.jpg` placed
-side by side at native resolution with an 8 px white gutter, 1288 × 640, no
-scaling. It is the cover. The source objects are TrashNet (MIT) items on a
-procedurally generated background, as recorded above.
+**On the 12.46 ms in the first tile.** It is the measured wall clock of that
+single `rknnlite.inference` call, printed as measured. It is an outlier against
+the same model's p50 of 5.824 ms on 1060 images
+(`evaluation/runs/2026-09-07-recamera-pro/results.md` §2) — the first frame
+after the five warm-up frames in this short run. Do not read a per-frame number
+off the cover as the device's latency; the distribution is in that results file.
 
-The device grid `waste-recamera-sg2002-20260907.jpg` is 768 px wide and stays in
-the gallery as the second image rather than the cover. It cannot be re-rendered
-any wider without upscaling: the tiles it is built from are GC3 instance crops
-of 415 × 415 and smaller (the organic crop is 125 × 66), so the grid has no
-larger native form.
+**Resampling.** The three TrashNet tiles are 512 × 384 sources resampled to
+800 × 600 (Lanczos, 1.5625×); the GC3 tile is 414 × 415 centre-cropped to
+414 × 310 and resampled to 800 × 600 (1.93×). The label text is drawn after
+resampling, so it is rendered at native output resolution. Nothing inside the
+photographs was altered.
+
+`waste-npu-4up-20260908.json` is the machine-readable record — per tile the
+source path, ground truth, prediction, confidence, latency, the raw eight
+logits the device returned, and the source/crop/tile sizes.
+
+**Why not a live camera frame.** The obvious cover would be a frame from a
+camera pointed at a real drop point. The reCamera Pro on the bench is indoors
+under IR at 640 × 480, framed on a workbench with cable in the lens, and no one
+is at the bench to place items in front of it; the reCamera (SG2002) is
+offline. The one high-resolution real-scene litter dataset in the upstream
+repository, TACO, is recorded `public_demo: false` in `data/download.py`'s
+manifest because its images are individually copyrighted on Flickr, so it
+cannot appear on a public page. This cover is therefore real device output on
+licensed photographs, not a photograph of a real drop point.
+
+**What is deliberately not on this page.** The upstream repository also has a
+multi-item detector. It has been evaluated only on a synthetic set
+(`evaluation/runs/2026-09-07-multi-item/`), and none of the four platform
+packages this solution ships — reCamera `.deb`, reCamera Pro, Hailo-8 image,
+Jetson image — contains it. Three composited multi-item figures
+(`waste-multi-item-a/b/pair-20260907.jpg`) were in this gallery until
+2026-09-08 and one of them was the cover; they showed a capability the packages
+do not deliver, on procedurally generated backgrounds, and were removed.

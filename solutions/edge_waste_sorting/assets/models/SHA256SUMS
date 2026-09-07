@@ -1,9 +1,11 @@
 # Baseline track model artefacts. Checksums only — no weights, no ONNX and no
-# engine/HEF is committed to this repository, and nothing has been uploaded to
-# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/
-# either. The deploy steps name that path, verify against these lines, and
-# carry a TODO(CDN) saying the file must be placed on the device by hand
-# until the upload happens.
+# engine/HEF is committed to this repository. Of these, only the deployable
+# Hailo-8 HEF (efficientnet_lite0_waste8_u8.hef, see SHA256SUMS.hef) has been
+# uploaded to
+# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/;
+# its deploy step downloads and verifies it against that line. Everything else
+# here is a reference checksum for artefacts produced during training/eval and
+# has not been uploaded anywhere.
 #
 # Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.
 #
@@ -13,7 +15,7 @@
 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_lite0_waste8.onnx
 47d0cedcc19009ed219d47da364a74c4215a3d797717b4658250ea69e0d8e23b  efficientnet_lite0_waste8_best.pth
 3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
-4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e  efficientnet_lite0_waste8_u8.hef
+c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1  efficientnet_lite0_waste8_u8.hef
 42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25  efficientnet_lite0_waste8_cv181x_bf16.cvimodel
 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723  efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
 0889b198d12041359216ea477896ec14b4804fc31ab1ed0444de69b8ed12de1f  efficientnet_lite0_waste8.rv1126b.fp16.rknn

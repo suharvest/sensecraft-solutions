@@ -423,11 +423,11 @@ and verifies the EfficientNet-Lite0 HEF.
 - **The container image has not been pushed.** Build it from the upstream
   repository on the device and either retag it to the name in the compose file
   or set `WASTE_IMAGE` to your local tag.
-- **The HEF has not been uploaded to any CDN.** The download URL in the step
-  is the intended destination; copy `efficientnet_lite0_waste8.hef` onto the
-  device by hand until the upload happens. The sha256 check
-  (`3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00`) still
-  applies either way.
+- **The HEF is downloaded by the deployer.** Step 1 fetches
+  `efficientnet_lite0_waste8_u8_t2.hef` from the CDN and verifies it against
+  sha256 `c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1`
+  before use. The device needs outbound HTTPS to
+  `sensecraft-statics.seeed.cc`; nothing has to be copied on by hand.
 
 ### Troubleshooting
 
@@ -437,7 +437,7 @@ and verifies the EfficientNet-Lite0 HEF.
 | `libhailort.so.4.21.0 not found` | This deployment is ABI-locked to HailoRT 4.21. Install that version; do not mix versions across the driver, the library and the python bindings. |
 | `expected both hailort and hailort-pcie-driver on hold` | `sudo apt-mark hold hailort hailort-pcie-driver`. |
 | `hailo_pci is missing force_desc_page_size=4096` | `echo 'options hailo_pci force_desc_page_size=4096' \| sudo tee /etc/modprobe.d/hailo.conf && sudo reboot`. |
-| `No HEF for this solution` | The CDN upload has not happened yet. Copy the HEF onto the device by hand at the path the step names, matching the sha256 above, then re-run the step. |
+| `No HEF for this solution` | Step 1's download or its sha256 check did not pass. Re-run Step 1; if the device has no outbound HTTPS to `sensecraft-statics.seeed.cc`, fetch the file elsewhere, place it at the path the step names and verify it against the sha256 above. |
 | Python import error on `_pyhailort` | The host bindings are mounted into the container and only import under the same Python minor. Bookworm is 3.11, trixie is 3.13. |
 | Your own trained MobileNetV3-Small INT8s badly on Hailo | Expected — do not quantise it directly. MobileNetV3-Small (m1b) collapsed to near-random accuracy on this exact compile pipeline (agreement 0.115 vs CPU/native). EfficientNet-Lite0 is the baseline for this reason. |
 
@@ -452,8 +452,7 @@ Run the deployment on the Pi itself, when you are already working on the device.
 ## Step 2: Watch the Live Classification {#preview_hailo_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
 
 Opens the runtime's own page: the live view, a trigger button, the health
-endpoint. If Step 1 could not fetch the HEF (nothing on the CDN yet, and it
-was not copied onto the device by hand), the live view still comes up but
+endpoint. If Step 1 could not fetch the HEF, the live view still comes up but
 classification results do not.
 
 ### Troubleshooting
@@ -483,11 +482,9 @@ substeps now so everything but the model is confirmed.
 
 ### Deployment Complete
 
-The board is prepared and the stack is running. If the HEF was placed on the
-device, classification runs on Hailo-8 hardware — this is the first real
-verification of that number, since this project has no Hailo-8 of its own. If
-the HEF is still missing (CDN upload outstanding), classification is blocked on
-it; the trigger and MQTT path can still be exercised.
+The board is prepared and the stack is running, and classification runs on the
+Hailo-8. If Step 1 did not get the HEF onto the device, classification is
+blocked on it; the trigger and MQTT path can still be exercised.
 
 #### Quick verification
 
@@ -548,12 +545,9 @@ parsing the topic.
 
 #### Next steps
 
-- Report back the real Hailo-8 accuracy and latency you just measured — this
-  is the first hardware verification for this HEF anywhere in the project.
-  Compare it against the the compiler's simulator's 0.89 agreement / 0.755 accuracy
-  figures on the solution page.
-- If the CDN upload is still outstanding and you copied the HEF on by hand, note
-  that for the next deploy — the download step will otherwise fail.
+- Compare the accuracy and latency you measure against the reference run for
+  this HEF on the solution page: material top-1 0.8889, China-4 0.9507,
+  p50 3.166 ms over the full 7417-image validation set.
 - Keep the ABI state you just established: both Hailo packages held, and
   `force_desc_page_size=4096` in place. This HEF, compiled against the Hailo compiler
   3.31.0 / HailoRT 4.21.0, needs exactly this.
@@ -563,7 +557,7 @@ parsing the topic.
 
 | Issue | Solution |
 |---|---|
-| No message at all | Check whether the HEF is actually present on the device (`ls` the models directory) — if the CDN upload has not happened, Step 1 fails at the fetch step. If the HEF is present, check the container log for a different fault. |
+| No message at all | Check whether the HEF is present on the device (`ls` the models directory). If it is missing, Step 1 failed at the fetch step. If it is present, check the container log for a different fault. |
 | Trigger counter does not move | The trigger source is not configured. Check `trigger.sources` in `config/config.json`. |
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |

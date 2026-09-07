@@ -6,10 +6,10 @@
 |---|---|---|
 | `recomputer-rk3588.png` | Official Seeed Studio product photo, reComputer RK3588-30 (SKU 100071234), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/3/5/3588_26_.png` (product page: https://www.seeedstudio.com/reComputer-RK3588-30-p-6817.html) | No |
 | `architecture.svg` | Drawn for this solution | No |
-| `ui-events.png` | Upstream `docs/ui/events.png`, captured from `tools/web_demo.py` | No |
-| `ui-event-detail.png` | Upstream `docs/ui/event-detail.png`, same source | No |
-| `ui-gallery.png` | Upstream `docs/ui/gallery.png`, same source | No |
-| `ui-board.png` | Upstream `docs/ui/board.png`, same source | No |
+| `ui-events.jpg` / `ui-events-en.jpg` | Captured from `tools/web_demo.py`, 2026-09-07 | No |
+| `ui-event-detail.jpg` | Same source and session | No |
+| `ui-gallery.jpg` | Same source and session | No |
+| `ui-board.jpg` / `ui-board-en.jpg` | Same source and session | No |
 
 `recomputer-rk3588.png` is the cover image and first gallery entry. The four
 `ui-*.png` shots are synthetic fixtures from `tools/web_demo.py` — made-up SKU
@@ -109,3 +109,30 @@ recorded upstream in `evaluation/data/README.md`.
 The detector was trained on **SKU-110K** (<https://github.com/eg4000/SKU110K_CVPR19>)
 and the embedder on **Products-10K** (<https://products-10k.github.io/>); neither
 dataset's images appear in this gallery.
+
+## 2026-09-07 — console panels re-captured at DPR 2
+
+The four `ui-*.png` files are gone. They were the upstream `docs/ui/*.png`
+captures at a 1280 x 800 viewport.
+
+Their replacements come from the same demo server — `uv run python
+tools/web_demo.py --port 8089` in `edge-retail-recognition`, Playwright + Chrome,
+the demo admin token in `localStorage` — at a **1600 x 1000 viewport with
+`deviceScaleFactor: 2`**, so every capture is 3200 x 2000 before cropping.
+Cropped to content and saved as JPEG quality 90; nothing inside the frame was
+altered or scaled.
+
+| File | Before | After |
+|---|---|---|
+| `ui-board.jpg` | 3200 x 2000 | 3183 x 1359 |
+| `ui-board-en.jpg` | 3200 x 2000 | 3183 x 1359 |
+| `ui-events.jpg` | 3200 x 2000 | 3183 x 1663 |
+| `ui-events-en.jpg` | 3200 x 2000 | 3183 x 1783 |
+| `ui-event-detail.jpg` | 3200 x 2000 | 3183 x 1160 |
+| `ui-gallery.jpg` | 3200 x 2000 | 3183 x 1663 |
+
+The data behind them is unchanged and still synthetic: an in-memory MQTT
+transport, a `FakeEmbedder` and deterministic-noise registration images. The
+SKUs, similarity scores, top-2 margins and slot verdicts on these pages are
+fixtures and must not be read as measurements. The RK3588 frames and the
+checkout GIF above are the real ones.

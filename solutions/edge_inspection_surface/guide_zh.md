@@ -29,9 +29,11 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 3. 相机的 RTSP 地址（含用户名密码），例如
    `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`。
    先用 VLC 测一遍。
-4. **容器镜像尚未发布。** compose 文件写的是
+4. 容器镜像已发布。compose 文件写的是
    `sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev`，
-   但这个 tag 上什么都没推。请用上游仓库的
+   2026-09-07 按 linux/arm64 构建并推送，digest
+   `sha256:0d1b42e20a61a7aa89d072921dfe9e07e078bcb88ec9699b3f579caa1f28fe3b`，
+   部署时由设备拉取。设备连不上 registry 时，用上游仓库的
    `platforms/jetson/Dockerfile.slim` 在设备上构建后改这个 tag，
    或者部署前把 `INSPECTION_IMAGE` 指向你本地的 tag。
 5. **ONNX 模型同样没有上传 CDN**，原因同为许可未结清。部署步骤会尝试下载
@@ -283,10 +285,13 @@ crazing 弱、误报无法测量这两条在这里同样成立。
    trixie 是 3.13，需要换基座重新构建镜像。
 4. 至少 4 GB 空闲磁盘。实测新增占用约 452 MB——运行镜像约 443 MB、
    8.9 MB 的 HEF，加上配置。
-5. **容器镜像尚未发布。** compose 文件写的是
+5. 容器镜像已发布。compose 文件写的是
    `sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev`，
-   但这个 tag 上什么都没推。请用上游仓库的 `platforms/rpi-hailo/Dockerfile`
-   构建后设 `INSPECTION_IMAGE`，或者把本地构建改成这个 tag。
+   2026-09-07 按 linux/arm64 构建并推送，digest
+   `sha256:f078a2875dcdfd1a00a2bb5763baded9b251ea9d98c44114704b57a025384fb3`，
+   镜像内 python3 为 3.11.2，与 Pi OS bookworm 一致。设备连不上 registry 时，
+   用上游仓库的 `platforms/rpi-hailo/Dockerfile` 构建后设 `INSPECTION_IMAGE`，
+   或者把本地构建改成这个 tag。
 6. **HEF 也没有上传 CDN**，原因同为许可未结清。部署步骤会尝试下载并校验
    默认 level-1 版本的 sha256
    `02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565`

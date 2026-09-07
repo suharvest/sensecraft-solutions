@@ -1,0 +1,128 @@
+{
+ "generated": "2026-09-08",
+ "device": "reCamera Pro (RV1126B), 192.168.10.29, Linux 6.1.157 aarch64",
+ "runtime": "librknnrt 2.3.2 (429f97ae6b@2025-04-09T09:09:27), rknn_toolkit_lite2 2.3.2",
+ "model": "efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn",
+ "preprocess": "short side 256 -> center crop 224 -> RGB uint8 on host (platforms/prep_val_bundle.py::preprocess_u8_rgb); mean/std baked into the .rknn",
+ "runner": "platforms/infer_shard.py --backend rknn (repo file, unmodified)",
+ "note": "84 candidate images were scored in one pass; the four below are the tiles used in gallery/waste-npu-4up-20260908.jpg",
+ "tiles": [
+  {
+   "source": "metal/trashnet_metal107.jpg",
+   "gt": "metal",
+   "pred": "metal",
+   "conf": 0.9765,
+   "latency_ms": 12.4631,
+   "latency_note": "outlier, not typical: first frame after the five warm-up frames in this short run; see ATTRIBUTION.md's note on this figure. p50 over 1060 images is 5.824 ms (evaluation/runs/2026-09-07-recamera-pro/results.md).",
+   "src_size": [
+    512,
+    384
+   ],
+   "crop": [
+    512,
+    384
+   ],
+   "tile": [
+    800,
+    600
+   ],
+   "logits": [
+    -0.54667,
+    -0.54667,
+    -0.86557,
+    5.19341,
+    -0.27334,
+    -0.27334,
+    -0.54667,
+    -0.41001
+   ]
+  },
+  {
+   "source": "plastic/trashnet_plastic126.jpg",
+   "gt": "plastic",
+   "pred": "plastic",
+   "conf": 0.9763,
+   "latency_ms": 6.2204,
+   "src_size": [
+    512,
+    384
+   ],
+   "crop": [
+    512,
+    384
+   ],
+   "tile": [
+    800,
+    600
+   ],
+   "logits": [
+    0.0,
+    0.09111,
+    -0.82001,
+    -0.50112,
+    5.5123,
+    -0.09111,
+    0.09111,
+    -0.13667
+   ]
+  },
+  {
+   "source": "organic/gc3_biodegradable1473_jpg.rf.c1b1479501de22632772ed267fb828ae_1.jpg",
+   "gt": "organic",
+   "pred": "organic",
+   "conf": 0.9682,
+   "latency_ms": 5.934,
+   "src_size": [
+    414,
+    415
+   ],
+   "crop": [
+    414,
+    310
+   ],
+   "tile": [
+    800,
+    600
+   ],
+   "logits": [
+    -0.7289,
+    -0.63779,
+    0.0,
+    -0.91112,
+    -0.31889,
+    -0.27334,
+    4.92007,
+    -0.50112
+   ]
+  },
+  {
+   "source": "residual/trashnet_trash13.jpg",
+   "gt": "residual",
+   "pred": "residual",
+   "conf": 0.9917,
+   "latency_ms": 5.8785,
+   "src_size": [
+    512,
+    384
+   ],
+   "crop": [
+    512,
+    384
+   ],
+   "tile": [
+    800,
+    600
+   ],
+   "logits": [
+    -0.82001,
+    -1.41224,
+    -0.50112,
+    -0.82001,
+    -0.18222,
+    -0.13667,
+    -1.09335,
+    6.10453
+   ]
+  }
+ ]
+}

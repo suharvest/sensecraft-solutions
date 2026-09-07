@@ -5,15 +5,18 @@
 #   1. The upstream file uses `build:` against the repository root. A solution
 #      package has no repository to build from, so both services take an image
 #      reference instead.
-#   2. Neither image has been pushed anywhere. `RETAIL_SERVER_IMAGE` and
-#      `RETAIL_WEB_IMAGE` are therefore required with no default: compose stops
-#      at the first `up` until they are supplied. That is the intended
-#      behaviour, not a gap to paper over with a tag that resolves to nothing.
+#   2. Both images are published at
+#      sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+#      and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64,
+#      built 2026-09-07 from edge-retail-recognition @ a787f41). RETAIL_SERVER_IMAGE
+#      and RETAIL_WEB_IMAGE default to those tags below; override either
+#      variable to point at your own build instead.
 #
-# Build them on the host from the upstream repository. The SPA is built on the
-# host first — the images do not run npm, because a node_modules tree on an
-# arm64 board is larger than the whole service and the built bundle has to
-# match the one that was reviewed:
+# To build your own instead of using the published tags, build on the host
+# from the upstream repository. The SPA is built on the host first — the
+# images do not run npm, because a node_modules tree on an arm64 board is
+# larger than the whole service and the built bundle has to match the one
+# that was reviewed:
 #
 #   npm --prefix web/ui ci && npm --prefix web/ui run build
 #   docker build -f platforms/console/Dockerfile.server -t <your-registry>/edge-retail-server:<tag> .
@@ -57,7 +60,7 @@ services:
       - "${MQTT_PORT:-1883}:1883"
 
   server:
-    image: ${RETAIL_SERVER_IMAGE:?set RETAIL_SERVER_IMAGE to an image you built from the upstream repository}
+    image: ${RETAIL_SERVER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0}
     container_name: retail-server
     restart: unless-stopped
     <<: *bounded_logs
@@ -109,7 +112,7 @@ services:
       uvicorn server.api:app_factory --factory --host 0.0.0.0 --port 8089
 
   web:
-    image: ${RETAIL_WEB_IMAGE:?set RETAIL_WEB_IMAGE to an image you built from the upstream repository}
+    image: ${RETAIL_WEB_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-web:0.1.0}
     container_name: retail-web
     restart: unless-stopped
     <<: *bounded_logs

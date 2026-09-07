@@ -6,13 +6,20 @@
 # and derivative works with attribution; the attribution string is in
 # gallery/ATTRIBUTION.md and repeated in both description files.
 #
-# As of 2026-09-07, five real classification screenshots (one per category,
-# four total, plus one 2x2 grid) are committed, sourced from TrashNet (MIT)
-# validation images per the escape hatch this package always documented. See
-# gallery/ATTRIBUTION.md for the per-image source table.
+# Classification screenshots are committed under gallery/, sourced from
+# TrashNet (MIT) and GC3 (CC BY 4.0) validation images per the escape hatch
+# this package always documented. See gallery/ATTRIBUTION.md for the per-image
+# source table.
 #
-# NOTHING HERE HAS RUN ON HARDWARE. Every figure on this page comes from
-# onnxruntime on an Apple M4 CPU. No preset carries `verified:`.
+# The cover and the second gallery image are device results — reCamera Pro
+# (RV1126B NPU, INT8 RKNN) and reCamera (SG2002 TPU, BF16 cvimodel). The
+# remaining figures are onnxruntime on an Apple M4 CPU and say so. No preset
+# carries `verified:`.
+#
+# Every figure on this page is single-item classification, which is what the
+# four platform packages ship. The repository also carries a multi-item
+# detector; it has only been evaluated on a synthetic set and is not part of
+# any package, so no figure on this page shows it.
 version: "1.0"
 id: edge_waste_sorting
 name: Waste Sorting at the Bin
@@ -31,13 +38,22 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/waste-multi-item-pair-20260907.jpg
+  cover_image: gallery/waste-npu-4up-20260908.jpg
   gallery:
     - type: image
-      src: gallery/waste-multi-item-pair-20260907.jpg
-      caption: Two table tops of loose rubbish, every item boxed and labelled with its material and score. Left — a bottle, foil trays, folded paper and a printed card. Right — a drinks can, a red carton, a tube and paper scraps
+      src: gallery/waste-npu-4up-20260908.jpg
+      caption: >-
+        Four single items classified on a reCamera Pro's own RV1126B NPU —
+        INT8 RKNN model, one item per frame. Each frame carries the material
+        class the device returned, the Chinese four-way disposal category, the
+        confidence and the measured inference time: a tin can and a plastic
+        bottle to recyclables, windfall apples to kitchen waste, a crumpled
+        wrapper to residual
       caption_i18n:
-        zh: 两张摊着垃圾的台面，每件都画框并标出材质与分数。左：瓶子、锡纸盒、折叠纸与印刷卡片；右：易拉罐、红色纸盒、软管与纸屑
+        zh: >-
+          四件物品在 reCamera Pro 自己的 RV1126B NPU 上的分类结果——INT8 RKNN
+          模型，一帧一件。每帧标出设备返回的物料类别、中国四分类、置信度与
+          实测推理耗时：铁罐与塑料瓶归可回收物，落果归厨余，皱纸归其它
     - type: image
       src: gallery/waste-recamera-sg2002-20260907.jpg
       caption: >-
@@ -301,28 +317,27 @@ intro:
         zh: 摄像头 + reComputer R2000（Hailo-8）
       description: >-
         EfficientNet-Lite0 on the Hailo-8, from the uint8 HEF
-        (sha256 4e3b9640…) so the host hands the accelerator raw frames
+        (sha256 c514a463…) so the host hands the accelerator raw frames
         instead of normalising them first. Measured over the whole
-        7417-image validation set: material top-1 0.8637, Chinese four-way
-        0.9369, p50 3.166 ms and p95 3.228 ms for inference alone (capture and
+        7417-image validation set: material top-1 0.8889, Chinese four-way
+        0.9507, p50 3.166 ms and p95 3.249 ms for inference alone (capture and
         preprocessing excluded).
 
-        The accuracy is 2.4 points below fp32 run on a host over the same
-        images, which is the largest quantisation cost of any platform on this
-        page — the RK3588 preset matches its host baseline exactly at the same
-        3.2 ms. What this one gives instead is consistency: the gap between
-        the median and the 95th percentile is 0.06 ms, against 0.69 ms on
-        RK3588.
+        Accuracy matches fp32 run on a host over the same images to within
+        0.12 points, so quantisation costs nothing measurable here — as on the
+        RK3588 preset, at the same 3.2 ms. What this one adds is consistency:
+        the gap between the median and the 95th percentile is 0.08 ms, against
+        0.69 ms on RK3588.
       description_i18n:
         zh: >-
           EfficientNet-Lite0 跑在 Hailo-8 上，用的是 uint8 输入的 HEF
-          （sha256 4e3b9640…），主机直接把原始帧交给加速器，不必先做归一化。
-          在 val 全集 7417 张上实测：物料八类 top-1 0.8637、中国四分类 0.9369、
-          p50 3.166 ms、p95 3.228 ms（纯推理，不含取图与预处理）。
+          （sha256 c514a463…），主机直接把原始帧交给加速器，不必先做归一化。
+          在 val 全集 7417 张上实测：物料八类 top-1 0.8889、中国四分类 0.9507、
+          p50 3.166 ms、p95 3.249 ms（纯推理，不含取图与预处理）。
 
-          精度比同一批图上主机 fp32 低 2.4 个百分点，是本页所有平台里量化代价
-          最大的一个——RK3588 套餐在同样 3.2 ms 下与自己的主机基线完全持平。
-          它换来的是一致性：中位数与 95 分位只差 0.06 ms，RK3588 是 0.69 ms。
+          精度与同一批图上主机 fp32 相差 0.12 个百分点，即量化在这里没有可测量
+          的代价——与 RK3588 套餐一样，时延同样是 3.2 ms。它额外给的是一致性：
+          中位数与 95 分位只差 0.08 ms，RK3588 是 0.69 ms。
       device_groups:
         - id: compute
           name: Sorting Host
