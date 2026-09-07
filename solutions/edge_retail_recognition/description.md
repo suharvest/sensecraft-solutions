@@ -53,9 +53,11 @@ it cannot.
 ## How well it works
 
 Each number below carries the device it was measured on and the conditions it
-was measured under. The Hailo-8 and RK3588 figures are reference values taken on
-the same accelerator platform as the matching reComputer preset; they will be
-updated after a re-test on the reComputer units.
+was measured under. The Hailo-8, RK3588 and RK3576 figures are reference
+values taken on the same accelerator chip platform as the matching reComputer
+preset; they will be updated after a re-test on the reComputer units. The
+reCamera Pro figures are measured on the camera itself — it is the shipping
+product, not a reference board.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
@@ -70,6 +72,15 @@ over the run. Reference value on the same Hailo-8 platform.
 56.7 ms p50 / 89.5 ms p95. RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms
 p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
 the same RK3588 platform.
+
+**Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
+(RK3588 has three). Measured on the same RK3576 chip platform, inference
+only: detection, RKNN fp16 on both NPU cores, 51.05 ms p50 / 54.18 ms p95,
+99.91% box agreement with the CPU reference. Embedding, RKNN fp16 on both NPU
+cores, 56.38 ms p50 / 62.17 ms p95; across 21 retrieval metrics the largest
+gap from fp32 is 0.36 percentage points, and mean cosine similarity against
+fp32 is 0.99966. Reference value on the same RK3576 platform; will be updated
+after a re-test on the reComputer unit.
 
 **Embedding, reComputer R2000 CPU.** Dynamically quantised INT8
 DINOv2-small on four threads: 91.95 ms p50 / 105.98 ms p95 per crop, against
@@ -91,10 +102,23 @@ mAP50-95, the 1280² preset 56.32. mAP50 at 640² is 88.26 — the boxes are fou
 they are not placed tightly. Moving to 1280² lifts small-object mAP50-95 from
 17.49 to 26.88, which is why the shelf preset exists.
 
-**The embedder runs on the CPU, on every preset.** Neither NPU takes it: the
-Hailo quantisation attempts did not reach usable accuracy, and there is no RKNN
-conversion of the embedder. Budget 92 ms per crop and plan frame skipping or
-slot-level sampling for shelf frames.
+**The embedder runs on the CPU on RK3588 and the Hailo-8 preset, and on the
+NPU on RK3576 and reCamera Pro.** The Hailo quantisation attempts did not
+reach usable accuracy, and there is no RKNN conversion of the embedder for
+RK3588; RK3576 and reCamera Pro both have their own real RKNN embedding
+numbers above. On the CPU paths, budget 92 ms per crop and plan frame
+skipping or slot-level sampling for shelf frames.
+
+**Detection + embedding, reCamera Pro.** Both stages run as fp16 RKNN on the
+camera's own onboard NPU. Measured on the camera itself with its bundled
+applications stopped, inference only: detection 112.3 ms p50 / 120.4 ms p95,
+99.91% box agreement with the CPU reference on 50 images; embedding 77.5 ms
+p50 / 77.9 ms p95, mean cosine similarity 0.998 against fp32, and a top-1
+difference of 0.33 percentage points (fp32 minus RKNN = -0.33pp, i.e. RKNN
+scored slightly higher) on a 300-image subset (leave-one-out — a different
+protocol from the Grocery Store retrieval numbers above, which use the RK3588
+run's full k-shot gallery, so the absolute values are not comparable, but
+both agree there is no directional bias).
 
 ## Output Interfaces
 
@@ -109,10 +133,15 @@ slot-level sampling for shelf frames.
 | Preset | Detector | Embedder | Best for |
 |---|---|---|---|
 | reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50 |
+| reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
+| reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
 
-Figures in this table are reference values from the same accelerator platforms;
-they will be updated after a re-test on the reComputer units.
+The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
+accelerator chip platform as the matching reComputer preset; they will be
+updated after a re-test on the reComputer units. The reCamera Pro row is
+measured on the camera itself — it is the shipping product, not a reference
+board.
 
 ## Usage Notes
 
