@@ -2,7 +2,7 @@
 
 This guide has two presets — speech local with the LLM call in the cloud, or
 everything local — across six board targets. Both need the same microphone,
-differ in disk space and API key requirements, and are verified the same way.
+differ in disk space and API key requirements, and use the same acceptance checks.
 
 **Microphone array — required, not optional:** you need a USB microphone array
 that exposes a **hardware AEC/processed capture channel**, not a plain USB
