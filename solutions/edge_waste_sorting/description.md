@@ -185,7 +185,7 @@ to the digit.
 |---|---|
 | Baseline EfficientNet-Lite0 (m1c) → HEF | **Compiled successfully, one attempt, no fix needed.** `hailo optimize` and `compiler` both exit 0 on the first try — Lite0 has no Squeeze-Excite branch, so it never hits the `avgpool` shift-range issue m1b needed a model-script fix for. On 200 val images (the Hailo compiler's simulator): INT8 vs CPU/native top-1 agreement **0.890**, accuracy vs ground truth **0.755** (native/CPU is 0.795 on the same images) — a 4-point drop, not a collapse. Cosine similarity to CPU: mean 0.948, min 0.441. **All of these numbers are from the the compiler's own simulator on an x86 host; no Hailo-8 PCIe card was used.** `evaluation/runs/2026-09-06-m1c-hef` |
 | Baseline MobileNetV3-Small (m1b) → HEF | Compiled, but INT8 collapses: simulator agreement 0.115, accuracy vs ground truth 0.150 (near the 1/7 random baseline). Superseded by Lite0 for this reason — see the contrast table above. `evaluation/runs/2026-09-06-m1b-hef` |
-| SigLIP 2 vision tower → HEF | Unchanged by the m1c work. `hailo parser` passes end to end with no unsupported op. `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1) **fails** with `NegativeSlopeExponentNonFixable` at layer `ne_activation_mul_and_add78` — "Desired shift is 16.0, but op has only 8 data bits". No optimized HAR, no compiler run, no HEF. |
+| SigLIP 2 vision tower → HEF | The m1c work does not touch this path. `hailo parser` passes end to end with no unsupported op. `hailo optimize` (INT8 PTQ, 256 calibration images, optimization_level=1) **fails** with `NegativeSlopeExponentNonFixable` at layer `ne_activation_mul_and_add78` — "Desired shift is 16.0, but op has only 8 data bits". No optimized HAR, no compiler run, no HEF. |
 
 **What "0.89 agreement" does and does not support.** It supports: EfficientNet-Lite0
 INT8-quantises without the pattern collapse MobileNetV3-Small showed on the
@@ -373,10 +373,10 @@ track is deployed:
   eight-class predictions mapped to the four categories score 0.9393; Chinese
   prompts predicting the four categories directly score 0.8478. "Recyclable" is
   not a visual concept; "glass bottle" is.
-- **The `residual` category is the weakest thing in the open-vocabulary
-  setup.** Its leave-one-out AUROC is 0.5795, near chance: remove "general
-  waste" from the vocabulary and some material word always catches those items
-  with high confidence. It is a fallback definition, not a visual concept.
+- **The `residual` category has a leave-one-out AUROC of 0.5795, near chance.**
+  Remove "general waste" from the vocabulary and some material word always
+  catches those items with high confidence. It is a fallback definition, not a
+  visual concept.
 
 ## Output Interfaces
 

@@ -159,7 +159,7 @@ m1b 加 no-decay 参数组重训）验证。
 |---|---|
 | 基线 EfficientNet-Lite0（m1c） → HEF | **一次编译成功，不需要任何修复。** `hailo optimize` 与 `compiler` 第一次尝试就都 exit 0——Lite0 没有 SE 分支，从架构上就不会撞上 m1b 那个需要 model-script 修复的 avgpool shift 问题。200 张 val 图上（Hailo 编译器自带的模拟器）：INT8 与 CPU/native 一致率 **0.890**，对真值准确率 **0.755**（native/CPU 同批图是 0.795）——掉 4 个百分点，不是塌缩。与 CPU 余弦相似度 mean 0.948、min 0.441。**这些数字全部来自x86 主机上编译器自带的模拟器，没有用过 Hailo-8 PCIe 卡。** `evaluation/runs/2026-09-06-m1c-hef` |
 | 基线 MobileNetV3-Small（m1b） → HEF | 编译成功，但 INT8 塌缩：模拟器一致率 0.115，对真值准确率 0.150（接近 7 类随机基线）。因此被 Lite0 取代——见上方对照表。`evaluation/runs/2026-09-06-m1b-hef` |
-| SigLIP 2 视觉塔 → HEF | 不受 m1c 这轮工作影响。`hailo parser` 端到端通过，无 unsupported op。`hailo optimize`（INT8 PTQ，256 张校准图，optimization_level=1）**失败**，在 `ne_activation_mul_and_add78` 层报 `NegativeSlopeExponentNonFixable`——"Desired shift is 16.0, but op has only 8 data bits"。没有 optimized HAR，没跑 compiler，没有 HEF。 |
+| SigLIP 2 视觉塔 → HEF | m1c 的改动不涉及这条路径。`hailo parser` 端到端通过，无 unsupported op。`hailo optimize`（INT8 PTQ，256 张校准图，optimization_level=1）**失败**，在 `ne_activation_mul_and_add78` 层报 `NegativeSlopeExponentNonFixable`——"Desired shift is 16.0, but op has only 8 data bits"。没有 optimized HAR，没跑 compiler，没有 HEF。 |
 
 **「0.89 一致率」支持什么、不支持什么。** 支持：EfficientNet-Lite0 在同一条
 编译链路、同一份校准集上，INT8 量化没有出现 MobileNetV3-Small 那种模式坍缩，
@@ -303,9 +303,9 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 - **走层级路径，不要直接预测四分类。** 英文八类预测再映射到四分类得
   0.9393；中文 prompt 直接预测四分类只有 0.8478。「可回收物」不是一个视觉
   概念，「玻璃瓶」是。
-- **`residual` 是开放词汇设置里最弱的一环。** 它的留一 AUROC 0.5795，
-  接近随机：把「其他垃圾」从词表里拿掉，总有某个材质词能以高置信度接住那些
-  东西。它是一个兜底定义，不是视觉概念。
+- **`residual` 的留一 AUROC 是 0.5795，接近随机。** 把「其他垃圾」从词表里
+  拿掉，总有某个材质词能以高置信度接住那些东西。它是一个兜底定义，
+  不是视觉概念。
 
 ## 输出接口
 
