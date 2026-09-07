@@ -312,10 +312,16 @@ Known weaknesses, all measured or explicitly unmeasured:
 The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
 card, no network hop in the classification path.
 
-Manual for the same reason as the SG2002 path: what exists is a converted
-`.rknn` and the Python runtime, not a packaged application. The four sub-steps
-check the model, install the RKNN Lite runtime into `/userdata`, prepare one
-frame and classify it as root.
+Before you start you need SSH access to the camera as root, about 10 MB free
+on `/userdata`, and either the prebuilt model or an x86_64 Linux host with
+`rknn-toolkit2` 2.3.2 to convert it — the conversion does not run on the
+camera. The four sub-steps take you through checking the model, installing the
+RKNN Lite runtime under `/userdata`, preparing one input frame, and running it.
+
+Two things will stop you if you skip them. The Python binding has to match the
+`librknnrt` already on the camera, and the classifier has to run as root
+because `/dev/rknpu` is root-only. Either mistake surfaces as a bare
+`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
 
 Measured on this hardware over 1060 validation images, with the camera's
 built-in application stopped: material top-1 0.8764, Chinese four-way top-1
