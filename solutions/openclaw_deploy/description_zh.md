@@ -1,6 +1,6 @@
 ## 这个方案能帮你做什么
 
-想在微信、Telegram、Discord 上用 AI 聊天机器人，但不想一个个平台去对接、也担心数据隐私？OpenClaw（龙虾机器人）帮你把 20 多个聊天平台一键连接到任意 AI 模型，全部跑在你自己的 reComputer 设备上。
+OpenClaw（龙虾机器人）把微信、Telegram、Discord 等 20 多个聊天平台连接到任意 AI 模型，全部运行在你自己的 reComputer 设备上。只需维护一套对接，消息不出设备。
 
 ## 核心价值
 
