@@ -13,7 +13,7 @@
 | RK3576 / RK3588（云端大模型） | `rk-asr-models`、`rk-tts-models` | 本地 ASR + TTS 模型 |
 | RK3588 + RK1828（本地大模型） | `rk-asr-models`、`rk-tts-models`、`rk1828-llm-models` | 语音模型，加上 RK1828 卡上的 Qwen3-4B |
 | Orin Nano / Orin NX（云端大模型） | `speech-models`（Jetson 镜像） | 本地 ASR + TTS 模型 |
-| 树莓派 5（云端大模型） | `speech-models`（RPi 镜像） | 本地 ASR + TTS 模型 |
+| reComputer Industrial R20 系列（云端大模型） | `speech-models`（RPi 镜像） | 本地 ASR + TTS 模型 |
 | Orin NX 16GB（本地大模型） | `speech-models-v091`、`edge-llm-models-v091` | Qwen3-ASR + Matcha-TTS，以及位于 `/workspace/models/qwen3.5-4b-gdn-mtp-8k` 的 Qwen3.5-4B 引擎 |
 
 **API Key——仅云端大模型套餐需要：** 部署表单会要求填写 **API Key**（必填）和**模型 ID**（默认 `qwen3.5-flash`），对应你使用的 OpenAI 兼容接口。默认供应商是阿里云百炼北京地域——从该控制台生成 Key（换供应商时从对应控制台生成）。全本地套餐不需要 API Key。
@@ -24,7 +24,7 @@
 |---|---|
 | RK3576（云端大模型） | 12 GB |
 | RK3588（云端大模型） | 12 GB |
-| 树莓派 5（云端大模型，仅支持英文） | 10 GB |
+| reComputer Industrial R20 系列（云端大模型，仅支持英文） | 10 GB |
 | Orin Nano / Orin NX（云端大模型） | 15 GB |
 | RK3588 + RK1828（本地大模型） | 18 GB |
 | Orin NX 16GB（本地大模型） | 25 GB |
@@ -143,9 +143,9 @@ Jetson Orin，并已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit。
 | CUDA 初始化失败 | 核对 JetPack 6.2、TensorRT 10.3 和容器 runtime |
 | Orin Nano 内存不足 | 使用 `jetson-qwen3asr-matcha`，不要在 Nano 上同时启动本地 4B 模型 |
 
-### 部署目标 {#cloud_rpi5 type=remote device=rpi5 device_name="Raspberry Pi 5" config=devices/cloud_rpi5.yaml}
+### 部署目标 {#cloud_rpi5 type=remote device=rpi5 device_name="reComputer Industrial R20 series" config=devices/cloud_rpi5.yaml}
 
-在树莓派 5 上运行 CPU 语音链路，对话模型接云端或局域网。**仅支持英文**——该板没有 Qwen3-ASR 后端，Whisper 在该板的中文错误率为短句 50.30%、长句 57.74% CER，因此中文直接拒绝，而不是降级使用。
+在 reComputer Industrial R20 系列上运行 CPU 语音链路，对话模型接云端或局域网。**仅支持英文**——该板没有 Qwen3-ASR 后端，Whisper 在该板的中文错误率为短句 50.30%、长句 57.74% CER，因此中文直接拒绝，而不是降级使用。
 
 ### 接线
 

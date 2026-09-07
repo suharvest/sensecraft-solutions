@@ -31,7 +31,7 @@ manage, and nothing to stage or pre-download from this computer:
 | RK3576 / RK3588 (cloud LLM) | `rk-asr-models`, `rk-tts-models` | Local ASR + TTS models |
 | RK3588 + RK1828 (local LLM) | `rk-asr-models`, `rk-tts-models`, `rk1828-llm-models` | Speech models plus Qwen3-4B on the RK1828 card |
 | Orin Nano / Orin NX (cloud LLM) | `speech-models` (Jetson image) | Local ASR + TTS models |
-| Raspberry Pi 5 (cloud LLM) | `speech-models` (RPi image) | Local ASR + TTS models |
+| reComputer Industrial R20 series (cloud LLM) | `speech-models` (RPi image) | Local ASR + TTS models |
 | Orin NX 16GB (local LLM) | `speech-models-v091`, `edge-llm-models-v091` | Qwen3-ASR + Matcha-TTS, plus the Qwen3.5-4B engine at `/workspace/models/qwen3.5-4b-gdn-mtp-8k` |
 
 **API key — cloud-LLM preset only:** the deploy form asks for an **API Key**
@@ -47,7 +47,7 @@ needs no API key.
 |---|---|
 | RK3576 (cloud LLM) | 12 GB |
 | RK3588 (cloud LLM) | 12 GB |
-| Raspberry Pi 5 (cloud LLM, English only) | 10 GB |
+| reComputer Industrial R20 series (cloud LLM, English only) | 10 GB |
 | Orin Nano / Orin NX (cloud LLM) | 15 GB |
 | RK3588 + RK1828 (local LLM) | 18 GB |
 | Orin NX 16GB (local LLM) | 25 GB |
@@ -179,9 +179,9 @@ After warmup, complete two turns and speak during playback to verify interruptio
 | CUDA initialization fails | Check JetPack 6.2, TensorRT 10.3, and the NVIDIA container runtime |
 | Orin Nano runs out of memory | Use `jetson-qwen3asr-matcha`; do not start a local 4B model on Nano |
 
-### Target {#cloud_rpi5 type=remote device=rpi5 device_name="Raspberry Pi 5" config=devices/cloud_rpi5.yaml}
+### Target {#cloud_rpi5 type=remote device=rpi5 device_name="reComputer Industrial R20 series" config=devices/cloud_rpi5.yaml}
 
-Run the CPU speech stack on a Raspberry Pi 5 and connect to a cloud or LAN model. **English only** — this board has no Qwen3-ASR backend, and Whisper's Chinese error rate on it (50.30% short / 57.74% long CER) makes Chinese a refusal rather than a degraded option.
+Run the CPU speech stack on a reComputer Industrial R20 series and connect to a cloud or LAN model. **English only** — this board has no Qwen3-ASR backend, and Whisper's Chinese error rate on it (50.30% short / 57.74% long CER) makes Chinese a refusal rather than a degraded option.
 
 ### Wiring
 

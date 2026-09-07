@@ -72,10 +72,10 @@ available lists, since Qwen3-ASR upstream advertises 52 languages and Whisper
 | Orin NX 16GB (fully local) | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS CustomVoice |
 | RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Not supported - TTS on this board is Matcha zh-en only |
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR + Kokoro RKNN |
-| Raspberry Pi 5 | Not supported | sherpa-onnx CPU | Not supported |
+| reComputer Industrial R20 series | Not supported | sherpa-onnx CPU | Not supported |
 
 **Chinese is never served by Whisper.** Whisper's Chinese ceiling is 35-56% CER
-on every board measured, so Raspberry Pi 5 - which has no Qwen3-ASR backend -
+on every board measured, so the reComputer Industrial R20 series - which has no Qwen3-ASR backend -
 refuses Chinese instead of transcribing it badly.
 
 ## Measured Results
@@ -101,7 +101,7 @@ complete phrases, or interrupt and continue.
 
 | Preset | Conversation model | Supported devices | Best for |
 |--------|--------------------|-------------------|----------|
-| Cloud or compatible endpoint | Qwen API or any OpenAI-compatible model | RK3576 / RK3588 / Orin Nano / Orin NX / Raspberry Pi 5 | Fastest path to full conversation |
+| Cloud or compatible endpoint | Qwen API or any OpenAI-compatible model | RK3576 / RK3588 / Orin Nano / Orin NX / reComputer Industrial R20 series | Fastest path to full conversation |
 | Fully local conversation | RK1828 Qwen3-4B or Orin NX Qwen3.5-4B | RK3588 + RK1828 / Orin NX 16GB | Privacy, offline use, and fixed operating cost |
 
 ### Technical Stack
