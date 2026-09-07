@@ -43,8 +43,8 @@ This solution adds gun detection to existing cameras. Every frame is analysed on
 | Option | Acceleration | Recommended Streams | Device Price | Cost per Stream |
 |--------|--------------|---------------------|--------------|-----------------|
 | **reComputer R2000 + Hailo** | Hailo NPU | ~2 streams | $350 | $175/stream |
-| **reComputer J3011** (Jetson entry) | TensorRT GPU | ~2 streams | $630 | $315/stream |
-| **reComputer J4012** (Jetson multi) ⭐ | TensorRT GPU | ~6 streams | $1000 | $150/stream (best value) |
-| **reComputer J5012** (Jetson high-end) | TensorRT GPU | ~9 streams | $2500 | $300/stream |
+| **reComputer J30 series** (Jetson entry) | TensorRT GPU | ~2 streams | $630 | $315/stream |
+| **reComputer J40 series** (Jetson multi) ⭐ | TensorRT GPU | ~6 streams | $1000 | $150/stream (best value) |
+| **reComputer J50 series** (Jetson high-end) | TensorRT GPU | ~9 streams | $2500 | $300/stream |
 
-Choose based on your stream count needs: R2000+Hailo or J3011 for few cameras; J4012 for best multi-stream value; J5012 for high frame rate / many streams.
+Choose based on your stream count needs: R2000+Hailo or J30 series for few cameras; J40 series for best multi-stream value; J50 series for high frame rate / many streams.

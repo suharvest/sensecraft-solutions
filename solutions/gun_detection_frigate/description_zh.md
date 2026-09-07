@@ -43,8 +43,8 @@
 | 方案 | 加速方式 | 推荐路数 | 设备价格 | 每路成本 |
 |------|----------|----------|----------|----------|
 | **reComputer R2000 + Hailo** | Hailo NPU | 约 2 路 | $350 | $175/路 |
-| **reComputer J3011**（Jetson 入门） | TensorRT GPU | 约 2 路 | $630 | $315/路 |
-| **reComputer J4012**（Jetson 多路） ⭐ | TensorRT GPU | 约 6 路 | $1000 | $150/路（性价比最优） |
-| **reComputer J5012**（Jetson 高配） | TensorRT GPU | 约 9 路 | $2500 | $300/路 |
+| **reComputer J30 系列**（Jetson 入门） | TensorRT GPU | 约 2 路 | $630 | $315/路 |
+| **reComputer J40 系列**（Jetson 多路） ⭐ | TensorRT GPU | 约 6 路 | $1000 | $150/路（性价比最优） |
+| **reComputer J50 系列**（Jetson 高配） | TensorRT GPU | 约 9 路 | $2500 | $300/路 |
 
-按场景路数需求选择：少量摄像头选 R2000+Hailo 或 J3011；多路高性价比选 J4012；高帧率/多路选 J5012。
+按场景路数需求选择：少量摄像头选 R2000+Hailo 或 J30 系列；多路高性价比选 J40 系列；高帧率/多路选 J50 系列。
