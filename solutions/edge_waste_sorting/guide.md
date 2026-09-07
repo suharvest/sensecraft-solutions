@@ -275,10 +275,13 @@ device, and downloads the EfficientNet-Lite0 (m1c) HEF. The shipped HEF has
 run on Hailo-8 hardware over the full 7417-image val set: material top-1
 0.8889, Chinese four-way 0.9507, agreement with the fp32 CPU baseline 0.9581,
 p50 3.166 ms, p95 3.249 ms, inference only. A from-scratch deploy of this
-same container was separately verified end to end on the same hardware —
-`/healthz`, `/trigger` and the MQTT output all checked against a 1060-image
-subset of the same val set (agreement 0.9425, accuracy vs ground truth
-0.8453, p50 3.167 ms).
+same container was separately verified on the same hardware: `/healthz`,
+`/trigger` and the MQTT output all returned a real classification matching
+the golden label for that one image, and a direct `infer_shard.py` run
+against a 1060-image subset of the same val set — same HEF, not going through
+the container's HTTP or MQTT path — measured agreement 0.9425 and accuracy
+vs ground truth 0.8453 at p50 3.167 ms, consistent with the full-set figures
+above.
 
 | Device | Purpose |
 |---|---|

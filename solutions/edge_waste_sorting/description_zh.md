@@ -234,10 +234,10 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 | 平台 | 状态 |
 |---|---|
 | Jetson Orin（TensorRT） | 部署包已发，基线换成 EfficientNet-Lite0 ONNX；从未在任何 Jetson 上构建过 engine |
-| Raspberry Pi 5 + Hailo-8 | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
+| reComputer R2000（Hailo-8） | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
 | RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c），val 全集 7417 张（一致率 fp16 0.9988 / int8 0.9893，p50 5.575 ms / 2.728 ms）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
-| CPU（onnxruntime） | 本页所有精度数字 |
+| CPU（onnxruntime） | 本页所有未特别标注为 Hailo-8 或 RK3588 真机实测的模型级精度数字 |
 
 ### 会改变对外表述的 caveat
 
@@ -367,10 +367,12 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 **摄像头 + reComputer R2000 系列（Hailo-8）**——把板子准备好、验证三道 Hailo
 ABI 关卡，下载 EfficientNet-Lite0 HEF。出货的这枚 HEF 已在 Hailo-8 真机上跑完
 val 全集 7417 张（物料 top-1 0.8889、中国四分类 0.9507、与 fp32 CPU 一致率
-0.9581、p50 3.166 ms），部署容器本身也在同一台真机上做过从零部署的端到端
-验证——`/healthz`、`/trigger` 与 MQTT 输出——用的是同一份 val 集的 1060 张
-子集（一致率 0.9425、对真值准确率 0.8453、p50 3.167 ms），确认部署镜像走的
-是与离线评测同一条 HailoRT 推理路径。`evaluation/runs/2026-09-08-harvest-pi-acceptance`
+0.9581、p50 3.166 ms）。部署容器本身也在同一台真机上单独做过验证：一次
+`/healthz`、`/trigger` 与 MQTT 触发拿到的分类结果与该图的真值一致；另外用
+`infer_shard.py` 直接对同一份 val 集的 1060 张子集跑了一遍——用的是同一枚
+HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425、对真值准确率
+0.8453、p50 3.167 ms，与上面的全集数字量级一致。
+`evaluation/runs/2026-09-08-harvest-pi-acceptance`
 
 ## 使用须知
 

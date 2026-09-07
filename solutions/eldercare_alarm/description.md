@@ -81,9 +81,14 @@ site.
 | End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
 | End-to-end alert latency, Hailo-8 preset, real inference included | P50 2830 ms / P95 3061 ms | 10 independent fall triggers from an RTSP replay of a real fall clip, same shortened 1 s evidence + 1 s auto-confirm windows as the top row, real Hailo-8 pose inference feeding the alarm state machine | reComputer R2000 series with the Hailo-8 option, 2026-09-08 |
 
-Read the latency rows as the sum of the two configured windows plus about 60 ms
-of dispatch. With the shipped defaults (5 s + 60 s) the same path takes just over
-a minute. That is the confirmation design, not overhead.
+Read the first three rows (the loopback development-machine baseline) as the
+sum of the two configured windows plus about 60 ms of dispatch. With the
+shipped defaults (5 s + 60 s) the same path takes just over a minute. That is
+the confirmation design, not overhead. The two on-device rows below add real
+detection, tracking-establishment and network time on top of that same
+formula — for the Hailo-8 row, roughly 700-900 ms beyond the 2060 ms the
+windows alone predict — which is why they read higher than the loopback figure
+even on the same shortened windows.
 
 The notifier rate-limits itself to 5 sends per 10 minutes. Past that it stops
 sending, by design — size your webhook expectations accordingly.

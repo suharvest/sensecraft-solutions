@@ -47,11 +47,11 @@ c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1  efficientnet_l
 #                  0.115 and scored 0.15, near the 7-class random baseline.
 #                  See evaluation/runs/2026-09-07-devices/results-hailo8.md.
 # measured (RK3588): real hardware, full 7417-image validation set - INT8
-#                  (calib256+mmse) material top-1 0.8882, china4 0.9507,
-#                  agreement vs CPU 0.9892, p50 3.165 ms, p95 3.857 ms; fp16
-#                  top-1 0.8882 (identical), agreement 0.9988, p50 5.962 ms.
-#                  INT8 is 1.88x faster for no measured accuracy difference.
-#                  See evaluation/runs/2026-09-07-devices/results-rk3588.md.
+#                  (calib256+mmse) material top-1 0.8881, agreement vs CPU
+#                  0.9893, p50 2.728 ms, p95 3.417 ms; fp16 top-1 0.8882
+#                  (no material difference), agreement 0.9988, p50 5.575 ms,
+#                  p95 9.904 ms. INT8 is 51% faster for no measured accuracy
+#                  difference. See evaluation/runs/2026-09-08-rk3588-fullval.
 # measured (RV1126B): reCamera Pro real hardware, 1060 val images, built-in
 #                  application stopped - INT8 (calib256+mmse) material top-1
 #                  0.8764, china4 0.9566, agreement vs CPU 0.9906, p50 5.824 ms,

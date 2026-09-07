@@ -287,7 +287,7 @@ so an untested claim either way would be a guess.
 | reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
 | RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c), full 7417-image val set (agreement 0.9988 fp16 / 0.9893 int8, p50 5.575 ms / 2.728 ms); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
-| CPU (onnxruntime) | Every accuracy figure on this page |
+| CPU (onnxruntime) | Every model-level accuracy figure on this page that is not otherwise attributed to a Hailo-8 or RK3588 hardware run |
 
 ### Caveats that change what you can claim
 
@@ -448,11 +448,13 @@ the accelerator this package has. Nothing has been measured on it yet.
 the three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF. The
 shipped HEF has run on Hailo-8 hardware over the full 7417-image val set
 (material top-1 0.8889, Chinese four-way 0.9507, agreement vs fp32 CPU 0.9581,
-p50 3.166 ms) and a from-scratch deploy of the container itself was verified
-end to end on the same hardware — `/healthz`, `/trigger` and the MQTT output —
-against a 1060-image subset of the same val set (agreement 0.9425, accuracy
-vs ground truth 0.8453, p50 3.167 ms), confirming the deployed image reaches
-the same HailoRT backend as the offline evaluation.
+p50 3.166 ms). A from-scratch deploy of the container itself was separately
+verified on the same hardware: `/healthz`, `/trigger` and the MQTT output all
+returned a real classification matching the golden label for that one image,
+and a direct `infer_shard.py` run against a 1060-image subset of the same val
+set — using the same HEF but not going through the deployed container's HTTP
+or MQTT path — measured agreement 0.9425 and accuracy vs ground truth 0.8453
+at p50 3.167 ms, consistent with the full-set figures above.
 `evaluation/runs/2026-09-08-harvest-pi-acceptance`
 
 ## Usage Notes

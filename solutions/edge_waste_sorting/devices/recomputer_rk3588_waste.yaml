@@ -7,11 +7,13 @@ type: manual
 # the Python runtime exist, a packaged application does not, and naming a CDN
 # path that holds nothing would validate here and fail on the device.
 #
-# Figures in step 4 were measured on RK3588 hardware on 2026-09-07 over the
+# Figures in step 4 were measured on RK3588 hardware on 2026-09-08 over the
 # full 7417-image validation set -- the only configuration in this solution
-# measured on the whole set rather than a subset. INT8: material top-1 0.8882,
-# Chinese four-way 0.9507, agreement with the fp32 CPU baseline 0.9892,
-# p50 3.165 ms, p95 3.857 ms. fp16 returns the same top-1 at p50 5.962 ms.
+# measured on the whole set rather than a subset. INT8 (calib256+mmse):
+# material top-1 0.8881, agreement with the fp32 CPU baseline 0.9893,
+# p50 2.728 ms, p95 3.417 ms. fp16: top-1 0.8882 (no material difference),
+# agreement 0.9988, p50 5.575 ms, p95 9.904 ms -- INT8 is 51% faster.
+# See evaluation/runs/2026-09-08-rk3588-fullval in edge-waste-sorting.
 #
 # The board used carries the same SoC, NPU, kernel driver (0.9.8) and
 # librknnrt (2.3.2) as the shipping unit, but not its enclosure, thermal
