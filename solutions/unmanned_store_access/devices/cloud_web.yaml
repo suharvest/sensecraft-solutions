@@ -6,8 +6,8 @@ name_i18n:
 type: docker_deploy
 
 # NOT VERIFIED ON HARDWARE. The image named in assets/cloud/docker-compose.yml
-# has never been pushed; this step fails at image pull until it is built on the
-# host, and the compose file's header carries the build command.
+# was pushed on 2026-09-07 (amd64 + arm64) and starts on both; this step itself
+# has not been run against a real cloud host.
 #
 # Same compose project as cloud_facedb, on purpose — see that file's header for
 # why the two must share the `facedb` volume. Re-running the same compose is

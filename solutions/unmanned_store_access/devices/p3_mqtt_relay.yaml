@@ -5,9 +5,9 @@ name_i18n:
   zh: 门禁主机 + MQTT 继电器
 type: docker_deploy
 
-# NOT VERIFIED ON HARDWARE. Same two missing images as the J20 preset: no
-# published digest for the recognition service, and this project's device-side
-# image has never been built.
+# NOT VERIFIED ON HARDWARE. Same image situation as the J20 preset: the
+# recognition service is published (digest below is the default), this
+# project's device-side image has never been built.
 #
 # The difference from P2 is the whole point of this preset: the compute box has
 # NO door wiring. The unlock leaves over MQTT and a separate node closes the
@@ -233,12 +233,19 @@ remote_overrides:
       name: Recognition Image (digest-pinned)
       type: text
       required: true
+      default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac"
       placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
-      description: A digest, not a tag. No digest has been published for this project yet.
+      description: >-
+        A digest, not a tag. The default is the 2026-09-07 build
+        (solution/face-rec-api:0.1.0-usa-jetson, arm64); it ships no weights,
+        so mount the engines built on this box and run with `--runtime nvidia`.
       name_i18n:
         zh: 识别服务镜像（digest 锁定）
       description_i18n:
-        zh: 写 digest，不要写 tag。本项目目前还没有发布过 digest。
+        zh: >-
+          写 digest，不要写 tag。默认值是 2026-09-07 的构建
+          （solution/face-rec-api:0.1.0-usa-jetson，arm64）；镜像里不带权重，
+          需要把本机生成的 engine 挂进去，并加 `--runtime nvidia`。
     - id: access_node_image
       name: Access Node Image
       type: text
