@@ -53,9 +53,11 @@ it cannot.
 ## How well it works
 
 Each number below carries the device it was measured on and the conditions it
-was measured under. The Hailo-8 and RK3588 figures are reference values taken on
-the same accelerator platform as the matching reComputer preset; they will be
-updated after a re-test on the reComputer units.
+was measured under. The Hailo-8, RK3588 and RK3576 figures are reference
+values taken on the same accelerator chip platform as the matching reComputer
+preset; they will be updated after a re-test on the reComputer units. The
+reCamera Pro figures are measured on the camera itself — it is the shipping
+product, not a reference board.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
@@ -135,8 +137,11 @@ both agree there is no directional bias).
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
 
-Figures in this table are reference values from the same accelerator platforms;
-they will be updated after a re-test on the reComputer units.
+The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
+accelerator chip platform as the matching reComputer preset; they will be
+updated after a re-test on the reComputer units. The reCamera Pro row is
+measured on the camera itself — it is the shipping product, not a reference
+board.
 
 ## Usage Notes
 

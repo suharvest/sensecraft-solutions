@@ -36,7 +36,9 @@
 
 ## 实测到什么程度
 
-下面每个数字都标了实测设备与口径。其中 Hailo-8 与 RK3588 的数字取自与对应 reComputer 套餐同款的加速器平台，是参考值，reComputer 整机复测后更新。
+下面每个数字都标了实测设备与口径。其中 Hailo-8、RK3588 与 RK3576 的数字取自与对应
+reComputer 套餐同款的加速器芯片平台，是参考值，reComputer 整机复测后更新。
+reCamera Pro 的数字是在摄像头本机上实测的——它就是出货的产品，本身就是最终形态。
 
 **检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
 单流 110.4 fps。「hailortcli benchmark」 交叉核对为 110.64 fps，
@@ -103,7 +105,8 @@ Hailo 量化没达到可用精度，RK3588 上也没有嵌入器的 RKNN 转换�
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
 
-表中数字取自同款加速器平台，是参考值，reComputer 整机复测后更新。
+Hailo-8、RK3588 与 RK3576 三行取自同款加速器芯片平台，是参考值，reComputer 整机
+复测后更新。reCamera Pro 一行是在摄像头本机上实测的——它就是出货的产品，本身就是最终形态。
 
 ## 使用须知
 
