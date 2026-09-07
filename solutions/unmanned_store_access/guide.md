@@ -41,8 +41,8 @@ SG2002 firmware, its control plane is MQTT rather than loopback HTTP, and it
 installs with `platforms/recamera-poe/install.sh` instead of a manual copy; the
 relay goes on one of the three IO lines of its baseboard 6-pin header
 (D1 = sysfs 490, the only line not multiplexed). Nothing about the PoE unit has
-been on hardware — pending hardware, and the header's level polarity and drive
-current are undocumented by the vendor and unmeasured.
+been on hardware: the header's level polarity and drive current are
+undocumented by the vendor and unmeasured.
 
 | Device | Purpose |
 |---|---|
@@ -67,7 +67,8 @@ recognition results**, not a person; the pin readback is sysfs, so the values ar
 an upper bound; and **no external circuit has ever been connected** — no meter
 reading of `gpio130`, no LED, no relay, no door controller, and its physical identity on the
 board is still unconfirmed. The thresholds are the recognition app's own
-defaults, not calibration results (`calibration = pending`).
+defaults; no calibration against measured recognition/rejection pairs has been
+run.
 
 **Important.** This is not a certified security or life-safety system. The face
 embedding weights are non-commercial (see the licensing section on the solution
@@ -216,8 +217,8 @@ facedb key, and confirm the gate came up armed — not just the app active.
   setuid, and `/sys/class/gpio` is root-only.
 - A meter. Pin numbers, polarity and available drive current are measured, never
   assumed. Nothing in the wiring sub-section below has been done on any unit —
-  gpio130 has only ever been verified to the level of "write value, read back
-  1", with nothing external connected.
+  gpio130 has only ever had its value written and read back as 1, with nothing
+  external connected.
 - A facedb key id and secret matching the console's, from Step 2.
 
 ### Wiring
@@ -530,7 +531,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -632,7 +633,7 @@ than sharing the direct one.
 **Important.** This is not a certified security or life-safety system, and no
 part of this preset has run on hardware. Six of the seven boundary metrics are
 empty. A standard reCamera is not an option here — it is preset P5, whose
-library-delivery path has been verified on real hardware. The face embedding
+library-delivery path has run on real hardware. The face embedding
 weights are non-commercial.
 
 Known weaknesses, none of them measured:
@@ -774,7 +775,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -880,27 +881,27 @@ Relay.
 library path has been exercised on a real unit; the door path has not. The face
 embedding weights are non-commercial.
 
-What is verified and what is not, stated separately because they are usually
-conflated:
+What has run on hardware and what has not, stated separately because they are
+usually conflated:
 
-- **Verified on hardware** (second probe run, standard reCamera at
+- **Ran on hardware** (second probe run, standard reCamera at
   192.168.42.1): library pull, per-file SHA, manifest signature, atomic switch,
   gallery write and `op:reload` ack; resume after an interrupted download;
-  rejection of a version whose manifest does not verify; the threshold
-  consistency gate refusing to start when the config and the running recognition
-  process disagree. Full activation measured p50 491.6 ms and p95 507.8 ms over
-  20 runs on a 2-person, 16.5 KB library; the `op:reload` round trip measured
-  p50 100.0 ms over 25 runs. Source:
+  rejection of a version whose manifest signature does not check out; the
+  threshold consistency gate refusing to start when the config and the running
+  recognition process disagree. Full activation measured p50 491.6 ms and p95
+  507.8 ms over 20 runs on a 2-person, 16.5 KB library; the `op:reload` round
+  trip measured p50 100.0 ms over 25 runs. Source:
   `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
-- **Not verified, and not to be presented as if it were**: any recognition or
-  liveness figure — nobody stood in front of the lens during either probe run
-  and each run sampled 220 frames that all read `face_count: 0` (see
-  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
-  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
+- **Not run on hardware, and not to be presented as if it were**: any
+  recognition or liveness figure — nobody stood in front of the lens during
+  either probe run and each run sampled 220 frames that all read
+  `face_count: 0` (see `evaluation/runs/2026-09-06-recamera-std-p3/results.md`
+  and `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
   recognition-to-relay latency, because no relay has been wired (see
   `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`); and the
-  thresholds, which are the device's shipped values carrying
-  `calibration = pending`.
+  thresholds, which are the device's shipped values with no calibration run
+  against them yet.
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power
   cut.
@@ -1028,7 +1029,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -1321,7 +1322,7 @@ failed, and only this page tells them apart.
 |---|---|
 | `desired_version` is behind the server's `current` | The device has not polled yet. One poll period is 30 s by default; wait, then reload. |
 | `desired_version` matches, `active_version` lags | The device saw the version and could not activate it. `last_error` says why — usually a signing key id or secret that differs from the console's, a `match_threshold` that differs from `USA_MATCH_THRESHOLD`, or a manifest with no `artifacts.gallery_v2`. |
-| `signature.verified` is `null` | No version has been verified yet. That is not a failed verification. |
+| `signature.verified` is `null` | No version has completed a signature check yet. That is not a failed check. |
 | `clock.valid` is `false` | Expected on a device with no NTP. The integrity boundary is the manifest signature, not the clock. |
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
@@ -1384,6 +1385,6 @@ observed directly.
 |---|---|
 | A photograph opens the door | Expected on this preset. There is no liveness model for this chip. If it matters, move the door to P1, P2 or P3. |
 | Nobody is recognised after a library update | `model_tag` mismatch, or the library was built with the server-side backbone. Embeddings do not cross models. |
-| The door stops responding after a library download | The download targets the inactive slot and the pointer only flips on a verified sha256. If it stopped, look at the sync log, not at the slot. |
+| The door stops responding after a library download | The download targets the inactive slot and the pointer only flips once the sha256 matches. If it stopped, look at the sync log, not at the slot. |
 | Matching gets slower as the library grows | Expected and unmeasured. Match time scales with the number of records. |
 | The controller reconnects but the door opened by itself | Something published the relay `set` topic retained. It must never be. |
