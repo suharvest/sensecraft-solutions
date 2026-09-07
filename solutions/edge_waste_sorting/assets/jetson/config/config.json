@@ -7,13 +7,13 @@
     }
   ],
   "model": {
-    "path": "/models/mobilenetv3s_waste8.engine",
+    "path": "/models/efficientnet_lite0_waste8.engine",
     "accelerator": "tensorrt",
     "track": "baseline",
-    "backbone": "mobilenet_v3_small",
+    "backbone": "efficientnet_lite0",
     "input_size": [224, 224],
     "top_k": 3,
-    "onnx_sha256": "51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e"
+    "onnx_sha256": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391"
   },
   "classes": ["paper", "cardboard", "glass", "metal", "plastic", "textile", "organic", "residual"],
   "rules": {

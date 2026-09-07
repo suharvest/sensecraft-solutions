@@ -104,7 +104,7 @@ intro:
     - image-classification
     - mqtt
     - gpio
-    - mobilenet
+    - efficientnet-lite0
     - siglip2
     - open-vocabulary
     - smart-bin
