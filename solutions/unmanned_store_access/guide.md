@@ -410,9 +410,6 @@ Known weaknesses, none of them measured:
 - **The DO pin numbers are unconfirmed.** The design spec records DO1–DO4 as
   sysfs 463/464/465/462; whether the target image exposes them that way, or
   through Jetson.GPIO instead, is open.
-- **The access-node container image does not exist.** The recognition-service
-  image is published, but this project's device image (`ACCESS_NODE_IMAGE`)
-  has never been built — the daemon it would run does not exist yet either.
 - **Backlit doorways and glass reflections** have not been characterised.
 
 ## Step 1: Deploy the Face Library Server {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
@@ -516,7 +513,9 @@ continuing.
 
 | Issue | Solution |
 |---|---|
-| `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | Neither image exists yet. Supply what you built; there is deliberately no default. |
+| `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | Neither should happen with an unmodified compose file — both images have a default digest/tag baked in. Seeing this means something cleared the variable or edited the compose file; supply a digest/tag or restore the default. |
+| `access-node` container restarts, `docker logs` says `config error:` | The config gate refused a value. Run `docker compose exec access-node access-node check-config` to see which one; the four wiring fields and the placeholder strings are the usual causes. |
+| `access-node` stays `unhealthy` but the logs show no error | `/readyz` is the healthcheck, and it is red whenever a face cannot open the door. `docker compose exec access-node access-node healthcheck` prints which of the four gates is down: face-rec-api, camera, face database, or the pin lock. |
 | "gpio N is ALREADY EXPORTED" | Something else is driving that output. Confirm it is the door DO before continuing. |
 | "LIVENESS IS NOT LOADED" | The recognition service came up without its liveness model. The access node will refuse to start, correctly. Fix the image, do not bypass the check. |
 | The step refuses a plaintext library URL | No signing key was given. On a plaintext URL the manifest signature is the whole integrity boundary. |

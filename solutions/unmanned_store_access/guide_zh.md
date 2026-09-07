@@ -335,8 +335,6 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
 - **没有任何识别或活体数字**，这套硬件上没有，别的硬件上也没有。
 - **DO 引脚号未经确认。** 设计 spec 记录 DO1–DO4 是 sysfs 463/464/465/462；
   目标镜像究竟以这种方式还是通过 Jetson.GPIO 暴露它们，是个悬而未决的问题。
-- **门禁节点容器镜像不存在。** 识别服务镜像已发布，但本项目的设备镜像
-  （`ACCESS_NODE_IMAGE`）从未构建——它要跑的守护进程本身也还不存在。
 - **逆光门口与玻璃反光**没有刻画过边界。
 
 ## 步骤 1: 部署人脸库服务 {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
@@ -430,7 +428,9 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
 
 | 问题 | 解决办法 |
 |---|---|
-| 报 `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | 两个镜像都还不存在。填你构建出来的；这里刻意没有默认值。 |
+| 报 `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | 用未改过的 compose 文件不该出现这个提示——两个镜像都带了默认 digest/tag。出现说明变量被清空或 compose 文件被改过；补上 digest/tag，或恢复默认值。 |
+| `access-node` 容器反复重启，`docker logs` 里是 `config error:` | 配置闸门拒了某一项。`docker compose exec access-node access-node check-config` 会指出是哪一项；常见的是四个接线字段和没替换掉的占位串。 |
+| `access-node` 一直 `unhealthy`，日志里却没有报错 | healthcheck 打的是 `/readyz`，只要刷脸开不了门它就是红的。`docker compose exec access-node access-node healthcheck` 会打出四个闸门里哪一个不通：face-rec-api、摄像头、人脸库、引脚锁。 |
 | 提示「gpio N is ALREADY EXPORTED」 | 有别的东西在驱动这路输出。确认它就是门的 DO 再继续。 |
 | 提示「LIVENESS IS NOT LOADED」 | 识别服务起来了但没带活体模型。门禁节点会拒绝启动，这是对的。修镜像，不要绕过这道检查。 |
 | 这一步拒绝了明文人脸库地址 | 没给签名密钥。明文地址下 manifest 签名就是完整性保护的全部。 |
