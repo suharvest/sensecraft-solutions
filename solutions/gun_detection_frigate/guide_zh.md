@@ -183,13 +183,13 @@ docker compose restart
 - 设置录像保留策略（`record.retain.days`）
 - [Frigate 官方文档](https://docs.frigate.video/)
 
-## 套餐: reComputer R2000 + Hailo {#r2000_hailo}
+## 套餐: reComputer AI Industrial R21 + Hailo {#r2000_hailo}
 
-使用 Frigate NVR 在 reComputer R2000 上进行实时枪支检测，搭配 Hailo AI 加速器。
+使用 Frigate NVR 在 reComputer AI Industrial R21 上进行实时枪支检测，搭配 Hailo AI 加速器。
 
 | 设备 | 用途 |
 |------|------|
-| reComputer R2000 + Hailo | 搭载 Hailo NPU 加速的边缘 AI 设备 |
+| reComputer AI Industrial R21 + Hailo | 搭载 Hailo NPU 加速的边缘 AI 设备 |
 | 网络摄像头（可选） | RTSP 监控视频源 |
 
 **部署完成后你可以：**
@@ -231,11 +231,11 @@ docker compose restart
 
 ## 步骤 2: 部署 Frigate {#deploy_frigate_r2000 type=docker_deploy required=true config=devices/r2000_hailo_deploy.yaml}
 
-将 Frigate NVR 和 Hailo 加速的枪支检测 AI 部署到 reComputer R2000。
+将 Frigate NVR 和 Hailo 加速的枪支检测 AI 部署到 reComputer AI Industrial R21。
 
 ### 部署目标 {#r2000_remote type=remote config=devices/r2000_hailo_deploy.yaml default=true}
 
-通过 SSH 部署到远程 reComputer R2000。
+通过 SSH 部署到远程 reComputer AI Industrial R21。
 
 ### 接线
 
