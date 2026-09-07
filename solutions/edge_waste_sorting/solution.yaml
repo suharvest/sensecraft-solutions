@@ -396,16 +396,23 @@ intro:
         measured over the whole 7417-image validation set rather than a
         subset: material top-1 0.8882, Chinese four-way 0.9507, p50 3.2 ms and
         p95 3.9 ms for inference alone (capture and preprocessing excluded).
-        fp16 returns exactly the same top-1 at p50 6.0 ms, so INT8 is 1.9x
-        faster for no measured accuracy difference. Both land within 0.05 pp
-        of fp32 on a host over the same images.
+        fp16 gives the same material top-1 at p50 6.0 ms, so INT8 is 1.9x
+        faster with no difference on that metric; the four-way figure and the
+        agreement with the host baseline do differ slightly between them.
+        Both land within 0.05 pp of fp32 run on a host over these same images.
+        Every device on this page is compared against a host baseline computed
+        on the images that device saw, and the sets differ — so these top-1
+        values are not a ranking of one device against another.
       description_i18n:
         zh: >-
           分类器跑在 RK3588 的 NPU 上，用 INT8。这是唯一一个在 val 全集
           7417 张（而不是子集）上测过的配置：物料八类 top-1 0.8882、
           中国四分类 0.9507、p50 3.2 ms、p95 3.9 ms（纯推理，不含取图与预处理）。
-          fp16 给出完全相同的 top-1，p50 是 6.0 ms，即 INT8 快 1.9 倍而精度
-          没有可测差异。两者与同一批图上主机 fp32 的差都在 0.05 pp 以内。
+          fp16 的物料 top-1 与它完全相同，p50 是 6.0 ms，即 INT8 快 1.9 倍
+          且在这一项上没有差异；四分类与对主机基线的一致率两者略有不同。
+          两者与同一批图上主机 fp32 的差都在 0.05 pp 以内。本页每台设备都是
+          与它自己看过的那批图上的主机基线相比，而各设备的图集不同——
+          所以这些 top-1 数值不能当作设备之间的排序。
       device_groups:
         - id: compute
           name: Sorting Host
