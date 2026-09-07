@@ -618,7 +618,7 @@ intro:
       description: >-
         For when the box that runs recognition is not at the door, or when one
         box serves several doors. Recognition runs in containers on a
-        J30/J40/R2000 against an existing RTSP stream; the unlock travels over
+        J30/J40 against an existing RTSP stream; the unlock travels over
         MQTT to a relay node — either an R1000 writing a Modbus point or a XIAO
         ESP32 driving a Grove Relay. The extra hop adds latency, so this preset
         has its own latency boundary rather than sharing the direct one. A standard reCamera reaches the same relay node but installs
@@ -627,7 +627,7 @@ intro:
       description_i18n:
         zh: >-
           适合识别所在的盒子不在门边，或者一台盒子管好几道门的场合。识别在
-          J30/J40/R2000 上以容器运行，接现有 RTSP 流；开门指令经 MQTT 发到继电器节点——
+          J30/J40 上以容器运行，接现有 RTSP 流；开门指令经 MQTT 发到继电器节点——
           要么是 R1000 写一个 Modbus 点位，要么是 XIAO ESP32 驱动一个 Grove 继电器。
           多一跳会增加时延，因此它单列一个时延边界，不与端侧直控共用。
           标准版 reCamera 接的是同一个继电器节点，但安装方式差别够大，单列一个套餐：
