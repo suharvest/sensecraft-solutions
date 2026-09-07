@@ -148,3 +148,12 @@ in a bed, a weather station on a mast, a gateway on a greenhouse wall. Every
 image here is a Home Assistant screenshot. A field photograph is the right
 cover for this page and has to be supplied; none exists in this working tree or
 in the hub repository.
+
+Second pass the same day: the overview was cropped again on the right, 1600 ×
+285 → 1372 × 285, dropping the empty column beside the last card. The
+navigation rail on the left is kept — it is what makes the picture read as Home
+Assistant.
+
+`ha-history-graph-local-20260907.jpg` is left at 1600 × 779. Its cards are laid
+out in a single narrow column about 320 px wide, so cropping to the charts would
+leave an image too narrow to use; it stays a gallery image and not the cover.
