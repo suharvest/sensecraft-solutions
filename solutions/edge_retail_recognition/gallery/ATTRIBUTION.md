@@ -80,3 +80,25 @@ not comparable to vectors written by another, so a model swap invalidates the
 whole gallery rather than part of it. The version manifest records the model
 hash and the preprocessing hash so that this is detected rather than discovered
 as "nothing is recognised any more".
+
+## Shelf and checkout frames from the RK3588 run (2026-09-07)
+
+Three files added 2026-09-07 come from this solution's own device runs in the
+`edge-retail-recognition` working tree. They are the runtime's own detector,
+tracker and shelf state machine drawing on their own inputs — no separate
+rendering path.
+
+| File | Source | Board | Note |
+|---|---|---|---|
+| `shelf-ok-rk3588-20260907.jpg` | `evaluation/runs/2026-09-07-runtime-rk3588-r4-shelf-b3/media/shelf-ok.png` | Radxa Rock 5B (RK3588) | 20 slots, window 45, 0/20 mismatches. PNG 1280 × 746 → JPEG 1280 × 746 |
+| `shelf-wrong-sku-rk3588-20260907.jpg` | same run, `shelf-wrong_sku.png` | same | one slot confirmed `wrong_sku`. PNG 1280 × 746 → JPEG 1280 × 746 |
+| `checkout-tracks-rk3588-20260907.gif` | `evaluation/runs/2026-09-07-runtime-rk3588-r5/media/checkout-tracks.gif` | same | copied unchanged |
+
+The GIF's own caveat travels with it: the overlay tool runs the detector and the
+tracker but not the embedder, so the instance numbers on screen are kinematic
+instances and are looser than the counts the runtime settles on. Item counts
+should be read from the run's `raw/score.checkout.json`, not from the frames.
+
+The products in all three files are photographs from the **Grocery Store
+Dataset** (MIT), which permits commercial use and redistribution; the shelf
+scenes were composed from it by `tools/make_shelf_grocery_sim.py`.
