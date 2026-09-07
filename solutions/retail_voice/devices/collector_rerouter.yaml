@@ -63,6 +63,19 @@ remote_overrides:
 
   actions:
     before:
+      - name: Check Docker and architecture
+        run: |
+          set -e
+          docker info >/dev/null 2>&1 || { echo "docker is not usable by this user" >&2; exit 1; }
+          ARCH=$(uname -m)
+          echo "arch: $ARCH"
+          if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
+            echo "The published images (voice-client, voice-service, ASR) are arm64 only; this host is $ARCH. Stopping before compose pulls fail obscurely." >&2
+            exit 1
+          fi
+        name_i18n:
+          zh: 检查 Docker 与主机架构
+
       - name: Check the microphone array is visible
         run: |
           set -e
