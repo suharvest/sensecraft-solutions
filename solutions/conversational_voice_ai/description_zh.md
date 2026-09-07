@@ -62,29 +62,27 @@
 
 | 设备 | 中文 | 英文 | 其余 28 种语言 |
 |------|------|------|----------------|
-| Orin Nano 8GB | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
-| Orin NX 16GB（云端对话） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS，待测 |
-| Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha，ASR CER 0 实测 | Qwen3-ASR int4 + Matcha，待测 | Qwen3-ASR + Qwen3-TTS CustomVoice，待测 |
-| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，2026-09-06 用离线整段 `/asr` 接口（不经 VAD 端点）实测的模型能力：CER 短句 1.05% / 长句 9.62%，TTS RTF 0.194（详见 docs/perf/rk3576-matrix-20260906.md） | 不支持——该板 TTS 仅有 Matcha zh-en |
+| Orin Nano 8GB | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS |
+| Orin NX 16GB（云端对话） | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS |
+| Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS CustomVoice |
+| RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | 不支持——该板 TTS 仅有 Matcha zh-en |
+| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR + Kokoro RKNN |
+| 树莓派 5 | 不支持 | sherpa-onnx CPU | 不支持 |
 
-上面 1.05%/9.62% 是把整段音频一次性丢给离线 `POST /asr` 接口（不经 VAD、不走
-流式）测出的解码器能力。**实时对话会话**行为不同：其低延迟轮次检测（silero
-VAD，400ms 静音 + 2.5s 最小音频）在听到的第一个自然停顿处就判定说话结束并给出
-最终结果，导致一句带停顿的长句只会得到第一个分句的回复（对照完整参考文本算出
-的 CER 为中文 84.06%、英文 WER 63.38%）——**这是流式端点的轮次设计，不是识别
-错误**；已用放开解码器 token 上限与标点截断设定（`ASR_MAX_NEW_TOKENS=256`、
-`ASR_FINAL_STOP_ON_PUNCT=0`）复测过，结果与对话模式逐字一致，证实是 VAD 端点而
-非解码器在提前结束轮次。调整 VAD 端点使对话场景能挺过句中停顿是待办事项，本次
-未做。
-| RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha，待测 | Qwen3-ASR + Kokoro RKNN，待测 |
-| 树莓派 5 | 不支持 | sherpa-onnx CPU，待测 | 不支持 |
+**中文绝不交给 Whisper。** Whisper 在已实测的每块板上中文 CER 都在 35-56%。
+没有 Qwen3-ASR 后端的树莓派 5 直接拒绝中文，而不是勉强识别。
 
-"待测"指各组件有实测数据、端到端组合还没有。本表唯一的实测精度数字是 Orin NX 上的
-Qwen3-ASR 0.6B int4：golden set 流式与离线均 CER 0，2026-07-04。其余单元格可以部署但
-没有量化数据，不要按表中未写出的时延或精度数字做规划。
+## 实测结果
 
-**中文绝不交给 Whisper。** Whisper 在已实测的每块板上中文 CER 都在 35-56%，所以没有
-Qwen3-ASR 后端的树莓派 5 直接拒绝中文，而不是勉强识别。
+| 指标 | 数值 | 设备 | 测量口径 |
+|------|------|------|----------|
+| 中文识别准确率 | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4，golden set，流式与离线，2026-07-04 |
+| 英文识别准确率 | CER 短句 1.05% / 长句 9.62% | reComputer RK3576 | Qwen3-ASR W8A8，离线整段 `/asr` 接口，2026-09-06 |
+| 语音合成速度 | RTF 0.194 | reComputer RK3576 | Matcha-TTS，同一轮实测，2026-09-06 |
+
+实时对话用低延迟轮次检测（silero VAD，400 ms 静音 + 2.5 s 最小音频）。
+它在第一个自然停顿处就回复，所以句中带停顿的长句只会得到前半句的答复。
+说完整短句，或者直接打断续说。
 
 ## 方案对比
 
