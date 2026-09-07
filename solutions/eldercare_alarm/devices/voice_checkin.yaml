@@ -49,8 +49,8 @@ steps:
       first (it is a separate deployment, not part of this solution), then from
       the alarm host run `curl -sf http://<ovs-host>:8621/readyz` — it has to
       return 200. If it does not, stop here: with no ASR the module would
-      report `no_answer` on every alarm, which fails safe but tells you
-      nothing.
+      report `no_answer` on every alarm, which fails safe but carries no
+      information about the resident.
     description_i18n:
       zh: >-
         语音确认需要同一局域网内的 OpenVoiceStream 实例，麦克风与扬声器通过 USB 接在
