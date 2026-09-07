@@ -30,28 +30,43 @@ intro:
   # read as product photography or as a screenshot of a running console, so they stay
   # unreferenced. Full provenance (capture host, commit, simulator configuration, duration)
   # is in gallery/ATTRIBUTION.md.
-  cover_image: gallery/points-overview-running.png
+  cover_image: gallery/cover-point-trend-zh.jpg
   gallery:
     - type: image
-      src: gallery/points-overview-running.png
+      src: gallery/console-point-trend-zh.jpg
       caption: >-
-        Running point table — all 13 points (10 SDM630 meter registers, 3 HVAC BACnet points)
-        reading live "good" quality across both sources. Field devices are this repo's own
-        protocol simulators, not a physical meter or controller.
+        Point detail — measured supply temperature, the setpoint that was written and the
+        predicted setpoint on one 24-hour chart, so the prediction can be read against what
+        the field actually did. Fixture site, not a commissioned building.
       caption_i18n:
         zh: >-
-          运行中的点位总表——电表（SDM630，10 个寄存器）与暖通 BACnet（3 个点位）共 13 个
-          点位均为实时"良好"质量。现场设备为本仓库自带的协议模拟器，非真实电表或控制器。
+          点位详情——实测送风温度、已下发的设定值与预测设定值叠在同一张 24 小时曲线上，
+          可以直接对照预测与现场实际。数据来自 e2e fixture 站点，非已交付的真实楼宇。
     - type: image
-      src: gallery/access-registration.png
+      src: gallery/console-point-trend-en.jpg
       caption: >-
-        Access page — the SDM630 Modbus TCP source and the HVAC BACnet/IP source, both
-        online, with their registered point counts. Simulated field devices, real gateway
-        registration flow.
+        The same point drawer in English — the output policy stays disabled until the safe
+        range is saved and the current value and dry-run result are checked.
       caption_i18n:
         zh: >-
-          接入页——SDM630 Modbus TCP 数据源与暖通 BACnet/IP 数据源均在线，附各自已注册点位数。
-          现场设备为模拟器，接入注册流程为真实网关逻辑。
+          同一点位抽屉的英文界面——输出策略在保存安全范围、核对当前值与预演结果之前保持禁用。
+    - type: image
+      src: gallery/console-overview-zh.jpg
+      caption: >-
+        Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success
+        and write-readback rates, points grouped by protocol, and one card per source.
+      caption_i18n:
+        zh: >-
+          站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、
+          按协议分组的点位，以及每个数据源一张卡片。
+    - type: image
+      src: gallery/console-topology-zh.jpg
+      caption: >-
+        Device topology — source to protocol to device to point, with quality and
+        writability on every leaf and offline sources greyed out.
+      caption_i18n:
+        zh: >-
+          设备拓扑——数据源 → 协议 → 设备 → 点位，每个叶子标出质量与可写性，离线数据源置灰。
     - type: image
       src: gallery/control-dispatch-readback.png
       caption: >-

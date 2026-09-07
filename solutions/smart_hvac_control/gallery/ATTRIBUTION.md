@@ -1,17 +1,22 @@
 # Gallery attribution
 
-## Current state: architecture diagram plus six running-UI captures
+## Current state: architecture diagram, four console captures and four behaviour captures
 
 `intro.cover_image` and `intro.gallery[]` in `solution.yaml` reference the architecture
-diagram and six PNG captures of the actual `missionpack-knn` web console, taken against a
-real backend process with real (simulated) field devices behind it — not drawn, not staged
+diagram, four DPR-2 captures of the current React console (2026-09-07, see below) and four
+1440 x 900 captures from the 2026-09-06 wiring session that show behaviour the newer set
+does not cover — a raised alarm banner, a source going offline, the command-receipt ledger
+and a compensated write. All are captures of the actual web console taken against a real
+backend process with real (simulated) field devices behind it — not drawn, not staged
 composites of unrelated screens.
 
 | File | What it is | Referenced? | Origin |
 |---|---|---|---|
 | `architecture.svg` | Schematic block diagram | **Yes** — `intro.gallery[]` | Drawn for this package, first-party |
-| `points-overview-running.png` | Point table, all 13 points live and reading `good` quality across both sources | **Yes** — `intro.cover_image`, `intro.gallery[]` | Screen capture, see below |
-| `access-registration.png` | Access page: the SDM630 Modbus TCP source and the HVAC BACnet/IP source, both online, with point counts | **Yes** — `intro.gallery[]` | Screen capture, see below |
+| `cover-point-trend-zh.jpg` | Point drawer's 24-hour chart: measured supply temperature, written setpoint and predicted setpoint on one axis | **Yes** — `intro.cover_image` | Screen capture, 2026-09-07, see below |
+| `console-point-trend-zh.jpg` / `-en.jpg` | The whole point drawer — identity, display settings, output policy and the three-line chart | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
+| `console-overview-zh.jpg` | Site overview: counts, unacknowledged alarms, 24-hour poll-success and write-readback trends, points by protocol, source cards | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
+| `console-topology-zh.jpg` | Device topology: source to protocol to device to point, offline sources greyed out | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
 | `control-dispatch-readback.png` | Data-service page's command-receipts table: manual setpoint and compressor-enable writes with `protocol_acknowledged` status, requested vs. effective value and actor | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `points-source-offline.png` | Point table with the SDM630 Modbus source stopped mid-capture, its ten points showing `offline` quality while the BACnet source stays `good` | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `alarm-banner-source-offline.png` | Point table with the alarm banner raised: one unrecovered, unacknowledged `source-offline` warning after the SDM630 simulator took `SIGTERM` | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
@@ -147,13 +152,47 @@ and the original PNGs alongside the ones committed here) is in
 Transcript for these two (driver scripts, raw receipts, health payloads, pytest
 output) is in `Solution_HVAC_SmartControl/evaluation/runs/2026-09-06-b2-wire-e2e/`.
 
-## 2026-09-07
+## 2026-09-07 — crops
 
-`access-registration.png` (1440 × 900 → 1440 × 346) and
+`access-registration.png` (since removed, see below) and
 `control-readback-compensated.png` (1440 × 900 → 1440 × 866) were cropped to
 their content. The other four screenshots already filled their frames and are
 byte-identical to before. The gallery order was already correct: console
 screenshots first, the architecture diagram last.
+
+## 2026-09-07 — console captures re-taken at DPR 2
+
+`points-overview-running.png` and `access-registration.png` are gone. Both were
+1440 x 900 captures cropped afterwards (the Access one down to a 1440 x 346
+strip), and both showed a two-source instance that the current console renders
+differently.
+
+Their replacements come from the console dashboard branch
+(`Solution_HVAC_SmartControl`, `feature/building-energy`, e54dfb1; capture set at
+`docs/console-react/dashboard-2026-09-07/`) run against the **e2e fixture site** —
+4 protocols, 13 devices, 120 points, two sources deliberately offline. It is a
+fixture, not a commissioned building: the values are generated and the alarms and
+quality flags are what the fixture seeds.
+
+Captured with Playwright + Chrome at `deviceScaleFactor: 2`, full page. Cropped to
+content and saved as JPEG quality 90; nothing inside the frame was altered or
+scaled.
+
+| File | Before | After |
+|---|---|---|
+| `cover-point-trend-zh.jpg` | 3200 x 2400 | 1600 x 1000 (the history chart and its legend) |
+| `console-point-trend-zh.jpg` | 3200 x 2400 | 2000 x 2400 (drawer, blank left column trimmed) |
+| `console-point-trend-en.jpg` | 3200 x 2400 | 2000 x 2400 |
+| `console-overview-zh.jpg` | 3200 x 2790 | 3200 x 2760 |
+| `console-topology-zh.jpg` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
+
+The four 2026-09-06 captures kept in the gallery
+(`control-dispatch-readback.png`, `points-source-offline.png`,
+`alarm-banner-source-offline.png`, `control-readback-compensated.png`) were **not**
+re-taken. They are still 1440 x 900 DPR-1. Each shows a scenario that has to be
+staged — a simulator killed with SIGTERM, a register changed out of band — and the
+fixture site the new captures run against does not stage them. Re-take these when
+that scenario runs again.
 
 ## Missing: a photograph of the equipment
 
