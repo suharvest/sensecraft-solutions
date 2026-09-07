@@ -26,15 +26,15 @@ the door. Nothing on the network sits between a face and the relay, so the door
 keeps working while the network is down — the network carries library updates,
 events and remote commands only.
 
-The cost is the install. reCamera Pro is a Buildroot device with no Docker, no
-dpkg and no systemd. What gets installed is a flat set of twelve Python
-standard-library modules under `/userdata/f1-access`, run as root **beside** the
-camera's existing face-recognition app — it pulls the signed library, reloads the
-app over loopback HTTP, maps the app's result stream onto the event contract and
-pulses one sysfs GPIO. It does not touch appmgr, the `/etc/init.d` scripts, or
-the app's launch arguments. Those steps are manual because that is neither a
-package nor an appmgr app, with the reason recorded in the device file rather
-than dressed up.
+The install itself is a published App Center package, `f1-access`: it ships
+through the App Center rather than with this solution, and Step 4 configures
+it and makes it the active appmgr app — appmgr on the Pro is single-active, so
+this stops whatever app ran before. What remains manual is what a deployer
+cannot do for you: measuring a genuinely free GPIO pin with a meter, wiring
+LED then relay then the door controller in that order, and writing the access
+config file that carries the facedb key and the measured wiring posture
+(Step 5). Reason: those are per-installation electrical facts and per-device
+credentials, not something a device file can assert on your behalf.
 
 **reCamera PoE** is the second door option on this preset. It runs the standard
 SG2002 firmware, its control plane is MQTT rather than loopback HTTP, and it
@@ -177,25 +177,48 @@ not enrol through this cloud console.
 | Rollback refused naming a person | The deletion barrier. Mint a new version instead; that refusal is the mechanism working. |
 | `model_tag` mismatch on the device | The library was built against a different embedding model. Rebuild it against the one the door actually runs. |
 
-## Step 4: Install the Door Daemon on the Camera {#p1_install type=manual required=true config=devices/p1_recamera_pro.yaml}
+## Step 4: Activate F1 Door Access from the App Center {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
 
-Reach the camera as root, find and measure a free pin, wire LED then relay then
-the door controller and declare the contact, copy the daemon in, run the gate,
-and leave it running.
+f1-access is a published reCamera Pro App Center package (catalog id
+`f1-access`) that combines the face-recognition app's recognition cascade with
+the door logic: it drives one sysfs GPIO dry contact and publishes
+`access/v1/events`. This step configures it and makes it the active appmgr
+app — appmgr is single-active, so activating f1-access stops whatever app was
+running before.
 
 ### Prerequisites
 
+- f1-access installed from the device's App Center. This step activates an
+  already-installed app; it does not upload or install packages.
+- Nothing else is required yet — the app comes up recognising and running
+  liveness. It stays **disarmed** (no pin exported, no access event published)
+  until the next step gives it an access config file.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Activation times out before 180 s | The manifest loads six `.rknn` models; a first activation right after install can be slow while the filesystem cache is cold. Retry once before treating it as a fault. |
+| `require_installed` fails | f1-access is not on this device's App Center yet. Install it there first — this step cannot install packages. |
+| Another app stays active after this step | Check `GET /api/appMgr/list` for `last_exit`; `entry.cgi`'s `/model/inference` endpoint can wedge after long high load and make `activate` report a timeout. A reboot clears it. |
+
+## Step 5: Wire the Relay and Arm the Gate {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
+
+Reach the camera as root, find and measure a free pin, wire LED then relay then
+the door controller and declare the contact, write the access config and the
+facedb key, and confirm the gate came up armed — not just the app active.
+
+### Prerequisites
+
+- The app active from the previous step, confirmed with
+  `curl -s http://127.0.0.1:8130/api/appMgr/list`.
 - Root SSH access to the camera. The `admin` account has no sudo, `su` is not
-  setuid, and `/sys/class/gpio` is root-only — an app running as `admin` gets
-  EACCES the moment it writes a pin.
-- The existing face-recognition app running: `curl -s localhost:8125/gallery` on
-  the device should return a model tag and a user list. Write the model tag
-  down; the library must be built to match it.
+  setuid, and `/sys/class/gpio` is root-only.
 - A meter. Pin numbers, polarity and available drive current are measured, never
-  assumed. Nothing in the wiring sub-section below has been done on any unit.
-- The upstream repository, for the twelve files that get copied to
-  `/userdata/f1-access`. The operator guide it mirrors is
-  `docs/user-guide.md` chapters 2 and 4.
+  assumed. Nothing in the wiring sub-section below has been done on any unit —
+  gpio130 has only ever been verified to the level of "write value, read back
+  1", with nothing external connected.
+- A facedb key id and secret matching the console's, from Step 2.
 
 ### Wiring
 
@@ -227,19 +250,17 @@ letting them out.
 
 | Issue | Solution |
 |---|---|
-| `EACCES` writing to `/sys/class/gpio` | The app is running as `admin`. It must run as root under `appmgr`. |
-| The actuator refuses to start, naming a pin | The pin is already exported with a direction or value that disagrees with the configured idle state. Find out what owns it. Do not force a takeover to make the message go away. |
-| `certificate is not yet valid` on the library URL | The device clock is months out and it has no NTP client. Either give it a way to correct time and use HTTPS, or move the library to a plaintext LAN URL with the signing key set. |
-| The app refuses to start on a plaintext library URL | No signing key. That refusal is deliberate: on a plaintext URL the manifest signature is the whole integrity boundary. |
+| `EACCES` writing to `/sys/class/gpio` | You are not root over SSH. The app itself already runs as root under appmgr's supervisor; the SSH session editing appdata also needs to be root. |
+| The gate refuses to arm, naming a pin | The pin is already exported with a direction or value that disagrees with the configured idle state. Find out what owns it. Do not force a takeover to make the message go away. |
+| `state` in `/run/f1-access/health.json` stays `disarmed` | No access config at `/userdata/local/appdata/f1-access/face-recognition.conf`, or it failed the consistency gate. Check `app.log` for the named reason. |
 | The door pulses once at boot | The active level is inverted. Fix it before reconnecting the door controller. |
 | Two pulses per approach | The debounce is not in the path, or its window is shorter than the time somebody spends in frame. |
 | The start-up banner keeps naming `relay_contact=unverified fail_mode=unverified` | The wiring posture has not been declared. Measure, then set both. Do not connect the door controller before that. |
-| `health()["stuck_active"]` is true | The daemon failed to drive the pin back to the un-actuated level, so the door may still be open. That is a site visit, not a log entry. |
-| `reclaimed` is non-null at start-up | The previous process was killed (`/run/f1-access/gpio<N>.owner` survived) and this start reclaimed the line. Find out why it did not exit cleanly; stop the daemon with SIGTERM, never `kill -9`. |
+| `health()["stuck_active"]` is true | The gate failed to drive the pin back to the un-actuated level, so the door may still be open. That is a site visit, not a log entry. |
 | `gpio = 131` is rejected while parsing the config | It is in `KNOWN_BUSY_GPIO` — already exported by another application on hardware. |
 | `pulse_ms must be 500..5000 ms` | The pulse width is outside the legal range. |
 
-## Step 5: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+## Step 6: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
 Open the console's device page and confirm that the version you published is the
 version the door device is actually matching against. Do this before putting a
@@ -267,14 +288,14 @@ failed, and only this page tells them apart.
 | A person appears under `only_on_device` | Somebody enrolled locally, bypassing the cloud. The next activation overwrites it. Find out who did it and why. |
 | The page is empty | `USA_DEVICE_ENDPOINTS` is `[]`, or no device has ever reported. Check the console's environment file first. |
 
-## Step 6: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## Step 7: Verify the Door End to End {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 An enrolled person opens the door once; a photograph does not open it at all; a
 remote unlock produces a receipt; a delete cannot be rolled back.
 
 ### Prerequisites
 
-- Steps 1–4 finished, the door controller connected, and someone enrolled in the current
+- Steps 1–5 finished, the door controller connected, and someone enrolled in the current
   library version.
 - A printed photograph of that same person.
 - An operator token and a viewer token, to check that the role gate holds in

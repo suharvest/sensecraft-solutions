@@ -255,20 +255,20 @@ intro:
           registry。
     recamera_pro:
       description: >-
-        Runs recognition, liveness and the door logic on the camera itself. It
-        is a Buildroot device with no Docker, no dpkg and no systemd: the app
-        runs as a root appmgr kit app, so this preset extends the camera's
-        existing face-recognition app rather than installing a package. Its
-        native outputs swing 12–21 V, and a UART or CAN pin can be reconfigured
-        to 3.3 V instead. The device survey found "gpio131" already exported by
-        another application, so no pin may be assumed free.
+        Runs recognition, liveness and the door logic on the camera itself,
+        as f1-access — a published App Center package installed and activated
+        as a root appmgr kit app (recamera_pro_app deployer), not a package
+        this solution installs. Its native outputs swing 12–21 V, and a UART
+        or CAN pin can be reconfigured to 3.3 V instead. The device survey
+        found "gpio131" already exported by another application, so no pin
+        may be assumed free.
       description_i18n:
         zh: >-
-          识别、活体与门控判定都跑在摄像头本机。它是 Buildroot 设备，没有 docker、
-          没有 dpkg、没有 systemd：应用以 root 身份作为 appmgr kit app 运行，
-          因此这个套餐是在摄像头已有的人脸识别应用上做扩展，而不是装一个包。
-          它的原生输出摆幅 12–21 V，也可以把 UART 或 CAN 脚改配成 3.3 V。
-          真机盘点发现 「gpio131」 已被另一个应用 export，所以任何引脚都不能假定空闲。
+          识别、活体与门控判定都跑在摄像头本机，作为 f1-access——一个已发布的
+          App Center 包，以 root 身份作为 appmgr kit app 安装并激活
+          （recamera_pro_app 部署器），不是本方案安装的包。它的原生输出摆幅
+          12–21 V，也可以把 UART 或 CAN 脚改配成 3.3 V。真机盘点发现 「gpio131」
+          已被另一个应用 export，所以任何引脚都不能假定空闲。
     recamera_2002:
       description: >-
         The standard reCamera, and a different shape from the Pro rather than a
@@ -473,15 +473,16 @@ intro:
         Everything at the door: the camera recognises, checks liveness, decides
         and pulses its own GPIO into a relay. Nothing but the face library and
         the audit upload crosses the network, so the door keeps working while
-        the network is down. What gets installed is a small standard-library
-        daemon that runs beside the camera's existing face-recognition app —
-        pulling the signed face library, mapping the app's result stream onto
-        the event contract, and driving one sysfs GPIO. It does not take over
-        appmgr, the recognition app, or its launch arguments. The steps are
-        manual because that daemon is a flat set of Python modules under
-        /userdata/f1-access, not an installable package and not an appmgr app:
-        the recamera_pro_app deployer activates an already-installed appmgr app,
-        which is not what this is. On this preset the library path and a
+        the network is down. The app itself, f1-access, is a published App
+        Center package (recamera_pro_app deployer, catalog id "f1-access") that
+        combines the face-recognition app's recognition cascade with the door
+        logic — the deploy step only activates an already-installed app, as
+        appmgr on the Pro is single-active. What stays manual is measuring a
+        genuinely free GPIO pin, wiring LED then relay then the door
+        controller, and writing the access config file that carries the facedb
+        key and the measured wiring posture — those are per-installation
+        electrical facts and per-device credentials, not something a deployer
+        can assert for you. On this preset the library path and a
         synthetic-event GPIO readback have run on hardware; the lock has never
         been connected. Registration through the console is not usable in
         production on this device today: no cloud embedder yet produces
@@ -492,15 +493,16 @@ intro:
         zh: >-
           全部动作在门口完成：摄像头识别、验活体、做判定，再用自己的 GPIO 给继电器
           一个脉冲。除了人脸库与审计上传，没有别的东西过网络，所以网络断了门依然能开。
-          装上去的是一个纯标准库的小守护进程，跑在摄像头已有的人脸识别应用**旁边**：
-          拉签名人脸库、把应用的结果流映射成事件契约、驱动一路 sysfs GPIO。
-          它不接管 appmgr、不接管识别应用、也不改它的启动参数。步骤之所以是人工步骤，
-          是因为这个守护进程是 /userdata/f1-access 下一组平铺的 Python 模块，
-          既不是安装包也不是 appmgr app——recamera_pro_app 部署器激活的是已安装的
-          appmgr app，与这里不是一回事。本套餐的库下发链路与注入合成事件的 GPIO
-          回读已在真机跑通；锁从未接过。经管理界面注册目前在这台设备上不可用于
-          生产：还没有云端嵌入器能产出 Pro 自己模型空间（「rv1126b:scrfd500m+mbf512@fp16」）
-          的向量；见指南步骤 3 的已知限制。标准版 reCamera 路径（P5）没有这个缺口。
+          应用本身 f1-access 是一个已发布的 App Center 包（recamera_pro_app 部署器，
+          catalog id "f1-access"），把人脸识别应用的识别级联与门控逻辑合成一体——
+          部署步骤只是激活一个已安装的应用，因为 Pro 上的 appmgr 是单活的。仍需人工
+          完成的是实测一个真正空闲的 GPIO 引脚、按 LED → 继电器 → 门控的顺序接线，
+          以及写入携带 facedb 密钥与实测接线口径的门禁配置文件——这些是每次安装
+          各不相同的电气事实与每台设备各一份的凭据，部署器替不了。本套餐的库下发
+          链路与注入合成事件的 GPIO 回读已在真机跑通；锁从未接过。经管理界面注册
+          目前在这台设备上不可用于生产：还没有云端嵌入器能产出 Pro 自己模型空间
+          （「rv1126b:scrfd500m+mbf512@fp16」）的向量；见指南步骤 3 的已知限制。
+          标准版 reCamera 路径（P5）没有这个缺口。
       device_groups:
         - id: cloud
           name: Cloud Host
