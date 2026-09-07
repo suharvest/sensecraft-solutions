@@ -57,20 +57,35 @@ intro:
       caption_i18n:
         zh: 同一个管理界面里的人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束
     - type: image
-      src: gallery/ui-events.png
+      src: gallery/ui-events.jpg
       caption: Access events with the decision reason and the audit chain hash. Synthetic demo data — the people, scores and events are fixtures, not field results
       caption_i18n:
         zh: 门禁事件列表，带判定原因与审计链哈希。合成演示数据——人员、分数与事件都是测试夹具，不是现场结果
+    - type: image
+      src: gallery/ui-events-en.jpg
+      caption: The same event list in English — every row keeps its liveness verdict, decision, door action and face-library version
+      caption_i18n:
+        zh: 同一份事件列表的英文界面——每行保留活体判定、决策、门动作与人脸库版本
     - type: image
       src: gallery/ui-persons.png
       caption: The person library — enrol from 3–8 images, delete with a barrier, roll back only where the barrier allows. Synthetic demo data; no face image was enrolled
       caption_i18n:
         zh: 人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束。合成演示数据，没有注册过任何真实人脸
     - type: image
-      src: gallery/ui-devices.png
-      caption: Device status and remote unlock, with the receipt that comes back. Synthetic demo data; the offline device is a replayed retained LWT
+      src: gallery/ui-devices.jpg
+      caption: Remote unlock — the reCamera door unit online with its actuator health, face-library version and fail-secure relay wiring, then a pulse issued at 1500 ms and the receipt that came back, executed, with its command id and timestamp. Synthetic demo data
       caption_i18n:
-        zh: 设备状态与远程开门，以及回来的回执。合成演示数据；显示离线的设备是回放的 retained LWT
+        zh: 远程开门——reCamera 门口设备在线，附执行器健康、人脸库版本与 fail_secure 继电器接法；下发 1500 ms 脉冲后拿到回执，状态 executed，带指令 ID 与时间。合成演示数据
+    - type: image
+      src: gallery/ui-devices-en.jpg
+      caption: The same page in English — pulse width, hold-open duration and the command receipt with its id and status
+      caption_i18n:
+        zh: 同一页面的英文界面——脉宽、常开时长，以及带指令 ID 与状态的回执
+    - type: image
+      src: gallery/ui-status.jpg
+      caption: Device status — actuator health, liveness enforcement, face-library version and last heartbeat for every unit. Synthetic demo data
+      caption_i18n:
+        zh: 设备状态——每台设备的执行器健康、活体强制状态、人脸库版本与最近心跳。合成演示数据
     - type: image
       src: gallery/architecture.svg
       caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party

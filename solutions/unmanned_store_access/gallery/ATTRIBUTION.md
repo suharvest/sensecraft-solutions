@@ -8,9 +8,10 @@
 | `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
 | `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
-| `ui-events.png` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-events.jpg` / `ui-events-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-persons.png` | Screenshot of the management console, running on synthetic demo data | No |
-| `ui-devices.png` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-devices.jpg` / `ui-devices-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-status.jpg` | Screenshot of the management console, running on synthetic demo data | No |
 
 `architecture.svg` is the data path only — the cloud face library and console,
 the four presets, and the relay's dry contact into the door controller's input
@@ -27,10 +28,9 @@ heartbeat (library version, model tag) came from the real unit. The person
 entries are enrolment fixtures, not photographs of identifiable people, and
 no face image is visible in either screenshot.
 
-## The three ui-*.png screenshots are synthetic
+## The ui-* screenshots are synthetic
 
-All three were taken from `tools/screenshot_ui.py` in the upstream repository
-against the demo server (`tools/web_demo.py`), which runs on an in-memory MQTT
+All of them were taken against the demo server (`tools/web_demo.py`), which runs on an in-memory MQTT
 broker, a `FakeRecognizer` and a `FakeEmbedder`. Consequences worth stating
 plainly, because a console screenshot looks like field data:
 
@@ -118,6 +118,37 @@ has been pushed; both files say so at the top.
 `console-persons-live.png` (1568 × 764 → 1568 × 420) were cropped to their
 tables. The architecture diagram moved from third place to last.
 
+## 2026-09-07 — console panels re-captured at DPR 2
+
+`ui-events.png` and `ui-devices.png` are gone. Both were 1280 x 800 CSS captures
+from the upstream `tools/screenshot_ui.py`.
+
+Their replacements were taken the same way — `uv run python tools/web_demo.py
+--port 8088` in `unmanned-store-access`, Playwright + Chrome, the demo admin
+token in `localStorage` — but at a **1600 x 1000 viewport with
+`deviceScaleFactor: 2`**, so every capture is 3200 x 2000 before cropping. The
+device page was captured after issuing one unlock, so the command receipt is in
+the frame rather than an empty panel. The event list is a **full-page** capture so
+that all ten rows and the pager are in the frame instead of being cut at the
+viewport edge; that is why its source height exceeds 2000. Cropped to content and saved as JPEG
+quality 90; nothing inside the frame was altered or scaled.
+
+| File | Before | After |
+|---|---|---|
+| `ui-events.jpg` | 3200 x 2314 (full page) | 3183 x 2250 |
+| `ui-events-en.jpg` | 3200 x 2398 (full page) | 3183 x 2352 |
+| `ui-devices.jpg` | 3200 x 2000 | 3183 x 1660 |
+| `ui-devices-en.jpg` | 3200 x 2000 | 3183 x 1660 |
+| `ui-status.jpg` | 3200 x 2000 | 3183 x 1197 |
+
+`ui-status.jpg` is new: the device-status page was not in the gallery before.
+
+`ui-persons.png`, `console-devices-live.png` and `console-persons-live.png` were
+**not** touched. The two `console-*-live` images come from a real reCamera PoE
+run and cannot be reproduced from the demo server; the person library is being
+re-shot separately, with the enrolment photographs.
+
+## Cover: reserved
 ## Cover: the verdicts are real, the footage is stock
 
 `cover-recognition.jpg` is frame 17 of a 250-frame run in which a reCamera Pro
