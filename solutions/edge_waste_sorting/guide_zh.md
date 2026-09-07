@@ -298,24 +298,27 @@ p50 是 5.962 ms，即 INT8 快 1.88 倍且在这一项上没有差异。
 
 以上为同款 RK3588 平台的实测参考值，reComputer 整机复测后更新。
 
-## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=manual required=true config=devices/recamera_pro_waste.yaml}
+## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
 
 分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
 也没有一跳网络。
 
-开始之前你需要：能以 root 身份 SSH 登录相机、`/userdata` 上约 10 MB 空闲，
-以及一个已经构建好的模型，或者一台装了 `rknn-toolkit2` 2.3.2 的 x86_64
-Linux 主机用来转换——转换跑不了在相机上。下面四个子步骤依次是核对模型、
-把 RKNN Lite 运行时装进 `/userdata`、准备一帧输入、跑起来。
+它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
+应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
+同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。模型不在应用包里，
+由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。
 
-有两点跳过就会卡住。Python 绑定的版本必须和相机上已有的 `librknnrt` 一致；
-分类器必须以 root 运行，因为 `/dev/rknpu` 只有 root 可读写。
-这两种错误都只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，
-没有别的线索。
+你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
+东西，也没有要手工拷贝的文件。
 
-这块硬件上实测 1060 张验证图（相机自带应用已停止）：物料八类 top-1 0.8764、
-中国四分类 top-1 0.9566、与 fp32 CPU 基线的一致率 0.9906、p50 5.824 ms、
-p95 6.047 ms——纯推理，不含取图与预处理。
+填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
+在相机上看；填了 broker，每一次分类都会以一条 JSON 记录发到
+`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
+推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
+
+这块硬件上实测 1060 张验证图：物料八类 top-1 0.8764、中国四分类 top-1 0.9566、
+与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
+不含取图与预处理，且相机自带应用在跑。
 
 这里 INT8 比同一个模型的 fp16 快 2.9 倍，且没有为此付出代价：INT8、fp16 与
 主机 fp32 三者在这 1060 张图上的 top-1 相差不到 0.2 pp。

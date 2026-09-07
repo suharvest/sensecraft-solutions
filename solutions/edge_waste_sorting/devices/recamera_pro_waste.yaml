@@ -1,215 +1,96 @@
 version: "1.0"
+name: reCamera Pro
 id: recamera_pro_waste
-name: Deploy the Classifier on reCamera Pro
-type: manual
+type: recamera_pro_app
 
-# Manual for the same reason as the SG2002 preset: what exists is a converted
-# .rknn plus the Python runtime, not a packaged application, and naming a CDN
-# path that holds nothing would validate here and fail on the device.
+# The App Center on reCamera Pro runs one app at a time. This step configures
+# the `waste-sorting` app and makes it the active one; installing it is the App
+# Center's own job, because a package has to carry a release signature this
+# repository does not hold. If the target's App Center does not list it, the
+# step says so and names what is installed instead.
 #
-# The figures in step 4 were measured on this hardware on 2026-09-07 over 1060
-# validation images with the camera's built-in application stopped: material
-# top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
-# baseline 0.9906, p50 5.824 ms, p95 6.047 ms, inference only.
+# Verified on this hardware on 2026-09-08: install, activate, /healthz, events
+# on waste/{stream_id}/results, stop, uninstall. Over 1060 validation images the
+# INT8 model agrees with the fp32 CPU baseline on 0.9906, material top-1 0.8764,
+# Chinese four-way top-1 0.9566, inference p50 6.380 ms / p95 7.014 ms with the
+# camera's own application running.
+recamera_pro_app:
+  app_id: waste-sorting
+  activation_timeout: 90
+  config:
+    stream_id: "{{device_name}}"
+  # Only applied when a broker address is given. This camera ships no broker, so
+  # requiring one would put a broker between the user and a working classifier
+  # for no reason: leave it empty and results are readable on the device itself,
+  # fill it in and every classification is forwarded as an event.
+  config_when:
+    - when_present: mqtt_host
+      config:
+        mqtt_host: "{{mqtt_host}}"
+        mqtt_port: "{{mqtt_port}}"
+        mqtt_username: "{{mqtt_username}}"
+        mqtt_password: "{{mqtt_password}}"
+  # Confidence floor and debounce frames are left at the app's defaults (0.50
+  # and 3). They are what the accuracy figures above were measured with, and a
+  # preset that quietly re-tuned them would invalidate those figures. Both are
+  # adjustable afterwards in the app's own panel and apply without a restart.
+
+# The App renders its connection panel from this block, and the panel — not
+# user_inputs — supplies host and credentials. The transport is the web
+# console's HTTPS, not SSH.
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
 
 name_i18n:
-  zh: 在 reCamera Pro 上部署分类器
+  zh: reCamera Pro
 
-steps:
-  - id: fetch_model
-    name: Get the converted model
+post_deployment:
+  open_browser: false
+
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recamera-pro"
+    required: true
+    description: Goes into every event payload and into the default topic waste/<name>/results, so several cameras on one broker stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
     name_i18n:
-      zh: 取转换好的模型
-    description: >-
-      The model comes from the upstream repository `edge-waste-sorting`; it is
-      not committed to this package and not on the CDN. Either take the built
-      artifact from that repository's `evaluation/runs/2026-09-07-recamera-pro/`
-      run, or convert it yourself on an x86_64 Linux host with
-      `rknn-toolkit2` 2.3.2 installed — the conversion does not run on the
-      camera:
-
-        # from the root of the edge-waste-sorting checkout;
-        # models/efficientnet_lite0_waste8.onnx is 13,477,056 bytes,
-        # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
-        python platforms/rknn/rknn_convert_m1c.py \
-          --onnx models/efficientnet_lite0_waste8.onnx \
-          --data-root data/cls/waste8 \
-          --out-dir out-rv1126b \
-          --target rv1126b --calib-sizes 256 --algos mmse
-
-      `--data-root` must contain a `train/` directory of class folders; the
-      script samples 256 calibration images from it. Then check the result:
-
-        sha256sum efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
-        # 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723
-
-      That is the INT8 build, 4,105,866 bytes, and it is the one to deploy. An
-      fp16 build exists (`0889b198…`, 7,113,136 bytes) and is 2.9x slower for
-      the same accuracy, so it is only worth using to isolate a suspected
-      quantisation problem.
+      zh: 设备名称
     description_i18n:
-      zh: >-
-        模型来自上游仓库 `edge-waste-sorting`，没有提交进本包，也不在 CDN 上。
-        要么直接取那个仓库 `evaluation/runs/2026-09-07-recamera-pro/` 里已经
-        构建好的产物，要么自己在装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux
-        主机上转换——转换过程跑不了在相机上：
-
-          # 在 edge-waste-sorting 检出目录的根下执行；
-          # models/efficientnet_lite0_waste8.onnx 为 13,477,056 字节，
-          # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
-          python platforms/rknn/rknn_convert_m1c.py \
-            --onnx models/efficientnet_lite0_waste8.onnx \
-            --data-root data/cls/waste8 \
-            --out-dir out-rv1126b \
-            --target rv1126b --calib-sizes 256 --algos mmse
-
-        `--data-root` 下必须有一个按类分文件夹的 `train/` 目录，脚本从中抽
-        256 张校准图。然后核对结果：
-
-          sha256sum efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
-          # 59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723
-
-        这是 INT8 版，4,105,866 字节，部署用它。另有 fp16 版
-        （`0889b198…`，7,113,136 字节），精度相同但慢 2.9 倍，
-        只有在怀疑量化出问题、需要对照时才值得用。
-    optional: false
-
-  - id: install_runtime
-    name: Install the RKNN Lite runtime
+      zh: 它会进每一条事件的 payload，也会进默认 topic waste/<名称>/results，同一个 broker 上的多台相机才分得开
+  - id: mqtt_host
+    name: MQTT Broker Address (optional)
+    type: text
+    required: false
+    placeholder: "192.168.1.50"
+    description: Leave empty to read results on the camera itself. Fill it in to forward every classification to Home Assistant, a bin controller or your own consumer — this camera has no broker of its own.
     name_i18n:
-      zh: 装 RKNN Lite 运行时
-    description: >-
-      The camera ships `librknnrt.so` but no Python bindings. Install
-      `rknn_toolkit_lite2` into a virtualenv under `/userdata`, which is the
-      only writable partition that survives a reboot.
-
-      The binding's version must match the runtime already on the device.
-      Check it first — a mismatch fails at `init_runtime` with an opaque
-      `RKNN_ERR_FAIL` rather than a version message:
-
-        strings /usr/lib/librknnrt.so | grep 'librknnrt version'
-        # librknnrt version: 2.3.2 (...)
-
-      Then, with the matching wheel for the device's Python:
-
-        python3 -m venv --system-site-packages /userdata/waste/venv
-        /userdata/waste/venv/bin/pip install --no-index --no-deps \
-          rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl \
-          psutil-*.whl ruamel_yaml-*.whl
-
-      `--system-site-packages` reuses the system numpy. `--no-deps` plus the
-      two extra wheels is needed because the camera has no route to a package
-      index, so pip cannot resolve `psutil` or `ruamel.yaml` on its own.
+      zh: MQTT 服务器地址（可选）
     description_i18n:
-      zh: >-
-        相机自带 `librknnrt.so`，但没有 Python 绑定。把 `rknn_toolkit_lite2`
-        装进 `/userdata` 下的 virtualenv——那是唯一重启后还在的可写分区。
-
-        绑定的版本必须和设备上已有的运行时一致。先查一下——版本对不上时
-        会在 `init_runtime` 处抛一个语焉不详的 `RKNN_ERR_FAIL`，
-        而不是版本不匹配的提示：
-
-          strings /usr/lib/librknnrt.so | grep 'librknnrt version'
-          # librknnrt version: 2.3.2 (...)
-
-        然后用与设备 Python 版本匹配的 wheel：
-
-          python3 -m venv --system-site-packages /userdata/waste/venv
-          /userdata/waste/venv/bin/pip install --no-index --no-deps \
-            rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl \
-            psutil-*.whl ruamel_yaml-*.whl
-
-        `--system-site-packages` 复用系统的 numpy。要加 `--no-deps` 并另外
-        带上那两个 wheel，是因为相机没有到软件源的路由，pip 自己解不了
-        `psutil` 与 `ruamel.yaml`。
-    optional: false
-
-  - id: prepare_frame
-    name: Prepare one input frame
+      zh: 留空就在相机上看结果；填了才会把每一次分类转发到 Home Assistant、桶体控制器或你自己的消费方——这台相机不自带 broker
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
     name_i18n:
-      zh: 准备一帧输入
-    description: >-
-      The model takes a 224x224x3 uint8 RGB array. Resize the short side to
-      256, centre-crop 224, keep RGB order. ImageNet mean and standard
-      deviation are baked into the `.rknn` at conversion time, so do not
-      normalise here — doing it twice is the usual reason a working classifier
-      starts returning one class.
-
-        python3 -c "
-        import cv2, numpy as np
-        im = cv2.imread('sample.jpg')
-        h, w = im.shape[:2]; s = 256 / min(h, w)
-        im = cv2.resize(im, (round(w*s), round(h*s)))
-        y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-        np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
-    description_i18n:
-      zh: >-
-        模型吃的是 224x224x3 的 uint8 RGB 数组。短边缩到 256、中心裁 224，
-        保持 RGB 顺序。ImageNet 的均值与标准差在转换时已经烘焙进 `.rknn`，
-        这里不要再归一化——归一化两次是分类器突然只输出一个类别的常见原因。
-
-          python3 -c "
-          import cv2, numpy as np
-          im = cv2.imread('sample.jpg')
-          h, w = im.shape[:2]; s = 256 / min(h, w)
-          im = cv2.resize(im, (round(w*s), round(h*s)))
-          y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-          np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
-    optional: false
-
-  - id: run_and_verify
-    name: Classify one frame as root
+      zh: MQTT 端口
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    description: Leave empty if the broker allows anonymous clients
     name_i18n:
-      zh: 以 root 跑一帧
-    description: >-
-      `/dev/rknpu` is root-only, so the classifier must run as root. A non-root
-      run fails at `init_runtime` with `RKNN_ERR_FAIL` and no explanation.
-
-        /userdata/waste/venv/bin/python - <<'PY'
-        from rknnlite.api import RKNNLite
-        import numpy as np
-        r = RKNNLite(verbose=False)
-        assert r.load_rknn('efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn') == 0
-        assert r.init_runtime() == 0
-        out = r.inference(inputs=[np.load('sample.npy')[None]])
-        print(np.asarray(out[0]).reshape(-1))
-        PY
-
-      Expect eight raw logits, in the class order paper, cardboard, glass,
-      metal, plastic, textile, organic, residual. Softmax and the four-way
-      lookup are not done here — they live in the shared core layer so every
-      accelerator returns the same thing.
-
-      A warning about `RKNN_QUERY_INPUT_DYNAMIC_RANGE` on a static-shape model
-      is expected and harmless; the runtime prints it for every static build.
-
-      On this hardware inference settles around 5.8 ms per frame with the
-      camera's own application stopped. That application normally occupies
-      86-145% CPU, so expect worse while it runs; how much worse has not been
-      measured.
+      zh: MQTT 用户名
     description_i18n:
-      zh: >-
-        `/dev/rknpu` 只有 root 可读写，所以分类器必须用 root 跑。非 root 运行
-        会在 `init_runtime` 处失败，只给一个 `RKNN_ERR_FAIL`，没有别的解释。
-
-          /userdata/waste/venv/bin/python - <<'PY'
-          from rknnlite.api import RKNNLite
-          import numpy as np
-          r = RKNNLite(verbose=False)
-          assert r.load_rknn('efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn') == 0
-          assert r.init_runtime() == 0
-          out = r.inference(inputs=[np.load('sample.npy')[None]])
-          print(np.asarray(out[0]).reshape(-1))
-          PY
-
-        预期输出 8 个原始 logits，顺序是 paper、cardboard、glass、metal、
-        plastic、textile、organic、residual。softmax 与四分类查表不在这里做——
-        它们在共用的 core 层，这样每种加速器返回的东西才一致。
-
-        静态 shape 模型上出现 `RKNN_QUERY_INPUT_DYNAMIC_RANGE` 的告警是预期内的，
-        无害；每个静态构建运行时都会打。
-
-        这块硬件上，在相机自带应用停止的情况下，单帧推理稳定在 5.8 ms 附近。
-        那个应用平时占 86-145% CPU，它在跑的时候应当预期更慢，具体慢多少
-        没有测过。
-    optional: false
+      zh: broker 允许匿名连接就留空
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    name_i18n:
+      zh: MQTT 密码
