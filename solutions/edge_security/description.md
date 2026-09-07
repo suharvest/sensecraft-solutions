@@ -26,10 +26,8 @@ hardware join later without touching the hub.
 instead of polling, and the rule layer can sit on a different machine from the
 detectors.
 
-**Four browser conveniences did not survive the split at first, and have since
-been restored.** The older package was one process with a video-wall dashboard;
-this one is a detector layer plus a hub, and rebuilding them across that split
-took a control channel the contract did not have:
+**Four browser features from the older single-process dashboard are available
+here too:**
 
 | What the older dashboard did | Here |
 |---|---|
