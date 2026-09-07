@@ -5,7 +5,7 @@ name_i18n:
   zh: reRouter CM4 采集端
 type: docker_deploy
 
-# reRouter CM4 采集端：跑 assets/docker/docker-compose.cm4.yml，
+# reRouter CM4 采集端：跑 assets/docker/docker-compose.collector-cm4.yml，
 # 与冻结版的差异只在 ovs-asr 一个服务（镜像必填 + CPU 侧默认值），见该文件头部注释。
 #
 # 未验证的部分（不要当成已跑通）：
@@ -15,7 +15,7 @@ type: docker_deploy
 # 手上没有可用的 CM4 版 OVS 镜像时，用 RK3576 采集端，或只部署服务端栈走手机 App 采集。
 
 docker:
-  compose_file: assets/docker/docker-compose.cm4.yml
+  compose_file: assets/docker/docker-compose.collector-cm4.yml
   compose_dir: assets/docker
   options:
     project_name: sensecraft-voice-c4
