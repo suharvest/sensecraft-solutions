@@ -276,7 +276,7 @@ so an untested claim either way would be a guess.
 | Platform | Status |
 |---|---|
 | Jetson Orin (TensorRT) | Deployment package shipped, baseline swapped to EfficientNet-Lite0 ONNX; engine has never been built on any Jetson |
-| reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is not on the CDN yet and has to be placed on the device by hand. The open-vocabulary tower still fails INT8 quantisation |
+| reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full 7417-image val set on a Hailo-8 (top-1 0.8889, agreement 0.9581, p50 3.166 ms). The HEF is on the CDN and the deploy step downloads and sha256-verifies it. The open-vocabulary tower still fails INT8 quantisation |
 | RK3588 | **Inference parity measured on real hardware, fp16 and INT8 (baseline, m1c); no deployment package** — no compose file, no image, no preset. The conversion and the runtime work; the packaging does not exist |
 | RK3576 | Inference parity measured on real hardware, fp16 and INT8 — **m1b (MobileNetV3-Small) only, not retested with the current m1c baseline**; no deployment package |
 | CPU (onnxruntime) | Every accuracy figure on this page |

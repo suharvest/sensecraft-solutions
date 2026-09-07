@@ -157,16 +157,15 @@ remote_overrides:
           zh: 清理上传目录里的 macOS 附属文件
 
       - name: Fetch and verify the HEF
-        # TODO(CDN): the EfficientNet-Lite0 HEF has not been uploaded to
-        # sensecraft-statics yet, so the download below will fail until it
-        # is. Copy it onto the device by hand at the path below in the
-        # meantime; the sha256 check still applies either way.
+        # The file name carries the tier (…_t2) because an earlier build of the
+        # same graph shipped under the unversioned name with a different sha.
+        # Keeping them at separate URLs means a stale cache can never satisfy
+        # this sha check by accident.
         #
-        # This sha is the tuned build (optimization_level=2 with a
-        # quantisation-aware distillation finetune), measured on a Hailo-8
-        # over the full 7417-image val set at top-1 0.8889 against 0.8877 for
-        # fp32 on the same images. The earlier 4e3b9640… build of the same
-        # graph measured 0.8637 and must not be deployed.
+        # This build is optimization_level=2 with a quantisation-aware
+        # distillation finetune; it measured top-1 0.8889 on a Hailo-8 over the
+        # full 7417-image val set, against 0.8877 for fp32 on the same images.
+        # The earlier 4e3b9640… build measured 0.8637 and must not be deployed.
         timeout: 900
         run: |
           set -e
@@ -174,27 +173,19 @@ remote_overrides:
           MODELS_DIR="$WORKDIR/models"
           HEF="$MODELS_DIR/efficientnet_lite0_waste8_u8.hef"
           SHA=c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1
+          URL="https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8_t2.hef"
           mkdir -p "$MODELS_DIR"
 
-          if [ -s "$HEF" ]; then
-            echo "HEF already present: $HEF"
-            echo "$SHA  $HEF" | sha256sum -c -
+          if [ -s "$HEF" ] && echo "$SHA  $HEF" | sha256sum -c - >/dev/null 2>&1; then
+            echo "HEF already present and verified: $HEF"
             exit 0
           fi
 
-          echo "Downloading efficientnet_lite0_waste8_u8.hef ..."
-          if curl -fSL --retry 3 -o "$HEF.part" \
-              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8.hef"; then
-            echo "$SHA  $HEF.part" | sha256sum -c -
-            mv -f "$HEF.part" "$HEF"
-          else
-            echo "No HEF available at the CDN path yet (TODO(CDN))." >&2
-            echo "Copy efficientnet_lite0_waste8_u8.hef onto the device by hand at $HEF" >&2
-            echo "and verify: echo '$SHA  $HEF' | sha256sum -c -" >&2
-            echo "" >&2
-            echo "The board is now prepared: all three Hailo ABI gates passed." >&2
-            exit 1
-          fi
+          echo "Downloading efficientnet_lite0_waste8_u8_t2.hef ..."
+          curl -fSL --retry 3 -o "$HEF.part" "$URL"
+          echo "$SHA  $HEF.part" | sha256sum -c -
+          mv -f "$HEF.part" "$HEF"
+          echo "HEF verified: $HEF"
         name_i18n:
           zh: 获取并校验 HEF
 

@@ -227,7 +227,7 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 | 平台 | 状态 |
 |---|---|
 | Jetson Orin（TensorRT） | 部署包已发，基线换成 EfficientNet-Lite0 ONNX；从未在任何 Jetson 上构建过 engine |
-| Raspberry Pi 5 + Hailo-8 | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 尚未上 CDN，需手动放到设备上。SigLIP2 视觉塔 INT8 量化仍失败 |
+| Raspberry Pi 5 + Hailo-8 | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
 | RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
 | CPU（onnxruntime） | 本页所有精度数字 |
