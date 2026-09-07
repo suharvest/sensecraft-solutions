@@ -206,6 +206,9 @@ intro:
           EfficientNet-Lite0 的 HEF，输入直接吃 uint8，主机不做浮点预处理。
           HEF 已编译并记账；本页不给这块板的精度与时延数字，因为还没有
           在它上面采过。
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
     recamera_2002:
       description: >-
         Camera and classifier in one body. The model runs on the SG2002's own
