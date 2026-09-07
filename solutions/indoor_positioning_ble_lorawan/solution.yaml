@@ -13,9 +13,9 @@ intro:
         zh: 楼层平面图叠在街道地图上——拖动四个角把原点、旋转与比例定好，室内坐标就与室外对齐
     - type: image
       src: gallery/map-panel-zh-20260907.jpg
-      caption: Map Dashboard, Chinese UI — the "10 Floor" plan with all 17 registered beacons plotted as dots inside two labelled rooms, live WebSocket connection, 5 maps / 49 beacons / 2 trackers in the header counters
+      caption: Map Dashboard, Chinese UI — the "10 Floor" plan with its 17 registered beacons plotted as dots across the floor, two of the rooms outlined and labelled, live WebSocket connection, 5 maps / 49 beacons / 2 trackers in the header counters
       caption_i18n:
-        zh: 地图仪表盘中文界面——"10 Floor" 平面图上 17 个已登记信标以圆点标出，落在两个标注房间内；WebSocket 已连接，页头统计 5 张地图、49 个信标、2 台追踪器
+        zh: 地图仪表盘中文界面——"10 Floor" 平面图上 17 个已登记信标以圆点标出分布在全楼层，其中两个房间画了轮廓并标注；WebSocket 已连接，页头统计 5 张地图、49 个信标、2 台追踪器
     - type: image
       src: gallery/map-panel-en-20260907.jpg
       caption: The same Map Dashboard switched to English — the beacon layer, room outlines and counters re-render without a page reload
@@ -23,14 +23,14 @@ intro:
         zh: 同一地图仪表盘切到英文——信标图层、房间轮廓与统计数字无需刷新页面即可切换
     - type: image
       src: gallery/beacon-list-zh-20260907.jpg
-      caption: Beacon list under Configuration, Chinese UI — 17 rows for the "10 Floor" map with real UUID, major/minor, X/Y and MAC per beacon, edit/delete on each row
+      caption: Beacon list under Configuration, Chinese UI — the "10 Floor" map's 17-beacon table with real UUID, major/minor, X/Y and MAC per beacon, edit/delete on each row; the screenshot is scrolled to the table header and first row
       caption_i18n:
-        zh: 系统设置里的信标列表，中文界面——"10 Floor" 地图下 17 行，每个信标带真实 UUID、major/minor、X/Y 坐标与 MAC，每行可编辑/删除
+        zh: 系统设置里的信标列表，中文界面——"10 Floor" 地图下的 17 条信标表格，每个信标带真实 UUID、major/minor、X/Y 坐标与 MAC，每行可编辑/删除；截图停在表头与第一行
     - type: image
       src: gallery/beacon-list-en-20260907.jpg
-      caption: The same beacon list in English, with the map preview and its 17 markers below the table
+      caption: The same beacon list in English, same scroll position — the table header and first row
       caption_i18n:
-        zh: 同一信标列表的英文版，表格下方带地图预览与 17 个标记点
+        zh: 同一信标列表的英文版，同样的滚动位置——表头与第一行
     - type: image
       src: gallery/architecture.png
       caption: System architecture

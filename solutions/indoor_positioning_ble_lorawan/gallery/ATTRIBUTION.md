@@ -6,6 +6,7 @@
 | `floorplan-registration.png` | Screenshot taken during the 2026-09-05 georeferencing run (`solution-indoor-positioning`, branch `feature/outdoor`, `evaluation/runs/2026-09-05-georef/raw/ui-04-registration-saved.png`). Headless Chrome, 1280x720 viewport. | First-party. The floor plan in the shot is a synthetic 1000x800 px test image, not a customer site. Basemap tiles are © OpenStreetMap contributors (ODbL), <https://www.openstreetmap.org/copyright>. |
 | `cover.png` | Copy of `map-view.png` — the live map view, re-shot 2026-09-06 after the `sensecraft-ui-kit` v0.1.2 restyle. Set as the cover on 2026-09-07 so the card shows the product, not the architecture diagram. | First-party. Basemap tiles are © OpenStreetMap contributors (ODbL), <https://www.openstreetmap.org/copyright>. |
 | `architecture.png`, `beacon.png`, `gateway.png`, `t1000.png`, `wiki-overview.jpg` | Carried over from the original package; Seeed first-party product/UI imagery. | First-party. |
+| `map-panel-zh-20260907.jpg`, `map-panel-en-20260907.jpg`, `beacon-list-zh-20260907.jpg`, `beacon-list-en-20260907.jpg` | Captured 2026-09-07 (second pass, DPR 2) against a local `solution-indoor-positioning` stack — see "2026-09-07 (second pass)" below for the run details. | First-party. No basemap tiles in these captures — the floor-plan background is the repo's own synthetic test image, not OSM. |
 
 ## Desensitisation
 
@@ -43,17 +44,18 @@ photograph is what this page's cover should be and has to be supplied.
 
 ## 2026-09-07 (second pass) — DPR 2 panel captures, replacing `login.png`/`app-preview.png`/`map-view.png`/`outdoor-map.png`
 
-PR #101 (`gallery/panel-screenshots-dpr2`) could not re-shoot this solution
-because the console's admin password lives in
+**Why this needed a separate pass**: PR #101 (`gallery/panel-screenshots-dpr2`)
+did not re-shoot this solution because the console's admin password lives in
 `solution-indoor-positioning/server/config/json/server_runtime_config.json`
 (not `db/app.db` — that SQLite file only holds `devices_list` /
-`device_groups` / `geofences` / `user_sessions`, no credential table) and
-locating it was out of scope for that pass. This pass ran the stack and used
-that config-file password (not recorded here or in any commit) to log in as
-`admin`; `guest` login also works for read-only views since
-`POST /api/login` and `GET /api/auth/check` both auto-issue a `guest` session
-when no token is presented (`server/main.py`), but the beacon/config screens
-need `admin`.
+`device_groups` / `geofences` / `user_sessions`, no credential table), and
+locating it was out of scope for that pass.
+
+**Login**: this pass used that config-file password (not recorded here or in
+any commit) to log in as `admin`. `guest` login also works for read-only
+views since `POST /api/login` and `GET /api/auth/check` both auto-issue a
+`guest` session when no token is presented (`server/main.py`), but the
+beacon/config screens need `admin`.
 
 **Stack**: `docker compose up -d` from
 `~/project/solution-indoor-positioning/docker-compose.yml`
@@ -67,9 +69,12 @@ synthetic 1000x800 test image
 `floorplan-registration.png` already uses, not a customer floor plan) to all
 5 expected filenames (`10_5_Floor.png`, `10_Floor.png`,
 `9_Floor__A_Area.png`, `9_Floor__B_Area.png`, `111_818408.png`) so every map
-renders instead of showing a broken image. `db/devices_list` had 2 real
-tracker rows already (`2CF7F1C0530004AD`, `2CF7F1C052800001`, no beacon or
-group data). To get a live position: started a local
+renders instead of showing a broken image. `db/devices_list` already had 2
+pre-existing tracker rows (`2CF7F1C0530004AD`, `2CF7F1C052800001`, no beacon
+or group data) carried over from earlier work on this package, not invented
+for this screenshot — these device IDs are placeholders in the same sense as
+the other EUIs noted under "Desensitisation" above, not customer-owned
+hardware. To get a live position: started a local
 `eclipse-mosquitto:2` broker on 1883, pointed
 `server_runtime_config.json.chirpStackMqtt` at it
 (`host.docker.internal:1883`, `sensecapOpenStream.enabled=false` so no real
