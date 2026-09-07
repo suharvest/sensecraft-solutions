@@ -314,9 +314,9 @@ intro:
 
   presets:
     - id: p1_rockchip
-      name: Rockchip NPU — RK3588 / RK3576 / reCamera Pro
+      name: Rockchip NPU — RK3588 / RK3576
       name_i18n:
-        zh: Rockchip NPU —— RK3588 / RK3576 / reCamera Pro
+        zh: Rockchip NPU —— RK3588 / RK3576
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -325,18 +325,18 @@ intro:
         an x86_64 host. On RK3588 that path agrees with the CPU golden on
         99.85% of boxes at 56.7 ms p50, and the INT8 variant is 2.2x faster at
         98.35%; embedding has no RKNN conversion on RK3588 and falls back to
-        onnxruntime on the CPU, untimed. RK3576 and reCamera Pro each have a
-        different core count and their own measured detector and embedder
-        numbers — see their device descriptions below. There is no
-        device-side service that joins the two stages — this preset converts
-        the model, proves the conversion on the board, and stops there.
+        onnxruntime on the CPU, untimed. RK3576 has a different core count and
+        its own measured detector and embedder numbers, both on the NPU — see
+        its device description below. There is no device-side service that
+        joins the two stages — this preset converts the model, proves the
+        conversion on the board, and stops there.
       description_i18n:
         zh: >-
           检测器以 fp16 `.rknn` 跑在 Rockchip NPU 上，转换在 x86_64 主机上完成。
           在 RK3588 上这条路径与 CPU golden 的框一致率 99.85%、p50 56.7 ms，
           INT8 变体快 2.2 倍、一致率 98.35%；嵌入段在 RK3588 上没有 RKNN 转换，
-          退到 CPU 上的 onnxruntime，未测延迟。RK3576 与 reCamera Pro 核数各不相同，
-          都有自己的检测与嵌入实测数字——见下方各自的设备说明。没有把两段串起来的
+          退到 CPU 上的 onnxruntime，未测延迟。RK3576 核数不同，检测与嵌入都有
+          自己的实测数字，且都跑在 NPU 上——见下方设备说明。没有把两段串起来的
           设备侧服务——这个套餐做的是转换模型、在板上证明转换正确，到此为止。
       device_groups:
         - id: console
@@ -357,7 +357,6 @@ intro:
           options:
             - device_ref: recomputer_rk3588
             - device_ref: recomputer_rk3576
-            - device_ref: recamera_pro
           default: recomputer_rk3588
         - id: camera
           name: Camera
@@ -368,6 +367,51 @@ intro:
           options:
             - device_ref: generic_rtsp_camera
           default: generic_rtsp_camera
+
+    - id: p1b_recamera_pro
+      name: reCamera Pro — All-in-one Rockchip NPU Camera
+      name_i18n:
+        zh: reCamera Pro —— 一体化 Rockchip NPU 摄像头
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: >-
+        Both the detector and the embedder run as fp16 `.rknn` on the
+        camera's own onboard NPU — no separate camera or compute host is
+        needed for recognition. Measured on the camera itself with its
+        bundled applications stopped, inference only: detector 112.3 ms p50 /
+        120.4 ms p95, 99.91% box agreement with the CPU reference (50
+        images); embedder 77.5 ms p50 / 77.9 ms p95, mean cosine similarity
+        0.998 against fp32. There is no device-side service that joins the
+        two stages — this preset converts the model and proves the
+        conversion on the camera, and stops there.
+      description_i18n:
+        zh: >-
+          检测器与嵌入器都以 fp16 `.rknn` 跑在摄像头板载 NPU 上——识别不需要
+          额外的摄像头或主机。测量条件：自带应用停止、纯推理。检测器 p50
+          112.3 ms / p95 120.4 ms，与 CPU 参考的框一致率 99.91%（50 张）；
+          嵌入器 p50 77.5 ms / p95 77.9 ms，与 fp32 的余弦相似度均值 0.998。
+          没有把两段串起来的设备侧服务——这个套餐做的是转换模型、在摄像头上
+          证明转换正确，到此为止。
+      device_groups:
+        - id: console
+          name: Console Host
+          name_i18n:
+            zh: 管理端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_console_host
+          default: external_console_host
+        - id: camera
+          name: Recognition Camera
+          name_i18n:
+            zh: 识别摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
 
     - id: p2_pi5_hailo
       name: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU
