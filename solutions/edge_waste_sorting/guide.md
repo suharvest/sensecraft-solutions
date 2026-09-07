@@ -337,10 +337,19 @@ images is under 0.2 pp.
 The whole classifier runs on the camera's own SG2002 TPU — no host, no
 accelerator card, no network hop in the classification path.
 
-This step is manual because no `.deb` has been built for this classifier yet.
-What exists is a BF16 cvimodel and a small cviruntime runner, both from the
-upstream `edge-waste-sorting` repository, and the four sub-steps copy them to
-`/userdata/waste`, prepare one raw frame and classify it.
+Before you start you need SSH access to the camera, `sudo` on it, about 10 MB
+free on `/userdata`, and two files from the upstream `edge-waste-sorting`
+repository: the BF16 cvimodel and the cviruntime runner. The four sub-steps
+take you through checking both by sha256, copying them to `/userdata/waste`,
+preparing one raw frame, and classifying it.
+
+Two things will stop you if you skip them. The classifier has to run under
+`sudo`, because the CVI device nodes are root-only — a normal-user run fails
+inside cviruntime with `device_init: 720`, which reads like corrupted TPU state
+but is only a permission error, and no reboot will help. And the frame you feed
+it must be raw uint8 with no normalisation: ImageNet mean and standard
+deviation are already inside the cvimodel, and applying them twice is the usual
+reason a working classifier starts returning a single class.
 
 Measured on this hardware over 1060 validation images: material top-1 0.8792,
 Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline 0.9915,
