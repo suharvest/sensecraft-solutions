@@ -6,11 +6,13 @@ name_i18n:
 type: docker_deploy
 
 # NOT VERIFIED ON HARDWARE. Both images are published at
-# sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
-# and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64, built
-# 2026-09-07 from edge-retail-recognition @ a787f41) and are the defaults for
-# server_image / web_image below. Override either input to build and deploy
-# your own instead.
+# sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1
+# and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64). web:0.1.0
+# was built 2026-09-07 from edge-retail-recognition @ a787f41. server:0.1.1
+# was built 2026-09-08 from edge-retail-recognition @ 7e443c1 (fixes
+# onnxruntime missing from the `server` extra — RETAIL_EMBEDDER=onnx
+# crash-looped on 0.1.0). These are the defaults for server_image / web_image
+# below. Override either input to build and deploy your own instead.
 #
 # The SPA is built on the host before the image is built. The images do not run
 # npm: a node_modules tree on an arm64 board is larger than the service itself,
@@ -167,10 +169,10 @@ remote_overrides:
       name: Registration Service Image
       type: text
       required: true
-      default: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0"
-      placeholder: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0"
+      default: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1"
       description: >-
-        Published at sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+        Published at sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1
         (linux/amd64 + linux/arm64). To use your own build instead, build it on
         this host from the upstream repository with
         platforms/console/Dockerfile.server and put the tag you built here.
@@ -182,7 +184,7 @@ remote_overrides:
         zh: 注册服务镜像
       description_i18n:
         zh: >-
-          已发布在 sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.0
+          已发布在 sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1
           （linux/amd64 + linux/arm64）。要用自建镜像的话，在这台主机上用上游仓库的
           platforms/console/Dockerfile.server 构建，把构建出的 tag 填在这里。
           registry 给得出 digest 就钉 digest：一个构建写出的商品库向量，只与同一个嵌入模型、
