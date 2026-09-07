@@ -22,7 +22,7 @@
 
 **硬件要求**：
 - Jetson Orin NX 16GB 或更高配置（20B 模型需要约 12-15GB 显存）
-- reComputer J4012 已验证可用，其他 Jetson Orin 机型需确认显存充足
+- reComputer J40 系列已验证可用，其他 Jetson Orin 机型需确认显存充足
 
 **调用方式**：
 - API 地址：`http://<jetson-ip>:8080/v1/chat/completions`
@@ -45,6 +45,6 @@
 |------|------|
 | 模型 | GPT OSS 20B |
 | 推理框架 | llama.cpp (llama-server) |
-| 支持硬件 | reComputer J4012 (Jetson Orin NX 16GB) |
+| 支持硬件 | reComputer J40 series (Jetson Orin NX 16GB) |
 | 服务端口 | 8080 |
 | API 格式 | OpenAI 兼容 |
