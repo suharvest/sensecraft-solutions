@@ -147,12 +147,12 @@ intro:
     # local-only and carries no purchase constraints. It is here because it is
     # the board the measurements were taken on.
     external_raspberry_pi5_hailo:
-      name: Raspberry Pi 5 + Hailo-8
+      name: reComputer Industrial R20 series + Hailo-8
       name_i18n:
-        zh: Raspberry Pi 5 + Hailo-8
-      description: A Raspberry Pi 5 with a Hailo-8 on the PCIe M.2 slot. This is the board the measurements below were taken on
+        zh: reComputer Industrial R20 系列 + Hailo-8
+      description: A reComputer Industrial R20 series class board with a Hailo-8 on the PCIe M.2 slot. This is the board the measurements below were taken on
       description_i18n:
-        zh: 装了 Hailo-8（PCIe M.2）的 Raspberry Pi 5。下面的实测数据就是在这块板卡上取得的
+        zh: 装了 Hailo-8（PCIe M.2）的 reComputer Industrial R20 系列同款板卡。下面的实测数据就是在这块板卡上取得的
     generic_arm64_host:
       name: Generic Docker Host
       name_i18n:
@@ -269,9 +269,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: "One board with a Hailo-8 runs everything — broker, hub and the detector. Measured on a Raspberry Pi 5 + Hailo-8 at 1280x720: 7.7 ms per inference, 9.5 ms for the full pipeline, 8.7-13.0% of one CPU core. Video decode is on the CPU: this board has no H.264 decoder, so that CPU figure covers decode as well as inference."
+      description: "One board with a Hailo-8 runs everything — broker, hub and the detector. Measured on a reComputer Industrial R20 series unit with Hailo-8 at 1280x720: 7.7 ms per inference, 9.5 ms for the full pipeline, 8.7-13.0% of one CPU core. Video decode is on the CPU: this board has no H.264 decoder, so that CPU figure covers decode as well as inference."
       description_i18n:
-        zh: "一块带 Hailo-8 的板卡跑完整套——broker、hub 和检测器。Raspberry Pi 5 + Hailo-8、1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU：该板卡没有 H.264 硬解，所以这个 CPU 数字里同时含解码和推理。"
+        zh: "一块带 Hailo-8 的板卡跑完整套——broker、hub 和检测器。reComputer Industrial R20 系列（带 Hailo-8）、1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU：该板卡没有 H.264 硬解，所以这个 CPU 数字里同时含解码和推理。"
       architecture_image: gallery/architecture.svg
       verified:
         - hardware

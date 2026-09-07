@@ -101,7 +101,7 @@ hub 自带的浏览器工作台，中英文均可：
 
 ### 检测器
 
-| | **Jetson Orin NX 16GB** | **RK3588（Radxa Rock 5T）** |
+| | **Jetson Orin NX 16GB** | **reComputer RK3588 系列** |
 |---|---|---|
 | 加速器 | GPU，TensorRT 10.3.0，FP16 | NPU，RKNN 2.3.2，int8 |
 | 流水线内推理 p50 | **4.13 ms** | 41.9 ms（int8）／72.3 ms（fp16） |
@@ -113,14 +113,14 @@ hub 自带的浏览器工作台，中英文均可：
 | 设备上的引擎／模型构建 | 307–361 s，一次性 | 无（模型预先转好随镜像下发） |
 
 Jetson 数据取自一台 Orin NX 16GB，系统 JetPack 6.1（L4T R36.4.3）；RK3588 数据取自
-一块 Radxa Rock 5T，内核 6.1.84。
+一台 reComputer RK3588 系列，内核 6.1.84。
 
 ### 端到端，与真值视频比对
 
 时刻偏差来自一段 130 s 的视频：其中每一次越线和进入区域的发生帧是已知的，通过 RTSP
 回放进真实流水线后逐条比对。
 
-| | **Jetson Orin NX 16GB** | **RK3588（Radxa Rock 5T）** |
+| | **Jetson Orin NX 16GB** | **reComputer RK3588 系列** |
 |---|---|---|
 | 采集到告警 | P50 117.4 ms，P95 297.0 ms | 未单独测量 |
 | 越线时刻与真值的偏差 | 0.109–0.268 s | 0.085–0.248 s |
@@ -200,7 +200,7 @@ Jetson 数据取自一台 Orin NX 16GB，系统 JetPack 6.1（L4T R36.4.3）；R
 | 角色 | 要求 |
 |---|---|
 | 摄像头 | 任意固定机位的 RTSP 摄像头。必须是 H.264——Jetson 与 RK3588 套餐走硬解，Hailo 套餐走 CPU 软解（Pi 5 没有 H.264 硬解）。规则画好之后摄像头不能再移动。 |
-| 探测节点 | 一台 JetPack 6.x 的 Jetson Orin（Orin Nano 8GB 或 Orin NX 16GB），装有 TensorRT 与 nvidia 容器运行时；**或者**一块装有 `rknpu2` 运行时和 `rknn_toolkit_lite2` 的 RK3588 板卡；**或者**一台 PCIe 插槽上装了 Hailo-8、并装好驱动与版本匹配 HailoRT 的 Raspberry Pi 5。 |
+| 探测节点 | 一台 JetPack 6.x 的 Jetson Orin（Orin Nano 8GB 或 Orin NX 16GB），装有 TensorRT 与 nvidia 容器运行时；**或者**一块装有 `rknpu2` 运行时和 `rknn_toolkit_lite2` 的 RK3588 板卡；**或者**一台 PCIe 插槽上装了 Hailo-8、并装好驱动与版本匹配 HailoRT 的 reComputer Industrial R20 系列。 |
 | 汇聚主机 | 不需要。broker 和 hub 就跑在做检测的那台机器上。只有可选的「共享 Hub」套餐才需要另一台常开、装有 Docker 的 arm64 或 x86_64 机器。 |
 | 磁盘 | Jetson 与 RK3588 套餐在检测机器上约需 6 GB 空闲：检测器镜像、hub 镜像、在本机构建的 TensorRT 引擎，以及告警数据库。Hailo 套餐约需 4 GB，它不构建引擎。 |
 | 网络 | 检测器要能连到 hub 的 1883 端口，值班终端要能连到 8090。摄像头预览端口 8099 必须能被值班浏览器访问，否则规则编辑器没有底图。**1883 上的 broker 接受匿名连接**——放到通用网络之前先看下面那条说明。 |
@@ -213,7 +213,7 @@ Jetson 数据取自一台 Orin NX 16GB，系统 JetPack 6.1（L4T R36.4.3）；R
 - **Jetson 单机部署**——一台 Jetson Orin 看一路摄像头，推理走 TensorRT、解码走 NVDEC。
   引擎在部署过程中于本机构建，首次安装因此多花约五分钟。
 - **RK3588 单机部署**——一块 RK3588 板卡看一路摄像头，推理走 NPU、解码走板载硬解。
-- **Hailo 单机部署**——一台装了 Hailo-8 的 Raspberry Pi 5 看一路摄像头，推理走加速器。
+- **Hailo 单机部署**——一台装了 Hailo-8 的 reComputer Industrial R20 系列看一路摄像头，推理走加速器。
   解码在 CPU 上，这是主路径而不是降级：该板卡没有 H.264 硬解，所以检测器的 CPU 占用里
   同时包含解码和推理。
 - **共享 Hub（可选扩展）**——它本身不是一条部署路径。只有当你已经有多台检测设备在跑、

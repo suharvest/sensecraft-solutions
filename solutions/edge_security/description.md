@@ -113,7 +113,7 @@ the same assertions.
 
 ### Detector
 
-| | **Jetson Orin NX 16GB** | **RK3588 (Radxa Rock 5T)** |
+| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
 |---|---|---|
 | Accelerator | GPU, TensorRT 10.3.0, FP16 | NPU, RKNN 2.3.2, int8 |
 | Inference, in-pipeline p50 | **4.13 ms** | 41.9 ms (int8) / 72.3 ms (fp16) |
@@ -125,14 +125,14 @@ the same assertions.
 | Engine / model build on device | 307–361 s, one-off | none (model ships prebuilt) |
 
 The Jetson figures are from an Orin NX 16GB on JetPack 6.1 (L4T R36.4.3); the
-RK3588 figures from a Radxa Rock 5T on kernel 6.1.84.
+RK3588 figures from a reComputer RK3588 series unit on kernel 6.1.84.
 
 ### End to end, against a ground-truth video
 
 The timing errors come from a 130 s clip whose crossing and entry instants are
 known frame by frame, replayed over RTSP into the live pipeline.
 
-| | **Jetson Orin NX 16GB** | **RK3588 (Radxa Rock 5T)** |
+| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
 |---|---|---|
 | Capture to alert | 117.4 ms p50, 297.0 ms p95 | not measured separately |
 | Line-crossing instant vs. truth | 0.109–0.268 s error | 0.085–0.248 s error |
@@ -194,7 +194,7 @@ Verified on real hardware:
   the CPU.
 - The RK3588 detector, including the same check against the board's hardware
   decoder.
-- The Hailo-8 detector on a Raspberry Pi 5, including that its software decode
+- The Hailo-8 detector on a reComputer Industrial R20 series unit, including that its software decode
   is the primary path rather than a fallback, and that it publishes alerts with
   decodable snapshots.
 - All three presets deployed as containers, end to end, with the compose files
@@ -235,7 +235,7 @@ Not verified, and not claimed:
 | Role | Requirement |
 |---|---|
 | Camera | Any fixed RTSP camera. H.264 is required — the Jetson and RK3588 presets decode it in hardware, and the Hailo preset decodes it on the CPU because the Pi 5 has no H.264 decoder. The camera must not move after the rules are drawn. |
-| Detection node | A Jetson Orin (Orin Nano 8GB or Orin NX 16GB) on JetPack 6.x with TensorRT and the nvidia container runtime, **or** an RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed, **or** a Raspberry Pi 5 with a Hailo-8 on the PCIe slot, its driver and matching HailoRT. |
+| Detection node | A Jetson Orin (Orin Nano 8GB or Orin NX 16GB) on JetPack 6.x with TensorRT and the nvidia container runtime, **or** an RK3588 board with the `rknpu2` runtime and `rknn_toolkit_lite2` installed, **or** a reComputer Industrial R20 series unit with a Hailo-8 on the PCIe slot, its driver and matching HailoRT. |
 | Aggregation host | Not required. The broker and the hub run on the detection machine itself. Only the optional Shared Hub preset needs a separate always-on arm64 or x86_64 machine with Docker. |
 | Disk | About 6 GB free on the detection machine for the Jetson and RK3588 presets — detector image, hub image, the TensorRT engine built there, and the alert database. The Hailo preset needs about 4 GB; it builds no engine. |
 | Network | Detectors reach the hub on port 1883. Operators reach the hub on 8090. The camera preview on 8099 must be reachable from the operator's browser, otherwise the rule editor has no backdrop. **Only the Shared Hub preset exposes 1883 on the network**; the single-box presets bind it to loopback. See the broker note below. |
@@ -251,7 +251,7 @@ deploy finishes.
   during deployment, which adds about five minutes to the first install.
 - **RK3588 Single Box** — an RK3588 board watching one camera, inference on the
   NPU and decode on the board's hardware decoder.
-- **Hailo Single Box** — a Raspberry Pi 5 with a Hailo-8 watching one camera,
+- **Hailo Single Box** — a reComputer Industrial R20 series unit with a Hailo-8 watching one camera,
   inference on the accelerator. Decode runs on the CPU here, which is the
   primary path rather than a fallback: the board has no H.264 decoder, so the
   detector's CPU figure covers decode as well as inference.
