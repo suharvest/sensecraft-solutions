@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-You want to know how many people walked into the shop this morning, how many are queuing right now, whether the meeting room is actually occupied. The usual answer is a camera, a network cable, a server, and a video stream leaving the building.
+This solution counts how many people entered a shop, how many are queuing, and whether a room is occupied, without a network camera, a server, or a video stream leaving the building.
 
 This solution does it with one camera module and a USB cable. The Grove Vision AI Module V2 detects people, tracks them frame to frame, counts each crossing of the lines you draw, and reports how many people are standing in the zones you draw. The video stays on the USB link: frames go straight to the app on your own computer for the live preview, and never touch a network or a cloud service.
 
@@ -20,7 +20,7 @@ This solution does it with one camera module and a USB cable. The Grove Vision A
 |----------|--------------|
 | Shop entrance | A counting line across the doorway gives footfall in and out per direction |
 | Queue monitoring | A zone over the queue area gives a live count to drive staffing decisions |
-| Meeting room / office | A zone tells you whether the room is genuinely occupied, without a booking system |
+| Meeting room / office | A zone reports whether the room is genuinely occupied, without a booking system |
 | Corridor and stairwell flow | Multiple lines along a path show which way traffic is moving |
 | Exhibition booth | A zone around the booth measures dwell, a line at the entrance measures visits |
 

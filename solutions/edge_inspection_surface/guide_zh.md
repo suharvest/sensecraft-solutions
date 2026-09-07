@@ -13,8 +13,8 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 **重要：** 内部验证用。模型训练自 NEU-DET 的转载版，许可未核实——
 在许可确认之前不得用于对外 demo、客户现场展示或商业物料。
 实测精度是 290 张验证图上 mAP50 0.7577、部署阈值 0.35 下召回 0.6969，
-每个数字都是单次未复现的实测。已知弱点：crazing 是最弱的一类，AP50 只有 0.3603，
-调阈值救不回来；帧级误报无法测量，因为数据集里每张图都带缺陷；
+每个数字都是单次未复现的实测。已知弱点：crazing 的 AP50 为 0.3603，六类中最低，
+改阈值不改变这个数字；帧级误报无法测量，因为数据集里每张图都带缺陷；
 所有数字都来自合成视频，不是真实相机。
 
 ## 步骤 1: 部署表面质检 {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
@@ -304,7 +304,7 @@ crazing 弱、误报无法测量这两条在这里同样成立。
 | 部署停在 "libhailort.so.4.21.0 not found" | 设备上是另一个版本的 HailoRT。本部署被 ABI 锁死；要么装 4.21.x，要么按设备上的版本重编 HEF。只改挂载路径没有用 |
 | 部署停在 `force_desc_page_size` 检查 | 加上 modprobe 参数再重启。树莓派 5 上这不是可选项——不加的话容器能起来，然后死在 `configure(hef)` 里 |
 | 容器因为提到 `_pyhailort` 的 python import 错误退出 | 宿主与容器的 Python minor 不一致。用与宿主匹配的基座重建镜像（宿主是 3.13 就用 `--build-arg RUNTIME_IMAGE=...trixie-slim`） |
-| 日志里出现 `AssembleError` | HEF 的九个输出张量与期望布局对不上。输出是按特征图边长与通道数归位的，不按名字，所以这说明用的不是本方案期望的那份 HEF。拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
+| 日志里出现 `AssembleError` | HEF 的九个输出张量与期望布局对不上。输出是按特征图边长与通道数归位的，不按名字，出现该报错时用的不是本方案期望的那份 HEF。拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
 | `docker compose` 去读 `._docker-compose.yml` 报错 | 从 macOS 上传时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；手工拷贝的话跑 `find . -name '._*' -delete` |
 | 能出框但召回明显低于方案页 | 这条路径上属预期——level-0 版本比 CPU 基准约掉 0.03 mAP50。确认你跑的是默认的 level-1 HEF |
 | 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |

@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Running a store means wondering what customers really want — What questions are they asking? Are staff responding properly? Which products get asked about most? This solution places a small device in your store to automatically capture staff-customer conversations, helping you understand what's happening on the floor every day.
+A small device in the store captures staff-customer conversations automatically, so you can see what customers asked about, how staff answered, and which products came up most often.
 
 ## Core Benefits
 

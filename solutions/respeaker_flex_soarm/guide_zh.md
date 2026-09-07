@@ -64,7 +64,7 @@
 
 ## 步骤 3: 验证机械臂状态 {#verify_arm type=robot_inspect verify=true required=true config=devices/verify_arm.yaml}
 
-实时查看 SO-ARM 的关节状态，并在线给它教新的手势。面板会以 5Hz 轮询 `GET /observation`，展开"详细数据"可以看到完整 JSON。下方的动作录制器可以在运行时给手势库加新条目 —— 不用重构镜像。
+实时查看 SO-ARM 的关节状态，并在线教新的手势。面板会以 5Hz 轮询 `GET /observation`，展开"详细数据"可以看到完整 JSON。下方的动作录制器可以在运行时给手势库加新条目 —— 不用重构镜像。
 
 ### 默认支持的语音指令
 
