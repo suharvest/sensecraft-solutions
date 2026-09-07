@@ -34,7 +34,6 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RULES = Path(__file__).resolve().parent / "product-names.json"
-DEFAULT_MANIFEST = REPO_ROOT / "spec" / "product-family-manifest.json"
 DEFAULT_ROOTS = [REPO_ROOT / "solutions"]
 
 # Files whose whole text is outward-facing.
