@@ -164,7 +164,7 @@ curl http://<设备 IP>:8621/health
 | SSH 连接失败 | 确认 IP 和凭据正确。默认用户名：`pi` |
 | 服务未启动 | 检查 Docker 是否已安装：`docker --version` |
 | 健康检查失败 | 首次启动需约 30 秒预热模型 |
-| ASR 不工作 | 树莓派 4 ASR-only 配置无 TTS。树莓派 5 建议用 `rpi5-default` |
+| ASR 不工作 | reComputer R10 系列 ASR-only 配置无 TTS。reComputer R2000 系列建议用 `rpi5-default` |
 
 ## 步骤 2: 语音演示 {#voice_demo type=voice_chat required=false config=devices/voice_demo.yaml}
 
