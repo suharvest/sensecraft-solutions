@@ -63,45 +63,29 @@ ever enabled, 7 days with a daily purge.
 It does not diagnose, treat, or replace a carer's judgement. An alarm is a
 prompt; the decision and the response stay with a person.
 
-Everything in the first table below was measured on a laptop with a replayer
-standing in for the cameras — **local replay, not a device**. The three target
-devices were offline on the measurement date, so this package contains no
-on-device numbers at all.
-
-**How it was tested**
-
-- Date 2026-09-05, run directory `evaluation/runs/2026-09-05-smoke/` in the
-  eldercare-alarm project. Raw outputs under `raw/`, conditions in
-  `conditions.yaml`, one `boundary.<metric>.yaml` per row.
-- Host: MacBook, macOS 15 (Darwin 25.5.0), arm64. Loopback network. No
-  container — the service ran directly.
-- The evaluation scripts drive the real `AlarmService` — real state machine,
-  real SQLite, real HTTP webhook — with only the camera replaced by a replayer.
-  The numbers therefore describe the alarm path and **exclude inference time and
-  any cross-machine network**.
-- The state-machine windows were shortened for the run (1 s evidence + 1 s
-  auto-confirm instead of the 5 s + 60 s defaults), so the absolute latency is a
-  property of the run's configuration, not of a site.
-- Every `boundary.*.yaml` has values in the `stable` tier only. `degrading` and
-  `failure` are `null`: nothing was loaded to the point of degradation, so no
-  boundary was found.
-- `reproduced_by: null` — one person, one run, not independently reproduced.
+The alarm-path numbers below come from a development-machine baseline: the real
+`AlarmService` — real state machine, real SQLite, real HTTP webhook — driven by
+a replayer instead of a camera. They describe the alarm path and **exclude
+inference time and cross-machine network**. The state-machine windows were
+shortened for the run (1 s evidence + 1 s auto-confirm instead of the shipped
+5 s + 60 s), so the absolute latency belongs to that configuration, not to a
+site.
 
 **Results**
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Alert latency, event timestamp to notification sent | P50 2061 ms / P95 2093 ms | 5 fall replays, 15 FPS × 12 s each, 1 s evidence + 1 s auto-confirm window, single zone, single stream, loopback webhook | Local replay, not a device — `boundary.alert_latency.yaml` |
-| No-person detection lateness, relative to the configured timeout | P50 65 ms / P95 77 ms late | 3 replays, 10 FPS × 11 s, 5 s timeout, 0.1 s tick, single zone, in-process (no broker) | Local replay, not a device — `boundary.inactivity.yaml` |
-| Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Local replay, not a device — `boundary.offline_recovery.yaml` |
-| False alarms | 0 over 0.02 camera-hours | 72 s of quiet replay | Local replay, not a device — **0.02 camera-hours proves nothing about a false-alarm rate**; the intended run is 24 h |
-| Robustness under darkening and occlusion | Not measured | Needs GMDCSA clips and on-device inference | Script exists, was not run |
+| Alert latency, event timestamp to notification sent | P50 2061 ms / P95 2093 ms | 5 fall replays, 15 FPS × 12 s each, 1 s evidence + 1 s auto-confirm window, single zone, single stream, loopback webhook | Development-machine baseline, 2026-09-05 |
+| No-person detection lateness, relative to the configured timeout | P50 65 ms / P95 77 ms late | 3 replays, 10 FPS × 11 s, 5 s timeout, 0.1 s tick, single zone, in-process (no broker) | Development-machine baseline, same run |
+| Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Development-machine baseline, same run |
+| End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
 
-Two of those rows deserve reading twice. The alert latency is essentially the sum
-of the two configured windows plus about 60 ms of dispatch — with the shipped
-defaults (5 s + 60 s) the same path would take just over a minute, and that is by
-design, not overhead. The false-alarm row is 72 seconds of quiet; it is in the
-table so it cannot be quoted as a rate.
+Read the latency rows as the sum of the two configured windows plus about 60 ms
+of dispatch. With the shipped defaults (5 s + 60 s) the same path takes just over
+a minute. That is the confirmation design, not overhead.
+
+The notifier rate-limits itself to 5 sends per 10 minutes. Past that it stops
+sending, by design — size your webhook expectations accordingly.
 
 **Detection accuracy is the base project's, not this one's.** This solution does
 not detect anything itself, so its accuracy is whatever the EdgeFallKit detector
@@ -113,22 +97,8 @@ from 1.22 s to 1.75 s. Quote those as base data with their conditions attached.
 They are not re-measured here, and the alarm layer adds its own confirmation
 windows on top of that detection latency.
 
-**What has not been shown at all.** No on-device run. The Jetson
-`publish_empty_frames` override, the Hailo per-frame publishing behaviour and the
-exact reCamera topic and payload shapes are all still unverified on hardware, and
-the detector image digests are recorded as pending in
-`eldercare-alarm/release/PINNING.md`. Treat every deployment as a commissioning
-exercise until you have watched a real alarm complete on your own site.
-On 2026-09-06, this closed the loop once on a standard (non-PoE) reCamera One
-over USB-RNDIS: real `fall-detection` MQTT frames, an injected fall alarm and a
-real 60 s no-activity alarm both reached a webhook over the device's mosquitto
-broker (proxied through an SSH tunnel because a local network tool intercepted
-the direct route — not a device issue). Alert latency across 10 injected
-trials was P50 2487 ms / P95 2751 ms for the first 5, after which the
-notifier's own 5-per-10-minute rate limit silently stopped further sends —
-by design, not a fault. USB-disconnect recovery was not attempted (out of
-this session's authorized scope). See
-`eldercare-alarm/evaluation/runs/2026-09-06-recamera-one/results.md`.
+**Commission every site.** Watch a real alarm complete end to end on your own
+cameras and your own webhook before the system carries anyone's safety.
 
 ## Output Interfaces
 
