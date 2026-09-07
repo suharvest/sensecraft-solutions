@@ -168,8 +168,8 @@ remote_overrides:
           set -e
           WORKDIR="/home/{{username}}/edge-waste-sorting/hailo_waste"
           MODELS_DIR="$WORKDIR/models"
-          HEF="$MODELS_DIR/efficientnet_lite0_waste8.hef"
-          SHA=3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00
+          HEF="$MODELS_DIR/efficientnet_lite0_waste8_u8.hef"
+          SHA=4e3b9640d0e07aa5ac4235fcadedb8a06ce24568f50c57dcb4dd8bbd0f4aa89e
           mkdir -p "$MODELS_DIR"
 
           if [ -s "$HEF" ]; then
@@ -178,14 +178,14 @@ remote_overrides:
             exit 0
           fi
 
-          echo "Downloading efficientnet_lite0_waste8.hef ..."
+          echo "Downloading efficientnet_lite0_waste8_u8.hef ..."
           if curl -fSL --retry 3 -o "$HEF.part" \
-              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.hef"; then
+              "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8.hef"; then
             echo "$SHA  $HEF.part" | sha256sum -c -
             mv -f "$HEF.part" "$HEF"
           else
             echo "No HEF available at the CDN path yet (TODO(CDN))." >&2
-            echo "Copy efficientnet_lite0_waste8.hef onto the device by hand at $HEF" >&2
+            echo "Copy efficientnet_lite0_waste8_u8.hef onto the device by hand at $HEF" >&2
             echo "and verify: echo '$SHA  $HEF' | sha256sum -c -" >&2
             echo "" >&2
             echo "The board is now prepared: all three Hailo ABI gates passed." >&2
@@ -209,10 +209,18 @@ remote_overrides:
 
           # Only the baseline track is offered here. The open-vocabulary tower
           # has no HEF either — its INT8 quantisation currently fails.
-          config["model"]["path"] = "/models/efficientnet_lite0_waste8.hef"
+          config["model"]["path"] = "/models/efficientnet_lite0_waste8_u8.hef"
           config["model"]["accelerator"] = "hailo"
           config["model"]["track"] = "baseline"
           config["model"]["backbone"] = "efficientnet_lite0"
+          # The u8 HEF carries ImageNet mean/std as a normalization layer
+          # inside the graph, so the runtime hands it raw uint8 NHWC RGB and
+          # does no float preprocessing. Normalising on the host as well
+          # double-applies the scaling and is the usual reason a working
+          # classifier starts returning one class.
+          config["model"]["input_range"] = "uint8"
+          config["model"]["onnx_sha256"] = (
+              "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
           config["rules"]["min_confidence"] = float("{{min_confidence}}")
           config["trigger"]["mode"] = "on_demand"
           config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
