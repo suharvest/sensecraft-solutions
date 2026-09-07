@@ -1,8 +1,8 @@
 # Gallery attribution
 
 This gallery is the union of the two packages merged into `retail_voice` on
-2026-09-07 (`retail_voice_local` and `retail_voice_cloud`). Every file shared by
-both was byte-identical, so nothing had to be reconciled.
+2026-09-07, one per preset. Every file shared by both was byte-identical, so
+nothing had to be reconciled.
 
 Six of the seven files were copied byte-for-byte from
 `solutions/smart_retail_voice_ai/gallery/`, the earlier cloud-connected package

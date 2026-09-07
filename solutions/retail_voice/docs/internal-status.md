@@ -5,8 +5,8 @@ removed from `description.md` / `description_zh.md` on 2026-09-07 under the
 `reference-design-landing` rules "results / KPI only carry measured numbers"
 and "pages use Seeed product names".
 
-`retail_voice_local` and `retail_voice_cloud` were merged into this one package
-on 2026-09-07; this file merges both internal records.
+The on-device and server-stack packages were merged into this one on
+2026-09-07; this file merges both internal records.
 
 ## Bench hardware mapping
 
