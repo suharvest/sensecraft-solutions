@@ -1,27 +1,38 @@
-## Relationship to "Industrial Security on Jetson"
+## It Absorbed the Jetson-Only Package
 
-This is the multi-platform rebuild of the existing `industrial_security_jetson`
-solution: the same three rules (restricted zone, line crossing, loitering) and
-the same browser dashboard, rewritten so the detection layer and the rule layer
-talk over a published MQTT payload contract instead of living in one process.
-That is what lets an RK3588 board run the whole thing, and lets other detector
+There used to be a second, Jetson-only industrial security package. It was
+merged into this one on 2026-09-07: same topic, different deployment routes, so
+one design with several presets rather than two pages. Its capability lives in
+the **Jetson Single Box** preset here.
+
+The detection layer and the rule layer were rewritten to talk over a published
+MQTT payload contract instead of living in one process. That is what lets an
+RK3588 board or a Hailo board run the whole thing, and lets other detector
 hardware join later without touching the hub.
 
-**This package now covers the Jetson TensorRT capability as well, so it
-supersedes the older one.** The Jetson preset here runs YOLOv8n on TensorRT with
-video decode on NVDEC, measured on an Orin NX 16GB at **4.13 ms per inference**
-and **7.24 ms per pipeline frame** — a 138 fps single-stream budget against the
-older solution's "30+ FPS on Orin NX" headline.
+**What the older package did, and where it is now**
 
-- **Deploying on a Jetson** — use this one. It does everything the older
-  solution did, plus MQTT output, multi-camera aggregation and a second
-  hardware platform.
-- **Deploying on RK3588** — use this one. The older solution is Jetson-only.
+| Capability it had | Where it lives here |
+|---|---|
+| TensorRT FP16 person detection on Jetson Orin | Jetson Single Box preset — YOLOv8n on TensorRT 10.3.0, measured 4.13 ms per inference on an Orin NX 16GB |
+| GPU video decode (NVDEC) | Same preset, verified in-kernel — `require_hw_decode` is on, so a host without it fails the pre-checks rather than running slowly |
+| Restricted zone, line crossing, dwell / loitering | All three, with direction on the line rule and loitering raised on top of the entry alert |
+| Browser dashboard, rules drawn on the live frame | The workbench and the rules editor, drawn on a frame proxied from the detector |
+| Event persistence across restarts | The hub's alert store, with a snapshot per alert and CSV export |
+| Multiple cameras on one box | One detector container per camera, several detectors into one hub — and the detectors no longer have to be the same hardware |
+| Orin NX 16GB and Orin Nano 8GB | Both, as `recomputer_j40` and `recomputer_j30` |
 
-`industrial_security_jetson` stays published until this package ships, and is
-retired after that. Nothing is being removed from under a running deployment;
-existing installs keep working, and there is no migration path between the two
-because they do not share a data store.
+Nothing was dropped. Two things changed shape: alerts now also leave over MQTT
+so an NVR or PLC can subscribe instead of polling, and the rule layer can sit on
+a different machine from the detectors.
+
+**One number did not carry over.** The older package advertised YOLO26n at
+"~268 QPS, ~3.7 ms" and "30+ FPS on Orin NX" without naming a bench or a clip.
+Those figures were never reproduced here, so they are not in the table below.
+Every row there names the board it was measured on.
+
+There is no migration path between the two packages, because they never shared
+a data store. An existing install keeps working until it is redeployed.
 
 ## What This Solution Does
 
