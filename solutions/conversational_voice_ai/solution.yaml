@@ -62,9 +62,9 @@ intro:
     # is the reComputer Industrial R20 series (Raspberry Pi CM5); nothing has
     # been run on one.
     external_raspberry_pi_5:
-      description: Runs the CPU speech stack on the reComputer Industrial R20 series. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it.
+      description: Runs the CPU speech stack on the reComputer Industrial R20 series. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it. The figures on this page have not been verified on an actual reComputer Industrial R20 unit.
       description_i18n:
-        zh: 在 reComputer Industrial R20 系列上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。
+        zh: 在 reComputer Industrial R20 系列上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。本页数字尚未在实际 reComputer Industrial R20 整机上核实。
     respeaker_xvf3800:
       description: USB microphone array with hardware echo cancellation, noise suppression, and beamforming.
       description_i18n:
