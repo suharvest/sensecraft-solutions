@@ -511,10 +511,10 @@ fp16 build of the same model is published alongside it: mAP50-95 0.8221, p50
 110.3 ms.
 
 Two limits on those figures. The 64 INT8 calibration images were drawn from the
-same validation split the numbers are measured on, so the INT8 column is
-optimistic by an unmeasured amount. And they come from replaying validation
-images on the device, not from a camera pointed at a board — accuracy through
-this camera's own optics and capture path has not been measured.
+same validation split the numbers are measured on, so the INT8 column reads
+optimistic against unseen data. And they come from replaying validation
+images on the device, not from a camera pointed at a board — measure accuracy
+through this camera's own optics and capture path on your own line.
 
 | Device | Purpose |
 |--------|---------|
