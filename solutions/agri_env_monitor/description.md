@@ -137,6 +137,13 @@ uses.
   (linux/amd64 + linux/arm64). `BRIDGE_IMAGE` defaults to that tag; point it at
   your own registry to deploy a local build instead.
 
+## Scope of the Numbers
+
+- **Every number on this page comes from a local replay bench** — no radio leg and no network server processing in the loop.
+- **Radio range, node capacity, packet loss, recovery and gateway restart time** — size them from the node and gateway datasheets and measure them on your own site; they dominate site design and do not follow from the bench.
+- **Node battery life** — take it from the node datasheet at your configured reporting cycle.
+- **The SenseCAP OpenAPI backfill** — the bench's cloud source held no real credential, so exercise paging, rate limits and historical completeness against your own account.
+
 ## Licensing note
 
 The `measurementId` to physical quantity table in
