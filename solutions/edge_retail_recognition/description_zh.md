@@ -73,7 +73,7 @@ Hailo-8、RK3588 与 RK3576 各项为对应 reComputer 套餐同款加速器芯�
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
 | reComputer J40（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条；设备侧运行时也已端到端跑通（2956 帧回放零掉帧） |
-| reComputer J30（Jetson Orin Nano，J3011，TensorRT） | GPU 上 TensorRT fp16，p50 5.88 ms，一致率 99.27% | GPU 上 TensorRT fp16，p50 5.06 ms，与 fp32 检索差距最大 0.20 个百分点 | 同样已实测：设备侧运行时端到端跑通（6726 帧、2.27 轮回放，零掉帧，84 个事件全部发布成功） |
+| reComputer J30（Jetson Orin Nano，J3011，TensorRT） | GPU 上 TensorRT fp16，p50 5.88 ms，一致率 99.27% | GPU 上 TensorRT fp16，p50 5.06 ms，与 fp32 检索差距最大 0.21 个百分点 | 同样已实测：设备侧运行时端到端跑通（6726 帧、2.27 轮回放，零掉帧，84 个事件全部发布成功） |
 
 Hailo-8、RK3588 与 RK3576 三行取自同款加速器芯片平台，是参考值，reComputer 整机
 复测后更新。reCamera Pro 一行是在摄像头本机上实测的；reComputer J40 与 J30 两行都是在

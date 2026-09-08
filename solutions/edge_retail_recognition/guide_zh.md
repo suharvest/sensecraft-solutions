@@ -356,7 +356,7 @@ Hailo-8 与 RK3576 套餐止步于模型转换。以上数字均为 n=300、纯�
 |---|---|
 | 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
 | reComputer J40（Orin NX 16GB） | 检测与嵌入，两段都经 TensorRT fp16 跑在 GPU 上——实测机型 |
-| reComputer J30（Orin Nano 8GB，J3011） | 同一家族、同样角色。同样已实测：检测器 p50 5.88 ms / p95 8.89 ms，嵌入器 p50 5.06 ms / p95 7.64 ms，21 项检索指标与 fp32 最大差 0.20 个百分点，6726 帧回放零掉帧 |
+| reComputer J30（Orin Nano 8GB，J3011） | 同一家族、同样角色。同样已实测：检测器 p50 5.88 ms / p95 8.89 ms，嵌入器 p50 5.06 ms / p95 7.64 ms，21 项检索指标与 fp32 最大差 0.21 个百分点，6726 帧回放零掉帧 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}

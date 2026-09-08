@@ -334,7 +334,7 @@ intro:
         J3011): detector 5.88 ms p50 / 8.89 ms p95, 99.27% box agreement with
         the CPU golden (a different 50-image batch than the Orin NX unit's,
         so not bit-for-bit comparable); embedder 5.06 ms p50 / 7.64 ms p95,
-        21 retrieval metrics within 0.20 percentage points of fp32. A
+        21 retrieval metrics within 0.21 percentage points of fp32. A
         6726-frame checkout replay (2.27 loops) ran with zero dropped frames
         and all 84 events published.
       description_i18n:
@@ -343,7 +343,7 @@ intro:
           本机实测（reComputer J30 系列，J3011）：检测器 p50 5.88 ms /
           p95 8.89 ms，与 CPU golden 的框一致率 99.27%（与 Orin NX 机型用的
           不是同一批 50 张图，不可逐位对齐）；嵌入器 p50 5.06 ms / p95 7.64 ms，
-          21 项检索指标与 fp32 最大差 0.20 个百分点。一次 6726 帧（2.27 轮）
+          21 项检索指标与 fp32 最大差 0.21 个百分点。一次 6726 帧（2.27 轮）
           的收银台回放零掉帧，84 个事件全部发布成功。
       purchase:
         require:
