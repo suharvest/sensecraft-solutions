@@ -48,6 +48,10 @@ intro:
       description: AI voice assistant, required for all deployment modes
       description_i18n:
         zh: AI 语音助手，所有套餐必选
+    reterminal_d1001:
+      description: 8" touch HMI voice terminal with camera (ESP32-P4), alternative to the Watcher
+      description_i18n:
+        zh: 8 寸触摸屏语音终端，带摄像头（ESP32-P4），可替代 Watcher
     recomputer_r11:
       description: Edge gateway, runs warehouse management system. Choose a 4 GB memory configuration or higher.
       description_i18n:
@@ -94,6 +98,7 @@ intro:
           required: true
           options:
             - device_ref: sensecap_watcher
+            - device_ref: reterminal_d1001
           default: sensecap_watcher
           name_i18n:
             zh: 语音助手
@@ -113,6 +118,7 @@ intro:
           required: true
           options:
             - device_ref: sensecap_watcher
+            - device_ref: reterminal_d1001
           default: sensecap_watcher
           name_i18n:
             zh: 语音助手
@@ -141,6 +147,7 @@ intro:
           required: true
           options:
             - device_ref: sensecap_watcher
+            - device_ref: reterminal_d1001
           default: sensecap_watcher
           name_i18n:
             zh: 语音助手
@@ -201,6 +208,7 @@ intro:
           required: true
           options:
             - device_ref: sensecap_watcher
+            - device_ref: reterminal_d1001
           default: sensecap_watcher
           name_i18n:
             zh: 语音助手
