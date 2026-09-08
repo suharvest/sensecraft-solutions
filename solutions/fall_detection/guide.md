@@ -95,6 +95,78 @@ state, event ID and person presence.
 
 ---
 
+## Step 4: Install the Alarm Panel (optional) {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
+
+Skip this step and the deployment is finished: the camera keeps publishing MQTT
+events and nothing else changes.
+
+Take it and you add a panel next to the cameras — a site overview of rooms,
+cameras and zones, zone rectangles drawn on each camera's live picture, a
+no-person and a no-motion timeout per zone, an operator who confirms or dismisses
+each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
+
+The camera cannot host it. The detector there is a native process installed as a .deb, and the camera
+offers no filesystem, SQLite or web server for the panel. So the panel goes on a
+separate box on the same network, which needs no AI accelerator: a reComputer
+R1000 Series, or a Linux machine you already run.
+
+### Prerequisites
+
+- A x86_64 or arm64 Linux host on the camera's network, with Docker and the
+  compose plugin (`docker compose version` has to succeed) and SSH access.
+- The exact topic the cameras publish on. Check it from that host before you
+  start: `mosquitto_sub -h <camera-or-broker-ip> -t '#' -v`. A reCamera 2002 publishes on `<device-name>/fall-detection/results`, single stream, no stream-id suffix.
+- Ports 8080 and 1883 free on that host, or different values entered in the form
+  — the deploy checks both before it starts and names the process holding one.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Deploy stops on "Port 8080 is already in use" | Enter another Panel Port in the form, or stop the service the message names. |
+| "no message on ... within 20 s" warning at the end | The panel is up but has seen no detector result. Re-check the topic against `mosquitto_sub -t '#' -v`, and that the camera publishes to the broker address entered here. |
+| Alarm list stays empty and no-person alarms never fire | The camera has to publish on frames with nobody in view for that timeout to have an input. Falls still work either way. |
+| `pull access denied` on `eldercare-alarm-*` | Check registry auth and network reachability from the host — both architectures are published. |
+
+### Target {#panel_host_recamera_remote type=remote device_name="Alarm Panel Host" config=devices/panel_host.yaml default=true}
+
+The panel host is addressed over SSH, like any other Docker target.
+
+## Step 5: Open the Alarm Panel {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
+
+Only relevant if you installed the panel in the previous step.
+
+### Deployment Complete
+
+#### Quick verification
+
+- The overview page lists the room you named, with its camera and zone counts.
+- An empty alarm list on a quiet site is the correct result — it means the
+  service is up and answering.
+- To prove the ingest path end to end, drop the zone's no-person timeout to one
+  minute on the host (`config/alarm-panel.yaml`, then
+  `docker compose restart alarm-panel`), leave the area empty, and confirm an
+  alarm appears. Put the real value back afterwards.
+
+#### Next steps
+
+- Draw the zones on the live picture instead of keeping the single
+  whole-frame rectangle the deploy created. Saving bumps a configuration
+  version; if a colleague saved first you get a 409 and a reload prompt rather
+  than overwriting them.
+- Point the webhook at your own alerting system if you left it empty.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
+  USB microphone and speaker on this host; the description page covers what it
+  does before you turn it on.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Page does not load | Check the Panel Port matches what the deploy step used, and that the host firewall allows it. |
+| A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
+| A room reads unknown and stream-lost | The camera is unreachable from the panel host, not a fall-detection fault. The last-frame time on the card says when it was last seen. |
+
 ## Preset: reCamera Pro {#recamera_pro}
 
 One device does everything, on newer hardware than the 2002: the camera sees the
@@ -186,6 +258,78 @@ live view with skeletons is the console's own page, opened by this step.
 
 ### Target {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
+## Step 4: Install the Alarm Panel (optional) {#panel_host_recamera_pro type=docker_deploy required=false config=devices/panel_host.yaml}
+
+Skip this step and the deployment is finished: the camera keeps publishing MQTT
+events and nothing else changes.
+
+Take it and you add a panel next to the cameras — a site overview of rooms,
+cameras and zones, zone rectangles drawn on each camera's live picture, a
+no-person and a no-motion timeout per zone, an operator who confirms or dismisses
+each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
+
+The camera cannot host it. The detector there is an App Center application, and the camera
+offers no filesystem, SQLite or web server for the panel. So the panel goes on a
+separate box on the same network, which needs no AI accelerator: a reComputer
+R1000 Series, or a Linux machine you already run.
+
+### Prerequisites
+
+- A x86_64 or arm64 Linux host on the camera's network, with Docker and the
+  compose plugin (`docker compose version` has to succeed) and SSH access.
+- The exact topic the cameras publish on. Check it from that host before you
+  start: `mosquitto_sub -h <camera-or-broker-ip> -t '#' -v`. A reCamera Pro publishes on `<base>/fall-detection/state`; pick reCamera Pro as the Camera Model in the form so the Pro adapter is used.
+- Ports 8080 and 1883 free on that host, or different values entered in the form
+  — the deploy checks both before it starts and names the process holding one.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Deploy stops on "Port 8080 is already in use" | Enter another Panel Port in the form, or stop the service the message names. |
+| "no message on ... within 20 s" warning at the end | The panel is up but has seen no detector result. Re-check the topic against `mosquitto_sub -t '#' -v`, and that the camera publishes to the broker address entered here. |
+| Alarm list stays empty and no-person alarms never fire | The camera has to publish on frames with nobody in view for that timeout to have an input. Falls still work either way. |
+| `pull access denied` on `eldercare-alarm-*` | Check registry auth and network reachability from the host — both architectures are published. |
+
+### Target {#panel_host_recamera_pro_remote type=remote device_name="Alarm Panel Host" config=devices/panel_host.yaml default=true}
+
+The panel host is addressed over SSH, like any other Docker target.
+
+## Step 5: Open the Alarm Panel {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
+
+Only relevant if you installed the panel in the previous step.
+
+### Deployment Complete
+
+#### Quick verification
+
+- The overview page lists the room you named, with its camera and zone counts.
+- An empty alarm list on a quiet site is the correct result — it means the
+  service is up and answering.
+- To prove the ingest path end to end, drop the zone's no-person timeout to one
+  minute on the host (`config/alarm-panel.yaml`, then
+  `docker compose restart alarm-panel`), leave the area empty, and confirm an
+  alarm appears. Put the real value back afterwards.
+
+#### Next steps
+
+- Draw the zones on the live picture instead of keeping the single
+  whole-frame rectangle the deploy created. Saving bumps a configuration
+  version; if a colleague saved first you get a 409 and a reload prompt rather
+  than overwriting them.
+- Point the webhook at your own alerting system if you left it empty.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
+  USB microphone and speaker on this host; the description page covers what it
+  does before you turn it on.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Page does not load | Check the Panel Port matches what the deploy step used, and that the host firewall allows it. |
+| A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
+| A room reads unknown and stream-lost | The camera is unreachable from the panel host, not a fall-detection fault. The last-frame time on the card says when it was last seen. |
+
 ## Preset: IP Camera + reComputer J30 / J40 {#jetson}
 
 Keep the cameras you already have. A Jetson Orin pulls their RTSP streams, runs a
@@ -275,6 +419,43 @@ own tracking state and gets its own MQTT topic.
 
 ---
 
+## Step 3: Open the Alarm Panel {#panel_open_jetson type=web_dashboard required=false config=devices/panel_console.yaml}
+
+The alarm panel came up with the detector in Step 1 — same compose file, same
+device, port 8080 by default. It turns the event stream into alarms someone signs
+off on: a site overview, zones drawn on each camera's live picture, a no-person
+and a no-motion timeout per zone, confirm and dismiss recorded against an
+operator, an SQLite audit trail, and a webhook whose payload carries no video.
+
+### Deployment Complete
+
+#### Quick verification
+
+- The overview page lists the zone you named in the deploy form.
+- An empty alarm list on a quiet site is the correct result — it means the
+  service is up and answering.
+- To prove the ingest path end to end, drop the zone's no-person timeout to one
+  minute on the device (`config/alarm-panel.yaml`, then
+  `docker compose restart alarm-panel`), leave the area empty, and confirm an
+  alarm appears. Put the real value back afterwards.
+
+#### Next steps
+
+- Draw the zones on the live picture instead of keeping the single whole-frame
+  rectangle the deploy created.
+- Point the webhook at your own alerting system if you left it empty.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
+  USB microphone and speaker on this device; the description page covers what it
+  does before you turn it on.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
+| A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
+| Falls raise alarms but no-person alarms never do | The detector config ships `publish_empty_frames: true`, which that timeout depends on. If you replaced `config/config.json` with the device's own copy, set the key again. |
+
 ## Preset: IP Camera + reComputer RK3576 / RK3588 {#rk}
 
 Run the detector on a Rockchip NPU board. Same algorithm and same MQTT output as
@@ -352,6 +533,43 @@ per camera.
 
 ---
 
+## Step 3: Open the Alarm Panel {#panel_open_rk type=web_dashboard required=false config=devices/panel_console.yaml}
+
+The alarm panel came up with the detector in Step 1 — same compose file, same
+device, port 8080 by default. It turns the event stream into alarms someone signs
+off on: a site overview, zones drawn on each camera's live picture, a no-person
+and a no-motion timeout per zone, confirm and dismiss recorded against an
+operator, an SQLite audit trail, and a webhook whose payload carries no video.
+
+### Deployment Complete
+
+#### Quick verification
+
+- The overview page lists the zone you named in the deploy form.
+- An empty alarm list on a quiet site is the correct result — it means the
+  service is up and answering.
+- To prove the ingest path end to end, drop the zone's no-person timeout to one
+  minute on the device (`config/alarm-panel.yaml`, then
+  `docker compose restart alarm-panel`), leave the area empty, and confirm an
+  alarm appears. Put the real value back afterwards.
+
+#### Next steps
+
+- Draw the zones on the live picture instead of keeping the single whole-frame
+  rectangle the deploy created.
+- Point the webhook at your own alerting system if you left it empty.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
+  USB microphone and speaker on this device; the description page covers what it
+  does before you turn it on.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
+| A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
+| Falls raise alarms but no-person alarms never do | That timeout needs the detector to publish on frames with nobody in view. Confirm the RK runtime still publishes with nobody in front of the camera — that is the first thing to check here. |
+
 ## Preset: IP Camera + reComputer R2000 (Hailo) {#hailo}
 
 Run the detector on a Hailo-8 accelerator. The hot path is native C++ with no
@@ -428,3 +646,41 @@ per camera.
 | Video but no overlay | The preview reads MQTT separately; confirm port 1883 on the device is reachable |
 | Overlay but no video | The preview pulls RTSP straight from the camera; confirm this computer can reach it too |
 | `inference_time_ms` reads 0 | Expected — the Hailo element does not expose the accelerator call duration at that probe point |
+
+## Step 3: Open the Alarm Panel {#panel_open_hailo type=web_dashboard required=false config=devices/panel_console.yaml}
+
+The alarm panel came up with the detector in Step 1 — same compose file, same
+device, port 8080 by default. It turns the event stream into alarms someone signs
+off on: a site overview, zones drawn on each camera's live picture, a no-person
+and a no-motion timeout per zone, confirm and dismiss recorded against an
+operator, an SQLite audit trail, and a webhook whose payload carries no video.
+
+### Deployment Complete
+
+#### Quick verification
+
+- The overview page lists the zone you named in the deploy form.
+- An empty alarm list on a quiet site is the correct result — it means the
+  service is up and answering.
+- To prove the ingest path end to end, drop the zone's no-person timeout to one
+  minute on the device (`config/alarm-panel.yaml`, then
+  `docker compose restart alarm-panel`), leave the area empty, and confirm an
+  alarm appears. Put the real value back afterwards.
+
+#### Next steps
+
+- Draw the zones on the live picture instead of keeping the single whole-frame
+  rectangle the deploy created.
+- Point the webhook at your own alerting system if you left it empty.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
+  USB microphone and speaker on this device; the description page covers what it
+  does before you turn it on.
+
+### Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
+| A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
+| Falls raise alarms but no-person alarms never do | This runtime publishes on every frame and needs no switch, so check the zone's stream id matches the Stream ID from the deploy form instead. |
+
