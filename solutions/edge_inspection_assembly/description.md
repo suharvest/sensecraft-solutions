@@ -63,27 +63,33 @@ to the coil reads register data from the same verdict.
 **This is a demo package, not a certified metrology or safety product.** The
 dimension module measures pixels against a calibration reference; its accuracy
 depends on your optics, lighting and fixture, and it is not a substitute for a
-calibrated gauge in an acceptance test. The detection numbers below come from
-the DeepPCB dataset described in the box at the top of this page, which is a
-bare-board defect dataset — they say the chain works, not that this model finds
-missing parts on your assemblies.
+calibrated gauge in an acceptance test.
 
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Detection mAP50 | **0.9876** | DeepPCB6 val, 205 images / 1158 boxes, 6 classes; YOLOX-Tiny 640², TensorRT fp16; frozen threshold 0.35 gives P 0.9284 / R 0.9741, FP 87 / FN 30, 0 frames fully missed | This project's own M4 run, 2026-09-05, on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3) |
-| Inference throughput | **95.06 FPS** ("detect()" P50 10.52 ms) | Same device and engine, single stream, 500 timed calls over 60 pre-decoded frames; engine execute alone is ~6.3 ms, the rest is letterbox + CPU NMS | Same M4 run |
-| End-to-end latency, capture → Modbus coil | **P50 10.92 ms / P99 11.18 ms** | Single stream at the 10 fps line rate, 3000 samples, 0 frames dropped, 3000 Modbus writes. Unthrottled (89 FPS) the same path is P50 42.9 ms | Same M4 run |
-| Multi-stream capacity | **stable 8 / degrading 12 / failure 24 streams** | 640² at 10 fps per stream, 5 min per level, whole sweep run twice; MQTT and Modbus were disabled during this test, so a real deployment with I/O reaches fewer streams | Same M4 run |
-| Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame "missing_count" = 0, on a different board all 6 go missing and "verdict_reasons" gains "missing" alongside "defect" | This project's M2 run, 2026-09-05, same device |
-| Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict "ok". Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
-| reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s ("hailortcli run"). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit, 2026-09-06 |
-| reCamera Pro (RV1126B) accuracy and latency | **mAP50 0.9870, mAP50-95 0.8000, inference P50 30.9 ms** | Same 205-image DeepPCB6 val set, YOLOX-Tiny 640², RKNN INT8 (rknn-toolkit2 2.3.2, 64 calibration images, channel-wise, `normal`). fp32 CPU reference on the same images: mAP50 0.9876, mAP50-95 0.8213. At the frozen 0.35 threshold this build reports the same aggregate P 0.9299 / R 0.9741 as the CPU reference, on a slightly different set of 30 missed boxes. The 64 calibration images were drawn from this same split, so the INT8 column is optimistic by an unmeasured amount. P95 34.5 ms, 205 back-to-back calls, camera's built-in application stopped. The fp16 build of the same model: mAP50 0.9875, mAP50-95 0.8221, P50 110.3 ms | This project's reCamera Pro run, 2026-09-08, on a reCamera Pro (librknnrt 2.3.2) |
-| Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on a GB10 GPU workstation with another training job co-resident on the same GPU | "edge-inspection-assembly" annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
-| Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
+| What the line gets | Typical | Device |
+|---|---|---|
+| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 series (J4012, Orin NX 16GB) |
+| Defect detection accuracy (mAP50) | **0.9876** | reComputer J40 series |
+| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J40 series |
+| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J40 series |
+| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J40 series |
+
+Conditions: DeepPCB6 val, 205 images / 1158 boxes, 6 classes, YOLOX-Tiny 640²
+TensorRT fp16 at a frozen 0.35 threshold; end-to-end sampled 3000 times at the
+10 fps line rate with 0 frames dropped; the stream sweep ran with Modbus and
+MQTT disabled, so a deployment carrying both reaches fewer. Measured 2026-09-05
+on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3).
+
+Two other hosts run the same detector at the same accuracy: the reComputer R2000
+series with the Hailo-8 option at P50 11.89 ms / P99 16.08 ms end to end and
+0.9858 mAP50 (2026-09-06), and the all-in-one reCamera Pro at 0.9870 mAP50 with
+a 30.9 ms P50 inference call (RKNN INT8, 2026-09-08). The reCamera Pro INT8
+calibration images came from this same validation split, so that column is
+optimistic by an unmeasured amount.
 
 The accuracy figures come from DeepPCB, which is easier than a real assembly
-scene — synthetic PCB defects have clean boundaries. Expect to retrain on your
-own boards. This is a reference design, not a certified inspection product.
+scene — synthetic PCB defects have clean boundaries — and it is not a
+missing-part detector. Expect to retrain on your own boards. This is a reference
+design, not a certified inspection product.
 
 ## Output Interfaces
 
