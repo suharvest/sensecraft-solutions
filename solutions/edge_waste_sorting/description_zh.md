@@ -206,9 +206,10 @@ HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425�
 ## 数字的适用范围
 
 - **基线与开放词汇的精度与 CPU 时延**——onnxruntime 1.25.1，Apple M4 CPU，batch 1。
-- **面向 Hailo-8 的基线 INT8**——在 x86 编译主机 `wsl2-local` 上用 DFC 3.31.0 / HailoRT 4.21.0 模拟器编译并核对。出货的 HEF 以 `optimization_level=2` 量化（量化感知蒸馏微调 8 轮，保留 bias correction），用 2048 张类别均衡的 uint8 训练裁剪；编译需要 DFC 容器内可见 GPU。被取代的 m1b HEF 走的是 `optimization_level=1` 的 PTQ，校准集 256 张。
+- **面向 Hailo-8 的基线 INT8**——用 DFC 3.31.0 / HailoRT 4.21.0、`--hw-arch hailo8` 构建。出货的 `efficientnet_lite0_waste8_u8.hef` 以 `optimization_level=2` 量化（量化感知蒸馏微调 8 轮，保留 bias correction），用 2048 张类别均衡的 uint8 训练裁剪；编译需要 DFC 容器内可见 GPU。它在一块 Hailo-8 上、7417 张验证全集上实测。同一张图在 `optimization_level=1` 下比 fp32 低 2.40 个百分点，不出货。
 - **RK3588 上的基线 fp16 与 INT8**——一块 RK3588 开发板，librknnrt 2.3.2，50 张验证图。
 - **RK3576 上的基线**——一块 RK3576 开发板，仅 m1b。
+- **开放词汇 SigLIP 2 视觉塔**——`hailo parser` 能完整跑通，但 `hailo optimize`（INT8 PTQ，256 张校准图，`optimization_level=1`）在 `ne_activation_mul_and_add78` 层失败，因此它没有 HEF。
 - **VLM 兜底**——对着真实服务、生成后端换成 stub 的台架运行（5 帧、5 条有效主事件、2 条兜底事件、0 条被拒），属接线验证。
 - **现场精度**——两个数据集都是单件物品照片（TrashNet 白色背板，GC3 物体偏心且常被遮挡），请采一批自己投放点的数据重测。
 
