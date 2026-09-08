@@ -494,3 +494,91 @@ the reComputer R2000.
   is a weaker baseline).
 - Your own station images and a COCO-style category list, or a willingness to
   label a handful of classes by hand first.
+
+## Preset: reCamera Pro {#recamera_pro}
+
+Camera and inspection node in one enclosure. Detection, the OK/NG verdict,
+Modbus TCP and MQTT all run on the camera; there is no host and no network hop
+in the decision path. The detector runs in INT8 on the camera's RV1126B NPU.
+
+Measured on this hardware over the 205-image DeepPCB validation split, with the
+camera's built-in application stopped: mAP50 0.9870 against 0.9876 for the
+fp32 CPU reference, mAP50-95 0.8000 against 0.8213, precision 0.9299 and recall
+0.9741 at the frozen 0.35 score — the same precision and recall the CPU
+reference reports on those images. Inference p50 30.9 ms, p95 34.5 ms. An fp16
+build of the same model is published alongside it: mAP50-95 0.8221, p50
+110.3 ms.
+
+| Device | Purpose |
+|--------|---------|
+| reCamera Pro (RV1126B) | Capture, detection on the NPU, OK/NG verdict, Modbus TCP server, MQTT publisher and the local status panel |
+
+**Important.** This is a demo package, not a certified metrology or safety
+product. The shipped model is trained on the DeepPCB bare-board defect dataset
+rather than on assembly images. Assembly comparison and dimension measurement
+are off in this preset: both need ROIs marked per station, which no generic
+form can carry — the Orin and Hailo presets cover them. The camera runs one App
+Center application at a time, so activating this one stops whatever was
+running before.
+
+## Step 1: Deploy the Inspection Node on reCamera Pro {#deploy_recamera_pro_assembly type=recamera_pro_app required=true config=devices/recamera_pro_assembly.yaml}
+
+The node ships as an App Center application, `inspection-assembly`. Install it
+from the App Center on the camera's web console, then this step names it,
+applies your settings and makes it the active app. The model is not inside the
+package: the App Center delivers it separately into
+`/userdata/local/models/inspection-assembly/`.
+
+You need the web console's admin credentials and about 20 MB free on
+`/userdata`. There is nothing to build and nothing to copy by hand.
+
+Fill in a device name and, if you want the verdicts on a broker as well, a
+broker address. Leave the broker empty and the verdict still leaves the device
+over Modbus TCP. With a broker, every processed frame arrives on
+`inspection/<device name>/results` as one JSON record carrying the verdict and
+its reasons, the defect count, every box with class and score, the inference
+time and both model hashes — the same event shape this solution publishes on
+Orin and on Hailo, validated against the contract before it is sent.
+
+### What the PLC reads
+
+Modbus TCP on port 502, unit 1: coil 0 is NG, coil 1 is OK, and holding
+registers 0-11 carry the class, defect count, the primary box, a heartbeat and
+the assembly and dimension counters. Registers are written before the coil
+flips, so a PLC that sees the coil already has the matching data.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| The app is not in the App Center list | It has to be published to that camera's catalog first. This step names an installed app; it does not install one |
+| Activation stops another app | Expected — the App Center runs one application at a time |
+| No events on the broker, but the panel shows frames processed | The broker address or credentials are wrong; the verdict is still on Modbus. Check `mqtt.last_error` on the status panel |
+| Nothing on Modbus 502 | Confirm the app is the active one and that nothing else on the camera holds port 502 |
+| Frame rate is far below the Orin figures | Expected — those numbers are from an Orin NX with a TensorRT engine. Use this camera's own number |
+
+## Step 2: Confirm One Verdict Leaves the Camera {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
+
+The app's status panel binds to loopback on the camera, so the check that
+matters here is the one a PLC would make: read Modbus TCP.
+
+1. Point the camera at the station so a board is in frame
+2. From any machine on the network, read coil 0/1 and holding registers 0-11 on
+   port 502, unit 1
+3. Read them again a second later
+
+You have a working node when the heartbeat in HR 6/7 has advanced between the
+two reads and exactly one of coil 0 and coil 1 is set. With a defective board in
+frame, coil 0 is set and HR 1 carries the defect count; with a clean board,
+coil 1 is set and HR 1 is 0.
+
+If you filled in a broker, subscribing to `inspection/<device name>/results`
+shows the same verdict as one JSON record per processed frame.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Connection refused on 502 | The app is not the active one, or another process on the camera holds the port |
+| The heartbeat does not advance | Frames are not arriving. The app reads the camera's RTSP substream, which comes from the built-in `rkipc`; if that is stopped there is no video |
+| Both coils read 0 | No verdict has been written yet — the first frame has not completed. Read again |
