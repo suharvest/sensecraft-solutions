@@ -180,12 +180,27 @@ remote_overrides:
           # requires gpio for sysfs and both gpiochip and line for libgpiod, so
           # a half-filled actuator block fails at parse time instead of driving
           # a pin nobody chose.
+          #
+          # Both branches refuse an empty answer rather than letting int("")
+          # raise a ValueError with no context. The two coordinate fields are
+          # optional in the form because neither is right for both kernels, and
+          # "optional in the form" must not become "defaulted on the box".
           if "{{gpio_backend}}" == "libgpiod":
+              line = "{{gpio_line}}".strip()
+              if not line:
+                  print("GPIO Interface is libgpiod but no line offset was given. "
+                        "Run gpioinfo on the box and pick a free line; the 40-pin "
+                        "header mapping is in the guide.")
+                  raise SystemExit(1)
               act["gpio"] = None
               act["gpiochip"] = "{{gpiochip}}"
-              act["line"] = int("{{gpio_line}}")
+              act["line"] = int(line)
           else:
-              act["gpio"] = int("{{do_gpio}}")
+              gpio = "{{do_gpio}}".strip()
+              if not gpio:
+                  print("GPIO Interface is sysfs but no sysfs GPIO number was given.")
+                  raise SystemExit(1)
+              act["gpio"] = int(gpio)
               act["gpiochip"] = None
               act["line"] = None
           act["active_high"] = "{{active_high}}" == "true"
