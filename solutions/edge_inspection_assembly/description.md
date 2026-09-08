@@ -175,11 +175,14 @@ DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** is the path every measurement on this page was
-taken on. A TensorRT engine is built on the device during the first deploy
-(about 5 minutes), which ties it to that device and that TensorRT version. Choose
-it when you want the numbers above to apply, or when you need more than one or
-two camera streams on one box.
+**Camera + reComputer J30 / J40 (Orin)** is the Jetson path. Every Jetson
+measurement on this page — accuracy, throughput, latency and the 67-hour soak —
+was taken on the reComputer J30 series (J3011, Orin Nano 8GB); J40 is not
+separately benchmarked for this solution. A TensorRT engine is built on the
+device during the first deploy (measured about 5 minutes on the J3011 unit),
+which ties it to that device and that TensorRT version. Choose J3011 when you
+want the numbers above to apply, or J40 for more headroom on extra camera
+streams (not yet measured on this solution).
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy

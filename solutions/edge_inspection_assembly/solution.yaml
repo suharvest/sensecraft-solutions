@@ -103,9 +103,9 @@ intro:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB, reComputer J40 series, J4012). Not separately benchmarked on this solution — the accuracy, throughput and latency numbers on this page come from the reComputer J30 series unit above.
+      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB, reComputer J40 series, J4012). Not separately benchmarked on this solution — the Jetson accuracy, throughput and latency figures come from the reComputer J30 series unit above.
       description_i18n:
-        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB，reComputer J40 系列，J4012）。本方案未对这台设备单独跑评测——本页的精度、吞吐与时延数字都来自上面的 reComputer J30 系列实机。
+        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB，reComputer J40 系列，J4012）。本方案未对这台设备单独跑评测——Jetson 路径的精度、吞吐与时延数字都来自上面的 reComputer J30 系列实机。
       purchase:
         require:
           module: [orin_nx_16]

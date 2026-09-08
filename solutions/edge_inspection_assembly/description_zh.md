@@ -134,9 +134,12 @@ mask 变成一份装配 ROI profile——它不在边缘设备上跑，也不进
 
 ## 套餐对比
 
-**摄像头 + reComputer J30 / J40（Orin）** 是本页所有实测数据的来源。首次部署时在设备上构建
-TensorRT engine（约 5 分钟），engine 因此与该设备和该 TensorRT 版本绑定。想让上面
-那组数字对你成立、或者一台机器要跑不止一两路摄像头时选它。
+**摄像头 + reComputer J30 / J40（Orin）** 是 Jetson 这条路径。本页所有 Jetson
+实测数据——精度、吞吐、时延、67 小时 soak——都来自 reComputer J30 系列
+（J3011，Orin Nano 8GB）；本方案未单独给 J40 跑评测。首次部署时在设备上构建
+TensorRT engine（在 J3011 上实测约 5 分钟），engine 因此与该设备和该 TensorRT
+版本绑定。想让上面那组数字对你成立选 J3011；想要更多路摄像头的余量选
+J40（本方案尚未实测）。
 
 **摄像头 + reComputer R2000（Hailo-8）** 用功耗与成本换更小的板卡体积。
 INT8 HEF 在设备外编译、部署时下载，板子上没有构建步骤。同款 Hailo-8 平台实测：硬件推理
