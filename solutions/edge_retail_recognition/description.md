@@ -72,7 +72,7 @@ from that same replay, RKNN fp16 and CPU fp32 both scored 541/704 top-1 and
 agreed on the same predicted SKU in 695/704 cases. The same 704 crops run on
 the RK3576 chip platform scored CPU fp32 76.99% top-1 (542/704), RKNN fp16
 76.28% top-1 (537/704), agreeing on the same SKU 99.29% of the time (699/704),
-at a detector+embedder p50 of 61.0 ms. The Hailo-8 preset stops at model
+at an embedder p50 of 61.0 ms (per crop). The Hailo-8 preset stops at model
 conversion.
 
 The Hailo-8, RK3588 and RK3576 figures are reference values taken on the same
@@ -93,7 +93,7 @@ detail and quantisation results are in the engineering wiki.
 | Preset | Detector | Embedder | Best for |
 |---|---|---|---|
 | reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50. With the embedder swapped to RKNN on the NPU (not the CPU path in this row), the full device-side loop also ran end to end once (20-SKU shelf replay, 924 ms p50) |
-| reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option. 704-crop shelf replay: 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU agreement, detector+embedder p50 61.0 ms |
+| reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option. 704-crop shelf replay: 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU agreement, embedder p50 61.0 ms per crop |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
 | reComputer J40 (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | Fastest per-stage numbers measured; full device-side loop also run end to end (2956-frame checkout replay, zero dropped frames) |

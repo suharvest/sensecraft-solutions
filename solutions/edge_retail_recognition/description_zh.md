@@ -51,7 +51,7 @@
 MQTT 自动重连。同一次回放的全部 704 张裁剪上，RKNN fp16 与 CPU fp32 的 top-1 同为
 541/704，预测一致 695/704。同一批 704 张裁剪在 RK3576 芯片平台上重跑：CPU fp32
 top-1 76.99%（542/704），RKNN fp16 top-1 76.28%（537/704），预测一致 99.29%
-（699/704），检测器+嵌入器合计 p50 61.0 ms。Hailo-8 套餐停在模型转换。
+（699/704），嵌入器单裁剪 p50 61.0 ms。Hailo-8 套餐停在模型转换。
 
 Hailo-8、RK3588 与 RK3576 各项为对应 reComputer 套餐同款加速器芯片平台上的实测参考值，
 整机复测后更新。逐加速器的转换明细与量化结果见工程 Wiki。
@@ -69,7 +69,7 @@ Hailo-8、RK3588 与 RK3576 各项为对应 reComputer 套餐同款加速器芯�
 | 套餐 | 检测器 | 嵌入器 | 适合谁 |
 |---|---|---|---|
 | reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms。把嵌入器换成 NPU 上的 RKNN（不是本行的 CPU onnxruntime）后，设备侧运行时也端到端跑通过一次（20 SKU 货架回放，p50 924 ms） |
-| reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项。704 张货架裁剪回放：top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，检测器+嵌入器合计 p50 61.0 ms |
+| reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项。704 张货架裁剪回放：top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，嵌入器单裁剪 p50 61.0 ms |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
 | reComputer J40（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条；设备侧运行时也已端到端跑通（2956 帧回放零掉帧） |

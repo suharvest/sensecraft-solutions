@@ -259,7 +259,7 @@ intro:
         62.17 ms p95, 21 retrieval metrics within 0.36 percentage points of
         fp32, mean cosine similarity 0.99966. On the same platform, a 704-crop
         shelf replay scored 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU
-        agreement, detector+embedder p50 61.0 ms. Reference value on the same
+        agreement, embedder p50 61.0 ms per crop. Reference value on the same
         RK3576 platform; will be updated after a re-test on the reComputer
         unit.
       description_i18n:
@@ -270,7 +270,7 @@ intro:
           嵌入器 RKNN fp16，双核，p50 56.38 ms / p95 62.17 ms，21 项检索指标
           与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。同款平台上，
           704 张货架裁剪回放 top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，
-          检测器+嵌入器合计 p50 61.0 ms。
+          嵌入器单裁剪 p50 61.0 ms。
           同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
     recamera_pro:
       description: >-

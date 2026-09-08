@@ -207,13 +207,15 @@ intro:
       description: >-
         The smaller Orin Nano 8GB option. It carries the baseline classifier
         the same way; the open-vocabulary track has not been sized for it.
-        Measured directly on a 1060-image subset: 0.8755 material top-1 on
-        TensorRT, 99.91% agreement against the same subset on CPU.
+        The 1060-image-subset TensorRT accuracy figures (0.8755 material
+        top-1, 99.91% agreement vs CPU) were first measured on a reComputer
+        J40 and reproduce bit-identically on this board.
       description_i18n:
         zh: >-
           更小的 Orin Nano 8GB 选项。基线分类器跑法相同；
-          开放词汇 track 没有为它估过资源。已在 1060 张子集上实测：
-          TensorRT 物料 top-1 0.8755，与同一子集 CPU 结果一致率 99.91%。
+          开放词汇 track 没有为它估过资源。1060 张子集上的 TensorRT 精度数字
+          （物料 top-1 0.8755，与 CPU 一致率 99.91%）先在 reComputer J40 上测得，
+          在本机上复测逐位一致。
       purchase:
         require:
           module: [orin_nano_8]
