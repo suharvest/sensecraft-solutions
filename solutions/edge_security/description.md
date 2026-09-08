@@ -125,7 +125,8 @@ the same assertions.
 | Engine / model build on device | 307–361 s, one-off | none (model ships prebuilt) |
 
 The Jetson figures are from an Orin NX 16GB on JetPack 6.1 (L4T R36.4.3); the
-RK3588 figures from a reComputer RK3588 series unit on kernel 6.1.84.
+RK3588 figures are from a same-SoC development board on kernel 6.1.84, not
+yet re-verified on a reComputer RK3588 series chassis.
 
 ### End to end, against a ground-truth video
 
@@ -194,7 +195,7 @@ Verified on real hardware:
   the CPU.
 - The RK3588 detector, including the same check against the board's hardware
   decoder.
-- The Hailo-8 detector on a reComputer Industrial R20 series unit, including that its software decode
+- The Hailo-8 detector on the Hailo-8 reference board (not the reComputer Industrial R20 series chassis), including that its software decode
   is the primary path rather than a fallback, and that it publishes alerts with
   decodable snapshots.
 - All three presets deployed as containers, end to end, with the compose files

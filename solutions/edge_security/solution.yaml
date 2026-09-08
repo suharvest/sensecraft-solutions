@@ -147,12 +147,12 @@ intro:
     # local-only and carries no purchase constraints. It is here because it is
     # the board the measurements were taken on.
     external_raspberry_pi5_hailo:
-      name: reComputer Industrial R20 series + Hailo-8
+      name: Hailo-8 Reference Board (as tested)
       name_i18n:
-        zh: reComputer Industrial R20 系列 + Hailo-8
-      description: A reComputer Industrial R20 series class board with a Hailo-8 on the PCIe M.2 slot. This is the board the measurements below were taken on
+        zh: Hailo-8 参考板（实测原型）
+      description: A compatible board with a Hailo-8 on the PCIe M.2 slot — not the reComputer Industrial R20 series chassis. This is the board the measurements below were taken on
       description_i18n:
-        zh: 装了 Hailo-8（PCIe M.2）的 reComputer Industrial R20 系列同款板卡。下面的实测数据就是在这块板卡上取得的
+        zh: 装了 Hailo-8（PCIe M.2）的兼容板卡，不是 reComputer Industrial R20 系列整机。下面的实测数据就是在这块板卡上取得的
     generic_arm64_host:
       name: Generic Docker Host
       name_i18n:

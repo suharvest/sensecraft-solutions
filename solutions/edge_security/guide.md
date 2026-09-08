@@ -311,12 +311,12 @@ Everything on one board with a Hailo-8: the MQTT broker, the aggregation hub
 with its alert workbench, and a detector doing person detection on the
 accelerator. No second machine is required.
 
-Measured on a reComputer Industrial R20 series unit with Hailo-8 at 1280x720: inference p50 7.7 ms and
+Measured on the Hailo-8 reference board (not the reComputer Industrial R20 series chassis) at 1280x720: inference p50 7.7 ms and
 p95 8.4 ms inside the live pipeline, full pipeline p50 9.5 ms, 8.7-13.0% of one
 CPU core, 127-131 MB resident, while ten unrelated containers shared the board.
 
 **Video decode runs on the CPU here, and that is the design rather than a
-fault.** The reComputer Industrial R20 series has no H.264 decoder — VideoCore VII decodes HEVC
+fault.** This reference board has no H.264 decoder — VideoCore VII decodes HEVC
 only — so the detector reports `decode: "sw"` with `fallback_active` false, and
 the CPU figure above buys decode as well as inference. Budget for that before
 adding a second camera.
