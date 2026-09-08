@@ -1,46 +1,50 @@
 version: "1.0"
-id: wm1302_chirpstack
-name: Fit the WM1302 Concentrator (ChirpStack)
+id: r12_gateway_chirpstack
+name: Bring Up the reComputer R12 Gateway Radio (ChirpStack)
 type: manual
 
-# Only needed on the R1000 route of preset 3 — the M2 has its own radio. Kept
-# separate from wm1302_tts.yaml because the software half differs: ChirpStack
-# expects either the Semtech UDP packet forwarder talking to the gateway bridge,
-# or the native `chirpstack-concentratord-sx1302` talking over ZMQ.
+# Only needed on the reComputer R12 route of preset 3 — the M2 has its own
+# radio. Kept separate from r12_gateway_tts.yaml because the software half
+# differs: ChirpStack expects either the Semtech UDP packet forwarder talking to
+# the gateway bridge, or the native `chirpstack-concentratord-sx1302` over ZMQ.
 #
-# NOT VERIFIED ON HARDWARE. No WM1302 was fitted or driven during packaging, and
-# the concentratord-over-ZMQ path into a containerised gateway bridge is the
-# part most likely to need adjusting.
+# NOT VERIFIED ON HARDWARE. No reComputer R12 unit was driven during packaging.
+# Its concentrator is SX1302-based, so the forwarder configuration matches a
+# discrete WM1302 on SPI; the concentratord-over-ZMQ path into a containerised
+# gateway bridge is the part most likely to need adjusting.
 
 steps:
-  - id: seat_module
-    name: Seat the module and connect the antenna
+  - id: check_radio
+    name: Connect the antenna and check the band
     name_i18n:
-      zh: 装好模块并接天线
+      zh: 接好天线并核对频段
     description: >-
-      Power the host down, seat the SPI variant of the WM1302, screw it down and
-      connect the LoRa antenna before applying power — transmitting into an open
-      port can damage the radio. The band printed on the module must match the
-      frequency plan you chose in the deployment step and the band the nodes are
-      configured for.
+      The concentrator is already inside the R12 unit. Connect the supplied LoRa
+      antenna to its SMA jack before applying power — transmitting into an open
+      port can damage the radio. The regional band the unit was ordered on must
+      match the frequency plan you chose in the deployment step and the band the
+      nodes are configured for.
     description_i18n:
       zh: >-
-        先断电，把 SPI 版 WM1302 插好拧紧，上电之前接好 LoRa 天线——开路发射可能损坏射频。
-        模块上印的频段必须与部署步骤里选的频段、以及节点配置的频段三者一致。
+        集中器已经在 R12 机器里。上电之前先把随机的 LoRa 天线接到 SMA 座上——
+        开路发射可能损坏射频。这台机器下单时的地区频段，必须与部署步骤里选的频段、
+        以及节点配置的频段三者一致。
     optional: false
 
   - id: enable_spi
-    name: Enable SPI and the control lines
+    name: Confirm the SPI device and control lines
     name_i18n:
-      zh: 打开 SPI 与控制线
+      zh: 确认 SPI 设备与控制线
     description: >-
-      Enable SPI on the host and confirm `/dev/spidev0.0` exists. The
-      concentrator needs its reset, power-enable and SX1261 lines driven; take
-      the pin numbers from the carrier board's documentation and note them down.
+      Confirm `/dev/spidev0.0` is present — the shipped image usually exposes it
+      already; if not, enable SPI and reboot. The concentrator needs its reset,
+      power-enable and SX1261 lines driven; take the pin numbers from the R12
+      product wiki and note them down.
     description_i18n:
       zh: >-
-        在主机上打开 SPI，确认 `/dev/spidev0.0` 存在。集中器需要驱动 reset、power-enable
-        与 SX1261 三条控制线；引脚编号取自载板文档，记下来备用。
+        确认 `/dev/spidev0.0` 存在——出厂镜像通常已经暴露；没有就打开 SPI 后重启。
+        集中器需要驱动 reset、power-enable 与 SX1261 三条控制线；引脚编号取自 R12
+        产品 wiki，记下来备用。
     optional: false
 
   - id: forwarder
@@ -51,7 +55,7 @@ steps:
       Two ways in, pick one. The simpler one is `sx1302_hal`'s Semtech UDP
       packet forwarder pointed at this host's port 1700, which the
       chirpstack-gateway-bridge container already listens on. The native one is
-      `chirpstack-concentratord-sx1302` on the host, with the gateway bridge
+      `chirpstack-concentratord-sx1302` on the unit, with the gateway bridge
       configured for its ZMQ sockets — lower latency, but the ZMQ endpoints have
       to be reachable from inside the container, which is the unverified part of
       this route. Start with the UDP forwarder; move to concentratord once
@@ -83,4 +87,4 @@ steps:
     optional: false
 
 name_i18n:
-  zh: 安装 WM1302 集中器（ChirpStack）
+  zh: 启用 reComputer R12 网关射频（ChirpStack）

@@ -10,7 +10,7 @@
   "sources": {
     "product_catalog": "Seeed Studio 产品库（seeed-product skill / solution_bot/data/products/*.json），型号清单由产品名抽取",
     "family_manifest": "sensecraft-solutions:spec/product-family-manifest.json（118 个 family）",
-    "mapping_owner": "用户 2026-09-08 给定的算力设备产品族映射与 prefer_family 规则"
+    "mapping_owner": "用户 2026-09-08 给定的算力设备产品族映射与 prefer_family 规则；同日追加：CM4 + WM1302 自组 LoRaWAN 网关一律写 reComputer R12 系列"
   },
   "prefer_family": true,
   "prefer_family_note": "对外文本优先写产品族名（reComputer R2000 系列 / J40 系列 / R10 系列 / RK3588 系列）。具体 SKU 只在 BOM、型号表、表格行里写；出现在正文散文里给 warn。",
@@ -230,7 +230,11 @@
     "Jetson Orin NX": "reComputer J40 系列",
     "Jetson AGX Orin": "reComputer J50 系列",
     "RK3588": "reComputer RK3588 系列",
-    "RK3576": "reComputer RK3576 系列"
+    "RK3576": "reComputer RK3576 系列",
+    "CM4 + WM1302": "reComputer R12 系列",
+    "CM4 主机 + WM1302 集中器": "reComputer R12 系列",
+    "自组 LoRaWAN 网关": "reComputer R12 系列",
+    "WM1302": "reComputer R12 系列"
   },
   "qualifiers": [
     "AI",
@@ -289,6 +293,12 @@
       "pattern": "reComputer\\s+R\\s*[（(]\\s*Hailo",
       "severity": "error",
       "message": "'reComputer R (Hailo)' 不是产品名，写 reComputer R2000 系列（Hailo-8）"
+    },
+    {
+      "id": "bare-cm4-host",
+      "pattern": "(?<!reRouter )CM4\\s*主机|(?<!reRouter )CM4\\s+host",
+      "severity": "error",
+      "message": "裸写 'CM4 主机' 不是产品名。自建 LoRaWAN 网关写 reComputer R12 系列；只做 Linux 主机时写完整产品名（reRouter CM4）"
     }
   ],
   "bench_only_names": [

@@ -141,15 +141,14 @@ Every node on the account is now a Home Assistant device named
 
 ## Preset: Self-hosted The Things Stack {#tts_local}
 
-You run the network server. A WM1302 concentrator on a CM4 host feeds a The
-Things Stack Open Source instance, and the bridge subscribes to its Application
-Server MQTT. No cloud account is involved.
+You run the network server. A reComputer R12 Series gateway feeds a The Things
+Stack Open Source instance, and the bridge subscribes to its Application Server
+MQTT. No cloud account is involved.
 
 | Device | Purpose |
 |--------|---------|
 | SenseCAP S21xx nodes | Measure soil and air, report over LoRaWAN |
-| WM1302 concentrator | The gateway radio, on SPI |
-| CM4 host | Carries the concentrator, runs the packet forwarder and the stack |
+| reComputer R12 Series gateway | The gateway radio, plus the packet forwarder and the stack on the same machine |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
 **Important:** none of this preset has been run on hardware. The concentrator
@@ -190,22 +189,23 @@ Run it directly on the host.
 
 ---
 
-## Step 2: Fit the WM1302 Concentrator {#wm1302_tts type=manual required=true config=devices/wm1302_tts.yaml}
+## Step 2: Bring Up the Gateway Radio {#r12_gateway_tts type=manual required=true config=devices/r12_gateway_tts.yaml}
 
-Fit the module, enable SPI, and run a packet forwarder pointed at the stack.
-**Awaiting hardware verification** — no WM1302 was fitted while packaging this.
+The concentrator is inside the R12 unit; connect the antenna, confirm the SPI
+device, and run a packet forwarder pointed at the stack.
 
 ### Wiring
 
-1. Power the host down before seating the module. Connect the LoRa antenna
-   before applying power; transmitting into an open port can damage the radio.
-2. Use the SPI variant of the module and confirm `/dev/spidev0.0` appears once
-   SPI is enabled on the host.
-3. The reset, power-enable and SX1261 control lines come from the carrier
-   board's documentation, not the module's. Write down the pin numbers — the
-   packet forwarder configuration refers to them.
-4. Check the band printed on the module against the band your nodes use. A
-   mismatch presents exactly as a gateway that hears nothing.
+1. Connect the LoRa antenna to its SMA jack before applying power;
+   transmitting into an open port can damage the radio.
+2. Confirm `/dev/spidev0.0` is present. The shipped image usually exposes it
+   already; if not, enable SPI and reboot.
+3. The reset, power-enable and SX1261 control lines come from the R12 product
+   wiki. Write down the pin numbers — the packet forwarder configuration
+   refers to them.
+4. Check the regional band the unit was ordered on against the band your nodes
+   use. A mismatch presents exactly as a gateway that hears nothing, and the
+   band cannot be changed in software.
 
 ### Troubleshooting
 
@@ -213,7 +213,7 @@ Fit the module, enable SPI, and run a packet forwarder pointed at the stack.
 |-------|----------|
 | Forwarder exits without printing an EUI | SPI is not enabled or the reset line is wrong. Confirm `/dev/spidev0.0` exists first |
 | Gateway stays disconnected in the Console | UDP 1700 is not reaching the stack host. Check the firewall before touching the radio configuration |
-| Concentrator starts but no uplinks | Band mismatch between module, frequency plan and nodes is the first thing to rule out |
+| Concentrator starts but no uplinks | Band mismatch between the unit, the frequency plan and the nodes is the first thing to rule out |
 
 ---
 
@@ -324,18 +324,18 @@ Assistant entities with the same ids the other presets produce.
 ## Preset: Local ChirpStack {#chirpstack_local}
 
 ChirpStack is the network server, either built into the M2 gateway or running in
-Docker on a CM4 host with a WM1302. This is the shortest route to a deployment
+Docker on a reComputer R12 Series gateway. This is the shortest route to a deployment
 that never touches the internet.
 
 | Device | Purpose |
 |--------|---------|
 | SenseCAP S21xx nodes | Measure soil and air, report over LoRaWAN |
 | SenseCAP M2 gateway | Radio plus, in local mode, the network server itself |
-| CM4 host + WM1302 | The alternative to the M2 — runs ChirpStack in Docker |
+| reComputer R12 Series gateway | The alternative to the M2 — runs ChirpStack in Docker |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
 **Important:** neither route of this preset has been run on hardware. No M2 was
-switched to local mode, no concentrator was fitted, and ChirpStack was not
+switched to local mode, no R12 gateway radio was brought up, and ChirpStack was not
 started on an ARM64 target. Whether the M2 can report to the cloud and to a
 local network server at the same time is unverified — do not plan around it
 until you have confirmed it on the unit in front of you.
@@ -396,21 +396,19 @@ while packaging this.
 
 ---
 
-## Step 3: Fit the WM1302 Concentrator {#wm1302_chirpstack type=manual required=false config=devices/wm1302_chirpstack.yaml}
+## Step 3: Bring Up the Gateway Radio {#r12_gateway_chirpstack type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
 
-The alternative to step 2: build the gateway yourself on a CM4 host and run
-ChirpStack there. **Awaiting hardware verification** — no WM1302 was fitted while
-packaging this.
+The alternative to step 2: run the gateway and ChirpStack on a reComputer R12
+Series gateway instead of the M2.
 
 ### Wiring
 
-1. Power the host down before seating the module, and connect the LoRa antenna
-   before applying power.
-2. Use the SPI variant and confirm `/dev/spidev0.0` appears once SPI is enabled.
-3. Take the reset, power-enable and SX1261 pin numbers from the carrier board's
-   documentation and write them down.
-4. The band printed on the module must match the frequency plan chosen in step 4
-   and the band the nodes use.
+1. Connect the LoRa antenna to its SMA jack before applying power.
+2. Confirm `/dev/spidev0.0` is present; if not, enable SPI and reboot.
+3. Take the reset, power-enable and SX1261 pin numbers from the R12 product
+   wiki and write them down.
+4. The regional band the unit was ordered on must match the frequency plan
+   chosen in step 4 and the band the nodes use.
 
 ### Troubleshooting
 
