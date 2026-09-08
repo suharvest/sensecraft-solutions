@@ -981,46 +981,83 @@ Opens the console's person library. 3 to 8 photographs per person.
 | Rollback refused naming a person | The deletion barrier. Mint a new version. |
 | `model_tag` mismatch on the device | Built against a different embedding model. |
 
-## Step 4: Install the Access Agent on the Camera {#p5_install type=manual required=true config=devices/p5_recamera_std.yaml}
+## Step 4: Install F1 Access on the Camera {#p5_install type=recamera_cpp required=true config=devices/p5_recamera_std.yaml}
 
-Copy six files onto the camera as root, fill in one config file, run one
-synchronisation in the foreground, then leave it resident.
+Installs the `.deb`, places the five cvimodels at `/userdata/local/models/`,
+writes the face library signing key and the per-site config fields into the
+seeded config file.
+
+The whole recognition path — detection, embedding, a two-head texture
+liveness with blink fusion, and matching — runs on the camera's own SG2002
+TPU in one native process; the access agent sits beside it in the same
+package and pulls the versioned face library, maps the native result stream
+onto the event contract, and pins every threshold against the recognition
+process's actual arguments. The package replaces the stock `face-recognition`
+app rather than extending it — installing it conflicts with and removes that
+app, because only one gallery app can hold the camera's VPSS at a time.
 
 ### Prerequisites
 
-- Root SSH access to the camera. Root is required, not preferred:
-  `/userdata/local/face-gallery/` is `root:root 0700` and the daemon writes
-  there.
-- The App Center `face-recognition` application present and startable.
-- The face library server reachable from the camera over plain HTTP, and the
-  signing key from the cloud step.
-- A clone of the upstream repository, for `platforms/recamera-std/` and
-  `contracts/validate_payload.py`.
+- The camera reachable over USB or the network, and the SSH password for the
+  `recamera` user.
+- The face library server reachable from the camera over plain HTTP, and its
+  signing key and key ID from the cloud step.
+- About 20 MB free on `/userdata`.
 
 ### Wiring
 
-- The camera is not wired to the relay or the door controller. Nothing on it
-  carries that current.
-- The relay lives at the gateway node. Its COM/NO dry contact goes to the door
-  controller's input; the lock, its power supply, and the door controller
-  itself are supplied and wired by the door-control party — outside this
-  solution's BOM.
-- Confirm the relay's idle state with an LED before wiring it to the
-  controller.
-- Getting events off the camera needs an MQTT listener beyond the default
-  loopback-only one. That is a site networking decision, and the daemon does not
-  make it for you — it does not edit `/etc/mosquitto/mosquitto.conf`.
+1. Connect the reCamera over USB-C, or make sure it is reachable on your network
+2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
+   the `recamera` user
+3. Pick the camera variant, and fill in the device ID, actuator ID, face
+   library URL, key ID, signing secret and match threshold
+4. Deploy
+
+A **2002 HQ PoE** unit drives a relay directly from the baseboard's 6-pin
+header (`D1` = sysfs GPIO 490) — a second door option alongside the
+gateway-relay path below. A plain **2002 / 2002w** has no such header; picking
+it in step 3 sets `[gpio] enabled = false` in the config before the service's
+first start, so the camera drives no relay itself and events leave over MQTT
+for the gateway to act on, as in the rest of this preset. This has to be set
+before the first start, not edited afterward — the deploy auto-starts the
+service right after configuration, and a first start with the PoE default
+tries to export a pin that is not wired to anything on a plain unit.
+
+### What lands on the device
+
+| Path | What |
+|------|------|
+| `/usr/share/f1-access/bin/face-recognition` | The recogniser |
+| `/usr/share/f1-access/*.py` | The access agent and the payload validator |
+| `/etc/init.d/K92f1-access` | Its init script, parked |
+| `/userdata/local/models/*.cvimodel` | The five models, ~10.7 MB total |
+| `/userdata/f1-access/face-recognition.conf` | Seeded once from the package default, then edited in place with the fields above |
+| `/userdata/f1-access/facedb.key` | The face library signing secret, `0600` |
+
+The init script is installed parked (`K92`, not `S92`) on purpose. Only one
+application may hold the camera at a time, so starting it is the console's
+job. An upgrade never overwrites an existing `face-recognition.conf` — a
+reset calibrated threshold or GPIO polarity would silently change who gets in
+and whether the contact idles open or closed.
+
+Measured on hardware (`docs/SPEC.md` §14.3, `evaluation/runs/2026-09-07-recamera-poe-p1/results.md`):
+cold start (power-cycled, run directly with no timeout) 7.5–9.4 s across six
+runs, median 8.8 s; the same six runs through the console's own 15 s start
+budget all reported `OK` at 8.4–9.4 s; `stop` 7.8–8.8 s with the camera fully
+released both times. A threshold mismatch between this config and the
+recognition process's actual arguments is rejected before start, in 8.4 s —
+the door's pin stays at the idle level the whole time, so a rejected start
+never opens the door.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| `RuntimeArgsMismatch: face-recognition is not running` | Start the recognition application first. An access daemon with no recogniser cannot make decisions, so it stops rather than guessing. |
-| `mqtt.mqtt_host='127.0.0.1' but face-recognition runs -m 'localhost'` | The gate compares command-line strings literally. Write `localhost`. This is the one that catches people on a factory device. |
-| `PermissionError` writing the gallery | The daemon is not running as root. |
-| The daemon starts but no version ever activates | Check `key_id` and the secret against the console, and `match_threshold` against `USA_MATCH_THRESHOLD`. |
+| Package install fails, camera still shows the stock face-recognition app | `opkg install --force-reinstall` should conflict/replace it; if it does not, remove `face-recognition` by hand first. |
+| Service won't start, `agent.log` ends in `refusing to start, thresholds are not single-sourced` | The config and the recognition process's actual startup arguments disagree — check `device_id`/`actuator_id` and every value under `[recognition]` against what shipped, and do not hand-edit only one side. |
+| The agent starts but no library version ever activates | Check `key_id` and the signing secret against the console, and `match_threshold` against `USA_MATCH_THRESHOLD`. |
+| `mqtt.host` mismatch on a plain 2002/2002w | The gate compares the config's `[mqtt] host` against the recognition process's literal `-m` argument; the factory default is `localhost`, not `127.0.0.1`. |
 | Version directories accumulate on the device | `[facedb] keep_versions` (default 3) bounds them after a successful activation. Rollback does not depend on them — the server republishes old content under a new version number. |
-| You want to change a threshold | Change it in the config file **and** in the recognition process's start arguments. Changing one alone makes the daemon refuse to start, which is the point. |
 
 ## Step 5: Check the Library Reached the Device {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
