@@ -100,10 +100,10 @@ services:
       RETAIL_EMBEDDER_ACCELERATOR: ${RETAIL_EMBEDDER_ACCELERATOR:-cpu}
       # `none` / `remote` (RK3588 preset: the device embeds on its own NPU and
       # only sends vectors — see guide.md#p1_rockchip) declare the identity
-      # the server pins gallery writes and /v1/gallery/match against. Empty by
-      # default; both are required together for `none`/`remote`, ignored for
-      # `fake`/`onnx` (server/config.py reads them from the current gallery's
-      # manifest instead once one exists).
+      # the server pins gallery writes and /v1/gallery/match against before a
+      # gallery exists (server/api.py: once a gallery has been built, its own
+      # manifest is authoritative and these are only read as a fallback).
+      # Empty by default; ignored for `fake`/`onnx`.
       RETAIL_EMBEDDER_SHA256: ${RETAIL_EMBEDDER_SHA256:-}
       RETAIL_EMBEDDER_PREPROCESS_SHA256: ${RETAIL_EMBEDDER_PREPROCESS_SHA256:-}
       # The UI is served by the web container; the server does not mount static

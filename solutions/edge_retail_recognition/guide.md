@@ -41,10 +41,12 @@ replay with the console's `embedder_backend=none` and `gallery.match_url`
 pointed at `console_stack:0.2.0` (device computes the embedding on its own
 NPU, console only does the retrieval): 924 ms p50 / 1153 ms p95 end to end,
 zero publish errors, and automatic MQTT reconnect after a 38 s console outage
-with no event loss. A top-1 comparison against the same crops embedded on a
+with no event loss on the device side (the console's own on-disk receipt was
+not independently checked). A top-1 comparison against the same crops embedded on a
 CPU with the fp32 ONNX source model, on only 20 single-frame crops, differed
-by 10 percentage points (14/20 vs 16/20) — two borderline cases with a <0.01
-similarity margin, not enough samples to stand as a parity number (the
+by 10 percentage points (14/20 vs 16/20) — short of this project's <=1 pp
+parity target, though two of those disagreements are borderline cases with a
+<0.01 similarity margin, not enough samples to stand as a reliable number (the
 embedding-level comparison in the table above, 0.85 pp over 21 retrieval
 metrics on a larger set, is not superseded by this). Full record:
 edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020`.
