@@ -1,0 +1,26 @@
+version: "1.0"
+id: rtsp_preview
+name: ONVIF RTSP Stream Preview
+name_i18n:
+  zh: ONVIF RTSP 视频预览
+type: video_stream
+inherit_host_from: deploy_onvif
+video:
+  type: rtsp_proxy
+  rtsp_url_template: "rtsp://admin:recamera.1@{{deploy.host}}:8554/onvif"
+display:
+  aspect_ratio: "16:9"
+  auto_start: true
+  show_stats: true
+user_inputs:
+  - id: rtsp_url
+    name: RTSP URL
+    name_i18n:
+      zh: RTSP 地址
+    type: text
+    required: true
+    default_template: "rtsp://admin:recamera.1@{{deploy.host}}:8554/onvif"
+    placeholder: "rtsp://admin:recamera.1@192.168.42.1:8554/onvif"
+    description: The ONVIF gateway stream. Use the same camera IP entered in the deploy step.
+    description_i18n:
+      zh: ONVIF 网关输出的视频流；使用部署步骤中填写的同一摄像头 IP。

@@ -1,0 +1,47 @@
+version: "1.0"
+id: recamera_onvif
+name: reCamera ONVIF Gateway
+name_i18n:
+  zh: reCamera ONVIF 网关
+type: recamera_cpp
+device_class: recamera
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+binary:
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_onvif_nvr/packages/recamera-onvif_0.2.0_riscv64.deb
+    name: recamera-onvif
+    includes_init_script: true
+    checksum:
+      sha256: 9babcbefea64ff76d26110fbd1174d4bf29377c1950fc3599b36957e792a0c1a
+  service_name: recamera-onvif
+  service_priority: 92
+  auto_start: true
+user_inputs:
+  - id: host
+    name: Device IP Address
+    name_i18n:
+      zh: 设备 IP 地址
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+  - id: password
+    name: SSH Password
+    name_i18n:
+      zh: SSH 密码
+    type: password
+    default: recamera
+    required: true
+post_deployment:
+  open_browser: false
