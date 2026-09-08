@@ -290,7 +290,7 @@ deploy step checks each one.
 - **reComputer R2000 series host** — 2026-09-06, fleet host `harvest-pi`, in a 15-minute exclusive window on the board's sole Hailo-8.
 - **INT8 quantisation loss** — 2026-09-05, x86 Hailo Dataflow Compiler 3.31.0, emulator stage, not on a device.
 - **D-FINE-S and RT-DETRv2-S tracks** — 2026-09-06, arm64 Mac, onnxruntime CPUExecutionProvider, CPU only, single seed each.
-- **All figures come from a synthetic 640×640 / 10 FPS video assembled from validation images**, so add your camera's own capture and encode time on top.
+- **Throughput and end-to-end latency come from a synthetic 640×640 / 10 FPS video assembled from validation images**, so add your camera's own capture and encode time on top. The detector-track comparison ran on static 640×640 batch-1 images instead.
 - **Frame-level false alarms** — every validation image carries a defect, so this dataset can only expose misses; the false-alarm rate comes from your own line.
 
 ## Licensing note
