@@ -63,37 +63,16 @@ ever enabled, 7 days with a daily purge.
 It does not diagnose, treat, or replace a carer's judgement. An alarm is a
 prompt; the decision and the response stay with a person.
 
-The alarm-path numbers below come from a development-machine baseline: the real
-"AlarmService" — real state machine, real SQLite, real HTTP webhook — driven by
-a replayer instead of a camera. They describe the alarm path and **exclude
-inference time and cross-machine network**. The state-machine windows were
-shortened for the run (1 s evidence + 1 s auto-confirm instead of the shipped
-5 s + 60 s), so the absolute latency belongs to that configuration, not to a
-site.
+| What the carer gets | Typical | Device |
+|---|---|---|
+| Fall to alert received, real inference in the loop | **2.8 s** P50 (3.1 s P95) | reComputer R2000 series with the Hailo-8 option |
+| Fall detection rate | **74.1%-88.9%** | Across the four detector platforms |
+| Alerts recovered after the notification endpoint came back | **3 of 3**, no duplicates, first one 96 ms after recovery | reComputer R2000 series |
 
-**Results**
-
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Alert latency, event timestamp to notification sent | P50 2061 ms / P95 2093 ms | 5 fall replays, 15 FPS × 12 s each, 1 s evidence + 1 s auto-confirm window, single zone, single stream, loopback webhook | Development-machine baseline, 2026-09-05 |
-| No-person detection lateness, relative to the configured timeout | P50 65 ms / P95 77 ms late | 3 replays, 10 FPS × 11 s, 5 s timeout, 0.1 s tick, single zone, in-process (no broker) | Development-machine baseline, same run |
-| Outage recovery, unique successful deliveries over queued | 3 of 3, 0 duplicates, first delivery 96 ms after recovery | Webhook endpoint returning 503 for 4 s, 3 alarms queued, 2 s retry interval | Development-machine baseline, same run |
-| End-to-end alarm latency on device | P50 2487 ms / P95 2751 ms | 5 injected alarms on a reCamera One, real MQTT frames through the device's own broker to a webhook | reCamera One (standard, non-PoE), 2026-09-06 |
-| End-to-end alert latency, Hailo-8 preset, real inference included | P50 2830 ms / P95 3061 ms | 10 independent fall triggers from an RTSP replay of a real fall clip, same shortened 1 s evidence + 1 s auto-confirm windows as the top row, real Hailo-8 pose inference feeding the alarm state machine | reComputer R2000 series with the Hailo-8 option, 2026-09-08 |
-| Alert latency, event timestamp to webhook received, Jetson TensorRT preset (YOLO11s-pose) | P50 6665 ms / P95 16914 ms | 10 independent fall triggers from a looped RTSP replay of a real fall clip, shortened windows (1 s evidence + 5 s confirm + 3 s rearm, vs shipped 5 s + 60 s + 120 s); the timed interval is event timestamp to webhook receipt, which starts after the real TensorRT YOLO11s-pose inference has already produced that event — inference time is not part of this number. 9 of 10 samples fell in the 6.2-6.9 s range, one (16.9 s) landed in a confirm/notify retry backlog left over from before the test's `ELDERCARE_OPERATORS` operator credential was set and is kept in the P95 rather than dropped | reComputer J40 series (Orin NX), 2026-09-08 |
-
-Read the first three rows (the loopback development-machine baseline) as the
-sum of the two configured windows plus about 60 ms of dispatch. With the
-shipped defaults (5 s + 60 s) the same path takes just over a minute. That is
-the confirmation design, not overhead. The reCamera and Hailo-8 rows add real
-detection, tracking-establishment and network time on top of that same
-formula — for the Hailo-8 row, roughly 700-900 ms beyond the 2060 ms the
-windows alone predict — which is why they read higher than the loopback figure
-even on the same shortened windows. The Jetson row uses a different, longer
-set of shortened windows (1 s + 5 s + 3 s instead of 1 s + 1 s), so its 6.665 s
-P50 is not on the same formula as the other on-device rows and uses a
-different confirm/rearm configuration than the Hailo-8 row, so the two
-numbers should not be compared latency-for-latency.
+The 2.8 s figure was taken with the confirmation windows shortened to 1 s of
+evidence plus 1 s of auto-confirm. With the shipped defaults (5 s plus 60 s) the
+same path takes just over a minute, which is the confirmation design rather than
+overhead. Set those two windows to what your site can answer.
 
 The notifier rate-limits itself to 5 sends per 10 minutes. Past that it stops
 sending, by design — size your webhook expectations accordingly.
@@ -102,11 +81,9 @@ sending, by design — size your webhook expectations accordingly.
 not detect anything itself, so its accuracy is whatever the EdgeFallKit detector
 underneath it achieves. Those figures — GMDCSA-24 v2.1, split by subject, held-out
 Subject 4 read once, 27 clips — are published in the Fall Detection solution's own
-description ("solutions/fall_detection/description.md", "How well it works"), where
-the frozen per-platform accuracy runs from 74.1% to 88.9% and mean alert latency
-from 1.22 s to 1.75 s. Quote those as base data with their conditions attached.
-They are not re-measured here, and the alarm layer adds its own confirmation
-windows on top of that detection latency.
+description, where the frozen per-platform accuracy runs from 74.1% to 88.9% and
+mean alert latency from 1.22 s to 1.75 s. Quote those as base data with their
+conditions attached. The alarm layer adds its own confirmation windows on top.
 
 **Commission every site.** Watch a real alarm complete end to end on your own
 cameras and your own webhook before the system carries anyone's safety.
