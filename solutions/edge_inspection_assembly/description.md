@@ -224,6 +224,14 @@ marked per station, and this preset has no place to carry them.
   the deployment works out of the box; a production install should point at a
   broker with credentials.
 
+## Scope of the Numbers
+
+- **Orin figures** — detection accuracy, throughput, end-to-end latency and multi-stream capacity: run M4, 2026-09-05, host `orin-nano`.
+- **Missing-part closed loop and dimension error** — run M2, 2026-09-05, same host, on a validation frame and a synthetic scene.
+- **Hailo INT8 accuracy** — run M3a, 2026-09-05, in the x86 Hailo Dataflow Compiler emulator, not on a device.
+- **Hailo-8 on-device throughput, latency and accuracy** — run M3b-pi-2, 2026-09-06, fleet host `harvest-pi`.
+- **VLM explanation latency** — published figures come from a Spark GB10 workstation; measure it on your own inspection host.
+
 ## Licensing note
 
 The runtime code is Apache-2.0. The detector backbone is **YOLOX**
