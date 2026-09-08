@@ -26,8 +26,9 @@
   堆叠的、装袋的垃圾上精度会掉——请采一批自己现场的数据重测。
 - **方案页上的 Jetson 精度/一致率数字（top-1 0.8755，与 CPU golden 一致率
   0.9991，1060 张子集）来自另一个独立构建的 engine。** 同为 FP16
-  engine——同一份 ONNX、同一精度、同一台 reComputer J40 系列
-  （Orin NX），但不是本部署步骤产出的那个二进制。部署 engine 自身的构建耗时
+  engine——同一份 ONNX、同一精度，但不是本部署步骤产出的那个二进制。
+  先在 reComputer J40 系列（Orin NX）上测得，在 reComputer J30 系列
+  （Orin Nano 8GB）上复测逐位一致。部署 engine 自身的构建耗时
   （68 秒）与端到端 pipeline（4.122 ms）/ inference（3.533 ms）时延——取自一条
   实测的 MQTT 事件——是在部署二进制上实测的。
 

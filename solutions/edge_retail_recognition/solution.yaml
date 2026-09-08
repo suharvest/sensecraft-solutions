@@ -257,7 +257,9 @@ intro:
         NPU core, 51.05 ms p50 / 54.18 ms p95, 99.91% box agreement with the
         CPU reference; embedder RKNN fp16, dual NPU core, 56.38 ms p50 /
         62.17 ms p95, 21 retrieval metrics within 0.36 percentage points of
-        fp32, mean cosine similarity 0.99966. Reference value on the same
+        fp32, mean cosine similarity 0.99966. On the same platform, a 704-crop
+        shelf replay scored 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU
+        agreement, embedder p50 61.0 ms per crop. Reference value on the same
         RK3576 platform; will be updated after a re-test on the reComputer
         unit.
       description_i18n:
@@ -266,7 +268,9 @@ intro:
           同款 RK3576 芯片平台实测，纯推理：检测器 RKNN fp16，双核，
           p50 51.05 ms / p95 54.18 ms，与 CPU 参考的框一致率 99.91%；
           嵌入器 RKNN fp16，双核，p50 56.38 ms / p95 62.17 ms，21 项检索指标
-          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。
+          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。同款平台上，
+          704 张货架裁剪回放 top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，
+          嵌入器单裁剪 p50 61.0 ms。
           同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
     recamera_pro:
       description: >-

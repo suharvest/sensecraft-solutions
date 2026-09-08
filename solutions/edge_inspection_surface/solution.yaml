@@ -163,22 +163,29 @@ intro:
   device_catalog:
     recomputer_j40:
       description: >-
-        Runs the detector on TensorRT. Every measured figure on this page was
-        taken on an Orin NX 16GB (reComputer J40 series).
+        Runs the detector on TensorRT. Most measured figures on this page were
+        taken on an Orin NX 16GB (reComputer J40 series); the Orin Nano 8GB
+        (J30) has also been measured directly for accuracy and capture-to-coil
+        latency.
       description_i18n:
         zh: >-
-          用 TensorRT 运行检测器。本页所有实测数字都取自 Orin NX 16GB
-          （reComputer J40 系列）。
+          用 TensorRT 运行检测器。本页大部分实测数字取自 Orin NX 16GB
+          （reComputer J40 系列）；Orin Nano 8GB（J30）也已单独实测精度与
+          取图到线圈延迟。
       purchase:
         require:
           module: [orin_nx_16]
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option. The multi-stream and latency figures
-        on this page are from the Orin NX.
+        The smaller Orin Nano 8GB option. Measured directly on this board:
+        capture-to-coil P50 10.56 ms, mAP50 0.7577 — the same accuracy as the
+        Orin NX since it is the same engine/ONNX; the multi-stream figures on
+        this page are still from the Orin NX.
       description_i18n:
         zh: >-
-          更小的 Orin Nano 8GB 选项。本页的多路容量与时延数字来自 Orin NX。
+          更小的 Orin Nano 8GB 选项。已在本机实测：取图到线圈 P50 10.56 ms，
+          mAP50 0.7577——精度与 Orin NX 一致（同一份 engine/ONNX）；
+          本页的多路容量数字仍来自 Orin NX。
       purchase:
         require:
           module: [orin_nano_8]

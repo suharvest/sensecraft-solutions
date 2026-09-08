@@ -30,7 +30,16 @@ give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
 `RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
 `AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
 
-Nothing was measured on RK3576; the numbers above are RK3588 only.
+The table above is RK3588 only. On RK3576 (dual NPU core, librknnrt 2.3.2,
+driver 0.9.8), the same 704 `ok`-state crops used for the RK3588 top-1 check
+below were run through the same detector+embedder RKNN fp16 conversion,
+matched against a CPU fp32 ONNX reference computed on the same board: CPU
+fp32 scored 542/704 (76.99%) top-1, RKNN fp16 scored 537/704 (76.28%), and the
+two backends agreed on the same predicted SKU in 699/704 cases (99.29%).
+Embedder latency (per 224x224 crop, dual NPU core) was 61.0 ms p50 / 66.95 ms
+p95 — this benchmark only times the embedder call, not the detector. Full
+record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3576-acceptance`
+results.md.
 
 **What has been measured end to end, and what has not.** The device-side
 process that joins detection, embedding, lookup and publishing exists upstream

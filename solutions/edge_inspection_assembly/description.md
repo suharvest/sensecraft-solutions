@@ -79,6 +79,11 @@ TensorRT fp16 at a frozen 0.35 threshold; end-to-end sampled 3000 times at the
 MQTT disabled, so a deployment carrying both reaches fewer. Measured 2026-09-05
 on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3).
 
+A follow-up check on 2026-09-08, after that same engine had run continuously
+for 67 hours on a reComputer J40 series (Orin NX 16GB) unit, confirmed CPU vs
+TensorRT box agreement of 0.9992 and a capture-to-coil P50 of 11.45 ms, with
+zero frames dropped over the full 67-hour run.
+
 Two other hosts run the same detector at the same accuracy: the reComputer R2000
 series with the Hailo-8 option at P50 11.89 ms / P99 16.08 ms end to end and
 0.9858 mAP50 (2026-09-06), and the all-in-one reCamera Pro at 0.9870 mAP50 with

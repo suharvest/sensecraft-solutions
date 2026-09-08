@@ -27,7 +27,14 @@ broker——以容器跑在另一台主机上。
 （`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01`）；核掩码不要
 留 `AUTO`——实测 `AUTO` 只用 core 0，core 1 与 core 2 全程 0%。
 
-RK3576 上什么都没测；上面的数字只来自 RK3588。
+上面这张表只来自 RK3588。RK3576（双 NPU 核，librknnrt 2.3.2，driver 0.9.8）
+用同一批 704 张 `ok` 状态货位裁剪，跑同一套检测器+嵌入器 RKNN fp16 转换，
+对照同一块板上算的 CPU fp32 ONNX 参考：CPU fp32 top-1 76.99%（542/704），
+RKNN fp16 top-1 76.28%（537/704），两条链路预测一致 99.29%（699/704）。
+嵌入器延迟（224×224 单裁剪，双 NPU 核）p50 61.0 ms / p95 66.95 ms——这项测量只计
+嵌入器调用耗时，不含检测器。完整记录见
+edge-retail-recognition 仓库 `evaluation/runs/2026-09-08-rk3576-acceptance`
+的 results.md。
 
 **端到端测到了什么、没测到什么。** 把检测、嵌入、检索与上报串起来的设备侧进程在
 上游是有的（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），

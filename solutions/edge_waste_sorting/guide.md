@@ -32,8 +32,9 @@ Known weaknesses:
 - **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
   agreement 0.9991 vs CPU golden, 1060-image subset) come from a separately
   built engine.** Same FP16 engine —
-  same ONNX, same precision, same reComputer J40 series (Orin NX) — not the binary
-  this deployment step produces. The deployed engine's own build time (68 s)
+  same ONNX, same precision — not the binary this deployment step produces.
+  First measured on a reComputer J40 series (Orin NX); reproduces
+  bit-identically on a reComputer J30 series (Orin Nano 8GB). The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
   reported MQTT event, are measured on the deployed binary.
 
