@@ -75,6 +75,13 @@ Conditions: Mac client over Tailscale so each request crosses a real WAN hop, 60
 
 The same digest-pinned image was deployed on 2026-09-07 to the **reComputer R1000's CM4 platform** — a bench board rather than an R1000 chassis, so it is a platform reference value, not a measurement of the shipping product. This solution needs 4 GB of memory and up; pick an R1000 configuration of 4 GB or 8 GB. That run covers restart recovery only: 9.48 s and 9.04 s from container restart to a healthy service. The load figures above have not yet been reproduced on that platform and will be added after a run on a 4 GB / 8 GB R1000.
 
+## Scope of the Numbers
+
+- **Warehouse REST API under load** — one load run, 2026-09-05, on a faster arm64 development board (not the R1100's CM4-class SoC), 50 materials, SQLite, 60 s per concurrency level, client over Tailscale.
+- **Concurrency and rate-limit behaviour after the fixes** — re-measured on the same device, 2026-09-06.
+- **On-premise LLM throughput on Jetson** — approx. 16 tokens/sec on a reComputer Robotics J5011, stated upstream with no run log attached.
+- **Speech recognition accuracy, wake-word range and end-to-end voice latency** — measure these on your own site.
+
 ## Known Limitations
 
 - **Concurrent stock-in trades latency for correctness.** Batch numbers are allocated from an atomic counter, so writes to the same material serialise. Concurrency raises p95 rather than causing conflicts, and batch numbers stay unique. Give a busy site more warehouses or spread stock-in across materials rather than raising concurrency on one.
