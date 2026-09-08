@@ -504,10 +504,17 @@ in the decision path. The detector runs in INT8 on the camera's RV1126B NPU.
 Measured on this hardware over the 205-image DeepPCB validation split, with the
 camera's built-in application stopped: mAP50 0.9870 against 0.9876 for the
 fp32 CPU reference, mAP50-95 0.8000 against 0.8213, precision 0.9299 and recall
-0.9741 at the frozen 0.35 score — the same precision and recall the CPU
-reference reports on those images. Inference p50 30.9 ms, p95 34.5 ms. An fp16
-build of the same model is published alongside it: mAP50-95 0.8221, p50
+0.9741 at the frozen 0.35 score — the same aggregate precision and recall the
+CPU reference reports on those images, though the 30 missed boxes are not the
+same 30 (mousebite 7 -> 8, spur 2 -> 1). Inference p50 30.9 ms, p95 34.5 ms. An
+fp16 build of the same model is published alongside it: mAP50-95 0.8221, p50
 110.3 ms.
+
+Two limits on those figures. The 64 INT8 calibration images were drawn from the
+same validation split the numbers are measured on, so the INT8 column is
+optimistic by an unmeasured amount. And they come from replaying validation
+images on the device, not from a camera pointed at a board — accuracy through
+this camera's own optics and capture path has not been measured.
 
 | Device | Purpose |
 |--------|---------|
@@ -535,9 +542,10 @@ You need the web console's admin credentials and about 20 MB free on
 Fill in a device name and, if you want the verdicts on a broker as well, a
 broker address. Leave the broker empty and the verdict still leaves the device
 over Modbus TCP. With a broker, every processed frame arrives on
-`inspection/<device name>/results` as one JSON record carrying the verdict and
-its reasons, the defect count, every box with class and score, the inference
-time and both model hashes — the same event shape this solution publishes on
+`inspection/<device name>/results` as one JSON record — published at QoS 0 while
+the broker connection is up, so this is one attempted publish per frame, not a
+delivery guarantee — carrying the verdict and its reasons, the defect count,
+every box with class and score, the inference time and both model hashes — the same event shape this solution publishes on
 Orin and on Hailo, validated against the contract before it is sent.
 
 ### What the PLC reads
