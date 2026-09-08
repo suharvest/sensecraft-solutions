@@ -107,7 +107,9 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
   manifest 验签、原子切换、落 gallery 与 `op:reload` ack；下载中断后的断点续传；
   manifest 验不过的版本被拒绝；配置与正在运行的识别进程不一致时阈值一致性闸门拒绝启动。
   完整激活 20 次实测 p50 491.6 ms、p95 507.8 ms（2 人、16.5 KB 库）；
-  `op:reload` 往返 25 次实测 p50 100.0 ms。来源：
+  `op:reload` 往返 25 次实测 p50 100.0 ms。两轮探针期间镜头前都没有人：
+  各采样 220 帧，`face_count` 全部为 0，因此识别与活体在现场设定。来源：
+  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` 与
   `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`。
 - **继电器节点的 `set` topic 绝不能是 retained。** retained 的开门指令会在每次重连时
   重放，断电恢复后门会自己开。

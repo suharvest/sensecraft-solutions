@@ -394,7 +394,7 @@ remote_overrides:
       name_i18n:
         zh: 匹配阈值
       description_i18n:
-        zh: 这是起点，不是标定值。本项目在任何硬件上都没有 FAR / FRR 实测。
+        zh: 这是起点，不是标定值。请在装好的摄像头上做正负对扫描，据此设定。
     - id: facedb_url
       name: Face Library URL
       type: text

@@ -138,7 +138,10 @@ What ran on hardware:
   threshold consistency gate refusing to start when the config and the running
   recognition process disagree. Full activation measured p50 491.6 ms and p95
   507.8 ms over 20 runs on a 2-person, 16.5 KB library; the `op:reload` round
-  trip measured p50 100.0 ms over 25 runs. Source:
+  trip measured p50 100.0 ms over 25 runs. Nobody stood in front of the lens
+  during either probe run: each sampled 220 frames that all read
+  `face_count: 0`, so recognition and liveness are set on site. Sources:
+  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
   `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power
