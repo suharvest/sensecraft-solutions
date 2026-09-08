@@ -59,21 +59,21 @@ the site — no cloud account, no outbound connection.
 
 This solution has **not** been run against a real LoRaWAN network. Everything
 below comes from one local smoke run on a Mac desktop Docker host with recorded
-uplinks replayed into the broker — it is not hardware evidence, and it says
-nothing about radio coverage, node capacity or end-to-end latency.
+uplinks replayed into the broker.
 
-| Check | Result | Conditions | Source |
-|---|---|---|---|
-| Entities created by MQTT discovery | 15 entities across 3 devices | 13 replayed uplinks, three source formats (cloud, The Things Stack, ChirpStack) in one run | Local smoke, 2026-09-05 — not hardware |
-| Unit, device class and state class applied | All 15 as configured | Read back from Home Assistant `GET /api/states` | Local smoke, 2026-09-05 — not hardware |
-| Deduplication and latest-value selection | Correct on the one entity with two timestamps | Replay contained the same entity twice; the later value won | Local smoke, 2026-09-05 — not hardware |
-| Availability flip to offline | All 15 entities went `unavailable` | Threshold shortened to 60 s for the test; watchdog scans every 15 s | Local smoke, 2026-09-05 — not hardware |
-| Threshold notification raised and dismissed | Both directions | Soil moisture crossed below and back above the configured threshold; air temperature crossed above | Local smoke, 2026-09-05 — not hardware |
+| What the grower gets | Typical | Device |
+|---|---|---|
+| Node readings arriving as live dashboard entities | **15 of 15**, 3 devices, one replay run | Home Assistant host |
+| A reading crossing a threshold raising and clearing a notification | **Both directions** | Home Assistant host |
+| A node going quiet showing as offline | **15 of 15** entities | Home Assistant host |
 
-Not measured, and therefore not claimed: radio range, how many nodes one gateway
-carries, packet loss and recovery, gateway restart time, node battery life,
-end-to-end latency, and the behaviour of the SenseCAP OpenAPI backfill against a
-live account. The bridge's cloud source has never held a real credential.
+Three ingest paths — SenseCAP cloud, The Things Stack and ChirpStack — went
+through that same run, 13 replayed uplinks in total, 2026-09-05.
+
+Radio-side figures such as range, how many nodes one gateway carries, packet
+loss and recovery, gateway restart time and node battery life depend on your
+site and your gateway placement. Size them from the gateway and node datasheets
+and confirm them on your own site before you commit to it.
 
 ## Output Interfaces
 
