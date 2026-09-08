@@ -206,7 +206,7 @@ HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425�
 ## 数字的适用范围
 
 - **基线与开放词汇的精度与 CPU 时延**——onnxruntime 1.25.1，Apple M4 CPU，batch 1。
-- **面向 Hailo-8 的基线 INT8**——在 x86 编译主机 `wsl2-local` 上用 DFC 3.31.0 / HailoRT 4.21.0 模拟器编译并核对。校准集 256 张，低于 DFC 文档通常建议的 ~1024 张，且直接沿用 m1b 那一轮、没有针对 Lite0 重采样。
+- **面向 Hailo-8 的基线 INT8**——在 x86 编译主机 `wsl2-local` 上用 DFC 3.31.0 / HailoRT 4.21.0 模拟器编译并核对。出货的 HEF 以 `optimization_level=2` 量化（量化感知蒸馏微调 8 轮，保留 bias correction），用 2048 张类别均衡的 uint8 训练裁剪；编译需要 DFC 容器内可见 GPU。被取代的 m1b HEF 走的是 `optimization_level=1` 的 PTQ，校准集 256 张。
 - **RK3588 上的基线 fp16 与 INT8**——一块 RK3588 开发板，librknnrt 2.3.2，50 张验证图。
 - **RK3576 上的基线**——一块 RK3576 开发板，仅 m1b。
 - **VLM 兜底**——对着真实服务、生成后端换成 stub 的台架运行（5 帧、5 条有效主事件、2 条兜底事件、0 条被拒），属接线验证。
