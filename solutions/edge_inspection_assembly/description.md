@@ -67,20 +67,22 @@ calibrated gauge in an acceptance test.
 
 | What the line gets | Typical | Device |
 |---|---|---|
-| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 series (J4012, Orin NX 16GB) |
-| Defect detection accuracy (mAP50) | **0.9876** | reComputer J40 series |
-| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J40 series |
-| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J40 series |
-| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J40 series |
+| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 series (J3011, Orin Nano 8GB) |
+| Defect detection accuracy (mAP50) | **0.9876** | reComputer J30 series |
+| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J30 series |
+| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J30 series |
+| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J30 series |
 
 Conditions: DeepPCB6 val, 205 images / 1158 boxes, 6 classes, YOLOX-Tiny 640²
 TensorRT fp16 at a frozen 0.35 threshold; end-to-end sampled 3000 times at the
 10 fps line rate with 0 frames dropped; the stream sweep ran with Modbus and
 MQTT disabled, so a deployment carrying both reaches fewer. Measured 2026-09-05
-on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3).
+on a reComputer J30 series unit (J3011, Orin Nano 8GB; JetPack 6.2 / TRT
+10.3) — the device tree originally misread as an Orin NX engineering kit,
+corrected 2026-09-08 via device-tree compatible (nvidia,p3767-0003).
 
 A follow-up check on 2026-09-08, after that same engine had run continuously
-for 67 hours on a reComputer J40 series (Orin NX 16GB) unit, confirmed CPU vs
+for 67 hours on the same reComputer J30 series (J3011) unit, confirmed CPU vs
 TensorRT box agreement of 0.9992 and a capture-to-coil P50 of 11.45 ms, with
 zero frames dropped over the full 67-hour run.
 
@@ -173,11 +175,14 @@ DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** is the path every measurement on this page was
-taken on. A TensorRT engine is built on the device during the first deploy
-(about 5 minutes), which ties it to that device and that TensorRT version. Choose
-it when you want the numbers above to apply, or when you need more than one or
-two camera streams on one box.
+**Camera + reComputer J30 / J40 (Orin)** is the Jetson path. Every Jetson
+measurement on this page — accuracy, throughput, latency and the 67-hour soak —
+was taken on the reComputer J30 series (J3011, Orin Nano 8GB); J40 is not
+separately benchmarked for this solution. A TensorRT engine is built on the
+device during the first deploy (measured about 5 minutes on the J3011 unit),
+which ties it to that device and that TensorRT version. Choose J3011 when you
+want the numbers above to apply, or J40 for more headroom on extra camera
+streams (not separately benchmarked on this solution).
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy

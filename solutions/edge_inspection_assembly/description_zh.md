@@ -50,18 +50,19 @@
 
 | 产线能得到什么 | 典型值 | 设备 |
 |---|---|---|
-| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 系列（J4012，Orin NX 16GB） |
-| 缺陷检出精度（mAP50） | **0.9876** | reComputer J40 系列 |
-| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J40 系列 |
-| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J40 系列 |
-| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J40 系列 |
+| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 系列（J3011，Orin Nano 8GB） |
+| 缺陷检出精度（mAP50） | **0.9876** | reComputer J30 系列 |
+| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J30 系列 |
+| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J30 系列 |
+| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J30 系列 |
 
 口径：DeepPCB6 val 205 图 / 1158 框 / 6 类，YOLOX-Tiny 640² TensorRT fp16，冻结阈值 0.35；
 端到端在 10 fps 产线节拍下取 3000 个样本，丢帧 0；路数扫描期间关掉了 Modbus 与 MQTT，
-实际部署带上两者后路数会更低。2026-09-05 实测，设备为 Orin NX 16GB 工程参考套件
-（JetPack 6.2 / TRT 10.3）。
+实际部署带上两者后路数会更低。2026-09-05 实测，设备为 reComputer J30 系列（J3011，Orin Nano 8GB；JetPack
+6.2 / TRT 10.3）——`/proc/device-tree/model` 一度误读为 Orin NX 工程参考套件，
+2026-09-08 用 device-tree compatible（nvidia,p3767-0003）核实后更正。
 
-2026-09-08 复核：同一个 engine 在一台 reComputer J40 系列（Orin NX 16GB）
+2026-09-08 复核：同一个 engine 在同一台 reComputer J30 系列（J3011）
 整机上已连续运行 67 小时，CPU 与 TensorRT 的框一致率 0.9992，取图到线圈
 P50 11.45 ms，67 小时全程 0 丢帧。
 
@@ -133,9 +134,12 @@ mask 变成一份装配 ROI profile——它不在边缘设备上跑，也不进
 
 ## 套餐对比
 
-**摄像头 + reComputer J30 / J40（Orin）** 是本页所有实测数据的来源。首次部署时在设备上构建
-TensorRT engine（约 5 分钟），engine 因此与该设备和该 TensorRT 版本绑定。想让上面
-那组数字对你成立、或者一台机器要跑不止一两路摄像头时选它。
+**摄像头 + reComputer J30 / J40（Orin）** 是 Jetson 这条路径。本页所有 Jetson
+实测数据——精度、吞吐、时延、67 小时 soak——都来自 reComputer J30 系列
+（J3011，Orin Nano 8GB）；本方案未单独给 J40 跑评测。首次部署时在设备上构建
+TensorRT engine（在 J3011 上实测约 5 分钟），engine 因此与该设备和该 TensorRT
+版本绑定。想让上面那组数字对你成立选 J3011；想要更多路摄像头的余量选
+J40（本方案未单独给它跑评测）。
 
 **摄像头 + reComputer R2000（Hailo-8）** 用功耗与成本换更小的板卡体积。
 INT8 HEF 在设备外编译、部署时下载，板子上没有构建步骤。同款 Hailo-8 平台实测：硬件推理

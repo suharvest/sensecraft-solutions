@@ -203,8 +203,8 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
 - 有了带凭据的 broker 之后把 `mqtt.host` 指过去；随包的 mosquitto 按设计就是
   本机匿名的。
 - 加摄像头就往 `sources[]` 里追加，每一路各带自己的 `assembly` 或 `dimension` 段。
-  在 Orin NX 16GB 上实测的最后一个稳定点是 8 路 × 10 fps，而且那次测试关掉了 MQTT
-  与 Modbus——带上完整 I/O 路径要按更少的路数规划。
+  在 reComputer J30 系列（J3011，Orin Nano 8GB）上实测的最后一个稳定点是 8 路 × 10 fps，
+  而且那次测试关掉了 MQTT 与 Modbus——带上完整 I/O 路径要按更少的路数规划。
 
 ### 故障排查
 
@@ -401,7 +401,7 @@ MQTT broker。
 | 面板打不开 | 确认 8080 端口可达；host 网络下通常是主机防火墙 |
 | 面板能开但预览是黑的 | 源还没连上；先看 `/healthz` 里 `frames_processed` 是否在涨，再看容器日志 |
 | 线圈与寄存器对不上 | 原子性只在写侧成立；读侧分两次 Modbus 请求时可能落在两次判定之间。先读寄存器、把线圈当触发信号 |
-| 帧率远低于 Jetson 的数字 | 属预期——那些数字来自 Orin NX 上的 TensorRT engine。测这块板自己的数并用它 |
+| 帧率远低于 Jetson 的数字 | 属预期——那些数字来自 reComputer J30 系列（Orin Nano 8GB）上的 TensorRT engine。测这块板自己的数并用它 |
 | 一开线全是 NG | 期望清单还是随包示例；先按你的工位重建它 |
 
 ## 步骤 4: 启用 VLM 解释（可选） {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
@@ -489,7 +489,7 @@ Modbus TCP 端口 502、从站 1：线圈 0 是 NG、线圈 1 是 OK，保持寄
 | 激活它把另一个应用停了 | 正常——应用中心同一时刻只跑一个应用 |
 | broker 上收不到事件，但面板显示在处理帧 | broker 地址或凭据不对；判定仍在 Modbus 上。看状态面板的 `mqtt.last_error` |
 | Modbus 502 上什么都没有 | 确认本应用是活动应用，且相机上没有别的进程占着 502 |
-| 帧率远低于 Orin 的数字 | 正常——那些数字来自带 TensorRT engine 的 Orin NX。用这台相机自己的数字 |
+| 帧率远低于 Orin 的数字 | 正常——那些数字来自带 TensorRT engine 的 reComputer J30 系列（Orin Nano 8GB）。用这台相机自己的数字 |
 
 ## Step 2: 确认判定真的出了设备 {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
 
