@@ -52,7 +52,7 @@ intro:
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
       description: Single-board computer hosting the voice AI brain (wake word + STT + LLM + TTS)
       name_i18n:
-        zh: 树莓派（8GB 版）
+        zh: 第五代树莓派（8GB 版）
       description_i18n:
         zh: 单板计算机，承载语音 AI 大脑（唤醒词、语音识别、LLM、语音合成）
   presets:
