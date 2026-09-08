@@ -36,12 +36,12 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 `gallery.match_url` 指向 `console_stack:0.2.0`（设备在自己的 NPU 上算嵌入，
 console 只做检索）。结果：端到端 p50 924 ms / p95 1153 ms，发布错误 0 次，
 console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自己是否完整落盘
-没有单独核实）。同一批裁剪换成 CPU 上的 fp32
-ONNX 源模型跑 top-1 对照，差了 10 个百分点（14/20 对 16/20）——没达到本项目
-≤1 pp 的 parity 目标；其中 2 条分歧是相似度差 <0.01 的临界样本，只有 20 张
-单帧裁剪，样本量撑不起一个可信的数字（不推翻上表"0.85 pp（21 个检索指标，更大验证集）"那条嵌入层面的结论）。
+没有单独核实）。同一次货架回放取 704 张裁剪（40 个源帧的全部 `ok` 状态货位），
+换成 CPU 上的 fp32 ONNX 源模型跑 top-1 对照：RKNN fp16 与 CPU fp32 准确率均为
+541/704（76.85%），预测一致率 98.72%（696/704），8 条分歧全部是相似度差 <0.01
+的临界样本，向量余弦相似度均值 0.99969、最小 0.99846。
 完整记录见 edge-retail-recognition 仓库
-`evaluation/runs/2026-09-08-rk3588-console-acceptance-020`。
+`evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9。
 
 ## 步骤 1: 部署注册管理端 {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
