@@ -13,7 +13,7 @@ required: false
 # already inside the alarm image and points it at an OpenVoiceStream instance
 # the site provides — the same LAN compute box, with a USB microphone and
 # speaker attached to it. Which box that is differs per preset (the Jetson, the
-# reComputer R2000, or the gateway on the reCamera preset), and the audio hardware
+# reComputer R2000, or the panel host on the reCamera presets), and the audio hardware
 # is not part of this solution's BOM, so there is nothing to place and nothing
 # to bring up automatically.
 #
