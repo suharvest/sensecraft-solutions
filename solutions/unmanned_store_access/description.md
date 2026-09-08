@@ -70,7 +70,7 @@ before the design carries a door.
 | What the door does | Typical | Device |
 |---|---|---|
 | A newly published face library live on the door | **0.49 s** p50 (0.51 s p95) | reCamera |
-| Power-on to the access app answering | **8.8 s** median, 6 cold starts | reCamera |
+| Power-on to the access app answering | **8.8 s** median, 6 power-on runs | reCamera |
 
 Activation time grows with the size of the library — about 9.8 s at 402 people
 and about 22 s at 1502 people on the same chain — so allow for the first sync of

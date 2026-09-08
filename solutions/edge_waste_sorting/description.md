@@ -82,17 +82,18 @@ three map to the same recyclable bin — so quoting only the four-way number
 overstates what the model knows about materials.
 
 Accuracy is a model property and carries across accelerators: the Hailo-8 build
-scores 0.8889 material top-1 on the full 7417-image validation set and the
-RK3588 INT8 build agrees with the fp32 reference on 0.9893 of it.
+scores 0.8889 material top-1 on the full 7417-image validation set.
 
 ### Platform support
 
-| Platform | Status |
-|---|---|
-| Jetson Orin (TensorRT) | Deployed and engine-built on reComputer J40 series (Orin NX) |
-| reComputer R2000 (Hailo-8) | Deployment package shipped; the baseline HEF has run the full validation set on a Hailo-8 |
-| RK3588 | Inference parity measured on real hardware, fp16 and INT8; **no deployment package** — the conversion and the runtime work, the packaging does not exist |
-| RK3576 | Inference parity measured on real hardware with the superseded backbone only; no deployment package |
+- **Jetson Orin (TensorRT)** — deployed on reComputer J40 series (Orin NX).
+- **reComputer R2000 (Hailo-8)** — deployment package shipped; the baseline HEF
+  has run the full validation set on a Hailo-8.
+- **RK3588** — runs on real hardware in fp16 and INT8, but there is **no
+  deployment package**: the conversion and the runtime work, the packaging does
+  not exist.
+- **RK3576** — runs on real hardware with the superseded backbone only; no
+  deployment package.
 
 ### What these numbers cover
 

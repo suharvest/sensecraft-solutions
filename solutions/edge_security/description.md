@@ -118,8 +118,8 @@ frame by frame, replayed over RTSP into the live pipeline at 5 fps.
 | Loitering call against the truth instant | **0.090-0.290 s** | Same |
 | Direction | **8/8 correct**, no wrong-direction alerts | Same |
 | Capture to alert | **117.4 ms** p50 (297.0 ms p95) | Same |
-| Snapshot stored with every alert | **8/8** real JPEG | Same |
 
+Every alert stored a decodable JPEG from the scene, 8/8.
 The reComputer RK3588 series lands in the same range on the same clip
 (0.085-0.248 s on line crossing, 8/8 on direction, 8/8 snapshots), so **choose
 hardware by stream count, not by timing accuracy**.
