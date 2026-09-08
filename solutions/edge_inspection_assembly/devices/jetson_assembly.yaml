@@ -176,16 +176,18 @@ remote_overrides:
           echo "Building the TensorRT engine — this takes several minutes ..."
           # --version exits 1 on TensorRT 10.3, so it must not gate the build.
           /usr/src/tensorrt/bin/trtexec --version || true
+          # TRT_STATIC_SHAPE: this ONNX is exported with a STATIC batch-1
+          # input (images:1x3x640x640). Passing --minShapes/--optShapes/
+          # --maxShapes makes trtexec 10.3 fail outright with "Static model
+          # does not take explicit shapes", so no explicit shapes are given
+          # here (same fix as edge_inspection_surface's jetson_inspection.yaml).
           /usr/src/tensorrt/bin/trtexec \
             --onnx="$ONNX" \
             --saveEngine="$ENGINE.part" \
             --fp16 \
             --skipInference \
             --builderOptimizationLevel=3 \
-            --timingCacheFile="$ENGINE.timing.cache" \
-            --minShapes=images:1x3x640x640 \
-            --optShapes=images:1x3x640x640 \
-            --maxShapes=images:1x3x640x640
+            --timingCacheFile="$ENGINE.timing.cache"
           mv -f "$ENGINE.part" "$ENGINE"
           ls -l "$ENGINE"
           sha256sum "$ENGINE"
