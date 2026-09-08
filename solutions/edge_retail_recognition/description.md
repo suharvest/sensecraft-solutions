@@ -97,12 +97,14 @@ detail and quantisation results are in the engineering wiki.
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
 | reComputer J40 (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | Fastest per-stage numbers measured; full device-side loop also run end to end (2956-frame checkout replay, zero dropped frames) |
+| reComputer J30 (Jetson Orin Nano, J3011, TensorRT) | TensorRT fp16 on the GPU, 5.88 ms p50, 99.27% agreement | TensorRT fp16 on the GPU, 5.06 ms p50, max 0.21pp retrieval gap vs fp32 | Also measured directly: full device-side loop run end to end (6726-frame checkout replay over 2.27 loops, zero dropped frames, all 84 events published) |
 
 The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
 accelerator chip platform as the matching reComputer preset; they will be
-updated after a re-test on the reComputer units. The reCamera Pro and
-reComputer J40 rows are measured on a reComputer unit itself — a reComputer J40
-integrated-machine measurement, not a reference board.
+updated after a re-test on the reComputer units. The reCamera Pro row is
+measured on the camera itself; both reComputer J40/J30 rows are measured on
+a reComputer unit itself — a reComputer integrated-machine measurement, not
+a reference board.
 
 ## Usage Notes
 
