@@ -397,8 +397,9 @@ intro:
         zh: Grove 继电器
       product_url: https://www.seeedstudio.com/Grove-Relay.html
       description: >-
-        SKU 103020005. SPST-NO, opto-isolated, 3.3-5 V trigger, mechanical
-        (non-SSR) contact — nothing downstream of "COM"/"NO" carries any
+        SKU 103020005. SPST-NO, transistor-driven mechanical (non-SSR) relay,
+        3.3-5 V trigger — the "COM"/"NO" contact has no electrical connection
+        to our circuit, nothing downstream of "COM"/"NO" carries any
         voltage of ours, in any state. This is the whole output of every
         preset: whoever owns the door controller wires its input to "COM" and
         "NO" and decides what a momentary closure does from there. It has no
@@ -410,8 +411,9 @@ intro:
         someone tests it.
       description_i18n:
         zh: >-
-          SKU 103020005。SPST-NO、光耦隔离、3.3–5 V 触发、机械触点（非
-          SSR）——「COM」/「NO」 下游任何状态都不出现我们的电压。这就是每个套餐的
+          SKU 103020005。SPST-NO、晶体管驱动的机械继电器（非
+          SSR）、3.3–5 V 触发——「COM」/「NO」 触点与我们的电路无电气连接，
+          下游任何状态都不出现我们的电压。这就是每个套餐的
           全部输出：门控控制器的所有者把自己输入接到 「COM」 和 「NO」，瞬时闭合之后
           怎么动作由他决定。它没有 「NC」 端子，门控输入是常闭型的话要换成 SKU
           103020012（Grove - SPDT Relay(30A)）。「relay_contact」 故意不设默认值——

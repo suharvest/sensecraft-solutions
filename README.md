@@ -24,7 +24,7 @@
 | Solution | Hardware | 分类 |
 |----------|----------|------|
 | [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | 语音 AI（ASR + TTS，≤180ms，离线） |
-| [Smart Retail Voice AI](solutions/smart_retail_voice_ai/) | Jetson | 零售 / 语音 |
+| [Retail Voice](solutions/retail_voice/) | reComputer RK3576 · reRouter CM4 | 零售 / 语音 |
 | [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | 语音 AI |
 | [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | 本地大模型 |
 | [AI Lab](solutions/ai_lab/) | Jetson | AI 开发环境 |
