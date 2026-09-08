@@ -194,39 +194,6 @@ Source: "tracks/anomaly/README.md", "tracks/anomaly/PROVENANCE.md" (anomalib
 "lib/v2.6.0", Apache-2.0), "evaluation/runs/2026-09-05-a2-cpu/results.md",
 "evaluation/runs/2026-09-05-a2-aggregation/results.md".
 
-## Optional: VLM Explanations
-
-The runtime can hand a frame to a shared external VLM service
-("edge-vision-vlm") for a plain-language explanation. This is a side channel,
-not a second judge: it never enters the frame loop, never changes "verdict",
-and a disabled, slow or unreachable service produces exactly the same OK/NG
-stream as without it.
-
-- **Trigger** (either condition, a box always wins). "low_confidence" — the
-  primary defect's score is below "vlm.trigger.min_confidence". "anomaly" —
-  "anomaly_score" crosses "anomaly.threshold" **and the detector produced
-  zero boxes**, so there is nothing machine-readable to hand the operator
-  otherwise. Rate-limited by "vlm.trigger.min_interval_s" per stream; never a
-  per-frame call.
-- **Side channel.** A bounded, drop-oldest queue plus an independent worker
-  thread submit the call; the main event on "inspection/<stream-id>/results"
-  publishes on its usual schedule regardless of whether the VLM answers. If
-  it does, a second event follows on "inspection/<stream-id>/explanations",
-  keyed to the same "frame_id".
-- **Does not block the main chain.** A hard client timeout abandons the
-  call; repeated failures open a circuit breaker for a cool-off period,
-  probed by "GET /healthz".
-- **Explanations arrive in seconds, not milliseconds.** On the shared VLM
-  service's own workstation hardware, Qwen3-VL-2B bf16 generation alone is
-  P50 about 3.2 s / P95 about 7.2 s at "max_tokens=320". That is why the call
-  sits off the hot path. Size the explanation channel by hour, not by frame.
-
-Enable it by setting "vlm.enabled: true" and pointing "vlm.base_url" at a
-reachable "edge-vision-vlm" instance; see the guide for the walk-through,
-including the "no_proxy" requirement on the device.
-
-Source: "contracts/explanation-event.schema.json".
-
 ## Output Interfaces
 
 | Output | Where | Content |

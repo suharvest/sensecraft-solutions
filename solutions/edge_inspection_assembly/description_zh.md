@@ -85,29 +85,6 @@ mAP50 0.9870、单次推理 P50 30.9 ms（RKNN INT8，2026-09-08）。reCamera P
 「HR 10 = 0」 不代表"量到 0 mm"——必须先读 HR 11。另外在 v2 里，
 「verdict = NG」 不再蕴含 「defect_count > 0」：只要有缺件或尺寸超差，一条就够。
 
-## 可选：VLM 解释
-
-运行时可以把一帧 NG 交给外部共享 VLM 服务（「edge-vision-vlm」）生成一段人话解释。
-这是一条旁路，不是第二个判定者：它不进帧循环、不改变 「verdict」，服务关闭、变慢
-或不可达时，OK/NG 输出与没有这条旁路完全一样。
-
-- **触发条件。** 只在值得人看一眼的状态变化上才调用——「assembly.missing_count > 0」，
-  或主缺陷置信度低于 「vlm.trigger.min_confidence」——每路按
-  「vlm.trigger.min_interval_s」 限速，绝不是每帧调用一次。
-- **旁路事件。** 有界、drop-oldest 队列的后台 worker 负责提交调用；
-  「inspection/<流编号>/results」 上的主事件照常按原节奏发布，不管 VLM 有没有回应。
-  回应了才会在 「inspection/<流编号>/explanations」 上再发一条，按同一个 「frame_id」
-  对齐。
-- **不阻塞主链路。** 客户端硬超时会放弃这次调用；连续失败达到阈值后熔断器会停调
-  一段冷却期。这条链路上没有任何东西能拖住判定、Modbus 写入或 MQTT 发布。
-- **时延不是可以按帧规划的数字。** 在共享服务自己的评测硬件——NVIDIA Spark GB10
-  工作站，**不是本 demo 跑的这台 Orin**——上实测，Qwen3-VL-2B bf16 光生成阶段就是
-  P50 ≈ 3.2 s / P95 ≈ 7.2 s（「max_tokens=320」）。这正是这次调用要离开热路径的原因；
-  这套集成目前没有 Orin 上的实测时延。
-
-设置 「vlm.enabled: true」 并把 「vlm.base_url」 指到一个可达的 「edge-vision-vlm」 实例
-即可启用；完整步骤见部署指南，包括设备上需要的 「no_proxy」 设置。
-
 ## 半自动标注工具
 
 上游仓库的 「tools/annotation/」 用 SAM2 把人工画的框变成像素级 mask，再把审核通过的
@@ -182,7 +159,6 @@ mAP50-95 是 0.8000，参考值 0.8213——这个差距来自高 IoU 下的框�
 - **缺件闭环与尺寸误差**——运行记录 M2，2026-09-05，同一台主机，用验证帧与合成场景。
 - **Hailo INT8 精度**——运行记录 M3a，2026-09-05，在 x86 Hailo Dataflow Compiler 模拟器里，不是设备上。
 - **Hailo-8 上板吞吐、时延与精度**——运行记录 M3b-pi-2，2026-09-06，fleet 主机 `harvest-pi`。
-- **VLM 解释时延**——已公布数字来自 Spark GB10 工作站；请在自己的质检主机上实测。
 
 ## 许可说明
 
