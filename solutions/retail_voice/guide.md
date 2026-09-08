@@ -116,6 +116,11 @@ Deploy over SSH. The board takes its address from DHCP; the default user is
 Deploy over SSH to the reRouter. Default address `192.168.49.1`, user `root`,
 empty password on a stock image. CPU recognition, no accelerator.
 
+On the reRouter, reboot the device once the deployment reports success: the
+ALSA permission change applied during deployment takes effect reliably only
+after a restart. Wait about two minutes after the reboot before opening the
+client page.
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -156,6 +161,8 @@ Speak one sentence near the array, then confirm a file appeared on the device.
 | Transcript is one long run-on line | Punctuation is disabled. Enable it if the board has the memory |
 | Words are clipped at the start of each sentence | On the CM4 the local VAD is cutting in — `speechPadSeconds` in the client config is 0.5 s by default, and should not be tuned against a handful of clips. On the RK3576 it means server-side VAD is on: this preset requires `OVS_VAD_BACKEND=none` with the client endpointing locally, because server VAD drops roughly one syllable per cut |
 | Recognition is poor and the room is loud | Measure the background level. Above roughly 70 dB the array cannot separate the speaker, and no setting changes that |
+| The page at `:8090` does not load right after a reboot | Give the services about two minutes to come up, then reload |
+| The record button on the client page does nothing | The speech service is still loading its models. `curl http://<device-ip>:8621/readyz` returns ready once it is done |
 | CPU pinned at 100%, transcripts lag behind speech | CM4: turn punctuation off first, then voiceprint. That board runs one recognition at a time by design |
 
 ### Deployment Complete

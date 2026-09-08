@@ -130,7 +130,7 @@ stated conditions. Nothing here is interpolated from a similar board.
 
 | Metric | Value | Conditions | Source |
 |---|---|---|---|
-| Offline transcription latency, RK3576 | 3.0 s of audio → ~780 ms warm (RTF 0.26) | reComputer RK3576 Dev Kit, Armbian bookworm, kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM; SenseVoice RKNN fp16 on the NPU; "POST /asr", warm container | Existing measurement carried over from "smart_retail_voice_ai/assets/docker/docker-compose.rk3576.yml" header, 2026-08-24 |
+| Offline transcription latency, RK3576 | 3.0 s of audio → ~780 ms warm (RTF 0.26) | reComputer RK3576 Dev Kit, Armbian bookworm, kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM; SenseVoice RKNN fp16 on the NPU; "POST /asr", warm container | Existing measurement, 2026-08-24, recorded in the header of "assets/docker/docker-compose.local-rk3576.yml" |
 | Memory, RK3576 | 1.71 GiB container RSS | Same run, with ASR + punctuation + speaker embedding all loaded | Same |
 | Restart to healthy, RK3576 | ~25 s | Same board, model volumes already populated | Same |
 | Package acceptance check, RK3576 (this deployment) | "POST /asr" on 5 short clips (3 zh + 2 en): all 5 returned ""backend":"rk:sensevoice_rknn"" and correct text; wall-clock p50 678 ms, p95 810 ms (n=5, includes HTTP overhead) | reComputer RK3576, this package's exact "docker-compose.local-rk3576.yml" + "local_rk3576.yaml" deployed via SSH, "rk3576-sensevoice" profile, container RSS 1.716 GiB confirming the row above | Real-machine packaging verification, 2026-09-06 |
@@ -297,6 +297,29 @@ and no credential to configure.
   its own MySQL and MinIO to prove the deletion path, which is what makes it
   reproducible — and also what makes it evidence about the code, not about your
   site's data.
+
+## Replaces the Smart Retail Voice Collection package
+
+`smart_retail_voice_ai` covered the same topic with the same capture hardware —
+a reRouter CM4 and a reSpeaker XVF3800 — and reported to a hosted console. It
+was merged into this design on 2026-09-08 and its directory deleted. Its
+deployment is the **On-Device Transcription** preset here, extended with the
+reComputer RK3576 NPU path; its reporting path is superseded by the **Server
+Stack** preset, which runs the console, the database and the object store on a
+host you own instead of on `test-voice-web.seeed.cn`.
+
+The old id is **not** an alias for this one. `replaces:` in `solution.yaml` is
+not a field the spec defines — it is absent from `spec/solution.schema.json` and
+from every model in `packages/`, so it is silently dropped on load and resolves
+nothing. The id is listed in `solutions/.deprecated.json`, which the manifest
+generator copies into the manifest's `deprecated` array; that marks it retired,
+it does not redirect it.
+
+So anything still holding `smart_retail_voice_ai` — a bookmark, a link, a pinned
+deployment reference — gets a 404 from the moment the directory is deleted until
+whoever consumes the manifest is pointed at `retail_voice`. There is no
+migration path between the two packages: an existing install keeps working until
+it is redeployed.
 
 ## Licensing note
 
