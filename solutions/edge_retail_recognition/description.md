@@ -101,9 +101,10 @@ replay with the console computing no vectors itself
 and automatic MQTT reconnect after a 38 s console outage with no event loss on the device side (the console's own on-disk receipt was not independently checked).
 A top-1 check against the same crops on a CPU with the fp32 source model, on
 the full 704 `ok`-state crops from that shelf replay (40 source frames), matched:
-RKNN fp16 and CPU fp32 both scored 541/704 (76.85%), 98.72% identical
-predictions, and the 8 disagreements were all borderline cases with a <0.01
-similarity margin; mean cosine similarity between the two vectors was 0.99969.
+RKNN fp16 and CPU fp32 both scored 541/704 (76.85%) and agreed on the same
+predicted SKU in 695/704 cases (98.72%); of the 9 disagreements, 8 were
+correctness flips (one backend right, the other wrong), all within a <0.01
+similarity margin. Mean cosine similarity between the two vectors was 0.99969.
 Measured on the same RK3588 platform.
 
 **Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
@@ -127,8 +128,7 @@ is not usable. Reference value on the same Arm CPU platform.
 eight registration images per SKU: 84.67% top-1, 96.66% top-5. DINOv2-small at
 the same k: 79.11% top-1. At one registration image per SKU, DINOv2-small drops
 to 51.11% — going from one registration image to eight changes top-1 by 28
-percentage points, more than any other single change measured on this page.
-On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
+percentage points. On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
 across many more classes.
 
 **Detection accuracy** (SKU-110K test set). The 640² preset reaches 52.84
@@ -167,7 +167,7 @@ both agree there is no directional bias).
 
 | Preset | Detector | Embedder | Best for |
 |---|---|---|---|
-| reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50; full device-side loop also run end to end once (20-SKU shelf replay, 924 ms p50) |
+| reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50. With the embedder swapped to RKNN on the NPU (not the CPU path in this row), the full device-side loop also ran end to end once (20-SKU shelf replay, 924 ms p50) |
 | reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |

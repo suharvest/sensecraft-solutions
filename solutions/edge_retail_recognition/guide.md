@@ -45,12 +45,12 @@ with no event loss on the device side (the console's own on-disk receipt was
 not independently checked). A top-1 comparison against the same crops embedded on a CPU with the fp32
 ONNX source model, on the same shelf replay's full 704 `ok`-state crops (40
 source frames), matched: RKNN fp16 and CPU fp32 both scored 541/704
-(76.85%), 98.72% prediction agreement (695/704), and the 8 disagreements
-were all borderline cases with a <0.01 similarity margin; mean cosine
-similarity between the two vectors was 0.99969 (the embedding-level
-comparison in the table above, 0.85 pp over 21 retrieval metrics, is not
-superseded by this). Full record:
-edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9.
+(76.85%) and agreed on the same predicted SKU in 695/704 cases (98.72%); of
+the 9 disagreements, 8 were correctness flips (one backend right, the other
+wrong), all within a <0.01 similarity margin. Mean cosine similarity between
+the two vectors was 0.99969 (the embedding-level comparison in the table
+above, 0.85 pp over 21 retrieval metrics, is not superseded by this). Full
+record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9.
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -213,7 +213,7 @@ number for your own converted artifact, and records what is still unverified.
 
 ## Preset: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU {#p2_pi5_hailo}
 
-The only preset where both stages have run on the target hardware. The detector
+Both stages have run on the target hardware here too. The detector
 is an INT8 HEF on the Hailo-8; the embedder is a dynamically quantised INT8
 DINOv2-small on the Pi's own four cores, because the NPU path for it does not
 work.

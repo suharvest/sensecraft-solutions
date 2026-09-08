@@ -180,7 +180,7 @@ console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自
 
 ## 套餐: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU {#p2_pi5_hailo}
 
-唯一一个两段都在目标硬件上跑过的套餐。检测器是 Hailo-8 上的 INT8 HEF；
+两段都在目标硬件上跑过：检测器是 Hailo-8 上的 INT8 HEF；
 嵌入器是 Pi 自己四个核上动态量化 INT8 的 DINOv2-small——因为它的 NPU 路线走不通。
 
 | 设备 | 作用 |

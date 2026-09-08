@@ -78,7 +78,7 @@ reComputer 整机复测后更新。
 
 **检索准确率**（Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
 top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
-每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——从 1 张加到 8 张，top-1 变化 28 个百分点，是本页测到的单项改动里幅度最大的。
+每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——从 1 张加到 8 张，top-1 变化 28 个百分点。
 在 Products-10K 留出 SKU 上（类别多得多），DINOv2-base k=8 的 top-1 是 78.92%。
 
 **检测准确率**（SKU-110K test 集）。640² preset 的 mAP50-95 是 52.84，
@@ -98,7 +98,7 @@ reCamera Pro 与 Jetson Orin 套餐都有自己实测的加速器嵌入数字（
 21 项检索指标与 fp32 最大差约 0.24 个百分点。以上独立探针数字均为 n=300、纯推理，
 engine 在运行它的这台设备上构建。一次 2956 帧的收银台回放跑通了完整的设备侧
 运行时——检测、嵌入、库检索、MQTT 上报——零掉帧。RK3588 套餐也有同类的端到端
-实测（货架回放，见下文）；Hailo-8 与 RK3576 套餐止步于模型转换。在这个并发负载下（两段共享同一块 GPU，
+实测（货架回放，见上文）；Hailo-8 与 RK3576 套餐止步于模型转换。在这个并发负载下（两段共享同一块 GPU，
 样本取自回放自身的健康快照：检测 1024 次、嵌入 271 次）延迟降到检测 p50 8.76 ms /
 p95 9.53 ms、嵌入 p50 5.37 ms / p95 5.83 ms——仍比其它套餐的检测路径快。仅在 Orin NX 机型（reComputer J40）上实测；同一家族里更小的 Orin Nano 选项（reComputer J30）没有实测数字。
 
@@ -122,7 +122,7 @@ p95 9.53 ms、嵌入 p50 5.37 ms / p95 5.83 ms——仍比其它套餐的检测�
 
 | 套餐 | 检测器 | 嵌入器 | 适合谁 |
 |---|---|---|---|
-| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms；设备侧运行时也端到端跑通过一次（20 SKU 货架回放，p50 924 ms） |
+| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms。把嵌入器换成 NPU 上的 RKNN（不是本行的 CPU onnxruntime）后，设备侧运行时也端到端跑通过一次（20 SKU 货架回放，p50 924 ms） |
 | reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项 |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
