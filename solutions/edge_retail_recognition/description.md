@@ -54,13 +54,13 @@ it cannot.
 
 | What the checkout gets | Typical | Device |
 |---|---|---|
-| Frame captured to a recognised item published | **22.30 ms p50 / 42.75 ms p95** | reComputer J40 (Orin NX 16GB) |
-| Frames dropped over a 2956-frame checkout replay | **0** | reComputer J40 |
-| Item recognition, 8 photos registered per SKU | **84.67% top-1 / 96.66% top-5** | Model figure, carries across hosts |
-| Item recognition, 1 photo registered per SKU | **51.11% top-1** | Same |
+| Frames dropped over a 2956-frame checkout replay | **0** | reComputer J40 (Orin NX 16GB) |
+| Item recognition, DINOv2-base, 8 photos registered per SKU | **84.67% top-1 / 96.66% top-5** | Model figure, carries across hosts |
+| Item recognition, DINOv2-small, 8 photos vs 1 photo per SKU | **79.11% → 51.11% top-1** | Same |
 
-Registration depth is what moves accuracy most, so photograph each SKU from
-several angles when you register it. The J40 replay ran the full device-side
+Registration depth is what moves accuracy most — on the same model, going from
+one registration image to eight changes top-1 by 28 percentage points — so
+photograph each SKU from several angles when you register it. The J40 replay ran the full device-side
 runtime — detector, embedder, gallery lookup, MQTT publish. Measured on the
 Orin NX unit (reComputer J40) only; the smaller reComputer J30 series option
 has not been tested.

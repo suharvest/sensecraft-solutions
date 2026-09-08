@@ -37,8 +37,11 @@ Numbers below come from a simulator rig, not from a building.
 |---|---|---|
 | Field points sampled at the configured rate | **349.99 events/s** against a 350.0 target, 2,000 points | Development-board baseline |
 | Setpoint recommendations produced at 2,000 points | **0.939 cycle/s** | Development-board baseline |
-| Protocols carried into one point model | **4** (OPC UA, Modbus TCP, Modbus RTU, BACnet/IP) | — |
-| Energy saving | **Not claimed** | Savings depend on the building, the weather and the occupancy pattern — run a controlled before/after study on your own site |
+
+One point model carries four protocols (OPC UA, Modbus TCP, Modbus RTU,
+BACnet/IP). **No energy-saving percentage is claimed anywhere in this package**:
+that number depends on the building, the weather and the occupancy pattern, so
+run a controlled before/after study on your own site.
 
 The load figures were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis. The prediction cycle there is roughly nine times slower than the development-board baseline, so size the cycle time for your point count on the platform you actually deploy. A run on an R1000 in its shipping 4 GB / 8 GB configuration is still to be done.
 

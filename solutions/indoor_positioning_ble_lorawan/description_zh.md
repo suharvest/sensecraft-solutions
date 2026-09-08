@@ -48,8 +48,8 @@
 | 看板能得到什么 | 典型值 | 设备 |
 |---|---|---|
 | 标签上行到位置出现在看板，200 标签 | **P95 828 ms**，上行丢失 0% | Jetson Orin Nano Super |
-| 按下 SOS 到告警出现在看板 | **P50 24 ms**（P95 29 ms，n=20） | Jetson Orin Nano Super |
-| 越过围栏到围栏告警 | **P50 14 ms** | 开发机 loopback |
+| SOS 上行到告警出现在看板 | **P50 24 ms**（P95 29 ms，n=20） | Jetson Orin Nano Super |
+| 越界上行到围栏告警 | **P50 14 ms** | 开发机 loopback |
 | 标签不再上报到看板标为离线 | 复现 2 次为 **903 秒与 950 秒** | Jetson Orin Nano Super |
 
 时延随单台主机上的标签数增长：500 标签为 P95 2.35 秒，1000 标签为 P95 4.1 秒，

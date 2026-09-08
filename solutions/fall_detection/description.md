@@ -46,9 +46,9 @@ configuration, and Subject 4 is a held-out test set read exactly once — 27 cli
 | What the site gets | Typical | Device |
 |---|---|---|
 | Fall to alert | **1.61 s** mean | reComputer R2000 (Hailo-8) |
-| Fall recall | **100%** | Same host, 27-clip held-out set |
+| Fall recall, frozen temporal gate | **100%** | Same host, 27-clip held-out set |
 | Everyday activity not raising an alert | **80%** | Same host and set |
-| Streams one host carries at 15 FPS | **16** | reComputer R2000 (Hailo-8) |
+| Streams one host carries at 15 FPS, MQTT disabled | **16** | reComputer R2000 (Hailo-8) |
 
 Accuracy lands between 74.1% and 88.9% across the frozen platform profiles and
 mean alert latency between 1.22 s and 1.75 s, so **choose hardware by stream
@@ -58,8 +58,10 @@ J40, 16 on reComputer R2000 with Hailo-8. Those are the highest loads tested
 from a real 640x640 H.264 15 FPS source and are a starting point for your own
 load test, not a rated capacity.
 
-The held-out set has 27 clips, so one clip moves a metric by 3.7 percentage
-points. Results were frozen on 2026-09-05.
+The RK and Hailo rows measure the frozen temporal gate, not full deployed
+state-machine accuracy, and the Hailo capacity run had MQTT disabled. The
+held-out set has 27 clips, so one clip moves a metric by 3.7 percentage points.
+Results were frozen on 2026-09-05.
 
 On an independent external set (RealBiomFall, 34 fall-only clips) recall drops
 to 52.9%-58.8%. The limiting factor is pose coverage: in long shots and heavy

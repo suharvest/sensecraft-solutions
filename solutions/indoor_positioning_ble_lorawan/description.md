@@ -53,8 +53,8 @@ close a reported position is to the truth on the ground.
 | What the dashboard gets | Typical | Device |
 |---|---|---|
 | Tag uplink to the position on the dashboard, 200 tags | **P95 828 ms**, 0% uplink loss | Jetson Orin Nano Super |
-| SOS button to the alarm on the dashboard | **P50 24 ms** (P95 29 ms, n=20) | Jetson Orin Nano Super |
-| Crossing a fence to the geofence alarm | **P50 14 ms** | Development-machine loopback |
+| SOS uplink to the alarm on the dashboard | **P50 24 ms** (P95 29 ms, n=20) | Jetson Orin Nano Super |
+| Fence-crossing uplink to the geofence alarm | **P50 14 ms** | Development-machine loopback |
 | A tag going quiet to it showing as offline | **903 s and 950 s** over 2 repetitions | Jetson Orin Nano Super |
 
 Latency grows with the number of tags on one host: 500 tags read P95 2.35 s and

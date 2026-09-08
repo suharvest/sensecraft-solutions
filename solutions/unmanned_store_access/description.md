@@ -69,11 +69,10 @@ before the design carries a door.
 
 | What the door does | Typical | Device |
 |---|---|---|
-| A newly published face library live on the door | **0.49 s** p50 (0.51 s p95) | reCamera |
-| Power-on to the access app answering | **8.8 s** median, 6 power-on runs | reCamera |
+| A newly published face library live on the door | **491.6 ms** p50 (507.8 ms p95, n=20) | reCamera |
 
-Activation time grows with the size of the library — about 9.8 s at 402 people
-and about 22 s at 1502 people on the same chain — so allow for the first sync of
+Activation time grows with the size of the library — 9 801.7 ms at 402 people
+and 22 278.7 ms at 1502 people on the same chain, one run each — so allow for the first sync of
 a large library. A tampered library or a wrongly signed update is refused on the
 device and the door keeps running on the version it already holds.
 

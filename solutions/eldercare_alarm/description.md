@@ -65,11 +65,11 @@ prompt; the decision and the response stay with a person.
 
 | What the carer gets | Typical | Device |
 |---|---|---|
-| Fall to alert received, real inference in the loop | **2.8 s** P50 (3.1 s P95) | reComputer R2000 series with the Hailo-8 option |
+| Fall to alert received, real inference in the loop | **P50 2830 ms / P95 3061 ms** | reComputer R2000 series with the Hailo-8 option |
 | Fall detection rate | **74.1%-88.9%** | Across the four detector platforms |
-| Alerts recovered after the notification endpoint came back | **3 of 3**, no duplicates, first one 96 ms after recovery | reComputer R2000 series |
+| Alerts recovered after the notification endpoint came back | **3 of 3**, no duplicates, first one 96 ms after recovery | Development-machine baseline |
 
-The 2.8 s figure was taken with the confirmation windows shortened to 1 s of
+The 2830 ms figure was taken with the confirmation windows shortened to 1 s of
 evidence plus 1 s of auto-confirm. With the shipped defaults (5 s plus 60 s) the
 same path takes just over a minute, which is the confirmation design rather than
 overhead. Set those two windows to what your site can answer.
