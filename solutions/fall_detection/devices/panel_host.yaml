@@ -314,13 +314,18 @@ remote_overrides:
     - id: broker_host
       name: MQTT Broker Host
       type: text
-      default: "127.0.0.1"
+      default: "mosquitto"
       required: true
-      description: Leave as 127.0.0.1 to use the broker this stack starts here, and point the cameras at this host. Enter the camera's or your own broker address to subscribe to an existing one instead.
+      # Not 127.0.0.1. This stack is bridged, not host-networked, so the panel
+      # container's own loopback reaches nothing; `mosquitto` is the compose
+      # service name and resolves on the project network.
+      description: Leave as mosquitto to use the broker this stack starts here, and point the cameras at this host. Enter the camera's or your own broker address to subscribe to an existing one instead.
+      validation:
+        pattern: "^[A-Za-z0-9_.-]+$"
       name_i18n:
         zh: MQTT Broker 地址
       description_i18n:
-        zh: 保持 127.0.0.1 就使用本套栈在这台机器上启动的 broker，并把摄像头指向本机；填摄像头或你自己的 broker 地址则订阅已有的那个。
+        zh: 保持 mosquitto 就使用本套栈在这台机器上启动的 broker，并把摄像头指向本机；填摄像头或你自己的 broker 地址则订阅已有的那个。
     - id: broker_mqtt_port
       name: MQTT Broker Port
       type: text
@@ -338,6 +343,8 @@ remote_overrides:
       type: text
       required: false
       description: Leave empty for the bundled broker, which accepts anonymous connections on the LAN
+      validation:
+        pattern: "^[^\"'\\\\]*$"
       name_i18n:
         zh: MQTT 用户名
       description_i18n:
@@ -346,8 +353,16 @@ remote_overrides:
       name: MQTT Password
       type: password
       required: false
+      # Quotes and backslashes are excluded because this value is written into
+      # the generated config as a quoted YAML scalar; a quote inside it would
+      # produce a file the panel cannot parse.
+      validation:
+        pattern: "^[^\"'\\\\]*$"
+      description: Quotes and backslashes are not accepted — the value is written into a quoted field in the generated configuration
       name_i18n:
         zh: MQTT 密码
+      description_i18n:
+        zh: 不支持引号和反斜杠——这个值会写进生成配置里的带引号字段
     - id: broker_port
       name: Broker Port to Publish on This Host
       type: text
@@ -413,6 +428,8 @@ remote_overrides:
       type: text
       required: false
       placeholder: "http://192.168.1.50:9099/alarm"
+      validation:
+        pattern: "^$|^https?://[^\\s\"']+$"
       description: Where a confirmed alarm is POSTed. The payload carries the alarm id, kind, zone, stream, timestamp and operator — no snapshot and no video. Leave empty to record alarms on the panel only.
       name_i18n:
         zh: Webhook 地址

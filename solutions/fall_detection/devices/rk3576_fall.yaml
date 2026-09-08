@@ -351,6 +351,12 @@ remote_overrides:
         # The detector check above already proved the input side — the panel
         # subscribes to the same broker the detector publishes to. What remains
         # is that the panel itself came up and serves its API.
+        #
+        # ignore_error: the detector is the deliverable here and it has already
+        # passed its own check by this point. A panel that failed to start must
+        # not turn a working fall-detection deployment into a failed one; it
+        # reports loudly and leaves the rest standing.
+        ignore_error: true
         timeout: 180
         run: |
           set -e
@@ -476,6 +482,8 @@ remote_overrides:
       type: text
       required: false
       placeholder: "http://192.168.1.50:9099/alarm"
+      validation:
+        pattern: "^$|^https?://[^\\s\"']+$"
       description: Where a confirmed alarm is POSTed. The payload carries the alarm id, kind, zone, stream, timestamp and operator — no snapshot and no video. Leave empty to record alarms on the panel only.
       name_i18n:
         zh: Webhook 地址
