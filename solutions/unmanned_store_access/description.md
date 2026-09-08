@@ -76,7 +76,7 @@ n=12 read the p95 column as an upper bound.
 
 | Camera / host | 10 people | 1 000 people |
 |---|---|---|
-| reCamera Pro (RV1126B), f1-access 0.1.1 | **0.63 s** (0.66) | **0.64 s** (0.66) |
+| reCamera Pro (RV1126B), f1-access 0.1.1 | **0.62 s** (0.67) | **0.66 s** (0.68) |
 | Standard reCamera (SG2002) | — | — |
 | AI host + RTSP camera (Jetson) | — | — |
 
@@ -85,7 +85,7 @@ The pin was asserted in 24 of 24 runs. Conditions: 1280x720 frames replayed at
 stock video clip replayed through the device's own pipeline, not a live person.
 The 1 500 ms contact hold that follows the pin write is not counted. No relay
 and no lock are connected, so these figures contain no mechanical response. The
-measured p50 difference between the 10-person and 1 000-person library is 11 ms.
+measured p50 difference between the 10-person and 1 000-person library is 37 ms.
 Source: "evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
 unmanned-store-access repository.
 
