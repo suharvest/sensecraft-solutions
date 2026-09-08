@@ -73,22 +73,36 @@ closing.** Measured on the device, running the deployed app itself, over the
 complete pipeline — capture, detection, liveness, matching, policy, GPIO pulse.
 p50, with p95 in brackets, 12 approaches per point.
 
-| Camera / host | 10 people | 100 people | 500 people | 1 000 people | 1 500 people |
-|---|---|---|---|---|---|
-| reCamera Pro (RV1126B) | **3.74 s** (3.78) | **3.72 s** (3.75) | **3.75 s** (3.78) | **3.75 s** (3.80) | **3.78 s** (3.81) |
-| Standard reCamera (SG2002) | — | — | — | — | — |
-| AI host + RTSP camera (Jetson) | — | — | — | — | — |
+| Camera / host | 10 people | 1 000 people |
+|---|---|---|
+| reCamera Pro (RV1126B), f1-access 0.1.1 | **0.63 s** (0.66) | **0.64 s** (0.66) |
+| Standard reCamera (SG2002) | — | — |
+| AI host + RTSP camera (Jetson) | — | — |
 
-60 of 60 approaches opened the door. Conditions: reCamera Pro, 1280x720 frames
-replayed at 12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the
-probe is a stock video clip replayed through the device's own pipeline, not a
-live person, and the endpoint is a sysfs readback of the GPIO pin with no relay
-or lock connected. Library size costs 43 ms between 10 and 1 500 people: the
-cosine scan is 0.215 ms at 10 people and 13.1 ms at 1 500. The time is the
-recognition pipeline itself — the device runs 7.0-7.2 fps and liveness needs
-motion evidence across frames. Source:
-"evaluation/runs/2026-09-08-open-door-latency/results.md" in the
+24 of 24 approaches opened the door. Conditions: reCamera Pro running the
+`f1-access` 0.1.1 app itself, 1280x720 frames replayed at 12.5 fps, liveness on,
+`min_face_px` 40, `match_threshold` 0.40; the probe is a stock video clip
+replayed through the device's own pipeline, not a live person. The endpoint is
+the moment the GPIO pin is driven to its active level — the 1 500 ms contact
+hold that follows is not counted. No relay and no lock are connected.
+Library size costs 11 ms between 10 and 1 000 people. Source:
+"evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
 unmanned-store-access repository.
+
+**Presentation attacks: 100 rejections in 100 attempts.** Same device, same
+app, 20 attempts per row; a rejection means the contact never closed.
+
+| Attempt | Face library | Contact closed |
+|---|---|---|
+| Unregistered person | 10 people | 0 / 20 |
+| Unregistered person | 1 000 people | 0 / 20 |
+| Phone screen replay, clip A | 10 people, template taken from the attack clip | 0 / 20 |
+| Phone screen replay, clip B | 10 people, template taken from the attack clip | 0 / 20 |
+| Still screen image (photo stand-in) | 10 people, template taken from the attack clip | 0 / 20 |
+
+The three replay rows enrol the attacker's own face, so identity always matches
+and only the liveness check stands between the screen and the door. The photo
+row uses a single display frame held still, not a printed photograph.
 
 The standard reCamera row is empty because its recogniser is a closed native
 process with no way to feed it a frame: measuring it needs a person in front of
