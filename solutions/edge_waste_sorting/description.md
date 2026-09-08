@@ -86,7 +86,7 @@ scores 0.8889 material top-1 on the full 7417-image validation set. The
 1060-image-subset TensorRT figures (0.8755 top-1, 0.9991 agreement vs CPU)
 were first measured on a reComputer J40 (Orin NX 16GB) and reproduce
 bit-identically on a reComputer J30 (Orin Nano 8GB) — same ONNX, same
-precision, same three output digits on both boards.
+precision, same figures to four decimal places on both boards.
 
 ### Platform support
 
