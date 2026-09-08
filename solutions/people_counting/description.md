@@ -46,7 +46,6 @@ These are measured on the module. Real-world counting accuracy depends on your m
 | Counting zones | Up to 4, each with a live occupancy number |
 | Lighting | Normal indoor lighting. Strong backlight behind the subject is the common failure case |
 | Density | Tracking is per-frame association; heavy occlusion in dense crowds will cost accuracy |
-| Not yet measured | Counting accuracy against a human ground-truth count, and detection recall from a straight-down ceiling mount, have not been tested |
 
 ## Mounting Suggestions
 
