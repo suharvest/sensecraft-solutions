@@ -17,11 +17,11 @@ ssh:
   command_timeout: 300
 binary:
   deb_package:
-    path: https://github.com/yyling0101-a11y/reCamera_2002w_sdk/releases/download/recamera-onvif-v0.2.0/recamera-onvif_0.2.0_riscv64.deb
+    path: https://github.com/yyling0101-a11y/reCamera_2002w_sdk/releases/download/recamera-onvif-v0.2.1/recamera-onvif_0.2.1_riscv64.deb
     name: recamera-onvif
     includes_init_script: true
     checksum:
-      sha256: 9babcbefea64ff76d26110fbd1174d4bf29377c1950fc3599b36957e792a0c1a
+      sha256: 2d5e4843273b540fcfebd9c7a4740000c6695b1a24711a7647e727a75356cf58
   service_name: recamera-onvif
   service_priority: 92
   auto_start: true
