@@ -123,19 +123,18 @@ OpenAPI 回填也从未在真实响应上验证过。
 
 ## 套餐: 自建 The Things Stack {#tts_local}
 
-网络服务器由你自己跑。CM4 主机上的 WM1302 集中器把数据喂给一个 The Things Stack
+网络服务器由你自己跑。reComputer R12 系列网关把数据喂给一个 The Things Stack
 开源版实例，桥订阅它的 Application Server MQTT。不涉及任何云账号。
 
 | 设备 | 作用 |
 |--------|---------|
 | SenseCAP S21xx 节点 | 测土壤与空气，通过 LoRaWAN 上报 |
-| WM1302 集中器 | 网关的射频部分，走 SPI |
-| CM4 主机 | 承载集中器，运行 packet forwarder 和 stack |
+| reComputer R12 系列网关 | 网关射频，以及同一台机器上的 packet forwarder 与 stack |
 | 装 Docker 的 Linux 主机 | 运行 Home Assistant、MQTT broker 和桥 |
 
-**重要：** 本套餐没有任何一部分在硬件上跑过。集中器没装过，
+**重要：** 本套餐没有任何一部分在硬件上跑过。R12 网关射频没起过，
 stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过，资源下限未测。
-下面标着待验证的步骤都是照模块与 stack 文档写的，
+下面标着待验证的步骤都是照网关与 stack 文档写的，
 而且每一条都属于"会以板卡特有方式失败"的那类步骤。
 
 ## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
@@ -168,18 +167,18 @@ stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过�
 
 ---
 
-## 步骤 2: 安装 WM1302 集中器 {#wm1302_tts type=manual required=true config=devices/wm1302_tts.yaml}
+## 步骤 2: 启用网关射频 {#r12_gateway_tts type=manual required=true config=devices/r12_gateway_tts.yaml}
 
-装模块、打开 SPI、跑一个指向 stack 的 packet forwarder。
-**待真机验证**——打包过程中没有装过 WM1302。
+集中器就在 R12 机器里；接好天线、确认 SPI 设备，再跑一个指向 stack 的 packet forwarder。
 
 ### 接线
 
-1. 装模块前先断电。上电之前先接好 LoRa 天线；开路发射可能损坏射频。
-2. 用 SPI 版模块，主机上打开 SPI 后确认 `/dev/spidev0.0` 出现。
-3. reset、power-enable 与 SX1261 三条控制线来自载板文档，不是模块文档。
-   把引脚编号记下来——packet forwarder 的配置要用。
-4. 核对模块上印的频段与节点所用频段。不一致的表现就是网关什么都收不到。
+1. 上电之前先把 LoRa 天线接到 SMA 座上；开路发射可能损坏射频。
+2. 确认 `/dev/spidev0.0` 存在。出厂镜像通常已经暴露；没有就打开 SPI 后重启。
+3. reset、power-enable 与 SX1261 三条控制线的引脚编号取自 R12 产品 wiki。
+   把编号记下来——packet forwarder 的配置要用。
+4. 核对这台机器下单时的地区频段与节点所用频段。不一致的表现就是网关什么都收不到，
+   而且频段在软件里改不了。
 
 ### 故障排查
 
@@ -187,7 +186,7 @@ stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过�
 |-------|----------|
 | forwarder 退出且没打印 EUI | SPI 没打开，或 reset 线接错。先确认 `/dev/spidev0.0` 存在 |
 | Console 里网关一直未连接 | UDP 1700 没通到 stack 主机。先查防火墙，再动射频配置 |
-| 集中器起来了但没有上行 | 模块频段、频率计划与节点频段三者不一致，是首先要排除的 |
+| 集中器起来了但没有上行 | 机器频段、频率计划与节点频段三者不一致，是首先要排除的 |
 
 ---
 
@@ -291,18 +290,18 @@ stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过�
 
 ## 套餐: 本地 ChirpStack {#chirpstack_local}
 
-ChirpStack 作网络服务器，可以是 M2 网关内置的，也可以是跑在装了 WM1302 的 CM4 主机上的
+ChirpStack 作网络服务器，可以是 M2 网关内置的，也可以是跑在 reComputer R12 系列网关上的
 Docker 版本。这是走到"全程不碰外网"部署的最短路径。
 
 | 设备 | 作用 |
 |--------|---------|
 | SenseCAP S21xx 节点 | 测土壤与空气，通过 LoRaWAN 上报 |
 | SenseCAP M2 网关 | 射频；切到本地模式后它本身就是网络服务器 |
-| CM4 主机 + WM1302 | M2 之外的另一条路——用 Docker 跑 ChirpStack |
+| reComputer R12 系列网关 | M2 之外的另一条路——用 Docker 跑 ChirpStack |
 | 装 Docker 的 Linux 主机 | 运行 Home Assistant、MQTT broker 和桥 |
 
 **重要：** 本套餐的两条路线都没有在硬件上跑过。没有 M2 被切到本地模式，
-没有装过集中器，ChirpStack 也没在 ARM64 目标上起过。
+R12 网关射频没起过，ChirpStack 也没在 ARM64 目标上起过。
 M2 能否同时向云端和本地网络服务器上报，尚未核实——
 在你手上那台机器上确认之前，不要按这个假设做规划。
 
@@ -359,17 +358,16 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 
 ---
 
-## 步骤 3: 安装 WM1302 集中器 {#wm1302_chirpstack type=manual required=false config=devices/wm1302_chirpstack.yaml}
+## 步骤 3: 启用网关射频 {#r12_gateway_chirpstack type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
 
-步骤 2 之外的另一条路：在 CM4 主机上自己搭网关，并在那里跑 ChirpStack。
-**待真机验证**——打包过程中没有装过 WM1302。
+步骤 2 之外的另一条路：用 reComputer R12 系列网关代替 M2，网关与 ChirpStack 都跑在这一台上。
 
 ### 接线
 
-1. 装模块前先断电，上电之前先接好 LoRa 天线。
-2. 用 SPI 版，打开 SPI 后确认 `/dev/spidev0.0` 出现。
-3. reset、power-enable 与 SX1261 的引脚编号取自载板文档，记下来。
-4. 模块上印的频段必须与步骤 4 选的频率计划、以及节点所用频段一致。
+1. 上电之前先把 LoRa 天线接到 SMA 座上。
+2. 确认 `/dev/spidev0.0` 存在；没有就打开 SPI 后重启。
+3. reset、power-enable 与 SX1261 的引脚编号取自 R12 产品 wiki，记下来。
+4. 这台机器下单时的地区频段，必须与步骤 4 选的频率计划、以及节点所用频段一致。
 
 ### 故障排查
 
@@ -388,7 +386,7 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 ### 前置条件
 
 1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
-2. `local` 路线：至少 8 GB 空闲磁盘，以及与集中器和节点一致的频率计划。
+2. `local` 路线：至少 8 GB 空闲磁盘，以及与网关和节点一致的频率计划。
 3. 步骤 1 的 broker 地址、端口、用户名与密码。
 4. 桥的镜像。已发布在
    `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`

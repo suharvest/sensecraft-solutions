@@ -12,7 +12,7 @@ value crosses a threshold.
 There are three ways in, and they end in the same place. Preset 1 reads the
 SenseCAP cloud. Preset 2 reads a The Things Stack instance you run yourself.
 Preset 3 reads ChirpStack — either the one built into an M2 gateway, or one you
-run in Docker beside a WM1302 concentrator. A single service, `agri-env-bridge`,
+run in Docker on a reComputer R12 Series gateway. A single service, `agri-env-bridge`,
 sits behind all three: it maps SenseCAP `measurementId` values to entity
 semantics, deduplicates, tracks whether each node is still reporting, and
 publishes Home Assistant MQTT discovery messages.
@@ -96,14 +96,14 @@ preset that can show history from before it was installed, and the only one that
 needs outbound internet. It also needs a SenseCAP API key pair.
 
 **Self-hosted The Things Stack** — pick this when you want the network server
-under your own control and are prepared to build a gateway: a WM1302
-concentrator on a CM4 host, a packet forwarder, and a stack with its own
+under your own control and are prepared to run the gateway yourself: a
+reComputer R12 Series gateway, a packet forwarder, and a stack with its own
 Postgres and Redis. The heaviest of the three in both setup effort and resource
 use.
 
 **Local ChirpStack** — pick this when the gateway can be the network server. On
 an M2 the whole network server is a setting in its web interface, which makes
-this the shortest path to a fully local deployment; on a CM4 host with a WM1302
+this the shortest path to a fully local deployment; on a reComputer R12 Series gateway
 it is a Docker stack instead. This is the preset the offline acceptance scenario
 uses.
 
