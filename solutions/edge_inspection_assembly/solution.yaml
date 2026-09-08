@@ -116,6 +116,24 @@ intro:
       purchase:
         require:
           ai_accelerator: hailo-8
+    recamera_pro:
+      description: >-
+        The whole inspection node on the camera itself — detection, OK/NG
+        verdict, Modbus TCP and MQTT, no separate compute box. Its NPU runs the
+        detector in INT8. Measured on the device over the 205-image DeepPCB
+        validation split: mAP50 0.9870 against 0.9876 for the fp32 CPU
+        reference, aggregate precision 0.9299 and recall 0.9741 at the frozen
+        0.35 score, inference p50 30.9 ms — measured by replaying validation
+        images on the device, with the 64 INT8 calibration images drawn from
+        that same split. Pick it when the station has one fixed view and no room
+        for a host.
+      description_i18n:
+        zh: >-
+          整个质检节点跑在相机上——检测、OK/NG 判定、Modbus TCP 与 MQTT，不需要
+          另配主机。它的 NPU 用 INT8 跑检测器。设备实测 DeepPCB 验证集 205 张：
+          mAP50 0.9870，fp32 CPU 参考为 0.9876；冻结阈值 0.35 下精确率 0.9299、
+          召回率 0.9741；推理 p50 30.9 ms——在设备上回放验证集图片测得，INT8 的
+          64 张校准图取自同一份验证集。工位只有一个固定机位、又放不下主机时选它。
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -185,6 +203,55 @@ intro:
           options:
             - device_ref: generic_ip_camera
           default: generic_ip_camera
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: >-
+        Camera and inspection node in one enclosure. The detector runs in INT8
+        on the camera's own NPU and the verdict leaves the device over Modbus
+        TCP 502 and MQTT, the same register map and event schema the Orin and
+        Hailo paths use. Measured on the device over the 205-image DeepPCB
+        validation split: mAP50 0.9870 against 0.9876 for the fp32 CPU
+        reference, mAP50-95 0.8000 against 0.8213, inference p50 30.9 ms and
+        p95 34.5 ms with the camera's built-in application stopped. The mAP50-95
+        gap is box tightness at high IoU rather than a drop in detection: at the
+        frozen 0.35 score this build and the CPU reference report the same
+        aggregate 0.9299 precision and 0.9741 recall over those images, on a
+        slightly different set of 30 missed boxes. The 64 INT8 calibration
+        images came from that same validation split, so the INT8 column is
+        optimistic by an unmeasured amount, and the figures come from replaying
+        validation images on the device rather than from a camera pointed at a
+        board. An fp16 build of the same model is
+        also published — mAP50-95 0.8221, p50 110.3 ms — for a station that
+        needs the tighter boxes more than the frame rate. Assembly comparison
+        and dimension measurement need per-station ROIs and stay off in this
+        preset; the Orin and Hailo paths carry them.
+      description_i18n:
+        zh: >-
+          相机与质检节点在同一个壳里。检测器用 INT8 跑在相机自己的 NPU 上，判定经
+          Modbus TCP 502 与 MQTT 出设备，寄存器表与事件 schema 和 Orin、Hailo 两条
+          路径一致。设备实测 DeepPCB 验证集 205 张：mAP50 0.9870（fp32 CPU 参考
+          0.9876）、mAP50-95 0.8000（参考 0.8213），停掉相机自带应用时推理 p50
+          30.9 ms、p95 34.5 ms。mAP50-95 的差距来自高 IoU 下的框贴合度，不是漏检：
+          在冻结阈值 0.35 下，这一版与 CPU 参考在这批图上的精确率同为 0.9299、
+          召回率同为 0.9741。同一模型的 fp16 版本也一并发布——mAP50-95 0.8221、
+          p50 110.3 ms——留给更看重框贴合度而不是帧率的工位。缺件比对与尺寸测量需要
+          按工位标 ROI，本预设不开；这两项由 Orin 与 Hailo 两条路径承载。
+      device_groups:
+        - id: compute
+          name: Camera and Inspection Node
+          name_i18n:
+            zh: 相机与质检节点
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
 
   stats:
     difficulty: advanced

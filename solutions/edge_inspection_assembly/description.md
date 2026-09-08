@@ -77,6 +77,7 @@ missing parts on your assemblies.
 | Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame "missing_count" = 0, on a different board all 6 go missing and "verdict_reasons" gains "missing" alongside "defect" | This project's M2 run, 2026-09-05, same device |
 | Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict "ok". Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
 | reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s ("hailortcli run"). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit, 2026-09-06 |
+| reCamera Pro (RV1126B) accuracy and latency | **mAP50 0.9870, mAP50-95 0.8000, inference P50 30.9 ms** | Same 205-image DeepPCB6 val set, YOLOX-Tiny 640², RKNN INT8 (rknn-toolkit2 2.3.2, 64 calibration images, channel-wise, `normal`). fp32 CPU reference on the same images: mAP50 0.9876, mAP50-95 0.8213. At the frozen 0.35 threshold this build reports the same aggregate P 0.9299 / R 0.9741 as the CPU reference, on a slightly different set of 30 missed boxes. The 64 calibration images were drawn from this same split, so the INT8 column is optimistic by an unmeasured amount. P95 34.5 ms, 205 back-to-back calls, camera's built-in application stopped. The fp16 build of the same model: mAP50 0.9875, mAP50-95 0.8221, P50 110.3 ms | This project's reCamera Pro run, 2026-09-08, on a reCamera Pro (librknnrt 2.3.2) |
 | Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on a GB10 GPU workstation with another training job co-resident on the same GPU | "edge-inspection-assembly" annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
 | Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
 
@@ -176,6 +177,22 @@ reComputer unit. The multi-stream sweep above is Orin-only. This board also
 has three hard prerequisites — matching Python minor version, HailoRT 4.21.x
 held across driver, library and Python bindings, and
 "hailo_pci force_desc_page_size=4096" — that the guide walks through.
+
+**reCamera Pro** puts the whole node inside the camera: capture, detection on
+the RV1126B NPU in INT8, the OK/NG verdict, the Modbus TCP server and the MQTT
+publisher, with no host and no network hop in the decision path. Measured on
+the device over the same 205-image val set: mAP50 0.9870 against 0.9876 for the
+fp32 CPU reference, inference P50 30.9 ms. mAP50-95 is 0.8000 against 0.8213 —
+that gap is box tightness at high IoU, and at the frozen 0.35 score this build
+and the CPU reference report the same aggregate precision and recall on those
+images, on a slightly different set of 30 missed boxes. Two limits: the 64 INT8
+calibration images came from that same validation split, so the INT8 column is
+optimistic by an unmeasured amount, and the figures come from replaying
+validation images on the device rather than from a camera pointed at a board. An
+fp16 build is published alongside it (mAP50-95 0.8221, P50 110.3 ms) for a
+station that needs the tighter boxes more than the frame rate. Assembly
+comparison and dimension measurement stay off on this path: both need ROIs
+marked per station, and this preset has no place to carry them.
 
 ## Usage Notes
 

@@ -1,0 +1,105 @@
+version: "1.0"
+name: reCamera Pro
+id: recamera_pro_assembly
+type: recamera_pro_app
+
+# The App Center on reCamera Pro runs one app at a time. This step configures
+# the `inspection-assembly` app and makes it the active one; installing it is
+# the App Center's own job, because a package has to carry a release signature
+# this repository does not hold. If the target's App Center does not list it,
+# the step says so and names what is installed instead.
+#
+# The model is not inside the package. The App Center delivers it separately
+# into /userdata/local/models/inspection-assembly/, which is where the app reads
+# it from; guide.md and guide_zh.md name the same path for this step.
+#
+# Verified on this hardware on 2026-09-08: model delivery, upload, install with
+# the release signature verified, activate, /healthz, verdicts on
+# inspection/{stream_id}/results and on Modbus TCP 502, stop, uninstall. Over
+# the 205-image DeepPCB validation split the INT8 model reached mAP50 0.9870
+# against 0.9876 for the fp32 CPU baseline, with inference p50 30.9 ms /
+# p95 34.5 ms.
+recamera_pro_app:
+  app_id: inspection-assembly
+  activation_timeout: 90
+  config:
+    stream_id: "{{device_name}}"
+    modbus_enabled: true
+    modbus_port: 502
+    modbus_unit_id: 1
+  # Only applied when a broker address is given. This camera ships no broker, so
+  # requiring one would put a broker between the user and a working inspection
+  # node for no reason: leave it empty and the verdict is still readable over
+  # Modbus TCP and on the camera itself, fill it in and every frame's verdict is
+  # forwarded as an event as well.
+  config_when:
+    - when_present: mqtt_host
+      config:
+        mqtt_host: "{{mqtt_host}}"
+        mqtt_port: "{{mqtt_port}}"
+        mqtt_username: "{{mqtt_username}}"
+        mqtt_password: "{{mqtt_password}}"
+  # The frozen defect score stays at the app's default 0.35. That is the
+  # threshold the precision and recall above were measured at, and a preset that
+  # quietly re-tuned it would invalidate those figures. It is adjustable
+  # afterwards in the app's own panel and applies without a restart.
+
+# The App renders its connection panel from this block, and the panel — not
+# user_inputs — supplies host and credentials. The transport is the web
+# console's HTTPS, not SSH.
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
+
+name_i18n:
+  zh: reCamera Pro
+
+post_deployment:
+  open_browser: false
+
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recamera-pro"
+    required: true
+    description: Goes into every event payload and into the default topic inspection/<name>/results, so several cameras on one broker stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: 它会进每一条事件的 payload，也会进默认 topic inspection/<名称>/results，同一个 broker 上的多台相机才分得开
+  - id: mqtt_host
+    name: MQTT Broker Address (optional)
+    type: text
+    required: false
+    placeholder: "192.168.1.50"
+    description: Leave empty to read verdicts over Modbus TCP and on the camera itself. Fill it in to forward every frame's verdict to an MES or your own consumer — this camera has no broker of its own.
+    name_i18n:
+      zh: MQTT 服务器地址（可选）
+    description_i18n:
+      zh: 留空就走 Modbus TCP 与相机本机看判定；填了才会把每一帧的判定转发到 MES 或你自己的消费方——这台相机不自带 broker
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    description: Leave empty if the broker allows anonymous clients
+    name_i18n:
+      zh: MQTT 用户名
+    description_i18n:
+      zh: broker 允许匿名连接就留空
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    name_i18n:
+      zh: MQTT 密码
