@@ -17,10 +17,14 @@ type: manual
 # (pinmux-pins: "pin 130 (gpio4-2): (MUX UNCLAIMED) (GPIO UNCLAIMED)"; gpioinfo
 # agrees), and it has been driven and read back with nothing connected
 # (idle 0, one pulse, back to 0, no stuck-active, no reclaim). Its physical
-# identity on the board, idle/driven voltage and available drive current have
-# NOT been measured with a meter on any unit, and no LED, relay or door
-# controller has ever been connected. Do not skip the meter step below on the
-# strength of these numbers alone.
+# identity on the board IS settled (device tree pinmux: gpio130 = GPIO4_A2 =
+# the expansion port's UART4 M0 TXD line, reconfigured as GPIO — the 3.3 V
+# family, not one of the two native 12-21 V outputs; see
+# docs/reports/recamera-pro-gpio130-identity-2026-09-08.md in the hub repo).
+# Its idle/driven voltage and available drive current have NOT been measured
+# with a meter on any unit, and no LED, relay or door controller has ever
+# been connected. Do not skip the meter step below on the strength of these
+# numbers alone.
 
 steps:
   - id: reach_device
@@ -64,14 +68,19 @@ steps:
       read each exported pin's `direction` and `value`. Then measure your
       candidate pin with a meter — idle level, driven level, and the current
       it can actually source — and confirm against the silkscreen or
-      schematic which line on the board it is. reCamera Pro's native outputs
-      swing 12-21 V while a UART or CAN pin reconfigured as GPIO gives 3.3 V,
-      and the relay module you buy has to match whichever you have. NONE OF
-      THIS HAS BEEN MEASURED on any unit: gpio130 has only ever been verified
-      to the level of "write value, read back 1". The app refuses to arm a
-      pin whose current direction and value disagree with the configured idle
-      state, and will not take it over unless explicitly told to. Leave that
-      refusal in place.
+      schematic which line on the board it is. Two of the board's exposed
+      lines are native GPIO outputs that swing 12-21 V depending on DC-IN;
+      separately, a UART or CAN pin on the expansion port can be reconfigured
+      to a 3.3 V GPIO, and the relay module you buy has to match whichever
+      you have. `gpio130` (GPIO4_A2) is confirmed by the device tree pinmux
+      to be the UART4 M0 TXD line reconfigured this way — it is in the 3.3 V
+      family, not one of the two native 12-21 V outputs — but that identity
+      check is not a voltage measurement: its idle/driven level and available
+      drive current have NOT been measured with a meter on any unit, and no
+      LED, relay or door controller has ever been connected. The app refuses
+      to arm a pin whose current direction and value disagree with the
+      configured idle state, and will not take it over unless explicitly told
+      to. Leave that refusal in place.
     description_i18n:
       zh: >-
         不要假定任何引脚空闲。被盘点的那台设备上 `gpio131` 已被另一个应用 export
@@ -83,11 +92,14 @@ steps:
         base 128，按编号推 base 会错整整一个 bank。用 `ls /sys/class/gpio` 看
         已占用的引脚，并逐个读它们的 `direction` 与 `value`。然后用万用表实测
         候选引脚：空闲电平、驱动电平、实际可供电流，并对照丝印或原理图确认它是
-        板上哪一路。reCamera Pro 的原生输出摆幅 12-21 V，而改配成 GPIO 的 UART
-        或 CAN 脚是 3.3 V，你买的继电器模块必须匹配你手上的那一种。**这些一项
-        都没有实测过**：gpio130 只验到了"写 value 后能回读到 1"这一层。
-        引脚当前的 direction / value 与配置的空闲状态不符时应用拒绝上任，
-        且不会自作主张接管，除非显式要求。把这个拒绝保留着。
+        板上哪一路。板上外露的两路原生 GPIO 输出摆幅 12-21 V（取决于
+        DC-IN）；另外，扩展口上的 UART 或 CAN 脚可以改配成 3.3 V GPIO，你买的
+        继电器模块必须匹配你手上的那一种。`gpio130`（GPIO4_A2）经设备树 pinmux
+        核实，是 UART4 M0 TXD 脚改配而来——属于 3.3 V 这一类，不是那两路
+        12-21 V 原生输出之一——但这只是身份核实，不是电压实测：**空闲/驱动电平
+        与可提供电流都没有在任何一台设备上用万用表实测过**，也从未接过 LED、
+        继电器或门禁控制器。引脚当前的 direction / value 与配置的空闲状态不符
+        时应用拒绝上任，且不会自作主张接管，除非显式要求。把这个拒绝保留着。
     optional: false
 
   - id: wire_relay

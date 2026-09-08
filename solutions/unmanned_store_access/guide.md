@@ -65,10 +65,12 @@ p95 2.709 ms. The device was restored byte for byte afterwards.
 Read those numbers for what they are. The 22 events were **injected synthetic
 recognition results**, not a person; the pin readback is sysfs, so the values are
 an upper bound; and **no external circuit has ever been connected** — no meter
-reading of `gpio130`, no LED, no relay, no door controller, and its physical identity on the
-board is still unconfirmed. The thresholds are the recognition app's own
-defaults; no calibration against measured recognition/rejection pairs has been
-run.
+reading of `gpio130`, no LED, no relay, no door controller. Its physical
+identity on the board is confirmed (device tree pinmux: the expansion port's
+UART4 M0 TXD line, reconfigured as GPIO — the 3.3 V family), but its
+idle/driven voltage and available drive current are still unmeasured. The
+thresholds are the recognition app's own defaults; no calibration against
+measured recognition/rejection pairs has been run.
 
 **Important.** This is not a certified security or life-safety system. The face
 embedding weights are non-commercial (see the licensing section on the solution
@@ -241,8 +243,20 @@ In this order, and do not skip ahead.
 1. **LED with a series resistor on the pin.** Confirm the polarity and the pulse
    width are what you configured. Nothing else is connected yet.
 2. **Relay module on its own supply.** Confirm the contact clicks once per
-   pulse. Match the module to the pin: reCamera Pro's native outputs swing
-   12–21 V, while a UART or CAN pin reconfigured as GPIO gives 3.3 V.
+   pulse. Match the module to the pin: two of the board's exposed lines are
+   native GPIO outputs that swing 12–21 V depending on DC-IN, while a UART or
+   CAN pin reconfigured as GPIO gives 3.3 V. The shipped default, `gpio130`
+   (GPIO4_A2), is confirmed by the device tree pinmux to be the UART4 M0 TXD
+   line reconfigured this way — it is in the 3.3 V family, not one of the
+   two native 12–21 V outputs — though its actual voltage and available
+   drive current still need confirming with a meter. Default relay: Grove -
+   Relay (SKU 103020005), SPST-NO, mechanical (non-solid-state) contact,
+   documented for 3.3–5 V trigger. If the door controller's input is
+   normally-closed and needs an `NC` terminal, use Grove - SPDT Relay(30A)
+   (SKU 103020012) instead — its 3.3 V trigger is not documented by the
+   vendor, so give it its own 5 V supply or confirm on hardware before
+   relying on it. A solid-state relay is not an option here: it is not a
+   mechanical dry contact, and a DC load once switched on stays on.
 3. **The relay's COM/NO dry contact into the door controller's input.** The
    lock, its power supply, and the door controller itself are supplied and
    wired by the door-control party — outside this solution's BOM. The relay

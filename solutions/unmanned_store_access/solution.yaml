@@ -278,16 +278,27 @@ intro:
         Runs recognition, liveness and the door logic on the camera itself,
         as F1 Door Access — a published App Center package installed once
         from the camera's own App Center and activated by this deployment,
-        not a package this solution installs from scratch. Its native
-        outputs swing 12–21 V, and a UART or CAN pin can be reconfigured to
-        3.3 V instead. The device survey found "gpio131" already exported by
-        another application, so no pin may be assumed free.
+        not a package this solution installs from scratch. Two of the board's
+        exposed lines are native GPIO outputs that swing 12–21 V depending on
+        DC-IN; separately, a UART or CAN pin on the expansion port can be
+        reconfigured to a 3.3 V GPIO. The shipped default, `gpio130`
+        (GPIO4_A2), is confirmed by the device tree pinmux to be the UART4
+        M0 TXD line reconfigured this way — it belongs to the 3.3 V family,
+        not the two native 12–21 V outputs — but its idle/driven voltage and
+        available drive current have not been measured with a meter on any
+        unit. The device survey also found "gpio131" (the paired UART4 RXD
+        line) already exported by another application, so no pin may be
+        assumed free.
       description_i18n:
         zh: >-
           识别、活体与门控判定都跑在摄像头本机，作为「F1 门禁」——一个已发布的
           App Center 包，从摄像头自己的应用中心装一次，再由这次部署激活，
-          不是本方案从零安装的包。它的原生输出摆幅 12–21 V，也可以把 UART
-          或 CAN 脚改配成 3.3 V。真机盘点发现 「gpio131」已被另一个应用
+          不是本方案从零安装的包。板上外露的两路原生 GPIO 输出摆幅 12–21 V
+          （取决于 DC-IN）；另外，扩展口上的 UART 或 CAN 脚可以改配成 3.3 V
+          GPIO。出厂默认的 `gpio130`（GPIO4_A2）经设备树 pinmux 核实，是 UART4
+          M0 TXD 脚改配而来——属于 3.3 V 这一类，不是那两路 12–21 V 原生输出——
+          但空闲/驱动电平与可提供电流还没有在任何一台设备上用万用表实测过。
+          真机盘点还发现「gpio131」（UART4 RXD 的配对脚）已被另一个应用
           export，所以任何引脚都不能假定空闲。
     recamera_2002:
       description: >-
