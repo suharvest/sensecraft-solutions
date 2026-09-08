@@ -68,10 +68,11 @@ the door path on your own site before it carries a door.
 thresholds and measure recognition, liveness and the door path on your own site
 before the design carries a door.
 
-**Door-open time: from the face entering the frame to the relay contact
-closing.** Measured on the device, running the deployed app itself, over the
-complete pipeline — capture, detection, liveness, matching, policy, GPIO pulse.
-p50, with p95 in brackets, 12 approaches per point.
+**Door-open time: from the first replay frame handed to the app to the GPIO pin
+being driven to its active level.** Measured on the device, running the
+`f1-access` 0.1.1 app itself, over capture, detection, liveness, matching,
+policy and the pin write. p50, with p95 in brackets, 12 runs per point — at
+n=12 read the p95 column as an upper bound.
 
 | Camera / host | 10 people | 1 000 people |
 |---|---|---|
@@ -79,30 +80,32 @@ p50, with p95 in brackets, 12 approaches per point.
 | Standard reCamera (SG2002) | — | — |
 | AI host + RTSP camera (Jetson) | — | — |
 
-24 of 24 approaches opened the door. Conditions: reCamera Pro running the
-`f1-access` 0.1.1 app itself, 1280x720 frames replayed at 12.5 fps, liveness on,
-`min_face_px` 40, `match_threshold` 0.40; the probe is a stock video clip
-replayed through the device's own pipeline, not a live person. The endpoint is
-the moment the GPIO pin is driven to its active level — the 1 500 ms contact
-hold that follows is not counted. No relay and no lock are connected.
-Library size costs 11 ms between 10 and 1 000 people. Source:
-"evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
+The pin was asserted in 24 of 24 runs. Conditions: 1280x720 frames replayed at
+12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the probe is a
+stock video clip replayed through the device's own pipeline, not a live person.
+The 1 500 ms contact hold that follows the pin write is not counted. No relay
+and no lock are connected, so these figures contain no mechanical response. The
+measured p50 difference between the 10-person and 1 000-person library is 11 ms.
+Source: "evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
 unmanned-store-access repository.
 
-**Presentation attacks: 100 rejections in 100 attempts.** Same device, same
-app, 20 attempts per row; a rejection means the contact never closed.
+**Rejections: the pin was never asserted in 100 runs.** Same device, same app,
+20 runs per row. 40 runs are an unregistered person; 60 are a screen held in
+front of the lens.
 
-| Attempt | Face library | Contact closed |
+| Run | Face library | Pin asserted |
 |---|---|---|
-| Unregistered person | 10 people | 0 / 20 |
-| Unregistered person | 1 000 people | 0 / 20 |
-| Phone screen replay, clip A | 10 people, template taken from the attack clip | 0 / 20 |
-| Phone screen replay, clip B | 10 people, template taken from the attack clip | 0 / 20 |
-| Still screen image (photo stand-in) | 10 people, template taken from the attack clip | 0 / 20 |
+| Unregistered person | 9 synthetic identities | 0 / 20 |
+| Unregistered person | 999 synthetic identities | 0 / 20 |
+| Phone screen replay, clip A | 10, template built from the attack clip | 0 / 20 |
+| Phone screen replay, clip B | 10, template built from the attack clip | 0 / 20 |
+| Still screen image | 10, template built from the attack clip | 0 / 20 |
 
-The three replay rows enrol the attacker's own face, so identity always matches
-and only the liveness check stands between the screen and the door. The photo
-row uses a single display frame held still, not a printed photograph.
+In the two unregistered-person rows the library holds only synthetic vectors, so
+the person in the clip is not enrolled. In the three screen rows the template is
+built from the attack clip itself, so the face in the library and the face on the
+screen are the same person. The still-screen row is one display frame held
+still; no printed photograph was tested.
 
 The standard reCamera row is empty because its recogniser is a closed native
 process with no way to feed it a frame: measuring it needs a person in front of
