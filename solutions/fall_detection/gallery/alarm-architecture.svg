@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" font-family="Helvetica, Arial, sans-serif">
+  <rect width="900" height="420" fill="#ffffff"/>
+
+  <!-- camera -->
+  <rect x="30" y="170" width="130" height="60" rx="8" fill="#eef3f8" stroke="#4a6b8a" stroke-width="2"/>
+  <text x="95" y="196" text-anchor="middle" font-size="14" fill="#213547">RTSP</text>
+  <text x="95" y="214" text-anchor="middle" font-size="12" fill="#5a6b7a">camera</text>
+
+  <!-- inference -->
+  <rect x="200" y="140" width="200" height="120" rx="8" fill="#f3f7f1" stroke="#5c7f52" stroke-width="2"/>
+  <text x="300" y="168" text-anchor="middle" font-size="14" fill="#213547">edgefallkit</text>
+  <text x="300" y="188" text-anchor="middle" font-size="12" fill="#5a6b7a">pose + fall state</text>
+  <text x="300" y="206" text-anchor="middle" font-size="12" fill="#5a6b7a">Orin / Hailo-8 /</text>
+  <text x="300" y="222" text-anchor="middle" font-size="12" fill="#5a6b7a">reCamera native</text>
+  <text x="300" y="246" text-anchor="middle" font-size="11" fill="#8a5a2a">MQTT result v1</text>
+
+  <!-- broker -->
+  <rect x="440" y="170" width="110" height="60" rx="8" fill="#fbf4e8" stroke="#a07a34" stroke-width="2"/>
+  <text x="495" y="196" text-anchor="middle" font-size="14" fill="#213547">MQTT</text>
+  <text x="495" y="214" text-anchor="middle" font-size="12" fill="#5a6b7a">broker 1883</text>
+
+  <!-- alarm service -->
+  <rect x="590" y="90" width="270" height="240" rx="8" fill="#f6f1f8" stroke="#7a5c8a" stroke-width="2"/>
+  <text x="725" y="116" text-anchor="middle" font-size="14" fill="#213547">eldercare-alarm</text>
+  <rect x="610" y="130" width="230" height="34" rx="5" fill="#ffffff" stroke="#b6a7c0"/>
+  <text x="725" y="152" text-anchor="middle" font-size="12" fill="#213547">zones: bbox centre in rect</text>
+  <rect x="610" y="172" width="230" height="34" rx="5" fill="#ffffff" stroke="#b6a7c0"/>
+  <text x="725" y="194" text-anchor="middle" font-size="12" fill="#213547">no_person / no_motion timeout</text>
+  <rect x="610" y="214" width="230" height="34" rx="5" fill="#ffffff" stroke="#b6a7c0"/>
+  <text x="725" y="236" text-anchor="middle" font-size="12" fill="#213547">state machine + SQLite audit</text>
+  <rect x="610" y="256" width="230" height="34" rx="5" fill="#ffffff" stroke="#b6a7c0"/>
+  <text x="725" y="278" text-anchor="middle" font-size="12" fill="#213547">webhook / MQTT notify</text>
+  <rect x="610" y="298" width="230" height="22" rx="5" fill="#ffffff" stroke="#b6a7c0"/>
+  <text x="725" y="314" text-anchor="middle" font-size="12" fill="#213547">confirm UI :8080</text>
+
+  <!-- arrows -->
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#44566a"/>
+    </marker>
+  </defs>
+  <line x1="160" y1="200" x2="196" y2="200" stroke="#44566a" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="400" y1="200" x2="436" y2="200" stroke="#44566a" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="550" y1="200" x2="586" y2="200" stroke="#44566a" stroke-width="2" marker-end="url(#a)"/>
+
+  <text x="450" y="370" font-size="12" fill="#5a6b7a">No snapshot or video is attached to a notification. All processing stays on the local network.</text>
+  <text x="450" y="392" font-size="12" fill="#8a3a3a">Not a medical device and not a certified emergency-response product.</text>
+</svg>
