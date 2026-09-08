@@ -74,9 +74,7 @@ rather than stopping at model conversion. Under that concurrent load, with
 both stages sharing the same GPU and sampled from the replay's own health
 snapshot (1024 detections, 271 embeddings), latency degrades to 8.76 ms p50 /
 9.53 ms p95 (detector) and 5.37 ms p50 / 5.83 ms p95 (embedder) — still
-faster than every other preset's detector path. Measured on the Orin NX unit
-(reComputer J40) only; the smaller Orin Nano option in the same family
-(reComputer J30) has not been tested.
+faster than every other preset's detector path. Measured on the Orin NX unit (reComputer J40) only; the smaller Orin Nano option in the same family (reComputer J30) has not been tested.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
@@ -91,6 +89,18 @@ over the run. Reference value on the same Hailo-8 platform.
 56.7 ms p50 / 89.5 ms p95. RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms
 p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
 the same RK3588 platform.
+
+**Embedding + end to end, reComputer RK3588 series.** DINOv2-small on the NPU
+(fp16, `RETAIL_RKNN_DET_CORE_MASK=2` / `RETAIL_RKNN_EMBED_CORE_MASK=01`):
+53.19 ms p50 for the embedder against a fp32 ONNX CPU reference, largest gap
+0.85 percentage points across 21 retrieval metrics. Once, on a 20-SKU shelf
+replay with the console computing no vectors itself
+(`embedder_backend=none`, retrieval via `/v1/gallery/match`): 924 ms p50 /
+1153 ms p95 from frame to a recognised item published, zero publish errors,
+and automatic MQTT reconnect after a 38 s console outage with no event loss on the device side (the console's own on-disk receipt was not independently checked).
+A top-1 check against the same crops on a CPU with the fp32 source model, on
+only 20 single-frame crops, differed by 10 percentage points — short of this
+project's <=1 pp parity target, on too few samples for a reliable number. Measured on the same RK3588 platform.
 
 **Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
 (RK3588 has three). Measured on the same RK3576 chip platform, inference
@@ -121,13 +131,13 @@ mAP50-95, the 1280² preset 56.32. mAP50 at 640² is 88.26 — the boxes are fou
 they are not placed tightly. Moving to 1280² lifts small-object mAP50-95 from
 17.49 to 26.88, which is why the shelf preset exists.
 
-**The embedder runs on the CPU on RK3588 and the Hailo-8 preset, on the NPU on
+**The embedder runs on the CPU on the Hailo-8 preset, on the NPU on RK3588,
 RK3576 and reCamera Pro, and on the GPU on the Jetson Orin preset.** The
-Hailo quantisation attempts did not reach usable accuracy, and there is no
-RKNN conversion of the embedder for RK3588; RK3576, reCamera Pro and the
-Jetson Orin preset each have their own real on-accelerator embedding numbers
-above. On the CPU paths, budget 92 ms per crop and plan frame skipping or
-slot-level sampling for shelf frames.
+Hailo quantisation attempts did not reach usable accuracy; RK3588, RK3576,
+reCamera Pro and the Jetson Orin preset each have their own real
+on-accelerator embedding numbers above. On the CPU path (the Hailo-8 preset,
+or RK3588/RK3576 without the NPU embedder), budget 92 ms per crop and plan
+frame skipping or slot-level sampling for shelf frames.
 
 **Detection + embedding, reCamera Pro.** Both stages run as fp16 RKNN on the
 camera's own onboard NPU. Measured on the camera itself with its bundled

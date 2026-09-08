@@ -23,21 +23,33 @@ on a separate host.
 | Embedder, same model on the CPU (dynamic INT8, 4 threads) | 93.45 ms p50 / 94.86 ms p95 |
 | Detector and embedder sharing all three cores | embedder 88.94 ms p50, detector 76.91 ms p50 |
 | Detector on core 2, embedder on cores 0+1 | embedder 53.19 ms p50, detector 60.88 ms p50 |
+| End to end (frame in, recognised item published), core 2 / core 0+1 split, embedding on the device, retrieval on `console:0.2.0` (`embedder_backend=none`, `/v1/gallery/match`) | 924 ms p50, 1153 ms p95 |
 
-Two facts follow from the last two rows and are worth setting before you deploy:
+Two facts follow from the shared-core row and are worth setting before you deploy:
 give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
 `RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
 `AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
 
 Nothing was measured on RK3576; the numbers above are RK3588 only.
 
-**What has not.** End-to-end latency — from a frame to a recognised item visible
-on the console — has not been measured for this configuration. The device-side
-process that joins detection, embedding, lookup and publishing does exist
-upstream (`platforms/rk3588/runtime.py` against `platforms/rk3588/runtime.yaml`),
-but this preset does not deploy or supervise it: it converts both models, proves
-the conversions on the board, and stops there. Running that process on your own
-line is your step.
+**What has been measured end to end, and what has not.** The device-side
+process that joins detection, embedding, lookup and publishing exists upstream
+(`platforms/rk3588/runtime.py` against `platforms/rk3588/runtime.yaml`); this
+preset still does not deploy or supervise it — running it on your own line is
+your step. What that process was measured doing, once, on a 20-SKU shelf
+replay with the console's `embedder_backend=none` and `gallery.match_url`
+pointed at `console_stack:0.2.0` (device computes the embedding on its own
+NPU, console only does the retrieval): 924 ms p50 / 1153 ms p95 end to end,
+zero publish errors, and automatic MQTT reconnect after a 38 s console outage
+with no event loss on the device side (the console's own on-disk receipt was
+not independently checked). A top-1 comparison against the same crops embedded on a
+CPU with the fp32 ONNX source model, on only 20 single-frame crops, differed
+by 10 percentage points (14/20 vs 16/20) — short of this project's <=1 pp
+parity target, though two of those disagreements are borderline cases with a
+<0.01 similarity margin, not enough samples to stand as a reliable number (the
+embedding-level comparison in the table above, 0.85 pp over 21 retrieval
+metrics on a larger set, is not superseded by this). Full record:
+edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020`.
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 

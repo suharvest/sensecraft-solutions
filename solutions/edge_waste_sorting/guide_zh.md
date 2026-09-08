@@ -253,7 +253,7 @@ category，方案页上的每一个数字在它关闭时都成立。
 | VLM 给的类别与分类器不同 | 属预期，而且它不回填主事件。两个都记下来复盘；兜底目前的证据还不足以支持自动照做。 |
 | 启用 VLM 之后翻盖反应变慢 | `vlm.apply_fallback_to_gpio` 必须保持 false。翻盖不能去等一个 P50 以秒计的调用。 |
 
-## 套餐: 摄像头 + Raspberry Pi 5（Hailo-8） {#pi_hailo}
+## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
 
 把一台装了 Hailo-8 的 Pi 5（对应出货形态是 reComputer R2000 系列）准备好、
 验证三道只能在设备上检查的 ABI 关卡，然后下载 EfficientNet-Lite0（m1c）的
@@ -267,7 +267,7 @@ p95 3.249 ms（纯推理）。这份容器的从零部署也在同一台真机�
 
 | 设备 | 用途 |
 |---|---|
-| Raspberry Pi 5 + Hailo-8（PCIe M.2） | 在 NPU 上运行分类器 |
+| reComputer R2000 系列（Hailo-8，PCIe M.2） | 在 NPU 上运行分类器 |
 | USB 或 IP 摄像头 | 俯视投放区——一次拍一件 |
 | 实体按钮（可选） | 一个触发源；接线与 GPIO 读取是本包之外的集成工作 |
 | 继电器、翻盖或指示灯（可选） | 由 actuator 回调驱动，回调带四分类结果、不绑引脚 |
@@ -413,11 +413,11 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 | `_pyhailort` 导入报错 | 主机的绑定被挂进容器，只能在同一个 Python 小版本下导入。Bookworm 是 3.11，trixie 是 3.13。 |
 | 自己训的 MobileNetV3-Small 在 Hailo 上 INT8 表现很差 | 属预期——不要直接量化它。MobileNetV3-Small（m1b）在同一条编译链路上塌缩到接近随机水平（与 CPU/native 一致率 0.115）。EfficientNet-Lite0 正因为这个原因成为基线。 |
 
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml default=true}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000 series" config=devices/hailo_waste.yaml default=true}
 
 从本机通过 SSH 部署到树莓派。这是常规路径。
 
-### 部署目标 {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000 series" config=devices/hailo_waste.yaml}
 
 直接在树莓派上运行部署，适用于你已经在设备上作业的情况。
 

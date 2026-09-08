@@ -254,11 +254,11 @@ CPU 占单核 21%，解码确认走硬件。
 一块带 Hailo-8 的板卡跑完整套：MQTT broker、带告警工作台的汇聚 hub，以及人体检测走
 加速器的检测器。不需要第二台机器。
 
-Raspberry Pi 5 + Hailo-8 实测（1280x720）：流水线内推理 p50 7.7 ms、p95 8.4 ms，
+reComputer Industrial R20 系列（带 Hailo-8）实测（1280x720）：流水线内推理 p50 7.7 ms、p95 8.4 ms，
 全管线 p50 9.5 ms，CPU 占单核 8.7-13.0%，常驻内存 127-131 MB，测量时板卡上另有
 十个无关容器在跑。
 
-**视频解码在 CPU 上,这是设计如此,不是故障。** Raspberry Pi 5 没有 H.264 硬解——
+**视频解码在 CPU 上,这是设计如此,不是故障。** reComputer Industrial R20 系列没有 H.264 硬解——
 VideoCore VII 只解 HEVC——所以检测器上报 `decode: "sw"`、`fallback_active` 为
 false，上面那个 CPU 数字里同时包含了解码和推理。加第二路摄像头前先把这部分算进去。
 
