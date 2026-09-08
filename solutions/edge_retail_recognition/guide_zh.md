@@ -27,7 +27,14 @@ broker——以容器跑在另一台主机上。
 （`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01`）；核掩码不要
 留 `AUTO`——实测 `AUTO` 只用 core 0，core 1 与 core 2 全程 0%。
 
-RK3576 上什么都没测；上面的数字只来自 RK3588。
+上面这张表只来自 RK3588。RK3576（双 NPU 核，librknnrt 2.3.2，driver 0.9.8）
+用同一批 704 张 `ok` 状态货位裁剪，跑同一套检测器+嵌入器 RKNN fp16 转换，
+对照同一块板上算的 CPU fp32 ONNX 参考：CPU fp32 top-1 76.99%（542/704），
+RKNN fp16 top-1 76.28%（537/704），两条链路预测一致 99.29%（699/704）。
+嵌入器延迟（224×224 单裁剪，双 NPU 核）p50 61.0 ms / p95 66.95 ms——这项测量只计
+嵌入器调用耗时，不含检测器。完整记录见
+edge-retail-recognition 仓库 `evaluation/runs/2026-09-08-rk3576-acceptance`
+的 results.md。
 
 **端到端测到了什么、没测到什么。** 把检测、嵌入、检索与上报串起来的设备侧进程在
 上游是有的（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），
@@ -349,7 +356,7 @@ Hailo-8 与 RK3576 套餐止步于模型转换。以上数字均为 n=300、纯�
 |---|---|
 | 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
 | reComputer J40（Orin NX 16GB） | 检测与嵌入，两段都经 TensorRT fp16 跑在 GPU 上——实测机型 |
-| reComputer J30（Orin Nano 8GB） | 同一家族、同样角色；没有实测数字，本页数字全部来自 Orin NX（J40） |
+| reComputer J30（Orin Nano 8GB，J3011） | 同一家族、同样角色。同样已实测：检测器 p50 5.88 ms / p95 8.89 ms，嵌入器 p50 5.06 ms / p95 7.64 ms，21 项检索指标与 fp32 最大差 0.21 个百分点，6726 帧回放零掉帧 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}

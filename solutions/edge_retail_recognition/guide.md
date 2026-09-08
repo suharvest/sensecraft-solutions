@@ -30,7 +30,16 @@ give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
 `RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
 `AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
 
-Nothing was measured on RK3576; the numbers above are RK3588 only.
+The table above is RK3588 only. On RK3576 (dual NPU core, librknnrt 2.3.2,
+driver 0.9.8), the same 704 `ok`-state crops used for the RK3588 top-1 check
+below were run through the same detector+embedder RKNN fp16 conversion,
+matched against a CPU fp32 ONNX reference computed on the same board: CPU
+fp32 scored 542/704 (76.99%) top-1, RKNN fp16 scored 537/704 (76.28%), and the
+two backends agreed on the same predicted SKU in 699/704 cases (99.29%).
+Embedder latency (per 224x224 crop, dual NPU core) was 61.0 ms p50 / 66.95 ms
+p95 — this benchmark only times the embedder call, not the detector. Full
+record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3576-acceptance`
+results.md.
 
 **What has been measured end to end, and what has not.** The device-side
 process that joins detection, embedding, lookup and publishing exists upstream
@@ -170,7 +179,7 @@ settles where embedding runs.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own converted artifact, and records what is still unverified.
+number for your own converted artifact.
 
 ### Prerequisites
 
@@ -354,7 +363,7 @@ the embedder on the CPU with the frame budget that follows from it.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own HEF, and records what is still unverified.
+number for your own HEF.
 
 ### Prerequisites
 
@@ -409,7 +418,7 @@ inference only, on an engine built on the device it ran on.
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
 | reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
-| reComputer J30 (Orin Nano 8GB) | Same family, same role; not tested. The numbers on this page are from the Orin NX (J40) only |
+| reComputer J30 (Orin Nano 8GB, J3011) | Same family, same role. Also measured directly: detector 5.88 ms p50 / 8.89 ms p95, embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics within 0.21pp of fp32, 6726-frame replay with zero dropped frames |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}

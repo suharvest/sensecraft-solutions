@@ -1,11 +1,10 @@
 # Alarm service configuration. Units: *_sec seconds, *_ms milliseconds.
 # Coordinates are always normalised to [0, 1].
 #
-# Shipped as the documented default. On the Orin and Hailo presets the deploy
-# step REWRITES this file on the device from the values typed into the form
-# (zones, timeouts, broker, webhook), so edits made here before a deploy are
-# not preserved. Edit it on the device afterwards, or on the gateway for the
-# reCamera preset, where nothing rewrites it.
+# Shipped as the documented default. The deploy step REWRITES this file on the
+# device from the values typed into the form (zone, timeouts, broker, webhook,
+# panel port), so edits made here before a deploy are not preserved. Edit it on
+# the device afterwards and run `docker compose restart alarm-panel`.
 #
 # Source: eldercare-alarm/config.example.yaml.
 

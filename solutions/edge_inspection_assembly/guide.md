@@ -230,8 +230,8 @@ for that source, so a consumer never has to test for their existence. In v2,
   bundled mosquitto is anonymous and local by design.
 - Add cameras by appending to `sources[]`, each with its own `assembly` or
   `dimension` block. Eight streams at 10 fps was the last stable point measured
-  on an Orin NX 16GB, with MQTT and Modbus disabled during that test — budget
-  fewer with the full I/O path in place.
+  on a reComputer J30 series unit (J3011, Orin Nano 8GB), with MQTT and Modbus
+  disabled during that test — budget fewer with the full I/O path in place.
 
 ### Troubleshooting
 
@@ -243,30 +243,7 @@ for that source, so a consumer never has to test for their existence. In v2,
 | Everything is NG the moment the line starts | The expected list is still the shipped example. Rebuild it for your station before drawing any conclusion |
 | `dimension.enabled` is false in every event | That source has no `dimension` block; the calibration camera is a separate source in the shipped configuration |
 
-## Step 4: Enable VLM Explanations (Optional) {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-Optional. Points the runtime at an external shared VLM service
-(`edge-vision-vlm`, typically on a separate Orin box) so NG frames get a
-plain-language explanation on a side-channel MQTT topic. This never enters the
-frame loop and never changes a verdict — every number on the intro page holds
-with this step skipped.
-
-### Prerequisites
-
-- An `edge-vision-vlm` instance already running and reachable from this
-  device — this solution does not deploy or bundle that service.
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing — see the step's second substep |
-| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state, not a crash |
-| Explanation events arrive but the main results event does not | Should never happen — the two are independent. File this as a bug against the VLM client, not the trigger configuration |
-
-## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
+## Step 4: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`,
 SAM2-assisted) on a GPU workstation to turn your own images into an
@@ -455,33 +432,10 @@ implying `defect_count > 0`.
 | The panel does not open | Confirm port 8080 is reachable; host networking means a host firewall is the usual cause |
 | Panel loads but the preview is black | The source has not connected; check `/healthz` for a rising `frames_processed`, then the container logs |
 | The coil and the registers disagree | The write side is atomic; a reader issuing two Modbus requests can land between verdicts. Poll the registers first and treat the coil as the trigger |
-| Frame rate is far below the Jetson figures | Expected — those numbers are from an Orin NX with a TensorRT engine. Measure this board and use its own number |
+| Frame rate is far below the Jetson figures | Expected — those numbers are from a reComputer J30 series (Orin Nano 8GB) with a TensorRT engine. Measure this board and use its own number |
 | Everything is NG the moment the line starts | The expected list is still the shipped example; rebuild it for your station |
 
-## Step 4: Enable VLM Explanations (Optional) {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-Optional, identical to the Jetson preset. Points the runtime at an external
-shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
-box — the reComputer R2000 does not run it) so NG frames get a plain-language
-explanation on a side-channel MQTT topic. This never enters the frame loop and
-never changes a verdict.
-
-### Prerequisites
-
-- An `edge-vision-vlm` instance already running and reachable from this
-  reComputer R2000 — this solution does not deploy or bundle that service.
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing |
-| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state |
-| Explanation events arrive but the main results event does not | Should never happen — the two are independent |
-
-## Step 5: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
+## Step 4: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 Optional, identical to the Jetson preset. Runs the upstream semi-automatic
 annotation tool on a GPU workstation — nothing in this step runs on
@@ -511,10 +465,10 @@ fp16 build of the same model is published alongside it: mAP50-95 0.8221, p50
 110.3 ms.
 
 Two limits on those figures. The 64 INT8 calibration images were drawn from the
-same validation split the numbers are measured on, so the INT8 column is
-optimistic by an unmeasured amount. And they come from replaying validation
-images on the device, not from a camera pointed at a board — accuracy through
-this camera's own optics and capture path has not been measured.
+same validation split the numbers are measured on, so the INT8 column reads
+optimistic against unseen data. And they come from replaying validation
+images on the device, not from a camera pointed at a board — measure accuracy
+through this camera's own optics and capture path on your own line.
 
 | Device | Purpose |
 |--------|---------|
@@ -563,7 +517,7 @@ flips, so a PLC that sees the coil already has the matching data.
 | Activation stops another app | Expected — the App Center runs one application at a time |
 | No events on the broker, but the panel shows frames processed | The broker address or credentials are wrong; the verdict is still on Modbus. Check `mqtt.last_error` on the status panel |
 | Nothing on Modbus 502 | Confirm the app is the active one and that nothing else on the camera holds port 502 |
-| Frame rate is far below the Orin figures | Expected — those numbers are from an Orin NX with a TensorRT engine. Use this camera's own number |
+| Frame rate is far below the Orin figures | Expected — those numbers are from a reComputer J30 series (Orin Nano 8GB) with a TensorRT engine. Use this camera's own number |
 
 ## Step 2: Confirm One Verdict Leaves the Camera {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
 

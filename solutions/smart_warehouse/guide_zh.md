@@ -258,7 +258,7 @@ SenseCraft 体验版已就绪！
 
 部署库存管理服务，支持语音操控和网页看板。
 
-**容量规划（更快的 arm64 开发板实测，SoC 不同于 R1100 的 CM4 级，50 个物料，SQLite，每个并发档位 60 s，客户端经 Tailscale）**：库存查询在并发 10 及以下 p95 保持在 500 ms 以内（p95 404 ms），并发 20 时 p95 为 824 ms，并发 50 时 p95 为 5.5 s 且错误率为 0%。在这一档硬件上，按单台设备最多 10 个并发查询客户端规划，入库按物料串行，出库按每个出口 IP 每分钟 60 次预算。超出以上范围（更多并发客户端、更大数据量、MySQL 后端）均未实测，需要另行压测。要在自己的硬件上复测，可从 `warehouse_system` 仓库跑一个档位：`uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`。
+**容量规划（更快的 arm64 开发板实测，SoC 不同于 R1100 的 CM4 级，50 个物料，SQLite，每个并发档位 60 s，客户端经 Tailscale）**：10 个人同时查库存时 p95 为 404 ms，再往上时延继续增长。在这一档硬件上，按单台设备最多 10 个并发查询客户端规划，入库按物料串行，出库按每个出口 IP 每分钟 60 次预算。超出以上范围（更多并发客户端、更大数据量、MySQL 后端）请自行压测。要在自己的硬件上复测，可从 `warehouse_system` 仓库跑一个档位：`uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`。
 
 ### 部署目标 {#warehouse_local type=local config=devices/warehouse_deploy.yaml}
 

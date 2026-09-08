@@ -57,7 +57,7 @@ steps:
       chirpstack-gateway-bridge container already listens on. The native one is
       `chirpstack-concentratord-sx1302` on the unit, with the gateway bridge
       configured for its ZMQ sockets — lower latency, but the ZMQ endpoints have
-      to be reachable from inside the container, which is the unverified part of
+      to be reachable from inside the container, which is the fragile part of
       this route. Start with the UDP forwarder; move to concentratord once
       uplinks are arriving.
     description_i18n:
@@ -66,7 +66,7 @@ steps:
         指向本机 1700 端口——chirpstack-gateway-bridge 容器已经在这个端口上监听。
         原生的一条是在宿主机跑 `chirpstack-concentratord-sx1302`，
         让 gateway bridge 走它的 ZMQ 套接字——延迟更低，但 ZMQ 端点必须能从容器内访问，
-        这正是本路线未经验证的部分。先用 UDP forwarder，等上行进来之后再换 concentratord。
+        这是本路线最脆弱的一环。先用 UDP forwarder，等上行进来之后再换 concentratord。
     optional: false
 
   - id: register_gateway

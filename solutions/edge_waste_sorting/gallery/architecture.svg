@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" width="900" height="440" role="img" aria-label="Trigger and camera to edge device to MQTT, HTTP and GPIO outputs">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 372" width="900" height="372" role="img" aria-label="Trigger and camera to edge device to MQTT, HTTP and GPIO outputs">
   <title>Waste sorting data path</title>
   <!--
     Drawn for this solution. Contains no dataset imagery of any kind: only
@@ -12,15 +12,12 @@
     <style>
       .box   { fill:#ffffff; stroke:#5b6472; stroke-width:1.6; }
       .core  { fill:#eef3f8; stroke:#2f6fb3; stroke-width:2; }
-      .opt   { fill:#ffffff; stroke:#9aa5b1; stroke-width:1.4; stroke-dasharray:5 4; }
       .line  { stroke:#5b6472; stroke-width:1.6; fill:none; marker-end:url(#arrow); }
-      .dash  { stroke:#9aa5b1; stroke-width:1.4; fill:none; stroke-dasharray:5 4; marker-end:url(#arrow); }
       .t     { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; fill:#1f2733; }
       .h     { font-size:16px; font-weight:600; }
       .s     { font-size:13px; fill:#5b6472; }
       .p     { font-size:12px; fill:#5b6472; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
       .m     { font-size:12px; fill:#2f6fb3; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
-      .g     { font-size:11px; fill:#9aa5b1; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
     </style>
   </defs>
 
@@ -79,10 +76,4 @@
   <rect class="box" x="652" y="278" width="228" height="70" rx="8"/>
   <text class="t h" x="766" y="306" text-anchor="middle">GPIO callback</text>
   <text class="t m" x="766" y="328" text-anchor="middle">no pin binding</text>
-
-  <!-- optional VLM side channel -->
-  <rect class="opt" x="652" y="372" width="228" height="52" rx="8"/>
-  <text class="t s" x="766" y="394" text-anchor="middle">VLM fallback (optional)</text>
-  <text class="t g" x="766" y="412" text-anchor="middle">waste/&lt;id&gt;/fallback</text>
-  <path class="dash" d="M 402 344 L 402 398 L 648 398"/>
 </svg>

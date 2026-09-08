@@ -63,27 +63,40 @@ to the coil reads register data from the same verdict.
 **This is a demo package, not a certified metrology or safety product.** The
 dimension module measures pixels against a calibration reference; its accuracy
 depends on your optics, lighting and fixture, and it is not a substitute for a
-calibrated gauge in an acceptance test. The detection numbers below come from
-the DeepPCB dataset described in the box at the top of this page, which is a
-bare-board defect dataset — they say the chain works, not that this model finds
-missing parts on your assemblies.
+calibrated gauge in an acceptance test.
 
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Detection mAP50 | **0.9876** | DeepPCB6 val, 205 images / 1158 boxes, 6 classes; YOLOX-Tiny 640², TensorRT fp16; frozen threshold 0.35 gives P 0.9284 / R 0.9741, FP 87 / FN 30, 0 frames fully missed | This project's own M4 run, 2026-09-05, on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3) |
-| Inference throughput | **95.06 FPS** ("detect()" P50 10.52 ms) | Same device and engine, single stream, 500 timed calls over 60 pre-decoded frames; engine execute alone is ~6.3 ms, the rest is letterbox + CPU NMS | Same M4 run |
-| End-to-end latency, capture → Modbus coil | **P50 10.92 ms / P99 11.18 ms** | Single stream at the 10 fps line rate, 3000 samples, 0 frames dropped, 3000 Modbus writes. Unthrottled (89 FPS) the same path is P50 42.9 ms | Same M4 run |
-| Multi-stream capacity | **stable 8 / degrading 12 / failure 24 streams** | 640² at 10 fps per stream, 5 min per level, whole sweep run twice; MQTT and Modbus were disabled during this test, so a real deployment with I/O reaches fewer streams | Same M4 run |
-| Missing-part closed loop | **6 / 6 matched on the template frame, 6 / 6 missing after swapping boards** | Expected list generated from the ground-truth boxes of one val image (ROI = GT box ×1.6, 6 items); on that frame "missing_count" = 0, on a different board all 6 go missing and "verdict_reasons" gains "missing" alongside "defect" | This project's M2 run, 2026-09-05, same device |
-| Dimension error (ArUco calibration) | **worst relative error 0.65%** (budget 1%) | Synthetic ArUco scene, mm/px +0.40%, long edge 60 → 60.241 mm (+0.40%), short edge 40 → 40.261 mm (+0.65%); tolerance ±1.0 mm, verdict "ok". Identical on the uncompressed PNG and after mp4v encoding | Same M2 run |
-| reComputer R2000 (Hailo-8) throughput, latency and accuracy | **106.75 FPS hardware, 43.92 FPS full pipeline, mAP50 0.9858** | Hardware inference 854 frames / 8 s ("hailortcli run"). Accuracy on the 205-image val set: mAP50 0.9858, delta -0.0018 against the CPU golden. Application-level inference 94.02 FPS (P50 10.64 ms). Full pipeline including verdict, Modbus and MQTT: 43.92 FPS. End-to-end latency at the 10 fps line rate: P50 11.89 ms / P99 16.08 ms | Reference value measured on the same Hailo-8 platform; to be updated after a re-test on the reComputer unit, 2026-09-06 |
-| reCamera Pro (RV1126B) accuracy and latency | **mAP50 0.9870, mAP50-95 0.8000, inference P50 30.9 ms** | Same 205-image DeepPCB6 val set, YOLOX-Tiny 640², RKNN INT8 (rknn-toolkit2 2.3.2, 64 calibration images, channel-wise, `normal`). fp32 CPU reference on the same images: mAP50 0.9876, mAP50-95 0.8213. At the frozen 0.35 threshold this build reports the same aggregate P 0.9299 / R 0.9741 as the CPU reference, on a slightly different set of 30 missed boxes. The 64 calibration images were drawn from this same split, so the INT8 column is optimistic by an unmeasured amount. P95 34.5 ms, 205 back-to-back calls, camera's built-in application stopped. The fp16 build of the same model: mAP50 0.9875, mAP50-95 0.8221, P50 110.3 ms | This project's reCamera Pro run, 2026-09-08, on a reCamera Pro (librknnrt 2.3.2) |
-| Semi-automatic annotation, box IoU | **mean 0.6896**, IoU ≥ 0.5 on 90.7% of boxes (1050 / 1158) | SAM2.1 Hiera-Small, box-only prompt, DeepPCB6 val 205 images / 1158 boxes; IoU is the SAM2 mask's bounding box against the human-drawn GT box, on a GB10 GPU workstation with another training job co-resident on the same GPU | "edge-inspection-assembly" annotation tool evaluation, 2026-09-05. Not this demo's detection accuracy — a proxy metric for the annotation tool, see the section below |
-| Semi-automatic annotation, time per box | **34.4 ms/box** (194.5 ms/image mean) | Same run and conditions as above; slower than the 50-image calibration round's 117 ms/image because of the co-resident training job, not a model change | Same annotation tool evaluation |
+| What the line gets | Typical | Device |
+|---|---|---|
+| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 series (J3011, Orin Nano 8GB) |
+| Defect detection accuracy (mAP50) | **0.9876** | reComputer J30 series |
+| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J30 series |
+| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J30 series |
+| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J30 series |
+
+Conditions: DeepPCB6 val, 205 images / 1158 boxes, 6 classes, YOLOX-Tiny 640²
+TensorRT fp16 at a frozen 0.35 threshold; end-to-end sampled 3000 times at the
+10 fps line rate with 0 frames dropped; the stream sweep ran with Modbus and
+MQTT disabled, so a deployment carrying both reaches fewer. Measured 2026-09-05
+on a reComputer J30 series unit (J3011, Orin Nano 8GB; JetPack 6.2 / TRT
+10.3) — the device tree originally misread as an Orin NX engineering kit,
+corrected 2026-09-08 via device-tree compatible (nvidia,p3767-0003).
+
+A follow-up check on 2026-09-08, after that same engine had run continuously
+for 67 hours on the same reComputer J30 series (J3011) unit, confirmed CPU vs
+TensorRT box agreement of 0.9992 and a capture-to-coil P50 of 11.45 ms, with
+zero frames dropped over the full 67-hour run.
+
+Two other hosts run the same detector at the same accuracy: the reComputer R2000
+series with the Hailo-8 option at P50 11.89 ms / P99 16.08 ms end to end and
+0.9858 mAP50 (2026-09-06), and the all-in-one reCamera Pro at 0.9870 mAP50 with
+a 30.9 ms P50 inference call (RKNN INT8, 2026-09-08). The reCamera Pro INT8
+calibration images came from this same validation split, so that column reads
+optimistic against a set the model has not seen.
 
 The accuracy figures come from DeepPCB, which is easier than a real assembly
-scene — synthetic PCB defects have clean boundaries. Expect to retrain on your
-own boards. This is a reference design, not a certified inspection product.
+scene — synthetic PCB defects have clean boundaries — and it is not a
+missing-part detector. Expect to retrain on your own boards. This is a reference
+design, not a certified inspection product.
 
 ## Output Interfaces
 
@@ -96,37 +109,6 @@ own boards. This is a reference design, not a certified inspection product.
 "HR 10 = 0" does not mean "measured 0 mm" — read HR 11 first. And in v2,
 "verdict = NG" no longer implies "defect_count > 0": a missing part or an
 out-of-tolerance measurement is enough on its own.
-
-## Optional: VLM Explanations
-
-The runtime can hand an NG frame to a shared external VLM service
-("edge-vision-vlm") for a plain-language explanation. This is a side channel,
-not a second judge: it never enters the frame loop, never changes "verdict",
-and a disabled, slow or unreachable service produces exactly the same OK/NG
-stream as without it.
-
-- **Trigger.** A call fires only on a state change worth a human's attention —
-  "assembly.missing_count > 0", or the primary defect confidence below
-  "vlm.trigger.min_confidence" — rate-limited by "vlm.trigger.min_interval_s"
-  per stream. It is never called once per frame.
-- **Side channel.** A background worker with a bounded, drop-oldest queue
-  submits the call; the main event on "inspection/<stream-id>/results" is
-  published on the usual schedule regardless of whether the VLM answers. If it
-  does, a second event follows on "inspection/<stream-id>/explanations", keyed
-  to the same "frame_id".
-- **Does not block the main chain.** A hard client timeout abandons the call;
-  after repeated failures a circuit breaker stops calling for a cool-off
-  period. Nothing here can stall a verdict, a Modbus write or an MQTT publish.
-- **Latency is not a per-frame number to plan around.** Measured on the shared
-  service's own evaluation hardware — an NVIDIA Spark GB10 workstation, **not
-  the Orin box this demo runs on** — generation alone with Qwen3-VL-2B bf16 is
-  P50 ≈ 3.2 s / P95 ≈ 7.2 s at "max_tokens=320". That is the reason the call is
-  off the hot path in the first place; no Orin-specific latency has been
-  measured for this integration.
-
-Enable it by setting "vlm.enabled: true" and pointing "vlm.base_url" at a
-reachable "edge-vision-vlm" instance; see the guide for the full walk-through,
-including the "no_proxy" requirement on the device.
 
 ## Semi-automatic Annotation Tool
 
@@ -162,11 +144,14 @@ DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** is the path every measurement on this page was
-taken on. A TensorRT engine is built on the device during the first deploy
-(about 5 minutes), which ties it to that device and that TensorRT version. Choose
-it when you want the numbers above to apply, or when you need more than one or
-two camera streams on one box.
+**Camera + reComputer J30 / J40 (Orin)** is the Jetson path. Every Jetson
+measurement on this page — accuracy, throughput, latency and the 67-hour soak —
+was taken on the reComputer J30 series (J3011, Orin Nano 8GB); J40 is not
+separately benchmarked for this solution. A TensorRT engine is built on the
+device during the first deploy (measured about 5 minutes on the J3011 unit),
+which ties it to that device and that TensorRT version. Choose J3011 when you
+want the numbers above to apply, or J40 for more headroom on extra camera
+streams (not separately benchmarked on this solution).
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
@@ -186,8 +171,8 @@ fp32 CPU reference, inference P50 30.9 ms. mAP50-95 is 0.8000 against 0.8213 —
 that gap is box tightness at high IoU, and at the frozen 0.35 score this build
 and the CPU reference report the same aggregate precision and recall on those
 images, on a slightly different set of 30 missed boxes. Two limits: the 64 INT8
-calibration images came from that same validation split, so the INT8 column is
-optimistic by an unmeasured amount, and the figures come from replaying
+calibration images came from that same validation split, so the INT8 column
+reads optimistic against unseen data, and the figures come from replaying
 validation images on the device rather than from a camera pointed at a board. An
 fp16 build is published alongside it (mAP50-95 0.8221, P50 110.3 ms) for a
 station that needs the tighter boxes more than the frame rate. Assembly
@@ -217,6 +202,13 @@ marked per station, and this preset has no place to carry them.
 - **The MQTT broker in this package is anonymous and local.** It is there so
   the deployment works out of the box; a production install should point at a
   broker with credentials.
+
+## Scope of the Numbers
+
+- **Orin figures** — detection accuracy, throughput, end-to-end latency and multi-stream capacity: run M4, 2026-09-05, host `orin-nano`.
+- **Missing-part closed loop and dimension error** — run M2, 2026-09-05, same host, on a validation frame and a synthetic scene.
+- **Hailo INT8 accuracy** — run M3a, 2026-09-05, in the x86 Hailo Dataflow Compiler emulator, not on a device.
+- **Hailo-8 on-device throughput, latency and accuracy** — run M3b-pi-2, 2026-09-06, fleet host `harvest-pi`.
 
 ## Licensing note
 

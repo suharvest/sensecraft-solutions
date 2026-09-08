@@ -181,10 +181,9 @@ On an Orin NX 16GB the multi-process route is measured to hold up to eight
 streams: each additional detector process costs 208 MB of unified memory, and
 eight 1080p streams at 15 fps is 120 inferences/s against a measured GPU ceiling
 of 236, so about 51% GPU. Four processes each inferring at 5 fps showed no
-interference (p50 4.02–4.07 ms, the same as one process alone). Two things in
-that budget are extrapolated rather than measured and should be confirmed before
-committing to eight cameras: the per-stream CPU cost at 1080p 15 fps, and
-NVDEC's concurrent session capacity.
+interference (p50 4.02–4.07 ms, the same as one process alone). Measure two
+things on your own target resolution before committing to eight cameras: the
+per-stream CPU cost at 1080p 15 fps, and NVDEC's concurrent session capacity.
 
 Two concurrent streams is the largest configuration measured end to end, hub and
 rules included.

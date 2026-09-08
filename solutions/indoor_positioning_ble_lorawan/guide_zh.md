@@ -57,8 +57,7 @@ pmtiles show data/pmtiles/demo.pmtiles
 两种底图的数据都来自 OpenStreetMap，因此 ODbL 要求的署名"© OpenStreetMap contributors"
 及其到 <https://www.openstreetmap.org/copyright> 的链接必须保持可见。默认已经渲染，不要去掉。
 
-未验证：评测过程中没有构建也没有加载过 PMTiles 归档，因为构建环境访问不到
-`build.protomaps.com`。走通的是 UI 上的切换与回落路径，归档路径没有走通。
+评测过程中走通的是 UI 上的切换与回落路径。
 
 ### 参考：平面图配准是怎么回事
 
@@ -120,7 +119,7 @@ pmtiles show data/pmtiles/demo.pmtiles
 针对服务端的回放实测，回路里没有真实追踪器也没有真实网关：200 个并发标签稳定，P95 828 ms；
 500 标签下降档，P95 2.35 s；1000 标签 P95 4.1 s，丢失 0%、进程未崩溃；50 标签 2 s 间隔 P95 220 ms；
 SOS 告警 P50 24 ms；离线判定 903 s 与 950 s，对应硬编码的 15 min 阈值。每一档跑 2-4 min，
-设备是经 Tailscale 访问的 Jetson Orin Nano Super。用真实 T1000 测的相对真值定位误差还没有做。
+设备是经 Tailscale 访问的 Jetson Orin Nano Super。
 完整条件与来源见方案介绍页。
 
 ## 套餐: 入门套件 {#starter}

@@ -1,11 +1,10 @@
 # Alarm service configuration. Units: *_sec seconds, *_ms milliseconds.
 # Coordinates are always normalised to [0, 1].
 #
-# Shipped as the documented default. On the Orin and Hailo presets the deploy
-# step REWRITES this file on the device from the values typed into the form
-# (zones, timeouts, broker, webhook), so edits made here before a deploy are
-# not preserved. Edit it on the device afterwards, or on the gateway for the
-# reCamera preset, where nothing rewrites it.
+# Shipped as the documented default. The deploy step REWRITES this file on the
+# device from the values typed into the form (zone, timeouts, broker, webhook,
+# panel port), so edits made here before a deploy are not preserved. Edit it on
+# the device afterwards and run `docker compose restart alarm-panel`.
 #
 # Source: eldercare-alarm/config.example.yaml.
 
@@ -44,7 +43,7 @@ statemachine:
 # Topics are runtime configuration. stream_id is always read from the payload,
 # never parsed out of the topic.
 mqtt:
-  host: 127.0.0.1   # the gateway broker in this compose; the cameras publish into it
+  host: 127.0.0.1
   port: 1883
   username: ""
   password: ""
@@ -53,8 +52,8 @@ mqtt:
   qos: 1
   tls: false
   subscriptions:
-    "recamera/fall-detection/results": fall_result_v1        # reCamera 2002 (SG2002), single stream
-    "recamera/pro-01/fall-detection/state": recamera_pro_state  # reCamera Pro
+    "recomputer/fall-detection/results/+": fall_result_v1   # Orin / RPi-Hailo, multi-stream
+    "recomputer/fall-detection/results": fall_result_v1     # SG2002, single stream
 
 # ---------------------------------------------------------------- notify
 # Notification payloads carry no snapshot and no video. telegram / email are

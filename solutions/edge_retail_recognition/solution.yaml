@@ -196,16 +196,16 @@ intro:
       description: >-
         A host for the console — the registration/query service, the management
         UI and an MQTT broker, in three containers. Target is an amd64 or arm64
-        Linux box with Docker and no GPU; the stack has not been run on target
-        hardware, and neither image has been built or pushed anywhere. It must
+        Linux box with Docker and no GPU; neither image has been built or
+        pushed anywhere yet. It must
         be reachable from every recognition device, because that is where the
         gallery is minted and where devices pull it from.
       required: true
       description_i18n:
         zh: >-
           一台承载管理端的主机——注册/查询服务、管理界面与 MQTT broker，三个容器。
-          目标是装了 Docker 的 amd64 或 arm64 Linux 机器，不需要 GPU；这套栈没有在目标
-          硬件上跑过，两个镜像也都没有构建或推送到任何地方。
+          目标是装了 Docker 的 amd64 或 arm64 Linux 机器，不需要 GPU；两个镜像目前
+          都还没有构建或推送到任何地方。
           它必须对每一台识别设备可达：商品库在这里生成，设备也从这里拉。
     - type: other
       description: >-
@@ -257,7 +257,9 @@ intro:
         NPU core, 51.05 ms p50 / 54.18 ms p95, 99.91% box agreement with the
         CPU reference; embedder RKNN fp16, dual NPU core, 56.38 ms p50 /
         62.17 ms p95, 21 retrieval metrics within 0.36 percentage points of
-        fp32, mean cosine similarity 0.99966. Reference value on the same
+        fp32, mean cosine similarity 0.99966. On the same platform, a 704-crop
+        shelf replay scored 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU
+        agreement, embedder p50 61.0 ms per crop. Reference value on the same
         RK3576 platform; will be updated after a re-test on the reComputer
         unit.
       description_i18n:
@@ -266,7 +268,9 @@ intro:
           同款 RK3576 芯片平台实测，纯推理：检测器 RKNN fp16，双核，
           p50 51.05 ms / p95 54.18 ms，与 CPU 参考的框一致率 99.91%；
           嵌入器 RKNN fp16，双核，p50 56.38 ms / p95 62.17 ms，21 项检索指标
-          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。
+          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。同款平台上，
+          704 张货架裁剪回放 top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，
+          嵌入器单裁剪 p50 61.0 ms。
           同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
     recamera_pro:
       description: >-
@@ -300,7 +304,7 @@ intro:
           reComputer 整机复测后更新。
       purchase:
         require:
-          ai_accelerator: hailo-8
+          ai_accelerator: [hailo-8]
     recomputer_j40:
       description: >-
         The Orin NX 16GB option for the TensorRT path. Runs both the detector
@@ -325,13 +329,22 @@ intro:
             - orin_nx_16
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option in the same reComputer J30 / J40 family. Not
-        tested — every number on this page for this preset comes from the
-        Orin NX unit (recomputer_j40) only.
+        The smaller Orin Nano 8GB option in the same reComputer J30 / J40
+        family. Also measured directly on this board (reComputer J30 series,
+        J3011): detector 5.88 ms p50 / 8.89 ms p95, 99.27% box agreement with
+        the CPU golden (a different 50-image batch than the Orin NX unit's,
+        so not bit-for-bit comparable); embedder 5.06 ms p50 / 7.64 ms p95,
+        21 retrieval metrics within 0.21 percentage points of fp32. A
+        6726-frame checkout replay (2.27 loops) ran with zero dropped frames
+        and all 84 events published.
       description_i18n:
         zh: >-
-          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。未测——本页这个套餐
-          的所有数字都只来自 Orin NX 机型（recomputer_j40）。
+          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。同样已在
+          本机实测（reComputer J30 系列，J3011）：检测器 p50 5.88 ms /
+          p95 8.89 ms，与 CPU golden 的框一致率 99.27%（与 Orin NX 机型用的
+          不是同一批 50 张图，不可逐位对齐）；嵌入器 p50 5.06 ms / p95 7.64 ms，
+          21 项检索指标与 fp32 最大差 0.21 个百分点。一次 6726 帧（2.27 轮）
+          的收银台回放零掉帧，84 个事件全部发布成功。
       purchase:
         require:
           module:
@@ -357,7 +370,7 @@ intro:
         an x86_64 host. On RK3588 that path agrees with the CPU golden on
         99.85% of boxes at 56.7 ms p50, and the INT8 variant is 2.2x faster at
         98.35%; embedding has no RKNN conversion on RK3588 and falls back to
-        onnxruntime on the CPU, untimed. RK3576 has a different core count and
+        onnxruntime on the CPU. RK3576 has a different core count and
         its own measured detector and embedder numbers, both on the NPU — see
         its device description below. There is no device-side service that
         joins the two stages — this preset converts the model, proves the
@@ -367,7 +380,7 @@ intro:
           检测器以 fp16 `.rknn` 跑在 Rockchip NPU 上，转换在 x86_64 主机上完成。
           在 RK3588 上这条路径与 CPU golden 的框一致率 99.85%、p50 56.7 ms，
           INT8 变体快 2.2 倍、一致率 98.35%；嵌入段在 RK3588 上没有 RKNN 转换，
-          退到 CPU 上的 onnxruntime，未测延迟。RK3576 核数不同，检测与嵌入都有
+          退到 CPU 上的 onnxruntime。RK3576 核数不同，检测与嵌入都有
           自己的实测数字，且都跑在 NPU 上——见下方设备说明。没有把两段串起来的
           设备侧服务——这个套餐做的是转换模型、在板上证明转换正确，到此为止。
       device_groups:

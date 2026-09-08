@@ -21,6 +21,15 @@ as long as someone is on the floor. Field names are in the interface table below
 configs, so a fall sensor, the current state, the event ID and a person-present
 sensor appear in Home Assistant without any manual YAML.
 
+**An optional alarm panel.** The event stream on its own is a feed. The panel
+turns it into an alarm someone is accountable for: a site overview of rooms,
+cameras and zones with a 24-hour alarm trend; zones drawn on the live picture of
+each camera; a no-person and a no-motion timeout per zone; an evidence window; an
+operator who confirms, dismisses or marks handled; an SQLite audit trail; and a
+webhook whose payload carries no video. It is a service inside the same compose
+stack on the reComputer J30 / J40, RK and R2000 presets, and an optional extra box on the two
+reCamera presets. The section "Alarm panel" below covers what it does.
+
 **A live view for commissioning.** The deployment ends with a preview inside this
 app: the video with the skeleton, the per-person state and the evidence count
 drawn on top, so you can confirm the camera sees what it needs to before you wire
@@ -38,104 +47,42 @@ up any notifications.
 ## How well it works
 
 These are engineering benchmarks on public datasets, **not a medical or
-life-safety certification**. Subjects 1–2 trained the temporal model, Subject 3
-froze the configuration, and Subject 4 was read once as an untouched test set.
+life-safety certification**. GMDCSA-24 v2.1 is split by person: Subjects 1-2
+train the temporal model, Subject 3 selects thresholds and freezes the
+configuration, and Subject 4 is a held-out test set read exactly once — 27 clips
+(12 falls / 15 everyday activities) at 15 FPS.
 
-**How it was tested**
+| What the site gets | Typical | Device |
+|---|---|---|
+| Fall to alert | **1.61 s** mean | reComputer R2000 (Hailo-8) |
+| Fall recall, frozen temporal gate | **100%** | Same host, 27-clip held-out set |
+| Everyday activity not raising an alert | **80%** | Same host and set |
+| Streams one host carries at 15 FPS, MQTT disabled | **16** | reComputer R2000 (Hailo-8) |
+| Fall to alert received with the alarm panel in the loop | **P50 2.83 s** | reComputer R2000 (Hailo-8), shortened confirmation windows |
 
-- GMDCSA-24 v2.1, split by person: Subjects 1–2 train the temporal model,
-  Subject 3 selects thresholds and freezes the configuration, and Subject 4 is a
-  held-out test set **read exactly once**.
-- Subject 4 drops the 10 clips previously used for pipeline smoke tests, leaving
-  27 (12 falls / 15 everyday activities).
-- Video is resampled to 15 FPS; tracking and temporal state reset before each clip.
-- An alert more than 0.5 s before the annotated start of the fall counts as a false
-  alarm, not a hit.
-- Every platform re-extracts traces from its own real pose output and retrains and
-  freezes its own temporal weights. Nothing is borrowed across platforms.
+Accuracy lands between 74.1% and 88.9% across the frozen platform profiles and
+mean alert latency between 1.22 s and 1.75 s, so **choose hardware by stream
+count, not by accuracy**. Stream count follows the host: 1 on reCamera Pro and
+reComputer RK3576, 5 on reComputer RK3588, 8 on reComputer J30, 9 on reComputer
+J40, 16 on reComputer R2000 with Hailo-8. Those are the highest loads tested
+from a real 640x640 H.264 15 FPS source and are a starting point for your own
+load test, not a rated capacity.
 
-**Results**
+The panel row is the whole chain — camera to detector to panel to webhook — with
+the confirmation windows shortened to 1 s of evidence plus 1 s of auto-confirm.
+With the shipped defaults (5 s plus 60 s) the same path takes just over a minute,
+which is the confirmation design rather than overhead. The panel's notifier also
+stops after 5 sends per 10 minutes, by design.
 
-| Frontend/profile | Accuracy | Recall | Specificity | F1 | Mean alert latency |
-|---|---:|---:|---:|---:|---:|
-| reCamera CVI baseline | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
-| Jetson YOLO11s optimized | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
-| Jetson YOLO11m optimized | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
-| Jetson YOLOv8m mixed INT8/FP16 repaired | 88.9% | 83.3% | 93.3% | 87.0% | 1.43 s |
-| RK3576 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
-| RK3588 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
-| reCamera Pro production fallback on Pro traces | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 s |
-| reCamera Pro native experiment | 70.4% | 75.0% | 66.7% | 69.2% | 1.47 s |
-| Hailo-8 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
+The RK and Hailo rows measure the frozen temporal gate, not full deployed
+state-machine accuracy, and the Hailo capacity run had MQTT disabled. The
+held-out set has 27 clips, so one clip moves a metric by 3.7 percentage points.
+Results were frozen on 2026-09-05.
 
-The clean historical test has 27 clips, so one clip changes a metric by 3.7
-percentage points. RK and Hailo rows measure the frozen temporal gate and are not
-full deployed-state-machine accuracy. The repaired YOLOv8m result is regression
-evidence on the same 27 clips, not a pristine one-shot holdout publication: its
-calibration and fitting exclude Subject 4, but earlier failed-M investigations had
-already observed that subject. The historical YOLO11m FP16 row remains the clean M
-baseline. The temporal model itself remains FP32; INT8 names the pose frontend.
-
-### Performance
-Capacity now uses real RTSP input rather than synthetic blank tensors. Jetson and RK
-passing routes had to publish at least 14.5 FPS from the same 640×640 H.264, 15 FPS
-source. Hailo used the same source and threshold but disabled MQTT during its capacity
-boundary run; reCamera Pro is one-camera coverage below that threshold. Other inference
-applications were stopped before these runs.
-
-| Device | Pose frontend | Highest tested live/RTSP load | Next boundary / coverage |
-|---|---|---:|---:|
-| reComputer J30 (Orin Nano Super) | YOLO11s-Pose TensorRT FP16 | 8 streams, 14.95 FPS each | 9 streams, 13.36 FPS each |
-| reComputer J40 (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
-| reComputer RK3576 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 1 stream, 14.83–15.01 FPS | 2 streams, 12.81–12.83 FPS |
-| reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
-| reComputer R2000 (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
-| reComputer R2000 (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
-| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Below the 14.5 FPS threshold used here |
-
-The Hailo S-to-M drop is larger than the increase in model operations. The official S
-HEF is single-context, so its weights stay resident; the M HEF is split across three
-compiled contexts and pays context switching and memory traffic. This is a property of
-that compiled graph, not a universal Hailo rule. Jetson also slows down with M, but its
-aligned accelerator time rises by about 2.1–2.2× rather than Hailo's throughput cliff.
-
-Timing fields are kept separate because their boundaries differ:
-
-| Device / model | Output cadence | Application inference | Named pipeline interval |
-|---|---:|---:|---:|
-| Orin Nano / YOLOv8s INT8 | 14.79 FPS | 5.35 / 5.40 ms mean/P95 | Not instrumented |
-| Orin Nano / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 9.92 / 9.98 ms mean/P95 | Not instrumented |
-| Orin NX / YOLOv8s INT8 | 14.80 FPS | 4.82 / 4.86 ms mean/P95 | Not instrumented |
-| Orin NX / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 8.86 / 8.90 ms mean/P95 | Not instrumented |
-| Hailo-8 / YOLOv8s | 15.00–15.06 FPS | Not exposed | 7.47–7.51 ms mean; 7.99–8.10 ms P95 |
-| Hailo-8 / YOLOv8m | 14.12–14.16 FPS | Not exposed | 28.52–28.89 ms mean; 32.30–37.86 ms P95 |
-| reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms mean/P95 | 77.80 / 85.99 ms mean/P95 |
-
-Jetson's application interval includes preprocessing, copies, TensorRT, output copy and
-pose parsing. Hailo S and M use different named probe boundaries. RK "inference_ms"
-excludes video preprocessing, while RK "pipeline_ms" starts only after the source returns
-a model-input frame and includes inference, pose decoding, tracking, temporal logic and
-payload construction. None of those fields is relabelled as another platform's metric.
-
-The RK capacity rows are the optimized benchmark profile, not the current one-camera
-solution default. The deploy preset intentionally remains on its existing board-specific
-YOLO11n FP16 model and temporal profile until the INT8 profiles complete the same frozen
-accuracy release process. A separate RK3588 prototype moved DMA-BUF→RGA→RKNN into a native
-hot stage; at five 15 FPS sources it reduced CPU from 144.6% to 43.7–44.5% and RSS from
-495,488 KiB to about 157,000 KiB. That prototype omits pose decoding, tracking, temporal
-logic and MQTT, so it is not a production capacity or accuracy claim.
-
-These results were frozen on 2026-09-05. Synthetic blank-frame and accelerator-only
-history remains available in the
-[EdgeFallKit results ledger](https://github.com/suharvest/edgefallkit/blob/main/evaluation/RESULTS.md),
-but is no longer presented here as route capacity.
-
-On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
-both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
-YOLO11m on reComputer J40. The limiting factor
-is pose coverage: in long shots and heavy occlusion the person is barely detected
-at all. The table above covers a framed indoor view at close-to-medium range; the
-external figures cover long shots and occlusion.
+On an independent external set (RealBiomFall, 34 fall-only clips) recall drops
+to 52.9%-58.8%. The limiting factor is pose coverage: in long shots and heavy
+occlusion the person is barely detected at all. The table above covers a framed
+indoor view at close-to-medium range.
 
 ## Output Interfaces
 
@@ -145,6 +92,9 @@ external figures cover long shots and occlusion.
 | Availability | MQTT port 1883, topic "<device-name>/fall-detection/status" | "online" / "offline", retained |
 | Home Assistant | MQTT discovery under "homeassistant/" | Fall sensor, state, event ID, person count |
 | Video | RTSP port 8554 "/live0" on reCamera, or your own IP camera | The scene the detector is watching |
+| Alarm list and actions | HTTP port 8080, "/api/alarms" and the page at "/" — alarm panel only | Alarm records with state, zone, stream, timestamps and operator; confirm, dismiss and mark handled |
+| Notification | HTTP POST to your webhook URL — alarm panel only | Alarm id, kind, zone, stream, timestamp, operator, plus an idempotency header — no snapshot, no video |
+| Alarm bus (optional, off) | MQTT port 1883, topic "eldercare/alarm/<zone-id>" — alarm panel only | Same payload as the webhook |
 
 **"<device-name>" is yours to choose.** It is the Device Name field in the deploy step,
 defaulting to "recamera" on the reCamera preset and "recomputer" on the reComputer ones. It
@@ -180,7 +130,96 @@ keeps its existing single-camera YOLO11n FP16 profile.
 model carried 16 measured 15 FPS streams; the official M model carried 5 after
 the runtime switched it to shared batching. The current deployment form still configures
 one camera. Pick it when this hardware is already installed; its temporal profile
-is frozen, but the deployed state machine has not been measured separately.
+is frozen.
+
+**Where the alarm panel runs** differs by preset. On reComputer J30 / J40, RK and R2000 it is
+a service in the same compose file as the detector, brought up by the same deploy
+step and reachable on port 8080 of that device. On reCamera 2002 and reCamera Pro
+the camera cannot host it — the detector there is a native process or an App
+Center application, and the camera offers no filesystem, SQLite or web server for
+it — so the panel is an optional extra step onto a separate box that needs no AI
+accelerator: a reComputer R1000 Series, or a machine you already run. Skip that
+step and the cameras behave as before, publishing MQTT events and nothing else.
+
+## Alarm panel
+
+**A site overview, not just a list.** The first page counts rooms, cameras and
+zones, draws a 24-hour alarm trend split by type, and gives each room a card with
+its own live thumbnail and its open-alarm count. A room whose camera is
+unreachable reads unknown and stream-lost with the time of the last frame,
+instead of reading normal.
+
+**Zones drawn on the live picture.** Zone rectangles are drawn over the camera's
+own WebRTC stream in the browser, not typed as coordinates. Coordinates map to
+the picture rather than to the container, so a 4:3 stream in a 16:9 box keeps its
+letterbox bars outside the rectangles. Saving bumps a configuration version and
+adds a row to the change log; if another administrator saved first, the page gets
+a 409 and a reload prompt rather than silently overwriting their work.
+
+**Three alarm kinds, per zone.** A fall arrives as an event from the detector. An
+empty zone and a motionless person are decided in the panel, from "person_count"
+and from the displacement of each tracked person's bounding-box centre. Every zone
+gets its own "no_person_timeout" and "no_motion_timeout", because a bathroom and a
+bedroom are not the same problem.
+
+**A confirmation step, not just a push.** An alarm sits in an evidence window
+(5 s), then waits for an operator (60 s). Confirm and dismiss are both recorded
+against the operator who pressed them. If nobody answers within the window the
+default is to treat it as real and notify — configurable to the opposite through
+"statemachine.confirm_timeout_action".
+
+**Delivery you can audit.** Confirmed alarms must be notified within 5 s or the
+alarm moves to "escalated" and stays there, retrying every 30 s. "escalated" never
+reverts to "notified" even when a retry succeeds, so the audit trail shows that
+the deadline was missed. Every notification carries an idempotency key
+("zone:kind:event_timestamp:global_event_id"), and both the alarm table and the
+notification table have unique indexes on it — replays and retries cannot create a
+duplicate alarm or a duplicate delivery. One measured outage run recovered 3 of 3
+queued alarms with no duplicates, the first 96 ms after the endpoint came back.
+
+**Notifications with no video in them.** The payload is the alarm id, kind, zone,
+stream id, timestamp and operator. No snapshot, no clip. Snapshot capture exists as
+a configuration switch ("web.snapshot_enabled") and is off, with nothing
+implemented behind it yet.
+
+**Local by default.** No cloud dependency anywhere in the path. Events, state
+transitions, operators and delivery receipts are kept 90 days; media, if it is ever
+enabled, 7 days with a daily purge.
+
+**The panel is not a medical device and not a certified emergency-response
+product.** It does not diagnose, treat, or replace a carer's judgement. An alarm is
+a prompt; the decision and the response stay with a person.
+
+### Voice check-in (optional)
+
+Off by default, and off changes nothing about the rest of the solution. When
+enabled, a raised fall alarm makes the panel speak a prompt into the room — "are
+you all right? please answer" — and listen for a few seconds, in parallel with the
+five-second evidence window rather than after it.
+
+A call for help, no answer at all, or an answer nobody can read confirms the alarm
+immediately and skips the remaining operator window. "I'm fine" does *not* close
+the alarm by default: it flags the alarm for review and lets the normal timing
+continue. Set "on_ok: dismiss" to close it instead. The asymmetry is deliberate — a
+mis-heard "I'm fine" would suppress a real fall, while a confirmed alarm nobody
+needed costs an operator a few seconds. For the same reason a distress word beats a
+safe word in the same sentence, and a phrase the keyword lists do not recognise
+confirms rather than waits.
+
+Audio hardware is a USB microphone and speaker on the box running the panel, plus
+an OpenVoiceStream instance for TTS and streaming ASR. The cameras are not the
+audio path: neither reCamera model has a confirmed usable microphone, and the
+SG2002 cannot host local ASR at all. TTS and ASR compete with the detector for CPU,
+accelerator and memory on a shared box — one session at a time, a pre-generated
+prompt, and a fail-safe confirm on any OVS timeout are what keep that contention
+from costing an alarm.
+
+**Privacy.** Audio is never written to disk. Raw PCM lives in memory for one
+listening window and is released when the verdict is produced. Persisted are the
+verdict, the confidence, the latency and the transcribed text; setting
+"store_transcript: false" drops the text as well, leaving only the verdict in the
+audit trail. Notifications gain the same fields and still carry no snapshot and no
+video.
 
 ## Usage Notes
 
@@ -195,6 +234,25 @@ is frozen, but the deployed state machine has not been measured separately.
   its own; the reComputer presets bring one up alongside the detector; reCamera
   Pro ships none, so MQTT there is optional — point it at an existing broker to
   forward events, or leave it empty and read results on the camera's own page.
+- **Zones are normalised rectangles over the camera frame.** Moving or re-aiming a
+  camera invalidates the zone layout without any error being raised — the rectangle
+  still exists, it just covers a different part of the room. Re-check the zones
+  after any physical change.
+- **"no_motion" will fire during sleep** unless the zone excludes the bed or the
+  timeout is longer than a normal nap. Motion is the displacement of a tracked
+  person's bbox centre above "motion_threshold" (0.02 normalised, default), not
+  optical flow or keypoint velocity — small movements under a blanket do not count.
+- **The no-person timeout needs the detector to publish empty frames.** A detector
+  that sends nothing when nobody is in view starves that timeout of input. The
+  Jetson config ships "publish_empty_frames: true" and the Hailo runtime has no
+  such switch and needs none. On an RK board, if falls raise alarms but no-person
+  alarms never do, confirm the detector still publishes with nobody in view.
+- **Occlusion can raise a false "no_person".** A zone only re-arms after the person
+  is seen again, so one occlusion produces one alarm rather than a repeating series
+  — but it still produces one.
+- **Telegram and email are interface stubs** in the panel. Selecting them raises an
+  error that lands in the retry queue rather than silently dropping the
+  notification, which is the intended behaviour but is not a working channel.
 - **One vision app at a time on reCamera.** Installing takes the camera away from
   Node-RED and any other vision application.
 - **Latency in the table is detection latency** — from the annotated start of the

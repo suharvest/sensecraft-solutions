@@ -31,7 +31,7 @@ sweep is Orin-only.
 | Bench board | Page name |
 |---|---|
 | fleet `harvest-pi` (Raspberry Pi 5 + Hailo-8 M.2, 15-minute exclusive window, 2026-09-06) | reComputer R2000 (Hailo-8), family `recomputer_r20_industrial` |
-| fleet `orin-nano` (Orin NX 16GB engineering kit, JetPack 6.2 / TRT 10.3) | reComputer J40 series |
+| fleet `orin-nano` (reComputer J30 series, J3011, Orin Nano 8GB, JetPack 6.2 / TRT 10.3 — `/proc/device-tree/model` reads "Orin NX Engineering Reference Developer Kit Super", a board-BSP naming leftover; `/proc/device-tree/compatible`'s `nvidia,p3767-0003` is the actual module id, confirmed 2026-09-08) | reComputer J30 series |
 
 Raw run data: `evaluation/runs/2026-09-06-rpi-hailo/results.md`,
 `evaluation/runs/2026-09-05-m3-hef/`.
