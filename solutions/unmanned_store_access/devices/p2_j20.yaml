@@ -136,7 +136,15 @@ remote_overrides:
               continue
             fi
             echo "$f: downloading"
-            curl -fsSL --retry 3 -o "$ONNX_DIR/$f.part" "$BASE/$f"
+            # A failed or aborted download leaves a .part behind. Remove it here
+            # rather than only on a digest mismatch: a truncated file that is
+            # never cleaned up gets retried against the same partial content on
+            # the next run, and the digest check below never sees it.
+            if ! curl -fsSL --retry 3 -o "$ONNX_DIR/$f.part" "$BASE/$f"; then
+              rm -f "$ONNX_DIR/$f.part"
+              echo "$f: download failed" >&2
+              exit 1
+            fi
             got=$(sha256sum "$ONNX_DIR/$f.part" | cut -d' ' -f1)
             [ "$got" = "$want" ] || { echo "$f: sha256 mismatch (got $got, want $want)" >&2; rm -f "$ONNX_DIR/$f.part"; exit 1; }
             mv "$ONNX_DIR/$f.part" "$ONNX_DIR/$f"
@@ -241,7 +249,10 @@ remote_overrides:
             [ -e "$CHARDEV" ] || { echo "$CHARDEV does not exist on this box; check gpioinfo" >&2; exit 1; }
           else
             GPIO_SYSFS_DIR=/sys/class/gpio
-            CHARDEV="/dev/{{gpiochip}}"
+            # Not the gpiochip: the sysfs backend does not open it, and naming a
+            # device the host may not have fails container creation. /dev/null
+            # is the compose default and exists everywhere.
+            CHARDEV=/dev/null
           fi
 
           cat > "$WORKDIR/.env" <<EOF

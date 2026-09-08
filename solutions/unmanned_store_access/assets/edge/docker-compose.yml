@@ -118,8 +118,15 @@ services:
     #
     # Mounting all of /sys is not acceptable here and not necessary: bind only
     # the gpio class.
+    #
+    # GPIO_CHARDEV defaults to /dev/null, not to /dev/gpiochip0. Compose has no
+    # way to make a `devices` entry conditional, and an entry naming a path the
+    # host does not have fails container creation outright — so a default of
+    # /dev/gpiochip0 would break every sysfs host that has no character device.
+    # /dev/null exists everywhere and passing it through costs nothing; the
+    # libgpiod deploy sets this to the real chip after checking it exists.
     devices:
-      - ${GPIO_CHARDEV:-/dev/gpiochip0}:${GPIO_CHARDEV:-/dev/gpiochip0}
+      - ${GPIO_CHARDEV:-/dev/null}:${GPIO_CHARDEV:-/dev/null}
     volumes:
       - ${GPIO_SYSFS_DIR:-/sys/class/gpio}:/sys/class/gpio
       - facedb:/var/lib/unmanned-store-access/facedb
