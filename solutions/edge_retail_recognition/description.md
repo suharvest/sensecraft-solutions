@@ -74,9 +74,7 @@ rather than stopping at model conversion. Under that concurrent load, with
 both stages sharing the same GPU and sampled from the replay's own health
 snapshot (1024 detections, 271 embeddings), latency degrades to 8.76 ms p50 /
 9.53 ms p95 (detector) and 5.37 ms p50 / 5.83 ms p95 (embedder) — still
-faster than every other preset's detector path. Measured on the Orin NX unit
-(reComputer J40) only; the smaller Orin Nano option in the same family
-(reComputer J30) has not been tested.
+faster than every other preset's detector path. Measured on the Orin NX unit (reComputer J40) only; the smaller Orin Nano option in the same family (reComputer J30) has not been tested.
 
 **Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
 9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
