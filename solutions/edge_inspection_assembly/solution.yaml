@@ -96,16 +96,16 @@ intro:
 
   device_catalog:
     recomputer_j30:
-      description: Runs detection, assembly comparison, dimension measurement, Modbus and MQTT on one Orin Nano 8GB box
+      description: Runs detection, assembly comparison, dimension measurement, Modbus and MQTT on one Orin Nano 8GB box (reComputer J30 series, J3011). Ran continuously for 67 hours in a 2026-09-08 check, with 0.9992 CPU vs TensorRT box agreement and zero dropped frames throughout.
       description_i18n:
-        zh: 在一台 Orin Nano 8GB 上跑检测、缺件比对、尺寸测量、Modbus 与 MQTT
+        zh: 在一台 Orin Nano 8GB 主机上跑检测、缺件比对、尺寸测量、Modbus 与 MQTT（reComputer J30 系列，J3011）。2026-09-08 复核中连续运行 67 小时，CPU 与 TensorRT 框一致率 0.9992，全程 0 丢帧。
       purchase:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB). Ran continuously for 67 hours in a 2026-09-08 check, with 0.9992 CPU vs TensorRT box agreement and zero dropped frames throughout.
+      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB, reComputer J40 series, J4012). Not separately benchmarked on this solution — the accuracy, throughput and latency numbers on this page come from the reComputer J30 series unit above.
       description_i18n:
-        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB）。2026-09-08 复核中连续运行 67 小时，CPU 与 TensorRT 框一致率 0.9992，全程 0 丢帧。
+        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB，reComputer J40 系列，J4012）。本方案未对这台设备单独跑评测——本页的精度、吞吐与时延数字都来自上面的 reComputer J30 系列实机。
       purchase:
         require:
           module: [orin_nx_16]

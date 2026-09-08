@@ -50,18 +50,19 @@
 
 | 产线能得到什么 | 典型值 | 设备 |
 |---|---|---|
-| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 系列（J4012，Orin NX 16GB） |
-| 缺陷检出精度（mAP50） | **0.9876** | reComputer J40 系列 |
-| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J40 系列 |
-| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J40 系列 |
-| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J40 系列 |
+| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 系列（J3011，Orin Nano 8GB） |
+| 缺陷检出精度（mAP50） | **0.9876** | reComputer J30 系列 |
+| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J30 系列 |
+| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J30 系列 |
+| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J30 系列 |
 
 口径：DeepPCB6 val 205 图 / 1158 框 / 6 类，YOLOX-Tiny 640² TensorRT fp16，冻结阈值 0.35；
 端到端在 10 fps 产线节拍下取 3000 个样本，丢帧 0；路数扫描期间关掉了 Modbus 与 MQTT，
-实际部署带上两者后路数会更低。2026-09-05 实测，设备为 Orin NX 16GB 工程参考套件
-（JetPack 6.2 / TRT 10.3）。
+实际部署带上两者后路数会更低。2026-09-05 实测，设备为 reComputer J30 系列（J3011，Orin Nano 8GB；JetPack
+6.2 / TRT 10.3）——`/proc/device-tree/model` 一度误读为 Orin NX 工程参考套件，
+2026-09-08 用 device-tree compatible（nvidia,p3767-0003）核实后更正。
 
-2026-09-08 复核：同一个 engine 在一台 reComputer J40 系列（Orin NX 16GB）
+2026-09-08 复核：同一个 engine 在同一台 reComputer J30 系列（J3011）
 整机上已连续运行 67 小时，CPU 与 TensorRT 的框一致率 0.9992，取图到线圈
 P50 11.45 ms，67 小时全程 0 丢帧。
 

@@ -30,8 +30,9 @@ ssh:
     - password
   connection_timeout: 30
   # The first deploy builds a TensorRT engine on the device (measured 306 s on
-  # an Orin NX 16GB engineering kit, JetPack 6.2 / TRT 10.3), so the SSH
-  # command budget has to cover it with room for a slower board.
+  # a reComputer J30 series unit, J3011, Orin Nano 8GB, JetPack 6.2 / TRT
+  # 10.3), so the SSH command budget has to cover it with room for a slower
+  # board.
   command_timeout: 3600
 
 pre_checks:
@@ -138,8 +139,8 @@ remote_overrides:
       - name: Build the TensorRT detection engine
         # A TensorRT engine is tied to the exact GPU architecture and TensorRT
         # version, so it cannot be shipped prebuilt — it is built here, once.
-        # Measured 306 s on an Orin NX 16GB engineering kit (JetPack 6.2,
-        # TRT 10.3) for YOLOX-Tiny 640x640 fp16, static shape.
+        # Measured 306 s on a reComputer J30 series unit (J3011, Orin Nano
+        # 8GB, JetPack 6.2, TRT 10.3) for YOLOX-Tiny 640x640 fp16, static shape.
         timeout: 2400
         run: |
           set -e
