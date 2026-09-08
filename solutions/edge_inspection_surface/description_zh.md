@@ -227,6 +227,15 @@ mAP50 0.7091（对比 CPU golden 0.7574，逐框匹配率 86.66%）。
 - **本包里的 MQTT broker 是给调试用的。** 它以 「allow_anonymous true」 运行。
   生产产线应当改指向带凭据的 broker。
 
+## 数字的适用范围
+
+- **Orin 侧数字**——2026-09-05，Jetson Orin NX 16GB，JetPack 6.2 / TensorRT 10.3.0.30，镜像 `edge-inspection-jetson:0.1.0-dev`，commit `670e433`。
+- **reComputer R2000 系列主机**——2026-09-06，fleet 主机 `harvest-pi`，在该板唯一一块 Hailo-8 上的 15 分钟独占窗口内。
+- **INT8 量化损失**——2026-09-05，x86 Hailo Dataflow Compiler 3.31.0，模拟器阶段，不是设备上。
+- **D-FINE-S 与 RT-DETRv2-S 两条 track**——2026-09-06，arm64 Mac，onnxruntime CPUExecutionProvider，仅 CPU，每条单一随机种子。
+- **所有数字都取自由验证图拼成的 640×640 / 10 FPS 合成视频**，端到端还要加上相机自身的采集与编码时间。
+- **帧级误报**——验证集每张图都带缺陷，这个数据集只能暴露漏检；误报率来自你自己的产线。
+
 ## 许可说明
 
 运行时代码是 Apache-2.0。默认检测骨干用 YOLOX（Megvii-BaseDetection），
