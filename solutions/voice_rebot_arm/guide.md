@@ -6,7 +6,7 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 |--------|---------|
 | reBot B601-DM | 6-DoF arm with parallel gripper (0.100 m max jaw) — USB serial |
 | Orbbec Gemini 2 | wrist-mounted RGB-D camera (eye-in-hand) — USB 3.0 |
-| reComputer Super J4012 | Jetson Orin NX 16GB — runs all four containers |
+| reComputer J40 series | Jetson Orin NX 16GB — runs all four containers |
 | reSpeaker USB mic + speaker | far-field voice in, TTS reply out |
 
 **What you'll get:**

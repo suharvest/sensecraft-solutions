@@ -1,6 +1,6 @@
 version: "1.0"
 id: r2000_hailo_deploy
-name: reComputer R2000 + Hailo
+name: reComputer AI Industrial R21 + Hailo
 type: docker_deploy
 
 # Single source-of-truth device YAML. Backend derives docker_local and
@@ -52,7 +52,7 @@ post_deployment:
   url: http://localhost:5000
 
 name_i18n:
-  zh: reComputer R2000 + Hailo
+  zh: reComputer AI Industrial R21 + Hailo
 
 remote_overrides:
   compose_dir: assets/r2000-hailo

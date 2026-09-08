@@ -4,7 +4,7 @@ Everything on one Jetson: the EdgeFallKit detector, the alarm service, an MQTT
 broker and the confirmation page. The trade is deploy time — the first run builds
 a TensorRT engine on the device, which takes several minutes and is why this
 preset's timeout is an hour rather than a few minutes. Measured: 455 s for the
-YOLO11s-pose engine on a reComputer J4012 (Orin NX); first start needs to wait
+YOLO11s-pose engine on a reComputer J40 series (Orin NX); first start needs to wait
 for that build to finish.
 
 | Device | Purpose |

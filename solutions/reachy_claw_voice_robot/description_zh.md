@@ -27,7 +27,7 @@
 | 套餐 | 硬件 | 适用场景 |
 |------|------|----------|
 | **Jetson 一体化** | 1× Jetson Orin NX 16GB | 最简部署。语音、视觉、大脑都在一台机器上。 |
-| **R2000 + Hailo-8** | 1× reComputer R2000（Pi 5 + Hailo-8） | 低功耗 NPU 加速视觉。语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson。 |
+| **AI Industrial R21 + Hailo-8** | 1× reComputer AI Industrial R21（Hailo-8） | 低功耗 NPU 加速视觉。语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson。 |
 | **Reachy Mini Wireless（CM4）** | 1× Reachy Mini Wireless 自带 CM4 | 在机器人本体上一体化边缘部署。语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson。 |
 
 ## 使用须知
@@ -40,13 +40,13 @@
 | NVIDIA Jetson Orin NX 16GB | 运行所有 AI 服务——对话、语音、视觉和机器人控制 |
 | USB 线 | 连接 Reachy Mini 和 Jetson |
 
-**硬件（R2000 + Hailo-8 套餐）：**
+**硬件（AI Industrial R21 + Hailo-8 套餐）：**
 
 | 设备 | 用途 |
 |------|------|
-| Reachy Mini（Pollen Robotics 出品） | 通过 USB 连接到 R2000 的桌面机器人 |
-| reComputer R2000（Pi 5 + Hailo-8） | 机器人控制、对话、Hailo 加速视觉 |
-| USB 摄像头 | 接到 R2000 上 |
+| Reachy Mini（Pollen Robotics 出品） | 通过 USB 连接到 AI Industrial R21 的桌面机器人 |
+| reComputer AI Industrial R21（Hailo-8） | 机器人控制、对话、Hailo 加速视觉 |
+| USB 摄像头 | 接到 AI Industrial R21 上 |
 
 **硬件（Reachy Mini Wireless CM4 套餐）：**
 

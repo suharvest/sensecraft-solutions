@@ -20,7 +20,7 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 ## 步骤 1: 部署表面质检 {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
 在 Jetson 上部署检测器并构建它的 TensorRT engine。预留约 10 分钟；
-仅 engine 构建一项在 Orin NX 上实测 291 s，在同型号板卡（reComputer J4012）
+仅 engine 构建一项在 Orin NX 上实测 291 s，在同型号板卡（reComputer J40 系列）
 上做全新部署交叉验证实测 304 s。首次启动需要等这一步构建完成。
 
 ### 前置条件
@@ -274,7 +274,7 @@ crazing 弱、误报无法测量这两条在这里同样成立。
    `hailortcli --version` 应报 4.21.x，`apt-mark showhold` 里必须同时有
    `hailort` 与 `hailort-pcie-driver` 两行。只 hold 驱动的话，
    apt 会把用户态库偷偷升上去，HEF 就对不上了。
-2. **`hailo_pci` 必须带 `force_desc_page_size=4096` 加载。** 树莓派 5 的内核
+2. **`hailo_pci` 必须带 `force_desc_page_size=4096` 加载。** reComputer R2000 系列的内核
    PAGE_SIZE 是 16 KB，Hailo-8 的 max_desc_page_size 是 4 KB。不加这个参数时
    `VDevice()` 和 `hailortcli fw-control identify` 都能过，
    偏偏在 `configure(hef)` 那一步崩：
@@ -308,7 +308,7 @@ crazing 弱、误报无法测量这两条在这里同样成立。
 | 问题 | 解决办法 |
 |-------|----------|
 | 部署停在 "libhailort.so.4.21.0 not found" | 设备上是另一个版本的 HailoRT。本部署被 ABI 锁死；要么装 4.21.x，要么按设备上的版本重编 HEF。只改挂载路径没有用 |
-| 部署停在 `force_desc_page_size` 检查 | 加上 modprobe 参数再重启。树莓派 5 上这不是可选项——不加的话容器能起来，然后死在 `configure(hef)` 里 |
+| 部署停在 `force_desc_page_size` 检查 | 加上 modprobe 参数再重启。reComputer R2000 系列上这不是可选项——不加的话容器能起来，然后死在 `configure(hef)` 里 |
 | 容器因为提到 `_pyhailort` 的 python import 错误退出 | 宿主与容器的 Python minor 不一致。用与宿主匹配的基座重建镜像（宿主是 3.13 就用 `--build-arg RUNTIME_IMAGE=...trixie-slim`） |
 | 日志里出现 `AssembleError` | HEF 的九个输出张量与期望布局对不上。输出是按特征图边长与通道数归位的，不按名字，出现该报错时用的不是本方案期望的那份 HEF。拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
 | `docker compose` 去读 `._docker-compose.yml` 报错 | 从 macOS 上传时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；手工拷贝的话跑 `find . -name '._*' -delete` |

@@ -53,7 +53,7 @@ intro:
     - id: openclaw_recomputer_r
       verify_exempt: true
       name: OpenClaw Gateway
-      description: Deploy OpenClaw gateway on reComputer R — lightweight deployment, connect cloud AI providers for conversations.
+      description: Deploy OpenClaw gateway on reComputer R1100 series — lightweight deployment, connect cloud AI providers for conversations.
       device_groups:
         - id: deploy_target
           name: Deployment Target
@@ -67,7 +67,7 @@ intro:
       name_i18n:
         zh: OpenClaw 网关
       description_i18n:
-        zh: 在 reComputer R 上部署 OpenClaw 网关——轻量部署，连接云端 AI 服务进行对话。
+        zh: 在 reComputer R1100 系列上部署 OpenClaw 网关——轻量部署，连接云端 AI 服务进行对话。
   stats:
     difficulty: beginner
     estimated_time: 15min

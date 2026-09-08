@@ -325,9 +325,9 @@ intro:
 
         Accuracy matches fp32 run on a host over the same images to within
         0.12 points, so quantisation costs nothing measurable here — as on the
-        RK3588 preset, at the same 3.2 ms. What this one adds is consistency:
+        other NPU preset, at the same 3.2 ms. What this one adds is consistency:
         the gap between the median and the 95th percentile is 0.08 ms, against
-        0.69 ms on RK3588.
+        0.69 ms there.
       description_i18n:
         zh: >-
           EfficientNet-Lite0 跑在 Hailo-8 上，用的是 uint8 输入的 HEF
@@ -336,8 +336,8 @@ intro:
           p50 3.166 ms、p95 3.249 ms（纯推理，不含取图与预处理）。
 
           精度与同一批图上主机 fp32 相差 0.12 个百分点，即量化在这里没有可测量
-          的代价——与 RK3588 套餐一样，时延同样是 3.2 ms。它额外给的是一致性：
-          中位数与 95 分位只差 0.08 ms，RK3588 是 0.69 ms。
+          的代价——与另一档 NPU 套餐一样，时延同样是 3.2 ms。它额外给的是一致性：
+          中位数与 95 分位只差 0.08 ms，那一档是 0.69 ms。
       device_groups:
         - id: compute
           name: Sorting Host

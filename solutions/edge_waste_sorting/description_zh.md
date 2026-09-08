@@ -8,8 +8,7 @@
 RK3576、RK3588）都出现 INT8 量化塌缩；EfficientNet-Lite0 不塌缩，现已成为
 出货基线。下面大多数精度数字仍来自 Apple M4 CPU 上的 onnxruntime，但 Hailo-8
 与 RK3588 两节带有真实 INT8 数字，两者都来自真机：RK3588 数字来自 RK3588
-开发板，Hailo-8 数字来自 Raspberry Pi 5 + Hailo-8 M.2 台架（对应出货形态是
-reComputer R2000）。
+开发板，Hailo-8 数字来自台架单元 + Hailo-8 M.2 模块——尚未在 reComputer R2000 系列整机上复测。
 目前也没有任何套餐声明 硬件验证标记。
 
 ## 这个方案做什么
@@ -104,7 +103,7 @@ NPU 上（Hailo 编译器自带的模拟器、RK3588），Lite0 的时延与 Mob
 | **真机实测 —— reCamera（SG2002）** | 物料八类 top-1 0.8792 / 四分类 top-1 0.9566 / 与 CPU 一致率 0.9915 | BF16 cvimodel 跑在相机自己的 TPU 上，1060 张 val；p50 24.276 ms / p95 24.323 ms 是纯推理，不含取图与预处理；峰值常驻内存 11.6 MB | `evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md` |
 | reCamera 与同一批 1060 张图上的 fp32 CPU 之差 | +0.47 pp | 1060 张里 9 张预测翻转、净赚 5 张，落在采样噪声内，即在这 1060 张子集上没有观察到准确率下降 | 同上 |
 | **INT8 塌缩——Hailo 编译器自带的模拟器** | top-1 0.15，与 CPU/native 一致率 0.115（200 张 val） | 同一批 200 张图 fp16 一致率 1.000 | `evaluation/runs/2026-09-06-m1b-hef` |
-| **INT8 塌缩——RK3576（cat-remote，真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
+| **INT8 塌缩——RK3576（真机）** | 与 CPU golden 一致率 0.10 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3576-cat` |
 | **INT8 塌缩——RK3588（真机）** | 与 CPU golden 一致率 0.22 | 同一台设备 fp16 一致率 0.98 | `evaluation/runs/2026-09-06-rk3588-radxa` |
 
 **根因未完全证实。** 排除 SE 分支的数值链路并不能修复塌缩，ORT PTQ 独立于
@@ -165,16 +164,15 @@ m1b 加 no-decay 参数组重训）验证。
 
 **这些数字支持什么、不支持什么。** 支持：EfficientNet-Lite0 的 INT8 HEF 在
 真实 Hailo-8 上跑完 val 全集 7417 张，准确率与主机 fp32 持平，时延分布是本页
-所有平台里最紧的（p95 − p50 = 0.08 ms）。不支持：**台架是 Raspberry Pi 5 +
-Hailo-8 M.2，不是 reComputer R2000 整机**——加速器与 HailoRT 相同，外壳、散热
-与供电不同，长时间满载不能据此外推。也只测了 INT8：Hailo-8 没有 fp16 通路，
+所有平台里最紧的（p95 − p50 = 0.08 ms）。不支持：reComputer R2000 系列整机上的
+长时间满载表现——这块台架单元的外壳、散热与供电都不同，这一点未单独验证。也只测了 INT8：Hailo-8 没有 fp16 通路，
 所以"量化代价"是与主机 fp32 比出来的，不像 RK3588 有同板 fp16 参照。
 微调用的是 train split，与 val 同源同采集，所以"反超 fp32 0.12 pp"更保守的
 读法是量化代价已落进测量噪声，而不是量化后比浮点更准。
 
 ### RK3588——真机实测，基线 INT8 已可用
 
-设备侧实测，真机而非模拟器。在 wsl2-local 上用 rknn-toolkit2 2.3.2 转换，
+设备侧实测，真机而非模拟器。在开发主机上用 rknn-toolkit2 2.3.2 转换，
 在 RK3588 开发板 上跑，librknnrt **2.3.2**（软链名字写的是 2.3.0，
 以库内版本为准），50 张 val 图，`core_mask=AUTO`，per-channel 量化。
 
@@ -233,7 +231,7 @@ RK3588 是不同代 NPU，同一份 MobileNetV3-Small 图在两者上的 INT8 �
 
 | 平台 | 状态 |
 |---|---|
-| Jetson Orin（TensorRT） | 已在 reComputer J4012（Orin NX）上完成部署与 engine 构建：基线 engine 构建 68 秒；部署容器端到端报 pipeline 4.122 ms / inference 3.533 ms（每次触发）。精度与一致率（top-1 0.8755，与 CPU golden 一致率 0.9991，1060 张子集）取自另一个独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台设备，但不是同一个部署二进制 |
+| Jetson Orin（TensorRT） | 已在 reComputer J40 系列（Orin NX）上完成部署与 engine 构建：基线 engine 构建 68 秒；部署容器端到端报 pipeline 4.122 ms / inference 3.533 ms（每次触发）。精度与一致率（top-1 0.8755，与 CPU golden 一致率 0.9991，1060 张子集）取自另一个独立构建的 FP16 engine——同一份 ONNX、同一精度、同一台设备，但不是同一个部署二进制 |
 | reComputer R2000（Hailo-8） | 部署包已发；基线 HEF 已在 Hailo-8 真机上跑完 val 全集 7417 张（top-1 0.8889、一致率 0.9581、p50 3.166 ms）。HEF 已上 CDN，部署步骤自动下载并校验 sha256。SigLIP2 视觉塔 INT8 量化仍失败 |
 | RK3588 | **真机推理 parity 已验证，fp16 与 INT8 均有（基线，m1c），val 全集 7417 张（一致率 fp16 0.9988 / int8 0.9893，p50 5.575 ms / 2.728 ms）；部署包待补**——没有 compose、没有镜像、没有 preset。转换与运行时是通的，打包不存在 |
 | RK3576 | 真机推理 parity 已验证，fp16 与 INT8——**只有 m1b（MobileNetV3-Small），未用当前 m1c 基线复测**；部署包待补 |
@@ -362,7 +360,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 在部署过程中于设备上构建，因为 engine 绑定具体 GPU 架构与 TensorRT 版本，
 无法预编分发。它也是唯一提供开放词汇 track 的套餐：SigLIP 2 视觉塔在 CPU 上
 单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。已在
-reComputer J4012（Orin NX）上实测：基线 engine 构建 68 秒，部署容器端到端
+reComputer J40 系列（Orin NX）上实测：基线 engine 构建 68 秒，部署容器端到端
 pipeline 4.122 ms / inference 3.533 ms（每次触发）——精度与一致率数字及其
 engine 口径说明见上方"平台支持"表。
 

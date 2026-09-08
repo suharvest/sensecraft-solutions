@@ -7,10 +7,10 @@
 | 套餐 | 除 Watcher 外还需要 | 网络要求 |
 |---|---|---|
 | 套餐 0 · 云端版 | 无 | Watcher 需要 2.4GHz WiFi + 联网；其余全在 Seeed 云端 |
-| 套餐一 · 基础版 | reComputer R1125-10 | 配置期间 Watcher 与 reComputer 需和本机在同一局域网 |
-| 套餐二A · 升级版（单点位） | reComputer R2135-12（Hailo-8）或 Jetson，用于人脸识别 | 同一局域网；人脸识别在本地，大模型调用仍可走云端 |
-| 套餐二B · 升级版（多点位） | reComputer Super J4012（Jetson Orin NX 16GB），最多 3 台 Watcher 共用 | 各点位 Watcher 需能访问共享的 J4012；只有大模型调用出本地网络 |
-| 套餐三 · 顶配版 | reComputer R2135-12（Hailo-8，跑仓库系统 + 人脸识别 + 语音 AI 服务）加 reComputer Robotics J5011（跑本地大模型和语音合成） | 部署完成后无需联网——包括大模型在内全部跑在你自己的这两台设备上 |
+| 套餐一 · 基础版 | reComputer R1100 系列（4 GB 内存起） | 配置期间 Watcher 与 reComputer 需和本机在同一局域网 |
+| 套餐二A · 升级版（单点位） | reComputer Industrial R21 系列（带 Hailo-8，4 GB 内存起）或 Jetson，用于人脸识别 | 同一局域网；人脸识别在本地，大模型调用仍可走云端 |
+| 套餐二B · 升级版（多点位） | reComputer J40 系列（Jetson Orin NX，16 GB 内存），最多 3 台 Watcher 共用 | 各点位 Watcher 需能访问共享的 reComputer J40；只有大模型调用出本地网络 |
+| 套餐三 · 顶配版 | reComputer Industrial R21 系列（带 Hailo-8，4 GB 内存起，跑仓库系统 + 人脸识别 + 语音 AI 服务）加 reComputer J50 系列（跑本地大模型和语音合成） | 部署完成后无需联网——包括大模型在内全部跑在你自己的这两台设备上 |
 
 每台 Watcher 都需要一次性的 WiFi 配对（各套餐的步骤 1）——仅支持 2.4GHz，不支持 5GHz。
 
@@ -138,7 +138,7 @@
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新 SenseCraft 页面查看最新数据 |
 | 看不到记录 | 确认 Watcher 已绑定 SenseCraft 账号 |
-| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前 Raspberry Pi 5 实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
+| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前在更快的 arm64 开发板（SoC 不同于 R1100 的 CM4 级）上实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
 | 出库返回 429 | **已在 `fix/a2-concurrency` 修复。** 原因：`slowapi` 原来对 `/api/materials/stock-out` 按来源 IP 限流 60 次/分钟，同一 NAT 后面的终端共用这一份额度；修复改为按已认证身份（API key / 会话）计数，阈值由 `BUSINESS_RATE_LIMIT` 控制，默认 600 次/分钟。未含该修复的版本上的规避：单个出口 IP 的持续出库速率控制在 1 次/秒以下，繁忙点位单独出口 IP 或错峰发送 |
 | 网络或服务中断期间请求丢失 | 原因：REST 层没有离线队列和写入缓冲——重连与退避只覆盖 MCP 语音 WebSocket，HTTP 请求直接失败且不会补发。这是已知限制。规避二选一：一是网关侧保证网络可用性（有线优先、UPS 供电、服务与客户端同处一个局域网，别让中断跨广域网），把不可用窗口压到设备重启时间；二是客户端做写入队列——出入库先落本地，联通后按顺序补发并按批次号去重，该队列本包不含。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无补发 |
 
@@ -167,7 +167,7 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R1125-10 | 运行仓库管理系统 |
+| reComputer R1100 系列 | 运行仓库管理系统 |
 | USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
@@ -258,7 +258,7 @@ SenseCraft 体验版已就绪！
 
 部署库存管理服务，支持语音操控和网页看板。
 
-**容量规划（Raspberry Pi 5 实测，50 个物料，SQLite，每个并发档位 60 s，客户端经 Tailscale）**：库存查询在并发 10 及以下 p95 保持在 500 ms 以内（p95 404 ms），并发 20 时 p95 为 824 ms，并发 50 时 p95 为 5.5 s 且错误率为 0%。在这一档硬件上，按单台设备最多 10 个并发查询客户端规划，入库按物料串行，出库按每个出口 IP 每分钟 60 次预算。超出以上范围（更多并发客户端、更大数据量、MySQL 后端）均未实测，需要另行压测。要在自己的硬件上复测，可从 `warehouse_system` 仓库跑一个档位：`uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`。
+**容量规划（更快的 arm64 开发板实测，SoC 不同于 R1100 的 CM4 级，50 个物料，SQLite，每个并发档位 60 s，客户端经 Tailscale）**：库存查询在并发 10 及以下 p95 保持在 500 ms 以内（p95 404 ms），并发 20 时 p95 为 824 ms，并发 50 时 p95 为 5.5 s 且错误率为 0%。在这一档硬件上，按单台设备最多 10 个并发查询客户端规划，入库按物料串行，出库按每个出口 IP 每分钟 60 次预算。超出以上范围（更多并发客户端、更大数据量、MySQL 后端）均未实测，需要另行压测。要在自己的硬件上复测，可从 `warehouse_system` 仓库跑一个档位：`uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`。
 
 ### 部署目标 {#warehouse_local type=local config=devices/warehouse_deploy.yaml}
 
@@ -278,13 +278,13 @@ SenseCraft 体验版已就绪！
 
 ### 部署目标 {#warehouse_remote type=remote config=devices/warehouse_deploy.yaml default=true}
 
-部署到 reComputer R1125-10 边缘计算设备。
+部署到 reComputer R1100 系列 边缘计算设备。
 
 ### 接线
 
 ![接线图](gallery/R1100_connected.png)
 
-1. 将 R1125-10 接上电源和网线，确保与电脑在同一网络
+1. 将 R1100 系列设备接上电源和网线，确保与电脑在同一网络
 2. 输入 IP 地址 `reComputer-R110x.local`（或从路由器查询）
 3. 输入用户名 `recomputer`，密码 `12345678`
 4. 点击部署，等待安装完成
@@ -359,7 +359,7 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
-| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前 Raspberry Pi 5 实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
+| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前在更快的 arm64 开发板（SoC 不同于 R1100 的 CM4 级）上实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
 | 出库返回 429 | **已在 `fix/a2-concurrency` 修复。** 原因：`slowapi` 原来对 `/api/materials/stock-out` 按来源 IP 限流 60 次/分钟，同一 NAT 后面的终端共用这一份额度；修复改为按已认证身份（API key / 会话）计数，阈值由 `BUSINESS_RATE_LIMIT` 控制，默认 600 次/分钟。未含该修复的版本上的规避：单个出口 IP 的持续出库速率控制在 1 次/秒以下，繁忙点位单独出口 IP 或错峰发送 |
 | 网络或服务中断期间请求丢失 | 原因：REST 层没有离线队列和写入缓冲——重连与退避只覆盖 MCP 语音 WebSocket，HTTP 请求直接失败且不会补发。这是已知限制。规避二选一：一是网关侧保证网络可用性（有线优先、UPS 供电、服务与客户端同处一个局域网，别让中断跨广域网），把不可用窗口压到设备重启时间；二是客户端做写入队列——出入库先落本地，联通后按顺序补发并按批次号去重，该队列本包不含。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无补发 |
 
@@ -418,7 +418,7 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12（Hailo-8）或 Jetson 设备 | 运行仓管系统 + 人脸识别服务 |
+| reComputer Industrial R21 系列（Hailo-8）或 Jetson 设备 | 运行仓管系统 + 人脸识别服务 |
 | USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
@@ -508,7 +508,7 @@ SenseCraft 体验版已就绪！
 
 ### 部署目标 {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-部署到带 Hailo-8 加速卡的设备（reComputer R2135-12 或 Raspberry Pi + Hailo-8）。
+部署到带 Hailo-8 加速卡的设备（reComputer Industrial R21 系列 或 Raspberry Pi + Hailo-8）。
 
 ### 接线
 
@@ -626,7 +626,7 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
-| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前 Raspberry Pi 5 实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
+| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前在更快的 arm64 开发板（SoC 不同于 R1100 的 CM4 级）上实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
 | 出库返回 429 | **已在 `fix/a2-concurrency` 修复。** 原因：`slowapi` 原来对 `/api/materials/stock-out` 按来源 IP 限流 60 次/分钟，同一 NAT 后面的终端共用这一份额度；修复改为按已认证身份（API key / 会话）计数，阈值由 `BUSINESS_RATE_LIMIT` 控制，默认 600 次/分钟。未含该修复的版本上的规避：单个出口 IP 的持续出库速率控制在 1 次/秒以下，繁忙点位单独出口 IP 或错峰发送 |
 | 网络或服务中断期间请求丢失 | 原因：REST 层没有离线队列和写入缓冲——重连与退避只覆盖 MCP 语音 WebSocket，HTTP 请求直接失败且不会补发。这是已知限制。规避二选一：一是网关侧保证网络可用性（有线优先、UPS 供电、服务与客户端同处一个局域网，别让中断跨广域网），把不可用窗口压到设备重启时间；二是客户端做写入队列——出入库先落本地，联通后按顺序补发并按批次号去重，该队列本包不含。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无补发 |
 
@@ -679,12 +679,12 @@ SenseCraft 体验版已就绪！
 
 ## 套餐: 套餐二B · 升级版（多点位）{#private_cloud_multi}
 
-一台 reComputer Super J4012 承担整个现场：仓管系统、人脸识别、本地语音服务。语音识别与合成在本地跑，只有大模型调用走云端 API（DeepSeek、OpenAI 等）。最多 3 台 Watcher 共用这一台服务器，每个点位一台。
+一台 reComputer J40 系列 承担整个现场：仓管系统、人脸识别、本地语音服务。语音识别与合成在本地跑，只有大模型调用走云端 API（DeepSeek、OpenAI 等）。最多 3 台 Watcher 共用这一台服务器，每个点位一台。
 
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher × 1-3 | 语音助手，每个点位一台 |
-| reComputer Super J4012（Jetson Orin NX 16GB） | 运行仓管系统 + 人脸识别（TensorRT）+ 语音服务 + 语音 AI 服务 |
+| reComputer J40 系列（Jetson Orin NX 16GB） | 运行仓管系统 + 人脸识别（TensorRT）+ 语音服务 + 语音 AI 服务 |
 | USB-C 数据线 | 烧录 Watcher 固件 |
 
 **部署完成后你可以：**
@@ -747,18 +747,18 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 3: 仓库管理系统 + 人脸识别 {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
-一并部署库存管理服务与高精度人脸识别服务——同一份 Compose，两个容器，都在 J4012 上。人脸推理走 TensorRT，容器挂载宿主机 JetPack 的 CUDA/TensorRT（不打进镜像）。
+一并部署库存管理服务与高精度人脸识别服务——同一份 Compose，两个容器，都在 J40 系列设备上。人脸推理走 TensorRT，容器挂载宿主机 JetPack 的 CUDA/TensorRT（不打进镜像）。
 
 ### 部署目标 {#warehouse_2b_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
-部署到 reComputer Super J4012。
+部署到 reComputer J40 系列。
 
 ### 接线
 
 ![接线图](gallery/R1100_connected.png)
 
-1. 将 J4012 接上电源和网线，确保与电脑在同一网络
-2. 从路由器查询 J4012 的 IP 地址，输入到地址栏
+1. 将 J40 系列设备接上电源和网线，确保与电脑在同一网络
+2. 从路由器查询 J40 系列设备的 IP 地址，输入到地址栏
 3. 输入用户名 `recomputer`，密码 `12345678`
 4. 点击部署，等待安装完成
 
@@ -768,12 +768,12 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | 连接超时 | 检查网线是否插好，确认 IP 地址正确 |
 | SSH 认证失败 | 确认用户名密码正确，首次使用需接显示器完成初始设置 |
-| 人脸服务起不来 | 确认 J4012 装了 JetPack——容器挂载的是宿主机的 CUDA/TensorRT |
+| 人脸服务起不来 | 确认 J40 系列设备装了 JetPack——容器挂载的是宿主机的 CUDA/TensorRT |
 | 人脸服务首次启动要几分钟 | JetPack 版本不是 6.2 时后端会从 ONNX 重建 TensorRT engine，只发生一次 |
 
 ### 部署目标 {#warehouse_2b_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
 
-直接在本机运行——仅当本机就是 J4012 时适用。
+直接在本机运行——仅当本机就是 J40 系列设备时适用。
 
 ### 接线
 
@@ -811,20 +811,20 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 5: 语音服务 {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-在 J4012 上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步的语音 AI 服务落在同一台 J4012 上，连接到它。
+在 J40 系列设备上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力。下一步的语音 AI 服务落在同一台 J40 系列设备上，连接到它。
 
 本套餐只在本地跑语音，大模型调用云端 API，所以不部署本地大模型。
 
 ### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
-直接在本机（运行 SenseCraft Solution 的这台设备）上部署，仅当本机就是 J4012 时适用。模型会自动下载，无需准备离线包。
+直接在本机（运行 SenseCraft Solution 的这台设备）上部署，仅当本机就是 J40 系列设备时适用。模型会自动下载，无需准备离线包。
 
 ### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
 
 ### 接线
 
-1. 将 J4012 接上电源和网线
-2. 输入 J4012 的 IP 地址和 SSH 凭据（与步骤 3 是同一台设备）
+1. 将 J40 系列设备接上电源和网线
+2. 输入 J40 系列设备的 IP 地址和 SSH 凭据（与步骤 3 是同一台设备）
 3. 点击部署，等待模型下载与服务启动
 
 部署完成后服务监听 **8621**，支持 **3 路语音并发**，每台 Watcher 一路，第 4 路会被拒绝并返回 `4429 too_many_sessions`。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
@@ -852,7 +852,7 @@ SenseCraft 体验版已就绪！
 
 部署语音 AI 服务与智控台，为 Watcher 提供语音交互能力。部署时选择「**私有云方案**」，填写：
 
-- **语音服务地址**：上一步部署 OpenVoiceStream 的 **J4012 局域网 IP**，端口 8621（不能填 `127.0.0.1`，该地址由容器读取）
+- **语音服务地址**：上一步部署 OpenVoiceStream 的 **J40 系列设备局域网 IP**，端口 8621（不能填 `127.0.0.1`，该地址由容器读取）
 - **LLM API 地址 / 模型名称 / 密钥**：云端大模型信息（如 DeepSeek、通义千问）
 
 语音识别与合成在本地，只有大模型走云端。部署完成后会自动配好地址与 MCP 接入点。
@@ -869,7 +869,7 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
-1. 输入 J4012 的 IP 地址和 SSH 凭据
+1. 输入 J40 系列设备的 IP 地址和 SSH 凭据
 2. 点击部署，等待安装完成
 
 ### 故障排除
@@ -896,13 +896,13 @@ SenseCraft 体验版已就绪！
 4. **先别急着连 WiFi** —— 在页面顶部点击「**高级选项**」，在 OTA 地址栏填入：
 
    ```
-   http://<J4012 的 IP>:18002/xiaozhi/ota/
+   http://<J40 系列设备的 IP>:18002/xiaozhi/ota/
    ```
 
    点击保存。这一步决定了设备连哪台服务器，漏了就会去连默认的公有服务器。
 5. 回到配网页面，等待约 5 秒完成 WiFi 扫描，从列表中选择 **2.4GHz** 网络，输入密码，点击「连接」
 6. 连接成功后设备自动重启
-7. 用浏览器打开 `http://<J4012 的 IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
+7. 用浏览器打开 `http://<J40 系列设备的 IP>:18002/xiaozhi/ota/` 自检，显示「OTA 接口运行正常」即说明服务端就绪
 
 > **启用人脸识别**：人脸识别服务已随步骤 3 的仓管系统一并部署（独立容器，
 > 监听 8001）。配网完成后对 Watcher 说「**开启人脸识别模式**」，再到仓管系统
@@ -937,7 +937,7 @@ SenseCraft 体验版已就绪！
 
 **A. 登录智控台**
 
-1. 浏览器访问 `http://<J4012 的 IP>:18002`
+1. 浏览器访问 `http://<J40 系列设备的 IP>:18002`
 2. 用户名 `admin`，初始密码 `Seeed@2026`
 3. ⚠️ **首次登录后请立即修改密码**（右上角账号菜单 → 修改密码）
 
@@ -962,7 +962,7 @@ SenseCraft 体验版已就绪！
 
 **E. 填进仓库系统**
 
-10. 浏览器访问 `http://<J4012 的 IP>:2125`
+10. 浏览器访问 `http://<J40 系列设备的 IP>:2125`
 11. 进入左侧「智能体配置」，点击「添加智能体」，填写名称
 12. 在 Endpoint 中粘贴刚才复制的接入点地址
 13. 点击「保存并启动」
@@ -1004,7 +1004,7 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
-| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前 Raspberry Pi 5 实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
+| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前在更快的 arm64 开发板（SoC 不同于 R1100 的 CM4 级）上实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
 | 出库返回 429 | **已在 `fix/a2-concurrency` 修复。** 原因：`slowapi` 原来对 `/api/materials/stock-out` 按来源 IP 限流 60 次/分钟，同一 NAT 后面的终端共用这一份额度；修复改为按已认证身份（API key / 会话）计数，阈值由 `BUSINESS_RATE_LIMIT` 控制，默认 600 次/分钟。未含该修复的版本上的规避：单个出口 IP 的持续出库速率控制在 1 次/秒以下，繁忙点位单独出口 IP 或错峰发送 |
 | 网络或服务中断期间请求丢失 | 原因：REST 层没有离线队列和写入缓冲——重连与退避只覆盖 MCP 语音 WebSocket，HTTP 请求直接失败且不会补发。这是已知限制。规避二选一：一是网关侧保证网络可用性（有线优先、UPS 供电、服务与客户端同处一个局域网，别让中断跨广域网），把不可用窗口压到设备重启时间；二是客户端做写入队列——出入库先落本地，联通后按顺序补发并按批次号去重，该队列本包不含。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无补发 |
 
@@ -1034,7 +1034,7 @@ SenseCraft 体验版已就绪！
 2. **各点位 Watcher 均已连接**——控制台上对应 Agent 卡片的 MCP Endpoint 状态显示「已连接」。
 3. **各点位语音入库有回声**——在每台 Watcher 上说「入库 10 箱苹果」，各自回复该点位的品名和总量。
 4. **查询正常**——在某台 Watcher 上说「苹果还有多少」，数量应只属于该点位，不与其他点位混淆。
-5. **日志无 error**——在 J4012 上 `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
+5. **日志无 error**——在 J40 系列设备上 `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`，在以上检查期间应无输出。
 
 ---
 
@@ -1045,8 +1045,8 @@ SenseCraft 体验版已就绪！
 | 设备 | 用途 |
 |------|------|
 | SenseCAP Watcher | 语音助手，接收语音指令 |
-| reComputer R2135-12（Hailo-8） | 运行仓管系统 + 人脸识别 + 语音 AI 服务 |
-| reComputer Robotics J5011 | 运行本地大模型，完全离线 |
+| reComputer Industrial R21 系列（Hailo-8） | 运行仓管系统 + 人脸识别 + 语音 AI 服务 |
+| reComputer J50 系列 | 运行本地大模型，完全离线 |
 
 **部署完成后你可以：**
 - 100% 离线运行——没有网络也能用
@@ -1055,7 +1055,7 @@ SenseCraft 体验版已就绪！
 
 ✅ 支持人脸识别
 
-**前提条件：** 需要 reComputer Robotics J5011 · 首次部署需要网络下载镜像
+**前提条件：** 需要 reComputer J50 系列 · 首次部署需要网络下载镜像
 
 ## 步骤 1: 更新小智固件 {#warehouse_esp32_t3 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -1126,13 +1126,13 @@ SenseCraft 体验版已就绪！
 
 ### 部署目标 {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-部署到 reComputer R2135-12 边缘计算设备。
+部署到 reComputer Industrial R21 系列 边缘计算设备。
 
 ### 接线
 
 ![接线图](gallery/R1100_connected.png)
 
-1. 将 R2135-12 接上电源和网线，确保与电脑在同一网络
+1. 将 Industrial R21 系列设备接上电源和网线，确保与电脑在同一网络
 2. 输入 IP 地址 `reComputer-R110x.local`（或从路由器查询）
 3. 输入用户名 `recomputer`，密码 `12345678`
 4. 点击部署，等待安装完成
@@ -1178,7 +1178,7 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
-1. 将 Jetson（reComputer Robotics J5011）接上电源和网线
+1. 将 Jetson（reComputer J50 系列）接上电源和网线
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
 3. 点击部署，等待模型下载与服务启动
 
@@ -1201,7 +1201,7 @@ SenseCraft 体验版已就绪！
 
 本地模型会排在各列表最前面，无需翻页。
 
-在 R2135-12 上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
+在 Industrial R21 系列设备上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
 
 - **语音服务地址**：上一步部署 OpenVoiceStream 的 Jetson 局域网 IP，端口 8621（不能填 `127.0.0.1`，该地址由容器读取）
 - **本地 LLM 地址**：上一步记下的 Jetson 局域网 IP，端口 8000（与语音服务同机时可留空）
@@ -1220,14 +1220,14 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
-1. 输入 R2135-12 的 IP 地址和 SSH 凭据
+1. 输入 Industrial R21 系列设备的 IP 地址和 SSH 凭据
 2. 点击部署，等待安装完成
 
 ### 故障排除
 
 | 问题 | 解决方法 |
 |------|----------|
-| 无法连接 Jetson | 检查 R2135-12 和 Jetson 是否在同一网络 |
+| 无法连接 Jetson | 检查 Industrial R21 系列设备和 Jetson 是否在同一网络 |
 | 响应很慢 | 确认 Jetson 服务已启动，访问 `http://Jetson-IP:8000/v1/models` 检查 |
 
 ---
@@ -1348,7 +1348,7 @@ SenseCraft 体验版已就绪！
 |------|----------|
 | Watcher 没反应 | 确认智能体已连接（状态显示 Connected） |
 | 库存没更新 | 刷新网页查看最新数据 |
-| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前 Raspberry Pi 5 实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
+| 压力下入库返回 409 | **已在 `fix/a2-concurrency` 修复。** 原因：批次号原来靠「读当天最大序号 + 1」，并发请求读到同一份已提交状态、算出同一个号，固定 5 次重试躲不开；修复改为从取号表原子自增，批次号格式不变。未含该修复的版本上的规避：按物料串行入库（同一时刻只发一个请求），客户端收到 409 后带退避重试。修复前在更快的 arm64 开发板（SoC 不同于 R1100 的 CM4 级）上实测：并发 1 错误率 0%，并发 5 为 77.4%，并发 10 及以上为 100% |
 | 出库返回 429 | **已在 `fix/a2-concurrency` 修复。** 原因：`slowapi` 原来对 `/api/materials/stock-out` 按来源 IP 限流 60 次/分钟，同一 NAT 后面的终端共用这一份额度；修复改为按已认证身份（API key / 会话）计数，阈值由 `BUSINESS_RATE_LIMIT` 控制，默认 600 次/分钟。未含该修复的版本上的规避：单个出口 IP 的持续出库速率控制在 1 次/秒以下，繁忙点位单独出口 IP 或错峰发送 |
 | 网络或服务中断期间请求丢失 | 原因：REST 层没有离线队列和写入缓冲——重连与退避只覆盖 MCP 语音 WebSocket，HTTP 请求直接失败且不会补发。这是已知限制。规避二选一：一是网关侧保证网络可用性（有线优先、UPS 供电、服务与客户端同处一个局域网，别让中断跨广域网），把不可用窗口压到设备重启时间；二是客户端做写入队列——出入库先落本地，联通后按顺序补发并按批次号去重，该队列本包不含。实测 34 s 中断期间 100% 请求失败，恢复后无积压、无补发 |
 
@@ -1375,8 +1375,8 @@ SenseCraft 体验版已就绪！
 
 #### 验收清单
 
-1. **三个健康检查都通过**——`curl -f http://<服务器IP>:2125/health`（仓库，R2135-12 上）、`curl -f http://<Jetson-IP>:8621/readyz`（语音，J5011 上）、`curl -f http://<Jetson-IP>:8000/v1/models`（大模型，J5011 上）均返回成功。
-2. **断网也能用**——在路由器/网关处拔掉联网线（R2135-12、J5011 和 Watcher 之间的局域网连接保持不动），Watcher 在局域网内仍应可达。
+1. **三个健康检查都通过**——`curl -f http://<服务器IP>:2125/health`（仓库，Industrial R21 系列设备上）、`curl -f http://<Jetson-IP>:8621/readyz`（语音，J50 系列设备上）、`curl -f http://<Jetson-IP>:8000/v1/models`（大模型，J50 系列设备上）均返回成功。
+2. **断网也能用**——在路由器/网关处拔掉联网线（Industrial R21 系列设备、J50 系列设备和 Watcher 之间的局域网连接保持不动），Watcher 在局域网内仍应可达。
 3. **断网状态下语音入库有回声**——保持断网，对 Watcher 说「入库 10 箱苹果」，应正常回复。
 4. **断网状态下查询正常**——说「苹果还有多少」，回复应与面板一致，全程保持断网。
-5. **日志无 error**——在 R2135-12 上 `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`；在 J5011 上 `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error`；在以上检查期间均应无输出。
+5. **日志无 error**——在 Industrial R21 系列设备上 `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error`；在 J50 系列设备上 `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error`；在以上检查期间均应无输出。

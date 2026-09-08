@@ -67,10 +67,10 @@
 | Orin NX 16GB（全本地） | Qwen3-ASR int4 + Matcha | Qwen3-ASR int4 + Matcha | Qwen3-ASR + Qwen3-TTS CustomVoice |
 | RK3576 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | 不支持——该板 TTS 仅有 Matcha zh-en |
 | RK3588 | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR W8A8 + Matcha | Qwen3-ASR + Kokoro RKNN |
-| 树莓派 5 | 不支持 | sherpa-onnx CPU | 不支持 |
+| reComputer Industrial R20 系列 | 不支持 | sherpa-onnx CPU | 不支持 |
 
 **中文绝不交给 Whisper。** Whisper 在已实测的每块板上中文 CER 都在 35-56%。
-没有 Qwen3-ASR 后端的树莓派 5 直接拒绝中文，而不是勉强识别。
+没有 Qwen3-ASR 后端的 reComputer Industrial R20 系列直接拒绝中文，而不是勉强识别。
 
 ## 实测结果
 
@@ -93,7 +93,7 @@ RK3576 各行为同款 RK3576 平台实测参考值，reComputer 整机复测后
 
 | 套餐 | 对话模型 | 支持设备 | 适合谁 |
 |------|----------|----------|--------|
-| 云端或兼容接口 | Qwen API 或任意 OpenAI 兼容模型 | RK3576 / RK3588 / Orin Nano / Orin NX / 树莓派 5 | 最快获得完整对话体验 |
+| 云端或兼容接口 | Qwen API 或任意 OpenAI 兼容模型 | RK3576 / RK3588 / Orin Nano / Orin NX / reComputer Industrial R20 系列 | 最快获得完整对话体验 |
 | 全本地对话 | RK1828 Qwen3-4B 或 Orin NX Qwen3.5-4B | RK3588 + RK1828 / Orin NX 16GB | 隐私、离线和固定成本场景 |
 
 ### 技术组合

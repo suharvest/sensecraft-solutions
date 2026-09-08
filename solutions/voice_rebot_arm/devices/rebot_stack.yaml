@@ -13,7 +13,7 @@ device_class: jetson
 # libraries) and model-init (fetches the embin detector + text encoder, and
 # picks the native-TensorRT or onnxruntime backend for THIS host).
 #
-# Target: reComputer J4012 (Jetson Orin NX 16GB, JetPack 6). The compose
+# Target: reComputer J40 series (Jetson Orin NX 16GB, JetPack 6). The compose
 # mounts host CUDA/TensorRT libraries — other hosts are unsupported.
 #
 # First boot downloads ~8.5 GB of models (LLM engine 4.9 GB, MOSS TTS 1.9 GB,

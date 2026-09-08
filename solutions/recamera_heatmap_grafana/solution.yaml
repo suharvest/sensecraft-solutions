@@ -192,7 +192,7 @@ intro:
         zh: IP 摄像头 + 瑞芯微 NPU
 
     - id: hailo
-      name: IP Camera + Raspberry Pi 5 (Hailo)
+      name: IP Camera + reComputer Industrial R20 (Hailo)
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -225,7 +225,7 @@ intro:
           name_i18n:
             zh: IP 摄像头
       name_i18n:
-        zh: IP 摄像头 + 树莓派 5（Hailo）
+        zh: IP 摄像头 + reComputer Industrial R20（Hailo）
 
     - id: jetson
       name: Upgrade Existing Cameras

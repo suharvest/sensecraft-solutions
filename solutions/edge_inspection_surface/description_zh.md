@@ -56,7 +56,7 @@ backend 只负责预处理、调用加速器、把原始张量交出来。下面
 
 ### 实测边界——Jetson Orin NX
 
-板卡：Jetson Orin NX 16GB（Seeed reComputer Super J4012），L4T R36.4.3 /
+板卡：Jetson Orin NX 16GB（Seeed reComputer J40 系列），L4T R36.4.3 /
 JetPack 6.2，TensorRT 10.3.0.30，功耗模式 MAXN_SUPER（只读未改），
 镜像 「edge-inspection-jetson:0.1.0-dev」，仓库 commit 「670e433」。
 YOLOX-Tiny 640x640 FP16。
@@ -121,7 +121,7 @@ reComputer 整机复测后更新。
 | 项 | 数值 | 条件 | 来源 |
 |---|---|---|---|
 | 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，「2026-09-05-m2-orin」 §1 |
-| 设备上构建 TensorRT engine，全新部署交叉验证 | 304 s | 同一台设备、同一份 ONNX，删除旧 engine 后从全新部署重新构建；构建脚本必须带 `TRT_STATIC_SHAPE=true`，否则 trtexec 报「Static model does not take explicit shapes」；比上面 291 s 高 4.5%（各只测过一次，未做重复测量的波动性研究） | 本次实测，「2026-09-08-orin-nx-acceptance」 |
+| 设备上构建 TensorRT engine，全新部署交叉验证 | 304 s | 同一台设备、同一份 ONNX，删除旧 engine 后从全新部署重新构建；构建脚本必须带 `TRT_STATIC_SHAPE=true`，否则 trtexec 报「Static model does not take explicit shapes」；比上面 291 s 高 4.5%（各只测过一次，未做重复测量的波动性研究） | 本次实测，2026-09-08 |
 | Jetson 镜像 | 375 MB | 「edge-inspection-jetson:0.1.0-dev」；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，「2026-09-05-m2-orin」 |
 | reComputer R2000 新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置 | 同款 Hailo-8 平台原生 arm64 构建实测，2026-09-06，参考值 |
 

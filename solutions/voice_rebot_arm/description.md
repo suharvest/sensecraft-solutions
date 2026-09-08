@@ -47,7 +47,7 @@ The detector takes its class vocabulary as a runtime input rather than baking it
 
 ## Requirements
 
-- reComputer J4012 / Jetson Orin NX 16 GB (JetPack 6) — the compose file mounts host CUDA/TensorRT
+- reComputer J40 series / Jetson Orin NX 16 GB (JetPack 6) — the compose file mounts host CUDA/TensorRT
 - reBot B601-DM arm (USB serial) + Orbbec Gemini 2 on the wrist (USB 3.0)
 - reSpeaker USB mic + any speaker
 - ~8.5 GB of model downloads on first boot (LLM engine, speech engines, detector), plus ~1.4 GB of container images

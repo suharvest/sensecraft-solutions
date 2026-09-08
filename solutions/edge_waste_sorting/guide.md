@@ -32,7 +32,7 @@ Known weaknesses, all measured or explicitly unmeasured:
 - **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
   agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
   exact deployed engine.** They come from a separately built FP16 engine —
-  same ONNX, same precision, same reComputer J4012 (Orin NX) — not the binary
+  same ONNX, same precision, same reComputer J40 series (Orin NX) — not the binary
   this deployment step produces. The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
   reported MQTT event, are measured on the deployed binary.
@@ -43,7 +43,7 @@ Uploads the compose stack, downloads the ONNX, builds the TensorRT engine on
 the device, writes the source and trigger configuration, and starts the
 classifier alongside a local MQTT broker. First start needs to wait for the
 engine build: the baseline (EfficientNet-Lite0) engine took 68 s on a
-reComputer J4012 (Orin NX).
+reComputer J40 series (Orin NX).
 
 ### Prerequisites
 
@@ -275,7 +275,7 @@ every figure on the solution page holds with it off.
 | The VLM's category differs from the classifier's | Expected, and it does not backfill the main event. Log both and review; the fallback is not yet evidence-backed enough to act on automatically. |
 | The flap reacts slowly after enabling the VLM | `vlm.apply_fallback_to_gpio` must stay false. A flap must not wait on a call whose P50 is measured in seconds. |
 
-## Preset: Camera + Raspberry Pi 5 (Hailo-8) {#pi_hailo}
+## Preset: Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
 Prepares a Pi 5 with a Hailo-8 (the reComputer R2000 series shipping form
 factor), validates the three ABI gates that can only be checked on the
@@ -293,7 +293,7 @@ above.
 
 | Device | Purpose |
 |---|---|
-| Raspberry Pi 5 + Hailo-8 (PCIe M.2) | Runs the classifier on the NPU |
+| reComputer R2000 series (Hailo-8, PCIe M.2) | Runs the classifier on the NPU |
 | USB or IP camera | Looks down into the drop area — one item per shot |
 | Physical button (optional) | A trigger source; wiring and the GPIO read are integration work outside this package |
 | Relay, flap or indicator (optional) | Driven by the actuator callback, which carries the four-way category and binds no pin |
@@ -462,11 +462,11 @@ and verifies the EfficientNet-Lite0 HEF.
 | Python import error on `_pyhailort` | The host bindings are mounted into the container and only import under the same Python minor. Bookworm is 3.11, trixie is 3.13. |
 | Your own trained MobileNetV3-Small INT8s badly on Hailo | Expected — do not quantise it directly. MobileNetV3-Small (m1b) collapsed to near-random accuracy on this exact compile pipeline (agreement 0.115 vs CPU/native). EfficientNet-Lite0 is the baseline for this reason. |
 
-### Target {#hailo_remote type=remote device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml default=true}
+### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000 series" config=devices/hailo_waste.yaml default=true}
 
 Deploy over SSH from this machine to the Pi. This is the normal path.
 
-### Target {#hailo_local type=local device=hailo device_name="Raspberry Pi 5" config=devices/hailo_waste.yaml}
+### Target {#hailo_local type=local device=hailo device_name="reComputer R2000 series" config=devices/hailo_waste.yaml}
 
 Run the deployment on the Pi itself, when you are already working on the device.
 

@@ -102,7 +102,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ## 套餐: OpenClaw 网关 {#openclaw_recomputer_r}
 
-在 reComputer R 系列上部署 OpenClaw AI 消息网关。轻量部署——仅网关服务，无需本地模型。
+在 reComputer R1100 系列上部署 OpenClaw AI 消息网关。轻量部署——仅网关服务，无需本地模型。
 
 | 设备 | 用途 |
 |------|------|
@@ -117,7 +117,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ## 步骤 1: 部署 OpenClaw {#deploy_openclaw_r type=docker_deploy required=true config=devices/recomputer_r_deploy.yaml}
 
-在 reComputer R 上部署 OpenClaw（龙虾机器人）AI 网关。
+在 reComputer R1100 系列上部署 OpenClaw（龙虾机器人）AI 网关。
 
 
 ### 部署完成
@@ -165,11 +165,11 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署目标 {#r_remote type=remote config=devices/recomputer_r_deploy.yaml}
 
-通过 SSH 部署到 reComputer R 设备。
+通过 SSH 部署到 reComputer R1100 系列设备。
 
 ### 接线
 
-1. 将 reComputer R 连接到同一局域网
+1. 将 reComputer R1100 系列设备连接到同一局域网
 2. 输入设备 IP 地址、SSH 用户名和密码
 3. 点击 **部署** 启动服务
 

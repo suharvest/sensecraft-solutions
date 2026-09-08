@@ -2,7 +2,7 @@
 
 所有东西放在一台 Jetson 上：EdgeFallKit 检测器、告警服务、MQTT broker 与确认页面。
 代价是部署时间——首次运行要在设备上构建 TensorRT 引擎，需要好几分钟，这也是这个套餐的超时
-预算是一小时而不是几分钟的原因。实测：reComputer J4012（Orin NX）上 YOLO11s-pose
+预算是一小时而不是几分钟的原因。实测：reComputer J40 系列（Orin NX）上 YOLO11s-pose
 engine 构建耗时 455 秒，首次启动需要等这一步完成。
 
 | 设备 | 用途 |

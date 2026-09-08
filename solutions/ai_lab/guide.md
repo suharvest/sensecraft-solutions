@@ -49,7 +49,7 @@ Deploy to your RK3576 over SSH with one click.
 
 ### Target {#cv_rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/cv_rk3588_deploy.yaml}
 
-Deploy to your RK3588 device (reComputer / ROCK 5T) over SSH.
+Deploy to your reComputer RK3588 series device over SSH.
 
 ### Wiring
 
@@ -70,7 +70,7 @@ Deploy to your RK3588 device (reComputer / ROCK 5T) over SSH.
 | Issue | Solution |
 |-------|----------|
 | SSH connection failed | Verify IP address, username, password |
-| RK3588 platform not detected | Ensure device is RK3588-based (reComputer / ROCK 5T) |
+| RK3588 platform not detected | Ensure device is a reComputer RK3588 series unit |
 | No camera detected | Check USB camera is connected. Detection still works with image upload API |
 | Image pull slow | Check network connection. Image is about 1-2GB |
 
