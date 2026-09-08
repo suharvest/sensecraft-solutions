@@ -392,4 +392,4 @@ remote_overrides:
       name_i18n:
         zh: 最低置信度
       description_i18n:
-        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测；真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测。

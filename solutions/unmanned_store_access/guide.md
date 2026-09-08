@@ -63,7 +63,8 @@ p95 2.709 ms. The device was restored byte for byte afterwards.
 
 Read those numbers for what they are. The 22 events were **injected synthetic
 recognition results**, not a person, and the pin readback is sysfs, so the
-values are an upper bound. The pin's physical identity on the board is confirmed
+values are an upper bound with no external circuit connected. The pin's physical
+identity on the board is confirmed
 (device tree pinmux: the expansion port's UART4 M0 pins, reconfigured as GPIO —
 the 3.3 V family); measure its idle/driven voltage and available drive current
 on your own unit. The thresholds are the recognition app's own defaults —
