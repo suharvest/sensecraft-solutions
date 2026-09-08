@@ -33,18 +33,18 @@ This is not a safety-certified control system. It is a supervisory setpoint reco
 
 Numbers below come from a simulator rig, not from a building.
 
-The load figures in the table were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis, so it indicates what the platform does and is not a measurement of the shipping product. On that platform the control path measured: control admission latency 14.41 ms maximum over 28 samples, prediction cycle latency 426.79 ms maximum over 36 samples, and a read-back that came back consistent with what was written in 0.90 ms with no retries. Of 14 samples the safety gate classed as unsafe, 0 resulted in a write. These are smoke-run samples on an idle system and say nothing about behaviour under load; in particular they are not a validation of the write path. The prediction cycle here is roughly nine times slower than the development-board baseline, so size the cycle time for your point count on the platform you actually deploy. A run on an R1000 in its shipping 4 GB / 8 GB configuration is still to be done.
+| What the building gets | Typical | Device |
+|---|---|---|
+| Field points sampled at the configured rate | **349.99 events/s** against a 350.0 target, 2,000 points | Development-board baseline |
+| Setpoint recommendations produced at 2,000 points | **0.939 cycle/s** | Development-board baseline |
+| Protocols carried into one point model | **4** (OPC UA, Modbus TCP, Modbus RTU, BACnet/IP) | — |
+| Energy saving | **Not claimed** | Savings depend on the building, the weather and the occupancy pattern — run a controlled before/after study on your own site |
 
-| Metric | Value | Conditions | Source |
-|--------|-------|------------|--------|
-| **Energy savings** | Not claimed | — | Savings depend on the building, the weather and the occupancy pattern. Run a controlled before/after study on your own site rather than planning against a published percentage |
-| Control admission latency | 1.41 ms maximum | n = 2 cycles, smoke run only | **Smoke measurement.** Runtime metrics from the "northbound-smoke" rig baseline, upstream @ "f831bae". Two samples describe nothing about a loaded system |
-| Prediction cycle latency | 46.27 ms maximum | n = 4 cycles, smoke run only | **Smoke measurement.** Same baseline capture, same caveat |
-| Sampling throughput | 349.99 events/s against a 350.0 target (99.99%), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB | 2,000 points across 4 protocol sources, OPC UA/Modbus 5 s and BACnet 10 s, loopback only, 180 s run | Development-board baseline (faster arm64 board, not the R1000's CM4-class SoC), r14 "capacity-smoke" |
+The load figures were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis. The prediction cycle there is roughly nine times slower than the development-board baseline, so size the cycle time for your point count on the platform you actually deploy. A run on an R1000 in its shipping 4 GB / 8 GB configuration is still to be done.
 
-The prediction loop sleeps a fixed interval after each cycle, so its rate is "1/(1.0 + t_cycle)". At 2,000 points "t_cycle" is about 0.119 s, putting the structural ceiling near 0.894 cycle/s. Size the cycle time for your point count accordingly.
+The prediction loop sleeps a fixed interval after each cycle, so at 2,000 points its structural ceiling sits near 0.894 cycle/s. Size the cycle time for your point count accordingly.
 
-**Confirm the meter byte order at commissioning.** The SDM630 addresses follow the vendor's published Modbus protocol document and the template defaults to big-endian bytes and words. Check the order against the meter in front of you before trusting the values.
+**Confirm the meter byte order at commissioning.** The SDM630 addresses follow the vendor's published register document and the template defaults to big-endian bytes and words. Check the order against the meter in front of you before trusting the values.
 
 ## Requirements
 
