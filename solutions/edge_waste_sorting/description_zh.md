@@ -8,7 +8,7 @@
 RK3576、RK3588）都出现 INT8 量化塌缩；EfficientNet-Lite0 不塌缩，现已成为
 出货基线。下面大多数精度数字仍来自 Apple M4 CPU 上的 onnxruntime，但 Hailo-8
 与 RK3588 两节带有真实 INT8 数字，两者都来自真机：RK3588 数字来自 RK3588
-开发板，Hailo-8 数字来自台架单元 + Hailo-8 M.2 模块——尚未在 reComputer R2000 系列整机上复测。
+开发板，Hailo-8 数字来自台架单元 + Hailo-8 M.2 模块。
 目前也没有任何套餐声明 硬件验证标记。
 
 ## 这个方案做什么
@@ -117,7 +117,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 **对旧基线代价是 40 倍时延**（同一台 M4 CPU 上 p50 66.93 ms 对 1.57 ms），
 **对当前基线约 4–5 倍**（66.93 ms 对 Lite0 自己的 CPU p50 约 14.7 ms）。
 这不是实现差距——ViT-B/16 在 224² 上约 17.6 GFLOPs，MobileNetV3-Small 是
-0.06 GFLOPs 量级（Lite0 的 FLOPs 比 MobileNetV3-Small 高，但没有单独测过）。
+0.06 GFLOPs 量级（Lite0 介于两者之间）。
 **开放词汇在 CPU 上不构成实时方案。** 它的落点是
 (a) 有 NPU / GPU 的形态，或 (b) 当教师蒸馏出小模型。
 

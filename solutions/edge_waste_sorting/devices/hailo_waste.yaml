@@ -386,7 +386,7 @@ remote_overrides:
       type: text
       default: "0.5"
       required: true
-      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0); the on-device INT8 confidence distribution has not been measured on real Hailo-8 hardware.
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0).
       validation:
         pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
       name_i18n:

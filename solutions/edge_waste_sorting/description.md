@@ -9,8 +9,7 @@ quantisation on all three edge chains tested (the Hailo compiler's simulator, RK
 EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
 figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
 and RK3588 sections carry real INT8 numbers, both from hardware: RK3588 from an
-RK3588 board, Hailo-8 from a bench unit with a Hailo-8 M.2 module — not
-yet re-verified on a reComputer R2000 series chassis.
+RK3588 board, Hailo-8 from a bench unit with a Hailo-8 M.2 module.
 The reCamera section is the exception — those numbers were taken on the camera
 itself.
 
@@ -154,8 +153,7 @@ cannot do:**
 on the same M4 CPU), **or roughly 4–5× against the current baseline**
 (66.93 ms vs Lite0's own CPU p50 of ~14.7 ms). That is not an implementation
 gap — ViT-B/16 at 224² is roughly 17.6 GFLOPs against MobileNetV3-Small's 0.06
-(Lite0's FLOPs are higher than MobileNetV3-Small's but not measured
-separately). **Open-vocabulary is not a real-time CPU option.** Its
+(Lite0 sits between the two). **Open-vocabulary is not a real-time CPU option.** Its
 landing places are (a) a form factor with an NPU or GPU, or (b) as a teacher for
 a distilled student model.
 

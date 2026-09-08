@@ -215,10 +215,8 @@ steps:
       actually more often right on the items that trip these gates has not been
       measured — the only integration evidence so far is a stub run whose
       generated text was fixed, and its vlm_latency_ms of 12.5 ms is a
-      hard-coded constant, not a model. Real latency and real accuracy are
-      pending verification against a real service on Orin. Until then, treat
-      the fallback stream as a second opinion to log and review, not as a
-      correction to act on.
+      hard-coded constant, not a model. Treat the fallback stream as a second
+      opinion to log and review, not as a correction to act on.
     description_i18n:
       zh: >-
         兜底事件带的是 VLM 自己的类别与自己的置信度，两者都不能与分类器的

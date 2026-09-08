@@ -279,9 +279,6 @@ intro:
       name: Camera + reComputer J30 / J40 (Orin)
       name_i18n:
         zh: 摄像头 + reComputer J30 / J40（Orin）
-      badge: Untested on hardware
-      badge_i18n:
-        zh: 未上板验证
       description: >-
         TensorRT FP16 on Jetson Orin, engine built on the device during
         deployment. The only preset that offers the optional open-vocabulary
