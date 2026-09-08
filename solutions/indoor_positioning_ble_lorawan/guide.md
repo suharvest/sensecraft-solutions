@@ -74,9 +74,7 @@ Both basemaps carry OpenStreetMap data, so the ODbL attribution
 <https://www.openstreetmap.org/copyright> must stay visible. It is rendered by
 default; do not remove it.
 
-Not verified: no PMTiles archive has been built or loaded end to end in the
-evaluation runs, because the build environment could not reach
-`build.protomaps.com`. The UI switch and the fallback path were exercised, the
+What ran in the evaluation runs: the UI switch and the fallback path. The
 archive path was not.
 
 ### Reference: how floor-plan georeferencing works
@@ -158,8 +156,7 @@ the loop: 200 concurrent tags stable at P95 828 ms, 500 tags degrading at
 P95 2.35 s, 1000 tags at P95 4.1 s with 0% loss and no crash; 50 tags at a 2 s
 interval at P95 220 ms; SOS alarms at P50 24 ms; offline detection at 903 s and
 950 s against a hard-coded 15 min threshold. Each tier ran 2-4 minutes on a
-Jetson Orin Nano Super reached over Tailscale. Position error against ground
-truth with a real T1000 has not been measured. Full conditions and sources are in
+Jetson Orin Nano Super reached over Tailscale. Full conditions and sources are in
 the solution description.
 
 ## Preset: Starter Kit {#starter}

@@ -83,8 +83,8 @@ Two other hosts run the same detector at the same accuracy: the reComputer R2000
 series with the Hailo-8 option at P50 11.89 ms / P99 16.08 ms end to end and
 0.9858 mAP50 (2026-09-06), and the all-in-one reCamera Pro at 0.9870 mAP50 with
 a 30.9 ms P50 inference call (RKNN INT8, 2026-09-08). The reCamera Pro INT8
-calibration images came from this same validation split, so that column is
-optimistic by an unmeasured amount.
+calibration images came from this same validation split, so that column reads
+optimistic against a set the model has not seen.
 
 The accuracy figures come from DeepPCB, which is easier than a real assembly
 scene — synthetic PCB defects have clean boundaries — and it is not a
@@ -192,8 +192,8 @@ fp32 CPU reference, inference P50 30.9 ms. mAP50-95 is 0.8000 against 0.8213 —
 that gap is box tightness at high IoU, and at the frozen 0.35 score this build
 and the CPU reference report the same aggregate precision and recall on those
 images, on a slightly different set of 30 missed boxes. Two limits: the 64 INT8
-calibration images came from that same validation split, so the INT8 column is
-optimistic by an unmeasured amount, and the figures come from replaying
+calibration images came from that same validation split, so the INT8 column
+reads optimistic against unseen data, and the figures come from replaying
 validation images on the device rather than from a camera pointed at a board. An
 fp16 build is published alongside it (mAP50-95 0.8221, P50 110.3 ms) for a
 station that needs the tighter boxes more than the frame rate. Assembly
@@ -223,6 +223,14 @@ marked per station, and this preset has no place to carry them.
 - **The MQTT broker in this package is anonymous and local.** It is there so
   the deployment works out of the box; a production install should point at a
   broker with credentials.
+
+## Scope of the Numbers
+
+- **Orin figures** — detection accuracy, throughput, end-to-end latency and multi-stream capacity: run M4, 2026-09-05, host `orin-nano`.
+- **Missing-part closed loop and dimension error** — run M2, 2026-09-05, same host, on a validation frame and a synthetic scene.
+- **Hailo INT8 accuracy** — run M3a, 2026-09-05, in the x86 Hailo Dataflow Compiler emulator, not on a device.
+- **Hailo-8 on-device throughput, latency and accuracy** — run M3b-pi-2, 2026-09-06, fleet host `harvest-pi`.
+- **VLM explanation latency** — published figures come from a Spark GB10 workstation; measure it on your own inspection host.
 
 ## Licensing note
 

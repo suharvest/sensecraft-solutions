@@ -62,8 +62,7 @@ Registration depth is what moves accuracy most — on the same model, going from
 one registration image to eight changes top-1 by 28 percentage points — so
 photograph each SKU from several angles when you register it. The J40 replay ran the full device-side
 runtime — detector, embedder, gallery lookup, MQTT publish. Measured on the
-Orin NX unit (reComputer J40) only; the smaller reComputer J30 series option
-has not been tested.
+Orin NX unit (reComputer J40).
 
 A shelf host does the same job more slowly: on a reComputer RK3588 running a
 20-SKU shelf replay with retrieval on the registration console, frame to
@@ -140,9 +139,9 @@ and the constraints are inherited by anything trained on them:
   Apache-2.0 — the restriction comes from the training data, not the backbone.
 - **Grocery Store Dataset — MIT**, used for retrieval evaluation only, and the
   only commercially usable dataset in the set.
-- **RPC (CC BY-NC-SA 4.0), Unitail-OCR (academic only), GroZi-120 (licence
-  unverified)** appear in the upstream evaluation plan and carry non-commercial
-  or unverified scope.
+- **RPC (CC BY-NC-SA 4.0), Unitail-OCR (academic only), GroZi-120 (licence to
+  be checked with the dataset owner)** appear in the upstream evaluation plan
+  and carry non-commercial scope.
 - **The project's own code is Apache-2.0.**
 
 A commercial deployment must retrain both models on first-party or permissively

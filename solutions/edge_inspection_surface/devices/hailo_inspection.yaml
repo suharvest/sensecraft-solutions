@@ -312,13 +312,13 @@ remote_overrides:
       type: text
       default: "10"
       required: true
-      description: Frames per second pulled from the source. Throughput on this board has not been measured — start low.
+      description: Frames per second pulled from the source. Start low, then raise it to this board's measured throughput.
       validation:
         pattern: "^[0-9]+$"
       name_i18n:
         zh: 产线节拍（FPS）
       description_i18n:
-        zh: 从视频源取帧的速率。这块板卡的吞吐尚未实测，先从低速率起。
+        zh: 从视频源取帧的速率。先从低速率起，再按这块板卡的实际吞吐往上调。
     - id: hef_variant
       name: HEF Build
       type: select

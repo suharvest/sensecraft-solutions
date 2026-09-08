@@ -262,9 +262,9 @@ deploy step checks each one.
 - **The threshold is a business decision.** 0.35
   is the deployed value. At 0.6, precision goes from 0.765 to 0.865 and
   whole-frame misses go from 7 to 39 out of 290.
-- **False alarms are unmeasured.** Every image in the validation split carries a
-  defect, so nothing here says how often a clean strip is called NG. That number
-  has to come from your own line.
+- **False alarms have to come from your own line.** Every image in the
+  validation split carries a defect, so this dataset cannot show how often a
+  clean strip is called NG.
 - **One camera per deployment as configured.** The runtime handles several
   streams and the capacity was measured at 8 stable on Orin NX, but the deploy
   step configures one. Add the rest to the "streams" list on the device and
@@ -283,6 +283,15 @@ deploy step checks each one.
 - **The MQTT broker in this package is for commissioning.** It runs with
   "allow_anonymous true". A production line should point at a broker with
   credentials instead.
+
+## Scope of the Numbers
+
+- **Orin figures** — 2026-09-05, Jetson Orin NX 16GB, JetPack 6.2 / TensorRT 10.3.0.30, image `edge-inspection-jetson:0.1.0-dev`, commit `670e433`.
+- **reComputer R2000 series host** — 2026-09-06, fleet host `harvest-pi`, in a 15-minute exclusive window on the board's sole Hailo-8.
+- **INT8 quantisation loss** — 2026-09-05, x86 Hailo Dataflow Compiler 3.31.0, emulator stage, not on a device.
+- **D-FINE-S and RT-DETRv2-S tracks** — 2026-09-06, arm64 Mac, onnxruntime CPUExecutionProvider, CPU only, single seed each.
+- **Throughput and end-to-end latency come from a synthetic 640×640 / 10 FPS video assembled from validation images**, so add your camera's own capture and encode time on top. The detector-track comparison ran on static 640×640 batch-1 images instead.
+- **Frame-level false alarms** — every validation image carries a defect, so this dataset can only expose misses; the false-alarm rate comes from your own line.
 
 ## Licensing note
 

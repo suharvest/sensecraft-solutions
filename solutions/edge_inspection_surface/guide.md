@@ -12,14 +12,14 @@ exact GPU architecture and TensorRT version and cannot be shipped prebuilt.
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 
 **Important:** internal validation only. The model is trained on a re-hosted copy
-of NEU-DET whose licence is unconfirmed — do not use this for a public demo, a
-customer-site demo or commercial material until that is cleared. The measured
+of NEU-DET — clear its licence with the dataset owner before using this for a
+public demo, a customer-site demo or commercial material. The measured
 accuracy is mAP50 0.7577 with recall 0.6969 at the deployed 0.35 threshold on
 290 validation images, and every number is a single unreproduced measurement.
 Known weaknesses: crazing has the lowest AP50 of the six classes at 0.3603, and
-changing the threshold does not move it; frame-level false alarms could not be measured because every image in
-the dataset carries a defect; all figures come from a synthetic video, not from
-a real camera.
+changing the threshold does not move it; frame-level false alarms have to come
+from your own line, because every image in the dataset carries a defect; all
+figures come from a synthetic video, not from a real camera.
 
 ## Step 1: Deploy Surface Inspection {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 

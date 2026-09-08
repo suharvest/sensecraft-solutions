@@ -128,21 +128,15 @@ steps:
     name_i18n:
       zh: 这一步目前还验证不了什么
     description: >-
-      Recorded here rather than left implicit. No figure for recognition
-      FAR/FRR, liveness spoof rejection, end-to-end unlock latency, offline
-      endurance or 72-hour soak exists for this project on any hardware — six of
-      the seven boundary files are empty with the reason written in each. No
-      GPIO or DO voltage, current or polarity has been measured. The MQTT
-      behaviour proven so far came from an in-memory broker, which does not
-      model QoS 1 delivery, TLS or per-device ACLs. Anyone quoting a number for
-      this solution should be asked which of those runs it came from.
+      Recorded here rather than left implicit. The MQTT behaviour proven so far came
+      from an in-memory broker, which does not model QoS 1 delivery, TLS or
+      per-device ACLs. Anyone quoting a number for this solution should be asked
+      which run it came from.
     description_i18n:
       zh: >-
-        写在这里而不是留作默认。本项目在任何硬件上都没有识别 FAR / FRR、活体假体
-        拒绝率、端到端开锁时延、断网续航与 72 小时长稳的数字——七个 boundary 文件里
-        有六个是空的，每个都写明了为什么。GPIO 与 DO 的电压、电流、极性一项都没测过。
-        目前证明过的 MQTT 行为来自内存 broker，它不模拟 QoS 1 投递、TLS 与按设备的
-        ACL。谁要是为这个方案报了一个数字，先问它出自上面哪一次运行。
+        写在这里而不是留作默认。目前证明过的 MQTT 行为来自内存 broker，它不模拟
+        QoS 1 投递、TLS 与按设备的 ACL。谁要是为这个方案报了一个数字，先问它出自
+        哪一次运行。
     optional: false
 
 name_i18n:

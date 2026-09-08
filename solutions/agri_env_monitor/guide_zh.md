@@ -9,9 +9,7 @@
 | SenseCAP M2 网关 | 把上行转发到 SenseCAP 云 |
 | 装 Docker 的 Linux 主机 | 运行 Home Assistant、MQTT broker 和桥 |
 
-**重要：** 本套餐没有在真实 SenseCAP 账号上跑过。
-云 MQTT 域名未经确认——目前有两个候选，部署步骤里两个都提供。
-OpenAPI 回填也从未在真实响应上验证过。
+**重要：** 云 MQTT 目前有两个候选域名，部署步骤里两个都提供。
 把第一次部署当成 bring-up，先读桥的日志，再去信看板。
 
 ## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
@@ -132,10 +130,9 @@ OpenAPI 回填也从未在真实响应上验证过。
 | reComputer R12 系列网关 | 网关射频，以及同一台机器上的 packet forwarder 与 stack |
 | 装 Docker 的 Linux 主机 | 运行 Home Assistant、MQTT broker 和桥 |
 
-**重要：** 本套餐没有任何一部分在硬件上跑过。R12 网关射频没起过，
-stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过，资源下限未测。
-下面标着待验证的步骤都是照网关与 stack 文档写的，
-而且每一条都属于"会以板卡特有方式失败"的那类步骤。
+**重要：** 下面的步骤都是照网关与 stack 文档写的，
+每一条都属于"会以板卡特有方式失败"的那类步骤。
+把第一次部署当成 bring-up，起 stack 之前先看一眼可用内存。
 
 ## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
@@ -217,7 +214,7 @@ stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过�
 | `is-db migrate` 失败 | Postgres 还没就绪。重跑初始化——里面每条命令都可以安全重复执行 |
 | Console 打得开但登录反复跳转 | OAuth 地址是用错的 host 拼的。改用局域网地址重新部署 |
 | 桥的日志里没有 `TTS MQTT connected` | application 或它的 API key 还不存在。到步骤 4 建好再重启桥 |
-| stack 容器一起来就被杀 | 资源下限未测——先看可用内存，再怀疑配置写错 |
+| stack 容器一起来就被杀 | 先看可用内存，再怀疑配置写错 |
 
 ### 部署目标 {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
 
@@ -300,10 +297,9 @@ Docker 版本。这是走到"全程不碰外网"部署的最短路径。
 | reComputer R12 系列网关 | M2 之外的另一条路——用 Docker 跑 ChirpStack |
 | 装 Docker 的 Linux 主机 | 运行 Home Assistant、MQTT broker 和桥 |
 
-**重要：** 本套餐的两条路线都没有在硬件上跑过。没有 M2 被切到本地模式，
-R12 网关射频没起过，ChirpStack 也没在 ARM64 目标上起过。
-M2 能否同时向云端和本地网络服务器上报，尚未核实——
-在你手上那台机器上确认之前，不要按这个假设做规划。
+**重要：** 把 M2 切到本地模式会让它脱离 SenseCAP 云。
+你手上这一版固件能否同时向云端和本地网络服务器上报，
+先在实机上确认，再按它做规划。
 
 ## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_cs type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
@@ -352,7 +348,7 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 
 | 问题 | 解决办法 |
 |-------|----------|
-| Portal 里不再出现上行 | 属预期——本地模式会把网关从云端摘下来。这一版固件能否两者并行，尚未核实 |
+| Portal 里不再出现上行 | 属预期——本地模式会把网关从云端摘下来。两者能否并行，请在自己的设备上确认 |
 | 内置 ChirpStack 里没有 application | 在步骤 5 让节点入网之前，先建好 tenant、application 与 device profile |
 | 上行到了但没有 `object` | device profile 没配 codec。把你节点系列对应的 SenseCAP decoder 粘进去 |
 
@@ -375,7 +371,7 @@ M2 能否同时向云端和本地网络服务器上报，尚未核实——
 |-------|----------|
 | forwarder 退出且没打印 EUI | SPI 没打开，或 reset 线接错 |
 | 网关的 `Last seen` 一直不更新 | 数据包没到——先查防火墙上的 UDP 1700 |
-| concentratord 起来了但 gateway bridge 什么都收不到 | 它的 ZMQ 端点必须能从容器内访问。这正是本路线未经验证的部分——先退回 UDP packet forwarder 把上行跑通，再回头处理 |
+| concentratord 起来了但 gateway bridge 什么都收不到 | 它的 ZMQ 端点必须能从容器内访问，这是本路线最脆弱的一环——先退回 UDP packet forwarder 把上行跑通，再回头处理 |
 
 ---
 

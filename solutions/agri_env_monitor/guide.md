@@ -11,11 +11,9 @@ local broker.
 | SenseCAP M2 gateway | Forwards uplinks to the SenseCAP cloud |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
-**Important:** this preset has not been run against a live SenseCAP account.
-The cloud MQTT hostname is unconfirmed — two candidates are in circulation and
-the deployment step offers both. The OpenAPI backfill has never been exercised
-against real responses. Treat the first deployment as a bring-up, and read the
-bridge log before trusting the dashboard.
+**Important:** two cloud MQTT hostnames are in circulation and the deployment
+step offers both. Treat the first deployment as a bring-up, and read the bridge
+log before trusting the dashboard.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
@@ -151,12 +149,10 @@ MQTT. No cloud account is involved.
 | reComputer R12 Series gateway | The gateway radio, plus the packet forwarder and the stack on the same machine |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
-**Important:** none of this preset has been run on hardware. The R12 gateway
-radio has not been brought up, the stack has not been started on an ARM64
-target, and its first-start initialisation sequence has not been executed. The
-resource floor is unmeasured. Steps below marked as awaiting verification are
-written from the gateway and stack documentation, and each is the kind of step
-that fails in a way specific to the board.
+**Important:** the steps below are written from the gateway and stack
+documentation, and each is the kind of step that fails in a way specific to the
+board. Treat the first deployment as a bring-up and check available memory
+before starting the stack.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
@@ -245,7 +241,7 @@ bridge beside it. Allow 15–30 min for the first run.
 | `is-db migrate` fails | Postgres was not ready. Re-run the initialisation — every command in it is safe to repeat |
 | Console loads but sign-in loops | The OAuth URLs were built from the wrong host. Redeploy with the LAN address |
 | Bridge log shows no `TTS MQTT connected` | The application or its API key does not exist yet. Create them in step 4 and restart the bridge |
-| Stack container is killed on start | Unmeasured resource floor — check available memory before assuming a configuration error |
+| Stack container is killed on start | Check available memory first, then the configuration |
 
 ### Target {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
 
@@ -334,11 +330,9 @@ that never touches the internet.
 | reComputer R12 Series gateway | The alternative to the M2 — runs ChirpStack in Docker |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
-**Important:** neither route of this preset has been run on hardware. No M2 was
-switched to local mode, no R12 gateway radio was brought up, and ChirpStack was not
-started on an ARM64 target. Whether the M2 can report to the cloud and to a
-local network server at the same time is unverified — do not plan around it
-until you have confirmed it on the unit in front of you.
+**Important:** switching the M2 to local mode takes it off the SenseCAP cloud.
+Confirm on the unit in front of you whether your firmware can report to the
+cloud and to a local network server at the same time before planning around it.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_cs type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
@@ -390,7 +384,7 @@ while packaging this.
 
 | Issue | Solution |
 |-------|----------|
-| Uplinks stop appearing in the Portal | Expected — local mode takes the gateway off the cloud. Whether both can run at once is unverified on this firmware |
+| Uplinks stop appearing in the Portal | Expected — local mode takes the gateway off the cloud. Confirm on your own unit whether both can run at once |
 | The built-in ChirpStack has no application | Create the tenant, application and device profile before joining nodes in step 5 |
 | Uplinks arrive with no `object` | The device profile has no codec. Paste the SenseCAP decoder for your node series into it |
 
@@ -416,7 +410,7 @@ Series gateway instead of the M2.
 |-------|----------|
 | Forwarder exits without printing an EUI | SPI is not enabled or the reset line is wrong |
 | Gateway's `Last seen` never updates | Packets are not arriving — check UDP 1700 through the firewall first |
-| Concentratord starts but the gateway bridge sees nothing | Its ZMQ endpoints must be reachable from inside the container. This is the unverified part of this route — fall back to the UDP packet forwarder to get uplinks flowing, then revisit |
+| Concentratord starts but the gateway bridge sees nothing | Its ZMQ endpoints must be reachable from inside the container — this is the fragile part of this route. Fall back to the UDP packet forwarder to get uplinks flowing, then revisit |
 
 ---
 

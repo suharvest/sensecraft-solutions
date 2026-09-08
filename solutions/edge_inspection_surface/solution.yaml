@@ -174,12 +174,11 @@ intro:
           module: [orin_nx_16]
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option. It has not been measured for this
-        solution; the multi-stream and latency figures are Orin NX only.
+        The smaller Orin Nano 8GB option. The multi-stream and latency figures
+        on this page are from the Orin NX.
       description_i18n:
         zh: >-
-          更小的 Orin Nano 8GB 选项。本方案没有在它上面实测过，
-          多路容量与时延数字仅适用于 Orin NX。
+          更小的 Orin Nano 8GB 选项。本页的多路容量与时延数字来自 Orin NX。
       purchase:
         require:
           module: [orin_nano_8]

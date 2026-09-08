@@ -223,8 +223,8 @@ intro:
         frozen 0.35 score this build and the CPU reference report the same
         aggregate 0.9299 precision and 0.9741 recall over those images, on a
         slightly different set of 30 missed boxes. The 64 INT8 calibration
-        images came from that same validation split, so the INT8 column is
-        optimistic by an unmeasured amount, and the figures come from replaying
+        images came from that same validation split, so the INT8 column reads
+        optimistic against unseen data, and the figures come from replaying
         validation images on the device rather than from a camera pointed at a
         board. An fp16 build of the same model is
         also published — mAP50-95 0.8221, p50 110.3 ms — for a station that

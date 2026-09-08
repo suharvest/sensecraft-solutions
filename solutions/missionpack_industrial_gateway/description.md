@@ -29,7 +29,7 @@ The prediction workflow remains available as an optional plugin. Multi-protocol 
 
 ## Measured Boundaries
 
-These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty and do not extrapolate to other devices.
+These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty, and other devices need their own run.
 
 | What the site gets | Typical | Device |
 |---|---|---|

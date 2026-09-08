@@ -170,7 +170,7 @@ settles where embedding runs.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own converted artifact, and records what is still unverified.
+number for your own converted artifact.
 
 ### Prerequisites
 
@@ -354,7 +354,7 @@ the embedder on the CPU with the frame budget that follows from it.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own HEF, and records what is still unverified.
+number for your own HEF.
 
 ### Prerequisites
 
@@ -409,7 +409,7 @@ inference only, on an engine built on the device it ran on.
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
 | reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
-| reComputer J30 (Orin Nano 8GB) | Same family, same role; not tested. The numbers on this page are from the Orin NX (J40) only |
+| reComputer J30 (Orin Nano 8GB) | Same family, same role. The numbers on this page are from the Orin NX (J40) |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}

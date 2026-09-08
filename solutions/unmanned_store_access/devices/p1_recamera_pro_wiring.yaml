@@ -76,9 +76,9 @@ steps:
       evidence as one of the expansion port's UART4 M0 pins reconfigured
       this way — it is in the 3.3 V family, not one of the two native
       12-21 V outputs — but that identity check is not a voltage
-      measurement: its exact TX/RX role, idle/driven level and available
-      drive current have NOT been measured with a meter or schematic on any
-      unit, and no LED, relay or door controller has ever been connected. The app refuses
+      measurement: measure its exact TX/RX role, idle/driven level and
+      available drive current with a meter or schematic on your own unit
+      before connecting an LED, a relay or a door controller. The app refuses
       to arm a pin whose current direction and value disagree with the
       configured idle state, and will not take it over unless explicitly told
       to. Leave that refusal in place.
@@ -98,8 +98,8 @@ steps:
         继电器模块必须匹配你手上的那一种。`gpio130`（GPIO4_A2）依据设备树
         pinctrl 证据判定为扩展口 UART4 M0 那对脚之一，改配成 GPIO——属于 3.3 V
         这一类，不是那两路 12-21 V 原生输出之一——但这只是身份核实，不是电压
-        实测：**它具体是 TX 还是 RX、空闲/驱动电平与可提供电流都没有在任何一台
-        设备上用万用表或原理图确认过**，也从未接过 LED、继电器或门禁控制器。
+        实测：**接 LED、继电器或门禁控制器之前，请在自己的设备上用万用表或
+        原理图量出它具体是 TX 还是 RX、空闲/驱动电平与可提供电流**。
         引脚当前的 direction / value 与配置的空闲状态不符
         时应用拒绝上任，且不会自作主张接管，除非显式要求。把这个拒绝保留着。
     optional: false

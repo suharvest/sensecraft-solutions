@@ -289,7 +289,7 @@ engine 构建耗时 455 秒，首次启动需要等这一步完成。
 
 其他套餐的弱点在这里同样成立——跌倒必须发生在画面里，遮挡、远景与低光都会降低检出，
 摄像头一动区域就失效，`no_motion` 在睡眠时段会触发——此外还有一条是这条路径特有的：
-reCamera 的事件流尚未在硬件上为本方案核实过。确切的主题，以及摄像头在无人时是否照样发布，
+这条路径有一项要现场确认：reCamera 事件流的确切主题，以及摄像头在无人时是否照样发布，
 都要先在你自己的设备上查清楚，`no_person` 告警才谈得上可靠。
 
 ## 步骤 1: 搭建告警网关 {#deploy_recamera_alarm type=manual required=true config=devices/recamera_alarm.yaml}

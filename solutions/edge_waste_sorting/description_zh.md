@@ -8,7 +8,7 @@
 RK3576、RK3588）都出现 INT8 量化塌缩；EfficientNet-Lite0 不塌缩，现已成为
 出货基线。下面大多数精度数字仍来自 Apple M4 CPU 上的 onnxruntime，但 Hailo-8
 与 RK3588 两节带有真实 INT8 数字，两者都来自真机：RK3588 数字来自 RK3588
-开发板，Hailo-8 数字来自台架单元 + Hailo-8 M.2 模块——尚未在 reComputer R2000 系列整机上复测。
+开发板，Hailo-8 数字来自台架单元 + Hailo-8 M.2 模块。
 目前也没有任何套餐声明 硬件验证标记。
 
 ## 这个方案做什么
@@ -117,7 +117,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 **对旧基线代价是 40 倍时延**（同一台 M4 CPU 上 p50 66.93 ms 对 1.57 ms），
 **对当前基线约 4–5 倍**（66.93 ms 对 Lite0 自己的 CPU p50 约 14.7 ms）。
 这不是实现差距——ViT-B/16 在 224² 上约 17.6 GFLOPs，MobileNetV3-Small 是
-0.06 GFLOPs 量级（Lite0 的 FLOPs 比 MobileNetV3-Small 高，但没有单独测过）。
+0.06 GFLOPs 量级（Lite0 介于两者之间）。
 **开放词汇在 CPU 上不构成实时方案。** 它的落点是
 (a) 有 NPU / GPU 的形态，或 (b) 当教师蒸馏出小模型。
 
@@ -202,6 +202,16 @@ HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425�
   不提供绑定代码就打开它不会有任何变化。
 - **`vlm.apply_fallback_to_gpio` 保持 false。** 翻盖不能去等一个 P50
   以秒计的调用。
+
+## 数字的适用范围
+
+- **基线与开放词汇的精度与 CPU 时延**——onnxruntime 1.25.1，Apple M4 CPU，batch 1。
+- **面向 Hailo-8 的基线 INT8**——用 DFC 3.31.0 / HailoRT 4.21.0、`--hw-arch hailo8` 构建。出货的 `efficientnet_lite0_waste8_u8.hef` 以 `optimization_level=2` 量化（量化感知蒸馏微调 8 轮，保留 bias correction），用 2048 张类别均衡的 uint8 训练裁剪；编译需要 DFC 容器内可见 GPU。它在一块 Hailo-8 上、7417 张验证全集上实测。同一张图在 `optimization_level=1` 下比 fp32 低 2.40 个百分点，不出货。
+- **RK3588 上的基线 fp16 与 INT8**——一块 RK3588 开发板，librknnrt 2.3.2，50 张验证图。
+- **RK3576 上的基线**——一块 RK3576 开发板，仅 m1b。
+- **开放词汇 SigLIP 2 视觉塔**——`hailo parser` 能完整跑通，但 `hailo optimize`（INT8 PTQ，256 张校准图，`optimization_level=1`）在 `ne_activation_mul_and_add78` 层失败，因此它没有 HEF。
+- **VLM 兜底**——对着真实服务、生成后端换成 stub 的台架运行（5 帧、5 条有效主事件、2 条兜底事件、0 条被拒），属接线验证。
+- **现场精度**——两个数据集都是单件物品照片（TrashNet 白色背板，GC3 物体偏心且常被遮挡），请采一批自己投放点的数据重测。
 
 ## 许可说明
 

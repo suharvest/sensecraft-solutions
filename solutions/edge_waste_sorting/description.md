@@ -9,8 +9,7 @@ quantisation on all three edge chains tested (the Hailo compiler's simulator, RK
 EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
 figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
 and RK3588 sections carry real INT8 numbers, both from hardware: RK3588 from an
-RK3588 board, Hailo-8 from a bench unit with a Hailo-8 M.2 module — not
-yet re-verified on a reComputer R2000 series chassis.
+RK3588 board, Hailo-8 from a bench unit with a Hailo-8 M.2 module.
 The reCamera section is the exception — those numbers were taken on the camera
 itself.
 
@@ -154,8 +153,7 @@ cannot do:**
 on the same M4 CPU), **or roughly 4–5× against the current baseline**
 (66.93 ms vs Lite0's own CPU p50 of ~14.7 ms). That is not an implementation
 gap — ViT-B/16 at 224² is roughly 17.6 GFLOPs against MobileNetV3-Small's 0.06
-(Lite0's FLOPs are higher than MobileNetV3-Small's but not measured
-separately). **Open-vocabulary is not a real-time CPU option.** Its
+(Lite0 sits between the two). **Open-vocabulary is not a real-time CPU option.** Its
 landing places are (a) a form factor with an NPU or GPU, or (b) as a teacher for
 a distilled student model.
 
@@ -256,6 +254,16 @@ at p50 3.167 ms, consistent with the full-set figures above.
   nothing.
 - **`vlm.apply_fallback_to_gpio` stays false.** A flap must not wait on a call
   whose P50 is measured in seconds.
+
+## Scope of the Numbers
+
+- **Baseline and open-vocabulary accuracy and CPU latency** — onnxruntime 1.25.1, Apple M4 CPU, batch 1.
+- **Baseline INT8 for Hailo-8** — built with DFC 3.31.0 / HailoRT 4.21.0, `--hw-arch hailo8`. The shipped `efficientnet_lite0_waste8_u8.hef` is quantised at `optimization_level=2` (quantisation-aware distillation finetune, 8 epochs, bias correction on) over 2048 class-balanced uint8 training crops; compiling it needs a GPU visible inside the DFC container. It was measured on a Hailo-8 over the full 7417-image val set. The same graph at `optimization_level=1` scores 2.40 points below fp32 and is not deployed.
+- **Baseline fp16 and INT8 on RK3588** — an RK3588 development board, librknnrt 2.3.2, 50 validation images.
+- **Baseline on RK3576** — an RK3576 development board, m1b only.
+- **Open-vocabulary SigLIP 2 tower** — `hailo parser` passes end to end, but `hailo optimize` (INT8 PTQ, 256 calibration images, `optimization_level=1`) fails at layer `ne_activation_mul_and_add78`, so there is no HEF for it.
+- **VLM fallback** — a bench run against the real service with a stubbed generation backend (5 frames, 5 valid main events, 2 fallback events, 0 rejects), which is a wiring test.
+- **Field accuracy** — both datasets are single-item photographs (TrashNet on a white poster board, GC3 with objects off-centre and often occluded), so collect a field set from your own bin and re-measure on it.
 
 ## Licensing note
 

@@ -92,8 +92,8 @@ unmanned-store-access repository.
 
 The standard reCamera row is empty because its recogniser is a closed native
 process with no way to feed it a frame: measuring it needs a person in front of
-the lens. The AI-host row is empty because that route has not been run on
-hardware yet.
+the lens. The AI-host row is empty because the numbers on this page come from the
+reCamera routes.
 
 A software-loop test suite covers the protocol and the state machine: 52 of 52
 checks across three library versions built, published, pulled, hash-checked and

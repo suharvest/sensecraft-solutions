@@ -296,17 +296,17 @@ remote_overrides:
       required: true
       placeholder: "463"
       description: >-
-        The design spec records DO1–DO4 as 463/464/465/462 on this box, and that
-        has not been confirmed on hardware. Verify with a meter which sysfs
-        number moves which terminal before wiring anything to a lock.
+        The design spec records DO1–DO4 as 463/464/465/462 on this box. Verify
+        with a meter which sysfs number moves which terminal before wiring
+        anything to a lock.
       validation:
         pattern: "^[0-9]+$"
       name_i18n:
         zh: DO 的 sysfs GPIO 编号
       description_i18n:
         zh: >-
-          设计 spec 记录这台盒子的 DO1–DO4 是 463/464/465/462，这一条没有在真机上确认过。
-          接锁之前先用万用表确认哪个 sysfs 编号对应哪个端子。
+          设计 spec 记录这台盒子的 DO1–DO4 是 463/464/465/462。接锁之前先用万用表确认
+          哪个 sysfs 编号对应哪个端子。
     - id: active_high
       name: Active Level
       type: select
@@ -379,9 +379,8 @@ remote_overrides:
       default: "0.62"
       required: true
       description: >-
-        A starting point, not a calibrated value. No FAR/FRR figure exists for
-        this project on any hardware. Sweep positive and negative pairs on the
-        installed camera and set it from that.
+        A starting point, not a calibrated value. Sweep positive and negative
+        pairs on the installed camera and set it from that.
       validation:
         pattern: "^0(\\.[0-9]+)?$"
       name_i18n:

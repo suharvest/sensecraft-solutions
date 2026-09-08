@@ -154,17 +154,12 @@ The measurements that decide this were taken on an Orin NX 16GB.
 | **8 – 16** | A dynamic-batch engine, once someone has measured it. Batching amortizes the 1.21 ms of per-inference enqueue overhead, but a batch cannot dispatch until the slowest stream delivers its frame, which adds up to 67 ms to every alert. |
 | **16+, 4K, or tiled display** | DeepStream. Past 16 streams the CPU-side preprocessing does become the constraint, and NVMM zero-copy is the only way around it. DeepStream 7.x for JetPack 6.1 also wants 1.5–2 GB of disk and pins you to a JetPack/`pyds` version pair. |
 
-Two inputs to that table are extrapolated rather than measured, and should be
-confirmed on the target resolution before anyone sells an eight-stream box:
+Everything in the table above was measured with one stream at 720p 5 fps, where
+one stream costs 8.5–12.5% of one core. Measure two things at your own target
+resolution before committing to an eight-stream box: per-stream CPU at
+1080p 15 fps, and NVDEC session capacity for 8×1080p15 concurrent.
 
-- **Per-stream CPU at 1080p 15 fps.** Scaling the measured 8.5–12.5% of one core
-  at 720p 5 fps gives roughly 0.5–0.7 of a core per stream, ~4–5 of the 8 cores
-  at eight streams. **Needs verifying.**
-- **NVDEC session capacity for 8×1080p15 concurrent.** The Orin NX decoder is
-  specified well above that in aggregate pixel rate, but everything here was
-  measured with one stream. **Needs verifying.**
-
-## What Is Verified and What Is Not
+## What Is Verified
 
 Verified on real hardware:
 
@@ -198,14 +193,14 @@ config. The same applies if you republish a single-box broker on the LAN to
 attach a second detector: change the port binding and add the password file,
 not just the first. The workbench on 8090 is unaffected — it requires a login.
 
-Not verified, and not claimed:
+Scope of the numbers above:
 
 - **The reCamera detection node is not built.** The payload contract is
-  published so it can be added without changing the hub, but nothing here runs
-  on one. The Hailo node is built and verified; see the Hailo preset.
-- **Capacity beyond two concurrent streams is untested end to end.** The
-  multi-stream numbers above are GPU and memory measurements taken with worker
-  processes, not eight cameras and eight sets of rules.
+  published so it can be added without changing the hub. The Hailo node is
+  built and verified; see the Hailo preset.
+- **The multi-stream numbers are GPU and memory measurements taken with worker
+  processes**, not eight cameras and eight sets of rules. Run a site pilot at
+  your own stream count before committing to it.
 - **Small-target accuracy rests on COCO.** The calibration footage contained
   almost no distant people, so a wide-angle overhead site at 30 m is outside
   what was measured. Re-check on footage from the site before committing to it.

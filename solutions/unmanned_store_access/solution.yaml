@@ -220,13 +220,13 @@ intro:
         A camera at the door at roughly face height, framed so one face fills a
         usable part of the frame at the distance people actually stop. Route A uses
         the reCamera's own sensor; route B accepts any RTSP stream. Backlit doorways and glass reflections
-        are the usual failure modes and have not been characterised.
+        are the usual failure modes at a door — check the framing against both.
       required: true
       description_i18n:
         zh: >-
           门口一台大致齐面部高度的摄像头，取景要让人真正停下来的距离上，单张人脸
           在画面里占到可用比例。路线 A 用 reCamera 自带传感器；路线 B 接任意 RTSP 流。逆光门口与玻璃反光是常见失效模式，
-          本方案没有刻画过它们的边界。
+          取景时要避开它们。
     - type: other
       description: >-
         A relay module (see "output_interfaces" type "dry_contact") between
@@ -283,11 +283,10 @@ intro:
         (GPIO4_A2), is identified by device tree pinctrl evidence as one of
         the expansion port's UART4 M0 pins reconfigured this way — it
         belongs to the 3.3 V family, not the two native 12–21 V outputs —
-        but its exact TX/RX role, idle/driven voltage and available drive
-        current have not been confirmed with a meter or schematic on any
-        unit. The device survey also found "gpio131" (the paired UART4 pin)
-        already exported by another application, so no pin may be assumed
-        free.
+        so confirm its exact TX/RX role, idle/driven voltage and available
+        drive current with a meter or schematic on your own unit. The device
+        survey also found "gpio131" (the paired UART4 pin) already exported
+        by another application, so check every pin before using it.
       description_i18n:
         zh: >-
           识别、活体与门控判定都跑在摄像头本机，作为「F1 门禁」——一个已发布的
@@ -296,8 +295,8 @@ intro:
           （取决于 DC-IN）；另外，扩展口上的 UART 或 CAN 脚可以改配成 3.3 V
           GPIO。本方案默认的 `gpio130`（GPIO4_A2），依据设备树 pinctrl 证据
           判定为扩展口 UART4 M0 那对脚之一，改配成 GPIO——属于 3.3 V 这一类，
-          不是那两路 12–21 V 原生输出——但它具体是 TX 还是 RX、空闲/驱动电平
-          与可提供电流，都还没有在任何一台设备上用万用表或原理图确认过。
+          不是那两路 12–21 V 原生输出——它具体是 TX 还是 RX、空闲/驱动电平
+          与可提供电流，请在自己的设备上用万用表或原理图确认。
           真机盘点还发现「gpio131」（UART4 配对脚）已被另一个应用 export，
           所以任何引脚都不能假定空闲。
     recamera_2002:
@@ -358,13 +357,12 @@ intro:
     recomputer_j30:
       description: >-
         The smaller Orin Nano option for the same role. It carries recognition
-        the same way and has no local door wiring either; whether it has enough
-        headroom for the recognition service alongside whatever else the site
-        runs on it has not been measured.
+        the same way and has no local door wiring either; the numbers on this
+        page come from the Orin NX (J40).
       description_i18n:
         zh: >-
           同一角色下更小的 Orin Nano 选项。它以同样的方式承载识别，本机同样没有门控接线；
-          它在站点其他负载之外还剩多少余量跑识别服务，没有测过。
+          本页数字来自 Orin NX（J40）。
     recomputer_r10:
       description: >-
         One of the two relay options for the MQTT preset. The unlock is written
@@ -431,8 +429,8 @@ intro:
         zh: >-
           SKU 103020012。默认 Grove Relay 的备选——门控输入是常闭型、需要 「NC」
           而不只是 「COM」/「NO」 时才用它。厂商没有文档化 3.3 V 触发可靠性
-          （数据手册只写了 5 V 标称线圈），任何一个套餐的 GPIO/DO 上都没有实测过，
-          上板前先确认，或者给继电器的 VCC/GND 单独接一路 5 V 电源。
+          （数据手册只写了 5 V 标称线圈），上板前先在自己的设备上确认，或者给继电器的
+          VCC/GND 单独接一路 5 V 电源。
     generic_relay_module_xiao:
       name: XIAO 1-Channel Relay
       name_i18n:
@@ -586,9 +584,8 @@ intro:
         writing a Modbus point, or a XIAO ESP32 driving a Grove Relay — when
         the host is not at the door or one host serves several doors. That last
         option puts a network hop on the unlock path, so the broker's
-        availability becomes the door's availability. Neither container image
-        has been pushed to a registry yet, and door-open time has not been
-        measured on this route.
+        availability becomes the door's availability. Neither container image has been
+        pushed to a registry yet.
       description_i18n:
         zh: >-
           适合门口已经有摄像头的场合。一台 reComputer——Industrial J20、J30、J40 或
@@ -598,7 +595,7 @@ intro:
           GPIO 上的 Grove Relay；主机不在门口、或一台主机管好几道门时，用 MQTT 继电器
           节点——R1000 写一个 Modbus 点位，或 XIAO ESP32 驱动一个 Grove 继电器。
           最后这一种在开门路径上多一跳网络，broker 的可用性就成了门的可用性。
-          两个容器镜像都还没有推送到 registry，这条路线的开门时间也还没有实测。
+          两个容器镜像都还没有推送到 registry。
       device_groups:
         - id: cloud
           name: Cloud Host

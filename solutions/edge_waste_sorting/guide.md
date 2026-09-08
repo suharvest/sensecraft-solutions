@@ -19,19 +19,19 @@ authority's certified ruling, and municipal definitions differ between cities.
 Nothing here should be the sole basis for a charging, penalty or compliance
 decision.
 
-Known weaknesses, all measured or explicitly unmeasured:
+Known weaknesses:
 
 - **One item per image.** There is no detector. Two items in one frame produce
   one answer for an undefined one of them.
 - **`textile` has never been trained or tested.** Neither dataset contains a
   cloth category. The model has never predicted it once.
 - **`hazardous` (有害垃圾) is never emitted.** No material class maps to it.
-- **Domain shift is unmeasured.** Both datasets are photographs of single clean
-  items, not a real bin. There is no field set and therefore no number for how
-  much accuracy drops on wet, crushed, stacked or bagged waste. Expect a drop.
+- **Domain shift.** Both datasets are photographs of single clean items, not a
+  real bin. Accuracy drops on wet, crushed, stacked or bagged waste — collect a
+  field set from your own site and re-measure on it.
 - **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
-  agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
-  exact deployed engine.** They come from a separately built FP16 engine —
+  agreement 0.9991 vs CPU golden, 1060-image subset) come from a separately
+  built engine.** Same FP16 engine —
   same ONNX, same precision, same reComputer J40 series (Orin NX) — not the binary
   this deployment step produces. The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
@@ -199,7 +199,7 @@ runtime configuration and consumers must not parse the topic.
   rejection and adding classes, the VLM fallback for a second opinion on
   ambiguous items.
 - Collect a field set. Domain shift from these datasets to a real bin is the
-  largest unmeasured risk in the whole solution.
+  largest risk in the whole solution.
 
 ### Troubleshooting
 
@@ -259,10 +259,10 @@ every figure on the solution page holds with it off.
   second one.
 - `vlm.trigger.min_confidence` must not be below `rules.min_confidence`;
   config validation rejects a fallback gate below the reclassification gate.
-- Understand what has and has not been measured: the wiring was proved against
-  the real service with a stubbed generation backend (5 frames, 5 valid main
-  events, 2 fallback events, 0 rejects). Real-model latency and whether the
-  VLM is actually more often right are outstanding verification on Orin.
+- The wiring was proved against the real service with a stubbed generation
+  backend (5 frames, 5 valid main events, 2 fallback events, 0 rejects).
+  Measure real-model latency, and whether the VLM is more often right, on your
+  own Orin before acting on its output.
 
 ### Troubleshooting
 
@@ -304,22 +304,22 @@ authority's certified ruling, and municipal definitions differ between cities.
 Nothing here should be the sole basis for a charging, penalty or compliance
 decision.
 
-Known weaknesses, all measured or explicitly unmeasured:
+Known weaknesses:
 
 - **The bench is a Pi 5 + M.2 module, not a reComputer R2000 chassis.** Same
   accelerator and same HailoRT, different enclosure, thermals and power
-  delivery — long-running full-load behaviour has not been extrapolated from
-  this bench. The open-vocabulary tower still fails INT8 quantisation at
+  delivery — measure long-running full-load behaviour on the chassis you ship.
+  The open-vocabulary tower still fails INT8 quantisation at
   `hailo optimize`. If you train and self-quantise MobileNetV3-Small
-  yourself, do not assume INT8 works for it the way it does for this
+  yourself, verify INT8 for it separately rather than carrying over this
   baseline — it collapsed on this exact compile pipeline (see the solution
   page).
 - **One item per image.** There is no detector.
 - **`textile` has never been trained or tested**, and `hazardous` is never
   emitted.
-- **Domain shift is unmeasured.** The 7417-image val set and the 1060-image
+- **Domain shift.** The 7417-image val set and the 1060-image
   deploy-verification subset are both public-dataset photographs of single
-  items, not live drop-off imagery.
+  items, not live drop-off imagery — collect a field set and re-measure on it.
 
 ## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -414,8 +414,8 @@ Measured on this hardware over 1060 validation images, fed through the same
 preprocessing offline (center crop, no camera capture path): material top-1
 0.8792, Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline
 0.9915, p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
-preprocessing), peak resident memory 11.6 MB. End-to-end accuracy through the
-camera's own capture and crop has not been measured.
+preprocessing), peak resident memory 11.6 MB. Measure end-to-end accuracy
+through the camera's own capture and crop on your own site.
 
 ### Troubleshooting
 

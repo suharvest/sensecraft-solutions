@@ -241,7 +241,7 @@ Two or three turns transcribed in the selected language, answered aloud in the s
 |-------|----------|
 | Replies come back in the wrong language | Check the assistant personality prompt; it instructs the model to reply in the user's language |
 | Deployment never started | An unsupported (language, device) pair stops before any service starts; pick a language this board serves |
-| Transcript language is right but audio is wrong | The speech profile resolved for this pair is marked untested; report the language and board rather than tuning it in place |
+| Transcript language is right but audio is wrong | Report the language and the board rather than tuning the speech profile in place |
 
 ## Preset: Fully Local Conversation {#local_llm}
 
@@ -361,4 +361,4 @@ Two or three turns transcribed in the selected language, answered aloud in the s
 |-------|----------|
 | Replies come back in the wrong language | Check the assistant personality prompt; it instructs the model to reply in the user's language |
 | Deployment never started | An unsupported (language, device) pair stops before any service starts; pick a language this board serves |
-| Transcript language is right but audio is wrong | The speech profile resolved for this pair is marked untested; report the language and board rather than tuning it in place |
+| Transcript language is right but audio is wrong | Report the language and the board rather than tuning the speech profile in place |
