@@ -307,39 +307,34 @@ intro:
           ai_accelerator: hailo-8
     recomputer_j40:
       description: >-
-        The Orin NX 16GB option for the TensorRT path. Runs both the detector
-        and the embedder as TensorRT fp16 engines on the GPU — measured on a
-        Seeed reComputer J40 unit itself, not a reference board: detector 5.18 ms
-        p50 / 5.28 ms p95, 99.91% box agreement with the CPU golden (50
-        images, the same batch RK3588 was checked against); embedder 4.23 ms
-        p50 / 4.69 ms p95, 21 retrieval metrics within 0.24 percentage points
-        of fp32. A 2956-frame checkout replay ran through the full
-        device-side runtime with zero dropped frames.
+        The reComputer J40 series for the TensorRT path, both tiers measured
+        directly — not a reference board. 16GB unit: detector 5.18 ms p50 /
+        5.28 ms p95, 99.91% box agreement with the CPU golden (50 images, the
+        same batch RK3588 was checked against); embedder 4.23 ms p50 /
+        4.69 ms p95, 21 retrieval metrics within 0.24 percentage points of
+        fp32; a 2956-frame checkout replay ran through the full device-side
+        runtime with zero dropped frames. 8GB unit: detector 5.88 ms p50 /
+        8.89 ms p95, 99.27% box agreement with the CPU golden (a different
+        50-image batch than the 16GB unit's, so not bit-for-bit comparable);
+        embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics within 0.20
+        percentage points of fp32; a 6726-frame checkout replay (2.27 loops)
+        ran with zero dropped frames and all 84 events published.
       description_i18n:
         zh: >-
-          TensorRT 路线的 Orin NX 16GB 选项。检测器与嵌入器都以 TensorRT fp16
-          engine 跑在 GPU 上——实测于一台 Seeed reComputer J40 整机，不是台架：
-          检测器 p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率 99.91%
-          （50 张，与 RK3588 用的同一批 golden）；嵌入器 p50 4.23 ms / p95 4.69 ms，
-          21 项检索指标与 fp32 最大差 0.24 个百分点。一次 2956 帧的收银台回放
-          跑通了完整的设备侧运行时，零掉帧。
+          TensorRT 路线的 reComputer J40 系列，两档均已实测——不是台架。16GB
+          机型：检测器 p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率
+          99.91%（50 张，与 RK3588 用的同一批 golden）；嵌入器 p50 4.23 ms /
+          p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24 个百分点；一次 2956
+          帧的收银台回放跑通了完整的设备侧运行时，零掉帧。8GB 机型：检测器
+          p50 5.88 ms / p95 8.89 ms，与 CPU golden 的框一致率 99.27%（与 16GB
+          机型用的不是同一批 50 张图，不可逐位对齐）；嵌入器 p50 5.06 ms /
+          p95 7.64 ms，21 项检索指标与 fp32 最大差 0.20 个百分点；一次 6726
+          帧（2.27 轮）的收银台回放零掉帧，84 个事件全部发布成功。
       purchase:
         require:
           module:
             - orin_nx_16
-    recomputer_j30:
-      description: >-
-        The smaller Orin Nano 8GB option in the same reComputer J30 / J40 family.
-        Every number on this page for this preset comes from the Orin NX unit
-        (recomputer_j40).
-      description_i18n:
-        zh: >-
-          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。本页这个套餐
-          的所有数字都来自 Orin NX 机型（recomputer_j40）。
-      purchase:
-        require:
-          module:
-            - orin_nano_8
+            - orin_nx_8
     generic_rtsp_camera:
       name: RTSP / USB Camera
       name_i18n:
@@ -553,7 +548,6 @@ intro:
           required: true
           options:
             - device_ref: recomputer_j40
-            - device_ref: recomputer_j30
           default: recomputer_j40
         - id: camera
           name: Camera

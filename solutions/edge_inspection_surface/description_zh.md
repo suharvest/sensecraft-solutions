@@ -42,8 +42,8 @@ backend 只负责预处理、调用加速器、把原始张量交出来。下面
 | 产线能得到什么 | 典型值 | 设备 |
 |---|---|---|
 | 拍到画面到判定落在 Modbus 线圈 | **P50 9.298 ms / P99 9.549 ms** | reComputer J40 系列（J4012，Orin NX 16GB） |
-| 拍到画面到判定落在 Modbus 线圈 | **P50 10.56 ms** | reComputer J30 系列（Orin Nano 8GB） |
-| 缺陷检出精度（mAP50） | **0.7577** | reComputer J40 / J30 系列 |
+| 拍到画面到判定落在 Modbus 线圈 | **P50 10.56 ms** | reComputer J40 系列（Orin NX 8GB，J4011） |
+| 缺陷检出精度（mAP50） | **0.7577** | reComputer J40 系列（8GB / 16GB） |
 | 部署阈值 0.35 下的精确率与召回 | **P 0.7652 / R 0.6969** | reComputer J40 系列 |
 | 10 FPS 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J40 系列 |
 
@@ -197,9 +197,9 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 
 ## 部署方式对比
 
-**IP 摄像头 + reComputer J30 / J40（Orin）** 是有实测的那条路径。上面表里大部分数字
-取自 Orin NX 16GB（J40）；更小的 Orin Nano 8GB（J30）也已单独实测精度与
-取图到线圈延迟（mAP50 0.7577，P50 10.56 ms）——多路容量数字仍只有 J40 的。
+**IP 摄像头 + reComputer J40 系列（Orin NX）** 是有实测的那条路径。上面表里大部分数字
+取自 Orin NX 16GB 机型；更小的 8GB 档也已单独实测精度与
+取图到线圈延迟（mAP50 0.7577，P50 10.56 ms）——多路容量数字仍只有 16GB 机型的。
 TensorRT engine 在部署过程中于设备上构建——它与那块 GPU
 架构和那个 TensorRT 版本绑定，不做分发。需要能拿出去对账的数字就选它。
 

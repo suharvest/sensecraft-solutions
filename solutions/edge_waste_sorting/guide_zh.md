@@ -1,4 +1,4 @@
-## 套餐: 摄像头 + reComputer J30 / J40（Orin） {#orin}
+## 套餐: 摄像头 + reComputer J40 系列（Orin） {#orin}
 
 唯一有模型文件的套餐。TensorRT engine 在部署过程中于设备上构建，因为 engine
 绑定具体 GPU 架构与 TensorRT 版本，无法预编分发。它也是唯一提供开放词汇 track
@@ -6,7 +6,7 @@
 
 | 设备 | 用途 |
 |---|---|
-| reComputer J40 / J30（Jetson Orin） | 用 TensorRT 运行分类器，提供网页与触发端点，发布 MQTT |
+| reComputer J40 系列（Jetson Orin NX，8GB / 16GB） | 用 TensorRT 运行分类器，提供网页与触发端点，发布 MQTT |
 | USB 或 IP 摄像头 | 俯视投放区——一次拍一件 |
 | 实体按钮（可选） | 一个触发源；接线与 GPIO 读取是本包之外的集成工作 |
 | 继电器、翻盖或指示灯（可选） | 由 actuator 回调驱动，回调带四分类结果、不绑引脚 |
@@ -27,8 +27,8 @@
 - **方案页上的 Jetson 精度/一致率数字（top-1 0.8755，与 CPU golden 一致率
   0.9991，1060 张子集）来自另一个独立构建的 engine。** 同为 FP16
   engine——同一份 ONNX、同一精度，但不是本部署步骤产出的那个二进制。
-  先在 reComputer J40 系列（Orin NX）上测得，在 reComputer J30 系列
-  （Orin Nano 8GB）上复测逐位一致。部署 engine 自身的构建耗时
+  先在 reComputer J40 系列的 16GB 机型（Orin NX）上测得，在同系列的 8GB 档
+  （Orin NX 8GB）上复测逐位一致。部署 engine 自身的构建耗时
   （68 秒）与端到端 pipeline（4.122 ms）/ inference（3.533 ms）时延——取自一条
   实测的 MQTT 事件——是在部署二进制上实测的。
 

@@ -192,33 +192,20 @@ intro:
     recomputer_j40:
       description: >-
         Runs the classifier on TensorRT, and is the only device class on which
-        the optional open-vocabulary track is offered — a ViT-B/16 at 67 ms
-        per image on CPU needs an accelerator to be usable. No figure on this
-        page was taken on this board.
+        the optional open-vocabulary track is offered (16GB tier only — a
+        ViT-B/16 at 67 ms per image on CPU needs an accelerator to be
+        usable). The 1060-image-subset TensorRT accuracy figures (0.8755
+        material top-1, 99.91% agreement vs CPU) were first measured on the
+        16GB unit and reproduce bit-identically on the 8GB unit.
       description_i18n:
         zh: >-
-          用 TensorRT 运行分类器，也是唯一提供可选开放词汇 track 的设备类别——
-          ViT-B/16 在 CPU 上单图 67 ms，要能用就得有加速器。
-          本页数字取自其他板卡，见各自的设备说明。
+          用 TensorRT 运行分类器，也是唯一提供可选开放词汇 track 的设备类别
+          （仅 16GB 档——ViT-B/16 在 CPU 上单图 67 ms，要能用就得有加速器）。
+          1060 张子集上的 TensorRT 精度数字（物料 top-1 0.8755，与 CPU 一致率
+          99.91%）先在 16GB 机型上测得，在 8GB 机型上复测逐位一致。
       purchase:
         require:
-          module: [orin_nx_16]
-    recomputer_j30:
-      description: >-
-        The smaller Orin Nano 8GB option. It carries the baseline classifier
-        the same way; the open-vocabulary track has not been sized for it.
-        The 1060-image-subset TensorRT accuracy figures (0.8755 material
-        top-1, 99.91% agreement vs CPU) were first measured on a reComputer
-        J40 and reproduce bit-identically on this board.
-      description_i18n:
-        zh: >-
-          更小的 Orin Nano 8GB 选项。基线分类器跑法相同；
-          开放词汇 track 没有为它估过资源。1060 张子集上的 TensorRT 精度数字
-          （物料 top-1 0.8755，与 CPU 一致率 99.91%）先在 reComputer J40 上测得，
-          在本机上复测逐位一致。
-      purchase:
-        require:
-          module: [orin_nano_8]
+          module: [orin_nx_16, orin_nx_8]
     recomputer_r20_industrial:
       description: >-
         A reComputer R2000 with a Hailo-8 on the M.2 slot. It runs the
@@ -281,9 +268,9 @@ intro:
 
   presets:
     - id: orin
-      name: Camera + reComputer J30 / J40 (Orin)
+      name: Camera + reComputer J40 series (Orin NX)
       name_i18n:
-        zh: 摄像头 + reComputer J30 / J40（Orin）
+        zh: 摄像头 + reComputer J40 系列（Orin NX）
       description: >-
         TensorRT FP16 on Jetson Orin, engine built on the device during
         deployment. The only preset that offers the optional open-vocabulary
@@ -301,7 +288,6 @@ intro:
           required: true
           options:
             - device_ref: recomputer_j40
-            - device_ref: recomputer_j30
           default: recomputer_j40
         - id: camera
           name: Camera

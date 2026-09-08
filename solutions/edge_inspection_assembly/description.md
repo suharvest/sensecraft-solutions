@@ -173,8 +173,9 @@ DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** is the path every measurement on this page was
-taken on. A TensorRT engine is built on the device during the first deploy
+**Camera + reComputer J40 series (Orin)** is the path every measurement on this page was
+taken on, on the 16GB unit; the 8GB tier runs the same code but has not
+been separately re-measured for this preset. A TensorRT engine is built on the device during the first deploy
 (about 5 minutes), which ties it to that device and that TensorRT version. Choose
 it when you want the numbers above to apply, or when you need more than one or
 two camera streams on one box.

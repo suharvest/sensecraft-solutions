@@ -95,20 +95,25 @@ intro:
         zh: 可选——一个从质检主机可达的 VLM 服务端点（跑在 Orin 上的 edge-vision-vlm），只有要启用 VLM 解释时才需要。不需要就保持 vlm.enabled=false，demo 行为与没有这一段完全一样。
 
   device_catalog:
-    recomputer_j30:
-      description: Runs detection, assembly comparison, dimension measurement, Modbus and MQTT on one Orin Nano 8GB box
-      description_i18n:
-        zh: 在一台 Orin Nano 8GB 上跑检测、缺件比对、尺寸测量、Modbus 与 MQTT
-      purchase:
-        require:
-          module: [orin_nano_8]
     recomputer_j40:
-      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB). Ran continuously for 67 hours in a 2026-09-08 check, with 0.9992 CPU vs TensorRT box agreement and zero dropped frames throughout.
+      description: >-
+        Runs detection, assembly comparison, dimension measurement, Modbus
+        and MQTT on one reComputer J40 series box, with more headroom for
+        extra camera streams on the 16GB tier. The 16GB unit ran continuously
+        for 67 hours in a 2026-09-08 check, with 0.9992 CPU vs TensorRT box
+        agreement and zero dropped frames throughout; the 8GB tier has not
+        been separately re-measured for this preset, so treat it as the same
+        runtime rather than a bit-identical result.
       description_i18n:
-        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB）。2026-09-08 复核中连续运行 67 小时，CPU 与 TensorRT 框一致率 0.9992，全程 0 丢帧。
+        zh: >-
+          在一台 reComputer J40 系列设备上跑检测、缺件比对、尺寸测量、Modbus
+          与 MQTT，16GB 档能支撑更多路摄像头。16GB 机型在 2026-09-08 复核中
+          连续运行 67 小时，CPU 与 TensorRT 框一致率 0.9992，全程 0 丢帧；
+          8GB 档本套餐未单独复测，按同一套运行时理解，不代表逐位一致的实测
+          结果。
       purchase:
         require:
-          module: [orin_nx_16]
+          module: [orin_nx_16, orin_nx_8]
     recomputer_r20_industrial:
       description: An industrial box with a Hailo-8 on the M.2 slot, running the INT8 HEF build of the same detector
       description_i18n:
@@ -144,9 +149,9 @@ intro:
 
   presets:
     - id: jetson
-      name: Camera + reComputer J30 / J40 (Orin)
+      name: Camera + reComputer J40 series (Orin)
       name_i18n:
-        zh: 摄像头 + reComputer J30 / J40（Orin）
+        zh: 摄像头 + reComputer J40 系列（Orin）
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -161,9 +166,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j30
             - device_ref: recomputer_j40
-          default: recomputer_j30
+          default: recomputer_j40
         - id: camera
           name: Camera
           name_i18n:

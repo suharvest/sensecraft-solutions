@@ -16,9 +16,14 @@ type: manual
 # lookup, MQTT publish — with zero dropped frames. All figures are n=300,
 # inference only, on an engine built on the device it ran on.
 #
-# The Orin Nano 8GB option in the same reComputer J30 / J40 family
-# (family key recomputer_j30) has not been tested; the numbers above are from
-# an Orin NX unit (family key recomputer_j40) only.
+# The smaller reComputer J40 series tier, Orin NX 8GB (J4011, family key
+# recomputer_j40, module orin_nx_8), has also been measured directly:
+# detector 5.88 ms p50 / 8.89 ms p95, 99.27% box agreement with the CPU
+# golden (a different 50-image batch than the 16GB unit's, not bit-for-bit
+# comparable); embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics
+# within 0.20 percentage points of fp32. A 6726-frame checkout replay (2.27
+# loops) ran with zero dropped frames and all 84 events published. The real
+# reComputer J30 series (Jetson Orin Nano) has not been tested.
 
 steps:
   - id: trt_build

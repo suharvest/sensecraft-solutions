@@ -1,4 +1,4 @@
-## 套餐: IP 摄像头 + reComputer J30 / J40（Orin） {#orin}
+## 套餐: IP 摄像头 + reComputer J40 系列（Orin NX） {#orin}
 
 有实测的那条路径。Jetson Orin 拉取相机的 RTSP 流，用 TensorRT FP16 跑
 YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程中于设备上
@@ -6,7 +6,7 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 
 | 设备 | 用途 |
 |--------|---------|
-| reComputer J40 / J30 | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
+| reComputer J40 系列（8GB / 16GB） | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
 | IP 摄像头 | 提供 RTSP 视频；任意对着钢带或工件取景的 RTSP 相机 |
 | PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
 

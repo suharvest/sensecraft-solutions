@@ -1,4 +1,4 @@
-## Preset: Camera + reComputer J30 / J40 (Orin) {#jetson}
+## Preset: Camera + reComputer J40 series (Orin) {#jetson}
 
 The measured path. The runtime, the MQTT broker and the Modbus server all run
 on one Jetson Orin box; a TensorRT engine is built on the device during the
@@ -7,7 +7,7 @@ and that TensorRT version. Every number on the intro page was taken here.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 / J40 | Detection, assembly comparison, dimension measurement, Modbus TCP server, MQTT broker and the web panel |
+| reComputer J40 series (8GB / 16GB) | Detection, assembly comparison, dimension measurement, Modbus TCP server, MQTT broker and the web panel |
 | Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
 
 **Important.** This is a demo package, not a certified metrology or safety

@@ -1,4 +1,4 @@
-## Preset: IP Camera + reComputer J30 / J40 (Orin) {#orin}
+## Preset: IP Camera + reComputer J40 series (Orin NX) {#orin}
 
 The measured path. A Jetson Orin pulls the camera's RTSP stream, runs YOLOX-Tiny
 on TensorRT FP16, and serves the verdict on Modbus TCP and MQTT. The engine is
@@ -7,7 +7,7 @@ exact GPU architecture and TensorRT version and cannot be shipped prebuilt.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J40 / J30 | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
+| reComputer J40 series (8GB / 16GB) | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
 | IP camera | Supplies the RTSP video; any RTSP camera framed on the strip or part |
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 

@@ -54,8 +54,8 @@ design, not a qualification for any safety or quality-certification purpose.
 | What the line gets | Typical | Device |
 |---|---|---|
 | Frame captured to the verdict on the Modbus coil | **P50 9.298 ms / P99 9.549 ms** | reComputer J40 series (J4012, Orin NX 16GB) |
-| Frame captured to the verdict on the Modbus coil | **P50 10.56 ms** | reComputer J30 series (Orin Nano 8GB) |
-| Defect detection accuracy (mAP50) | **0.7577** | reComputer J40 / J30 series |
+| Frame captured to the verdict on the Modbus coil | **P50 10.56 ms** | reComputer J40 series (Orin NX 8GB, J4011) |
+| Defect detection accuracy (mAP50) | **0.7577** | reComputer J40 series (8GB / 16GB) |
 | Precision and recall at the deployed 0.35 threshold | **P 0.7652 / R 0.6969** | reComputer J40 series |
 | Streams one host carries at a 10 FPS line rate | **8** (12 degrading, 24 failing) | reComputer J40 series |
 
@@ -243,11 +243,11 @@ to parse the topic.
 
 ## Deployment Comparison
 
-**IP camera + reComputer J30 / J40 (Orin)** is the measured path. Most numbers
-in the tables above were taken on an Orin NX 16GB (J40); the smaller Orin
-Nano 8GB (J30) has also been measured directly for accuracy and capture-to-coil
-latency (mAP50 0.7577, P50 10.56 ms) — the streaming-capacity figures are still
-J40-only. The TensorRT engine is built on the
+**IP camera + reComputer J40 series (Orin NX)** is the measured path. Most
+numbers in the tables above were taken on the 16GB tier; the
+smaller 8GB tier has also been measured directly for accuracy and
+capture-to-coil latency (mAP50 0.7577, P50 10.56 ms) — the streaming-capacity
+figures are still 16GB-unit-only. The TensorRT engine is built on the
 device during deployment — it is bound to that exact GPU architecture and
 TensorRT version and is never redistributed. Pick this when you need figures you
 can hold someone to.

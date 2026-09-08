@@ -57,15 +57,16 @@ payload 里只有路径或对象存储 URI。同时一个异步回调收到四�
 | 物品进画面到出投放答案 | 每次触发 **4.122 ms** | reComputer J40 系列（J4012，Orin NX） |
 | 四分类 top-1 | **0.9500** | 同一模型，各加速器一致 |
 | 物料 top-1（8 类） | **0.8877** | 同上 |
-| 物料 top-1（1060 张子集），TensorRT 与 CPU 一致率 | **top-1 0.8755，一致率 0.9991** | reComputer J40 / J30 系列（两块板逐位一致） |
+| 物料 top-1（1060 张子集），TensorRT 与 CPU 一致率 | **top-1 0.8755，一致率 0.9991** | reComputer J40 系列（8GB / 16GB 逐位一致） |
 
 **两个 top-1 要一起报**：四分类比物料高，是因为玻璃、金属、塑料之间的混淆被吸收掉了——
 三者都映射到可回收物——所以只报四分类会高估模型对材质的判别力。
 
 精度是模型属性，换加速器仍然成立：Hailo-8 构建在全量 7417 张验证集上物料 top-1 为
 0.8889。1060 张子集上的 TensorRT 数字（top-1 0.8755，与 CPU 一致率 0.9991）
-先在 reComputer J40（Orin NX 16GB）上测得，在 reComputer J30（Orin Nano 8GB）
-上复测逐位一致——同一份 ONNX、同一精度，两块板输出到小数点后第四位都一样。
+先在 reComputer J40（Orin NX 16GB）上测得，在 reComputer J40 系列的 8GB 档
+（Orin NX 8GB）上复测逐位一致——同一份 ONNX、同一精度，两块板输出到
+小数点后第四位都一样。
 
 ### 平台支持
 
@@ -174,7 +175,7 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 
 ## 部署方式对比
 
-**摄像头 + reComputer J30 / J40（Orin）**——唯一有模型文件的套餐。TensorRT engine
+**摄像头 + reComputer J40 系列（Orin）**——唯一有模型文件的套餐。TensorRT engine
 在部署过程中于设备上构建，因为 engine 绑定具体 GPU 架构与 TensorRT 版本，
 无法预编分发。它也是唯一提供开放词汇 track 的套餐：SigLIP 2 视觉塔在 CPU 上
 单图 67 ms，要能用就得有加速器，而 Orin 是本包手上的加速器。已在

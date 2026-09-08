@@ -74,7 +74,7 @@ between cities.
 | Item in frame to a bin answer | **4.122 ms** per trigger | reComputer J40 series (J4012, Orin NX) |
 | Four-way top-1 | **0.9500** | Same model on every accelerator |
 | Material top-1, 8 classes | **0.8877** | Same |
-| Material top-1 (1060-image subset), TensorRT vs CPU agreement | **0.8755 top-1, 0.9991 agreement** | reComputer J40 / J30 series (bit-identical on both) |
+| Material top-1 (1060-image subset), TensorRT vs CPU agreement | **0.8755 top-1, 0.9991 agreement** | reComputer J40 series (8GB / 16GB, bit-identical on both) |
 
 **Report both top-1 numbers together**: the four-way figure is higher than the
 material figure because glass, metal and plastic confusion is absorbed — all
@@ -85,8 +85,9 @@ Accuracy is a model property and carries across accelerators: the Hailo-8 build
 scores 0.8889 material top-1 on the full 7417-image validation set. The
 1060-image-subset TensorRT figures (0.8755 top-1, 0.9991 agreement vs CPU)
 were first measured on a reComputer J40 (Orin NX 16GB) and reproduce
-bit-identically on a reComputer J30 (Orin Nano 8GB) — same ONNX, same
-precision, same figures to four decimal places on both boards.
+bit-identically on the reComputer J40 series' 8GB tier (Orin NX 8GB)
+— same ONNX, same precision, same figures to four decimal places on both
+boards.
 
 ### Platform support
 
@@ -219,7 +220,7 @@ to log, not a correction to act on.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** — the only preset with a model file. The
+**Camera + reComputer J40 series (Orin)** — the only preset with a model file. The
 TensorRT engine is built on the device during deployment, because an engine is
 tied to the exact GPU architecture and TensorRT version and cannot be shipped
 prebuilt. It is also the only preset offering the open-vocabulary track: the

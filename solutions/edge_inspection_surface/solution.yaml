@@ -163,32 +163,20 @@ intro:
   device_catalog:
     recomputer_j40:
       description: >-
-        Runs the detector on TensorRT. Most measured figures on this page were
-        taken on an Orin NX 16GB (reComputer J40 series); the Orin Nano 8GB
-        (J30) has also been measured directly for accuracy and capture-to-coil
-        latency.
+        Runs the detector on TensorRT. reComputer J40 series, two tiers
+        measured directly: the 16GB unit carries most figures on this page;
+        the 8GB tier has also been measured directly for accuracy and
+        capture-to-coil latency (same result — same engine/ONNX — but the
+        multi-stream figures on this page are still from the 16GB unit).
       description_i18n:
         zh: >-
-          用 TensorRT 运行检测器。本页大部分实测数字取自 Orin NX 16GB
-          （reComputer J40 系列）；Orin Nano 8GB（J30）也已单独实测精度与
-          取图到线圈延迟。
+          用 TensorRT 运行检测器。reComputer J40 系列，两档均已实测：
+          16GB 机型承担本页大部分数字；8GB 档也已单独实测精度与取图到线圈
+          延迟（结果相同——同一份 engine/ONNX——但本页的多路容量数字仍来自
+          16GB 机型）。
       purchase:
         require:
-          module: [orin_nx_16]
-    recomputer_j30:
-      description: >-
-        The smaller Orin Nano 8GB option. Measured directly on this board:
-        capture-to-coil P50 10.56 ms, mAP50 0.7577 — the same accuracy as the
-        Orin NX since it is the same engine/ONNX; the multi-stream figures on
-        this page are still from the Orin NX.
-      description_i18n:
-        zh: >-
-          更小的 Orin Nano 8GB 选项。已在本机实测：取图到线圈 P50 10.56 ms，
-          mAP50 0.7577——精度与 Orin NX 一致（同一份 engine/ONNX）；
-          本页的多路容量数字仍来自 Orin NX。
-      purchase:
-        require:
-          module: [orin_nano_8]
+          module: [orin_nx_16, orin_nx_8]
     recomputer_r20_industrial:
       description: >-
         An industrial box with a Hailo-8 on the PCIe M.2 slot, running the INT8
@@ -213,9 +201,9 @@ intro:
 
   presets:
     - id: orin
-      name: IP Camera + reComputer J30 / J40 (Orin)
+      name: IP Camera + reComputer J40 series (Orin NX)
       name_i18n:
-        zh: IP 摄像头 + reComputer J30 / J40（Orin）
+        zh: IP 摄像头 + reComputer J40 系列（Orin NX）
       badge: Recommended
       badge_i18n:
         zh: 推荐
@@ -235,7 +223,6 @@ intro:
           required: true
           options:
             - device_ref: recomputer_j40
-            - device_ref: recomputer_j30
           default: recomputer_j40
         - id: camera
           name: IP Camera

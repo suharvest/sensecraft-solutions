@@ -1,4 +1,4 @@
-## Preset: Camera + reComputer J30 / J40 (Orin) {#orin}
+## Preset: Camera + reComputer J40 series (Orin) {#orin}
 
 The only preset with a model file. The TensorRT engine is built on the device
 during deployment, because an engine is tied to the exact GPU architecture and
@@ -8,7 +8,7 @@ both added after the baseline is running.
 
 | Device | Purpose |
 |---|---|
-| reComputer J40 / J30 (Jetson Orin) | Runs the classifier on TensorRT, serves the web page and the trigger endpoint, publishes MQTT |
+| reComputer J40 series (Jetson Orin NX, 8GB / 16GB) | Runs the classifier on TensorRT, serves the web page and the trigger endpoint, publishes MQTT |
 | USB or IP camera | Looks down into the drop area — one item per shot |
 | Physical button (optional) | A trigger source; wiring and the GPIO read are integration work outside this package |
 | Relay, flap or indicator (optional) | Driven by the actuator callback, which carries the four-way category and binds no pin |
@@ -33,8 +33,8 @@ Known weaknesses:
   agreement 0.9991 vs CPU golden, 1060-image subset) come from a separately
   built engine.** Same FP16 engine —
   same ONNX, same precision — not the binary this deployment step produces.
-  First measured on a reComputer J40 series (Orin NX); reproduces
-  bit-identically on a reComputer J30 series (Orin Nano 8GB). The deployed engine's own build time (68 s)
+  First measured on a reComputer J40 series 16GB unit (Orin NX); reproduces
+  bit-identically on the same series' 8GB tier (Orin NX 8GB). The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
   reported MQTT event, are measured on the deployed binary.
 

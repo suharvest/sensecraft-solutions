@@ -418,7 +418,7 @@ inference only, on an engine built on the device it ran on.
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
 | reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
-| reComputer J30 (Orin Nano 8GB) | Same family, same role. The numbers on this page are from the Orin NX (J40) |
+| reComputer J40 (Orin NX 8GB, J4011) | Same family, same role. Also measured directly: detector 5.88 ms p50 / 8.89 ms p95, embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics within 0.20pp of fp32, 6726-frame replay with zero dropped frames |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
@@ -486,7 +486,7 @@ immutable gallery version.
 - The admin token from Step 1.
 - 3–8 photographs per SKU, front, back and side, two lighting conditions.
 - The DINOv2-small embedder from Step 2: the gallery must be built with the
-  same model the reComputer J30 / J40's TensorRT engine was compiled from, or
+  same model the reComputer J40's TensorRT engine was compiled from, or
   retrieval on this preset returns noise.
 
 ### Troubleshooting

@@ -1,4 +1,4 @@
-## 套餐: 摄像头 + reComputer J30 / J40（Orin） {#jetson}
+## 套餐: 摄像头 + reComputer J40 系列（Orin） {#jetson}
 
 有实测数据的一条路径。运行时、MQTT broker 与 Modbus server 都跑在同一台 Jetson
 Orin 上；首次部署时在设备上构建 TensorRT engine，约五分钟，engine 因此与这块板和
@@ -6,7 +6,7 @@ Orin 上；首次部署时在设备上构建 TensorRT engine，约五分钟，en
 
 | 设备 | 用途 |
 |--------|---------|
-| reComputer J30 / J40 | 检测、缺件比对、尺寸测量、Modbus TCP server、MQTT broker 与 Web 面板 |
+| reComputer J40 系列（8GB / 16GB） | 检测、缺件比对、尺寸测量、Modbus TCP server、MQTT broker 与 Web 面板 |
 | 摄像头 | 提供检测工位的视频；任意 RTSP 或 ONVIF 摄像头均可，USB 摄像头或录制文件同样可用 |
 
 **重要说明。** 这是一个 demo 包，不是经过认证的计量或安全产品。尺寸模块量的是像素、
