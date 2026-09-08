@@ -255,6 +255,15 @@ at p50 3.167 ms, consistent with the full-set figures above.
 - **`vlm.apply_fallback_to_gpio` stays false.** A flap must not wait on a call
   whose P50 is measured in seconds.
 
+## Scope of the Numbers
+
+- **Baseline and open-vocabulary accuracy and CPU latency** — onnxruntime 1.25.1, Apple M4 CPU, batch 1.
+- **Baseline INT8 for Hailo-8** — compiled and checked on the DFC 3.31.0 / HailoRT 4.21.0 emulator on the x86 compile host `wsl2-local`. The calibration set is 256 images, below the ~1024 the DFC documentation typically recommends, and was reused unchanged from the m1b run rather than resampled for Lite0.
+- **Baseline fp16 and INT8 on RK3588** — an RK3588 development board, librknnrt 2.3.2, 50 validation images.
+- **Baseline on RK3576** — an RK3576 development board, m1b only.
+- **VLM fallback** — a bench run against the real service with a stubbed generation backend (5 frames, 5 valid main events, 2 fallback events, 0 rejects), which is a wiring test.
+- **Field accuracy** — both datasets are single-item photographs (TrashNet on a white poster board, GC3 with objects off-centre and often occluded), so collect a field set from your own bin and re-measure on it.
+
 ## Licensing note
 
 Code in the upstream repository is Apache-2.0. The SigLIP 2 checkpoint
