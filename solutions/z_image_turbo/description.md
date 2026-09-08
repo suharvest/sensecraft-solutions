@@ -28,7 +28,7 @@ All computation stays on your device. The model is packaged as a simple HTTP API
 
 ## Usage Notes
 
-- **Hardware required**: Jetson Orin NX 16GB. Orin Nano 8GB is not validated.
+- **Hardware required**: Jetson Orin NX 16GB.
 - **Pre-requisites**: Model weights (~20GB) and TRT engines (~12GB per resolution) must be downloaded from Hugging Face before deployment.
 - **Generation is not real-time**: Each image takes 1-2 minutes depending on resolution and step count.
 - **API is single-worker**: Only one generation runs at a time to stay within GPU memory limits.
