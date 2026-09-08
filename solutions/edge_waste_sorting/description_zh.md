@@ -138,39 +138,12 @@ test 0.8807 对 0.8620——闭集头在 val 上领先约 3 个百分点、test 
 | 接口 | 位置 | 内容 |
 |---|---|---|
 | MQTT `waste/<stream-id>/results` | 端口 1883 | 一次分类一条 JSON：物料类别、中国四分类、置信度、top3、触发来源、图片引用、模型名与 ONNX sha256、分类法版本 |
-| MQTT `waste/<stream-id>/fallback` | 端口 1883 | 可选的 `waste_fallback` 事件——VLM 对模糊物品的第二意见，按 frame_id 对齐。不改变主事件。 |
 | HTTP `/trigger` | 端口 8080 | POST 触发一次拍照分类 |
 | HTTP `/preview.mjpg`、`/healthz`、`/events` | 端口 8080 | 实时画面、计数与推理耗时、最近结果与它们的 top3 |
 | GPIO 回调 | 进程内 | 带四分类结果的异步回调。不绑引脚——那是集成工作。 |
 
 图片永远不进 payload。`image_ref.kind` 取值 `none` / `local` /
 `object_store`；payload 里出现 base64 图像字节属于违反契约，发布前会被拒。
-
-### `waste_fallback` 旁路
-
-默认关闭。启用后，触发任一闸门的物品——top-1 低于
-`vlm.trigger.min_confidence`，或 top-1 减 top-2 低于 `vlm.trigger.margin`——
-会被送到外部 VLM 服务，它的回答作为一条独立事件发到 fallback 主题上。
-**它永远不回填主事件。**
-
-| 字段 | 内容 |
-|---|---|
-| `type` | 恒为 `waste_fallback` |
-| `frame_id` | 与同一帧的 `waste_sorting_result` 事件对齐 |
-| `trigger` | `low_confidence` 或 `ambiguous`。两条同时成立时报更强的那条（`low_confidence`）。 |
-| `category` | VLM 给的类别，形状与主事件的 category 相同——一套解析器服务两条流 |
-| `confidence` | VLM 自己的置信度。不能与分类器的 softmax 置信度比较。 |
-| `rationale` | 一行理由。不做解析。 |
-| `explanation` | 较长文本，只在 `vlm.explain_on_fallback` 打开时才有——每次兜底多一个调用 |
-| `primary_confidence`、`primary_top3` | 分类器的原判，逐字复制，消费者据此能看到是什么触发了闸门 |
-| `vlm_model`、`vlm_latency_ms`、`prompt_sha256` | 哪个模型、生成用了多久、哪份 prompt 模板产出的答案 |
-
-**验证过的是接线，不是结果。** 这条路径对着真实的 edge-vision-vlm 应用端到端
-跑过，只把生成后端换成 stub：5 帧、5 条通过契约校验的主事件、2 条兜底事件、
-0 条被拒。请求校验、taxonomy 匹配与响应字段都是服务方的真代码，生成文本不是，
-那一轮的 `vlm_latency_ms` 12.5 ms 是写死的常数。**真实模型的时延，以及 VLM 在
-触发这些闸门的物品上是不是真的更常判对，待在 Orin 上用真服务验证。**
-把兜底流当作可以记录的第二意见，不要当作可以照做的更正。
 
 ## 部署方式对比
 
@@ -203,8 +176,6 @@ HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425�
   离开工作台的部署需要换成带凭据的 broker。
 - **GPIO 回调默认没接任何东西。** `actuator.enabled` 默认 false；
   不提供绑定代码就打开它不会有任何变化。
-- **`vlm.apply_fallback_to_gpio` 保持 false。** 翻盖不能去等一个 P50
-  以秒计的调用。
 
 ## 数字的适用范围
 
@@ -213,7 +184,6 @@ HEF，但不经过部署容器的 HTTP/MQTT 路径——测得一致率 0.9425�
 - **RK3588 上的基线 fp16 与 INT8**——一块 RK3588 开发板，librknnrt 2.3.2，50 张验证图。
 - **RK3576 上的基线**——一块 RK3576 开发板，仅 m1b。
 - **开放词汇 SigLIP 2 视觉塔**——`hailo parser` 能完整跑通，但 `hailo optimize`（INT8 PTQ，256 张校准图，`optimization_level=1`）在 `ne_activation_mul_and_add78` 层失败，因此它没有 HEF。
-- **VLM 兜底**——对着真实服务、生成后端换成 stub 的台架运行（5 帧、5 条有效主事件、2 条兜底事件、0 条被拒），属接线验证。
 - **现场精度**——两个数据集都是单件物品照片（TrashNet 白色背板，GC3 物体偏心且常被遮挡），请采一批自己投放点的数据重测。
 
 ## 许可说明

@@ -3,8 +3,8 @@
 The only preset with a model file. The TensorRT engine is built on the device
 during deployment, because an engine is tied to the exact GPU architecture and
 TensorRT version and cannot be shipped prebuilt. It is also the only preset
-that offers the open-vocabulary track and the VLM fallback, both optional and
-both added after the baseline is running.
+that offers the open-vocabulary track, optional and added after the baseline
+is running.
 
 | Device | Purpose |
 |---|---|
@@ -196,9 +196,8 @@ runtime configuration and consumers must not parse the topic.
   integration code. The runtime binds no pin.
 - Point MQTT at a broker with credentials before this leaves the bench. The
   bundled broker allows anonymous connections and is for local commissioning.
-- Consider the optional steps below: the open-vocabulary track for open-set
-  rejection and adding classes, the VLM fallback for a second opinion on
-  ambiguous items.
+- Consider the optional step below: the open-vocabulary track for open-set
+  rejection and adding classes.
 - Collect a field set. Domain shift from these datasets to a real bin is the
   largest risk in the whole solution.
 
@@ -244,37 +243,6 @@ cross-lingual answers and the ability to add a class without retraining.
 | Confidences all look different | Changing `temperature` changes the confidence distribution and therefore what `min_confidence` means. 0.0075 is the calibrated value; retune the threshold if you change it. |
 | Four-way accuracy dropped after switching to a Chinese four-way bank | Use the hierarchical path. Direct four-way prediction scores 0.8478 against 0.9393 for eight classes mapped up. |
 | Unknown objects still get a confident material label | Check the leave-one-out figures: `residual` has an AUROC of 0.5795, near chance. Open-set rejection works far better for the material classes than for the catch-all. |
-
-## Step 5: Enable VLM Fallback for Low-Confidence and Ambiguous Items (Optional) {#enable_vlm_fallback_orin type=manual required=false verify=true config=devices/enable_vlm_fallback.yaml}
-
-Sends items the classifier is unsure about to an external VLM service and
-publishes its answer as a separate `waste_fallback` event. Additive: it never
-enters the classification path, never changes the main event's category, and
-every figure on the solution page holds with it off.
-
-### Prerequisites
-
-- A reachable `edge-vision-vlm` instance. This solution does not bundle or
-  start that service — typically it runs on a separate Orin box.
-- Step 3 measured, so you know the main stream is healthy before adding a
-  second one.
-- `vlm.trigger.min_confidence` must not be below `rules.min_confidence`;
-  config validation rejects a fallback gate below the reclassification gate.
-- The wiring was proved against the real service with a stubbed generation
-  backend (5 frames, 5 valid main events, 2 fallback events, 0 rejects).
-  Measure real-model latency, and whether the VLM is more often right, on your
-  own Orin before acting on its output.
-
-### Troubleshooting
-
-| Issue | Solution |
-|---|---|
-| No fallback event ever arrives | Check `/healthz` for the VLM counters. Silent degradation is by design — a slow, unreachable or breaker-open VLM produces no event and does not disturb the main stream. |
-| The runtime reports HTTP 502 rather than a connection error | A transparent proxy is intercepting the address, including `127.0.0.1`. Set `no_proxy=127.0.0.1,localhost,<vlm-host>`, or give the container no proxy variables at all. httpx honours `HTTP_PROXY`, and 502-from-proxy is counted the same as a real backend error — same behaviour, misleading attribution. |
-| The `ambiguous` gate never fires | Check the reachable range: under softmax with threshold `g`, the gap on the accepted side is at least `2g-1`. At `g=0.6` a margin below 0.2 can never fire. |
-| Both gates trip and only `low_confidence` is reported | By design — the stronger reason is reported. |
-| The VLM's category differs from the classifier's | Expected, and it does not backfill the main event. Log both and review; the fallback is not yet evidence-backed enough to act on automatically. |
-| The flap reacts slowly after enabling the VLM | `vlm.apply_fallback_to_gpio` must stay false. A flap must not wait on a call whose P50 is measured in seconds. |
 
 ## Preset: Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
@@ -583,4 +551,4 @@ parsing the topic.
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
 | Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.9581 hardware agreement figure from the full val-set measurement; a large gap from that number is worth reporting. |
-| Want open-vocabulary or VLM fallback here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`, and the VLM fallback steps are Orin-only. |
+| Want the open-vocabulary track here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`. |

@@ -146,8 +146,7 @@ steps:
       classification that clears the threshold. The runtime binds no pin: what
       the callback does — drive a relay, move a flap, light a lane indicator —
       is integration code you supply, which is why the same build runs on
-      boards with different headers. Leave "vlm.apply_fallback_to_gpio" false:
-      a flap must not wait on a call whose P50 is measured in seconds.
+      boards with different headers.
     description_i18n:
       zh: >-
         在 config/config.json 里设 "actuator": {"enabled": true,
@@ -155,6 +154,4 @@ steps:
         带着解析出的四分类调用异步回调。运行时不绑任何引脚：这个回调做什么——
         驱动继电器、动翻盖、点亮分道指示灯——是你提供的集成代码，
         正因如此同一份构建才能跑在排针不同的板子上。
-        保持 "vlm.apply_fallback_to_gpio" 为 false：
-        翻盖不能去等一个 P50 以秒计的调用。
     optional: true
