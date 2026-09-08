@@ -444,7 +444,7 @@ Tier 1 plus local high-accuracy face recognition: voice AI runs on the [SenseCra
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2000 series (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
+| reComputer Industrial R21 series (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
 | USB-C data cable | Flash Watcher firmware |
 
 **What you'll get:**
@@ -534,7 +534,7 @@ Deploy the warehouse system together with the high-accuracy face recognition ser
 
 ### Target {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to a device with a Hailo-8 accelerator (reComputer R2000 series or Raspberry Pi + Hailo-8).
+Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series or Raspberry Pi + Hailo-8).
 
 ### Wiring
 
@@ -705,7 +705,7 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 
 ## Preset: Tier 2B · Advanced (Multi Site) {#private_cloud_multi}
 
-One reComputer J40 series runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
+One reComputer J40 series device runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
 
 | Device | Purpose |
 |--------|---------|
@@ -895,7 +895,7 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 
 ### Wiring
 
-1. Enter J40 series device IP address and SSH credentials
+1. Enter the J40 series device's IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
 
 ### Troubleshooting
@@ -1072,7 +1072,7 @@ Run everything locally including LLM and TTS - no internet required after deploy
 | Device | Purpose |
 |--------|---------|
 | SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R2000 series (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
+| reComputer Industrial R21 series (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
 | reComputer J50 series | Runs local LLM and TTS, fully offline |
 
 **What you'll get:**
@@ -1153,13 +1153,13 @@ Run the warehouse system on this computer.
 
 ### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to reComputer R2000 series edge device.
+Deploy to reComputer Industrial R21 series edge device.
 
 ### Wiring
 
 ![Wiring](gallery/R1100_connected.png)
 
-1. Connect R2000 series device to power and ethernet, ensure it's on the same network as your computer
+1. Connect Industrial R21 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
 3. Enter username `recomputer`, password `12345678`
 4. Click Deploy and wait for installation to complete
@@ -1228,7 +1228,7 @@ Two containers come up: voice service on **8621**, LLM on **8000**. **Note this 
 
 Local models are pinned to the top of every list — no paging needed.
 
-Deploy the voice AI service and its management console on the R2000 series device. Select "**Edge Computing**" mode and fill in two addresses:
+Deploy the voice AI service and its management console on the Industrial R21 series device. Select "**Edge Computing**" mode and fill in two addresses:
 
 - **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1` — the value is read from inside a container)
 - **Local LLM Address**: the same Jetson's LAN IP, port 8000 (leave empty if co-located)
@@ -1247,14 +1247,14 @@ Model addresses, the device access address and the MCP endpoint are then configu
 
 ### Wiring
 
-1. Enter R2000 series device IP address and SSH credentials
+1. Enter the Industrial R21 series device's IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Cannot connect to Jetson | Check if R2000 series device and Jetson are on the same network |
+| Cannot connect to Jetson | Check if Industrial R21 series device and Jetson are on the same network |
 | Response is slow | Confirm Jetson service is running, visit `http://Jetson-IP:8000/v1/models` to check |
 
 ---
@@ -1403,8 +1403,8 @@ Your fully offline warehouse system is ready!
 
 #### Acceptance checklist
 
-1. **All three health endpoints respond** — `curl -f http://<server-ip>:2125/health` (warehouse, on the R2000 series device), `curl -f http://<jetson-ip>:8621/readyz` (speech, on the J50 series device), and `curl -f http://<jetson-ip>:8000/v1/models` (LLM, on the J50 series device) all return success.
-2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the R2000 series device and J50 series device connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
+1. **All three health endpoints respond** — `curl -f http://<server-ip>:2125/health` (warehouse, on the Industrial R21 series device), `curl -f http://<jetson-ip>:8621/readyz` (speech, on the J50 series device), and `curl -f http://<jetson-ip>:8000/v1/models` (LLM, on the J50 series device) all return success.
+2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the Industrial R21 series device and J50 series device connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
 3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
 4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
-5. **No error-level logs** — on the R2000 series device, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J50 series device, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
+5. **No error-level logs** — on the Industrial R21 series device, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J50 series device, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
