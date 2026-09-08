@@ -221,31 +221,6 @@ unit 1 的线圈 0 与 1 上。
 | 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 大概率是 `anomaly.threshold` 直接抄了本方案自己的评测——那个阈值是在 DeepPCB 图上标定的，不是你相机的 OK 图。先用自己的 OK 集重新标定 |
 | 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 这是已知限制，不是 bug——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号（`heatmap_ref` 加分数），不要用单一帧级门限 |
 
-## 步骤 5: 启用 VLM 解释（可选） {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-可选。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，通常跑在另一台
-Orin 上），让低置信度或只有异常分数的帧在旁路 MQTT 主题上拿到一段人话
-解释。这条路径不进帧循环、不改变判定——跳过这一步，介绍页上的每一个数字
-都照样成立。
-
-### 前置条件
-
-- 已经跑起来、且这台设备能访问到的 `edge-vision-vlm` 实例——本方案不部署
-  也不打包这个服务。
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-- 要用 `anomaly` 触发条件，得先启用步骤 4——否则只有 `low_confidence`
-  生效。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|-------|----------|
-| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy`——见该步骤第二个子步骤 |
-| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态，不是崩溃 |
-| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立。这应该按 VLM 客户端的 bug 处理，而不是触发条件配置的问题 |
-
----
-
 ## 套餐: IP 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
 
 成本更低的一块板。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS，
@@ -466,24 +441,3 @@ unit 1 的线圈 0 与 1 上。
 | MQTT 事件里从来不出现 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启；检查容器日志里 `anomaly.path` 对应的模型加载是否报错 |
 | 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 阈值大概率是抄了本方案自己的评测，在 DeepPCB 图上标定，不是你相机的 OK 图。用自己的 OK 集重新标定 |
 | 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 已知限制——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号，不要用单一帧级门限 |
-
-## 步骤 5: 启用 VLM 解释（可选） {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-可选，与 Jetson 套餐相同。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，
-通常跑在另一台 Orin 上——树莓派本身不跑它），让低置信度或只有异常分数的帧
-在旁路 MQTT 主题上拿到一段人话解释。这条路径不进帧循环、不改变判定。
-
-### 前置条件
-
-- 已经跑起来、且这台树莓派能访问到的 `edge-vision-vlm` 实例——本方案不
-  部署也不打包这个服务。
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-- 要用 `anomaly` 触发条件，得先启用步骤 4。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|-------|----------|
-| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy` |
-| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态 |
-| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立 |
