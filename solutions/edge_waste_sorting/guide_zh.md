@@ -99,7 +99,7 @@ top-1 换来更好的校准、开放集拒识、中英文都能回答，以及�
 | 页面打不开 | 在设备上 `docker ps`——`waste` 容器应当在跑。看 `docker logs edge-waste-app`。 |
 | 页面能开但预览是黑的 | 视频源写错或不可达。USB 相机检查 `/dev/videoN` 有没有挂进容器；RTSP 先用 VLC 测地址。 |
 | 预览正常但 `/events` 一直空 | 还没有任何触发。`on_demand` 模式下运行时只在触发时分类——这是设计，不是故障。 |
-| 物品在画面里很小 | 重新对准。方案页上没有任何数字是在物品很小的取景下测的。 |
+| 物品在画面里很小 | 重新对准。方案页数字都取自物品占满取景的画面。 |
 
 ## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_orin type=manual required=true verify=true config=devices/trigger_setup.yaml}
 
@@ -431,7 +431,7 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 | 页面打不开 | 在设备上 `docker ps`——`waste` 容器应当在跑。看 `docker logs edge-waste-app`。 |
 | 页面能开但预览是黑的 | 视频源写错或不可达。USB 相机检查 `/dev/videoN` 有没有挂进容器；RTSP 先用 VLC 测地址。 |
 | 预览正常但 `/events` 一直空 | 如果设备上没有 HEF，模型永远加载不上，所以什么都不会被分类——见步骤 1 的「No HEF for this solution」条目。 |
-| 物品在画面里很小 | 重新对准。方案页上没有任何数字是在物品很小的取景下测的。 |
+| 物品在画面里很小 | 重新对准。方案页数字都取自物品占满取景的画面。 |
 
 ## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_hailo type=manual required=true verify=true config=devices/trigger_setup.yaml}
 

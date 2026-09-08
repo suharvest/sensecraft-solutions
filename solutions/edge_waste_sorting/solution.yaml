@@ -199,7 +199,7 @@ intro:
         zh: >-
           用 TensorRT 运行分类器，也是唯一提供可选开放词汇 track 的设备类别——
           ViT-B/16 在 CPU 上单图 67 ms，要能用就得有加速器。
-          本页没有任何一个数字取自这块板。
+          本页数字取自其他板卡，见各自的设备说明。
       purchase:
         require:
           module: [orin_nx_16]
