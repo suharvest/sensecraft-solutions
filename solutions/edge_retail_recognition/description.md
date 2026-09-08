@@ -62,8 +62,8 @@ it cannot.
 Registration depth is what moves accuracy most, so photograph each SKU from
 several angles when you register it. The J40 replay ran the full device-side
 runtime — detector, embedder, gallery lookup, MQTT publish. Measured on the
-Orin NX unit (reComputer J40) only; the smaller Orin Nano option in the same
-family (reComputer J30) has not been tested.
+Orin NX unit (reComputer J40) only; the smaller reComputer J30 series option
+has not been tested.
 
 A shelf host does the same job more slowly: on a reComputer RK3588 running a
 20-SKU shelf replay with retrieval on the registration console, frame to
