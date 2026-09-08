@@ -574,8 +574,13 @@ P5，其人脸库下发链路已在真机上验证过。人脸嵌入权重是非
 - **两个镜像引用。** 一个 digest 锁定的识别镜像——写 digest 不写 tag，因为同一个 tag
   但 digest 不同的两道门，嵌入不可比，症状是"认不出人"。以及本项目的设备镜像，
   它得你自己构建。
-- 在装好的硬件上实测出来的四项执行器设置：sysfs 编号、有效电平、脉宽、继电器触点，
+- 在装好的硬件上实测出来的执行器设置：引脚坐标（J20 上是 sysfs 编号，J30/J40 上是
+  gpiochip + line 偏移，见下面的《哪个引脚，哪台盒子》）、有效电平、脉宽、继电器触点，
   以及与你接的门控一致的失效模式。
+- 能访问 `sensecraft-statics.seeed.cc`：这一步把人脸模型权重下到 `/opt/usa/models`
+  （约 32 MB），逐个核对 SHA-256。识别容器首启时用它们构建 TensorRT engine——
+  在 reComputer J40 Series 上实测 61 s + 62 s + 73 s，容器启动 214 s 后 `/health` 有应答。
+  之后再启动会直接复用缓存的 engine。
 - 至少 15 GB 可用空间。
 
 ### 接线
@@ -589,6 +594,51 @@ P5，其人脸库下发链路已在真机上验证过。人脸嵌入权重是非
 
 部署步骤会打印所选 sysfs 引脚是否已被 export，以及它的 direction 与 value。
 如果有别的东西占着它，先查清是什么再继续。
+
+### 哪个引脚，哪台盒子
+
+引脚坐标在不同盒子上不是同一类数，没有一个对两边都成立的默认值。
+
+**J20（内核 4.9/5.10，sysfs）。** `/sys/class/gpio` 存在。设计 spec 记录 DO1–DO4 是
+sysfs 463/464/465/462。接锁之前先在这台盒子上测出哪个编号对应哪个端子，按测到的填。
+**GPIO 接口选 sysfs**，填 sysfs 编号。
+
+**J30 / J40（JetPack 6，Tegra 5.15，libgpiod）。** 这些内核根本不导出
+`/sys/class/gpio`——`ls /sys/class/gpio` 返回 *No such file or directory*，没有 sysfs
+编号可填。门控改走 `/dev/gpiochipN`：**GPIO 接口选 libgpiod**、**GPIO 控制器填
+gpiochip0**，再填一个 **line 偏移**。reComputer J40 Series 上整条 40-pin 排针都在
+`gpiochip0`；`gpiochip1` 是 AON 控制器，`gpiochip2` 是载板 I/O，两者都不在排针上。
+
+J401 载板上排针 pin 与 line 偏移的对照，与盒子上 NVIDIA 自带的引脚表
+（`/usr/lib/python3/dist-packages/Jetson/GPIO/gpio_pin_data.py`）以及
+[Seeed J401 40-pin 表](https://wiki.seeedstudio.com/J401_carrierboard_Hardware_Interfaces_Usage/)
+交叉核对过：
+
+| 排针 pin | 名称 | `gpiochip0` line |
+|---|---|---|
+| 7  | GPIO09    | 144 |
+| 11 | UART1_RTS | 112 |
+| 12 | I2S0_SCLK | 50  |
+| 13 | SPI1_SCK  | 122 |
+| 15 | GPIO12    | 85  |
+| 16 | SPI1_CS1  | 126 |
+| 18 | SPI1_CS0  | 125 |
+| 22 | SPI1_MISO | 123 |
+| 29 | GPIO01    | 105 |
+| 31 | GPIO11    | 106 |
+| 32 | GPIO07    | 41  |
+| 33 | GPIO13    | 43  |
+| 35 | I2S0_FS   | 53  |
+| 36 | UART1_CTS | 113 |
+| 37 | SPI1_MOSI | 124 |
+| 38 | I2S0_SDIN | 52  |
+| 40 | I2S0_SDOUT| 51  |
+
+pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND——继电器模块除了信号线，
+这两样各要一根。
+
+选之前先在盒子上跑 `gpioinfo`：它会列出每条线的名字与当前占用者，标着 `[used]` 的
+是别人的。实测那台 J40 Series 上，上表这十七条线都是空闲的。
 
 ### 故障排查
 
