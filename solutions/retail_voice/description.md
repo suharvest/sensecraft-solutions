@@ -263,6 +263,12 @@ whoever consumes the manifest is pointed at `retail_voice`. There is no
 migration path between the two packages: an existing install keeps working until
 it is redeployed.
 
+## Scope of the Numbers
+
+- **reComputer RK3576 figures** — taken on the exact compose file this package ships. The 5 acceptance clips were fed as files: the board had no physical array attached, so the array's beamforming and AEC and the client's ALSA capture are not in these numbers.
+- **CM4 ASR speed and accuracy** — the upstream bench matrix row for RPi4 / CM4 (`asr_zh_en`, `openvoicestream/docs/perf-test-runbook.md`) is the reference; run the first CM4 site as a pilot.
+- **The PII score** — text-level, taken on written text with `tools/pii_eval.py` driving the same Go implementation the service uses, not on ASR output.
+
 ## Licensing note
 
 The speech service ships third-party models — SenseVoice and Paraformer for
