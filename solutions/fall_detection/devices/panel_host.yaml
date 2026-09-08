@@ -1,0 +1,420 @@
+version: "1.0"
+id: panel_host
+name: Alarm Panel Host
+type: docker_deploy
+
+# No device_class. The panel needs no AI accelerator and no hardware identity
+# probe — it is a plain Docker stack that runs on any x86_64 or arm64 Linux box
+# with the compose plugin. A reComputer R1000 is the default recommendation;
+# an existing server works the same way.
+#
+# The cameras keep detecting on their own. This step installs nothing on them
+# and changes nothing about detection: it subscribes to the MQTT stream they
+# already publish and adds zones, timeouts, an operator confirmation page, an
+# SQLite audit trail and a webhook on top of it.
+
+docker:
+  compose_file: assets/panel/docker-compose.yml
+  compose_dir: assets/panel
+  options:
+    project_name: fall_detection_panel
+    remove_orphans: true
+  services:
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: alarm-panel
+      port: 8080
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 900
+
+pre_checks:
+  - type: disk_space
+    min_gb: 2
+    description: Two container images and the SQLite audit store live on this host
+
+deploy_timeout: 1200
+
+post_deployment:
+  open_browser: false
+  url: "http://{{host}}:{{panel_port}}/"
+
+name_i18n:
+  zh: 告警面板主机
+
+remote_overrides:
+  remote_path: /home/{{username}}/fall-detection-panel
+  compose_dir: assets/panel
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Ensure docker compose command
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 docker compose 可用
+
+      - name: Check the panel ports are free
+        # This host is whatever the site already has, so 8080 and 1883 may
+        # already be taken. Both are settable in the form; fail here with the
+        # name of the process holding the port rather than in `compose up`.
+        run: |
+          set -e
+          for p in {{panel_port}} {{broker_port}}; do
+            if command -v ss >/dev/null 2>&1; then
+              HOLDER=$(ss -ltnp "sport = :$p" 2>/dev/null | tail -n +2 || true)
+            else
+              HOLDER=$(netstat -ltnp 2>/dev/null | grep -E "[:.]$p " || true)
+            fi
+            if [ -n "$HOLDER" ]; then
+              echo "Port $p is already in use on this host:" >&2
+              echo "$HOLDER" >&2
+              echo "Pick another value in the form, or stop that service." >&2
+              exit 1
+            fi
+          done
+          echo "Ports {{panel_port}} and {{broker_port}} are free"
+        name_i18n:
+          zh: 检查面板端口未被占用
+
+    # These run AFTER assets/panel/ is uploaded to
+    # remote_path/<device-yaml-id>/ and BEFORE `docker compose up`.
+    # config/alarm-panel.yaml does not exist on the host until the upload
+    # finishes, so they cannot move into `before`.
+    after_upload:
+      - name: Select the image for this host's architecture
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-panel/panel_host"
+          ARM64_IMAGE=sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0@sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
+          AMD64_IMAGE=sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-amd64:0.1.0@sha256:b2455f73f1ce2be69532a5a6bee9be76be3597574bed016ba050b17860b8e87b
+          case "$(uname -m)" in
+            aarch64|arm64) IMAGE="$ARM64_IMAGE" ;;
+            x86_64|amd64)  IMAGE="$AMD64_IMAGE" ;;
+            *) echo "Unsupported architecture: $(uname -m) — the panel image is built for arm64 and amd64 only" >&2; exit 1 ;;
+          esac
+          cat > "$WORKDIR/.env" <<EOF
+          ALARM_PANEL_IMAGE=$IMAGE
+          WEB_PORT={{panel_port}}
+          BROKER_PORT={{broker_port}}
+          EOF
+          echo "arch=$(uname -m)"
+          cat "$WORKDIR/.env"
+        name_i18n:
+          zh: 按主机架构选择镜像
+
+      - name: Write the panel configuration
+        # Rewrites config/alarm-panel.yaml from the form values. The uploaded
+        # copy is the documented default; this replaces it wholesale rather
+        # than patching, so there is exactly one thing to read on the host when
+        # a timeout behaves unexpectedly.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/fall-detection-panel/panel_host"
+          CONFIG="$WORKDIR/config/alarm-panel.yaml"
+          python3 - "$CONFIG" <<'PY'
+          import os, sys
+
+          path = sys.argv[1]
+          no_person_sec = int(float("{{no_person_timeout_min}}") * 60)
+          no_motion_sec = int(float("{{no_motion_timeout_min}}") * 60)
+          webhook = "{{webhook_url}}".strip()
+          topic = "{{result_topic}}".strip()
+          adapter = "{{camera_model}}"
+
+          lines = [
+              "# Generated by the alarm panel deploy step. Edit on the host, then",
+              "# run `docker compose restart alarm-panel`.",
+              "zones:",
+              "  - id: {{zone_id}}",
+              "    name: {{zone_id}}",
+              "    rect: [0.0, 0.0, 1.0, 1.0]",
+              "    stream_ids: []",
+              f"    no_person_timeout_sec: {no_person_sec}",
+              f"    no_motion_timeout_sec: {no_motion_sec}",
+              "    motion_threshold: 0.02",
+              "    enabled: true",
+              "statemachine:",
+              "  evidence_sec: 5.0",
+              "  confirm_window_sec: 60.0",
+              "  notify_deadline_sec: 5.0",
+              "  retry_interval_sec: 30.0",
+              "  rearm_sec: 120.0",
+              "  confirm_timeout_action: confirmed",
+              "mqtt:",
+              '  host: "{{broker_host}}"',
+              "  port: {{broker_mqtt_port}}",
+              '  username: "{{broker_username}}"',
+              '  password: "{{broker_password}}"',
+              "  client_id: alarm-panel",
+              "  keepalive_sec: 30",
+              "  qos: 1",
+              "  tls: false",
+              "  subscriptions:",
+              f'    "{topic}": {adapter}',
+              "notifiers:",
+          ]
+          if webhook:
+              lines += [
+                  "  - name: ops-webhook",
+                  "    type: webhook",
+                  "    enabled: true",
+                  "    options:",
+                  f"      url: \"{webhook}\"",
+                  "      timeout_sec: 5.0",
+              ]
+          else:
+              # No webhook configured: alarms are still recorded and shown on
+              # the panel, they are simply not pushed anywhere.
+              lines += ["  []"]
+          lines += [
+              "store:",
+              "  path: /data/eldercare.sqlite",
+              "  event_retention_days: 90",
+              "  media_retention_days: 7",
+              "  purge_interval_sec: 3600",
+              "  rate_limit: 5",
+              "  rate_limit_window_sec: 600",
+              "web:",
+              "  host: 0.0.0.0",
+              "  port: 8080",
+              "  media_dir: /data/media",
+              "  snapshot_enabled: false",
+              "",
+          ]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              handle.write("\n".join(lines))
+          os.replace(tmp, path)
+          print(f"subscription  = {topic} -> {adapter}")
+          print(f"zone          = {{zone_id}}")
+          print(f"no_person_sec = {no_person_sec}")
+          print(f"no_motion_sec = {no_motion_sec}")
+          print(f"webhook       = {'configured' if webhook else 'none'}")
+          PY
+        name_i18n:
+          zh: 写入面板配置
+
+    after:
+      - name: Verify the panel is up and ingesting
+        # Two halves: the panel API has to answer, and the camera's result
+        # topic has to be arriving on the broker the panel subscribes to.
+        # The second half is a warning rather than a failure because a quiet
+        # site with a camera that publishes only on change is a legitimate
+        # state at this moment.
+        timeout: 300
+        run: |
+          set -e
+          echo "Checking the panel API ..."
+          for i in $(seq 1 24); do
+            if curl -fsS --max-time 5 "http://127.0.0.1:{{panel_port}}/api/alarms" >/dev/null; then
+              echo "Panel answering on http://127.0.0.1:{{panel_port}}/api/alarms"
+              break
+            fi
+            if [ "$i" = 24 ]; then
+              echo "Panel did not answer on port {{panel_port}}." >&2
+              docker logs --tail 40 fall_detection_panel-alarm-panel-1 2>&1 || true
+              exit 1
+            fi
+            sleep 5
+          done
+          echo "Looking for detector results on {{result_topic}} ..."
+          if docker exec fall_detection_panel-mosquitto-1 \
+               mosquitto_sub -h {{broker_host}} -p {{broker_mqtt_port}} \
+               -t "{{result_topic}}" -C 1 -W 20 >/dev/null 2>&1; then
+            echo "Detector result received on {{result_topic}}"
+          else
+            echo "WARNING: no message on {{result_topic}} within 20 s." >&2
+            echo "Check the camera is publishing and that its broker address matches the one entered here." >&2
+          fi
+        name_i18n:
+          zh: 验证面板已启动并在接收事件
+
+  user_inputs:
+    - id: host
+      name: Panel Host IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: The box that will run the panel — a reComputer R1000 or any existing Linux server with Docker
+      name_i18n:
+        zh: 面板主机 IP
+      description_i18n:
+        zh: 跑面板的那台机器——reComputer R1000，或任意已装 Docker 的现有 Linux 服务器
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: camera_model
+      name: Camera Model
+      type: select
+      default: fall_result_v1
+      required: true
+      description: Which payload the cameras publish. reCamera 2002 sends fall_result_v1; reCamera Pro sends its own state message and needs the Pro adapter.
+      options:
+        - value: fall_result_v1
+          label: reCamera 2002
+          label_i18n:
+            zh: reCamera 2002
+        - value: recamera_pro_state
+          label: reCamera Pro
+          label_i18n:
+            zh: reCamera Pro
+      name_i18n:
+        zh: 摄像头型号
+      description_i18n:
+        zh: 摄像头发布的是哪种负载。reCamera 2002 发 fall_result_v1；reCamera Pro 发自己的状态消息，需要 Pro 适配器。
+    - id: result_topic
+      name: Detector Result Topic
+      type: text
+      default: "recamera/fall-detection/results"
+      required: true
+      description: The exact topic the cameras publish on. Confirm it with `mosquitto_sub -h <broker> -t '#' -v` before deploying — a 2002 uses <device-name>/fall-detection/results, a Pro uses <base>/fall-detection/state. A + wildcard covers several cameras.
+      name_i18n:
+        zh: 检测结果主题
+      description_i18n:
+        zh: 摄像头实际发布的主题。部署前用 `mosquitto_sub -h <broker> -t '#' -v` 确认——2002 是 <设备名>/fall-detection/results，Pro 是 <base>/fall-detection/state。用 + 通配符可覆盖多台摄像头。
+    - id: broker_host
+      name: MQTT Broker Host
+      type: text
+      default: "127.0.0.1"
+      required: true
+      description: Leave as 127.0.0.1 to use the broker this stack starts here, and point the cameras at this host. Enter the camera's or your own broker address to subscribe to an existing one instead.
+      name_i18n:
+        zh: MQTT Broker 地址
+      description_i18n:
+        zh: 保持 127.0.0.1 就使用本套栈在这台机器上启动的 broker，并把摄像头指向本机；填摄像头或你自己的 broker 地址则订阅已有的那个。
+    - id: broker_mqtt_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      description: The port the panel connects to. With the bundled broker this is the same value as the published broker port below.
+      name_i18n:
+        zh: MQTT Broker 端口
+      description_i18n:
+        zh: 面板连接的端口。使用内置 broker 时与下面发布的 broker 端口填同一个值。
+    - id: broker_username
+      name: MQTT Username
+      type: text
+      required: false
+      description: Leave empty for the bundled broker, which accepts anonymous connections on the LAN
+      name_i18n:
+        zh: MQTT 用户名
+      description_i18n:
+        zh: 使用内置 broker 时留空——它在局域网内允许匿名连接
+    - id: broker_password
+      name: MQTT Password
+      type: password
+      required: false
+      name_i18n:
+        zh: MQTT 密码
+    - id: broker_port
+      name: Broker Port to Publish on This Host
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      description: The host port the bundled broker binds. Change it if 1883 is already taken on this machine — the deploy fails early with the name of the process holding it.
+      name_i18n:
+        zh: 本机对外的 Broker 端口
+      description_i18n:
+        zh: 内置 broker 在本机绑定的端口。若本机 1883 已被占用就改这里——部署会提前失败并给出占用它的进程。
+    - id: panel_port
+      name: Panel Port
+      type: text
+      default: "8080"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      description: The host port the panel page is served on. Change it if 8080 is already taken.
+      name_i18n:
+        zh: 面板端口
+      description_i18n:
+        zh: 面板页面对外的端口。本机 8080 已被占用就改这里。
+    - id: zone_id
+      name: Zone Name
+      type: text
+      default: "bedroom"
+      required: true
+      description: The area these cameras watch. The deploy creates one zone covering the whole frame; split it into sub-rectangles on the host afterwards if one camera covers two rooms.
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 区域名称
+      description_i18n:
+        zh: 这些摄像头看护的区域。部署会建立一个覆盖整幅画面的区域；若一台摄像头覆盖两个房间，之后在主机上把它拆成多个矩形。
+    - id: no_person_timeout_min
+      name: No-person Timeout (minutes)
+      type: text
+      default: "60"
+      required: true
+      description: How long the zone may stay empty before an alarm is raised. Set it above the longest normal absence — a bathroom zone needs a much shorter value than a bedroom.
+      validation:
+        pattern: "^[0-9]+(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 无人超时（分钟）
+      description_i18n:
+        zh: 区域内允许持续无人多久才告警。要设得高于正常的离开时长——卫生间区域应远短于卧室。
+    - id: no_motion_timeout_min
+      name: No-motion Timeout (minutes)
+      type: text
+      default: "30"
+      required: true
+      description: How long a person may stay in the zone without moving before an alarm is raised. Sleeping hours will trip this unless the zone excludes the bed or the value covers a nap.
+      validation:
+        pattern: "^[0-9]+(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 静止超时（分钟）
+      description_i18n:
+        zh: 区域内有人但持续不动多久才告警。睡眠时段会触发它，除非区域排除床位或阈值覆盖一次午睡。
+    - id: webhook_url
+      name: Webhook URL
+      type: text
+      required: false
+      placeholder: "http://192.168.1.50:9099/alarm"
+      description: Where a confirmed alarm is POSTed. The payload carries the alarm id, kind, zone, stream, timestamp and operator — no snapshot and no video. Leave empty to record alarms on the panel only.
+      name_i18n:
+        zh: Webhook 地址
+      description_i18n:
+        zh: 确认后的告警 POST 到哪里。负载只含告警 id、类型、区域、流、时间戳与操作者，不含快照或视频。留空则只在面板里记录。
