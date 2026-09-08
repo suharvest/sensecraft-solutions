@@ -18,7 +18,7 @@ type: manual
 # agrees), and it has been driven and read back with nothing connected
 # (idle 0, one pulse, back to 0, no stuck-active, no reclaim). Its physical
 # identity on the board IS settled (device tree pinmux: gpio130 = GPIO4_A2 =
-# the expansion port's UART4 M0 TXD line, reconfigured as GPIO — the 3.3 V
+# the expansion port's UART4 M0 pins, reconfigured as GPIO — the 3.3 V
 # family, not one of the two native 12-21 V outputs; see
 # docs/reports/recamera-pro-gpio130-identity-2026-09-08.md in the hub repo).
 # Its idle/driven voltage and available drive current have NOT been measured
@@ -72,12 +72,13 @@ steps:
       lines are native GPIO outputs that swing 12-21 V depending on DC-IN;
       separately, a UART or CAN pin on the expansion port can be reconfigured
       to a 3.3 V GPIO, and the relay module you buy has to match whichever
-      you have. `gpio130` (GPIO4_A2) is confirmed by the device tree pinmux
-      to be the UART4 M0 TXD line reconfigured this way — it is in the 3.3 V
-      family, not one of the two native 12-21 V outputs — but that identity
-      check is not a voltage measurement: its idle/driven level and available
-      drive current have NOT been measured with a meter on any unit, and no
-      LED, relay or door controller has ever been connected. The app refuses
+      you have. `gpio130` (GPIO4_A2) is identified by device tree pinctrl
+      evidence as one of the expansion port's UART4 M0 pins reconfigured
+      this way — it is in the 3.3 V family, not one of the two native
+      12-21 V outputs — but that identity check is not a voltage
+      measurement: its exact TX/RX role, idle/driven level and available
+      drive current have NOT been measured with a meter or schematic on any
+      unit, and no LED, relay or door controller has ever been connected. The app refuses
       to arm a pin whose current direction and value disagree with the
       configured idle state, and will not take it over unless explicitly told
       to. Leave that refusal in place.
@@ -94,11 +95,12 @@ steps:
         候选引脚：空闲电平、驱动电平、实际可供电流，并对照丝印或原理图确认它是
         板上哪一路。板上外露的两路原生 GPIO 输出摆幅 12-21 V（取决于
         DC-IN）；另外，扩展口上的 UART 或 CAN 脚可以改配成 3.3 V GPIO，你买的
-        继电器模块必须匹配你手上的那一种。`gpio130`（GPIO4_A2）经设备树 pinmux
-        核实，是 UART4 M0 TXD 脚改配而来——属于 3.3 V 这一类，不是那两路
-        12-21 V 原生输出之一——但这只是身份核实，不是电压实测：**空闲/驱动电平
-        与可提供电流都没有在任何一台设备上用万用表实测过**，也从未接过 LED、
-        继电器或门禁控制器。引脚当前的 direction / value 与配置的空闲状态不符
+        继电器模块必须匹配你手上的那一种。`gpio130`（GPIO4_A2）依据设备树
+        pinctrl 证据判定为扩展口 UART4 M0 那对脚之一，改配成 GPIO——属于 3.3 V
+        这一类，不是那两路 12-21 V 原生输出之一——但这只是身份核实，不是电压
+        实测：**它具体是 TX 还是 RX、空闲/驱动电平与可提供电流都没有在任何一台
+        设备上用万用表或原理图确认过**，也从未接过 LED、继电器或门禁控制器。
+        引脚当前的 direction / value 与配置的空闲状态不符
         时应用拒绝上任，且不会自作主张接管，除非显式要求。把这个拒绝保留着。
     optional: false
 

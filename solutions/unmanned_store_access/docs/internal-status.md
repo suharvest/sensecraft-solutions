@@ -28,7 +28,7 @@ production (see the licensing note on the page).
 
 Thresholds on both devices are shipped defaults carrying `calibration =
 pending`. `gpio130`'s physical identity is confirmed (device tree pinmux: the
-expansion port's UART4 M0 TXD line, reconfigured as GPIO — the 3.3 V family,
+expansion port's UART4 M0 pins, reconfigured as GPIO — the 3.3 V family,
 not one of the board's two native 12–21 V outputs); its level and drive
 current are still unmeasured. reCamera PoE: pending hardware, no figure.
 

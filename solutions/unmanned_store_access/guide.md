@@ -67,7 +67,7 @@ recognition results**, not a person; the pin readback is sysfs, so the values ar
 an upper bound; and **no external circuit has ever been connected** — no meter
 reading of `gpio130`, no LED, no relay, no door controller. Its physical
 identity on the board is confirmed (device tree pinmux: the expansion port's
-UART4 M0 TXD line, reconfigured as GPIO — the 3.3 V family), but its
+UART4 M0 pins, reconfigured as GPIO — the 3.3 V family), but its
 idle/driven voltage and available drive current are still unmeasured. The
 thresholds are the recognition app's own defaults; no calibration against
 measured recognition/rejection pairs has been run.
@@ -245,19 +245,25 @@ In this order, and do not skip ahead.
 2. **Relay module on its own supply.** Confirm the contact clicks once per
    pulse. Match the module to the pin: two of the board's exposed lines are
    native GPIO outputs that swing 12–21 V depending on DC-IN, while a UART or
-   CAN pin reconfigured as GPIO gives 3.3 V. The shipped default, `gpio130`
-   (GPIO4_A2), is confirmed by the device tree pinmux to be the UART4 M0 TXD
-   line reconfigured this way — it is in the 3.3 V family, not one of the
-   two native 12–21 V outputs — though its actual voltage and available
-   drive current still need confirming with a meter. Default relay: Grove -
-   Relay (SKU 103020005), SPST-NO, mechanical (non-solid-state) contact,
-   documented for 3.3–5 V trigger. If the door controller's input is
-   normally-closed and needs an `NC` terminal, use Grove - SPDT Relay(30A)
-   (SKU 103020012) instead — its 3.3 V trigger is not documented by the
-   vendor, so give it its own 5 V supply or confirm on hardware before
-   relying on it. A solid-state relay is not an option here: it is not a
-   mechanical dry contact, and a DC load once switched on stays on.
-3. **The relay's COM/NO dry contact into the door controller's input.** The
+   CAN pin reconfigured as GPIO gives 3.3 V. This solution's default,
+   `gpio130` (GPIO4_A2), is identified by device tree pinctrl evidence as
+   one of the expansion port's UART4 M0 pins (paired with `gpio131`)
+   reconfigured as GPIO — it is in the 3.3 V family, not one of the two
+   native 12–21 V outputs — though its exact TX/RX role, actual voltage and
+   available drive current have not been confirmed with a meter or
+   schematic on any unit. Default relay: Grove - Relay (SKU 103020005),
+   SPST-NO, mechanical (non-solid-state) contact, documented for 3.3–5 V
+   trigger. If the door controller's input is normally-closed and needs an
+   `NC` terminal, use Grove - SPDT Relay(30A) (SKU 103020012) instead — its
+   3.3 V trigger reliability is not documented by the vendor, so give its
+   coil its own 5 V supply from a separate source, and still confirm on
+   hardware that it pulls in reliably before relying on it (a documented
+   supply voltage is not the same as a documented 3.3 V trigger level). A
+   solid-state relay is not an option here: the mechanical-contact
+   requirement excludes it outright, and the SSR Seeed carries is documented
+   for AC loads only, with a DC load left switched on once triggered.
+3. **The relay's COM/NO dry contact (COM/NC if you wired the SPDT
+   alternative) into the door controller's input.** The
    lock, its power supply, and the door controller itself are supplied and
    wired by the door-control party — outside this solution's BOM. The relay
    presents only a floating, unpowered contact pair; the pin must never see
