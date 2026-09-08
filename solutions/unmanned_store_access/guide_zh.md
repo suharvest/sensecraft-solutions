@@ -9,8 +9,7 @@ reCamera，也看不出现场有没有网关，所以套餐按下表人工选。
 | reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
 | reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
 | 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
-| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
 
 有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
@@ -76,8 +75,7 @@ reCamera，也看不出现场有没有网关，所以套餐按下表人工选。
 | reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
 | reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
 | 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
-| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
 
 有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
@@ -200,7 +198,7 @@ reCamera 路径（P5）不受影响**——它在设备上做嵌入，不经这�
 | 回滚被拒并点名了某个人 | 删除屏障。改为生成一个新版本；这条拒绝正是机制在起作用。 |
 | 设备报 `model_tag` 不匹配 | 库是按另一个嵌入模型构建的。按门上真正跑的那个模型重建。 |
 
-## 步骤 4: 从应用市场激活 F1 门禁（仅 reCamera Pro） {#p1_install type=recamera_pro_app required=false config=devices/p1_recamera_pro.yaml}
+## 步骤 4: 从应用市场激活 F1 门禁（仅 reCamera Pro） {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
 
 `f1-access` 是一个已发布的 reCamera Pro App Center 包（catalog id `f1-access`），
 把人脸识别应用的识别级联与门控逻辑合成一体：驱动一路 sysfs GPIO 干接点，并发布
@@ -234,7 +232,7 @@ reCamera 路径（P5）不受影响**——它在设备上做嵌入，不经这�
 | `require_installed` 校验失败 | 这台设备的应用市场里还没有 `f1-access`。先在应用市场装上——这一步不能代装包。 |
 | 这一步跑完后仍是别的应用在跑 | 查 `GET /api/appMgr/list` 的 `last_exit`；`entry.cgi` 的 `/model/inference` 端点在长时间高负载后可能挂住，让 `activate` 报超时。重启即可恢复。 |
 
-## 步骤 5: 接线继电器并让门禁上线（仅 reCamera Pro） {#p1_wire type=manual required=false config=devices/p1_recamera_pro_wiring.yaml}
+## 步骤 5: 接线继电器并让门禁上线（仅 reCamera Pro） {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
 以 root 登录摄像头，找到并实测一个空闲引脚，按 LED → 继电器 → 门控的顺序接线，
 写入门禁配置与 facedb 密钥，并确认门禁真的上线了——不只是应用在跑。
@@ -439,8 +437,7 @@ reCamera，也看不出现场有没有网关，所以套餐按下表人工选。
 | reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
 | reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
 | 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
-| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
 
 有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
@@ -480,8 +477,7 @@ reCamera，也看不出现场有没有网关，所以套餐按下表人工选。
 | reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
 | reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
 | 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J30 / J40 / R2000 + 现有 RTSP 摄像头 | 事件经 MQTT 出；继电器在网关侧 | MQTT 继电器 |
-| Grove Vision AI V2 + XIAO ESP32-S3 | XIAO 的 GPIO 驱动 Grove 继电器 | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
 
 有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
@@ -577,7 +573,7 @@ P5，其人脸库下发链路已在真机上验证过。人脸嵌入权重是非
 | 回滚被拒并点名了某个人 | 删除屏障。改为生成一个新版本。 |
 | 设备报 `model_tag` 不匹配 | 库是按另一个嵌入模型构建的。 |
 
-## 步骤 4: 在 J20 上部署门禁节点（继电器接主机自己的输出） {#p2_deploy type=docker_deploy required=false config=devices/p2_j20.yaml}
+## 步骤 4: 在 J20 上部署门禁节点（继电器接主机自己的输出） {#p2_deploy type=docker_deploy required=true config=devices/p2_j20.yaml}
 
 上传服务栈，检查 DO 引脚是不是已经被别的东西占着，写入实测出来的执行器设置与人脸库配置，
 再启动识别服务与门禁节点。

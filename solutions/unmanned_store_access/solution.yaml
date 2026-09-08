@@ -218,16 +218,14 @@ intro:
     - type: rtsp
       description: >-
         A camera at the door at roughly face height, framed so one face fills a
-        usable part of the frame at the distance people actually stop. P1 uses
-        the reCamera's own sensor; P2 and P3 accept any RTSP stream; P4 uses
-        the Grove Vision AI V2's sensor. Backlit doorways and glass reflections
+        usable part of the frame at the distance people actually stop. Route A uses
+        the reCamera's own sensor; route B accepts any RTSP stream. Backlit doorways and glass reflections
         are the usual failure modes and have not been characterised.
       required: true
       description_i18n:
         zh: >-
           门口一台大致齐面部高度的摄像头，取景要让人真正停下来的距离上，单张人脸
-          在画面里占到可用比例。P1 用 reCamera 自带传感器；P2 / P3 接任意 RTSP 流；
-          P4 用 Grove Vision AI V2 的传感器。逆光门口与玻璃反光是常见失效模式，
+          在画面里占到可用比例。路线 A 用 reCamera 自带传感器；路线 B 接任意 RTSP 流。逆光门口与玻璃反光是常见失效模式，
           本方案没有刻画过它们的边界。
     - type: other
       description: >-
@@ -380,13 +378,12 @@ intro:
           的情况。继电器本身在下面单列。
     xiao_esp32s3:
       description: >-
-        The other relay option for the MQTT preset, and the door-side board of
-        the P4 preset. It subscribes to one topic, drives one dry contact, and
+        The relay node option reached over MQTT, on either route. It subscribes to one topic, drives one dry contact, and
         ends the pulse from its own firmware timer — a dropped packet cannot
         leave the door standing open. The "set" topic must never be retained.
       description_i18n:
         zh: >-
-          MQTT 套餐的另一个继电器选项，同时也是 P4 套餐的门侧板。它订阅一个 topic、
+          两条路线里经 MQTT 到达的继电器节点选项。它订阅一个 topic、
           驱动一路干接点，脉冲由固件自己的定时器结束——丢包不会让门一直开着。
           「set」 topic 绝不能是 retained。
     generic_relay_module:

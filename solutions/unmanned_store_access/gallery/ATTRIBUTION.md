@@ -107,7 +107,7 @@ under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.
 the gallery is published, upload all seven and switch `intro.cover_image` and
 every `intro.gallery[].src` in the same change.
 
-`assets/firmware/` carries a manifest only — no binary. Neither container image
+Neither container image
 named in `assets/cloud/docker-compose.yml` or `assets/edge/docker-compose.yml`
 has been pushed; both files say so at the top.
 

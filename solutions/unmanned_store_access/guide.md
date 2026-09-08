@@ -11,8 +11,7 @@ driven, and that is the preset.
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
-| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
@@ -99,8 +98,7 @@ driven, and that is the preset.
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
-| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
@@ -251,7 +249,7 @@ not enrol through this cloud console.
 | Rollback refused naming a person | The deletion barrier. Mint a new version instead; that refusal is the mechanism working. |
 | `model_tag` mismatch on the device | The library was built against a different embedding model. Rebuild it against the one the door actually runs. |
 
-## Step 4: Activate F1 Door Access from the App Center (reCamera Pro only) {#p1_install type=recamera_pro_app required=false config=devices/p1_recamera_pro.yaml}
+## Step 4: Activate F1 Door Access from the App Center (reCamera Pro only) {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
 
 f1-access is a published reCamera Pro App Center package (catalog id
 `f1-access`) that combines the face-recognition app's recognition cascade with
@@ -289,7 +287,7 @@ first — this deployment step cannot install it for you.
 | `require_installed` fails | f1-access is not on this device's App Center yet. Install it there first — this step cannot install packages. |
 | Another app stays active after this step | Check `GET /api/appMgr/list` for `last_exit`; `entry.cgi`'s `/model/inference` endpoint can wedge after long high load and make `activate` report a timeout. A reboot clears it. |
 
-## Step 5: Wire the Relay and Arm the Gate (reCamera Pro only) {#p1_wire type=manual required=false config=devices/p1_recamera_pro_wiring.yaml}
+## Step 5: Wire the Relay and Arm the Gate (reCamera Pro only) {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
 Reach the camera as root, find and measure a free pin, wire LED then relay then
 the door controller and declare the contact, write the access config and the
@@ -545,8 +543,7 @@ driven, and that is the preset.
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
-| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
@@ -593,8 +590,7 @@ driven, and that is the preset.
 | reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
 | reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
 | Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J30 / J40 / R2000 + an existing RTSP camera | Events over MQTT; relay at the gateway | MQTT Relay |
-| Grove Vision AI V2 + XIAO ESP32-S3 | The XIAO's GPIO into a Grove Relay | XIAO + Grove Vision AI V2 |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
 
 Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
@@ -702,7 +698,7 @@ enrolment mints a new version.
 | Rollback refused naming a person | The deletion barrier. Mint a new version instead. |
 | `model_tag` mismatch on the device | The library was built against a different embedding model. |
 
-## Step 4: Deploy the Access Node on the J20 (relay on the host's own output) {#p2_deploy type=docker_deploy required=false config=devices/p2_j20.yaml}
+## Step 4: Deploy the Access Node on the J20 (relay on the host's own output) {#p2_deploy type=docker_deploy required=true config=devices/p2_j20.yaml}
 
 Uploads the stack, checks whether the DO pin is already owned by something else,
 writes the measured actuator settings and the library configuration, and starts
