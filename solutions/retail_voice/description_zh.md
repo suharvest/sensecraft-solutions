@@ -82,7 +82,7 @@
 | 流式识别准确率，RK3576 | 中文 CER 9.4%，英文 WER 34.6% | reComputer RK3576，「bench/perf/corpus」 short 集（5 中 + 5 英），Paraformer hybrid RKNN 编码器 + RKNN 解码器，「/asr/stream」 实时路径，40/80/160/240/400 帧桶——**与本设计部署的 SenseVoice 是不同 profile** | 「openvoicestream/docs/perf/paraformer-rk3576-streaming-ab-20260608.md」，2026-06-08 |
 | 语音结束到最终结果，RK3576 | 326 ms / 347 ms（中 / 英均值） | 同一次运行，「/asr/stream」 带 500 ms prepare 提前量 | 同上 |
 | 声纹向量，RK3576 | RTF 0.09–0.13（1 s → 125 ms，3 s → 255 ms，5 s → 428 ms） | reComputer RK3576，CAM++ 走 sherpa-onnx CPU，2 线程；10 人聚类 1.45 ms | 「openvoicestream/docs/specs/diarization-capability.md」，2026-06-26 |
-| 声纹向量，CM4 同档（A72） | RTF 约 0.10（1 s → 114 ms，3 s → 303 ms，5 s → 508 ms），冷加载 1.66 s | Raspberry Pi 4（Cortex-A72，4 核）代表 reRouter CM4 系列内的 CM4——同代 SoC；CAM++ 走 sherpa-onnx CPU | 同一文档，2026-06-26 |
+| 声纹向量，CM4 同档（A72） | RTF 约 0.10（1 s → 114 ms，3 s → 303 ms，5 s → 508 ms），冷加载 1.66 s | 同代 SoC 的台架板（Cortex-A72，4 核），不是 reRouter CM4 系列整机；CAM++ 走 sherpa-onnx CPU | 同一文档，2026-06-26 |
 
 表中 RK3576 各行为同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
 
