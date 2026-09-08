@@ -296,7 +296,7 @@
     },
     {
       "id": "bare-cm4-host",
-      "pattern": "(?<!reRouter )CM4\\s*主机|(?<!reRouter )CM4\\s+host",
+      "pattern": "(?<!reRouter\\s)(?<!reRouter\\s\\s)\\bCM4\\s*主机|(?<!reRouter\\s)(?<!reRouter\\s\\s)\\bCM4\\s+host\\b",
       "severity": "error",
       "message": "裸写 'CM4 主机' 不是产品名。自建 LoRaWAN 网关写 reComputer R12 系列；只做 Linux 主机时写完整产品名（reRouter CM4）"
     }

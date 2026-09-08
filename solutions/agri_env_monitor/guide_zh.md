@@ -134,7 +134,7 @@ OpenAPI 回填也从未在真实响应上验证过。
 
 **重要：** 本套餐没有任何一部分在硬件上跑过。R12 网关射频没起过，
 stack 没在 ARM64 目标上起过，它的首启初始化流程也没执行过，资源下限未测。
-下面标着待验证的步骤都是照模块与 stack 文档写的，
+下面标着待验证的步骤都是照网关与 stack 文档写的，
 而且每一条都属于"会以板卡特有方式失败"的那类步骤。
 
 ## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}

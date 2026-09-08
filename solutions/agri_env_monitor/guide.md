@@ -151,12 +151,12 @@ MQTT. No cloud account is involved.
 | reComputer R12 Series gateway | The gateway radio, plus the packet forwarder and the stack on the same machine |
 | Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
 
-**Important:** none of this preset has been run on hardware. The concentrator
-has not been fitted, the stack has not been started on an ARM64 target, and its
-first-start initialisation sequence has not been executed. The resource floor is
-unmeasured. Steps below marked as awaiting verification are written from the
-module and stack documentation, and each is the kind of step that fails in a
-way specific to the board.
+**Important:** none of this preset has been run on hardware. The R12 gateway
+radio has not been brought up, the stack has not been started on an ARM64
+target, and its first-start initialisation sequence has not been executed. The
+resource floor is unmeasured. Steps below marked as awaiting verification are
+written from the gateway and stack documentation, and each is the kind of step
+that fails in a way specific to the board.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
