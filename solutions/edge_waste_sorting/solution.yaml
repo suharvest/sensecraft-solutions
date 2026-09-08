@@ -146,22 +146,6 @@ intro:
           运行时自带的页面与控制入口。POST /trigger 触发一次拍照分类
           （「http」 触发源）；/preview.mjpg 是实时画面；/healthz 带推理耗时、
           触发与去抖计数以及 MQTT 计数；/events 列出最近的结果与它们的 top3。
-    - type: mqtt
-      port: 1883
-      topic: waste/<stream-id>/fallback
-      description: >-
-        Optional side-channel event ("waste_fallback") carrying a shared VLM
-        service's second opinion on one ambiguous item, keyed by frame_id to
-        the results event. It never enters the classification path and never
-        changes the main event's category; a missing fallback event only means
-        the VLM was slow, degraded or disabled. Off by default.
-      schema_type: json
-      description_i18n:
-        zh: >-
-          可选的旁路事件（「waste_fallback」），携带外部共享 VLM 服务对某件
-          模糊物品的第二意见，按 frame_id 与 results 事件对齐。它不进分类
-          路径，也不改变主事件的 category；没有 fallback 事件只说明 VLM 慢、
-          降级或没开。默认关闭。
 
   input_requirements:
     - type: usb
@@ -176,17 +160,6 @@ intro:
           一台俯视投放区的相机，取景要让单件物品在画面里占到有意义的比例。
           模型一图一件——它没有检测器，同一张图里的两件物品分不开。
           USB、RTSP 与文件源都支持。
-    - type: http
-      description: >-
-        Optional — a VLM service endpoint (edge-vision-vlm) reachable from the
-        host, only needed for the "waste_fallback" side channel. Without it,
-        leave "vlm.enabled" false.
-      required: false
-      description_i18n:
-        zh: >-
-          可选——一个从主机可达的 VLM 服务端点（edge-vision-vlm），
-          只有要用 「waste_fallback」 旁路时才需要。不需要就保持
-          「vlm.enabled」 为 false。
 
   device_catalog:
     recomputer_j40:

@@ -220,7 +220,6 @@ remote_overrides:
           config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
           config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
-          config["mqtt"]["fallback_topic"] = "{{device_name}}/waste/{stream_id}/fallback"
           config["sources"] = [{
               "stream_id": "{{stream_id}}",
               "uri": "{{source_uri}}",
