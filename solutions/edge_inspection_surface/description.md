@@ -51,98 +51,34 @@ two different postprocessors.
 These are engineering benchmarks on one public dataset. This is a reference
 design, not a qualification for any safety or quality-certification purpose.
 
-**How it was tested**
+| What the line gets | Typical | Device |
+|---|---|---|
+| Frame captured to the verdict on the Modbus coil | **P50 9.298 ms / P99 9.549 ms** | reComputer J40 series (J4012, Orin NX 16GB) |
+| Frame captured to the verdict on the Modbus coil | **P50 10.56 ms** | reComputer J30 series (Orin Nano 8GB) |
+| Defect detection accuracy (mAP50) | **0.7577** | reComputer J40 / J30 series |
+| Precision and recall at the deployed 0.35 threshold | **P 0.7652 / R 0.6969** | reComputer J40 series |
+| Streams one host carries at a 10 FPS line rate | **8** (12 degrading, 24 failing) | reComputer J40 series |
 
-- NEU6, split 70/15/15 by source group — adjacent frame numbers within one
-  defect class are treated as one strip and never cross a split boundary.
-- Accuracy runs on the full 290-image validation split (706 annotated boxes).
-  Inference runs once at a 0.01 score threshold; mAP50 and the frozen-threshold
-  P/R/FP/FN all come out of that same pass, so the threshold sweep is post-hoc
-  filtering rather than three separate tests.
-- Throughput, latency and stream capacity were measured inside the deployment
-  image itself, mounted the same way the compose file mounts it, so the numbers
-  describe the ABI that actually ships.
-- Input is a synthetic video assembled from 290 distinct validation images at
-  640x640 / 10 FPS. Frames have no temporal continuity and the decode cost is
-  not that of a real H.264 camera stream.
-- Every validation image carries a defect, so a frame-level false alarm (a
-  clean frame judged NG) cannot be measured on this dataset at all. Only misses
-  can.
+Conditions: NEU6 split 70/15/15 by source group; accuracy on the full 290-image
+validation split (706 annotated boxes) in one pass at a 0.01 score threshold,
+from which mAP50 and the frozen-threshold figures both derive. End-to-end
+sampled 3000 times at 10 FPS. Board: Jetson Orin NX 16GB, L4T R36.4.3 /
+JetPack 6.2, TensorRT 10.3.0.30, YOLOX-Tiny 640x640 FP16.
 
-### Measured boundaries — Jetson Orin NX
+The reComputer R2000 series with the Hailo-8 option runs the same chain at
+P50 11.61 ms / P99 16.63 ms and 0.7091 mAP50.
 
-Board: Jetson Orin NX 16GB (Seeed reComputer J40 series), L4T R36.4.3 /
-JetPack 6.2, TensorRT 10.3.0.30, power mode MAXN_SUPER (read, not changed),
-image "edge-inspection-jetson:0.1.0-dev", repo commit "670e433". YOLOX-Tiny
-640x640 FP16.
+Accuracy differs a lot by defect class — scratches 0.9685, pitted surface
+0.9301, patches 0.9065, inclusion 0.7658, rolled-in scale 0.6149, crazing
+0.3603 — so check the classes you actually care about before you size a line
+around the headline figure. Raising the threshold from 0.35 to 0.6 lifts
+precision to 0.865 and drops recall to 0.5807.
 
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| mAP50 | 0.7577 | 290 val images / 706 boxes, TensorRT FP16, single pass at score 0.01 | This measurement, "boundary.accuracy.yaml" stable tier |
-| Precision / recall at the frozen 0.35 threshold | P 0.7652 / R 0.6969 | Same pass, post-hoc filter; TP 492 / FP 151 / FN 214; 7 of 290 frames produce nothing at all | This measurement, "boundary.accuracy.yaml" stable tier |
-| Recall at threshold 0.6 | R 0.5807 | Same pass; FN 214 to 296, whole-frame misses 7 to 39 (13.4%); precision rises to 0.865 | This measurement, "boundary.accuracy.yaml" degrading tier |
-| Recall at threshold 0.9 | R 0.0241 | Same pass; 273 of 290 frames produce nothing (94%); crazing and rolled-in scale recall zero | This measurement, "boundary.accuracy.yaml" failure tier |
-| Inference call, P50 | 8.797 ms (113.7 FPS) | 500 "detect()" calls over 60 pre-decoded frames; includes letterbox, execute and CPU NMS. P95 9.097 / P99 9.223 ms | This measurement, "boundary.throughput.yaml" |
-| Engine execute alone | about 5.6 ms (about 178 FPS) | The runtime's own "inference_time_ms" field, execute only — the remaining ~3.2 ms is letterbox plus CPU NMS | This measurement, "boundary.throughput.yaml" |
-| Full pipeline at line rate | 9.999 FPS, 0 frames dropped | Single stream throttled to the configured 10 FPS; capture, inference, verdict, Modbus, MQTT and contract validation all included | This measurement, "boundary.throughput.yaml" stable tier |
-| Full pipeline unthrottled | 76.5-104.3 FPS | Source throttle removed; the two figures differ by sample length (300 frames by wall clock vs 3000 frames counted in-app) | This measurement, "boundary.throughput.yaml" degrading tier |
-| capture to Modbus coil, P50 / P95 / P99 | 9.298 / 9.441 / 9.549 ms | Single stream at 10 FPS, 3000 samples, max 9.926 ms, no sample over 20 ms; both timestamps taken by the runtime itself | This measurement, "boundary.e2e_latency.yaml" stable tier |
-| capture to Modbus coil unthrottled, P50 / P95 / P99 | 35.90 / 39.75 / 40.36 ms | Same 3000 samples at 104 FPS; the extra ~26 ms is queueing in a depth-2 queue, not slower inference (5.35 ms mean) | This measurement, "boundary.e2e_latency.yaml" degrading tier |
-| Concurrent streams — stable | 8 streams x 10 FPS | 5 min per level; 9.989 FPS per stream, 0.02% frames dropped, P95 72.3 ms. Criteria are in the script, not applied afterwards | This measurement, "boundary.multistream.yaml" stable tier |
-| Concurrent streams — degrading | 12 streams x 10 FPS | 9.306 FPS per stream, 6.83% dropped, P95 104.0 ms. Aggregate pins at 110-112 FPS from here up: single-threaded inference is the ceiling | This measurement, "boundary.multistream.yaml" degrading tier |
-| Concurrent streams — failure | 24 streams x 10 FPS | 4.593 FPS per stream, 53.95% dropped. Nothing crashes — over half the input is silently discarded, which on a line means missed parts | This measurement, "boundary.multistream.yaml" failure tier |
-
-Per-class AP50 on the same pass, which is where the accuracy figure actually
-comes from:
-
-| Class | Annotated boxes | AP50 | Recall at 0.35 |
-|---|---:|---:|---:|
-| scratches | 95 | 0.9685 | 0.9263 |
-| pitted_surface | 70 | 0.9301 | 0.8857 |
-| patches | 122 | 0.9065 | 0.8689 |
-| inclusion | 184 | 0.7658 | 0.6902 |
-| rolled-in_scale | 104 | 0.6149 | 0.5481 |
-| crazing | 131 | 0.3603 | 0.3969 |
-
-Crazing has the lowest AP50 of the six classes at 0.3603. Overall figures from
-the same pass, by threshold: 0.35 gives P 0.7652 / R 0.6969, 0.6 gives P 0.865 /
-R 0.5807, and 0.9 gives R 0.0241 with crazing and rolled-in_scale recall at 0
-(conditions in the boundary table above).
-
-The FP16 engine was also compared box-for-box against the same ONNX on CPU
-(onnxruntime): 643 matched pairs, 3 boxes on the CPU side only and none on the
-TensorRT side, mean IoU 0.9972 (minimum 0.8311), mean score difference 0.0011,
-mAP50 difference 0.0003. FP16 changed no frame's OK/NG verdict.
-
-### Measured boundaries — reComputer R2000 with Hailo-8
-
-The Hailo-8 path runs an INT8 HEF built with Dataflow Compiler 3.31.0 /
-HailoRT 4.21.0. Measured 2026-09-06 on the same Hailo-8 platform. These are
-reference values, to be updated after a re-test on the reComputer unit.
-
-| Metric | Value | Conditions | Source |
-|---|---:|---|---|
-| Hardware inference FPS ("hailortcli run") | 106.75 FPS | 854 frames / 8 s, HW latency 8.47 ms, no app-level pre/post-processing | This measurement, 2026-09-06 |
-| mAP50 vs CPU golden (290-image val set) | 0.7091 vs 0.7574 (CPU), delta -0.0483 | INT8 HEF against the same ONNX on CPU | Same run |
-| Box match rate (IoU >= 0.5) | 86.66% (523 matched / 684 total boxes) | Same comparison | Same run |
-| Application-level inference FPS | 91.49 FPS (p50 10.93 ms, p95 13.19 ms) | "detector.detect()" only, including letterbox and post-processing | Same run |
-| Full-pipeline throughput | 46.14 FPS | Capture, inference, verdict, Modbus and MQTT, source throttle removed | Same run |
-| End-to-end latency at 10 FPS line rate | p50 11.61 ms, p95 14.99 ms, p99 16.63 ms | Capture to Modbus coil, same run | Same run |
-| MQTT events | 20 captured, all conform to the published event contract | Subscribed against the on-device broker | Same run |
-| Process RSS | about 126 MB | Runtime process resident set during the same run | Same run |
-
-The two weakest classes (crazing AP50 0.3873, rolled-in_scale AP50 0.4483) lose
-the most to INT8 quantisation. This is the same weakness the FP16 numbers show,
-made slightly worse by 8-bit weights.
-
-### Deployment footprint
-
-| Item | Value | Conditions | Source |
-|---|---|---|---|
-| TensorRT engine build on device | 291 s | Orin NX 16GB, JetPack 6.2, TRT 10.3, YOLOX-Tiny 640x640 FP16, static shapes | This measurement, "2026-09-05-m2-orin" §1 |
-| TensorRT engine build on device, fresh-deploy cross-check | 304 s | Same board, same ONNX, engine deleted and rebuilt from a clean deploy; requires `TRT_STATIC_SHAPE=true` on the build script or trtexec fails with "Static model does not take explicit shapes"; +4.5% vs the 291 s figure above (single measurement each, no repeated-run variability study) | This measurement, 2026-09-08 |
-| Jetson image | 375 MB | "edge-inspection-jetson:0.1.0-dev"; host TensorRT and CUDA mounted rather than baked in | This measurement, "2026-09-05-m2-orin" |
-| reComputer R2000 added footprint | about 452 MB | Runtime image about 443 MB on disk + 8.9 MB HEF + config | Native arm64 build on the same Hailo-8 platform, 2026-09-06; reference value |
+**What these numbers cover.** Every validation image carries a defect, so a
+frame-level false alarm (a clean frame judged NG) cannot be measured on this
+dataset at all — that rate has to come from your own line images. The measured
+input is a synthetic 640x640 / 10 FPS video assembled from validation images,
+so add your camera's capture and encode time to the end-to-end figure.
 
 ## Detector Selection: Baseline vs Advanced
 
@@ -258,39 +194,6 @@ Source: "tracks/anomaly/README.md", "tracks/anomaly/PROVENANCE.md" (anomalib
 "lib/v2.6.0", Apache-2.0), "evaluation/runs/2026-09-05-a2-cpu/results.md",
 "evaluation/runs/2026-09-05-a2-aggregation/results.md".
 
-## Optional: VLM Explanations
-
-The runtime can hand a frame to a shared external VLM service
-("edge-vision-vlm") for a plain-language explanation. This is a side channel,
-not a second judge: it never enters the frame loop, never changes "verdict",
-and a disabled, slow or unreachable service produces exactly the same OK/NG
-stream as without it.
-
-- **Trigger** (either condition, a box always wins). "low_confidence" — the
-  primary defect's score is below "vlm.trigger.min_confidence". "anomaly" —
-  "anomaly_score" crosses "anomaly.threshold" **and the detector produced
-  zero boxes**, so there is nothing machine-readable to hand the operator
-  otherwise. Rate-limited by "vlm.trigger.min_interval_s" per stream; never a
-  per-frame call.
-- **Side channel.** A bounded, drop-oldest queue plus an independent worker
-  thread submit the call; the main event on "inspection/<stream-id>/results"
-  publishes on its usual schedule regardless of whether the VLM answers. If
-  it does, a second event follows on "inspection/<stream-id>/explanations",
-  keyed to the same "frame_id".
-- **Does not block the main chain.** A hard client timeout abandons the
-  call; repeated failures open a circuit breaker for a cool-off period,
-  probed by "GET /healthz".
-- **Explanations arrive in seconds, not milliseconds.** On the shared VLM
-  service's own workstation hardware, Qwen3-VL-2B bf16 generation alone is
-  P50 about 3.2 s / P95 about 7.2 s at "max_tokens=320". That is why the call
-  sits off the hot path. Size the explanation channel by hour, not by frame.
-
-Enable it by setting "vlm.enabled: true" and pointing "vlm.base_url" at a
-reachable "edge-vision-vlm" instance; see the guide for the walk-through,
-including the "no_proxy" requirement on the device.
-
-Source: "contracts/explanation-event.schema.json".
-
 ## Output Interfaces
 
 | Output | Where | Content |
@@ -307,8 +210,11 @@ to parse the topic.
 
 ## Deployment Comparison
 
-**IP camera + reComputer J30 / J40 (Orin)** is the measured path. Every number in the
-tables above was taken on an Orin NX 16GB. The TensorRT engine is built on the
+**IP camera + reComputer J30 / J40 (Orin)** is the measured path. Most numbers
+in the tables above were taken on an Orin NX 16GB (J40); the smaller Orin
+Nano 8GB (J30) has also been measured directly for accuracy and capture-to-coil
+latency (mAP50 0.7577, P50 10.56 ms) — the streaming-capacity figures are still
+J40-only. The TensorRT engine is built on the
 device during deployment — it is bound to that exact GPU architecture and
 TensorRT version and is never redistributed. Pick this when you need figures you
 can hold someone to.
@@ -327,9 +233,9 @@ deploy step checks each one.
 - **The threshold is a business decision.** 0.35
   is the deployed value. At 0.6, precision goes from 0.765 to 0.865 and
   whole-frame misses go from 7 to 39 out of 290.
-- **False alarms are unmeasured.** Every image in the validation split carries a
-  defect, so nothing here says how often a clean strip is called NG. That number
-  has to come from your own line.
+- **False alarms have to come from your own line.** Every image in the
+  validation split carries a defect, so this dataset cannot show how often a
+  clean strip is called NG.
 - **One camera per deployment as configured.** The runtime handles several
   streams and the capacity was measured at 8 stable on Orin NX, but the deploy
   step configures one. Add the rest to the "streams" list on the device and
@@ -348,6 +254,15 @@ deploy step checks each one.
 - **The MQTT broker in this package is for commissioning.** It runs with
   "allow_anonymous true". A production line should point at a broker with
   credentials instead.
+
+## Scope of the Numbers
+
+- **Orin figures** — 2026-09-05, Jetson Orin NX 16GB, JetPack 6.2 / TensorRT 10.3.0.30, image `edge-inspection-jetson:0.1.0-dev`, commit `670e433`.
+- **reComputer R2000 series host** — 2026-09-06, fleet host `harvest-pi`, in a 15-minute exclusive window on the board's sole Hailo-8.
+- **INT8 quantisation loss** — 2026-09-05, x86 Hailo Dataflow Compiler 3.31.0, emulator stage, not on a device.
+- **D-FINE-S and RT-DETRv2-S tracks** — 2026-09-06, arm64 Mac, onnxruntime CPUExecutionProvider, CPU only, single seed each.
+- **Throughput and end-to-end latency come from a synthetic 640×640 / 10 FPS video assembled from validation images**, so add your camera's own capture and encode time on top. The detector-track comparison ran on static 640×640 batch-1 images instead.
+- **Frame-level false alarms** — every validation image carries a defect, so this dataset can only expose misses; the false-alarm rate comes from your own line.
 
 ## Licensing note
 

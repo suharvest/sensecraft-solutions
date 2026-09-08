@@ -104,14 +104,14 @@ intro:
       description: LoRaWAN gateway. Forwards to the SenseCAP cloud in preset 1; runs its own network server in preset 3. Choose the regional frequency variant when purchasing.
       description_i18n:
         zh: LoRaWAN 网关。套餐 1 里转发到 SenseCAP 云；套餐 3 里运行自己的网络服务器。购买时选所在地区的频段版本。
-    wio_wm1302:
-      description: SPI concentrator module for building a gateway on a Linux host — used by the self-hosted network server presets
+    recomputer_r12:
+      description: LoRaWAN gateway with the concentrator built in; runs the packet forwarder and the network server on the same machine — used by the self-hosted network server presets
       description_i18n:
-        zh: SPI 集中器模块，用于在 Linux 主机上自建网关——自建网络服务器的套餐会用到
+        zh: 内置集中器的 LoRaWAN 网关，packet forwarder 与网络服务器都跑在这一台上——自建网络服务器的套餐会用到
     rerouter_cm4:
-      description: CM4-based host that carries the WM1302 and runs the network server beside it
+      description: Linux host that runs the network server, or the dashboard, in Docker
       description_i18n:
-        zh: 基于 CM4 的主机，承载 WM1302 并在本机运行网络服务器
+        zh: 跑网络服务器或看板的 Linux 主机，都在 Docker 里
     generic_arm64_host:
       name: Linux Host
       name_i18n:
@@ -168,9 +168,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: A LoRaWAN network server you run yourself, with a WM1302 concentrator on a CM4 host. The heaviest of the three, and the one with the most control over the radio side.
+      description: A LoRaWAN network server you run yourself, on a reComputer R12 Series gateway. The heaviest of the three, and the one with the most control over the radio side.
       description_i18n:
-        zh: 自己运行的 LoRaWAN 网络服务器，WM1302 集中器装在 CM4 主机上。三者中最重的一个，对射频侧的控制也最多。
+        zh: 自己运行的 LoRaWAN 网络服务器，跑在 reComputer R12 系列网关上。三者中最重的一个，对射频侧的控制也最多。
       device_groups:
         - id: sensors
           name: Sensor Nodes
@@ -183,23 +183,14 @@ intro:
           max_count: 50
           default_count: 3
         - id: gateway_host
-          name: Gateway Host
+          name: Gateway and Network Server Host
           name_i18n:
-            zh: 网关主机
+            zh: 网关与网络服务器主机
           type: single
           required: true
           options:
-            - device_ref: rerouter_cm4
-          default: rerouter_cm4
-        - id: concentrator
-          name: Concentrator Module
-          name_i18n:
-            zh: 集中器模块
-          type: single
-          required: true
-          options:
-            - device_ref: wio_wm1302
-          default: wio_wm1302
+            - device_ref: recomputer_r12
+          default: recomputer_r12
         - id: host
           name: Dashboard Host
           name_i18n:
@@ -217,9 +208,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: ChirpStack as the network server — built into the M2 gateway, or on a CM4 host with a WM1302. This is the preset the offline acceptance scenario uses.
+      description: ChirpStack as the network server — built into the M2 gateway, or on a reComputer R12 Series gateway. This is the preset the offline acceptance scenario uses.
       description_i18n:
-        zh: 用 ChirpStack 作网络服务器——可以是 M2 网关内置的，也可以是装了 WM1302 的 CM4 主机。无公网验收场景走的就是这个套餐。
+        zh: 用 ChirpStack 作网络服务器——可以是 M2 网关内置的，也可以是 reComputer R12 系列网关。无公网验收场景走的就是这个套餐。
       device_groups:
         - id: sensors
           name: Sensor Nodes
@@ -237,12 +228,12 @@ intro:
             zh: 网络服务器
           type: single
           required: true
-          description: The M2 runs ChirpStack itself; the CM4 host runs it in Docker with a WM1302 concentrator
+          description: The M2 runs ChirpStack itself; the reComputer R12 Series gateway runs it in Docker
           description_i18n:
-            zh: M2 自己就能跑 ChirpStack；CM4 主机则用 Docker 跑，另配 WM1302 集中器
+            zh: M2 自己就能跑 ChirpStack；reComputer R12 系列网关则用 Docker 跑
           options:
             - device_ref: sensecap_m2_gateway
-            - device_ref: rerouter_cm4
+            - device_ref: recomputer_r12
           default: sensecap_m2_gateway
         - id: host
           name: Dashboard Host

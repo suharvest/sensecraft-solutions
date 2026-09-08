@@ -63,18 +63,26 @@ The voice terminal in Tier 1, Tier 2A and Tier 3 can be either a SenseCAP Watche
 
 ## Measured Boundaries
 
-Every number below comes from load runs on **a development-board baseline (a faster arm64 board, not a package device and not the R1100's CM4-class SoC)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend. The same digest-pinned image was deployed on 2026-09-07 to the **reComputer R1000's CM4 platform** — a bench board rather than an R1000 chassis, so it is a platform reference value, not a measurement of the shipping product. This solution needs 4 GB of memory and up; pick an R1000 configuration of 4 GB or 8 GB. That run covers restart recovery only: 9.48 s and 9.04 s from container restart to a healthy service, two runs polled at 250 ms on the device's own loopback (`evaluation/runs/2026-09-07-recomputer-r1000/results.md` in the warehouse_system project). The load figures in the table have not yet been reproduced on that platform and will be added after a run on a 4 GB / 8 GB R1000.
+Every number below comes from load runs on **a development-board baseline (a faster arm64 board, not a package device and not the R1100's CM4-class SoC)** on 2026-09-05 and 2026-09-06, against a digest-pinned arm64 image and a SQLite backend. They are not a throughput guarantee for other devices, larger datasets or a MySQL backend.
 
-| Scenario | Level | Measured | Conditions | Source |
-|----------|-------|----------|------------|--------|
-| Inventory query "GET /api/materials/list" | concurrency 10 | p95 404 ms, p99 2.7 s, 0% errors — stable | RPi5, Mac client over Tailscale (real WAN hop), 60 s at this level, 50 seeded materials, 1 warehouse, SQLite | "runs/2026-09-05-load/raw-rpi5/query_summary.json" |
-| Inventory query "GET /api/materials/list" | concurrency 20 | p95 824 ms, p99 5.3 s, 0% errors — degrading (p95 over 500 ms, doubled vs. level 10) | RPi5, Mac client over Tailscale, 60 s at this level, 50 seeded materials, SQLite | "runs/2026-09-05-load/raw-rpi5/query_summary.json" |
-| Inventory query "GET /api/materials/list" | concurrency 50 | p95 5.5 s, p99 8.7 s, still 0% errors — latency no longer usable | RPi5, Mac client over Tailscale, 60 s at this level, 50 seeded materials, SQLite | "runs/2026-09-05-load/raw-rpi5/query_summary.json" |
-| Stock-in "POST /api/materials/stock-in" | concurrency 1 | p95 106 ms, 0% errors — stable | RPi5, Mac client over Tailscale, 60 s at this level, all requests on the same material, SQLite | "runs/2026-09-05-load/raw-rpi5/stock_in_summary.json" |
-| Stock-in "POST /api/materials/stock-in" | concurrency 5 / 10 / 20 | 0% errors at every level, 1481 batches created with 0 duplicate batch numbers, p95 634 ms – 4.96 s | Same host and client, all requests on the same material, SQLite; batch numbers come from an atomic counter, which serialises writes and is why p95 climbs with concurrency | Re-test on the same board, 2026-09-06 |
-| Stock-out "POST /api/materials/stock-out" | concurrency 10 / 20 / 50 | 0 HTTP 429 at the default 600/minute threshold; sustained throughput about 5–6 req/s per API key | Same host and client, two API keys behind one exit IP, traffic split evenly, SQLite; the limit is counted per authenticated caller, so keys behind one NAT do not share a budget | Re-test on the same board, 2026-09-06 |
-| Service interruption | ~10 req/s query traffic, 34 s outage | 100% request failure during the outage, nothing queued or replayed; full recovery within ~1 s of the service coming back, no backlog and no dirty data | RPi5, outage simulated by stopping and restarting the container (34 s includes the migration checks on boot), Mac client over Tailscale, SQLite | "runs/2026-09-05-load/raw-rpi5/offline_summary.json" |
-| Role and tenant isolation | 4 single-shot probes | All 4 as expected: VIEW key on a write endpoint 403, VIEW key on a read endpoint 200, cross-tenant write 403, cross-tenant read 403 | RPi5, "DEPLOY_MODE=multi_tenant", 2 tenants, 2 warehouses, view/operate/admin API keys | "runs/2026-09-05-load/results.md" |
+| What the warehouse gets | Typical | Device |
+|---|---|---|
+| Inventory query answered, 10 people looking at once | **p95 404 ms**, 0% errors | Development-board baseline |
+| Stock-in recorded | **p95 106 ms**, 0% errors | Development-board baseline |
+| Wrong or duplicate entries under concurrent stock-in | **0 of 1481** batches | Development-board baseline |
+| Service back after a 34 s interruption | **about 1 s**, no backlog and no dirty data | Development-board baseline |
+| Role and tenant isolation | **4 of 4** probes as expected | Development-board baseline |
+
+Conditions: Mac client over Tailscale so each request crosses a real WAN hop, 60 s per level, 50 seeded materials, one warehouse, SQLite. Query latency grows with how many people are on it at once: p95 doubles to 824 ms at 20 concurrent readers and reaches 5.5 s at 50, where it is no longer usable. Stock-out sustains about 5-6 requests per second per API key under the default 600-per-minute threshold, counted per authenticated caller.
+
+The same digest-pinned image was deployed on 2026-09-07 to the **reComputer R1000's CM4 platform** — a bench board rather than an R1000 chassis, so it is a platform reference value, not a measurement of the shipping product. This solution needs 4 GB of memory and up; pick an R1000 configuration of 4 GB or 8 GB. That run covers restart recovery only: 9.48 s and 9.04 s from container restart to a healthy service. The load figures above have not yet been reproduced on that platform and will be added after a run on a 4 GB / 8 GB R1000.
+
+## Scope of the Numbers
+
+- **Warehouse REST API under load** — one load run, 2026-09-05, on a faster arm64 development board (not the R1100's CM4-class SoC), 50 materials, SQLite, 60 s per concurrency level, client over Tailscale.
+- **Concurrency and rate-limit behaviour after the fixes** — re-measured on the same device, 2026-09-06.
+- **On-premise LLM throughput on Jetson** — approx. 16 tokens/sec on a reComputer Robotics J5011, stated upstream with no run log attached.
+- **Speech recognition accuracy, wake-word range and end-to-end voice latency** — measure these on your own site.
 
 ## Known Limitations
 

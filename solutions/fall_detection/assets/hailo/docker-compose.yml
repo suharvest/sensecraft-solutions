@@ -52,3 +52,34 @@ services:
     command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
     volumes:
       - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  # Alarm panel — zones, timeouts, an operator confirmation page, an SQLite
+  # audit trail and a webhook, on top of the detector's MQTT stream. It runs in
+  # this same stack because this host already has the broker and the detector;
+  # nothing about detection changes when it is here.
+  #
+  # network_mode: host, so the listening port comes from web.port in
+  # config/alarm-panel.yaml (the deploy step writes the value from the form)
+  # rather than from a ports mapping. Change it there if 8080 is taken.
+  alarm-panel:
+    # Pinned by digest.
+    #   arm64 sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
+    image: sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0@sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
+    command: ["--config", "/config/config.yaml"]
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./config/alarm-panel.yaml:/config/config.yaml:ro
+      - alarm-panel-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  alarm-panel-data:

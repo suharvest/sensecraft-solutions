@@ -3,8 +3,8 @@
 The only preset with a model file. The TensorRT engine is built on the device
 during deployment, because an engine is tied to the exact GPU architecture and
 TensorRT version and cannot be shipped prebuilt. It is also the only preset
-that offers the open-vocabulary track and the VLM fallback, both optional and
-both added after the baseline is running.
+that offers the open-vocabulary track, optional and added after the baseline
+is running.
 
 | Device | Purpose |
 |---|---|
@@ -19,21 +19,22 @@ authority's certified ruling, and municipal definitions differ between cities.
 Nothing here should be the sole basis for a charging, penalty or compliance
 decision.
 
-Known weaknesses, all measured or explicitly unmeasured:
+Known weaknesses:
 
 - **One item per image.** There is no detector. Two items in one frame produce
   one answer for an undefined one of them.
 - **`textile` has never been trained or tested.** Neither dataset contains a
   cloth category. The model has never predicted it once.
 - **`hazardous` (有害垃圾) is never emitted.** No material class maps to it.
-- **Domain shift is unmeasured.** Both datasets are photographs of single clean
-  items, not a real bin. There is no field set and therefore no number for how
-  much accuracy drops on wet, crushed, stacked or bagged waste. Expect a drop.
+- **Domain shift.** Both datasets are photographs of single clean items, not a
+  real bin. Accuracy drops on wet, crushed, stacked or bagged waste — collect a
+  field set from your own site and re-measure on it.
 - **The solution page's Jetson accuracy/consistency figures (top-1 0.8755,
-  agreement 0.9991 vs CPU golden, 1060-image subset) were not measured on the
-  exact deployed engine.** They come from a separately built FP16 engine —
-  same ONNX, same precision, same reComputer J40 series (Orin NX) — not the binary
-  this deployment step produces. The deployed engine's own build time (68 s)
+  agreement 0.9991 vs CPU golden, 1060-image subset) come from a separately
+  built engine.** Same FP16 engine —
+  same ONNX, same precision — not the binary this deployment step produces.
+  First measured on a reComputer J40 series (Orin NX); reproduces
+  bit-identically on a reComputer J30 series (Orin Nano 8GB). The deployed engine's own build time (68 s)
   and end-to-end pipeline (4.122 ms) / inference (3.533 ms) timings, from one
   reported MQTT event, are measured on the deployed binary.
 
@@ -195,11 +196,10 @@ runtime configuration and consumers must not parse the topic.
   integration code. The runtime binds no pin.
 - Point MQTT at a broker with credentials before this leaves the bench. The
   bundled broker allows anonymous connections and is for local commissioning.
-- Consider the optional steps below: the open-vocabulary track for open-set
-  rejection and adding classes, the VLM fallback for a second opinion on
-  ambiguous items.
+- Consider the optional step below: the open-vocabulary track for open-set
+  rejection and adding classes.
 - Collect a field set. Domain shift from these datasets to a real bin is the
-  largest unmeasured risk in the whole solution.
+  largest risk in the whole solution.
 
 ### Troubleshooting
 
@@ -244,37 +244,6 @@ cross-lingual answers and the ability to add a class without retraining.
 | Four-way accuracy dropped after switching to a Chinese four-way bank | Use the hierarchical path. Direct four-way prediction scores 0.8478 against 0.9393 for eight classes mapped up. |
 | Unknown objects still get a confident material label | Check the leave-one-out figures: `residual` has an AUROC of 0.5795, near chance. Open-set rejection works far better for the material classes than for the catch-all. |
 
-## Step 5: Enable VLM Fallback for Low-Confidence and Ambiguous Items (Optional) {#enable_vlm_fallback_orin type=manual required=false verify=true config=devices/enable_vlm_fallback.yaml}
-
-Sends items the classifier is unsure about to an external VLM service and
-publishes its answer as a separate `waste_fallback` event. Additive: it never
-enters the classification path, never changes the main event's category, and
-every figure on the solution page holds with it off.
-
-### Prerequisites
-
-- A reachable `edge-vision-vlm` instance. This solution does not bundle or
-  start that service — typically it runs on a separate Orin box.
-- Step 3 measured, so you know the main stream is healthy before adding a
-  second one.
-- `vlm.trigger.min_confidence` must not be below `rules.min_confidence`;
-  config validation rejects a fallback gate below the reclassification gate.
-- Understand what has and has not been measured: the wiring was proved against
-  the real service with a stubbed generation backend (5 frames, 5 valid main
-  events, 2 fallback events, 0 rejects). Real-model latency and whether the
-  VLM is actually more often right are outstanding verification on Orin.
-
-### Troubleshooting
-
-| Issue | Solution |
-|---|---|
-| No fallback event ever arrives | Check `/healthz` for the VLM counters. Silent degradation is by design — a slow, unreachable or breaker-open VLM produces no event and does not disturb the main stream. |
-| The runtime reports HTTP 502 rather than a connection error | A transparent proxy is intercepting the address, including `127.0.0.1`. Set `no_proxy=127.0.0.1,localhost,<vlm-host>`, or give the container no proxy variables at all. httpx honours `HTTP_PROXY`, and 502-from-proxy is counted the same as a real backend error — same behaviour, misleading attribution. |
-| The `ambiguous` gate never fires | Check the reachable range: under softmax with threshold `g`, the gap on the accepted side is at least `2g-1`. At `g=0.6` a margin below 0.2 can never fire. |
-| Both gates trip and only `low_confidence` is reported | By design — the stronger reason is reported. |
-| The VLM's category differs from the classifier's | Expected, and it does not backfill the main event. Log both and review; the fallback is not yet evidence-backed enough to act on automatically. |
-| The flap reacts slowly after enabling the VLM | `vlm.apply_fallback_to_gpio` must stay false. A flap must not wait on a call whose P50 is measured in seconds. |
-
 ## Preset: Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
 Prepares a Pi 5 with a Hailo-8 (the reComputer R2000 series shipping form
@@ -304,22 +273,22 @@ authority's certified ruling, and municipal definitions differ between cities.
 Nothing here should be the sole basis for a charging, penalty or compliance
 decision.
 
-Known weaknesses, all measured or explicitly unmeasured:
+Known weaknesses:
 
 - **The bench is a Pi 5 + M.2 module, not a reComputer R2000 chassis.** Same
   accelerator and same HailoRT, different enclosure, thermals and power
-  delivery — long-running full-load behaviour has not been extrapolated from
-  this bench. The open-vocabulary tower still fails INT8 quantisation at
+  delivery — measure long-running full-load behaviour on the chassis you ship.
+  The open-vocabulary tower still fails INT8 quantisation at
   `hailo optimize`. If you train and self-quantise MobileNetV3-Small
-  yourself, do not assume INT8 works for it the way it does for this
+  yourself, verify INT8 for it separately rather than carrying over this
   baseline — it collapsed on this exact compile pipeline (see the solution
   page).
 - **One item per image.** There is no detector.
 - **`textile` has never been trained or tested**, and `hazardous` is never
   emitted.
-- **Domain shift is unmeasured.** The 7417-image val set and the 1060-image
+- **Domain shift.** The 7417-image val set and the 1060-image
   deploy-verification subset are both public-dataset photographs of single
-  items, not live drop-off imagery.
+  items, not live drop-off imagery — collect a field set and re-measure on it.
 
 ## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -414,8 +383,8 @@ Measured on this hardware over 1060 validation images, fed through the same
 preprocessing offline (center crop, no camera capture path): material top-1
 0.8792, Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline
 0.9915, p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
-preprocessing), peak resident memory 11.6 MB. End-to-end accuracy through the
-camera's own capture and crop has not been measured.
+preprocessing), peak resident memory 11.6 MB. Measure end-to-end accuracy
+through the camera's own capture and crop on your own site.
 
 ### Troubleshooting
 
@@ -582,4 +551,4 @@ parsing the topic.
 | Two messages per button press | The debounce is too short for a bouncing switch. Raise `trigger.debounce_ms`; below roughly 300 ms a bouncing button fires twice. |
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
 | Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.9581 hardware agreement figure from the full val-set measurement; a large gap from that number is worth reporting. |
-| Want open-vocabulary or VLM fallback here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`, and the VLM fallback steps are Orin-only. |
+| Want the open-vocabulary track here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`. |

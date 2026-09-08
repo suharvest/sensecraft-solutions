@@ -18,7 +18,7 @@ Deploy offline voice AI, computer vision, smart retail, robotics, and more — d
 | Solution | Hardware | Category |
 |----------|----------|----------|
 | [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | Voice AI (ASR + TTS, ≤180ms, offline) |
-| [Smart Retail Voice AI](solutions/smart_retail_voice_ai/) | Jetson | Retail / Voice |
+| [Retail Voice](solutions/retail_voice/) | reComputer RK3576 · reRouter CM4 | Retail / Voice |
 | [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | Voice AI |
 | [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | Local LLM |
 | [AI Lab](solutions/ai_lab/) | Jetson | AI development environment |

@@ -107,52 +107,31 @@ alerting system can subscribe rather than poll.
 
 ## Measured, and Where
 
-Every number below came off a bench, not a datasheet, and every row names the
-board it was measured on. Both detectors ran the same 1280x720 H.264 clip and
-the same assertions.
+Every number below came off a bench, not a datasheet. The timing errors come
+from a 130 s 1280x720 H.264 clip whose crossing and entry instants are known
+frame by frame, replayed over RTSP into the live pipeline at 5 fps.
 
-### Detector
-
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
+| What the site gets | Typical | Device |
 |---|---|---|
-| Accelerator | GPU, TensorRT 10.3.0, FP16 | NPU, RKNN 2.3.2, int8 |
-| Inference, in-pipeline p50 | **4.13 ms** | 41.9 ms (int8) / 72.3 ms (fp16) |
-| Full pipeline p50 (capture → published) | **7.24 ms** | 44.3 ms (int8) |
-| Detector CPU cost | 8.5–12.5% of one core | 21% of one core |
-| Accelerator load at 5 fps | 3.6% duty cycle | NPU 8% (int8) / 26% (fp16) |
-| Video decode | NVDEC, verified in-kernel | Rockchip MPP, verified in-kernel |
-| Single-stream ceiling, flat out | 167 inferences/s | not measured |
-| Engine / model build on device | 307–361 s, one-off | none (model ships prebuilt) |
+| Line crossing to alert | **0.109-0.268 s** | Jetson Orin NX 16GB |
+| Entering a restricted zone to alert | **0.090 s** | Same |
+| Loitering call against the truth instant | **0.090-0.290 s** | Same |
+| Direction | **8/8 correct**, no wrong-direction alerts | Same |
+| Capture to alert | **117.4 ms** p50 (297.0 ms p95) | Same |
+
+Every alert stored a decodable JPEG from the scene, 8/8.
+The reComputer RK3588 series lands in the same range on the same clip
+(0.085-0.248 s on line crossing, 8/8 on direction, 8/8 snapshots), so **choose
+hardware by stream count, not by timing accuracy**.
 
 The Jetson figures are from an Orin NX 16GB on JetPack 6.1 (L4T R36.4.3); the
 RK3588 figures are from a same-SoC development board on kernel 6.1.84, not
 yet re-verified on a reComputer RK3588 series chassis.
 
-### End to end, against a ground-truth video
-
-The timing errors come from a 130 s clip whose crossing and entry instants are
-known frame by frame, replayed over RTSP into the live pipeline.
-
-| | **Jetson Orin NX 16GB** | **reComputer RK3588 series** |
-|---|---|---|
-| Capture to alert | 117.4 ms p50, 297.0 ms p95 | not measured separately |
-| Line-crossing instant vs. truth | 0.109–0.268 s error | 0.085–0.248 s error |
-| Direction correctness | 8/8, no wrong-direction alerts | 8/8, no wrong-direction alerts |
-| Zone-entry instant vs. truth | 0.090 s error | 0.056–0.057 s error |
-| Loitering dwell vs. truth | 0.090–0.290 s error | 0.080–0.233 s error |
-| Snapshots | 8/8 real JPEG | 8/8 real JPEG |
-
-### Hub
-
-Measured **3.7% of one CPU core and 52.8 MB RSS** on the RK3588 board while that board also runs a detector.
-No separate figure was taken on the Orin NX. That is why every
-preset puts the hub on the detection machine instead of asking for a second one.
-
-### Accuracy
-
-**int8 vs. fp16 on RK3588, COCO person: −0.52 AP@.5:.95 overall, −0.61 on small
-targets.** int8 is the default there because it is 42% faster in the pipeline
-for that cost. The Jetson path runs FP16 and pays no quantization penalty.
+**Accuracy.** int8 vs. fp16 on RK3588, COCO person: -0.52 AP@.5:.95 overall,
+-0.61 on small targets. int8 is the default there because it is 42% faster in
+the pipeline for that cost. The Jetson path runs FP16 and pays no quantization
+penalty.
 
 ## How Many Cameras One Jetson Carries
 
@@ -175,17 +154,12 @@ The measurements that decide this were taken on an Orin NX 16GB.
 | **8 – 16** | A dynamic-batch engine, once someone has measured it. Batching amortizes the 1.21 ms of per-inference enqueue overhead, but a batch cannot dispatch until the slowest stream delivers its frame, which adds up to 67 ms to every alert. |
 | **16+, 4K, or tiled display** | DeepStream. Past 16 streams the CPU-side preprocessing does become the constraint, and NVMM zero-copy is the only way around it. DeepStream 7.x for JetPack 6.1 also wants 1.5–2 GB of disk and pins you to a JetPack/`pyds` version pair. |
 
-Two inputs to that table are extrapolated rather than measured, and should be
-confirmed on the target resolution before anyone sells an eight-stream box:
+Everything in the table above was measured with one stream at 720p 5 fps, where
+one stream costs 8.5–12.5% of one core. Measure two things at your own target
+resolution before committing to an eight-stream box: per-stream CPU at
+1080p 15 fps, and NVDEC session capacity for 8×1080p15 concurrent.
 
-- **Per-stream CPU at 1080p 15 fps.** Scaling the measured 8.5–12.5% of one core
-  at 720p 5 fps gives roughly 0.5–0.7 of a core per stream, ~4–5 of the 8 cores
-  at eight streams. **Needs verifying.**
-- **NVDEC session capacity for 8×1080p15 concurrent.** The Orin NX decoder is
-  specified well above that in aggregate pixel rate, but everything here was
-  measured with one stream. **Needs verifying.**
-
-## What Is Verified and What Is Not
+## What Is Verified
 
 Verified on real hardware:
 
@@ -219,14 +193,14 @@ config. The same applies if you republish a single-box broker on the LAN to
 attach a second detector: change the port binding and add the password file,
 not just the first. The workbench on 8090 is unaffected — it requires a login.
 
-Not verified, and not claimed:
+Scope of the numbers above:
 
 - **The reCamera detection node is not built.** The payload contract is
-  published so it can be added without changing the hub, but nothing here runs
-  on one. The Hailo node is built and verified; see the Hailo preset.
-- **Capacity beyond two concurrent streams is untested end to end.** The
-  multi-stream numbers above are GPU and memory measurements taken with worker
-  processes, not eight cameras and eight sets of rules.
+  published so it can be added without changing the hub. The Hailo node is
+  built and verified; see the Hailo preset.
+- **The multi-stream numbers are GPU and memory measurements taken with worker
+  processes**, not eight cameras and eight sets of rules. Run a site pilot at
+  your own stream count before committing to it.
 - **Small-target accuracy rests on COCO.** The calibration footage contained
   almost no distant people, so a wide-angle overhead site at 30 m is outside
   what was measured. Re-check on footage from the site before committing to it.

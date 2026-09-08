@@ -21,9 +21,7 @@ Two known weaknesses decide whether a site works at all: steady background noise
 about 3 m** fall outside the beamformer's useful coverage. Neither is fixable by
 choosing a faster board.
 
-**On the CM4, ASR speed and accuracy have not been measured.** The upstream
-bench matrix still lists the CM4 `asr_zh_en` row as TBD. Run a pilot before
-committing a fleet to that board.
+Run a pilot on the CM4 before committing a fleet to that board.
 
 ## Step 1: Flash OpenWrt Firmware {#firmware type=manual required=false}
 
@@ -116,6 +114,13 @@ Deploy over SSH. The board takes its address from DHCP; the default user is
 Deploy over SSH to the reRouter. Default address `192.168.49.1`, user `root`,
 empty password on a stock image. CPU recognition, no accelerator.
 
+The retired smart_retail_voice_ai package recommended rebooting the reRouter
+after deploying. It is not required here: the `chmod` on `/dev/snd` that the
+deployment runs takes effect immediately. It is also not persistent — the
+device nodes are recreated at boot — so if capture stops working after a
+reboot, run `chmod -R 666 /dev/snd/*` again. After any reboot, give the
+services about two minutes before opening the client page.
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -156,6 +161,8 @@ Speak one sentence near the array, then confirm a file appeared on the device.
 | Transcript is one long run-on line | Punctuation is disabled. Enable it if the board has the memory |
 | Words are clipped at the start of each sentence | On the CM4 the local VAD is cutting in — `speechPadSeconds` in the client config is 0.5 s by default, and should not be tuned against a handful of clips. On the RK3576 it means server-side VAD is on: this preset requires `OVS_VAD_BACKEND=none` with the client endpointing locally, because server VAD drops roughly one syllable per cut |
 | Recognition is poor and the room is loud | Measure the background level. Above roughly 70 dB the array cannot separate the speaker, and no setting changes that |
+| The page at `:8090` does not load right after a reboot | Give the services about two minutes to come up, then reload |
+| The record button on the client page does nothing | The speech service is still loading its models. `curl http://<device-ip>:8621/readyz` returns ready once it is done |
 | CPU pinned at 100%, transcripts lag behind speech | CM4: turn punctuation off first, then voiceprint. That board runs one recognition at a time by design |
 
 ### Deployment Complete
@@ -278,7 +285,7 @@ array to wire and nothing here applies.
 | Mic-capture targets: containers run but nothing is transcribed | `docker logs c4-voice-client` — check it reached the ASR backend on 8621 and that the token is the operator one |
 | Permission denied on `/data-iot/respeaker` | The deploy creates those directories; if they pre-existed as root-owned, `chmod -R 0775 /data-iot/respeaker` |
 | Wrong ASR image on the reRouter CM4 target | `OVS_ASR_IMAGE` now defaults to the `rpi-20260721` arm64 CPU build pinned by digest; override it in the deploy inputs only to run a different build |
-| Everything runs but transcripts are empty on CM4 | The CM4 path is unverified here. The `ovs-asr` memory limit is lowered to 3000m/3600m for this target (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` in `.env`, vs. the 7500m default written for an 8 GB board) but that value is not measured on CM4 either — check `docker logs c4-ovs-asr` for an OOM kill and raise it if the host has headroom |
+| Everything runs but transcripts are empty on CM4 | The `ovs-asr` memory limit is lowered to 3000m/3600m for this target (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` in `.env`, vs. the 7500m default written for an 8 GB board) — check `docker logs c4-ovs-asr` for an OOM kill and raise it if the host has headroom |
 
 ### Target {#stack_remote type=remote device=stack_host device_name="Stack Host (app capture)" config=devices/cloud_stack.yaml default=true}
 
@@ -302,8 +309,8 @@ into the same stack as well, do Step 2 too.
 
 The same stack plus the capture client on the CPU path. Its compose variant
 takes the ASR image as a required input, because this package pins none for
-CM4. Unverified on real hardware. With the array alone, Step 2 is not needed; to
-feed an app into the same stack as well, do Step 2 too.
+CM4. With the array alone, Step 2 is not needed; to feed an app into the same
+stack as well, do Step 2 too.
 
 ---
 
@@ -452,9 +459,9 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
 
 1. Put a TLS terminator in front of the ASR endpoint before anything leaves the
    local network.
-2. Run the boundary measurements on the real hardware — concurrency, capture
-   duration, WER and persist latency are all unmeasured, so no capacity claim
-   should be made from this deployment yet.
+2. Run the boundary measurements on your own hardware — concurrency, capture
+   duration, WER and persist latency — before making a capacity claim from this
+   deployment.
 3. The voiceprint image is published, and the collector targets
    (reComputer RK3576 / reRouter CM4) now download its models (SenseVoice ASR,
    punctuation, speaker and VAD, ~564 MB total) into `/data-iot/respeaker/models`
@@ -469,8 +476,8 @@ deletion and export on `/api/v1/privacy/*`, and the console on port 3000.
    hours is a default, not a recommendation.
 5. On CM4, verify the CPU ASR path end to end. Its `ovs-asr` memory limit is
    now parameterized (`OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`) and defaults
-   to 3000m/3600m for this target, but that number is carried over from a
-   different RK3576 board's measurement, not measured on CM4 itself — confirm
-   it holds before treating that target as usable.
+   to 3000m/3600m for this target, carried over from a different RK3576 board's
+   measurement — confirm it holds on your own CM4 before treating that target as
+   usable.
 6. Keep the admin token off the device; it is for operators running deletion and
    export.

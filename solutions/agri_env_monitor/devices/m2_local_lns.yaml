@@ -36,16 +36,14 @@ steps:
       Go to `LoRa → LoRa Network` and change the mode to `Local Network Server`.
       This takes the gateway off the SenseCAP cloud: uplinks stop appearing in
       the Portal and start being handled by the network server built into the
-      gateway. Do not assume both happen at once — whether this generation of
-      firmware can report to the cloud and locally at the same time is
-      unverified. If you need the cloud path as well, confirm that on the unit
-      before relying on it.
+      gateway. If you need the cloud path as well, confirm on the unit that your
+      firmware can report to the cloud and locally at the same time before
+      relying on it.
     description_i18n:
       zh: >-
         进入 `LoRa → LoRa Network`，把模式改成 `Local Network Server`。
         这会让网关脱离 SenseCAP 云：上行不再出现在 Portal 里，改由网关内置的网络服务器处理。
-        不要假定两条路会同时生效——这一代固件能否同时向云端和本地上报，尚未核实。
-        如果你两条都需要，先在实机上确认，再依赖它。
+        如果你两条都需要，先在实机上确认这一版固件能否同时向云端和本地上报，再依赖它。
     optional: false
 
   - id: configure_broker

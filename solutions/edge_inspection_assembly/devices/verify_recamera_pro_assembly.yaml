@@ -1,0 +1,83 @@
+version: "1.0"
+id: verify_recamera_pro_assembly
+name: Confirm One Verdict Leaves the Camera
+name_i18n:
+  zh: 确认判定真的出了设备
+type: manual
+
+# Why this step is manual, and why it is not a web_dashboard step.
+#
+# The app's status panel binds to 127.0.0.1 on the camera: the device's nginx is
+# the outward-facing layer, and an application's own status port has no business
+# being reachable on the LAN. A browser on the operator's machine therefore
+# cannot open it, which rules out the web_dashboard step the Orin and Hailo
+# presets use.
+#
+# What is reachable from outside is the thing that actually matters on a line:
+# Modbus TCP on 502. Confirming a coil flip and a moving heartbeat proves the
+# whole chain — capture, NPU, verdict, output — in one reading, without a broker
+# and without shell access to the camera.
+
+user_inputs:
+  - id: modbus_host
+    name: Camera Address
+    type: text
+    required: true
+    placeholder: "192.168.1.60"
+    description: The camera's address on your network. The Modbus server binds every interface on port 502, unit 1.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 相机在你网络上的地址。Modbus 服务监听所有网卡的 502 端口，从站号 1。
+
+steps:
+  - id: frame_a_board
+    name: Put a board in frame
+    name_i18n:
+      zh: 让板子进画面
+    description: >-
+      Point the camera at the inspection station so the whole board or assembly
+      is in view. The app reads the camera's own RTSP substream, so nothing else
+      has to be connected.
+    description_i18n:
+      zh: >-
+        把相机对准检测工位，整块板或整件装配体在画面内。应用读的是相机自己的
+        RTSP 子码流，不需要再接别的东西。
+    optional: false
+
+  - id: read_modbus_twice
+    name: Read the Modbus registers twice
+    name_i18n:
+      zh: 读两次 Modbus 寄存器
+    description: >-
+      From any machine on the network, read coil 0 and coil 1 and holding
+      registers 0-11 at <Camera Address>:502, unit 1. Wait a second and read
+      them again. The node is working when the heartbeat in HR 6/7 has advanced
+      between the two reads and exactly one of the two coils is set. Coil 0 set
+      means NG and HR 1 carries the defect count; coil 1 set means OK and HR 1
+      is 0.
+    description_i18n:
+      zh: >-
+        在网络上任意一台机器读 <相机地址>:502、从站 1 的线圈 0、线圈 1 与保持
+        寄存器 0–11。等一秒再读一次。两次读之间 HR 6/7 的心跳递增、且两个线圈
+        恰有一个为 1，说明节点在工作。线圈 0 为 1 是 NG，HR 1 是缺陷数；线圈 1
+        为 1 是 OK，HR 1 为 0。
+    optional: false
+
+  - id: check_mqtt
+    name: Check the broker, if you configured one
+    name_i18n:
+      zh: 配了 broker 就再看一眼 broker
+    description: >-
+      Only if you filled in a broker address in the previous step. Subscribe to
+      inspection/<device name>/results and confirm one JSON record arrives per
+      processed frame, carrying the same verdict the coil showed. With no broker
+      configured this step has nothing to check and the Modbus reading above is
+      the whole verification.
+    description_i18n:
+      zh: >-
+        只有在上一步填了 broker 地址时才做。订阅
+        inspection/<设备名称>/results，确认每处理一帧到达一条 JSON 记录，判定与
+        线圈显示的一致。没配 broker 时这一步没有可查的东西，上面的 Modbus 读数
+        就是完整的验证。
+    optional: true

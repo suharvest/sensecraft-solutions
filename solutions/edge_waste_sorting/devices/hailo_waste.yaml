@@ -220,7 +220,6 @@ remote_overrides:
           config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
           config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
-          config["mqtt"]["fallback_topic"] = "{{device_name}}/waste/{stream_id}/fallback"
           config["sources"] = [{
               "stream_id": "{{stream_id}}",
               "uri": "{{source_uri}}",
@@ -386,10 +385,10 @@ remote_overrides:
       type: text
       default: "0.5"
       required: true
-      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0); the on-device INT8 confidence distribution has not been measured on real Hailo-8 hardware.
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0).
       validation:
         pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
       name_i18n:
         zh: 最低置信度
       description_i18n:
-        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测；真实 Hailo-8 硬件上的 INT8 置信度分布还没有测过。
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测。

@@ -80,22 +80,20 @@ refuses Chinese instead of transcribing it badly.
 
 ## Measured Results
 
-| Metric | Value | Device | How it was measured |
-|--------|-------|--------|---------------------|
-| Chinese speech recognition accuracy | CER 0 | Orin NX 16GB | Qwen3-ASR 0.6B int4 on the golden set, streaming and offline, 2026-07-04 |
-| Chinese speech recognition accuracy | CER 1.05% short clips / 9.62% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06, re-verified 2026-09-08 |
-| Chinese speech synthesis speed | RTF 0.172 | reComputer RK3576 | Matcha-TTS, "/tts" endpoint, 2026-09-08 |
-| Chinese ASR finalization latency | 1589 ms stop-to-final (p50) | reComputer RK3576 | ASR finalize after audio stops (excludes LLM reply and TTS synthesis), `/v2v/stream`, 2026-09-08 |
-| English speech recognition accuracy | CER 1.11% short clips / 4.16% long clips | reComputer RK3576 | Qwen3-ASR W8A8 through the offline whole-clip "/asr" endpoint, 2026-09-06 |
-| English speech synthesis speed | RTF 0.194 | reComputer RK3576 | Matcha-TTS, "/tts" endpoint, 2026-09-06 |
+| What the user hears | Typical | Device |
+|---|---|---|
+| Speaking stops to the text result | **1589 ms** p50 | reComputer RK3576 |
+| Chinese recognition error, short clips | **CER 1.05%** | reComputer RK3576 |
+| English recognition error, short clips | **CER 1.11%** | reComputer RK3576 |
 
-The RK3576 rows are reference values taken on the same RK3576 platform;
-they will be updated after a re-test on the reComputer unit.
+On 10-20 s clips recognition error rises to CER 9.62% in Chinese and CER 4.16%
+in English. The RK3576 rows are reference values taken on the same RK3576
+platform; they will be updated after a re-test on the reComputer unit.
 
-Live conversation uses a low-latency turn detector (silero VAD, 400 ms silence
-plus 2.5 s minimum audio). It replies at the first natural pause, so a long
-sentence with a mid-sentence pause is answered after its first clause. Speak in
-complete phrases, or interrupt and continue.
+**The session answers at the first natural pause.** Turn detection waits for
+400 ms of silence after a 2.5 s minimum, so a long sentence with a mid-sentence
+pause is answered after its first clause. Speak in complete phrases, or
+interrupt and continue.
 
 ## Deployment Comparison
 

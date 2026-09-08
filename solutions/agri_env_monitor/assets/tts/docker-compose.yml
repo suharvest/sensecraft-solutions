@@ -63,7 +63,7 @@ services:
       - TTN_LW_CONSOLE_OAUTH_CLIENT_ID=console
       - TTN_LW_CONSOLE_OAUTH_CLIENT_SECRET=${TTS_CONSOLE_SECRET:?TTS_CONSOLE_SECRET must be set}
     ports:
-      # 1700/udp is the Semtech UDP packet forwarder port the WM1302 concentrator
+      # 1700/udp is the Semtech UDP packet forwarder port the R12 gateway concentrator
       # publishes to; 1885 is the Console; 1883 is the Application Server MQTT
       # the bridge subscribes to. Mapped to 11883 on the host so it does not
       # collide with the Home Assistant broker when both run on one machine.

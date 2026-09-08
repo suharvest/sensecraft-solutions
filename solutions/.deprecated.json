@@ -3,5 +3,7 @@
   "ai_lab_llm",
   "ai_lab_vlm",
   "recamera_qrcode_rec",
-  "industrial_security_jetson"
+  "industrial_security_jetson",
+  "smart_retail_voice_ai",
+  "eldercare_alarm"
 ]

@@ -203,8 +203,8 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
 - 有了带凭据的 broker 之后把 `mqtt.host` 指过去；随包的 mosquitto 按设计就是
   本机匿名的。
 - 加摄像头就往 `sources[]` 里追加，每一路各带自己的 `assembly` 或 `dimension` 段。
-  在 Orin NX 16GB 上实测的最后一个稳定点是 8 路 × 10 fps，而且那次测试关掉了 MQTT
-  与 Modbus——带上完整 I/O 路径要按更少的路数规划。
+  在 reComputer J30 系列（J3011，Orin Nano 8GB）上实测的最后一个稳定点是 8 路 × 10 fps，
+  而且那次测试关掉了 MQTT 与 Modbus——带上完整 I/O 路径要按更少的路数规划。
 
 ### 故障排查
 
@@ -216,27 +216,7 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
 | 一开线全是 NG | 期望清单还是随包示例。先按你的工位重建它，再谈结论 |
 | 每条事件里 `dimension.enabled` 都是 false | 那一路没有 `dimension` 段；在随包配置里标定摄像头是另一路源 |
 
-## 步骤 4: 启用 VLM 解释（可选） {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-可选。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，通常跑在另一台 Orin 上），
-让 NG 帧在旁路 MQTT 主题上拿到一段人话解释。这条路径不进帧循环、不改变判定——
-跳过这一步，介绍页上的每一个数字都照样成立。
-
-### 前置条件
-
-- 已经跑起来、且这台设备能访问到的 `edge-vision-vlm` 实例——本方案不部署也不
-  打包这个服务。
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|-------|----------|
-| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy`——见该步骤第二个子步骤 |
-| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态，不是崩溃 |
-| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立。这应该按 VLM 客户端的 bug 处理，而不是触发条件配置的问题 |
-
-## 步骤 5: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
+## 步骤 4: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 可选。在工作站或 spark 上跑上游的半自动标注工具（`tools/annotation/`，SAM2 辅助），
 把你自己的图像变成 `assembly.expected[]` 模板和一个带版本号的
@@ -356,7 +336,7 @@ MQTT broker。
 4. 用 Modbus 客户端连 502 端口、unit 1 看线圈翻转，确认 HR 8 跟着你刚制造的
    缺件数走。
 5. 把这块板的实际表现记下来——你那个分辨率下的帧率，以及面板里的
-   `inference_ms_avg`。这个套餐目前没有任何上板数字，你测的就是第一份。
+   `inference_ms_avg`。这个套餐的上板数字以你自己这一次的实测为准。
 
 #### 配置期望件清单
 
@@ -401,30 +381,10 @@ MQTT broker。
 | 面板打不开 | 确认 8080 端口可达；host 网络下通常是主机防火墙 |
 | 面板能开但预览是黑的 | 源还没连上；先看 `/healthz` 里 `frames_processed` 是否在涨，再看容器日志 |
 | 线圈与寄存器对不上 | 原子性只在写侧成立；读侧分两次 Modbus 请求时可能落在两次判定之间。先读寄存器、把线圈当触发信号 |
-| 帧率远低于 Jetson 的数字 | 属预期——那些数字来自 Orin NX 上的 TensorRT engine。测这块板自己的数并用它 |
+| 帧率远低于 Jetson 的数字 | 属预期——那些数字来自 reComputer J30 系列（Orin Nano 8GB）上的 TensorRT engine。测这块板自己的数并用它 |
 | 一开线全是 NG | 期望清单还是随包示例；先按你的工位重建它 |
 
-## 步骤 4: 启用 VLM 解释（可选） {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-可选，与 Jetson 套餐相同。让运行时指向外部共享 VLM 服务（`edge-vision-vlm`，
-通常跑在另一台 Orin 上——树莓派本身不跑它），让 NG 帧在旁路 MQTT 主题上拿到一段
-人话解释。这条路径不进帧循环、不改变判定。
-
-### 前置条件
-
-- 已经跑起来、且这台树莓派能访问到的 `edge-vision-vlm` 实例——本方案不部署也不
-  打包这个服务。
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|-------|----------|
-| 停掉 VLM 服务后拿到 HTTP 502 而不是连接错误 | 这是透明代理拦截了 VLM 地址，不是 VLM 自己的错误码。测试前先把 VLM 主机加进设备的 `no_proxy` |
-| 一直收不到解释事件 | 确认 `vlm.enabled: true` 已保存且容器已重启；在容器里 `curl <base_url>/healthz` 检查；没收到事件本身是一个已定义的降级状态 |
-| 收到了解释事件但主 results 事件没了 | 不应该发生——两者互相独立 |
-
-## 步骤 5: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
+## 步骤 4: 用 SAM2 生成期望件清单与 ROI（可选） {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
 
 可选，与 Jetson 套餐相同。在工作站或 spark 上跑上游的半自动标注工具——这一步
 没有任何东西跑在树莓派上。
@@ -434,3 +394,83 @@ MQTT broker。
 - 一台装有上游 `edge-inspection-assembly` 仓库的工作站或 spark，SAM2 后端需要
   GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
 - 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
+
+## Preset: reCamera Pro {#recamera_pro}
+
+相机与质检节点在同一个壳里。检测、OK/NG 判定、Modbus TCP 与 MQTT 全部跑在相机
+上，判定链路里没有主机、没有网络跳数。检测器用 INT8 跑在相机的 RV1126B NPU 上。
+
+在这台设备上、停掉相机自带应用后，用 DeepPCB 验证集 205 张实测：mAP50 0.9870
+（fp32 CPU 参考 0.9876）、mAP50-95 0.8000（参考 0.8213）；冻结阈值 0.35 下精确率
+0.9299、召回率 0.9741，与 CPU 参考在这批图上的总数相同，但漏掉的 30 个框不是同
+一批（鼠咬 7 → 8、毛刺 2 → 1）。推理 p50 30.9 ms、p95 34.5 ms。同一模型的 fp16
+版本一并发布：mAP50-95 0.8221、p50 110.3 ms。
+
+这些数字有两条限制。INT8 用的 64 张校准图取自同一份验证集，所以 INT8 这一列相对
+未见过的数据偏乐观。数字来自在设备上回放验证集图片，不是把相机对着板子拍——
+经这台相机自己镜头与取图链路的精度，请在自己的产线上测。
+
+| 设备 | 作用 |
+|------|------|
+| reCamera Pro（RV1126B） | 取图、NPU 上的检测、OK/NG 判定、Modbus TCP 服务、MQTT 发布与本机状态面板 |
+
+**注意.** 这是 demo 包，不是经认证的计量或安全产品。随包模型训练于 DeepPCB 裸板
+缺陷数据集，不是装配图像。本预设不开缺件比对与尺寸测量：这两项都要按工位标
+ROI，通用表单承载不了——Orin 与 Hailo 两个预设覆盖它们。相机同一时刻只跑一个
+应用中心的应用，激活本应用会停掉此前在跑的那个。
+
+## Step 1: 在 reCamera Pro 上部署质检节点 {#deploy_recamera_pro_assembly type=recamera_pro_app required=true config=devices/recamera_pro_assembly.yaml}
+
+节点以应用中心的应用 `inspection-assembly` 分发。先在相机 Web 控制台的应用中心
+装上它，这一步再点名它、套用你的设置并把它设为活动应用。模型不在包里：应用中心
+单独把它下发到 `/userdata/local/models/inspection-assembly/`。
+
+你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 20 MB 空间。没有要编译的
+东西，也没有要手工拷贝的文件。
+
+填一个设备名称；想让判定同时上 broker 就再填 broker 地址。留空判定依然经 Modbus
+TCP 出设备。填了 broker，每处理一帧就有一条记录到达
+`inspection/<设备名称>/results`——QoS 0，broker 连着时每帧发一次，是「每帧发一
+次」而不是「每帧必达」——内含判定与判定依据、缺陷数、每个框的类别与分数、
+推理耗时与两个模型哈希——与本方案在 Orin、Hailo 上发的是同一个事件形状，发送前过
+契约校验。
+
+### PLC 读到的内容
+
+Modbus TCP 端口 502、从站 1：线圈 0 是 NG、线圈 1 是 OK，保持寄存器 0–11 承载
+类别、缺陷数、主框、心跳，以及缺件与尺寸计数。写线圈之前寄存器已经写完，PLC 看到
+线圈时数据已经就位。
+
+### 故障排查
+
+| 问题 | 处理 |
+|------|------|
+| 应用中心里没有这个应用 | 需要先把它发布到这台相机的 catalog。这一步只点名已安装的应用，不负责安装 |
+| 激活它把另一个应用停了 | 正常——应用中心同一时刻只跑一个应用 |
+| broker 上收不到事件，但面板显示在处理帧 | broker 地址或凭据不对；判定仍在 Modbus 上。看状态面板的 `mqtt.last_error` |
+| Modbus 502 上什么都没有 | 确认本应用是活动应用，且相机上没有别的进程占着 502 |
+| 帧率远低于 Orin 的数字 | 正常——那些数字来自带 TensorRT engine 的 reComputer J30 系列（Orin Nano 8GB）。用这台相机自己的数字 |
+
+## Step 2: 确认判定真的出了设备 {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
+
+应用的状态面板只绑相机本机回环，所以这里要做的检查就是 PLC 会做的那一个：读
+Modbus TCP。
+
+1. 把相机对准工位，让板子在画面里
+2. 在网络上任意一台机器读端口 502、从站 1 的线圈 0/1 与保持寄存器 0–11
+3. 一秒后再读一次
+
+两次读之间 HR 6/7 的心跳在递增、且线圈 0 与线圈 1 恰有一个为 1，这个节点就是通
+的。画面里是有缺陷的板时，线圈 0 为 1、HR 1 是缺陷数；是合格板时线圈 1 为 1、
+HR 1 为 0。
+
+填了 broker 的话，订阅 `inspection/<设备名称>/results` 会看到同一个判定，每处理
+一帧一条 JSON 记录。
+
+### 故障排查
+
+| 问题 | 处理 |
+|------|------|
+| 502 连接被拒 | 本应用不是活动应用，或相机上有别的进程占着这个端口 |
+| 心跳不递增 | 没有帧进来。应用读的是相机自带 `rkipc` 出的 RTSP 子码流，`rkipc` 停了就没有画面 |
+| 两个线圈都读到 0 | 还没写过判定——第一帧尚未处理完。再读一次 |

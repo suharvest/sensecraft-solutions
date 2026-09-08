@@ -388,13 +388,13 @@ remote_overrides:
       type: text
       default: "0.62"
       required: true
-      description: A starting point, not a calibrated value. No FAR/FRR figure exists for this project on any hardware.
+      description: A starting point, not a calibrated value. Sweep positive and negative pairs on the installed camera and set it from that.
       validation:
         pattern: "^0(\\.[0-9]+)?$"
       name_i18n:
         zh: 匹配阈值
       description_i18n:
-        zh: 这是起点，不是标定值。本项目在任何硬件上都没有 FAR / FRR 实测。
+        zh: 这是起点，不是标定值。请在装好的摄像头上做正负对扫描，据此设定。
     - id: facedb_url
       name: Face Library URL
       type: text

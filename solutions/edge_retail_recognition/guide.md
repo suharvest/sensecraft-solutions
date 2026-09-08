@@ -30,7 +30,16 @@ give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
 `RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
 `AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
 
-Nothing was measured on RK3576; the numbers above are RK3588 only.
+The table above is RK3588 only. On RK3576 (dual NPU core, librknnrt 2.3.2,
+driver 0.9.8), the same 704 `ok`-state crops used for the RK3588 top-1 check
+below were run through the same detector+embedder RKNN fp16 conversion,
+matched against a CPU fp32 ONNX reference computed on the same board: CPU
+fp32 scored 542/704 (76.99%) top-1, RKNN fp16 scored 537/704 (76.28%), and the
+two backends agreed on the same predicted SKU in 699/704 cases (99.29%).
+Embedder latency (per 224x224 crop, dual NPU core) was 61.0 ms p50 / 66.95 ms
+p95 — this benchmark only times the embedder call, not the detector. Full
+record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3576-acceptance`
+results.md.
 
 **What has been measured end to end, and what has not.** The device-side
 process that joins detection, embedding, lookup and publishing exists upstream
@@ -42,14 +51,15 @@ pointed at `console_stack:0.2.0` (device computes the embedding on its own
 NPU, console only does the retrieval): 924 ms p50 / 1153 ms p95 end to end,
 zero publish errors, and automatic MQTT reconnect after a 38 s console outage
 with no event loss on the device side (the console's own on-disk receipt was
-not independently checked). A top-1 comparison against the same crops embedded on a
-CPU with the fp32 ONNX source model, on only 20 single-frame crops, differed
-by 10 percentage points (14/20 vs 16/20) — short of this project's <=1 pp
-parity target, though two of those disagreements are borderline cases with a
-<0.01 similarity margin, not enough samples to stand as a reliable number (the
-embedding-level comparison in the table above, 0.85 pp over 21 retrieval
-metrics on a larger set, is not superseded by this). Full record:
-edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020`.
+not independently checked). A top-1 comparison against the same crops embedded on a CPU with the fp32
+ONNX source model, on the same shelf replay's full 704 `ok`-state crops (40
+source frames), matched: RKNN fp16 and CPU fp32 both scored 541/704
+(76.85%) and agreed on the same predicted SKU in 695/704 cases (98.72%); of
+the 9 disagreements, 8 were correctness flips (one backend right, the other
+wrong), all within a <0.01 similarity margin. Mean cosine similarity between
+the two vectors was 0.99969 (the embedding-level comparison in the table
+above, 0.85 pp over 21 retrieval metrics, is not superseded by this). Full
+record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9.
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -169,7 +179,7 @@ settles where embedding runs.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p1_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own converted artifact, and records what is still unverified.
+number for your own converted artifact.
 
 ### Prerequisites
 
@@ -199,8 +209,8 @@ number for your own converted artifact, and records what is still unverified.
 - Run the device-side process on your own line. `platforms/rk3588/runtime.py`
   joins detection, embedding, lookup and publishing against
   `platforms/rk3588/runtime.yaml`; this preset does not deploy or supervise it.
-- Measure end-to-end latency on your own frames. The per-stage numbers above are
-  measured; frame-to-console is not.
+- Measure end-to-end latency against a live camera and real store traffic; the
+  924 ms p50 figure above is a synthetic shelf replay, not a live feed.
 
 ### Troubleshooting
 
@@ -212,7 +222,7 @@ number for your own converted artifact, and records what is still unverified.
 
 ## Preset: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU {#p2_pi5_hailo}
 
-The only preset where both stages have run on the target hardware. The detector
+Both stages have run on the target hardware here too. The detector
 is an INT8 HEF on the Hailo-8; the embedder is a dynamically quantised INT8
 DINOv2-small on the Pi's own four cores, because the NPU path for it does not
 work.
@@ -353,7 +363,7 @@ the embedder on the CPU with the frame budget that follows from it.
 ## Step 5: Verify Registration, Retrieval and the Device Artifact {#p2_verify type=manual required=true verify=true config=devices/verify_recognition.yaml}
 
 Reproduces the software loop, exercises the console API, reproduces the parity
-number for your own HEF, and records what is still unverified.
+number for your own HEF.
 
 ### Prerequisites
 
@@ -399,16 +409,16 @@ box agreement with the CPU reference (50 images, the same batch RK3588 was
 checked against); embedder 4.23 ms p50 / 4.69 ms p95, 21 retrieval metrics
 within 0.24 percentage points of fp32. A 2956-frame checkout replay ran
 through the full device-side runtime — detector, embedder, gallery lookup,
-MQTT publish — with zero dropped frames, which makes this the only preset
-where that full loop has run on hardware rather than stopping at model
-conversion. All figures are n=300, inference only, on an engine built on the
-device it ran on.
+MQTT publish — with zero dropped frames. The RK3588 preset has run a comparable full-loop
+measurement too, on a shelf replay (see its own preset section); the Hailo-8
+and RK3576 presets stop at model conversion. All figures are n=300,
+inference only, on an engine built on the device it ran on.
 
 | Device | Purpose |
 |---|---|
 | Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
 | reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
-| reComputer J30 (Orin Nano 8GB) | Same family, same role; not tested. The numbers on this page are from the Orin NX (J40) only |
+| reComputer J30 (Orin Nano 8GB, J3011) | Same family, same role. Also measured directly: detector 5.88 ms p50 / 8.89 ms p95, embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics within 0.21pp of fp32, 6726-frame replay with zero dropped frames |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
@@ -597,4 +607,4 @@ pieces `runtime.yaml` expects:
 | `runtime.py --dry-run` exits with code 2 | An engine's sha256 does not match `runtime.yaml`. Rebuild with `build_engines.py --update-config`, which writes the fresh hash back. |
 | Latency far above 5.18 ms (detector) or 4.23 ms (embedder) p50 | Check `nvpmodel -q` is on `MAXN_SUPER` and that nothing else is holding the GPU — the runtime's own concurrent-load figures (8.76 ms / 5.37 ms p50) are the two-model-sharing-one-GPU case, not a regression. |
 | The software loop passes and this looks finished | The loop runs on a development machine against a FakeEmbedder. It proves protocol behaviour, not device accuracy — the device-side parity check above is the one that does. |
-| Wanting to mark this verified | This preset is the one in the package with a real device-side runtime measurement (the checkout replay); the other presets stop at model conversion. |
+| Wanting to mark this verified | This preset and the RK3588 preset both have a real device-side runtime measurement — the checkout replay here, a shelf replay on RK3588; the Hailo-8 and RK3576 presets stop at model conversion. |

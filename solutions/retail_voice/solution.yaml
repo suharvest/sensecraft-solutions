@@ -1,5 +1,19 @@
 version: "1.0"
 id: retail_voice
+# The Smart Retail Voice Collection package (smart_retail_voice_ai) was merged
+# into this one on 2026-09-08 and its directory deleted: same topic, different
+# deployment routes, so one solution with several presets rather than two
+# pages. Its reRouter CM4 + reSpeaker capture kit is the local_transcribe
+# preset here; its cloud reporting path is superseded by the self-hosted
+# cloud_stack preset.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md). It is a written record of where the old
+# package went, not an alias: nothing redirects smart_retail_voice_ai to this
+# id. The retirement itself is recorded in solutions/.deprecated.json, which
+# generate_solution_manifest.py copies into the manifest's `deprecated` array.
+replaces: smart_retail_voice_ai
 name: Retail Voice
 name_i18n:
   zh: 零售语音
@@ -50,7 +64,9 @@ intro:
     - pii-redaction
     - data-deletion
     - respeaker
+    - rerouter
     - rk3576
+    - npu
 
   output_interfaces:
     - type: file
@@ -157,9 +173,9 @@ intro:
       description_i18n:
         zh: 4 麦阵列，DSP 内置回声消除、波束成形和噪声抑制；以 USB 音频设备枚举。
     generic_linux_host:
-      description: Any arm64 Linux host with Docker for the server stack. The bundled ASR image is the RK3576 build — on a host without an RKNN NPU the ASR container has to be swapped for a matching build, which this package has not verified.
+      description: Any arm64 Linux host with Docker for the server stack. The bundled ASR image is the RK3576 build — on a host without an RKNN NPU the ASR container has to be swapped for a matching build.
       description_i18n:
-        zh: 任意装有 Docker 的 arm64 Linux 主机，用于承载服务端栈。随包的 ASR 镜像是 RK3576 版本——主机没有 RKNN NPU 时需要换成对应构建，本包未验证这条路径。
+        zh: 任意装有 Docker 的 arm64 Linux 主机，用于承载服务端栈。随包的 ASR 镜像是 RK3576 版本——主机没有 RKNN NPU 时需要换成对应构建。
     external_mobile_app:
       description: Your existing mobile app. It lives outside this repository — the server stack preset only publishes the ASR endpoint for it to point at.
       description_i18n:
@@ -243,9 +259,17 @@ intro:
     difficulty: intermediate
     estimated_time: 60min
 
-  # No `links:` block. The upstream OpenVoiceStream repository is not public,
-  # and the old cloud console (test-voice-web.seeed.cn) is deliberately absent
-  # — neither preset here uses it.
+  # `github` is absent: the upstream OpenVoiceStream repository is not public.
+  # The old hosted console (test-voice-web.seeed.cn) is also absent — neither
+  # preset here uses it; the cloud_stack preset ships its own admin console.
+  # The wiki and purchase links are carried over from the retired
+  # smart_retail_voice_ai package: both describe the reRouter CM4 + reSpeaker
+  # XVF3800 capture kit that the local_transcribe preset deploys.
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+    purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
 
 deployment:
   guide_file: guide.md

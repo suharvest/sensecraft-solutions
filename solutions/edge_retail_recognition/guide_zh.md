@@ -27,7 +27,14 @@ broker——以容器跑在另一台主机上。
 （`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01`）；核掩码不要
 留 `AUTO`——实测 `AUTO` 只用 core 0，core 1 与 core 2 全程 0%。
 
-RK3576 上什么都没测；上面的数字只来自 RK3588。
+上面这张表只来自 RK3588。RK3576（双 NPU 核，librknnrt 2.3.2，driver 0.9.8）
+用同一批 704 张 `ok` 状态货位裁剪，跑同一套检测器+嵌入器 RKNN fp16 转换，
+对照同一块板上算的 CPU fp32 ONNX 参考：CPU fp32 top-1 76.99%（542/704），
+RKNN fp16 top-1 76.28%（537/704），两条链路预测一致 99.29%（699/704）。
+嵌入器延迟（224×224 单裁剪，双 NPU 核）p50 61.0 ms / p95 66.95 ms——这项测量只计
+嵌入器调用耗时，不含检测器。完整记录见
+edge-retail-recognition 仓库 `evaluation/runs/2026-09-08-rk3576-acceptance`
+的 results.md。
 
 **端到端测到了什么、没测到什么。** 把检测、嵌入、检索与上报串起来的设备侧进程在
 上游是有的（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），
@@ -36,12 +43,12 @@ RK3576 上什么都没测；上面的数字只来自 RK3588。
 `gallery.match_url` 指向 `console_stack:0.2.0`（设备在自己的 NPU 上算嵌入，
 console 只做检索）。结果：端到端 p50 924 ms / p95 1153 ms，发布错误 0 次，
 console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自己是否完整落盘
-没有单独核实）。同一批裁剪换成 CPU 上的 fp32
-ONNX 源模型跑 top-1 对照，差了 10 个百分点（14/20 对 16/20）——没达到本项目
-≤1 pp 的 parity 目标；其中 2 条分歧是相似度差 <0.01 的临界样本，只有 20 张
-单帧裁剪，样本量撑不起一个可信的数字（不推翻上表"0.85 pp（21 个检索指标，更大验证集）"那条嵌入层面的结论）。
+没有单独核实）。同一次货架回放取 704 张裁剪（40 个源帧的全部 `ok` 状态货位），
+换成 CPU 上的 fp32 ONNX 源模型跑 top-1 对照：RKNN fp16 与 CPU fp32 准确率均为
+541/704（76.85%），预测一致率 98.72%（695/704），其中 8 条对/错判断不一致的
+翻转全部是相似度差 <0.01 的临界样本，向量余弦相似度均值 0.99969、最小 0.99846。
 完整记录见 edge-retail-recognition 仓库
-`evaluation/runs/2026-09-08-rk3588-console-acceptance-020`。
+`evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9。
 
 ## 步骤 1: 部署注册管理端 {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -168,7 +175,7 @@ ONNX 源模型跑 top-1 对照，差了 10 个百分点（14/20 对 16/20）—�
 - 在自己的产线上把设备侧进程跑起来。`platforms/rk3588/runtime.py` 配
   `platforms/rk3588/runtime.yaml` 已经把检测、嵌入、检索与上报串起来了，
   这个套餐不负责部署和托管它。
-- 用自己的画面测端到端延迟。上面那些是分段实测数，从画面到管理端那一段没有测。
+- 用真实摄像头画面和真实门店流量测端到端延迟；上面的 924 ms p50 是合成货架回放，不是真实摄像头画面。
 
 ### 故障排查
 
@@ -180,7 +187,7 @@ ONNX 源模型跑 top-1 对照，差了 10 个百分点（14/20 对 16/20）—�
 
 ## 套餐: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU {#p2_pi5_hailo}
 
-唯一一个两段都在目标硬件上跑过的套餐。检测器是 Hailo-8 上的 INT8 HEF；
+两段都在目标硬件上跑过：检测器是 Hailo-8 上的 INT8 HEF；
 嵌入器是 Pi 自己四个核上动态量化 INT8 的 DINOv2-small——因为它的 NPU 路线走不通。
 
 | 设备 | 作用 |
@@ -342,14 +349,14 @@ reComputer J40 整机——是整机实测：检测器 p50 5.18 ms / p95 5.28 ms
 与 CPU 参考的框一致率 99.91%（50 张，与 RK3588 用的同一批 golden）；嵌入器
 p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24 个百分点。
 一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、嵌入、库检索、
-MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来在真机上跑过的套餐，
-而不是止步于模型转换。以上数字均为 n=300、纯推理，engine 在运行它的这台设备上构建。
+MQTT 上报——零掉帧。RK3588 套餐也有同类的全链路实测（货架回放，见该套餐一节）；
+Hailo-8 与 RK3576 套餐止步于模型转换。以上数字均为 n=300、纯推理，engine 在运行它的这台设备上构建。
 
 | 设备 | 作用 |
 |---|---|
 | 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
 | reComputer J40（Orin NX 16GB） | 检测与嵌入，两段都经 TensorRT fp16 跑在 GPU 上——实测机型 |
-| reComputer J30（Orin Nano 8GB） | 同一家族、同样角色；没有实测数字，本页数字全部来自 Orin NX（J40） |
+| reComputer J30（Orin Nano 8GB，J3011） | 同一家族、同样角色。同样已实测：检测器 p50 5.88 ms / p95 8.89 ms，嵌入器 p50 5.06 ms / p95 7.64 ms，21 项检索指标与 fp32 最大差 0.21 个百分点，6726 帧回放零掉帧 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
@@ -510,4 +517,4 @@ fp32 的 DINOv2-small ONNX——与步骤 4 构建 TensorRT engine 用的是同�
 | `runtime.py --dry-run` 以 exit code 2 退出 | 某个 engine 的 sha256 与 `runtime.yaml` 对不上。用 `build_engines.py --update-config` 重新构建，它会把新哈希写回配置。 |
 | 延迟明显高于检测 5.18 ms / 嵌入 4.23 ms p50 | 检查 `nvpmodel -q` 是否为 `MAXN_SUPER`，以及是否有别的进程占着 GPU——运行时自身的并发数字（8.76 ms / 5.37 ms p50）是两个模型共享同一块 GPU 的情形，不是回归。 |
 | 软件闭环过了，看起来像做完了 | 闭环跑在开发机上的 FakeEmbedder 上，证明的是协议行为，不是设备精度——上面的设备侧 parity 检查才是证明精度的那道检查。 |
-| 想把它标成已验证 | 这是本包里唯一有真机设备侧运行时实测（收银台回放）的套餐；其它套餐止步于模型转换。 |
+| 想把它标成已验证 | 这个套餐和 RK3588 套餐都有真机设备侧运行时实测——这里是收银台回放，RK3588 是货架回放；Hailo-8 与 RK3576 套餐止步于模型转换。 |

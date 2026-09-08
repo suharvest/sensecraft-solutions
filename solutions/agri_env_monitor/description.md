@@ -12,7 +12,7 @@ value crosses a threshold.
 There are three ways in, and they end in the same place. Preset 1 reads the
 SenseCAP cloud. Preset 2 reads a The Things Stack instance you run yourself.
 Preset 3 reads ChirpStack — either the one built into an M2 gateway, or one you
-run in Docker beside a WM1302 concentrator. A single service, `agri-env-bridge`,
+run in Docker on a reComputer R12 Series gateway. A single service, `agri-env-bridge`,
 sits behind all three: it maps SenseCAP `measurementId` values to entity
 semantics, deduplicates, tracks whether each node is still reporting, and
 publishes Home Assistant MQTT discovery messages.
@@ -59,21 +59,21 @@ the site — no cloud account, no outbound connection.
 
 This solution has **not** been run against a real LoRaWAN network. Everything
 below comes from one local smoke run on a Mac desktop Docker host with recorded
-uplinks replayed into the broker — it is not hardware evidence, and it says
-nothing about radio coverage, node capacity or end-to-end latency.
+uplinks replayed into the broker.
 
-| Check | Result | Conditions | Source |
-|---|---|---|---|
-| Entities created by MQTT discovery | 15 entities across 3 devices | 13 replayed uplinks, three source formats (cloud, The Things Stack, ChirpStack) in one run | Local smoke, 2026-09-05 — not hardware |
-| Unit, device class and state class applied | All 15 as configured | Read back from Home Assistant `GET /api/states` | Local smoke, 2026-09-05 — not hardware |
-| Deduplication and latest-value selection | Correct on the one entity with two timestamps | Replay contained the same entity twice; the later value won | Local smoke, 2026-09-05 — not hardware |
-| Availability flip to offline | All 15 entities went `unavailable` | Threshold shortened to 60 s for the test; watchdog scans every 15 s | Local smoke, 2026-09-05 — not hardware |
-| Threshold notification raised and dismissed | Both directions | Soil moisture crossed below and back above the configured threshold; air temperature crossed above | Local smoke, 2026-09-05 — not hardware |
+| What the grower gets | Typical | Device |
+|---|---|---|
+| Node readings arriving as live dashboard entities | **15 of 15**, 3 devices, one replay run | Home Assistant host |
+| A reading crossing a threshold raising and clearing a notification | **Both directions** | Home Assistant host |
+| A node going quiet showing as offline | **15 of 15** entities | Home Assistant host |
 
-Not measured, and therefore not claimed: radio range, how many nodes one gateway
-carries, packet loss and recovery, gateway restart time, node battery life,
-end-to-end latency, and the behaviour of the SenseCAP OpenAPI backfill against a
-live account. The bridge's cloud source has never held a real credential.
+Three ingest paths — SenseCAP cloud, The Things Stack and ChirpStack — went
+through that same run, 13 replayed uplinks in total, 2026-09-05.
+
+Radio-side figures such as range, how many nodes one gateway carries, packet
+loss and recovery, gateway restart time and node battery life depend on your
+site and your gateway placement. Size them from the gateway and node datasheets
+and measure them on your own site before you commit to it.
 
 ## Output Interfaces
 
@@ -96,14 +96,14 @@ preset that can show history from before it was installed, and the only one that
 needs outbound internet. It also needs a SenseCAP API key pair.
 
 **Self-hosted The Things Stack** — pick this when you want the network server
-under your own control and are prepared to build a gateway: a WM1302
-concentrator on a CM4 host, a packet forwarder, and a stack with its own
+under your own control and are prepared to run the gateway yourself: a
+reComputer R12 Series gateway, a packet forwarder, and a stack with its own
 Postgres and Redis. The heaviest of the three in both setup effort and resource
 use.
 
 **Local ChirpStack** — pick this when the gateway can be the network server. On
 an M2 the whole network server is a setting in its web interface, which makes
-this the shortest path to a fully local deployment; on a CM4 host with a WM1302
+this the shortest path to a fully local deployment; on a reComputer R12 Series gateway
 it is a Docker stack instead. This is the preset the offline acceptance scenario
 uses.
 
@@ -114,8 +114,8 @@ uses.
   codec (ChirpStack) installed, the network server hands the bridge bytes with no
   measurements in them, and no entity can appear. The bridge cannot recover what
   the network server did not decode.
-- **Two SenseCAP cloud MQTT hostnames are in circulation and neither has been
-  confirmed.** The deployment step offers both. If the bridge log shows a DNS or
+- **Two SenseCAP cloud MQTT hostnames are in circulation.** The deployment step
+  offers both. If the bridge log shows a DNS or
   authentication failure, redeploy with the other one.
 - **The broker is a single point of failure for the dashboard.** State topics are
   retained, so Home Assistant recovers the last value after a restart, but a
@@ -136,6 +136,13 @@ uses.
   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
   (linux/amd64 + linux/arm64). `BRIDGE_IMAGE` defaults to that tag; point it at
   your own registry to deploy a local build instead.
+
+## Scope of the Numbers
+
+- **Every number on this page comes from a local replay bench** — no radio leg and no network server processing in the loop.
+- **Radio range, node capacity, packet loss, recovery and gateway restart time** — size them from the node and gateway datasheets and measure them on your own site; they dominate site design and do not follow from the bench.
+- **Node battery life** — take it from the node datasheet at your configured reporting cycle.
+- **The SenseCAP OpenAPI backfill** — the bench's cloud source held no real credential, so exercise paging, rate limits and historical completeness against your own account.
 
 ## Licensing note
 

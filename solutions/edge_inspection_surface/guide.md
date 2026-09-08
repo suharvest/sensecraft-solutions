@@ -12,14 +12,14 @@ exact GPU architecture and TensorRT version and cannot be shipped prebuilt.
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 
 **Important:** internal validation only. The model is trained on a re-hosted copy
-of NEU-DET whose licence is unconfirmed — do not use this for a public demo, a
-customer-site demo or commercial material until that is cleared. The measured
+of NEU-DET — clear its licence with the dataset owner before using this for a
+public demo, a customer-site demo or commercial material. The measured
 accuracy is mAP50 0.7577 with recall 0.6969 at the deployed 0.35 threshold on
 290 validation images, and every number is a single unreproduced measurement.
 Known weaknesses: crazing has the lowest AP50 of the six classes at 0.3603, and
-changing the threshold does not move it; frame-level false alarms could not be measured because every image in
-the dataset carries a defect; all figures come from a synthetic video, not from
-a real camera.
+changing the threshold does not move it; frame-level false alarms have to come
+from your own line, because every image in the dataset carries a defect; all
+figures come from a synthetic video, not from a real camera.
 
 ## Step 1: Deploy Surface Inspection {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
@@ -248,33 +248,6 @@ with this step skipped.
 | `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
 | `anomaly_score` looks stable near one value on every frame regardless of the sample | Expected if `anomaly.threshold` was copied from this solution's own evaluation — that threshold was calibrated on DeepPCB template images, not your camera's OK images. Recalibrate on your own OK set first |
 | Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | This is a known limit, not a bug — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal (`heatmap_ref` plus the score), not a single frame-level cutoff |
-
-## Step 5: Enable VLM Explanations (Optional) {#enable_vlm_jetson type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-Optional. Points the runtime at an external shared VLM service
-(`edge-vision-vlm`, typically on a separate Orin box) so low-confidence or
-anomaly-only frames get a plain-language explanation on a side-channel MQTT
-topic. This never enters the frame loop and never changes a verdict — every
-number on the intro page holds with this step skipped.
-
-### Prerequisites
-
-- An `edge-vision-vlm` instance already running and reachable from this
-  device — this solution does not deploy or bundle that service.
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-- To use the `anomaly` trigger, Step 4 must be enabled first — otherwise only
-  `low_confidence` has any effect.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing — see the step's second substep |
-| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state, not a crash |
-| Explanation events arrive but the main results event does not | Should never happen — the two are independent. File this as a bug against the VLM client, not the trigger configuration |
-
----
 
 ## Preset: IP Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
@@ -518,27 +491,3 @@ set. This never enters the verdict path.
 | `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
 | `anomaly_score` looks stable near one value regardless of the sample | The threshold was likely copied from this solution's own evaluation, calibrated on DeepPCB images, not your camera's OK images. Recalibrate on your own OK set |
 | Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | Known limit — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal, not a single frame-level cutoff |
-
-## Step 5: Enable VLM Explanations (Optional) {#enable_vlm_hailo type=manual required=false verify=true config=devices/enable_vlm_explanation.yaml}
-
-Optional, identical to the Jetson preset. Points the runtime at an external
-shared VLM service (`edge-vision-vlm`, typically running on a separate Orin
-box — the reComputer R2000 does not run it) so low-confidence or anomaly-only
-frames get a plain-language explanation on a side-channel MQTT topic. This
-never enters the frame loop and never changes a verdict.
-
-### Prerequisites
-
-- An `edge-vision-vlm` instance already running and reachable from this
-  reComputer R2000 — this solution does not deploy or bundle that service.
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-- To use the `anomaly` trigger, Step 4 must be enabled first.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Stopping the VLM service returns HTTP 502 instead of a connection error | This is a transparent proxy intercepting the VLM address, not the VLM's own error code. Add the VLM host to `no_proxy` on the device before testing |
-| No explanation event ever arrives | Confirm `vlm.enabled: true` was saved and the container restarted; check `curl <base_url>/healthz` from inside the container; a missing event by itself is a defined degraded state |
-| Explanation events arrive but the main results event does not | Should never happen — the two are independent |

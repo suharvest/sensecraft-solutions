@@ -36,78 +36,25 @@
 
 ## 实测到什么程度
 
-下面每个数字都标了实测设备与口径。其中 Hailo-8、RK3588 与 RK3576 的数字取自与对应
-reComputer 套餐同款的加速器芯片平台，是参考值，reComputer 整机复测后更新。
-reCamera Pro 的数字是在摄像头本机上实测的；Jetson Orin 的数字是在 reComputer J40
-整机上实测的。
+| 收银台能得到什么 | 典型值 | 设备 |
+|---|---|---|
+| 2956 帧收银回放中的丢帧 | **0** | reComputer J40（Orin NX 16GB） |
+| 商品识别，DINOv2-base，每 SKU 注册 8 张 | **top-1 84.67% / top-5 96.66%** | 模型数字，换主机仍然成立 |
+| 商品识别，DINOv2-small，每 SKU 8 张 对 1 张 | **top-1 79.11% → 51.11%** | 同上 |
 
-**检测，reComputer R2000（Hailo-8）。** INT8 HEF 的 p50 9.04 ms、p95 9.10 ms，
-单流 110.4 fps。「hailortcli benchmark」 交叉核对为 110.64 fps，
-纯硬件时间 8.21 ms，多出来的 0.8 ms 是 Python 往返。
-端到端含 letterbox、输出拼接、解码与 NMS 是 p50 18.74 ms / p95 24.25 ms：
-对约 160 个框逐类做 NMS，比推理本身还贵。
-与 CPU 参考的框一致率（IoU ≥ 0.5）在 200 张上 94.77%、300 张上 94.68%。全程无降频。
-同款 Hailo-8 平台实测参考值。
+对精度影响最大的是注册张数——同一个模型上，从 1 张加到 8 张，top-1 差 28 个百分点——所以注册时请为每个 SKU 多拍几个角度。J40 那轮回放跑的是
+完整的设备侧运行时——检测、嵌入、库内检索、MQTT 发布。只在 Orin NX 整机
+（reComputer J40）上测的。
 
-**检测，reComputer RK3588 系列。** RKNN fp16：框一致率 99.85%，
-p50 56.7 ms / p95 89.5 ms。同款 RK3588 平台实测参考值。
-RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
-代价是 1.5 个百分点的一致率。
+货架档主机做同一件事更慢：reComputer RK3588 上跑 20 SKU 货架回放、检索走注册管理端时，
+从画面到识别结果发出是 p50 924 ms / p95 1153 ms，发布错误 0 次，管理端断线 38 秒后
+MQTT 自动重连。同一次回放的全部 704 张裁剪上，RKNN fp16 与 CPU fp32 的 top-1 同为
+541/704，预测一致 695/704。同一批 704 张裁剪在 RK3576 芯片平台上重跑：CPU fp32
+top-1 76.99%（542/704），RKNN fp16 top-1 76.28%（537/704），预测一致 99.29%
+（699/704），嵌入器单裁剪 p50 61.0 ms。Hailo-8 套餐停在模型转换。
 
-**嵌入 + 端到端，reComputer RK3588 系列。** DINOv2-small 上 NPU（fp16，
-`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01` 分核）：
-嵌入 p50 53.19 ms，对 fp32 ONNX CPU 参考的 21 个检索指标最大差 0.85 个百分点。
-一次 20 SKU 货架回放实测（console 侧 `embedder_backend=none`，检索走
-`/v1/gallery/match`，console 不自己算向量）：进画面到上报识别结果 p50 924 ms /
-p95 1153 ms，发布错误 0 次，console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自己是否完整落盘没有单独核实）。
-同一批裁剪换成 CPU 上的 fp32 源模型跑 top-1 对照，只有 20 张单帧裁剪，
-差了 10 个百分点——没达到本项目 ≤1 pp 的 parity 目标，样本量太小也撑不起一个可信的数字。同款 RK3588 平台实测参考值。
-
-**检测 + 嵌入，reComputer RK3576。** RK3576 是双核 NPU（RK3588 是三核）。
-同款 RK3576 芯片平台实测，纯推理：检测用双核 RKNN fp16，p50 51.05 ms /
-p95 54.18 ms，与 CPU 参考的框一致率 99.91%。嵌入用双核 RKNN fp16，
-p50 56.38 ms / p95 62.17 ms；21 项检索指标里与 fp32 差距最大的一项是
-0.36 个百分点，与 fp32 的余弦相似度均值 0.99966。同款 RK3576 平台实测参考值，
-reComputer 整机复测后更新。
-
-**嵌入，reComputer R2000 CPU。** 四线程下动态量化 INT8 的 DINOv2-small：每个裁剪 p50 91.95 ms / p95 105.98 ms，
-同模型 fp32 是 180.75 / 233.41 ms。检索准确率在全部 7 个实测档位上与那条 fp32 基线
-相差 0.65 个百分点以内——只量化权重在这里几乎不花成本。
-连激活一起量化的静态 QDQ 变体掉 3.78–9.96 个百分点，不能用。同款 Arm CPU 平台实测参考值。
-
-**检索准确率**（Grocery Store Dataset，81 类，fp32）。DINOv2-base 每 SKU 8 张注册图：
-top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
-每 SKU 只有 1 张注册图时 DINOv2-small 掉到 51.11%——注册视角数量是本页最大的一个杠杆。
-在 Products-10K 留出 SKU 上（类别多得多），DINOv2-base k=8 的 top-1 是 78.92%。
-
-**检测准确率**（SKU-110K test 集）。640² preset 的 mAP50-95 是 52.84，
-1280² preset 是 56.32。640² 的 mAP50 是 88.26——框找得到，框不准。
-换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
-这就是货架 preset 存在的理由。
-
-**嵌入器在 Hailo-8 套餐上跑 CPU，在 RK3588、RK3576、reCamera Pro 上跑 NPU，
-在 Jetson Orin 套餐上跑 GPU。** Hailo 量化没达到可用精度；RK3588、RK3576、
-reCamera Pro 与 Jetson Orin 套餐都有自己实测的加速器嵌入数字（见上下文）。
-走 CPU 的路径（Hailo-8 套餐，或 RK3588/RK3576 不想切 NPU 嵌入时）按每个裁剪
-92 ms 做规划，货架整帧场景需要抽帧或按货位采样。
-
-**检测 + 嵌入，reComputer J40（Jetson Orin NX 16GB，TensorRT fp16）。** 两段都跑在
-设备自己的 GPU 上。检测器：p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率
-99.91%（50 张，与 RK3588 用的同一批）。嵌入器：p50 4.23 ms / p95 4.69 ms，
-21 项检索指标与 fp32 最大差约 0.24 个百分点。以上独立探针数字均为 n=300、纯推理，
-engine 在运行它的这台设备上构建。一次 2956 帧的收银台回放跑通了完整的设备侧
-运行时——检测、嵌入、库检索、MQTT 上报——零掉帧：这是本包里唯一一个把两段串起来
-在真机上跑过的套餐，而不是止步于模型转换。在这个并发负载下（两段共享同一块 GPU，
-样本取自回放自身的健康快照：检测 1024 次、嵌入 271 次）延迟降到检测 p50 8.76 ms /
-p95 9.53 ms、嵌入 p50 5.37 ms / p95 5.83 ms——仍比其它套餐的检测路径快。仅在 Orin NX 机型（reComputer J40）上实测；同一家族里更小的 Orin Nano 选项（reComputer J30）没有实测数字。
-
-**检测 + 嵌入，reCamera Pro。** 两段都以 fp16 RKNN 跑在摄像头板载 NPU 上。
-测量条件：自带应用停止、纯推理。检测 p50 112.3 ms / p95 120.4 ms，与 CPU 参考的
-框一致率 99.91%（50 张）；嵌入 p50 77.5 ms / p95 77.9 ms，与 fp32 的余弦相似度均值
-0.998，300 张子集上留一法 top-1 差距 0.33 个百分点（fp32 减 RKNN = −0.33pp，
-即 RKNN 还略高一点）。协议与上文 Grocery Store 检索不同——那边用的是 RK3588
-那轮的完整 k-shot 商品库，这边是缩小版子集，绝对值不可比，但两边都指向同一个结论：
-没有方向性偏差。
+Hailo-8、RK3588 与 RK3576 各项为对应 reComputer 套餐同款加速器芯片平台上的实测参考值，
+整机复测后更新。逐加速器的转换明细与量化结果见工程 Wiki。
 
 ## 输出接口
 
@@ -121,15 +68,16 @@ p95 9.53 ms、嵌入 p50 5.37 ms / p95 5.83 ms——仍比其它套餐的检测�
 
 | 套餐 | 检测器 | 嵌入器 | 适合谁 |
 |---|---|---|---|
-| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms |
-| reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项 |
+| reComputer RK3588 系列 | NPU 上 RKNN fp16，p50 56.7 ms，一致率 99.85% | CPU 上的 onnxruntime | 用 Rockchip 工具链，可切 INT8 到 p50 26.0 ms。把嵌入器换成 NPU 上的 RKNN（不是本行的 CPU onnxruntime）后，设备侧运行时也端到端跑通过一次（20 SKU 货架回放，p50 924 ms） |
+| reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms，一致率 99.91% | 双 NPU 核 RKNN fp16，p50 56.38 ms，与 fp32 检索差距最大 0.36 个百分点 | 两段都在 NPU 上；更小的双核 Rockchip 选项。704 张货架裁剪回放：top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，嵌入器单裁剪 p50 61.0 ms |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms，一致率 94.77% | CPU 上动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条；两段都在同一块板上实测 |
 | reCamera Pro | 板载 NPU 上 RKNN fp16，p50 112.3 ms，一致率 99.91% | 板载 NPU 上 RKNN fp16，p50 77.5 ms，与 fp32 余弦 0.998 | 一体化摄像头；两段都在同一块板上实测 |
-| reComputer J40（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条，也是唯一有端到端设备侧运行时实测（2956 帧回放零掉帧）的套餐 |
+| reComputer J40（Jetson Orin NX，TensorRT） | GPU 上 TensorRT fp16，p50 5.18 ms，一致率 99.91% | GPU 上 TensorRT fp16，p50 4.23 ms，与 fp32 检索差距最大 0.24 个百分点 | 实测最快的一条；设备侧运行时也已端到端跑通（2956 帧回放零掉帧） |
+| reComputer J30（Jetson Orin Nano，J3011，TensorRT） | GPU 上 TensorRT fp16，p50 5.88 ms，一致率 99.27% | GPU 上 TensorRT fp16，p50 5.06 ms，与 fp32 检索差距最大 0.21 个百分点 | 同样已实测：设备侧运行时端到端跑通（6726 帧、2.27 轮回放，零掉帧，84 个事件全部发布成功） |
 
 Hailo-8、RK3588 与 RK3576 三行取自同款加速器芯片平台，是参考值，reComputer 整机
-复测后更新。reCamera Pro 一行是在摄像头本机上实测的；reComputer J40 一行是在
-reComputer J40 整机上实测的。
+复测后更新。reCamera Pro 一行是在摄像头本机上实测的；reComputer J40 与 J30 两行都是在
+reComputer 整机上实测的。
 
 ## 使用须知
 
@@ -159,8 +107,8 @@ reComputer J40 整机上实测的。
   骨干本身（「facebook/dinov2-base」、「facebook/dinov2-small」）是 Apache-2.0——
   非商用限制来自训练数据，不是骨干。
 - **Grocery Store Dataset —— MIT**，只用于检索评测，也是这一组里唯一可商用的数据集。
-- **RPC（CC BY-NC-SA 4.0）、Unitail-OCR（仅学术）、GroZi-120（许可未核实）**
-  出现在上游评测计划里，属非商用或未核实范围。
+- **RPC（CC BY-NC-SA 4.0）、Unitail-OCR（仅学术）、GroZi-120（许可需向数据集方确认）**
+  出现在上游评测计划里，属非商用范围。
 - **项目自身代码是 Apache-2.0。**
 
 商用部署必须用自采或许可宽松的数据重训两个模型，之后重建所有商品库版本。

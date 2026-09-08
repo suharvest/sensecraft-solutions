@@ -12,7 +12,6 @@ and "pages use Seeed product names".
 | fleet `harvest-pi` (Raspberry Pi 5 + Hailo-8 M.2, 15-minute exclusive window, 2026-09-06) | reComputer R2000 (Hailo-8), family `recomputer_r20_industrial` |
 | Jetson Orin NX 16GB, L4T R36.4.3 / JetPack 6.2 | reComputer Super J4012 |
 | arm64 Mac, onnxruntime CPUExecutionProvider | development-machine CPU, offline baseline only |
-| NVIDIA Spark GB10 workstation (VLM latency) | the shared VLM service's own workstation |
 
 ## Reproduction status
 
@@ -64,10 +63,6 @@ implementation. A successful conversion does not mean that part of the graph
 runs on the NPU. No RK3576 device was reachable to confirm output parity
 against CPU. Unverified, not a negative result. Source:
 `evaluation/runs/2026-09-06-a1-probe/results.md`.
-
-**VLM integration test.** `evaluation/runs/2026-09-06-mvlma-stub-localhost/results.md`
-is a Mac stub-backend integration test, not a real-model latency measurement.
-No Orin-specific VLM latency has been measured.
 
 ## Dataset licence
 

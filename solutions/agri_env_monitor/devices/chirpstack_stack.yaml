@@ -171,20 +171,20 @@ remote_overrides:
       type: select
       default: "m2"
       required: true
-      description: Pick `m2` if the gateway runs its own network server — nothing but the bridge starts here. Pick `local` to run ChirpStack on this host with a WM1302 concentrator.
+      description: Pick `m2` if the gateway runs its own network server — nothing but the bridge starts here. Pick `local` to run ChirpStack on a reComputer R12 Series gateway.
       options:
         - value: "m2"
           label: On the M2 gateway (built-in ChirpStack)
           label_i18n:
             zh: 在 M2 网关上（内置 ChirpStack）
         - value: "local"
-          label: On this host (ChirpStack + WM1302)
+          label: On the R12 gateway (ChirpStack + built-in concentrator)
           label_i18n:
-            zh: 在本机（ChirpStack + WM1302）
+            zh: 在 R12 网关上（ChirpStack + 内置集中器）
       name_i18n:
         zh: 网络服务器运行在哪里
       description_i18n:
-        zh: 网关自带网络服务器就选 `m2`，本机只起桥。选 `local` 则在本机跑 ChirpStack，配 WM1302 集中器。
+        zh: 网关自带网络服务器就选 `m2`，本机只起桥。选 `local` 则在 reComputer R12 系列网关上跑 ChirpStack。
     - id: region
       name: Frequency Plan
       type: select

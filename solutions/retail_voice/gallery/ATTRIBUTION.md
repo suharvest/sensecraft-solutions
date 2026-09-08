@@ -52,6 +52,11 @@ SHA-256 of the copies, recorded so a later divergence is visible:
 The earlier packages' client screenshots were **not** carried over. They were
 taken against builds whose pages differ from what these two presets deploy, and
 a gallery image that shows a UI the user will not see is worse than no image.
+Those files (`edge-client.png`, `edge-client-asr.png`, `edge-client-device.png`,
+`rerouter.png` and the rest of `solutions/smart_retail_voice_ai/gallery/`) no
+longer exist in this repository: that package was deleted on 2026-09-08 when it
+was merged into this one. The files that this gallery uses were copied before
+the deletion and are listed above with their SHA-256.
 
 ## Provenance limits
 
@@ -80,10 +85,10 @@ of the actual kit (reRouter CM4, power supply, USB cable, reSpeaker XVF3800),
 first-party Seeed material, unmodified.
 
 **Still missing (as of 2026-09-07):** a photograph of the kit installed at a
-counter, and a console screenshot showing real transcripts. The only console
-screenshots available in this repository
-(`solutions/smart_retail_voice_ai/gallery/edge-client*.png`) show an empty
-transcript list and belong to a different package.
+counter, and a console screenshot showing real transcripts. The client
+screenshots that used to sit in `solutions/smart_retail_voice_ai/gallery/`
+showed an empty transcript list; that directory was deleted on 2026-09-08 and
+nothing here depends on it.
 
 ## 2026-09-08 — cover changed again, to a real console screenshot
 

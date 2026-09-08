@@ -6,18 +6,32 @@ name_i18n:
 type: docker_deploy
 device_class: jetson
 
-# NOT VERIFIED ON HARDWARE. Both images now exist: the recognition service was
-# published on 2026-09-07 as solution/face-rec-api:0.1.0-usa-jetson
-# (linux/arm64), and this project's own device-side daemon as
-# solution/unmanned-store-access-node:0.1.1 (linux/amd64 + linux/arm64). Both
-# digests/tags are the defaults for `face_rec_api_image` / `access_node_image`
-# below; either can still be overridden to pin a digest or run your own build.
+# What has been run on hardware, and what has not.
 #
-# The DO pin numbers (sysfs 463/464/465/462 for DO1–DO4) come from the design
-# spec and have not been confirmed on hardware. Whether the target image exposes
-# them through sysfs at all, or through Jetson.GPIO instead, is an open question
-# for the hardware pass. The deployment writes whatever the operator measured;
-# it does not guess.
+# Verified 2026-09-08 on a reComputer J4012 (Jetson Orin NX 16 GB on a J401
+# carrier, L4T R36.4.3, TensorRT 10.3): the recognition container
+# face-rec-api:0.1.1-usa-jetson starts from the ONNX weights this file
+# downloads, builds its three TensorRT engines on the box (61 s + 62 s + 73 s),
+# answers /health with liveness "loaded" 214 s after `docker run`, and returns
+# a face box, a liveness verdict and a 512-d embedding for a frame pulled off a
+# live RTSP stream in 24-26 ms of server time. Details in unmanned-store-access
+# evaluation/runs/2026-09-08-orin-nx-b-route/results.md. 0.1.0 could not do
+# this: it shipped neither the weights nor an engine builder, and the container
+# exited on "detector engine not found".
+#
+# NOT verified: the door itself. Nothing in this file has ever driven a relay,
+# and the contact-closure numbers stay unmeasured because the test box has no
+# wire on the header — see the run record.
+#
+# Pin coordinates differ by kernel and there is no default that is right for
+# both boxes. The J20 DO numbers (sysfs 463/464/465/462 for DO1–DO4) come from
+# the design spec and have still not been confirmed on hardware. The J30/J40
+# 40-pin header has no sysfs GPIO class at all (Tegra 5.15 does not export
+# /sys/class/gpio), so those boxes drive the door through libgpiod with a
+# gpiochip + line offset; the header-to-line mapping is in unmanned-store-access
+# platforms/jetson/README.md, cross-checked against NVIDIA's own pin table and
+# the Seeed J401 carrier wiki. The deployment writes whatever the operator
+# picked; it does not guess.
 
 docker:
   compose_file: assets/edge/docker-compose.yml
@@ -46,7 +60,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 15
-    description: The recognition image with its weights, the device image, the local library copy and a bounded audit log.
+    description: The recognition image, the ONNX weights and the TensorRT engines built from them (about 50 MB together), the device image, the local library copy and a bounded audit log.
 
 deploy_timeout: 3600
 
@@ -90,6 +104,56 @@ remote_overrides:
         name_i18n:
           zh: 检查盒子、DO 引脚与时钟
 
+      - name: Download the face model weights
+        timeout: 900
+        run: |
+          set -e
+          # The recognition image ships code only. The weights are derived from
+          # InsightFace releases, whose licence is non-commercial
+          # (face_rec_api MODEL_LICENSE.md), so they are not redistributed
+          # inside the image; they land on the host and are bind mounted at
+          # /models. The TensorRT engines built from them are JetPack + SM
+          # specific and cannot be shipped either — the container's entrypoint
+          # builds them here on first start (measured on a J4012: 61 s + 62 s +
+          # 73 s, service answering /health 214 s after `docker run`; later
+          # starts reuse the cached engines).
+          ONNX_DIR=/opt/usa/models/onnx
+          sudo mkdir -p "$ONNX_DIR"
+          sudo chown -R "$(id -u):$(id -g)" /opt/usa
+          BASE=https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models
+          # Every file is checked against its digest. A weight that arrives
+          # truncated or replaced builds an engine that runs and returns
+          # embeddings that match nobody, which reads as "the camera is bad"
+          # rather than as a corrupted download.
+          set -- \
+            "scrfd_10g.onnx 5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91" \
+            "arcface_mobilefacenet.onnx 9cc6e4a75f0e2bf0b1aed94578f144d15175f357bdc05e815e5c4a02b319eb4f" \
+            "liveness_minifasnet.onnx 697572ef08e280d84ff43bf4b6fe441b27bbd831138d31351a7382d2d725e7e0"
+          for entry in "$@"; do
+            f=${entry%% *}; want=${entry##* }
+            if [ -f "$ONNX_DIR/$f" ] && [ "$(sha256sum "$ONNX_DIR/$f" | cut -d' ' -f1)" = "$want" ]; then
+              echo "$f: already present and matching"
+              continue
+            fi
+            echo "$f: downloading"
+            # A failed or aborted download leaves a .part behind. Remove it here
+            # rather than only on a digest mismatch: a truncated file that is
+            # never cleaned up gets retried against the same partial content on
+            # the next run, and the digest check below never sees it.
+            if ! curl -fsSL --retry 3 -o "$ONNX_DIR/$f.part" "$BASE/$f"; then
+              rm -f "$ONNX_DIR/$f.part"
+              echo "$f: download failed" >&2
+              exit 1
+            fi
+            got=$(sha256sum "$ONNX_DIR/$f.part" | cut -d' ' -f1)
+            [ "$got" = "$want" ] || { echo "$f: sha256 mismatch (got $got, want $want)" >&2; rm -f "$ONNX_DIR/$f.part"; exit 1; }
+            mv "$ONNX_DIR/$f.part" "$ONNX_DIR/$f"
+            echo "$f: ok"
+          done
+          ls -l "$ONNX_DIR"
+        name_i18n:
+          zh: 下载人脸模型权重
+
     after_upload:
       - name: Write the door configuration
         run: |
@@ -113,12 +177,40 @@ remote_overrides:
           # instead of taking the measured number directly. sysfs_gpio backend
           # sysfs only requires `gpio`, which is exactly what was measured above.
           act["kind"] = "sysfs_gpio"
-          act["backend"] = "sysfs"
+          act["backend"] = "{{gpio_backend}}"
           act["actuator_id"] = "{{device_id}}"
           # Every one of these four is measured, never defaulted. A wrong
           # relay_contact on a fail-safe lock is a permanently open door and
           # looks exactly like a working install.
-          act["gpio"] = int("{{do_gpio}}")
+          #
+          # Which coordinate is written depends on the backend, and the unused
+          # one is set to null rather than left at a stale value: config.py
+          # requires gpio for sysfs and both gpiochip and line for libgpiod, so
+          # a half-filled actuator block fails at parse time instead of driving
+          # a pin nobody chose.
+          #
+          # Both branches refuse an empty answer rather than letting int("")
+          # raise a ValueError with no context. The two coordinate fields are
+          # optional in the form because neither is right for both kernels, and
+          # "optional in the form" must not become "defaulted on the box".
+          if "{{gpio_backend}}" == "libgpiod":
+              line = "{{gpio_line}}".strip()
+              if not line:
+                  print("GPIO Interface is libgpiod but no line offset was given. "
+                        "Run gpioinfo on the box and pick a free line; the 40-pin "
+                        "header mapping is in the guide.")
+                  raise SystemExit(1)
+              act["gpio"] = None
+              act["gpiochip"] = "{{gpiochip}}"
+              act["line"] = int(line)
+          else:
+              gpio = "{{do_gpio}}".strip()
+              if not gpio:
+                  print("GPIO Interface is sysfs but no sysfs GPIO number was given.")
+                  raise SystemExit(1)
+              act["gpio"] = int(gpio)
+              act["gpiochip"] = None
+              act["line"] = None
           act["active_high"] = "{{active_high}}" == "true"
           act["pulse_ms"] = int("{{pulse_ms}}")
           act["relay_contact"] = "{{relay_contact}}"
@@ -145,6 +237,24 @@ remote_overrides:
               print("REFUSING: a plaintext library URL with no signing key. The node will not start.")
               raise SystemExit(1)
           PY
+          # The compose file binds GPIO_SYSFS_DIR at /sys/class/gpio inside the
+          # container. On Tegra 5.15 that host path does not exist and the bind
+          # would fail the container outright, so a libgpiod install points it
+          # at an empty directory instead — the node does not read it, the
+          # actuator goes through the character device below.
+          if [ "{{gpio_backend}}" = "libgpiod" ]; then
+            GPIO_SYSFS_DIR="$WORKDIR/no-sysfs-gpio"
+            mkdir -p "$GPIO_SYSFS_DIR"
+            CHARDEV="/dev/{{gpiochip}}"
+            [ -e "$CHARDEV" ] || { echo "$CHARDEV does not exist on this box; check gpioinfo" >&2; exit 1; }
+          else
+            GPIO_SYSFS_DIR=/sys/class/gpio
+            # Not the gpiochip: the sysfs backend does not open it, and naming a
+            # device the host may not have fails container creation. /dev/null
+            # is the compose default and exists everywhere.
+            CHARDEV=/dev/null
+          fi
+
           cat > "$WORKDIR/.env" <<EOF
           FACE_REC_API_IMAGE={{face_rec_api_image}}
           ACCESS_NODE_IMAGE={{access_node_image}}
@@ -155,6 +265,9 @@ remote_overrides:
           DOOR_ID={{door_id}}
           RTSP_URL={{rtsp_url}}
           FACEDB_URL={{facedb_url}}
+          MODELS_DIR=/opt/usa/models
+          GPIO_CHARDEV=$CHARDEV
+          GPIO_SYSFS_DIR=$GPIO_SYSFS_DIR
           EOF
         name_i18n:
           zh: 写入门禁配置
@@ -253,24 +366,26 @@ remote_overrides:
       name: Recognition Image (digest-pinned)
       type: text
       required: true
-      default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac"
+      default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:0b0f37e2b170194f3e5b0577b6cd18ef6565143b7e637bd5d0ffb383aec0d5a1"
       placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
       description: >-
         A digest, not a tag. Two doors on the same tag but different digests
         hold embeddings that are not comparable, and the symptom is people not
         being recognised rather than an obvious version error. The default is
-        the 2026-09-07 build (solution/face-rec-api:0.1.0-usa-jetson, arm64),
-        which ships no weights: mount the TensorRT engines built on this box
-        with tools/build_engine.sh, and run with `--runtime nvidia`.
+        the 2026-09-08 build (solution/face-rec-api:0.1.1-usa-jetson, arm64),
+        which ships no weights: the step above downloads the ONNX to
+        /opt/usa/models and the container builds its TensorRT engines there on
+        first start. It runs with `runtime: nvidia` and four host bind mounts
+        for the CUDA / TensorRT libraries.
       name_i18n:
         zh: 识别服务镜像（digest 锁定）
       description_i18n:
         zh: >-
           写 digest，不要写 tag。同一个 tag 但 digest 不同的两道门，嵌入不可比，
-          症状是"认不出人"而不是显眼的版本错误。默认值是 2026-09-07 的构建
-          （solution/face-rec-api:0.1.0-usa-jetson，arm64）。镜像里不带权重：
-          用本机 tools/build_engine.sh 生成的 TensorRT engine 挂进去，并加
-          `--runtime nvidia`。
+          症状是"认不出人"而不是显眼的版本错误。默认值是 2026-09-08 的构建
+          （solution/face-rec-api:0.1.1-usa-jetson，arm64）。镜像里不带权重：
+          上一步把 ONNX 下到 /opt/usa/models，容器首启在本机构建 TensorRT engine。
+          它以 `runtime: nvidia` 运行，并从宿主机挂四份 CUDA / TensorRT 库。
     - id: access_node_image
       name: Access Node Image
       type: text
@@ -290,23 +405,89 @@ remote_overrides:
           门边那个进程：拉 RTSP、向 face-rec-api 要嵌入和活体分、对本地人脸库判定、
           驱动干接点继电器。amd64 与 arm64 两个架构，镜像里不带权重。
           只有要钉 digest 或换自己的构建时才改它。
+    - id: gpio_backend
+      name: GPIO Interface
+      type: select
+      required: true
+      default: "sysfs"
+      description: >-
+        Which kernel interface drives the door pin. It is decided by the kernel,
+        not by preference: the J20's 4.9/5.10 kernel has /sys/class/gpio, while
+        Tegra 5.15 on the J30/J40 does not export it at all and only offers
+        /dev/gpiochipN. Check with `ls /sys/class/gpio` on the box.
+      options:
+        - value: "sysfs"
+          label: sysfs — /sys/class/gpio (J20, and other 4.9/5.10 kernels)
+          label_i18n:
+            zh: sysfs——/sys/class/gpio（J20，以及其它 4.9/5.10 内核）
+        - value: "libgpiod"
+          label: libgpiod — /dev/gpiochipN (J30/J40, JetPack 6 / Tegra 5.15)
+          label_i18n:
+            zh: libgpiod——/dev/gpiochipN（J30/J40，JetPack 6 / Tegra 5.15）
+      name_i18n:
+        zh: GPIO 接口
+      description_i18n:
+        zh: >-
+          用哪套内核接口驱动门控引脚。这由内核决定，不是偏好：J20 的 4.9/5.10 内核有
+          /sys/class/gpio；J30/J40 上的 Tegra 5.15 根本不导出它，只有 /dev/gpiochipN。
+          在盒子上 `ls /sys/class/gpio` 就能确认。
+    - id: gpiochip
+      name: GPIO Chip
+      type: text
+      default: "gpiochip0"
+      required: true
+      description: >-
+        libgpiod only. On a reComputer J4012 the 40-pin header is entirely on
+        gpiochip0 (164 lines, the SoC controller); gpiochip1 is the AON
+        controller and gpiochip2 is carrier-board I/O, neither of which reaches
+        the header. `gpioinfo` lists all three.
+      validation:
+        pattern: "^gpiochip[0-9]+$"
+      name_i18n:
+        zh: GPIO 控制器
+      description_i18n:
+        zh: >-
+          只对 libgpiod 有意义。reComputer J4012 上 40-pin 排针全在 gpiochip0
+          （164 条线，SoC 控制器）；gpiochip1 是 AON 控制器，gpiochip2 是载板 I/O，
+          两者都不在排针上。`gpioinfo` 能列出这三个。
+    - id: gpio_line
+      name: GPIO Line Offset
+      type: text
+      required: false
+      placeholder: "106"
+      description: >-
+        libgpiod only, and it is a line offset on the chip, not a pin number on
+        the header. On the J401 carrier header pin 31 is line 106 and pin 29 is
+        line 105; the full table is in unmanned-store-access
+        platforms/jetson/README.md. `gpioinfo` also shows which lines are
+        already claimed — do not take one that is.
+      validation:
+        pattern: "^[0-9]*$"
+      name_i18n:
+        zh: GPIO 线号
+      description_i18n:
+        zh: >-
+          只对 libgpiod 有意义，而且它是芯片上的 line 偏移，不是排针上的 pin 号。
+          J401 载板上排针 pin 31 是 line 106、pin 29 是 line 105，完整对照表在
+          unmanned-store-access platforms/jetson/README.md。`gpioinfo` 还会显示
+          哪些线已经被占——被占的不要用。
     - id: do_gpio
       name: DO sysfs GPIO Number
       type: text
-      required: true
+      required: false
       placeholder: "463"
       description: >-
-        The design spec records DO1–DO4 as 463/464/465/462 on this box, and that
-        has not been confirmed on hardware. Verify with a meter which sysfs
-        number moves which terminal before wiring anything to a lock.
+        The design spec records DO1–DO4 as 463/464/465/462 on this box. Verify
+        with a meter which sysfs number moves which terminal before wiring
+        anything to a lock.
       validation:
         pattern: "^[0-9]+$"
       name_i18n:
         zh: DO 的 sysfs GPIO 编号
       description_i18n:
         zh: >-
-          设计 spec 记录这台盒子的 DO1–DO4 是 463/464/465/462，这一条没有在真机上确认过。
-          接锁之前先用万用表确认哪个 sysfs 编号对应哪个端子。
+          设计 spec 记录这台盒子的 DO1–DO4 是 463/464/465/462。接锁之前先用万用表确认
+          哪个 sysfs 编号对应哪个端子。
     - id: active_high
       name: Active Level
       type: select
@@ -379,9 +560,8 @@ remote_overrides:
       default: "0.62"
       required: true
       description: >-
-        A starting point, not a calibrated value. No FAR/FRR figure exists for
-        this project on any hardware. Sweep positive and negative pairs on the
-        installed camera and set it from that.
+        A starting point, not a calibrated value. Sweep positive and negative
+        pairs on the installed camera and set it from that.
       validation:
         pattern: "^0(\\.[0-9]+)?$"
       name_i18n:

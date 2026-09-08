@@ -1,0 +1,57 @@
+version: "1.0"
+id: panel_console
+name: Open the Alarm Panel
+type: web_dashboard
+
+# Shared by every preset that installs the panel — the optional step on the
+# reCamera 2002 and reCamera Pro presets, and the always-on panel service in
+# the J / RK / R (Hailo) compose stacks.
+#
+# It carries its own host input rather than inheriting one, because the
+# preceding step differs per preset: the detector host on J / RK / R, the
+# separate panel host on the reCamera presets.
+web_dashboard:
+  url: "http://{{alarm_host}}:{{alarm_port}}/"
+  title: Alarm Panel
+  title_i18n:
+    zh: 告警面板
+  description: Two pages — Alarms (list, a detail drawer with confirm and dismiss, and the voice check-in verdict and transcript when that module is on) and Zones (read-only). An empty alarm list on a quiet site is the correct result — it means the service is up. Confirming or dismissing an alarm records the operator against it, which is what the audit trail is for. If the deployment set ELDERCARE_API_TOKEN, the page opens on a login screen first — enter that token plus an operator name, which goes on the confirm and dismiss receipts; leave it unset and the page opens straight on the alarm list.
+  description_i18n:
+    zh: 两个页面——告警（列表、详情抽屉里带确认与驳回，开启语音确认模块后还会显示判定结论与转写）与区域（只读）。现场无事时告警列表为空即为正常，说明服务已在运行。确认或驳回会把操作者记到该条告警上，这正是审计链的用途。若部署时设置了 ELDERCARE_API_TOKEN，打开页面会先看到登录页——输入该口令与操作者姓名（会写进确认/驳回回执）；不设置该变量则直接进入告警列表。
+
+user_inputs:
+  - id: alarm_host
+    name: Panel Host
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The detector host on the reComputer presets, or the separate panel host on the reCamera presets
+    name_i18n:
+      zh: 面板主机地址
+    description_i18n:
+      zh: reComputer 套餐填检测主机地址；reCamera 套餐填单独的面板主机地址
+  - id: alarm_port
+    name: Port
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: The Panel Port value from the deploy step
+    name_i18n:
+      zh: 端口
+    description_i18n:
+      zh: 部署步骤里填的「面板端口」
+  - id: alarm_token
+    name: Access Token (if configured)
+    type: text
+    required: false
+    placeholder: "leave blank if ELDERCARE_API_TOKEN was not set"
+    description: Only needed if the deployment set ELDERCARE_API_TOKEN. The panel's own login page is where this is entered — this field is a reminder, not something this step submits for you.
+    name_i18n:
+      zh: 访问口令（如已配置）
+    description_i18n:
+      zh: 仅当部署设置了 ELDERCARE_API_TOKEN 时需要。真正的输入口在面板自己的登录页——这里只是提醒，本步骤不会替你提交它。
+
+name_i18n:
+  zh: 打开告警面板

@@ -212,6 +212,16 @@ remote_overrides:
         ignore_error: true
         name_i18n:
           zh: 确认麦克风阵列已枚举
+      - name: Open the ALSA device nodes to the container
+        # Carried over from the retired smart_retail_voice_ai package. The
+        # capture container here is not privileged and joins the `audio`
+        # group; on a stock OpenWrt image the nodes are already root-owned and
+        # this is a no-op, but on images where the group differs it is what
+        # made capture work.
+        run: chmod -R 666 /dev/snd/* || true
+        ignore_error: true
+        name_i18n:
+          zh: 放开 ALSA 设备节点权限
     after_upload:
       - name: Write the recognition language and voiceprint switch into the client config
         # The config template ships placeholders; substituting after upload
@@ -248,3 +258,10 @@ remote_overrides:
 post_deployment:
   open_browser: true
   url: "http://{{host}}:8090"
+
+# The retired smart_retail_voice_ai package carried `reboot_recommended` /
+# `reboot_message` here. Neither is a spec field (see
+# spec/device.schema.json PostDeploymentConfig), so both were dropped on load
+# and never reached the UI. A reboot is not needed for the `chmod` above to
+# take effect; what a reader does need to know is that it is not persistent.
+# That is written in guide.md, Step 2.

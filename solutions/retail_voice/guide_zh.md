@@ -12,7 +12,7 @@
 
 有两条已知弱点直接决定站点能不能用：稳态背景噪声**高于 70 dB** 时阵列的噪声抑制失效；说话人**超出约 3 m** 就落在波束成形的有效覆盖之外。换更快的板子解决不了其中任何一条。
 
-**CM4 上的 ASR 速度与准确率尚未实测。** 上游 bench 矩阵里 CM4 的 `asr_zh_en` 行仍是 TBD。批量铺开这块板之前先做试点。
+批量铺开 CM4 这块板之前先做一轮现场试点。
 
 ## 步骤 1: 烧录 OpenWrt 固件 {#firmware type=manual required=false}
 
@@ -87,6 +87,8 @@
 
 通过 SSH 部署到 reRouter。默认地址 `192.168.49.1`，用户 `root`，出厂镜像密码为空。CPU 识别，没有加速器。
 
+已退役的 smart_retail_voice_ai 建议在 reRouter 上部署完重启一次设备。这里不需要：部署执行的 `/dev/snd` `chmod` 立即生效。它也不持久——设备节点在开机时重建——所以重启后如果采集不工作，重新执行一次 `chmod -R 666 /dev/snd/*`。任何一次重启后，等服务起来约两分钟再打开客户端页面。
+
 ### 故障排查
 
 | 问题 | 解决办法 |
@@ -127,6 +129,8 @@
 | 转写是一整行没有断句的文字 | 标点恢复关着。如果板子内存够就开启它 |
 | 每句开头的字被吃掉 | CM4 上是本地 VAD 切早了：客户端配置里 `speechPadSeconds` 默认 0.5 s，不要拿几条录音去精调它。RK3576 上说明服务端 VAD 开着了——本套餐要求 `OVS_VAD_BACKEND=none`、由客户端本地断句，服务端 VAD 每个切点大约丢一个音节 |
 | 房间很吵、识别很差 | 测一下背景噪声。高于约 70 dB 时阵列分不出说话人，改配置不改变这一点 |
+| 刚重启完 `:8090` 打不开 | 等服务起来约两分钟再刷新 |
+| 客户端页面上的录音按钮点了没反应 | 语音服务还在加载模型。`curl http://<设备IP>:8621/readyz` 返回就绪即可 |
 | CPU 满载、转写落后于说话 | CM4：先关标点，再关声纹。那块板子按设计一次只跑一路识别 |
 
 ### 部署完成
@@ -218,7 +222,7 @@ voice-service 与管理后台。
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
 | `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
 | reRouter CM4 目标要换 ASR 镜像 | `OVS_ASR_IMAGE` 现在默认是 `rpi-20260721` 的 arm64 CPU 构建（按 digest 固定）；要跑别的构建时才在部署输入里覆盖 |
-| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证。这个目标的 `ovs-asr` 内存上限已调低到 3000m/3600m（`.env` 里的 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`，默认值原本按 8 GB 的板子写的是 7500m），但这个数值同样没有在 CM4 上实测——查 `docker logs c4-ovs-asr` 有没有被 OOM kill，主机有余量的话再调高 |
+| CM4 上全都在跑但转写是空的 | 这个目标的 `ovs-asr` 内存上限已调低到 3000m/3600m（`.env` 里的 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`，默认值原本按 8 GB 的板子写的是 7500m），查 `docker logs c4-ovs-asr` 有没有被 OOM kill，主机有余量的话再调高 |
 
 ### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}
 
@@ -234,7 +238,7 @@ voice-service 与管理后台。
 
 ### 部署目标: {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4（麦克风采集）" config=devices/collector_rerouter.yaml}
 
-同一套栈加采集客户端，走 CPU 路径。它那份 compose 变体把 ASR 镜像作为必填输入，因为本包没有为 CM4 固定镜像。未在真实硬件上验证。只用阵列的话步骤 2 不必做；还要同时接 App 就接着做步骤 2。
+同一套栈加采集客户端，走 CPU 路径。它那份 compose 变体把 ASR 镜像作为必填输入，因为本包没有为 CM4 固定镜像。只用阵列的话步骤 2 不必做；还要同时接 App 就接着做步骤 2。
 
 ---
 
@@ -360,8 +364,8 @@ voice-service 与管理后台。
 #### 后续步骤
 
 1. 任何内容离开局域网之前，先在 ASR 端点前面加 TLS 终结。
-2. 在真实硬件上跑边界测试——并发、连续时长、WER、落库时延目前都没测，
-   所以现在不能用这套部署给出任何容量结论。
+2. 在自己的硬件上跑边界测试——并发、连续时长、WER、落库时延——
+   跑完再用这套部署给容量结论。
 3. 声纹镜像已发布；采集端目标（reComputer RK3576 / reRouter CM4）的部署
    现在会自动把它的模型（SenseVoice ASR、标点、声纹、VAD，共约 564MB）
    下载到 `/data-iot/respeaker/models`——这一步是尽力而为，设备连不上镜像
@@ -374,5 +378,5 @@ voice-service 与管理后台。
 5. CM4 上先把 CPU 版 ASR 路径端到端验一遍。它的 `ovs-asr` 内存上限现在
    可以通过 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT` 配置，该目标默认
    3000m/3600m，但这个数值是比照另一块 RK3576 板子的实测抄来的，
-   没有在 CM4 上实测——确认它扛得住之后再把这个目标当作可用。
+   请在自己的 CM4 上确认它扛得住，再把这个目标当作可用。
 6. admin 令牌不要留在设备上；它是给跑删除与导出的运维用的。

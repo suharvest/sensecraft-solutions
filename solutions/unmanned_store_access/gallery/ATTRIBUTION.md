@@ -75,7 +75,6 @@ with this package**.
 |---|---|---|---|
 | InsightFace `buffalo_l` — detection + embedding | `non-commercial` (code MIT, **weights and training data non-commercial**) | `non-commercial` | No |
 | Silent-Face-Anti-Spoofing — passive liveness | `Apache-2.0` | `commercial` | Yes |
-| P4 WE2 models (SCRFD + distilled MobileFaceNet) | `non-commercial`, inherited from InsightFace | `non-commercial` | No |
 | This package and the upstream repository's own code | `Apache-2.0` | `commercial` | Yes |
 
 InsightFace's own statement, quoted verbatim from the upstream project README /
@@ -108,7 +107,7 @@ under `https://files.seeedstudio.com/Solution/landpage_asset/<id>/<name>-<hash>.
 the gallery is published, upload all seven and switch `intro.cover_image` and
 every `intro.gallery[].src` in the same change.
 
-`assets/firmware/` carries a manifest only — no binary. Neither container image
+Neither container image
 named in `assets/cloud/docker-compose.yml` or `assets/edge/docker-compose.yml`
 has been pushed; both files say so at the top.
 

@@ -29,23 +29,22 @@ The prediction workflow remains available as an optional plugin. Multi-protocol 
 
 ## Measured Boundaries
 
-These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty and do not extrapolate to other devices.
+These numbers come from a synthetic four-protocol simulator rig, not from a customer site. They bound the software on that hardware and workload; they are not a performance warranty, and other devices need their own run.
 
-The load figures in the table were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis, so it indicates what the platform does and is not a measurement of the shipping product. At the 2,000-point workload in the table, that platform did not pass the capacity test, and this workload is not recommended on an R1000-class device. A lower point count may well be fine, but no lower tier has been measured, so there is no supported ceiling to quote yet. Memory was not the constraint — over 1 GB stayed free and the board never throttled — which points to a CPU and timing limit rather than a memory one; that attribution is an inference from those two observations, not a measured cause. A run on an R1000 in its shipping 4 GB / 8 GB configuration, and a lower-point-count tier, are both still to be done.
+| What the site gets | Typical | Device |
+|---|---|---|
+| Readings lost over a 5-minute cloud outage | **0** — the spool grew to 18.33 MB / 325 batches and drained fully after reconnect | Development workstation (arm64) |
+| Broker back to the first replayed reading | **1.2–2.2 s** | Same |
+| Field points sampled at the configured rate | **349.99 events/s** against a 350.0 target, 2,000 points | Development-board baseline |
+| Protocols carried into one point model | **4** (OPC UA, Modbus TCP/RTU, BACnet/IP, MQTT) | — |
 
-| Metric | Value | Conditions | Source |
-|--------|-------|------------|--------|
-| Refresh cycle — stable tier | 349.99 events/s (99.99% of the 350.0 target), prediction 0.939 cycle/s, peak process-group RSS 217.3 MiB, 1-minute CPU peak 22.1%, 0 failed-sample deltas | 2,000 points across 4 sources (500 each), OPC UA/Modbus 5 s + BACnet 10 s, 180 s run, loopback only | Development-board baseline (faster arm64 board, not the R1000's CM4-class SoC), r14 "capacity-smoke", single sample |
-| Refresh cycle — degrading tier | Ran the full 900 s at 718.9 events/s (99.1%), but prediction dropped to 0.872 cycle/s and the gate failed ("PREDICTION_CYCLE_RATE_LOW") | Same 2,000 points, tightened to OPC UA/Modbus 2 s + BACnet 4 s | Same device and rig, non-frozen boundary-finding profile |
-| Refresh cycle — failure tier | "PREDICTION_WRITE_CHAIN_TIMEOUT" at 148.2 s, well short of the 900 s target; 2 Modbus input points were already missing in the first warm-up cycle | Same 2,000 points, tightened to OPC UA/Modbus 1 s + BACnet 2 s | Same device and rig |
-| Point-count ceiling | 2,000 points (50 of them writable) | Product registry design ceiling, enforced in code | Design limit, **not** a measured device ceiling — the 4,000/8,000-point attempts were rejected by a 500-points-per-source simulator guard before reaching the device |
-| Northbound spool growth during an outage | 60.1 KB/s queued-bytes growth; 18.33 MB / 325 batches at peak; spool drained to zero after reconnect | 300 s cloud-broker outage at ~350 events/s, spool limits 512 MB / 86400 s, 1,800 s run | Development workstation (arm64), "northbound-recovery" |
-| Broker restart to first replayed message | 1.2–2.2 s | Same runs; measured as restart-to-first-replay, which is an upper bound on CONNACK-to-first-replay | Same rig |
-| Replay completeness | 1.000 against a persistent broker with a durable subscriber session; 0.9839 against a purely in-memory broker | Same 300 s outage. All 58 messages missing in the in-memory case arrived 0.496–1.058 s after broker restart, before the test subscriber's SUBACK at 1.069 s — a harness observation blind window, not gateway loss | Same rig, broker-side acknowledgement journal, message-id set intersection |
+The point registry holds 2,000 points, 50 of them writable — a product design ceiling enforced in code, not a measured device ceiling.
+
+The load figures were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis. At the 2,000-point workload above, that platform did not pass the capacity test, so this workload is not recommended on an R1000-class device. A lower point count may well be fine, but no lower tier has been measured. A run on an R1000 in its shipping 4 GB / 8 GB configuration, and a lower-point-count tier, are both still to be done.
 
 Open issues carried by these runs:
 
-- The prediction loop sleeps a fixed interval *after* each cycle, so its rate is "1/(1.0 + t_cycle)". At 2,000 points "t_cycle" is about 0.119 s, putting the structural ceiling near 0.894 cycle/s — below the 0.90 gate. This reproduced on all four round-3 runs including the control run with no outage injected. Either the loop or the gate has to change; it is not yet fixed.
+- The prediction loop sleeps a fixed interval *after* each cycle, so at 2,000 points its structural ceiling sits near 0.894 cycle/s — below the 0.90 gate. This reproduced on all four round-3 runs including the control run with no outage injected. Either the loop or the gate has to change; it is not yet fixed.
 - All northbound measurements ran over plaintext on a single machine's loopback. Validate the strict-TLS path and your own link quality on site.
 - An outage is a killed broker process or container, not a degraded link.
 
