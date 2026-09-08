@@ -182,7 +182,7 @@ separately benchmarked for this solution. A TensorRT engine is built on the
 device during the first deploy (measured about 5 minutes on the J3011 unit),
 which ties it to that device and that TensorRT version. Choose J3011 when you
 want the numbers above to apply, or J40 for more headroom on extra camera
-streams (not yet measured on this solution).
+streams (not separately benchmarked on this solution).
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
