@@ -6,8 +6,8 @@
 #
 # BOTH IMAGES ARE PUBLISHED.
 #
-#   face-rec-api  The upstream recognition service, published 2026-09-07 as
-#                 solution/face-rec-api:0.1.0-usa-jetson (linux/arm64, built
+#   face-rec-api  The upstream recognition service, published 2026-09-08 as
+#                 solution/face-rec-api:0.1.1-usa-jetson (linux/arm64, built
 #                 from face_rec_api Dockerfile.jetson-usa). The default below is
 #                 a DIGEST, not a tag, and that is deliberate: two doors running
 #                 the same tag but different digests would hold embeddings that
@@ -17,10 +17,18 @@
 #                 different build.
 #                 The image carries no weights. TensorRT engines are JetPack +
 #                 SM specific and the InsightFace-derived weights are under a
-#                 non-commercial licence, so both are mounted from the host
-#                 (-v .../models:/models) rather than shipped in the image.
-#                 CUDA / TensorRT libs come from the host JetPack install too,
-#                 so the container needs `--runtime nvidia`.
+#                 non-commercial licence, so both stay on the host and are bind
+#                 mounted at /models. 0.1.1 builds the engines from the mounted
+#                 ONNX on first start (scripts/build_engine.py, run by the
+#                 entrypoint); 0.1.0 could not — it had neither the weights nor
+#                 a builder, and the container died on `detector engine not
+#                 found`.
+#                 CUDA / TensorRT libs and the TensorRT Python bindings come
+#                 from the host JetPack install, so the container needs
+#                 `runtime: nvidia` and the four host mounts below. Each one was
+#                 established by an error: no tensorrt module, then
+#                 libnvinfer.so.10, then libcudla.so.1
+#                 (unmanned-store-access evaluation/runs/2026-09-08-orin-nx-acceptance-2).
 #   access-node   This project's own device-side process, published as
 #                 solution/unmanned-store-access-node:0.1.1 for linux/amd64 and
 #                 linux/arm64. It reads the access-node.json in ../edge/config,
@@ -49,11 +57,29 @@ x-logging: &bounded_logs
 
 services:
   face-rec-api:
-    image: ${FACE_REC_API_IMAGE:-sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac}
+    image: ${FACE_REC_API_IMAGE:-sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:0b0f37e2b170194f3e5b0577b6cd18ef6565143b7e637bd5d0ffb383aec0d5a1}
     container_name: usa-face-rec-api
     restart: unless-stopped
     <<: *bounded_logs
+    runtime: nvidia
     ports: ["18080:8080"]
+    volumes:
+      # The weights and the engines built from them. MODELS_DIR must hold an
+      # onnx/ subdirectory with scrfd_10g.onnx and arcface_mobilefacenet.onnx;
+      # the deploy step downloads them there.
+      - ${MODELS_DIR:-/opt/usa/models}:/models
+      # The TensorRT Python bindings. They are part of JetPack and cannot be
+      # pip-installed, so the host copy is mounted onto the container's
+      # site-packages. Mount the bindings directory itself, not the whole host
+      # dist-packages — that would drop a full set of host-built packages onto
+      # the container's import path.
+      - ${TRT_PYTHON_DIR:-/usr/lib/python3.10/dist-packages/tensorrt}:/usr/local/lib/python3.10/dist-packages/tensorrt:ro
+      # libnvinfer / libnvdla_compiler / the Tegra stack.
+      - /usr/lib/aarch64-linux-gnu:/opt/host-libs:ro
+      # libcudla.so.1 lives here, not in /usr/lib/aarch64-linux-gnu.
+      - ${CUDA_TARGET_LIB:-/usr/local/cuda/targets/aarch64-linux/lib}:/opt/host-cuda-libs:ro
+    environment:
+      LD_LIBRARY_PATH: /opt/host-libs:/opt/host-cuda-libs:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu
     healthcheck:
       # The adapter demands /health.liveness == "loaded" at startup. Upstream
       # silently degrades to "keep recognising, skip liveness" when the model
@@ -63,6 +89,14 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+      # The first start builds three TensorRT engines from ONNX before uvicorn
+      # binds the port. Measured on a reComputer J4012 (L4T R36.4.3, TensorRT
+      # 10.3, sm=87): detector 61 s, embedder 62 s, liveness 73 s, /health
+      # answering 214 s after `docker run`. Later starts reuse the cached
+      # engines and skip the build.
+      # Without a start_period the healthcheck fails three times during that
+      # build and access-node's service_healthy dependency gives up.
+      start_period: ${FACE_REC_START_PERIOD:-900s}
 
   access-node:
     image: ${ACCESS_NODE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1}
@@ -72,11 +106,29 @@ services:
     depends_on:
       face-rec-api:
         condition: service_healthy
-    # The door actuator is a sysfs GPIO or an opto-isolated DO on the host, so
-    # the container needs the gpio class exported into it. Mounting all of /sys
-    # is not acceptable here and not necessary: bind only the gpio class.
+    # The door actuator is a sysfs GPIO, an opto-isolated DO, or a libgpiod
+    # character device on the host.
+    #
+    # Which one depends on the kernel, not on preference: Tegra 5.15 (JetPack 6,
+    # reComputer J30/J40) does not export /sys/class/gpio at all — the directory
+    # does not exist, and binding it fails the container outright. Those hosts
+    # set GPIO_SYSFS_DIR to an empty directory and drive the door through
+    # /dev/gpiochipN with actuator.backend = "libgpiod" instead. The 4.9/5.10
+    # kernels (J20, reCamera) keep the sysfs default below.
+    #
+    # Mounting all of /sys is not acceptable here and not necessary: bind only
+    # the gpio class.
+    #
+    # GPIO_CHARDEV defaults to /dev/null, not to /dev/gpiochip0. Compose has no
+    # way to make a `devices` entry conditional, and an entry naming a path the
+    # host does not have fails container creation outright — so a default of
+    # /dev/gpiochip0 would break every sysfs host that has no character device.
+    # /dev/null exists everywhere and passing it through costs nothing; the
+    # libgpiod deploy sets this to the real chip after checking it exists.
+    devices:
+      - ${GPIO_CHARDEV:-/dev/null}:${GPIO_CHARDEV:-/dev/null}
     volumes:
-      - /sys/class/gpio:/sys/class/gpio
+      - ${GPIO_SYSFS_DIR:-/sys/class/gpio}:/sys/class/gpio
       - facedb:/var/lib/unmanned-store-access/facedb
       - audit:/var/lib/unmanned-store-access/audit
       - ./config/access-node.json:/etc/unmanned-store-access/access-node.json:ro

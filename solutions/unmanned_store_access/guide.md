@@ -696,9 +696,16 @@ recognition and the access node.
   tag, because two doors on the same tag with different digests hold embeddings
   that are not comparable and the symptom is people not being recognised. And
   this project's device image, which you must build yourself.
-- The four actuator settings measured on the installed hardware: sysfs number,
-  active level, pulse width, relay contact, and the fail mode that matches the
-  door controller you are wiring to.
+- The actuator settings measured on the installed hardware: the pin coordinate
+  (a sysfs number on the J20, a gpiochip + line offset on the J30/J40 — see
+  *Which pin, on which box* below), active level, pulse width, relay contact,
+  and the fail mode that matches the door controller you are wiring to.
+- Outbound access to `sensecraft-statics.seeed.cc`: the step downloads the face
+  model weights to `/opt/usa/models` (about 32 MB) and checks each file against
+  its SHA-256. The recognition container builds its TensorRT engines from them
+  on first start — on a reComputer J40 Series that took 61 s + 62 s + 73 s, and the
+  service answered `/health` 214 s after the container started. Later starts
+  reuse the cached engines.
 - At least 15 GB free.
 
 ### Wiring
@@ -715,6 +722,56 @@ Same order as every other preset: LED, then relay, then the door controller.
 The deploy step prints whether the chosen sysfs pin is already exported and what
 its direction and value are. If something else owns it, find out what before
 continuing.
+
+### Which pin, on which box
+
+The pin coordinate is not the same kind of number on every box, and there is no
+default that is right for both.
+
+**J20 (kernel 4.9/5.10, sysfs).** `/sys/class/gpio` exists. The design spec
+records DO1–DO4 as sysfs 463/464/465/462. Measure which number moves which
+terminal on this box before wiring a lock, and enter what you measured.
+Set **GPIO Interface = sysfs** and fill in the sysfs number.
+
+**J30 / J40 (JetPack 6, Tegra 5.15, libgpiod).** These kernels do not export
+`/sys/class/gpio` at all — `ls /sys/class/gpio` returns *No such file or
+directory*, so there is no sysfs number to fill in. The door goes through
+`/dev/gpiochipN` instead: set **GPIO Interface = libgpiod**, **GPIO Chip =
+gpiochip0**, and a **line offset**. On a reComputer J40 Series the whole 40-pin
+header is on `gpiochip0`; `gpiochip1` is the AON controller and `gpiochip2` is
+carrier-board I/O, and neither reaches the header.
+
+Header pin to line offset on the J401 carrier, cross-checked against NVIDIA's
+own pin table on the box
+(`/usr/lib/python3/dist-packages/Jetson/GPIO/gpio_pin_data.py`) and the
+[Seeed J401 40-pin table](https://wiki.seeedstudio.com/J401_carrierboard_Hardware_Interfaces_Usage/):
+
+| Header pin | Name | `gpiochip0` line |
+|---|---|---|
+| 7  | GPIO09    | 144 |
+| 11 | UART1_RTS | 112 |
+| 12 | I2S0_SCLK | 50  |
+| 13 | SPI1_SCK  | 122 |
+| 15 | GPIO12    | 85  |
+| 16 | SPI1_CS1  | 126 |
+| 18 | SPI1_CS0  | 125 |
+| 22 | SPI1_MISO | 123 |
+| 29 | GPIO01    | 105 |
+| 31 | GPIO11    | 106 |
+| 32 | GPIO07    | 41  |
+| 33 | GPIO13    | 43  |
+| 35 | I2S0_FS   | 53  |
+| 36 | UART1_CTS | 113 |
+| 37 | SPI1_MOSI | 124 |
+| 38 | I2S0_SDIN | 52  |
+| 40 | I2S0_SDOUT| 51  |
+
+Pins 1/17 are 3V3, 2/4 are 5V, and 6/9/14/20/25/30/34/39 are GND — the relay
+module needs one of each on top of the signal line.
+
+Run `gpioinfo` on the box before choosing: it prints every line with its name
+and its current consumer, and a line marked `[used]` belongs to something else.
+On the box checked here all seventeen header lines above were free.
 
 ### Troubleshooting
 
