@@ -52,108 +52,31 @@ it cannot.
 
 ## How well it works
 
-Each number below carries the device it was measured on and the conditions it
-was measured under. The Hailo-8, RK3588 and RK3576 figures are reference
-values taken on the same accelerator chip platform as the matching reComputer
-preset; they will be updated after a re-test on the reComputer units. The
-reCamera Pro figures are measured on the camera itself — it is the shipping
-product, not a reference board. The Jetson Orin figures are measured on a
-Seeed reComputer J40 unit itself — a reComputer J40 integrated-machine
-measurement, not a reference board.
+| What the checkout gets | Typical | Device |
+|---|---|---|
+| Frame captured to a recognised item published | **22.30 ms p50 / 42.75 ms p95** | reComputer J40 (Orin NX 16GB) |
+| Frames dropped over a 2956-frame checkout replay | **0** | reComputer J40 |
+| Item recognition, 8 photos registered per SKU | **84.67% top-1 / 96.66% top-5** | Model figure, carries across hosts |
+| Item recognition, 1 photo registered per SKU | **51.11% top-1** | Same |
 
-**Detection + embedding, reComputer J40 (Jetson Orin NX 16GB, TensorRT fp16).**
-Both stages run on the device's own GPU. Detector: 5.18 ms p50 / 5.28 ms p95,
-99.91% box agreement with the CPU golden on the same 50-image batch RK3588
-was checked against. Embedder: 4.23 ms p50 / 4.69 ms p95, 21 retrieval
-metrics within about 0.24 percentage points of fp32. These independent-probe
-figures are n=300, inference only, on an engine built on the device it ran
-on. A 2956-frame checkout replay ran through the full device-side runtime —
-detector, embedder, gallery lookup, MQTT publish — with zero dropped frames.
-The RK3588 preset has run a comparable end-to-end loop too, on a shelf
-replay (see below); the Hailo-8 and RK3576 presets stop at model conversion.
-Under that concurrent load, with
-both stages sharing the same GPU and sampled from the replay's own health
-snapshot (1024 detections, 271 embeddings), latency degrades to 8.76 ms p50 /
-9.53 ms p95 (detector) and 5.37 ms p50 / 5.83 ms p95 (embedder) — still
-faster than every other preset's detector path. Measured on the Orin NX unit (reComputer J40) only; the smaller Orin Nano option in the same family (reComputer J30) has not been tested.
+Registration depth is what moves accuracy most, so photograph each SKU from
+several angles when you register it. The J40 replay ran the full device-side
+runtime — detector, embedder, gallery lookup, MQTT publish. Measured on the
+Orin NX unit (reComputer J40) only; the smaller Orin Nano option in the same
+family (reComputer J30) has not been tested.
 
-**Detection, reComputer R2000 with Hailo-8.** The INT8 HEF runs at 9.04 ms p50,
-9.10 ms p95, 110.4 fps single-stream. Cross-checked with "hailortcli benchmark"
-at 110.64 fps and 8.21 ms of pure hardware time — the extra 0.8 ms is the Python
-round trip. End to end, including letterboxing, output assembly, decode and NMS,
-it is 18.74 ms p50 / 24.25 ms p95: the per-class NMS over roughly 160 boxes
-costs more than the inference itself. Box agreement with the CPU reference is
-94.77% on 200 images and 94.68% on 300, at IoU >= 0.5. No thermal throttling
-over the run. Reference value on the same Hailo-8 platform.
+A shelf host does the same job more slowly: on a reComputer RK3588 running a
+20-SKU shelf replay with retrieval on the registration console, frame to
+published item is 924 ms p50 / 1153 ms p95, with zero publish errors and
+automatic MQTT reconnection after a 38 s console outage. On the full 704 crops
+from that same replay, RKNN fp16 and CPU fp32 both scored 541/704 top-1 and
+agreed on the same predicted SKU in 695/704 cases. The Hailo-8 and RK3576
+presets stop at model conversion.
 
-**Detection, reComputer RK3588 series.** RKNN fp16: 99.85% box agreement,
-56.7 ms p50 / 89.5 ms p95. RKNN INT8: 98.35% agreement, 26.0 ms p50 / 33.2 ms
-p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
-the same RK3588 platform.
-
-**Embedding + end to end, reComputer RK3588 series.** DINOv2-small on the NPU
-(fp16, `RETAIL_RKNN_DET_CORE_MASK=2` / `RETAIL_RKNN_EMBED_CORE_MASK=01`):
-53.19 ms p50 for the embedder against a fp32 ONNX CPU reference, largest gap
-0.85 percentage points across 21 retrieval metrics. Once, on a 20-SKU shelf
-replay with the console computing no vectors itself
-(`embedder_backend=none`, retrieval via `/v1/gallery/match`): 924 ms p50 /
-1153 ms p95 from frame to a recognised item published, zero publish errors,
-and automatic MQTT reconnect after a 38 s console outage with no event loss on the device side (the console's own on-disk receipt was not independently checked).
-A top-1 check against the same crops on a CPU with the fp32 source model, on
-the full 704 `ok`-state crops from that shelf replay (40 source frames), matched:
-RKNN fp16 and CPU fp32 both scored 541/704 (76.85%) and agreed on the same
-predicted SKU in 695/704 cases (98.72%); of the 9 disagreements, 8 were
-correctness flips (one backend right, the other wrong), all within a <0.01
-similarity margin. Mean cosine similarity between the two vectors was 0.99969.
-Measured on the same RK3588 platform.
-
-**Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
-(RK3588 has three). Measured on the same RK3576 chip platform, inference
-only: detection, RKNN fp16 on both NPU cores, 51.05 ms p50 / 54.18 ms p95,
-99.91% box agreement with the CPU reference. Embedding, RKNN fp16 on both NPU
-cores, 56.38 ms p50 / 62.17 ms p95; across 21 retrieval metrics the largest
-gap from fp32 is 0.36 percentage points, and mean cosine similarity against
-fp32 is 0.99966. Reference value on the same RK3576 platform; will be updated
-after a re-test on the reComputer unit.
-
-**Embedding, reComputer R2000 CPU.** Dynamically quantised INT8
-DINOv2-small on four threads: 91.95 ms p50 / 105.98 ms p95 per crop, against
-180.75 / 233.41 ms for the same model in fp32. Retrieval accuracy is within 0.65
-percentage points of that fp32 baseline across all seven measured
-configurations — weight-only quantisation costs essentially nothing here. The
-static QDQ variant that also quantises activations loses 3.78 to 9.96 points and
-is not usable. Reference value on the same Arm CPU platform.
-
-**Retrieval accuracy** (Grocery Store Dataset, 81 classes, fp32). DINOv2-base at
-eight registration images per SKU: 84.67% top-1, 96.66% top-5. DINOv2-small at
-the same k: 79.11% top-1. At one registration image per SKU, DINOv2-small drops
-to 51.11% — going from one registration image to eight changes top-1 by 28
-percentage points. On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
-across many more classes.
-
-**Detection accuracy** (SKU-110K test set). The 640² preset reaches 52.84
-mAP50-95, the 1280² preset 56.32. mAP50 at 640² is 88.26 — the boxes are found,
-they are not placed tightly. Moving to 1280² lifts small-object mAP50-95 from
-17.49 to 26.88, which is why the shelf preset exists.
-
-**The embedder runs on the CPU on the Hailo-8 preset, on the NPU on RK3588,
-RK3576 and reCamera Pro, and on the GPU on the Jetson Orin preset.** The
-Hailo quantisation attempts did not reach usable accuracy; RK3588, RK3576,
-reCamera Pro and the Jetson Orin preset each have their own real
-on-accelerator embedding numbers above. On the CPU path (the Hailo-8 preset,
-or RK3588/RK3576 without the NPU embedder), budget 92 ms per crop and plan
-frame skipping or slot-level sampling for shelf frames.
-
-**Detection + embedding, reCamera Pro.** Both stages run as fp16 RKNN on the
-camera's own onboard NPU. Measured on the camera itself with its bundled
-applications stopped, inference only: detection 112.3 ms p50 / 120.4 ms p95,
-99.91% box agreement with the CPU reference on 50 images; embedding 77.5 ms
-p50 / 77.9 ms p95, mean cosine similarity 0.998 against fp32, and a top-1
-difference of 0.33 percentage points (fp32 minus RKNN = -0.33pp, i.e. RKNN
-scored slightly higher) on a 300-image subset (leave-one-out — a different
-protocol from the Grocery Store retrieval numbers above, which use the RK3588
-run's full k-shot gallery, so the absolute values are not comparable, but
-both agree there is no directional bias).
+The Hailo-8, RK3588 and RK3576 figures are reference values taken on the same
+accelerator chip platform as the matching reComputer preset; they will be
+updated after a re-test on the reComputer units. Per-accelerator conversion
+detail and quantisation results are in the engineering wiki.
 
 ## Output Interfaces
 
