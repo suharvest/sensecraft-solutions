@@ -102,14 +102,42 @@ actions:
       name_i18n:
         zh: 写入人脸库签名密钥
     - name: Configure the access agent
+      # Section-scoped, verified writes -- not a bare `sed`. A key name is not
+      # unique across the file (`pulse_ms` appears under both [policy] and
+      # [gpio]), so an unscoped `s#^key = .*#...#` can hit the wrong section
+      # silently; and a plain sed with no match still exits 0, so a renamed or
+      # missing key would look configured when it was not touched at all. The
+      # awk helper below only replaces inside the named `[section]` and exits
+      # non-zero -- failing the whole step under `set -e` -- when the key
+      # never matched, so a config drift is a failed deploy, not a silent
+      # no-op.
       run: |
         set -e
         CONF=/userdata/f1-access/face-recognition.conf
-        sed -i "s#^device_id = .*#device_id = {{device_id}}#" "$CONF"
-        sed -i "s#^actuator_id = .*#actuator_id = {{actuator_id}}#" "$CONF"
-        sed -i "s#^url = .*#url = {{facedb_url}}#" "$CONF"
-        sed -i "s#^key_id = .*#key_id = {{facedb_key_id}}#" "$CONF"
-        sed -i "s#^match_threshold = .*#match_threshold = {{match_threshold}}#" "$CONF"
+        set_conf() {
+          section="$1"; key="$2"; value="$3"
+          tmp="$CONF.tmp.$$"
+          awk -v s="$section" -v k="$key" -v v="$value" '
+            BEGIN { insec = 0; done = 0 }
+            /^\[/ { insec = ($0 == "[" s "]") }
+            insec && $0 ~ ("^" k " *=") { print k " = " v; done = 1; next }
+            { print }
+            END { exit(done ? 0 : 1) }
+          ' "$CONF" > "$tmp" || { rm -f "$tmp"; echo "config key not found: [$section] $key" >&2; exit 1; }
+          mv "$tmp" "$CONF"
+        }
+        set_conf device device_id '{{device_id}}'
+        set_conf device actuator_id '{{actuator_id}}'
+        set_conf facedb url '{{facedb_url}}'
+        set_conf facedb key_id '{{facedb_key_id}}'
+        set_conf recognition match_threshold '{{match_threshold}}'
+        # 2002 HQ PoE drives its relay from the on-camera GPIO header; a plain
+        # 2002/2002w has no such header and must leave [gpio] disabled, or the
+        # first start tries to export a pin that is not wired to anything.
+        # Applied here, before the service's first start, not as a manual
+        # post-deploy edit -- auto_start means the console starts the service
+        # right after this step.
+        set_conf gpio enabled '{{gpio_enabled}}'
       sudo: true
       name_i18n:
         zh: 配置门禁代理
@@ -135,6 +163,32 @@ user_inputs:
       zh: SSH 密码
     description_i18n:
       zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: gpio_enabled
+    name: Camera Variant
+    type: select
+    default: "true"
+    required: true
+    description: >-
+      2002 HQ PoE has a 6-pin header and can drive its relay from the
+      camera's own GPIO. A plain 2002/2002w has no such header -- picking it
+      disables on-camera GPIO so the first start does not try to export a
+      pin that is not wired to anything.
+    options:
+      - value: "true"
+        label: 2002 HQ PoE -- on-camera GPIO relay (sysfs 490)
+        label_i18n:
+          zh: 2002 HQ PoE —— 摄像头自身 GPIO 驱动继电器（sysfs 490）
+      - value: "false"
+        label: 2002 / 2002w -- no header, relay stays at the gateway (MQTT)
+        label_i18n:
+          zh: 2002 / 2002w —— 无排针，继电器留在网关侧（MQTT）
+    name_i18n:
+      zh: 摄像头型号
+    description_i18n:
+      zh: >-
+        2002 HQ PoE 有一组 6-pin 排针，可以用摄像头自己的 GPIO 驱动继电器。
+        普通 2002/2002w 没有这组排针——选它会关闭机上 GPIO，避免首次启动时
+        尝试导出一个根本没接线的引脚。
   - id: device_id
     name: Device ID
     type: text

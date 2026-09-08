@@ -1009,17 +1009,19 @@ app, because only one gallery app can hold the camera's VPSS at a time.
 1. Connect the reCamera over USB-C, or make sure it is reachable on your network
 2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
    the `recamera` user
-3. Fill in the device ID, actuator ID, face library URL, key ID, signing
-   secret and match threshold
+3. Pick the camera variant, and fill in the device ID, actuator ID, face
+   library URL, key ID, signing secret and match threshold
 4. Deploy
 
-On a **2002 HQ PoE** unit the package's shipped config drives a relay directly
-from the baseboard's 6-pin header (`D1` = sysfs GPIO 490, `[gpio] enabled =
-true`) — a second door option alongside the gateway-relay path below. On a
-plain **2002 / 2002w**, which has no such header, edit the seeded config after
-deploying and set `[gpio] enabled = false`; the camera then drives no relay
-itself and events leave over MQTT for the gateway to act on, as in the rest
-of this preset.
+A **2002 HQ PoE** unit drives a relay directly from the baseboard's 6-pin
+header (`D1` = sysfs GPIO 490) — a second door option alongside the
+gateway-relay path below. A plain **2002 / 2002w** has no such header; picking
+it in step 3 sets `[gpio] enabled = false` in the config before the service's
+first start, so the camera drives no relay itself and events leave over MQTT
+for the gateway to act on, as in the rest of this preset. This has to be set
+before the first start, not edited afterward — the deploy auto-starts the
+service right after configuration, and a first start with the PoE default
+tries to export a pin that is not wired to anything on a plain unit.
 
 ### What lands on the device
 
