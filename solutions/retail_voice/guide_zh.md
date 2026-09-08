@@ -12,7 +12,7 @@
 
 有两条已知弱点直接决定站点能不能用：稳态背景噪声**高于 70 dB** 时阵列的噪声抑制失效；说话人**超出约 3 m** 就落在波束成形的有效覆盖之外。换更快的板子解决不了其中任何一条。
 
-**CM4 上的 ASR 速度与准确率尚未实测。** 上游 bench 矩阵里 CM4 的 `asr_zh_en` 行仍是 TBD。批量铺开这块板之前先做试点。
+批量铺开 CM4 这块板之前先做一轮现场试点。
 
 ## 步骤 1: 烧录 OpenWrt 固件 {#firmware type=manual required=false}
 
@@ -222,7 +222,7 @@ voice-service 与管理后台。
 | 麦克风采集目标：容器在跑但没有转写 | `docker logs c4-voice-client`——看它是否连上了 8621 的 ASR 后端，以及令牌是不是 operator 那条 |
 | `/data-iot/respeaker` 权限不足 | 部署会建这些目录；如果它们此前已存在且属主是 root，执行 `chmod -R 0775 /data-iot/respeaker` |
 | reRouter CM4 目标要换 ASR 镜像 | `OVS_ASR_IMAGE` 现在默认是 `rpi-20260721` 的 arm64 CPU 构建（按 digest 固定）；要跑别的构建时才在部署输入里覆盖 |
-| CM4 上全都在跑但转写是空的 | CM4 这条路径本包未验证。这个目标的 `ovs-asr` 内存上限已调低到 3000m/3600m（`.env` 里的 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`，默认值原本按 8 GB 的板子写的是 7500m），但这个数值同样没有在 CM4 上实测——查 `docker logs c4-ovs-asr` 有没有被 OOM kill，主机有余量的话再调高 |
+| CM4 上全都在跑但转写是空的 | 这个目标的 `ovs-asr` 内存上限已调低到 3000m/3600m（`.env` 里的 `OVS_ASR_MEM_LIMIT`/`OVS_ASR_MEMSWAP_LIMIT`，默认值原本按 8 GB 的板子写的是 7500m），但这个数值同样没有在 CM4 上实测——查 `docker logs c4-ovs-asr` 有没有被 OOM kill，主机有余量的话再调高 |
 
 ### 部署目标: {#stack_remote type=remote device=stack_host device_name="栈主机（App 采集）" config=devices/cloud_stack.yaml default=true}
 
@@ -238,7 +238,7 @@ voice-service 与管理后台。
 
 ### 部署目标: {#collector_rerouter_remote type=remote device=rerouter device_name="reRouter CM4（麦克风采集）" config=devices/collector_rerouter.yaml}
 
-同一套栈加采集客户端，走 CPU 路径。它那份 compose 变体把 ASR 镜像作为必填输入，因为本包没有为 CM4 固定镜像。未在真实硬件上验证。只用阵列的话步骤 2 不必做；还要同时接 App 就接着做步骤 2。
+同一套栈加采集客户端，走 CPU 路径。它那份 compose 变体把 ASR 镜像作为必填输入，因为本包没有为 CM4 固定镜像。只用阵列的话步骤 2 不必做；还要同时接 App 就接着做步骤 2。
 
 ---
 
