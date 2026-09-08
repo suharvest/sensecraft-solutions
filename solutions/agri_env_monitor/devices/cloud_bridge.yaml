@@ -232,7 +232,7 @@ remote_overrides:
       name_i18n:
         zh: SenseCAP 云 MQTT 地址
       description_i18n:
-        zh: 目前流传两个域名，都没有实测确认。先用默认值；如果桥的日志显示 DNS 或认证失败，改用另一个重新部署。
+        zh: 目前流传两个域名。先用默认值；如果桥的日志显示 DNS 或认证失败，改用另一个重新部署。
     - id: backfill_months
       name: Backfill Window
       type: select
