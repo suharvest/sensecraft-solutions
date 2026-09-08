@@ -110,37 +110,6 @@ design, not a certified inspection product.
 "verdict = NG" no longer implies "defect_count > 0": a missing part or an
 out-of-tolerance measurement is enough on its own.
 
-## Optional: VLM Explanations
-
-The runtime can hand an NG frame to a shared external VLM service
-("edge-vision-vlm") for a plain-language explanation. This is a side channel,
-not a second judge: it never enters the frame loop, never changes "verdict",
-and a disabled, slow or unreachable service produces exactly the same OK/NG
-stream as without it.
-
-- **Trigger.** A call fires only on a state change worth a human's attention —
-  "assembly.missing_count > 0", or the primary defect confidence below
-  "vlm.trigger.min_confidence" — rate-limited by "vlm.trigger.min_interval_s"
-  per stream. It is never called once per frame.
-- **Side channel.** A background worker with a bounded, drop-oldest queue
-  submits the call; the main event on "inspection/<stream-id>/results" is
-  published on the usual schedule regardless of whether the VLM answers. If it
-  does, a second event follows on "inspection/<stream-id>/explanations", keyed
-  to the same "frame_id".
-- **Does not block the main chain.** A hard client timeout abandons the call;
-  after repeated failures a circuit breaker stops calling for a cool-off
-  period. Nothing here can stall a verdict, a Modbus write or an MQTT publish.
-- **Latency is not a per-frame number to plan around.** Measured on the shared
-  service's own evaluation hardware — an NVIDIA Spark GB10 workstation, **not
-  the Orin box this demo runs on** — generation alone with Qwen3-VL-2B bf16 is
-  P50 ≈ 3.2 s / P95 ≈ 7.2 s at "max_tokens=320". That is the reason the call is
-  off the hot path in the first place; no Orin-specific latency has been
-  measured for this integration.
-
-Enable it by setting "vlm.enabled: true" and pointing "vlm.base_url" at a
-reachable "edge-vision-vlm" instance; see the guide for the full walk-through,
-including the "no_proxy" requirement on the device.
-
 ## Semi-automatic Annotation Tool
 
 "tools/annotation/" in the upstream repository turns hand-drawn boxes into
@@ -240,7 +209,6 @@ marked per station, and this preset has no place to carry them.
 - **Missing-part closed loop and dimension error** — run M2, 2026-09-05, same host, on a validation frame and a synthetic scene.
 - **Hailo INT8 accuracy** — run M3a, 2026-09-05, in the x86 Hailo Dataflow Compiler emulator, not on a device.
 - **Hailo-8 on-device throughput, latency and accuracy** — run M3b-pi-2, 2026-09-06, fleet host `harvest-pi`.
-- **VLM explanation latency** — published figures come from a Spark GB10 workstation; measure it on your own inspection host.
 
 ## Licensing note
 
