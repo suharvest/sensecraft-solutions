@@ -65,24 +65,34 @@ the door path on your own site before it carries a door.
 
 **This is not a certified security or life-safety system.** Calibrate the
 thresholds and measure recognition, liveness and the door path on your own site
-before the design carries a door.
+before the design carries a door. The numbers below cover the face-library
+distribution path and the GPIO pulse, measured on hardware.
 
-| What the door does | Typical | Device |
-|---|---|---|
-| A newly published face library live on the door | **491.6 ms** p50 (507.8 ms p95, n=20) | reCamera |
+| Metric | Value | Conditions | Source |
+|---|---|---|---|
+| Face library activation, reCamera Pro (P1) | Full activation 62.2 ms (v1) and 45.4 ms (v2); up-to-date no-op round 6.2 ms; recognition event to GPIO pin readback n=22, p50 1.448 ms / p95 2.709 ms | reCamera Pro (RV1126B, Buildroot 2023.02.6) on Ethernet, 1-2 people / under 20 KB library. Consistency gate "problems: []"; a tampered gallery and a wrongly signed manifest were both rejected on the device. The 22 events were injected synthetic recognition results, the readback is sysfs so the values are an upper bound, and no external circuit was connected | "evaluation/runs/2026-09-07-recamera-pro-p1/results.md" and the two "boundary.*.yaml" alongside it |
+| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); "op:reload" round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | "evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md" §2 and "boundary.facedb-activation.yaml" alongside it |
 
-Activation time grows with the size of the library — 9 801.7 ms at 402 people
-and 22 278.7 ms at 1502 people on the same chain, one run each — so allow for the first sync of
-a large library. A tampered library or a wrongly signed update is refused on the
-device and the door keeps running on the version it already holds.
+A software-loop test suite covers the protocol and the state machine: 52 of 52
+checks across three library versions built, published, pulled, hash-checked and
+atomically switched; the policy denying a photograph, a null liveness result, a
+blocklisted person, a below-threshold stranger, an empty frame and a repeat
+inside the debounce window; exactly two unlock pulses across ten frames, both at
+the configured 1500 ms; a rollback to a removed-person version refused; a remote
+unlock accepted, an expired one rejected, a replay returning the original
+receipt without a second pulse; a 13-record audit chain that fails once a denial
+is edited into an approval; and the console's three roles behaving.
+
+That measures whether the protocol and the state machine do what they claim, not
+how well the system recognises faces or rejects spoofs.
 
 The P4 preset's WE2 models — SCRFD detection and a distilled MobileFaceNet
 embedding — inherit InsightFace's non-commercial terms. A commercial P4
 deployment has to retrain through the QAT pipeline rather than ship these.
 
-Every face library version carries five licence fields — licence id, use scope,
-redistributable, source revision and content hash — so the terms travel with the
-artefact rather than living only in a document.
+Every face library version's manifest carries five licence fields — "license_id",
+"use_scope", "redistributable", "source_revision", "sha256" — so the terms travel
+with the artefact rather than living only in a document.
 
 **The RKNN backend has no liveness implementation.** A preset running on RKNN
 cannot enforce liveness; use one of the other backends where liveness matters.
