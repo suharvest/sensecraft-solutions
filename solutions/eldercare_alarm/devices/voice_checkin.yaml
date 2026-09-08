@@ -114,7 +114,7 @@ steps:
       the alarm host `docker compose exec eldercare-alarm python -c "from
       eldercare.voice import classify; print(classify('救命','zh').verdict)"`
       has to print `help`. Both succeeding means TTS, ASR and the keyword policy
-      are each working; what remains untested is only the acoustics of the room.
+      are each working; the room's own acoustics still have to be checked on site.
     description_i18n:
       zh: >-
         把刚生成的提示音 WAV 再送回 ASR 并做判定，这样整条文本链路都跑到了，

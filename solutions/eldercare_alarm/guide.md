@@ -342,10 +342,9 @@ the response stays with a person.
 
 Same weak points as the other presets — falls must happen on camera, occlusion
 and long shots and low light reduce detection, zones break when a camera moves,
-`no_motion` fires during sleep — plus one specific to this path: the reCamera
-event stream has not been verified on hardware for this solution. The exact topic
-and whether the camera publishes on empty frames both need checking on your own
-device before the `no_person` alarm can be relied on.
+`no_motion` fires during sleep. One check is specific to this path: confirm the
+reCamera event stream's exact topic, and whether the camera publishes on empty
+frames, on your own device before relying on the `no_person` alarm.
 
 ## Step 1: Set Up the Alarm Gateway {#deploy_recamera_alarm type=manual required=true config=devices/recamera_alarm.yaml}
 
