@@ -288,8 +288,8 @@ the other presets, using the board's own NPU instead of a GPU.
 **Important:** this is an assistive alert, not a certified medical or life-safety
 system. Each board runs a temporal profile trained and frozen on its own pose traces.
 Accuracy is reported for the solution as a whole on the introduction page — the
-27-clip test set cannot separate the platforms, so per-board figures would read
-as differences that were not measured.
+27-clip test set cannot separate the platforms, so there are no per-board
+figures.
 
 ## Step 1: Deploy Fall Detection {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 

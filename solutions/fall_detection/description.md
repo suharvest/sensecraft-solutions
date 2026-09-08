@@ -111,7 +111,7 @@ keeps its existing single-camera YOLO11n FP16 profile.
 model carried 16 measured 15 FPS streams; the official M model carried 5 after
 the runtime switched it to shared batching. The current deployment form still configures
 one camera. Pick it when this hardware is already installed; its temporal profile
-is frozen, but the deployed state machine has not been measured separately.
+is frozen.
 
 ## Usage Notes
 
