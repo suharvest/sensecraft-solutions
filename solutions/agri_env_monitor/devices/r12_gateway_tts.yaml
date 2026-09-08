@@ -1,0 +1,99 @@
+version: "1.0"
+id: r12_gateway_tts
+name: Bring Up the reComputer R12 Gateway Radio
+type: manual
+
+# A `manual` step, not a scripted one: the antenna and band check are physical,
+# and the software half — building sx1302_hal and installing the packet
+# forwarder unit — depends on the host's kernel and the regional variant of the
+# unit. Scripting it would encode assumptions this package has not verified on
+# hardware.
+#
+# NOT VERIFIED ON HARDWARE. No reComputer R12 unit was driven during packaging.
+# The concentrator inside it is SX1302-based, so the forwarder configuration is
+# the same as for a discrete WM1302 on SPI; every step below is written from the
+# gateway documentation and must be confirmed on a real unit.
+
+steps:
+  - id: check_radio
+    name: Connect the antenna and check the band
+    name_i18n:
+      zh: 接好天线并核对频段
+    description: >-
+      The concentrator is already inside the R12 unit, so there is no module to
+      fit. Connect the supplied LoRa antenna to its SMA jack before applying
+      power — transmitting into an open port can damage the radio. Then check
+      the regional band the unit was ordered on (EU868, US915, AS923…) against
+      the band your nodes are configured for: a gateway and node on different
+      bands look exactly like a gateway that hears nothing, and the band is a
+      purchase decision, not a setting.
+    description_i18n:
+      zh: >-
+        集中器已经在 R12 机器里，没有模块要装。上电之前先把随机的 LoRa 天线接到 SMA 座上——
+        开路发射可能损坏射频。然后核对这台机器下单时的地区频段（EU868、US915、AS923…）
+        与节点配置的频段是否一致：频段不一致的表现和"网关收不到任何东西"完全一样，
+        而且频段是采购决策，软件里改不了。
+    optional: false
+
+  - id: enable_spi
+    name: Confirm the SPI device and control lines
+    name_i18n:
+      zh: 确认 SPI 设备与控制线
+    description: >-
+      Confirm the SPI bus the concentrator sits on is exposed — `/dev/spidev0.0`
+      should already be present on the shipped image; if it is not, enable SPI
+      and reboot. The concentrator still needs its reset, power-enable and
+      SX1261 lines driven, and on the R12 those pin numbers come from the
+      product wiki rather than from a carrier-board datasheet. Record the
+      numbers you used — the packet forwarder configuration in the next step
+      refers to them.
+    description_i18n:
+      zh: >-
+        确认集中器挂的 SPI 总线已经暴露出来——出厂镜像里 `/dev/spidev0.0` 通常已存在；
+        没有就打开 SPI 后重启。集中器仍需要驱动 reset、power-enable 与 SX1261 三条控制线，
+        R12 上这些引脚编号取自产品 wiki，不是载板数据手册。
+        把用到的编号记下来——下一步的 packet forwarder 配置要用。
+    optional: false
+
+  - id: packet_forwarder
+    name: Point the packet forwarder at the local stack
+    name_i18n:
+      zh: 把 packet forwarder 指向本地网络服务器
+    description: >-
+      Build `sx1302_hal` on the unit, pick the `global_conf.json` for your
+      frequency plan, and set the server address to the machine running The
+      Things Stack with the Semtech UDP ports 1700 up and 1700 down. Start the
+      forwarder and watch its output: it should print the concentrator's EUI and
+      then `INFO: [main] concentrator started`. That EUI is the gateway EUI you
+      register in the Console. Basic Station is the alternative if you prefer a
+      TLS-authenticated link; it needs the trust chain configured on both ends.
+    description_i18n:
+      zh: >-
+        在这台机器上编译 `sx1302_hal`，选对应频段的 `global_conf.json`，
+        把 server 地址指向运行 The Things Stack 的那台机器，上下行都用 Semtech UDP 端口 1700。
+        启动 forwarder 并观察输出：它应当打印集中器 EUI，随后是
+        `INFO: [main] concentrator started`。这个 EUI 就是稍后要在 Console 里注册的网关 EUI。
+        想要 TLS 认证的链路可以改用 Basic Station，但需要在两端配好信任链。
+    optional: false
+
+  - id: register_gateway
+    name: Register the gateway in the Console
+    name_i18n:
+      zh: 在 Console 里注册网关
+    description: >-
+      Open the Console on port 1885, sign in as the admin user created when the
+      stack first started, and add a gateway with the EUI the forwarder printed
+      and the frequency plan you chose. The gateway's status turns to
+      `Connected` within a minute of the forwarder running. If it stays
+      disconnected, the usual cause is UDP 1700 not reaching the host — check a
+      firewall before touching the radio configuration.
+    description_i18n:
+      zh: >-
+        打开 1885 端口的 Console，用首启时创建的管理员账号登录，
+        用 forwarder 打印的 EUI 和刚才选的频段添加一个网关。
+        forwarder 在跑的话，网关状态会在一分钟内变成 `Connected`。
+        一直连不上，最常见的原因是 UDP 1700 没通到主机——先查防火墙，再查射频配置。
+    optional: false
+
+name_i18n:
+  zh: 启用 reComputer R12 网关射频

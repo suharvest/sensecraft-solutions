@@ -9,7 +9,7 @@ SenseCAP LoRaWAN 节点测土壤和空气——温度、湿度、土壤水分、
 
 进来的路有三条，终点是同一个。套餐 1 读 SenseCAP 云。套餐 2 读你自建的
 The Things Stack。套餐 3 读 ChirpStack——可以是 M2 网关内置的那个，
-也可以是你用 Docker 跑在 WM1302 集中器旁边的那个。三条路背后是同一个服务
+也可以是你用 Docker 跑在 reComputer R12 系列网关上的那个。三条路背后是同一个服务
 `agri-env-bridge`：把 SenseCAP 的 `measurementId` 映射成实体语义，去重，
 跟踪每个节点是否还在上报，并发布 Home Assistant MQTT 自动发现消息。
 
@@ -76,11 +76,11 @@ DevEUI 小写。这里刻意用完整 DevEUI——用缩短形式时，地址后
 SenseCAP API 密钥。
 
 **自建 The Things Stack**——想把网络服务器攥在自己手里、并且愿意搭一个网关时选它：
-CM4 主机上的 WM1302 集中器、packet forwarder，以及一套自带 Postgres 与 Redis 的 stack。
+reComputer R12 系列网关、packet forwarder，以及一套自带 Postgres 与 Redis 的 stack。
 三者中安装工作量和资源占用都最重的一个。
 
 **本地 ChirpStack**——网关本身就能当网络服务器时选它。在 M2 上，整个网络服务器就是
-Web 界面里的一项设置，这是走到完全本地部署的最短路径；在装了 WM1302 的 CM4 主机上，
+Web 界面里的一项设置，这是走到完全本地部署的最短路径；在 reComputer R12 系列网关上，
 它是一套 Docker stack。无公网验收场景走的就是这个套餐。
 
 ## 使用注意

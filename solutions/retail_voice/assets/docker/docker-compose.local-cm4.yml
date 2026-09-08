@@ -7,8 +7,8 @@
 #
 # Derived from openvoicestream/deploy/docker-compose.rpi.yml (same CPU/ONNX
 # image line) and from smart_retail_voice_ai/assets/docker/docker-compose.yml
-# (the capture container). Three things are deliberately different from that
-# older file: the cloud reporting path is not configured, watchtower is gone
+# (the capture container; that package was deleted on 2026-09-08). Three
+# things are deliberately different from that older file: the cloud reporting path is not configured, watchtower is gone
 # (a store box must not silently swap its own image), and both containers have
 # bounded logs.
 #

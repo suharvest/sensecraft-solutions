@@ -5,10 +5,10 @@
 #   voice-client  capture from the reSpeaker XVF3800, local VAD, writes
 #                 transcripts to disk
 #
-# The speech service block is carried over from
-# smart_retail_voice_ai/assets/docker/docker-compose.rk3576.yml, which records
-# this measurement on a Seeed reComputer RK3576 Dev Kit (Armbian bookworm,
-# kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM), 2026-08-24:
+# The speech service block is carried over from the retired
+# smart_retail_voice_ai package (deleted 2026-09-08), whose RK3576 compose
+# file recorded this measurement on a Seeed reComputer RK3576 Dev Kit (Armbian
+# bookworm, kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM), 2026-08-24:
 #   POST /asr           3.0 s audio -> ~780 ms warm (RTF 0.26)
 #   container RSS       1.71 GiB with ASR + punctuation + speaker loaded
 #   recreate -> healthy 25 s once the model volumes are populated

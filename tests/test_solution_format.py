@@ -536,10 +536,6 @@ class TestWiringIsActualWiring:
 # added to the allowlist with a reason.
 _STEP_DESCRIPTION_MAX_CHARS = 500
 _LEGACY_LONG_STEP_DESCRIPTIONS: set[str] = {
-    # OS flashing onboarding with multi-paragraph instructions covering
-    # initial-vs-pre-flashed reRouter paths — legitimately long prose.
-    "smart_retail_voice_ai/default/firmware",
-    "smart_retail_voice_ai/default/user_guide",
     # Watcher pairing flow — multi-step setup written as continuous prose
     # rather than `### Wiring` because it's not physical wiring.
     "smart_warehouse/trial/sensecraft",

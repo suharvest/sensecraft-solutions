@@ -74,7 +74,7 @@
 
 | 指标 | 数值 | 条件 | 来源 |
 |---|---|---|---|
-| 离线转写时延，RK3576 | 3.0 s 音频 → 热态约 780 ms（RTF 0.26） | reComputer RK3576 Dev Kit，Armbian bookworm，内核 6.1.115-vendor-seeed-rk3576，3.9 GB 内存；SenseVoice RKNN fp16 跑在 NPU；「POST /asr」，容器已热 | 沿用既有实测，见 「smart_retail_voice_ai/assets/docker/docker-compose.rk3576.yml」 文件头，2026-08-24 |
+| 离线转写时延，RK3576 | 3.0 s 音频 → 热态约 780 ms（RTF 0.26） | reComputer RK3576 Dev Kit，Armbian bookworm，内核 6.1.115-vendor-seeed-rk3576，3.9 GB 内存；SenseVoice RKNN fp16 跑在 NPU；「POST /asr」，容器已热 | 沿用既有实测，2026-08-24，记录在 「assets/docker/docker-compose.local-rk3576.yml」 文件头 |
 | 内存占用，RK3576 | 容器 RSS 1.71 GiB | 同一次运行，ASR + 标点 + 声纹全部加载 | 同上 |
 | 重启到健康，RK3576 | 约 25 s | 同一块板，模型卷已填充 | 同上 |
 | 打包验收，RK3576（本次部署） | 「POST /asr」 测 5 条短句（3 中 + 2 英）：全部返回 「"backend":"rk:sensevoice_rknn"」 且文本正确；壁钟时间 p50 678 ms，p95 810 ms（n=5，含 HTTP 开销） | reComputer RK3576，通过 SSH 部署本方案原样的 「docker-compose.local-rk3576.yml」 + 「local_rk3576.yaml」，「rk3576-sensevoice」 profile，容器 RSS 1.716 GiB，与上一行互相印证 | 真机打包验证，2026-09-06 |
@@ -173,6 +173,23 @@
 - **后台账号默认是 viewer。** 用 admin 凭据调改角色接口提权；在那之前用 admin API 令牌。
 - **一套部署一套库。** 边缘采集端自带 MySQL 与 MinIO，因为冻结 compose 是一个整体；多个采集端指向同一套栈要改上报地址，这种布局请自行复测。
 - **删除证明脚本不是跑在你的部署上的。** 它自己起 MySQL 与 MinIO 来证明删除路径——这既是它可复现的原因，也意味着它是关于代码的证据，不是关于你现场数据的证据。
+
+## 替代「智慧零售语音采集」方案
+
+`smart_retail_voice_ai` 面向同一主题、同一套采集硬件（reRouter CM4 加 reSpeaker
+XVF3800），数据上报到托管控制台。它已于 2026-09-08 并入本设计，目录被删除。它的部署
+对应这里的**设备本地转写**套餐，并增加了 reComputer RK3576 的 NPU 路线；它的上报路径
+由**服务端栈**套餐取代——控制台、数据库和对象存储跑在你自己的主机上，不再是
+`test-voice-web.seeed.cn`。
+
+旧 id **不是**本 id 的别名。`solution.yaml` 里的 `replaces:` 不是规范定义的字段——
+`spec/solution.schema.json` 和 `packages/` 里的所有模型都没有它，加载时被静默丢弃，不
+解析成任何东西。该 id 记录在 `solutions/.deprecated.json` 里，manifest 生成器会把它复制
+到 manifest 的 `deprecated` 数组；这只是标记退役，不做重定向。
+
+所以任何还拿着 `smart_retail_voice_ai` 的东西——书签、外链、写死的部署引用——从目录被删
+除起，到消费 manifest 的一方改指向 `retail_voice` 为止，都会拿到 404。两个包之间没有迁
+移路径：已有的安装在重新部署之前照常工作。
 
 ## 许可说明
 
