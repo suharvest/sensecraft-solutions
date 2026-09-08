@@ -836,38 +836,67 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
 | 回滚被拒并点名了某个人 | 删除屏障。生成一个新版本。 |
 | 设备报 `model_tag` 不匹配 | 按另一个嵌入模型构建的。 |
 
-## 步骤 4: 在摄像头上安装门禁守护进程 {#p5_install type=manual required=true config=devices/p5_recamera_std.yaml}
+## 步骤 4: 在摄像头上安装 F1 门禁 {#p5_install type=recamera_cpp required=true config=devices/p5_recamera_std.yaml}
 
-以 root 把六个文件拷到摄像头上，填一个配置文件，前台跑一轮同步，然后让它常驻。
+安装 `.deb`，把五个 cvimodel 放到 `/userdata/local/models/`，再把人脸库签名密钥与
+现场专属字段写进已生成的配置文件。
+
+整条识别路径——检测、嵌入、双头纹理活体加眨眼融合、匹配——都跑在摄像头自己的
+SG2002 TPU 上的同一个原生进程里；门禁代理与它同包，负责拉版本化人脸库、把原生
+结果流映射成事件契约、并把所有阈值与识别进程的实际启动参数逐项比对。这个包会
+**替换**而不是扩展原厂 `face-recognition` 应用——安装它会与该应用冲突并将其移除，
+因为同一时间只有一个应用能持有摄像头的 VPSS。
 
 ### 前置条件
 
-- 摄像头的 root SSH 访问。是必须，不是更好：`/userdata/local/face-gallery/` 是
-  `root:root 0700`，守护进程要往那里写。
-- App Center 的 `face-recognition` 应用在位且能启动。
-- 摄像头能以明文 HTTP 访问人脸库服务，并且拿到云端那一步的签名密钥。
-- 一份上游仓库的克隆，用于取 `platforms/recamera-std/` 与
-  `contracts/validate_payload.py`。
+- 摄像头可经 USB 或网络访问，且拿到 `recamera` 用户的 SSH 密码。
+- 摄像头能以明文 HTTP 访问人脸库服务，并且拿到云端那一步的签名密钥与 key ID。
+- `/userdata` 上有约 20 MB 空闲空间。
 
 ### 接线
 
-- 摄像头不接继电器也不接门控。它上面没有任何一路承载那部分的电流。
-- 继电器在网关节点上。它的 COM/NO 干接点接到门控的输入；门锁、锁电源以及门控
-  本身都由门控方供电与接线——不在这个方案的 BOM 里。
-- 接到门控之前先用 LED 确认继电器的空闲状态。
-- 事件要出摄像头，需要在默认的仅回环 listener 之外再配一个 MQTT listener。
-  那是站点网络的决定，守护进程不替你做——它不改 `/etc/mosquitto/mosquitto.conf`。
+1. 用 USB-C 连接 reCamera，或确认它在你的网络上可达
+2. 填入它的 IP 地址（USB 下是 `192.168.42.1`）与 `recamera` 用户的 SSH 密码
+3. 填入设备 ID、执行器 ID、人脸库地址、密钥 ID、签名密钥与匹配阈值
+4. 部署
+
+**2002 HQ PoE** 机型上，包自带的配置会直接从底板 6-pin 排针驱动继电器
+（`D1` = sysfs GPIO 490，`[gpio] enabled = true`）——这是网关继电器路径之外的
+第二个门口方案。**普通 2002 / 2002w** 没有这组排针，部署完成后需手动编辑生成的
+配置文件把 `[gpio] enabled` 改成 `false`；这时摄像头不驱动任何继电器，事件经
+MQTT 发给网关处理，与本套餐其余部分一致。
+
+### 落到设备上的文件
+
+| 路径 | 内容 |
+|------|------|
+| `/usr/share/f1-access/bin/face-recognition` | 识别器 |
+| `/usr/share/f1-access/*.py` | 门禁代理与契约校验器 |
+| `/etc/init.d/K92f1-access` | 它的 init 脚本，停在 K 位 |
+| `/userdata/local/models/*.cvimodel` | 五个模型，共约 10.7 MB |
+| `/userdata/f1-access/face-recognition.conf` | 由包的默认值生成一次，再按上面的字段原地改写 |
+| `/userdata/f1-access/facedb.key` | 人脸库签名密钥，权限 `0600` |
+
+init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能有一个应用持有摄像头，
+启动交给管理界面决定。升级不会覆盖已存在的 `face-recognition.conf`——被重置的
+标定阈值或 GPIO 极性会悄悄改变谁能进门、触点空闲时是开还是锁。
+
+真机实测（`docs/SPEC.md` §14.3、
+`evaluation/runs/2026-09-07-recamera-poe-p1/results.md`）：冷启动（断电重启后，
+不设超时直接跑）六次 7.5–9.4 s，中位 8.8 s；同样六次经控制台自己的 15 s 启动预算
+全部报 `OK`，耗时 8.4–9.4 s；`stop` 7.8–8.8 s，两次都完整释放摄像头。配置与识别
+进程实参不一致时，闸门会在 8.4 s 内拒绝启动——这段时间门的引脚一直停在空闲电平，
+被拒绝的启动不会开门。
 
 ### 故障排查
 
 | 问题 | 处理 |
 |---|---|
-| `RuntimeArgsMismatch: face-recognition is not running` | 先起识别应用。没有识别器的门禁守护进程做不了判定，所以它停下来而不是去猜。 |
-| `mqtt.mqtt_host='127.0.0.1' but face-recognition runs -m 'localhost'` | 闸门按字面比较命令行字符串。写 `localhost`。原厂设备上踩到的就是这一条。 |
-| 写 gallery 时 `PermissionError` | 守护进程没有以 root 运行。 |
-| 守护进程起来了但一个版本都没激活 | 核对 `key_id` 与密钥是否与管理界面一致，`match_threshold` 是否与 `USA_MATCH_THRESHOLD` 相等。 |
+| 安装完包，摄像头上还是原厂 face-recognition 应用 | `opkg install --force-reinstall` 应当会冲突并替换它；如果没有，先手动移除 `face-recognition`。 |
+| 服务起不来，`agent.log` 结尾是 `refusing to start, thresholds are not single-sourced` | 配置与识别进程实际的启动参数不一致——核对 `device_id`/`actuator_id` 以及 `[recognition]` 下的每一项是否与出厂值一致，不要只改一边。 |
+| 代理起来了但一个库版本都没激活 | 核对 `key_id` 与签名密钥是否与管理界面一致，`match_threshold` 是否与 `USA_MATCH_THRESHOLD` 相等。 |
+| 普通 2002/2002w 上 `mqtt.host` 不匹配 | 闸门按字面比较配置的 `[mqtt] host` 与识别进程实际的 `-m` 参数；出厂默认是 `localhost`，不是 `127.0.0.1`。 |
 | 设备上版本目录越堆越多 | 激活成功后由 `[facedb] keep_versions`（默认 3）约束。回滚不依赖它们——服务端会把旧内容以新版本号重新发布。 |
-| 想改某个阈值 | 配置文件里改，识别进程的启动参数里**也要**改。只改一边守护进程会拒绝启动，这正是它的用途。 |
 
 ## 步骤 5: 核对人脸库是否已到设备 {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
