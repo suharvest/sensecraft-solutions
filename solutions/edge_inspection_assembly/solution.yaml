@@ -101,7 +101,7 @@ intro:
         zh: M.2 插槽上装了 Hailo-8 的工业整机，运行同一检测器的 INT8 HEF 版本
       purchase:
         require:
-          ai_accelerator: hailo-8
+          ai_accelerator: [hailo-8]
     recamera_pro:
       description: >-
         The whole inspection node on the camera itself — detection, OK/NG
