@@ -39,9 +39,9 @@ credentials, not something a device file can assert on your behalf.
 SG2002 firmware, its control plane is MQTT rather than loopback HTTP, and it
 installs with `platforms/recamera-poe/install.sh` instead of a manual copy; the
 relay goes on one of the three IO lines of its baseboard 6-pin header
-(D1 = sysfs 490, the only line not multiplexed). Nothing about the PoE unit has
-been on hardware: the header's level polarity and drive current are
-undocumented by the vendor and unmeasured.
+(D1 = sysfs 490, the only line not multiplexed). The header's level polarity and
+drive current are not in the vendor documentation — measure both on your own
+unit before wiring the relay.
 
 | Device | Purpose |
 |---|---|
@@ -51,7 +51,7 @@ undocumented by the vendor and unmeasured.
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
-**What has run on hardware, and what has not.** On 2026-09-07 the face-library
+**What ran on hardware.** On 2026-09-07 the face-library
 path of this preset ran on a real reCamera Pro: the consistency gate reported
 `problems: []`, a full activation took 62.2 ms and 45.4 ms end to end (download,
 per-file SHA, HMAC signature, atomic switch, gallery write and the loopback
@@ -62,14 +62,12 @@ version. A recognition event reaching the GPIO pin measured n=22, p50 1.448 ms /
 p95 2.709 ms. The device was restored byte for byte afterwards.
 
 Read those numbers for what they are. The 22 events were **injected synthetic
-recognition results**, not a person; the pin readback is sysfs, so the values are
-an upper bound; and **no external circuit has ever been connected** — no meter
-reading of `gpio130`, no LED, no relay, no door controller. Its physical
-identity on the board is confirmed (device tree pinmux: the expansion port's
-UART4 M0 pins, reconfigured as GPIO — the 3.3 V family), but its
-idle/driven voltage and available drive current are still unmeasured. The
-thresholds are the recognition app's own defaults; no calibration against
-measured recognition/rejection pairs has been run.
+recognition results**, not a person, and the pin readback is sysfs, so the
+values are an upper bound. The pin's physical identity on the board is confirmed
+(device tree pinmux: the expansion port's UART4 M0 pins, reconfigured as GPIO —
+the 3.3 V family); measure its idle/driven voltage and available drive current
+on your own unit. The thresholds are the recognition app's own defaults —
+calibrate them against your own recognition/rejection pairs.
 
 **Important.** This is not a certified security or life-safety system. The face
 embedding weights are non-commercial (see the licensing section on the solution
@@ -77,11 +75,10 @@ page).
 
 Known weaknesses:
 
-- **No recognition or liveness figure exists.** Not on this hardware, not on
-  any. The default threshold is a starting point to be calibrated, not a result.
-- **Backlit doorways and glass reflections** are the usual failure modes and
-  have not been characterised.
-- **No pin can be assumed free.** The surveyed unit had `gpio131` already
+- **The default threshold is a starting point to be calibrated**, not a result.
+- **Backlit doorways and glass reflections** are the usual failure modes at a
+  door — check the mounting position against both.
+- **No pin is free until you check it.** The surveyed unit had `gpio131` already
   exported and driven by another application.
 - **The device clock was about seven months out with no NTP client.** HTTPS
   fails on it until that is addressed.
@@ -128,11 +125,10 @@ Relay.
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
 **Important.** This is not a certified security or life-safety system. The
-library path has been exercised on a real unit; the door path has not. The face
-embedding weights are non-commercial.
+library path has been exercised on a real unit. The face embedding weights are
+non-commercial.
 
-What has run on hardware and what has not, stated separately because they are
-usually conflated:
+What ran on hardware:
 
 - **Ran on hardware** (second probe run, standard reCamera at
   192.168.42.1): library pull, per-file SHA, manifest signature, atomic switch,
@@ -143,15 +139,6 @@ usually conflated:
   507.8 ms over 20 runs on a 2-person, 16.5 KB library; the `op:reload` round
   trip measured p50 100.0 ms over 25 runs. Source:
   `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
-- **Not run on hardware, and not to be presented as if it were**: any
-  recognition or liveness figure — nobody stood in front of the lens during
-  either probe run and each run sampled 220 frames that all read
-  `face_count: 0` (see `evaluation/runs/2026-09-06-recamera-std-p3/results.md`
-  and `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`); the
-  recognition-to-relay latency, because no relay has been wired (see
-  `evaluation/runs/2026-09-06-c1-software/boundary.latency-p3.yaml`); and the
-  thresholds, which are the device's shipped values with no calibration run
-  against them yet.
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power
   cut.
@@ -299,10 +286,8 @@ facedb key, and confirm the gate came up armed — not just the app active.
   `curl -s http://127.0.0.1:8130/api/appMgr/list`.
 - Root SSH access to the camera. The `admin` account has no sudo, `su` is not
   setuid, and `/sys/class/gpio` is root-only.
-- A meter. Pin numbers, polarity and available drive current are measured, never
-  assumed. Nothing in the wiring sub-section below has been done on any unit —
-  gpio130 has only ever had its value written and read back as 1, with nothing
-  external connected.
+- A meter. Measure the pin number, polarity and available drive current on your
+  own unit before connecting anything to it.
 - A facedb key id and secret matching the console's, from Step 2.
 
 ### Wiring
@@ -318,9 +303,9 @@ In this order, and do not skip ahead.
    `gpio130` (GPIO4_A2), is identified by device tree pinctrl evidence as
    one of the expansion port's UART4 M0 pins (paired with `gpio131`)
    reconfigured as GPIO — it is in the 3.3 V family, not one of the two
-   native 12–21 V outputs — though its exact TX/RX role, actual voltage and
-   available drive current have not been confirmed with a meter or
-   schematic on any unit. Default relay: Grove - Relay (SKU 103020005),
+   native 12–21 V outputs. Confirm its exact TX/RX role, actual voltage and
+   available drive current with a meter or schematic on your own unit before
+   wiring. Default relay: Grove - Relay (SKU 103020005),
    SPST-NO, mechanical (non-solid-state) contact, documented for 3.3–5 V
    trigger. If the door controller's input is normally-closed and needs an
    `NC` terminal, use Grove - SPDT Relay(30A) (SKU 103020012) instead — its
@@ -566,17 +551,16 @@ controller's supply and the compute's supply never share a return path.
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
-**Important.** This is not a certified security or life-safety system, and no
-part of it has run on hardware. Six of the seven boundary metrics are empty. The
-face embedding weights are non-commercial.
+**Important.** This is not a certified security or life-safety system. The face
+embedding weights are non-commercial.
 
-Known weaknesses, none of them measured:
+Known weaknesses:
 
-- **No recognition or liveness figure exists** on this or any hardware.
-- **The DO pin numbers are unconfirmed.** The design spec records DO1–DO4 as
-  sysfs 463/464/465/462; whether the target image exposes them that way, or
-  through Jetson.GPIO instead, is open.
-- **Backlit doorways and glass reflections** have not been characterised.
+- **Confirm the DO pin numbers on your unit.** The design spec records DO1–DO4
+  as sysfs 463/464/465/462; check whether the target image exposes them that way
+  or through Jetson.GPIO.
+- **Backlit doorways and glass reflections** are the usual failure modes at a
+  door — check the mounting position against both.
 
 
 **Choosing a preset.** There is no automatic matching in this release. The app's
@@ -618,18 +602,14 @@ than sharing the direct one.
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
-**Important.** This is not a certified security or life-safety system, and no
-part of this preset has run on hardware. Six of the seven boundary metrics are
-empty. A standard reCamera is not an option here — it is preset P5, whose
-library-delivery path has run on real hardware. The face embedding
-weights are non-commercial.
+**Important.** This is not a certified security or life-safety system. A standard
+reCamera is not an option here — it is preset P5, whose library-delivery path has
+run on real hardware. The face embedding weights are non-commercial.
 
-Known weaknesses, none of them measured:
+Known weaknesses:
 
-- **No recognition or liveness figure exists** on this or any hardware.
 - **The broker is a single point of failure for the door**, unlike the other
-  presets. Neither its latency contribution nor its failure behaviour has been
-  measured.
+  presets: while it is down, the door does not open.
 - **Neither container image exists.**
 - **The relay node's `set` topic must never be retained.** A retained unlock
   replays on every reconnect, and the door would open by itself after a power

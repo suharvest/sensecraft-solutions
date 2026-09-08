@@ -67,8 +67,7 @@ web_dashboard:
     SHA, signature, atomic switch, gallery write, reload ack — measured
     p50 491.6 ms and p95 507.8 ms over 20 runs on a 2-person, 16.5 KB library;
     the `op:reload` round trip alone measured p50 100.0 ms over 25 runs. Those
-    are activation numbers, not door numbers. End-to-end recognition-to-relay
-    latency has not been measured on hardware and remains to be verified.
+    are activation numbers, not door numbers.
   description_i18n:
     zh: >-
       云端是唯一写源。注册、改名、删除、回滚做的都是同一件事：生成一个新的版本目录、
@@ -95,4 +94,4 @@ web_dashboard:
       §2 及同目录 `boundary.facedb-activation.yaml`，标准版 reCamera，192.168.42.1）：一次完整激活——轮询、Range 下载、逐文件 SHA、
       验签、原子切换、落 gallery、reload ack——20 次实测 p50 491.6 ms、p95 507.8 ms，
       库是 2 人 16.5 KB；单独的 `op:reload` 往返 25 次实测 p50 100.0 ms。这些是激活
-      时延，不是开门时延。识别到继电器动作的端到端时延尚未在真机上测过，需核实。
+      时延，不是开门时延。

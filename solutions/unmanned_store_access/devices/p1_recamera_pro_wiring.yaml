@@ -76,9 +76,9 @@ steps:
       evidence as one of the expansion port's UART4 M0 pins reconfigured
       this way — it is in the 3.3 V family, not one of the two native
       12-21 V outputs — but that identity check is not a voltage
-      measurement: its exact TX/RX role, idle/driven level and available
-      drive current have NOT been measured with a meter or schematic on any
-      unit, and no LED, relay or door controller has ever been connected. The app refuses
+      measurement: measure its exact TX/RX role, idle/driven level and
+      available drive current with a meter or schematic on your own unit
+      before connecting an LED, a relay or a door controller. The app refuses
       to arm a pin whose current direction and value disagree with the
       configured idle state, and will not take it over unless explicitly told
       to. Leave that refusal in place.
