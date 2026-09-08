@@ -189,6 +189,14 @@ verdict, the confidence, the latency and the transcribed text; setting
 the audit trail. Notifications gain the same fields and still carry no snapshot
 and no video.
 
+## Scope of the Numbers
+
+- **The alarm path** — state machine, SQLite, webhook delivery and outage recovery: measured on local replay with a replayer standing in for the cameras, not on a device.
+- **A single reCamera One closed loop** — one lab session, 2026-09-06, not a site.
+- **Detection accuracy** — it is the base EdgeFallKit project's number, not this design's.
+- **False alarms** — 0 over 0.02 camera-hours (72 s of quiet replay). The intended run is 24 h of quiet; run it on your own site before quoting a rate.
+- **Robustness under darkening and occlusion** — the script exists and needs GMDCSA clips plus on-device inference to run.
+
 ## Licensing note
 
 The alarm service and this package are the upstream project's own code. The
