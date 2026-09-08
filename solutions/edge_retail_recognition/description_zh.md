@@ -54,6 +54,15 @@ p50 56.7 ms / p95 89.5 ms。同款 RK3588 平台实测参考值。
 RKNN INT8：一致率 98.35%，p50 26.0 ms / p95 33.2 ms——快 2.2 倍，
 代价是 1.5 个百分点的一致率。
 
+**嵌入 + 端到端，reComputer RK3588 系列。** DINOv2-small 上 NPU（fp16，
+`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01` 分核）：
+嵌入 p50 53.19 ms，对 fp32 ONNX CPU 参考的 21 个检索指标最大差 0.85 个百分点。
+一次 20 SKU 货架回放实测（console 侧 `embedder_backend=none`，检索走
+`/v1/gallery/match`，console 不自己算向量）：进画面到上报识别结果 p50 924 ms /
+p95 1153 ms，发布错误 0 次，console 断线 38 秒后 MQTT 自动重连、事件不丢。
+同一批裁剪换成 CPU 上的 fp32 源模型跑 top-1 对照，只有 20 张单帧裁剪，
+差了 10 个百分点——样本量撑不起一个可信的 parity 数字。同款 RK3588 平台实测参考值。
+
 **检测 + 嵌入，reComputer RK3576。** RK3576 是双核 NPU（RK3588 是三核）。
 同款 RK3576 芯片平台实测，纯推理：检测用双核 RKNN fp16，p50 51.05 ms /
 p95 54.18 ms，与 CPU 参考的框一致率 99.91%。嵌入用双核 RKNN fp16，
@@ -76,10 +85,11 @@ top-1 84.67%、top-5 96.66%。同一档 DINOv2-small：top-1 79.11%。
 换到 1280² 把小目标 mAP50-95 从 17.49 抬到 26.88，
 这就是货架 preset 存在的理由。
 
-**嵌入器在 RK3588 与 Hailo-8 套餐上跑 CPU，在 RK3576 与 reCamera Pro 上跑 NPU，
-在 Jetson Orin 套餐上跑 GPU。** Hailo 量化没达到可用精度，RK3588 上也没有嵌入器的
-RKNN 转换；RK3576、reCamera Pro 与 Jetson Orin 套餐都有自己实测的加速器嵌入数字
-（见上下文）。走 CPU 的路径按每个裁剪 92 ms 做规划，货架整帧场景需要抽帧或按货位采样。
+**嵌入器在 Hailo-8 套餐上跑 CPU，在 RK3588、RK3576、reCamera Pro 上跑 NPU，
+在 Jetson Orin 套餐上跑 GPU。** Hailo 量化没达到可用精度；RK3588、RK3576、
+reCamera Pro 与 Jetson Orin 套餐都有自己实测的加速器嵌入数字（见上下文）。
+走 CPU 的路径（Hailo-8 套餐，或 RK3588/RK3576 不想切 NPU 嵌入时）按每个裁剪
+92 ms 做规划，货架整帧场景需要抽帧或按货位采样。
 
 **检测 + 嵌入，reComputer J40（Jetson Orin NX 16GB，TensorRT fp16）。** 两段都跑在
 设备自己的 GPU 上。检测器：p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率

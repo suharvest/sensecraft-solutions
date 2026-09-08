@@ -6,14 +6,17 @@
 #      package has no repository to build from, so both services take an image
 #      reference instead.
 #   2. Both images are published at
-#      sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1
+#      sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.2.0
 #      and .../edge-retail-console-web:0.1.0 (linux/amd64 + linux/arm64).
 #      web:0.1.0 was built 2026-09-07 from edge-retail-recognition @ a787f41.
-#      server:0.1.1 was built 2026-09-08 from edge-retail-recognition @ 7e443c1
-#      (fixes onnxruntime missing from the `server` extra — RETAIL_EMBEDDER=onnx
-#      crash-looped on 0.1.0). RETAIL_SERVER_IMAGE and RETAIL_WEB_IMAGE default
-#      to those tags below; override either variable to point at your own
-#      build instead.
+#      server:0.2.0 was built 2026-09-08 from edge-retail-recognition @ 3a1d4b4
+#      (adds contract-v3 embeddings, /v1/gallery/match and
+#      /v1/gallery/skus/vectors — the routes the RK3588 preset's
+#      embedder_backend=none/remote path needs; carries forward the 0.1.1 fix
+#      for onnxruntime missing from the `server` extra). Manifest list digest:
+#      sha256:affddc7e2e7e334bca7bd99bfa8d347124a6c9d98d6fa275c0d79f0b2d17447b.
+#      RETAIL_SERVER_IMAGE and RETAIL_WEB_IMAGE default to those tags below;
+#      override either variable to point at your own build instead.
 #
 # To build your own instead of using the published tags, build on the host
 # from the upstream repository. The SPA is built on the host first — the
@@ -63,7 +66,7 @@ services:
       - "${MQTT_PORT:-1883}:1883"
 
   server:
-    image: ${RETAIL_SERVER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.1.1}
+    image: ${RETAIL_SERVER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-retail-console-server:0.2.0}
     container_name: retail-server
     restart: unless-stopped
     <<: *bounded_logs
@@ -95,6 +98,14 @@ services:
       RETAIL_EMBEDDER: ${RETAIL_EMBEDDER:-fake}
       RETAIL_EMBEDDER_ONNX: ${RETAIL_EMBEDDER_ONNX:-/models/dinov2b_arcface_products10k_224_b1.onnx}
       RETAIL_EMBEDDER_ACCELERATOR: ${RETAIL_EMBEDDER_ACCELERATOR:-cpu}
+      # `none` / `remote` (RK3588 preset: the device embeds on its own NPU and
+      # only sends vectors — see guide.md#p1_rockchip) declare the identity
+      # the server pins gallery writes and /v1/gallery/match against. Empty by
+      # default; both are required together for `none`/`remote`, ignored for
+      # `fake`/`onnx` (server/config.py reads them from the current gallery's
+      # manifest instead once one exists).
+      RETAIL_EMBEDDER_SHA256: ${RETAIL_EMBEDDER_SHA256:-}
+      RETAIL_EMBEDDER_PREPROCESS_SHA256: ${RETAIL_EMBEDDER_PREPROCESS_SHA256:-}
       # The UI is served by the web container; the server does not mount static
       # files. Set this to the dist path instead if you drop the web service.
       RETAIL_WEB_UI_DIST: ""

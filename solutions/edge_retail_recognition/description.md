@@ -92,6 +92,18 @@ over the run. Reference value on the same Hailo-8 platform.
 p95 — 2.2x faster for 1.5 percentage points of agreement. Reference value on
 the same RK3588 platform.
 
+**Embedding + end to end, reComputer RK3588 series.** DINOv2-small on the NPU
+(fp16, `RETAIL_RKNN_DET_CORE_MASK=2` / `RETAIL_RKNN_EMBED_CORE_MASK=01`):
+53.19 ms p50 for the embedder against a fp32 ONNX CPU reference, largest gap
+0.85 percentage points across 21 retrieval metrics. Once, on a 20-SKU shelf
+replay with the console computing no vectors itself
+(`embedder_backend=none`, retrieval via `/v1/gallery/match`): 924 ms p50 /
+1153 ms p95 from frame to a recognised item published, zero publish errors,
+and automatic MQTT reconnect after a 38 s console outage with no event loss.
+A top-1 check against the same crops on a CPU with the fp32 source model, on
+only 20 single-frame crops, differed by 10 percentage points — too few
+samples for a reliable parity number. Measured on the same RK3588 platform.
+
 **Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
 (RK3588 has three). Measured on the same RK3576 chip platform, inference
 only: detection, RKNN fp16 on both NPU cores, 51.05 ms p50 / 54.18 ms p95,

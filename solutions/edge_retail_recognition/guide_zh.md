@@ -21,18 +21,26 @@ broker——以容器跑在另一台主机上。
 | 嵌入器，同一模型跑 CPU（动态 INT8，4 线程） | 93.45 ms p50 / 94.86 ms p95 |
 | 检测与嵌入共用三个核 | 嵌入 88.94 ms p50，检测 76.91 ms p50 |
 | 检测占 core 2、嵌入占 core 0+1 | 嵌入 53.19 ms p50，检测 60.88 ms p50 |
+| 端到端（进画面到上报识别结果），检测 core 2 / 嵌入 core 0+1，嵌入在设备上算、检索走 `console:0.2.0`（`embedder_backend=none`，`/v1/gallery/match`） | p50 924 ms，p95 1153 ms |
 
-最后两行对应两个部署前要设好的开关：给两个模型各自的核
+共用三核那一行对应两个部署前要设好的开关：给两个模型各自的核
 （`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01`）；核掩码不要
 留 `AUTO`——实测 `AUTO` 只用 core 0，core 1 与 core 2 全程 0%。
 
 RK3576 上什么都没测；上面的数字只来自 RK3588。
 
-**没测到什么。** 这套配置从画面到管理端看到识别结果的端到端延迟没有测。把检测、
-嵌入、检索与上报串起来的设备侧进程在上游是有的
-（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），但这个套餐
-不负责部署和托管它：套餐做的是转换两个模型、在板上证明转换正确，到此为止。
-在自己的产线上把那个进程跑起来是你这边的一步。
+**端到端测到了什么、没测到什么。** 把检测、嵌入、检索与上报串起来的设备侧进程在
+上游是有的（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），
+这个套餐仍然不负责部署和托管它——在自己的产线上把那个进程跑起来是你这边的一步。
+那个进程测过一次：20 SKU 货架回放，console 端 `embedder_backend=none`、
+`gallery.match_url` 指向 `console_stack:0.2.0`（设备在自己的 NPU 上算嵌入，
+console 只做检索）。结果：端到端 p50 924 ms / p95 1153 ms，发布错误 0 次，
+console 断线 38 秒后 MQTT 自动重连、事件不丢。同一批裁剪换成 CPU 上的 fp32
+ONNX 源模型跑 top-1 对照，只有 20 张单帧裁剪，差了 10 个百分点（14/20 对
+16/20）——2 条分歧都是相似度差 <0.01 的临界样本，样本量撑不起一个可信的 parity
+数字（不推翻上表"0.85 pp（21 个检索指标，更大验证集）"那条嵌入层面的结论）。
+完整记录见 edge-retail-recognition 仓库
+`evaluation/runs/2026-09-08-rk3588-console-acceptance-020`。
 
 ## 步骤 1: 部署注册管理端 {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
