@@ -116,10 +116,12 @@ Deploy over SSH. The board takes its address from DHCP; the default user is
 Deploy over SSH to the reRouter. Default address `192.168.49.1`, user `root`,
 empty password on a stock image. CPU recognition, no accelerator.
 
-On the reRouter, reboot the device once the deployment reports success: the
-ALSA permission change applied during deployment takes effect reliably only
-after a restart. Wait about two minutes after the reboot before opening the
-client page.
+The retired smart_retail_voice_ai package recommended rebooting the reRouter
+after deploying. It is not required here: the `chmod` on `/dev/snd` that the
+deployment runs takes effect immediately. It is also not persistent — the
+device nodes are recreated at boot — so if capture stops working after a
+reboot, run `chmod -R 666 /dev/snd/*` again. After any reboot, give the
+services about two minutes before opening the client page.
 
 ### Troubleshooting
 

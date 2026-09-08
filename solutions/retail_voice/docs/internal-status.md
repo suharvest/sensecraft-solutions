@@ -96,7 +96,7 @@ Carried over in this pass:
 |---|---|
 | `links.wiki` (en/zh) and `links.purchase` | `intro.links` in `solution.yaml` |
 | `chmod -R 666 /dev/snd/*` deploy step | `devices/local_rerouter.yaml`, `remote_overrides.actions.before` |
-| "reboot after deploying on the reRouter" advice | `guide.md` / `guide_zh.md`, Step 2, reRouter target |
+| The reRouter reboot note — corrected: the old package recommended a reboot, the `chmod` does not need one, and it is not persistent across one | `guide.md` / `guide_zh.md`, Step 2, reRouter target |
 | Troubleshooting rows: page not loading right after reboot, record button unresponsive while models load | `guide.md` / `guide_zh.md`, Step 3 |
 | `tags: rerouter, npu` | `intro.tags` |
 
@@ -115,10 +115,29 @@ Deliberately not carried over:
 - **`watchtower`.** The old compose ran it to pull new images automatically. A
   store box must not silently swap its own image; this was already recorded in
   the header of `assets/docker/docker-compose.local-cm4.yml`.
-- **The reSpeaker USB output-routing step** (pyusb `ctrl_transfer` calls run
-  inside `sensecraft-voice-client:v0.4`). It configures the array's audio
-  *output*; neither preset here plays audio back, and the step needs an image
-  this package does not pull.
+- **The reSpeaker USB control-transfer step** (pyusb `ctrl_transfer` calls run
+  inside `sensecraft-voice-client:v0.4`). It is not carried over because the
+  step runs inside an image this package does not pull. **Open item, not a
+  closed decision:** the calls include `AUDIO_MGR_OP_R 8 0`, which selects
+  which channel the array sends over USB, so it sits on the capture path and
+  not only on playback. Nobody has checked on this hardware whether the
+  XVF3800's factory channel selection is already what the capture client
+  wants. If a deployment records silence or the wrong channel while `arecord
+  -l` shows the array, this is the first thing to re-test.
+- **The local (on-your-own-computer) deploy target** the old package offered
+  for the same step, "deploy voice services on your local computer" with the
+  array plugged into that computer's USB. Both of the images the
+  `local_transcribe` preset deploys are `linux/arm64` only, and so were the
+  old package's — `docker manifest inspect --verbose` on 2026-09-08 returns
+  `arm64` for `sensecraft-asr-server:v0.1`,
+  `sensecraft-voice-client:v0.4` and `seeed-local-voice:rpi-20260721`. On top
+  of that the capture container bind-mounts `/dev/snd`, which the Docker
+  Desktop Linux VM on macOS and Windows does not expose, so the laptop-plus-
+  USB-microphone path the old guide described could not have captured audio
+  there. The supported route to the same result is the SSH target to the arm64
+  board. A `type=local` target for an operator whose own machine *is* the
+  store box (what `cloud_stack` offers as `stack_local`) has not been added
+  here because it has not been tried on either board.
 - **The hosted console at `test-voice-web.seeed.cn`** and the guide sections
   that documented it (dashboard, AI analysis, store/user management, keyword
   and prompt settings). The `cloud_stack` preset replaces it with a console you

@@ -262,5 +262,6 @@ post_deployment:
 # The retired smart_retail_voice_ai package carried `reboot_recommended` /
 # `reboot_message` here. Neither is a spec field (see
 # spec/device.schema.json PostDeploymentConfig), so both were dropped on load
-# and never reached the UI; the advice now lives in guide.md, Step 2, where a
-# reader actually sees it.
+# and never reached the UI. A reboot is not needed for the `chmod` above to
+# take effect; what a reader does need to know is that it is not persistent.
+# That is written in guide.md, Step 2.
