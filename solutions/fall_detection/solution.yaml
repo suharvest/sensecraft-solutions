@@ -1,5 +1,19 @@
 version: "1.0"
 id: fall_detection
+# The Eldercare Alarm package (eldercare_alarm) was merged into this one on
+# 2026-09-08 and its directory deleted: same detector underneath, so one
+# solution whose presets carry the alarm panel rather than two pages. Its orin
+# and hailo presets are the jetson and hailo presets here with the panel in the
+# same compose stack; its reCamera + Alarm Gateway preset is the optional
+# "Install the Alarm Panel" step on the reCamera 2002 and reCamera Pro presets.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md). It is a written record of where the old
+# package went, not an alias: nothing redirects eldercare_alarm to this id. The
+# retirement itself is recorded in solutions/.deprecated.json, which
+# generate_solution_manifest.py copies into the manifest's `deprecated` array.
+replaces: eldercare_alarm
 name: Fall Detection
 name_i18n:
   zh: 跌倒检测
