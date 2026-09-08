@@ -68,27 +68,44 @@ the door path on your own site before it carries a door.
 thresholds and measure recognition, liveness and the door path on your own site
 before the design carries a door.
 
-**Door-open time: from the face entering the frame to the relay contact
-closing.** Measured on the device, running the deployed app itself, over the
-complete pipeline — capture, detection, liveness, matching, policy, GPIO pulse.
-p50, with p95 in brackets, 12 approaches per point.
+**Door-open time: from the first replay frame handed to the app to the GPIO pin
+being driven to its active level.** Measured on the device, running the
+`f1-access` 0.1.1 app itself, over capture, detection, liveness, matching,
+policy and the pin write. p50, with p95 in brackets, 12 runs per point — at
+n=12 read the p95 column as an upper bound.
 
-| Camera / host | 10 people | 100 people | 500 people | 1 000 people | 1 500 people |
-|---|---|---|---|---|---|
-| reCamera Pro (RV1126B) | **3.74 s** (3.78) | **3.72 s** (3.75) | **3.75 s** (3.78) | **3.75 s** (3.80) | **3.78 s** (3.81) |
-| Standard reCamera (SG2002) | — | — | — | — | — |
-| AI host + RTSP camera (Jetson) | — | — | — | — | — |
+| Camera / host | 10 people | 1 000 people |
+|---|---|---|
+| reCamera Pro (RV1126B), f1-access 0.1.1 | **0.62 s** (0.67) | **0.66 s** (0.68) |
+| Standard reCamera (SG2002) | — | — |
+| AI host + RTSP camera (Jetson) | — | — |
 
-60 of 60 approaches opened the door. Conditions: reCamera Pro, 1280x720 frames
-replayed at 12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the
-probe is a stock video clip replayed through the device's own pipeline, not a
-live person, and the endpoint is a sysfs readback of the GPIO pin with no relay
-or lock connected. Library size costs 43 ms between 10 and 1 500 people: the
-cosine scan is 0.215 ms at 10 people and 13.1 ms at 1 500. The time is the
-recognition pipeline itself — the device runs 7.0-7.2 fps and liveness needs
-motion evidence across frames. Source:
-"evaluation/runs/2026-09-08-open-door-latency/results.md" in the
+The pin was asserted in 24 of 24 runs. Conditions: 1280x720 frames replayed at
+12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the probe is a
+stock video clip replayed through the device's own pipeline, not a live person.
+The 1 500 ms contact hold that follows the pin write is not counted. No relay
+and no lock are connected, so these figures contain no mechanical response. The
+measured p50 difference between the 10-person and 1 000-person library is 37 ms.
+Source: "evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
 unmanned-store-access repository.
+
+**Rejections: the pin was never asserted in 100 runs.** Same device, same app,
+20 runs per row. 40 runs are an unregistered person; 60 are a screen held in
+front of the lens.
+
+| Run | Face library | Pin asserted |
+|---|---|---|
+| Unregistered person | 9 synthetic identities | 0 / 20 |
+| Unregistered person | 999 synthetic identities | 0 / 20 |
+| Phone screen replay, clip A | 10, template built from the attack clip | 0 / 20 |
+| Phone screen replay, clip B | 10, template built from the attack clip | 0 / 20 |
+| Still screen image | 10, template built from the attack clip | 0 / 20 |
+
+In the two unregistered-person rows the library holds only synthetic vectors, so
+the person in the clip is not enrolled. In the three screen rows the template is
+built from the attack clip itself, so the face in the library and the face on the
+screen are the same person. The still-screen row is one display frame held
+still; no printed photograph was tested.
 
 The standard reCamera row is empty because its recogniser is a closed native
 process with no way to feed it a frame: measuring it needs a person in front of
