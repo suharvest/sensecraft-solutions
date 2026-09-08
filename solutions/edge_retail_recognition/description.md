@@ -68,9 +68,10 @@ was checked against. Embedder: 4.23 ms p50 / 4.69 ms p95, 21 retrieval
 metrics within about 0.24 percentage points of fp32. These independent-probe
 figures are n=300, inference only, on an engine built on the device it ran
 on. A 2956-frame checkout replay ran through the full device-side runtime —
-detector, embedder, gallery lookup, MQTT publish — with zero dropped frames:
-the only preset in this package where that full loop has run on hardware
-rather than stopping at model conversion. Under that concurrent load, with
+detector, embedder, gallery lookup, MQTT publish — with zero dropped frames.
+The RK3588 preset has run a comparable end-to-end loop too, on a shelf
+replay (see below); the Hailo-8 and RK3576 presets stop at model conversion.
+Under that concurrent load, with
 both stages sharing the same GPU and sampled from the replay's own health
 snapshot (1024 detections, 271 embeddings), latency degrades to 8.76 ms p50 /
 9.53 ms p95 (detector) and 5.37 ms p50 / 5.83 ms p95 (embedder) — still
@@ -99,8 +100,12 @@ replay with the console computing no vectors itself
 1153 ms p95 from frame to a recognised item published, zero publish errors,
 and automatic MQTT reconnect after a 38 s console outage with no event loss on the device side (the console's own on-disk receipt was not independently checked).
 A top-1 check against the same crops on a CPU with the fp32 source model, on
-only 20 single-frame crops, differed by 10 percentage points — short of this
-project's <=1 pp parity target, on too few samples for a reliable number. Measured on the same RK3588 platform.
+the full 704 `ok`-state crops from that shelf replay (40 source frames), matched:
+RKNN fp16 and CPU fp32 both scored 541/704 (76.85%) and agreed on the same
+predicted SKU in 695/704 cases (98.72%); of the 9 disagreements, 8 were
+correctness flips (one backend right, the other wrong), all within a <0.01
+similarity margin. Mean cosine similarity between the two vectors was 0.99969.
+Measured on the same RK3588 platform.
 
 **Detection + embedding, reComputer RK3576.** RK3576 has a two-core NPU
 (RK3588 has three). Measured on the same RK3576 chip platform, inference
@@ -122,8 +127,8 @@ is not usable. Reference value on the same Arm CPU platform.
 **Retrieval accuracy** (Grocery Store Dataset, 81 classes, fp32). DINOv2-base at
 eight registration images per SKU: 84.67% top-1, 96.66% top-5. DINOv2-small at
 the same k: 79.11% top-1. At one registration image per SKU, DINOv2-small drops
-to 51.11% — the number of registered views is the single largest lever on the
-page. On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
+to 51.11% — going from one registration image to eight changes top-1 by 28
+percentage points. On held-out Products-10K SKUs, DINOv2-base reaches 78.92% top-1 at k=8
 across many more classes.
 
 **Detection accuracy** (SKU-110K test set). The 640² preset reaches 52.84
@@ -162,11 +167,11 @@ both agree there is no directional bias).
 
 | Preset | Detector | Embedder | Best for |
 |---|---|---|---|
-| reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50 |
+| reComputer RK3588 series | RKNN fp16 on the NPU, 56.7 ms p50, 99.85% agreement | onnxruntime on the CPU | Rockchip toolchain, INT8 available at 26.0 ms p50. With the embedder swapped to RKNN on the NPU (not the CPU path in this row), the full device-side loop also ran end to end once (20-SKU shelf replay, 924 ms p50) |
 | reComputer RK3576 | RKNN fp16 on both NPU cores, 51.05 ms p50, 99.91% agreement | RKNN fp16 on both NPU cores, 56.38 ms p50, max 0.36pp retrieval gap vs fp32 | Both stages on the NPU; smaller, two-core Rockchip option |
 | reComputer R2000 (Hailo-8) | INT8 HEF, 9.04 ms p50, 94.77% agreement | Dynamic INT8 DINOv2-small on the CPU, 91.95 ms per crop | The fastest detector path; both stages measured on one board |
 | reCamera Pro | RKNN fp16 on the onboard NPU, 112.3 ms p50, 99.91% agreement | RKNN fp16 on the onboard NPU, 77.5 ms p50, cosine 0.998 vs fp32 | All-in-one camera; both stages measured on the same board |
-| reComputer J40 (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | The fastest path measured, and the only one with a device-side runtime measured end to end (2956-frame replay, zero dropped frames) |
+| reComputer J40 (Jetson Orin NX, TensorRT) | TensorRT fp16 on the GPU, 5.18 ms p50, 99.91% agreement | TensorRT fp16 on the GPU, 4.23 ms p50, max 0.24pp retrieval gap vs fp32 | Fastest per-stage numbers measured; full device-side loop also run end to end (2956-frame checkout replay, zero dropped frames) |
 
 The Hailo-8, RK3588 and RK3576 rows are reference values taken on the same
 accelerator chip platform as the matching reComputer preset; they will be
