@@ -98,7 +98,6 @@ intro:
           required: true
           options:
             - device_ref: sensecap_watcher
-            - device_ref: reterminal_d1001
           default: sensecap_watcher
           name_i18n:
             zh: 语音助手

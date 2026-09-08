@@ -45,7 +45,7 @@ This solution replaces the warehouse system's menus and forms with **speech**: s
 | **Tier 2B · Advanced (Multi Site)** | Internet required | Watcher ×1-3 + J4012 | Data privacy, your own AI APIs, up to 3 sites on one box |
 | **Tier 3 · Premium** | LAN only | Watcher + R2135-12 + J5011 | Fully offline, data never leaves facility |
 
-The voice terminal in Trial, Tier 1, Tier 2A and Tier 3 can be either a SenseCAP Watcher (default) or a reTerminal D1001 — an 8" touch HMI with a camera; both run the same voice firmware and connect to the warehouse system through an MCP endpoint.
+The voice terminal in Tier 1, Tier 2A and Tier 3 can be either a SenseCAP Watcher (default) or a reTerminal D1001 — an 8" touch HMI with a camera; both run the same voice firmware and connect to the warehouse system through an MCP endpoint.
 
 ### Cost Notes
 
