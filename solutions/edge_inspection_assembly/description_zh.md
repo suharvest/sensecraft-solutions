@@ -61,6 +61,10 @@
 实际部署带上两者后路数会更低。2026-09-05 实测，设备为 Orin NX 16GB 工程参考套件
 （JetPack 6.2 / TRT 10.3）。
 
+2026-09-08 复核：同一个 engine 在一台 reComputer J40 系列（Orin NX 16GB）
+整机上已连续运行 67 小时，CPU 与 TensorRT 的框一致率 0.9992，取图到线圈
+P50 11.45 ms，67 小时全程 0 丢帧。
+
 另外两台主机跑同一个检测器、精度相当：选配 Hailo-8 的 reComputer R2000 系列端到端
 P50 11.89 ms / P99 16.08 ms、mAP50 0.9858（2026-09-06）；一体机 reCamera Pro
 mAP50 0.9870、单次推理 P50 30.9 ms（RKNN INT8，2026-09-08）。reCamera Pro 的 INT8

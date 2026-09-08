@@ -103,9 +103,9 @@ intro:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB)
+      description: The same runtime with more headroom for extra camera streams (Orin NX 16GB). Ran continuously for 67 hours in a 2026-09-08 check, with 0.9992 CPU vs TensorRT box agreement and zero dropped frames throughout.
       description_i18n:
-        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB）
+        zh: 同一套运行时，可支撑更多路摄像头（Orin NX 16GB）。2026-09-08 复核中连续运行 67 小时，CPU 与 TensorRT 框一致率 0.9992，全程 0 丢帧。
       purchase:
         require:
           module: [orin_nx_16]
