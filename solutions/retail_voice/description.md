@@ -123,97 +123,39 @@ operates the deployment, and it must be re-checked on the real installation.
 Whether recording conversations in your store is lawful, and what notice you must
 give, is your responsibility.
 
-### Recognition — measured on the speech service both presets deploy
+| What the store gets | Typical | Device |
+|---|---|---|
+| End of speech to the final text | **861 ms p50 / 1027 ms p95** | reComputer RK3576 |
+| Chinese recognition error, streaming | **9.4% CER** | reComputer RK3576 |
+| Data left behind after deleting one person's records | **0** across the database, the object store and local audio | Server Stack preset |
+| Personal details caught by redaction | **0.98 precision / 0.95 recall** | Server Stack preset |
+| Access refused without the right role | **Pass** — 401 without a credential, 403 for a role that is too low | Server Stack preset |
 
-Every number below was measured on the OpenVoiceStream speech service under the
-stated conditions. Nothing here is interpolated from a similar board.
+Conditions: the speech figures come from the `cat-remote` RK3576 board running
+this package's exact local RK3576 compose file with the SenseVoice profile,
+2026-09-06; the streaming accuracy figure is the Paraformer profile on the same
+board, 2026-06-08. The privacy figures come from an integration run on its own
+MySQL 8.0 and MinIO, with SHA-256 manifests compared before and after in all
+three stores, on a developer machine rather than a store. The redaction score is
+a 114-sample gold set in Chinese and English.
 
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Offline transcription latency, RK3576 | 3.0 s of audio → ~780 ms warm (RTF 0.26) | reComputer RK3576 Dev Kit, Armbian bookworm, kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM; SenseVoice RKNN fp16 on the NPU; "POST /asr", warm container | Existing measurement, 2026-08-24, recorded in the header of "assets/docker/docker-compose.local-rk3576.yml" |
-| Memory, RK3576 | 1.71 GiB container RSS | Same run, with ASR + punctuation + speaker embedding all loaded | Same |
-| Restart to healthy, RK3576 | ~25 s | Same board, model volumes already populated | Same |
-| Package acceptance check, RK3576 (this deployment) | "POST /asr" on 5 short clips (3 zh + 2 en): all 5 returned ""backend":"rk:sensevoice_rknn"" and correct text; wall-clock p50 678 ms, p95 810 ms (n=5, includes HTTP overhead) | reComputer RK3576, this package's exact "docker-compose.local-rk3576.yml" + "local_rk3576.yaml" deployed via SSH, "rk3576-sensevoice" profile, container RSS 1.716 GiB confirming the row above | Real-machine packaging verification, 2026-09-06 |
-| End-of-speech to final result, RK3576 (this deployment) | eos→final p50 861 ms, p95 1027 ms (n=5, same 5 clips) | "/asr/stream?vad=none&punctuate=true&speaker_embedding=true", 100 ms PCM chunks, latency measured from the client's own empty-frame EOF to the "asr_final"/"final" message — **this is the SenseVoice profile this design actually deploys**, distinct from the Paraformer streaming numbers in the two rows below | Real-machine packaging verification, 2026-09-06 |
-| Streaming accuracy, RK3576 | zh CER 9.4%, en WER 34.6% | reComputer RK3576, "bench/perf/corpus" short set (5 zh + 5 en files), Paraformer hybrid RKNN encoder + RKNN decoder, "/asr/stream" realtime, 40/80/160/240/400 frame buckets — **a different profile from the SenseVoice one deployed here** | "openvoicestream/docs/perf/paraformer-rk3576-streaming-ab-20260608.md", 2026-06-08 |
-| End-of-speech to final result, RK3576 | 326 ms / 347 ms (zh / en mean) | Same run, "/asr/stream" with 500 ms prepare lead | Same |
-| Voiceprint embedding, RK3576 | RTF 0.09–0.13 (1 s → 125 ms, 3 s → 255 ms, 5 s → 428 ms) | reComputer RK3576, CAM++ via sherpa-onnx on the CPU, 2 threads; clustering over 10 speakers 1.45 ms | "openvoicestream/docs/specs/diarization-capability.md", 2026-06-26 |
-| Voiceprint embedding, CM4 class (A72) | RTF ≈0.10 (1 s → 114 ms, 3 s → 303 ms, 5 s → 508 ms), cold load 1.66 s | A same-SoC-generation bench board (Cortex-A72, 4 cores), not the reRouter CM4 series chassis itself; CAM++ via sherpa-onnx on the CPU | Same document, 2026-06-26 |
+Two caveats that survive the numbers: the redaction score is a **text-level**
+score measured on written text, not on transcription output — recognition errors
+move entity boundaries; and the deletion proof stands up **its own** stores,
+which is what makes it reproducible and also what makes it evidence about the
+code rather than about your site's data.
 
-The RK3576 rows are reference values taken on the same RK3576 platform; they
-will be updated after a re-test on the reComputer unit.
+Two boundaries that are not performance numbers but decide whether a site works
+at all: **steady background noise at or below 70 dB**, and the **speaker within
+about 3 m** of the array. Above or beyond those, word error rises before any
+number in this table applies.
 
-**Pilot the reRouter CM4 path before rolling it out.** The RK3576 numbers above
-do not carry over to the CM4's Cortex-A72 cores; measure accuracy and latency on
-one store first.
+The CM4-class speech figures, concurrency, continuous-capture duration and the
+XVF3800 capture path have not been measured on this package. Measure them on
+your own site; one or two concurrent channels is a working assumption.
 
-### Privacy pipeline — measured on the stack preset
-
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Deletion residue (database, object store, local audio) | 0 | Subject-scope deletion, checked against SHA-256 manifests taken before and after, across all three stores | C4 hardening, "delete_proof.sh" integration test on its own MySQL 8.0 + MinIO — not a field installation |
-| Rows before / after deletion | 22 → 4 | The 4 remaining rows are the PII-free tombstone and audit entries; no row holds subject data | Same run as above |
-| Deletion latency | 14 ms | Single subject, small seeded dataset, all services on one host | Same run as above; not a load figure |
-| PII redaction precision | 0.98 | 114-sample gold set: Chinese and English, overlapping entities, deliberate false-positive traps | "tools/pii_eval.py" driving the same Go implementation the service uses |
-| PII redaction recall | 0.95 | Same gold set. Two samples are known misses kept in the set on purpose to keep the gap visible | Same run |
-| Auth enforcement | Pass | 401 without a credential, 403 for a role that is too low, per-route role matrix, legacy role-less token degraded to viewer | Unit tests in "internal/middleware" (asr-service) and "api/server/middleware" (voice-service) |
-
-These figures come from the code's own test rig on a development machine, not
-from a store. Deletion latency is not a throughput number, and redaction
-precision is a score on a 114-sample set, not a guarantee that no personal data
-survives.
-
-### Site boundaries — both presets
-
-Two boundaries that are not performance numbers but decide whether a site will
-work at all:
-
-- **Background noise at or below 70 dB**, i.e. the level of normal conversation.
-  Above that the array's noise suppression stops separating the speaker from the
-  room, and word error rises before any of the numbers above apply.
-- **Speaker within about 3 m** of the array. This is the coverage the XVF3800
-  beamformer holds in a store; further out, transcription degrades regardless of
-  the compute board.
-
-### Privacy statement — stack preset
-
-What the pipeline does and does not protect.
-
-- **Original transcripts are never stored.** The configuration option exists
-  ("privacy.store_original_text") and defaults to false; turning it on would put
-  original text in a store the deletion flow was not extended to cover.
-- **Audio is not redacted.** Only text is. Raw audio is kept on the host for a
-  retention window — 24 hours by default, shortenable at deploy time to 6 or 1 —
-  and is covered by the deletion flow. The audio itself is not redacted: v1
-  does no bleeping and no segment removal.
-- **Exports carry the manifest, not the audio**, for the same reason.
-- **Low-confidence entities are flagged, not masked.** Redaction masks above a
-  0.85 confidence threshold and marks the rest for review, which is why recall
-  is 0.95 and not higher. Counts land in "pii_masked_count" and
-  "pii_review_count"; the matched spans do not, because storing them would put
-  the location of the personal data back in the database.
-- **Turning on the cloud-analytics profile sends text off the host.** The text
-  is redacted, but "nothing leaves the premises" stops being true.
-
-### Known limitations
-
-- **Numbers spoken as a continuous string come back as Chinese numeral words.**
-  The ASR does not apply inverse text normalization to an isolated digit run,
-  even with "recognition.use_inverse_text_normalization" on: "13812345678"
-  spoken in one breath transcribes as "幺三八幺二三四五六七八", not as Arabic
-  digits. Every phone-number regex in the redactor matches Arabic digits, so
-  before this was handled such a line was stored with the number in the clear
-  and "pii_masked_count: 0".
-  A dedicated rule ("cn_mobile_spoken") now masks the 11-character Chinese
-  numeral mobile-number pattern, including the 幺 reading used when people read
-  a number out. **What is still not covered:** ID card numbers, landline
-  numbers and any other numeric identifier read out as Chinese numeral words.
-  If those matter for the deployment, verify with your own recordings before
-  relying on redaction, and treat the raw audio retention window as the control
-  that actually bounds the exposure.
-- **The redaction score in the table is a text-level score.** It is measured on
-  written text, not on ASR output. Transcription errors move entity boundaries
-  and can drop a match that the same rule would catch in clean text.
+Full conditions, the gold-set composition and the per-run detail are in the
+engineering wiki.
 
 ## Output Interfaces
 

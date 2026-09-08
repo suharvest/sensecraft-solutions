@@ -38,104 +38,35 @@ up any notifications.
 ## How well it works
 
 These are engineering benchmarks on public datasets, **not a medical or
-life-safety certification**. Subjects 1–2 trained the temporal model, Subject 3
-froze the configuration, and Subject 4 was read once as an untouched test set.
+life-safety certification**. GMDCSA-24 v2.1 is split by person: Subjects 1-2
+train the temporal model, Subject 3 selects thresholds and freezes the
+configuration, and Subject 4 is a held-out test set read exactly once — 27 clips
+(12 falls / 15 everyday activities) at 15 FPS.
 
-**How it was tested**
+| What the site gets | Typical | Device |
+|---|---|---|
+| Fall to alert | **1.61 s** mean | reComputer R2000 (Hailo-8) |
+| Fall recall, frozen temporal gate | **100%** | Same host, 27-clip held-out set |
+| Everyday activity not raising an alert | **80%** | Same host and set |
+| Streams one host carries at 15 FPS, MQTT disabled | **16** | reComputer R2000 (Hailo-8) |
 
-- GMDCSA-24 v2.1, split by person: Subjects 1–2 train the temporal model,
-  Subject 3 selects thresholds and freezes the configuration, and Subject 4 is a
-  held-out test set **read exactly once**.
-- Subject 4 drops the 10 clips previously used for pipeline smoke tests, leaving
-  27 (12 falls / 15 everyday activities).
-- Video is resampled to 15 FPS; tracking and temporal state reset before each clip.
-- An alert more than 0.5 s before the annotated start of the fall counts as a false
-  alarm, not a hit.
-- Every platform re-extracts traces from its own real pose output and retrains and
-  freezes its own temporal weights. Nothing is borrowed across platforms.
+Accuracy lands between 74.1% and 88.9% across the frozen platform profiles and
+mean alert latency between 1.22 s and 1.75 s, so **choose hardware by stream
+count, not by accuracy**. Stream count follows the host: 1 on reCamera Pro and
+reComputer RK3576, 5 on reComputer RK3588, 8 on reComputer J30, 9 on reComputer
+J40, 16 on reComputer R2000 with Hailo-8. Those are the highest loads tested
+from a real 640x640 H.264 15 FPS source and are a starting point for your own
+load test, not a rated capacity.
 
-**Results**
+The RK and Hailo rows measure the frozen temporal gate, not full deployed
+state-machine accuracy, and the Hailo capacity run had MQTT disabled. The
+held-out set has 27 clips, so one clip moves a metric by 3.7 percentage points.
+Results were frozen on 2026-09-05.
 
-| Frontend/profile | Accuracy | Recall | Specificity | F1 | Mean alert latency |
-|---|---:|---:|---:|---:|---:|
-| reCamera CVI baseline | 74.1% | 83.3% | 66.7% | 74.1% | 1.75 s |
-| Jetson YOLO11s optimized | 81.5% | 83.3% | 80.0% | 80.0% | 1.47 s |
-| Jetson YOLO11m optimized | 85.2% | 100% | 73.3% | 85.7% | 1.26 s |
-| Jetson YOLOv8m mixed INT8/FP16 repaired | 88.9% | 83.3% | 93.3% | 87.0% | 1.43 s |
-| RK3576 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.49 s |
-| RK3588 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.53 s |
-| reCamera Pro production fallback on Pro traces | 81.5% | 91.7% | 73.3% | 81.5% | 1.22 s |
-| reCamera Pro native experiment | 70.4% | 75.0% | 66.7% | 69.2% | 1.47 s |
-| Hailo-8 native temporal gate | 88.9% | 100% | 80.0% | 88.9% | 1.61 s |
-
-The clean historical test has 27 clips, so one clip changes a metric by 3.7
-percentage points. RK and Hailo rows measure the frozen temporal gate and are not
-full deployed-state-machine accuracy. The repaired YOLOv8m result is regression
-evidence on the same 27 clips, not a pristine one-shot holdout publication: its
-calibration and fitting exclude Subject 4, but earlier failed-M investigations had
-already observed that subject. The historical YOLO11m FP16 row remains the clean M
-baseline. The temporal model itself remains FP32; INT8 names the pose frontend.
-
-### Performance
-Capacity now uses real RTSP input rather than synthetic blank tensors. Jetson and RK
-passing routes had to publish at least 14.5 FPS from the same 640×640 H.264, 15 FPS
-source. Hailo used the same source and threshold but disabled MQTT during its capacity
-boundary run; reCamera Pro is one-camera coverage below that threshold. Other inference
-applications were stopped before these runs.
-
-| Device | Pose frontend | Highest tested live/RTSP load | Next boundary / coverage |
-|---|---|---:|---:|
-| reComputer J30 (Orin Nano Super) | YOLO11s-Pose TensorRT FP16 | 8 streams, 14.95 FPS each | 9 streams, 13.36 FPS each |
-| reComputer J40 (Orin NX Super) | YOLO11s-Pose TensorRT FP16 | 9 streams, 14.93 FPS each | 10 streams, 13.05 FPS each |
-| reComputer RK3576 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 1 stream, 14.83–15.01 FPS | 2 streams, 12.81–12.83 FPS |
-| reComputer RK3588 | YOLOv8s-Pose RKNN INT8, MPP NV12 path | 5 streams, 14.97–15.01 FPS each | 6 streams, 14.43–14.49 FPS each |
-| reComputer R2000 (Hailo-8) | YOLOv8s-Pose quantized HEF, 1 context | 16 streams, 14.52–14.57 FPS each; MQTT disabled | 17 streams below 14.5 FPS |
-| reComputer R2000 (Hailo-8) | YOLOv8m-Pose quantized HEF, 3 contexts | 5 streams, 14.98–15.02 FPS each; MQTT disabled | 6 streams below 14.5 FPS |
-| reCamera Pro | YOLO11n-Pose RKNN INT8 | 1 live camera, 13.05 FPS | Below the 14.5 FPS threshold used here |
-
-The Hailo S-to-M drop is larger than the increase in model operations. The official S
-HEF is single-context, so its weights stay resident; the M HEF is split across three
-compiled contexts and pays context switching and memory traffic. This is a property of
-that compiled graph, not a universal Hailo rule. Jetson also slows down with M, but its
-aligned accelerator time rises by about 2.1–2.2× rather than Hailo's throughput cliff.
-
-Timing fields are kept separate because their boundaries differ:
-
-| Device / model | Output cadence | Application inference | Named pipeline interval |
-|---|---:|---:|---:|
-| Orin Nano / YOLOv8s INT8 | 14.79 FPS | 5.35 / 5.40 ms mean/P95 | Not instrumented |
-| Orin Nano / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 9.92 / 9.98 ms mean/P95 | Not instrumented |
-| Orin NX / YOLOv8s INT8 | 14.80 FPS | 4.82 / 4.86 ms mean/P95 | Not instrumented |
-| Orin NX / YOLOv8m mixed INT8/FP16 | 14.35 FPS | 8.86 / 8.90 ms mean/P95 | Not instrumented |
-| Hailo-8 / YOLOv8s | 15.00–15.06 FPS | Not exposed | 7.47–7.51 ms mean; 7.99–8.10 ms P95 |
-| Hailo-8 / YOLOv8m | 14.12–14.16 FPS | Not exposed | 28.52–28.89 ms mean; 32.30–37.86 ms P95 |
-| reCamera Pro / YOLO11n | 13.05 FPS | 35.89 / 39.36 ms mean/P95 | 77.80 / 85.99 ms mean/P95 |
-
-Jetson's application interval includes preprocessing, copies, TensorRT, output copy and
-pose parsing. Hailo S and M use different named probe boundaries. RK "inference_ms"
-excludes video preprocessing, while RK "pipeline_ms" starts only after the source returns
-a model-input frame and includes inference, pose decoding, tracking, temporal logic and
-payload construction. None of those fields is relabelled as another platform's metric.
-
-The RK capacity rows are the optimized benchmark profile, not the current one-camera
-solution default. The deploy preset intentionally remains on its existing board-specific
-YOLO11n FP16 model and temporal profile until the INT8 profiles complete the same frozen
-accuracy release process. A separate RK3588 prototype moved DMA-BUF→RGA→RKNN into a native
-hot stage; at five 15 FPS sources it reduced CPU from 144.6% to 43.7–44.5% and RSS from
-495,488 KiB to about 157,000 KiB. That prototype omits pose decoding, tracking, temporal
-logic and MQTT, so it is not a production capacity or accuracy claim.
-
-These results were frozen on 2026-09-05. Synthetic blank-frame and accelerator-only
-history remains available in the
-[EdgeFallKit results ledger](https://github.com/suharvest/edgefallkit/blob/main/evaluation/RESULTS.md),
-but is no longer presented here as route capacity.
-
-On an independent external set (RealBiomFall, 34 fall-only clips) recall drops on
-both configurations measured there — 58.8% on reCamera and 52.9% for the deployed
-YOLO11m on reComputer J40. The limiting factor
-is pose coverage: in long shots and heavy occlusion the person is barely detected
-at all. The table above covers a framed indoor view at close-to-medium range; the
-external figures cover long shots and occlusion.
+On an independent external set (RealBiomFall, 34 fall-only clips) recall drops
+to 52.9%-58.8%. The limiting factor is pose coverage: in long shots and heavy
+occlusion the person is barely detected at all. The table above covers a framed
+indoor view at close-to-medium range.
 
 ## Output Interfaces
 

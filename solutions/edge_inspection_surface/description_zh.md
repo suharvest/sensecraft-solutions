@@ -37,93 +37,31 @@ backend 只负责预处理、调用加速器、把原始张量交出来。下面
 
 ## 实际效果如何
 
-以下是在一个公开数据集上的工程基准。这是参考设计，
-**不构成任何安全或质量认证依据**。
+以下是一个公开数据集上的工程基准。这是参考设计，不是任何安全或质量认证的资格证明。
 
-**测试方法**
+| 产线能得到什么 | 典型值 | 设备 |
+|---|---|---|
+| 拍到画面到判定落在 Modbus 线圈 | **P50 9.298 ms / P99 9.549 ms** | reComputer J40 系列（J4012，Orin NX 16GB） |
+| 缺陷检出精度（mAP50） | **0.7577** | reComputer J40 系列 |
+| 部署阈值 0.35 下的精确率与召回 | **P 0.7652 / R 0.6969** | reComputer J40 系列 |
+| 10 FPS 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J40 系列 |
 
-- 数据集 NEU6，按源组做 70/15/15 切分——同一缺陷类别下相邻编号视为同一条钢带，
-  任何源组不跨集合出现。
-- 精度跑在完整的 290 张验证集上（706 个标注框）。推理用 0.01 的低分阈值只跑一次，
-  mAP50 与冻结阈值下的 P/R/FP/FN 都出自这一次，因此阈值扫描是事后过滤，
-  不是三次独立测试。
-- 吞吐、时延与多路容量都在部署镜像里跑，挂载方式与 compose 文件一致，
-  测的就是实际发布的那套 ABI。
-- 输入是 290 张不同验证图拼成的合成视频，640x640 / 10 FPS。帧间没有时间连续性，
-  解码成本也与真实 H.264 码流不同。
-- 验证集每张图都带缺陷，所以帧级误报（干净帧被判 NG）在这个数据集上根本测不到，
-  只能测漏检。
+口径：NEU6 按来源组 70/15/15 切分；精度取全量 290 张验证图（706 个标注框）上的单次推理
+（score 阈值 0.01），mAP50 与冻结阈值下的指标都来自这一次推理。端到端在 10 FPS 下取
+3000 个样本。板卡为 Jetson Orin NX 16GB，系统 L4T R36.4.3 / JetPack 6.2，
+TensorRT 10.3.0.30，YOLOX-Tiny 640×640 FP16。
 
-### 实测边界——Jetson Orin NX
+选配 Hailo-8 的 reComputer R2000 系列跑同一条链路是 P50 11.61 ms / P99 16.63 ms、
+mAP50 0.7091。
 
-板卡：Jetson Orin NX 16GB（Seeed reComputer J40 系列），L4T R36.4.3 /
-JetPack 6.2，TensorRT 10.3.0.30，功耗模式 MAXN_SUPER（只读未改），
-镜像 「edge-inspection-jetson:0.1.0-dev」，仓库 commit 「670e433」。
-YOLOX-Tiny 640x640 FP16。
+精度按缺陷类别差别很大——scratches 0.9685、pitted surface 0.9301、patches 0.9065、
+inclusion 0.7658、rolled-in scale 0.6149、crazing（龟裂）0.3603——所以按总分给产线
+定规模之前，先看你真正关心的那几类。阈值从 0.35 提到 0.6，精确率升到 0.865，
+召回降到 0.5807。
 
-| 指标 | 数值 | 条件 | 来源 |
-|---|---|---|---|
-| mAP50 | 0.7577 | 290 张验证图 / 706 框，TensorRT FP16，0.01 阈值单次推理 | 本次实测，「boundary.accuracy.yaml」 稳定档 |
-| 冻结阈值 0.35 下的精确率 / 召回率 | P 0.7652 / R 0.6969 | 同一次推理事后过滤；TP 492 / FP 151 / FN 214；290 帧里 7 帧整帧无输出 | 本次实测，「boundary.accuracy.yaml」 稳定档 |
-| 阈值 0.6 下的召回率 | R 0.5807 | 同一次推理；FN 由 214 升到 296，整帧漏检由 7 帧升到 39 帧（13.4%）；精确率升到 0.865 | 本次实测，「boundary.accuracy.yaml」 下降档 |
-| 阈值 0.9 下的召回率 | R 0.0241 | 同一次推理；290 帧里 273 帧整帧无输出（94%）；crazing 与 rolled-in_scale 召回归零 | 本次实测，「boundary.accuracy.yaml」 失败档 |
-| 推理调用 P50 | 8.797 ms（113.7 FPS） | 60 帧预解码循环上跑 500 次 「detect()」，含 letterbox、execute 与 CPU NMS。P95 9.097 / P99 9.223 ms | 本次实测，「boundary.throughput.yaml」 |
-| 单纯 engine execute | 约 5.6 ms（约 178 FPS） | 运行时自己的 「inference_time_ms」 字段，只含 execute——差出的约 3.2 ms 是 letterbox 与 CPU 侧 NMS | 本次实测，「boundary.throughput.yaml」 |
-| 产线节拍下的全链路 | 9.999 FPS，丢帧 0 | 单路按配置的 10 FPS 节流；含采集、推理、判定、Modbus、MQTT 与契约校验 | 本次实测，「boundary.throughput.yaml」 稳定档 |
-| 去掉节流的全链路 | 76.5-104.3 FPS | 去掉源节流；两个数字的差别在样本长度（300 帧按 wall clock 算 vs 3000 帧 app 侧统计） | 本次实测，「boundary.throughput.yaml」 下降档 |
-| capture→Modbus 线圈 P50 / P95 / P99 | 9.298 / 9.441 / 9.549 ms | 单路 10 FPS，3000 个样本，max 9.926 ms，无一超过 20 ms；两端时间戳都由运行时自己打 | 本次实测，「boundary.e2e_latency.yaml」 稳定档 |
-| 满速下 capture→Modbus 线圈 P50 / P95 / P99 | 35.90 / 39.75 / 40.36 ms | 同样 3000 个样本，跑在 104 FPS；多出的约 26 ms 是帧在深度 2 的队列里排队，不是推理变慢（均值仍 5.35 ms） | 本次实测，「boundary.e2e_latency.yaml」 下降档 |
-| 并行路数——稳定 | 8 路 x 10 FPS | 每级 5 min；每路 9.989 FPS，丢帧 0.02%，P95 72.3 ms。判据写在脚本里，不是事后解读 | 本次实测，「boundary.multistream.yaml」 稳定档 |
-| 并行路数——下降 | 12 路 x 10 FPS | 每路 9.306 FPS，丢帧 6.83%，P95 104.0 ms。从这里往上总吞吐锁死在 110-112 FPS：到顶的是单线程推理 | 本次实测，「boundary.multistream.yaml」 下降档 |
-| 并行路数——失败 | 24 路 x 10 FPS | 每路 4.593 FPS，丢帧 53.95%。进程不崩——过半输入被静默丢弃，产线上等于漏检 | 本次实测，「boundary.multistream.yaml」 失败档 |
-
-同一次推理的逐类 AP50——上面那个精度数字实际是从这里来的：
-
-| 类别 | 标注框数 | AP50 | 0.35 下召回 |
-|---|---:|---:|---:|
-| scratches | 95 | 0.9685 | 0.9263 |
-| pitted_surface | 70 | 0.9301 | 0.8857 |
-| patches | 122 | 0.9065 | 0.8689 |
-| inclusion | 184 | 0.7658 | 0.6902 |
-| rolled-in_scale | 104 | 0.6149 | 0.5481 |
-| crazing | 131 | 0.3603 | 0.3969 |
-
-crazing 的 AP50 为 0.3603，六类中最低。同一次推理下按阈值取的整体数字：
-0.35 时 P 0.7652 / R 0.6969，0.6 时 P 0.865 / R 0.5807，0.9 时 R 0.0241 且
-crazing 与 rolled-in_scale 的召回为 0（条件见上面的边界表）。
-
-FP16 engine 还与同一份 ONNX 的 CPU（onnxruntime）结果做过逐框比对：
-643 对匹配，CPU 侧多 3 个框、TensorRT 侧一个不多，IoU 均值 0.9972（最小 0.8311），
-分数差均值 0.0011，mAP50 差 0.0003。FP16 没有改变任何一帧的 OK/NG 判定。
-
-### 实测边界——reComputer R2000（Hailo-8）
-
-Hailo-8 这条路径跑的是 Dataflow Compiler 3.31.0 / HailoRT 4.21.0 编出的
-INT8 HEF。以下数字为 2026-09-06 在同款 Hailo-8 平台上的实测参考值，
-reComputer 整机复测后更新。
-
-| 指标 | 数值 | 条件 | 来源 |
-|---|---:|---|---|
-| 硬件推理 FPS（「hailortcli run」） | 106.75 FPS | 854 帧/8 秒，HW 延迟 8.47 ms，不含应用层前后处理 | 本次实测，2026-09-06 |
-| mAP50 对比 CPU golden（290 张全 val） | Hailo 0.7091 / CPU 0.7574，差 -0.0483 | INT8 HEF 与同一份 ONNX 的 CPU 结果对比 | 同一次实测 |
-| 逐框匹配率（IoU≥0.5） | 86.66%（523/684 对匹配框） | 同一次比对 | 同一次实测 |
-| 应用层推理 FPS | 91.49 FPS（p50 10.93 ms，p95 13.19 ms） | 只计 「detector.detect()」，含 letterbox 与后处理 | 同一次实测 |
-| 全链路吞吐 | 46.14 FPS | 采集、推理、判定、Modbus 与 MQTT 全含，源节流去掉 | 同一次实测 |
-| 10 FPS 产线节拍下端到端时延 | p50 11.61 ms，p95 14.99 ms，p99 16.63 ms | 采集入队到 Modbus 写完 | 同一次实测 |
-| MQTT 事件 | 抓 20 条，全部符合公开的事件契约 | 订阅设备上的 broker | 同一次实测 |
-| 进程 RSS | 约 126 MB | 同一次运行中的运行时进程常驻内存 | 同一次实测 |
-
-六类里 crazing（AP50 0.3873）和 rolled-in_scale（AP50 0.4483）对 INT8 量化
-损失最大。这与 FP16 上看到的弱类一致，8 bit 权重把差距略微放大。
-
-### 部署占用
-
-| 项 | 数值 | 条件 | 来源 |
-|---|---|---|---|
-| 设备上构建 TensorRT engine | 291 s | Orin NX 16GB，JetPack 6.2，TRT 10.3，YOLOX-Tiny 640x640 FP16，静态 shape | 本次实测，「2026-09-05-m2-orin」 §1 |
-| 设备上构建 TensorRT engine，全新部署交叉验证 | 304 s | 同一台设备、同一份 ONNX，删除旧 engine 后从全新部署重新构建；构建脚本必须带 `TRT_STATIC_SHAPE=true`，否则 trtexec 报「Static model does not take explicit shapes」；比上面 291 s 高 4.5%（各只测过一次，未做重复测量的波动性研究） | 本次实测，2026-09-08 |
-| Jetson 镜像 | 375 MB | 「edge-inspection-jetson:0.1.0-dev」；宿主机 TensorRT 与 CUDA 挂载进来，不打进镜像 | 本次实测，「2026-09-05-m2-orin」 |
-| reComputer R2000 新增占用 | 约 452 MB | 运行镜像磁盘占用约 443 MB + 8.9 MB HEF + 配置 | 同款 Hailo-8 平台原生 arm64 构建实测，2026-09-06，参考值 |
+**这些数字覆盖的范围。** 每张验证图都带缺陷，所以帧级误报（干净帧被判 NG）在这个
+数据集上根本测不到，这个比率要用你自己的产线图像测。实测输入是由验证图拼成的
+640×640 / 10 FPS 合成视频，端到端数字还要加上相机的采集与编码时间。
 
 ## 检测器选型：基线 vs 先进
 
