@@ -389,21 +389,6 @@ intro:
           MQTT 套餐的另一个继电器选项，同时也是 P4 套餐的门侧板。它订阅一个 topic、
           驱动一路干接点，脉冲由固件自己的定时器结束——丢包不会让门一直开着。
           「set」 topic 绝不能是 retained。
-    grove_vision_ai:
-      purchase:
-        require:
-          version: [v2]
-      description: >-
-        Detection and embedding on the WE2, over UART to the XIAO which does
-        the matching. It has **no liveness model** — none exists for this chip
-        in any of the source repositories — so the P4 preset is restricted to
-        an allowlist within a schedule and must not be used on a door where a
-        printed photo held up to the camera would be a problem.
-      description_i18n:
-        zh: >-
-          检测与嵌入在 WE2 上完成，经 UART 交给 XIAO 做匹配。它**没有活体模型**——
-          所有来源仓库里都没有这颗芯片的活体实现——因此 P4 套餐被限制为"时段内的
-          白名单"，且不得用于"举一张打印照片给摄像头就会出事"的门。
     generic_relay_module:
       name: Grove Relay
       name_i18n:
@@ -495,47 +480,47 @@ intro:
         zh: 门口任意一台 RTSP 摄像头，供不自带传感器的套餐使用
 
   presets:
-    - id: p1_recamera_pro
-      name: On-Device — reCamera Pro / PoE
+    - id: a_ai_camera
+      name: A. AI Camera at the Door
       name_i18n:
-        zh: 端侧直控 —— reCamera Pro / PoE
+        zh: A. AI 摄像头直控
       badge: Beta
       badge_i18n:
         zh: 测试版
       description: >-
-        Everything at the door: the camera recognises, checks liveness, decides
-        and pulses its own GPIO into a relay. Nothing but the face library and
-        the audit upload crosses the network, so the door keeps working while
-        the network is down. The app itself, F1 Door Access, is a published
-        App Center package that combines the face-recognition app's
-        recognition cascade with the door logic — installed once from the
-        camera's own App Center, then activated by this deployment. What
-        stays manual is measuring a
-        genuinely free GPIO pin, wiring LED then relay then the door
-        controller, and writing the access config file that carries the facedb
-        key and the measured wiring posture — those are per-installation
-        electrical facts and per-device credentials, not something a deployer
-        can assert for you. On this preset the library path and a
-        synthetic-event GPIO readback have run on hardware; the lock has never
-        been connected. Registration through the console is not usable in
-        production on this device today: no cloud embedder yet produces
-        vectors in the Pro's own model space ("rv1126b:scrfd500m+mbf512@fp16");
-        see the guide's Step 3 known limitation. The standard reCamera path
-        (P5) does not have this gap.
+        The camera does everything: it recognises the face, checks liveness,
+        decides, and drives the relay. Two cameras fit this route. A reCamera
+        Pro pulses its own GPIO into a relay at the door, so nothing but the
+        face library and the audit upload crosses the network and the door
+        keeps working while the network is down; the app, F1 Door Access, is a
+        published App Center package installed once from the camera's own App
+        Center and then activated by this deployment. A standard reCamera runs
+        the same recognition in its own native process but has no usable
+        header pin, so its relay sits at the gateway and the unlock travels one
+        MQTT hop — on that camera the broker's availability is the door's
+        availability. What stays manual on both is measuring a genuinely free
+        GPIO pin, wiring LED then relay then the door controller, and writing
+        the access config that carries the facedb key and the measured wiring
+        posture. The library path has run on hardware on both cameras and the
+        door-open time is measured on the Pro; the lock has never been
+        connected. Registration through the console is not usable on the Pro
+        today: no cloud embedder yet produces vectors in its model space
+        ("rv1126b:scrfd500m+mbf512@fp16"); the standard reCamera does not have
+        this gap because it embeds on the device.
       description_i18n:
         zh: >-
-          全部动作在门口完成：摄像头识别、验活体、做判定，再用自己的 GPIO 给继电器
-          一个脉冲。除了人脸库与审计上传，没有别的东西过网络，所以网络断了门依然能开。
-          应用本身「F1 门禁」是一个已发布的 App Center 包，把人脸识别应用的识别
-          级联与门控逻辑合成一体——从摄像头自己的应用中心装一次，再由这次部署
-          激活。仍需人工完成的是实测一个真正空闲的 GPIO 引脚、按 LED → 继电器 →
-          门控的顺序接线，
-          以及写入携带 facedb 密钥与实测接线口径的门禁配置文件——这些是每次安装
-          各不相同的电气事实与每台设备各一份的凭据，部署器替不了。本套餐的库下发
-          链路与注入合成事件的 GPIO 回读已在真机跑通；锁从未接过。经管理界面注册
-          目前在这台设备上不可用于生产：还没有云端嵌入器能产出 Pro 自己模型空间
-          （「rv1126b:scrfd500m+mbf512@fp16」）的向量；见指南步骤 3 的已知限制。
-          标准版 reCamera 路径（P5）没有这个缺口。
+          全部动作在摄像头上完成：识别、验活体、做判定，再驱动继电器。这条路线有两台
+          摄像头可选。reCamera Pro 用自己的 GPIO 给门口的继电器一个脉冲，除了人脸库与
+          审计上传没有别的东西过网络，网络断了门依然能开；应用「F1 门禁」是一个已发布的
+          App Center 包，从摄像头自己的应用中心装一次，再由这次部署激活。标准版 reCamera
+          在自己的原生进程里跑同一套识别，但**没有可用的排针，继电器只能接在网关侧**，
+          开门指令要过一跳 MQTT——在这台摄像头上，broker 的可用性就是门的可用性。
+          两台都仍需人工完成的是：实测一个真正空闲的 GPIO 引脚、按 LED → 继电器 →
+          门控的顺序接线、写入携带 facedb 密钥与实测接线口径的门禁配置文件。
+          拉库链路在两台摄像头上都在真机跑通，开门时间在 Pro 上按人脸库规模实测过；
+          锁从未接过。经管理界面注册目前在 Pro 上不可用：还没有云端嵌入器能产出它模型空间
+          （「rv1126b:scrfd500m+mbf512@fp16」）的向量；标准版 reCamera 没有这个缺口，
+          它在设备上做嵌入。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -565,25 +550,58 @@ intro:
           options:
             - device_ref: generic_relay_module
             - device_ref: generic_relay_module_spdt
+            - device_ref: generic_relay_module_xiao
           default: generic_relay_module
+        - id: relay_node
+          name: Gateway Relay Node (standard reCamera only)
+          name_i18n:
+            zh: 网关侧继电器节点（仅标准版 reCamera 需要）
+          description: >-
+            Only the standard reCamera needs this: it has no usable header pin,
+            so the relay hangs off a gateway node reached over MQTT. Leave it
+            out on a reCamera Pro, which drives its own pin.
+          description_i18n:
+            zh: >-
+              只有标准版 reCamera 需要：它没有可用排针，继电器挂在一个经 MQTT 到达的
+              网关节点上。选 reCamera Pro 时不需要，它驱动自己的引脚。
+          type: single
+          required: false
+          options:
+            - device_ref: xiao_esp32s3
+            - device_ref: recomputer_r10
+          default: xiao_esp32s3
 
-    - id: p2_industrial_box
-      name: Industrial Box — reComputer Industrial J20
+    - id: b_ai_host
+      name: B. AI Host with Your Existing Cameras
       name_i18n:
-        zh: 工业盒子 —— reComputer Industrial J20
+        zh: B. AI 主机 + 现有摄像头
       badge: Beta
       badge_i18n:
         zh: 测试版
       description: >-
-        For a door that already has a camera. The J20 pulls the existing RTSP
-        stream, runs recognition and liveness in containers, and drives the
-        relay from an opto-isolated digital output. The isolation is the point:
-        the lock's supply and the compute's supply never share a return path.
+        For doors that already have cameras. A reComputer — Industrial J20,
+        J30, J40 or R1000 — pulls the existing RTSP streams, runs recognition
+        and liveness in containers, and closes a relay. Where the relay hangs
+        is a component choice inside this route, not a separate product: the
+        J20's opto-isolated digital output when the host is at the door and the
+        lock's supply must not share a return path with the compute's; a Grove
+        Relay on a host GPIO otherwise; and an MQTT relay node — an R1000
+        writing a Modbus point, or a XIAO ESP32 driving a Grove Relay — when
+        the host is not at the door or one host serves several doors. That last
+        option puts a network hop on the unlock path, so the broker's
+        availability becomes the door's availability. Neither container image
+        has been pushed to a registry yet, and door-open time has not been
+        measured on this route.
       description_i18n:
         zh: >-
-          适合门口已经有摄像头的场合。J20 拉取现有 RTSP 流，在容器里跑识别与活体，
-          再用光隔数字输出驱动继电器。隔离本身就是重点：锁的供电与计算的供电不共用
-          回流路径。
+          适合门口已经有摄像头的场合。一台 reComputer——Industrial J20、J30、J40 或
+          R1000——拉取现有 RTSP 流，在容器里跑识别与活体，再闭合一个继电器。
+          继电器挂在哪里是这条路线里的部件选择，不是另一个产品：主机就在门口、
+          且锁的供电不能与计算侧共用回流路径时，用 J20 的光隔数字输出；否则用接在主机
+          GPIO 上的 Grove Relay；主机不在门口、或一台主机管好几道门时，用 MQTT 继电器
+          节点——R1000 写一个 Modbus 点位，或 XIAO ESP32 驱动一个 Grove 继电器。
+          最后这一种在开门路径上多一跳网络，broker 的可用性就成了门的可用性。
+          两个容器镜像都还没有推送到 registry，这条路线的开门时间也还没有实测。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -602,6 +620,9 @@ intro:
           required: true
           options:
             - device_ref: recomputer_j20
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_r10
           default: recomputer_j20
         - id: camera
           name: Camera
@@ -621,220 +642,26 @@ intro:
           options:
             - device_ref: generic_relay_module
             - device_ref: generic_relay_module_spdt
+            - device_ref: generic_relay_module_xiao
           default: generic_relay_module
-
-    - id: p3_mqtt_relay
-      name: MQTT Relay — Compute Away From the Door
-      name_i18n:
-        zh: MQTT 继电器 —— 计算不在门口
-      badge: Beta
-      badge_i18n:
-        zh: 测试版
-      description: >-
-        For when the box that runs recognition is not at the door, or when one
-        box serves several doors. Recognition runs in containers on a
-        J30/J40 against an existing RTSP stream; the unlock travels over
-        MQTT to a relay node — either an R1000 writing a Modbus point or a XIAO
-        ESP32 driving a Grove Relay. The extra hop adds latency, so this preset
-        has its own latency boundary rather than sharing the direct one. A standard reCamera reaches the same relay node but installs
-        differently enough to have its own preset: it recognises on the camera
-        and never runs a recognition container.
-      description_i18n:
-        zh: >-
-          适合识别所在的盒子不在门边，或者一台盒子管好几道门的场合。识别在
-          J30/J40 上以容器运行，接现有 RTSP 流；开门指令经 MQTT 发到继电器节点——
-          要么是 R1000 写一个 Modbus 点位，要么是 XIAO ESP32 驱动一个 Grove 继电器。
-          多一跳会增加时延，因此它单列一个时延边界，不与端侧直控共用。
-          标准版 reCamera 接的是同一个继电器节点，但安装方式差别够大，单列一个套餐：
-          它在摄像头内识别，不跑任何识别容器。
-      device_groups:
-        - id: cloud
-          name: Cloud Host
+        - id: relay_node
+          name: MQTT Relay Node (only when the host is not at the door)
           name_i18n:
-            zh: 云端主机
+            zh: MQTT 继电器节点（仅当主机不在门口时）
+          description: >-
+            Skip this when the relay hangs off the host's own DO or GPIO. Pick
+            one only when the compute is away from the door or serves several
+            doors — it adds a network hop to the unlock path.
+          description_i18n:
+            zh: >-
+              继电器接在主机自己的 DO 或 GPIO 上时不需要选。只有计算离门远、
+              或一台主机管好几道门时才选——它在开门路径上多一跳网络。
           type: single
-          required: true
-          options:
-            - device_ref: external_cloud_host
-          default: external_cloud_host
-        - id: compute
-          name: Access Host
-          name_i18n:
-            zh: 门禁主机
-          type: single
-          required: true
-          options:
-            - device_ref: recomputer_j40
-            - device_ref: recomputer_j30
-          default: recomputer_j40
-        - id: camera
-          name: Camera
-          name_i18n:
-            zh: 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: generic_rtsp_camera
-          default: generic_rtsp_camera
-        - id: relay
-          name: Relay Node
-          name_i18n:
-            zh: 继电器节点
-          type: single
-          required: true
+          required: false
           options:
             - device_ref: recomputer_r10
             - device_ref: xiao_esp32s3
           default: xiao_esp32s3
-        - id: relay_module
-          name: Relay
-          name_i18n:
-            zh: 继电器
-          type: single
-          required: true
-          options:
-            - device_ref: generic_relay_module
-            - device_ref: generic_relay_module_xiao
-          default: generic_relay_module
-
-    - id: p5_recamera_std
-      name: Standard reCamera — On-Camera Loop, Gateway Relay
-      name_i18n:
-        zh: 标准版 reCamera —— 摄像头内闭环，网关侧继电器
-      badge: Beta
-      badge_i18n:
-        zh: 测试版
-      description: >-
-        The standard reCamera already recognises faces by itself — detection,
-        embedding, a two-head texture liveness with blink fusion and matching all
-        run on the camera, in one native process. So this preset installs no
-        recognition container and pulls no RTSP off the camera. What it adds is a
-        small standard-library daemon that does the three things the camera does
-        not do on its own: pull the versioned face library, map the camera's
-        native result stream onto the event contract, and pin every threshold in
-        one file, checked against the recognition process's actual command line
-        so that a threshold cannot quietly differ between the two. The camera
-        drives no lock; events leave over MQTT and the relay is at the gateway.
-        The library path — poll, chunked download, per-file SHA, signature,
-        atomic switch, reload — has been exercised on a real unit. The door path
-        has not: nobody has stood in front of the lens, no relay has been wired,
-        and the thresholds are the device's shipped values, not calibrated ones.
-      description_i18n:
-        zh: >-
-          标准版 reCamera 本身就会识别人脸——检测、嵌入、双头纹理活体加眨眼融合、匹配，
-          全部在摄像头内的同一个原生进程里完成。因此这个套餐不装任何识别容器，
-          也不从摄像头拉 RTSP。它加的是一个纯标准库的小守护进程，做摄像头自己不做的
-          三件事：拉版本化人脸库、把摄像头原生的结果流映射成事件契约、把所有阈值钉在
-          一个文件里并与识别进程的实际命令行逐项比对，让两边的阈值不可能悄悄不一致。
-          摄像头不驱动任何锁；事件经 MQTT 发出，继电器在网关侧。
-          拉库这条链路——轮询、分块下载、逐文件 SHA、验签、原子切换、reload——已经在
-          真机上跑过。门控那条没有：没有人站到镜头前，没有接过继电器，
-          阈值用的是设备出厂的现值，不是标定结果。
-      device_groups:
-        - id: cloud
-          name: Cloud Host
-          name_i18n:
-            zh: 云端主机
-          type: single
-          required: true
-          options:
-            - device_ref: external_cloud_host
-          default: external_cloud_host
-        - id: door
-          name: Door Camera
-          name_i18n:
-            zh: 门口摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
-        - id: relay
-          name: Relay Node
-          name_i18n:
-            zh: 继电器节点
-          type: single
-          required: true
-          options:
-            - device_ref: recomputer_r10
-            - device_ref: xiao_esp32s3
-          default: xiao_esp32s3
-        - id: relay_module
-          name: Relay
-          name_i18n:
-            zh: 继电器
-          type: single
-          required: true
-          options:
-            - device_ref: generic_relay_module_xiao
-            - device_ref: generic_relay_module
-          default: generic_relay_module_xiao
-
-    - id: p4_xiao_grove
-      name: XIAO + Grove Vision AI V2 — No Liveness
-      name_i18n:
-        zh: XIAO + Grove Vision AI V2 —— 无活体
-      badge: Preview
-      badge_i18n:
-        zh: 预览
-      description: >-
-        The cheapest door: a Grove Vision AI V2 detects and embeds, a XIAO
-        ESP32-S3 matches against a library held in its own flash and drives a
-        relay — by default the XIAO 1-Ch Relay add-on board on the XIAO's own
-        D1 pin (high level = engaged), with a Grove Relay on any spare GPIO as
-        the fallback. It pulls the same versioned library over the same HTTP
-        endpoints. It has no liveness model, so the policy is deliberately
-        weakened to an allowlist within a schedule, single-shot — do not put it
-        on a door where a printed photograph would matter. The firmware exists
-        as source on a branch and has not been built; the flash steps carry no
-        binary yet.
-      description_i18n:
-        zh: >-
-          最便宜的一道门：Grove Vision AI V2 做检测与嵌入，XIAO ESP32-S3 用自己
-          flash 里的人脸库做匹配并驱动一个继电器——默认是 XIAO 1-Ch Relay 扩展板，
-          接在 XIAO 自己的 D1 引脚（高电平=吸合），备选是接在任意空闲 GPIO 上的
-          Grove 继电器。它用同样的 HTTP 接口拉取同一份版本化人脸库。它没有活体
-          模型，因此策略被刻意降权成"时段内白名单、单次开门"——不要把它装在"举一张
-          打印照片就会出事"的门上。固件目前只有分支上的源码，尚未构建，烧录步骤里
-          还没有二进制。
-      device_groups:
-        - id: cloud
-          name: Cloud Host
-          name_i18n:
-            zh: 云端主机
-          type: single
-          required: true
-          options:
-            - device_ref: external_cloud_host
-          default: external_cloud_host
-        - id: vision
-          name: Vision Module
-          name_i18n:
-            zh: 视觉模组
-          type: single
-          required: true
-          options:
-            - device_ref: grove_vision_ai
-          default: grove_vision_ai
-        - id: controller
-          name: Door Controller
-          name_i18n:
-            zh: 门控主板
-          type: single
-          required: true
-          options:
-            - device_ref: xiao_esp32s3
-          default: xiao_esp32s3
-        - id: relay
-          name: Relay
-          name_i18n:
-            zh: 继电器
-          type: single
-          required: true
-          options:
-            - device_ref: generic_relay_module_xiao
-            - device_ref: generic_relay_module
-          default: generic_relay_module_xiao
 
   stats:
     difficulty: advanced

@@ -29,10 +29,10 @@ RFC3339 「issued_at」、TTL 上界，以及按身份隔离的重放表。重�
 **审计日志可以校验。** 只追加的 NDJSON，每条记录带上一条的哈希。把一次历史拒绝改成放行
 会破坏链条，管理界面的校验接口会报出来。
 
-**同一套系统的五种接法**，从自己驱动 GPIO 的摄像头到二十美元、完全没有活体的控制器，
-共用一份人脸库、一套事件契约和一个管理界面：P1 端侧直控（reCamera Pro）、
-P2 工业盒子（reComputer Industrial J20）、P3 MQTT 继电器、
-P5 标准版 reCamera（摄像头内识别、继电器在网关侧）、P4 XIAO + Grove Vision AI V2。
+**同一套系统的两种接法**，共用一份人脸库、一套事件契约和一个管理界面。
+**A. AI 摄像头直控**——reCamera Pro 或标准版 reCamera 在摄像头本机完成识别、活体与判定。
+**B. AI 主机 + 现有摄像头**——reComputer J20 / J30 / J40 / R1000 接门口已有的 RTSP 流，
+用自己的数字输出、Grove Relay，或主机不在门口时的 MQTT 继电器盒驱动继电器。
 
 ## 适用场景
 
@@ -42,19 +42,33 @@ P5 标准版 reCamera（摄像头内识别、继电器在网关侧）、P4 XIAO 
 - 门口本来就有 RTSP 摄像头、又不想换掉它们的站点。
 
 不适用：开不了门就构成安全事件的门，以及放错一个人后果严重的门。这里没有任何一部分是
-经过认证的安防产品。人脸库下发链路在标准版 reCamera 与 reCamera Pro（P1）上都在硬件上
-跑过，包括 Pro 的识别事件到 GPIO 脉冲回读，来源见下；识别、活体、开门链路以及
-Pro 的注册链路都没有。
+经过认证的安防产品。开门时间在 reCamera Pro 上按人脸库规模分档实测过（见下），
+标准版 reCamera 与 AI 主机路线没有；Pro 的注册链路也没有。
 
 ## 实测到什么程度
 
 **这不是经过认证的安防或人身安全系统。** 上门之前先在自己的现场标定阈值，
-并实测识别、活体与开门链路。下表是人脸库下发链路与 GPIO 脉冲的真机实测数字。
+并实测识别、活体与开门链路。
 
-| 指标 | 数值 | 条件 | 来源 |
-|---|---|---|---|
-| 人脸库激活，reCamera Pro（P1） | 全量激活 62.2 ms（v1）与 45.4 ms（v2）；库不变时空转 6.2 ms；识别事件到 GPIO 引脚回读 n=22，p50 1.448 ms / p95 2.709 ms | reCamera Pro（RV1126B，Buildroot 2023.02.6）以太网，1-2 人 / 不到 20 KB 的库。一致性闸门 「problems: []」；被篡改的 gallery 与用错误密钥签名的 manifest 都在设备侧被拒。那 22 条是注入的合成识别事件，回读走 sysfs 所以是上界，未接任何外部电路 | 「evaluation/runs/2026-09-07-recamera-pro-p1/results.md」 与同目录两个 「boundary.*.yaml」 |
-| 人脸库激活，设备侧 | p50 491.6 ms、p95 507.8 ms（n=20）；「op:reload」 往返 p50 100.0 ms（n=25） | 标准版 reCamera（SG2002 / CV181x riscv64，固件 0.2.2），USB-RNDIS，2 人、16.5 KB 库。规模点各一次：402 人 / 2.86 MB 用 9 801.7 ms，1502 人 / 10.66 MB 用 22 278.7 ms | 「evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md」 §2 及同目录 「boundary.facedb-activation.yaml」 |
+**开门时间：人脸进入画面到继电器触点闭合。** 在设备上跑已部署的那个应用本身实测，
+覆盖整条管线——取帧、检测、活体、比对、判定、GPIO 脉冲。p50，括号内为 p95，
+每档 12 次。
+
+| 摄像头 / 主机 | 10 人 | 100 人 | 500 人 | 1000 人 | 1500 人 |
+|---|---|---|---|---|---|
+| reCamera Pro（RV1126B） | **3.74 s**（3.78） | **3.72 s**（3.75） | **3.75 s**（3.78） | **3.75 s**（3.80） | **3.78 s**（3.81） |
+| 标准版 reCamera（SG2002） | — | — | — | — | — |
+| AI 主机 + RTSP 摄像头（Jetson） | — | — | — | — | — |
+
+60 次全部开门。条件：reCamera Pro，1280x720 帧按 12.5 fps 回放，活体开启，
+「min_face_px」 40、「match_threshold」 0.40；探测者是一段素材视频回放帧、不是真人，
+终点取 GPIO 引脚的 sysfs 回读，未接继电器与锁。人脸库从 10 人到 1500 人只多 43 ms：
+余弦扫描在 10 人是 0.215 ms、1500 人是 13.1 ms。时间花在识别管线本身——
+设备端到端 7.0-7.2 fps，活体的运动证据要跨帧累积。来源：unmanned-store-access 仓库
+「evaluation/runs/2026-09-08-open-door-latency/results.md」。
+
+标准版 reCamera 与 AI 主机两行还没有数：前者的识别是闭源原生进程、没有把帧喂进去的通道，
+量它需要真人站到镜头前；后者这条路线还没有在硬件上跑过。
 
 软件闭环的测试套件覆盖协议与状态机：52 项检查全过，
 涵盖三个人脸库版本的构建、发布、拉取、校验与原子切换；
@@ -74,41 +88,31 @@ Pro 的注册链路都没有。
 | 「access/v1/status/{device_id}」 | MQTT，retained 遗嘱 | 30 秒心跳：执行器健康、人脸库版本与 model tag、活体是否已加载。遗嘱是 retained 的，晚到的订阅者也能看到掉线的设备是离线 |
 | 「access/v1/commands/{door_id}」 | MQTT，绝不 retained | 「unlock」 / 「hold_open」 / 「lock」，带 UUIDv4 id、带时区的 「issued_at」 与 TTL |
 | 「access/v1/receipts/{command_id}」 | MQTT | 一条指令的终态。重放的指令回放的就是这张回执 |
-| 「access/v1/relay/{relay_id}/set」 与 「/state」 | MQTT | 仅 MQTT 继电器套餐。「set」 绝不 retained；「state」 是 retained 的，报的是物理触点状态而不是"门开没开" |
+| 「access/v1/relay/{relay_id}/set」 与 「/state」 | MQTT | 仅路线 B 用 MQTT 继电器盒时。「set」 绝不 retained；「state」 是 retained 的，报的是物理触点状态而不是"门开没开" |
 | 「GET /v1/facedb/current」、「GET /v1/facedb/{version}」 | HTTP | 人脸库下发的全部接口。用 「Range」 做分块与断点续传 |
 | 「/api/events」、「/api/devices」、「/api/persons」、「/api/audit/verify」 | HTTP | 管理界面 API，走三档共享 token 闸门。没有匿名读 |
 
-## 套餐对照
+## 两条路线
 
-| | P1 端侧直控 | P2 工业盒子 | P3 MQTT 继电器 | P5 标准版 reCamera | P4 XIAO + Grove Vision |
-|---|---|---|---|---|---|
-| 计算 | reCamera Pro / PoE / HQ PoE | reComputer Industrial J20 | J30 / J40 / R2000 / reCamera | 标准版 reCamera（SG2002），摄像头内原生进程 | XIAO ESP32-S3 |
-| 摄像头 | 设备自带传感器 | 现有 RTSP 摄像头 | 现有 RTSP 摄像头 | 设备自带传感器 | Grove Vision AI V2（Himax WE2） |
-| 开门路径 | 本机 sysfs GPIO → 继电器 | 光隔 DO → 继电器 | MQTT → R1000 Modbus 点位或 XIAO 继电器 | MQTT → 网关侧继电器 | 本机 GPIO D0 → 继电器 |
-| 活体 | 强制（Silent-Face） | 强制（Silent-Face） | 强制（Silent-Face） | 摄像头内双头纹理活体加眨眼融合，**阈值未标定** | **无。这颗芯片没有可用模型** |
-| 权限策略 | 人员 + 时段 + 黑名单 + 活体 + 去抖 | 同左 | 同左 | 同左，在云端按事件流判定 | **降权：时段内白名单、单次开门** |
-| 开门路径上有没有网络 | 无 | 无 | **有——broker 的可用性就是门的可用性** | **有——broker 的可用性就是门的可用性** | 无 |
-| 安装形态 | root 身份的 appmgr kit app，人工步骤 | 经 SSH 部署容器 | 经 SSH 部署容器 | 人工拷一个纯标准库守护进程，不用容器 | 两段 USB 烧录 |
+| | A. AI 摄像头直控 | B. AI 主机 + 现有摄像头 |
+|---|---|---|
+| 计算 | reCamera Pro / PoE / HQ PoE，或标准版 reCamera（SG2002）摄像头内原生进程 | reComputer Industrial J20 / J30 / J40 / R1000 |
+| 摄像头 | 设备自带传感器 | 门口现有的 RTSP 摄像头 |
+| 开门路径 | reCamera Pro：本机 sysfs GPIO → 继电器。标准版 reCamera 没有可用排针，继电器接在网关侧，指令经 MQTT 过去 | 主机的光隔 DO 或 Grove Relay → 继电器；主机不在门口时改用 MQTT 继电器盒 |
+| 活体 | reCamera Pro 强制（Silent-Face）；标准版为摄像头内双头纹理活体加眨眼融合，**阈值未标定** | 强制（Silent-Face） |
+| 权限策略 | 人员 + 时段 + 黑名单 + 活体 + 去抖 | 同左 |
+| 开门路径上有没有网络 | reCamera Pro 无；标准版**有——broker 的可用性就是门的可用性** | 继电器接主机时无；走 MQTT 继电器盒时**有** |
+| 安装形态 | reCamera Pro 是 root 身份的 appmgr kit app；标准版是人工拷一个纯标准库守护进程，都不用容器 | 经 SSH 部署容器 |
 
-**选 P1**：门口还没有摄像头，而你想要最短的链路——识别、判定与触点都在一台设备里，
-人脸与锁之间没有任何网络。代价是 reCamera Pro 是 Buildroot 设备、没有包管理器，
-安装因此是一套人工流程而不是自动步骤。
+**选 A**：门口还没有摄像头，或者你想要最短的链路。reCamera Pro 上识别、判定与触点都在
+一台设备里，人脸与锁之间没有任何网络；代价是它是 Buildroot 设备、没有包管理器，
+安装是一套人工流程。选标准版 reCamera 时要知道它没有可用排针，继电器必须放在网关侧，
+开门指令因此要过一次 MQTT。
 
-**选 P2**：门口已经有一台你打算继续用的摄像头，而且你要计算侧与锁回路之间的电气隔离。
-这是常规的工业答案，也是意外最少的一个——前提是 DO 引脚号真的和设计 spec 写的一样，
-这一条还没确认过。
-
-**选 P3**：能跑识别的盒子离门很远，或者一台盒子要管好几道门。你是明明白白地用"开门路径上
-多一跳网络"去换这份灵活性，这也是它单列一个时延边界的原因。
-
-**选 P5**：门口用的是标准版 reCamera，而你不想在任何地方装识别容器。摄像头自己就在一个
-原生进程里完成检测、嵌入、活体与匹配，因此这个套餐只加一个纯标准库的守护进程，
-负责拉版本化人脸库、把摄像头原生的结果流映射成事件契约。继电器在网关侧，
-开门路径与 P3 一样要过网络。它是拉库链路真正在硬件上跑过的那个套餐，
-也是阈值仍为设备出厂值、未经标定的那个。
-
-**选 P4**：成本压倒一切，而且威胁模型里不包含"有人举一张照片"——比如已受控建筑内部的
-库房门。不要把它用在临街入口。固件目前只有分支上的源码，尚未构建。
+**选 B**：门口已经有摄像头而且你打算继续用，或者一台主机要管好几道门。继电器优先接在
+主机自己的光隔 DO 或 Grove Relay 上；主机离门远时才用 MQTT 继电器盒——那是拿"开门路径上
+多一跳网络"换灵活性，不是一条独立路线。J20 的光隔 DO 提供计算侧与锁回路之间的电气隔离，
+前提是 DO 引脚号真的与设计 spec 一致，这一条还没确认过。
 
 ## 使用须知
 
@@ -142,8 +146,7 @@ export 并驱动。执行器在引脚当前状态与配置的空闲状态不符�
 **随包的 broker 配置是匿名明文，只能上台面。** 开门 topic 接受匿名发布，就谈不上门禁。
 设计要求 TLS、按设备身份与 topic ACL，随包配置里三条都没有。
 
-**两个容器镜像都没有推送，P4 固件也没有构建。** compose 文件写的是它们将来的 tag，
-并在文件开头声明了这一点；固件步骤指向的是有明确标记的占位文件，而不是一个看起来像样的二进制。
+**两个容器镜像都没有推送。** compose 文件写的是它们将来的 tag，并在文件开头声明了这一点。
 
 ## 许可说明
 
@@ -159,14 +162,14 @@ InsightFace 自己的声明，原文引用：
 > The training data containing the annotation (and models trained with these
 > data) are available for non-commercial research purposes only.
 
-在 P1（reCamera Pro）上，「face_rec_api」 的 「buffalo_l」 还有一层与许可无关的
+在 reCamera Pro 上，「face_rec_api」 的 「buffalo_l」 还有一层与许可无关的
 操作层面的错配：设备自己跑的识别模型是 「rv1126b:scrfd500m+mbf512@fp16」，
 两个模型空间之间的余弦相似度约等于零。目前没有任何云端嵌入器能产出设备
-模型空间里的向量，因此**本包里 P1 的注册链路目前还产不出这台设备可用于
+模型空间里的向量，因此**本包里 reCamera Pro 的注册链路目前还产不出这台设备可用于
 生产的人脸库**（上游 「docs/user-guide.md」 §5.1；
 「evaluation/runs/2026-09-07-recamera-pro-p1/results.md」 §9.2）。要修好这条路径，
 需要一个能对账到设备模型空间的云端嵌入器，或者一条设备辅助注册的路径；
-两者目前都不存在。标准版 reCamera 路径（P5）不受影响——它在设备上做嵌入，
+两者目前都不存在。标准版 reCamera（路线 A 的另一选项）不受影响——它在设备上做嵌入，
 不经这个管理界面注册。
 
 「buffalo_l」 正是"用这些数据训练出来的模型"。因此它**只能用于非商业研究用途**：
@@ -181,9 +184,6 @@ InsightFace 自己的声明，原文引用：
 静默活体模型是 MiniVision 的 Silent-Face-Anti-Spoofing，Apache-2.0：
 「use_scope: commercial」，可再分发，未做修改地使用。Apache-2.0 允许商用，
 条件是保留版权与许可声明、标注改动。
-
-P4 套餐的 WE2 模型——SCRFD 检测与蒸馏 MobileFaceNet 嵌入——沿用 InsightFace 的非商用条款。
-商业化的 P4 部署必须走 QAT 流程重训，而不是分发这些权重。
 
 每个人脸库版本的 manifest 都带五个许可字段——「license_id」、「use_scope」、
 「redistributable」、「source_revision」、「sha256」——让条款跟着制品走，而不是只活在一份文档里。

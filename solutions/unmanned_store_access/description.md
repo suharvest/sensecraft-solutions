@@ -16,8 +16,8 @@ opening the door with the last library it successfully loaded.
 
 **A door that keeps working when the network does not.** Recognition, liveness
 and the decision all happen at the door. The network carries library updates,
-events and remote commands — not the unlock itself, except in the MQTT-relay
-preset where that trade is made explicitly.
+events and remote commands — not the unlock itself, except when route B's
+relay node sits on the far side of MQTT, where that trade is made explicitly.
 
 **Liveness that cannot be silently switched off.** The upstream recognition
 service degrades to "keep recognising, skip liveness" when the model file is
@@ -42,11 +42,12 @@ after a power cut.
 previous record's hash. Changing one past decision from denied to allowed breaks
 the chain, and the console's verification endpoint reports it.
 
-**Five ways to wire the same system**, from a camera that drives its own GPIO to
-a 20-dollar controller with no liveness at all, sharing one library, one event
-contract and one console: P1 on-device (reCamera Pro), P2 industrial box
-(reComputer Industrial J20), P3 MQTT relay, P5 standard reCamera running its own
-recognition with the relay at the gateway, and P4 XIAO + Grove Vision AI V2.
+**Two ways to wire the same system**, sharing one library, one event contract
+and one console. **A. AI camera at the door** - a reCamera Pro or a standard
+reCamera recognises, checks liveness and decides on the camera itself. **B. AI
+host with your existing cameras** - a reComputer J20 / J30 / J40 / R1000 pulls
+the RTSP streams already at the doors and drives the relay from its own digital
+output, a Grove Relay, or an MQTT relay node when the host is not at the door.
 
 ## Where it fits
 
@@ -65,13 +66,34 @@ the door path on your own site before it carries a door.
 
 **This is not a certified security or life-safety system.** Calibrate the
 thresholds and measure recognition, liveness and the door path on your own site
-before the design carries a door. The numbers below cover the face-library
-distribution path and the GPIO pulse, measured on hardware.
+before the design carries a door.
 
-| Metric | Value | Conditions | Source |
-|---|---|---|---|
-| Face library activation, reCamera Pro (P1) | Full activation 62.2 ms (v1) and 45.4 ms (v2); up-to-date no-op round 6.2 ms; recognition event to GPIO pin readback n=22, p50 1.448 ms / p95 2.709 ms | reCamera Pro (RV1126B, Buildroot 2023.02.6) on Ethernet, 1-2 people / under 20 KB library. Consistency gate "problems: []"; a tampered gallery and a wrongly signed manifest were both rejected on the device. The 22 events were injected synthetic recognition results, the readback is sysfs so the values are an upper bound, and no external circuit was connected | "evaluation/runs/2026-09-07-recamera-pro-p1/results.md" and the two "boundary.*.yaml" alongside it |
-| Face library activation, device side | p50 491.6 ms, p95 507.8 ms (n=20); "op:reload" round trip p50 100.0 ms (n=25) | Standard reCamera (SG2002 / CV181x riscv64, firmware 0.2.2) over USB-RNDIS, 2 people, 16.5 KB library. Scale points, one run each: 402 people / 2.86 MB in 9 801.7 ms, 1502 people / 10.66 MB in 22 278.7 ms | "evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md" §2 and "boundary.facedb-activation.yaml" alongside it |
+**Door-open time: from the face entering the frame to the relay contact
+closing.** Measured on the device, running the deployed app itself, over the
+complete pipeline — capture, detection, liveness, matching, policy, GPIO pulse.
+p50, with p95 in brackets, 12 approaches per point.
+
+| Camera / host | 10 people | 100 people | 500 people | 1 000 people | 1 500 people |
+|---|---|---|---|---|---|
+| reCamera Pro (RV1126B) | **3.74 s** (3.78) | **3.72 s** (3.75) | **3.75 s** (3.78) | **3.75 s** (3.80) | **3.78 s** (3.81) |
+| Standard reCamera (SG2002) | — | — | — | — | — |
+| AI host + RTSP camera (Jetson) | — | — | — | — | — |
+
+60 of 60 approaches opened the door. Conditions: reCamera Pro, 1280x720 frames
+replayed at 12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the
+probe is a stock video clip replayed through the device's own pipeline, not a
+live person, and the endpoint is a sysfs readback of the GPIO pin with no relay
+or lock connected. Library size costs 43 ms between 10 and 1 500 people: the
+cosine scan is 0.215 ms at 10 people and 13.1 ms at 1 500. The time is the
+recognition pipeline itself — the device runs 7.0-7.2 fps and liveness needs
+motion evidence across frames. Source:
+"evaluation/runs/2026-09-08-open-door-latency/results.md" in the
+unmanned-store-access repository.
+
+The standard reCamera row is empty because its recogniser is a closed native
+process with no way to feed it a frame: measuring it needs a person in front of
+the lens. The AI-host row is empty because that route has not been run on
+hardware yet.
 
 A software-loop test suite covers the protocol and the state machine: 52 of 52
 checks across three library versions built, published, pulled, hash-checked and
@@ -85,10 +107,6 @@ is edited into an approval; and the console's three roles behaving.
 
 That measures whether the protocol and the state machine do what they claim, not
 how well the system recognises faces or rejects spoofs.
-
-The P4 preset's WE2 models — SCRFD detection and a distilled MobileFaceNet
-embedding — inherit InsightFace's non-commercial terms. A commercial P4
-deployment has to retrain through the QAT pipeline rather than ship these.
 
 Every face library version's manifest carries five licence fields — "license_id",
 "use_scope", "redistributable", "source_revision", "sha256" — so the terms travel
