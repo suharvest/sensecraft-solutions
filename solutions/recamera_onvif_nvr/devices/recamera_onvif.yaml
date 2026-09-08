@@ -17,7 +17,7 @@ ssh:
   command_timeout: 300
 binary:
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_onvif_nvr/packages/recamera-onvif_0.2.0_riscv64.deb
+    path: https://github.com/yyling0101-a11y/reCamera_2002w_sdk/releases/download/recamera-onvif-v0.2.0/recamera-onvif_0.2.0_riscv64.deb
     name: recamera-onvif
     includes_init_script: true
     checksum:
