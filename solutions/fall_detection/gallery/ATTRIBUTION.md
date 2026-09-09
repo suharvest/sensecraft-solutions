@@ -146,8 +146,12 @@ GMDCSA-24 v2.1 footage), with the fixture language switched to English:
   fixed it. That dist output is not committed here — it lives in the
   `eldercare-alarm` repository, not this one.
 
-Verified with `tesseract -l chi_sim+eng` (both TSV and default output) that
-neither image contains Chinese text.
+Checked with `tesseract -l chi_sim+eng` (both TSV and default output) plus
+visual inspection: OCR does return a handful of isolated single-character
+Chinese-looking tokens (e.g. `人`, `一`) at low-to-moderate confidence, all
+landing inside the video imagery rather than on any label, button or name —
+false positives, not Chinese text. Neither image has readable Chinese
+anywhere.
 
 ### CDN upload — pending
 
