@@ -92,3 +92,29 @@ UI.
 No picture exists of the reComputer R or reTerminal DM in a cabinet, on a DIN
 rail or wired to a meter. Every image on this page is a console screenshot, and
 the cover should be a photograph of the hardware on site. It has to be supplied.
+
+## 2026-09-09 — points-en.png and demo-en.mp4 (English fixture)
+
+`points-en.png` and `demo-en.mp4` are English-fixture equivalents of
+`points-zh.png` and `demo.mp4`. Both are real captures of the same
+React console (`frontend/console`, `Solution_HVAC_SmartControl`, same
+codebase as `smart_hvac_control`) driven by Playwright against the console's
+own mocked-gateway fixtures (`e2e/fixtures.ts`, `e2e/mocks.ts`) with
+`localStorage.sensecraft.lang = 'en'`, translating only the point
+`display_name` fields the UI does not localize on its own (`Supply air
+temp`, `Supply air setpoint`, `Return air temp`, `Chilled valve position`).
+
+- `points-en.png`: 1280 x 900, `deviceScaleFactor: 1`, matching
+  `points-zh.png`'s framing exactly (no alarm-banner drawer open).
+- `demo-en.mp4`: a Playwright-recorded browser session (`video: 'on'`,
+  1280 x 800) driving the same add-source / discover-points / expose-via-
+  data-service flow as the original `demo.mp4`, re-encoded to H.264 MP4
+  with `ffmpeg -c:v libx264 -pix_fmt yuv420p`. 8.24 s (shorter than the
+  original 26.4 s — this capture does not pause between steps for a human
+  narrator). No live backend or protocol simulator; the discovery
+  candidates and points come from the console's mocked-gateway fixtures.
+
+OCR (`tesseract -l chi_sim+eng`) over `points-en.png` and eight 1-per-second
+frames extracted from `demo-en.mp4` finds no Chinese text; scattered
+single-character hits are misreads of hyphens (e.g. `edge-gw-01`,
+`ahu-01.supply-temp`), verified against the rendered frames.
