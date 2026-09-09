@@ -211,16 +211,28 @@ fixture set `screenshots.spec.ts` uses for its tracked `zh`/`en` captures) with
 `localStorage.sensecraft.lang = 'en'` and the point `display_name` fields
 translated for this capture only (Supply air temp / Supply air setpoint / Return
 air temp / Chilled valve position). The alarm banner (`alarm-ahu-01-offline`,
-`SOURCE_UNREACHABLE`), the command-receipt ledger (readback verdicts `matched`,
-`mismatched, compensated`, `mismatched, compensation failed`, `not read back`)
-and the `offline`-quality point-table state are the fixture's existing scenarios,
-not new ones staged for this capture — no live backend, no protocol simulators,
-no SIGTERM fault injection. Viewport 1440 x 900, `deviceScaleFactor: 2` (2880 x
-1800 PNGs, uncropped), matching the 2026-09-06 captures' aspect ratio.
+`SOURCE_UNREACHABLE`) and the command-receipt ledger (readback verdicts
+`matched`, `mismatched, compensated`, `mismatched, compensation failed`, `not
+read back`) are the fixture's existing scenarios, unchanged beyond the name
+translation above.
 
-OCR (`tesseract -l chi_sim+eng`) over all five files finds no Chinese text; the
-only hits are single-stroke misreads of hyphens in point IDs like
-`ahu-01.supply-temp` (e.g. "一"), verified against the rendered screenshots.
+The `offline`-quality point-table state (`points-source-offline-en.png`) is
+**not** one of the fixture's existing states: `e2e/fixtures.ts` at `28b9cba`
+gives `ahu-01.supply-temp`/`ahu-01.supply-setpoint` quality `good`,
+`ahu-02.return-temp` quality `stale`. The capture script for this file
+overrides both `opcua-ahu-01` points' `live.quality` to `offline` before
+mocking the response — a fixture edit made for this screenshot, matching
+the same source (`opcua-ahu-01`) the existing `alarm-ahu-01-offline` alarm
+already points at, not a re-run of a live SIGTERM fault injection. No live
+backend, no protocol simulators were run for any of the five captures.
+Viewport 1440 x 900, `deviceScaleFactor: 2` (2880 x 1800 PNGs, uncropped),
+matching the 2026-09-06 captures' aspect ratio.
+
+OCR (`tesseract -l chi_sim+eng`) over all five files finds no Chinese text.
+The hits are false positives: single-stroke misreads of hyphens in point
+IDs like `ahu-01.supply-temp` and in the ledger's placeholder dashes ("一"),
+verified against the rendered screenshots — not exclusively point-ID
+hyphens.
 
 ## Missing: a photograph of the equipment
 

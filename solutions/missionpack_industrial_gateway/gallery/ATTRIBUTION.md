@@ -116,5 +116,6 @@ temp`, `Supply air setpoint`, `Return air temp`, `Chilled valve position`).
 
 OCR (`tesseract -l chi_sim+eng`) over `points-en.png` and eight 1-per-second
 frames extracted from `demo-en.mp4` finds no Chinese text; scattered
-single-character hits are misreads of hyphens (e.g. `edge-gw-01`,
-`ahu-01.supply-temp`), verified against the rendered frames.
+single-character hits are false positives — misreads of hyphens (e.g.
+`edge-gw-01`, `ahu-01.supply-temp`) and of UI icon glyphs in the top bar —
+verified against the rendered frames.
