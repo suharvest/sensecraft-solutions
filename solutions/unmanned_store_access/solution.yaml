@@ -540,12 +540,29 @@ intro:
           name: Relay
           name_i18n:
             zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On the standard-reCamera route the relay hangs off the
+            XIAO's own pin, so the XIAO 1-Channel Relay add-on (SKU 114993555)
+            also fits; it is SPST-NO as well, so it carries the same
+            fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。标准版 reCamera
+              路线上继电器接在 XIAO 自己的引脚上，XIAO 1-Channel Relay 扩展板
+              （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
+              fail-secure。
           type: single
           required: true
           options:
             - device_ref: generic_relay_module
-            - device_ref: generic_relay_module_spdt
-            - device_ref: generic_relay_module_xiao
           default: generic_relay_module
         - id: relay_node
           name: Gateway Relay Node (standard reCamera only)
@@ -631,12 +648,29 @@ intro:
           name: Relay
           name_i18n:
             zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On the standard-reCamera route the relay hangs off the
+            XIAO's own pin, so the XIAO 1-Channel Relay add-on (SKU 114993555)
+            also fits; it is SPST-NO as well, so it carries the same
+            fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。标准版 reCamera
+              路线上继电器接在 XIAO 自己的引脚上，XIAO 1-Channel Relay 扩展板
+              （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
+              fail-secure。
           type: single
           required: true
           options:
             - device_ref: generic_relay_module
-            - device_ref: generic_relay_module_spdt
-            - device_ref: generic_relay_module_xiao
           default: generic_relay_module
         - id: relay_node
           name: MQTT Relay Node (only when the host is not at the door)
