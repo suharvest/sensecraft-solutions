@@ -49,9 +49,9 @@ intro:
         zh: 告警面板站点总览——8 个房间、10 路摄像头、18 个识别区域，24 小时按类型分色的告警趋势，每个房间一张卡片带自己的画面缩略图与未处置数。数据为本地回放，来源见 gallery/ATTRIBUTION.md
     - type: image
       src: gallery/panel-dashboard-en.jpg
-      caption: The same overview in English — the panel switches language without a reload
+      caption: The same overview in English — the panel switches language without a reload, and the room fixture data (Room 101, Room 102, ...) is English too, not just the UI chrome
       caption_i18n:
-        zh: 同一总览的英文界面——面板切换语言不需要重新加载
+        zh: 同一总览的英文界面——面板切换语言不需要重新加载，房间名等 fixture 数据（Room 101、Room 102……）也是英文，不只是界面文案
     - type: image
       src: gallery/panel-room-detail-zh.jpg
       caption: Room detail — camera online state, live-view switch, and the alarm list with confirm / dismiss / mark-handled on each row
@@ -62,6 +62,11 @@ intro:
       caption: Zone configuration on the live picture — two zone rectangles drawn on a 4:3 stream, the letterbox bars stay outside the boxes because coordinates map to the picture, not the container
       caption_i18n:
         zh: 在实时画面上配置识别区域——两个区域矩形画在 4:3 画面上，两侧黑边在框外，说明坐标按画面而不是按容器映射
+    - type: image
+      src: gallery/panel-config-live-view-en.jpg
+      caption: The same configuration page in English — room, zone and camera fixture names are English too, not just the UI chrome
+      caption_i18n:
+        zh: 同一配置页的英文界面——房间、区域与摄像头名称也是英文，不只是界面文案
     - type: image
       src: gallery/alarm-state-machine.svg
       caption: Alarm states — an evidence window, an operator window, then notification with escalation on a missed deadline
