@@ -1,7 +1,7 @@
 {
   "agri_env_monitor": "sha256:eb5941e868fd0c800a25c9475a2cff32d2958b513da7292d34048f43d75b7d42",
   "ai_lab": "sha256:e3794835cd49573bc48e8442b079c042e9d83aa5a56140b5c2e0f63b8c022b8e",
-  "conversational_voice_ai": "sha256:910724f7828bec9e9f3c7e4d49bd7aca0d64b6904039ff521525c9c0cd02f2c4",
+  "conversational_voice_ai": "sha256:d59c57419c9a4b1bfad0381d7a371324bd73ef57b2559c0a8c5b5cc1047cbe1b",
   "depth_anything_v3": "sha256:73620e0f73b6f833b5310c7aac880f26f2c63ec43b10e6be32895d4b3c45f769",
   "edge_inspection_assembly": "sha256:2530340166f8e2b6f22fd608a5fe79836eae3a87a5d810fbc50558034050ea0e",
   "edge_inspection_surface": "sha256:6ba9b6a523aff03f0ccba2b2f91b638cfc8b864c9f7e5076934eb97828e21857",
@@ -23,7 +23,7 @@
   "recamera_parking_monitor": "sha256:bcf552d1f478838ccaee94c28865a86d57e876ab2b65f1d4256f4571968200ca",
   "recamera_sheep_counter_lora": "sha256:08947c256da696a235f373bdf3e89cbbde921f7669af23599db90edee858a841",
   "respeaker_flex_soarm": "sha256:f73dffcc8e9b8cea5e5bda5db4ca846690c6bbb252ab1395dec2a133d7b39ad3",
-  "retail_voice": "sha256:ca3a28c335f1f5db248ccb2fd43da0d1c6863fc1979b4abb2c0ebe668dfae496",
+  "retail_voice": "sha256:26d6e50eec5528f6f38c2576668187293983553882d1205bd63e73a511ede03d",
   "sensecraft_data_mcp": "sha256:32b1b8bde32b25cb8d9e387577edd88dc9213f7a057cadecd6b5a91985ea1a0f",
   "smart_hvac_control": "sha256:9f32ca6539c45f2fecaad59c0b050fc62e2e2ccb17bab3d6b58a36a36d327e21",
   "smart_space_assistant": "sha256:c97e508e544c8295aefd859ff2bc7295d8f0599932d0d1094837f5fce99028c8",
