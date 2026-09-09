@@ -106,9 +106,9 @@ services:
   #
   # 只引用 ~/project/openvoicestream 已发布的镜像与它自己的运行约定
   # （deploy/docker-compose.rk.yml、deploy/IMAGE-TAGS.md），不改那个仓库。
-  # digest 取自 IMAGE-TAGS.md 的 rk-20260903.10 一行。
+  # 下面的 digest 是 arm64 CPU 构建 seeed-local-voice:rpi-20260721 的，不是 RK 那一行。
   ovs-asr:
-    # 冻结版这里写死的是 RK3576 NPU 构建（rk-20260903.10）。CM4 没有 RKNN，那个镜像跑不了。
+    # 冻结版这里写死的是 RK3576 NPU 构建。CM4 没有 RKNN，那个镜像跑不了。
     # 默认改为 OpenVoiceStream 的 arm64 CPU 构建 seeed-local-voice:rpi-20260721
     # （deploy/docker/Dockerfile.rpi，sherpa-onnx + onnxruntime CPU EP，无 NPU 依赖），
     # 按 index digest 固定。Paraformer ASR / Matcha TTS 模型不在镜像里，

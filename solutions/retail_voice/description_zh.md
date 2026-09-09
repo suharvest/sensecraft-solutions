@@ -78,8 +78,9 @@
 | 个人信息被脱敏识别出来的比例 | **precision 0.98 / recall 0.95** | 服务端栈套餐 |
 | 角色不足时拒绝访问 | **通过**——缺凭据 401、档位不足 403 | 服务端栈套餐 |
 
-口径：语音数字取自 `cat-remote` RK3576 板，跑本方案原样的本地 RK3576 compose 文件、
-SenseVoice profile，2026-09-06；流式识别准确率是同一块板上的 Paraformer profile，
+口径：语音数字取自 `cat-remote` RK3576 板，跑本地 RK3576 compose 文件、SenseVoice
+profile，2026-09-06，镜像是 `seeed-local-voice:rk-20260803b`。该 compose 现在默认
+`rk-20260909`，这个镜像还没有跑过本方案的实测；流式识别准确率是同一块板上的 Paraformer profile，
 2026-06-08。隐私链路数字取自一次集成运行，起的是脚本自建的 MySQL 8.0 与 MinIO，
 用删除前后的 SHA-256 清单在三处对照，跑在开发机而不是门店。脱敏分数用的是 114 条
 中英文金标准集。

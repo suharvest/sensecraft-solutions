@@ -7,7 +7,7 @@ no database.
 
 | Device | Purpose |
 |--------|---------|
-| reComputer RK3576 | SenseVoice on the 6 TOPS NPU, capture client on the CPU. Measured on this board: 3.0 s of audio in about 780 ms warm (RTF 0.26), 1.71 GiB resident with punctuation and voiceprint loaded |
+| reComputer RK3576 | SenseVoice on the 6 TOPS NPU, capture client on the CPU. Measured on this board on image `rk-20260803b`, 2026-09-06: 3.0 s of audio in about 780 ms warm (RTF 0.26), 1.71 GiB resident with punctuation and voiceprint loaded. The compose now defaults to `rk-20260909`, which has not been re-measured |
 | reRouter CM4 | The cheaper CPU-only alternative. Paraformer streaming ASR on four Cortex-A72 cores, no accelerator, no text-to-speech |
 | reSpeaker XVF3800 | 4-mic array — AEC, beamforming and noise suppression on its own DSP |
 

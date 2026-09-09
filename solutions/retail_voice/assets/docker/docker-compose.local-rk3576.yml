@@ -26,8 +26,10 @@ services:
     # onto the activation-rescaled SenseVoice encoder
     # (sense-voice-encoder.rk3576.fp16-scaled.rknn). On plain fp16 the last
     # encoder block's FFN residual add overflows fp16 depending on clip
-    # duration; measured on cat-remote (RK3576) 2026-09-09, 2 of 10 sentences
-    # came back empty and CER was 24.6%. rk-20260909 carries the fix.
+    # duration; measured on cat-remote (RK3576) 2026-09-09, 2 of 10 zh
+    # sentences came back empty and mean CER was 24.6%
+    # (seeed-solutions-hub docs/reports/retail-voice-asr-bench-matrix-2026-09-09.md,
+    # sections at lines 88 and 191). rk-20260909 carries the fix.
     # The 2026-08-24 RK3576 measurement above was taken on rk-20260803b and
     # has not been re-run on this tag.
     image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-20260909}
