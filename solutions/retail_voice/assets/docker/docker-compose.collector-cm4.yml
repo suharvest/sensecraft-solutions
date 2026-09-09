@@ -239,6 +239,12 @@ services:
     image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:95e3a794de3cc30f7a4be93dd2a31902316522b31b5a64b88cf76e95e55ed80b
     container_name: c4-voice-web
     restart: unless-stopped
+    # 镜像默认 CMD 是纯静态 serve（无 /api 代理）：SPA 的相对路径 API 调用会拿到
+    # index.html，管理后台登录必败。用零依赖 node 代理覆盖 CMD；镜像 package.json
+    # 是 "type":"module"，脚本必须用 .cjs。只覆盖 command + 挂脚本，digest 不动。
+    command: ["node", "/app/proxy-server.cjs"]
+    volumes:
+      - ./voice-web-proxy.cjs:/app/proxy-server.cjs:ro
     depends_on:
       voice-service:
         condition: service_healthy
