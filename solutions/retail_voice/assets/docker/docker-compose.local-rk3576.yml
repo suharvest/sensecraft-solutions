@@ -19,12 +19,20 @@
 
 services:
   speech:
-    # Pushed and reachable: sha256:1c69a060ee20553451abf006ac90b49ad18086de1c22590d95c88448ddad4764
-    # (verified with `docker manifest inspect`, 2026-09-05). This is the tag
-    # the 2026-08-24 RK3576 measurement above was taken on. A newer RK tag
-    # (rk-20260903.10) exists upstream but carries no measurement for this
-    # workload, so it is not the default here.
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-20260803b}
+    # Pushed and reachable: sha256:184e9336847a6a0c246c94b311b11d0379d4c90366b8ea0ad6afa0a688b91a58
+    # (verified with `docker manifest inspect`, 2026-09-09).
+    # rk-20260803b and rk-20260903.10, the two tags previously referenced here,
+    # both predate openvoicestream 2815186 (2026-08-25), which moved RK3576
+    # onto the activation-rescaled SenseVoice encoder
+    # (sense-voice-encoder.rk3576.fp16-scaled.rknn). On plain fp16 the last
+    # encoder block's FFN residual add overflows fp16 depending on clip
+    # duration; measured on cat-remote (RK3576) 2026-09-09, 2 of 10 zh
+    # sentences came back empty and mean CER was 24.6%
+    # (seeed-solutions-hub docs/reports/retail-voice-asr-bench-matrix-2026-09-09.md,
+    # sections at lines 88 and 191). rk-20260909 carries the fix.
+    # The 2026-08-24 RK3576 measurement above was taken on rk-20260803b and
+    # has not been re-run on this tag.
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-20260909}
     container_name: openvoicestream
     privileged: true
     init: true
