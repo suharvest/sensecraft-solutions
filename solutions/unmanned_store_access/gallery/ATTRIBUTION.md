@@ -5,11 +5,12 @@
 | File | Origin | Contains real face imagery |
 |---|---|---|
 | `cover-recognition.jpg` | A frame of a Pexels-licensed stock clip, overlaid with the verdicts a reCamera Pro returned for that frame (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-pro-app/media/cover/cover.jpg`) | Yes — two stock-footage actors |
+| `cover-recognition-en.jpg` | The same frame and the same device verdicts, re-rendered with English overlay labels for the English landing page (`cover_from_video.py --lang en`) | Yes — two stock-footage actors |
 | `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
 | `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
 | `ui-events.jpg` / `ui-events-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
-| `ui-persons.png` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-persons.png` / `ui-persons-en.png` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-devices.jpg` / `ui-devices-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-status.jpg` | Screenshot of the management console, running on synthetic demo data | No |
 
@@ -149,6 +150,14 @@ re-shot separately, with the enrolment photographs.
 
 ## Cover: reserved
 ## Cover: the verdicts are real, the footage is stock
+
+`cover-recognition-en.jpg` is the same frame 17 of the same run, re-rendered from
+the same `raw/offline-run.json` with `cover_from_video.py --lang en`. Only the
+burnt-in strings differ: the badge reads `reCamera Pro · F1 door access`, the
+boxes read `Enrolled · allow` / `Not enrolled · deny`. Re-running the renderer at
+`--lang zh` reproduces `cover-recognition.jpg` byte for byte
+(MD5 `2ce5f5527851e78b68c5ef2e17fcce5d`), so the two files carry identical
+detection results and differ only in label language.
 
 `cover-recognition.jpg` is frame 17 of a 250-frame run in which a reCamera Pro
 scored a stock clip through the deployed face pipeline. Every box, label and
