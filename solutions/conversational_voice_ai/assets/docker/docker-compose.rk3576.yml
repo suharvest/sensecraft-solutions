@@ -1,3 +1,9 @@
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260909
+# (sha256:184e9336847a6a0c246c94b311b11d0379d4c90366b8ea0ad6afa0a688b91a58, verified with `docker manifest inspect`, 2026-09-09).
+# Replaces rk-qwen3asr-20260816-ea4e258-coldstart, which predates
+# openvoicestream 2815186 (2026-08-25): on RK3576/RK3588 the SenseVoice
+# encoder was still plain fp16, whose last encoder block's FFN residual add
+# overflows fp16 depending on clip duration.
 services:
   # Resolves the operator's LANGUAGE choice plus this board's device id into
   # exactly one OpenVoiceStream profile before anything else starts. The matrix
@@ -12,7 +18,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-qwen3asr-20260816-ea4e258-coldstart}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260909}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -31,7 +37,7 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-qwen3asr-20260816-ea4e258-coldstart}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260909}
     container_name: conversational-voice-speech
     privileged: true
     init: true
