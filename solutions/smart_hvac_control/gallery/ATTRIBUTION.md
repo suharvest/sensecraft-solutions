@@ -194,6 +194,34 @@ staged — a simulator killed with SIGTERM, a register changed out of band — a
 fixture site the new captures run against does not stage them. Re-take these when
 that scenario runs again.
 
+## 2026-09-09 — English-fixture re-takes of the four 2026-09-06 captures
+
+`points-en.png`, `control-dispatch-readback-en.png`, `points-source-offline-en.png`,
+`alarm-banner-source-offline-en.png` and `control-readback-compensated-en.png`
+replace the gap noted above: the four 2026-09-06 captures stayed on the English
+reference-design page with the UI switched to English but the underlying point
+names (`送风温度`, `送风设定`, `回风温度`, `冷水阀开度`) untranslated, since those
+names are operator-entered `display_name` fields the console renders verbatim
+regardless of UI language.
+
+These five are real screenshots of the actual React console (`frontend/console`
+in `Solution_HVAC_SmartControl`, commit `28b9cba`), run against the console's own
+mocked-gateway Playwright fixtures (`e2e/fixtures.ts`, `e2e/mocks.ts` — the same
+fixture set `screenshots.spec.ts` uses for its tracked `zh`/`en` captures) with
+`localStorage.sensecraft.lang = 'en'` and the point `display_name` fields
+translated for this capture only (Supply air temp / Supply air setpoint / Return
+air temp / Chilled valve position). The alarm banner (`alarm-ahu-01-offline`,
+`SOURCE_UNREACHABLE`), the command-receipt ledger (readback verdicts `matched`,
+`mismatched, compensated`, `mismatched, compensation failed`, `not read back`)
+and the `offline`-quality point-table state are the fixture's existing scenarios,
+not new ones staged for this capture — no live backend, no protocol simulators,
+no SIGTERM fault injection. Viewport 1440 x 900, `deviceScaleFactor: 2` (2880 x
+1800 PNGs, uncropped), matching the 2026-09-06 captures' aspect ratio.
+
+OCR (`tesseract -l chi_sim+eng`) over all five files finds no Chinese text; the
+only hits are single-stroke misreads of hyphens in point IDs like
+`ahu-01.supply-temp` (e.g. "一"), verified against the rendered screenshots.
+
 ## Missing: a photograph of the equipment
 
 There is no picture of the meter, the HVAC unit or the gateway in a plant room
