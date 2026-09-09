@@ -104,6 +104,51 @@ Chinese page. `alarm-architecture.svg`, `panel-room-offline-zh.jpg`,
 `panel-config-conflict-409-zh.jpg` and `panel-draw-save-reload.gif` are not
 referenced from `solution.yaml` today; they are kept here for the landing page.
 
+## English fixture re-capture (2026-09-09)
+
+`panel-dashboard-en.jpg` already existed but only the panel UI chrome was
+English — the demo fixture data underneath (`101 房`, `101 房床区`,
+`101 房地面活动区`, the site name, the two demo resolver names) was still
+Chinese, and `panel-config-live-view-en.jpg` did not exist at all. Both are
+re-shot end to end against the same local-replay recipe as the 2026-09-07
+capture above (`evaluation/demo_site.py` + go2rtc + local replay of the
+GMDCSA-24 v2.1 footage), with the fixture language switched to English:
+
+- `eldercare-alarm/evaluation/demo_site.py` gained a `--lang {zh,en}` flag
+  (defaults to `zh`, so the existing `-zh` screenshots' recipe is
+  unchanged). `--lang en` renders room names as `Room 101`...`Room 108`,
+  zone names as `Bed zone` / `Floor zone`, the site name as `Sunrise Care
+  Home · Floor 3`, and the two demo resolver names as `Nurse Wang` /
+  `Nurse Li`.
+- go2rtc (`alexxit/go2rtc` Docker image) served the same subject-4 GMDCSA-24
+  v2.1 clips (`Fall/01.mp4`, `ADL/01.mp4`, fetched from the ghproxy mirror
+  of the upstream dataset repo, MIT — see the citation under `cover.png`
+  above) as 8 looped RTSP sources at `rtsp://127.0.0.1:8554/<cam-id>`,
+  matching `demo_site.py --rtsp-base`'s default.
+- Room states that need a real inactivity timeout (`no_motion` at
+  1800/2700s, `no_person` at 3600/7200s) were seeded directly through
+  `AlarmService.inactivity.observe()` at service startup with an
+  8-hours-old timestamp, instead of waiting out the real timeout in wall
+  clock — a small one-off launcher script, not part of the shipped
+  service. `fall` states came from the normal MQTT replay path
+  (`evaluation/replay/replayer.py --scenario fall`). A background MQTT
+  heartbeat kept every working stream's `last_frame_ms` fresh (so rooms
+  read online rather than offline) without disturbing the seeded
+  inactivity clocks.
+- Playwright + Chrome, viewport 1680×1150, `deviceScaleFactor: 2`,
+  full-page capture — same recipe as 2026-09-07, so both screenshots are
+  again 3360×2332 before cropping to content and saving as JPEG quality 90
+  (`panel-dashboard-en.jpg` → 3360×2060, `panel-config-live-view-en.jpg` →
+  3360×1860, matching their `-zh` counterparts pixel-for-pixel).
+- Frontend note: `eldercare/web/ui/dist` had gone stale (predated the
+  Overview/Configuration pages), which briefly hid those two nav items
+  during this capture; rebuilding with `npm install && npm run build`
+  fixed it. That dist output is not committed here — it lives in the
+  `eldercare-alarm` repository, not this one.
+
+Verified with `tesseract -l chi_sim+eng` (both TSV and default output) that
+neither image contains Chinese text.
+
 ### CDN upload — pending
 
 These files are referenced from `solution.yaml` as local `gallery/<name>` paths,
