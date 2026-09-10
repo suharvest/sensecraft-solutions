@@ -154,34 +154,6 @@ AUROC 回升到 0.7055——见上表"同源 OK 集对照"一行。** NEU6（本
 "evaluation/runs/2026-09-05-a2-cpu/results.md"、
 "evaluation/runs/2026-09-05-a2-aggregation/results.md"。
 
-## 可选：VLM 解释
-
-运行时可以把一帧交给外部共享 VLM 服务（「edge-vision-vlm」）生成一段人话
-解释。这是一条旁路，不是第二个判定者：它不进帧循环、不改变 「verdict」，
-服务关闭、变慢或不可达时，OK/NG 输出与没有这条旁路完全一样。
-
-- **触发条件**（两条依据任一即可，有框优先）。「low_confidence」——主缺陷
-  分数低于 「vlm.trigger.min_confidence」。「anomaly」——「anomaly_score」
-  过了 「anomaly.threshold」 且**检测器一个框都没有**，此时没有这条旁路就
-  完全没有机器可读的判定理由。每路按 「vlm.trigger.min_interval_s」 限速，
-  绝不是每帧调用一次。
-- **旁路事件。** 有界、drop-oldest 队列加独立 worker 线程提交调用；
-  「inspection/<流编号>/results」 上的主事件照常按原节奏发布，不管 VLM
-  有没有回应。回应了才会在 「inspection/<流编号>/explanations」 上再发
-  一条，按同一个 「frame_id」 对齐。
-- **不阻塞主链路。** 客户端硬超时会放弃这次调用；连续失败达到阈值后
-  熔断器会停调一段冷却期，冷却期靠 「GET /healthz」 探活。
-- **解释以秒计，不是毫秒。** 在共享 VLM 服务自己的工作站硬件上，
-  Qwen3-VL-2B bf16 光生成阶段就是 P50 约 3.2 s / P95 约 7.2 s
-  （「max_tokens=320」）。这正是这次调用要离开热路径的原因。
-  按小时而不是按帧规划解释通道。
-
-设置 「vlm.enabled: true」 并把 「vlm.base_url」 指到一个可达的
-「edge-vision-vlm」 实例即可启用；完整步骤见部署指南，包括设备上需要的
-「no_proxy」 设置。
-
-来源：「contracts/explanation-event.schema.json」。
-
 ## 输出接口
 
 | 输出 | 位置 | 内容 |

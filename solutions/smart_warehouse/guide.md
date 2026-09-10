@@ -437,6 +437,56 @@ Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
 ---
 
+## Step 10: Flash the reTerminal D1001 (D1001 option) {#d1001_flash_sensecraft_cloud type=esp32_usb required=false config=devices/d1001_voice_terminal.yaml}
+
+Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
+
+The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
+
+### Wiring
+
+1. Connect the D1001 to your computer with a USB-C data cable
+2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
+3. Click Flash and wait for all six segments to finish
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Serial port not found | Use a data-capable USB-C cable, try another USB port |
+| Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
+
+---
+
+## Step 11: Set Up the D1001 and Link It (D1001 option) {#d1001_setup_sensecraft_cloud type=manual required=false}
+
+Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that is the main difference from the Watcher. Everything after that (agent, MCP endpoint, warehouse system) is the same.
+
+### Wiring
+
+1. Power on the D1001 and tap the network icon in the status bar
+2. Pick a **2.4GHz** network, enter the password on screen, and wait for the IP address to appear
+3. Once it is online the device shows its activation code. Bind it in the console of the Xiaozhi service the firmware points at (`https://api.tenclass.net/xiaozhi/ota/` by default — the SenseCraft "Watcher Agent" binding form is Watcher-only), and give its agent the "Inventory Manager" role
+4. Copy that agent's MCP endpoint URL
+5. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
+6. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
+
+> The shipped D1001 firmware points at `https://api.tenclass.net/xiaozhi/ota/`, the same default the Watcher firmware in this package carries.
+
+### Verify
+
+Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". The screen reports the stock-in and the dashboard count rises by 10.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| WiFi connection failed | 2.4GHz only; re-enter the password on the screen |
+| No activation code | Wait for the boot to finish, or restart the device |
+| Status stays Disconnected | Check the endpoint URL was copied in full, with no stray spaces |
+
+---
+
 ## Preset: Tier 2A · Advanced (Single Site) {#private_cloud}
 
 Tier 1 plus local high-accuracy face recognition: voice AI runs on the [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service, while face recognition inference runs on your local device — inventory and face data stay on your network.
@@ -700,6 +750,56 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 3. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
 4. **Face recognition fires** — after enrolling a face (Step 8), face the Watcher camera and confirm a recognition record appears in the warehouse system.
 5. **No error-level logs** — `for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
+
+---
+
+## Step 10: Flash the reTerminal D1001 (D1001 option) {#d1001_flash_private_cloud type=esp32_usb required=false config=devices/d1001_voice_terminal.yaml}
+
+Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
+
+The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
+
+### Wiring
+
+1. Connect the D1001 to your computer with a USB-C data cable
+2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
+3. Click Flash and wait for all six segments to finish
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Serial port not found | Use a data-capable USB-C cable, try another USB port |
+| Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
+
+---
+
+## Step 11: Set Up the D1001 and Link It (D1001 option) {#d1001_setup_private_cloud type=manual required=false}
+
+Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that is the main difference from the Watcher. Everything after that (agent, MCP endpoint, warehouse system) is the same.
+
+### Wiring
+
+1. Power on the D1001 and tap the network icon in the status bar
+2. Pick a **2.4GHz** network, enter the password on screen, and wait for the IP address to appear
+3. Once it is online the device shows its activation code. Bind it in the console of the Xiaozhi service the firmware points at (`https://api.tenclass.net/xiaozhi/ota/` by default — the SenseCraft "Watcher Agent" binding form is Watcher-only), and give its agent the "Inventory Manager" role
+4. Copy that agent's MCP endpoint URL
+5. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
+6. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
+
+> The shipped D1001 firmware points at `https://api.tenclass.net/xiaozhi/ota/`, the same default the Watcher firmware in this package carries.
+
+### Verify
+
+Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". The screen reports the stock-in and the dashboard count rises by 10.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| WiFi connection failed | 2.4GHz only; re-enter the password on the screen |
+| No activation code | Wait for the boot to finish, or restart the device |
+| Status stays Disconnected | Check the endpoint URL was copied in full, with no stray spaces |
 
 ---
 
@@ -1408,3 +1508,60 @@ Your fully offline warehouse system is ready!
 3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
 4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
 5. **No error-level logs** — on the Industrial R21 series device, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J50 series device, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
+
+## Step 11: Flash the reTerminal D1001 (D1001 option) {#d1001_flash_edge_computing type=esp32_usb required=false config=devices/d1001_voice_terminal.yaml}
+
+Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
+
+The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
+
+### Wiring
+
+1. Connect the D1001 to your computer with a USB-C data cable
+2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
+3. Click Flash and wait for all six segments to finish
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Serial port not found | Use a data-capable USB-C cable, try another USB port |
+| Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
+
+---
+
+## Step 12: Point the D1001 at Your Local Server (D1001 option) {#d1001_setup_edge_computing type=manual required=false}
+
+The D1001 ships pointing at the public Xiaozhi service, so it needs the same OTA-address override the Watcher gets — entered on the provisioning page, which the D1001 reaches through the boot button instead of a scroll button.
+
+### Wiring
+
+1. Power the device on and click the boot button while it is still starting up — it enters Wi-Fi provisioning mode and broadcasts a setup hotspot
+2. Connect your phone to that hotspot; the setup page opens automatically (otherwise visit `http://192.168.4.1`)
+3. **Don't join WiFi yet** — open "**Advanced Options**", enter the OTA address of the voice service you deployed, and Save:
+
+   ```
+   http://<Voice Server IP>:18002/xiaozhi/ota/
+   ```
+
+4. Go back to the setup page, pick a **2.4GHz** network, enter the password, and connect
+5. In the console at `http://<Voice Server IP>:18002`, create the agent from the "Warehouse Assistant" role template, then copy its MCP endpoint under "Edit Functions"
+6. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
+7. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
+
+> Wi-Fi can also be set on the touch screen (network icon in the status bar), but the OTA address can only be entered on the provisioning page, so use the boot-button route the first time.
+
+### Verify
+
+Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". The screen reports the stock-in and the dashboard count rises by 10.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| No setup hotspot appears | The click must land while the device is starting up; power-cycle and try again |
+| WiFi connection failed | 2.4GHz only; re-enter the password |
+| Nothing happens after the reboot | Make sure the OTA address uses the **server IP**, not localhost, and that device and server share a network |
+| Status stays Disconnected | Check the endpoint URL was copied in full, with no stray spaces |
+
+---

@@ -50,18 +50,19 @@
 
 | 产线能得到什么 | 典型值 | 设备 |
 |---|---|---|
-| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 系列（J4012，Orin NX 16GB） |
-| 缺陷检出精度（mAP50） | **0.9876** | reComputer J40 系列 |
-| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J40 系列 |
-| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J40 系列 |
-| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J40 系列 |
+| 拍到画面到判定落在 Modbus 线圈 | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 系列（J3011，Orin Nano 8GB） |
+| 缺陷检出精度（mAP50） | **0.9876** | reComputer J30 系列 |
+| 10 fps 产线节拍下一台主机接几路 | **8 路**（12 路下降、24 路失败） | reComputer J30 系列 |
+| 缺件闭环 | 模板帧 **6 / 6** 匹配，换板后 **6 / 6** 报缺失 | reComputer J30 系列 |
+| 尺寸相对标定物的误差 | 最差 **0.65%**，预算 1% | reComputer J30 系列 |
 
 口径：DeepPCB6 val 205 图 / 1158 框 / 6 类，YOLOX-Tiny 640² TensorRT fp16，冻结阈值 0.35；
 端到端在 10 fps 产线节拍下取 3000 个样本，丢帧 0；路数扫描期间关掉了 Modbus 与 MQTT，
-实际部署带上两者后路数会更低。2026-09-05 实测，设备为 Orin NX 16GB 工程参考套件
-（JetPack 6.2 / TRT 10.3）。
+实际部署带上两者后路数会更低。2026-09-05 实测，设备为 reComputer J30 系列（J3011，Orin Nano 8GB；JetPack
+6.2 / TRT 10.3）——`/proc/device-tree/model` 一度误读为 Orin NX 工程参考套件，
+2026-09-08 用 device-tree compatible（nvidia,p3767-0003）核实后更正。
 
-2026-09-08 复核：同一个 engine 在一台 reComputer J40 系列（Orin NX 16GB）
+2026-09-08 复核：同一个 engine 在同一台 reComputer J30 系列（J3011）
 整机上已连续运行 67 小时，CPU 与 TensorRT 的框一致率 0.9992，取图到线圈
 P50 11.45 ms，67 小时全程 0 丢帧。
 
@@ -83,29 +84,6 @@ mAP50 0.9870、单次推理 P50 30.9 ms（RKNN INT8，2026-09-08）。reCamera P
 
 「HR 10 = 0」 不代表"量到 0 mm"——必须先读 HR 11。另外在 v2 里，
 「verdict = NG」 不再蕴含 「defect_count > 0」：只要有缺件或尺寸超差，一条就够。
-
-## 可选：VLM 解释
-
-运行时可以把一帧 NG 交给外部共享 VLM 服务（「edge-vision-vlm」）生成一段人话解释。
-这是一条旁路，不是第二个判定者：它不进帧循环、不改变 「verdict」，服务关闭、变慢
-或不可达时，OK/NG 输出与没有这条旁路完全一样。
-
-- **触发条件。** 只在值得人看一眼的状态变化上才调用——「assembly.missing_count > 0」，
-  或主缺陷置信度低于 「vlm.trigger.min_confidence」——每路按
-  「vlm.trigger.min_interval_s」 限速，绝不是每帧调用一次。
-- **旁路事件。** 有界、drop-oldest 队列的后台 worker 负责提交调用；
-  「inspection/<流编号>/results」 上的主事件照常按原节奏发布，不管 VLM 有没有回应。
-  回应了才会在 「inspection/<流编号>/explanations」 上再发一条，按同一个 「frame_id」
-  对齐。
-- **不阻塞主链路。** 客户端硬超时会放弃这次调用；连续失败达到阈值后熔断器会停调
-  一段冷却期。这条链路上没有任何东西能拖住判定、Modbus 写入或 MQTT 发布。
-- **时延不是可以按帧规划的数字。** 在共享服务自己的评测硬件——NVIDIA Spark GB10
-  工作站，**不是本 demo 跑的这台 Orin**——上实测，Qwen3-VL-2B bf16 光生成阶段就是
-  P50 ≈ 3.2 s / P95 ≈ 7.2 s（「max_tokens=320」）。这正是这次调用要离开热路径的原因；
-  这套集成目前没有 Orin 上的实测时延。
-
-设置 「vlm.enabled: true」 并把 「vlm.base_url」 指到一个可达的 「edge-vision-vlm」 实例
-即可启用；完整步骤见部署指南，包括设备上需要的 「no_proxy」 设置。
 
 ## 半自动标注工具
 
@@ -133,9 +111,12 @@ mask 变成一份装配 ROI profile——它不在边缘设备上跑，也不进
 
 ## 套餐对比
 
-**摄像头 + reComputer J30 / J40（Orin）** 是本页所有实测数据的来源。首次部署时在设备上构建
-TensorRT engine（约 5 分钟），engine 因此与该设备和该 TensorRT 版本绑定。想让上面
-那组数字对你成立、或者一台机器要跑不止一两路摄像头时选它。
+**摄像头 + reComputer J30 / J40（Orin）** 是 Jetson 这条路径。本页所有 Jetson
+实测数据——精度、吞吐、时延、67 小时 soak——都来自 reComputer J30 系列
+（J3011，Orin Nano 8GB）；本方案未单独给 J40 跑评测。首次部署时在设备上构建
+TensorRT engine（在 J3011 上实测约 5 分钟），engine 因此与该设备和该 TensorRT
+版本绑定。想让上面那组数字对你成立选 J3011；想要更多路摄像头的余量选
+J40（本方案未单独给它跑评测）。
 
 **摄像头 + reComputer R2000（Hailo-8）** 用功耗与成本换更小的板卡体积。
 INT8 HEF 在设备外编译、部署时下载，板子上没有构建步骤。同款 Hailo-8 平台实测：硬件推理
@@ -178,7 +159,6 @@ mAP50-95 是 0.8000，参考值 0.8213——这个差距来自高 IoU 下的框�
 - **缺件闭环与尺寸误差**——运行记录 M2，2026-09-05，同一台主机，用验证帧与合成场景。
 - **Hailo INT8 精度**——运行记录 M3a，2026-09-05，在 x86 Hailo Dataflow Compiler 模拟器里，不是设备上。
 - **Hailo-8 上板吞吐、时延与精度**——运行记录 M3b-pi-2，2026-09-06，fleet 主机 `harvest-pi`。
-- **VLM 解释时延**——已公布数字来自 Spark GB10 工作站；请在自己的质检主机上实测。
 
 ## 许可说明
 

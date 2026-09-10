@@ -304,7 +304,7 @@ intro:
           reComputer 整机复测后更新。
       purchase:
         require:
-          ai_accelerator: hailo-8
+          ai_accelerator: [hailo-8]
     recomputer_j40:
       description: >-
         The Orin NX 16GB option for the TensorRT path. Runs both the detector
@@ -329,13 +329,22 @@ intro:
             - orin_nx_16
     recomputer_j30:
       description: >-
-        The smaller Orin Nano 8GB option in the same reComputer J30 / J40 family.
-        Every number on this page for this preset comes from the Orin NX unit
-        (recomputer_j40).
+        The smaller Orin Nano 8GB option in the same reComputer J30 / J40
+        family. Also measured directly on this board (reComputer J30 series,
+        J3011): detector 5.88 ms p50 / 8.89 ms p95, 99.27% box agreement with
+        the CPU golden (a different 50-image batch than the Orin NX unit's,
+        so not bit-for-bit comparable); embedder 5.06 ms p50 / 7.64 ms p95,
+        21 retrieval metrics within 0.21 percentage points of fp32. A
+        6726-frame checkout replay (2.27 loops) ran with zero dropped frames
+        and all 84 events published.
       description_i18n:
         zh: >-
-          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。本页这个套餐
-          的所有数字都来自 Orin NX 机型（recomputer_j40）。
+          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。同样已在
+          本机实测（reComputer J30 系列，J3011）：检测器 p50 5.88 ms /
+          p95 8.89 ms，与 CPU golden 的框一致率 99.27%（与 Orin NX 机型用的
+          不是同一批 50 张图，不可逐位对齐）；嵌入器 p50 5.06 ms / p95 7.64 ms，
+          21 项检索指标与 fp32 最大差 0.21 个百分点。一次 6726 帧（2.27 轮）
+          的收银台回放零掉帧，84 个事件全部发布成功。
       purchase:
         require:
           module:

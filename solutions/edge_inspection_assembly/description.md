@@ -67,20 +67,22 @@ calibrated gauge in an acceptance test.
 
 | What the line gets | Typical | Device |
 |---|---|---|
-| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J40 series (J4012, Orin NX 16GB) |
-| Defect detection accuracy (mAP50) | **0.9876** | reComputer J40 series |
-| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J40 series |
-| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J40 series |
-| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J40 series |
+| Frame captured to the verdict on the Modbus coil | **P50 10.92 ms / P99 11.18 ms** | reComputer J30 series (J3011, Orin Nano 8GB) |
+| Defect detection accuracy (mAP50) | **0.9876** | reComputer J30 series |
+| Streams one host carries at a 10 fps line rate | **8** (12 degrading, 24 failing) | reComputer J30 series |
+| Missing-part closed loop | **6 / 6** matched, **6 / 6** flagged after swapping boards | reComputer J30 series |
+| Dimension error against a calibration reference | **0.65%** worst case, budget 1% | reComputer J30 series |
 
 Conditions: DeepPCB6 val, 205 images / 1158 boxes, 6 classes, YOLOX-Tiny 640²
 TensorRT fp16 at a frozen 0.35 threshold; end-to-end sampled 3000 times at the
 10 fps line rate with 0 frames dropped; the stream sweep ran with Modbus and
 MQTT disabled, so a deployment carrying both reaches fewer. Measured 2026-09-05
-on an Orin NX 16GB engineering kit (JetPack 6.2 / TRT 10.3).
+on a reComputer J30 series unit (J3011, Orin Nano 8GB; JetPack 6.2 / TRT
+10.3) — the device tree originally misread as an Orin NX engineering kit,
+corrected 2026-09-08 via device-tree compatible (nvidia,p3767-0003).
 
 A follow-up check on 2026-09-08, after that same engine had run continuously
-for 67 hours on a reComputer J40 series (Orin NX 16GB) unit, confirmed CPU vs
+for 67 hours on the same reComputer J30 series (J3011) unit, confirmed CPU vs
 TensorRT box agreement of 0.9992 and a capture-to-coil P50 of 11.45 ms, with
 zero frames dropped over the full 67-hour run.
 
@@ -107,37 +109,6 @@ design, not a certified inspection product.
 "HR 10 = 0" does not mean "measured 0 mm" — read HR 11 first. And in v2,
 "verdict = NG" no longer implies "defect_count > 0": a missing part or an
 out-of-tolerance measurement is enough on its own.
-
-## Optional: VLM Explanations
-
-The runtime can hand an NG frame to a shared external VLM service
-("edge-vision-vlm") for a plain-language explanation. This is a side channel,
-not a second judge: it never enters the frame loop, never changes "verdict",
-and a disabled, slow or unreachable service produces exactly the same OK/NG
-stream as without it.
-
-- **Trigger.** A call fires only on a state change worth a human's attention —
-  "assembly.missing_count > 0", or the primary defect confidence below
-  "vlm.trigger.min_confidence" — rate-limited by "vlm.trigger.min_interval_s"
-  per stream. It is never called once per frame.
-- **Side channel.** A background worker with a bounded, drop-oldest queue
-  submits the call; the main event on "inspection/<stream-id>/results" is
-  published on the usual schedule regardless of whether the VLM answers. If it
-  does, a second event follows on "inspection/<stream-id>/explanations", keyed
-  to the same "frame_id".
-- **Does not block the main chain.** A hard client timeout abandons the call;
-  after repeated failures a circuit breaker stops calling for a cool-off
-  period. Nothing here can stall a verdict, a Modbus write or an MQTT publish.
-- **Latency is not a per-frame number to plan around.** Measured on the shared
-  service's own evaluation hardware — an NVIDIA Spark GB10 workstation, **not
-  the Orin box this demo runs on** — generation alone with Qwen3-VL-2B bf16 is
-  P50 ≈ 3.2 s / P95 ≈ 7.2 s at "max_tokens=320". That is the reason the call is
-  off the hot path in the first place; no Orin-specific latency has been
-  measured for this integration.
-
-Enable it by setting "vlm.enabled: true" and pointing "vlm.base_url" at a
-reachable "edge-vision-vlm" instance; see the guide for the full walk-through,
-including the "no_proxy" requirement on the device.
 
 ## Semi-automatic Annotation Tool
 
@@ -173,11 +144,14 @@ DeepPCB6 val run this demo already uses for detection accuracy.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** is the path every measurement on this page was
-taken on. A TensorRT engine is built on the device during the first deploy
-(about 5 minutes), which ties it to that device and that TensorRT version. Choose
-it when you want the numbers above to apply, or when you need more than one or
-two camera streams on one box.
+**Camera + reComputer J30 / J40 (Orin)** is the Jetson path. Every Jetson
+measurement on this page — accuracy, throughput, latency and the 67-hour soak —
+was taken on the reComputer J30 series (J3011, Orin Nano 8GB); J40 is not
+separately benchmarked for this solution. A TensorRT engine is built on the
+device during the first deploy (measured about 5 minutes on the J3011 unit),
+which ties it to that device and that TensorRT version. Choose J3011 when you
+want the numbers above to apply, or J40 for more headroom on extra camera
+streams (not separately benchmarked on this solution).
 
 **Camera + reComputer R2000 with Hailo-8** trades power and cost for a smaller
 board footprint. The INT8 HEF is compiled off-device and downloaded at deploy
@@ -235,7 +209,6 @@ marked per station, and this preset has no place to carry them.
 - **Missing-part closed loop and dimension error** — run M2, 2026-09-05, same host, on a validation frame and a synthetic scene.
 - **Hailo INT8 accuracy** — run M3a, 2026-09-05, in the x86 Hailo Dataflow Compiler emulator, not on a device.
 - **Hailo-8 on-device throughput, latency and accuracy** — run M3b-pi-2, 2026-09-06, fleet host `harvest-pi`.
-- **VLM explanation latency** — published figures come from a Spark GB10 workstation; measure it on your own inspection host.
 
 ## Licensing note
 

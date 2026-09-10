@@ -132,8 +132,9 @@ give, is your responsibility.
 | Access refused without the right role | **Pass** — 401 without a credential, 403 for a role that is too low | Server Stack preset |
 
 Conditions: the speech figures come from the `cat-remote` RK3576 board running
-this package's exact local RK3576 compose file with the SenseVoice profile,
-2026-09-06; the streaming accuracy figure is the Paraformer profile on the same
+the local RK3576 compose file with the SenseVoice profile, 2026-09-06, on
+image `seeed-local-voice:rk-20260803b`. That compose now defaults to
+`rk-20260909`, which has not been benchmarked with this package; the streaming accuracy figure is the Paraformer profile on the same
 board, 2026-06-08. The privacy figures come from an integration run on its own
 MySQL 8.0 and MinIO, with SHA-256 manifests compared before and after in all
 three stores, on a developer machine rather than a store. The redaction score is

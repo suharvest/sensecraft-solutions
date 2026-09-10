@@ -1,13 +1,27 @@
 version: "1.0"
 id: fall_detection
+# The Eldercare Alarm package (eldercare_alarm) was merged into this one on
+# 2026-09-08 and its directory deleted: same detector underneath, so one
+# solution whose presets carry the alarm panel rather than two pages. Its orin
+# and hailo presets are the jetson and hailo presets here with the panel in the
+# same compose stack; its reCamera + Alarm Gateway preset is the optional
+# "Install the Alarm Panel" step on the reCamera 2002 and reCamera Pro presets.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md). It is a written record of where the old
+# package went, not an alias: nothing redirects eldercare_alarm to this id. The
+# retirement itself is recorded in solutions/.deprecated.json, which
+# generate_solution_manifest.py copies into the manifest's `deprecated` array.
+replaces: eldercare_alarm
 name: Fall Detection
 name_i18n:
   zh: 跌倒检测
 
 intro:
-  summary: Detect a fall on-device and publish the event over MQTT — as an all-in-one camera, or on a Jetson fed by the IP cameras you already have.
+  summary: Detect a fall on-device and publish the event over MQTT — as an all-in-one camera, or on a Jetson fed by the IP cameras you already have. An optional alarm panel adds zones, timeouts, operator confirmation and a webhook on top of that stream.
   summary_i18n:
-    zh: 在设备本地识别跌倒并通过 MQTT 推送事件——可以用一体化摄像头，也可以用 Jetson 接你现有的 IP 摄像头。
+    zh: 在设备本地识别跌倒并通过 MQTT 推送事件——可以用一体化摄像头，也可以用 Jetson 接你现有的 IP 摄像头。可选的告警面板在这条事件流上再加区域、超时、人工确认与 webhook。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -28,6 +42,36 @@ intro:
       caption: Camera placement — a side or corner view at 2-3 m works; straight-down and long-shot or occluded views do not
       caption_i18n:
         zh: 机位选择——2-3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用
+    - type: image
+      src: gallery/panel-dashboard-zh.jpg
+      caption: Alarm panel, site overview — 8 rooms, 10 cameras, 18 zones, a 24-hour alarm trend split by type, and one card per room carrying its own live thumbnail and open-alarm count. Local replay, see gallery/ATTRIBUTION.md.
+      caption_i18n:
+        zh: 告警面板站点总览——8 个房间、10 路摄像头、18 个识别区域，24 小时按类型分色的告警趋势，每个房间一张卡片带自己的画面缩略图与未处置数。数据为本地回放，来源见 gallery/ATTRIBUTION.md
+    - type: image
+      src: gallery/panel-dashboard-en.jpg
+      caption: The same overview in English — the panel switches language without a reload, and the room fixture data (Room 101, Room 102, ...) is English too, not just the UI chrome
+      caption_i18n:
+        zh: 同一总览的英文界面——面板切换语言不需要重新加载，房间名等 fixture 数据（Room 101、Room 102……）也是英文，不只是界面文案
+    - type: image
+      src: gallery/panel-room-detail-zh.jpg
+      caption: Room detail — camera online state, live-view switch, and the alarm list with confirm / dismiss / mark-handled on each row
+      caption_i18n:
+        zh: 房间详情——摄像头在线状态、实时画面开关，告警列表每行都有确认／驳回／标记已处置
+    - type: image
+      src: gallery/panel-config-live-view-zh.jpg
+      caption: Zone configuration on the live picture — two zone rectangles drawn on a 4:3 stream, the letterbox bars stay outside the boxes because coordinates map to the picture, not the container
+      caption_i18n:
+        zh: 在实时画面上配置识别区域——两个区域矩形画在 4:3 画面上，两侧黑边在框外，说明坐标按画面而不是按容器映射
+    - type: image
+      src: gallery/panel-config-live-view-en.jpg
+      caption: The same configuration page in English — room, zone and camera fixture names are English too, not just the UI chrome
+      caption_i18n:
+        zh: 同一配置页的英文界面——房间、区域与摄像头名称也是英文，不只是界面文案
+    - type: image
+      src: gallery/alarm-state-machine.svg
+      caption: Alarm states — an evidence window, an operator window, then notification with escalation on a missed deadline
+      caption_i18n:
+        zh: 告警状态——取证窗口、人工确认窗口，随后通知；超过期限则升级
   category: sensing
   solution_type: solution
   tags:
@@ -36,6 +80,9 @@ intro:
     - elderly-care
     - mqtt
     - home-assistant
+    - alarm
+    - webhook
+    - audit
 
   output_interfaces:
     - type: mqtt
@@ -67,6 +114,28 @@ intro:
       schema_type: binary
       description_i18n:
         zh: reCamera 套餐的实时视频，供预览和 NVR 使用
+    - type: http
+      port: 8080
+      endpoint: /api/alarms
+      description: Alarm panel only — alarm records with their current state, zone, stream, timestamps and the operator who acted on each. The same page serves the confirm and dismiss actions.
+      schema_type: json
+      payload_example: '{"id":"a-17","kind":"fall","zone_id":"bedroom","stream_id":"cam-01","state":"notified","event_timestamp":1788581337237,"operator":"nurse-a"}'
+      description_i18n:
+        zh: 仅告警面板——告警记录，含当前状态、区域、流编号、时间戳，以及处理它的操作者。同一页面提供确认与驳回操作。
+    - type: http
+      port: 0
+      endpoint: <your webhook URL>
+      description: Alarm panel only — outbound POST on a confirmed alarm. The payload carries alarm id, kind, zone, stream, timestamp and operator only — no snapshot and no video — and an idempotency key so a retry cannot double-notify.
+      schema_type: json
+      description_i18n:
+        zh: 仅告警面板——告警确认后向外 POST。负载只含告警 id、类型、区域、流编号、时间戳与操作者，不含快照和视频；另带幂等键，重试不会重复通知。
+    - type: mqtt
+      port: 1883
+      topic: eldercare/alarm/<zone-id>
+      description: Alarm panel only — optional alarm bus, off by default. Same payload as the webhook, for sites that route notifications over MQTT rather than HTTP.
+      schema_type: json
+      description_i18n:
+        zh: 仅告警面板——可选的告警总线，默认关闭。负载与 webhook 相同，供以 MQTT 而非 HTTP 分发通知的现场使用。
 
   input_requirements:
     - type: rtsp
@@ -113,6 +182,17 @@ intro:
       purchase:
         require:
           ai_accelerator: [hailo-8]
+    recomputer_r10:
+      description: Runs the alarm panel next to the cameras — no AI accelerator needed, it consumes the MQTT event stream only
+      description_i18n:
+        zh: 在摄像头旁边运行告警面板——不需要 AI 算力，只消费 MQTT 事件流
+    external_docker_host:
+      name: Existing Docker Host
+      name_i18n:
+        zh: 已有的 Docker 主机
+      description: Any x86_64 or arm64 Linux machine you already run, with Docker and the compose plugin, hosting the alarm panel instead of a new box
+      description_i18n:
+        zh: 你已有的任意 x86_64 或 arm64 Linux 机器，装有 Docker 与 compose 插件，用它承载告警面板而不必新增设备
     generic_ip_camera:
       name: IP Camera
       name_i18n:
@@ -142,6 +222,19 @@ intro:
           options:
             - device_ref: recamera_2002
           default: recamera_2002
+        - id: panel_host
+          name: Alarm Panel Host (optional)
+          name_i18n:
+            zh: 告警面板主机（可选）
+          type: single
+          required: false
+          description: Add a box beside the cameras to run the alarm panel — zones, timeouts, operator confirmation, an audit trail and a webhook. Skip it and the camera keeps publishing MQTT events as before.
+          description_i18n:
+            zh: 在摄像头旁边加一台机器运行告警面板——区域、超时、人工确认、审计链与 webhook。不加则摄像头照旧只发 MQTT 事件。
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: external_docker_host
+          default: recomputer_r10
 
     - id: recamera_pro
       name: reCamera Pro
@@ -163,6 +256,19 @@ intro:
           options:
             - device_ref: recamera_pro
           default: recamera_pro
+        - id: panel_host
+          name: Alarm Panel Host (optional)
+          name_i18n:
+            zh: 告警面板主机（可选）
+          type: single
+          required: false
+          description: Add a box beside the cameras to run the alarm panel — zones, timeouts, operator confirmation, an audit trail and a webhook. Skip it and the camera keeps publishing MQTT events as before.
+          description_i18n:
+            zh: 在摄像头旁边加一台机器运行告警面板——区域、超时、人工确认、审计链与 webhook。不加则摄像头照旧只发 MQTT 事件。
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: external_docker_host
+          default: recomputer_r10
     - id: jetson
       name: IP Camera + reComputer J30 / J40
       name_i18n:
@@ -170,9 +276,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Keep your existing cameras — a Jetson Orin runs a larger pose model and covers the most streams.
+      description: Keep your existing cameras — a Jetson Orin runs a larger pose model and covers the most streams. The alarm panel is part of this stack.
       description_i18n:
-        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，可支撑的路数最多。
+        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，可支撑的路数最多。告警面板包含在这套栈里。
       # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
       # source: image pulled, engine built on-device, sha256 verified, and MQTT
       # published with a person tracked through fallen -> recovering.
@@ -206,9 +312,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set.
+      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set. The alarm panel is part of this stack.
       description_i18n:
-        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。
+        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。告警面板包含在这套栈里。
       # Deployed onto both boards against a live RTSP source: RK3576 on
       # cat-remote and RK3588 on radxa, each pulling the image, staging the
       # board's RKNN Lite and MPP plugins, downloading and checksumming its own
@@ -244,9 +350,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set.
+      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set. The alarm panel is part of this stack.
       description_i18n:
-        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。
+        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。告警面板包含在这套栈里。
       device_groups:
         - id: compute
           name: Detector Host

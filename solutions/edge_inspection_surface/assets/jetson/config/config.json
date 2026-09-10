@@ -54,15 +54,5 @@
     "heatmap_enabled": true,
     "heatmap_dir": "/tmp/anomaly-heatmaps",
     "heatmap_max_files": 200
-  },
-  "vlm": {
-    "enabled": false,
-    "base_url": "http://127.0.0.1:8100",
-    "timeout_ms": 4000,
-    "trigger": {
-      "min_confidence": 0.5,
-      "on_anomaly": true,
-      "min_interval_s": 5.0
-    }
   }
 }

@@ -270,7 +270,6 @@ remote_overrides:
           # The topic prefix is the device name the user chose, so one broker
           # can carry several bins without collisions.
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
-          config["mqtt"]["fallback_topic"] = "{{device_name}}/waste/{stream_id}/fallback"
           config["sources"] = [{
               "stream_id": "{{stream_id}}",
               "uri": "{{source_uri}}",

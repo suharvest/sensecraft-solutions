@@ -4,7 +4,7 @@
 
 | 设备 | 作用 |
 |--------|---------|
-| reComputer RK3576 | SenseVoice 跑在 6 TOPS NPU 上，采集客户端跑在 CPU 上。这块板上的实测：3.0 s 音频热态约 780 ms 转写完成（RTF 0.26），标点与声纹全部加载常驻 1.71 GiB |
+| reComputer RK3576 | SenseVoice 跑在 6 TOPS NPU 上，采集客户端跑在 CPU 上。这块板上的实测（镜像 `rk-20260803b`，2026-09-06）：3.0 s 音频热态约 780 ms 转写完成（RTF 0.26），标点与声纹全部加载常驻 1.71 GiB。compose 现在默认 `rk-20260909`，这个镜像没有重测 |
 | reRouter CM4 | 更便宜的纯 CPU 选择。Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上，没有加速器，也不做语音合成 |
 | reSpeaker XVF3800 | 4 麦阵列——回声消除、波束成形、噪声抑制在自带 DSP 上完成 |
 

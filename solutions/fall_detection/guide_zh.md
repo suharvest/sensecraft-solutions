@@ -90,6 +90,109 @@
 
 ---
 
+## 步骤 4: 安装告警面板（可选） {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
+
+跳过这一步部署即告完成：摄像头照旧发 MQTT 事件，其余什么都不变。
+
+做这一步，则在摄像头旁边加上一块面板——房间、摄像头与识别区域的站点总览，在每路
+摄像头的实时画面上画识别区域，每个区域各自的无人超时与静止超时，由值班人确认或
+驳回每条告警，SQLite 审计链，以及一条不携带任何视频的 webhook。
+
+摄像头本身承载不了它。那里的检测器是以 .deb 安装的原生进程，摄像头也没有可供面板使用的文件
+系统、SQLite 与 Web 服务。所以面板装在同网段的另一台机器上，这台机器不需要 AI
+算力：reComputer R1000 系列，或者你已有的一台 Linux 机器。
+
+### 前置条件
+
+- 摄像头同网段的一台 x86_64 或 arm64 Linux 主机，装好 Docker 与 compose 插件
+  （`docker compose version` 必须能跑通），并可 SSH 登录。
+- 摄像头实际发布的主题。开始前先在那台主机上确认：
+  `mosquitto_sub -h <摄像头或 broker 地址> -t '#' -v`。reCamera 2002 发布在 `<设备名>/fall-detection/results`，单流，无流编号后缀。
+- 该主机的 8080 与 1883 端口空闲，或者在表单里填别的值——部署会先检查这两个端口，
+  被占用时直接给出占用它的进程。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 部署停在「Port 8080 is already in use」 | 在表单里换一个面板端口，或停掉提示里指出的那个服务。 |
+| 结尾出现「no message on ... within 20 s」告警 | 面板已起来但没收到检测结果。用 `mosquitto_sub -t '#' -v` 重新核对主题，并确认摄像头发布到的是这里填的 broker 地址。 |
+| 告警列表一直为空，无人告警从不触发 | 画面里没人时摄像头也要发消息，这个超时才有输入。跌倒告警不受影响。 |
+| `eldercare-alarm-*` 报 `pull access denied` | 检查主机的 registry 认证与网络可达性——两种架构的镜像都已发布。 |
+
+### 部署目标 {#panel_host_recamera_remote type=remote device_name="告警面板主机" config=devices/panel_host.yaml default=true}
+
+面板主机与其他 Docker 目标一样，通过 SSH 连接。
+
+## 步骤 5: 打开告警面板 {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
+
+只有装了面板才需要这一步。
+
+### 部署完成
+
+#### 快速验证
+
+- 总览页会列出你填的那个房间，带摄像头数与区域数。
+- 现场无事时告警列表为空即为正常——说明服务已经起来并能应答。
+- 要端到端验证接收链路，在主机上把该区域的无人超时临时改成 1 分钟
+  （改 `config/alarm-panel.yaml`，再执行 `docker compose restart alarm-panel`），
+  让该区域空置，确认出现一条告警。验证完把原值改回去。
+
+#### 下一步
+
+- 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。保存会让
+  配置版本加一；如果同事先保存了，你会拿到 409 与「重新载入」提示，而不是覆盖对方。
+- 之前留空的话，把 webhook 指向你自己的告警系统。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台主机上的 USB 麦克风
+  与扬声器；打开之前先看介绍页对它的说明。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 核对面板端口与部署步骤里填的一致，并确认主机防火墙放行。 |
+| 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
+| 某个房间显示「未知 + 断流」 | 面板主机连不上那台摄像头，不是跌倒检测的问题。卡片上的「最近一帧」时间说明它最后一次被看到是什么时候。 |
+
+## 步骤 6: 语音确认（可选） {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+可选，默认关闭。跌倒告警一被触发，服务可以出声问住户是否安好，并按回答处置；
+这一步与 5 秒取证窗口并行进行。不主动打开就不会启用，关掉之后告警链路与之前完全一致。
+
+前提：同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在跑它的那台机器上。
+音频不走摄像头——两款 reCamera 都没有确认可用的麦克风，SG2002 更是跑不了本地 ASR。
+
+回答如何影响告警：
+
+| 回答 | 结果 |
+|---|---|
+| 求救（"救命"、"help"、"我起不来"） | 立即确认，跳过剩余的人工窗口 |
+| 完全没有回答 | 立即确认 |
+| 听不明白 | 立即确认 |
+| "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
+
+这种不对称是有意的：把真实求救听成"我没事"会压掉一条真告警；而确认一条本不必确认的告警，
+代价只是操作员几秒钟。所以同一句话里求救词压过安全词，词表识别不出的一律确认而不是等待。
+
+**隐私。** 音频不落盘。原始 PCM 只在一次录音窗口内驻留内存，判定产出后即释放。
+持久化的是 verdict、置信度、耗时与转写文本；把 `store_transcript` 设为 `false` 连文本也不存，
+审计里只留 verdict。通知负载带同样这几个字段，仍然不含快照和视频。
+
+### 快速验证
+
+1. `curl -sf http://<ovs 地址>:8621/readyz` 返回 200。
+2. 站在可能跌倒的位置能听清合成出来的提示音。
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` 打印 `help`。
+
+### 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| 每条告警都是 `no_answer` | 要么提示音听不见，要么没有采到音。先查扬声器，再在告警主机上跑 `arecord -l`。 |
+| 每条告警都是 `unclear` | ASR 返回的文本没命中词表。在控制台里看转写内容，把住户实际的说法加进 `ok_keywords` / `help_keywords`。 |
+| 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
+| 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
+
 ## 套餐: reCamera Pro {#recamera_pro}
 
 一台设备搞定全部，硬件比 2002 更新：摄像头看住房间，在设备本地判断有没有人摔倒，然后
@@ -177,6 +280,109 @@
 
 ### 部署目标 {#recamera_pro_verify type=remote device_name="reCamera Pro" config=devices/verify_recamera_pro_fall.yaml}
 
+## 步骤 4: 安装告警面板（可选） {#panel_host_recamera_pro type=docker_deploy required=false config=devices/panel_host.yaml}
+
+跳过这一步部署即告完成：摄像头照旧发 MQTT 事件，其余什么都不变。
+
+做这一步，则在摄像头旁边加上一块面板——房间、摄像头与识别区域的站点总览，在每路
+摄像头的实时画面上画识别区域，每个区域各自的无人超时与静止超时，由值班人确认或
+驳回每条告警，SQLite 审计链，以及一条不携带任何视频的 webhook。
+
+摄像头本身承载不了它。那里的检测器是应用中心里的一个应用，摄像头也没有可供面板使用的文件
+系统、SQLite 与 Web 服务。所以面板装在同网段的另一台机器上，这台机器不需要 AI
+算力：reComputer R1000 系列，或者你已有的一台 Linux 机器。
+
+### 前置条件
+
+- 摄像头同网段的一台 x86_64 或 arm64 Linux 主机，装好 Docker 与 compose 插件
+  （`docker compose version` 必须能跑通），并可 SSH 登录。
+- 摄像头实际发布的主题。开始前先在那台主机上确认：
+  `mosquitto_sub -h <摄像头或 broker 地址> -t '#' -v`。reCamera Pro 发布在 `<base>/fall-detection/state`；表单里「摄像头型号」要选 reCamera Pro，才会用 Pro 适配器。
+- 该主机的 8080 与 1883 端口空闲，或者在表单里填别的值——部署会先检查这两个端口，
+  被占用时直接给出占用它的进程。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 部署停在「Port 8080 is already in use」 | 在表单里换一个面板端口，或停掉提示里指出的那个服务。 |
+| 结尾出现「no message on ... within 20 s」告警 | 面板已起来但没收到检测结果。用 `mosquitto_sub -t '#' -v` 重新核对主题，并确认摄像头发布到的是这里填的 broker 地址。 |
+| 告警列表一直为空，无人告警从不触发 | 画面里没人时摄像头也要发消息，这个超时才有输入。跌倒告警不受影响。 |
+| `eldercare-alarm-*` 报 `pull access denied` | 检查主机的 registry 认证与网络可达性——两种架构的镜像都已发布。 |
+
+### 部署目标 {#panel_host_recamera_pro_remote type=remote device_name="告警面板主机" config=devices/panel_host.yaml default=true}
+
+面板主机与其他 Docker 目标一样，通过 SSH 连接。
+
+## 步骤 5: 打开告警面板 {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
+
+只有装了面板才需要这一步。
+
+### 部署完成
+
+#### 快速验证
+
+- 总览页会列出你填的那个房间，带摄像头数与区域数。
+- 现场无事时告警列表为空即为正常——说明服务已经起来并能应答。
+- 要端到端验证接收链路，在主机上把该区域的无人超时临时改成 1 分钟
+  （改 `config/alarm-panel.yaml`，再执行 `docker compose restart alarm-panel`），
+  让该区域空置，确认出现一条告警。验证完把原值改回去。
+
+#### 下一步
+
+- 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。保存会让
+  配置版本加一；如果同事先保存了，你会拿到 409 与「重新载入」提示，而不是覆盖对方。
+- 之前留空的话，把 webhook 指向你自己的告警系统。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台主机上的 USB 麦克风
+  与扬声器；打开之前先看介绍页对它的说明。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 核对面板端口与部署步骤里填的一致，并确认主机防火墙放行。 |
+| 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
+| 某个房间显示「未知 + 断流」 | 面板主机连不上那台摄像头，不是跌倒检测的问题。卡片上的「最近一帧」时间说明它最后一次被看到是什么时候。 |
+
+## 步骤 6: 语音确认（可选） {#voice_checkin_recamera_pro type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+可选，默认关闭。跌倒告警一被触发，服务可以出声问住户是否安好，并按回答处置；
+这一步与 5 秒取证窗口并行进行。不主动打开就不会启用，关掉之后告警链路与之前完全一致。
+
+前提：同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在跑它的那台机器上。
+音频不走摄像头——两款 reCamera 都没有确认可用的麦克风，SG2002 更是跑不了本地 ASR。
+
+回答如何影响告警：
+
+| 回答 | 结果 |
+|---|---|
+| 求救（"救命"、"help"、"我起不来"） | 立即确认，跳过剩余的人工窗口 |
+| 完全没有回答 | 立即确认 |
+| 听不明白 | 立即确认 |
+| "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
+
+这种不对称是有意的：把真实求救听成"我没事"会压掉一条真告警；而确认一条本不必确认的告警，
+代价只是操作员几秒钟。所以同一句话里求救词压过安全词，词表识别不出的一律确认而不是等待。
+
+**隐私。** 音频不落盘。原始 PCM 只在一次录音窗口内驻留内存，判定产出后即释放。
+持久化的是 verdict、置信度、耗时与转写文本；把 `store_transcript` 设为 `false` 连文本也不存，
+审计里只留 verdict。通知负载带同样这几个字段，仍然不含快照和视频。
+
+### 快速验证
+
+1. `curl -sf http://<ovs 地址>:8621/readyz` 返回 200。
+2. 站在可能跌倒的位置能听清合成出来的提示音。
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` 打印 `help`。
+
+### 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| 每条告警都是 `no_answer` | 要么提示音听不见，要么没有采到音。先查扬声器，再在告警主机上跑 `arecord -l`。 |
+| 每条告警都是 `unclear` | ASR 返回的文本没命中词表。在控制台里看转写内容，把住户实际的说法加进 `ok_keywords` / `help_keywords`。 |
+| 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
+| 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
+
 ## 套餐: IP 摄像头 + reComputer J30 / J40 {#jetson}
 
 保留你现有的摄像头。由 Jetson Orin 拉取它们的 RTSP 流，运行更大的姿态模型，并对
@@ -258,6 +464,77 @@ Jetson 已经可以进入有人值守的现场试运行。结果发往
 
 ---
 
+## 步骤 3: 打开告警面板 {#panel_open_jetson type=web_dashboard required=false config=devices/panel_console.yaml}
+
+告警面板在步骤 1 里已经和检测器一起起来了——同一份 compose、同一台设备，默认 8080
+端口。它把事件流变成有人签字的告警：站点总览、在每路摄像头实时画面上画识别区域、
+每个区域各自的无人超时与静止超时、确认与驳回都记到操作者名下、SQLite 审计链，以及
+一条不携带任何视频的 webhook。
+
+### 部署完成
+
+#### 快速验证
+
+- 总览页会列出你在部署表单里填的那个区域。
+- 现场无事时告警列表为空即为正常——说明服务已经起来并能应答。
+- 要端到端验证接收链路，在设备上把该区域的无人超时临时改成 1 分钟
+  （改 `config/alarm-panel.yaml`，再执行 `docker compose restart alarm-panel`），
+  让该区域空置，确认出现一条告警。验证完把原值改回去。
+
+#### 下一步
+
+- 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。
+- 之前留空的话，把 webhook 指向你自己的告警系统。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台设备上的 USB 麦克风
+  与扬声器；打开之前先看介绍页对它的说明。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 核对告警面板端口与部署步骤里填的一致，并确认设备防火墙放行。 |
+| 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
+| 跌倒能告警，无人告警从不触发 | 检测器配置里 `publish_empty_frames` 已经是 true，这个超时依赖它。如果你把 `config/config.json` 换成了设备自带的那份，需要把这个键重新设上。 |
+
+## 步骤 4: 语音确认（可选） {#voice_checkin_jetson type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+可选，默认关闭。跌倒告警一被触发，服务可以出声问住户是否安好，并按回答处置；
+这一步与 5 秒取证窗口并行进行。不主动打开就不会启用，关掉之后告警链路与之前完全一致。
+
+前提：同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在跑它的那台机器上。
+音频不走摄像头——两款 reCamera 都没有确认可用的麦克风，SG2002 更是跑不了本地 ASR。
+
+回答如何影响告警：
+
+| 回答 | 结果 |
+|---|---|
+| 求救（"救命"、"help"、"我起不来"） | 立即确认，跳过剩余的人工窗口 |
+| 完全没有回答 | 立即确认 |
+| 听不明白 | 立即确认 |
+| "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
+
+这种不对称是有意的：把真实求救听成"我没事"会压掉一条真告警；而确认一条本不必确认的告警，
+代价只是操作员几秒钟。所以同一句话里求救词压过安全词，词表识别不出的一律确认而不是等待。
+
+**隐私。** 音频不落盘。原始 PCM 只在一次录音窗口内驻留内存，判定产出后即释放。
+持久化的是 verdict、置信度、耗时与转写文本；把 `store_transcript` 设为 `false` 连文本也不存，
+审计里只留 verdict。通知负载带同样这几个字段，仍然不含快照和视频。
+
+### 快速验证
+
+1. `curl -sf http://<ovs 地址>:8621/readyz` 返回 200。
+2. 站在可能跌倒的位置能听清合成出来的提示音。
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` 打印 `help`。
+
+### 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| 每条告警都是 `no_answer` | 要么提示音听不见，要么没有采到音。先查扬声器，再在告警主机上跑 `arecord -l`。 |
+| 每条告警都是 `unclear` | ASR 返回的文本没命中词表。在控制台里看转写内容，把住户实际的说法加进 `ok_keywords` / `help_keywords`。 |
+| 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
+| 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
+
 ## 套餐: IP 摄像头 + reComputer RK3576 / RK3588 {#rk}
 
 把检测器跑在瑞芯微 NPU 板卡上。算法和 MQTT 输出与其他套餐一致，只是用板卡自带的
@@ -329,6 +606,77 @@ NPU 代替 GPU。
 
 ---
 
+## 步骤 3: 打开告警面板 {#panel_open_rk type=web_dashboard required=false config=devices/panel_console.yaml}
+
+告警面板在步骤 1 里已经和检测器一起起来了——同一份 compose、同一台设备，默认 8080
+端口。它把事件流变成有人签字的告警：站点总览、在每路摄像头实时画面上画识别区域、
+每个区域各自的无人超时与静止超时、确认与驳回都记到操作者名下、SQLite 审计链，以及
+一条不携带任何视频的 webhook。
+
+### 部署完成
+
+#### 快速验证
+
+- 总览页会列出你在部署表单里填的那个区域。
+- 现场无事时告警列表为空即为正常——说明服务已经起来并能应答。
+- 要端到端验证接收链路，在设备上把该区域的无人超时临时改成 1 分钟
+  （改 `config/alarm-panel.yaml`，再执行 `docker compose restart alarm-panel`），
+  让该区域空置，确认出现一条告警。验证完把原值改回去。
+
+#### 下一步
+
+- 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。
+- 之前留空的话，把 webhook 指向你自己的告警系统。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台设备上的 USB 麦克风
+  与扬声器；打开之前先看介绍页对它的说明。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 核对告警面板端口与部署步骤里填的一致，并确认设备防火墙放行。 |
+| 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
+| 跌倒能告警，无人告警从不触发 | 这个超时要求画面里没人时检测器也发消息。先确认 RK 板卡上没人时检测器仍在发消息，这是这里要查的第一件事。 |
+
+## 步骤 4: 语音确认（可选） {#voice_checkin_rk type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+可选，默认关闭。跌倒告警一被触发，服务可以出声问住户是否安好，并按回答处置；
+这一步与 5 秒取证窗口并行进行。不主动打开就不会启用，关掉之后告警链路与之前完全一致。
+
+前提：同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在跑它的那台机器上。
+音频不走摄像头——两款 reCamera 都没有确认可用的麦克风，SG2002 更是跑不了本地 ASR。
+
+回答如何影响告警：
+
+| 回答 | 结果 |
+|---|---|
+| 求救（"救命"、"help"、"我起不来"） | 立即确认，跳过剩余的人工窗口 |
+| 完全没有回答 | 立即确认 |
+| 听不明白 | 立即确认 |
+| "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
+
+这种不对称是有意的：把真实求救听成"我没事"会压掉一条真告警；而确认一条本不必确认的告警，
+代价只是操作员几秒钟。所以同一句话里求救词压过安全词，词表识别不出的一律确认而不是等待。
+
+**隐私。** 音频不落盘。原始 PCM 只在一次录音窗口内驻留内存，判定产出后即释放。
+持久化的是 verdict、置信度、耗时与转写文本；把 `store_transcript` 设为 `false` 连文本也不存，
+审计里只留 verdict。通知负载带同样这几个字段，仍然不含快照和视频。
+
+### 快速验证
+
+1. `curl -sf http://<ovs 地址>:8621/readyz` 返回 200。
+2. 站在可能跌倒的位置能听清合成出来的提示音。
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` 打印 `help`。
+
+### 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| 每条告警都是 `no_answer` | 要么提示音听不见，要么没有采到音。先查扬声器，再在告警主机上跑 `arecord -l`。 |
+| 每条告警都是 `unclear` | ASR 返回的文本没命中词表。在控制台里看转写内容，把住户实际的说法加进 `ok_keywords` / `help_keywords`。 |
+| 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
+| 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
+
 ## 套餐: IP 摄像头 + reComputer R2000（Hailo） {#hailo}
 
 把检测器跑在 Hailo-8 加速器上。热路径是原生 C++，不含 Python，宿主 CPU 占用很低。
@@ -399,3 +747,75 @@ NPU 代替 GPU。
 | 有视频但没有叠加层 | 预览是单独读 MQTT 的，确认设备的 1883 端口可达 |
 | 有叠加层但没有视频 | 预览直接从摄像头拉 RTSP，确认这台电脑也能访问摄像头 |
 | `inference_time_ms` 显示 0 | 属于预期——Hailo 的 GStreamer 元件在该探测点不暴露加速器调用耗时 |
+
+## 步骤 3: 打开告警面板 {#panel_open_hailo type=web_dashboard required=false config=devices/panel_console.yaml}
+
+告警面板在步骤 1 里已经和检测器一起起来了——同一份 compose、同一台设备，默认 8080
+端口。它把事件流变成有人签字的告警：站点总览、在每路摄像头实时画面上画识别区域、
+每个区域各自的无人超时与静止超时、确认与驳回都记到操作者名下、SQLite 审计链，以及
+一条不携带任何视频的 webhook。
+
+### 部署完成
+
+#### 快速验证
+
+- 总览页会列出你在部署表单里填的那个区域。
+- 现场无事时告警列表为空即为正常——说明服务已经起来并能应答。
+- 要端到端验证接收链路，在设备上把该区域的无人超时临时改成 1 分钟
+  （改 `config/alarm-panel.yaml`，再执行 `docker compose restart alarm-panel`），
+  让该区域空置，确认出现一条告警。验证完把原值改回去。
+
+#### 下一步
+
+- 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。
+- 之前留空的话，把 webhook 指向你自己的告警系统。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台设备上的 USB 麦克风
+  与扬声器；打开之前先看介绍页对它的说明。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 核对告警面板端口与部署步骤里填的一致，并确认设备防火墙放行。 |
+| 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
+| 跌倒能告警，无人告警从不触发 | 这个运行时每帧都发、不需要开关，所以改查区域绑定的流编号是否与部署表单里的 Stream ID 一致。 |
+
+## 步骤 4: 语音确认（可选） {#voice_checkin_hailo type=manual required=false verify=true config=devices/voice_checkin.yaml}
+
+可选，默认关闭。跌倒告警一被触发，服务可以出声问住户是否安好，并按回答处置；
+这一步与 5 秒取证窗口并行进行。不主动打开就不会启用，关掉之后告警链路与之前完全一致。
+
+前提：同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在跑它的那台机器上。
+音频不走摄像头——两款 reCamera 都没有确认可用的麦克风，SG2002 更是跑不了本地 ASR。
+
+回答如何影响告警：
+
+| 回答 | 结果 |
+|---|---|
+| 求救（"救命"、"help"、"我起不来"） | 立即确认，跳过剩余的人工窗口 |
+| 完全没有回答 | 立即确认 |
+| 听不明白 | 立即确认 |
+| "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
+
+这种不对称是有意的：把真实求救听成"我没事"会压掉一条真告警；而确认一条本不必确认的告警，
+代价只是操作员几秒钟。所以同一句话里求救词压过安全词，词表识别不出的一律确认而不是等待。
+
+**隐私。** 音频不落盘。原始 PCM 只在一次录音窗口内驻留内存，判定产出后即释放。
+持久化的是 verdict、置信度、耗时与转写文本；把 `store_transcript` 设为 `false` 连文本也不存，
+审计里只留 verdict。通知负载带同样这几个字段，仍然不含快照和视频。
+
+### 快速验证
+
+1. `curl -sf http://<ovs 地址>:8621/readyz` 返回 200。
+2. 站在可能跌倒的位置能听清合成出来的提示音。
+3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` 打印 `help`。
+
+### 故障排查
+
+| 问题 | 解决 |
+|---|---|
+| 每条告警都是 `no_answer` | 要么提示音听不见，要么没有采到音。先查扬声器，再在告警主机上跑 `arecord -l`。 |
+| 每条告警都是 `unclear` | ASR 返回的文本没命中词表。在控制台里看转写内容，把住户实际的说法加进 `ok_keywords` / `help_keywords`。 |
+| 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
+| 服务起来了但从不出声 | 容器里没装 `voice` extra、或者没把 ALSA 设备透传进去，就没有音频栈。`docker compose logs eldercare-alarm` 里会有 TTS 或播放的告警。 |
+

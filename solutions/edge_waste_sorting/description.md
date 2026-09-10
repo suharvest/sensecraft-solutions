@@ -179,7 +179,6 @@ track is deployed:
 | Interface | Where | What it carries |
 |---|---|---|
 | MQTT `waste/<stream-id>/results` | port 1883 | One JSON per classification: material class, Chinese four-way category, confidence, top-3, trigger source, image reference, model name and ONNX sha256, taxonomy version |
-| MQTT `waste/<stream-id>/fallback` | port 1883 | Optional `waste_fallback` event — a VLM second opinion on an ambiguous item, keyed by frame_id. Never changes the main event. |
 | HTTP `/trigger` | port 8080 | POST fires one capture-and-classify |
 | HTTP `/preview.mjpg`, `/healthz`, `/events` | port 8080 | Live view, counters and inference time, recent results with their top-3 |
 | GPIO callback | in-process | Async callback carrying the four-way category. No pin binding — that is integration work. |
@@ -187,35 +186,6 @@ track is deployed:
 The image is never in the payload. `image_ref.kind` is `none`, `local` or
 `object_store`; base64 image bytes in a payload are a contract violation and
 are rejected before publishing.
-
-### The `waste_fallback` side channel
-
-Off by default. When enabled, an item that trips either gate — top-1 below
-`vlm.trigger.min_confidence`, or top-1 minus top-2 below `vlm.trigger.margin` —
-is sent to an external VLM service, and its answer is published as a separate
-event on the fallback topic. **It never backfills the main event.**
-
-| Field | What it carries |
-|---|---|
-| `type` | Always `waste_fallback` |
-| `frame_id` | Matches the `waste_sorting_result` event for the same frame |
-| `trigger` | `low_confidence` or `ambiguous`. When both gates trip, the stronger one (`low_confidence`) is reported. |
-| `category` | The VLM's category, in the same shape as the main event's — one parser serves both streams |
-| `confidence` | The VLM's own confidence. Not comparable with the classifier's softmax confidence. |
-| `rationale` | One line of reasoning. Never parsed. |
-| `explanation` | Longer text, present only with `vlm.explain_on_fallback` — one extra call per fallback |
-| `primary_confidence`, `primary_top3` | What the classifier said, copied verbatim, so a consumer can see what tripped the gate |
-| `vlm_model`, `vlm_latency_ms`, `prompt_sha256` | Which model, how long its generation took, which prompt template produced the answer |
-
-**Verified as wiring, not as a result.** The path was run end to end against
-the real edge-vision-vlm application with its generation backend replaced by a
-stub: 5 frames, 5 contract-valid main events, 2 fallback events, 0 rejects.
-Request validation, taxonomy matching and the response fields are the service's
-real code; the generated text is not, and the run's `vlm_latency_ms` of 12.5 ms
-is a hard-coded constant. **Real-model latency, and whether the VLM is actually
-more often right on the items that trip these gates, have not been checked on hardware
-against a real service on Orin.** Treat the fallback stream as a second opinion
-to log, not a correction to act on.
 
 ## Deployment Comparison
 
@@ -257,8 +227,6 @@ at p50 3.167 ms, consistent with the full-set figures above.
 - **The GPIO callback is not wired to anything by default.** `actuator.enabled`
   defaults to false; enabling it without providing the binding code changes
   nothing.
-- **`vlm.apply_fallback_to_gpio` stays false.** A flap must not wait on a call
-  whose P50 is measured in seconds.
 
 ## Scope of the Numbers
 
@@ -267,7 +235,6 @@ at p50 3.167 ms, consistent with the full-set figures above.
 - **Baseline fp16 and INT8 on RK3588** — an RK3588 development board, librknnrt 2.3.2, 50 validation images.
 - **Baseline on RK3576** — an RK3576 development board, m1b only.
 - **Open-vocabulary SigLIP 2 tower** — `hailo parser` passes end to end, but `hailo optimize` (INT8 PTQ, 256 calibration images, `optimization_level=1`) fails at layer `ne_activation_mul_and_add78`, so there is no HEF for it.
-- **VLM fallback** — a bench run against the real service with a stubbed generation backend (5 frames, 5 valid main events, 2 fallback events, 0 rejects), which is a wiring test.
 - **Field accuracy** — both datasets are single-item photographs (TrashNet on a white poster board, GC3 with objects off-centre and often occluded), so collect a field set from your own bin and re-measure on it.
 
 ## Licensing note

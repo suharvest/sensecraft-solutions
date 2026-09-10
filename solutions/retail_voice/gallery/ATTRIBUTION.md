@@ -130,3 +130,27 @@ Source of the on-screen content:
 
 `architecture.png` stays in the gallery (see "What each file shows" above) —
 it still documents the physical kit, just no longer as the cover.
+
+## 2026-09-09 — recordings-console-en.png (English fixture)
+
+`recordings-console-en.png` is the English-fixture equivalent of
+`recordings-console.png`. Real screenshot of the same SenseCraft Voice
+recordings console (`sensecraft_voice/sensecraft-voice-web`, page
+`/recordings`), run locally (`npm run dev`) against the current frontend
+source with `localStorage.sensecraft.lang = 'en'`. The backend API is
+stubbed via `page.route()`, same approach as the repository's own
+`scripts/shot-recordings.mjs` (not committed to that repo: a one-off local
+script, `shot-recordings-en.mjs`, adapted from it for this capture only).
+
+The fixture data — device names ("Store terminal N"), speaker labels
+("Customer A" / "Clerk B" / "Customer C" / "Store manager D") and
+transcript text — is placeholder retail dialogue translated from the
+Chinese fixture in `shot-recordings.mjs`, with the same `[[NAME]]`,
+`[[PHONE]]`, `[[LOCATION]]` redaction placeholders the real pipeline
+produces. No real device, store, customer or employee is behind any row;
+no live microphone.
+
+Captured at 1280 x 960 CSS viewport, `deviceScaleFactor: 2` (2560 x 2622
+PNG, full page). OCR (`tesseract -l chi_sim+eng`) finds no Chinese text;
+the handful of hits are misreads of UI icon glyphs and the volume-slider
+dashes, verified against the rendered screenshot.

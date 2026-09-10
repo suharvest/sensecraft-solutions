@@ -1,0 +1,74 @@
+version: "1.0"
+id: d1001_voice_terminal
+name: reTerminal D1001 Voice Firmware
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  # ESP32-P4 native USB-Serial-JTAG
+  usb_vendor_id: "0x303a"
+  usb_product_id: "0x1001"
+  fallback_ports:
+    - "/dev/cu.usbmodem*"
+    - "/dev/tty.usbmodem*"
+    - "/dev/ttyACM*"
+
+firmware:
+  # Same build as the smart_space_assistant D1001 preset
+  # (solutions/smart_space_assistant/devices/d1001_esp32.yaml) — the assets are
+  # served from that solution's CDN prefix and are not copied into this package.
+  # Multi-segment flash (no merged image: the face-model partition sits at
+  # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-7fcb9539.bin
+    checksum:
+      sha256: 7fcb953990ae7d4f3b1d851fa6e1d91221577422b58596794a71766adc5f0306
+  flash_config:
+    chip: esp32p4
+    baud_rate: 921600
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 32MB
+    partitions:
+      - name: bootloader
+        offset: "0x2000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/bootloader.bin
+      - name: partition_table
+        offset: "0x8000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/partition-table.bin
+      - name: ota_data
+        offset: "0x10d000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/ota_data_initial.bin
+      - name: app
+        offset: "0x200000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-7fcb9539.bin
+      - name: assets
+        offset: "0x1000000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/generated_assets.bin
+      - name: face_model
+        offset: "0x1E00000"
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/human_face_detect.espdl
+
+user_inputs:
+  - id: serial_port
+    name: Serial Port
+    type: serial_port
+    required: true
+    description: reTerminal D1001 USB-C port (ESP32-P4 native USB, usbmodem* / ttyACM*)
+    auto_detect: true
+    name_i18n:
+      zh: 串口
+    description_i18n:
+      zh: reTerminal D1001 的 USB-C 端口（ESP32-P4 原生 USB，usbmodem* / ttyACM*）
+
+pre_checks:
+  - type: serial_port_available
+    description: Check if serial port is accessible
+  - type: esptool_available
+    description: Check if esptool is installed
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 3
+name_i18n:
+  zh: reTerminal D1001 语音固件
