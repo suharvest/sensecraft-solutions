@@ -42,7 +42,6 @@ docker:
   compose_file: assets/docker/docker-compose.yml
   environment:
     HF_ENDPOINT: "{{hf_endpoint}}"
-    REBOT_SERIAL: "{{rebot_serial}}"
     PULSE_UID: "{{pulse_uid}}"
   options:
     project_name: voice-rebot-arm
@@ -75,17 +74,6 @@ user_inputs:
       zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
     name_i18n:
       zh: HuggingFace 端点
-  - id: rebot_serial
-    name: Arm Serial Device
-    type: text
-    required: false
-    reconfigurable: true
-    default: "/dev/ttyACM0"
-    description: "Serial device of the reBot B601-DM arm on the Jetson (ls /dev/ttyACM* with the arm powered on)."
-    description_i18n:
-      zh: reBot B601-DM 机械臂在 Jetson 上的串口设备（臂上电后 ls /dev/ttyACM* 查看）
-    name_i18n:
-      zh: 机械臂串口
   - id: pulse_uid
     name: Host Audio User ID
     type: text
@@ -159,17 +147,6 @@ remote_overrides:
         zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
       name_i18n:
         zh: HuggingFace 端点
-    - id: rebot_serial
-      name: Arm Serial Device
-      type: text
-      required: false
-      reconfigurable: true
-      default: "/dev/ttyACM0"
-      description: "Serial device of the reBot B601-DM arm on the Jetson (ls /dev/ttyACM* with the arm powered on)."
-      description_i18n:
-        zh: reBot B601-DM 机械臂在 Jetson 上的串口设备（臂上电后 ls /dev/ttyACM* 查看）
-      name_i18n:
-        zh: 机械臂串口
     - id: pulse_uid
       name: Host Audio User ID
       type: text

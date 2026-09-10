@@ -7,7 +7,7 @@
 #   1. /opt/rebot-models/hand_eye.npz — per-device hand-eye calibration
 #      (MANUAL, one-time; printed ArUco board required). Everything else in
 #      that directory is fetched by the model-init service.
-#   2. reBot B601-DM arm on ${REBOT_SERIAL} (default /dev/ttyACM0),
+#   2. reBot B601-DM arm on USB (found by VID:PID, no port to configure),
 #      Orbbec Gemini2 on USB, reSpeaker mic + speaker via PulseAudio
 #
 # First start downloads ~8.5 GB of models on top of ~1.4 GB of images:
@@ -145,7 +145,7 @@ services:
   # at its root. Those are NOT embin models (single-input, baked vocabulary);
   # loading one would fail silently at inference. Always keep the embin/ prefix.
   model-init:
-    image: ddandadan/voice-rebot-arm:oneclick-20260723
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:oneclick-20260904
     runtime: nvidia            # needed to actually deserialize the engine
     entrypoint: ["python3", "-c"]
     command:
@@ -225,7 +225,7 @@ services:
   # container's own libs and segfault the loader (verified) — copying just
   # this set is the safe pattern. Idempotent; ~1.4 GB once.
   gpu-libs-init:
-    image: ddandadan/voice-rebot-arm:oneclick-20260723
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:oneclick-20260904
     entrypoint: ["sh", "-c"]
     command:
       - |
@@ -239,7 +239,7 @@ services:
     restart: "no"
 
   rebot-arm:
-    image: ddandadan/voice-rebot-arm:oneclick-20260723
+    image: sensecraft-missionpack.seeed.cn/solution/voice-rebot-arm:oneclick-20260904
     container_name: voice-rebot-arm
     privileged: true            # arm serial + camera USB + audio devices
     runtime: nvidia
@@ -269,9 +269,25 @@ services:
     ports:
       - "8775:8775"             # action/observation HTTP server
       - "8776:8776"             # read-only camera/arm dashboard
-    devices:
-      - ${REBOT_SERIAL:-/dev/ttyACM0}:/dev/ttyACM0
-      - /dev/snd:/dev/snd
+    # No `devices:` here — deliberately. It maps a node ONCE, at container
+    # start, into the container's own /dev. The arm is a USB CDC device: it can
+    # be plugged in after the stack is up, and a power cycle re-enumerates it,
+    # often on a different number (observed on an Orin NX: ttyACM0 -> ttyACM1).
+    # Either way the container is then holding a node the host no longer has,
+    # and the arm goes dead until someone restarts it — after editing
+    # REBOT_SERIAL if the number moved. Binding the host's /dev gives a live
+    # view instead: verified that container and host report the same inode and
+    # rdev, and that a node created on the host AFTER container start appears
+    # inside within a second. `privileged: true` above already grants the whole
+    # device cgroup, so the old entries only ever contributed a stale snapshot.
+    # This also covers /dev/snd and the camera's /dev/bus/usb.
+    #
+    # The trade is real: a recursive /dev bind also replaces the container's
+    # private /dev/shm and /dev/pts. Measured on the device — /dev/shm becomes
+    # the host's (7.7G, vs Docker's 64M default) and `docker exec -it` still
+    # allocates a pty.
+    volumes:
+      - /dev:/dev
     environment:
       # ── peer services (compose DNS names) ──
       - LLM_SERVICE_URL=http://edge-llm:8000
