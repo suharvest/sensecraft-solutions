@@ -37,30 +37,55 @@
 
 ---
 
-## 步骤 2: 挑选并安装应用 {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+## 步骤 2: 选择并安装应用 {#install_app type=recamera_console_app required=true config=devices/recamera_console_app.yaml}
 
-打开控制台，从画廊里装一个应用，启用它，然后查看结果。
+从下拉框里选一个应用，点**部署**——剩下的全自动：下载、校验、推进摄像头、安装、启用。
 
 ### 前置条件
 
-1. 用摄像头自己的账号密码登录，和上一步是同一套。
-2. 打开**应用**页。已装的应用会列出来，**从云端安装**里是还可以装的应用。
-3. 下载是浏览器做的，再把数据推给摄像头，所以摄像头不需要联网——但这台电脑需要。
-4. 选一个应用点**安装**。模型随应用一起装，所以一个应用可能有几百 MB，控制台会先告诉你大小。
-5. 启用这个应用。切换会把摄像头交由该应用使用，并停掉之前运行的那个。
-6. 在运行中的应用上点**调试**，就能看到实时画面和检测结果。
+1. 下拉框里的应用列表实时来自云端目录，点旁边的刷新按钮可以拿到最新上架的应用。
+2. 下载是这台电脑做的，再把数据推给摄像头，所以摄像头不需要联网——但这台电脑需要。
+3. 地址和密码和上一步相同，会自动带过来。
+4. 模型随应用一起装，所以一个应用可能有几百 MB，部署页会显示进度。
+5. 摄像头一次只运行一个应用：启用你选的应用会停掉正在运行的那个。
 
 ### 部署完成
 
 摄像头正在运行你选的应用，到这里它已经可以单独使用了。
 
-控制台在 `http://<摄像头 IP>/`：应用画廊用来装应用和切换应用，实时画面用来确认
-摄像头看到了什么，网络、隐私和系统设置在其他页面里。
-
 这些应用同时响应 ONVIF，所以 NVR 或视频管理平台可以自动发现这台摄像头并拉流，
 不需要你手填 RTSP 地址。
 
-第 3 到 5 步是可选的。想把结果放进 Home Assistant 而不只是留在摄像头页面上，就继续做。
+第 4 到 6 步是可选的。想把结果放进 Home Assistant 而不只是留在摄像头页面上，就继续做。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 下拉框是空的或很短 | 这台电脑访问不了 `sensecraft-statics.seeed.cc`——解决本机网络后点刷新；离线时下拉框显示的是方案自带的列表 |
+| 登录被拒 | 用摄像头自己的账号密码，默认 `recamera` / `recamera`（较早的机器是 `recamera.2`）。连续失败会锁定 60 秒，和 SSH 共用计数 |
+| 控制台不回应 | 步骤 1 刚装完控制台，摄像头可能还在重启——等一分钟再部署这一步 |
+| 提示 busy | 控制台正在处理另一个应用操作（比如面板里正在装别的）——等它完成再试 |
+| 存储空间不足 | 先到控制台卸载用不到的应用 |
+| 装了但起不来 | 打开控制台的「应用」页看状态；文件缺失就重新部署这一步 |
+| 开启隐私打码后摄像头起不来 | 这个设置会替换视频内核模块，需要完整断电重启——请拔掉电源再插上，软件重启不行 |
+
+---
+
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+
+打开摄像头自己的控制台，看你选的应用正在检测什么。
+
+### 前置条件
+
+1. 用摄像头自己的账号密码登录，和第 1 步是同一套。
+2. **应用**页里你选的应用处于启用状态，点它的**调试**就能看到实时画面和检测结果。
+3. 想换应用的话在**应用**页里直接切换——**从云端安装**里还有目录里的其他应用。
+
+### 部署完成
+
+控制台在 `http://<摄像头 IP>/`：应用画廊用来装应用和切换应用，实时画面用来确认
+摄像头看到了什么，网络、隐私和系统设置在其他页面里。
 
 ### 故障排查
 
@@ -68,15 +93,11 @@
 |------|----------|
 | 页面打不开 | 等一分钟让摄像头重启完成，再刷新 |
 | 登录被拒 | 用摄像头自己的账号密码，默认 `recamera` / `recamera` |
-| 连不上应用目录 | 是这台电脑访问不了 `sensecraft-statics.seeed.cc`。可改用**上传 .deb**，或者先解决这台电脑的网络——问题不在摄像头 |
-| 存储空间不足 | 先卸载用不到的应用；控制台会告诉你需要多少、还剩多少 |
-| 实时画面是黑的 | 还没有应用在跑，先到画廊里启用一个 |
-| 应用在列表里但启动不了 | 它的文件缺失了。卸载后重新安装 |
-| 开启隐私打码后摄像头起不来 | 这个设置会替换视频内核模块，需要完整断电重启——请拔掉电源再插上，软件重启不行 |
+| 实时画面是黑的 | 还没有应用在跑——回上一步部署一个应用 |
 
 ---
 
-## 步骤 3: 部署 Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 4: 部署 Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 启动 Home Assistant 和一个 MQTT broker。两者你都已经在跑就跳过这一步。
 
@@ -125,14 +146,14 @@
 
 ---
 
-## 步骤 4: 把摄像头接入 Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## 步骤 5: 把摄像头接入 Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
 
 让 Home Assistant 和摄像头连同一个 broker，实体会自己出现。
 
 ### 前置条件
 
 1. Home Assistant 已经在跑，并且你能登录。
-2. 有一个可达的 MQTT broker——第 3 步部署的那个，或者你自己的。
+2. 有一个可达的 MQTT broker——第 4 步部署的那个，或者你自己的。
 3. 摄像头上有应用在运行，也就是第 2 步做完了。
 
 ### 部署完成
@@ -155,7 +176,7 @@
 
 ---
 
-## 步骤 5: 在 Home Assistant 里查看结果 {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 6: 在 Home Assistant 里查看结果 {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 把画面和检测结果放到同一张卡片上。
 

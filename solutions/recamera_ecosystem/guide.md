@@ -39,32 +39,57 @@ Install console 0.5.5, which manages the camera's apps. Already current? It's sk
 
 ---
 
-## Step 2: Choose and Install an App {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+## Step 2: Choose and Install an App {#install_app type=recamera_console_app required=true config=devices/recamera_console_app.yaml}
 
-Open the console, install an app from the gallery, activate it, and watch the results.
+Pick an app from the dropdown and press **Deploy** — the rest is automatic: download, checksum, upload to the camera, install, activate.
 
 ### Prerequisites
 
-1. Sign in with the camera's own credentials, the same ones as the previous step.
-2. Open **Applications**. Installed apps are listed; **Install from cloud** shows what else is available.
-3. Your browser does the downloading and pushes the bytes to the camera, so the camera needs no internet of its own — but this computer does.
-4. Pick one app and press **Install**. Models come with it, so an app can be a few hundred megabytes; the console shows the size first.
-5. Activate the app. Switching hands the camera over and stops whatever was running before.
-6. Press **Debug** on the running app to see the live view and its detection results.
+1. The dropdown lists the live cloud catalog; the refresh button next to it picks up newly published apps.
+2. This computer does the downloading and pushes the bytes to the camera, so the camera needs no internet of its own — but this computer does.
+3. Address and password are the same as the previous step and carry over automatically.
+4. Models come with the app, so an app can be a few hundred megabytes; progress is shown as it deploys.
+5. The camera runs one app at a time: activating your pick stops whatever was running before.
 
 ### Deployment Complete
 
 The camera is running the app you picked and is usable on its own from here.
 
-The console is at `http://<camera-ip>/`: the app gallery to install or switch
-apps, the live view to check what the camera sees, and network, privacy and
-system settings on the other pages.
-
 The apps also answer ONVIF, so an NVR or video management system can discover
 the camera and pull its stream without you typing an RTSP address.
 
-Steps 3 to 5 are optional. Do them if you want the results in Home Assistant
+Steps 4 to 6 are optional. Do them if you want the results in Home Assistant
 rather than only on the camera's own page.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Dropdown is empty or suspiciously short | This computer cannot reach `sensecraft-statics.seeed.cc` — fix the local network and press refresh; offline, the dropdown shows the list baked into the solution |
+| Login rejected | Use the camera's own credentials, default `recamera` / `recamera` (`recamera.2` on older units). Repeated failures lock the source for 60s, shared with SSH |
+| Console not answering | Step 1 just installed the console and the camera may still be restarting — wait a minute and deploy this step again |
+| "busy" error | The console is mid-way through another app operation (e.g. an install in the panel) — let it finish and retry |
+| Not enough storage | Uninstall an app you are not using from the console first |
+| Installed but not running | Open the console's Applications page for its status; if its files are missing, deploy this step again |
+| Camera won't start after enabling privacy blur | That setting swaps a video kernel module and needs a full power cycle — unplug the camera and plug it back in rather than using a software reboot |
+
+---
+
+## Step 3: Open the Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+
+Open the camera's own console and watch your app detect things.
+
+### Prerequisites
+
+1. Sign in with the camera's own credentials, the same ones as step 1.
+2. On **Applications**, your app shows as active; press **Debug** on it for the live view and detection results.
+3. To switch apps later, pick another on **Applications** — **Install from cloud** lists everything else in the catalog.
+
+### Deployment Complete
+
+The console is at `http://<camera-ip>/`: the app gallery to install or switch
+apps, the live view to check what the camera sees, and network, privacy and
+system settings on the other pages.
 
 ### Troubleshooting
 
@@ -72,15 +97,11 @@ rather than only on the camera's own page.
 |-------|----------|
 | Page won't load | Give the camera a minute to finish restarting, then refresh |
 | Login rejected | Use the camera's own credentials, default `recamera` / `recamera` |
-| Cannot reach the app catalog | This computer cannot reach `sensecraft-statics.seeed.cc`. Use **Upload .deb** instead, or fix the network on this computer — the camera is not the problem |
-| Not enough storage | Uninstall an app you are not using; the console reports how much it needs against how much is free |
-| Live view is black | No app is running. Activate one from the gallery first |
-| App is listed but will not start | Its files are missing. Uninstall it and install it again |
-| Camera won't start after enabling privacy blur | That setting swaps a video kernel module and needs a full power cycle — unplug the camera and plug it back in rather than using a software reboot |
+| Live view is black | No app is running — go back one step and deploy an app |
 
 ---
 
-## Step 3: Deploy Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## Step 4: Deploy Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 Start Home Assistant and an MQTT broker. Skip this if you already run both.
 
@@ -129,14 +150,14 @@ Start Home Assistant and an MQTT broker. Skip this if you already run both.
 
 ---
 
-## Step 4: Connect the Camera to Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## Step 5: Connect the Camera to Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
 
 Point Home Assistant and the camera at the same broker. The entities appear on their own.
 
 ### Prerequisites
 
 1. Home Assistant is running and you can sign in.
-2. An MQTT broker is reachable — the one from step 3, or your own.
+2. An MQTT broker is reachable — the one from step 4, or your own.
 3. The camera is running an app, from step 2.
 
 ### Deployment Complete
@@ -160,7 +181,7 @@ Integrations page shows the exact URL with a copy button.
 
 ---
 
-## Step 5: See the Results in Home Assistant {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## Step 6: See the Results in Home Assistant {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Put the picture and the detections on one card.
 
