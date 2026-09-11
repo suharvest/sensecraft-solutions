@@ -1480,6 +1480,11 @@
     "SolutionDeployment": {
       "description": "Deployment page content",
       "properties": {
+        "auto_detect": {
+          "default": true,
+          "title": "Auto Detect",
+          "type": "boolean"
+        },
         "devices": {
           "default": [],
           "items": {
