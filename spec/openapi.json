@@ -246,6 +246,49 @@
         "title": "ApiStatusResponse",
         "type": "object"
       },
+      "Body_enroll_api_network_face__session_id__persons_post": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "groups": {
+            "default": "",
+            "title": "Groups",
+            "type": "string"
+          },
+          "images": {
+            "default": [],
+            "items": {
+              "format": "binary",
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "person_id": {
+            "title": "Person Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "display_name"
+        ],
+        "title": "Body_enroll_api_network_face__session_id__persons_post",
+        "type": "object"
+      },
       "Body_import_parse_api_solutions_import_parse_post": {
         "properties": {
           "file": {
@@ -596,6 +639,35 @@
         "title": "CreateKeyResponse",
         "type": "object"
       },
+      "CreateNetworkFaceSessionRequest": {
+        "additionalProperties": false,
+        "description": "Which panel of which step wants a session — and nothing else.\n\nNamed for this router rather than ``CreateSessionRequest``: the serial\ncamera router already publishes that component name, and two models\nsharing one name make the exported OpenAPI depend on route\nregistration order.\n\nThe caller does **not** get to say where the proxy connects or which\nsecret it signs with. It used to: the body carried\n``management_base_url`` and ``auth_ref``, the sidecar resolved that\n``auth_ref`` to a token and sent it as a bearer to that URL. Since the\nsidecar exempts localhost from auth and answers a wildcard CORS\nheader, any page in the user's browser could name its own host and\ncollect the token. The target now comes from the solution the sidecar\nhas already loaded, and ``extra=\"forbid\"`` turns a body that still\ncarries those fields into a 422 rather than silently ignoring them.\n\n``solution_id`` names *any* solution the sidecar has loaded, not only\nthe one a deployment session currently has open — the codebase has no\nserver-side \"active deployment\" concept to bind this to (nothing else\nscopes a request to one in-progress deployment either), so this is not\na scoping gap specific to this router. Every solution bundled into or\ndownloaded by this App instance is content the same user chose to run,\nserved from the same origin under the same ``require_trusted_origin``\nguard: pages in *other* origins cannot reach this route at all, and a\npage from one solution reading another loaded solution's panel\ndescriptor (never its secret — see above) is not a cross-trust-domain\nread. Accepted risk; revisit if a server-side deployment-session\nconcept is ever introduced, at which point this should bind to it.",
+        "properties": {
+          "panel_index": {
+            "default": 0,
+            "maximum": 63.0,
+            "minimum": 0.0,
+            "title": "Panel Index",
+            "type": "integer"
+          },
+          "solution_id": {
+            "maxLength": 200,
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "step_id": {
+            "maxLength": 200,
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "solution_id",
+          "step_id"
+        ],
+        "title": "CreateNetworkFaceSessionRequest",
+        "type": "object"
+      },
       "CreateSessionRequest": {
         "properties": {
           "camera_baudrate": {
@@ -806,6 +878,20 @@
           "key": {
             "title": "Key",
             "type": "string"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "options_live": {
+            "default": false,
+            "title": "Options Live",
+            "type": "boolean"
           },
           "required": {
             "default": false,
@@ -1612,6 +1698,17 @@
             "title": "Method",
             "type": "string"
           },
+          "min_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Version"
+          },
           "scope": {
             "default": "all",
             "title": "Scope",
@@ -1719,6 +1816,17 @@
           "message": {
             "title": "Message",
             "type": "string"
+          },
+          "min_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Version"
           },
           "progress": {
             "title": "Progress",
@@ -2721,6 +2829,181 @@
         "title": "PortInfo",
         "type": "object"
       },
+      "PresetScoreItem": {
+        "description": "Score and evidence for one preset.",
+        "properties": {
+          "matched_devices": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Matched Devices",
+            "type": "array"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "preset_id",
+          "score"
+        ],
+        "title": "PresetScoreItem",
+        "type": "object"
+      },
+      "PresetSuggestRequest": {
+        "additionalProperties": false,
+        "description": "Scan parameters for POST /api/solutions/{id}/preset-suggest.\n\nCredentials are optional: without them the SSH identity probe is skipped\nand the response says so in the affected preset's reasons.\n\nUnknown fields are rejected rather than ignored: a caller that misspells\n``mdns_timeout`` should hear about it instead of silently getting the\ndefault.",
+        "properties": {
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "mdns_timeout": {
+            "default": 3.0,
+            "maximum": 10.0,
+            "minimum": 0.5,
+            "title": "Mdns Timeout",
+            "type": "number"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "probe_timeout": {
+            "default": 2.0,
+            "maximum": 10.0,
+            "minimum": 0.1,
+            "title": "Probe Timeout",
+            "type": "number"
+          },
+          "ssh_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssh Key"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "PresetSuggestRequest",
+        "type": "object"
+      },
+      "PresetSuggestResponse": {
+        "description": "Preset suggestion derived from a device scan.\n\n``decision`` is \"suggest\" only when one preset is the unique top scorer and\nclears the threshold. A tie, or a positive but sub-threshold top score,\nyields \"ambiguous\" and the frontend must not preselect anything.",
+        "properties": {
+          "candidates": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "scores": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PresetScoreItem"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "suggested_preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Preset Id"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "solution_id",
+          "decision",
+          "threshold"
+        ],
+        "title": "PresetSuggestResponse",
+        "type": "object"
+      },
       "ProbeRequest": {
         "description": "Request to actively probe one or more hosts for reachability.\n\n``targets`` is capped and ``timeout`` bounded so the endpoint cannot be\nabused as an unbounded internal-network scanner / resource-exhaustion vector.",
         "properties": {
@@ -2918,6 +3201,62 @@
         "title": "RemoteConfigRequest",
         "type": "object"
       },
+      "RemoteOptionsRequest": {
+        "description": "Resolve a ``remote_select`` input's options (routers/devices.py).\n\nNames the input by solution + step + input id rather than carrying the\nURL, so the browser can never turn this endpoint into an arbitrary\nfetcher — the URL only ever comes from the solution's own YAML.",
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "input_id": {
+            "title": "Input Id",
+            "type": "string"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "solution_id",
+          "device_id",
+          "input_id"
+        ],
+        "title": "RemoteOptionsRequest",
+        "type": "object"
+      },
+      "RemoteOptionsResponse": {
+        "description": "Resolved options for a ``remote_select`` input.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "origin": {
+            "default": "none",
+            "title": "Origin",
+            "type": "string"
+          }
+        },
+        "title": "RemoteOptionsResponse",
+        "type": "object"
+      },
       "RemoteUpdateConfigRequest": {
         "description": "Request to update remote app configuration.\n\nSee ``UpdateConfigRequest`` for the rationale behind the scalar-only\n``values`` validator.",
         "properties": {
@@ -2948,6 +3287,36 @@
           "new_name"
         ],
         "title": "RenameFaceRequest",
+        "type": "object"
+      },
+      "RenameNetworkFaceRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Id"
+          }
+        },
+        "title": "RenameNetworkFaceRequest",
         "type": "object"
       },
       "ResolvedDevice": {
@@ -3005,6 +3374,11 @@
       "RestoreDeviceResponse": {
         "description": "Supported device information",
         "properties": {
+          "category": {
+            "default": "embedded",
+            "title": "Category",
+            "type": "string"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -4887,7 +5261,7 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.6.19"
+    "version": "0.6.20"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6512,6 +6886,48 @@
           }
         },
         "summary": "Probe Devices",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/remote-options": {
+      "post": {
+        "description": "Resolve a ``remote_select`` input's options from its declared URL.\n\nThe request names the input (solution + step + input id); the URL is\nread from the solution's own device YAML, never from the request body,\nso this endpoint cannot be turned into an arbitrary fetch proxy.\n\nThe fetch runs on the machine hosting the App — it has internet even\nwhen the target device does not. Any failure falls back to the input's\nstatic ``options`` (offline is degraded, never broken).",
+        "operationId": "resolve_remote_options_api_devices_remote_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Remote Options",
         "tags": [
           "devices"
         ]
@@ -8941,6 +9357,443 @@
         ]
       }
     },
+    "/api/network-face/sessions": {
+      "post": {
+        "description": "Register a panel's target. Returns only an opaque session id.",
+        "operationId": "create_session_api_network_face_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNetworkFaceSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Session Api Network Face Sessions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/sessions/{session_id}": {
+      "delete": {
+        "operationId": "close_session_api_network_face_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Close Session Api Network Face Sessions  Session Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Session",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/capture": {
+      "post": {
+        "description": "One sample. ``image`` is null on firmware that returns no pixels.",
+        "operationId": "capture_api_network_face__session_id__capture_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Capture Api Network Face  Session Id  Capture Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capture",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/gallery": {
+      "get": {
+        "operationId": "gallery_api_network_face__session_id__gallery_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Gallery Api Network Face  Session Id  Gallery Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Gallery",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons": {
+      "post": {
+        "description": "Upload N images; the management API embeds and signs a new version.\n\nReads one byte past the limit so an oversized upload is refused\nwithout the whole of it entering memory first.",
+        "operationId": "enroll_api_network_face__session_id__persons_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enroll_api_network_face__session_id__persons_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Enroll Api Network Face  Session Id  Persons Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enroll",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons/{person_id}": {
+      "delete": {
+        "operationId": "delete_api_network_face__session_id__persons__person_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Delete Api Network Face  Session Id  Persons  Person Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons/{person_id}/rename": {
+      "post": {
+        "operationId": "rename_api_network_face__session_id__persons__person_id__rename_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameNetworkFaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rename Api Network Face  Session Id  Persons  Person Id  Rename Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/reload": {
+      "post": {
+        "description": "Activate the current version on the device and return its ack.",
+        "operationId": "reload_api_network_face__session_id__reload_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reload Api Network Face  Session Id  Reload Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reload",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/status": {
+      "get": {
+        "operationId": "status_api_network_face__session_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Status Api Network Face  Session Id  Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
     "/api/plugins": {
       "get": {
         "description": "List all installed plugins with their status.",
@@ -9768,7 +10621,7 @@
     },
     "/api/restore/ports": {
       "get": {
-        "description": "List available serial ports for USB restore",
+        "description": "List available serial ports for USB restore.\n\nMatch rules come from the `detection` block of each device in\nrestore_config.yaml, not from constants here, so a new USB device can be\nadded by config (and shipped over the CDN) without a code change.",
         "operationId": "list_serial_ports_api_restore_ports_get",
         "responses": {
           "200": {
@@ -12119,6 +12972,59 @@
         ]
       }
     },
+    "/api/solutions/{solution_id}/preset-suggest": {
+      "post": {
+        "description": "Score this solution's presets against a device scan.\n\nCollects the evidence the deploy page's scanners already produce (serial\nVID/PID, mDNS SSH records, TCP port probes) plus an optional read-only SSH\nidentity probe, then scores every preset that declares ``preset_match``.\n\nThe response is advisory only. ``decision`` is ``suggest`` when exactly one\npreset tops the ranking and clears the threshold, ``ambiguous`` on a tie or\na sub-threshold top score, and ``none`` when no preset declares rules or\nnothing matched. The frontend never applies a preset without the user\naccepting it.",
+        "operationId": "suggest_preset_api_solutions__solution_id__preset_suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "solution_id",
+            "required": true,
+            "schema": {
+              "title": "Solution Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetSuggestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetSuggestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest Preset",
+        "tags": [
+          "solutions"
+        ]
+      }
+    },
     "/api/solutions/{solution_id}/preset/{preset_id}/section": {
       "get": {
         "description": "Get preset section content with template variable replacement.\n\nFirst tries to get section from guide.md parsing (preferred),\nthen falls back to solution.yaml section definition.",
@@ -13300,5 +14206,5 @@
       }
     }
   },
-  "x-contract-version": 3
+  "x-contract-version": 5
 }

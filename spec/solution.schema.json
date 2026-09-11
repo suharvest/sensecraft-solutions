@@ -1213,6 +1213,17 @@
           "title": "Name I18N",
           "type": "object"
         },
+        "preset_match": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetMatch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "section": {
           "anyOf": [
             {
@@ -1274,6 +1285,205 @@
         }
       },
       "title": "PresetLinks",
+      "type": "object"
+    },
+    "PresetMatch": {
+      "description": "Rules that let the app suggest this preset from a device scan.\n\nEvery sub-rule is optional; a preset with no ``preset_match`` block simply\nnever scores. Scoring is additive and the highest-scoring preset is only\n*suggested* (never auto-applied) when it is the unique maximum and clears\n``threshold``.",
+      "properties": {
+        "gateway_presence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetMatchGateway"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mdns": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetMatchMdns"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "ssh": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetMatchSsh"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "minimum": 10.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "usb": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PresetMatchUsb"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "PresetMatch",
+      "type": "object"
+    },
+    "PresetMatchGateway": {
+      "description": "Gateway presence: a TCP port that answers on a reachable host.",
+      "properties": {
+        "host": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Host"
+        },
+        "ports": {
+          "default": [],
+          "items": {
+            "type": "integer"
+          },
+          "title": "Ports",
+          "type": "array"
+        },
+        "weight": {
+          "default": 5.0,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "title": "PresetMatchGateway",
+      "type": "object"
+    },
+    "PresetMatchMdns": {
+      "description": "mDNS evidence: advertised service type and/or hostname shape.",
+      "properties": {
+        "hostname_glob": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hostname Glob"
+        },
+        "hostname_weight": {
+          "default": 10.0,
+          "minimum": 0,
+          "title": "Hostname Weight",
+          "type": "number"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service"
+        },
+        "service_weight": {
+          "default": 8.0,
+          "minimum": 0,
+          "title": "Service Weight",
+          "type": "number"
+        }
+      },
+      "title": "PresetMatchMdns",
+      "type": "object"
+    },
+    "PresetMatchSsh": {
+      "description": "SSH identity probe: read-only checks run on an already-reachable host.\n\nOnly two probes exist and both are read-only: a substring test against\n``/proc/device-tree/model`` and an existence test for a marker file. There\nis no free-form command field on purpose — the backend builds the command\nfrom a whitelist so a solution author cannot ship shell code.",
+      "properties": {
+        "marker_files": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Marker Files",
+          "type": "array"
+        },
+        "model_contains": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Contains"
+        },
+        "weight": {
+          "default": 35.0,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "title": "PresetMatchSsh",
+      "type": "object"
+    },
+    "PresetMatchUsb": {
+      "description": "USB evidence: exact vid:pid combinations expected by this preset.",
+      "properties": {
+        "require_all": {
+          "default": false,
+          "title": "Require All",
+          "type": "boolean"
+        },
+        "vid_pid": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Vid Pid",
+          "type": "array"
+        },
+        "weight": {
+          "default": 40.0,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "title": "PresetMatchUsb",
       "type": "object"
     },
     "PreviewConfig": {
@@ -1480,6 +1690,11 @@
     "SolutionDeployment": {
       "description": "Deployment page content",
       "properties": {
+        "auto_detect": {
+          "default": true,
+          "title": "Auto Detect",
+          "type": "boolean"
+        },
         "devices": {
           "default": [],
           "items": {
@@ -1895,7 +2110,7 @@
       "type": "object"
     }
   },
-  "contract_version": 3,
+  "contract_version": 5,
   "description": "Complete solution configuration",
   "properties": {
     "base_path": {

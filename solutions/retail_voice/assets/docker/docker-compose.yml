@@ -224,7 +224,7 @@ services:
       start_period: 30s
 
   voice-web:
-    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:aee33275764b16ac2f5f2d884b66538db1de0c859ef3ec3dae873dfc94e6b044
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:95e3a794de3cc30f7a4be93dd2a31902316522b31b5a64b88cf76e95e55ed80b
     container_name: c4-voice-web
     restart: unless-stopped
     # 镜像默认 CMD 是纯静态 serve（无 /api 代理）：SPA 的相对路径 API 调用会拿到

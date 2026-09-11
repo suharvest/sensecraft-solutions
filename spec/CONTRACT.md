@@ -1,11 +1,11 @@
-<!-- contract_version: 3 -->
+<!-- contract_version: 5 -->
 # SenseCraft Solution Contract
 
 > **GENERATED FILE — mechanical sections only.** Regenerate with
 > `uv run python scripts/export_spec.py`. The drift guard is
 > `tests/unit/test_contract_freeze.py`.
 >
-> `contract_version: 3`. Tables below are rendered from the
+> `contract_version: 5`. Tables below are rendered from the
 > committed `spec/*.json` artifacts. The "Derived rules" prose sections are
 > **human-authored** and preserved across regenerations (they live between
 > `<!-- AUTHORED:<key> BEGIN/END -->` sentinels) — the generator never
@@ -64,6 +64,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `binary` | BinaryConfig \| null | no | None |  |
 | `ha_integration` | HAIntegrationConfig \| null | no | None |  |
 | `recamera_pro_app` | RecameraProAppConfig \| null | no | None |  |
+| `recamera_console_app` | RecameraConsoleAppConfig \| null | no | None |  |
 | `video` | PreviewVideoConfig \| null | no | None |  |
 | `mqtt` | PreviewMqttConfig \| null | no | None |  |
 | `data` | PreviewDataConfig \| null | no | None |  |
@@ -71,6 +72,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `display` | PreviewDisplayConfig \| null | no | None |  |
 | `behavior` | PreviewBehaviorConfig \| null | no | None |  |
 | `serial_camera` | SerialCameraConfig \| null | no | None |  |
+| `network_camera` | NetworkCameraConfig \| null | no | None |  |
 | `voice_demo` | VoiceDemoConfig \| null | no | None |  |
 | `voice_chat` | VoiceDemoConfig \| null | no | None |  |
 | `http_debug` | HttpDebugConfig \| null | no | None |  |
@@ -109,7 +111,9 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `image_text_chat` | _(none)_ |
 | `image_text_to_image` | _(none)_ |
 | `manual` | `steps[]` |
+| `network_camera` | `network_camera`, `network_camera.panels[]` |
 | `preview` | _(none)_ |
+| `recamera_console_app` | _(none)_ |
 | `recamera_cpp` | `binary` |
 | `recamera_nodered` | `nodered`, `nodered.flow_file` |
 | `recamera_pro_app` | _(none)_ |

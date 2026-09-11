@@ -826,15 +826,59 @@
       "type": "object"
     },
     "FaceDatabasePanelConfig": {
-      "description": "Face database panel configuration (``type: face_database``)",
+      "description": "Face database panel configuration (``type: face_database``).\n\nTwo transports:\n\n``serial`` (default, and what every already-published solution uses)\n    CRUD rides the ``database_port`` serial link opened by the\n    serial-camera session.\n\n``network``\n    CRUD is proxied by the FastAPI sidecar to a facedb management API\n    (``management_base_url`` + ``device_id``). The WebView never talks\n    to that API directly — see ``routers/network_face.py`` for the why\n    (CORS, mixed content, and keeping the token out of the browser).",
       "properties": {
+        "auth_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Ref"
+        },
         "database_port": {
-          "$ref": "#/$defs/SerialPortRef"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SerialPortRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Id"
         },
         "enrollment_duration": {
           "default": 5.0,
           "title": "Enrollment Duration",
           "type": "number"
+        },
+        "management_base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Management Base Url"
         },
         "min_confidence": {
           "default": 0.5,
@@ -845,11 +889,17 @@
           "default": 3,
           "title": "Min Samples",
           "type": "integer"
+        },
+        "transport": {
+          "default": "serial",
+          "enum": [
+            "serial",
+            "network"
+          ],
+          "title": "Transport",
+          "type": "string"
         }
       },
-      "required": [
-        "database_port"
-      ],
       "title": "FaceDatabasePanelConfig",
       "type": "object"
     },
@@ -1623,6 +1673,65 @@
       "title": "ModelFileConfig",
       "type": "object"
     },
+    "NetworkCameraConfig": {
+      "description": "Network camera step configuration (``type: network_camera``).\n\nThe serial twin of this block is :class:`SerialCameraConfig`. The two\ndiffer only in how a panel reaches the device: a serial camera step\nopens ports on this machine, a network camera step has the sidecar\nproxy HTTP to a management API. Panels are the same objects, so\n``face_database`` renders identically under both.",
+      "properties": {
+        "display": {
+          "$ref": "#/$defs/SerialCameraDisplayConfig"
+        },
+        "panels": {
+          "default": [],
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/SerialCameraPanelConfig"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "face_database"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/FaceDatabasePanelConfig"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "counting_config"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/CountingConfigPanelConfig"
+                }
+              }
+            ]
+          },
+          "title": "Panels",
+          "type": "array"
+        },
+        "poll_interval": {
+          "default": 1.5,
+          "maximum": 10.0,
+          "minimum": 1.0,
+          "title": "Poll Interval",
+          "type": "number"
+        }
+      },
+      "title": "NetworkCameraConfig",
+      "type": "object"
+    },
     "NodeRedConfig": {
       "description": "Node-RED deployment configuration for reCamera",
       "properties": {
@@ -1735,6 +1844,73 @@
         }
       },
       "title": "OfflineDockerConfig",
+      "type": "object"
+    },
+    "OptionsSourceConfig": {
+      "description": "Remote source for a ``remote_select`` user input's options.\n\nThe options of a plain ``select`` are baked into the device YAML, so a\nsolution release is required to change them. A ``remote_select`` instead\nnames a JSON URL the engine fetches at page-load / deploy-info time\n(the machine running the App has internet even when the target device\ndoes not), so the dropdown reflects what the source offers *now* —\ne.g. the reCamera console app catalog gains an entry the moment the\ncatalog is republished, no solution release needed.\n\n``options`` on the same input stay meaningful: they are the offline\nfallback, used verbatim whenever the URL cannot be fetched.",
+      "properties": {
+        "cache_ttl": {
+          "default": 300,
+          "title": "Cache Ttl",
+          "type": "integer"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "items": {
+          "default": "",
+          "title": "Items",
+          "type": "string"
+        },
+        "label": {
+          "default": "name",
+          "title": "Label",
+          "type": "string"
+        },
+        "label_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Label I18N",
+          "type": "object"
+        },
+        "timeout": {
+          "default": 8.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "value": {
+          "default": "id",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "OptionsSourceConfig",
       "type": "object"
     },
     "PackageConfig": {
@@ -2273,6 +2449,35 @@
       "title": "PreviewVideoConfig",
       "type": "object"
     },
+    "RecameraConsoleAppConfig": {
+      "description": "Configuration for the ``recamera_console_app`` deployer.\n\nTargets the reCamera (sg200x) console — the ``supervisor`` package whose\ngallery installs apps from a cloud catalog. Unlike the Pro's App Center,\nthe packages here are ordinary unsigned .deb files published next to the\ncatalog, so this deployer CAN install: it downloads the app's package and\nmodels on the deploying machine (the camera itself usually has no route\nto the internet), pushes them through the console's chunked file upload\nAPI, then installs and activates the app via appMgr.\n\nWhich app is NOT fixed here: it is the step's ``app_id`` user input (a\n``remote_select`` whose options come from the same catalog), so the user\npicks from the live list on the deploy page.",
+      "properties": {
+        "activation_timeout": {
+          "default": 90,
+          "title": "Activation Timeout",
+          "type": "integer"
+        },
+        "catalog_url": {
+          "title": "Catalog Url",
+          "type": "string"
+        },
+        "force_reinstall": {
+          "default": false,
+          "title": "Force Reinstall",
+          "type": "boolean"
+        },
+        "install_timeout": {
+          "default": 180,
+          "title": "Install Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "catalog_url"
+      ],
+      "title": "RecameraConsoleAppConfig",
+      "type": "object"
+    },
     "RecameraProAppConfig": {
       "description": "Configuration for the ``recamera_pro_app`` deployer.\n\nThe App Center on reCamera Pro is a single-active supervisor: appmgr runs\nexactly one app at a time. This deployer therefore configures an app that\nis already installed on the device and makes it the active one; it does not\nupload or install packages, because installation requires a release-signed\narchive produced by a private packaging chain.",
       "properties": {
@@ -2781,6 +2986,18 @@
       "additionalProperties": true,
       "description": "A panel attached to the serial camera step.\n\nPanels are polymorphic on ``type``; the concrete shape is owned by the\nmodule that registers that panel type (see\n:class:`FaceDatabasePanelConfig`). Unknown keys are **kept**\n(``extra=\"allow\"``) so a new panel type needs no kernel change.\n\nThe four ``database_port`` / ``enrollment_duration`` / ``min_samples`` /\n``min_confidence`` fields below are **deprecated** flat face fields.\nThey stay declared so existing ``face_enroll.yaml`` files keep\nvalidating with their documented defaults.",
       "properties": {
+        "auth_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Ref"
+        },
         "database_port": {
           "anyOf": [
             {
@@ -2792,10 +3009,34 @@
           ],
           "default": null
         },
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Id"
+        },
         "enrollment_duration": {
           "default": 5.0,
           "title": "Enrollment Duration",
           "type": "number"
+        },
+        "management_base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Management Base Url"
         },
         "min_confidence": {
           "default": 0.5,
@@ -2806,6 +3047,15 @@
           "default": 3,
           "title": "Min Samples",
           "type": "integer"
+        },
+        "transport": {
+          "default": "serial",
+          "enum": [
+            "serial",
+            "network"
+          ],
+          "title": "Transport",
+          "type": "string"
         },
         "type": {
           "title": "Type",
@@ -3189,6 +3439,17 @@
           "title": "Options",
           "type": "array"
         },
+        "options_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionsSourceConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "placeholder": {
           "anyOf": [
             {
@@ -3356,7 +3617,7 @@
       "type": "object"
     }
   },
-  "contract_version": 3,
+  "contract_version": 5,
   "description": "Complete device configuration",
   "properties": {
     "actions": {
@@ -3607,6 +3868,17 @@
       "title": "Name I18N",
       "type": "object"
     },
+    "network_camera": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NetworkCameraConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "network_region": {
       "default": "auto",
       "enum": [
@@ -3668,6 +3940,17 @@
       },
       "title": "Preconditions",
       "type": "array"
+    },
+    "recamera_console_app": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecameraConsoleAppConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "recamera_pro_app": {
       "anyOf": [

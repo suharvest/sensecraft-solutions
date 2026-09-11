@@ -1,5 +1,5 @@
 {
-  "contract_version": 3,
+  "contract_version": 5,
   "deployers": {
     "docker_deploy": {
       "category": "deploy",
@@ -64,8 +64,19 @@
         "steps[]"
       ]
     },
+    "network_camera": {
+      "category": "verify",
+      "required": [
+        "network_camera",
+        "network_camera.panels[]"
+      ]
+    },
     "preview": {
       "category": "verify",
+      "required": []
+    },
+    "recamera_console_app": {
+      "category": "deploy",
       "required": []
     },
     "recamera_cpp": {
