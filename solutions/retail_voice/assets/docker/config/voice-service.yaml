@@ -12,6 +12,11 @@ default:
   base_url: http://127.0.0.1:8081
   log_level: info
   log_format: json
+  http:
+    read_timeout: 120
+    write_timeout: 780
+    idle_timeout: 120
+    read_header_timeout: 15
 
 mysql:
   host: mysql
@@ -57,7 +62,7 @@ oss:
     region: us-east-1
     timeout: 30
   processing:
-    max_file_size: 52428800
+    max_file_size: 67108864
 
 keywords:
   cache_schedule: "*/5 * * * *"

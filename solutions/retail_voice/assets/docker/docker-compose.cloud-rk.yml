@@ -1,28 +1,8 @@
-# Retail Voice — Local Transcription, reComputer RK3576 (NPU).
-#
-# Two containers, no cloud service, no watchtower:
-#   speech        OpenVoiceStream, SenseVoice RKNN fp16 on the 6 TOPS NPU
-#   voice-client  capture from the reSpeaker XVF3800, local VAD, writes
-#                 transcripts to disk
-#
-# The speech service block is carried over from the retired
-# smart_retail_voice_ai package (deleted 2026-09-08), whose RK3576 compose
-# file recorded this measurement on a Seeed reComputer RK3576 Dev Kit (Armbian
-# bookworm, kernel 6.1.115-vendor-seeed-rk3576, 3.9 GB RAM), 2026-08-24:
-#   POST /asr           3.0 s audio -> ~780 ms warm (RTF 0.26)
-#   container RSS       1.71 GiB with ASR + punctuation + speaker loaded
-#   recreate -> healthy 25 s once the model volumes are populated
-#
-# Changes relative to that file: watchtower was never in it and is not added,
-# the cloud reporting path is not configured, the capture container is present
-# (it was deferred there), and both containers have bounded logs.
-
+# Retail Voice — merged backend and platform ASR.
 services:
   speech:
-    # Historical RK digest: sha256:184e9336847a6a0c246c94b311b11d0379d4c90366b8ea0ad6afa0a688b91a58
-    # (verified with `docker manifest inspect`, 2026-09-09). The current
-    # rk-stable channel and digest are recorded in
-    # ../../docs/image-release-channels-2026-09-11.md.
+    # Pushed and reachable: sha256:184e9336847a6a0c246c94b311b11d0379d4c90366b8ea0ad6afa0a688b91a58
+    # (verified with `docker manifest inspect`, 2026-09-09).
     # rk-20260803b and rk-20260903.10, the two tags previously referenced here,
     # both predate openvoicestream 2815186 (2026-08-25), which moved RK3576
     # onto the activation-rescaled SenseVoice encoder
@@ -33,7 +13,7 @@ services:
     # (seeed-solutions-hub docs/reports/retail-voice-asr-bench-matrix-2026-09-09.md,
     # sections at lines 88 and 191). rk-20260909 carries the fix.
     # The 2026-08-24 RK3576 measurement above was taken on rk-20260803b and
-    # has not been re-run on the current stable image.
+    # has not been re-run on this tag.
     image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-stable
     container_name: openvoicestream
     privileged: true
@@ -57,8 +37,11 @@ services:
     environment:
       - OVS_PROFILE=${OVS_PROFILE:-rk3576-sensevoice}
       - OVS_PROFILE_DEFAULT=${OVS_PROFILE_DEFAULT:-rk3576-sensevoice}
+      - OVS_ASR_MODEL_ID=${OVS_ASR_MODEL_ID:-sensevoice}
       - OVS_LOG_FORMAT=json
       - OVS_ADMIN_KEY=
+      - OVS_API_KEYS=${OVS_API_KEYS:?set OVS_API_KEYS in .env}
+      - OVS_API_MAX_AUDIO_BYTES=${OVS_API_MAX_AUDIO_BYTES:-67108864}
       # ── ASR: SenseVoice RKNN fp16 on the NPU ────────────────────────
       - ASR_BACKEND=sensevoice_rknn
       - ASR_PLATFORM=${ASR_PLATFORM:-rk3576}
@@ -101,31 +84,89 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  voice-client:
-    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5}
-    container_name: sensecraft-voice-client
-    depends_on:
-      speech:
-        condition: service_healthy
-    network_mode: host
-    devices:
-      - /dev/snd
-    group_add:
-      - audio
-    environment:
-      - TZ=${TZ:-Asia/Shanghai}
-      - AUDIO_CARD_ID=${AUDIO_CARD_ID:-1}
-      - AUDIO_DEVICE_ID=${AUDIO_DEVICE_ID:-0}
-    volumes:
-      - ./config/voice-client.yaml:/app/config.yaml:ro
-      - ${OUTPUT_DIR:-/home/recomputer/retail-voice}:/app/recordings
-      - ${OUTPUT_DIR:-/home/recomputer/retail-voice}/voiceprints:/app/voiceprints
+  mysql:
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-voice}
+      TZ: ${TZ:-Asia/Shanghai}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    command: server /data --console-address ":9001"
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  voice-service:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service:stable
+    restart: unless-stopped
+    depends_on:
+      mysql: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    ports: ["${VOICE_SERVICE_PORT:-8081}:8081"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      VOICE_API_TOKENS: ${VOICE_API_TOKENS:?set VOICE_API_TOKENS in .env}
+      CAPTURE_OVS_BASE_URL: ${CAPTURE_OVS_BASE_URL:-}
+      CAPTURE_OVS_API_KEY: ${CAPTURE_OVS_API_KEY:-}
+      CAPTURE_OVS_MODEL: ${CAPTURE_OVS_MODEL:-sensevoice}
+      CAPTURE_OVS_TIMEOUT_SECONDS: ${CAPTURE_OVS_TIMEOUT_SECONDS:-600}
+      CAPTURE_REQUEST_TIMEOUT_SECONDS: ${CAPTURE_REQUEST_TIMEOUT_SECONDS:-630}
+    volumes:
+      - ./config/voice-service.yaml:/etc/goExample/config.yaml:ro
+      - voice-service-logs:/app/logs
+    group_add: ["${VOICE_CONFIG_GID:?platform configuration group is required}"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  voice-web:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web:stable
+    restart: unless-stopped
+    command: ["node", "/app/proxy-server.cjs"]
+    volumes:
+      - ./voice-web-proxy.cjs:/app/proxy-server.cjs:ro
+    depends_on: {voice-service: {condition: service_healthy}}
+    ports: ["${VOICE_WEB_PORT:-3000}:3000"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      UPSTREAM_HOST: voice-service
+      UPSTREAM_PORT: "8081"
+
+  capture-gateway:
+    image: python:3.12-slim
+    restart: unless-stopped
+    depends_on: {voice-service: {condition: service_healthy}}
+    command: ["python", "/app/ovs-capture-gateway.py"]
+    ports: ["${CAPTURE_GATEWAY_PORT:-18621}:18621"]
+    environment:
+      CAPTURE_UPSTREAM_HOST: voice-service
+      CAPTURE_UPSTREAM_PORT: "8081"
+      OVS_UPSTREAM_TIMEOUT: "660"
+    volumes: [./ovs-capture-gateway.py:/app/ovs-capture-gateway.py:ro]
 
 volumes:
   rk-asr-models:
@@ -136,3 +177,6 @@ volumes:
     name: ovs-aux-models
   seeed-local-voice-data:
     name: seeed-local-voice-data
+  mysql-data:
+  minio-data:
+  voice-service-logs:

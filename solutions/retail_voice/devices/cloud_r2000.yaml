@@ -1,0 +1,136 @@
+version: "1.0"
+id: cloud_r2000
+name: Deploy on reComputer R2000
+name_i18n:
+  zh: 在 reComputer R2000 上部署
+type: docker_deploy
+docker:
+  compose_file: assets/docker/docker-compose.cloud-r2000.yml
+  compose_dir: assets/docker
+  options:
+    project_name: retail_voice_r2000
+    build: false
+  environment:
+    SPEECH_IMAGE: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-hailo-stable
+    OUTPUT_DIR: /data-iot/retail-voice
+  services:
+    - name: mysql
+      required: true
+    - name: minio
+      required: true
+    - name: voice-service
+      port: 8081
+      health_check_endpoint: /healthz
+      required: true
+    - name: voice-web
+      port: 3000
+      health_check_endpoint: /
+      required: true
+    - name: capture-gateway
+      port: 18621
+      required: true
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_timeout: 1200
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+remote_overrides:
+  remote_path: /home/{{username}}/retail_voice_r2000
+  compose_dir: assets/docker
+  actions:
+    after_upload:
+    - name: Prepare the platform
+      name_i18n:
+        zh: "\u51C6\u5907\u90E8\u7F72\u914D\u7F6E"
+      env:
+        PLATFORM_DEPLOY_DIR: /home/{{username}}/retail_voice_r2000/cloud_r2000
+        PLATFORM_PROFILE: '{"OVS_PROFILE": "rpi5-hailo-whisper", "OVS_PROFILE_DEFAULT": "rpi5-hailo-whisper"}'
+      run: |
+        set -eu
+        python3 - <<'PYINIT'
+        from pathlib import Path
+        import json, os, secrets, tempfile
+        root = Path(os.environ['PLATFORM_DEPLOY_DIR'])
+        cfg = root / 'config/voice-service.yaml'
+        if not cfg.is_file():
+            raise SystemExit('Platform files are missing. Upload the deployment package again.')
+        p = root / '.env'
+        text = p.read_text() if p.exists() else ''
+        values = dict(line.split('=', 1) for line in text.splitlines() if '=' in line and not line.lstrip().startswith('#'))
+        def ensure(k, v):
+            if k not in values:
+                values[k] = v
+        for k in ('MYSQL_ROOT_PASSWORD','MINIO_ROOT_PASSWORD','JWT_SECRET','OPERATOR_TOKEN','ADMIN_TOKEN','OVS_API_KEYS'):
+            ensure(k, secrets.token_hex(32))
+            if not values[k]:
+                raise SystemExit('An existing platform credential is empty. Restore it before retrying.')
+        for k,v in {'TZ':'Asia/Shanghai','MYSQL_DATABASE':'voice','MINIO_ROOT_USER':'voiceadmin','VOICE_SERVICE_PORT':'8081','VOICE_WEB_PORT':'3000','CAPTURE_GATEWAY_PORT':'18621','OVS_API_MAX_AUDIO_BYTES':'67108864','CAPTURE_OVS_MODEL':'whisper','OVS_ASR_MODEL_ID':'whisper'}.items():
+            ensure(k,v)
+        ensure('VOICE_API_TOKENS','edge-client:operator:'+values['OPERATOR_TOKEN']+',ops:admin:'+values['ADMIN_TOKEN'])
+        ensure('ASR_API_TOKENS','edge-client:operator:'+values['OPERATOR_TOKEN']+',voice-service:admin:'+values['ADMIN_TOKEN'])
+        for k,v in json.loads(os.environ['PLATFORM_PROFILE']).items():
+            ensure(k,v)
+        values['VOICE_CONFIG_GID'] = str(os.getgid())
+        values['CAPTURE_OVS_BASE_URL']='http://host.docker.internal:8621'
+        values['CAPTURE_OVS_API_KEY']=values['OVS_API_KEYS'].split(',')[0].strip()
+        config = cfg.read_text()
+        for marker,key in {'CHANGE_ME_JWT_KEY':'JWT_SECRET','CHANGE_ME_MYSQL_PASSWORD':'MYSQL_ROOT_PASSWORD','CHANGE_ME_MINIO_USER':'MINIO_ROOT_USER','CHANGE_ME_MINIO_PASSWORD':'MINIO_ROOT_PASSWORD'}.items():
+            config=config.replace(marker,json.dumps(values[key]))
+        if any('CHANGE_ME_' in line for line in config.splitlines() if not line.lstrip().startswith('#')):
+            raise SystemExit('Platform configuration still contains placeholders.')
+        # Keep comments, unrelated settings and existing credentials across deployments.
+        lines=[]
+        seen=set()
+        for line in text.splitlines():
+            key=line.split('=',1)[0]
+            if '=' in line and key in values and not line.lstrip().startswith('#'):
+                if key not in seen: lines.append(key+'='+values[key]); seen.add(key)
+            else: lines.append(line)
+        lines.extend(k+'='+v for k,v in values.items() if k not in seen)
+        def write_private(path,content,mode):
+            fd,tmp=tempfile.mkstemp(prefix='.'+path.name+'.',dir=path.parent)
+            try:
+                with os.fdopen(fd,'w') as f: f.write(content)
+                os.replace(tmp,path)
+                os.chmod(path,mode)
+            finally:
+                if os.path.exists(tmp): os.unlink(tmp)
+        write_private(p,'\n'.join(lines)+'\n',0o600)
+        write_private(cfg,config,0o640)
+        print('Platform configuration ready.')
+        PYINIT
+pre_checks:
+  - type: disk_space
+    min_gb: 20
+    description: At least 20GB of free space
+  - type: command
+    command: test -e /dev/hailo0
+    description: Hailo-8 device is required for this target; choose CPU capture if absent
+    description_i18n:
+      zh: 此目标需要 Hailo-8 设备；没有该设备时请选择 CPU 采集目标
+  - type: command
+    command: test -e /usr/lib/libhailort.so.4.21.0
+    description: HailoRT 4.21.0 host library is required
+    description_i18n:
+      zh: 需要宿主机 HailoRT 4.21.0 库
+user_inputs:
+  - id: host
+    name: Device IP
+    name_i18n: {zh: 设备 IP}
+    type: text
+    required: true
+  - id: username
+    name: SSH Username
+    name_i18n: {zh: SSH 用户名}
+    type: text
+    default: pi
+    required: true
+  - id: password
+    name: SSH Password
+    name_i18n: {zh: SSH 密码}
+    type: password
+    required: true

@@ -1,9 +1,8 @@
-# sensecraft-voice-client — local-output configuration.
+# sensecraft-voice-client — device transcription with text-only backend upload.
 #
 # Derived from sensecraft_voice/sensecraft-voice-client/config.yaml on branch
-# feature/c4-harden. Everything that reaches outside the device is removed:
-# no `remote:` block, no `mysql:`, no `mqtt:`, no audio_upload. Results are
-# written to the mounted output directory and stay there.
+# feature/c4-harden. Audio remains local; finalized text JSON is sent to the
+# retail backend. The deploy step replaces endpoint and API-key placeholders.
 #
 # Placeholders written by the deploy step:
 #   __LANGUAGE__        zh or en
@@ -44,7 +43,7 @@ voice:
   format: wav
   # `file` also keeps the WAV segments next to the transcripts. Set to
   # `stream` to send audio to the recognizer and write nothing but text.
-  output: both
+  output: stream
   filePath: ./recordings/voice
   deviceId: ""
   onDeviceLost: switch-default
@@ -105,10 +104,8 @@ voice:
     maxSpeakers: 10
     namePrefix: "Speaker"
 
-  # Transcript files. This is the solution's output: one JSON per finalized
-  # utterance under cache_dir. Upstream calls it a cache because it also
-  # buffers for a remote uploader; with no `remote:` block configured, nothing
-  # drains it and the files are the deliverable.
+  # Transcript files. One JSON per finalized utterance is retained locally as
+  # the retry queue while the remote sink uploads text only.
   #
   # Nothing rotates this directory. Set a retention routine before the box
   # runs for months.
@@ -118,9 +115,15 @@ voice:
     cache_expiry: 0
     cleanup_interval: 1h
     max_cache_size: 100000
-    max_retries: 0
+    max_retries: 1
     retry_interval: 30s
     http_batch:
-      # Off, and it must stay off in this package: there is no backend to
-      # upload to.
+      # Batch route is unsupported; single finalized text uploads are used.
       enabled: false
+
+remote:
+  base_url: "__RETAIL_BACKEND_URL__"
+  audio_stream:
+    enabled: false
+    headers:
+      X-API-Token: "__RETAIL_BACKEND_API_KEY__"

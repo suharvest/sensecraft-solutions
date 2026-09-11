@@ -19,9 +19,9 @@ name_i18n:
   zh: 零售语音
 
 intro:
-  summary: Turn in-store speech into text. Deploy it two ways — transcription on the store device with the text staying there, or a server stack that redacts before storage and can hard-delete a subject on request.
+  summary: Turn in-store speech into text. Use a device that transcribes and uploads text JSON, or use a reSpeaker Clip with SenseCraft Voice App and the retail voice platform.
   summary_i18n:
-    zh: 把门店对话转成文字。两种部署方式——转写跑在门店设备上、文字留在本地，或者部署一套服务端栈，入库前脱敏、可按主体硬删除。
+    zh: 把门店对话转成文字。两种部署方式——设备转写后上传文本 JSON，或者用 reSpeaker Clip 采集、SenseCraft Voice App 经网关交给零售语音平台。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -71,11 +71,11 @@ intro:
   output_interfaces:
     - type: file
       endpoint: <output-dir>/cache/asr/<id>.json
-      description: Local transcription preset. One JSON file per finalized utterance — transcript, timestamps, and the speaker label when voiceprint matching is on. Written on the device; nothing is sent anywhere.
+      description: Device transcription and upload preset. One JSON file per finalized utterance is cached locally — transcript, timestamps, and the speaker label when voiceprint matching is on — and the record is uploaded when an upload endpoint is configured.
       schema_type: json
       payload_example: '{"id":"20260905T101233-0007","text":"这个多少钱","lang":"zh","start_ms":1200,"end_ms":2840,"speaker":"用户1"}'
       description_i18n:
-        zh: 本地转写套餐。每句断句后写一个 JSON 文件——转写文本、时间戳，开启声纹匹配时还带说话人标签。文件写在设备本地，不向外发送。
+        zh: 设备转录并上传套餐。每句断句后在本地缓存一个 JSON 文件——转写文本、时间戳，开启声纹匹配时还带说话人标签；配置上传端点后同时上传记录。
     - type: file
       endpoint: <output-dir>/voice/*.wav
       description: Local transcription preset. Raw 16 kHz mono WAV segments, kept only when file output is enabled. Disable it if the deployment must not retain audio at all.
@@ -85,10 +85,10 @@ intro:
     - type: websocket
       port: 8621
       endpoint: /asr/stream?vad=none&punctuate=true&speaker_embedding=true
-      description: OpenVoiceStream streaming ASR, present in both presets. Send 16 kHz mono PCM frames, finalize an utterance with an empty frame. Each result carries the transcript, punctuation, and a 192-dim CAM++ embedding.
+      description: OpenVoiceStream streaming ASR for the device and local STT paths. Send 16 kHz mono PCM frames, finalize an utterance with an empty frame. Each result carries the transcript, punctuation, and a 192-dim CAM++ embedding.
       schema_type: json
       description_i18n:
-        zh: OpenVoiceStream 流式 ASR，两个套餐都有。发送 16 kHz 单声道 PCM 帧，用空帧结束一句。每条结果包含转写文本、标点和 192 维 CAM++ 声纹向量。
+        zh: OpenVoiceStream 流式 ASR，用于设备端和本地 STT 路径。发送 16 kHz 单声道 PCM 帧，用空帧结束一句。每条结果包含转写文本、标点和 192 维 CAM++ 声纹向量。
     - type: http
       port: 8621
       endpoint: /asr
@@ -168,10 +168,25 @@ intro:
       description: Runs SenseVoice on the RK3576 NPU, leaving the CPU for punctuation, voiceprint embedding and the capture client. On the server stack preset it also carries MySQL, MinIO and the admin console.
       description_i18n:
         zh: 在 RK3576 NPU 上运行 SenseVoice，把 CPU 留给标点恢复、声纹向量和采集客户端。在服务端栈套餐里，它还承载 MySQL、MinIO 和管理后台。
+    recomputer_rk3588:
+      description: reComputer RK3588 Series edge computer. The retail voice deployment runs the SenseVoice RKNN profile; Whisper is an optional English backend.
+      description_i18n: {zh: reComputer RK3588 系列边缘计算机。零售语音候选配置运行 SenseVoice RKNN profile，也可选 Whisper 英文后端。}
+    recomputer_j30:
+      description: reComputer J30 Series edge computer. The retail voice deployment runs the Jetson SenseVoice profile; Whisper is an optional English backend.
+      description_i18n: {zh: reComputer J30 系列边缘计算机。零售语音部署运行 Jetson SenseVoice profile，也可选 Whisper 英文后端。}
+    recomputer_j40:
+      description: reComputer J40 Series edge computer. The retail voice deployment runs the Jetson SenseVoice profile; Whisper is an optional English backend.
+      description_i18n: {zh: reComputer J40 系列边缘计算机。零售语音部署运行 Jetson SenseVoice profile，也可选 Whisper 英文后端。}
+    recomputer_r2000:
+      description: reComputer R2000 Series edge computer with Hailo-8. The retail voice deployment runs SenseVoice on CPU or Whisper on Hailo-8.
+      description_i18n: {zh: reComputer R2000 系列边缘计算机（Hailo-8）。零售语音候选配置可运行 CPU SenseVoice 或 Hailo-8 Whisper。}
     respeaker_xvf3800:
       description: 4-mic array with on-DSP AEC, beamforming and noise suppression; enumerates as a USB audio device.
       description_i18n:
         zh: 4 麦阵列，DSP 内置回声消除、波束成形和噪声抑制；以 USB 音频设备枚举。
+    respeaker_clip:
+      description: reSpeaker Clip capture device. It sends recordings through SenseCraft Voice App and the capture gateway to voice-service, which calls OpenVoiceStream before the retail backend stores and displays the record.
+      description_i18n: {zh: reSpeaker Clip 采集设备。通过 SenseCraft Voice App 和采集网关将录音发送给 voice-service，由其调用 OpenVoiceStream，再由零售后台落库和展示。}
     generic_linux_host:
       description: Any arm64 Linux host with Docker for the server stack. The bundled ASR image is the RK3576 build — on a host without an RKNN NPU the ASR container has to be swapped for a matching build.
       description_i18n:
@@ -183,15 +198,15 @@ intro:
 
   presets:
     - id: local_transcribe
-      name: On-Device Transcription
+      name: Transcribe on the device
       name_i18n:
-        zh: 设备本地转写
+        zh: 设备转写并上传
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One box in the store. Capture, transcription, punctuation and optional voiceprint all run on it, and the transcripts are written to a directory on its own disk. No cloud account, no upload, no database. Pick reRouter CM4 for the cheapest CPU-only install, or reComputer RK3576 to put speech recognition on the 6 TOPS NPU.
+      description: The device turns speech into text and sends it to your retail voice dashboard.
       description_i18n:
-        zh: 门店里一台盒子。采集、转写、标点恢复和可选的声纹全跑在它上面，转写结果写进它自己磁盘上的目录。没有云端账号，不上传，也没有数据库。想要最便宜的纯 CPU 安装就选 reRouter CM4，想把语音识别放到 6 TOPS NPU 上就选 reComputer RK3576。
+        zh: 设备将语音转成文字，再上传到零售语音后台统一查看。
       device_groups:
         - id: edge_device
           name: Edge Device
@@ -201,6 +216,10 @@ intro:
           required: true
           options:
             - device_ref: recomputer_rk3576
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_r2000
             - device_ref: rerouter_cm4
           default: recomputer_rk3576
         - id: microphone
@@ -211,18 +230,17 @@ intro:
           required: true
           options:
             - device_ref: respeaker_xvf3800
-          default: respeaker_xvf3800
 
     - id: cloud_stack
-      name: Server Stack
+      name: Clip and phone, server transcription
       name_i18n:
-        zh: 服务端栈
+        zh: Clip＋手机，后台转写
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One host runs the whole pipeline — ASR endpoint, voiceprint, redaction before storage, MySQL, MinIO and an admin console with export and hard delete. Audio arrives either from a mobile app you already ship, or from a mic array on an edge collector, or both.
+      description: Clip records the conversation, your phone uploads the audio, and the retail voice platform turns it into text.
       description_i18n:
-        zh: 一台主机跑完整链路——ASR 端点、声纹、入库前脱敏、MySQL、MinIO，以及带导出和硬删除的管理后台。音频来源可以是你已有的手机 App，也可以是边缘采集端上的麦克风阵列，或两者都有。
+        zh: Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
       device_groups:
         - id: stack_host
           name: Stack Host
@@ -232,6 +250,10 @@ intro:
           required: true
           options:
             - device_ref: recomputer_rk3576
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_r2000
             - device_ref: generic_linux_host
           default: recomputer_rk3576
         - id: capture
@@ -241,9 +263,8 @@ intro:
           type: single
           required: true
           options:
+            - device_ref: respeaker_clip
             - device_ref: external_mobile_app
-            - device_ref: recomputer_rk3576
-            - device_ref: rerouter_cm4
           default: external_mobile_app
         - id: microphone
           name: Microphone Array
@@ -252,8 +273,8 @@ intro:
           type: single
           required: false
           options:
-            - device_ref: respeaker_xvf3800
-          default: respeaker_xvf3800
+            - device_ref: respeaker_clip
+          default: respeaker_clip
 
   stats:
     difficulty: intermediate
@@ -272,6 +293,7 @@ intro:
     purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
 
 deployment:
+  auto_detect: false
   guide_file: guide.md
   guide_file_i18n:
     zh: guide_zh.md

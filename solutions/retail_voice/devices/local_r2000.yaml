@@ -1,0 +1,124 @@
+version: "1.0"
+id: local_r2000
+name: reComputer R2000 CPU Voice Capture
+name_i18n:
+  zh: reComputer R2000 CPU 语音采集
+type: docker_deploy
+docker:
+  compose_file: assets/docker/docker-compose.local-r2000.yml
+  compose_dir: assets/docker
+  options:
+    project_name: retail_voice_r2000
+    build: false
+  environment:
+    SPEECH_IMAGE: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-stable
+    OUTPUT_DIR: /data-iot/retail-voice
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+    - name: voice-client
+      port: 8090
+      health_check_endpoint: /
+      required: true
+ssh:
+  port: 22
+  default_user: pi
+remote_overrides:
+  remote_path: /home/{{username}}/retail_voice_r2000
+  compose_dir: assets/docker
+  actions:
+    after_upload:
+    - name: Configure client transcription upload
+      env:
+        CLIENT_DEPLOY_DIR: /home/{{username}}/retail_voice_r2000/local_r2000
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        cd "$CLIENT_DEPLOY_DIR"
+        python3 - <<'PY'
+        import json, os, re
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path('config/voice-client.yaml')
+        text = p.read_text()
+        for marker, value in {'__LANGUAGE__': language, '__AUDIO_CARD_ID__': card, '__RETAIL_BACKEND_URL__': url.rstrip('/'), '__RETAIL_BACKEND_API_KEY__': key}.items():
+            text = text.replace('"' + marker + '"', json.dumps(value))
+        text = text.replace('__SPEAKER_ENABLED__', 'true' if speaker == '1' else 'false')
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        p.write_text(text)
+        os.chmod(p, 0o600)
+        print('Client text upload configured.')
+        PY
+pre_checks:
+  - type: disk_space
+    min_gb: 6
+    description: At least 6GB for the CPU ASR image, models and recordings
+  - type: audio_device
+    device_path: /dev/snd
+    description: Check that the reSpeaker capture device is present
+    description_i18n:
+      zh: 检查 reSpeaker 采集设备是否存在
+user_inputs:
+  - id: host
+    name: Device IP
+    name_i18n: {zh: 设备 IP}
+    type: text
+    required: true
+  - id: username
+    name: SSH Username
+    name_i18n: {zh: SSH 用户名}
+    type: text
+    default: pi
+    required: true
+  - id: password
+    name: SSH Password
+    name_i18n: {zh: SSH 密码}
+    type: password
+    required: true
+  - id: LANGUAGE
+    name: Recognition language
+    name_i18n: {zh: 识别语种}
+    type: select
+    default: zh
+    required: true
+    options:
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英文}}
+  - id: RETAIL_BACKEND_URL
+    name: Retail backend URL
+    name_i18n: {zh: 零售后台地址}
+    type: text
+    required: true
+    validation:
+      pattern: "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+  - id: RETAIL_BACKEND_API_KEY
+    name: Retail backend API key
+    name_i18n: {zh: 零售后台 API 密钥}
+    type: password
+    required: true
+    validation:
+      pattern: "^[A-Fa-f0-9]{64}$"
+  - id: AUDIO_CARD_ID
+    name: Microphone card ID
+    name_i18n: {zh: 麦克风声卡编号}
+    type: text
+    default: "1"
+    required: true

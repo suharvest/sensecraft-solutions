@@ -96,9 +96,10 @@ services:
   #
   # 只引用 ~/project/openvoicestream 已发布的镜像与它自己的运行约定
   # （deploy/docker-compose.rk.yml、deploy/IMAGE-TAGS.md），不改那个仓库。
-  # digest 取自 IMAGE-TAGS.md 的 rk-20260909 一行。
+  # Current rk-stable digest and promotion record are documented in
+  # ../../docs/image-release-channels-2026-09-11.md.
   ovs-asr:
-    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:184e9336847a6a0c246c94b311b11d0379d4c90366b8ea0ad6afa0a688b91a58
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:d9c159849795d71db20ed7220c1cbc8532ffb06c3b2ef02c59126553304c185d
     container_name: c4-ovs-asr
     restart: unless-stopped
     privileged: true   # RKNN NPU 字符设备
@@ -110,6 +111,7 @@ services:
     volumes:
       - /dev:/dev
       - ovs-asr-models:/opt/asr/models
+      - rk-sensevoice-rknn:/opt/asr/sensevoice-rknn
       - ovs-tts-models:/opt/tts/models
       - ovs-data:/opt/seeed-local-voice/data
     environment:
@@ -118,7 +120,7 @@ services:
       - OVS_PROFILE_DEFAULT=${OVS_PROFILE_DEFAULT:-rk3576-default}
       # 远程 admin 端点默认关闭（不设 key 即 403）。
       - OVS_ADMIN_KEY=${OVS_ADMIN_KEY:-}
-      - ASR_BACKEND=qwen3_asr_rk
+      - ASR_BACKEND=${ASR_BACKEND:-qwen3_asr_rk}
       - ASR_PLATFORM=${ASR_PLATFORM:-rk3576}
       - ASR_MODEL_DIR=/opt/asr/models
     healthcheck:
@@ -235,6 +237,7 @@ volumes:
   mysql-data:
   minio-data:
   ovs-asr-models:
+  rk-sensevoice-rknn:
   ovs-tts-models:
   ovs-data:
   voice-service-logs:

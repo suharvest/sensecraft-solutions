@@ -1,14 +1,14 @@
 version: "1.0"
-id: local_rk3576
-name: Local Voice Stack on reComputer RK3576
+id: local_rk3588
+name: Local Voice Stack on reComputer RK3588
 name_i18n:
-  zh: reComputer RK3576 本地语音栈
+  zh: reComputer RK3588 本地语音栈
 type: docker_deploy
 
-# Pinned to rk3576: the speech image carries RKNN artifacts compiled for that
+# Pinned to rk3588: the speech image carries RKNN artifacts compiled for that
 # NPU and will not run elsewhere. Unlike the reRouter target, which carries no
 # device_class because OpenWrt-on-CM4 exposes no useful hardware identity.
-device_class: rk3576
+device_class: rk3588
 
 detection:
   method: network_scan
@@ -25,11 +25,13 @@ docker:
 
   environment:
     TZ: Asia/Shanghai
-    OVS_PROFILE: rk3576-sensevoice
+    OVS_PROFILE: rk3588-sensevoice
+    ASR_PLATFORM: rk3588
+    RK_PLATFORM: rk3588
+    SPEECH_IMAGE: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-stable
     OUTPUT_DIR: "/home/recomputer/retail-voice"
     AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
-    RETAIL_BACKEND_URL: "{{RETAIL_BACKEND_URL}}"
-    RETAIL_BACKEND_API_KEY: "{{RETAIL_BACKEND_API_KEY}}"
+    HF_ENDPOINT: "https://hf-mirror.com"
     OVS_SPEAKER_EMB: "1"
     OVS_PUNCT: "1"
 
@@ -99,7 +101,7 @@ actions:
       run: |
         set -e
         if [ ! -d /sys/bus/platform/drivers/RKNPU ]; then
-          echo "RKNPU driver not bound - this board cannot run the NPU ASR image" >&2
+          echo "RKNPU driver not bound - this RK3588 board cannot run the NPU ASR image" >&2
           exit 1
         fi
         cat /sys/kernel/debug/rknpu/version 2>/dev/null || echo "RKNPU bound (version node not readable)"
@@ -153,10 +155,13 @@ remote_overrides:
     manual_entry: true
   environment:
     TZ: Asia/Shanghai
-    OVS_PROFILE: rk3576-sensevoice
+    OVS_PROFILE: rk3588-sensevoice
+    ASR_PLATFORM: rk3588
     OUTPUT_DIR: "/home/recomputer/retail-voice"
     AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
     HF_ENDPOINT: https://hf-mirror.com
+    RETAIL_BACKEND_URL: "{{RETAIL_BACKEND_URL}}"
+    RETAIL_BACKEND_API_KEY: "{{RETAIL_BACKEND_API_KEY}}"
     OVS_SPEAKER_EMB: "1"
     OVS_PUNCT: "1"
   services:
@@ -170,11 +175,11 @@ remote_overrides:
       required: true
   actions:
     before:
-    - name: Verify the RKNPU driver is present
+    - name: Verify the RK3588 RKNPU driver is present
       run: |
         set -e
         if [ ! -d /sys/bus/platform/drivers/RKNPU ]; then
-          echo "RKNPU driver not bound - this board cannot run the NPU ASR image" >&2
+          echo "RKNPU driver not bound - this RK3588 board cannot run the NPU ASR image" >&2
           exit 1
         fi
         cat /sys/kernel/debug/rknpu/version 2>/dev/null || echo "RKNPU bound (version node not readable)"
@@ -194,7 +199,7 @@ remote_overrides:
     after_upload:
     - name: Configure client transcription upload
       env:
-        CLIENT_DEPLOY_DIR: /home/{{username}}/retail_voice/local_rk3576
+        CLIENT_DEPLOY_DIR: /home/{{username}}/retail_voice/local_rk3588
         LANGUAGE: '{{LANGUAGE}}'
         AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
         RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
