@@ -280,6 +280,7 @@ partners:
     name_i18n:
       zh: 北京创智科技
 deployment:
+  auto_detect: true
   guide_file: guide.md
   selection_mode: sequential
   post_deployment:

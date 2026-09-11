@@ -133,6 +133,7 @@ intro:
   description_file_i18n:
     zh: description_zh.md
 deployment:
+  auto_detect: true
   guide_file: guide.md
   selection_mode: sequential
   guide_file_i18n:

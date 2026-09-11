@@ -66,6 +66,7 @@ intro:
           default: grove_vision_ai
 
 deployment:
+  auto_detect: true
   guide_file: guide.md
   guide_file_i18n:
     zh: guide_zh.md
