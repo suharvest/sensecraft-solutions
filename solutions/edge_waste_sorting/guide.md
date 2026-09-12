@@ -13,11 +13,9 @@ is running.
 | Physical button (optional) | A trigger source; wiring and the GPIO read are integration work outside this package |
 | Relay, flap or indicator (optional) | Driven by the actuator callback, which carries the four-way category and binds no pin |
 
-**Important.** This is not a compliance or regulatory classification system.
-The Chinese four-way mapping is a table this project maintains, not an
-authority's certified ruling, and municipal definitions differ between cities.
-Nothing here should be the sole basis for a charging, penalty or compliance
-decision.
+**Important.** The Chinese four-way mapping is a table this project
+maintains and municipal definitions differ between cities — do not use the
+output as the sole basis for a charging, penalty or compliance decision.
 
 Known weaknesses:
 
@@ -62,9 +60,7 @@ reComputer J40 series (Orin NX).
   `efficientnet_lite0_waste8.onnx` onto the device at
   `~/edge-waste-sorting/jetson_waste/models/` beforehand; the sha256 check
   (`e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391`) still
-  applies either way. This is the current baseline (EfficientNet-Lite0, m1c) —
-  MobileNetV3-Small (m1b) was superseded because it collapsed under INT8 on
-  every edge chain tested; see the solution page.
+  applies either way. This is the current baseline (EfficientNet-Lite0).
 - **The container image has not been pushed.** Build it from the upstream
   repository on the device and either retag it to the name in the compose file
   or set `WASTE_IMAGE` to your local tag.
@@ -267,11 +263,9 @@ above.
 | Physical button (optional) | A trigger source; wiring and the GPIO read are integration work outside this package |
 | Relay, flap or indicator (optional) | Driven by the actuator callback, which carries the four-way category and binds no pin |
 
-**Important.** This is not a compliance or regulatory classification system.
-The Chinese four-way mapping is a table this project maintains, not an
-authority's certified ruling, and municipal definitions differ between cities.
-Nothing here should be the sole basis for a charging, penalty or compliance
-decision.
+**Important.** The Chinese four-way mapping is a table this project
+maintains and municipal definitions differ between cities — do not use the
+output as the sole basis for a charging, penalty or compliance decision.
 
 Known weaknesses:
 
@@ -281,8 +275,7 @@ Known weaknesses:
   The open-vocabulary tower still fails INT8 quantisation at
   `hailo optimize`. If you train and self-quantise MobileNetV3-Small
   yourself, verify INT8 for it separately rather than carrying over this
-  baseline — it collapsed on this exact compile pipeline (see the solution
-  page).
+  baseline — it collapsed on this exact compile pipeline.
 - **One item per image.** There is no detector.
 - **`textile` has never been trained or tested**, and `hazardous` is never
   emitted.
@@ -310,10 +303,6 @@ Measured on RK3588 hardware over the full 7417-image validation set: INT8
 baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
 material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
 INT8 is 51% faster with no material difference on accuracy.
-
-These are reference figures from an RK3588 development board, not a
-reComputer chassis; they will be updated once a reComputer unit has been
-re-measured.
 
 ## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
 

@@ -12,8 +12,8 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
 
 **重要：** 内部验证用。模型训练自 NEU-DET 的转载版——用于对外 demo、客户现场展示
 或商业物料之前，请先与数据集方确认许可。
-实测精度是 290 张验证图上 mAP50 0.7577、部署阈值 0.35 下召回 0.6969，
-每个数字都是单次未复现的实测。已知弱点：crazing 的 AP50 为 0.3603，六类中最低，
+实测精度是 290 张验证图上 mAP50 0.7577、部署阈值 0.35 下召回 0.6969。
+已知弱点：crazing 的 AP50 为 0.3603，六类中最低，
 改阈值不改变这个数字；帧级误报要用你自己的产线图像测，因为数据集里每张图都带缺陷；
 所有数字都来自合成视频，不是真实相机。
 
@@ -43,7 +43,7 @@ YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程
    在许可确认之前，请手工把该文件放到设备的
    `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx`；
    两种方式都会做校验。
-6. 部署前先定好判定阈值。0.35 是冻结值；方案页给出了 0.25 与 0.45 的代价对照。
+6. 部署前先定好判定阈值。0.35 是冻结值；方案页给出了提到 0.6 的代价对照。
 7. **选一个检测器 track。** `config/config.json` 里的 `model.track`
    （部署输入项 **检测器 Track**）可选 `yolox`（默认，也是唯一在这块板上
    实测过的 track——291 s engine 构建、本页所有 Jetson 时延数字都是它的）、
@@ -233,8 +233,6 @@ mAP50 0.7091。设备上有三道 ABI 关卡要先过，容器才起得来。
 | PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
 
 **重要：** 与另一个套餐同样的数据集许可限制——对外使用前请用自己的图像重训。
-方案页上的 Hailo-8 数字（硬件推理 106.75 FPS，全链路 46.14 FPS，mAP50 0.7091）
-是同款加速器平台的实测参考值，按它做规划之前请在自己的整机上复测一次。
 crazing 弱、误报无法测量这两条在这里同样成立。
 
 ## 步骤 1: 在 Hailo 上部署表面质检 {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}

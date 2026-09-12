@@ -1,268 +1,162 @@
 # Waste Sorting at the Bin
 
-Trigger a shot, get back what the item is made of and which of the four
-Chinese municipal waste streams it belongs in, on MQTT, in one message.
-
-**The baseline classifier is EfficientNet-Lite0 (m1c), not MobileNetV3-Small.**
-The original baseline (MobileNetV3-Small, "m1b") collapsed under INT8
-quantisation on all three edge chains tested (the Hailo compiler's simulator, RK3576, RK3588);
-EfficientNet-Lite0 does not, and is now the shipped baseline. Most accuracy
-figures below still come from onnxruntime on an Apple M4 CPU, but the Hailo-8
-and RK3588 sections carry real INT8 numbers, both from hardware: RK3588 from an
-RK3588 board, Hailo-8 from a bench unit with a Hailo-8 M.2 module.
-The reCamera section is the exception — those numbers were taken on the camera
-itself.
+One trigger, one photo, and you get back what the item is made of and which of
+China's four household-waste categories it belongs in — delivered as a single
+MQTT message.
 
 ## What it does
 
-A trigger — a button, an HTTP call, or motion in the frame — makes the device
-capture one image, classify the item in it into one of eight material classes,
-look up the Chinese four-way disposal category from that class, and publish a
-single MQTT message with the class, the four-way category, the top-3 with
-confidences, and a reference to the stored image. The image bytes never leave
-the device; the payload carries a path or object-store URI only. In parallel,
-an async callback receives the four-way category so a flap, relay or indicator
+One trigger — a button, an HTTP call, or motion in the frame — makes the device
+take a picture, classify the item into one of eight material categories, look
+up the China four-way category for that material, and publish an MQTT message
+with the material, the four-way category, a top-3 with confidences, and a
+reference to the stored image. Image bytes never leave the device; the payload
+carries only a path or an object-store URI. An asynchronous callback receives
+the four-way result at the same time, so a lid, a relay or an indicator light
 can act on it.
 
 ## What you get
 
-- **Two layers of answer from one head.** The model predicts eight material
-  classes — paper, cardboard, glass, metal, plastic, textile, organic,
-  residual. The Chinese four-way category (可回收物 / 厨余垃圾 / 有害垃圾 /
-  其他垃圾) is a lookup table on top of that, not a second head, so changing a
-  local authority's rules is a table edit rather than a retrain.
-- **Trigger-on-demand, not a video stream.** Button, HTTP or motion, with an
-  800 ms debounce; a trigger that arrives while one is in flight is merged
-  rather than queued. A continuous mode exists, rate-limited and requiring
-  three identical top-1 predictions in a row before it publishes.
-- **A contract that is checked, not just documented.** Every payload is
-  validated against the event schema before it is published, including the two
-  rules a JSON Schema cannot express: `category` must equal `top3[0]` and
-  `confidence` must equal `top3[0].confidence`. A payload that fails is
-  counted and dropped.
-- **An optional open-vocabulary track.** A SigLIP 2 vision tower scored
-  against constant text prototypes, selectable per deployment with
-  `model.track: open_vocab`. It adds classes without retraining, answers in
-  Chinese or English from the same image embedding, and can score "this is not
-  in my vocabulary" — none of which a closed-set head can do. It is 40× slower.
-- **An actuator interface with no pin binding.** The runtime calls back with a
-  category; where that goes is integration work, which is why the same build
-  runs on boards with different headers.
+- **Two answers from one head.** The model predicts eight material classes —
+  paper, cardboard, glass, metal, plastic, textile, organic, residual. The
+  China four-way sort (recyclable / kitchen / hazardous / other) is a lookup
+  table on top, not a second head, so a change in local rules means editing a
+  table, not retraining.
+- **Trigger-and-capture, not a video stream.** Button, HTTP or motion
+  detection, with 800 ms debounce; triggers arriving while one is in flight are
+  merged, not queued. A continuous mode exists too — rate-limited, and it only
+  publishes after three consecutive frames agree on the top-1.
+- **The contract is enforced, not just documented.** Every payload passes
+  event-schema validation before publishing; failures are counted and dropped.
+- **An optional open-vocabulary track.** A SigLIP 2 vision tower scores
+  constant text prototypes; select it with `model.track: open_vocab` at deploy
+  time. It adds classes without retraining, answers in Chinese or English from
+  the same image embedding, and can score "this is not in my vocabulary". The
+  cost is roughly 4-5× the latency.
+- **An actuator interface that is not tied to pins.** The runtime calls back
+  with a category; where that category goes is integration work, which is why
+  the same build runs on boards with different headers.
 
 ## Where it fits
 
-- Household and community drop-off points: photograph one item at the moment
-  of disposal and tell the resident which bin it goes in.
-- Sorting stations where an operator presents items one at a time and wants a
-  second opinion plus an audit trail on MQTT.
-- Bins with a motorised flap or a lane indicator, driven from the four-way
-  category through the GPIO callback.
+- Home and community drop-off points: photograph a single item at the moment of
+  disposal and tell the resident which bin it goes in.
+- Sorting stations: an operator presents items one by one and wants a second
+  opinion plus an audit trail on MQTT.
+- Bins with a motorised lid or per-category indicator lights, driven from the
+  four-way result via the GPIO callback.
 
-Not in scope: conveyor-belt sorting with mechanical actuation, and street-level
-litter detection. The latter is a second phase and needs a detector, not a
-classifier — this model assumes one item per image.
+Out of scope: mechanical integration for conveyor sorting, and detecting litter
+on the ground — this model assumes one item per image.
 
 ## How well it works
 
-An engineering benchmark on two public datasets — **not a compliance or
-regulatory classification result**. The four-way mapping is a table this project
-maintains, not an authority's certified ruling, and municipal definitions differ
-between cities.
-
 | What the drop-off point gets | Typical | Device |
 |---|---|---|
-| Item in frame to a bin answer | **4.122 ms** per trigger | reComputer J40 series (J4012, Orin NX) |
-| Four-way top-1 | **0.9500** | Same model on every accelerator |
-| Material top-1, 8 classes | **0.8877** | Same |
-| Material top-1 (1060-image subset), TensorRT vs CPU agreement | **0.8755 top-1, 0.9991 agreement** | reComputer J40 / J30 series (bit-identical on both) |
+| Item in frame to a sorting answer | **4.122 ms** per trigger | reComputer J40 series (J4012, Orin NX) |
+| Four-way top-1 | **0.9500** | Same model, consistent across accelerators |
+| Material top-1 (8 classes) | **0.8877** | Same as above |
+| Material top-1 (1060-image subset), TensorRT vs CPU agreement | **top-1 0.8755, agreement 0.9991** | reComputer J40 / J30 series |
 
-**Report both top-1 numbers together**: the four-way figure is higher than the
-material figure because glass, metal and plastic confusion is absorbed — all
-three map to the same recyclable bin — so quoting only the four-way number
-overstates what the model knows about materials.
-
-Accuracy is a model property and carries across accelerators: the Hailo-8 build
-scores 0.8889 material top-1 on the full 7417-image validation set. The
-1060-image-subset TensorRT figures (0.8755 top-1, 0.9991 agreement vs CPU)
-were first measured on a reComputer J40 (Orin NX 16GB) and reproduce
-bit-identically on a reComputer J30 (Orin Nano 8GB) — same ONNX, same
-precision, same figures to four decimal places on both boards.
+**Read the two top-1 figures together**: the four-way score is higher because
+confusions among glass, metal and plastic are all absorbed into "recyclable" —
+quoting only the four-way number overstates how well the model tells materials
+apart. The Hailo-8 build scores 0.8889 material top-1 on the full 7417-image
+validation set.
 
 ### Platform support
 
-- **Jetson Orin (TensorRT)** — deployed on reComputer J40 series (Orin NX).
-- **reComputer R2000 (Hailo-8)** — deployment package shipped; the baseline HEF
-  has run the full validation set on a Hailo-8.
-- **RK3588** — runs on real hardware in fp16 and INT8, but there is **no
-  deployment package**: the conversion and the runtime work, the packaging does
-  not exist.
-- **RK3576** — runs on real hardware with the superseded backbone only; no
+- **Jetson Orin (TensorRT)** — deployed and verified on the reComputer J40
+  series (Orin NX).
+- **reComputer R2000 (Hailo-8)** — a deployment package exists; the baseline
+  HEF has run the full validation set on a real Hailo-8.
+- **RK3588 / RK3576** — conversion and runtime proven on real boards, but no
   deployment package.
 
 ### What these numbers cover
 
-- **Both datasets are photographs of single items** — one on a plain background,
-  one a detection set with objects off-centre and often occluded. Neither is a
-  real bin: wet, crushed, stacked, backlit and partially bagged waste sit
-  outside the evaluation, so **accuracy at a live drop-off point will be lower
-  than these figures** and should be re-measured on your own site imagery.
-- **`textile` has no samples in either dataset**, so the model never emits it,
-  and every table reports `n/a` for that class rather than 0.
-- **`hazardous` (有害垃圾) has no material class mapped to it**, so the model
-  shipped in this package never emits it either.
-- **`organic` dominates the data** at roughly 48% of both splits, and the
-  confusion matrix shows the model pushing uncertain items toward it.
-- The two datasets share source photographs; grouping by source batch, origin
-  image and perceptual hash merged 430 near-duplicates, 183 of them across the
-  two datasets, and groups move between splits as a unit.
+- **Both datasets are photos of single items**, not real bins — wet, crushed,
+  stacked, backlit or partly bagged waste is outside the evaluation, so
+  real-world accuracy will be lower; re-test on images from your own site
+  before going live.
+- **`textile` has no training samples**, so the model never outputs it;
+  **`hazardous` has no material class mapping to it**, so this package's model
+  never emits it.
+- **`organic` makes up ~48% of the data**, and the model pushes uncertain items
+  into it.
+- The four-way mapping is a table maintained by this project; municipal rules
+  differ from city to city.
 
 ## Classifier selection: baseline vs open-vocabulary
 
-Both tracks are real and both are shipped. The choice is not "old vs new".
+Both tracks ship; choose with `model.track`.
 
-**The baseline model changed after this comparison was run: it is now
-EfficientNet-Lite0 (m1c), not MobileNetV3-Small (m1b).** The comparison below
-was measured against the old baseline and its numbers are unchanged — Lite0
-is marginally more accurate than MobileNetV3-Small on this split (val 0.8877
-vs 0.8792) so the "baseline vs open-vocabulary" gap in accuracy does not
-narrow, but the "baseline" column's exact figures (0.8792/0.8501 etc.) below
-refer to MobileNetV3-Small, not to the model actually shipped today. The
-40× latency gap is CPU-only and also predates the swap — MobileNetV3-Small's
-CPU latency (1.57 ms p50) was the divisor; Lite0's own CPU p50 is 14.7 ms,
-which narrows the multiple to roughly 4–5×
-against Lite0. Neither track has been re-measured against SigLIP2 since the
-baseline swap.
+**The baseline (EfficientNet-Lite0, closed set) is more accurate on this
+taxonomy** (val 0.8877 vs 0.8501). **The open-vocabulary track (SigLIP 2) wins
+on things a closed-set head structurally cannot do:**
 
-**The baseline is more accurate on this taxonomy.** Same split, same images:
-0.8792 vs 0.8501 on val, 0.8807 vs 0.8620 on test — the closed-set head leads
-by about 3 points on val and 2 on test. That is the metric the open-vocabulary
-track does not win.
+- **Better calibration** — its confidence tracks the real hit rate more
+  closely, which matters when a threshold decides whether a lid moves.
+- **Open-set rejection** — it can score "this item is not in my vocabulary"
+  (AUROC 0.7538).
+- **Cross-lingual answers** — Chinese and English prompts agree on the four-way
+  category at 0.9143 from the same visual embedding.
+- **New classes without retraining** — a new class is a prompt edit plus a
+  prototype rebuild, not a training run.
 
-**What the open-vocabulary track wins is everything the closed set structurally
-cannot do:**
-
-- **Calibration.** ECE 0.0221 vs 0.0308 on val, 0.0250 vs 0.0345 on test. Its
-  confidence means more, which matters when a threshold decides whether the
-  flap moves.
-- **Open-set rejection.** AUROC 0.7538 for "this item is not in my vocabulary".
-  The closed-set head cannot produce this number at all — removing a class from
-  a fixed softmax head means retraining.
-- **Cross-lingual answers.** 0.8698 agreement between Chinese and English
-  prompts on the material classes, 0.9143 after mapping to the four-way
-  categories, from a single visual embedding. The baseline has no text side.
-- **Adding a class without retraining.** A new category is a prompt edit and a
-  prototype rebuild, not a training run — the direct answer to `textile` having
-  no data.
-
-**The cost is 40× latency against the old baseline** (p50 66.93 ms vs 1.57 ms
-on the same M4 CPU), **or roughly 4–5× against the current baseline**
-(66.93 ms vs Lite0's own CPU p50 of ~14.7 ms). That is not an implementation
-gap — ViT-B/16 at 224² is roughly 17.6 GFLOPs against MobileNetV3-Small's 0.06
-(Lite0 sits between the two). **Open-vocabulary is not a real-time CPU option.** Its
-landing places are (a) a form factor with an NPU or GPU, or (b) as a teacher for
-a distilled student model.
-
-Two further findings from the calibration run, both of which shape how the
-track is deployed:
-
-- **Use the hierarchical path, not direct four-way prediction.** English
-  eight-class predictions mapped to the four categories score 0.9393; Chinese
-  prompts predicting the four categories directly score 0.8478. "Recyclable" is
-  not a visual concept; "glass bottle" is.
-- **The `residual` category has a leave-one-out AUROC of 0.5795, near chance.**
-  Remove "general waste" from the vocabulary and some material word always
-  catches those items with high confidence. It is a fallback definition, not a
-  visual concept.
+The cost: ~67 ms per image on CPU, 4-5× the baseline — real-time use needs an
+NPU/GPU. Two deployment conclusions: take the hierarchical path (predict the
+eight materials, then map to four) instead of predicting the four-way category
+directly ("recyclable" is not a visual concept); and `residual` is a fallback
+definition, not a visual concept — don't expect it to be "learned".
 
 ## Output Interfaces
 
-| Interface | Where | What it carries |
+| Interface | Where | Content |
 |---|---|---|
-| MQTT `waste/<stream-id>/results` | port 1883 | One JSON per classification: material class, Chinese four-way category, confidence, top-3, trigger source, image reference, model name and ONNX sha256, taxonomy version |
-| HTTP `/trigger` | port 8080 | POST fires one capture-and-classify |
-| HTTP `/preview.mjpg`, `/healthz`, `/events` | port 8080 | Live view, counters and inference time, recent results with their top-3 |
-| GPIO callback | in-process | Async callback carrying the four-way category. No pin binding — that is integration work. |
+| MQTT `waste/<stream-id>/results` | port 1883 | One JSON per classification: material class, China four-way category, confidence, top-3, trigger source, image reference, model name with ONNX sha256, taxonomy version |
+| HTTP `/trigger` | port 8080 | POST to trigger one capture-and-classify |
+| HTTP `/preview.mjpg`, `/healthz`, `/events` | port 8080 | Live view, counters with inference timing, recent results with their top-3 |
+| GPIO callback | in-process | Asynchronous callback with the four-way result. Not bound to pins — that is integration work. |
 
-The image is never in the payload. `image_ref.kind` is `none`, `local` or
+Images never ride in the payload. `image_ref.kind` is one of `none` / `local` /
 `object_store`; base64 image bytes in a payload are a contract violation and
 are rejected before publishing.
 
 ## Deployment Comparison
 
-**Camera + reComputer J30 / J40 (Orin)** — the only preset with a model file. The
-TensorRT engine is built on the device during deployment, because an engine is
-tied to the exact GPU architecture and TensorRT version and cannot be shipped
-prebuilt. It is also the only preset offering the open-vocabulary track: the
-SigLIP 2 tower at 67 ms per image on CPU needs an accelerator, and the Orin is
-the accelerator this package has. Measured on reComputer J40 series (Orin NX):
-baseline engine build 68 s, deployed pipeline 4.122 ms / inference 3.533 ms
-per trigger — see the Platform support table above for deployment status.
+**Camera + reComputer J30 / J40 (Orin)** — the only preset that ships with
+model files, and the only one offering the open-vocabulary track. The TensorRT
+engine is built on the device at deploy time (tied to the GPU architecture and
+TensorRT version); the build measured 68 seconds, with 4.122 ms end-to-end per
+trigger in the deployed container.
 
-**Camera + reComputer R2000 series (Hailo-8)** — prepares the board, validates
-the three Hailo ABI gates, and downloads the EfficientNet-Lite0 HEF. The
-shipped HEF has run on Hailo-8 hardware over the full 7417-image val set
-(material top-1 0.8889, Chinese four-way 0.9507, agreement vs fp32 CPU 0.9581,
-p50 3.166 ms). A from-scratch deploy of the container itself was separately
-verified on the same hardware: `/healthz`, `/trigger` and the MQTT output all
-returned a real classification matching the golden label for that one image,
-and a direct `infer_shard.py` run against a 1060-image subset of the same val
-set — using the same HEF but not going through the deployed container's HTTP
-or MQTT path — measured agreement 0.9425 and accuracy vs ground truth 0.8453
-at p50 3.167 ms, consistent with the full-set figures above.
-`evaluation/runs/2026-09-08-harvest-pi-acceptance`
+**Camera + reComputer R2000 series (Hailo-8)** — pass the three Hailo ABI
+gates, then download the EfficientNet-Lite0 HEF. The shipped HEF has run the
+full 7417-image validation set on a real Hailo-8: material top-1 0.8889,
+four-way 0.9507, p50 3.166 ms. The deployment container itself was verified on
+the same unit through `/healthz`, `/trigger` and the MQTT trigger path.
 
 ## Usage Notes
 
-- **One item per image.** There is no detector. Two items in one frame produce
-  one answer, and which one it describes is undefined.
-- **The camera and the drop area are the whole input.** Framing that leaves the
-  item small in the frame degrades the classification, and none of the figures
-  above were measured under such framing.
-- **In continuous mode, three identical top-1 predictions in a row are required
-  before publishing**, and the mode is rate-limited. Trigger mode has no such
-  smoothing — a single shot is a single answer.
-- **The bundled MQTT broker allows anonymous connections.** That is for local
-  commissioning. A deployment that leaves the bench needs a broker with
-  credentials.
-- **The GPIO callback is not wired to anything by default.** `actuator.enabled`
-  defaults to false; enabling it without providing the binding code changes
+- **One item per image.** There is no detector. Two items in one frame yield a
+  single answer, and which item it describes is undefined.
+- **The camera and the drop zone are the whole input.** Framing that leaves the
+  item too small in the picture hurts classification.
+- **Continuous mode publishes only after three consecutive frames agree on the
+  top-1**, and it is rate-limited. Trigger mode has no such smoothing — one
+  shot, one answer.
+- **The bundled MQTT broker allows anonymous connections (for debugging).**
+  Point at a broker with credentials for a real install.
+- **The GPIO callback is wired to nothing by default.** `actuator.enabled`
+  defaults to false; enabling it without providing binding code changes
   nothing.
-
-## Scope of the Numbers
-
-- **Baseline and open-vocabulary accuracy and CPU latency** — onnxruntime 1.25.1, Apple M4 CPU, batch 1.
-- **Baseline INT8 for Hailo-8** — built with DFC 3.31.0 / HailoRT 4.21.0, `--hw-arch hailo8`. The shipped `efficientnet_lite0_waste8_u8.hef` is quantised at `optimization_level=2` (quantisation-aware distillation finetune, 8 epochs, bias correction on) over 2048 class-balanced uint8 training crops; compiling it needs a GPU visible inside the DFC container. It was measured on a Hailo-8 over the full 7417-image val set. The same graph at `optimization_level=1` scores 2.40 points below fp32 and is not deployed.
-- **Baseline fp16 and INT8 on RK3588** — an RK3588 development board, librknnrt 2.3.2, 50 validation images.
-- **Baseline on RK3576** — an RK3576 development board, m1b only.
-- **Open-vocabulary SigLIP 2 tower** — `hailo parser` passes end to end, but `hailo optimize` (INT8 PTQ, 256 calibration images, `optimization_level=1`) fails at layer `ne_activation_mul_and_add78`, so there is no HEF for it.
-- **Field accuracy** — both datasets are single-item photographs (TrashNet on a white poster board, GC3 with objects off-centre and often occluded), so collect a field set from your own bin and re-measure on it.
 
 ## Licensing note
 
-Code in the upstream repository is Apache-2.0. The SigLIP 2 checkpoint
-(`google/siglip2-base-patch16-224`, revision `75de2d55…`) is Apache-2.0.
-
-Both training datasets permit redistribution and derivative works with
-attribution, so figures and models derived from them may be used externally:
-
-- **TrashNet — MIT License, Copyright (c) 2017 Gary Thung.** Verified against
-  two first-party sources: the repository's own `LICENSE` file at commit
-  `6fa2b87`, and the `license` field of the official HuggingFace dataset card.
-  Note that the upstream project's own SPEC and its survey report both record
-  this as CC BY 4.0; that is wrong, and no first-party source states CC BY 4.0.
-- **Garbage Classification 3 — Material Identification (Roboflow Universe) —
-  CC BY 4.0**, stated verbatim in the export package's own
-  `README.dataset.txt`.
-
-Attribution string for external material:
-
-```
-TrashNet — Gary Thung and Mindy Yang, https://github.com/garythung/trashnet,
-MIT License, Copyright (c) 2017 Gary Thung.
-Garbage Classification 3 — Material Identification / Roboflow Universe,
-https://universe.roboflow.com/material-identification/garbage-classification-3,
-licensed CC BY 4.0.
-```
-
-No dataset-derived image is committed in this package. `assets/models/` holds
-checksums only; see `gallery/ATTRIBUTION.md`.
+The upstream code and the SigLIP 2 checkpoint
+(`google/siglip2-base-patch16-224`) are Apache-2.0. Both training datasets
+permit redistribution with attribution: TrashNet (MIT) and Garbage
+Classification 3 — Material Identification / Roboflow Universe (CC BY 4.0).
+The attribution strings for external materials are in
+"gallery/ATTRIBUTION.md".

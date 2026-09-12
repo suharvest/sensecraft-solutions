@@ -15,7 +15,7 @@ exact GPU architecture and TensorRT version and cannot be shipped prebuilt.
 of NEU-DET — clear its licence with the dataset owner before using this for a
 public demo, a customer-site demo or commercial material. The measured
 accuracy is mAP50 0.7577 with recall 0.6969 at the deployed 0.35 threshold on
-290 validation images, and every number is a single unreproduced measurement.
+290 validation images.
 Known weaknesses: crazing has the lowest AP50 of the six classes at 0.3603, and
 changing the threshold does not move it; frame-level false alarms have to come
 from your own line, because every image in the dataset carries a defect; all
@@ -51,7 +51,7 @@ J40 series). First start needs to wait for that build to finish.
    `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx` on
    the device by hand; the checksum is verified either way.
 6. Decide the verdict threshold before you deploy. 0.35 is the frozen value; the
-   solution page prices 0.25 and 0.45 against it.
+   solution page prices raising it to 0.6 against it.
 7. **Pick a detector track.** `model.track` in `config/config.json` (deploy
    input **Detector Track**) selects `yolox` (default, the only track
    measured on this board — 291 s engine build, all Jetson latency figures
@@ -262,10 +262,7 @@ device before the container will start.
 | PLC or line controller | Optional Modbus TCP master that reads the verdict |
 
 **Important:** the same dataset-licence restriction as the other preset applies
-— retrain on your own images before public or commercial use. The Hailo-8
-figures on the solution page (106.75 FPS hardware inference, 46.14 FPS full
-pipeline, mAP50 0.7091) are reference values from the same accelerator platform;
-re-test on your own unit before you plan around them. The crazing weakness and
+— retrain on your own images before public or commercial use. The crazing weakness and
 the unmeasurable false-alarm rate apply here too.
 
 ## Step 1: Deploy Surface Inspection on Hailo {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}

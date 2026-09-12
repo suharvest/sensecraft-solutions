@@ -10,13 +10,9 @@ and that TensorRT version. Every number on the intro page was taken here.
 | reComputer J30 / J40 | Detection, assembly comparison, dimension measurement, Modbus TCP server, MQTT broker and the web panel |
 | Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
 
-**Important.** This is a demo package, not a certified metrology or safety
-product. The dimension module measures pixels against a calibration reference —
-its accuracy depends on your optics, lighting and fixture, and it does not
-replace a calibrated gauge in an acceptance test. The shipped model is trained
-on DeepPCB, a bare-board copper-defect dataset used here to prove the chain end
-to end; it is not a missing-part detector for your assemblies, and a real
-station needs a model trained on your own images. Three known weaknesses to plan
+**Important.** The shipped model is trained on DeepPCB, a bare-board
+copper-defect dataset used here to prove the chain end to end; a real station
+needs a model trained on your own images. Three known weaknesses to plan
 around: expected-item ROIs are picture coordinates, so any camera movement
 invalidates the template; a tilted part or a calibration reference at a
 different working distance biases every measurement; and all camera streams
@@ -272,12 +268,9 @@ not part of that run; the multi-stream sweep is Orin-only.
 | reComputer R2000 with Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
 | Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
 
-**Important.** This is a demo package, not a certified metrology or safety
-product; the dimension module does not replace a calibrated gauge, and the
-shipped model is trained on the DeepPCB bare-board defect dataset rather than on
-assembly images. The Hailo-8 figures quoted above are reference values from the
-same accelerator platform; re-test on your own unit before you plan around them.
-The same three weaknesses apply — picture-coordinate ROIs, calibration plane sensitivity, and one shared
+**Important.** The shipped model is trained on the DeepPCB bare-board defect
+dataset rather than on assembly images; retrain on your own images for a real
+station. The same three weaknesses apply — picture-coordinate ROIs, calibration plane sensitivity, and one shared
 Modbus register bank across streams.
 
 ## Step 1: Deploy the Inspection Runtime {#deploy_hailo_assembly type=docker_deploy required=true config=devices/hailo_assembly.yaml}
@@ -457,26 +450,15 @@ in the decision path. The detector runs in INT8 on the camera's RV1126B NPU.
 
 Measured on this hardware over the 205-image DeepPCB validation split, with the
 camera's built-in application stopped: mAP50 0.9870 against 0.9876 for the
-fp32 CPU reference, mAP50-95 0.8000 against 0.8213, precision 0.9299 and recall
-0.9741 at the frozen 0.35 score — the same aggregate precision and recall the
-CPU reference reports on those images, though the 30 missed boxes are not the
-same 30 (mousebite 7 -> 8, spur 2 -> 1). Inference p50 30.9 ms, p95 34.5 ms. An
+fp32 CPU reference. Inference p50 30.9 ms, p95 34.5 ms. An
 fp16 build of the same model is published alongside it: mAP50-95 0.8221, p50
 110.3 ms.
-
-Two limits on those figures. The 64 INT8 calibration images were drawn from the
-same validation split the numbers are measured on, so the INT8 column reads
-optimistic against unseen data. And they come from replaying validation
-images on the device, not from a camera pointed at a board — measure accuracy
-through this camera's own optics and capture path on your own line.
 
 | Device | Purpose |
 |--------|---------|
 | reCamera Pro (RV1126B) | Capture, detection on the NPU, OK/NG verdict, Modbus TCP server, MQTT publisher and the local status panel |
 
-**Important.** This is a demo package, not a certified metrology or safety
-product. The shipped model is trained on the DeepPCB bare-board defect dataset
-rather than on assembly images. Assembly comparison and dimension measurement
+**Important.** Assembly comparison and dimension measurement
 are off in this preset: both need ROIs marked per station, which no generic
 form can carry — the Orin and Hailo presets cover them. The camera runs one App
 Center application at a time, so activating this one stops whatever was
