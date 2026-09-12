@@ -1,0 +1,149 @@
+version: "1.0"
+id: local_j30
+name: reComputer J3011 Speech Service
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# device_class=jetson injects the shared iptables raw-table workaround
+# (scope=remote — fires on remote Jetson only, not on a developer Mac
+# previewing locally) plus the /etc/nv_tegra_release detection probe.
+# The legacy local file had no actions of its own; the legacy remote
+# file's hand-written "Fix Docker iptables for JetPack 6.2" action was
+# byte-for-byte equivalent to the profile's "JetPack 6.x" entry, so
+# dropping it here is safe — the profile is the single source of truth.
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose.jetson.yml
+  compose_dir: assets/docker
+  options:
+    project_name: openvoicestream
+  environment:
+    OVS_PROFILE: "jetson-sensevoice-c64"
+    SPEECH_IMAGE: "sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-stable"
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: disk_space
+    min_gb: 10
+    description: At least 10GB for speech service Docker image
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8621
+
+name_i18n:
+  zh: Jetson 语音服务
+
+remote_overrides:
+  remote_path: /home/{{username}}/openvoicestream
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  actions:
+    after_upload:
+    - name: Configure client transcription upload
+      env:
+        CLIENT_DEPLOY_DIR: /home/{{username}}/openvoicestream/local_j30
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        cd "$CLIENT_DEPLOY_DIR"
+        python3 - <<'PY'
+        import json, os, re
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path('config/voice-client.yaml')
+        text = p.read_text()
+        for marker, value in {'__LANGUAGE__': language, '__AUDIO_CARD_ID__': card, '__RETAIL_BACKEND_URL__': url.rstrip('/'), '__RETAIL_BACKEND_API_KEY__': key}.items():
+            text = text.replace('"' + marker + '"', json.dumps(value))
+        text = text.replace('__SPEAKER_ENABLED__', 'true' if speaker == '1' else 'false')
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        p.write_text(text)
+        os.chmod(p, 0o600)
+        print('Client text upload configured.')
+        PY
+  environment:
+    OVS_PROFILE: "jetson-sensevoice-c64"
+  pre_checks:
+    - type: disk_space
+      min_gb: 3
+      description: At least 3GB for speech service Docker image
+  post_deployment:
+    open_browser: false
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: LANGUAGE
+      name: Recognition language
+      name_i18n: {zh: 识别语种}
+      type: select
+      default: zh
+      required: true
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英文}}
+    - id: AUDIO_CARD_ID
+      name: Microphone card ID
+      name_i18n: {zh: 麦克风声卡编号}
+      type: text
+      default: "1"
+      required: true
+    - id: RETAIL_BACKEND_URL
+      name: Retail backend URL
+      name_i18n: {zh: 零售后台地址}
+      type: text
+      required: true
+      validation:
+        pattern: "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+    - id: RETAIL_BACKEND_API_KEY
+      name: Retail backend API key
+      name_i18n: {zh: 零售后台 API 密钥}
+      type: password
+      required: true
+      validation:
+        pattern: "^[A-Fa-f0-9]{64}$"

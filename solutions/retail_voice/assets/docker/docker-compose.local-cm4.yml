@@ -18,10 +18,12 @@
 
 services:
   speech:
-    # Pushed and reachable: sha256:dd7760bf5a99c77c1eee28043e8175371e6056a3060ddc0c54782946f80deeb9
-    # (verified with `docker manifest inspect`, 2026-09-05). This is the CPU /
-    # ONNX line; it contains no RKNN or TensorRT artifacts.
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-20260721}
+    # Historical CPU/ONNX digest: sha256:dd7760bf5a99c77c1eee28043e8175371e6056a3060ddc0c54782946f80deeb9
+    # (verified with `docker manifest inspect`, 2026-09-05). The current
+    # rpi-stable channel and digest are recorded in
+    # ../../docs/image-release-channels-2026-09-11.md. This is the CPU / ONNX
+    # line; it contains no RKNN or TensorRT artifacts.
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-stable
     container_name: openvoicestream
     init: true
     network_mode: host
@@ -71,18 +73,7 @@ services:
         max-file: "3"
 
   voice-client:
-    # NOT PUBLISHED. The local-output build lives on branch feature/c4-harden
-    # of sensecraft_voice/sensecraft-voice-client; no `c4-*` tag exists in the
-    # registry (checked 2026-09-05: `docker manifest inspect` on
-    # sensecraft-voice-client:c4 and :c4-local both return "not found").
-    # Before verifying this preset, build that branch and tag it as below, or
-    # override VOICE_CLIENT_IMAGE.
-    #
-    # The published v0.4 tag (sha256:164d4022b8859046d8813a99cf2e79055c4c4de7d
-    # 67c61fc7ecb354244b4a056) is NOT a substitute: it speaks the older
-    # sensecraft-asr-server WebSocket protocol, has no local VAD, and reports
-    # to the cloud rather than to disk.
-    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client:c4-local}
+    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5}
     container_name: sensecraft-voice-client
     depends_on:
       speech:
