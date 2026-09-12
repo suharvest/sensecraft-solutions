@@ -1,38 +1,34 @@
 ## What This Reference Design Is
 
 A reSpeaker XVF3800 microphone array feeds one 16 kHz mono stream into an edge
-box in the store, and the box turns in-store speech into text. What happens to
-that text is the choice this design puts in front of you: it can stay on the box
-as a file, or it can go through a server stack that redacts personal data before
-storage and can hard-delete a subject on request and prove it gone.
+box in the store. Both presets require the retail voice backend: the client
+transcription path transcribes on the device and uploads text, while the server
+transcription path sends Clip recordings through the phone and gateway to the
+platform ASR before storage.
 
 Both paths use the same capture hardware and the same speech service. They are
 two presets of one design, not two products.
 
 ## Two ways to deploy it
 
-**On-Device Transcription** — one box, one microphone, one directory of
-transcripts. Capture, voice activity detection, transcription, punctuation and
-optional voiceprint matching all run on the same board. No cloud account, no
-upload, no database, and no outbound connection needed once images and models
-are in place. Choose it for a single store or a pilot site where nobody wants
-recordings leaving the premises, and where a local text file is an acceptable
-artefact on its own.
+**Client Transcription and Upload** — the required retail backend runs its
+database, object store, service and console. The selected edge device captures
+and transcribes locally, keeps an offline cache, and uploads finalized text to
+that backend. Audio can remain on the device according to its retention policy;
+the backend connection is required for the retail record.
 
-**Server Stack** — one host runs the whole pipeline: an ASR endpoint, voiceprint,
-a service that redacts before it stores, MySQL, MinIO and an admin console with
-export and hard delete. Audio arrives from a mobile app you already ship, from a
-mic array on an edge collector, or both. Choose it when someone will ask "delete
-my data" and a status flag on a surviving row is not an acceptable answer, or
-when several sites need one queryable record.
+**Server Transcription with Clip + Phone** — the required retail backend runs
+MySQL, MinIO, voice-service, the console and capture gateway. Clip recordings
+go through SenseCraft Voice App to the platform ASR, then the backend redacts
+and stores the resulting record.
 
 | | On-Device Transcription | Server Stack |
 |---|---|---|
-| Output | JSON files on the device | Redacted rows in MySQL, audio in MinIO, console on port 3000 |
+| Output | Backend records plus an offline JSON cache | Redacted rows in MySQL, audio in MinIO, console on port 3000 |
 | Capture | reSpeaker XVF3800 on the box | The same array, or your mobile app over the ASR endpoint |
-| Redaction | None — the text is what was said | Typed placeholders before insert; the original is never written |
+| Redaction | Backend redaction before insert | Typed placeholders before insert; the original is never written |
 | Deletion | Whatever you script against the directory | `POST /api/v1/privacy/erase`, cascading three stores, with a residue count |
-| Boards | reRouter CM4 (CPU) or reComputer RK3576 (NPU) | reComputer RK3576, or another arm64 Linux host |
+| Boards | CM4, RK3576, RK3588, J3011, J4012 or R2000 (CPU/Hailo) | Same supported ASR hosts, with Clip + phone capture |
 | Deploy time | About 40 minutes | About 60 minutes |
 
 The capture side is identical, so a site that starts on the local preset can move
@@ -41,10 +37,10 @@ to the stack later without changing the microphone, the board or the recognizer.
 How audio reaches the server stack:
 
 ```
-  mobile app (yours, outside this package)
-        │  WebSocket, 16 kHz mono PCM
+  reSpeaker Clip → SenseCraft Voice App
+        │  multipart audio upload
         ▼
-  ASR endpoint  ws://<host>:8080/ws?token=<operator>
+  capture gateway → OpenVoiceStream ASR
         │
         │            edge collector (reSpeaker XVF3800 + reRouter CM4 / RK3576)
         │            │  local capture, VAD, OpenVoiceStream transcription
@@ -64,10 +60,8 @@ audio format.
 
 ## What you get
 
-- **A closed loop on one device, if that is what you want.** On the local preset,
-  pull the network cable and transcription keeps working. Transcripts land in a
-  directory you choose; audio retention is a switch — keep the WAV segments, or
-  write nothing but text.
+- **A local transcription path with an offline cache.** The device keeps working
+  through a temporary backend outage and retries finalized text when connected.
 - **Redaction before storage, not after.** On the stack preset, phone numbers, ID
   numbers, names and addresses are replaced with typed placeholders (`[[PHONE]]`,
   `[[NAME]]`) on the way into the database. The original text is never written —
@@ -98,12 +92,12 @@ audio format.
 
 ## Where it fits
 
-- A single store or a pilot site where nobody wants recordings leaving the
-  premises — the local preset, with no database to operate.
-- Environments with no reliable uplink: a basement shop, a pop-up counter, a
-  factory floor office.
-- Procurement rules that forbid third-party voice processing, where a local text
-  file is the only acceptable artefact.
+- A single store or a pilot site where recordings should remain on the edge
+  device while finalized text is sent to the required retail backend.
+- Environments with intermittent uplink: a basement shop, a pop-up counter, a
+  factory floor office. The device cache retains records for retry.
+- Procurement rules that require the ASR audio path to stay on the edge device;
+  the backend receives finalized text for the retail record.
 - Retail floors where staff and customers talk and the store wants to know what
   was asked for, without keeping a record of who asked — the stack preset.
 - Any deployment that has to answer "delete my data" with something other than a
@@ -158,6 +152,38 @@ a working starting point.
 Full conditions, the gold-set composition and the per-run detail are in the
 engineering wiki.
 
+### ASR concurrency reference
+
+The following is a capacity reference for choosing an edge board. “Recommended”
+is the highest tested concurrency whose final-text p95 stayed at or below 1.5 s;
+latency is measured from audio end to the `is_final` message. These are benchmark
+results from the OpenVoiceStream main-branch harness, with non-ASR containers
+stopped on idle boards. They are not a claim that the currently bundled solution
+images already contain the benchmarked voxedge, profile, or model revisions.
+
+| Device family | Recognizer | Recommended simultaneous channels | p50 / p95 at recommendation | Boundary observed |
+|---|---|---:|---:|---|
+| reComputer J4012 | SenseVoice (zh) | 48 | 505 / 789 ms | c=48 was the highest tested level; no error |
+| reComputer J3011 | SenseVoice (zh) | 32 | 167 / 293 ms | c=48 → 768 / 2932 ms |
+| reComputer RK3576 | SenseVoice (zh) | 12 | 583 / 1067 ms | c=12 was the highest valid tested level |
+| reComputer RK3588 | SenseVoice (zh) | 8 | 659 / 902 ms | c=12 had 15 client errors |
+| reComputer R2000 | SenseVoice (zh) | 6 | 625 / 1173 ms | idle-board c=8 repeats: 1265–1556 ms |
+| reComputer J4012 | Whisper base (en) | 16 | 584 / 1177 ms | c=24 → 893 / 2195 ms |
+| reComputer J3011 | Whisper base (en) | 8 | 492 / 837 ms | c=16 → 884 / 1710 ms |
+| reComputer RK3576 | Whisper base (en) | 2 | 809 / 1380 ms | c=4 → 880 / 1681 ms |
+| reComputer RK3588 | Whisper base (en) | 4 | 655 / 1380 ms | c=8 → 886 / 2083 ms |
+| reComputer R2000 | Whisper base (en) | 16 | 752 / 1465 ms | c=16 was the highest tested level; 0 errors |
+
+Accuracy was evaluated separately on the same 100-item, ≤4 s English corpus:
+J3011 7.62% WER, J4012 7.62%, RK3588 7.50%, RK3576 8.51% and R2000 8.39%.
+The unified Chinese comparison used the same 100-item AISHELL-1 subset across
+five devices and had aggregate CER 4.82%. The RK 172-frame run is a separate
+windowed-decode result (aggregate CER 4.74%), so it is not the unified figure.
+The English concurrency
+figures used 72 LibriSpeech test-clean items on Jetson/RK and 100 items (≤4 s)
+on R2000. The full matrices, source revisions and image/profile prerequisites
+are recorded in `docs/asr-concurrency.md`.
+
 ## Output Interfaces
 
 **On-Device Transcription**
@@ -170,8 +196,8 @@ engineering wiki.
 | Offline ASR | "POST http://<device-ip>:8621/asr" | Whole-file transcription; used by the acceptance check |
 | Local web page | "http://<device-ip>:8090/" | Live transcript, microphone status, voiceprint registry |
 
-Nothing in this table leaves the device. There is no upstream endpoint configured
-and no credential to configure.
+The cache is local, but finalized records are uploaded to the required retail
+backend. Configure its origin and operator key in the device deployment.
 
 **Server Stack**
 

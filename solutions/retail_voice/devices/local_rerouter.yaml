@@ -26,11 +26,12 @@ docker:
     TZ: Asia/Shanghai
     OVS_PROFILE: rpi4-asr-zh-en
     LANGUAGE_MODE: zh_en
-    OUTPUT_DIR: "{{OUTPUT_DIR}}"
+    OUTPUT_DIR: "/data-iot/retail-voice"
     AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
-    HF_ENDPOINT: "{{HF_ENDPOINT}}"
-    OVS_SPEAKER_EMB: "{{SPEAKER}}"
-    OVS_PUNCT: "{{PUNCT}}"
+    RETAIL_BACKEND_URL: "{{RETAIL_BACKEND_URL}}"
+    RETAIL_BACKEND_API_KEY: "{{RETAIL_BACKEND_API_KEY}}"
+    OVS_SPEAKER_EMB: "0"
+    OVS_PUNCT: "0"
 
   options:
     project_name: retail_voice
@@ -104,41 +105,6 @@ user_inputs:
     options:
       - {value: "zh", label: "Chinese", label_i18n: {zh: 中文}}
       - {value: "en", label: "English", label_i18n: {zh: 英文}}
-  - id: OUTPUT_DIR
-    name: Output directory
-    name_i18n: {zh: 输出目录}
-    type: text
-    default: /data-iot/retail-voice
-    required: true
-    description: Absolute path on the device where transcripts (and audio, if kept) are written. Nothing rotates it — plan retention.
-    description_i18n: {zh: 设备上写入转写结果（以及保留的音频）的绝对路径。没有轮转机制，请自行规划保留期。}
-    validation:
-      pattern: "^/[A-Za-z0-9._/-]+$"
-      message: Use an absolute path with no spaces
-  - id: SPEAKER
-    name: Voiceprint labelling
-    name_i18n: {zh: 声纹标注}
-    type: select
-    default: "0"
-    required: false
-    reconfigurable: true
-    description: Adds a 28 MB CAM++ model and labels each utterance with a locally clustered speaker. Off by default on this 4GB board. Not identity verification.
-    description_i18n: {zh: 增加一个 28MB 的 CAM++ 模型，为每句标注一个本地聚类出的说话人。在这块 4GB 板子上默认关闭。不是身份核验。}
-    options:
-      - {value: "0", label: "Disabled (default)", label_i18n: {zh: 关闭（默认）}}
-      - {value: "1", label: "Enabled", label_i18n: {zh: 开启}}
-  - id: PUNCT
-    name: Punctuation
-    name_i18n: {zh: 标点恢复}
-    type: select
-    default: "0"
-    required: false
-    reconfigurable: true
-    description: Adds a 294 MB CT-Transformer model. Off by default here — on four Cortex-A72 cores it competes with recognition itself.
-    description_i18n: {zh: 增加一个 294MB 的 CT-Transformer 模型。此处默认关闭——在 4 个 Cortex-A72 核上它会与识别本身抢算力。}
-    options:
-      - {value: "0", label: "Disabled (default)", label_i18n: {zh: 关闭（默认）}}
-      - {value: "1", label: "Enabled", label_i18n: {zh: 开启}}
   - id: AUDIO_CARD_ID
     name: Microphone card ID
     name_i18n: {zh: 麦克风声卡编号}
@@ -150,18 +116,20 @@ user_inputs:
     validation:
       pattern: "^[0-9]+$"
       message: Card ID is a number
-  - id: HF_ENDPOINT
-    name: Model download source
-    name_i18n: {zh: 模型下载源}
-    type: select
-    default: https://hf-mirror.com
-    required: false
-    reconfigurable: true
-    description: Where model artifacts are fetched from on first start. Only used once; afterwards the box needs no internet.
-    description_i18n: {zh: 首次启动时下载模型产物的来源。只用这一次，之后设备不需要联网。}
-    options:
-      - {value: "https://hf-mirror.com", label: "HF Mirror (China)", label_i18n: {zh: HF 镜像（国内）}}
-      - {value: "https://huggingface.co", label: "Hugging Face", label_i18n: {zh: Hugging Face 官方}}
+  - id: RETAIL_BACKEND_URL
+    name: Retail backend URL
+    name_i18n: {zh: 零售后台地址}
+    type: text
+    required: true
+    validation:
+      pattern: "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+  - id: RETAIL_BACKEND_API_KEY
+    name: Retail backend API key
+    name_i18n: {zh: 零售后台 API 密钥}
+    type: password
+    required: true
+    validation:
+      pattern: "^[A-Fa-f0-9]{64}$"
 
 remote_overrides:
   remote_path: /data-iot/retail-voice
@@ -176,11 +144,11 @@ remote_overrides:
     TZ: Asia/Shanghai
     OVS_PROFILE: rpi4-asr-zh-en
     LANGUAGE_MODE: zh_en
-    OUTPUT_DIR: "{{OUTPUT_DIR}}"
+    OUTPUT_DIR: "/data-iot/retail-voice"
     AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
-    HF_ENDPOINT: "{{HF_ENDPOINT}}"
-    OVS_SPEAKER_EMB: "{{SPEAKER}}"
-    OVS_PUNCT: "{{PUNCT}}"
+    HF_ENDPOINT: https://hf-mirror.com
+    OVS_SPEAKER_EMB: "0"
+    OVS_PUNCT: "0"
   services:
     - name: speech
       port: 8621
@@ -199,57 +167,73 @@ remote_overrides:
       description: Check audio device availability
   actions:
     before:
-      - name: Create the output directory
-        run: mkdir -p "{{OUTPUT_DIR}}/cache/asr" "{{OUTPUT_DIR}}/voice" "{{OUTPUT_DIR}}/voiceprints"
-        name_i18n:
-          zh: 创建输出目录
-      - name: Confirm the microphone array enumerated
-        # 2886:001a is the reSpeaker XVF3800. A miss here is almost always a
-        # cable in a non-host USB port, so report rather than fail the deploy.
-        run: |
-          lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - check the port before verifying"
-          arecord -l 2>/dev/null || true
-        ignore_error: true
-        name_i18n:
-          zh: 确认麦克风阵列已枚举
-      - name: Open the ALSA device nodes to the container
-        # Carried over from the retired smart_retail_voice_ai package. The
-        # capture container here is not privileged and joins the `audio`
-        # group; on a stock OpenWrt image the nodes are already root-owned and
-        # this is a no-op, but on images where the group differs it is what
-        # made capture work.
-        run: chmod -R 666 /dev/snd/* || true
-        ignore_error: true
-        name_i18n:
-          zh: 放开 ALSA 设备节点权限
+    - name: Create the output directory
+      run: mkdir -p "/data-iot/retail-voice/cache/asr" "/data-iot/retail-voice/voice" "/data-iot/retail-voice/voiceprints"
+      name_i18n:
+        zh: "\u521B\u5EFA\u8F93\u51FA\u76EE\u5F55"
+    - name: Confirm the microphone array enumerated
+      run: |
+        lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - check the port before verifying"
+        arecord -l 2>/dev/null || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u786E\u8BA4\u9EA6\u514B\u98CE\u9635\u5217\u5DF2\u679A\u4E3E"
+    - name: Open the ALSA device nodes to the container
+      run: chmod -R 666 /dev/snd/* || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u653E\u5F00 ALSA \u8BBE\u5907\u8282\u70B9\u6743\u9650"
     after_upload:
-      - name: Write the recognition language and voiceprint switch into the client config
-        # The config template ships placeholders; substituting after upload
-        # keeps one file for both presets.
-        run: |
-          set -e
-          CFG=$(find /data-iot/retail-voice -type f -name voice-client.yaml -path '*config*' 2>/dev/null | head -1)
-          [ -n "$CFG" ] || { echo "voice-client.yaml not found under the deploy directory" >&2; exit 1; }
-          if [ "{{SPEAKER}}" = "1" ]; then SPK=true; else SPK=false; fi
-          sed -i "s|__LANGUAGE__|{{LANGUAGE}}|; s|__AUDIO_CARD_ID__|{{AUDIO_CARD_ID}}|; s|__SPEAKER_ENABLED__|$SPK|" "$CFG"
-          grep -n 'default_language\|card_id\|enabled:' "$CFG" | head -5
-        name_i18n:
-          zh: 把识别语种和声纹开关写入客户端配置
+    - name: Configure client transcription upload
+      env:
+        CLIENT_DEPLOY_DIR: /data-iot/retail-voice/local_rerouter
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        cd "$CLIENT_DEPLOY_DIR"
+        python3 - <<'PY'
+        import json, os, re
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path('config/voice-client.yaml')
+        text = p.read_text()
+        for marker, value in {'__LANGUAGE__': language, '__AUDIO_CARD_ID__': card, '__RETAIL_BACKEND_URL__': url.rstrip('/'), '__RETAIL_BACKEND_API_KEY__': key}.items():
+            text = text.replace('"' + marker + '"', json.dumps(value))
+        text = text.replace('__SPEAKER_ENABLED__', 'true' if speaker == '1' else 'false')
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        p.write_text(text)
+        os.chmod(p, 0o600)
+        print('Client text upload configured.')
+        PY
     after:
-      - name: Wait for the first transcript
-        # Not a hard gate: the box needs someone to speak. Reports whether the
-        # output directory has started filling.
-        run: |
-          for i in $(seq 1 12); do
-            if ls "{{OUTPUT_DIR}}"/cache/asr/*.json >/dev/null 2>&1; then
-              echo "transcripts are being written"; exit 0
-            fi
-            sleep 5
-          done
-          echo "no transcript yet - speak near the array and re-check, see the verification step"
-        ignore_error: true
-        name_i18n:
-          zh: 等待第一条转写结果
+    - name: Wait for the first transcript
+      run: |
+        for i in $(seq 1 12); do
+          if ls "/data-iot/retail-voice"/cache/asr/*.json >/dev/null 2>&1; then
+            echo "transcripts are being written"; exit 0
+          fi
+          sleep 5
+        done
+        echo "no transcript yet - speak near the array and re-check, see the verification step"
+      ignore_error: true
+      name_i18n:
+        zh: "\u7B49\u5F85\u7B2C\u4E00\u6761\u8F6C\u5199\u7ED3\u679C"
   user_inputs:
     - {id: host, name: Device IP, type: text, required: true, default: "192.168.49.1", placeholder: "192.168.49.1", name_i18n: {zh: 设备 IP}, description: "Default OpenWrt LAN gateway of the reRouter", description_i18n: {zh: reRouter 默认的 OpenWrt LAN 网关地址}}
     - {id: username, name: SSH Username, type: text, required: true, default: "root", name_i18n: {zh: SSH 用户名}}

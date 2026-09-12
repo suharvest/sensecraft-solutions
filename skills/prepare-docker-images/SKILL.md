@@ -38,10 +38,36 @@ solutions/[solution_id]/
 [org]/[project]-[service]:version
 
 Examples:
-seeedstudio/warehouse-backend:latest
-seeedstudio/warehouse-frontend:latest
+seeedstudio/warehouse-backend:stable
+seeedstudio/warehouse-frontend:stable
 seeedstudio/mcp-bridge:v1.0.0
 ```
+
+Use `:stable` only after that tag has been published and verified. Use
+`:candidate` for pre-promotion testing and keep a distinct versioned tag
+pointing to the same image.
+
+## Solution-set release channels
+
+For Seeed solution-set images, authors maintain a production `stable` channel
+and an explicitly separate `candidate` channel. End users do not choose image
+tags. A solution may reference a stable tag only after that tag points to an
+image that has been published and verified for the target platform.
+
+- Backend and Web use their repository's `:stable` tag.
+- Hardware-specific ASR images use separate tags such as
+  `seeed-local-voice:jetson-stable`, `:rk-stable`, `:rpi-stable`, and
+  `:rpi-hailo-stable`; never share one ASR tag across incompatible hardware.
+- A candidate keeps a distinct versioned tag and never changes `stable` until
+  it has passed the required validation. Promotion retags the same image and
+  does not rebuild it. Keep the versioned tag and digest as rollback records.
+- Existing versioned or legacy image references are valid fallbacks. Do not
+  rewrite them to a stable tag until the stable tag exists in the registry.
+- If a stable manifest is missing, or registry authentication/network access
+  fails, deployment must report failure and preserve the running service. It
+  must not silently use a cached image, `candidate`, or `latest` tag.
+- An image-only promotion does not require a solution schema/content update;
+  a configuration or data-schema contract change does.
 
 ## docker-compose.yml Template
 
