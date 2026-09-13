@@ -272,23 +272,6 @@ intro:
           704 张货架裁剪回放 top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，
           嵌入器单裁剪 p50 61.0 ms。
           同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
-    recamera_pro:
-      description: >-
-        All-in-one AI camera with an onboard Rockchip NPU, running both stages
-        on-camera as fp16 RKNN. Measured on the camera itself with its bundled
-        applications stopped, inference only: detector 112.3 ms p50 / 120.4 ms
-        p95 and 99.91% box agreement with the CPU reference (50 images);
-        embedder 77.5 ms p50 / 77.9 ms p95, mean cosine similarity 0.998
-        against fp32 and a top-1 delta of -0.33 percentage points on a
-        300-image subset (leave-one-out, a different protocol from the Grocery
-        Store retrieval numbers above — absolute values are not comparable).
-      description_i18n:
-        zh: >-
-          一体化 AI 摄像头，板载 Rockchip NPU，两段都在机身上跑 fp16 RKNN。
-          测量条件：自带应用停止、纯推理。检测器 p50 112.3 ms / p95 120.4 ms，
-          与 CPU 参考的框一致率 99.91%（50 张）；嵌入器 p50 77.5 ms / p95 77.9 ms，
-          与 fp32 的余弦相似度均值 0.998，300 张子集上留一法 top-1 差
-          −0.33 个百分点（协议与上文 Grocery Store 检索口径不同，绝对值不可比）。
     recomputer_r20_industrial:
       description: >-
         An industrial box with a Hailo-8 on the M.2 slot. On the same Hailo-8
@@ -412,51 +395,6 @@ intro:
           options:
             - device_ref: generic_rtsp_camera
           default: generic_rtsp_camera
-
-    - id: p1b_recamera_pro
-      name: reCamera Pro — All-in-one Rockchip NPU Camera
-      name_i18n:
-        zh: reCamera Pro —— 一体化 Rockchip NPU 摄像头
-      badge: Beta
-      badge_i18n:
-        zh: 测试版
-      description: >-
-        Both the detector and the embedder run as fp16 `.rknn` on the
-        camera's own onboard NPU — no separate camera or compute host is
-        needed for recognition. Measured on the camera itself with its
-        bundled applications stopped, inference only: detector 112.3 ms p50 /
-        120.4 ms p95, 99.91% box agreement with the CPU reference (50
-        images); embedder 77.5 ms p50 / 77.9 ms p95, mean cosine similarity
-        0.998 against fp32. There is no device-side service that joins the
-        two stages — this preset converts the model and proves the
-        conversion on the camera, and stops there.
-      description_i18n:
-        zh: >-
-          检测器与嵌入器都以 fp16 `.rknn` 跑在摄像头板载 NPU 上——识别不需要
-          额外的摄像头或主机。测量条件：自带应用停止、纯推理。检测器 p50
-          112.3 ms / p95 120.4 ms，与 CPU 参考的框一致率 99.91%（50 张）；
-          嵌入器 p50 77.5 ms / p95 77.9 ms，与 fp32 的余弦相似度均值 0.998。
-          没有把两段串起来的设备侧服务——这个套餐做的是转换模型、在摄像头上
-          证明转换正确，到此为止。
-      device_groups:
-        - id: console
-          name: Console Host
-          name_i18n:
-            zh: 管理端主机
-          type: single
-          required: true
-          options:
-            - device_ref: external_console_host
-          default: external_console_host
-        - id: camera
-          name: Recognition Camera
-          name_i18n:
-            zh: 识别摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_pro
-          default: recamera_pro
 
     - id: p2_pi5_hailo
       name: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU

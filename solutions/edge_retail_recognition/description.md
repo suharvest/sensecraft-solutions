@@ -78,8 +78,7 @@ model conversion.
 | reComputer J30 (Jetson Orin Nano, TensorRT) | GPU TensorRT fp16, p50 5.88 ms | GPU TensorRT fp16, p50 5.06 ms | Also benchmarked end to end: 6726-frame replay, zero drops |
 | reComputer RK3588 series | NPU RKNN fp16, p50 56.7 ms (INT8 reaches 26.0 ms) | CPU onnxruntime | Rockchip toolchain; shelf replay proven end to end (p50 924 ms) |
 | reComputer RK3576 | Dual-core NPU RKNN fp16, p50 51.05 ms | Dual-core NPU RKNN fp16, p50 56.38 ms | Smaller Rockchip option with both stages on the NPU |
-| reComputer R2000 (Hailo-8) | INT8 HEF, p50 9.04 ms | CPU dynamic INT8 DINOv2-small, 91.95 ms per crop | Fastest detection of the five |
-| reCamera Pro | On-board NPU RKNN fp16, p50 112.3 ms | On-board NPU RKNN fp16, p50 77.5 ms | All-in-one camera, no host in the chain |
+| reComputer R2000 (Hailo-8) | INT8 HEF, p50 9.04 ms | CPU dynamic INT8 DINOv2-small, 91.95 ms per crop | Fastest detection of the four |
 
 ## Usage Notes
 

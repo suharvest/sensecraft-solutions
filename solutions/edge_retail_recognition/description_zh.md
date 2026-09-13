@@ -62,7 +62,6 @@
 | reComputer RK3588 系列 | NPU RKNN fp16，p50 56.7 ms（INT8 可到 26.0 ms） | CPU onnxruntime | Rockchip 工具链；货架回放已端到端跑通（p50 924 ms） |
 | reComputer RK3576 | 双 NPU 核 RKNN fp16，p50 51.05 ms | 双 NPU 核 RKNN fp16，p50 56.38 ms | 两段都在 NPU 上的更小的 Rockchip 选项 |
 | reComputer R2000（Hailo-8） | INT8 HEF，p50 9.04 ms | CPU 动态 INT8 DINOv2-small，每裁剪 91.95 ms | 检测最快的一条 |
-| reCamera Pro | 板载 NPU RKNN fp16，p50 112.3 ms | 板载 NPU RKNN fp16，p50 77.5 ms | 一体化摄像头，链路里没有主机 |
 
 ## 使用须知
 
