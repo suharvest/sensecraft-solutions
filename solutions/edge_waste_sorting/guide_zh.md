@@ -220,7 +220,7 @@ MQTT。
 | 换成中文四分类原型库之后四分类精度下降 | 走层级路径。直接预测四分类是 0.8478，八类再映射上去是 0.9393。 |
 | 未知物体仍然拿到自信的材质标签 | 看留一法的数字：`residual` 的 AUROC 只有 0.5795，接近随机。开放集拒识在物料类上远好于这个兜底档。 |
 
-## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
+## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#recomputer_r20}
 
 把一台装了 Hailo-8 的 Pi 5（对应出货形态是 reComputer R2000 系列）准备好、
 验证三道只能在设备上检查的 ABI 关卡，然后下载 EfficientNet-Lite0（m1c）的
@@ -252,92 +252,6 @@ p95 3.249 ms（纯推理）。这份容器的从零部署也在同一台真机�
 - **`textile` 从未被训练或测试过**，`hazardous` 永远不会发出。
 - **域偏移。** val 全集 7417 张与部署验证用的 1060 张子集
   都是公开数据集里单件物品的照片，不是现场投放点的图像——请采一批现场数据重测。
-
-## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
-
-放在相机旁边的独立主机，适合一台主机带多个投放点、或者相机本身换不掉的场合。
-分类器用 INT8 跑在 RK3588 的 NPU 上。
-
-开始之前你需要：能 SSH 登录板子、几百 MB 空闲空间，以及一个已经构建好的模型，
-或者一台装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机用来转换——转换跑不了
-在板子上。下面四个子步骤依次是核对模型、装 RKNN Lite 运行时、准备一帧输入、
-跑起来。
-
-有一点跳过就会卡住：Python 绑定的版本必须和板子上已有的 `librknnrt` 一致，
-对不上时只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，没有别的线索。
-
-在 RK3588 硬件上实测 val 全集 7417 张：INT8（calib256+mmse）物料 top-1
-0.8881、与 fp32 CPU 基线的一致率 0.9893、p50 2.728 ms、p95 3.417 ms，纯
-推理。fp16 物料 top-1 0.8882、一致率 0.9988、p50 5.575 ms、p95 9.904 ms——
-INT8 比 fp16 快 51%，准确率没有实质差异。
-
-## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
-
-分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
-也没有一跳网络。
-
-它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
-应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
-同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。模型不在应用包里，
-由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。
-
-你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
-东西，也没有要手工拷贝的文件。
-
-填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
-在相机上看；填了 broker，每一次分类都会以一条 JSON 记录发到
-`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
-推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
-
-这块硬件上实测 1060 张验证图：物料八类 top-1 0.8764、中国四分类 top-1 0.9566、
-与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
-不含取图与预处理，且相机自带应用在跑。
-
-INT8 与 fp16 的对比是在这块硬件上另一轮测的，两者都在相机自带应用停止的条件下：
-p50 分别为 5.824 ms 与 16.956 ms，即 INT8 快 2.9 倍。INT8、fp16 与主机 fp32
-三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
-
-## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
-
-安装 `.deb` 并把 BF16 模型放到 `/userdata/local/models/`。整个分类器跑在
-相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，也没有一跳网络。
-
-开始之前你需要：相机能通过 USB 或网络访问、`recamera` 用户的 SSH 密码，
-以及 `/userdata` 上约 10 MB 空闲。
-
-### 接线
-
-1. 用 USB-C 连接 reCamera，或确认它在你的网络里可达
-2. 填入它的 IP 地址（USB 默认给的是 `192.168.42.1`）与 `recamera` 用户的
-   SSH 密码
-3. 部署
-
-### 落到设备上的内容
-
-| 路径 | 内容 |
-|------|------|
-| `/usr/local/bin/waste-sorting` | 应用本体 |
-| `/etc/init.d/K92waste-sorting` | 它的 init 脚本，停在 K 状态 |
-| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | 模型，8.3 MB |
-| `/etc/waste-sorting.conf` | 数据流 ID、MQTT 目标、置信度阈值与去抖帧数，取自下方字段 |
-
-init 脚本刻意停在 K 状态（`K92`，不是 `S92`）：同一时刻只能有一个应用占用
-摄像头，起哪个由控制台决定。
-
-这张图没有 INT8 cvimodel——TPU-MLIR 1.7 对它跑不完校准——所以这里发的是
-BF16 模型，这台相机上不存在 INT8 的精度或时延数字。
-
-这块硬件上实测 1060 张验证图，走的是同样的离线预处理（中心裁剪，不经过
-相机取图路径）：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、与 fp32
-CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不含取图与
-预处理），峰值常驻内存 11.6 MB。经相机自身取图与裁剪后的端到端精度请在自己现场实测。
-
-### 故障排查
-
-| 问题 | 解决办法 |
-|------|----------|
-| 应用一启动就退出 | 模型没加载成功。确认 `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` 存在且 sha256 与设备配置里的一致——文件缺失或不完整会让应用在碰摄像头之前就退出。 |
-| 停掉另一个画廊应用后，`start` 连续两次失败 | VPSS 组是驱动侧资源，进程级的"摄像头是否空闲"检查覆盖不到它。重启相机即可恢复。 |
 
 ## 步骤 1: 在 Hailo 上部署垃圾分类 {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
@@ -487,3 +401,126 @@ payload 形状跨平台完全一致，只有 `model.accelerator` 不同。
 | `configure(hef)` 崩溃 | `force_desc_page_size=4096` 没设，或者设完没重启。 |
 | 置信度阈值的表现与 Orin 套餐不同 | 方案页上「4.3% 低于 0.5」是 CPU FP32 上的数字。这块板子的 INT8 置信度分布是另一次独立测量。这份 HEF 在真机上的参照值是与 CPU 一致率 0.9581；如果看到预测坍缩到单一类别，反馈回来。 |
 | 想在这里用开放词汇 track | 这个套餐不提供。SigLIP 2 的 INT8 量化在 `hailo optimize` 处失败。 |
+
+## 套餐: reCamera（SG2002） {#recamera}
+
+## 步骤 1: 在 reCamera 上部署分类器 {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
+
+安装 `.deb` 并把 BF16 模型放到 `/userdata/local/models/`。整个分类器跑在
+相机自己的 SG2002 TPU 上——分类路径上没有主机、没有加速卡，也没有一跳网络。
+
+开始之前你需要：相机能通过 USB 或网络访问、`recamera` 用户的 SSH 密码，
+以及 `/userdata` 上约 10 MB 空闲。
+
+### 接线
+
+1. 用 USB-C 连接 reCamera，或确认它在你的网络里可达
+2. 填入它的 IP 地址（USB 默认给的是 `192.168.42.1`）与 `recamera` 用户的
+   SSH 密码
+3. 部署
+
+### 落到设备上的内容
+
+| 路径 | 内容 |
+|------|------|
+| `/usr/local/bin/waste-sorting` | 应用本体 |
+| `/etc/init.d/K92waste-sorting` | 它的 init 脚本，停在 K 状态 |
+| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | 模型，8.3 MB |
+| `/etc/waste-sorting.conf` | 数据流 ID、MQTT 目标、置信度阈值与去抖帧数，取自下方字段 |
+
+init 脚本刻意停在 K 状态（`K92`，不是 `S92`）：同一时刻只能有一个应用占用
+摄像头。部署会按这个路径把它启动起来，并在带控制台的相机上把 `waste-sorting`
+记为当前应用，重启后由控制台把它带回来。
+
+这张图没有 INT8 cvimodel——TPU-MLIR 1.7 对它跑不完校准——所以这里发的是
+BF16 模型，这台相机上不存在 INT8 的精度或时延数字。
+
+这块硬件上实测 1060 张验证图，走的是同样的离线预处理（中心裁剪，不经过
+相机取图路径）：物料八类 top-1 0.8792、中国四分类 top-1 0.9566、与 fp32
+CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不含取图与
+预处理），峰值常驻内存 11.6 MB。经相机自身取图与裁剪后的端到端精度请在自己现场实测。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|------|----------|
+| 应用一启动就退出 | 模型没加载成功。确认 `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` 存在且 sha256 与设备配置里的一致——文件缺失或不完整会让应用在碰摄像头之前就退出。 |
+| 停掉另一个画廊应用后，`start` 连续两次失败 | VPSS 组是驱动侧资源，进程级的"摄像头是否空闲"检查覆盖不到它。重启相机即可恢复。 |
+
+## 步骤 2: 确认一次分类 {#verify_recamera_waste type=manual required=true verify=true}
+
+第 1 步跑完应用是运行中的——它会启动那个停在 K 状态的 init 脚本，并在带控制台的
+相机上把 `waste-sorting` 记为当前应用。不需要再手工启动什么。
+
+在投放区放一件物品，然后订阅第 1 步里填的那个 broker 读这条记录——默认装法下就是
+相机自带的 MQTT 监听，所以命令里填相机地址：
+
+```bash
+mosquitto_sub -h <相机IP> -t 'waste/<stream id>/results' -v
+```
+
+第 1 步把这个主题、以及应用的 broker 与端口（默认 1883）都配好了。如果你在那里
+填了别的主机或端口，就订那个，需要认证的话带上它的凭据。一件物品产生一条 JSON
+记录，里面带着物料类别与由它查表得到的中国四分类。一帧里放两件物品仍然只产生
+一条记录，而且这一条描述的是哪一件是未定义的——分类器没有检测器。
+
+## 套餐: reCamera Pro {#recamera_pro}
+
+## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
+
+分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
+也没有一跳网络。
+
+它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
+应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
+同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。模型不在应用包里，
+由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。
+
+你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
+东西，也没有要手工拷贝的文件。
+
+填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
+在相机上看；填了 broker，每一次分类都会以一条 JSON 记录发到
+`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
+推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
+
+这块硬件上实测 1060 张验证图：物料八类 top-1 0.8764、中国四分类 top-1 0.9566、
+与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
+不含取图与预处理，且相机自带应用在跑。
+
+INT8 与 fp16 的对比是在这块硬件上另一轮测的，两者都在相机自带应用停止的条件下：
+p50 分别为 5.824 ms 与 16.956 ms，即 INT8 快 2.9 倍。INT8、fp16 与主机 fp32
+三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
+
+## 步骤 2: 确认一次分类 {#verify_recamera_pro_waste type=manual required=true verify=true}
+
+第 1 步跑完应用就已经是激活状态。在投放区放一件物品，确认有一条新结果：部署时
+把 broker 地址留空就看应用自己的面板，填了就订阅那个 broker：
+
+```bash
+mosquitto_sub -h <broker IP> -t 'waste/<设备名>/results' -v
+```
+
+需要认证的话带上那个 broker 的端口与凭据。第 1 步里填的设备名就是主题的第二段，
+同一个 broker 上的多台相机才分得开。一件物品产生一条 JSON 记录。
+
+## 套餐: 摄像头 + reComputer RK3588 {#recomputer_rk3588}
+
+## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
+
+放在相机旁边的独立主机，适合一台主机带多个投放点、或者相机本身换不掉的场合。
+分类器用 INT8 跑在 RK3588 的 NPU 上。
+
+开始之前你需要：能 SSH 登录板子、几百 MB 空闲空间，以及一个已经构建好的模型，
+或者一台装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机用来转换——转换跑不了
+在板子上。下面四个子步骤依次是核对模型、装 RKNN Lite 运行时、准备一帧输入、
+跑起来。
+
+有一点跳过就会卡住：Python 绑定的版本必须和板子上已有的 `librknnrt` 一致，
+对不上时只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，没有别的线索。
+
+在 RK3588 硬件上实测 val 全集 7417 张：INT8（calib256+mmse）物料 top-1
+0.8881、与 fp32 CPU 基线的一致率 0.9893、p50 2.728 ms、p95 3.417 ms，纯
+推理。fp16 物料 top-1 0.8882、一致率 0.9988、p50 5.575 ms、p95 9.904 ms——
+INT8 比 fp16 快 51%，准确率没有实质差异。
+

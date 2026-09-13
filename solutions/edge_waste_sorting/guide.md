@@ -240,7 +240,7 @@ cross-lingual answers and the ability to add a class without retraining.
 | Four-way accuracy dropped after switching to a Chinese four-way bank | Use the hierarchical path. Direct four-way prediction scores 0.8478 against 0.9393 for eight classes mapped up. |
 | Unknown objects still get a confident material label | Check the leave-one-out figures: `residual` has an AUROC of 0.5795, near chance. Open-set rejection works far better for the material classes than for the catch-all. |
 
-## Preset: Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
+## Preset: Camera + reComputer R2000 (Hailo-8) {#recomputer_r20}
 
 Prepares a Pi 5 with a Hailo-8 (the reComputer R2000 series shipping form
 factor), validates the three ABI gates that can only be checked on the
@@ -282,105 +282,6 @@ Known weaknesses:
 - **Domain shift.** The 7417-image val set and the 1060-image
   deploy-verification subset are both public-dataset photographs of single
   items, not live drop-off imagery — collect a field set and re-measure on it.
-
-## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true config=devices/recomputer_rk3588_waste.yaml}
-
-A separate box beside the camera, for when one host serves several bins or the
-camera cannot be replaced. The classifier runs on the RK3588 NPU in INT8.
-
-Before you start you need SSH access to the board, a few hundred MB free, and
-either the prebuilt model or an x86_64 Linux host with `rknn-toolkit2` 2.3.2 to
-convert it — the conversion does not run on the board. The four sub-steps take
-you through checking the model, installing the RKNN Lite runtime, preparing one
-input frame, and running it.
-
-One thing will stop you if you skip it: the Python binding has to match the
-`librknnrt` already on the board, and a mismatch surfaces as a bare
-`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
-
-Measured on RK3588 hardware over the full 7417-image validation set: INT8
-(calib256+mmse) gives material top-1 0.8881, agreement with the fp32 CPU
-baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
-material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
-INT8 is 51% faster with no material difference on accuracy.
-
-## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
-
-The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
-card, no network hop in the classification path.
-
-It ships as an App Center application, `waste-sorting`. Install it from the App
-Center on the camera's web console, then this step names it, applies your
-settings and makes it the active app. The App Center runs one app at a time, so
-activating it stops whatever was running before. The model is not inside the
-package: the App Center delivers it separately into
-`/userdata/local/models/waste-sorting/`.
-
-You need the web console's admin credentials and about 10 MB free on
-`/userdata`. There is nothing to build and nothing to copy by hand.
-
-Fill in a device name and, if you want the events elsewhere, a broker address.
-Leave the broker empty and results stay readable on the camera. With a broker,
-every classification arrives on `waste/<device name>/results` as one JSON
-record carrying the top-3 with per-class confidence, the material class and the
-Chinese four-way category, the inference time and both model hashes — the same
-shape this solution publishes on every other platform.
-
-Measured on this hardware over 1060 validation images: eight-class material
-top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
-baseline 0.9906, p50 6.380 ms, p95 7.014 ms — inference only, excluding
-capture and preprocessing, with the camera's built-in application running.
-
-INT8 and fp16 were also measured against each other on this hardware in a
-separate round, both with the built-in application stopped: p50 5.824 ms and
-16.956 ms, so INT8 is 2.9x faster. Across INT8, fp16 and fp32 on a host, the
-top-1 spread over these 1060 images is under 0.2 pp.
-
-## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
-
-Installs the `.deb` and places the BF16 model at `/userdata/local/models/`.
-The whole classifier runs on the camera's own SG2002 TPU — no host, no
-accelerator card, no network hop in the classification path.
-
-Before you start you need the camera reachable over USB or the network, the
-SSH password for the `recamera` user, and about 10 MB free on `/userdata`.
-
-### Wiring
-
-1. Connect the reCamera over USB-C, or make sure it is reachable on your network
-2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
-   the `recamera` user
-3. Deploy
-
-### What lands on the device
-
-| Path | What |
-|------|------|
-| `/usr/local/bin/waste-sorting` | The application |
-| `/etc/init.d/K92waste-sorting` | Its init script, parked |
-| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | The model, 8.3 MB |
-| `/etc/waste-sorting.conf` | Stream ID, MQTT target, confidence threshold and debounce frames, written from the fields below |
-
-The init script is installed parked (`K92`, not `S92`) on purpose. Only one
-application may hold the camera at a time, so starting it is the console's job.
-
-There is no INT8 cvimodel for this graph — TPU-MLIR 1.7 does not finish
-calibration for it — so the model shipped here is BF16, and no INT8 accuracy
-or latency figure exists for this camera.
-
-Measured on this hardware over 1060 validation images, fed through the same
-preprocessing offline (center crop, no camera capture path): material top-1
-0.8792, Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline
-0.9915, p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
-preprocessing), peak resident memory 11.6 MB. Measure end-to-end accuracy
-through the camera's own capture and crop on your own site.
-
-### Troubleshooting
-
-| Issue | Solution |
-|------|----------|
-| App exits right after starting | The model failed to load. Confirm `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` is present and matches the sha256 in the device config — a partial or missing file makes the app exit before it ever touches the camera. |
-| `start` fails twice in a row right after another gallery app was stopped | The VPSS group is a driver-side resource that a process-level "is the camera free" check does not see. Reboot the camera; it recovers immediately. |
 
 ## Step 1: Deploy Waste Sorting on Hailo {#deploy_hailo_waste type=docker_deploy required=true config=devices/hailo_waste.yaml}
 
@@ -541,3 +442,146 @@ parsing the topic.
 | `configure(hef)` crashes | `force_desc_page_size=4096` is missing or the reboot after setting it never happened. |
 | Confidence thresholds behave differently from the Orin preset | The 4.3%-below-0.5 figure on the solution page is CPU FP32. This board's INT8 confidence distribution is a different measurement — that is expected, not a bug, but if you see it collapse toward one class, compare against the 0.9581 hardware agreement figure from the full val-set measurement; a large gap from that number is worth reporting. |
 | Want the open-vocabulary track here | Not offered on this preset. The SigLIP 2 INT8 quantisation fails at `hailo optimize`. |
+
+## Preset: reCamera (SG2002) {#recamera}
+
+## Step 1: Deploy the Classifier on reCamera {#deploy_recamera_waste type=recamera_cpp required=true config=devices/recamera_waste.yaml}
+
+Installs the `.deb` and places the BF16 model at `/userdata/local/models/`.
+The whole classifier runs on the camera's own SG2002 TPU — no host, no
+accelerator card, no network hop in the classification path.
+
+Before you start you need the camera reachable over USB or the network, the
+SSH password for the `recamera` user, and about 10 MB free on `/userdata`.
+
+### Wiring
+
+1. Connect the reCamera over USB-C, or make sure it is reachable on your network
+2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
+   the `recamera` user
+3. Deploy
+
+### What lands on the device
+
+| Path | What |
+|------|------|
+| `/usr/local/bin/waste-sorting` | The application |
+| `/etc/init.d/K92waste-sorting` | Its init script, parked |
+| `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` | The model, 8.3 MB |
+| `/etc/waste-sorting.conf` | Stream ID, MQTT target, confidence threshold and debounce frames, written from the fields below |
+
+The init script is installed parked (`K92`, not `S92`) on purpose: only one
+application may hold the camera at a time. The deploy starts it by that path and,
+on a camera with the console, records `waste-sorting` as the active app so the
+console brings it back after a reboot.
+
+There is no INT8 cvimodel for this graph — TPU-MLIR 1.7 does not finish
+calibration for it — so the model shipped here is BF16, and no INT8 accuracy
+or latency figure exists for this camera.
+
+Measured on this hardware over 1060 validation images, fed through the same
+preprocessing offline (center crop, no camera capture path): material top-1
+0.8792, Chinese four-way top-1 0.9566, agreement with the fp32 CPU baseline
+0.9915, p50 24.276 ms, p95 24.323 ms (pure inference, excluding capture and
+preprocessing), peak resident memory 11.6 MB. Measure end-to-end accuracy
+through the camera's own capture and crop on your own site.
+
+### Troubleshooting
+
+| Issue | Solution |
+|------|----------|
+| App exits right after starting | The model failed to load. Confirm `/userdata/local/models/efficientnet_lite0_waste8_cv181x_bf16.cvimodel` is present and matches the sha256 in the device config — a partial or missing file makes the app exit before it ever touches the camera. |
+| `start` fails twice in a row right after another gallery app was stopped | The VPSS group is a driver-side resource that a process-level "is the camera free" check does not see. Reboot the camera; it recovers immediately. |
+
+## Step 2: Confirm One Classification {#verify_recamera_waste type=manual required=true verify=true}
+
+Step 1 leaves the app running — it starts the parked init script and, on a
+camera with the console, records `waste-sorting` as the active app. Nothing else
+has to be started by hand.
+
+Put one item in the drop area, then read the record on the broker you entered
+in Step 1 — on a default install that is the camera's own MQTT listener, so the
+camera's address is what goes in the command:
+
+```bash
+mosquitto_sub -h <camera-ip> -t 'waste/<stream id>/results' -v
+```
+
+Step 1 wrote that topic, and pointed the app at that broker and port (1883 by
+default). If you entered a different host or port there, subscribe to that one
+instead, with its credentials if it needs any. One item produces one JSON record
+carrying the material class and the Chinese four-way category looked up from it.
+Two items in one shot still produce one record, for an undefined one of them —
+the classifier has no detector.
+
+## Preset: reCamera Pro {#recamera_pro}
+
+## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
+
+The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
+card, no network hop in the classification path.
+
+It ships as an App Center application, `waste-sorting`. Install it from the App
+Center on the camera's web console, then this step names it, applies your
+settings and makes it the active app. The App Center runs one app at a time, so
+activating it stops whatever was running before. The model is not inside the
+package: the App Center delivers it separately into
+`/userdata/local/models/waste-sorting/`.
+
+You need the web console's admin credentials and about 10 MB free on
+`/userdata`. There is nothing to build and nothing to copy by hand.
+
+Fill in a device name and, if you want the events elsewhere, a broker address.
+Leave the broker empty and results stay readable on the camera. With a broker,
+every classification arrives on `waste/<device name>/results` as one JSON
+record carrying the top-3 with per-class confidence, the material class and the
+Chinese four-way category, the inference time and both model hashes — the same
+shape this solution publishes on every other platform.
+
+Measured on this hardware over 1060 validation images: eight-class material
+top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
+baseline 0.9906, p50 6.380 ms, p95 7.014 ms — inference only, excluding
+capture and preprocessing, with the camera's built-in application running.
+
+INT8 and fp16 were also measured against each other on this hardware in a
+separate round, both with the built-in application stopped: p50 5.824 ms and
+16.956 ms, so INT8 is 2.9x faster. Across INT8, fp16 and fp32 on a host, the
+top-1 spread over these 1060 images is under 0.2 pp.
+
+## Step 2: Confirm One Classification {#verify_recamera_pro_waste type=manual required=true verify=true}
+
+Step 1 leaves the app active. Put one item in the drop area and confirm a fresh
+result: in the app's own panel if you left the broker address empty, or on the
+broker you entered there:
+
+```bash
+mosquitto_sub -h <broker-ip> -t 'waste/<device name>/results' -v
+```
+
+Use that broker's port and credentials if it needs them. The device name you
+entered in Step 1 is the topic's second segment, so several cameras on one
+broker stay separable. One item produces one JSON record.
+
+## Preset: Camera + reComputer RK3588 {#recomputer_rk3588}
+
+## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
+
+A separate box beside the camera, for when one host serves several bins or the
+camera cannot be replaced. The classifier runs on the RK3588 NPU in INT8.
+
+Before you start you need SSH access to the board, a few hundred MB free, and
+either the prebuilt model or an x86_64 Linux host with `rknn-toolkit2` 2.3.2 to
+convert it — the conversion does not run on the board. The four sub-steps take
+you through checking the model, installing the RKNN Lite runtime, preparing one
+input frame, and running it.
+
+One thing will stop you if you skip it: the Python binding has to match the
+`librknnrt` already on the board, and a mismatch surfaces as a bare
+`RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
+
+Measured on RK3588 hardware over the full 7417-image validation set: INT8
+(calib256+mmse) gives material top-1 0.8881, agreement with the fp32 CPU
+baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
+material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
+INT8 is 51% faster with no material difference on accuracy.
+
