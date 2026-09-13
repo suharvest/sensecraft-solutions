@@ -2,22 +2,21 @@
 
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the relay is
-driven, and that is the preset.
+cannot see whether a gateway is present at all, so use this table to work out
+which of the two presets — and which variant steps — apply. Find the device you
+have, read across to how the relay is driven, and the last column tells you the
+preset and the steps that apply.
 
 | Door device | How the relay is driven | Preset |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
+| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
 
-Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it. And the Grove
-Vision AI V2 preset has no liveness model — a printed photograph opens that door
-— so it is not a substitute for the others on price alone.
+gateway-relay path even when the gateway is standing next to it.
 
 
 Recognition, liveness, the decision and the contact all live in one device at
@@ -87,22 +86,21 @@ Known weaknesses:
 
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the relay is
-driven, and that is the preset.
+cannot see whether a gateway is present at all, so use this table to work out
+which of the two presets — and which variant steps — apply. Find the device you
+have, read across to how the relay is driven, and the last column tells you the
+preset and the steps that apply.
 
 | Door device | How the relay is driven | Preset |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
+| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
 
-Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it. And the Grove
-Vision AI V2 preset has no liveness model — a printed photograph opens that door
-— so it is not a substitute for the others on price alone.
+gateway-relay path even when the gateway is standing next to it.
 
 The camera already does the recognition. An App Center application on the
 standard reCamera runs detection, embedding, a two-head texture liveness with
@@ -523,22 +521,21 @@ directly rather than inferred from a container being up.
 
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the relay is
-driven, and that is the preset.
+cannot see whether a gateway is present at all, so use this table to work out
+which of the two presets — and which variant steps — apply. Find the device you
+have, read across to how the relay is driven, and the last column tells you the
+preset and the steps that apply.
 
 | Door device | How the relay is driven | Preset |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
+| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
 
-Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it. And the Grove
-Vision AI V2 preset has no liveness model — a printed photograph opens that door
-— so it is not a substitute for the others on price alone.
+gateway-relay path even when the gateway is standing next to it.
 
 
 For a door that already has a camera. The J20 pulls the existing RTSP stream,
@@ -569,22 +566,21 @@ Known weaknesses:
 
 **Choosing a preset.** There is no automatic matching in this release. The app's
 network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so the preset is chosen by hand
-from this table. Find the device you have, read across to how the relay is
-driven, and that is the preset.
+cannot see whether a gateway is present at all, so use this table to work out
+which of the two presets — and which variant steps — apply. Find the device you
+have, read across to how the relay is driven, and the last column tells you the
+preset and the steps that apply.
 
 | Door device | How the relay is driven | Preset |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | On-Device — reCamera Pro |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | Industrial Box |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | Standard reCamera |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI host |
+| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
+| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
+| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
+| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
 
-Two rows are easy to get wrong. A standard reCamera is not a cheaper reCamera
+One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
 Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it. And the Grove
-Vision AI V2 preset has no liveness model — a printed photograph opens that door
-— so it is not a substitute for the others on price alone.
+gateway-relay path even when the gateway is standing next to it.
 
 
 For when the box that runs recognition is not at the door, or when one box

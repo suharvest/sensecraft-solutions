@@ -1,20 +1,19 @@
 ## 套餐: A. AI 摄像头直控 {#a_ai_camera}
 
 **怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
-reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
-"继电器怎么被驱动"，那一行就是你的套餐。
+reCamera，也看不出现场有没有网关，所以用下表来判断两个套餐里哪个适合你、要走哪一组
+变体步骤。找到你手上的设备，横着读到"继电器怎么被驱动"，最后一列就会告诉你套餐和
+适用的步骤。
 
 | 门口设备 | 继电器怎么被驱动 | 套餐 |
 |---|---|---|
-| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
-| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
-| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | A. AI 摄像头直控 —— 走"从应用市场激活 F1 门禁（仅 reCamera Pro）"和"接线继电器并让门禁上线（仅 reCamera Pro）"两步 |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | B. AI 主机 + 现有摄像头 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | A. AI 摄像头直控 —— 走"在摄像头上安装 F1 门禁（仅标准版 reCamera）"那一步 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 + 现有摄像头 |
 
-有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+有一行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
-Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
-只按价格当成其他套餐的替代品。
 
 
 识别、活体、判定与触点全部在门口的一台设备里。人脸与继电器之间没有任何网络环节，
@@ -66,20 +65,19 @@ p50 1.448 ms / p95 2.709 ms。设备事后已逐字节还原。
 
 
 **怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
-reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
-"继电器怎么被驱动"，那一行就是你的套餐。
+reCamera，也看不出现场有没有网关，所以用下表来判断两个套餐里哪个适合你、要走哪一组
+变体步骤。找到你手上的设备，横着读到"继电器怎么被驱动"，最后一列就会告诉你套餐和
+适用的步骤。
 
 | 门口设备 | 继电器怎么被驱动 | 套餐 |
 |---|---|---|
-| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
-| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
-| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | A. AI 摄像头直控 —— 走"从应用市场激活 F1 门禁（仅 reCamera Pro）"和"接线继电器并让门禁上线（仅 reCamera Pro）"两步 |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | B. AI 主机 + 现有摄像头 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | A. AI 摄像头直控 —— 走"在摄像头上安装 F1 门禁（仅标准版 reCamera）"那一步 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 + 现有摄像头 |
 
-有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+有一行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
-Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
-只按价格当成其他套餐的替代品。
 
 识别由摄像头自己完成。标准版 reCamera 上的一个 App Center 应用在设备内的同一个原生
 进程里跑检测、嵌入、双头纹理活体加眨眼融合与余弦匹配，因此这个套餐不装任何识别容器，
@@ -422,20 +420,19 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 ## 套餐: B. AI 主机 + 现有摄像头 {#b_ai_host}
 
 **怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
-reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
-"继电器怎么被驱动"，那一行就是你的套餐。
+reCamera，也看不出现场有没有网关，所以用下表来判断两个套餐里哪个适合你、要走哪一组
+变体步骤。找到你手上的设备，横着读到"继电器怎么被驱动"，最后一列就会告诉你套餐和
+适用的步骤。
 
 | 门口设备 | 继电器怎么被驱动 | 套餐 |
 |---|---|---|
-| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
-| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
-| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | A. AI 摄像头直控 —— 走"从应用市场激活 F1 门禁（仅 reCamera Pro）"和"接线继电器并让门禁上线（仅 reCamera Pro）"两步 |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | B. AI 主机 + 现有摄像头 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | A. AI 摄像头直控 —— 走"在摄像头上安装 F1 门禁（仅标准版 reCamera）"那一步 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 + 现有摄像头 |
 
-有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+有一行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
-Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
-只按价格当成其他套餐的替代品。
 
 
 适合门口已经有摄像头的场合。J20 拉取现有 RTSP 流，在容器里跑识别与活体，
@@ -460,20 +457,19 @@ Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就�
 
 
 **怎么选套餐。** 这一版没有自动匹配。App 的网络发现分不出 reCamera Pro 与标准版
-reCamera，也看不出现场有没有网关，所以套餐按下表人工选。找到你手上的设备，横着读到
-"继电器怎么被驱动"，那一行就是你的套餐。
+reCamera，也看不出现场有没有网关，所以用下表来判断两个套餐里哪个适合你、要走哪一组
+变体步骤。找到你手上的设备，横着读到"继电器怎么被驱动"，最后一列就会告诉你套餐和
+适用的步骤。
 
 | 门口设备 | 继电器怎么被驱动 | 套餐 |
 |---|---|---|
-| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | 端侧直控 —— reCamera Pro |
-| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | 工业盒子 |
-| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | 标准版 reCamera |
-| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 |
+| reCamera Pro | 摄像头自己的 GPIO 驱动继电器 | A. AI 摄像头直控 —— 走"从应用市场激活 F1 门禁（仅 reCamera Pro）"和"接线继电器并让门禁上线（仅 reCamera Pro）"两步 |
+| reComputer Industrial J20 + 现有 RTSP 摄像头 | J20 的光隔 DO 驱动继电器 | B. AI 主机 + 现有摄像头 |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 事件经 MQTT 出；继电器在网关侧 | A. AI 摄像头直控 —— 走"在摄像头上安装 F1 门禁（仅标准版 reCamera）"那一步 |
+| reComputer J20 / J30 / J40 / R1000 + 现有 RTSP 摄像头 | 主机自己的 DO 或 Grove Relay，或经 MQTT 的继电器节点 | B. AI 主机 + 现有摄像头 |
 
-有两行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
+有一行特别容易选错。标准版 reCamera 不是便宜版的 reCamera Pro：它在摄像头内识别，
 但它自己完全不驱动继电器，所以哪怕网关就摆在它旁边，它走的也是网关继电器那条路。
-Grove Vision AI V2 那个套餐没有活体模型——举一张打印照片就能开那道门——因此它不能
-只按价格当成其他套餐的替代品。
 
 
 适合识别所在的盒子不在门边，或者一台盒子要管好几道门。识别跑在 J30/J40/R2000
