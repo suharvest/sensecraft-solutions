@@ -201,6 +201,8 @@ the same compose project, so it shares the library volume with the server.
 Opens the console's person library. Enrol each person from 3 to 8 photographs;
 each enrolment mints a new library version.
 
+### Prerequisites
+
 **Known limitation — this does not yet produce a library the door can use in
 production.** The Pro camera's on-device recognizer runs
 `rv1126b:scrfd500m+mbf512@fp16`. No cloud embedding service today produces
@@ -217,8 +219,6 @@ neither exists yet (upstream `docs/user-guide.md` §5.1;
 `evaluation/runs/2026-09-07-recamera-pro-p1/results.md` §5.1, §9.2). **This does
 not affect the standard reCamera path (P5)**, which embeds on-device and does
 not enrol through this cloud console.
-
-### Prerequisites
 
 - The admin token from Step 2.
 - 3–8 photographs per person. Fewer than three is rejected: one photograph tells
@@ -356,15 +356,6 @@ Installs the `.deb`, places the five cvimodels at `/userdata/local/models/`,
 writes the face library signing key and the per-site config fields into the
 seeded config file.
 
-The whole recognition path — detection, embedding, a two-head texture
-liveness with blink fusion, and matching — runs on the camera's own SG2002
-TPU in one native process; the access agent sits beside it in the same
-package and pulls the versioned face library, maps the native result stream
-onto the event contract, and pins every threshold against the recognition
-process's actual arguments. The package replaces the stock `face-recognition`
-app rather than extending it — installing it conflicts with and removes that
-app, because only one gallery app can hold the camera's VPSS at a time.
-
 ### Prerequisites
 
 - The camera reachable over USB or the network, and the SSH password for the
@@ -393,6 +384,15 @@ service right after configuration, and a first start with the PoE default
 tries to export a pin that is not wired to anything on a plain unit.
 
 ### What lands on the device
+
+The whole recognition path — detection, embedding, a two-head texture
+liveness with blink fusion, and matching — runs on the camera's own SG2002
+TPU in one native process; the access agent sits beside it in the same
+package and pulls the versioned face library, maps the native result stream
+onto the event contract, and pins every threshold against the recognition
+process's actual arguments. The package replaces the stock `face-recognition`
+app rather than extending it — installing it conflicts with and removes that
+app, because only one gallery app can hold the camera's VPSS at a time.
 
 | Path | What |
 |------|------|

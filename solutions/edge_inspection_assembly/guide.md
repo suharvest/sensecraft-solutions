@@ -254,6 +254,14 @@ hand-writing ROIs. Nothing in this step runs on the inspection device itself.
 - Your own station images and a COCO-style category list, or a willingness to
   label a handful of classes by hand first.
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| The SAM2 backend fails to start or crawls | It needs a GPU on the workstation. Re-run with `--backend otsu` — no GPU required, but a weaker baseline |
+| The runtime on the device rejects the generated template | The `roi_profile_sha256` it holds does not match the exported profile. Copy the `assembly.expected[]` template and ROI profile from this step over again and reload |
+| SAM2 proposes no useful boxes on your station images | Your category list does not cover the parts. Label a handful of classes by hand first, then re-run |
+
 ## Preset: Camera + reComputer R2000 (Hailo-8) {#hailo}
 
 Same runtime, INT8 model, less power. The HEF is compiled off-device and
@@ -442,6 +450,16 @@ the reComputer R2000.
 - Your own station images and a COCO-style category list, or a willingness to
   label a handful of classes by hand first.
 
+### Troubleshooting
+
+Same tool as the Jetson preset, same failure modes:
+
+| Issue | Solution |
+|-------|----------|
+| The SAM2 backend fails to start or crawls | It needs a GPU on the workstation. Re-run with `--backend otsu` — no GPU required, but a weaker baseline |
+| The runtime on the device rejects the generated template | The `roi_profile_sha256` it holds does not match the exported profile. Copy the `assembly.expected[]` template and ROI profile from this step over again and reload |
+| SAM2 proposes no useful boxes on your station images | Your category list does not cover the parts. Label a handful of classes by hand first, then re-run |
+
 ## Preset: reCamera Pro {#recamera_pro}
 
 Camera and inspection node in one enclosure. Detection, the OK/NG verdict,
@@ -477,14 +495,19 @@ You need the web console's admin credentials and about 20 MB free on
 
 Fill in a device name and, if you want the verdicts on a broker as well, a
 broker address. Leave the broker empty and the verdict still leaves the device
-over Modbus TCP. With a broker, every processed frame arrives on
+over Modbus TCP.
+
+### Wiring
+
+With a broker configured, every processed frame arrives on
 `inspection/<device name>/results` as one JSON record — published at QoS 0 while
 the broker connection is up, so this is one attempted publish per frame, not a
 delivery guarantee — carrying the verdict and its reasons, the defect count,
-every box with class and score, the inference time and both model hashes — the same event shape this solution publishes on
-Orin and on Hailo, validated against the contract before it is sent.
+every box with class and score, the inference time and both model hashes — the
+same event shape this solution publishes on Orin and on Hailo, validated
+against the contract before it is sent.
 
-### What the PLC reads
+#### What the PLC reads
 
 Modbus TCP on port 502, unit 1: coil 0 is NG, coil 1 is OK, and holding
 registers 0-11 carry the class, defect count, the primary box, a heartbeat and
@@ -512,14 +535,14 @@ matters here is the one a PLC would make: read Modbus TCP.
 3. Read them again a second later
 
 You have a working node when the heartbeat in HR 6/7 has advanced between the
-two reads and exactly one of coil 0 and coil 1 is set. With a defective board in
-frame, coil 0 is set and HR 1 carries the defect count; with a clean board,
-coil 1 is set and HR 1 is 0.
-
-If you filled in a broker, subscribing to `inspection/<device name>/results`
-shows the same verdict as one JSON record per processed frame.
+two reads and exactly one of coil 0 and coil 1 is set.
 
 ### Troubleshooting
+
+With a defective board in frame, coil 0 is set and HR 1 carries the defect
+count; with a clean board, coil 1 is set and HR 1 is 0. If you filled in a
+broker, subscribing to `inspection/<device name>/results` shows the same
+verdict as one JSON record per processed frame.
 
 | Issue | Solution |
 |-------|----------|

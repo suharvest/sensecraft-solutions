@@ -38,6 +38,14 @@ Installs the `.deb` and places the depth model at `/userdata/local/models/`.
 The init script is installed parked (`K92`, not `S92`) on purpose. Only one
 application may hold the camera at a time, so starting it is the console's job.
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| The deploy cannot reach the camera | It must be reachable over USB-C (`192.168.42.1`) or the network, with the `recamera` user's SSH password |
+| The app exits right after starting | The model failed to load — confirm the deploy placed `fastdepth_224_bf16.cvimodel` under `/userdata/local/models/` |
+| The app does not come back after a reboot | Expected — the init script is installed parked (`K92`). Starting it is the console's job; see Step 2 |
+
 ## Step 2: Start it from the console {#start type=manual required=true}
 
 Open the camera's console in a browser and enable **Monocular Depth Estimation**
@@ -48,6 +56,13 @@ Node-RED mode gallery apps are stopped and disabled. Node-RED is also watched by
 a supervisor script that restarts it, so stopping it by hand does not stick —
 and a revived Node-RED will contend with the app for the camera.
 
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| The app cannot be enabled and a **Node-RED mode** banner is shown | Switch back to Console mode — in Node-RED mode gallery apps are stopped and disabled |
+| The app loses the camera again right after you enable it | Node-RED was stopped by hand and its supervisor script restarted it; a revived Node-RED contends with the app for the camera. Switch to Console mode instead |
+
 ## Step 3: Check the output {#verify type=manual required=false verify=true}
 
 ### The stream
@@ -55,7 +70,16 @@ and a revived Node-RED will contend with the app for the camera.
 Open `rtsp://<camera-ip>:8554/live0` in VLC or any VMS. The depth preview sits
 in the bottom-right corner: red is near, blue is far.
 
-### The numbers
+### Sanity-check it once
+
+Stand near one side of the frame and confirm that side reads nearer.
+
+**Do not convert these numbers into distances.** They are relative ordering and
+have no metric meaning.
+
+### Troubleshooting
+
+#### The numbers
 
 Subscribe to `recamera/depth-estimation/results`:
 
@@ -77,16 +101,8 @@ Subscribe to `recamera/depth-estimation/results`:
 `zones` is the 3x3 grid in reading order, each cell 0 (far) to 1 (nearest in
 frame). In the sample above the right column is nearest.
 
-### Sanity-check it once
-
-Stand near one side of the frame and confirm that side reads nearer. If the
-whole map looks flat, look at the scene before the model — large untextured
-surfaces genuinely do not give it enough to work with.
-
-**Do not convert these numbers into distances.** They are relative ordering and
-have no metric meaning.
-
-### Troubleshooting
+If the whole map looks flat, look at the scene before the model — large
+untextured surfaces genuinely do not give it enough to work with.
 
 | Issue | Solution |
 |-------|----------|

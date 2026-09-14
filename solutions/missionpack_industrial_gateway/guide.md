@@ -72,8 +72,6 @@ Open the web console, create the first administrator, and bring the first field 
 2. Open **Access**, click **Add**, choose OPC UA, Modbus, BACnet/IP, or MQTT, and configure the controller.
 3. Run protocol discovery where available, review the candidates, and confirm only the points you need. Use manual configuration when discovery is unavailable or incomplete.
 4. Open **Points** to verify live values and quality before granting write access.
-5. Open **Data Service** to configure the embedded MQTT broker and review point, presence, command, and receipt topics.
-6. Optionally open the prediction plugin to import CSV data and configure input/output points.
 
 ### Prerequisites
 
@@ -88,18 +86,25 @@ The service container from Step 1 must be healthy. No registration token is requ
 | A control command is rejected | Check point write permission, current quality, safety rules, and the command receipt |
 | MQTT control is unavailable | Enable TLS and configure a control identity; plaintext mode is telemetry-only |
 
+### Deployment Complete
+
+#### Next steps
+
+- Open **Data Service** to configure the embedded MQTT broker and review point, presence, command, and receipt topics.
+- Optionally open the prediction plugin to import CSV data and configure input/output points.
+
 ## Step 3: Publish Northbound and Verify Store-and-Forward — pending image build {#northbound type=manual required=false}
+
+Point the gateway at an external or cloud MQTT broker, then prove that a broker outage buffers data on disk and replays it in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
+
+### Prerequisites
 
 > **This step is not runnable with the image this package deploys.** The published tag
 > `missionpack-knn:v1.6.7` used by Step 1 does not contain the northbound publisher, so every
 > call below returns HTTP 404. The step therefore carries no configuration to run and no
 > verification to pass — it is reference material for the pending build. Once the image that
-> carries the feature is published, this step gets its `config=devices/northbound_setup.yaml`
-> and `verify=true` back, and the verification below becomes the step's verification.
-
-Point the gateway at an external or cloud MQTT broker, then prove that a broker outage buffers data on disk and replays it in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
-
-### Prerequisites
+> carries the feature is published, this step gets a device file and `verify=true` back, with
+the calls below as its substeps, and the verification below becomes the step's verification.
 
 An administrator session from Step 2, a reachable external MQTT broker with a CA bundle, and an image tag that carries northbound publishing.
 

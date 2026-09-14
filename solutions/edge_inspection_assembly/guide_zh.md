@@ -225,6 +225,14 @@ MQTT，`<工位名>/inspection/<流编号>/results`，schema `2.0.0`：
   GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
 - 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
 
+### 故障排查
+
+| 问题 | 处理 |
+|------|------|
+| SAM2 后端起不来或慢得没法用 | 它需要工作站上有 GPU。改用 `--backend otsu` 重跑——不需要 GPU，但效果是更弱的基线 |
+| 设备上的运行时拒绝生成的模板 | 它持有的 `roi_profile_sha256` 与导出的 profile 不一致。把这一步产出的 `assembly.expected[]` 模板与 ROI profile 重新拷过去并重新加载 |
+| SAM2 在你的工位图像上提不出有用的框 | 类别表没覆盖你的零件。先手工标几个类，再重跑 |
+
 ## 套餐: 摄像头 + reComputer R2000（Hailo-8） {#hailo}
 
 同一套运行时、INT8 模型、更低功耗。HEF 在设备外编译、部署时下载，板子上没有构建步骤。
@@ -389,7 +397,17 @@ MQTT broker。
   GPU（`--backend otsu` 不需要，但效果是更弱的基线）。
 - 你自己的工位图像与一份 COCO 风格的类别表，或者愿意先手工标几个类。
 
-## Preset: reCamera Pro {#recamera_pro}
+### 故障排查
+
+与 Jetson 套餐同一个工具，失效模式相同：
+
+| 问题 | 处理 |
+|------|------|
+| SAM2 后端起不来或慢得没法用 | 它需要工作站上有 GPU。改用 `--backend otsu` 重跑——不需要 GPU，但效果是更弱的基线 |
+| 设备上的运行时拒绝生成的模板 | 它持有的 `roi_profile_sha256` 与导出的 profile 不一致。把这一步产出的 `assembly.expected[]` 模板与 ROI profile 重新拷过去并重新加载 |
+| SAM2 在你的工位图像上提不出有用的框 | 类别表没覆盖你的零件。先手工标几个类，再重跑 |
+
+## 套餐: reCamera Pro {#recamera_pro}
 
 相机与质检节点在同一个壳里。检测、OK/NG 判定、Modbus TCP 与 MQTT 全部跑在相机
 上，判定链路里没有主机、没有网络跳数。检测器用 INT8 跑在相机的 RV1126B NPU 上。
@@ -406,7 +424,7 @@ MQTT broker。
 承载不了——Orin 与 Hailo 两个预设覆盖它们。相机同一时刻只跑一个应用中心的应用，
 激活本应用会停掉此前在跑的那个。
 
-## Step 1: 在 reCamera Pro 上部署质检节点 {#deploy_recamera_pro_assembly type=recamera_pro_app required=true config=devices/recamera_pro_assembly.yaml}
+## 步骤 1: 在 reCamera Pro 上部署质检节点 {#deploy_recamera_pro_assembly type=recamera_pro_app required=true config=devices/recamera_pro_assembly.yaml}
 
 节点以应用中心的应用 `inspection-assembly` 分发。先在相机 Web 控制台的应用中心
 装上它，这一步再点名它、套用你的设置并把它设为活动应用。模型不在包里：应用中心
@@ -415,14 +433,18 @@ MQTT broker。
 你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 20 MB 空间。没有要编译的
 东西，也没有要手工拷贝的文件。
 
-填一个设备名称；想让判定同时上 broker 就再填 broker 地址。留空判定依然经 Modbus
-TCP 出设备。填了 broker，每处理一帧就有一条记录到达
+填一个设备名称；想让判定同时上 broker 就再填 broker 地址。留空判定依然经
+Modbus TCP 出设备。
+
+### 接线
+
+填了 broker，每处理一帧就有一条记录到达
 `inspection/<设备名称>/results`——QoS 0，broker 连着时每帧发一次，是「每帧发一
 次」而不是「每帧必达」——内含判定与判定依据、缺陷数、每个框的类别与分数、
 推理耗时与两个模型哈希——与本方案在 Orin、Hailo 上发的是同一个事件形状，发送前过
 契约校验。
 
-### PLC 读到的内容
+#### PLC 读到的内容
 
 Modbus TCP 端口 502、从站 1：线圈 0 是 NG、线圈 1 是 OK，保持寄存器 0–11 承载
 类别、缺陷数、主框、心跳，以及缺件与尺寸计数。写线圈之前寄存器已经写完，PLC 看到
@@ -438,7 +460,7 @@ Modbus TCP 端口 502、从站 1：线圈 0 是 NG、线圈 1 是 OK，保持寄
 | Modbus 502 上什么都没有 | 确认本应用是活动应用，且相机上没有别的进程占着 502 |
 | 帧率远低于 Orin 的数字 | 正常——那些数字来自带 TensorRT engine 的 reComputer J30 系列（Orin Nano 8GB）。用这台相机自己的数字 |
 
-## Step 2: 确认判定真的出了设备 {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
+## 步骤 2: 确认判定真的出了设备 {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
 
 应用的状态面板只绑相机本机回环，所以这里要做的检查就是 PLC 会做的那一个：读
 Modbus TCP。
@@ -448,13 +470,13 @@ Modbus TCP。
 3. 一秒后再读一次
 
 两次读之间 HR 6/7 的心跳在递增、且线圈 0 与线圈 1 恰有一个为 1，这个节点就是通
-的。画面里是有缺陷的板时，线圈 0 为 1、HR 1 是缺陷数；是合格板时线圈 1 为 1、
-HR 1 为 0。
-
-填了 broker 的话，订阅 `inspection/<设备名称>/results` 会看到同一个判定，每处理
-一帧一条 JSON 记录。
+的。
 
 ### 故障排查
+
+画面里是有缺陷的板时，线圈 0 为 1、HR 1 是缺陷数；是合格板时线圈 1 为 1、
+HR 1 为 0。填了 broker 的话，订阅 `inspection/<设备名称>/results` 会看到同一个
+判定，每处理一帧一条 JSON 记录。
 
 | 问题 | 处理 |
 |------|------|

@@ -192,7 +192,7 @@ intro:
           一台架在收银台传送带上方或正对货架的摄像头。收银台 preset 固定 640² 输入，
           货架 preset 固定 1280²。输入尺寸是编译产物的属性，运行时不改——
           用 640 的产物去看货架会丢掉远端商品，这正是分成两个 preset 的原因。
-    - type: other
+    - type: network
       description: >-
         A host for the console — the registration/query service, the management
         UI and an MQTT broker, in three containers. Target is an amd64 or arm64
@@ -207,7 +207,7 @@ intro:
           目标是装了 Docker 的 amd64 或 arm64 Linux 机器，不需要 GPU；两个镜像目前
           都还没有构建或推送到任何地方。
           它必须对每一台识别设备可达：商品库在这里生成，设备也从这里拉。
-    - type: other
+    - type: network
       description: >-
         An x86_64 machine for model conversion. Neither the RKNN toolkit nor
         the Hailo Dataflow Compiler runs on the target board, so the ".rknn"

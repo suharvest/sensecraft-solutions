@@ -6,9 +6,25 @@
 
 填写后台设备的地址和登录信息，点击部署。完成后，记下后台地址和接入密钥，下一步会用到。
 
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 连不上后台设备 | 检查设备地址、SSH 登录信息，以及本机能否访问这台设备 |
+| 部署卡在等待服务健康检查 | 登录设备执行 `docker compose logs voice-service`；MySQL 或 MinIO 可能还在启动 |
+| 部署完成后后台打不开 | 确认 `voice-web` 容器在运行，且 3000 端口可以访问 |
+
 ## 步骤 2: 连接采集设备 {#deploy_local type=docker_deploy required=true config=devices/local_rk3576.yaml}
 
 选好设备型号，接上麦克风。填写设备登录信息、后台地址和接入密钥，然后点击部署。
+
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 连不上采集设备 | 检查设备 IP 和 SSH 登录信息 |
+| 部署时检测不到麦克风 | 把 reSpeaker 麦克风阵列换到 USB-A 主口上，重新部署 |
+| 转写结果到不了后台 | 检查后台地址和接入密钥是否与步骤 1 下发的一致 |
 
 ### Target {#local_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/local_rk3576.yaml default=true}
 
@@ -44,6 +60,13 @@
 
 [详细说明与问题排查](https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/)
 
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 后台看不到这条录音 | 确认采集设备已开机、麦克风已接好，再录一次 |
+| 录音出现了但没有文字 | 检查采集设备上的 `speech` 服务容器是否在运行 |
+
 ## 套餐: Clip＋手机，后台转写 {#cloud_stack}
 
 Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
@@ -51,6 +74,14 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 ## 步骤 1: 部署零售语音平台 {#deploy_server_platform type=docker_deploy required=true config=devices/cloud_rk3576.yaml}
 
 选择要部署的设备，填写地址和登录信息，点击部署。后台和转写服务会一起安装。
+
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 连不上设备 | 检查设备地址、SSH 登录信息，以及本机能否访问这台设备 |
+| 部署卡在等待服务健康检查 | 登录设备执行 `docker compose logs voice-service`；MySQL 或 MinIO 可能还在启动 |
+| 之后手机 App 连不上转写接口 | 确认 `capture-gateway` 容器在运行，且 18621 端口可以访问 |
 
 ### Target {#stack_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/cloud_rk3588.yaml}
 
@@ -85,12 +116,34 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 
 [查看 Clip 配对和 App 设置说明](https://wiki.seeedstudio.com/respeaker_clip/)
 
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 测试连接失败 | 检查 Base URL 是否为 `http://<部署设备 IP>:18621`，手机能否访问该地址，以及 18621 端口是否被拦截 |
+| 接入密钥被拒绝 | 按平台管理员提供的密钥原样重新填写 |
+| Clip 配对不上 | 按上面链接里的 Clip 配对说明操作 |
+
 ## 步骤 3: 打开零售语音后台 {#admin_web type=web_dashboard required=false config=devices/admin_web.yaml}
 
 打开后台并登录。之后可在这里查看和管理录音。
 
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 页面打不开 | 确认平台部署已成功完成，`voice-web` 容器在运行且端口可以访问 |
+| 登录不上 | 核对平台部署时得到的后台地址和登录信息 |
+
 ## 步骤 4: 试录一段语音 {#verify_stack type=manual required=true verify=true config=devices/verify_stack.yaml}
 
 用 Clip 录一小段语音并在手机中上传。确认后台出现录音和对应文字。
+
+### 故障排查
+
+| 问题 | 解决 |
+|------|------|
+| 上传后后台看不到录音 | 确认步骤 2 的“测试连接”已成功，且 App 配置已保存 |
+| 录音出现了但没有文字 | 检查服务器上的 `speech` 服务容器是否在运行 |
 
 [详细说明与问题排查](https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/)

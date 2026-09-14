@@ -227,7 +227,7 @@ intro:
           门口一台大致齐面部高度的摄像头，取景要让人真正停下来的距离上，单张人脸
           在画面里占到可用比例。路线 A 用 reCamera 自带传感器；路线 B 接任意 RTSP 流。逆光门口与玻璃反光是常见失效模式，
           取景时要避开它们。
-    - type: other
+    - type: usb
       description: >-
         A relay module (see "output_interfaces" type "dry_contact") between
         the compute board's GPIO/DO and a door controller of the site's own
@@ -242,7 +242,7 @@ intro:
           接在计算板的 GPIO/DO 与现场自选的门控控制器之间。本方案的 BOM 到继电器的
           「COM」/「NO」 触点为止——门控控制器、锁与锁电源都不在其中，也不能用 GPIO
           引脚替代：锁的工作电流 300 mA–1 A，而 GPIO 引脚和光隔 DO 只有 mA 级。
-    - type: other
+    - type: network
       description: >-
         A host for the cloud side — the face library server, the management
         console and an MQTT broker. Any amd64 or arm64 Linux box with Docker

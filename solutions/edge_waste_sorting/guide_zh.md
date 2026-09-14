@@ -459,30 +459,19 @@ CPU 基线的一致率 0.9915、p50 24.276 ms、p95 24.323 ms（纯推理，不�
 mosquitto_sub -h <相机IP> -t 'waste/<stream id>/results' -v
 ```
 
+### 故障排查
+
 第 1 步把这个主题、以及应用的 broker 与端口（默认 1883）都配好了。如果你在那里
 填了别的主机或端口，就订那个，需要认证的话带上它的凭据。一件物品产生一条 JSON
 记录，里面带着物料类别与由它查表得到的中国四分类。一帧里放两件物品仍然只产生
 一条记录，而且这一条描述的是哪一件是未定义的——分类器没有检测器。
 
+| 问题 | 处理 |
+|------|------|
+| 主题上什么都没有 | 你订的 broker 或端口和第 1 步配的不是同一个——默认装法下 broker 就是相机本身。回第 1 步核对填的 broker 地址、端口与凭据 |
+| 一帧两件物品只出一条记录，且只认其中一件 | 正常——分类器没有检测器，一帧只分类一件。请一件一件投放 |
+
 ## 套餐: reCamera Pro {#recamera_pro}
-
-## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
-
-分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
-也没有一跳网络。
-
-它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
-应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
-同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。模型不在应用包里，
-由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。
-
-你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
-东西，也没有要手工拷贝的文件。
-
-填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
-在相机上看；填了 broker，每一次分类都会以一条 JSON 记录发到
-`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
-推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
 
 这块硬件上实测 1060 张验证图：物料八类 top-1 0.8764、中国四分类 top-1 0.9566、
 与 fp32 CPU 基线的一致率 0.9906、p50 6.380 ms、p95 7.014 ms——纯推理，
@@ -491,6 +480,37 @@ mosquitto_sub -h <相机IP> -t 'waste/<stream id>/results' -v
 INT8 与 fp16 的对比是在这块硬件上另一轮测的，两者都在相机自带应用停止的条件下：
 p50 分别为 5.824 ms 与 16.956 ms，即 INT8 快 2.9 倍。INT8、fp16 与主机 fp32
 三者在这 1060 张图上的 top-1 相差不到 0.2 pp。
+
+## 步骤 1: 在 reCamera Pro 上部署分类器 {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
+
+分类器用 INT8 跑在相机自己的 NPU 上——分类路径上没有主机、没有加速卡，
+也没有一跳网络。
+
+它以应用中心的应用形式分发，应用 ID 是 `waste-sorting`。先在相机 Web 控制台的
+应用中心里装上它，本步骤再指定它、下发你填的设置并把它设为当前应用。应用中心
+同一时间只跑一个应用，所以激活它会停掉之前在跑的那个。
+
+你需要 Web 控制台的管理员凭据，以及 `/userdata` 上约 10 MB 空闲。没有要编译的
+东西，也没有要手工拷贝的文件。
+
+### 接线
+
+模型不在应用包里，由应用中心单独下发到 `/userdata/local/models/waste-sorting/`，
+应用就是从这个路径读它的。
+
+填一个设备名称；如果要把事件发到别处，再填一个 broker 地址。broker 留空，结果就
+在相机上看——这台相机不自带 broker；填了 broker，每一次分类都会以一条 JSON 记录发到
+`waste/<设备名称>/results`，记录里有 top-3 及各自置信度、物料类与中国四分类、
+推理耗时和两个模型哈希——与本方案在其它平台上发出的是同一个形状。
+
+### 故障排查
+
+| 问题 | 处理 |
+|------|------|
+| 应用中心里没有这个应用 | 需要先把它发布到这台相机的 catalog——这一步只指定已安装的应用并把它激活，不负责安装 |
+| 激活比平时慢并超时 | 这一步给激活留了 90 秒。重跑一次；还是失败就打开相机 Web 控制台的应用中心看应用自己的状态 |
+| 应用起来了但从不分类 | 模型由应用中心单独下发到 `/userdata/local/models/waste-sorting/`。确认它确实在那里 |
+| broker 上收不到事件，但相机面板上有结果 | broker 地址、端口或凭据不对。broker 留空结果就留在相机上；填了才会转发每一次分类 |
 
 ## 步骤 2: 确认一次分类 {#verify_recamera_pro_waste type=manual required=true verify=true}
 
@@ -504,7 +524,20 @@ mosquitto_sub -h <broker IP> -t 'waste/<设备名>/results' -v
 需要认证的话带上那个 broker 的端口与凭据。第 1 步里填的设备名就是主题的第二段，
 同一个 broker 上的多台相机才分得开。一件物品产生一条 JSON 记录。
 
+### 故障排查
+
+| 问题 | 处理 |
+|------|------|
+| 主题上什么都没有 | 你订的 broker 或端口和第 1 步填的不是同一个，或设备名不一致——设备名就是主题的第二段 |
+| broker 拒绝连接 | 用第 1 步填的用户名与密码；broker 允许匿名连接的话那两个字段当时是留空的 |
+| 哪里都没有结果，包括相机上 | 第 1 步 broker 地址留了空，结果只在相机上应用自己的面板里——去那里看，并确认应用仍是当前应用 |
+
 ## 套餐: 摄像头 + reComputer RK3588 {#recomputer_rk3588}
+
+在 RK3588 硬件上实测 val 全集 7417 张：INT8（calib256+mmse）物料 top-1
+0.8881、与 fp32 CPU 基线的一致率 0.9893、p50 2.728 ms、p95 3.417 ms，纯
+推理。fp16 物料 top-1 0.8882、一致率 0.9988、p50 5.575 ms、p95 9.904 ms——
+INT8 比 fp16 快 51%，准确率没有实质差异。
 
 ## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -516,11 +549,13 @@ mosquitto_sub -h <broker IP> -t 'waste/<设备名>/results' -v
 在板子上。下面四个子步骤依次是核对模型、装 RKNN Lite 运行时、准备一帧输入、
 跑起来。
 
+### 故障排查
+
 有一点跳过就会卡住：Python 绑定的版本必须和板子上已有的 `librknnrt` 一致，
 对不上时只会在 `init_runtime` 处抛一个光秃秃的 `RKNN_ERR_FAIL`，没有别的线索。
 
-在 RK3588 硬件上实测 val 全集 7417 张：INT8（calib256+mmse）物料 top-1
-0.8881、与 fp32 CPU 基线的一致率 0.9893、p50 2.728 ms、p95 3.417 ms，纯
-推理。fp16 物料 top-1 0.8882、一致率 0.9988、p50 5.575 ms、p95 9.904 ms——
-INT8 比 fp16 快 51%，准确率没有实质差异。
+| 问题 | 处理 |
+|------|------|
+| `init_runtime` 处只抛一个 `RKNN_ERR_FAIL` | 已装的 Python 绑定与板子上已有的 `librknnrt` 版本不一致。安装与它匹配的绑定版本 |
+| 没有可核对的模型文件 | 转换跑不了在板子上——在一台装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机上产出模型再拷过来 |
 

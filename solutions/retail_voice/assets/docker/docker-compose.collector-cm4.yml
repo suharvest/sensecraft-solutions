@@ -9,7 +9,7 @@
 # 那是按 8 GB LubanCat 的内存写的（见 docker-compose.local-rk3576.yml 同一条注释），
 # CM4/reRouter 只有 4 GB，跑不满会被 OOM kill。现在改成
 # OVS_ASR_MEM_LIMIT / OVS_ASR_MEMSWAP_LIMIT 两个环境变量（默认值仍是 7500m，
-# 不带该变量的部署行为不变），collector_rerouter.yaml 的 .env 里把它们下调到
+# 不带该变量的部署行为不变），CM4 采集端的 .env 里把它们下调到
 # 3000m/3600m——数值比照 docker-compose.local-rk3576.yml 里同为 4 GB 级 reComputer
 # RK3576 板子的取值，不是在 CM4 上实测出来的，上架前仍需实测这个 CPU/Sherpa 构建
 # 在 CM4 上的实际 RSS 并按需调整。

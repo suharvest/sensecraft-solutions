@@ -507,36 +507,21 @@ camera's address is what goes in the command:
 mosquitto_sub -h <camera-ip> -t 'waste/<stream id>/results' -v
 ```
 
+### Troubleshooting
+
 Step 1 wrote that topic, and pointed the app at that broker and port (1883 by
 default). If you entered a different host or port there, subscribe to that one
-instead, with its credentials if it needs any. One item produces one JSON record
-carrying the material class and the Chinese four-way category looked up from it.
-Two items in one shot still produce one record, for an undefined one of them —
-the classifier has no detector.
+instead, with its credentials if it needs any. One item produces one JSON
+record carrying the material class and the Chinese four-way category looked up
+from it. Two items in one shot still produce one record, for an undefined one
+of them — the classifier has no detector.
+
+| Issue | Solution |
+|------|----------|
+| Nothing arrives on the topic | You are subscribed to a different broker or port than Step 1 configured — on a default install the broker is the camera itself. Re-check the broker address, port and credentials you entered there |
+| One record for two items at once, naming only one of them | Expected — the classifier has no detector, so one shot classifies one item. Present items one at a time |
 
 ## Preset: reCamera Pro {#recamera_pro}
-
-## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
-
-The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
-card, no network hop in the classification path.
-
-It ships as an App Center application, `waste-sorting`. Install it from the App
-Center on the camera's web console, then this step names it, applies your
-settings and makes it the active app. The App Center runs one app at a time, so
-activating it stops whatever was running before. The model is not inside the
-package: the App Center delivers it separately into
-`/userdata/local/models/waste-sorting/`.
-
-You need the web console's admin credentials and about 10 MB free on
-`/userdata`. There is nothing to build and nothing to copy by hand.
-
-Fill in a device name and, if you want the events elsewhere, a broker address.
-Leave the broker empty and results stay readable on the camera. With a broker,
-every classification arrives on `waste/<device name>/results` as one JSON
-record carrying the top-3 with per-class confidence, the material class and the
-Chinese four-way category, the inference time and both model hashes — the same
-shape this solution publishes on every other platform.
 
 Measured on this hardware over 1060 validation images: eight-class material
 top-1 0.8764, Chinese four-way top-1 0.9566, agreement with the fp32 CPU
@@ -547,6 +532,41 @@ INT8 and fp16 were also measured against each other on this hardware in a
 separate round, both with the built-in application stopped: p50 5.824 ms and
 16.956 ms, so INT8 is 2.9x faster. Across INT8, fp16 and fp32 on a host, the
 top-1 spread over these 1060 images is under 0.2 pp.
+
+## Step 1: Deploy the Classifier on reCamera Pro {#deploy_recamera_pro_waste type=recamera_pro_app required=true config=devices/recamera_pro_waste.yaml}
+
+The classifier runs on the camera's own NPU in INT8 — no host, no accelerator
+card, no network hop in the classification path.
+
+It ships as an App Center application, `waste-sorting`. Install it from the App
+Center on the camera's web console, then this step names it, applies your
+settings and makes it the active app. The App Center runs one app at a time, so
+activating it stops whatever was running before.
+
+You need the web console's admin credentials and about 10 MB free on
+`/userdata`. There is nothing to build and nothing to copy by hand.
+
+### Wiring
+
+The model is not inside the package: the App Center delivers it separately into
+`/userdata/local/models/waste-sorting/`, which is where the app reads it from.
+
+Fill in a device name and, if you want the events elsewhere, a broker address.
+Leave the broker empty and results stay readable on the camera — this camera
+ships no broker of its own. With a broker, every classification arrives on
+`waste/<device name>/results` as one JSON record carrying the top-3 with
+per-class confidence, the material class and the Chinese four-way category,
+the inference time and both model hashes — the same shape this solution
+publishes on every other platform.
+
+### Troubleshooting
+
+| Issue | Solution |
+|------|----------|
+| The app is not in the App Center list | It has to be published to that camera's catalog first — this step names an installed app and makes it the active one; it does not install one |
+| Activation takes longer than expected and times out | The step allows 90 s for activation. Re-run it; if it keeps failing, open the App Center on the camera's web console and check the app's own state |
+| The app starts but never classifies | The model is delivered separately by the App Center into `/userdata/local/models/waste-sorting/`. Confirm it is actually there |
+| Nothing arrives on the broker, but the camera's panel shows results | The broker address, port or credentials are wrong. Leave the broker empty and results stay on the camera; fill it in and every classification is forwarded |
 
 ## Step 2: Confirm One Classification {#verify_recamera_pro_waste type=manual required=true verify=true}
 
@@ -562,7 +582,21 @@ Use that broker's port and credentials if it needs them. The device name you
 entered in Step 1 is the topic's second segment, so several cameras on one
 broker stay separable. One item produces one JSON record.
 
+### Troubleshooting
+
+| Issue | Solution |
+|------|----------|
+| Nothing arrives on the topic | You are subscribed to a different broker or port than the one entered in Step 1, or the device name differs — the device name is the topic's second segment |
+| The broker rejects the connection | Use the username and password you entered in Step 1; if the broker allows anonymous clients those fields were left empty there |
+| No result anywhere, including the camera | The broker address was left empty in Step 1, so results are only in the app's own panel on the camera — check there, and confirm the app is still the active one |
+
 ## Preset: Camera + reComputer RK3588 {#recomputer_rk3588}
+
+Measured on RK3588 hardware over the full 7417-image validation set: INT8
+(calib256+mmse) gives material top-1 0.8881, agreement with the fp32 CPU
+baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
+material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
+INT8 is 51% faster with no material difference on accuracy.
 
 ## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
 
@@ -575,13 +609,14 @@ convert it — the conversion does not run on the board. The four sub-steps take
 you through checking the model, installing the RKNN Lite runtime, preparing one
 input frame, and running it.
 
+### Troubleshooting
+
 One thing will stop you if you skip it: the Python binding has to match the
 `librknnrt` already on the board, and a mismatch surfaces as a bare
 `RKNN_ERR_FAIL` at `init_runtime` with nothing else to go on.
 
-Measured on RK3588 hardware over the full 7417-image validation set: INT8
-(calib256+mmse) gives material top-1 0.8881, agreement with the fp32 CPU
-baseline 0.9893, p50 2.728 ms, p95 3.417 ms, inference only. fp16 gives
-material top-1 0.8882, agreement 0.9988, at p50 5.575 ms, p95 9.904 ms — so
-INT8 is 51% faster with no material difference on accuracy.
+| Issue | Solution |
+|------|----------|
+| A bare `RKNN_ERR_FAIL` at `init_runtime` | The installed Python binding does not match the `librknnrt` already on the board. Install the binding version that matches it |
+| No model file to check | The conversion does not run on the board — produce the model on an x86_64 Linux host with `rknn-toolkit2` 2.3.2 and copy it over |
 

@@ -105,12 +105,12 @@ cameras and zones, zone rectangles drawn on each camera's live picture, a
 no-person and a no-motion timeout per zone, an operator who confirms or dismisses
 each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
 
-The camera cannot host it. The detector there is a native process installed as a .deb, and the camera
+### Prerequisites
+
+The camera cannot host the panel. The detector there is a native process installed as a .deb, and the camera
 offers no filesystem, SQLite or web server for the panel. So the panel goes on a
 separate box on the same network, which needs no AI accelerator: a reComputer
 R1000 Series, or a Linux machine you already run.
-
-### Prerequisites
 
 - A x86_64 or arm64 Linux host on the camera's network, with Docker and the
   compose plugin (`docker compose version` has to succeed) and SSH access.
@@ -174,11 +174,6 @@ resident out loud whether they are all right and act on the answer, in parallel
 with the five-second evidence window. It is off unless you turn it on, and
 turning it off again changes nothing else about the alarm path.
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
-
 What the answer does:
 
 | Answer | Result |
@@ -187,6 +182,15 @@ What the answer does:
 | No answer at all | Confirmed immediately |
 | Something unreadable | Confirmed immediately |
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+### Prerequisites
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+### Deployment Complete
 
 The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
 suppress a real alarm; confirming an alarm nobody needed costs an operator a
@@ -200,7 +204,7 @@ plus the transcribed text — and `store_transcript: false` drops the text too,
 leaving only the verdict in the audit trail. Notifications carry the same
 fields and still carry no snapshot and no video.
 
-### Quick verification
+#### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
@@ -316,12 +320,12 @@ cameras and zones, zone rectangles drawn on each camera's live picture, a
 no-person and a no-motion timeout per zone, an operator who confirms or dismisses
 each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
 
-The camera cannot host it. The detector there is an App Center application, and the camera
+### Prerequisites
+
+The camera cannot host the panel. The detector there is an App Center application, and the camera
 offers no filesystem, SQLite or web server for the panel. So the panel goes on a
 separate box on the same network, which needs no AI accelerator: a reComputer
 R1000 Series, or a Linux machine you already run.
-
-### Prerequisites
 
 - A x86_64 or arm64 Linux host on the camera's network, with Docker and the
   compose plugin (`docker compose version` has to succeed) and SSH access.
@@ -385,11 +389,6 @@ resident out loud whether they are all right and act on the answer, in parallel
 with the five-second evidence window. It is off unless you turn it on, and
 turning it off again changes nothing else about the alarm path.
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
-
 What the answer does:
 
 | Answer | Result |
@@ -398,6 +397,15 @@ What the answer does:
 | No answer at all | Confirmed immediately |
 | Something unreadable | Confirmed immediately |
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+### Prerequisites
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+### Deployment Complete
 
 The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
 suppress a real alarm; confirming an alarm nobody needed costs an operator a
@@ -411,7 +419,7 @@ plus the transcribed text — and `store_transcript: false` drops the text too,
 leaving only the verdict in the audit trail. Notifications carry the same
 fields and still carry no snapshot and no video.
 
-### Quick verification
+#### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
@@ -559,11 +567,6 @@ resident out loud whether they are all right and act on the answer, in parallel
 with the five-second evidence window. It is off unless you turn it on, and
 turning it off again changes nothing else about the alarm path.
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
-
 What the answer does:
 
 | Answer | Result |
@@ -572,6 +575,15 @@ What the answer does:
 | No answer at all | Confirmed immediately |
 | Something unreadable | Confirmed immediately |
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+### Prerequisites
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+### Deployment Complete
 
 The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
 suppress a real alarm; confirming an alarm nobody needed costs an operator a
@@ -585,7 +597,7 @@ plus the transcribed text — and `store_transcript: false` drops the text too,
 leaving only the verdict in the audit trail. Notifications carry the same
 fields and still carry no snapshot and no video.
 
-### Quick verification
+#### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
@@ -721,11 +733,6 @@ resident out loud whether they are all right and act on the answer, in parallel
 with the five-second evidence window. It is off unless you turn it on, and
 turning it off again changes nothing else about the alarm path.
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
-
 What the answer does:
 
 | Answer | Result |
@@ -734,6 +741,15 @@ What the answer does:
 | No answer at all | Confirmed immediately |
 | Something unreadable | Confirmed immediately |
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+### Prerequisites
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+### Deployment Complete
 
 The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
 suppress a real alarm; confirming an alarm nobody needed costs an operator a
@@ -747,7 +763,7 @@ plus the transcribed text — and `store_transcript: false` drops the text too,
 leaving only the verdict in the audit trail. Notifications carry the same
 fields and still carry no snapshot and no video.
 
-### Quick verification
+#### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
@@ -883,11 +899,6 @@ resident out loud whether they are all right and act on the answer, in parallel
 with the five-second evidence window. It is off unless you turn it on, and
 turning it off again changes nothing else about the alarm path.
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
-
 What the answer does:
 
 | Answer | Result |
@@ -896,6 +907,15 @@ What the answer does:
 | No answer at all | Confirmed immediately |
 | Something unreadable | Confirmed immediately |
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
+
+### Prerequisites
+
+What it needs: an OpenVoiceStream instance on the same LAN, with a USB
+microphone and a speaker plugged into the box running it. The cameras are not
+the audio path — neither reCamera model has a confirmed usable microphone, and
+the SG2002 cannot host local ASR at all.
+
+### Deployment Complete
 
 The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
 suppress a real alarm; confirming an alarm nobody needed costs an operator a
@@ -909,7 +929,7 @@ plus the transcribed text — and `store_transcript: false` drops the text too,
 leaving only the verdict in the audit trail. Notifications carry the same
 fields and still carry no snapshot and no video.
 
-### Quick verification
+#### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
