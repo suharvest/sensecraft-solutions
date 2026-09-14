@@ -47,7 +47,13 @@ binary:
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/recamera_depth_estimation/packages/fastdepth_224_bf16.cvimodel
     remote_path: /userdata/local/models/fastdepth_224_bf16.cvimodel
-    checksum: da9f847e9c412e926d0ad48de6e59b9b9f59f90955b74c2e1e076b3710f5e0bb
+    # MD5, because that is what the shipping engine does with this field: it
+    # hashes the download with hashlib.md5 and compares it to the string
+    # (a bare sha256 here is compared as md5 and always fails). App 0.6.x only
+    # accepts the md5 hex; keep it for compatibility. Not to be confused with
+    # binary.deb_package.checksum, which is a {sha256: ...} object. The file's
+    # sha256 is da9f847e9c412e926d0ad48de6e59b9b9f59f90955b74c2e1e076b3710f5e0bb.
+    checksum: 367e2cff19391689c866217b85aa36a0
     sudo: true
 
 user_inputs:
