@@ -7,7 +7,6 @@ type: video_stream
 inherit_host_from: deploy_onvif
 video:
   type: rtsp_proxy
-  rtsp_url_template: "rtsp://admin:recamera.1@{{deploy.host}}:8554/onvif"
 display:
   aspect_ratio: "16:9"
   auto_start: true
@@ -19,7 +18,8 @@ user_inputs:
       zh: RTSP 地址
     type: text
     required: true
-    default_template: "rtsp://admin:recamera.1@{{deploy.host}}:8554/onvif"
+    default_template: "rtsp://admin:recamera.1@{{host}}:8554/onvif"
+    default: "rtsp://admin:recamera.1@192.168.42.1:8554/onvif"
     placeholder: "rtsp://admin:recamera.1@192.168.42.1:8554/onvif"
     description: The ONVIF gateway stream. Use the same camera IP entered in the deploy step.
     description_i18n:
