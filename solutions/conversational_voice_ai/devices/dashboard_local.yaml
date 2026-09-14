@@ -6,6 +6,16 @@ inherit_host_from: deploy_local
 web_dashboard:
   url: "http://{{deploy.host}}:18000"
   title: Local Voice AI Dashboard
-  description: Verify the fully local dialogue path and barge-in state transitions.
+  description: >-
+    Verify the fully local dialogue path and barge-in state transitions. The
+    console is an unauthenticated debug dashboard served by the on-device agent
+    and is reachable on the device's LAN address; keep the device on a trusted
+    network (set OVS_DEBUG_DASHBOARD_BIND=127.0.0.1 to restrict it to the device
+    itself).
+  description_i18n:
+    zh: >-
+      验证全本地对话链路与打断状态机。该控制台是设备端 agent 提供的不带鉴权的调试
+      面板，通过设备的局域网地址访问；请确保设备处于可信任网络（如需仅本机访问，
+      设 OVS_DEBUG_DASHBOARD_BIND=127.0.0.1）。
 name_i18n:
   zh: 本地语音 AI 面板

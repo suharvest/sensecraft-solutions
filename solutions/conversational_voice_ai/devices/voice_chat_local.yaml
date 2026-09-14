@@ -16,8 +16,13 @@ web_dashboard:
   description: >-
     Speak two or three sentences in the language you selected at deploy time and
     confirm the transcript is in that language and the reply is spoken in it.
-    The console header shows which speech profile was resolved.
+    The console header shows which speech profile was resolved. The console is an
+    unauthenticated debug dashboard served by the on-device agent and is reachable
+    on the device's LAN address; keep the device on a trusted network (set
+    OVS_DEBUG_DASHBOARD_BIND=127.0.0.1 to restrict it to the device itself).
   description_i18n:
     zh: >-
       用部署时选择的语言说两三句话，确认转写结果是该语言、语音回复也用该语言。
-      控制台顶部会显示本次解析出的语音配置名。
+      控制台顶部会显示本次解析出的语音配置名。该控制台是设备端 agent 提供的不带鉴权
+      的调试面板，通过设备的局域网地址访问；请确保设备处于可信任网络（如需仅本机访问，
+      设 OVS_DEBUG_DASHBOARD_BIND=127.0.0.1）。

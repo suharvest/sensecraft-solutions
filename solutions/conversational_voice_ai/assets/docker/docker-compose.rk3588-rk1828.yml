@@ -30,6 +30,9 @@ services:
       RK1828_MAX_CONTEXT: "8192"
       RK1828_CORE_MASK: ff
       RK1828_PORT: "1828"
+      # Internal service: the agent calls it on 127.0.0.1. Loopback by default
+      # so the local LLM is not an open OpenAI-compatible endpoint on the LAN.
+      RK1828_HOST: ${RK1828_HOST:-127.0.0.1}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
     restart: unless-stopped
     healthcheck:

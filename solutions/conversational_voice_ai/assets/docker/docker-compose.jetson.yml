@@ -39,7 +39,12 @@ services:
     command:
       - /bin/sh
       - -c
-      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8621'
+      # Internal service: the on-device agent is its only client (loopback).
+      # Keep it on 127.0.0.1 — the session limiter allows ONE /v2v session, so
+      # a LAN client connecting first makes the agent's reconnect fail with
+      # 4429 too_many_sessions and silences the assistant. Re-expose
+      # deliberately with OVS_SPEECH_BIND=0.0.0.0 (e.g. for a browser client).
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-127.0.0.1} --port 8621'
     depends_on:
       profile-init:
         condition: service_completed_successfully
@@ -50,6 +55,9 @@ services:
       # The removed keys were byte-identical to the default profile's env.
       OVS_PROFILE: ${OVS_PROFILE:-jetson-qwen3asr-matcha}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      # Deploy-time ASR endpoint threshold override (ms); 0/unset keeps the
+      # profile value. See the rk3588 compose for why the key is OVS_V2V_*.
+      OVS_V2V_VAD_ENDPOINT_SILENCE_MS: ${OVS_V2V_VAD_ENDPOINT_SILENCE_MS:-0}
       TTS_PROVIDER: cuda
       STREAMING_ASR_PROVIDER: cuda
       CUDA_MODULE_LOADING: LAZY
@@ -71,7 +79,7 @@ services:
       start_period: 600s
 
   agent:
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260819-4480743-runtimekws}
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260914-runtimekws}
     container_name: conversational-voice-agent
     init: true
     network_mode: host
@@ -91,6 +99,15 @@ services:
       - agent-state:/var/lib/ovs-agent
     environment:
       CONFIG_DIR: /opt/voice/config
+      # Debug dashboard (agent plugin, unauthenticated — it can also trigger
+      # control actions such as abort/send-text). The solution's post-deploy
+      # verification steps open http://{{device-ip}}:18000 from the operator's
+      # browser, so it must listen on the LAN: the agent plugin defaults to
+      # 127.0.0.1 ("No auth, no TLS"), which made those steps unreachable on a
+      # headless device. Opt back to loopback with
+      # OVS_DEBUG_DASHBOARD_BIND=127.0.0.1 in the deployment .env if the
+      # device sits on an untrusted network.
+      OVS_DEBUG_DASHBOARD_BIND: ${OVS_DEBUG_DASHBOARD_BIND:-0.0.0.0}
       # The agent turns these into the per-session v2v config (asr_language/
       # tts_language), which is the only language knob the Qwen3-ASR and
       # Qwen3-TTS backends have. Same operator input as profile-init above.

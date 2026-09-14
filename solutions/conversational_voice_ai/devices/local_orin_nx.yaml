@@ -16,6 +16,7 @@ docker:
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
     WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+    OVS_V2V_VAD_ENDPOINT_SILENCE_MS: "{{VAD_ENDPOINT_MS}}"
   services:
     - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
     - {name: llm, port: 8000, health_check_endpoint: /health, required: true}
@@ -98,6 +99,31 @@ user_inputs:
       - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
 pre_checks:
   - {type: disk_space, min_gb: 25, description: At least 25GB for images and local model artifacts}
+  - id: VAD_ENDPOINT_MS
+    name: Reply after how much silence
+    name_i18n: {zh: 说完话多久开始回答}
+    type: select
+    default: "0"
+    required: false
+    reconfigurable: true
+    description: >-
+      Server-side speech endpoint: how long the assistant waits after you stop
+      speaking before it replies. The image default (1.5 s) tolerates a natural
+      mid-sentence pause; a smaller value feels snappier but can cut one sentence
+      into two; a larger value tolerates long thinking pauses at the cost of a
+      slower reply. Must stay above the device-side VAD silence (600 ms). Only
+      affects the paths where the device itself decides the end of speech — a
+      separate microphone/agent application keeps its own setting.
+    description_i18n:
+      zh: >-
+        说完话后等多久开始回答（设备端语音端点判停）。镜像默认 1.5 秒能容忍句中自然停顿；调小反应更快，
+        但可能把一句话截成两段；调大更宽容（适合边说边想），代价是回答来得更慢。必须大于设备端 VAD 的
+        静音门限（600 毫秒）。只影响由设备自己判断"说完了"的场景；使用独立麦克风/agent 应用时以它自己的设置优先。
+    options:
+      - {value: "0", label: Balanced (image default, 1.5 s), label_i18n: {zh: 均衡（镜像默认 1.5 秒）}}
+      - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
+      - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
+      - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
 remote_overrides:
   remote_path: /home/{{username}}/conversational_voice_ai
   compose_dir: assets/docker
@@ -110,6 +136,7 @@ remote_overrides:
     WAKEWORD_BACKEND: sherpa_onnx
     WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
     WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+    OVS_V2V_VAD_ENDPOINT_SILENCE_MS: "{{VAD_ENDPOINT_MS}}"
   user_inputs:
     - id: LANGUAGE
       name: Conversation language
@@ -202,3 +229,28 @@ remote_overrides:
           你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
       description: Editable system prompt applied to every conversation.
       description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}
+    - id: VAD_ENDPOINT_MS
+      name: Reply after how much silence
+      name_i18n: {zh: 说完话多久开始回答}
+      type: select
+      default: "0"
+      required: false
+      reconfigurable: true
+      description: >-
+        Server-side speech endpoint: how long the assistant waits after you stop
+        speaking before it replies. The image default (1.5 s) tolerates a natural
+        mid-sentence pause; a smaller value feels snappier but can cut one sentence
+        into two; a larger value tolerates long thinking pauses at the cost of a
+        slower reply. Must stay above the device-side VAD silence (600 ms). Only
+        affects the paths where the device itself decides the end of speech — a
+        separate microphone/agent application keeps its own setting.
+      description_i18n:
+        zh: >-
+          说完话后等多久开始回答（设备端语音端点判停）。镜像默认 1.5 秒能容忍句中自然停顿；调小反应更快，
+          但可能把一句话截成两段；调大更宽容（适合边说边想），代价是回答来得更慢。必须大于设备端 VAD 的
+          静音门限（600 毫秒）。只影响由设备自己判断"说完了"的场景；使用独立麦克风/agent 应用时以它自己的设置优先。
+      options:
+        - {value: "0", label: Balanced (image default, 1.5 s), label_i18n: {zh: 均衡（镜像默认 1.5 秒）}}
+        - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
+        - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
+        - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
