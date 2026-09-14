@@ -177,7 +177,7 @@ intro:
     recomputer_j40:
       description: reComputer J40 Series edge computer. The retail voice deployment runs the Jetson SenseVoice profile; Whisper is an optional English backend.
       description_i18n: {zh: reComputer J40 系列边缘计算机。零售语音部署运行 Jetson SenseVoice profile，也可选 Whisper 英文后端。}
-    recomputer_r2000:
+    recomputer_r20_industrial:
       description: reComputer R2000 Series edge computer with Hailo-8. The retail voice deployment runs SenseVoice on CPU or Whisper on Hailo-8.
       description_i18n: {zh: reComputer R2000 系列边缘计算机（Hailo-8）。零售语音候选配置可运行 CPU SenseVoice 或 Hailo-8 Whisper。}
     respeaker_xvf3800:
@@ -219,7 +219,7 @@ intro:
             - device_ref: recomputer_rk3588
             - device_ref: recomputer_j30
             - device_ref: recomputer_j40
-            - device_ref: recomputer_r2000
+            - device_ref: recomputer_r20_industrial
             - device_ref: rerouter_cm4
           default: recomputer_rk3576
         - id: microphone
@@ -253,7 +253,7 @@ intro:
             - device_ref: recomputer_rk3588
             - device_ref: recomputer_j30
             - device_ref: recomputer_j40
-            - device_ref: recomputer_r2000
+            - device_ref: recomputer_r20_industrial
             - device_ref: generic_linux_host
           default: recomputer_rk3576
         - id: capture
