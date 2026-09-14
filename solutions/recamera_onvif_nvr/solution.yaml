@@ -1,0 +1,68 @@
+version: "1.0"
+id: recamera_onvif_nvr
+name: reCamera ONVIF Gateway
+name_i18n:
+  zh: reCamera ONVIF 网关
+intro:
+  summary: Add a reCamera to NVRs, VMS platforms, and Home Assistant through standard ONVIF discovery and an authenticated RTSP stream.
+  summary_i18n:
+    zh: 通过标准 ONVIF 自动发现和带认证的 RTSP 视频流，将 reCamera 快速接入各厂商 NVR、VMS 平台和 Home Assistant。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/recamera.svg
+  category: automation
+  solution_type: technical
+  tags: [recamera, onvif, rtsp, nvr, vms, home-assistant, ip-camera]
+  output_interfaces:
+    - type: onvif
+      port: 8000
+      endpoint: /onvif/device_service
+      description: ONVIF Device and Media services with WS-Discovery on UDP 3702.
+      description_i18n:
+        zh: ONVIF Device 与 Media 服务；支持 UDP 3702 的 WS-Discovery 自动发现。
+    - type: rtsp
+      port: 8554
+      path: /onvif
+      description: Authenticated H.264 camera stream for NVR, VMS, and Home Assistant.
+      description_i18n:
+        zh: 供 NVR、VMS 和 Home Assistant 使用的带认证 H.264 摄像头视频流。
+  input_requirements:
+    - type: camera
+      description: The integrated reCamera camera module is required.
+      description_i18n:
+        zh: 需要使用 reCamera 内置摄像头模组。
+  device_catalog:
+    recamera_2002:
+      description: All-in-one AI camera that runs the ONVIF and RTSP gateway.
+      description_i18n:
+        zh: 运行 ONVIF 与 RTSP 网关的一体化 AI 摄像头。
+  presets:
+    - id: recamera_2002
+      name: reCamera 2002W
+      name_i18n:
+        zh: reCamera 2002W
+      description: Install the ONVIF gateway on a reCamera 2002W and preview its RTSP stream.
+      description_i18n:
+        zh: 在 reCamera 2002W 上安装 ONVIF 网关，并预览其 RTSP 视频流。
+      verified: [hardware]
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+  stats:
+    difficulty: beginner
+    estimated_time: 5min
+  links:
+    github: https://github.com/yyling0101-a11y/reCamera_2002w_sdk
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
