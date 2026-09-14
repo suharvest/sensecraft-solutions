@@ -5,6 +5,14 @@ intro:
   summary: "Turn a desktop robot into a voice companion — listens, thinks, speaks, and expresses emotions in under 1 second. Works with Reachy Mini. Three deployment options: Jetson all-in-one, reComputer AI Industrial R21 with Hailo-8 NPU, or CM4 wireless."
   description_file: description.md
   cover_image: gallery/cover.png
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: Deployment architecture for the three presets — Jetson all-in-one, reComputer AI Industrial R21 + Hailo-8 with speech and LLM on a remote Jetson, and Reachy Mini Wireless (CM4) with speech and LLM on a remote Jetson
+      caption_i18n:
+        zh: 三个套餐的部署架构——Jetson 一体化；reComputer AI Industrial R21 + Hailo-8，语音与 LLM 在远程 Jetson；Reachy Mini Wireless（CM4），语音与 LLM 在远程 Jetson
   category: voice_ai
   tags: [voice, jetson, robot, reachy, qwen, moss-tts, edge-ai, local, hailo, rpi, cm4]
   solution_type: solution

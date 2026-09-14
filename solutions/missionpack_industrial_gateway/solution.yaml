@@ -55,6 +55,13 @@ intro:
       caption: End-to-end source onboarding and data service workflow
       caption_i18n:
         zh: 从协议接入到统一数据服务的完整操作流程
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — OPC UA, Modbus, BACnet/IP and MQTT devices connect to one data hub host (reComputer R11 Series by default, reComputer R10 Series or reTerminal DM), which serves the browser console and northbound MQTT
+      caption_i18n:
+        zh: 系统架构——OPC UA、Modbus、BACnet/IP 与 MQTT 设备接入一台数据中枢主机（默认 reComputer R11 系列，也可选 reComputer R10 系列或 reTerminal DM），主机提供浏览器控制台与北向 MQTT
 
   input_requirements:
     - type: opc_ua

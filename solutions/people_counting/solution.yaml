@@ -12,6 +12,14 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — the Grove Vision AI V2 counts on the module and sends counts, detections and preview frames over USB-C serial to the counting panel on your computer; your own script or dashboard can read the same SSCMA JSON
+      caption_i18n:
+        zh: 系统架构——Grove Vision AI V2 在模组上完成计数，经 USB-C 串口把计数、检测结果和预览画面交给电脑上的计数面板；自有脚本或看板可读取同一份 SSCMA JSON
   category: sensing
   solution_type: solution
   tags:

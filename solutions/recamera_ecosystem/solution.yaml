@@ -11,6 +11,14 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/recamera.svg
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — apps run on reCamera 2002 or reCamera Pro; detections go over MQTT to Home Assistant on a reComputer R1100 or your computer, and video goes over RTSP (ONVIF on reCamera) to an NVR, VMS or player
+      caption_i18n:
+        zh: 系统架构——应用跑在 reCamera 2002 或 reCamera Pro 上；检测结果经 MQTT 发到 reComputer R1100 或自有电脑上的 Home Assistant，视频以 RTSP（reCamera 另有 ONVIF）输出给 NVR、VMS 或播放器
   category: automation
   solution_type: solution
   tags:

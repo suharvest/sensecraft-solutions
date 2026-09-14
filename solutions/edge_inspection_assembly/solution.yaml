@@ -42,6 +42,13 @@ intro:
       caption: The same part rotated 25 degrees — measured 60.35 x 40.17 mm at 0.10040 mm/px, verdict OK
       caption_i18n:
         zh: 同一目标旋转 25°——按 0.10040 mm/px 量到 60.35 × 40.17 mm，判定 OK
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — inspection station (reCamera Pro or a fixed RTSP/IP camera) into the inspection host, out to PLC/reject actuator, MES/historian, and the local web panel
+      caption_i18n:
+        zh: 系统架构——检测工位（reCamera Pro 或固定机位的 RTSP/IP 摄像头）接入质检主机，输出到 PLC/剔除执行器、MES/历史库与本地 Web 面板
 
   category: sensing
   solution_type: solution

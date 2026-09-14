@@ -12,6 +12,14 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/hero.png
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — on-site capture from an AEC microphone array into the edge voice host (ASR / TTS / Agent), out to an OpenAI-compatible LLM endpoint and a speaker for playback and the conversation model
+      caption_i18n:
+        zh: 系统架构——AEC 麦克风阵列采集的现场拾音接入边缘语音主机（ASR / TTS / Agent），输出到 OpenAI 兼容对话模型接口，并驱动音箱完成回复播放
   category: voice_ai
   solution_type: solution
   tags: [voice-ai, barge-in, aec, qwen3-asr, matcha-tts, rk3576, rk3588, jetson, orin, rk1828, local-llm, raspberry-pi-5, multilingual]
