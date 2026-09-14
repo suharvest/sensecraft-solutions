@@ -11,7 +11,7 @@ type: web_dashboard
 # inherit_host_from points at the Home Assistant deploy step so the address is
 # filled in automatically. The input below stays typeable for anyone pointing
 # this at a Home Assistant they already ran.
-inherit_host_from: deploy_ha
+inherit_host_from: homeassistant_deploy
 
 user_inputs:
   - id: host
