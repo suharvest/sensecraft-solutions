@@ -478,6 +478,301 @@ def _check_step_config_pointers(
     return errors, referenced
 
 
+# --- Cross-step placeholder lint ------------------------------------------- #
+#
+# Verify / preview steps resolve ``{{...}}`` placeholders in a fixed set of
+# fields against the steps that precede them in the same preset. An
+# unresolvable placeholder is left in the URL verbatim by the frontend, so the
+# step renders but connects to nothing (e.g. an RTSP preview that stays black).
+# Only the fields below are checked; templates in compose files, actions,
+# request bodies, post_deployment links etc. follow other rules.
+
+_PLACEHOLDER_RE = re.compile(r"\{\{\s*([\w-]+)(?:\.([\w-]+))?\s*\}\}")
+
+# Connection fields a deploy step contributes (SSH / target connection form).
+_CONNECTION_FIELDS: frozenset[str] = frozenset({"host", "port", "username", "password"})
+
+# Without ``inherit_host_from`` the frontend only falls back to the nearest
+# preceding step of these types (step-context.js resolveUpstreamHostStep).
+_IMPLICIT_UPSTREAM_TYPES: frozenset[str] = frozenset(
+    {"docker_deploy", "docker_local", "docker_remote"}
+)
+
+# Preview-type steps resolve their user_inputs[].default_template against
+# earlier steps' inputs only (no own inputs, no ``{{step_id.field}}``).
+_PREVIEW_STEP_TYPES: frozenset[str] = frozenset({"preview", "video_stream"})
+
+# ``{{deploy.observation_port}}`` in robot_inspect endpoints is filled by the
+# backend proxy (routers/robot_inspect.py DEFAULT_OBSERVATION_PORT).
+_ROBOT_INSPECT_DEPLOY_FIELDS: frozenset[str] = frozenset({"observation_port"})
+
+_MQTT_TEMPLATE_KEYS = (
+    "broker_template",
+    "port_template",
+    "topic_template",
+    "username_template",
+    "password_template",
+)
+
+
+def _iter_placeholder_fields(dev_data: dict):
+    """Yield ``(field_path, template_string)`` for the contract-scoped fields."""
+    video = dev_data.get("video")
+    if isinstance(video, dict):
+        for key in ("rtsp_url_template", "mjpeg_url_template"):
+            if isinstance(video.get(key), str):
+                yield f"video.{key}", video[key]
+    mqtt = dev_data.get("mqtt")
+    if isinstance(mqtt, dict):
+        for key in _MQTT_TEMPLATE_KEYS:
+            if isinstance(mqtt.get(key), str):
+                yield f"mqtt.{key}", mqtt[key]
+    data = dev_data.get("data")
+    if isinstance(data, dict) and isinstance(data.get("http_url_template"), str):
+        yield "data.http_url_template", data["http_url_template"]
+    for prefix, inputs in _iter_user_input_lists(dev_data):
+        for i, inp in enumerate(inputs):
+            if not isinstance(inp, dict):
+                continue
+            ident = inp.get("id", i)
+            if isinstance(inp.get("default_template"), str):
+                yield f"{prefix}[{ident}].default_template", inp["default_template"]
+            if isinstance(inp.get("default"), str) and "{{" in inp["default"]:
+                yield f"{prefix}[{ident}].default", inp["default"]
+    dash = dev_data.get("web_dashboard")
+    if isinstance(dash, dict) and isinstance(dash.get("url"), str):
+        yield "web_dashboard.url", dash["url"]
+    robot = dev_data.get("robot_inspect")
+    if isinstance(robot, dict):
+        for key in ("endpoint", "schema_endpoint"):
+            if isinstance(robot.get(key), str):
+                yield f"robot_inspect.{key}", robot[key]
+
+
+def _iter_user_input_lists(dev_data: dict):
+    """Yield ``(path, list)`` for top-level user_inputs and the remote-target
+    variant under ``<x>_overrides.user_inputs`` (e.g. ``remote_overrides``)."""
+    if isinstance(dev_data.get("user_inputs"), list):
+        yield "user_inputs", dev_data["user_inputs"]
+    for key, val in dev_data.items():
+        if (
+            isinstance(key, str)
+            and key.endswith("_overrides")
+            and isinstance(val, dict)
+            and isinstance(val.get("user_inputs"), list)
+        ):
+            yield f"{key}.user_inputs", val["user_inputs"]
+
+
+def _user_input_ids(dev_data: dict) -> set[str]:
+    return {
+        str(inp["id"])
+        for _, inputs in _iter_user_input_lists(dev_data)
+        for inp in inputs
+        if isinstance(inp, dict) and inp.get("id")
+    }
+
+
+def _inherit_host_from(dev_data: dict, step_type: str | None) -> str | None:
+    """``inherit_host_from`` at top level, under ``config``, or ``config.<type>``
+    / ``<type>`` — the same lookup order the frontend uses."""
+    candidates = [dev_data.get("inherit_host_from")]
+    cfg = dev_data.get("config")
+    if isinstance(cfg, dict):
+        candidates.append(cfg.get("inherit_host_from"))
+        if step_type and isinstance(cfg.get(step_type), dict):
+            candidates.append(cfg[step_type].get("inherit_host_from"))
+    if step_type and isinstance(dev_data.get(step_type), dict):
+        candidates.append(dev_data[step_type].get("inherit_host_from"))
+    for c in candidates:
+        if isinstance(c, str) and c:
+            return c
+    return None
+
+
+def _resolve_inherit_host_from(inherit, order, prior, where, report):
+    """Resolve ``inherit_host_from`` to an earlier step id in the same preset.
+
+    1. Exact match on a guide step id wins.
+    2. Otherwise match the top-level ``id`` of earlier steps' device YAMLs
+       (lets several presets share one verify YAML). Exactly one hit resolves;
+       two or more is ambiguous and reported.
+    3. No hit is reported with the earlier step ids and their device ids.
+    """
+    if inherit in prior:
+        return inherit
+    hits = [sid for sid in order if inherit in prior[sid]["device_ids"]]
+    if len(hits) == 1:
+        return hits[0]
+    if len(hits) > 1:
+        report(
+            f"{where}: inherit_host_from '{inherit}' is ambiguous — it matches the "
+            f"device id of several earlier steps in this preset {hits}. Use the "
+            f"guide step id instead."
+        )
+        return None
+    listing = {sid: sorted(prior[sid]["device_ids"]) for sid in order}
+    report(
+        f"{where}: inherit_host_from '{inherit}' matches neither a guide step id "
+        f"nor a device YAML id of an earlier step in the same preset, so host "
+        f"inheritance is dropped. Earlier steps (step id: device ids): "
+        f"{listing or 'none'}."
+    )
+    return None
+
+
+def _check_placeholders(
+    result, fname: str, sol_path: Path, deployers_info: dict
+) -> list[str]:
+    """Every placeholder in a scoped template field must resolve.
+
+    Contract (per preset, steps in guide order):
+
+    * ``{{deploy.<field>}}`` — needs an upstream step: the one named by
+      ``inherit_host_from`` (must be earlier in the same preset), else the
+      nearest earlier docker_deploy / docker_local / docker_remote step. Other
+      upstream types must be named explicitly. ``<field>`` is a connection
+      field (host/port/username/password) or an upstream user_inputs id.
+    * ``{{<field>}}`` — a user_inputs id of this step or of an earlier step, or
+      a connection field when an earlier deploy step exists. A preview step's
+      user_inputs[].default_template sees earlier steps only.
+    * ``{{<step_id>.<field>}}`` — ``<step_id>`` is an earlier step in the
+      preset; ``<field>`` is its user_inputs id or a connection field.
+    """
+    import yaml
+
+    cache: dict[str, dict | None] = {}
+
+    def load(rel: str) -> dict | None:
+        if rel not in cache:
+            data = None
+            p = sol_path / rel
+            if p.is_file():
+                try:
+                    data = yaml.safe_load(p.read_text(encoding="utf-8"))
+                except yaml.YAMLError:
+                    data = None
+            cache[rel] = data if isinstance(data, dict) else None
+        return cache[rel]
+
+    def is_deploy(step_type: str | None) -> bool:
+        if not step_type:
+            return False
+        if "/" in step_type:  # plugin type: category unknown offline
+            return True
+        return (deployers_info.get(step_type) or {}).get("category") == "deploy"
+
+    errors: list[str] = []
+    seen: set[str] = set()
+
+    def report(msg: str) -> None:
+        if msg not in seen:
+            seen.add(msg)
+            errors.append(msg)
+
+    for preset in result.presets:
+        # step_id -> {"type": str, "deploy": bool, "fields": set[str]}
+        prior: dict[str, dict] = {}
+        order: list[str] = []
+        for step in preset.steps:
+            cfgs: list[tuple[str, dict]] = []
+            rels = [step.config_file]
+            rels += [t.config_file for t in (step.targets or [])]
+            rels += [m.config_file for m in (step.modes or [])]
+            for rel in rels:
+                if rel and all(rel != r for r, _ in cfgs):
+                    data = load(rel)
+                    if data is not None:
+                        cfgs.append((rel, data))
+            own_inputs: set[str] = set()
+            for _, data in cfgs:
+                own_inputs |= _user_input_ids(data)
+
+            earlier_inputs: set[str] = set()
+            for sid in order:
+                earlier_inputs |= prior[sid]["fields"]
+            if any(prior[sid]["deploy"] for sid in order):
+                earlier_inputs |= _CONNECTION_FIELDS
+            implicit = [
+                sid for sid in order if prior[sid]["type"] in _IMPLICIT_UPSTREAM_TYPES
+            ]
+
+            for rel, data in cfgs:
+                where = f"{fname}: {rel} (step '#{step.id}', preset '{preset.id}')"
+                inherit = _inherit_host_from(data, step.type)
+                upstream: str | None = None
+                if inherit:
+                    upstream = _resolve_inherit_host_from(
+                        inherit, order, prior, where, report
+                    )
+                elif implicit:
+                    upstream = implicit[-1]
+
+                for field_path, tmpl in _iter_placeholder_fields(data):
+                    preview_default = step.type in _PREVIEW_STEP_TYPES and (
+                        ".user_inputs[" in f".{field_path}"
+                    )
+                    flat = earlier_inputs if preview_default else earlier_inputs | own_inputs
+                    for m in _PLACEHOLDER_RE.finditer(tmpl):
+                        head, tail, var = m.group(1), m.group(2), m.group(0)
+                        if tail is None:
+                            ok = head in flat
+                            hint = f"{sorted(flat)}"
+                        elif head == "deploy":
+                            if (
+                                field_path.startswith("robot_inspect.")
+                                and tail in _ROBOT_INSPECT_DEPLOY_FIELDS
+                            ):
+                                continue
+                            if upstream is None:
+                                ok = False
+                                if inherit:
+                                    hint = f"inherit_host_from '{inherit}' does not resolve"
+                                else:
+                                    hint = (
+                                        "no docker_deploy/docker_local/docker_remote step "
+                                        "precedes this step; add `inherit_host_from: "
+                                        "<step_id>` naming the earlier deploy step"
+                                    )
+                                    if any(prior[s]["deploy"] for s in order):
+                                        cands = [s for s in order if prior[s]["deploy"]]
+                                        hint += f" (candidates: {cands})"
+                            else:
+                                avail = _CONNECTION_FIELDS | prior[upstream]["fields"]
+                                ok = tail in avail
+                                hint = f"{sorted('deploy.' + f for f in avail)}"
+                        elif head in prior and not preview_default:
+                            avail = prior[head]["fields"] | _CONNECTION_FIELDS
+                            ok = tail in avail
+                            hint = f"{sorted(head + '.' + f for f in avail)}"
+                        elif head in prior:
+                            ok = False
+                            hint = (
+                                "preview-step default_template does not support "
+                                f"{{{{step_id.field}}}}; use one of {sorted(earlier_inputs)}"
+                            )
+                        else:
+                            ok = False
+                            hint = f"'{head}' is not an earlier step; earlier steps: {order or 'none'}"
+                        if not ok:
+                            report(
+                                f"{where}: field '{field_path}' uses placeholder "
+                                f"'{var}' which cannot be resolved (the frontend "
+                                f"leaves it verbatim). Available: {hint}."
+                            )
+
+            prior[step.id] = {
+                "device_ids": {
+                    str(d["id"]) for _, d in cfgs if isinstance(d.get("id"), str) and d["id"]
+                },
+                "type": step.type,
+                "deploy": is_deploy(step.type),
+                "fields": own_inputs,
+            }
+            order.append(step.id)
+    return errors
+
+
 def _check_orphan_device_yamls(
     sol_path: Path, referenced: set[str], sol_yaml_text: str
 ) -> list[str]:
@@ -912,6 +1207,17 @@ def run(
             if not consistency.valid:
                 for cerr in consistency.errors:
                     errors.append(f"EN/ZH structure mismatch: {cerr}")
+
+        # --- 4b'. cross-step placeholders (one guide is enough: EN/ZH
+        #          structure parity is enforced above) ---------------------
+        placeholder_lang = "en" if "en" in parsed else ("zh" if "zh" in parsed else None)
+        if placeholder_lang is not None:
+            placeholder_fname = guide_rel if placeholder_lang == "en" else zh_rel
+            errors.extend(
+                _check_placeholders(
+                    parsed[placeholder_lang], placeholder_fname, sol_path, deployers_info
+                )
+            )
 
         # --- 4c. plugin-contributed type advisories (WARN, never ERROR) ------
         if plugin_types:

@@ -248,7 +248,7 @@ One-line description.
 
 > **verify 步要复用上游 deploy 的 host** —— 在 verify 步的 device YAML 里写 `inherit_host_from: <step_id>` 显式声明（`inherit_host_from` 是 device schema 顶层字段，见 CONTRACT）。
 >
-> **`<step_id>` 是上游那个 deploy `## Step` 的 id（guide.md 里 `{#...}` 的值），不是 device id、也不是 target id。** 端点模板用 `{{deploy.host}}`，引擎会替换成被继承步骤实际选定的 host。多 deploy 步的方案必须显式写，自动 fallback（"最近的 deploy 步"）会选错。
+> **`<step_id>` 推荐写上游那个 deploy `## Step` 的 id（guide.md 里 `{#...}` 的值），不是 target id；写上游 device YAML 的 `id` 仅作为多 preset 共用 YAML 时的兼容写法，规则见下文。** 端点模板用 `{{deploy.host}}`，引擎会替换成被继承步骤实际选定的 host。多 deploy 步的方案必须显式写，自动 fallback（"最近的 deploy 步"）会选错。
 >
 > 最小 `web_dashboard` verify device YAML：
 >
@@ -263,6 +263,46 @@ One-line description.
 >   title: My Dashboard
 >   description: 页面能加载出数据即代表部署成功。
 > ```
+>
+> **占位符契约**（`solutionctl validate` 按此检查，无法解析的变量报 error，信息含文件、字段、变量名和可用变量）。
+>
+> 适用字段（其他位置的模板，如 compose、actions、`post_deployment`、`request_template`，不在此检查范围）：
+>
+> - `video.rtsp_url_template`、`video.mjpeg_url_template`
+> - `mqtt.broker_template` / `port_template` / `topic_template` / `username_template` / `password_template`
+> - `data.http_url_template`
+> - `user_inputs[].default_template`，以及 `user_inputs[].default` 中含 `{{` 的值（部署步与预览步都算；`remote_overrides.user_inputs` 同样）
+> - `web_dashboard.url`
+> - `robot_inspect.endpoint`、`robot_inspect.schema_endpoint`
+>
+> 变量表（"之前" = 同一 preset 内、guide.md 步骤顺序在本步之前）：
+>
+> | 写法 | 可解析的条件 |
+> |---|---|
+> | `{{deploy.host}}` | 存在上游步：写了 `inherit_host_from: <step_id>` 时为该步（必须是本步之前的 step id）；未写时只回退到之前最近的 `docker_deploy` / `docker_local` / `docker_remote` 步。上游是 `recamera_cpp`、`ssh_deb`、`esp32_usb` 等其他类型时必须显式写 `inherit_host_from` |
+> | `{{deploy.<field>}}` | 同上确定上游步；`<field>` 为连接字段（`host` / `port` / `username` / `password`）或上游步 device YAML 的 `user_inputs` id。例外：`robot_inspect` 端点里的 `{{deploy.observation_port}}` 由后端兜底，视为合法 |
+> | `{{<field>}}` | 本步 `user_inputs` id、之前任一步的 `user_inputs` id，或之前存在部署步时的连接字段（如 `{{host}}`）。预览步（`preview` / `video_stream`）的 `user_inputs[].default_template` 只能用之前步骤的 id 和连接字段，不能引用本步自己的输入 |
+> | `{{<step_id>.<field>}}` | `<step_id>` 是本步之前的 step id；`<field>` 为该步 `user_inputs` id 或连接字段。预览步的 `default_template` 不支持这种写法 |
+>
+> 最小 `video_stream` 预览 device YAML（上游为 `## Step 1: ... {#deploy_camera type=recamera_cpp ...}`，非 docker 类型，所以必须写 `inherit_host_from`）：
+>
+> ```yaml
+> version: "1.0"
+> id: rtsp_preview
+> name: RTSP Preview
+> type: video_stream
+> inherit_host_from: deploy_camera   # ← 上游步的 STEP id
+> video:
+>   type: rtsp_proxy
+>   rtsp_url_template: "rtsp://{{deploy.host}}:8554/live0"
+> ```
+>
+> `inherit_host_from` 的匹配规则（候选 = 同一 preset 内、本步之前的步骤）：
+>
+> 1. 先按 guide step id 匹配，命中即生效。推荐写 step id。
+> 2. 未命中时，按候选步 device YAML 顶层 `id` 字段匹配（不是文件名）。多个 preset 共用同一个 verify device YAML、而各 preset 的上游 step id 不同时，可以写上游 device YAML 的 `id`（例如三个 preset 的上游步 `p1_console` / `p2_console` / `p3_console` 都引用 `id: console_stack` 的 YAML，下游写 `inherit_host_from: console_stack`）。
+> 3. 同一 preset 内有 ≥2 个前序步的 device `id` 命中时，校验报 error（歧义），需改写为 step id。
+> 4. 都未命中时校验报 error，提示中列出前序步骤的 step id 及其 device id。本步之后的步骤不参与匹配。
 
 > **`### Wiring` 段严格限定为接线说明**，不要塞 Docker 安装、API key 获取等非接线内容。
 
