@@ -19,9 +19,11 @@ name_i18n:
   zh: 零售语音
 
 intro:
-  summary: Turn in-store speech into text. Use a device that transcribes and uploads text JSON, or use a reSpeaker Clip with SenseCraft Voice App and the retail voice platform.
+  summary: >-
+    Turn in-store conversations into searchable text, with personal details redacted before storage and per-person hard deletion.
   summary_i18n:
-    zh: 把门店对话转成文字。两种部署方式——设备转写后上传文本 JSON，或者用 reSpeaker Clip 采集、SenseCraft Voice App 经网关交给零售语音平台。
+    zh: >-
+      把门店对话转成可查询的文字，个人信息入库前脱敏，可按人彻底删除。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

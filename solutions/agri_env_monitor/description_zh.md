@@ -2,126 +2,59 @@
 
 ## 它做什么
 
-SenseCAP LoRaWAN 节点测土壤和空气——温度、湿度、土壤水分、电导率、CO2、雨量——
-通过 LoRaWAN 上报。本方案把这些上行（不管走哪条路进来）变成 Home Assistant 实体，
-带上正确的单位、device class 和 state class，于是它们出现在看板上、积累历史，
-并能在数值越界时触发通知。
-
-进来的路有三条，终点是同一个。套餐 1 读 SenseCAP 云。套餐 2 读你自建的
-The Things Stack。套餐 3 读 ChirpStack——可以是 M2 网关内置的那个，
-也可以是你用 Docker 跑在 reComputer R12 系列网关上的那个。三条路背后是同一个服务
-`agri-env-bridge`：把 SenseCAP 的 `measurementId` 映射成实体语义，去重，
-跟踪每个节点是否还在上报，并发布 Home Assistant MQTT 自动发现消息。
+SenseCAP LoRaWAN 节点测量空气温湿度、土壤温度、水分、电导率、CO2 和雨量，本方案把这些读数显示在 Home Assistant 看板上，保留历史，数值越界时发通知。数据可以走 SenseCAP 云，也可以走自建的 The Things Stack 或 ChirpStack，后者可全程不联外网。
 
 ## 你会得到什么
 
-**三条路径共用一套实体命名。** 不论由哪个套餐产生，实体都是
-`sensor.sensecap_<deveui>_<entity_key>`。一个站点从云端切到本地网络服务器，
-不用改看板、不用改自动化、不用改导出。
-
-**有意义的 availability。** 每个节点一个 retained availability 主题。
-节点静默超过设定时长就翻成 `offline`，它的实体在 Home Assistant 里显示为不可用——
-最后一个值保留，不是清空。默认阈值是 S210x 两个上报周期加余量。
-
-**云套餐首启时回填历史。** 桥按月分页调 SenseCAP OpenAPI，把取到的数据写进本地 SQLite，
-主键是 `(DevEUI, measurementId, 时间戳)`，所以回填和实时流不会把同一条读数记两遍。
-Home Assistant 收到的是每个实体的最新值；它自己的 recorder 历史从上线那一刻开始积累。
-
-**可直接导入的看板与阈值告警。** 一份 Lovelace 看板，覆盖空气温湿度、土壤温度、
-水分与电导率、雨量、电量与可用性；另有一组自动化，数值越界时创建持久通知，
-恢复后自动关闭。
-
-**一个完全不联外网的选项。** ChirpStack 跑在网关自己身上，桥和 Home Assistant 跑在本地主机上，
-数据不需要离开场地——不用云账号，不用出站连接。
+- **现成看板**：空气温湿度、土壤温度、水分与电导率、雨量、电量与在线状态。
+- **越界告警**：数值越过阈值时创建通知，恢复后自动关闭。
+- **离线提示**：节点停止上报超过设定时长后显示为离线，保留最后一个值。
+- **云端历史回填**：SenseCAP 云套餐首次启动时补齐安装前的历史数据。
+- **切换路径不改看板**：三个套餐实体命名一致，从云端切到本地网络服务器，看板和自动化不用改。
+- **可完全本地运行**：ChirpStack 套餐不需要云账号和外网连接。
 
 ## 适用场景
 
-- 大棚，土壤水分和电导率决定什么时候灌溉、什么时候追肥。
-- 大田地块，一个网关覆盖若干传感点，雨量和土壤温度比空气条件更重要。
-- 没有可用外网、或数据不允许外传的场地——本地 ChirpStack 套餐两种情况都能覆盖。
-- 已经在向云端上报的存量 SenseCAP 部署，想要一份本地看板和本地自动化，又不想搬动现有链路。
+- 大棚：按土壤水分和电导率决定灌溉、追肥。
+- 大田地块：一个网关覆盖多个传感点。
+- 没有外网或数据不允许外传的场地（本地 ChirpStack 套餐）。
+- 已向 SenseCAP 云上报、想加本地看板和自动化的存量部署。
 
-## 实测到什么程度
+## 实测效果
 
-本方案**没有**接过真实 LoRaWAN 网络。下面全部来自一次本机冒烟：Mac 桌面 Docker 主机，
-把构造的上行回放进 broker。
+| 指标 | 效果 |
+|---|---|
+| 节点读数显示为看板实时数据 | **15/15** 实体 |
+| 越界通知的建立与解除 | **两个方向都成立** |
+| 节点停报后标为离线 | **15/15** 实体 |
 
-| 种植方能得到什么 | 典型值 | 设备 |
-|---|---|---|
-| 节点上行变成看板上的实时数据 | **15/15**，3 台设备，一轮回放 | Home Assistant 主机 |
-| 读数越过阈值时通知的建立与解除 | **两个方向都成立** | Home Assistant 主机 |
-| 节点不再上报后在看板上标为离线 | **15/15** 实体 | Home Assistant 主机 |
-
-SenseCAP 云、The Things Stack 与 ChirpStack 三条接入路径在同一轮里一起跑通，
-共回放 13 条上行，2026-09-05。
-
-射频侧的数字——通信距离、单网关能带多少节点、丢包与恢复、网关重启时间、节点续航——
-取决于你的场地与网关点位。请按网关与节点规格书取值，并在自己场地上实测确认后再定点。
+测试方式为本机回放 3 台设备的上行，三条接入路径共 13 条上行；通信距离、节点容量、续航请按规格书取值并在现场实测。
 
 ## 输出接口
 
-| 接口 | 主题 | 负载 |
-|---|---|---|
-| MQTT 自动发现 | `homeassistant/sensor/sensecap_<deveui>/<entity_key>/config` | retained 的发现配置，每个实体一条 |
-| MQTT 状态 | `agri_env/sensecap_<deveui>/<entity_key>/state` | retained 的数值 |
-| MQTT 可用性 | `agri_env/sensecap_<deveui>/availability` | retained 的 `online` 或 `offline` |
-
-Home Assistant 的实体 ID 由设备名和实体名推导而来：`sensor.sensecap_<deveui>_<entity_key>`，
-DevEUI 小写。这里刻意用完整 DevEUI——用缩短形式时，地址后缀相同的两个节点会撞车。
+| 接口 | 内容 |
+|---|---|
+| MQTT `homeassistant/sensor/sensecap_<deveui>/<entity_key>/config` | Home Assistant 自动发现配置 |
+| MQTT `agri_env/sensecap_<deveui>/<entity_key>/state` | 传感器数值 |
+| MQTT `agri_env/sensecap_<deveui>/availability` | 节点在线状态 `online` / `offline` |
 
 ## 套餐怎么选
 
-**SenseCAP 云**——节点已经在向云端上报、你只想要一份本地看板又不想动射频侧时选它。
-它是唯一能显示安装之前那段历史的套餐，也是唯一需要出站外网的套餐。它还需要一对
-SenseCAP API 密钥。
-
-**自建 The Things Stack**——想把网络服务器攥在自己手里、并且愿意搭一个网关时选它：
-reComputer R12 系列网关、packet forwarder，以及一套自带 Postgres 与 Redis 的 stack。
-三者中安装工作量和资源占用都最重的一个。
-
-**本地 ChirpStack**——网关本身就能当网络服务器时选它。在 M2 上，整个网络服务器就是
-Web 界面里的一项设置，这是走到完全本地部署的最短路径；在 reComputer R12 系列网关上，
-它是一套 Docker stack。无公网验收场景走的就是这个套餐。
+| | SenseCAP 云 | 自建 The Things Stack | 本地 ChirpStack |
+|---|---|---|---|
+| 适合 | 节点已在向云端上报 | 想自己管网络服务器 | 网关自带网络服务器（M2）或 R12 系列网关 |
+| 需要外网 | 需要 | 不需要 | 不需要 |
+| 安装前的历史 | 有 | 无 | 无 |
+| 安装工作量 | 最小，需 SenseCAP API 密钥 | 最重 | M2 上最短 |
 
 ## 使用注意
 
-- **套餐 2 和 3 里 decoder 不是可选项。** SenseCAP 的上行是二进制的。
-  没装 payload formatter（The Things Stack）或 device-profile codec（ChirpStack），
-  网络服务器交给桥的就是一堆不含测量项的字节，一个实体也出不来。
-  网络服务器没解出来的东西，桥恢复不了。
-- **SenseCAP 云 MQTT 有两个域名在流传。** 部署步骤里两个都提供。
-  如果桥的日志显示 DNS 或认证失败，改用另一个重新部署。
-- **broker 是看板的单点。** 状态主题是 retained 的，所以 Home Assistant 重启后能恢复最后的值；
-  但 broker 挂了，三个套餐都不会再有更新。
-- **数值是原样透传的，不做换算。** 桥按 `measurementId` 配的单位贴标签，不缩放数字。
-  如果某个型号上报的量纲不同，改 `assets/config/measurements.yaml` 即可，不用改代码。
-- **改实体命名规则必须先清 retained 消息。** 自动发现配置是 retained 的，
-  不同时清掉 broker 的 retained 消息和 Home Assistant 的实体注册表，旧主题重启后还会回来。
-- **不要把 broker 暴露到公网。** 它涉及主机上 `.env` 里的凭据；
-  ChirpStack 套餐里 LNS 侧的 broker 还在 compose 网络内不带认证运行。
-  这两点在可信局域网内没问题，在别处不行。
-- **桥的镜像已发布**在
-  `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
-  （linux/amd64 + linux/arm64）。`BRIDGE_IMAGE` 默认指向该 tag；要部署自建版本，
-  把它指向你自己的 registry。
-
-## 数字的适用范围
-
-- **本页每一个数字都来自本机回放台架**——链路里没有射频段，也没有网络服务器的处理。
-- **通信距离、节点容量、丢包、恢复与网关重启时间**——请按节点与网关规格书取值，并在自己的场地上实测；这几项主导选点设计，从台架推不出来。
-- **节点续航**——按你配置的上报周期从节点规格书取。
-- **SenseCAP OpenAPI 回填**——台架的云端 source 没有持有真实凭据，请用自己的账号验证分页、限流与历史完整性。
+- 套餐 2 和 3 必须在网络服务器上装 SenseCAP decoder，否则看板上没有任何实体。
+- SenseCAP 云 MQTT 有两个域名，桥日志报 DNS 或认证失败时换另一个重新部署。
+- broker 停止时三个套餐都不再更新数据。
+- 改实体命名规则前，需同时清掉 broker 的 retained 消息和 Home Assistant 实体注册表。
+- 不要把 broker 暴露到公网：ChirpStack 套餐 LNS 侧 broker 无认证。
 
 ## 许可说明
 
-`assets/config/measurements.yaml` 里 `measurementId` 到物理量的对照表，
-读自 `Seeed-Solution/SenseCAP-Decoder` 仓库 commit `d0a2342` 的 decoder 源码。
-**该仓库没有 LICENSE 文件**，README 里也没有许可段落；
-全仓库唯一的许可声明在一个第三方贡献的文件头里，写的是 `Unlicensed for internal use`。
-因此 decoder 的许可状态是**未确认**。
-
-本方案不转发 decoder。它只用了 `id → 物理量` 这个事实性对应关系，
-并为每条记录标注源文件与行号；Home Assistant 的 `device_class`、`unit_of_measurement`、
-`state_class` 三列则取自 Home Assistant sensor 文档。
-套餐 2 和 3 的部署指南链接上游仓库，而不是随方案分发那些 JavaScript。
-要把 decoder 本身随部署一起分发，请先与 Seeed 确认许可立场。
+`assets/config/measurements.yaml` 的 `measurementId` 对照表读自 `Seeed-Solution/SenseCAP-Decoder`（commit `d0a2342`），该仓库没有 LICENSE 文件，许可状态未确认。本方案不转发 decoder，只使用 id 到物理量的对应关系，部署指南链接上游仓库；要随部署分发 decoder 本身，请先与 Seeed 确认许可。

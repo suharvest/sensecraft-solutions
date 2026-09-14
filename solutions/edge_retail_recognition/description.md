@@ -1,110 +1,62 @@
 ## What it does
 
-A camera watches the checkout belt or a shelf. A single-class detector boxes
-every product in the frame — it does not classify, it only answers "there is a
-product here". Each box is cropped, encoded into a 512-dimension vector, and
-looked up by cosine similarity in a FAISS product library. The checkout lane
-aggregates by track id so a product passing the camera is counted once; the
-shelf aggregates by planogram slot and reports four states: ok, empty,
-wrong_sku, unknown. One MQTT message per frame carries the results, along with
-the library version and model hashes that produced them.
-
-The point of this split is registration. Adding a SKU means taking 3 to 8
-photos and sending them to the management service — neither the detector nor
-the embedder learns anything, no retraining, and the library gains one
-immutable version (with SHA256SUMS, rollable back). The management side is
-implemented; the on-device runtime that pulls new versions automatically does
-not exist yet — versions are shipped with the deployment for now.
+A camera watches a checkout belt or a shelf and recognises the SKU of every product in the frame. The checkout lane outputs an item list, counting each product once; the shelf reports each slot as ok, empty, wrong SKU or unknown. A new SKU is registered from 3 to 8 photos, with no model retraining.
 
 ## What you get
 
-- **A single-class YOLOX-Tiny detector** in two fixed presets: checkout 640²
-  and shelf 1280². Input size is a property of the compiled artifact and does
-  not change at runtime.
-- **A DINOv2 embedder fine-tuned with ArcFace**, in two sizes: DINOv2-base
-  (348 MB fp32) and DINOv2-small (23.5 MB dynamic-quantised INT8, for the CPU
-  path).
-- **A versioned product library** — immutable version directories holding
-  vectors, the SKU table, the FAISS index, a manifest and SHA256SUMS; atomic
-  switchover, a single-writer lock, and rollback. Every version records which
-  embedding model produced it, because vectors from different models are not
-  comparable.
-- **A registration and query service with a management UI** — three containers
-  plus an MQTT broker, with three role-token tiers and no anonymous reads.
-- **Conversion paths per platform**: Rockchip NPU (RKNN) and Hailo-8 (HEF),
-  with conversion scripts, calibration recipes, and a parity flow that aligns
-  the converted artifacts against the CPU reference.
+- **Read a whole basket at checkout**: SKUs and quantities without scanning item by item.
+- **Shelf out-of-stock and misplacement reports**: no one has to walk the aisle.
+- **Register new products by photo**: 3–8 photos per SKU, no retraining; the product library is versioned and can be rolled back.
+- **Management UI**: register products, browse recognition events, and view checkout/shelf dashboards.
+- **Results pushed live over MQTT** for your own systems.
 
 ## Where it fits
 
-Checkout lanes that should read a basket of goods instead of scanning item by
-item. Shelves that should report out-of-stock and misplacement without a person
-walking the aisle. Stores that rotate SKUs weekly and cannot wait for a
-training run each time.
+- Checkout lanes that should read a basket at once instead of scanning item by item
+- Shelves that should report out-of-stock and misplacement automatically
+- Stores that rotate SKUs weekly
 
-Not for legal metrology, legally binding prices, or loss-prevention use — it
-only counts what it can see.
+Not for legal metrology, legally binding prices or loss prevention.
 
-## How well it works
+## Measured results
 
-| What the checkout gets | Typical | Device |
-|---|---|---|
-| Frames dropped in a 2956-frame checkout replay | **0** | reComputer J40 (Orin NX 16GB) |
-| Product recognition, DINOv2-base, 8 registrations per SKU | **top-1 84.67% / top-5 96.66%** | Model figures, hold across hosts |
-| Product recognition, DINOv2-small, 8 vs 1 registrations per SKU | **top-1 79.11% → 51.11%** | Same as above |
+| Metric | Result |
+|---|---|
+| Dropped frames in checkout replay (reComputer J40) | **0 in 2956 frames** |
+| Product recognition accuracy (DINOv2-base, 8 photos per SKU) | **top-1 84.67% / top-5 96.66%** |
+| Effect of photo count (DINOv2-small) | 8 photos **top-1 79.11%**, 1 photo **top-1 51.11%** |
+| Shelf frame to result (reComputer RK3588, 20 SKUs) | **p50 924 ms / p95 1153 ms** |
 
-Registration count is the biggest accuracy lever — going from 1 to 8 photos
-moves top-1 by 28 points on the same model — so shoot each SKU from several
-angles when registering.
-
-A shelf-tier host does the same job more slowly: on a reComputer RK3588
-replaying a 20-SKU shelf, frame-to-result published is p50 924 ms /
-p95 1153 ms with zero publish errors. The Hailo-8 preset currently stops at
-model conversion.
+Dropped frames and latency were measured on recorded video replay.
 
 ## Output Interfaces
 
-| Interface | Where | Content |
-|---|---|---|
-| MQTT "retail/v1/events" | broker, 1883 | One message per frame with every box: track id, bbox, SKU, similarity, top-2 gap, OCR blocks, fallback flags, plus the library version and model hashes |
-| HTTP "/v1/gallery/*" | service, 8089 | Registration, version list, per-version manifest, the tar.gz devices pull, and rollback |
-| HTTP "/api/*" | UI, 8080 | Event list, per-event box detail, and the aggregates behind the checkout/shelf dashboards |
+| Interface | Content |
+|---|---|
+| MQTT "retail/v1/events" | One message per frame: position, SKU and similarity of every product |
+| HTTP "/v1/gallery/*" | Product registration, library versions and rollback |
+| HTTP "/api/*" | Event list, event detail and checkout/shelf dashboard data |
 
 ## Deployment Comparison
 
-| Preset | Detector | Embedder | Best for |
-|---|---|---|---|
-| reComputer J40 (Jetson Orin NX, TensorRT) | GPU TensorRT fp16, p50 5.18 ms | GPU TensorRT fp16, p50 4.23 ms | Fastest measured path; 2956-frame checkout replay with zero drops |
-| reComputer J30 (Jetson Orin Nano, TensorRT) | GPU TensorRT fp16, p50 5.88 ms | GPU TensorRT fp16, p50 5.06 ms | Also benchmarked end to end: 6726-frame replay, zero drops |
-| reComputer RK3588 series | NPU RKNN fp16, p50 56.7 ms (INT8 reaches 26.0 ms) | CPU onnxruntime | Rockchip toolchain; shelf replay proven end to end (p50 924 ms) |
-| reComputer RK3576 | Dual-core NPU RKNN fp16, p50 51.05 ms | Dual-core NPU RKNN fp16, p50 56.38 ms | Smaller Rockchip option with both stages on the NPU |
-| reComputer R2000 (Hailo-8) | INT8 HEF, p50 9.04 ms | CPU dynamic INT8 DINOv2-small, 91.95 ms per crop | Fastest detection of the four |
+| Preset | Speed | Notes |
+|---|---|---|
+| reComputer J40 (Jetson Orin NX) | Detection p50 5.18 ms, recognition p50 4.23 ms | 2956-frame checkout replay, 0 drops |
+| reComputer J30 (Jetson Orin Nano) | Detection p50 5.88 ms, recognition p50 5.06 ms | 6726-frame replay, 0 drops |
+| reComputer RK3588 series | Detection p50 56.7 ms (INT8 26.0 ms), recognition on CPU | Shelf replay p50 924 ms |
+| reComputer RK3576 | Detection p50 51.05 ms, recognition p50 56.38 ms | Detection and recognition both on the NPU |
+| reComputer R2000 (Hailo-8) | Detection p50 9.04 ms, recognition 91.95 ms per item (CPU) | A five-item basket takes about half a second |
 
 ## Usage Notes
 
-- **Register at least three views.** Fewer than three photos is rejected.
-  Front, back and side under two lighting conditions is a working minimum;
-  measured top-1 gains 28 points going from 1 to 8 photos.
-- **Budget a frame by crop count, not by frame rate.** On the Hailo-8 path,
-  detection is 9 ms and embedding is 92 ms per crop: a five-item basket takes
-  about half a second; a shelf frame at measured density takes ~14 s, so shelf
-  scenarios need frame decimation or per-slot sampling.
-- **Two container images are built at deploy time**, both on the management
-  host from the upstream repository, and the SPA must be built first.
-- **The bundled broker is anonymous and plaintext.** Add accounts and TLS
-  before going into a store.
-- **Model, preprocessing and library version are bound together.** A library
-  built by one embedder is unreadable by another — that is why the version
-  manifest records both hashes.
-- **The models are fine-tuned on studio product photos.** Test with your own
-  shelf images before making any commitment about your shelves.
+- **Register at least 3 photos per SKU**; fewer is rejected. Front, back and side under two lighting conditions is recommended.
+- **Estimate latency by items per frame**: on the Hailo-8 path a shelf frame takes ~14 s, so shelf scenarios need frame decimation or per-slot sampling.
+- New product-library versions ship with a deployment; devices do not pull them automatically yet.
+- Two container images are built on the management host at deploy time.
+- The bundled MQTT broker is anonymous and plaintext; add accounts and TLS before going into a store.
+- Changing the embedding model requires rebuilding the product library; the old library cannot be used.
+- The models are fine-tuned on studio product photos; test with images of your own shelves before going live.
 
 ## Licensing note
 
-The project code and the DINOv2 backbones are Apache-2.0, but **neither bundled
-model weight may be used commercially**: the detector weights are trained on
-SKU-110K (academic and non-commercial use only, no derivative works), and the
-embedder weights are fine-tuned on JD Products-10K (non-commercial research and
-education only). Commercial deployment means retraining both models on
-self-collected or permissively licensed data and rebuilding every library
-version. Summary in "gallery/ATTRIBUTION.md".
+The project code and the DINOv2 backbones are Apache-2.0, but **neither bundled model weight may be used commercially**: the detector weights are trained on SKU-110K (academic and non-commercial use only), and the embedder weights are fine-tuned on JD Products-10K (non-commercial research and education only). Commercial deployment requires retraining both models on self-collected or permissively licensed data and rebuilding every library version. See "gallery/ATTRIBUTION.md".

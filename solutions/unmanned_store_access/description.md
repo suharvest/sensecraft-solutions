@@ -1,133 +1,65 @@
 ## What it does
 
-A camera at the door recognises a face, requires a passive liveness check to
-pass, checks the person against the current library, the schedule and the
-blocklist, and — only if all of that holds — pulses a relay that switches a lock
-running on its own 12/24 V supply. Every decision, allowed or denied, is
-published on MQTT and appended to a hash-chained audit log.
-
-The face library lives in the cloud, versioned. Devices poll two HTTP endpoints,
-compare the version, download in chunks, verify SHA-256 and a manifest
-signature, load the new matcher, and only then switch atomically. A failure at
-any step leaves the previous version in place, and a device that is offline keeps
-opening the door with the last library it successfully loaded.
+A camera at the door recognises a face. Only when the liveness check passes, the person is inside their allowed schedule and not on the blocklist does it send a relay pulse to open the door. Recognition and the decision run locally, so the door still opens when the network is down.
 
 ## What you get
 
-**A door that keeps working when the network does not.** Recognition, liveness
-and the decision all happen at the door. The network carries library updates,
-events and remote commands — not the unlock itself, except when route B's
-relay node sits on the far side of MQTT, where that trade is made explicitly.
-
-**Liveness that cannot be silently switched off.** The upstream recognition
-service degrades to "keep recognising, skip liveness" when the model file is
-missing. For a door that degradation is an open door, so the adapter probes
-"/health" at startup and refuses to run unless liveness reports as loaded. A
-"live" value of "null" is treated as a failure, not a pass: it means the check
-did not run.
-
-**A face library with a delete that stays deleted.** Removing a person mints a
-new version without them and writes a deletion barrier. Rolling back to any
-version that still contains them is refused by name. Without the barrier, one
-rollback quietly re-admits everyone who has ever been removed.
-
-**Remote commands that cannot be replayed into a second unlock.** Exact field
-set, UUIDv4 command id, RFC3339 "issued_at" with a timezone, a TTL bound, and a
-per-identity replay table. A redelivered command returns the original receipt
-and does not open the door again. The command topic is never retained — a
-retained unlock replays on every reconnect, so the door would open by itself
-after a power cut.
-
-**An audit log you can check.** Append-only NDJSON, each record carrying the
-previous record's hash. Changing one past decision from denied to allowed breaks
-the chain, and the console's verification endpoint reports it.
-
-**Two ways to wire the same system**, sharing one library, one event contract
-and one console. **A. AI camera at the door** - a reCamera Pro or a standard
-reCamera recognises, checks liveness and decides on the camera itself. **B. AI
-host with your existing cameras** - a reComputer J20 / J30 / J40 / R1000 pulls
-the RTSP streams already at the doors and drives the relay from its own digital
-output, a Grove Relay, or an MQTT relay node when the host is not at the door.
+- **Opens the door offline**: library updates, event reports and remote unlock use the network; opening the door does not.
+- **Rejects photos and screen replays**: liveness is always on (except on the RKNN backend), and the service refuses to start if the liveness model is not loaded.
+- **Face library managed in the cloud**: add or remove people once and it reaches every door device; a removed person cannot come back through a rollback.
+- **Remote unlock**: the console or MQTT sends unlock, hold-open and close commands; a repeated command does not open the door twice.
+- **Verifiable access records**: every allow and deny is recorded, and the verification endpoint reports any record that was tampered with.
 
 ## Where it fits
 
-- Unmanned or partially staffed retail — staff entrance, stock room, back door.
-- Shared office and co-working doors where the roster changes weekly.
-- Equipment rooms and cabinets where an audit trail matters more than throughput.
-- Any site that already has RTSP cameras at the door and wants recognition
-  without replacing them.
+- Staff entrances, stock rooms and back doors of unmanned or lightly staffed stores
+- Shared offices where the roster changes often
+- Equipment rooms and cabinets that need an access trail
+- Sites that already have RTSP cameras at the door and do not want to replace them
 
-Not for: doors where a failure to open is a safety event, and doors where the
-consequences of a wrongly admitted person are severe. This is a reference
-design, not a certified security product. Commission recognition, liveness and
-the door path on your own site before it carries a door.
+Not for doors where admitting the wrong person causes a safety incident. This is not a certified security product.
 
-## How well it works
+## Measured results
 
-**This is not a certified security or life-safety system.** Calibrate the
-thresholds and measure recognition, liveness and the door path on your own site
-before the design carries a door.
+| Metric | Result |
+|---|---|
+| Face to door-open signal | **about 0.6 s**, nearly unchanged from 10 to 1 000 people in the library |
+| Registered person | **door opened in 24 of 24 runs** |
+| Stranger | **0 false opens in 40 runs** |
+| Phone screen replay, still screen image | **0 false opens in 60 runs** |
 
-**Door-open time: from the first replay frame handed to the app to the GPIO pin
-being driven to its active level.** Measured on the device, running the
-`f1-access` 0.1.1 app itself, over capture, detection, liveness, matching,
-policy and the pin write. p50, with p95 in brackets, 12 runs per point — at
-n=12 read the p95 column as an upper bound.
+Tested on reCamera Pro; the open time excludes the mechanical action of the relay and lock.
 
-| Camera / host | 10 people | 1 000 people |
+## Output Interfaces
+
+| Interface | Content |
+|---|---|
+| MQTT "access/v1/events" | Allow/deny decision for every attempt |
+| MQTT "access/v1/status/{device_id}" | Device online status and heartbeat |
+| MQTT "access/v1/commands/{door_id}" | Remote unlock / hold-open / close commands |
+| HTTP "/api/…" | Console API: people, devices, events, record verification |
+
+## Two routes
+
+| | A. AI camera at the door | B. AI host + existing cameras |
 |---|---|---|
-| reCamera Pro (RV1126B), f1-access 0.1.1 | **0.62 s** (0.67) | **0.66 s** (0.68) |
-| Standard reCamera (SG2002) | — | — |
-| AI host + RTSP camera (Jetson) | — | — |
+| Device | reCamera Pro, or standard reCamera | reComputer J20 / J30 / J40 / R1000 |
+| Camera | Built into the device | RTSP cameras already at the door |
+| Does the unlock path go over the network | Not on Pro; over MQTT on standard | Not when the relay is wired to the host |
 
-The pin was asserted in 24 of 24 runs. Conditions: 1280x720 frames replayed at
-12.5 fps, liveness on, `min_face_px` 40, `match_threshold` 0.40; the probe is a
-stock video clip replayed through the device's own pipeline, not a live person.
-The 1 500 ms contact hold that follows the pin write is not counted. No relay
-and no lock are connected, so these figures contain no mechanical response. The
-measured p50 difference between the 10-person and 1 000-person library is 37 ms.
-Source: "evaluation/runs/2026-09-08-f1-0.1.1-validation/results.md" in the
-unmanned-store-access repository.
+**Choose A**: there is no camera at the door yet and you want one device to do it all.
+**Choose B**: the door already has a camera, or one host needs to manage several doors.
 
-**Rejections: the pin was never asserted in 100 runs.** Same device, same app,
-20 runs per row. 40 runs are an unregistered person; 60 are a screen held in
-front of the lens.
+## Usage Notes
 
-| Run | Face library | Pin asserted |
-|---|---|---|
-| Unregistered person | 9 synthetic identities | 0 / 20 |
-| Unregistered person | 999 synthetic identities | 0 / 20 |
-| Phone screen replay, clip A | 10, template built from the attack clip | 0 / 20 |
-| Phone screen replay, clip B | 10, template built from the attack clip | 0 / 20 |
-| Still screen image | 10, template built from the attack clip | 0 / 20 |
+- **This solution only outputs a relay dry contact** to the door controller's input. The lock and its power supply belong to the door-control installer; do not drive a lock from a device pin.
+- **Wiring order: first an LED to confirm the signal, then the relay, then the lock.**
+- Active level, pulse width, NO/NC contact and power-loss state have no defaults and must be configured on site.
+- Tune the recognition threshold after testing on site.
+- The bundled MQTT broker is anonymous and plaintext, for testing only; enable TLS and access control for production.
+- The RKNN backend has no liveness check; choose another backend where anti-spoofing matters.
+- Cloud face enrolment for reCamera Pro does not yet produce a usable face library.
 
-In the two unregistered-person rows the library holds only synthetic vectors, so
-the person in the clip is not enrolled. In the three screen rows the template is
-built from the attack clip itself, so the face in the library and the face on the
-screen are the same person. The still-screen row is one display frame held
-still; no printed photograph was tested.
+## Licensing note
 
-The standard reCamera row is empty because its recogniser is a closed native
-process with no way to feed it a frame: measuring it needs a person in front of
-the lens. The AI-host row is empty because the numbers on this page come from the
-reCamera routes.
-
-A software-loop test suite covers the protocol and the state machine: 52 of 52
-checks across three library versions built, published, pulled, hash-checked and
-atomically switched; the policy denying a photograph, a null liveness result, a
-blocklisted person, a below-threshold stranger, an empty frame and a repeat
-inside the debounce window; exactly two unlock pulses across ten frames, both at
-the configured 1500 ms; a rollback to a removed-person version refused; a remote
-unlock accepted, an expired one rejected, a replay returning the original
-receipt without a second pulse; a 13-record audit chain that fails once a denial
-is edited into an approval; and the console's three roles behaving.
-
-That measures whether the protocol and the state machine do what they claim, not
-how well the system recognises faces or rejects spoofs.
-
-Every face library version's manifest carries five licence fields — "license_id",
-"use_scope", "redistributable", "source_revision", "sha256" — so the terms travel
-with the artefact rather than living only in a document.
-
-**The RKNN backend has no liveness implementation.** A preset running on RKNN
-cannot enforce liveness; use one of the other backends where liveness matters.
+Code is Apache-2.0. **The face recognition model InsightFace buffalo_l is for non-commercial research only**, and this package does not ship its weights. Commercial deployment requires a commercially licensed model and rebuilding every face library. The liveness model Silent-Face-Anti-Spoofing is Apache-2.0 and may be used commercially.

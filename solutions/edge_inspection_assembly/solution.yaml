@@ -5,9 +5,12 @@ name_i18n:
   zh: 装配质检：缺件与尺寸
 
 intro:
-  summary: Compare each board or assembly against a template expected-item list, measure a dimension against a calibrated reference, and hand the OK/NG verdict to the PLC over Modbus and to the MES over MQTT — entirely on the edge device.
+  summary: >-
+    Checks each assembly for defects, missing parts and out-of-tolerance
+    dimensions, and hands the OK/NG verdict to the PLC and MES.
   summary_i18n:
-    zh: 把每块板或每件装配体与模板期望件清单比对，用标定物量出尺寸，OK/NG 判定通过 Modbus 交给 PLC、通过 MQTT 交给 MES——全部在边缘设备本地完成。
+    zh: >-
+      检查装配体是否有缺陷、缺件、尺寸超差，OK/NG 判定直接交给 PLC 和 MES。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

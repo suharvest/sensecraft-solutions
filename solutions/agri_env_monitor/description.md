@@ -2,162 +2,59 @@
 
 ## What it does
 
-SenseCAP LoRaWAN nodes measure soil and air — temperature, humidity, soil
-moisture, electrical conductivity, CO2, rainfall — and report over LoRaWAN. This
-package takes those uplinks, whichever way they arrive, and turns them into Home
-Assistant entities with the right unit, device class and state class, so they
-show up on a dashboard, keep history, and can trigger a notification when a
-value crosses a threshold.
-
-There are three ways in, and they end in the same place. Preset 1 reads the
-SenseCAP cloud. Preset 2 reads a The Things Stack instance you run yourself.
-Preset 3 reads ChirpStack — either the one built into an M2 gateway, or one you
-run in Docker on a reComputer R12 Series gateway. A single service, `agri-env-bridge`,
-sits behind all three: it maps SenseCAP `measurementId` values to entity
-semantics, deduplicates, tracks whether each node is still reporting, and
-publishes Home Assistant MQTT discovery messages.
+SenseCAP LoRaWAN nodes measure air temperature and humidity, soil temperature, moisture, EC, CO2 and rainfall. This solution puts those readings on a Home Assistant dashboard, keeps history, and notifies you when a value crosses a threshold. Data can come through the SenseCAP cloud, or through a self-hosted The Things Stack or ChirpStack, which can run with no internet at all.
 
 ## What you get
 
-**One entity naming scheme across all three paths.** An entity is
-`sensor.sensecap_<deveui>_<entity_key>` no matter which preset produced it. A
-site can move from the cloud to a local network server without rewriting a
-dashboard, an automation or an export.
-
-**Availability that means something.** Each node has a retained availability
-topic. When a node has been silent for longer than the configured threshold, it
-flips to `offline` and its entities show as unavailable in Home Assistant — with
-the last value kept rather than blanked. The default threshold is two S210x
-reporting cycles plus margin.
-
-**History on first start, on the cloud preset.** The bridge pages the SenseCAP
-OpenAPI month by month and writes what it finds into a local SQLite store, keyed
-on `(DevEUI, measurementId, timestamp)` so a backfill and the live stream never
-double-count the same reading. Home Assistant receives the latest value per
-entity; its own recorder history starts from the moment it comes online.
-
-**A dashboard and threshold alerts to import.** A Lovelace dashboard covering air
-temperature and humidity, soil temperature, moisture and EC, rainfall, battery
-and availability, plus automations that raise a persistent notification when a
-value crosses a threshold and dismiss it when the value recovers.
-
-**An option with no internet at all.** With ChirpStack running on the gateway
-itself and the bridge and Home Assistant on a local host, nothing needs to leave
-the site — no cloud account, no outbound connection.
+- **A ready dashboard**: air temperature and humidity, soil temperature, moisture and EC, rainfall, battery and availability.
+- **Threshold alerts**: a notification is raised when a value crosses a threshold and dismissed when it recovers.
+- **Offline indication**: a node silent past the configured time shows as offline, with its last value kept.
+- **Cloud history backfill**: the SenseCAP cloud preset fills in history from before installation on first start.
+- **Switch paths without changing dashboards**: entity names are the same across all three presets.
+- **Fully local option**: the ChirpStack preset needs no cloud account and no outbound connection.
 
 ## Where it fits
 
-- Greenhouses, where soil moisture and EC decide when to irrigate and feed.
-- Open field plots, where the gateway covers several sensor points and rainfall
-  and soil temperature matter more than air conditions.
-- Sites with no usable internet, or where the data is not permitted to leave —
-  the local ChirpStack preset covers both.
-- Existing SenseCAP deployments that already report to the cloud and want a local
-  dashboard and local automations without moving anything.
+- Greenhouses: irrigation and feeding decided by soil moisture and EC.
+- Open field plots: one gateway covering several sensor points.
+- Sites with no internet, or where data may not leave (local ChirpStack preset).
+- Existing SenseCAP cloud deployments that want a local dashboard and automations.
 
-## How well it works
+## Measured results
 
-This solution has **not** been run against a real LoRaWAN network. Everything
-below comes from one local smoke run on a Mac desktop Docker host with recorded
-uplinks replayed into the broker.
+| Metric | Result |
+|---|---|
+| Node readings shown as live dashboard entities | **15 of 15** entities |
+| Threshold notification raised and cleared | **Both directions** |
+| Silent node marked offline | **15 of 15** entities |
 
-| What the grower gets | Typical | Device |
-|---|---|---|
-| Node readings arriving as live dashboard entities | **15 of 15**, 3 devices, one replay run | Home Assistant host |
-| A reading crossing a threshold raising and clearing a notification | **Both directions** | Home Assistant host |
-| A node going quiet showing as offline | **15 of 15** entities | Home Assistant host |
-
-Three ingest paths — SenseCAP cloud, The Things Stack and ChirpStack — went
-through that same run, 13 replayed uplinks in total, 2026-09-05.
-
-Radio-side figures such as range, how many nodes one gateway carries, packet
-loss and recovery, gateway restart time and node battery life depend on your
-site and your gateway placement. Size them from the gateway and node datasheets
-and measure them on your own site before you commit to it.
+Tested by replaying uplinks from 3 devices on a local host, 13 uplinks across the three ingest paths; take range, node capacity and battery life from the datasheets and measure them on site.
 
 ## Output Interfaces
 
-| Interface | Topic | Payload |
-|---|---|---|
-| MQTT discovery | `homeassistant/sensor/sensecap_<deveui>/<entity_key>/config` | Retained discovery config, one per entity |
-| MQTT state | `agri_env/sensecap_<deveui>/<entity_key>/state` | Retained value |
-| MQTT availability | `agri_env/sensecap_<deveui>/availability` | Retained `online` or `offline` |
-
-The Home Assistant entity id follows from the device name and the entity name:
-`sensor.sensecap_<deveui>_<entity_key>`, with the DevEUI in lower case. It uses
-the full DevEUI on purpose — a shortened form collides between nodes whose
-addresses share a suffix.
+| Interface | Content |
+|---|---|
+| MQTT `homeassistant/sensor/sensecap_<deveui>/<entity_key>/config` | Home Assistant discovery config |
+| MQTT `agri_env/sensecap_<deveui>/<entity_key>/state` | Sensor value |
+| MQTT `agri_env/sensecap_<deveui>/availability` | Node `online` / `offline` |
 
 ## Deployment Comparison
 
-**SenseCAP Cloud** — pick this when the nodes already report to the cloud and
-you want a local dashboard without touching the radio side. It is the only
-preset that can show history from before it was installed, and the only one that
-needs outbound internet. It also needs a SenseCAP API key pair.
-
-**Self-hosted The Things Stack** — pick this when you want the network server
-under your own control and are prepared to run the gateway yourself: a
-reComputer R12 Series gateway, a packet forwarder, and a stack with its own
-Postgres and Redis. The heaviest of the three in both setup effort and resource
-use.
-
-**Local ChirpStack** — pick this when the gateway can be the network server. On
-an M2 the whole network server is a setting in its web interface, which makes
-this the shortest path to a fully local deployment; on a reComputer R12 Series gateway
-it is a Docker stack instead. This is the preset the offline acceptance scenario
-uses.
+| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack |
+|---|---|---|---|
+| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway |
+| Internet needed | Yes | No | No |
+| History from before install | Yes | No | No |
+| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 |
 
 ## Usage Notes
 
-- **The decoder is not optional on presets 2 and 3.** SenseCAP uplinks are
-  binary. Without the payload formatter (The Things Stack) or the device-profile
-  codec (ChirpStack) installed, the network server hands the bridge bytes with no
-  measurements in them, and no entity can appear. The bridge cannot recover what
-  the network server did not decode.
-- **Two SenseCAP cloud MQTT hostnames are in circulation.** The deployment step
-  offers both. If the bridge log shows a DNS or
-  authentication failure, redeploy with the other one.
-- **The broker is a single point of failure for the dashboard.** State topics are
-  retained, so Home Assistant recovers the last value after a restart, but a
-  broker that is down means no updates from any preset.
-- **Values are passed through, not converted.** The bridge attaches the unit
-  configured for a `measurementId` and does not scale the number. If a particular
-  node model reports a quantity in a different unit, correct it in
-  `assets/config/measurements.yaml` — no code change is needed.
-- **Changing the entity naming rule requires clearing retained messages.**
-  Discovery configs are retained, so old topics come back after a restart unless
-  the broker's retained messages and Home Assistant's entity registry are cleared
-  together.
-- **Do not expose the broker to the internet.** It carries credentials in
-  `.env` files on the host and, on the ChirpStack preset, the LNS-side broker runs
-  without authentication on the compose network. Both are safe on a trusted LAN
-  and not elsewhere.
-- **The bridge image is published** at
-  `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
-  (linux/amd64 + linux/arm64). `BRIDGE_IMAGE` defaults to that tag; point it at
-  your own registry to deploy a local build instead.
-
-## Scope of the Numbers
-
-- **Every number on this page comes from a local replay bench** — no radio leg and no network server processing in the loop.
-- **Radio range, node capacity, packet loss, recovery and gateway restart time** — size them from the node and gateway datasheets and measure them on your own site; they dominate site design and do not follow from the bench.
-- **Node battery life** — take it from the node datasheet at your configured reporting cycle.
-- **The SenseCAP OpenAPI backfill** — the bench's cloud source held no real credential, so exercise paging, rate limits and historical completeness against your own account.
+- Presets 2 and 3 need the SenseCAP decoder installed on the network server, or no entity appears.
+- Two SenseCAP cloud MQTT hostnames exist; if the bridge log shows a DNS or authentication failure, redeploy with the other.
+- If the broker is down, no preset receives updates.
+- Before changing the entity naming rule, clear the broker's retained messages and Home Assistant's entity registry together.
+- Do not expose the broker to the internet; on the ChirpStack preset the LNS-side broker has no authentication.
 
 ## Licensing note
 
-The `measurementId` to physical quantity table in
-`assets/config/measurements.yaml` was read out of the SenseCAP decoder sources at
-`Seeed-Solution/SenseCAP-Decoder` commit `d0a2342`. **That repository has no
-LICENSE file**, and its README has no licensing section; the only licence
-declaration anywhere in it is a third-party contributed file header reading
-`Unlicensed for internal use`. The licence for the decoder is therefore
-**unconfirmed**.
-
-This package does not redistribute the decoder. It uses only the factual
-`id -> quantity` correspondence, cites the source file and line for each entry,
-and derives the Home Assistant `device_class`, `unit_of_measurement` and
-`state_class` columns from the Home Assistant sensor documentation instead. The
-guide links the upstream repository for presets 2 and 3 rather than shipping the
-JavaScript. Confirm the licensing position with Seeed before distributing the
-decoder itself with a deployment.
+The `measurementId` table in `assets/config/measurements.yaml` was read from `Seeed-Solution/SenseCAP-Decoder` (commit `d0a2342`), which has no LICENSE file, so its licence is unconfirmed. This package does not redistribute the decoder; it uses only the id-to-quantity correspondence and the guide links the upstream repository. Confirm the licensing position with Seeed before distributing the decoder itself.

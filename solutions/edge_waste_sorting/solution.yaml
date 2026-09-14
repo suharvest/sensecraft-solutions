@@ -28,13 +28,11 @@ name_i18n:
 
 intro:
   summary: >-
-    Photograph one item on a trigger, return its material class plus the
-    Chinese four-way disposal category over MQTT, and hand the verdict to a
-    flap or indicator through a GPIO callback.
+    Photograph one item and get its material and China four-way waste
+    category; the result can drive a lid or indicator light.
   summary_i18n:
     zh: >-
-      触发即拍一件物品，通过 MQTT 给出物料类别与中国生活垃圾四分类，
-      并把判定通过 GPIO 回调交给翻盖或指示灯。
+      拍一张物品照片，得到材质类别和生活垃圾四分类结果，可驱动翻盖或指示灯。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

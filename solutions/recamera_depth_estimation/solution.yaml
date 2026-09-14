@@ -2,7 +2,8 @@ version: "1.0"
 id: recamera_depth_estimation
 name: Monocular Depth Estimation on reCamera
 intro:
-  summary: Turn one ordinary camera into a depth sensor — relative near/far for the whole scene, on-device, no stereo pair and no depth camera
+  summary: >-
+    See which parts of the scene are near and which are far from one reCamera, without a depth camera.
   description_file: description.md
   cover_image: gallery/depth_pip.jpg
   gallery:
@@ -79,7 +80,8 @@ intro:
     wiki: https://wiki.seeedstudio.com/recamera_deploy_monocular_depth/
 
   summary_i18n:
-    zh: 让一台普通摄像头输出深度——全画面相对远近，端侧运行，不需要双目也不需要深度相机
+    zh: >-
+      用一台 reCamera 看出画面里哪里近、哪里远，不需要深度相机。
   description_file_i18n:
     zh: description_zh.md
 

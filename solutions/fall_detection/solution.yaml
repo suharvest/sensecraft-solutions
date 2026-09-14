@@ -19,9 +19,13 @@ name_i18n:
   zh: 跌倒检测
 
 intro:
-  summary: Detect a fall on-device and publish the event over MQTT — as an all-in-one camera, or on a Jetson fed by the IP cameras you already have. An optional alarm panel adds zones, timeouts, operator confirmation and a webhook on top of that stream.
+  summary: >-
+    Get an alert when someone falls, with no video leaving the device. Use an
+    all-in-one camera or your existing IP cameras; an optional alarm panel adds
+    operator confirmation and webhook notifications.
   summary_i18n:
-    zh: 在设备本地识别跌倒并通过 MQTT 推送事件——可以用一体化摄像头，也可以用 Jetson 接你现有的 IP 摄像头。可选的告警面板在这条事件流上再加区域、超时、人工确认与 webhook。
+    zh: >-
+      有人跌倒时发出告警，视频不出设备。可用一体化摄像头，也可接现有 IP 摄像头；可选告警面板支持值班人确认和 webhook 通知。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

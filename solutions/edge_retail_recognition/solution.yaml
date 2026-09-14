@@ -31,15 +31,12 @@ name_i18n:
 
 intro:
   summary: >-
-    Detect every product in a checkout or shelf frame with a single-class
-    detector, embed each crop, look it up in a versioned FAISS gallery, and
-    publish a SKU-to-quantity list or a shelf slot state over MQTT — a new SKU
-    is registered from 3 to 8 photographs, with no retraining.
+    Recognise every product on a checkout belt or shelf: checkout gets an item
+    list, the shelf reports empty and misplaced slots. Register a new product
+    from 3–8 photos, with no retraining.
   summary_i18n:
     zh: >-
-      用单类检测器框出收银台或货架画面里的每一件商品，对每个裁剪做嵌入，
-      在版本化的 FAISS 商品库里检索，再通过 MQTT 输出 SKU→数量清单或货位状态——
-      新 SKU 现场拍 3–8 张即注册，不重训模型。
+      识别收银台或货架上的每一件商品：收银台输出商品清单，货架报出缺货和错放。新商品拍 3–8 张照片即可注册，不用重训模型。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

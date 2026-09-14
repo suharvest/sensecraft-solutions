@@ -24,18 +24,15 @@ This solution does it with one camera module and a USB cable. The Grove Vision A
 | Corridor and stairwell flow | Multiple lines along a path show which way traffic is moving |
 | Exhibition booth | A zone around the booth measures dwell, a line at the entrance measures visits |
 
-## Measured Performance
+## Measured results
 
-| Metric | Value |
-|--------|-------|
-| Inference time | 48 ms per frame |
-| End-to-end throughput | About 13 fps |
-| Input resolution | 240 x 240 |
-| Model | Swift-YOLO Nano, single class (person) |
-| Model accuracy | 92.6% mAP after INT8 quantization |
-| Runs on | Ethos-U55 NPU (Vela-compiled) |
+| Metric | Result |
+|--------|--------|
+| Throughput | **About 13 fps** |
+| Detection per frame | **48 ms** |
+| Person detection accuracy | **92.6% mAP** |
 
-These are measured on the module. Real-world counting accuracy depends on your mounting, lighting and traffic density — see the mounting notes below and validate in your own space.
+Tested on the Grove Vision AI Module V2 at 240 x 240 input; real counting accuracy depends on mounting, lighting and traffic density, so validate on site.
 
 ## Requirements and Limits
 

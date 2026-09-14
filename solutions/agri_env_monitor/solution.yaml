@@ -5,9 +5,11 @@ name_i18n:
   zh: 农业环境监测
 
 intro:
-  summary: Put SenseCAP soil and air sensors on a Home Assistant dashboard — through the SenseCAP cloud, or through a LoRaWAN network server you run yourself with no internet at all.
+  summary: >-
+    See SenseCAP soil and air readings on a Home Assistant dashboard, with alerts when a value crosses a threshold. Works through the SenseCAP cloud or fully offline.
   summary_i18n:
-    zh: 把 SenseCAP 土壤与空气传感器接到 Home Assistant 看板上——可以走 SenseCAP 云，也可以用自建的 LoRaWAN 网络服务器，全程不联外网。
+    zh: >-
+      在 Home Assistant 看板上查看 SenseCAP 土壤和空气读数，数值越界自动告警。可走 SenseCAP 云，也可完全不联外网。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

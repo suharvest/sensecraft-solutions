@@ -4,9 +4,11 @@ name: On-Device People Counting
 name_i18n:
   zh: 本地人流计数
 intro:
-  summary: Count people crossing a line and standing in a zone — detection, tracking and counting all run on the camera module
+  summary: >-
+    Count people going in and out across a line and how many are in a zone, with one camera module and a USB cable and no video leaving the site.
   summary_i18n:
-    zh: 统计越线进出人数和区域实时人数——检测、跟踪、计数全部在摄像头模组本地完成
+    zh: >-
+      统计越线进出人数和区域内实时人数，一块摄像头模组加一根 USB 线即可，画面不离开现场。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md

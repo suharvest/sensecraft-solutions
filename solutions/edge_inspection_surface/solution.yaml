@@ -15,13 +15,12 @@ name_i18n:
 
 intro:
   summary: >-
-    Internal validation build (dataset licence unconfirmed — no public demos).
-    Detect six classes of steel surface defect on the edge and hand the OK/NG
-    verdict to the line over Modbus TCP and MQTT.
+    Internal validation only; no public demos until the dataset license is
+    confirmed. Detects six steel surface defect classes per frame and gives the
+    PLC an OK/NG verdict.
   summary_i18n:
     zh: >-
-      内部验证用，许可确认前不得公开演示。在边缘侧识别六类钢材表面缺陷，
-      并通过 Modbus TCP 与 MQTT 把 OK/NG 判定交给产线。
+      内部验证用，许可确认前不得公开演示。逐帧识别六类钢材表面缺陷，OK/NG 判定 PLC 直接可读。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
