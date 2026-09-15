@@ -3420,6 +3420,19 @@
           "title": "Description I18N",
           "type": "object"
         },
+        "generate": {
+          "anyOf": [
+            {
+              "const": "hex32",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generate"
+        },
         "id": {
           "title": "Id",
           "type": "string"
