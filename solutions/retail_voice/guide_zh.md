@@ -14,6 +14,14 @@
 | 部署卡在等待服务健康检查 | 登录设备执行 `docker compose logs voice-service`；MySQL 或 MinIO 可能还在启动 |
 | 部署完成后后台打不开 | 确认 `voice-web` 容器在运行，且 3000 端口可以访问 |
 
+### 部署目标 {#backend_remote type=remote config=devices/cloud_stack.yaml default=true}
+
+部署到采集设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#backend_local type=local config=devices/cloud_stack.yaml}
+
+部署到这台电脑。采集设备必须能访问这台电脑的 IP。
+
 ## 步骤 2: 连接采集设备 {#deploy_local type=docker_deploy required=true config=devices/local_rk3576.yaml}
 
 选好设备型号，接上麦克风。填写设备登录信息、后台地址和接入密钥，然后点击部署。
@@ -26,31 +34,31 @@
 | 部署时检测不到麦克风 | 把 reSpeaker 麦克风阵列换到 USB-A 主口上，重新部署 |
 | 转写结果到不了后台 | 检查后台地址和接入密钥是否与步骤 1 下发的一致 |
 
-### Target {#local_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/local_rk3576.yaml default=true}
+### 部署目标 {#local_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/local_rk3576.yaml default=true}
 
 选择与你的设备一致的型号。
 
-### Target {#local_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
+### 部署目标 {#local_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#local_j30_remote type=remote device=j30 device_name="reComputer J3011" config=devices/local_j30.yaml}
+### 部署目标 {#local_j30_remote type=remote device=j30 device_name="reComputer J3011" config=devices/local_j30.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#local_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
+### 部署目标 {#local_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#local_r2000_remote type=remote device=r2000 device_name="reComputer R2000（不配加速卡）" config=devices/local_r2000.yaml}
+### 部署目标 {#local_r2000_remote type=remote device=r2000 device_name="reComputer R2000" config=devices/local_r2000.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000（配 Hailo 加速卡）" config=devices/local_r2000_hailo.yaml}
+### 部署目标 {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#local_cm4_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
+### 部署目标 {#local_cm4_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
 
 选择与你的设备一致的型号。
 
@@ -83,27 +91,27 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 | 部署卡在等待服务健康检查 | 登录设备执行 `docker compose logs voice-service`；MySQL 或 MinIO 可能还在启动 |
 | 之后手机 App 连不上转写接口 | 确认 `capture-gateway` 容器在运行，且 18621 端口可以访问 |
 
-### Target {#stack_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/cloud_rk3588.yaml}
+### 部署目标 {#stack_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/cloud_rk3588.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#stack_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml default=true}
+### 部署目标 {#stack_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml default=true}
 
 选择与你的设备一致的型号。
 
-### Target {#stack_j30_remote type=remote device=j30 device_name="reComputer J3011" config=devices/cloud_j30.yaml}
+### 部署目标 {#stack_j30_remote type=remote device=j30 device_name="reComputer J3011" config=devices/cloud_j30.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#stack_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
+### 部署目标 {#stack_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#stack_r2000_remote type=remote device=r2000 device_name="reComputer R2000（配 Hailo 加速卡）" config=devices/cloud_r2000.yaml}
+### 部署目标 {#stack_r2000_remote type=remote device=r2000 device_name="reComputer R2000 + Hailo-8" config=devices/cloud_r2000.yaml}
 
 选择与你的设备一致的型号。
 
-### Target {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000（不配加速卡）" config=devices/cloud_r2000_cpu.yaml}
+### 部署目标 {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
 
 选择与你的设备一致的型号。
 

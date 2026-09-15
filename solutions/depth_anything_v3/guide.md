@@ -16,7 +16,7 @@ Deploy Depth Anything V3 to your Jetson device with one click from this platform
 
 ## Step 1: Deploy Depth Anything V3 {#deploy_depth_anything type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-Deploy the containerized runtime to your Jetson. No terminal command input is required from the user.
+Deploy the Depth Anything V3 container to your Jetson.
 
 ### Target {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
@@ -34,7 +34,6 @@ Deploy to your Jetson over SSH with one click.
 1. The Docker container is running on your Jetson
 2. USB camera inference starts automatically in the container
 3. RTSP output is published at `rtsp://<jetson-ip>:8554/depth`
-4. No additional command input is required for deployment completion
 
 ### Troubleshooting
 
@@ -57,7 +56,7 @@ Deploy directly on the current machine (requires NVIDIA GPU).
 1. Ensure Docker and NVIDIA Container Toolkit are installed
 2. Click **Deploy** to start installation
 
-> **Note:** First startup may take 5-10 minutes for TensorRT model compilation and Docker image download.
+> **Note:** First startup may take 5-10 minutes to download the image and prepare the model.
 
 ### Deployment Complete
 
@@ -106,4 +105,3 @@ Depth Anything V3 runtime has been deployed successfully on your Jetson.
 
 1. Deployment status shows success in this page
 2. The service container stays in running state
-3. You can proceed to your next product integration step directly

@@ -14,6 +14,14 @@ Enter the server address and login details, then deploy. Keep its dashboard addr
 | Deploy stops while waiting for the service to turn healthy | Sign in to the server and run `docker compose logs voice-service`; MySQL or MinIO may still be starting |
 | Dashboard does not open afterwards | Confirm the `voice-web` container is running and port 3000 is reachable |
 
+### Target {#backend_remote type=remote config=devices/cloud_stack.yaml default=true}
+
+Deploy to a Linux server the recording devices can reach.
+
+### Target {#backend_local type=local config=devices/cloud_stack.yaml}
+
+Deploy to this computer. The recording devices must be able to reach its IP.
+
 ## Step 2: Set up the recording device {#deploy_local type=docker_deploy required=true config=devices/local_rk3576.yaml}
 
 Choose your device model and connect the microphone. Enter its login details, dashboard address and access key, then deploy.
@@ -42,11 +50,11 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#local_r2000_remote type=remote device=r2000 device_name="reComputer R2000 (without accelerator)" config=devices/local_r2000.yaml}
+### Target {#local_r2000_remote type=remote device=r2000 device_name="reComputer R2000" config=devices/local_r2000.yaml}
 
 Choose the model that matches your device.
 
-### Target {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000 (with Hailo accelerator)" config=devices/local_r2000_hailo.yaml}
+### Target {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
 
 Choose the model that matches your device.
 
@@ -99,11 +107,11 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#stack_r2000_remote type=remote device=r2000 device_name="reComputer R2000 (with Hailo accelerator)" config=devices/cloud_r2000.yaml}
+### Target {#stack_r2000_remote type=remote device=r2000 device_name="reComputer R2000 + Hailo-8" config=devices/cloud_r2000.yaml}
 
 Choose the model that matches your device.
 
-### Target {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000 (without accelerator)" config=devices/cloud_r2000_cpu.yaml}
+### Target {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
 
 Choose the model that matches your device.
 

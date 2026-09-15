@@ -13,7 +13,7 @@ This solution tracks forklifts, equipment and vehicles across indoor and outdoor
 | Geofences | Draw a polygon or circle in WGS84, alarm on enter, exit or both, without needing any beacon inside the fence |
 | Works offline | Swap the OpenStreetMap raster basemap for a local PMTiles archive when the site has no internet |
 | Auto check-in | Automatic attendance when entering zones, no manual sign-in |
-| One-button SOS | Trackers have an emergency button, long press for an instant alert |
+| One-button SOS | Trackers have an emergency button, double-press for an instant alert |
 
 ## Use Cases
 
@@ -34,13 +34,13 @@ figures that were actually measured are in the next section.
 
 | Item | Nominal value | Where it comes from |
 |---|---|---|
-| Positioning accuracy (indoor) | 1-3 m with 3+ beacons per zone; room level with 1 beacon | BLE trilateration practice for this beacon layout |
-| Beacon battery life | 2 years, typically up to 3 | BC03 beacon datasheet |
+| Positioning accuracy (indoor) | 2-3 m with 3+ beacons per zone; room level with 1 beacon | BLE trilateration practice for this beacon layout |
+| Beacon battery life | 5+ years | BC03 beacon datasheet |
 | Gateway range | Up to 2 km | SenseCAP M2 gateway datasheet, line of sight |
 | Trackers per gateway | 100-200 in the same range | Gateway capacity, depends on uplink interval and region |
 
 Installation practice that these figures assume: beacons at 2.5-3 m height,
-10-15 m apart, extra beacons where there is metal shelving.
+5-10 m apart, extra beacons where there is metal shelving.
 
 ## Measured Boundaries
 

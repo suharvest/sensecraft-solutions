@@ -1,155 +1,87 @@
 ## 套餐: IP 摄像头 + reComputer J30 / J40（Orin） {#orin}
 
-有实测的那条路径。Jetson Orin 拉取相机的 RTSP 流，用 TensorRT FP16 跑
-YOLOX-Tiny，再把判定发到 Modbus TCP 与 MQTT 上。engine 在部署过程中于设备上
-构建——TensorRT engine 与那块 GPU 架构和那个 TensorRT 版本绑定，无法预先打包分发。
+Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus TCP 与 MQTT，PLC 可选接入。
 
-| 设备 | 用途 |
-|--------|---------|
-| reComputer J40 / J30 | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
-| IP 摄像头 | 提供 RTSP 视频；任意对着钢带或工件取景的 RTSP 相机 |
-| PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
-
-**重要：** 内部验证用。模型训练自 NEU-DET 的转载版——用于对外 demo、客户现场展示
-或商业物料之前，请先与数据集方确认许可。
-实测精度是 290 张验证图上 mAP50 0.7577、部署阈值 0.35 下召回 0.6969。
-已知弱点：crazing 的 AP50 为 0.3603，六类中最低，
-改阈值不改变这个数字；帧级误报要用你自己的产线图像测，因为数据集里每张图都带缺陷；
-所有数字都来自合成视频，不是真实相机。
+- **摄像头：** 任意对着钢带或工件取景的 RTSP 摄像头，准备好带用户名密码的 RTSP 地址并先用 VLC 测过。
+- **使用限制：** 仅限内部验证。模型训练自 NEU-DET 的转载版，用于对外 demo、客户现场或商业物料前须先与数据集方确认许可，或用自己的图像重训。crazing 类精度在六类中最低，调阈值无法改善；帧级误报须用自己的产线图像测。
+- **网络：** PLC 或 MES 能访问设备的 502（Modbus）和 1883（MQTT）端口。
 
 ## 步骤 1: 部署表面质检 {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
-在 Jetson 上部署检测器并构建它的 TensorRT engine。预留约 10 分钟；
-仅 engine 构建一项在 Orin NX 上实测 291 s，在同型号板卡（reComputer J40 系列）
-上做全新部署交叉验证实测 304 s。首次启动需要等这一步构建完成。
+部署检测器并在设备上构建 TensorRT engine，预留约 10 分钟，首次启动需等构建完成。
 
 ### 前置条件
 
-1. Jetson 运行 JetPack 6.x，且 NVIDIA container runtime 可用。
-2. 至少 10 GB 空闲磁盘——ONNX 模型、构建出的 engine 与容器镜像都在设备上。
-3. 相机的 RTSP 地址（含用户名密码），例如
-   `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`。
-   先用 VLC 测一遍。
-4. 容器镜像已发布。compose 文件写的是
-   `sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev`，
-   2026-09-07 按 linux/arm64 构建并推送，digest
-   `sha256:0d1b42e20a61a7aa89d072921dfe9e07e078bcb88ec9699b3f579caa1f28fe3b`，
-   部署时由设备拉取。设备连不上 registry 时，用上游仓库的
-   `platforms/jetson/Dockerfile.slim` 在设备上构建后改这个 tag，
-   或者部署前把 `INSPECTION_IMAGE` 指向你本地的 tag。
-5. **ONNX 模型同样没有上传 CDN**，原因同为许可未结清。部署步骤会尝试下载
-   `yolox_tiny_neu6.onnx` 并校验 sha256
-   `4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba`。
-   在许可确认之前，请手工把该文件放到设备的
-   `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx`；
-   两种方式都会做校验。
-6. 部署前先定好判定阈值。0.35 是冻结值；方案页给出了提到 0.6 的代价对照。
-7. **选一个检测器 track。** `config/config.json` 里的 `model.track`
-   （部署输入项 **检测器 Track**）可选 `yolox`（默认，也是唯一在这块板上
-   实测过的 track——291 s engine 构建、本页所有 Jetson 时延数字都是它的）、
-   `dfine` 或 `rtdetrv2`。两个 DETR track 在 CPU-only 对比里（单种子——见
-   方案页"检测器选型"一节）mAP50 持平或略好、等精度下召回更高，但还没有
-   在 Orin 上构建过 engine 或计过时；选它们会像 `yolox` 一样重新构建
-   TensorRT engine，只是没有事先的耗时预期。两个 track 都沿用同一个
-   0.35 冻结阈值，而这个阈值是按 `yolox` 的分数分布标定的，不是它们的。
+1. 模型文件未上 CDN（许可未确认）：部署前手工把 `yolox_tiny_neu6.onnx` 放到设备的 `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx`，部署时会校验 sha256。
+2. 判定阈值默认 0.35。
+3. **检测器 Track**：默认 `yolox`；`dfine`、`rtdetrv2` 可选，构建耗时以实际为准，0.35 阈值是按 `yolox` 标定的，换 track 后按自己的产线图像调整。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| engine 构建报 `Static model does not take explicit shapes` | 本模型导出的是静态 batch-1 ONNX，因此不能给 trtexec 传 `--minShapes/--optShapes/--maxShapes`。部署步骤已经不传；如果你用上游的 `build_engine.sh` 手工构建，设 `TRT_STATIC_SHAPE=true` |
-| engine 构建失败或中途停下 | 确认 `/usr/src/tensorrt/bin/trtexec` 存在、磁盘有 10 GB 空闲。重试前删掉残留的 `.part`——没建完的 engine 不会被移到位，但残留文件会挡住重建 |
-| 容器里 `numpy.core.multiarray failed to import`，或 cv2 导入失败 | 有人把宿主机的 python 包顶到了镜像自带的前面。只能挂 `/usr/lib/python3.10/dist-packages/tensorrt` 这一个包——整挂 `dist-packages` 会让宿主机的 numpy 2.x 和坏掉的 cv2 盖住镜像里钉死的 numpy 1.26.4 |
-| `docker compose` 去读 `._docker-compose.yml` 报错，或配置加载器读到了 `._config.json` | 从 macOS 上传素材时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；如果是手工拷贝的，在 compose 目录里跑 `find . -name '._*' -delete` |
-| 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |
-| ONNX 的 sha256 对不上 | 下载被截断，或者文件是另一版构建。删掉重下或拷贝正确的文件；不要去改期望哈希 |
-| 部署连不上 SSH | 确认 SSH 可达、用户名正确——Seeed 镜像常用 `recomputer`、`nvidia` 或 `ubuntu` |
+| engine 构建报 `Static model does not take explicit shapes` | 用上游 `build_engine.sh` 手工构建时设 `TRT_STATIC_SHAPE=true` |
+| engine 构建失败或中途停下 | 确认 `/usr/src/tensorrt/bin/trtexec` 存在、磁盘有 10 GB 可用；删掉残留的 `.part` 文件后重试 |
+| 容器里 `numpy.core.multiarray failed to import`，或 cv2 导入失败 | 只挂载宿主的 `/usr/lib/python3.10/dist-packages/tensorrt`，不要挂整个 `dist-packages` |
+| `docker compose` 去读 `._docker-compose.yml` 报错 | 在 compose 目录执行 `find . -name '._*' -delete` |
+| 相机没有画面 | 用 VLC 测 RTSP 地址，检查路径和用户名密码 |
+| ONNX 的 sha256 对不上 | 删掉文件，重新拷贝正确的模型文件 |
+| 部署连不上 SSH | 确认 SSH 可达、用户名正确（常用 `recomputer`、`nvidia` 或 `ubuntu`） |
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson Orin" config=devices/jetson_inspection.yaml default=true}
 
-从这台电脑通过 SSH 部署到 Jetson。
+通过 SSH 部署到 Jetson。设备须为 JetPack 6.x 且 NVIDIA container runtime 可用，至少 10 GB 可用磁盘。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson Orin" config=devices/jetson_inspection.yaml}
 
-如果你就在这台 Jetson 上操作，直接在本机运行。
+部署到本机，本机须为 JetPack 6.x 的 Jetson，NVIDIA container runtime 可用，至少 10 GB 可用磁盘。
 
 ---
 
 ## 步骤 2: 查看实时检测画面 {#preview_orin_inspection type=web_dashboard required=false config=devices/preview_inspection.yaml}
 
-打开设备自带的页面，看实时画面上画出的检测框，以及下面的健康计数。
+打开设备自带页面，查看实时画面上的检测框和健康计数。
 
 ### 部署完成
 
-设备已在运行并发布结果。结果发到 MQTT 1883 端口的
-`<设备名>/inspection/<流编号>/results`，判定同时在 Modbus TCP 502 端口、
-unit 1 的线圈 0 与 1 上。
+结果发到 MQTT 1883 端口的 `<设备名>/inspection/<流编号>/results`，判定同时写到 Modbus TCP 502 端口、unit 1 的线圈 0 与 1。
 
 #### 快速验证
 
-1. 打开 `http://<设备 IP>:8080/`，确认 MJPEG 预览在动。
-2. 看 `http://<设备 IP>:8080/healthz`——`inference_time_ms` 应该是几毫秒，
-   10 FPS 下 `frames_dropped` 应为 0，`mqtt.rejected` 应为 0。
-   `rejected` 非零表示 payload 没通过契约校验，被丢弃而不是发出去了。
-3. 把一件有缺陷的样品放到相机前，看是否出现带类别名与分数的检测框。
-4. 从另一台机器订阅主题：
-   `mosquitto_sub -h <设备 IP> -t '<设备名>/inspection/#' -v`。
+1. 打开 `http://<设备 IP>:8080/`，MJPEG 预览在动。
+2. 打开 `http://<设备 IP>:8080/healthz`：`inference_time_ms` 为几毫秒，10 FPS 下 `frames_dropped` 为 0，`mqtt.rejected` 为 0。
+3. 把一件有缺陷的样品放到相机前，出现带类别名与分数的检测框。
+4. 在另一台机器执行 `mosquitto_sub -h <设备 IP> -t '<设备名>/inspection/#' -v`，能收到消息。
 
 #### MQTT 消息
 
-一帧一条，带上该帧内所有检测框：
-
-```json
-{
-  "type": "surface_inspection_result",
-  "version": "1.0.0",
-  "device": "orin-nx",
-  "stream_id": "line1-cam1",
-  "frame_id": 10423,
-  "verdict": "NG",
-  "verdict_reason": "2 defect(s) >= min_defects=1",
-  "defect_count": 2,
-  "primary_class_id": 1,
-  "coordinate_space": "normalized_center_wh",
-  "inference_time_ms": 6.4,
-  "pipeline_ms": 21.8,
-  "detections": [
-    {"slot": 0, "class_id": 1, "class_name": "inclusion", "score": 0.87,
-     "bbox": [0.4125, 0.5312, 0.1094, 0.2031]}
-  ]
-}
-```
-
-`slot` 是帧内按分数降序的下标。这条流水线不做跟踪，`slot` 跨帧没有任何意义。
-无缺陷时 `primary_class_id` 取 `-1`——注意 Modbus 寄存器在同样情况下取 `0`，
-因为保持寄存器是无符号 16 位，塞不下 `-1`。
+一帧一条，`verdict` 为 OK / NG，`defect_count` 为缺陷数，`detections[]` 为该帧所有检测框（`class_name`、`score`、归一化中心点宽高 `bbox`）。无缺陷时 `primary_class_id` 为 `-1`，对应的 Modbus 寄存器为 `0`。
 
 #### 下一步
 
 - 把 Modbus 线圈接到剔除或打标工位，然后做步骤 3。
-- 把 MES 或历史库指向 MQTT 主题。设备只发布，自己从不写时序数据库。
-- 加相机之前先压测。Orin NX 上的容量实测是稳定 8 路，
-  用的是合成的 640x640 视频源，而且那次测量没有发 MQTT、没有写 Modbus。
+- 把 MES 或历史库指向 MQTT 主题。
+- 加相机前先压测：Orin NX 在不发 MQTT、不写 Modbus 时稳定运行 8 路。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| 页面打不开 | 8080 端口跑在 host 网络上。确认容器已起（`docker ps`），并确认 8080 没有被别的服务占用 |
-| 预览在动但从来不出框 | 要么画面里没有缺陷，要么阈值定高了。改任何东西之前先看 `/events` 里最近的判定 |
-| `frames_dropped` 一直涨 | 源送帧比流水线消费快。RTSP 源按设计丢最旧的帧；调低配置的 FPS，或者减少路数 |
-| `mqtt.rejected` 非零 | payload 在发布路径上没通过契约校验。看容器日志——通常意味着后端改动改变了 payload 的形状 |
+| 页面打不开 | 执行 `docker ps` 确认容器已起，并确认 8080 端口没有被占用 |
+| 预览在动但从来不出框 | 先看 `/events` 里最近的判定，再确认画面里有缺陷或调低阈值 |
+| `frames_dropped` 一直涨 | 调低配置的 FPS，或减少路数 |
+| `mqtt.rejected` 非零 | 查看容器日志中的契约校验错误 |
 
 ---
 
 ## 步骤 3: 核对 Modbus 输出 {#plc_check type=manual required=false verify=true config=devices/plc_check.yaml}
 
-确认 Modbus 主站看到的就是 PLC 将要据以动作的内容。只用 MQTT 的现场可以跳过这一步。
+确认 Modbus 主站读到的判定正确。只用 MQTT 的现场可以跳过。
 
 ### 前置条件
 
 1. 一台同网段、能做 Modbus TCP 主站的机器。
-2. 设备 IP，以及部署时填的从站号（下面的寄存器表按 unit 1 写）。
+2. 设备 IP 和部署时填的从站号（下表按 unit 1）。
 
 ### 部署完成
 
@@ -159,7 +91,7 @@ unit 1 的线圈 0 与 1 上。
 |---|---|
 | Coil 0 | NG，与线圈 1 互斥 |
 | Coil 1 | OK，与线圈 0 互斥 |
-| HR 0 | 主缺陷类别 ID——本帧最高分的那个框；OK 时为 0 |
+| HR 0 | 主缺陷类别 ID（本帧最高分的框）；OK 时为 0 |
 | HR 1 | 缺陷数 |
 | HR 2 | 主缺陷框 cx，归一化 x10000 |
 | HR 3 | 主缺陷框 cy，归一化 x10000 |
@@ -170,210 +102,129 @@ unit 1 的线圈 0 与 1 上。
 
 #### 快速验证
 
-1. 按 unit 1、端口 502 轮询，读线圈 0-1 与 HR 0-7。上游仓库自带的脚本可以直接做：
-   `python evaluation/read_modbus.py --host <设备 IP> --port 502 --unit 1`。
-2. 让有缺陷的样品经过相机时连续采样，观察线圈对翻转。
-   Orin NX 上的核对以 20 Hz 采样抓到两次翻转。
-3. 确认同一次采样里两个线圈绝不同时为 1。一旦读到 `(1,1)` 就停下来——
-   PLC 无论锁哪一个线圈，都会对一个不存在的判定动作。
-4. 在一帧 NG 上确认 HR 2-5 落在 0-10000 内，解码后与 MQTT 消息里的框一致。
-   在一帧 OK 上确认 HR 0-5 全为 0。
-5. 确认没有新判定时 HR 6-7 仍按自己的间隔递增——心跳独立于判定路径，
-   只用 Modbus 的集成方靠它区分「没有缺陷」和「检测器挂了」。
+1. 读 unit 1、端口 502 的线圈 0-1 与 HR 0-7，可用上游仓库的 `python evaluation/read_modbus.py --host <设备 IP> --port 502 --unit 1`。
+2. 让有缺陷的样品经过相机时连续采样，线圈对随之翻转。
+3. 同一次采样里两个线圈不能同时为 1；读到 `(1,1)` 时停用并排查。
+4. NG 帧上 HR 2-5 在 0-10000 内，与 MQTT 消息里的框一致；OK 帧上 HR 0-5 全为 0。
+5. 没有新判定时 HR 6-7 仍在递增。
 
 #### 下一步
 
-- 锁线圈，不要锁寄存器：寄存器先被原子更新，线圈翻转时它们已经描述的是那一帧。
-- 对心跳停更报警。这是只用 Modbus 的集成方在检测器停止时唯一能拿到的信号。
+- PLC 以线圈为触发信号，线圈翻转时寄存器已是该帧数据。
+- 对心跳停更报警，用于区分“没有缺陷”和“检测器停止”。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| 502 端口连接被拒 | 配置里关掉了 Modbus，或者容器没起来。检查设备上 `config/config.json` 里的 `modbus.enabled` |
-| MQTT 有检测结果但寄存器全 0 | 你读的从站号与部署时写入的不是同一个，或者正好读在一帧 OK 上 |
-| 数值看着合理但框对不上 | HR 2-5 是归一化 x10000 的中心点与宽高，不是像素。除以 10000 再乘画面尺寸 |
-| 接了多路相机却只有一组寄存器 | 这是设计如此——契约只定义了一组寄存器，多路时最后一次判定生效。要按路独立寄存器得先改契约 |
+| 502 端口连接被拒 | 检查设备上 `config/config.json` 里的 `modbus.enabled`，并确认容器已起 |
+| MQTT 有检测结果但寄存器全 0 | 核对从站号，或换一帧 NG 再读 |
+| 框的位置对不上 | HR 2-5 是归一化 x10000 的中心点与宽高，除以 10000 再乘画面尺寸 |
+| 接了多路相机却只有一组寄存器 | 只有一组寄存器，多路时以最后一次判定为准；逐路结果从 MQTT 取 |
 
 ---
 
 ## 步骤 4: 启用无监督异常检测（可选） {#enable_anomaly_jetson type=manual required=false verify=true config=devices/enable_anomaly.yaml}
 
-可选。在检测器旁边跑一个第二模型（EfficientAD-S，只用无缺陷图训练），
-让一帧即便是检测器从未学过命名的缺陷类型，也能被标成"跟 OK 参考集不像"。
-它不进判定路径——跳过这一步，介绍页上的每一个数字都照样成立。
+可选。在检测器旁运行 EfficientAD-S（只用无缺陷图训练），把与 OK 参考集不像的帧标出来，包括检测器没学过的缺陷类型。不参与判定。
 
 ### 前置条件
 
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-- EfficientAD-S 的 ONNX 已拷到设备上——它还没上 CDN，与检测器同一个许可
-  确认关卡。见该步骤第一个子步骤。
-- 如果你打算把 `anomaly_score` 用在"看看机制能不能跑通"之外的地方，
-  需要用真实检测相机采集你自己的 OK 样本。随包评测的 OK 集是 DeepPCB
-  的模板扫描图，不是这台相机拍的——在拿它标定 `anomaly.threshold` 之前，
-  先看方案页"无监督异常检测"一节。
+- 步骤 1 已完成，改配置并重启容器即可。
+- EfficientAD-S 的 ONNX 已手工拷到设备上（未上 CDN）。
+- 需要用 `anomaly_score` 做判断时，先用实际检测相机采集自己的 OK 样本标定 `anomaly.threshold`。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| MQTT 事件里从来不出现 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启；检查容器日志里 `anomaly.path` 对应的模型加载是否报错 |
-| 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 大概率是 `anomaly.threshold` 直接抄了本方案自己的评测——那个阈值是在 DeepPCB 图上标定的，不是你相机的 OK 图。先用自己的 OK 集重新标定 |
-| 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 这是已知限制，不是 bug——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号（`heatmap_ref` 加分数），不要用单一帧级门限 |
+| MQTT 事件里没有 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启，查看容器日志里 `anomaly.path` 模型加载错误 |
+| `anomaly_score` 对任何样品都接近同一个值 | 用自己相机的 OK 集重新标定 `anomaly.threshold` |
+| 按单帧 `anomaly_score` 判异常结果不稳定 | 单帧分数接近随机，改用像素/区域级信号（`heatmap_ref` 加分数） |
 
 ## 套餐: IP 摄像头 + reComputer R2000（Hailo-8） {#pi_hailo}
 
-成本更低的一块板。板上实测硬件推理 106.75 FPS，全链路 46.14 FPS，
-mAP50 0.7091。设备上有三道 ABI 关卡要先过，容器才起得来。
+reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，判定输出到 Modbus TCP 与 MQTT，PLC 可选接入。模型已预编译，设备上不需要构建。
 
-| 设备 | 用途 |
-|--------|---------|
-| reComputer R2000（Hailo-8） | 推理、OK/NG 规则、Modbus TCP 服务端、MQTT 发布、预览页 |
-| IP 摄像头 | 提供 RTSP 视频；任意对着钢带或工件取景的 RTSP 相机 |
-| PLC 或产线控制器 | 可选的 Modbus TCP 主站，读取判定 |
-
-**重要：** 与另一个套餐同样的数据集许可限制——对外使用前请用自己的图像重训。
-crazing 弱、误报无法测量这两条在这里同样成立。
+- **摄像头：** 任意对着钢带或工件取景的 RTSP 摄像头，准备好带用户名密码的 RTSP 地址并先用 VLC 测过。
+- **使用限制：** 仅限内部验证。模型训练自 NEU-DET 的转载版，对外或商业使用前须确认许可或用自己的图像重训。crazing 类精度最低；帧级误报须用自己的产线图像测。只支持 `yolox` 检测器。
+- **网络：** PLC 或 MES 能访问设备的 502（Modbus）和 1883（MQTT）端口。
 
 ## 步骤 1: 在 Hailo 上部署表面质检 {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
 
-部署检测器与预编译好的 HEF。没有设备端编译，所以比 Jetson 那条路快——
-前提是三道 ABI 关卡都过得去。
+部署检测器与预编译的 HEF 模型。部署前会先检查 HailoRT 版本、驱动参数和 Python 版本。
 
 ### 前置条件
 
-1. **HailoRT 必须是 4.21.x，而且两个包都要 hold。** HEF 是用 Dataflow Compiler
-   3.31.0 / HailoRT 4.21.0 编的。驱动、用户态库、python 绑定三者必须同一版本：
-   `hailortcli --version` 应报 4.21.x，`apt-mark showhold` 里必须同时有
-   `hailort` 与 `hailort-pcie-driver` 两行。只 hold 驱动的话，
-   apt 会把用户态库偷偷升上去，HEF 就对不上了。
-2. **`hailo_pci` 必须带 `force_desc_page_size=4096` 加载。** reComputer R2000 系列的内核
-   PAGE_SIZE 是 16 KB，Hailo-8 的 max_desc_page_size 是 4 KB。不加这个参数时
-   `VDevice()` 和 `hailortcli fw-control identify` 都能过，
-   偏偏在 `configure(hef)` 那一步崩：
-   `echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`
-   然后重启。
-3. **宿主机与容器的 Python minor 版本必须一致。** 宿主的 `hailo_platform`
-   绑定会被挂进容器，而 `_pyhailort.cpython-3XX-*.so` 只能被同一 minor 的
-   解释器 import。Pi OS bookworm 是 3.11，默认镜像基座与之对应；
-   trixie 是 3.13，需要换基座重新构建镜像。
-4. 至少 4 GB 空闲磁盘。实测新增占用约 452 MB——运行镜像约 443 MB、
-   8.9 MB 的 HEF，加上配置。
-5. 容器镜像已发布。compose 文件写的是
-   `sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev`，
-   2026-09-07 按 linux/arm64 构建并推送，digest
-   `sha256:f078a2875dcdfd1a00a2bb5763baded9b251ea9d98c44114704b57a025384fb3`，
-   镜像内 python3 为 3.11.2，与 Pi OS bookworm 一致。设备连不上 registry 时，
-   用上游仓库的 `platforms/rpi-hailo/Dockerfile` 构建后设 `INSPECTION_IMAGE`，
-   或者把本地构建改成这个 tag。
-6. **HEF 也没有上传 CDN**，原因同为许可未结清。部署步骤会尝试下载并校验
-   默认 level-1 版本的 sha256
-   `02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565`
-   （level-0 是
-   `9638f2b210b49b10b44658d2e970b2822e0fac7d36ec8831f08ad4d0a10dac8f`）。
-   在那之前请手工把文件放到
-   `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef`；
-   两种方式都会做校验。
-7. 相机的 RTSP 地址，先用 VLC 测过。
+1. 模型文件未上 CDN（许可未确认）：部署前手工把 HEF 放到设备的 `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef`，部署时会校验 sha256。
+2. 驱动加载参数：`echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`，然后重启。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| 部署停在 "libhailort.so.4.21.0 not found" | 设备上是另一个版本的 HailoRT。本部署被 ABI 锁死；要么装 4.21.x，要么按设备上的版本重编 HEF。只改挂载路径没有用 |
-| 部署停在 `force_desc_page_size` 检查 | 加上 modprobe 参数再重启。reComputer R2000 系列上这不是可选项——不加的话容器能起来，然后死在 `configure(hef)` 里 |
-| 容器因为提到 `_pyhailort` 的 python import 错误退出 | 宿主与容器的 Python minor 不一致。用与宿主匹配的基座重建镜像（宿主是 3.13 就用 `--build-arg RUNTIME_IMAGE=...trixie-slim`） |
-| 日志里出现 `AssembleError` | HEF 的九个输出张量与期望布局对不上。输出是按特征图边长与通道数归位的，不按名字，出现该报错时用的不是本方案期望的那份 HEF。拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
-| `docker compose` 去读 `._docker-compose.yml` 报错 | 从 macOS 上传时带进了 AppleDouble 附属文件。部署步骤会删掉上传目录里的 `._*` 与 `.DS_Store`；手工拷贝的话跑 `find . -name '._*' -delete` |
-| 能出框但召回明显低于方案页 | 这条路径上属预期——level-0 版本比 CPU 基准约掉 0.03 mAP50。确认你跑的是默认的 level-1 HEF |
-| 相机没有画面 | 用 VLC 测 RTSP 地址。路径或用户名密码写错是最常见的失败原因 |
-| 想在这块板上跑 `dfine` 或 `rtdetrv2` 检测器 track | 不支持——Hailo Dataflow Compiler 3.31.0 的解析器对两者都拒绝（可变形注意力算子 `GridSample`/`GatherElements`/`TopK` 在 Hailo-8 上没有实现；见方案页"检测器选型"一节）。这个套餐只提供 `yolox` |
+| 部署停在 "libhailort.so.4.21.0 not found" | 把 HailoRT 驱动、库和 Python 绑定都装成 4.21.x |
+| 部署停在 `force_desc_page_size` 检查 | 按前置条件第 2 条加 modprobe 参数并重启 |
+| 容器因 `_pyhailort` 的 import 错误退出 | 宿主系统须为 Pi OS bookworm（Python 3.11）；宿主是 3.13 时用 `--build-arg RUNTIME_IMAGE=...trixie-slim` 重建镜像 |
+| 日志里出现 `AssembleError` | HEF 不是本方案那一份，拿 sha256 与 `assets/models/hef_o1.manifest.json` 核对 |
+| `docker compose` 去读 `._docker-compose.yml` 报错 | 在 compose 目录执行 `find . -name '._*' -delete` |
+| 召回明显偏低 | 确认运行的是默认的 level-1 HEF（`yolox_tiny_neu6_o1.hef`） |
+| 相机没有画面 | 用 VLC 测 RTSP 地址，检查路径和用户名密码 |
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
-从这台电脑通过 SSH 部署到树莓派。
+通过 SSH 部署到 reComputer R2000。设备须装 HailoRT 4.21.x（执行 `apt-mark hold hailort hailort-pcie-driver` 锁定版本），至少 4 GB 可用磁盘。
 
 ### 部署目标 {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
-如果你就在这台树莓派上操作，直接在本机运行。
+部署到本机，本机须为 reComputer R2000，装有 HailoRT 4.21.x（两个包都 hold），至少 4 GB 可用磁盘。
 
 ---
 
 ## 步骤 2: 查看实时检测画面 {#preview_hailo_inspection type=web_dashboard required=false config=devices/preview_inspection.yaml}
 
-打开设备自带的页面，看实时画面上画出的检测框，以及下面的健康计数。
+打开设备自带页面，查看实时画面上的检测框和健康计数。
 
 ### 部署完成
 
-设备已在运行并发布结果。结果发到 MQTT 1883 端口的
-`<设备名>/inspection/<流编号>/results`，判定同时在 Modbus TCP 502 端口、
-unit 1 的线圈 0 与 1 上。
+结果发到 MQTT 1883 端口的 `<设备名>/inspection/<流编号>/results`，判定同时写到 Modbus TCP 502 端口、unit 1 的线圈 0 与 1。
 
 #### 快速验证
 
-1. 打开 `http://<设备 IP>:8080/`，确认 MJPEG 预览在动。
-2. 看 `http://<设备 IP>:8080/healthz`——`inference_time_ms` 应该是几毫秒，
-   10 FPS 下 `frames_dropped` 应为 0，`mqtt.rejected` 应为 0。
-   `rejected` 非零表示 payload 没通过契约校验，被丢弃而不是发出去了。
-3. 把一件有缺陷的样品放到相机前，看是否出现带类别名与分数的检测框。
-4. 从另一台机器订阅主题：
-   `mosquitto_sub -h <设备 IP> -t '<设备名>/inspection/#' -v`。
+1. 打开 `http://<设备 IP>:8080/`，MJPEG 预览在动。
+2. 打开 `http://<设备 IP>:8080/healthz`：`inference_time_ms` 为几毫秒，10 FPS 下 `frames_dropped` 为 0，`mqtt.rejected` 为 0。
+3. 把一件有缺陷的样品放到相机前，出现带类别名与分数的检测框。
+4. 在另一台机器执行 `mosquitto_sub -h <设备 IP> -t '<设备名>/inspection/#' -v`，能收到消息。
 
 #### MQTT 消息
 
-一帧一条，带上该帧内所有检测框：
-
-```json
-{
-  "type": "surface_inspection_result",
-  "version": "1.0.0",
-  "device": "rpi-hailo",
-  "stream_id": "line1-cam1",
-  "frame_id": 10423,
-  "verdict": "NG",
-  "verdict_reason": "2 defect(s) >= min_defects=1",
-  "defect_count": 2,
-  "primary_class_id": 1,
-  "coordinate_space": "normalized_center_wh",
-  "inference_time_ms": 6.4,
-  "pipeline_ms": 21.8,
-  "detections": [
-    {"slot": 0, "class_id": 1, "class_name": "inclusion", "score": 0.87,
-     "bbox": [0.4125, 0.5312, 0.1094, 0.2031]}
-  ]
-}
-```
-
-`slot` 是帧内按分数降序的下标。这条流水线不做跟踪，`slot` 跨帧没有任何意义。
-无缺陷时 `primary_class_id` 取 `-1`——注意 Modbus 寄存器在同样情况下取 `0`，
-因为保持寄存器是无符号 16 位，塞不下 `-1`。
+一帧一条，`verdict` 为 OK / NG，`defect_count` 为缺陷数，`detections[]` 为该帧所有检测框（`class_name`、`score`、归一化中心点宽高 `bbox`）。无缺陷时 `primary_class_id` 为 `-1`，对应的 Modbus 寄存器为 `0`。
 
 #### 下一步
 
 - 把 Modbus 线圈接到剔除或打标工位，然后做步骤 3。
-- 把 MES 或历史库指向 MQTT 主题。设备只发布，自己从不写时序数据库。
-- 先把这块板测出来再信它。Hailo 这条路径的吞吐、时延与上板精度请以你自己的实测为准，
-  `/healthz` 上的计数会是第一份真实数据。
+- 把 MES 或历史库指向 MQTT 主题。
+- 这块板的吞吐和时延以 `/healthz` 上的实际计数为准。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| 页面打不开 | 8080 端口跑在 host 网络上。确认容器已起（`docker ps`），并确认 8080 没有被别的服务占用 |
-| 预览在动但从来不出框 | 要么画面里没有缺陷，要么阈值定高了。改任何东西之前先看 `/events` 里最近的判定 |
-| `frames_dropped` 一直涨 | 源送帧比流水线消费快。RTSP 源按设计丢最旧的帧；调低配置的 FPS |
-| `mqtt.rejected` 非零 | payload 在发布路径上没通过契约校验。看容器日志——通常意味着后端改动改变了 payload 的形状 |
+| 页面打不开 | 执行 `docker ps` 确认容器已起，并确认 8080 端口没有被占用 |
+| 预览在动但从来不出框 | 先看 `/events` 里最近的判定，再确认画面里有缺陷或调低阈值 |
+| `frames_dropped` 一直涨 | 调低配置的 FPS |
+| `mqtt.rejected` 非零 | 查看容器日志中的契约校验错误 |
 
 ---
 
 ## 步骤 3: 核对 Modbus 输出 {#plc_check_hailo type=manual required=false verify=true config=devices/plc_check.yaml}
 
-确认 Modbus 主站看到的就是 PLC 将要据以动作的内容。只用 MQTT 的现场可以跳过这一步。
+确认 Modbus 主站读到的判定正确。只用 MQTT 的现场可以跳过。
 
 ### 前置条件
 
 1. 一台同网段、能做 Modbus TCP 主站的机器。
-2. 设备 IP，以及部署时填的从站号（下面的寄存器表按 unit 1 写）。
+2. 设备 IP 和部署时填的从站号（下表按 unit 1）。
 
 ### 部署完成
 
@@ -383,7 +234,7 @@ unit 1 的线圈 0 与 1 上。
 |---|---|
 | Coil 0 | NG，与线圈 1 互斥 |
 | Coil 1 | OK，与线圈 0 互斥 |
-| HR 0 | 主缺陷类别 ID——本帧最高分的那个框；OK 时为 0 |
+| HR 0 | 主缺陷类别 ID（本帧最高分的框）；OK 时为 0 |
 | HR 1 | 缺陷数 |
 | HR 2 | 主缺陷框 cx，归一化 x10000 |
 | HR 3 | 主缺陷框 cy，归一化 x10000 |
@@ -394,48 +245,42 @@ unit 1 的线圈 0 与 1 上。
 
 #### 快速验证
 
-1. 按 unit 1、端口 502 轮询，读线圈 0-1 与 HR 0-7。上游仓库自带的脚本可以直接做：
-   `python evaluation/read_modbus.py --host <设备 IP> --port 502 --unit 1`。
-2. 让有缺陷的样品经过相机时连续采样，观察线圈对翻转。
-3. 确认同一次采样里两个线圈绝不同时为 1。一旦读到 `(1,1)` 就停下来——
-   PLC 无论锁哪一个线圈，都会对一个不存在的判定动作。
-4. 在一帧 NG 上确认 HR 2-5 落在 0-10000 内，解码后与 MQTT 消息里的框一致。
-   在一帧 OK 上确认 HR 0-5 全为 0。
-5. 确认没有新判定时 HR 6-7 仍按自己的间隔递增——心跳独立于判定路径。
+1. 读 unit 1、端口 502 的线圈 0-1 与 HR 0-7，可用上游仓库的 `python evaluation/read_modbus.py --host <设备 IP> --port 502 --unit 1`。
+2. 让有缺陷的样品经过相机时连续采样，线圈对随之翻转。
+3. 同一次采样里两个线圈不能同时为 1；读到 `(1,1)` 时停用并排查。
+4. NG 帧上 HR 2-5 在 0-10000 内，与 MQTT 消息里的框一致；OK 帧上 HR 0-5 全为 0。
+5. 没有新判定时 HR 6-7 仍在递增。
 
 #### 下一步
 
-- 锁线圈，不要锁寄存器：寄存器先被原子更新，线圈翻转时它们已经描述的是那一帧。
-- 对心跳停更报警。这是只用 Modbus 的集成方在检测器停止时唯一能拿到的信号。
+- PLC 以线圈为触发信号，线圈翻转时寄存器已是该帧数据。
+- 对心跳停更报警，用于区分“没有缺陷”和“检测器停止”。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| 502 端口连接被拒 | 配置里关掉了 Modbus，或者容器没起来。检查设备上 `config/config.json` 里的 `modbus.enabled` |
-| MQTT 有检测结果但寄存器全 0 | 你读的从站号与部署时写入的不是同一个，或者正好读在一帧 OK 上 |
-| 数值看着合理但框对不上 | HR 2-5 是归一化 x10000 的中心点与宽高，不是像素。除以 10000 再乘画面尺寸 |
-| 接了多路相机却只有一组寄存器 | 这是设计如此——契约只定义了一组寄存器，多路时最后一次判定生效。要按路独立寄存器得先改契约 |
+| 502 端口连接被拒 | 检查设备上 `config/config.json` 里的 `modbus.enabled`，并确认容器已起 |
+| MQTT 有检测结果但寄存器全 0 | 核对从站号，或换一帧 NG 再读 |
+| 框的位置对不上 | HR 2-5 是归一化 x10000 的中心点与宽高，除以 10000 再乘画面尺寸 |
+| 接了多路相机却只有一组寄存器 | 只有一组寄存器，多路时以最后一次判定为准；逐路结果从 MQTT 取 |
 
 ---
 
 ## 步骤 4: 启用无监督异常检测（可选） {#enable_anomaly_hailo type=manual required=false verify=true config=devices/enable_anomaly.yaml}
 
-可选，与 Jetson 套餐相同。在 CPU 上跑 EfficientAD-S（`accelerator: "cpu"`——
-这个模型目前没有 Hailo 后端），在检测器旁边跑，让一帧能被标成"跟 OK
-参考集不像"。这条路径不进判定路径。
+可选。在 CPU 上运行 EfficientAD-S（`accelerator: "cpu"`，该模型没有 Hailo 版本），把与 OK 参考集不像的帧标出来。不参与判定。
 
 ### 前置条件
 
-- 运行时已部署（步骤 1），改配置加重启容器就够。
-- EfficientAD-S 的 ONNX 已拷到设备上——它还没上 CDN。
-- 在信任 `anomaly.threshold` 之前，先用真实检测相机采集你自己的 OK
-  样本——随包评测的 OK 集是 DeepPCB 的模板扫描图，不是这台相机拍的。
+- 步骤 1 已完成，改配置并重启容器即可。
+- EfficientAD-S 的 ONNX 已手工拷到设备上（未上 CDN）。
+- 需要用 `anomaly_score` 做判断时，先用实际检测相机采集自己的 OK 样本标定 `anomaly.threshold`。
 
 ### 故障排查
 
-| 问题 | 解决办法 |
+| 现象 | 处理 |
 |-------|----------|
-| MQTT 事件里从来不出现 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启；检查容器日志里 `anomaly.path` 对应的模型加载是否报错 |
-| 不管样品是什么，`anomaly_score` 都稳定在同一个值附近 | 阈值大概率是抄了本方案自己的评测，在 DeepPCB 图上标定，不是你相机的 OK 图。用自己的 OK 集重新标定 |
-| 把单一的 `anomaly_score` 当成"这帧异常"来判，结果不稳定 | 已知限制——随包评测的图像级 AUROC 是 0.52（接近随机）。用像素/区域级信号，不要用单一帧级门限 |
+| MQTT 事件里没有 `anomaly_score` | 确认 `anomaly.enabled: true` 已保存且容器已重启，查看容器日志里 `anomaly.path` 模型加载错误 |
+| `anomaly_score` 对任何样品都接近同一个值 | 用自己相机的 OK 集重新标定 `anomaly.threshold` |
+| 按单帧 `anomaly_score` 判异常结果不稳定 | 单帧分数接近随机，改用像素/区域级信号（`heatmap_ref` 加分数） |

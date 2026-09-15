@@ -1,16 +1,8 @@
 ## Preset: reCamera 2002 {#recamera}
 
-One device does everything: the camera sees the room, decides on-device whether
-someone fell, and publishes the event over MQTT.
+A reCamera 2002 decides on-device whether someone fell and publishes the event over MQTT.
 
-| Device | Purpose |
-|--------|---------|
-| reCamera 2002 | Pose estimation, temporal fall logic, RTSP and MQTT, all local |
-
-**Important:** this is an assistive alert, not a certified medical or
-life-safety system. On the untouched 27-clip Subject 4 test it reached 74.1%
-accuracy and 83.3% fall recall; on an independent external set recall was 58.8%.
-Long shots, occlusion, low light and fall-like floor activities remain weak cases.
+**Important:** this is an assistive alert, not a certified medical or life-safety system. Long shots, occlusion, low light and fall-like floor activities remain weak cases.
 
 ## Step 1: Update the reCamera Console {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
@@ -21,12 +13,11 @@ Install console 0.5.5, which manages the camera apps. Already current? It's skip
 1. Connect the reCamera over USB, or put it on the same network as this computer.
 2. Over USB the address is `192.168.42.1`; over Wi-Fi use the IP your router shows.
 3. The default password is `recamera` (older units use `recamera.2`).
-4. Nothing is reinstalled if the console is already 0.5.5 — the version is checked before anything is touched, and the step reports itself as skipped.
-5. The console is what turns fall detection on and off in the camera's app gallery, and what switches between vision apps, so it has to be current before the next step.
+4. The next step, installing fall detection, needs this console version.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Cannot connect | Confirm SSH is enabled and the IP and password are correct |
 | Console page does not load after install | Give it 30 seconds to restart, then reload `http://<camera-ip>/` |
@@ -50,7 +41,7 @@ Install the pose model and the fall detector, then start it on the camera.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Service exits immediately | Another camera app is still running; only one app can hold the camera, so reboot and retry |
 | Node-RED stopped working after install | Expected — installing takes the camera from Node-RED and any other vision app |
@@ -66,9 +57,7 @@ Click **Connect** to see the skeleton, the state and the event number live.
 
 ### Deployment Complete
 
-The camera is ready for a supervised site trial. Alerts and diagnostics go to
-`recamera/fall-detection/results`, and Home Assistant discovery exposes the fall
-state, event ID and person presence.
+Alerts go to `recamera/fall-detection/results`, and Home Assistant discovery creates fall state, event ID and person presence entities.
 
 #### Quick verification
 
@@ -87,7 +76,7 @@ state, event ID and person presence.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Overlay appears before video | MQTT connects faster than RTSP; wait a few seconds |
 | Skeleton disappears near the floor | Reframe the camera; a short post-impact gap is tolerated, long occlusion cannot be classified |
@@ -100,37 +89,30 @@ state, event ID and person presence.
 Skip this step and the deployment is finished: the camera keeps publishing MQTT
 events and nothing else changes.
 
-Take it and you add a panel next to the cameras — a site overview of rooms,
-cameras and zones, zone rectangles drawn on each camera's live picture, a
-no-person and a no-motion timeout per zone, an operator who confirms or dismisses
-each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
+Take it and you install an alarm panel on a separate host: a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, operator confirm or dismiss for each alarm, an audit trail, and a webhook that carries no video.
 
 ### Prerequisites
 
-The camera cannot host the panel. The detector there is a native process installed as a .deb, and the camera
-offers no filesystem, SQLite or web server for the panel. So the panel goes on a
-separate box on the same network, which needs no AI accelerator: a reComputer
-R1000 Series, or a Linux machine you already run.
+The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
 
 - A x86_64 or arm64 Linux host on the camera's network, with Docker and the
   compose plugin (`docker compose version` has to succeed) and SSH access.
 - The exact topic the cameras publish on. Check it from that host before you
   start: `mosquitto_sub -h <camera-or-broker-ip> -t '#' -v`. A reCamera 2002 publishes on `<device-name>/fall-detection/results`, single stream, no stream-id suffix.
-- Ports 8080 and 1883 free on that host, or different values entered in the form
-  — the deploy checks both before it starts and names the process holding one.
+- Ports 8080 and 1883 free on that host, or different ports entered in the form.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Deploy stops on "Port 8080 is already in use" | Enter another Panel Port in the form, or stop the service the message names. |
 | "no message on ... within 20 s" warning at the end | The panel is up but has seen no detector result. Re-check the topic against `mosquitto_sub -t '#' -v`, and that the camera publishes to the broker address entered here. |
 | Alarm list stays empty and no-person alarms never fire | The camera has to publish on frames with nobody in view for that timeout to have an input. Falls still work either way. |
-| `pull access denied` on `eldercare-alarm-*` | Check registry auth and network reachability from the host — both architectures are published. |
+| `pull access denied` on `eldercare-alarm-*` | Check that the host can reach the image registry. |
 
 ### Target {#panel_host_recamera_remote type=remote device_name="Alarm Panel Host" config=devices/panel_host.yaml default=true}
 
-The panel host is addressed over SSH, like any other Docker target.
+Deploy to the panel host over SSH.
 
 ## Step 5: Open the Alarm Panel {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
@@ -150,29 +132,21 @@ Only relevant if you installed the panel in the previous step.
 
 #### Next steps
 
-- Draw the zones on the live picture instead of keeping the single
-  whole-frame rectangle the deploy created. Saving bumps a configuration
-  version; if a colleague saved first you get a 409 and a reload prompt rather
-  than overwriting them.
+- Draw the zones on the live picture instead of keeping the single whole-frame rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
-  USB microphone and speaker on this host; the description page covers what it
-  does before you turn it on.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this host; see Step 6.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Page does not load | Check the Panel Port matches what the deploy step used, and that the host firewall allows it. |
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
-| A room reads unknown and stream-lost | The camera is unreachable from the panel host, not a fall-detection fault. The last-frame time on the card says when it was last seen. |
+| A room reads unknown and stream-lost | The panel host cannot reach that camera; check the network. The last-frame time on the card shows when a frame last arrived. |
 
 ## Step 6: Voice Check-in (optional) {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
-Optional, off by default. After a fall alarm is raised, the service can ask the
-resident out loud whether they are all right and act on the answer, in parallel
-with the five-second evidence window. It is off unless you turn it on, and
-turning it off again changes nothing else about the alarm path.
+Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 
 What the answer does:
 
@@ -185,57 +159,35 @@ What the answer does:
 
 ### Prerequisites
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
+An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
 
-The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
-suppress a real alarm; confirming an alarm nobody needed costs an operator a
-few seconds. So a distress word beats a safe word in the same sentence, and
-anything the keyword lists do not recognise confirms rather than waits.
+A distress word beats a safe word in the same sentence.
 
-**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
-the length of one listening window and is released when the verdict is
-produced. What is persisted is the verdict, the confidence and the latency,
-plus the transcribed text — and `store_transcript: false` drops the text too,
-leaving only the verdict in the audit trail. Notifications carry the same
-fields and still carry no snapshot and no video.
+**Privacy:** audio is never written to disk. The audit trail keeps the verdict, confidence, latency and transcribed text; `store_transcript: false` drops the text. Notifications carry no snapshot and no video.
 
 #### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
-3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |---|---|
 | Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
 | Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
-| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+| The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
 ## Preset: reCamera Pro {#recamera_pro}
 
-One device does everything, on newer hardware than the 2002: the camera sees the
-room, decides on-device whether someone fell, and publishes the event over MQTT.
+A reCamera Pro tracks several people and decides on-device whether someone fell, then publishes the event over MQTT.
 
-| Device | Purpose |
-|--------|---------|
-| reCamera Pro | Pose estimation, multi-person tracking, temporal fall logic and MQTT, all local |
+**Important:** this is an assistive alert, not a certified medical or life-safety system. Long shots, occlusion, low light and fall-like floor activities remain weak cases.
 
-**Important:** this is an assistive alert, not a certified medical or
-life-safety system. Long shots, occlusion, low light and fall-like floor
-activities remain weak cases.
-
-The detector ships in the device's own App Center rather than with this
-solution, so this preset configures the installed app and makes it active. If
-your device does not carry it yet, install it from the App Center first — the
-deploy step will tell you, and name what is installed instead.
+The detector ships in the device's own App Center; this preset **configures the installed app and makes it the running app**. If your device does not have it yet, install it from the App Center first.
 
 ## Step 1: Update the Camera Firmware {#firmware_recamera_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
 
@@ -253,7 +205,7 @@ Only needed once, and only if your camera has no App Center yet.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Test connection fails | Check the address, and that port 5555 is reachable from this computer |
 | Nothing happens after Check for device updates | The camera may already be up to date — look for the App Center on its page |
@@ -271,7 +223,7 @@ Point the app at your MQTT broker and make it the running app.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | "not installed on this device" | Install Fall Detection from the device's App Center, then run this step again |
 | Login rejected | Repeated failures lock your IP for an increasing delay — confirm the password in the console before retrying |
@@ -295,13 +247,11 @@ The camera is now publishing fall events to your broker.
 | `<device-name>/fall-detection/summary` | `person_count`, `fallen_count` |
 | `<device-name>/fall-detection/fall` | `fall_event` on the transition |
 
-Unlike the other presets this is a mapped summary rather than a per-frame
-document, which is what Home Assistant consumes but carries no skeleton — the
-live view with skeletons is the console's own page, opened by this step.
+These topics carry no skeleton data; the live view with skeletons is on the device console page, opened by this step.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | The camera's page does not open | The firmware has an HTTPS switch; port 80 answers with a redirect to 443. Follow it, or open the `https://` address directly |
 | Live view works but no fall events reach the broker | Check the broker address and port in the previous step; the summary topic only appears once a person is detected |
@@ -315,37 +265,30 @@ live view with skeletons is the console's own page, opened by this step.
 Skip this step and the deployment is finished: the camera keeps publishing MQTT
 events and nothing else changes.
 
-Take it and you add a panel next to the cameras — a site overview of rooms,
-cameras and zones, zone rectangles drawn on each camera's live picture, a
-no-person and a no-motion timeout per zone, an operator who confirms or dismisses
-each alarm, an SQLite audit trail, and a webhook whose payload carries no video.
+Take it and you install an alarm panel on a separate host: a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, operator confirm or dismiss for each alarm, an audit trail, and a webhook that carries no video.
 
 ### Prerequisites
 
-The camera cannot host the panel. The detector there is an App Center application, and the camera
-offers no filesystem, SQLite or web server for the panel. So the panel goes on a
-separate box on the same network, which needs no AI accelerator: a reComputer
-R1000 Series, or a Linux machine you already run.
+The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
 
 - A x86_64 or arm64 Linux host on the camera's network, with Docker and the
   compose plugin (`docker compose version` has to succeed) and SSH access.
 - The exact topic the cameras publish on. Check it from that host before you
   start: `mosquitto_sub -h <camera-or-broker-ip> -t '#' -v`. A reCamera Pro publishes on `<base>/fall-detection/state`; pick reCamera Pro as the Camera Model in the form so the Pro adapter is used.
-- Ports 8080 and 1883 free on that host, or different values entered in the form
-  — the deploy checks both before it starts and names the process holding one.
+- Ports 8080 and 1883 free on that host, or different ports entered in the form.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Deploy stops on "Port 8080 is already in use" | Enter another Panel Port in the form, or stop the service the message names. |
 | "no message on ... within 20 s" warning at the end | The panel is up but has seen no detector result. Re-check the topic against `mosquitto_sub -t '#' -v`, and that the camera publishes to the broker address entered here. |
 | Alarm list stays empty and no-person alarms never fire | The camera has to publish on frames with nobody in view for that timeout to have an input. Falls still work either way. |
-| `pull access denied` on `eldercare-alarm-*` | Check registry auth and network reachability from the host — both architectures are published. |
+| `pull access denied` on `eldercare-alarm-*` | Check that the host can reach the image registry. |
 
 ### Target {#panel_host_recamera_pro_remote type=remote device_name="Alarm Panel Host" config=devices/panel_host.yaml default=true}
 
-The panel host is addressed over SSH, like any other Docker target.
+Deploy to the panel host over SSH.
 
 ## Step 5: Open the Alarm Panel {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
 
@@ -365,29 +308,21 @@ Only relevant if you installed the panel in the previous step.
 
 #### Next steps
 
-- Draw the zones on the live picture instead of keeping the single
-  whole-frame rectangle the deploy created. Saving bumps a configuration
-  version; if a colleague saved first you get a 409 and a reload prompt rather
-  than overwriting them.
+- Draw the zones on the live picture instead of keeping the single whole-frame rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
-  USB microphone and speaker on this host; the description page covers what it
-  does before you turn it on.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this host; see Step 6.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Page does not load | Check the Panel Port matches what the deploy step used, and that the host firewall allows it. |
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
-| A room reads unknown and stream-lost | The camera is unreachable from the panel host, not a fall-detection fault. The last-frame time on the card says when it was last seen. |
+| A room reads unknown and stream-lost | The panel host cannot reach that camera; check the network. The last-frame time on the card shows when a frame last arrived. |
 
 ## Step 6: Voice Check-in (optional) {#voice_checkin_recamera_pro type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
-Optional, off by default. After a fall alarm is raised, the service can ask the
-resident out loud whether they are all right and act on the answer, in parallel
-with the five-second evidence window. It is off unless you turn it on, and
-turning it off again changes nothing else about the alarm path.
+Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 
 What the answer does:
 
@@ -400,55 +335,35 @@ What the answer does:
 
 ### Prerequisites
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
+An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
 
-The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
-suppress a real alarm; confirming an alarm nobody needed costs an operator a
-few seconds. So a distress word beats a safe word in the same sentence, and
-anything the keyword lists do not recognise confirms rather than waits.
+A distress word beats a safe word in the same sentence.
 
-**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
-the length of one listening window and is released when the verdict is
-produced. What is persisted is the verdict, the confidence and the latency,
-plus the transcribed text — and `store_transcript: false` drops the text too,
-leaving only the verdict in the audit trail. Notifications carry the same
-fields and still carry no snapshot and no video.
+**Privacy:** audio is never written to disk. The audit trail keeps the verdict, confidence, latency and transcribed text; `store_transcript: false` drops the text. Notifications carry no snapshot and no video.
 
 #### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
-3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |---|---|
 | Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
 | Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
-| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+| The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
 ## Preset: IP Camera + reComputer J30 / J40 {#jetson}
 
-Keep the cameras you already have. A Jetson Orin pulls their RTSP streams, runs a
-larger pose model, and tracks several people per stream independently.
+A reComputer J30 / J40 pulls the RTSP streams of your existing IP cameras and tracks several people per stream independently.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer J30 / J40 | Pose inference, tracking, fall logic and MQTT for every stream |
-| IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
+- **Camera:** any ONVIF or RTSP IP camera.
 
-**Important:** this is an assistive alert, not a certified medical or
-life-safety system. On the untouched 27-clip Subject 4 test the YOLO11m
-configuration reached 85.2% accuracy and 100% fall recall; on an independent
-external set the deployed recall was 52.9%, limited by pose coverage in long shots
-and occlusion.
+**Important:** this is an assistive alert, not a certified medical or life-safety system. Long shots and occlusion lower recall.
 
 ## Step 1: Deploy Fall Detection {#deploy_jetson_fall type=docker_deploy required=true config=devices/jetson_fall.yaml}
 
@@ -457,15 +372,15 @@ Deploy the detector and build its inference engine on the Jetson. Allow 10–20 
 ### Prerequisites
 
 1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
-2. At least 10 GB free disk — the pose model and the built engine live on the device.
+2. At least 10 GB free disk.
 3. Your IP camera's RTSP URL, including credentials if it requires them, for
    example `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`.
-4. Expect the first deploy to spend most of its time building the inference engine on the device. A TensorRT engine is tied to the exact GPU architecture and TensorRT version, so it cannot be shipped prebuilt. Measured on Orin Nano: 461 s for YOLO11s. Later deployments reuse it.
-5. Match the pose model to the board — **YOLO11s** for Orin Nano, **YOLO11m** for Orin NX. YOLO11m is the more accurate row in the table on the solution page; YOLO11s leaves more headroom for additional camera streams.
+4. The first deploy spends most of its time building the inference engine on the device; later deployments reuse it.
+5. Match the pose model to the board: **YOLO11s** for Orin Nano, **YOLO11m** for Orin NX.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and the disk has 10 GB free |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
@@ -488,9 +403,7 @@ Click **Connect** to see each tracked person boxed, labelled and state-coloured.
 
 ### Deployment Complete
 
-The Jetson is ready for a supervised site trial. Results go to
-`recamera/fall-detection/results/<stream-id>`, one topic per camera, so several
-cameras stay separable downstream.
+Results go to `recamera/fall-detection/results/<stream-id>`, one topic per camera.
 
 #### Quick verification
 
@@ -510,12 +423,11 @@ own tracking state and gets its own MQTT topic.
 
 - Point your alerting system at the MQTT topic, or add the broker to Home
   Assistant to pick up the discovery entities.
-- Measure real throughput before adding streams — the published FPS figures are
-  inference-core only and exclude decoding, tracking and MQTT.
+- Measure the actual frame rate on site before adding streams.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Video but no overlay | The preview reads MQTT separately; confirm port 1883 on the Jetson is reachable |
 | Overlay but no video | The preview pulls RTSP straight from the camera; confirm this computer can reach it too |
@@ -525,11 +437,7 @@ own tracking state and gets its own MQTT topic.
 
 ## Step 3: Open the Alarm Panel {#panel_open_jetson type=web_dashboard required=false config=devices/panel_console.yaml}
 
-The alarm panel came up with the detector in Step 1 — same compose file, same
-device, port 8080 by default. It turns the event stream into alarms someone signs
-off on: a site overview, zones drawn on each camera's live picture, a no-person
-and a no-motion timeout per zone, confirm and dismiss recorded against an
-operator, an SQLite audit trail, and a webhook whose payload carries no video.
+The alarm panel was deployed with the detector in Step 1 on the same device, port 8080 by default. It provides a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, confirm and dismiss recorded against an operator, and a webhook that carries no video.
 
 ### Deployment Complete
 
@@ -548,13 +456,11 @@ operator, an SQLite audit trail, and a webhook whose payload carries no video.
 - Draw the zones on the live picture instead of keeping the single whole-frame
   rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
-  USB microphone and speaker on this device; the description page covers what it
-  does before you turn it on.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this device; see Step 4.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
@@ -562,10 +468,7 @@ operator, an SQLite audit trail, and a webhook whose payload carries no video.
 
 ## Step 4: Voice Check-in (optional) {#voice_checkin_jetson type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
-Optional, off by default. After a fall alarm is raised, the service can ask the
-resident out loud whether they are all right and act on the answer, in parallel
-with the five-second evidence window. It is off unless you turn it on, and
-turning it off again changes nothing else about the alarm path.
+Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 
 What the answer does:
 
@@ -578,55 +481,35 @@ What the answer does:
 
 ### Prerequisites
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
+An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
 
-The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
-suppress a real alarm; confirming an alarm nobody needed costs an operator a
-few seconds. So a distress word beats a safe word in the same sentence, and
-anything the keyword lists do not recognise confirms rather than waits.
+A distress word beats a safe word in the same sentence.
 
-**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
-the length of one listening window and is released when the verdict is
-produced. What is persisted is the verdict, the confidence and the latency,
-plus the transcribed text — and `store_transcript: false` drops the text too,
-leaving only the verdict in the audit trail. Notifications carry the same
-fields and still carry no snapshot and no video.
+**Privacy:** audio is never written to disk. The audit trail keeps the verdict, confidence, latency and transcribed text; `store_transcript: false` drops the text. Notifications carry no snapshot and no video.
 
 #### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
-3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |---|---|
 | Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
 | Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
-| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+| The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
 ## Preset: IP Camera + reComputer RK3576 / RK3588 {#rk}
 
-Run the detector on a Rockchip NPU board. Same algorithm and same MQTT output as
-the other presets, using the board's own NPU instead of a GPU.
+The detector runs on the NPU of a reComputer RK3576 / RK3588, with the same MQTT output as the other presets.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer RK3576 / RK3588 | Pose inference on the NPU, tracking, fall logic and MQTT |
-| IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
+- **Camera:** any ONVIF or RTSP IP camera.
 
-**Important:** this is an assistive alert, not a certified medical or life-safety
-system. Each board runs a temporal profile trained and frozen on its own pose traces.
-Accuracy is reported for the solution as a whole on the introduction page — the
-27-clip test set cannot separate the platforms, so there are no per-board
-figures.
+**Important:** this is an assistive alert, not a certified medical or life-safety system.
 
 ## Step 1: Deploy Fall Detection {#deploy_rk_fall type=docker_deploy required=true config=devices/rk3588_fall.yaml}
 
@@ -637,17 +520,16 @@ Deploy the detector to your Rockchip board. Allow about 5 minutes.
 1. The board runs a vendor image with the NPU driver and `librknnrt.so` present, plus Docker.
 2. At least 6 GB free disk for the runtime image and the pose model.
 3. Your IP camera's RTSP URL, with credentials if it needs them.
-4. Choose the deployment target that matches your board. A model compiled for RK3588 does not run on RK3576 or the reverse, so the target selects which model is downloaded — it is not cosmetic.
-5. The 2026-09-05 production-path benchmark stopped other inference applications and used a fixed 640×640 H.264, 15 FPS RTSP source. The optimized YOLOv8s INT8 profile verified 1 stream on RK3576 and 5 streams on RK3588 at the 14.5 FPS-per-route gate; the next boundary failed on both boards. This deployment form still installs one stream with the existing YOLO11n FP16 model and board-specific temporal profile.
+4. Choose the deployment target that matches your board; RK3588 and RK3576 models are not interchangeable. This deployment installs one camera stream.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
-| `librknnrt.so not found` | Install the board's `rknpu2` runtime package; the container mounts the host copy on purpose |
+| `librknnrt.so not found` | Install the board's `rknpu2` runtime package |
 | Model fails to load | The model must match the board — re-run the step with the correct board selected |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
-| Low frame rate | Other NPU workloads compete for the accelerator; check what else is running before blaming the detector |
+| Low frame rate | Other NPU workloads compete for the accelerator; check what else is running on the board |
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_fall.yaml default=true}
 
@@ -676,26 +558,21 @@ per camera.
 #### Next steps
 
 - Point your alerting system at the MQTT topic, or add the broker to Home Assistant.
-- Before relying on it, run your own acceptance test — the frozen figure measures
-  the temporal gate, not the alert your automation actually receives.
+- Run a site acceptance test before relying on it.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Video but no overlay | The preview reads MQTT separately; confirm port 1883 on the board is reachable |
-| Skeleton offset from the person | Report it — this runtime sends coordinates in the letterboxed model space and the preview corrects for it |
+| Skeleton offset from the person | Report it to Seeed |
 | Boxes flicker between people | Raise the tracker IoU threshold, or reframe so people overlap less |
 
 ---
 
 ## Step 3: Open the Alarm Panel {#panel_open_rk type=web_dashboard required=false config=devices/panel_console.yaml}
 
-The alarm panel came up with the detector in Step 1 — same compose file, same
-device, port 8080 by default. It turns the event stream into alarms someone signs
-off on: a site overview, zones drawn on each camera's live picture, a no-person
-and a no-motion timeout per zone, confirm and dismiss recorded against an
-operator, an SQLite audit trail, and a webhook whose payload carries no video.
+The alarm panel was deployed with the detector in Step 1 on the same device, port 8080 by default. It provides a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, confirm and dismiss recorded against an operator, and a webhook that carries no video.
 
 ### Deployment Complete
 
@@ -714,24 +591,19 @@ operator, an SQLite audit trail, and a webhook whose payload carries no video.
 - Draw the zones on the live picture instead of keeping the single whole-frame
   rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
-  USB microphone and speaker on this device; the description page covers what it
-  does before you turn it on.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this device; see Step 4.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
-| Falls raise alarms but no-person alarms never do | That timeout needs the detector to publish on frames with nobody in view. Confirm the RK runtime still publishes with nobody in front of the camera — that is the first thing to check here. |
+| Falls raise alarms but no-person alarms never do | That timeout needs the detector to publish on frames with nobody in view; confirm the MQTT topic still gets messages when nobody is in front of the camera. |
 
 ## Step 4: Voice Check-in (optional) {#voice_checkin_rk type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
-Optional, off by default. After a fall alarm is raised, the service can ask the
-resident out loud whether they are all right and act on the answer, in parallel
-with the five-second evidence window. It is off unless you turn it on, and
-turning it off again changes nothing else about the alarm path.
+Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 
 What the answer does:
 
@@ -744,54 +616,35 @@ What the answer does:
 
 ### Prerequisites
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
+An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
 
-The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
-suppress a real alarm; confirming an alarm nobody needed costs an operator a
-few seconds. So a distress word beats a safe word in the same sentence, and
-anything the keyword lists do not recognise confirms rather than waits.
+A distress word beats a safe word in the same sentence.
 
-**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
-the length of one listening window and is released when the verdict is
-produced. What is persisted is the verdict, the confidence and the latency,
-plus the transcribed text — and `store_transcript: false` drops the text too,
-leaving only the verdict in the audit trail. Notifications carry the same
-fields and still carry no snapshot and no video.
+**Privacy:** audio is never written to disk. The audit trail keeps the verdict, confidence, latency and transcribed text; `store_transcript: false` drops the text. Notifications carry no snapshot and no video.
 
 #### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
-3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |---|---|
 | Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
 | Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
-| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+| The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
 ## Preset: IP Camera + reComputer R2000 (Hailo) {#hailo}
 
-Run the detector on a Hailo-8 accelerator. The hot path is native C++ with no
-Python, so the host CPU stays largely free.
+The detector runs on a reComputer R2000 with a Hailo-8 accelerator, with the same MQTT output as the other presets.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer R2000 with Hailo-8 | Pose inference on the Hailo-8, tracking, fall logic and MQTT |
-| IP camera | Supplies the RTSP video; any ONVIF or RTSP camera works |
+- **Camera:** any ONVIF or RTSP IP camera.
 
-**Important:** this is an assistive alert, not a certified medical or life-safety
-system. A Hailo-specific temporal profile is frozen, with 92.02% pose coverage on the
-held-out test. Accuracy is reported for the solution as a whole on the
-introduction page — the 27-clip test set cannot separate the platforms.
+**Important:** this is an assistive alert, not a certified medical or life-safety system.
 
 ## Step 1: Deploy Fall Detection {#deploy_hailo_fall type=docker_deploy required=true config=devices/hailo_fall.yaml}
 
@@ -799,19 +652,19 @@ Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 
 ### Prerequisites
 
-1. A Hailo-8 accelerator present as `/dev/hailo0`, with **HailoRT 4.21** installed — the GStreamer plugin, the user library and the kernel driver must all be that version.
+1. A Hailo-8 accelerator present as `/dev/hailo0`, with **HailoRT 4.21** installed (GStreamer plugin, user library and kernel driver all at that version).
 2. Docker, and at least 4 GB free disk.
 3. Your IP camera's RTSP URL, with credentials if it needs them.
-4. The pose model is downloaded from the official Hailo Model Zoo during deployment and checked against a pinned digest, so nothing needs to be staged by hand.
-5. Nothing else may hold the accelerator — HailoRT contexts are exclusive, so stop any other Hailo application first.
+4. The pose model downloads automatically during deployment.
+5. Stop any other application using the Hailo accelerator first.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | `No /dev/hailo0` | The accelerator is not seated or its driver is not loaded; check `hailortcli fw-control identify` |
-| `libhailort.so.4.21.0 not found` | This deployment is ABI-locked to HailoRT 4.21; upgrading means changing plugin, library and driver together |
-| Container starts then exits | Another process owns the accelerator; HailoRT contexts are exclusive |
+| `libhailort.so.4.21.0 not found` | Install HailoRT 4.21, with plugin, library and driver all at that version |
+| Container starts then exits | Stop the other process using the accelerator |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
 | Deployment stops before verification | Check the detector log for the `HAILO_BATCH` line, container health, and an MQTT result on the configured topic |
 
@@ -844,24 +697,19 @@ per camera.
 #### Next steps
 
 - Point your alerting system at the MQTT topic, or add the broker to Home Assistant.
-- Before relying on it, run your own acceptance test — the frozen figure measures
-  the temporal gate, not the alert your automation actually receives.
+- Run a site acceptance test before relying on it.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Video but no overlay | The preview reads MQTT separately; confirm port 1883 on the device is reachable |
 | Overlay but no video | The preview pulls RTSP straight from the camera; confirm this computer can reach it too |
-| `inference_time_ms` reads 0 | Expected — the Hailo element does not expose the accelerator call duration at that probe point |
+| `inference_time_ms` reads 0 | Expected; the Hailo runtime does not report this value |
 
 ## Step 3: Open the Alarm Panel {#panel_open_hailo type=web_dashboard required=false config=devices/panel_console.yaml}
 
-The alarm panel came up with the detector in Step 1 — same compose file, same
-device, port 8080 by default. It turns the event stream into alarms someone signs
-off on: a site overview, zones drawn on each camera's live picture, a no-person
-and a no-motion timeout per zone, confirm and dismiss recorded against an
-operator, an SQLite audit trail, and a webhook whose payload carries no video.
+The alarm panel was deployed with the detector in Step 1 on the same device, port 8080 by default. It provides a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, confirm and dismiss recorded against an operator, and a webhook that carries no video.
 
 ### Deployment Complete
 
@@ -880,24 +728,19 @@ operator, an SQLite audit trail, and a webhook whose payload carries no video.
 - Draw the zones on the live picture instead of keeping the single whole-frame
   rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a
-  USB microphone and speaker on this device; the description page covers what it
-  does before you turn it on.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this device; see Step 4.
 
 ### Troubleshooting
 
-| Symptom | What to do |
+| Symptom | Action |
 |---|---|
 | Page does not load | Check the Alarm Panel Port matches what the deploy step used, and that the device firewall allows it. |
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
-| Falls raise alarms but no-person alarms never do | This runtime publishes on every frame and needs no switch, so check the zone's stream id matches the Stream ID from the deploy form instead. |
+| Falls raise alarms but no-person alarms never do | Check that the zone's stream id matches the Stream ID from the deploy form. |
 
 ## Step 4: Voice Check-in (optional) {#voice_checkin_hailo type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
-Optional, off by default. After a fall alarm is raised, the service can ask the
-resident out loud whether they are all right and act on the answer, in parallel
-with the five-second evidence window. It is off unless you turn it on, and
-turning it off again changes nothing else about the alarm path.
+Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 
 What the answer does:
 
@@ -910,37 +753,25 @@ What the answer does:
 
 ### Prerequisites
 
-What it needs: an OpenVoiceStream instance on the same LAN, with a USB
-microphone and a speaker plugged into the box running it. The cameras are not
-the audio path — neither reCamera model has a confirmed usable microphone, and
-the SG2002 cannot host local ASR at all.
+An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
 
-The asymmetry is deliberate. Mishearing a real cry for help as "I'm fine" would
-suppress a real alarm; confirming an alarm nobody needed costs an operator a
-few seconds. So a distress word beats a safe word in the same sentence, and
-anything the keyword lists do not recognise confirms rather than waits.
+A distress word beats a safe word in the same sentence.
 
-**Privacy.** Audio is never written to disk. The raw PCM lives in memory for
-the length of one listening window and is released when the verdict is
-produced. What is persisted is the verdict, the confidence and the latency,
-plus the transcribed text — and `store_transcript: false` drops the text too,
-leaving only the verdict in the audit trail. Notifications carry the same
-fields and still carry no snapshot and no video.
+**Privacy:** audio is never written to disk. The audit trail keeps the verdict, confidence, latency and transcribed text; `store_transcript: false` drops the text. Notifications carry no snapshot and no video.
 
 #### Quick verification
 
 1. `curl -sf http://<ovs-host>:8621/readyz` returns 200.
 2. The synthesized prompt is audible from where a fall would happen.
-3. `docker compose exec eldercare-alarm python -c "from eldercare.voice import classify; print(classify('救命','zh').verdict)"` prints `help`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |---|---|
 | Every alarm gets `no_answer` | Either the prompt is inaudible, or the microphone is not being captured. Check the speaker first, then `arecord -l` on the alarm host. |
 | Every alarm gets `unclear` | ASR is returning text the keyword lists do not match. Read the transcript in the console and add the phrasing the resident actually uses to `ok_keywords` / `help_keywords`. |
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
-| The service starts but never speaks | The container has no audio stack unless the `voice` extra is installed and the ALSA device is passed through. Check `docker compose logs eldercare-alarm` for the TTS or playback warning. |
+| The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 

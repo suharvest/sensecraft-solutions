@@ -1,80 +1,10 @@
-# Before you start
-
-This guide has five presets — Tier 0 (cloud-only) through Tier 3 (fully
-offline) — that trade off setup effort against how much stays on your network.
-Read the parts below that apply to the tier you picked; the per-tier steps
-still carry their own wiring and troubleshooting.
-
-**Devices and network, by tier:**
-
-| Tier | Extra hardware beyond the Watcher | Network |
-|---|---|---|
-| Tier 0 · Cloud | None | Watcher needs 2.4GHz WiFi + internet; everything else is Seeed's cloud |
-| Tier 1 · Basic | reComputer R1100 series (4 GB memory and up) | Watcher and reComputer on the same LAN as this computer during setup |
-| Tier 2A · Advanced (Single Site) | reComputer Industrial R21 series (with Hailo-8, 4 GB memory and up) or Jetson, for face recognition | Same LAN; face recognition stays local, LLM call can still be cloud |
-| Tier 2B · Advanced (Multi Site) | reComputer J40 series (Jetson Orin NX, 16 GB memory), shared by up to 3 Watchers | Each site's Watcher reaches the shared reComputer J40 over the network; only the LLM call leaves the site |
-| Tier 3 · Premium | reComputer Industrial R21 series (with Hailo-8, 4 GB memory and up; runs warehouse + face recognition + voice AI service) plus reComputer J50 series (runs the local LLM and TTS) | No internet needed after deployment — everything, including the LLM, runs on your own two devices |
-
-Every Watcher needs a one-time WiFi pairing (Step 1 in the tiered presets) —
-2.4GHz only, the device does not support 5GHz.
-
-**Creating the first administrator account:** Tier 0 has no admin account —
-you self-register with your Watcher's device ID at
-[warehouse.seeed.cn](https://warehouse.seeed.cn/). Tiers 1–3 create their own
-admin account on **first browser visit** to `http://<server-ip>:2125` after
-deployment: it shows a "Set Administrator" dialog, and the account is created
-once you fill in the details and confirm — there is no separate signup step.
-If you forget that password, the recovery path documented in this guide is
-deleting the app (with its data) from Device Management and redeploying.
-
-**Cloud LLM API keys — only needed for Tier 2B and Tier 3's private-cloud LLM option** (a separate, optional voice-service API key also exists — see Step 8's `OVS_API_KEYS` note — leave that one blank unless you enabled it):
-the Voice AI Service step asks for an **LLM API Key** (field `llm_api_key`,
-optional). Fill in the key given by whichever OpenAI-compatible
-provider you point the deployment at (e.g. DeepSeek's or Alibaba Cloud Model
-Studio's console) — it is not a Seeed-issued key. Tier 3's fully local
-LLM path needs no key at all. Tiers 0–2A need no API key; they authenticate
-through your SenseCraft account instead.
-
-**Disk space, by service (checked automatically before each deploy step; deployment fails below the minimum):**
-
-| Service | Minimum free disk | Preset(s) |
-|---|---|---|
-| Warehouse system (no face recognition) | 2 GB | Tier 1 |
-| Warehouse + face recognition (Hailo or Jetson) | 4 GB | Tier 2A, 2B, 3 |
-| Voice AI console (`xiaozhi-server`) | 6 GB | Tier 2B, 3 |
-| Local speech service on Jetson | 15 GB (models are ~5 GB) | Tier 2B |
-| Local speech + local LLM on Jetson | 25 GB (models/engines are ~10 GB) | Tier 3 |
-
-There is no separate minimum-memory check in this package; the disk-space
-gate above is what the deployment engine enforces.
-
-**Where the images come from:** application containers (`warehouse`,
-`face-rec-api`, `xiaozhi-server`, `xiaozhi-manager`, `edge-llm-chat-service`,
-`seeed-local-voice`) are pulled from Seeed's private registry,
-`sensecraft-missionpack.seeed.cn`, automatically during each deploy step — no
-manual login is required. Supporting services (`mysql:8.0`, `redis:8.0`, the
-`mcp-endpoint-server`) come from Docker Hub and a GitHub Container Registry
-mirror. All of this happens on whichever device you deploy to — the
-reComputer/Jetson for a remote deploy target, or this computer if you pick a
-local deploy target.
-
----
-
 ## Preset: Tier 0 · Cloud {#trial}
 
-Only a Watcher is needed - no host required. Inventory data and voice service are hosted on the Seeed cloud, so you can experience the full voice warehouse workflow out of the box.
+Only a SenseCAP Watcher is needed, no host. Inventory data and the voice service are hosted on the Seeed cloud.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | Voice assistant, receives voice commands |
-
-**What you'll get:**
-- Voice-controlled inventory (say "Stock in 10 boxes of apples" to record)
-- Real-time inventory data in the browser
-
-**Requirements:** Internet connection · SenseCraft account (free signup)
-
-**Note:** Monthly subscription; data is hosted on Seeed cloud; face recognition and ERP/WMS integration are not supported.
+- **Network:** the Watcher needs 2.4GHz WiFi with internet access (5GHz is not supported).
+- **Account:** a SenseCraft account (free signup); the warehouse system is registered with the Watcher's device ID, with no separate admin account.
+- **Limits:** monthly subscription, data hosted on the Seeed cloud, no face recognition, no ERP/WMS integration.
 
 ## Step 1: Configure Watcher Device {#sensecraft type=manual required=true}
 
@@ -92,7 +22,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
 | WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
@@ -114,7 +44,7 @@ The warehouse system is hosted on Seeed cloud - no deployment needed. Open the c
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Page won't load | Check network connection and try again |
 | Import failed | Check if Excel format matches the template |
@@ -137,7 +67,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection failed | Check endpoint URL is copied completely, no extra spaces |
 | Status stays Disconnected | Confirm Watcher is properly bound to SenseCraft platform |
@@ -148,7 +78,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
 
-Try these voice commands — the conversation itself is your verification that the trial is working. To see the resulting inventory records, visit the SenseCraft platform at [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/) after speaking.
+Try these voice commands. To see the resulting inventory records, visit the SenseCraft platform at [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/) after speaking.
 
 | Say this | Watcher will |
 |----------|--------------|
@@ -159,14 +89,12 @@ Try these voice commands — the conversation itself is your verification that t
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Watcher not responding | Confirm the Agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the SenseCraft page to see latest data |
 | Cannot see records | Confirm your Watcher is bound to your SenseCraft account |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
-| Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
-| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
+| Stock-in/stock-out fails while the network or service is down | Requests made during the outage are not replayed; repeat them after recovery. Keep the server and Watchers on the same wired LAN where possible, and put the server on UPS power |
 
 ### Deployment Complete
 
@@ -188,22 +116,12 @@ Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
 ## Preset: Tier 1 · Basic {#sensecraft_cloud}
 
-Use [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service for voice AI. Simplest setup - just deploy the warehouse system and connect your Watcher to SenseCraft platform.
+Voice AI runs on the [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service; you deploy only the warehouse system and connect the Watcher to the SenseCraft platform.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer R1100 series | Runs warehouse management system |
-| USB-C data cable | Flash Watcher firmware |
-
-**What you'll get:**
-- Voice-controlled inventory management (stock in/out by speaking)
-- Real-time inventory dashboard
-- Works with SenseCAP Watcher out of the box
-
-❌ High-accuracy face recognition not supported
-
-**Requirements:** Internet connection · [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free)
+- **Peripherals:** SenseCAP Watcher (2.4GHz WiFi only), USB-C data cable (for flashing firmware).
+- **Network:** internet access; during setup the Watcher, warehouse server and this computer are on the same LAN.
+- **Account:** a [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free); the warehouse admin account is created on first visit.
+- **Limits:** high-accuracy face recognition is not supported.
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -219,7 +137,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
@@ -243,7 +161,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Device not responding | Unplug and reconnect the USB cable |
 | Flash stuck or fails | Press the reset button and try again |
@@ -272,7 +190,7 @@ Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Invento
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
 | WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
@@ -286,11 +204,11 @@ Deploy the inventory management service with voice control and web dashboard.
 
 ### Deployment Complete
 
-**Capacity planning (measured on a faster arm64 development board, not the R1100's CM4-class SoC, 50 materials, SQLite, 60 s per concurrency level, client over Tailscale)**: inventory queries answer in 404 ms p95 with 10 people looking at once, and latency grows from there. On this class of hardware plan for up to 10 concurrent query clients per box, serialize stock-in per material, and budget 60 stock-out operations per minute per exit IP. Beyond that — more concurrent clients, larger datasets, the MySQL backend — run your own load test. To re-check on your own hardware, run one level from the `warehouse_system` repo: `uv run --with httpx evaluation/loadtest.py --base-url http://<server-ip>:2125 --scenario query --concurrency 10 --duration 60 --out /tmp/smoke`.
+Once the service is up, open `http://<server-ip>:2125` in a browser for the next step.
 
 ### Target {#warehouse_local type=local config=devices/warehouse_deploy.yaml}
 
-Run the warehouse system on this computer.
+Run the warehouse system on this computer. Needs at least 2 GB of free disk.
 
 ### Wiring
 
@@ -299,14 +217,14 @@ Run the warehouse system on this computer.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Port in use | Check if port 2125 is used by another service |
 | Docker not running | Start Docker Desktop and retry |
 
 ### Target {#warehouse_remote type=remote config=devices/warehouse_deploy.yaml default=true}
 
-Deploy to reComputer R1100 series edge device.
+Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 2 GB of free disk.
 
 ### Wiring
 
@@ -319,7 +237,7 @@ Deploy to reComputer R1100 series edge device.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection timeout | Check ethernet cable, test with ping reComputer-R110x.local |
 | SSH auth failed | Verify credentials, first-time setup requires monitor connection |
@@ -338,7 +256,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Page won't load | Wait 30 seconds for services to start |
 | Import failed | Check if Excel format matches the template |
@@ -359,7 +277,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection failed | Check endpoint URL is copied completely, no extra spaces |
 | Status stays Disconnected | Confirm Watcher is properly bound to SenseCraft platform |
@@ -383,13 +301,11 @@ Check the warehouse web interface to see inventory changes after speaking.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
-| Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
-| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
+| Stock-in/stock-out fails while the network or service is down | Requests made during the outage are not replayed; repeat them after recovery. Keep the server and Watchers on the same wired LAN where possible, and put the server on UPS power |
 
 ---
 
@@ -404,7 +320,7 @@ Configure face recognition in the warehouse system and verify it works:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Face not detected | Confirm the vision detection firmware is flashed and face recognition mode is enabled |
 | Inaccurate recognition | Re-enroll well-lit, front-facing photos in "System Settings → Face Recognition" |
@@ -414,7 +330,8 @@ Configure face recognition in the warehouse system and verify it works:
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
 ### Troubleshooting
-| Issue | Solution |
+
+| Symptom | Action |
 |-------|----------|
 | Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
 | Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
@@ -429,11 +346,10 @@ Your voice-controlled warehouse system is ready!
 
 #### Acceptance checklist
 
-1. **Health endpoint responds** — `curl -f http://<server-ip>:2125/health` returns success (this is the same check the deploy step already waits on).
+1. **Health endpoint responds** — `curl -f http://<server-ip>:2125/health` returns success.
 2. **Admin login works** — log in to `http://<server-ip>:2125` with the administrator account created in Step 5.
 3. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
 4. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
-5. **No error-level logs** — on the reComputer, `docker logs --since 10m mcp_warehouse 2>&1 | grep -i error` returns nothing during the two checks above.
 
 Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
@@ -443,8 +359,6 @@ Try saying "Stock in 10 boxes of apples" to test voice inventory management.
 
 Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
 
-The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
-
 ### Wiring
 
 1. Connect the D1001 to your computer with a USB-C data cable
@@ -453,7 +367,7 @@ The firmware is the same build the Smart Space Assistant solution ships for the 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Serial port not found | Use a data-capable USB-C cable, try another USB port |
 | Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
@@ -473,15 +387,13 @@ Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that i
 5. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
 6. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
 
-> The shipped D1001 firmware points at `https://api.tenclass.net/xiaozhi/ota/`, the same default the Watcher firmware in this package carries.
-
 ### Verify
 
 Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". The screen reports the stock-in and the dashboard count rises by 10.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | WiFi connection failed | 2.4GHz only; re-enter the password on the screen |
 | No activation code | Wait for the boot to finish, or restart the device |
@@ -491,21 +403,11 @@ Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". Th
 
 ## Preset: Tier 2A · Advanced (Single Site) {#private_cloud}
 
-Tier 1 plus local high-accuracy face recognition: voice AI runs on the [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service, while face recognition inference runs on your local device — inventory and face data stay on your network.
+Tier 1 plus local high-accuracy face recognition (with liveness detection): voice AI runs on the [SenseCraft](https://sensecraft.seeed.cc/ai/) cloud service, while face recognition inference runs on your local device — inventory and face data stay on your network.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer Industrial R21 series (Hailo-8) or Jetson device | Runs warehouse system + face recognition service |
-| USB-C data cable | Flash Watcher firmware |
-
-**What you'll get:**
-- Voice-controlled inventory with a real-time web dashboard
-- High-accuracy face recognition with records kept locally
-
-✅ High-accuracy face recognition (with liveness detection) — the Hailo / TensorRT inference image is selected automatically by detected device model
-
-**Requirements:** Internet connection · [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free)
+- **Peripherals:** SenseCAP Watcher (2.4GHz WiFi only), USB-C data cable (for flashing firmware).
+- **Network:** internet access; the Watcher, warehouse server and this computer are on the same LAN.
+- **Account:** a [SenseCraft account](https://sensecraft.seeed.cc/ai/) (free); the warehouse admin account is created on first visit.
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -521,7 +423,7 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
@@ -545,7 +447,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Device not responding | Unplug and reconnect the USB cable |
 | Flash stuck or fails | Press the reset button and try again |
@@ -572,7 +474,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
 | WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
@@ -582,11 +484,11 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ## Step 4: Warehouse System {#warehouse_2a type=docker_deploy required=true config=devices/warehouse_face_hailo_deploy.yaml}
 
-Deploy the warehouse system together with the high-accuracy face recognition service — one device, one Compose file, two containers. The device model is auto-detected and the matching face recognition image is pre-selected (Hailo image for Hailo-8 accelerators, TensorRT image for Jetson); you can also switch it manually.
+Deploy the warehouse system together with the high-accuracy face recognition service. The face recognition image matching the device model is pre-selected; you can also switch it manually.
 
 ### Target {#warehouse_2a_hailo_remote type=remote device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series or Raspberry Pi + Hailo-8).
+Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series, 4 GB memory and up; or Raspberry Pi + Hailo-8). Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -599,15 +501,15 @@ Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection timeout | Check ethernet cable, ping the device IP |
 | Face service won't start | Confirm the Hailo driver is installed (`ls /dev/hailo0` should exist) |
-| Face service restarts in a loop with `HAILO_INVALID_DRIVER_VERSION` | Host driver and container userspace versions must match exactly. This solution's image needs HailoRT **4.21.0** (the Raspberry Pi repo's `hailo-all` only ships 4.20.0). Check: `modinfo -F version hailo_pci`. Install: `curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash` then **reboot the device** |
+| Face service restarts in a loop with `HAILO_INVALID_DRIVER_VERSION` | The host needs the HailoRT **4.21.0** driver (the Raspberry Pi repo's `hailo-all` only ships 4.20.0). Check: `modinfo -F version hailo_pci`. Install: `curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash` then **reboot the device** |
 
 ### Target {#warehouse_2a_jetson_remote type=remote device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
 
-Deploy to a Jetson device (Orin series); face recognition runs on TensorRT.
+Deploy to a Jetson device (Orin series). Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -617,14 +519,14 @@ Deploy to a Jetson device (Orin series); face recognition runs on TensorRT.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection timeout | Check ethernet cable, ping the device IP |
-| Face service won't start | Confirm JetPack is installed (the container bind-mounts host CUDA/TensorRT) and the model engines are in place |
+| Face service won't start | Confirm JetPack is installed and the model engines are in place |
 
 ### Target {#warehouse_2a_hailo_local type=local device=hailo device_name="Hailo-8" config=devices/warehouse_face_hailo_deploy.yaml}
 
-Run directly on this machine (a device with Hailo-8).
+Run directly on this machine (a device with Hailo-8). Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -633,7 +535,7 @@ Run directly on this machine (a device with Hailo-8).
 
 ### Target {#warehouse_2a_jetson_local type=local device=jetson device_name="Jetson" config=devices/warehouse_face_jetson_deploy.yaml}
 
-Run directly on this machine (a Jetson device).
+Run directly on this machine (a Jetson device). Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -654,7 +556,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Page won't load | Wait 30 seconds for services to start |
 | Import failed | Check if Excel format matches the template |
@@ -676,7 +578,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection failed | Check endpoint URL is copied completely, no extra spaces |
 | Status stays Disconnected | Confirm Watcher is properly bound to SenseCraft platform |
@@ -700,13 +602,11 @@ Check the warehouse web interface to see inventory changes after speaking.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
-| Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
-| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
+| Stock-in/stock-out fails while the network or service is down | Requests made during the outage are not replayed; repeat them after recovery. Keep the server and Watchers on the same wired LAN where possible, and put the server on UPS power |
 
 ## Step 8: Test Face Recognition {#face_test_2a type=manual required=false}
 
@@ -719,7 +619,7 @@ Configure face recognition in the warehouse system and verify it works (this tie
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Face not detected | Confirm the vision detection firmware is flashed and face recognition mode is enabled |
 | Face service not responding | Check `http://server-ip:8001/health` and confirm the face-rec container started in the deploy step |
@@ -730,7 +630,8 @@ Configure face recognition in the warehouse system and verify it works (this tie
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
 ### Troubleshooting
-| Issue | Solution |
+
+| Symptom | Action |
 |-------|----------|
 | Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
 | Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
@@ -751,15 +652,12 @@ Inventory and face data stay on your network. Try saying "How many apples left?"
 2. **Voice stock-in echoes back** — say "Stock in 10 boxes of apples" to the Watcher; it replies confirming the item and new total.
 3. **A query works** — say "How many apples left?" and the reply matches the warehouse dashboard.
 4. **Face recognition fires** — after enrolling a face (Step 8), face the Watcher camera and confirm a recognition record appears in the warehouse system.
-5. **No error-level logs** — `for c in mcp_warehouse mcp_face_rec; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
 
 ---
 
 ## Step 10: Flash the reTerminal D1001 (D1001 option) {#d1001_flash_private_cloud type=esp32_usb required=false config=devices/d1001_voice_terminal.yaml}
 
 Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
-
-The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
 
 ### Wiring
 
@@ -769,7 +667,7 @@ The firmware is the same build the Smart Space Assistant solution ships for the 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Serial port not found | Use a data-capable USB-C cable, try another USB port |
 | Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
@@ -789,15 +687,13 @@ Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that i
 5. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
 6. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
 
-> The shipped D1001 firmware points at `https://api.tenclass.net/xiaozhi/ota/`, the same default the Watcher firmware in this package carries.
-
 ### Verify
 
 Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". The screen reports the stock-in and the dashboard count rises by 10.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | WiFi connection failed | 2.4GHz only; re-enter the password on the screen |
 | No activation code | Wait for the boot to finish, or restart the device |
@@ -807,24 +703,11 @@ Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". Th
 
 ## Preset: Tier 2B · Advanced (Multi Site) {#private_cloud_multi}
 
-One reComputer J40 series device runs the whole site: warehouse system, face recognition and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, OpenAI, etc.). Up to three Watchers share the same server, one per site.
+One reComputer J40 series device (Jetson Orin NX 16GB) runs the warehouse system, face recognition (with liveness detection) and the local speech service. Speech recognition and synthesis stay on your network; only the LLM call goes to a cloud API (DeepSeek, Qwen, etc.). Up to three Watchers share the same server, one per site.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher × 1-3 | Voice assistant, one per site |
-| reComputer J40 series (Jetson Orin NX 16GB) | Runs warehouse system + face recognition (TensorRT) + speech service + voice AI service |
-| USB-C data cable | Flash Watcher firmware |
-
-**What you'll get:**
-- One box per site - no separate gateway to buy, wire or maintain
-- Up to 3 concurrent voice sessions, one Watcher per site
-- High-accuracy face recognition with liveness detection, running on the same Jetson
-- Full control over your data - inventory, faces and speech stay on your network
-- Flexible LLM choices (DeepSeek, GPT-4, Qwen, etc.)
-
-✅ Face recognition supported
-
-**Requirements:** Internet connection · LLM API keys required
+- **Peripherals:** SenseCAP Watcher × 1–3 (2.4GHz WiFi only), USB-C data cable (for flashing firmware).
+- **Network:** internet access for the LLM call; each site's Watcher must reach the J40.
+- **API key:** the Voice AI Service step asks for an LLM API Key generated in the console of the OpenAI-compatible provider you use (e.g. DeepSeek, Alibaba Cloud Model Studio); it is not issued by Seeed.
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32_2b type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -840,7 +723,7 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
@@ -864,7 +747,7 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Device not responding | Unplug and reconnect the USB cable |
 | Flash stuck or fails | Press the reset button and try again |
@@ -875,11 +758,11 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ## Step 3: Warehouse System + Face Recognition {#warehouse_2b type=docker_deploy required=true config=devices/warehouse_face_jetson_deploy.yaml}
 
-Deploy the inventory management service together with the high-accuracy face recognition service — one Compose file, two containers, both on the J40 series device. Face inference runs on TensorRT and uses the host's JetPack CUDA/TensorRT (bind-mounted, not baked into the image).
+Deploy the inventory management service together with the high-accuracy face recognition service on the J40 series device.
 
 ### Target {#warehouse_2b_remote type=remote config=devices/warehouse_face_jetson_deploy.yaml default=true}
 
-Deploy to the reComputer J40 series.
+Deploy to the reComputer J40 series. Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -892,16 +775,16 @@ Deploy to the reComputer J40 series.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection timeout | Check ethernet cable, verify IP address is correct |
 | SSH auth failed | Verify credentials, first-time setup requires monitor connection |
-| Face service won't start | Confirm JetPack is installed on the J40 series device — the container bind-mounts host CUDA/TensorRT |
-| Face service takes minutes on first start | On a JetPack version other than 6.2 the backend rebuilds the TensorRT engines from ONNX; this is one-off |
+| Face service won't start | Confirm JetPack is installed on the J40 series device |
+| Face service takes minutes on first start | On a JetPack version other than 6.2 the first start rebuilds the inference engines; this happens once |
 
 ### Target {#warehouse_2b_local type=local config=devices/warehouse_face_jetson_deploy.yaml}
 
-Run directly on this machine — only applicable when it is the J40 series device itself.
+Run directly on this machine — only applicable when it is the J40 series device itself. Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -910,7 +793,7 @@ Run directly on this machine — only applicable when it is the J40 series devic
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Port in use | Check if ports 2125 and 8001 are used by another service |
 | Docker not running | Start Docker and retry |
@@ -929,7 +812,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Page won't load | Wait 30 seconds for services to start |
 | Import failed | Check if Excel format matches the template |
@@ -939,15 +822,15 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-Deploy OpenVoiceStream on the J40 series device to provide speech recognition, synthesis and voiceprint. The voice AI service in the next step lands on the same J40 series device and connects to it.
-
-This tier runs speech locally and calls a cloud LLM, so no local large model is deployed — that leaves the Jetson's GPU budget for concurrent speech sessions alongside the face recognition service from Step 3.
+Deploy OpenVoiceStream on the J40 series device to provide speech recognition, synthesis and voiceprint; the voice AI service in the next step connects to it.
 
 ### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
 
-Deploy directly on this machine — only applicable when it is the J40 series device itself. Models download automatically — no offline package needed.
+Deploy directly on this machine — only applicable when it is the J40 series device itself. Needs at least 15 GB of free disk; models download automatically.
 
 ### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
+
+Deploy to the reComputer J40 series (the same device as Step 3). Needs at least 15 GB of free disk.
 
 ### Wiring
 
@@ -955,20 +838,20 @@ Deploy directly on this machine — only applicable when it is the J40 series de
 2. Enter the J40 series device's IP address and SSH credentials (the same device as Step 3)
 3. Click Deploy and wait for the models to download and the service to start
 
-The service listens on **8621** and admits **3 concurrent voice sessions**, one per Watcher. A 4th is rejected with `4429 too_many_sessions`. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
+The service listens on **8621** and admits up to **3 concurrent voice sessions**, one per Watcher; a 4th is rejected. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
 
-> Even when the voice service and the next step land on the same machine, do **not** use `127.0.0.1` — that address is read from inside a container, where `127.0.0.1` points at the container itself and never reaches the host.
+> Even when the voice service and the next step land on the same machine, do **not** use `127.0.0.1`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
-| First deploy seems stuck | Normal. The first start downloads ~5GB of models via the hf-mirror endpoint; this can take 10+ minutes |
+| First deploy seems stuck | The first start downloads ~5GB of models; this can take 10+ minutes |
 | Not enough disk space | This step needs at least 15GB free |
 | NVIDIA runtime unavailable | Install nvidia-container-toolkit and restart Docker |
-| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service, or the other tier's voice step. Both claim the same container name and port 8621 and cannot coexist. `docker rm -f` the existing containers as instructed and retry — volumes are untouched |
-| Deployed but 8621 unreachable | Models still loading. Check `docker logs seeed-voice-v010`; ready when `curl localhost:8621/readyz` returns 200 |
-| A Watcher gets `4429 too_many_sessions` | All 3 lanes are busy. Sessions are released when a conversation ends; check for a Watcher stuck in an open session |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service or the other tier's voice step; they cannot coexist. `docker rm -f` the existing containers as instructed and retry |
+| Deployed but 8621 unreachable | Models are still loading; ready when `curl localhost:8621/readyz` returns 200 |
+| A Watcher gets `4429 too_many_sessions` | All 3 sessions are busy; check for a Watcher stuck in an open session |
 
 ---
 
@@ -976,17 +859,17 @@ The service listens on **8621** and admits **3 concurrent voice sessions**, one 
 
 ![Model configuration](gallery/console-tts-list.jpg)
 
-Local models are pinned to the top of every list — no paging needed.
-
 Deploy the voice AI service and its management console, which give the Watcher its voice interaction capability. Select "**Private Cloud**" mode and fill in:
 
-- **Voice Service Address**: the **J40 series device's** LAN IP from the previous step, port 8621 — **not** `127.0.0.1` (read from inside a container)
+- **Voice Service Address**: the **J40 series device's** LAN IP from the previous step, port 8621 — **not** `127.0.0.1`
 - **LLM API URL / model name / API key**: your cloud LLM (DeepSeek, Qwen, etc.)
 
-Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpoint are configured automatically.
+Addresses and the MCP endpoint are configured automatically.
 
 
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
+
+Deploy on this machine. Needs at least 6 GB of free disk.
 
 ### Wiring
 
@@ -995,6 +878,8 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 
 ### Target {#voice_remote type=remote config=devices/xiaozhi_console_deploy.yaml default=true}
 
+Deploy to the J40 series device. Needs at least 6 GB of free disk.
+
 ### Wiring
 
 1. Enter the J40 series device's IP address and SSH credentials
@@ -1002,7 +887,7 @@ Speech runs locally, only the LLM goes to the cloud. Addresses and the MCP endpo
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Image pull failed | Check network connection, or configure Docker mirror |
 | Port in use | Check if ports 18000, 18002, 18003, 18004 are used by other services |
@@ -1032,18 +917,15 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 6. The device reboots automatically once connected
 7. Open `http://<J40 series device IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
-> **Enabling face recognition**: the recognition service was deployed alongside the
-> warehouse system in Step 3 (its own container on port 8001). After Wi-Fi setup, say
-> "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face
-> Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
+> **Enabling face recognition**: after Wi-Fi setup, say "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
 | WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
-| OTA page reports "not running" | `server.websocket` isn't set in the console. The deploy script fills it in automatically; if it's still wrong, log in to the console and check it under "Parameter Management" |
+| OTA page reports "not running" | Log in to the console and check that `server.websocket` is set under "Parameter Management" |
 | Nothing happens after the reboot | Make sure the OTA address uses the **server IP**, not localhost, and that the device and server are on the same network |
 | Want to go back to the default server | Re-enter setup mode and clear the OTA address under Advanced Options |
 
@@ -1087,7 +969,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 8. On the Role Configuration page, click the "**Edit Functions**" button
 9. Find "MCP Endpoint" in the dialog and copy this agent's dedicated URL
 
-   > Every agent gets a different URL (the token inside is derived from the agent's identity), so don't mix them up across sites.
+   > Every agent gets a different URL, so don't mix them up across sites.
 
 **E. Add it to the warehouse system**
 
@@ -1101,12 +983,12 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Console won't open | The first start runs database migrations; wait 1-2 minutes and retry |
 | Forgot the admin password | Redeploy the voice AI service with "clear data" checked to reset it to the default |
 | No "Warehouse Assistant" role template | You're not on this solution's image — check that the voice AI service deployed successfully |
-| MCP endpoint is empty | Check `server.mcp_endpoint` under "Parameter Management" in the console; the deploy script fills it in automatically |
+| MCP endpoint is empty | Check that `server.mcp_endpoint` is set under "Parameter Management" in the console |
 | Status stays Disconnected | Check the endpoint URL was copied in full (token included, no stray spaces) |
 | LLM doesn't respond | Verify the API key is valid and the account has credit |
 
@@ -1129,20 +1011,19 @@ Check the warehouse web interface to see inventory changes after speaking.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
-| Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
-| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
+| Stock-in/stock-out fails while the network or service is down | Requests made during the outage are not replayed; repeat them after recovery. Keep the server and Watchers on the same wired LAN where possible, and put the server on UPS power |
 
 ## Step 10: Open Dashboard {#dashboard_private_cloud_multi type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
 ### Troubleshooting
-| Issue | Solution |
+
+| Symptom | Action |
 |-------|----------|
 | Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
 | Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
@@ -1163,28 +1044,16 @@ Your data stays on your network. Try saying "How many apples left?" to test.
 2. **Each site's Watcher is connected** — its Agent card on the console shows "Connected" for the MCP Endpoint.
 3. **Voice stock-in echoes back, per site** — say "Stock in 10 boxes of apples" on each Watcher; each replies confirming the item and total for its own site.
 4. **A query works** — say "How many apples left?" on one Watcher and confirm the count is scoped to that site, not mixed with another.
-5. **No error-level logs** — on the J40 series device, `for c in mcp_warehouse mcp_face_rec seeed-voice-v010 xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing during the checks above.
 
 ---
 
 ## Preset: Tier 3 · Premium {#edge_computing}
 
-Run everything locally including LLM and TTS - no internet required after deployment. Ideal for air-gapped environments or strict data compliance.
+Everything runs locally, including the LLM and TTS, with face recognition supported. Suited to air-gapped sites or strict data-compliance requirements.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | Voice assistant, receives voice commands |
-| reComputer Industrial R21 series (Hailo-8) | Runs warehouse system + face recognition + voice AI service |
-| reComputer J50 series | Runs local LLM and TTS, fully offline |
-
-**What you'll get:**
-- 100% offline operation - works without internet
-- All data stays within your local network
-- Local LLM inference at ~16 tokens/sec
-
-✅ Face recognition supported
-
-**Requirements:** reComputer J50 series · Internet needed for initial deployment only
+- **Peripherals:** SenseCAP Watcher (2.4GHz WiFi only), USB-C data cable (for flashing firmware).
+- **Network:** internet access on first deploy to pull images and models; no internet needed afterwards.
+- **API key:** not needed.
 
 ## Step 1: Update Xiaozhi Firmware {#warehouse_esp32_t3 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -1200,7 +1069,7 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
@@ -1224,7 +1093,7 @@ Write the vision detection program to the Watcher's AI chip, used for face recog
 
 ### Troubleshooting
 
-| Problem | Solution |
+| Symptom | Action |
 |---------|----------|
 | Device not responding | Unplug and reconnect the USB cable |
 | Flash stuck or fails | Press the reset button and try again |
@@ -1239,7 +1108,7 @@ Deploy the inventory management service with voice control and web dashboard.
 
 ### Target {#warehouse_t3_local type=local config=devices/warehouse_face_hailo_deploy.yaml}
 
-Run the warehouse system on this computer.
+Run the warehouse system on this computer. Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -1248,14 +1117,14 @@ Run the warehouse system on this computer.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Port in use | Check if port 2125 is used by another service |
 | Docker not running | Start Docker Desktop and retry |
 
 ### Target {#warehouse_t3_remote type=remote config=devices/warehouse_face_hailo_deploy.yaml default=true}
 
-Deploy to reComputer Industrial R21 series edge device.
+Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up). Needs at least 4 GB of free disk.
 
 ### Wiring
 
@@ -1268,7 +1137,7 @@ Deploy to reComputer Industrial R21 series edge device.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Connection timeout | Check ethernet cable, test with ping reComputer-R110x.local |
 | SSH auth failed | Verify credentials, first-time setup requires monitor connection |
@@ -1287,7 +1156,7 @@ After deployment, open the warehouse system to complete initial setup:
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Page won't load | Wait 30 seconds for services to start |
 | Import failed | Check if Excel format matches the template |
@@ -1301,9 +1170,11 @@ Deploy OpenVoiceStream (speech recognition + synthesis + voiceprint) and EdgeLLM
 
 ### Target {#jetson_ai_local type=local config=devices/ovs_jetson_deploy.yaml}
 
-Deploy directly on this Jetson (the same device running SenseCraft Solution). Models download automatically — no offline package needed.
+Deploy directly on this Jetson. Needs at least 25 GB of free disk; models download automatically.
 
 ### Target {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml default=true}
+
+Deploy to the reComputer J50 series. Needs at least 25 GB of free disk.
 
 ### Wiring
 
@@ -1315,30 +1186,30 @@ Two containers come up: voice service on **8621**, LLM on **8000**. **Note this 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | SSH connection failed | Confirm Jetson is powered on, verify IP address |
-| First deploy seems stuck | Normal. The first start downloads ~10GB of models and inference engines via the hf-mirror endpoint; this can take 10+ minutes |
+| First deploy seems stuck | The first start downloads ~10GB of models and inference engines; this can take 10+ minutes |
 | Not enough disk space | This step needs at least 25GB free |
 | NVIDIA runtime unavailable | Install nvidia-container-toolkit on the Jetson and restart Docker |
-| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service (e.g. via openvoicestream's install.sh). Both claim the same container name and port 8621 and cannot coexist. `docker rm -f` the existing containers as instructed and retry — volumes are untouched, so models are not re-downloaded |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service; they cannot coexist. `docker rm -f` the existing containers as instructed and retry; models are not re-downloaded |
 
 ---
 ## Step 6: Voice AI Service {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
 
 ![Model configuration](gallery/console-tts-list.jpg)
 
-Local models are pinned to the top of every list — no paging needed.
-
 Deploy the voice AI service and its management console on the Industrial R21 series device. Select "**Edge Computing**" mode and fill in two addresses:
 
-- **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1` — the value is read from inside a container)
+- **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1`)
 - **Local LLM Address**: the same Jetson's LAN IP, port 8000 (leave empty if co-located)
 
 Model addresses, the device access address and the MCP endpoint are then configured automatically.
 
 
 ### Target {#voice_local type=local config=devices/xiaozhi_console_deploy.yaml}
+
+Deploy on this machine. Needs at least 6 GB of free disk.
 
 ### Wiring
 
@@ -1347,6 +1218,8 @@ Model addresses, the device access address and the MCP endpoint are then configu
 
 ### Target {#voice_remote type=remote config=devices/xiaozhi_console_deploy.yaml default=true}
 
+Deploy to the Industrial R21 series device. Needs at least 6 GB of free disk.
+
 ### Wiring
 
 1. Enter the Industrial R21 series device's IP address and SSH credentials
@@ -1354,7 +1227,7 @@ Model addresses, the device access address and the MCP endpoint are then configu
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Cannot connect to Jetson | Check if Industrial R21 series device and Jetson are on the same network |
 | Response is slow | Confirm Jetson service is running, visit `http://Jetson-IP:8000/v1/models` to check |
@@ -1383,18 +1256,15 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 6. The device reboots automatically once connected
 7. Open `http://<Voice Server IP>:18002/xiaozhi/ota/` in a browser to verify — "OTA interface is running" means the server side is ready
 
-> **Enabling face recognition**: the recognition service was deployed alongside the
-> warehouse system in Step 3 (its own container on port 8001). After Wi-Fi setup, say
-> "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face
-> Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
+> **Enabling face recognition**: after Wi-Fi setup, say "**开启人脸识别模式**" to the Watcher, then enrol photos under Settings → Face Recognition in the warehouse system. Without saying it, the Watcher sends no frames.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
 | WiFi setup failed | Watcher only supports 2.4GHz WiFi, check if your router has 2.4GHz enabled |
-| OTA page reports "not running" | `server.websocket` isn't set in the console. The deploy script fills it in automatically; if it's still wrong, log in to the console and check it under "Parameter Management" |
+| OTA page reports "not running" | Log in to the console and check that `server.websocket` is set under "Parameter Management" |
 | Nothing happens after the reboot | Make sure the OTA address uses the **server IP**, not localhost, and that the device and server are on the same network |
 | Want to go back to the default server | Re-enter setup mode and clear the OTA address under Advanced Options |
 
@@ -1434,7 +1304,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 7. On the Role Configuration page, click the "**Edit Functions**" button
 8. Find "MCP Endpoint" in the dialog and copy this agent's dedicated URL
 
-   > Every agent gets a different URL (the token inside is derived from the agent's identity), so make sure you copy the right one.
+   > Every agent gets a different URL, so make sure you copy the right one.
 
 **D. Add it to the warehouse system**
 
@@ -1446,12 +1316,12 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Console won't open | The first start runs database migrations; wait 1-2 minutes and retry |
 | Forgot the admin password | Redeploy the voice AI service with "clear data" checked to reset it to the default |
 | No "Warehouse Assistant" role template | You're not on this solution's image — check that the voice AI service deployed successfully |
-| MCP endpoint is empty | Check `server.mcp_endpoint` under "Parameter Management" in the console; the deploy script fills it in automatically |
+| MCP endpoint is empty | Check that `server.mcp_endpoint` is set under "Parameter Management" in the console |
 | Status stays Disconnected | Check the endpoint URL was copied in full (token included, no stray spaces), and that the warehouse system can reach the voice server |
 | Voice dropdown comes up empty | Check that the address under "Model Configuration → Text-to-Speech" points at the real voice service device |
 
@@ -1474,20 +1344,19 @@ Check the warehouse web interface to see inventory changes after speaking.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Watcher not responding | Ensure agent is connected (status shows Connected) |
 | Inventory not updated | Refresh the web page to see latest data |
-| Stock-in returns 409 under load | **Fixed in `fix/a2-concurrency`.** Cause: batch numbers came from "read today's highest sequence, add one", so concurrent requests read the same committed state, computed the same number, and the fixed 5-attempt retry could not escape it; the fix allocates from an atomic counter table and keeps the batch-number format. Workaround on a build without the fix: serialize stock-in per material (one in-flight request at a time) and retry a 409 client-side with backoff. Measured on a faster arm64 development board (not the R1100's CM4-class SoC) before the fix: 0% errors at concurrency 1, 77.4% at 5, 100% at 10 and above |
-| Stock-out returns 429 | **Fixed in `fix/a2-concurrency`.** Cause: `slowapi` limited `/api/materials/stock-out` to 60 requests per minute per source IP, so terminals behind one NAT shared a single budget; the fix counts per authenticated caller (API key / session), with the threshold from `BUSINESS_RATE_LIMIT`, default 600/minute. Workaround on a build without the fix: keep sustained stock-out below 1 request/s per exit IP, and give busy sites separate egress IPs or stagger their requests |
-| Requests are lost while the network or the service is down | Cause: the REST layer has no offline queue or write buffer — reconnect and backoff cover only the MCP voice WebSocket, so HTTP requests fail outright and are never replayed. This is a known limitation. Two ways around it: keep the network available at the gateway (wired links, UPS power, service and clients on the same LAN so an outage never crosses the WAN), which shrinks the unavailable window to the device restart time; or queue writes on the client — stock-in/stock-out lands locally first and replays in order once connectivity returns, de-duplicated by batch number (that queue is not part of this package). A measured 34 s outage produced 100% request failure, with no backlog and no replay after recovery |
+| Stock-in/stock-out fails while the network or service is down | Requests made during the outage are not replayed; repeat them after recovery. Keep the server and Watchers on the same wired LAN where possible, and put the server on UPS power |
 
 ## Step 10: Open Dashboard {#dashboard_edge_computing type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The warehouse management dashboard is now live. Click below to open it in your browser.
 
 ### Troubleshooting
-| Issue | Solution |
+
+| Symptom | Action |
 |-------|----------|
 | Page not loading | Make sure the previous deployment step finished successfully and the service is healthy. |
 | Wrong host/port | Update the URL with your device's IP if you deployed to a remote machine. |
@@ -1509,13 +1378,10 @@ Your fully offline warehouse system is ready!
 2. **It survives disconnection** — unplug the internet uplink at your router or gateway (leave the Industrial R21 series device and J50 series device connected to each other and to the Watcher over LAN); the Watcher must still be reachable over the local network.
 3. **Voice stock-in echoes back, offline** — with the uplink still disconnected, say "Stock in 10 boxes of apples" and confirm the Watcher replies.
 4. **A query works offline** — say "How many apples left?" and confirm the reply matches the dashboard, still disconnected.
-5. **No error-level logs** — on the Industrial R21 series device, `for c in mcp_warehouse mcp_face_rec xiaozhi-server; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing; on the J50 series device, `for c in seeed-voice-v091 edge-llm-chat-service-v091; do docker logs --since 10m $c 2>&1; done | grep -i error` returns nothing, during the checks above.
 
 ## Step 11: Flash the reTerminal D1001 (D1001 option) {#d1001_flash_edge_computing type=esp32_usb required=false config=devices/d1001_voice_terminal.yaml}
 
 Only for the reTerminal D1001 voice terminal. Skip this step and the next one if you picked the SenseCAP Watcher. If you picked the D1001, skip this preset's Watcher steps instead — the Xiaozhi firmware step, the Himax vision firmware step and the Watcher setup step; the D1001 carries its camera on the same chip and needs no separate vision firmware.
-
-The firmware is the same build the Smart Space Assistant solution ships for the D1001; the six segments are pulled from that solution's CDN prefix.
 
 ### Wiring
 
@@ -1525,7 +1391,7 @@ The firmware is the same build the Smart Space Assistant solution ships for the 
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | Serial port not found | Use a data-capable USB-C cable, try another USB port |
 | Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
@@ -1559,7 +1425,7 @@ Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". Th
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Action |
 |-------|----------|
 | No setup hotspot appears | The click must land while the device is starting up; power-cycle and try again |
 | WiFi connection failed | 2.4GHz only; re-enter the password |

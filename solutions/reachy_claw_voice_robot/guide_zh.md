@@ -1,633 +1,424 @@
 ## 套餐: Jetson 一体化部署 {#jetson}
 
-在单台 Jetson 上部署完整的语音对话栈。机器人能听、能想（本地 AI）、能说、能表达情绪——端到端延迟低于 1 秒。
+语音识别与合成、本地大模型、视觉和机器人控制都部署在一台 Jetson 上。
 
-| 设备 | 用途 |
-|------|------|
-| NVIDIA Jetson Orin NX 16GB | 运行 AI 对话、语音、视觉和机器人控制 |
-| Reachy Mini | 带双臂、头部、天线和摄像头的桌面机器人 |
-
-**将会部署：**
-- **机器人控制** — 电机、摄像头、传感器管理
-- **对话引擎** — AI 对话 + 情绪系统 + 网页仪表盘
-- **视觉分析** — 人脸检测、情绪识别、人物追踪（GPU 加速）
-- **Edge LLM 对话服务** — Qwen3.5-4B-AWQ (GDN+MTP) TensorRT 运行时，驱动机器人的思考能力
-
-**前置条件：**
-- Reachy Mini 通过 USB 连接到 Jetson
-- Jetson 已安装 JetPack 6.x，可通过 SSH 连接，需要联网
+- **机器人：** Reachy Mini 通过 USB 连接到 Jetson。
+- **网络：** Jetson 可通过 SSH 访问，部署时需要联网拉取镜像。
 
 ## 步骤 1: 部署语音服务 {#speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-部署 GPU 加速的语音识别（ASR）和语音合成（TTS）服务。预构建镜像已包含所有依赖和模型，拉取后即可运行。
+部署语音识别（ASR）和语音合成（TTS）服务，镜像已包含模型。
 
 ### 部署目标 {#speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-通过 SSH 一键部署到 Jetson。
+通过 SSH 部署到 Jetson Orin NX 16GB，设备须为 JetPack 6.x。
 
 ### 接线
 
 1. 将 Jetson 连接到网络
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
-3. 点击 **部署** — 系统会自动拉取预构建镜像并启动服务
+3. 点击 **部署**
 
 ### 部署完成
 
-语音服务已在 `http://<jetson-ip>:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://<jetson-ip>:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| SSH 连接失败 | 确认 IP 地址和凭据正确。先在电脑上试 `ssh 用户名@IP` |
-| 镜像拉取慢 | 镜像压缩后约 8GB，确保 Jetson 网络稳定 |
-| 服务未启动 | 查看日志：`ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| SSH 连接失败 | 在电脑上先试 `ssh 用户名@IP`，确认 IP 和凭据 |
+| 镜像拉取慢 | 镜像压缩后约 8 GB，确保 Jetson 网络稳定 |
+| 服务未启动 | 执行 `ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ### 部署目标 {#speech_local type=local config=devices/speech_deploy.yaml}
 
-直接在当前机器上部署（需要 NVIDIA GPU）。
+部署到本机，本机须有 NVIDIA GPU，已安装 Docker 和 NVIDIA Container Toolkit。
 
 ### 接线
 
-1. 确保已安装 Docker 和 NVIDIA Container Toolkit
-2. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 10-15 分钟下载 Docker 镜像和初始化模型。
+1. 点击 **部署**，首次下载镜像和初始化模型需要 10-15 分钟
 
 ### 部署完成
 
-语音服务已在 `http://localhost:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://localhost:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| 未找到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| 未找到 NVIDIA 运行时 | 执行 `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | 端口 8621 已被占用 | 停止占用 8621 端口的服务 |
-| 容器不断重启 | 查看日志：`docker logs reachy-jetson-voice-speech-1` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| 容器不断重启 | 执行 `docker logs reachy-jetson-voice-speech-1` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ## 步骤 2: 部署 Edge LLM 对话服务 {#edge_llm_service type=docker_deploy required=true config=devices/edge_llm_deploy.yaml target_inherit_from=speech_service}
 
-在同一台 Jetson 上部署 TensorRT 加速的 Qwen3.5-4B 对话服务。
+在同一台 Jetson 上部署 Qwen3.5-4B 对话服务。首次启动约 10 分钟，需要下载约 3 GB 模型并预热，占用约 6 GB 显存。
 
 ### 部署目标 {#edge_llm_remote type=remote config=devices/edge_llm_deploy.yaml default=true}
 
-通过 SSH 部署到 Jetson（凭据继承自步骤 1）。
+通过 SSH 部署到步骤 1 的 Jetson，SSH 凭据自动沿用。
 
 ### 接线
 
-1. 复用步骤 1 的 SSH 凭据（部署器会自动继承）
-2. 点击 **部署** — 系统会拉取预构建镜像并启动容器
-
-> **注意：** 首次启动约需 10 分钟 — 容器会下载预构建 TensorRT engine、Qwen3.5-4B AWQ 权重，并运行预热推理。后续重启会很快。
+1. 点击 **部署**
 
 ### 部署完成
 
-Edge LLM 服务运行在 `http://<jetson-ip>:11435`。快速测试：
-
-```bash
-curl http://<jetson-ip>:11435/v1/models
-# 预期返回: {"object":"list","data":[{"id":"Qwen/Qwen3-4B-AWQ", ...}]}
-```
+执行 `curl http://<jetson-ip>:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| 健康检查超时 | 首次启动需下载约 3 GB 的 engine + 权重。查看进度：`docker logs -f edge-llm-chat-service` |
-| 预热阶段显存不足 | Edge LLM 需要约 6 GB GPU 显存，请关闭其他占用 GPU 的任务后重新部署 |
-| `/v1/models` 返回 502 | 容器还在预热中，等日志出现 `Uvicorn running` 后重试 |
+| 健康检查超时 | 执行 `docker logs -f edge-llm-chat-service` 查看下载进度 |
+| 预热阶段显存不足 | 关闭其他占用 GPU 的任务后重新部署 |
+| `/v1/models` 返回 502 | 等日志出现 `Uvicorn running` 后重试 |
 
 ### 部署目标 {#edge_llm_local type=local config=devices/edge_llm_deploy.yaml}
 
-直接在当前机器上部署（需要安装 JetPack 6.x 的 NVIDIA Jetson）。
+部署到本机，本机须为 JetPack 6.x 的 Jetson，已安装 Docker 和 NVIDIA Container Toolkit。
 
 ### 接线
 
-1. 确保已安装 Docker 和 NVIDIA Container Toolkit
-2. 点击 **部署** 开始安装
-
-> **注意：** 首次启动需约 10 分钟，用于下载 engine + 权重并完成预热推理。
+1. 点击 **部署**
 
 ### 部署完成
 
-Edge LLM 服务运行在 `http://localhost:11435`。快速测试：
-
-```bash
-curl http://localhost:11435/v1/models
-```
+执行 `curl http://localhost:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| 健康检查超时 | 首次启动需下载约 3 GB 的 engine + 权重。查看进度：`docker logs -f edge-llm-chat-service` |
-| 预热阶段显存不足 | Edge LLM 需要约 6 GB GPU 显存，请关闭其他占用 GPU 的任务后重新部署 |
+| 健康检查超时 | 执行 `docker logs -f edge-llm-chat-service` 查看下载进度 |
+| 预热阶段显存不足 | 关闭其他占用 GPU 的任务后重新部署 |
 
 ## 步骤 3: 部署 Reachy 语音机器人 {#reachy_deploy type=docker_deploy required=true config=devices/reachy_jetson_deploy.yaml target_inherit_from=speech_service}
 
-将机器人控制、对话和视觉服务部署到 Jetson。对话引擎会消费步骤 2 部署的 Edge LLM 服务。
+部署机器人控制、对话和视觉服务。步骤 2 的 Edge LLM 服务须已在运行。
 
 
 ### 部署完成
 
-你的 Reachy Mini 语音机器人已经在运行了！
+机器人部署完成后约 30 秒就绪。
 
 #### 当前状态
 
-机器人默认运行在**对话模式** — 它会聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。无需任何设置，直接说话即可。
+机器人默认处于对话模式：对它说话，它用一句话回复，并配合情绪和头部、天线动作。
 
 #### 服务概览
 
-| 服务 | 端口 | 用途 |
-|------|------|------|
-| 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
-| 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM 对话服务 | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
-| 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
+仪表盘在 8042 端口；其他端口：机器人控制 38001、视觉 8630、Edge LLM 11435、语音 8621。
 
 #### 后续操作
 
-- 打开**设置仪表盘** `http://<jetson-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
-- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
-  ```bash
-  ssh user@<jetson-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
+- 打开仪表盘 `http://<jetson-ip>:8042` 查看对话日志、机器人状态并调整设置。
+- 修改人格：编辑当前语音 profile 的 `instructions.txt`。调整麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`：编辑 `~/reachy-jetson-llm/reachy-voice.yaml`。
+- 修改上述文件或在仪表盘改设置后，执行 `docker restart reachy-voice` 生效。
 
 ### 部署目标 {#reachy_remote type=remote config=devices/reachy_jetson_deploy.yaml default=true}
 
-通过 SSH 一键部署到 Jetson。
+通过 SSH 部署到步骤 1 的 Jetson。
 
 ### 接线
 
 1. 用 USB 线将 Reachy Mini 连接到 Jetson
-2. 确保 Jetson 已联网且 SSH 可访问
-3. 输入 Jetson 的 IP 地址和 SSH 凭证
-4. 配置数据目录（默认：`~/reachy-data`），用于存储截图和人脸数据库
-5. 可选启用**全屏展示模式**，设备开机后自动全屏打开仪表盘
-6. 点击 **部署** — 系统会拉取并启动机器人控制、对话和视觉（TensorRT GPU 加速）服务。步骤 2 的 Edge LLM 服务必须已经在运行。
+2. 输入 Jetson 的 IP 地址和 SSH 凭据
+3. 配置数据目录（默认 `~/reachy-data`），用于存储截图和人脸数据库
+4. 可选启用**全屏展示模式**，开机后自动全屏打开仪表盘
+5. 点击 **部署**
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人即可就绪。打开仪表盘监控状态：
-
-```
-http://<jetson-ip>:8042
-```
-
-**默认模式：** 对话模式 — 机器人聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。
-
-检查所有服务是否运行：
-```bash
-ssh user@<jetson-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+打开 `http://<jetson-ip>:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方案 |
+| 现象 | 处理 |
 |------|----------|
-| 对话响应慢（>10 秒） | Edge LLM 容器状态异常。检查：`docker logs edge-llm-chat-service` 与 `curl http://<jetson-ip>:11435/v1/models` |
-| 机器人不动 | 检查 USB 连接。现在已有 udev 规则在机器人插入时自动重连 daemon；如仍不动，重新插拔 USB 线后重启：`docker restart reachy-daemon` |
-| 没有声音 | 检查 Reachy Mini 内置扬声器是否正常。检查配置中的 `audio.device` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://<jetson-ip>:8042/health` |
-| 没有摄像头画面 | 视觉服务首次启动需构建 TRT 引擎（约 5 分钟）。检查：`docker logs vision-trt` |
-| 开机后摄像头未找到 | USB 摄像头枚举需要 15-30 秒，视觉服务会自动重试（约 90 秒） |
-| 摄像头运行一段时间后失联 | USB 电源管理问题。部署已通过 udev 规则禁用自动挂起，如仍然复发请物理拔插 Reachy USB 线 |
+| 对话响应慢（>10 秒） | 执行 `docker logs edge-llm-chat-service` 和 `curl http://<jetson-ip>:11435/v1/models` 检查 Edge LLM |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
+| 没有声音 | 检查 Reachy Mini 内置扬声器和配置中的 `audio.device` |
+| 仪表盘打不开 | 等待 30 秒，执行 `curl http://<jetson-ip>:8042/health` |
+| 没有摄像头画面 | 视觉服务首次启动需约 5 分钟构建引擎，执行 `docker logs vision-trt` 查看 |
+| 开机后摄像头未找到 | 视觉服务会自动重试约 90 秒，稍等 |
+| 摄像头运行一段时间后失联 | 物理拔插 Reachy USB 线 |
 
 ### 部署目标 {#reachy_local type=local config=devices/reachy_jetson_deploy.yaml}
 
-直接在当前机器上部署（需要已连接 Reachy Mini 的 NVIDIA Jetson 设备）。
+部署到本机，本机须为已连接 Reachy Mini 的 Jetson，已安装 Docker 和 NVIDIA Container Toolkit。
 
 ### 接线
 
-1. 用 USB 线将 Reachy Mini 连接到机器
-2. 确保已安装 Docker 和 NVIDIA Container Toolkit
-3. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 5-10 分钟下载 Docker 镜像和初始化模型。
+1. 用 USB 线将 Reachy Mini 连接到本机
+2. 点击 **部署**，首次下载镜像和初始化模型需要 5-10 分钟
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人就会开始说话。打开仪表盘监控状态：
-
-```
-http://localhost:8042
-```
+打开 `http://localhost:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方案 |
+| 现象 | 处理 |
 |------|----------|
-| 未找到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| 机器人不动 | 检查 USB 连接。尝试重新插拔 USB 线后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
-| 没有摄像头画面 | 视觉服务首次启动需构建 TRT 引擎（约 5 分钟）。检查：`docker logs vision-trt` |
+| 未找到 NVIDIA 运行时 | 执行 `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
+| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
+| 没有摄像头画面 | 视觉服务首次启动需约 5 分钟构建引擎，执行 `docker logs vision-trt` 查看 |
 
 ## 套餐: AI Industrial R21 + Hailo-8 {#r2000_hailo}
 
-在单台 AI Industrial R21（Hailo-8）上部署完整的 Reachy 语音机器人栈。视觉跑在 Hailo NPU 上，语音和 LLM 通过远程 Jetson 语音助手提供。
+机器人控制、对话和 Hailo-8 视觉部署在 AI Industrial R21 上，语音和大模型由一台远程 Jetson 提供。
 
-| 设备 | 用途 |
-|------|------|
-| reComputer AI Industrial R21（Hailo-8） | 机器人控制、对话、Hailo 加速视觉 |
-| Reachy Mini | 通过 USB 连接到 AI Industrial R21 的桌面机器人 |
-| Jetson（远程） | 语音（ASR/TTS）+ Edge LLM（TensorRT-Edge-LLM）——在步骤 1 中部署 |
-
-**将会部署：**
-- **机器人控制** — 电机、摄像头、传感器管理
-- **对话引擎** — AI 对话 + 情绪系统 + 网页仪表盘
-- **视觉分析** — 人脸检测、情绪识别、人物追踪（Hailo-8 NPU）
-
-**前置条件：**
-- Reachy Mini 通过 USB 连接到 AI Industrial R21
-- USB 摄像头接在 AI Industrial R21 上
-- Hailo-8 AI HAT 已插入 M.2 插槽，`/boot/firmware/config.txt` 已启用 PCIe Gen3
-- Jetson 设备已安装 JetPack 6.x，可通过 SSH 连接，需要联网（语音服务将在步骤 1 中部署）
+- **设备：** 一台 JetPack 6.x 的 Jetson（运行语音和大模型，步骤 1 部署语音服务，大模型服务 `edge-llm-chat-service` 须在该 Jetson 上运行），一台 AI Industrial R21。
+- **外设：** Reachy Mini 和 USB 摄像头都接在 AI Industrial R21 上。
+- **网络：** 两台设备都可通过 SSH 访问，AI Industrial R21 能访问 Jetson 的 8621 和 11435 端口。
 
 ## 步骤 1: 部署语音服务 {#hailo_speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-在 Jetson 上部署 GPU 加速的语音识别（ASR）和语音合成（TTS）服务。预构建镜像已包含所有依赖和模型，拉取后即可运行。
+在 Jetson 上部署语音识别（ASR）和语音合成（TTS）服务，镜像已包含模型。
 
 ### 部署目标 {#hailo_speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-通过 SSH 一键部署到 Jetson。
+通过 SSH 部署到 Jetson，设备须为 JetPack 6.x。
 
 ### 接线
 
 1. 将 Jetson 连接到网络
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
-3. 点击 **部署** — 系统会自动拉取预构建镜像并启动服务
+3. 点击 **部署**
 
 ### 部署完成
 
-语音服务已在 `http://<jetson-ip>:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://<jetson-ip>:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| SSH 连接失败 | 确认 IP 地址和凭据正确。先在电脑上试 `ssh 用户名@IP` |
-| 镜像拉取慢 | 镜像压缩后约 8GB，确保 Jetson 网络稳定 |
-| 服务未启动 | 查看日志：`ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| SSH 连接失败 | 在电脑上先试 `ssh 用户名@IP`，确认 IP 和凭据 |
+| 镜像拉取慢 | 镜像压缩后约 8 GB，确保 Jetson 网络稳定 |
+| 服务未启动 | 执行 `ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ### 部署目标 {#hailo_speech_local type=local config=devices/speech_deploy.yaml}
 
-直接在当前机器上部署（需要 NVIDIA GPU）。
+部署到本机，本机须有 NVIDIA GPU，已安装 Docker 和 NVIDIA Container Toolkit。
 
 ### 接线
 
-1. 确保已安装 Docker 和 NVIDIA Container Toolkit
-2. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 10-15 分钟下载 Docker 镜像和初始化模型。
+1. 点击 **部署**，首次下载镜像和初始化模型需要 10-15 分钟
 
 ### 部署完成
 
-语音服务已在 `http://localhost:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://localhost:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| 未找到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| 未找到 NVIDIA 运行时 | 执行 `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | 端口 8621 已被占用 | 停止占用 8621 端口的服务 |
-| 容器不断重启 | 查看日志：`docker logs reachy-jetson-voice-speech-1` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| 容器不断重启 | 执行 `docker logs reachy-jetson-voice-speech-1` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ## 步骤 2: 部署 Reachy 语音机器人（Hailo） {#reachy_hailo_deploy type=docker_deploy required=true config=devices/reachy_hailo_deploy.yaml target_inherit_from=hailo_speech_service}
 
-将机器人控制、对话和 Hailo 加速的视觉服务一步部署到 AI Industrial R21。部署器会在缺失时自动安装 Hailo 栈。
+在 AI Industrial R21 上部署机器人控制、对话和 Hailo 视觉服务，缺少 Hailo 驱动时会自动安装。
 
 
 ### 部署完成
 
-你的 Reachy Mini 语音机器人已经在运行了！
+机器人部署完成后约 30 秒就绪。
 
 #### 当前状态
 
-机器人默认运行在**对话模式** — 它会聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。无需任何设置，直接说话即可。
+机器人默认处于对话模式：对它说话，它用一句话回复，并配合情绪和头部、天线动作。
 
 #### 服务概览
 
-| 服务 | 端口 | 用途 |
-|------|------|------|
-| 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
-| 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM（远程 Jetson） | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
-| 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
+仪表盘在 AI Industrial R21 的 8042 端口；其他端口：机器人控制 38001、视觉 8630 / 8631（R21 上），语音 8621、Edge LLM 11435（Jetson 上）。
 
 #### 后续操作
 
-- 打开**设置仪表盘** `http://<r2000-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
-- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
-  ```bash
-  ssh pi@<r2000-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ —— 即 Qwen3.5-4B）提供，不再使用 Ollama。要改变机器人的行为，请编辑其 `instructions.txt` 人格，而不是更换模型。
-- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
+- 打开仪表盘 `http://<r2000-ip>:8042` 查看对话日志、机器人状态并调整设置。
+- 修改人格：编辑当前语音 profile 的 `instructions.txt`。调整麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`：编辑 `~/reachy-jetson-llm/reachy-voice.yaml`。
+- 修改上述文件或在仪表盘改设置后，执行 `docker restart reachy-voice` 生效。
 
 ### 部署目标 {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
-通过 SSH 一键部署到 AI Industrial R21。
+通过 SSH 部署到 AI Industrial R21。Hailo-8 须已插入 M.2 插槽，并在 `/boot/firmware/config.txt` 启用 PCIe Gen3。
 
 ### 接线
 
 1. 用 USB 线将 Reachy Mini 连接到 AI Industrial R21
 2. 将 USB 摄像头插入 AI Industrial R21
-3. 确保 AI Industrial R21 已联网且 SSH 可访问
-4. 输入 AI Industrial R21 的 IP 地址和 SSH 凭据（默认用户名: `pi`）
-5. 输入**语音助手主机**——运行语音 + LLM 的 Jetson IP（例如 `192.168.1.100`）
-6. 配置数据目录（默认: `~/reachy-data`）
-7. 可选启用**全屏展示模式**，设备开机后自动全屏打开仪表盘
-8. 点击**部署**——系统会：
-   - 检测并在缺失时安装 Hailo 栈（驱动 + 用户态）
-   - 拉取并启动机器人控制、对话和 Hailo 加速的视觉服务
+3. 输入 AI Industrial R21 的 IP 地址和 SSH 凭据（默认用户名 `pi`）
+4. 输入**语音助手主机**：运行语音和大模型的 Jetson IP（例如 `192.168.1.100`）
+5. 配置数据目录（默认 `~/reachy-data`）
+6. 可选启用**全屏展示模式**，开机后自动全屏打开仪表盘
+7. 点击 **部署**
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
-
-```
-http://<r2000-ip>:8042
-```
-
-验证所有服务：
-```bash
-ssh pi@<r2000-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+打开 `http://<r2000-ip>:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo HAT，重启后重试。`lspci \| grep -i hailo` 查 PCIe 识别 |
-| `hailo-all` 安装失败 | 手动添加 Hailo apt 源——见 `vision-hailo` 仓库的 `INSTALL.md` |
-| 容器报版本不匹配 | 宿主机驱动和容器内用户态版本必须一致：`sudo apt install --reinstall hailo-all` 后重新部署 |
-| FPS 低于 5 | 检查 CPU 频率：设置 scaling governor 为 `performance` |
-| 仪表盘上没有人脸数据 | 验证视觉服务：`curl http://localhost:8630/` |
-| 语音不工作 | 验证 VOICE_ASSISTANT_HOST 可访问：`curl http://<jetson-ip>:8621/health` |
-| 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
+| `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo-8 并重启，用 `lspci \| grep -i hailo` 确认识别 |
+| `hailo-all` 安装失败 | 按 `vision-hailo` 仓库的 `INSTALL.md` 手动添加 Hailo apt 源 |
+| 容器报版本不匹配 | 执行 `sudo apt install --reinstall hailo-all` 后重新部署 |
+| FPS 低于 5 | 把 CPU scaling governor 设为 `performance` |
+| 仪表盘上没有人脸数据 | 执行 `curl http://localhost:8630/` 检查视觉服务 |
+| 语音不工作 | 在 R21 上执行 `curl http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
 
 ### 部署目标 {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
 
-直接在当前机器上部署（需要 AI Industrial R21 + Hailo-8，Reachy Mini 通过 USB 连接）。
+部署到本机，本机须为装有 Hailo-8 的 AI Industrial R21，已安装 Docker，Reachy Mini 通过 USB 连接。
 
 ### 接线
 
-1. 用 USB 线将 Reachy Mini 连接到机器
-2. 确保已安装 Docker
-3. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 5-10 分钟下载 Docker 镜像。
+1. 用 USB 线将 Reachy Mini 连接到本机
+2. 点击 **部署**，首次下载镜像需要 5-10 分钟
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
-
-```
-http://localhost:8042
-```
+打开 `http://localhost:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo HAT，重启后重试 |
-| 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
-
-# 服务总览（AI Industrial R21 套餐）
-
-| 服务 | 主机 | 端口 | 作用 |
-|------|------|------|------|
-| 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
-| 机器人控制 | AI Industrial R21 | 38001 | Reachy daemon（电机） |
-| 对话引擎 | AI Industrial R21 | 8042 | 对话 + 仪表盘 |
-| 视觉（Hailo） | AI Industrial R21 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
-
----
+| `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo-8 并重启 |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
+| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
 
 ## 套餐: Reachy Mini Wireless（CM4） {#cm4}
 
-在 Reachy Mini Wireless CM4 上部署完整的 Reachy 语音机器人栈。视觉跑在 CM4 的 CPU 上，语音和 LLM 通过远程 Jetson 语音助手提供。
+机器人控制、对话和 CPU 视觉部署在 Reachy Mini Wireless 自带的 CM4 上，语音和大模型由一台远程 Jetson 提供。
 
-| 设备 | 用途 |
-|------|------|
-| Reachy Mini Wireless（CM4） | 机器人控制、对话、CPU 视觉 |
-| Jetson（远程） | 语音（ASR/TTS）+ Edge LLM（TensorRT-Edge-LLM）——在步骤 1 中部署 |
-
-**将会部署：**
-- **机器人控制** — 电机、摄像头、传感器管理
-- **对话引擎** — AI 对话 + 情绪系统 + 网页仪表盘
-- **视觉分析** — 人脸检测、情绪识别、人物追踪（CPU）
-
-**前置条件：**
-- Reachy Mini Wireless 自带 CM4
-- CM4 上已安装 Docker
-- Jetson 设备已安装 JetPack 6.x，可通过 SSH 连接，需要联网（语音服务将在步骤 1 中部署）
+- **设备：** 一台 JetPack 6.x 的 Jetson（运行语音和大模型，步骤 1 部署语音服务，大模型服务 `edge-llm-chat-service` 须在该 Jetson 上运行），一台 Reachy Mini Wireless。
+- **网络：** 两台设备都可通过 SSH 访问，CM4 能访问 Jetson 的 8621 和 11435 端口。
 
 ## 步骤 1: 部署语音服务 {#cm4_speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-在 Jetson 上部署 GPU 加速的语音识别（ASR）和语音合成（TTS）服务。预构建镜像已包含所有依赖和模型，拉取后即可运行。
+在 Jetson 上部署语音识别（ASR）和语音合成（TTS）服务，镜像已包含模型。
 
 ### 部署目标 {#cm4_speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-通过 SSH 一键部署到 Jetson。
+通过 SSH 部署到 Jetson，设备须为 JetPack 6.x。
 
 ### 接线
 
 1. 将 Jetson 连接到网络
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
-3. 点击 **部署** — 系统会自动拉取预构建镜像并启动服务
+3. 点击 **部署**
 
 ### 部署完成
 
-语音服务已在 `http://<jetson-ip>:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://<jetson-ip>:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| SSH 连接失败 | 确认 IP 地址和凭据正确。先在电脑上试 `ssh 用户名@IP` |
-| 镜像拉取慢 | 镜像压缩后约 8GB，确保 Jetson 网络稳定 |
-| 服务未启动 | 查看日志：`ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| SSH 连接失败 | 在电脑上先试 `ssh 用户名@IP`，确认 IP 和凭据 |
+| 镜像拉取慢 | 镜像压缩后约 8 GB，确保 Jetson 网络稳定 |
+| 服务未启动 | 执行 `ssh 用户名@IP "cd reachy-jetson-voice && docker compose logs"` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ### 部署目标 {#cm4_speech_local type=local config=devices/speech_deploy.yaml}
 
-直接在当前机器上部署（需要 NVIDIA GPU）。
+部署到本机，本机须有 NVIDIA GPU，已安装 Docker 和 NVIDIA Container Toolkit。
 
 ### 接线
 
-1. 确保已安装 Docker 和 NVIDIA Container Toolkit
-2. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 10-15 分钟下载 Docker 镜像和初始化模型。
+1. 点击 **部署**，首次下载镜像和初始化模型需要 10-15 分钟
 
 ### 部署完成
 
-语音服务已在 `http://localhost:8621` 运行。快速测试：
-
-```bash
-# 检查服务状态
-curl http://localhost:8621/health
-# 预期返回: {"asr": true, "tts": true, "streaming_asr": true}
-```
+执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| 未找到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| 未找到 NVIDIA 运行时 | 执行 `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | 端口 8621 已被占用 | 停止占用 8621 端口的服务 |
-| 容器不断重启 | 查看日志：`docker logs reachy-jetson-voice-speech-1` |
-| 健康检查失败 | 首次启动需约 40 秒预热模型，稍等后重试 |
+| 容器不断重启 | 执行 `docker logs reachy-jetson-voice-speech-1` 查看日志 |
+| 健康检查失败 | 首次启动约 40 秒预热模型，稍等后重试 |
 
 ## 步骤 2: 部署 Reachy 语音机器人（CM4） {#reachy_cm4_deploy type=docker_deploy required=true config=devices/reachy_cm4_deploy.yaml target_inherit_from=cm4_speech_service}
 
-将机器人控制、对话和视觉服务一步部署到 CM4。
+在 CM4 上部署机器人控制、对话和视觉服务。
 
 
 ### 部署完成
 
-你的 Reachy Mini 语音机器人已经在运行了！
+机器人部署完成后约 30 秒就绪。
 
 #### 当前状态
 
-机器人默认运行在**对话模式** — 它会聆听并回应。你跟它说话，它就用一句简短的话回复，并配合相应的情绪和头部/天线动作。无需任何设置，直接说话即可。
+机器人默认处于对话模式：对它说话，它用一句话回复，并配合情绪和头部、天线动作。
 
 #### 服务概览
 
-| 服务 | 端口 | 用途 |
-|------|------|------|
-| 机器人控制 | 38001 | 电机、摄像头、传感器管理 |
-| 对话引擎 | 8042 | AI 对话 + 情绪系统 + 仪表盘 |
-| 视觉分析 | 8630 | 人脸检测、情绪识别、人物追踪 |
-| Edge LLM（远程 Jetson） | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — 驱动机器人的思考能力 |
-| 语音服务 | 8621 | 听懂你说的话 + 说话给你听（步骤 1 部署） |
+仪表盘在 CM4 的 8042 端口；其他端口：机器人控制 38001、视觉 8630 / 8631（CM4 上），语音 8621、Edge LLM 11435（Jetson 上）。
 
 #### 后续操作
 
-- 打开**设置仪表盘** `http://<cm4-ip>:8042` 查看对话日志、机器人状态，并调整运行时设置
-- 要修改机器人的**人格 / 系统提示词**，编辑当前语音 profile 的 `instructions.txt`。要调整运行时参数（麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`，以及 URL/语言字段），编辑 `reachy-voice.yaml`：
-  ```bash
-  ssh pi@<cm4-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # 可调参数: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- AI 模型由远程 Jetson 上的 Edge LLM 服务（`edge-llm-chat-service`，Qwen/Qwen3-4B-AWQ —— 即 Qwen3.5-4B）提供，不再使用 Ollama。要改变机器人的行为，请编辑其 `instructions.txt` 人格，而不是更换模型。
-- 编辑 `instructions.txt`（人格）或 `reachy-voice.yaml`（参数）后 —— 或通过 `:8042` 仪表盘修改设置后 —— 执行 `docker restart reachy-voice` 使其生效。
+- 打开仪表盘 `http://<cm4-ip>:8042` 查看对话日志、机器人状态并调整设置。
+- 修改人格：编辑当前语音 profile 的 `instructions.txt`。调整麦克风增益 `audio_volume`、VAD 灵敏度 `client_vad_threshold`、`tts_speed`：编辑 `~/reachy-jetson-llm/reachy-voice.yaml`。
+- 修改上述文件或在仪表盘改设置后，执行 `docker restart reachy-voice` 生效。
 
 ### 部署目标 {#reachy_cm4_remote type=remote config=devices/reachy_cm4_deploy.yaml default=true}
 
-通过 SSH 一键部署到 CM4。
+通过 SSH 部署到 Reachy Mini Wireless 的 CM4，CM4 上须已安装 Docker。
 
 ### 接线
 
-1. 确保 CM4 已联网且 SSH 可访问
-2. 输入 CM4 的 IP 地址和 SSH 凭据（默认用户名: `pi`）
-3. 输入**语音助手主机**——运行语音 + LLM 的 Jetson IP（例如 `192.168.1.100`）
-4. 配置数据目录（默认: `~/reachy-data`）
-5. 可选启用**全屏展示模式**，设备开机后自动全屏打开仪表盘
-6. 点击**部署**——系统会拉取并启动所有服务
+1. 输入 CM4 的 IP 地址和 SSH 凭据（默认用户名 `pi`）
+2. 输入**语音助手主机**：运行语音和大模型的 Jetson IP（例如 `192.168.1.100`）
+3. 配置数据目录（默认 `~/reachy-data`）
+4. 可选启用**全屏展示模式**，开机后自动全屏打开仪表盘
+5. 点击 **部署**
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
-
-```
-http://<cm4-ip>:8042
-```
-
-验证所有服务：
-```bash
-ssh pi@<cm4-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+打开 `http://<cm4-ip>:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| Docker 未安装 | 通过 get.docker.com 官方脚本安装 |
-| 语音不工作 | 验证 VOICE_ASSISTANT_HOST 可访问：`curl http://<jetson-ip>:8621/health` |
-| 没有摄像头画面 | 检查：`ls /dev/video*`。如果为空，重新插拔 USB 摄像头 |
-| 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
+| Docker 未安装 | 用 get.docker.com 官方脚本安装 |
+| 语音不工作 | 在 CM4 上执行 `curl http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
+| 没有摄像头画面 | 执行 `ls /dev/video*`，为空时重新插拔 USB 摄像头 |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
+| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
 
 ### 部署目标 {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
-直接在 Reachy Mini Wireless CM4 上部署。
+直接在 Reachy Mini Wireless 的 CM4 上部署，CM4 上须已安装 Docker。
 
 ### 接线
 
-1. 确保 CM4 上已安装 Docker
-2. 点击 **部署** 开始安装
-
-> **注意：** 首次启动可能需要 5-10 分钟下载 Docker 镜像。
+1. 点击 **部署**，首次下载镜像需要 5-10 分钟
 
 ### 部署完成
 
-部署完成后约 30 秒，机器人就会开始说话。打开仪表盘：
-
-```
-http://localhost:8042
-```
+打开 `http://localhost:8042`，对机器人说一句话，它会回复。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
+| 现象 | 处理 |
 |------|----------|
-| Docker 未安装 | 通过 get.docker.com 官方脚本安装 |
-| 机器人不动 | 检查 USB 连接。尝试重新插拔后重启：`docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒让服务启动。检查：`curl http://localhost:8042/health` |
-
-# 服务总览（CM4 套餐）
-
-| 服务 | 主机 | 端口 | 作用 |
-|------|------|------|------|
-| 语音服务 | Jetson（远程） | 8621 | ASR + TTS |
-| Edge LLM | Jetson（远程） | 11435 | TensorRT-Edge-LLM（Qwen3.5-4B-AWQ GDN+MTP） |
-| 机器人控制 | CM4 | 38001 | Reachy daemon（电机） |
-| 对话引擎 | CM4 | 8042 | 对话 + 仪表盘 |
-| 视觉（CM4） | CM4 | 8630 / 8631 | 人脸检测 + 情绪识别 + 追踪 |
+| Docker 未安装 | 用 get.docker.com 官方脚本安装 |
+| 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
+| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |

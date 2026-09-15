@@ -96,7 +96,7 @@ actions:
     - name: Write the face library signing key
       run: |
         set -e
-        printf '%s' '{{facedb_secret}}' > /userdata/f1-access/facedb.key
+        printf '%s' '{{facedb_signing_key}}' > /userdata/f1-access/facedb.key
         chmod 600 /userdata/f1-access/facedb.key
       sudo: true
       name_i18n:
@@ -129,7 +129,7 @@ actions:
         set_conf device device_id '{{device_id}}'
         set_conf device actuator_id '{{actuator_id}}'
         set_conf facedb url '{{facedb_url}}'
-        set_conf facedb key_id '{{facedb_key_id}}'
+        set_conf facedb key_id 'facedb-key-1'
         set_conf recognition match_threshold '{{match_threshold}}'
         # 2002 HQ PoE drives its relay from the on-camera GPIO header; a plain
         # 2002/2002w has no such header and must leave [gpio] disabled, or the
@@ -218,8 +218,8 @@ user_inputs:
   - id: facedb_url
     name: Face Library URL
     type: text
-    placeholder: "http://192.168.1.10:8770"
-    description: The cloud face library server's HTTP endpoint (plain HTTP is expected -- see the signing key step)
+    placeholder: "http://192.168.1.50:8080"
+    description: "Address of the face library server, e.g. http://<server IP>:8080"
     required: true
     row: 2
     validation:
@@ -227,36 +227,23 @@ user_inputs:
     name_i18n:
       zh: 人脸库地址
     description_i18n:
-      zh: 云端人脸库服务的 HTTP 地址（明文 HTTP 是预期行为——见签名密钥那一步）
-  - id: facedb_key_id
-    name: Face Library Key ID
-    type: text
-    description: Must equal the console's USA_FACEDB_KEY_ID byte for byte
-    required: true
-    row: 2
-    validation:
-      pattern: "^[A-Za-z0-9_.-]{1,64}$"
-    name_i18n:
-      zh: 人脸库密钥 ID
-    description_i18n:
-      zh: 必须与管理界面的 USA_FACEDB_KEY_ID 逐字节相等
-  - id: facedb_secret
-    name: Face Library Signing Secret
+      zh: 人脸库服务地址，例如 http://<服务器 IP>:8080
+  - id: facedb_signing_key
+    name: Face Library Signing Key
     type: password
-    description: The same secret as the console's USA_FACEDB_SECRET(_FILE)
     required: true
+    default_template: "{{facedb_signing_key}}"
+    generate: hex32
     row: 3
     validation:
       pattern: "^[A-Za-z0-9_+/=.-]{16,128}$"
     name_i18n:
       zh: 人脸库签名密钥
-    description_i18n:
-      zh: 与管理界面的 USA_FACEDB_SECRET(_FILE) 是同一个密钥
   - id: match_threshold
     name: Match Threshold
     type: text
     default: "0.40"
-    description: Must equal the console's USA_MATCH_THRESHOLD. A decimal between 0 and 1
+    description: Same value as in the face library step
     required: true
     row: 3
     validation:
@@ -264,7 +251,7 @@ user_inputs:
     name_i18n:
       zh: 匹配阈值
     description_i18n:
-      zh: 必须与管理界面的 USA_MATCH_THRESHOLD 相等。0 到 1 之间的小数
+      zh: 与人脸库服务步骤填同一个值
 
 post_deployment:
   open_browser: false

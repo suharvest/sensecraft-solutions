@@ -6,17 +6,7 @@ Deploy the Orbbec Gemini2 plus Isaac ROS NVBlox mapping stack to a Jetson device
 
 | Device | Purpose |
 |--------|---------|
-| NVIDIA Jetson Orin | Runs host-side Orbbec ROS 2 driver plus the long-running NVBlox container |
-
-**What this deployment does**
-
-- Optionally copies `nvblox_images.tar` from the provisioning-station host for the fastest LAN transfer path
-- Optionally downloads `nvblox_images.tar` from a custom mirror URL
-- Downloads `nvblox_images.tar` with the bundled OneDrive downloader
-- Loads the Isaac ROS base image locally on the Jetson
-- Prepares the Jetson host ROS 2 and Orbbec workspace
-- Builds the derived NVBlox runtime image and workspace on the Jetson
-- Starts the host camera driver and the Docker Compose service
+| NVIDIA Jetson Orin | Runs the Orbbec camera driver and the NVBlox mapping service |
 
 **Requirements**
 
@@ -24,14 +14,11 @@ Deploy the Orbbec Gemini2 plus Isaac ROS NVBlox mapping stack to a Jetson device
 - Orbbec Gemini2 connected to the Jetson
 - SSH access to the Jetson
 - Internet access on the Jetson for apt, ROS, and GitHub
-- At least 30GB of free disk space on the Jetson before deployment
-- For the first deployment, 40GB or more is strongly recommended to leave room for the image tar cache and workspace build artifacts
+- At least 30GB of free disk space on the Jetson; 40GB or more recommended for the first deployment
 
 ## Step 1: Deploy NVBlox Orbbec {#deploy_nvblox_orbbec type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-Deploy the full NVBlox Orbbec stack to your Jetson. The first deployment is intentionally heavy: it prepares both the host environment and the container workspace before the final Compose service starts.
-
-Before you click **Deploy**, make sure the Jetson root filesystem has at least 30GB free. If the base image tar still needs to be downloaded or kept locally, plan for 40GB or more to avoid running out of space mid-deployment.
+Deploy NVBlox Orbbec to your Jetson. The first deployment takes a long time.
 
 
 ### Deployment Complete
@@ -60,19 +47,14 @@ Deploy to your Jetson over SSH with one click.
 
 ### Deployment Complete
 
-1. The downloaded base image tar is cached under `~/nvblox_demo/downloads`.
-2. The base Isaac ROS image is available locally on the Jetson.
-3. The host-side Orbbec ROS 2 workspace is prepared under `~/nvblox_demo/ros2_ws`.
-4. The container-side workspace is prepared under `~/nvblox_demo/isaac_ros-dev`.
-5. The Compose service `nvblox-orbbec` is running on the Jetson.
-6. Success is validated by runtime readiness markers in container logs rather than a preview page.
+1. The Compose service `nvblox-orbbec` stays running on the Jetson.
+2. There is no preview page in this version; success is indicated by the runtime readiness markers in the container logs.
 
 ### Notes
 
-- `tar + docker load` only solves the base image source. Host package installation and source sync still require internet access.
-- The fastest path is usually `Local Base Image Tar Path`, because it bypasses Jetson-to-SharePoint throttling and copies over LAN/SSH instead.
-- The first run can take a long time because it installs ROS dependencies, clones repositories, and builds workspaces on-device.
-- Re-deployments are faster because managed stamp files are reused when the prepared state is still valid.
+- Providing the base image tar still requires internet access for dependency installation and source sync.
+- The fastest option is usually `Local Base Image Tar Path`, which copies the tar over the LAN.
+- Re-deployments skip preparation steps that are already complete.
 
 ### Troubleshooting
 
@@ -111,6 +93,6 @@ Deploy NVBlox Orbbec directly on the local machine. This mode is suitable when a
 | Issue | Solution |
 |-------|----------|
 | NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Camera not detected | Check USB connection: `lsusb | grep -i orbbec` |
+| Camera not detected | Check USB connection: `lsusb \| grep -i orbbec` |
 | Container keeps restarting | Check logs: `docker logs nvblox-orbbec` |
 | Docker Compose unavailable | Install `docker compose` plugin, then retry deployment |

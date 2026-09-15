@@ -52,7 +52,6 @@ Dropped frames and latency were measured on recorded video replay.
 - **Register at least 3 photos per SKU**; fewer is rejected. Front, back and side under two lighting conditions is recommended.
 - **Estimate latency by items per frame**: on the Hailo-8 path a shelf frame takes ~14 s, so shelf scenarios need frame decimation or per-slot sampling.
 - New product-library versions ship with a deployment; devices do not pull them automatically yet.
-- Two container images are built on the management host at deploy time.
 - The bundled MQTT broker is anonymous and plaintext; add accounts and TLS before going into a store.
 - Changing the embedding model requires rebuilding the product library; the old library cannot be used.
 - The models are fine-tuned on studio product photos; test with images of your own shelves before going live.

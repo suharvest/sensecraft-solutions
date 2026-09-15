@@ -2,25 +2,21 @@
 
 Deploy a streaming speech recognition (ASR) and voice synthesis (TTS) service on your edge device — Jetson Orin, RK3576, RK3588, or a Pi 5.
 
-| Device | Engine | Best For |
-|--------|--------|----------|
-| NVIDIA Jetson Orin | TensorRT-EdgeLLM / sherpa-onnx (GPU) | Lowest latency, multilingual, voice clone |
-| RK3576 / RK3588 | RKNN (NPU) | Efficient on-device ASR + TTS |
-| Pi 5 | sherpa-onnx (CPU) | Low-cost Chinese+English voice I/O |
-
 **What you'll get:**
 - Real-time streaming speech recognition (WebSocket)
 - Low-latency voice synthesis (HTTP streaming + batch)
 - Multiple language modes: Chinese+English, English-only, or 52-language Qwen3
 - HTTP + WebSocket API on port 8621
 
-**Requirements:** SSH access to device · Internet to pull Docker image and download models · Disk space: 7.5 GB (Jetson), 4.4 GB (RK), or 2.8 GB (RPi)
+**Requirements:** SSH access to device · Internet to pull Docker image and download models
 
 ## Step 1: Deploy Speech Service {#speech_service type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-Deploy the speech service to your edge device. The pre-built image includes all dependencies — models auto-download on first start.
+Deploy the speech service to your edge device. Models auto-download on first start.
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_deploy.yaml default=true}
+
+Deploy over SSH to a Jetson Orin. Runs on the GPU, supports multiple languages and voice cloning. Needs at least 7.5 GB of free disk.
 
 ### Wiring
 
@@ -56,7 +52,7 @@ curl -X POST http://<device-ip>:8621/tts \
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson (Local)" config=devices/jetson_deploy.yaml}
 
-Deploy directly on the current machine (requires Jetson with NVIDIA Container Toolkit installed).
+Deploy directly on the current machine (requires Jetson with NVIDIA Container Toolkit installed). Needs at least 7.5 GB of free disk.
 
 ### Wiring
 
@@ -85,6 +81,8 @@ curl http://localhost:8621/health
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_deploy.yaml}
 
+Deploy over SSH to an RK3576. Runs on the NPU. Needs at least 4.4 GB of free disk.
+
 ### Wiring
 
 1. Connect your RK3576 device to the network
@@ -109,9 +107,11 @@ curl http://<device-ip>:8621/health
 | NPU not detected | Ensure `rknpu` driver is loaded: `ls /dev/rknpu` |
 | Models not downloading | Check internet and HF endpoint. Models ~3.6 GB, may take 10-20 minutes |
 | Health check fails | First startup takes ~60 seconds for model initialization |
-| Out of memory | RK3576 needs 4GB+ RAM available. RK3588 needs 6GB+ |
+| Out of memory | RK3576 needs 4GB+ RAM available |
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_deploy.yaml}
+
+Deploy over SSH to an RK3588. Runs on the NPU. Needs at least 4.4 GB of free disk.
 
 ### Wiring
 
@@ -141,12 +141,14 @@ curl http://<device-ip>:8621/health
 
 ### Target {#rpi_remote type=remote device=rpi device_name="Raspberry Pi" config=devices/rpi_deploy.yaml}
 
+Deploy over SSH to a Pi 5. Runs on the CPU, supports Chinese and English. Needs at least 2.8 GB of free disk.
+
 ### Wiring
 
 1. Connect your Raspberry Pi to the network
 2. Enter the Pi's IP address and SSH credentials
 3. Choose a voice profile from the dropdown
-4. Click **Deploy** — the CPU-only image is only 568 MB
+4. Click **Deploy** — the system will pull the image and start the service
 
 ### Deployment Complete
 

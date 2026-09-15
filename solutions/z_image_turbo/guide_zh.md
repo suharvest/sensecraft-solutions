@@ -4,15 +4,14 @@
 
 | 设备 | 用途 |
 |------|------|
-| NVIDIA Jetson Orin NX (16GB) | 使用 TensorRT BF16 加速运行 Z-Image-Turbo 6B 模型 |
+| NVIDIA Jetson Orin NX (16GB) | 运行 Z-Image-Turbo 模型 |
 
 **部署后你将获得：**
 - 一键部署 — 支持远程 SSH 部署或直接在 Jetson 上本地部署
 - 端口 8000 上的 HTTP API，支持文生图和图生图
 - 完全离线运行，无需云服务
-- 512px 生成约 100 秒，384px 约 73 秒
 
-**前提条件：** Jetson Orin NX 16GB + JetPack 6 + NVIDIA Docker 运行时 + 网络连通（首次部署会自动从 HuggingFace 下载模型权重和 TRT 引擎；huggingface.co 不通时自动切换到 hf-mirror.com）。
+**前提条件：** Jetson Orin NX 16GB + JetPack 6 + NVIDIA Docker 运行时 + 网络连通（首次部署自动下载模型）。
 
 ## 步骤 1: 部署图片生成服务 {#deploy_service type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
@@ -40,11 +39,10 @@
 |------|----------|
 | SSH 连接失败 | 检查 IP、用户名、密码，确认 Jetson SSH 服务已启用 |
 | 找不到 Docker | 在 Jetson 上安装 Docker 和 NVIDIA Container Toolkit |
-| HuggingFace 下载失败 | 脚本会自动切换到 `hf-mirror.com`；若两者都不通，请在 Jetson 上配置代理或手动准备 `$MODEL_ROOT` 内容 |
+| HuggingFace 下载失败 | 脚本会自动切换到 `hf-mirror.com`；若两者都不通，请在 Jetson 上配置代理或手动把模型文件放进模型根目录 |
 | 下载中断 | 重新部署即可 —— 未完成的 `.part` 文件会丢弃，已下载完成的文件不会重复下载 |
 | API 无响应 | 检查容器日志：`docker logs z-image-api` |
 | Docker 权限不足 | 运行 `sudo usermod -aG docker <user>` 并重新登录 |
-| 生成时内存不足 | 容器会根据分辨率自动配置缓存层数（512 用 18 层，384 用 23 层） |
 
 ### 部署目标 {#jetson_local type=local config=devices/jetson_deploy.yaml}
 
@@ -66,7 +64,7 @@
 | 问题 | 解决方案 |
 |------|----------|
 | 找不到 NVIDIA 运行时 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| HuggingFace 下载失败 | 脚本会自动切换到 `hf-mirror.com`；若两者都不通，请配置代理或手动准备 `$MODEL_ROOT` 内容 |
+| HuggingFace 下载失败 | 脚本会自动切换到 `hf-mirror.com`；若两者都不通，请配置代理或手动把模型文件放进模型根目录 |
 | 下载中断 | 重新部署即可 —— 未完成的 `.part` 文件会丢弃，已下载完成的文件不会重复下载 |
 | API 无响应 | 检查容器日志：`docker logs z-image-api` |
 | 端口 8000 被占用 | 停止占用 8000 端口的其他服务 |

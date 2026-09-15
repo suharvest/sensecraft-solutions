@@ -207,11 +207,11 @@ remote_overrides:
       type: password
       default: "12345678"
       required: true
-      description: SSH login password
+      description: SSH login password (factory default; changing it is recommended)
       name_i18n:
         zh: SSH 密码
       description_i18n:
-        zh: SSH 登录密码
+        zh: SSH 登录密码（出厂默认，建议修改）
 
 name_i18n:
   zh: InfluxDB + Grafana 后端

@@ -1,174 +1,87 @@
 ## Preset: IP Camera + reComputer J30 / J40 (Orin) {#orin}
 
-The measured path. A Jetson Orin pulls the camera's RTSP stream, runs YOLOX-Tiny
-on TensorRT FP16, and serves the verdict on Modbus TCP and MQTT. The engine is
-built on the device during deployment because a TensorRT engine is bound to the
-exact GPU architecture and TensorRT version and cannot be shipped prebuilt.
+A Jetson Orin pulls the camera's RTSP stream, detects defects, and outputs the verdict on Modbus TCP and MQTT; a PLC is optional.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer J40 / J30 | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
-| IP camera | Supplies the RTSP video; any RTSP camera framed on the strip or part |
-| PLC or line controller | Optional Modbus TCP master that reads the verdict |
-
-**Important:** internal validation only. The model is trained on a re-hosted copy
-of NEU-DET — clear its licence with the dataset owner before using this for a
-public demo, a customer-site demo or commercial material. The measured
-accuracy is mAP50 0.7577 with recall 0.6969 at the deployed 0.35 threshold on
-290 validation images.
-Known weaknesses: crazing has the lowest AP50 of the six classes at 0.3603, and
-changing the threshold does not move it; frame-level false alarms have to come
-from your own line, because every image in the dataset carries a defect; all
-figures come from a synthetic video, not from a real camera.
+- **Camera:** Any RTSP camera framed on the strip or part. Have the RTSP URL with credentials ready and test it in VLC first.
+- **Usage limits:** Internal validation only. The model is trained on a re-hosted copy of NEU-DET; clear its licence with the dataset owner, or retrain on your own images, before a public demo, a customer-site demo or commercial material. Crazing has the lowest accuracy of the six classes and changing the threshold does not improve it; frame-level false alarms have to be measured on your own line images.
+- **Network:** The PLC or MES can reach ports 502 (Modbus) and 1883 (MQTT) on the device.
 
 ## Step 1: Deploy Surface Inspection {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
 
-Deploy the inspector and build its TensorRT engine on the Jetson. Allow about
-10 minutes; the engine build alone measured 291 s on an Orin NX, and 304 s on
-a from-scratch redeploy cross-check on the same board class (reComputer
-J40 series). First start needs to wait for that build to finish.
+Deploys the inspector and builds its TensorRT engine on the device. Allow about 10 minutes; the first start waits for the build to finish.
 
 ### Prerequisites
 
-1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
-2. At least 10 GB free disk — the ONNX model, the built engine and the container
-   image all live on the device.
-3. Your camera's RTSP URL including credentials, for example
-   `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`. Test it in
-   VLC first.
-4. The container image is published. The compose file names
-   `sensecraft-missionpack.seeed.cn/solution/edge-inspection-jetson:0.1.1-dev`,
-   built for linux/arm64 and pushed on 2026-09-07, digest
-   `sha256:0d1b42e20a61a7aa89d072921dfe9e07e078bcb88ec9699b3f579caa1f28fe3b`.
-   The device pulls it during deploy. If it cannot reach the registry, build the
-   tag from the upstream repo's `platforms/jetson/Dockerfile.slim` on the device
-   and retag it, or set `INSPECTION_IMAGE` to your local tag before deploying.
-5. **The ONNX model has not been uploaded to the CDN either**, for the same
-   licence reason. The deploy step will try to download
-   `yolox_tiny_neu6.onnx` and verify sha256
-   `4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba`. Until the
-   licence is cleared, place that file at
-   `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx` on
-   the device by hand; the checksum is verified either way.
-6. Decide the verdict threshold before you deploy. 0.35 is the frozen value; the
-   solution page prices raising it to 0.6 against it.
-7. **Pick a detector track.** `model.track` in `config/config.json` (deploy
-   input **Detector Track**) selects `yolox` (default, the only track
-   measured on this board — 291 s engine build, all Jetson latency figures
-   on the solution page), `dfine`, or `rtdetrv2`. The two DETR tracks scored
-   equal or slightly better mAP50 and higher recall at matched precision on
-   a CPU-only comparison (single seed — see the solution page's "Detector
-   Selection" section), but have not been engine-built or timed on Orin yet;
-   picking one builds a fresh TensorRT engine the same way `yolox` does, just
-   with no prior timing to expect. Both tracks reuse the same 0.35 frozen
-   threshold, which is calibrated for `yolox`'s score distribution, not
-   theirs.
+1. The model file is not on the CDN (licence not cleared): before deploying, place `yolox_tiny_neu6.onnx` at `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx` on the device. The deploy verifies its sha256.
+2. The verdict threshold defaults to 0.35.
+3. **Detector Track**: `yolox` is the default; `dfine` and `rtdetrv2` are available, their engine build time on Orin varies, and the 0.35 threshold is calibrated for `yolox`, so tune it on your own line images after switching tracks.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `Static model does not take explicit shapes` during the engine build | This model exports a static batch-1 ONNX, so trtexec must not be given `--minShapes/--optShapes/--maxShapes`. The deploy step already omits them; if you are building by hand with the upstream `build_engine.sh`, set `TRT_STATIC_SHAPE=true` |
-| Engine build fails or stops part way | Confirm `/usr/src/tensorrt/bin/trtexec` exists and 10 GB is free. Delete any leftover `.part` file before retrying — a half-built engine is never moved into place, but a stale one blocks the rebuild |
-| `numpy.core.multiarray failed to import`, or cv2 fails to import inside the container | Something is mounting the host's python packages over the image's own. Only `/usr/lib/python3.10/dist-packages/tensorrt` may be mounted — the host's numpy 2.x and its broken cv2 will shadow the image's pinned numpy 1.26.4 if the whole `dist-packages` goes in |
-| `docker compose` fails reading `._docker-compose.yml`, or the config loader picks up `._config.json` | AppleDouble sidecars travelled with assets uploaded from a macOS machine. The deploy step deletes `._*` and `.DS_Store` from the upload directory; if you copied files by hand, run `find . -name '._*' -delete` in the compose directory |
-| No video from the camera | Test the RTSP URL in VLC. A wrong path or wrong credentials is the most common failure |
-| sha256 mismatch on the ONNX | The download was truncated or the file is a different build. Delete it and either retry or copy the correct file; do not edit the expected hash |
-| Deploy cannot connect over SSH | Confirm SSH is reachable and the username is right — Seeed images use `recomputer`, `nvidia` or `ubuntu` |
+| `Static model does not take explicit shapes` during the engine build | When building by hand with the upstream `build_engine.sh`, set `TRT_STATIC_SHAPE=true` |
+| Engine build fails or stops part way | Confirm `/usr/src/tensorrt/bin/trtexec` exists and 10 GB is free; delete any leftover `.part` file and retry |
+| `numpy.core.multiarray failed to import`, or cv2 fails to import inside the container | Mount only the host's `/usr/lib/python3.10/dist-packages/tensorrt`, not the whole `dist-packages` |
+| `docker compose` fails reading `._docker-compose.yml` | Run `find . -name '._*' -delete` in the compose directory |
+| No video from the camera | Test the RTSP URL in VLC and check the path and credentials |
+| sha256 mismatch on the ONNX | Delete the file and copy the correct model file again |
+| Deploy cannot connect over SSH | Confirm SSH is reachable and the username is right (usually `recomputer`, `nvidia` or `ubuntu`) |
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson Orin" config=devices/jetson_inspection.yaml default=true}
 
-Deploy to the Jetson over SSH from this computer.
+Deploy to the Jetson over SSH. The device needs JetPack 6.x with the NVIDIA container runtime and at least 10 GB free disk.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson Orin" config=devices/jetson_inspection.yaml}
 
-Run this directly on the Jetson if you are working on the device itself.
+Deploy to this machine, which must be a Jetson on JetPack 6.x with the NVIDIA container runtime and at least 10 GB free disk.
 
 ---
 
 ## Step 2: Watch the Live Inspection {#preview_orin_inspection type=web_dashboard required=false config=devices/preview_inspection.yaml}
 
-Open the device's own page to see the boxes drawn on the live frames and the
-health counters underneath.
+Open the device's own page to see detection boxes on the live frames and the health counters.
 
 ### Deployment Complete
 
-The device is running and publishing. Results go to
-`<device-name>/inspection/<stream-id>/results` on MQTT port 1883, and the verdict
-is on Modbus TCP port 502, unit 1, coils 0 and 1.
+Results go to `<device-name>/inspection/<stream-id>/results` on MQTT port 1883, and the verdict is written to Modbus TCP port 502, unit 1, coils 0 and 1.
 
 #### Quick verification
 
-1. Open `http://<device-ip>:8080/` and confirm the MJPEG preview is moving.
-2. Check `http://<device-ip>:8080/healthz` — `inference_time_ms` should be a few
-   milliseconds, `frames_dropped` should be 0 at 10 FPS, and `mqtt.rejected`
-   should be 0. A non-zero `rejected` means payloads are failing contract
-   validation and are being dropped rather than published.
-3. Put a defective sample in front of the camera and watch a box appear with its
-   class name and score.
-4. Subscribe to the topic from another machine:
-   `mosquitto_sub -h <device-ip> -t '<device-name>/inspection/#' -v`.
+1. Open `http://<device-ip>:8080/`: the MJPEG preview is moving.
+2. Open `http://<device-ip>:8080/healthz`: `inference_time_ms` is a few milliseconds, `frames_dropped` is 0 at 10 FPS, and `mqtt.rejected` is 0.
+3. Put a defective sample in front of the camera: a box appears with its class name and score.
+4. From another machine, run `mosquitto_sub -h <device-ip> -t '<device-name>/inspection/#' -v` and confirm messages arrive.
 
 #### The MQTT message
 
-One message per frame, carrying every box in that frame:
-
-```json
-{
-  "type": "surface_inspection_result",
-  "version": "1.0.0",
-  "device": "orin-nx",
-  "stream_id": "line1-cam1",
-  "frame_id": 10423,
-  "verdict": "NG",
-  "verdict_reason": "2 defect(s) >= min_defects=1",
-  "defect_count": 2,
-  "primary_class_id": 1,
-  "coordinate_space": "normalized_center_wh",
-  "inference_time_ms": 6.4,
-  "pipeline_ms": 21.8,
-  "detections": [
-    {"slot": 0, "class_id": 1, "class_name": "inclusion", "score": 0.87,
-     "bbox": [0.4125, 0.5312, 0.1094, 0.2031]}
-  ]
-}
-```
-
-`slot` is the within-frame index ordered by score. This pipeline does no
-tracking, so `slot` means nothing across frames. `primary_class_id` is `-1` when
-there is no defect — note that the Modbus register uses `0` for the same case,
-because the holding registers are unsigned 16-bit and cannot carry `-1`.
+One message per frame: `verdict` is OK / NG, `defect_count` is the number of defects, and `detections[]` lists every box in the frame (`class_name`, `score`, normalised centre/width/height `bbox`). With no defect, `primary_class_id` is `-1` while the matching Modbus register is `0`.
 
 #### Next steps
 
 - Wire the Modbus coil into your reject or marking station, then run Step 3.
-- Point your MES or historian at the MQTT topic. The device publishes only; it
-  never writes to a time-series database itself.
-- Load-test before adding cameras. Capacity was measured at 8 stable streams on
-  an Orin NX with a synthetic 640x640 source, and that measurement ran without
-  MQTT or Modbus writes.
+- Point your MES or historian at the MQTT topic.
+- Load-test before adding cameras: an Orin NX ran 8 streams stably with MQTT and Modbus writes turned off.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| The page does not load | Port 8080 is served on the host network. Confirm the container is up (`docker ps`) and that nothing else already holds 8080 |
-| Preview moving but no boxes ever appear | Either nothing defective is in frame, or the threshold is too high. Check `/events` for recent verdicts before changing anything |
-| `frames_dropped` climbing | The source is delivering faster than the pipeline consumes. An RTSP source drops the oldest frame by design; lower the configured FPS or reduce the stream count |
-| `mqtt.rejected` non-zero | Payloads are failing contract validation on the publish path. Check the container logs — this normally means a backend change altered the payload shape |
+| The page does not load | Run `docker ps` to confirm the container is up, and check nothing else holds port 8080 |
+| Preview moving but no boxes ever appear | Check `/events` for recent verdicts first, then confirm a defect is in frame or lower the threshold |
+| `frames_dropped` climbing | Lower the configured FPS or reduce the stream count |
+| `mqtt.rejected` non-zero | Check the container logs for contract validation errors |
 
 ---
 
 ## Step 3: Check the Modbus Output {#plc_check type=manual required=false verify=true config=devices/plc_check.yaml}
 
-Confirm a Modbus master sees what the PLC will act on. Skip this on an
-installation that consumes MQTT only.
+Confirm a Modbus master reads the correct verdict. Skip this on an installation that consumes MQTT only.
 
 ### Prerequisites
 
 1. A machine on the same network segment that can act as a Modbus TCP master.
-2. The device IP, and the unit id you set during deployment (the register map
-   below assumes unit 1).
+2. The device IP and the unit id set during deployment (the table below assumes unit 1).
 
 ### Deployment Complete
 
@@ -178,7 +91,7 @@ The register map, unit 1 on port 502:
 |---|---|
 | Coil 0 | NG, mutually exclusive with coil 1 |
 | Coil 1 | OK, mutually exclusive with coil 0 |
-| HR 0 | Primary defect class id — the highest-scoring box in the frame; 0 when OK |
+| HR 0 | Primary defect class id (the highest-scoring box in the frame); 0 when OK |
 | HR 1 | Defect count |
 | HR 2 | Primary box cx, normalised x10000 |
 | HR 3 | Primary box cy, normalised x10000 |
@@ -189,231 +102,129 @@ The register map, unit 1 on port 502:
 
 #### Quick verification
 
-1. Poll unit 1 on port 502 and read coils 0-1 and HR 0-7. The upstream repo's
-   helper does it directly:
-   `python evaluation/read_modbus.py --host <device-ip> --port 502 --unit 1`.
-2. Sample continuously while a defective sample passes the camera and watch the
-   coil pair flip. On the Orin NX check, 20 Hz sampling caught two transitions.
-3. Confirm the coils are never both 1 in the same sample. If you ever read
-   `(1,1)`, stop — a PLC latching on either coil would act on a verdict that
-   does not exist.
-4. On an NG frame, confirm HR 2-5 are within 0-10000 and decode to the same box
-   the MQTT message carries. On an OK frame, confirm HR 0-5 are all zero.
-5. Confirm HR 6-7 keep advancing on their own interval even when no new verdict
-   arrives — the heartbeat is independent of the verdict path, which is what
-   lets a PLC tell "no defect" apart from "the inspector died".
+1. Read coils 0-1 and HR 0-7 on unit 1, port 502, for example with the upstream repo's `python evaluation/read_modbus.py --host <device-ip> --port 502 --unit 1`.
+2. Sample continuously while a defective sample passes the camera: the coil pair flips.
+3. The coils are never both 1 in the same sample; if you read `(1,1)`, stop and investigate.
+4. On an NG frame, HR 2-5 are within 0-10000 and match the box in the MQTT message; on an OK frame, HR 0-5 are all zero.
+5. HR 6-7 keep advancing even when no new verdict arrives.
 
 #### Next steps
 
-- Latch on the coil, not on the registers: the registers are updated atomically
-  first, so by the time the coil flips they already describe that frame.
-- Alarm on a stale heartbeat. That is the only signal a Modbus-only integration
-  gets when the inspector stops.
+- Have the PLC trigger on the coil; when the coil flips, the registers already hold that frame's data.
+- Alarm on a stale heartbeat to tell "no defect" apart from "the inspector stopped".
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Connection refused on 502 | Modbus is disabled in the config, or the container is not up. Check `modbus.enabled` in `config/config.json` on the device |
-| Registers all zero while MQTT shows detections | You are reading a different unit id than the one written during deployment, or reading during an OK frame |
-| Values look plausible but the box is wrong | HR 2-5 are normalised x10000 centre/width/height, not pixels. Divide by 10000 and multiply by the frame size |
-| Several cameras but only one set of registers | That is by design — the contract defines one register block, and with several streams the last verdict wins. Per-stream registers need a contract change |
+| Connection refused on 502 | Check `modbus.enabled` in `config/config.json` on the device and confirm the container is up |
+| Registers all zero while MQTT shows detections | Check the unit id, or read again on an NG frame |
+| The box position is wrong | HR 2-5 are normalised x10000 centre/width/height; divide by 10000 and multiply by the frame size |
+| Several cameras but only one set of registers | There is one register block and the last verdict wins; take per-stream results from MQTT |
 
 ---
 
 ## Step 4: Enable Unsupervised Anomaly Detection (Optional) {#enable_anomaly_jetson type=manual required=false verify=true config=devices/enable_anomaly.yaml}
 
-Optional. Runs a second model (EfficientAD-S, trained only on defect-free
-images) alongside the detector so a frame can be flagged as unlike the OK
-reference set even for a defect type the detector was never trained to name.
-This never enters the verdict path — every number on the intro page holds
-with this step skipped.
+Optional. Runs EfficientAD-S (trained only on defect-free images) alongside the detector to flag frames unlike the OK reference set, including defect types the detector was never trained on. It does not affect the verdict.
 
 ### Prerequisites
 
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-- The EfficientAD-S ONNX copied onto the device — it is not on the CDN yet,
-  same licence-clearance gate as the detector. See the step's first substep.
-- Your own OK-sample images from the actual inspection camera, if you intend
-  to trust `anomaly_score` for anything beyond seeing the mechanism run. The
-  shipped evaluation's OK set is DeepPCB template scans, not photographs from
-  this camera — see the solution page's "Unsupervised Anomaly Detection"
-  section before calibrating `anomaly.threshold` on it.
+- Step 1 completed; a config edit and container restart are enough.
+- The EfficientAD-S ONNX copied onto the device by hand (not on the CDN).
+- Before relying on `anomaly_score`, calibrate `anomaly.threshold` with your own OK samples from the actual inspection camera.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
 | `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
-| `anomaly_score` looks stable near one value on every frame regardless of the sample | Expected if `anomaly.threshold` was copied from this solution's own evaluation — that threshold was calibrated on DeepPCB template images, not your camera's OK images. Recalibrate on your own OK set first |
-| Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | This is a known limit, not a bug — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal (`heatmap_ref` plus the score), not a single frame-level cutoff |
+| `anomaly_score` stays near one value for every sample | Recalibrate `anomaly.threshold` on your own camera's OK set |
+| Judging a frame abnormal from a single `anomaly_score` gives inconsistent results | The single-frame score is near random; use the pixel/region signal (`heatmap_ref` plus the score) |
 
 ## Preset: IP Camera + reComputer R2000 (Hailo-8) {#pi_hailo}
 
-The lower-cost board. Measured on it at 106.75 FPS hardware inference,
-46.14 FPS full pipeline and mAP50 0.7091. Three ABI gates have to pass on the
-device before the container will start.
+A reComputer R2000 pulls the camera's RTSP stream, detects defects on the Hailo-8, and outputs the verdict on Modbus TCP and MQTT; a PLC is optional. The model is precompiled, so nothing is built on the device.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer R2000 (Hailo-8) | Inference, OK/NG rule, Modbus TCP server, MQTT publisher, preview page |
-| IP camera | Supplies the RTSP video; any RTSP camera framed on the strip or part |
-| PLC or line controller | Optional Modbus TCP master that reads the verdict |
-
-**Important:** the same dataset-licence restriction as the other preset applies
-— retrain on your own images before public or commercial use. The crazing weakness and
-the unmeasurable false-alarm rate apply here too.
+- **Camera:** Any RTSP camera framed on the strip or part. Have the RTSP URL with credentials ready and test it in VLC first.
+- **Usage limits:** Internal validation only. The model is trained on a re-hosted copy of NEU-DET; clear its licence or retrain on your own images before public or commercial use. Crazing has the lowest accuracy; frame-level false alarms have to be measured on your own line images. Only the `yolox` detector is supported.
+- **Network:** The PLC or MES can reach ports 502 (Modbus) and 1883 (MQTT) on the device.
 
 ## Step 1: Deploy Surface Inspection on Hailo {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
 
-Deploy the inspector and its precompiled HEF. There is no on-device compile, so
-this is faster than the Jetson path — assuming the ABI gates pass.
+Deploys the inspector and its precompiled HEF model. The deploy first checks the HailoRT version, the driver option and the Python version.
 
 ### Prerequisites
 
-1. **HailoRT 4.21.x, and both packages held.** The HEF was compiled with
-   Dataflow Compiler 3.31.0 / HailoRT 4.21.0. Driver, user-space library and
-   python bindings must all be that version:
-   `hailortcli --version` should report 4.21.x, and `apt-mark showhold` must list
-   both `hailort` and `hailort-pcie-driver`. Holding only the driver lets apt
-   upgrade the user-space library out from under the HEF.
-2. **`hailo_pci` loaded with `force_desc_page_size=4096`.** The Pi 5 kernel page
-   size is 16 KB and the Hailo-8 maximum descriptor page size is 4 KB. Without
-   it, `VDevice()` and `hailortcli fw-control identify` both succeed and the
-   failure surfaces only at `configure(hef)`:
-   `echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`
-   then reboot.
-3. **Host and container Python minor versions must match.** The host's
-   `hailo_platform` bindings are mounted into the container, and
-   `_pyhailort.cpython-3XX-*.so` only imports under the same minor. Pi OS
-   bookworm is 3.11 and the default image base matches it; trixie is 3.13 and
-   needs the image rebuilt on a trixie base.
-4. At least 4 GB free disk. The measured footprint added is about 452 MB — the
-   runtime image at about 443 MB, the 8.9 MB HEF, and the config.
-5. The container image is published. The compose file names
-   `sensecraft-missionpack.seeed.cn/solution/edge-inspection-rpi-hailo:0.1.0-dev`,
-   built for linux/arm64 and pushed on 2026-09-07, digest
-   `sha256:f078a2875dcdfd1a00a2bb5763baded9b251ea9d98c44114704b57a025384fb3`; its
-   python3 is 3.11.2, matching Pi OS bookworm. If the device cannot reach the
-   registry, build it from the upstream repo's `platforms/rpi-hailo/Dockerfile`
-   and set `INSPECTION_IMAGE`, or retag your local build.
-6. **The HEF has not been uploaded to the CDN**, for the same licence reason. The
-   deploy step will try to download it and verify sha256
-   `02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565` for the
-   default level-1 build (level-0 is
-   `9638f2b210b49b10b44658d2e970b2822e0fac7d36ec8831f08ad4d0a10dac8f`). Until
-   then, place the file at
-   `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef` by
-   hand; the checksum is verified either way.
-7. Your camera's RTSP URL, tested in VLC first.
+1. The model file is not on the CDN (licence not cleared): before deploying, place the HEF at `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef` on the device. The deploy verifies its sha256.
+2. Driver load option: `echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`, then reboot.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Deploy stops at "libhailort.so.4.21.0 not found" | The device is on a different HailoRT. This deployment is ABI-locked; either install 4.21.x or recompile the HEF against the version you have. Changing the mount alone will not work |
-| Deploy stops at the `force_desc_page_size` check | Add the modprobe option and reboot. It is not optional on a Pi 5 — without it the container starts and then dies inside `configure(hef)` |
-| Container exits on a python import error mentioning `_pyhailort` | Host and container Python minors differ. Rebuild the image on a base matching the host (`--build-arg RUNTIME_IMAGE=...trixie-slim` for a 3.13 host) |
-| `AssembleError` in the logs | The HEF's nine output tensors did not match the expected layout. Outputs are matched by feature-map size and channel count, not by name, so this means a different HEF than the one this solution expects. Check the sha256 against `assets/models/hef_o1.manifest.json` |
-| `docker compose` fails reading `._docker-compose.yml` | AppleDouble sidecars from a macOS upload. The deploy step deletes `._*` and `.DS_Store` from the upload directory; if you copied by hand, run `find . -name '._*' -delete` |
-| Detections look plausible but recall is worse than the solution page | Expected on this path — the level-0 build loses about 0.03 mAP50 against the CPU reference. Confirm you are running the level-1 HEF, which is the default |
-| No video from the camera | Test the RTSP URL in VLC. A wrong path or wrong credentials is the most common failure |
-| Trying to run the `dfine` or `rtdetrv2` detector track on this board | Not supported — the Hailo Dataflow Compiler 3.31.0 parser rejects both (deformable-attention operators `GridSample`/`GatherElements`/`TopK` have no Hailo-8 lowering; see the solution page's "Detector Selection" section). This preset only offers `yolox` |
+| Deploy stops at "libhailort.so.4.21.0 not found" | Install HailoRT 4.21.x for the driver, library and Python bindings |
+| Deploy stops at the `force_desc_page_size` check | Add the modprobe option from prerequisite 2 and reboot |
+| Container exits on a python import error mentioning `_pyhailort` | The host must run Pi OS bookworm (Python 3.11); on a 3.13 host, rebuild the image with `--build-arg RUNTIME_IMAGE=...trixie-slim` |
+| `AssembleError` in the logs | The HEF is not the one this solution expects; check its sha256 against `assets/models/hef_o1.manifest.json` |
+| `docker compose` fails reading `._docker-compose.yml` | Run `find . -name '._*' -delete` in the compose directory |
+| Recall is noticeably low | Confirm you are running the default level-1 HEF (`yolox_tiny_neu6_o1.hef`) |
+| No video from the camera | Test the RTSP URL in VLC and check the path and credentials |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml default=true}
 
-Deploy to the reComputer R2000 over SSH from this computer.
+Deploy to the reComputer R2000 over SSH. The device needs HailoRT 4.21.x (run `apt-mark hold hailort hailort-pcie-driver` to lock the version) and at least 4 GB free disk.
 
 ### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_inspection.yaml}
 
-Run this directly on the Pi if you are working on the device itself.
+Deploy to this machine, which must be the reComputer R2000 with HailoRT 4.21.x (both packages held) and at least 4 GB free disk.
 
 ---
 
 ## Step 2: Watch the Live Inspection {#preview_hailo_inspection type=web_dashboard required=false config=devices/preview_inspection.yaml}
 
-Open the device's own page to see the boxes drawn on the live frames and the
-health counters underneath.
+Open the device's own page to see detection boxes on the live frames and the health counters.
 
 ### Deployment Complete
 
-The device is running and publishing. Results go to
-`<device-name>/inspection/<stream-id>/results` on MQTT port 1883, and the verdict
-is on Modbus TCP port 502, unit 1, coils 0 and 1.
+Results go to `<device-name>/inspection/<stream-id>/results` on MQTT port 1883, and the verdict is written to Modbus TCP port 502, unit 1, coils 0 and 1.
 
 #### Quick verification
 
-1. Open `http://<device-ip>:8080/` and confirm the MJPEG preview is moving.
-2. Check `http://<device-ip>:8080/healthz` — `inference_time_ms` should be a few
-   milliseconds, `frames_dropped` should be 0 at 10 FPS, and `mqtt.rejected`
-   should be 0. A non-zero `rejected` means payloads are failing contract
-   validation and are being dropped rather than published.
-3. Put a defective sample in front of the camera and watch a box appear with its
-   class name and score.
-4. Subscribe to the topic from another machine:
-   `mosquitto_sub -h <device-ip> -t '<device-name>/inspection/#' -v`.
+1. Open `http://<device-ip>:8080/`: the MJPEG preview is moving.
+2. Open `http://<device-ip>:8080/healthz`: `inference_time_ms` is a few milliseconds, `frames_dropped` is 0 at 10 FPS, and `mqtt.rejected` is 0.
+3. Put a defective sample in front of the camera: a box appears with its class name and score.
+4. From another machine, run `mosquitto_sub -h <device-ip> -t '<device-name>/inspection/#' -v` and confirm messages arrive.
 
 #### The MQTT message
 
-One message per frame, carrying every box in that frame:
-
-```json
-{
-  "type": "surface_inspection_result",
-  "version": "1.0.0",
-  "device": "rpi-hailo",
-  "stream_id": "line1-cam1",
-  "frame_id": 10423,
-  "verdict": "NG",
-  "verdict_reason": "2 defect(s) >= min_defects=1",
-  "defect_count": 2,
-  "primary_class_id": 1,
-  "coordinate_space": "normalized_center_wh",
-  "inference_time_ms": 6.4,
-  "pipeline_ms": 21.8,
-  "detections": [
-    {"slot": 0, "class_id": 1, "class_name": "inclusion", "score": 0.87,
-     "bbox": [0.4125, 0.5312, 0.1094, 0.2031]}
-  ]
-}
-```
-
-`slot` is the within-frame index ordered by score. This pipeline does no
-tracking, so `slot` means nothing across frames. `primary_class_id` is `-1` when
-there is no defect — note that the Modbus register uses `0` for the same case,
-because the holding registers are unsigned 16-bit and cannot carry `-1`.
+One message per frame: `verdict` is OK / NG, `defect_count` is the number of defects, and `detections[]` lists every box in the frame (`class_name`, `score`, normalised centre/width/height `bbox`). With no defect, `primary_class_id` is `-1` while the matching Modbus register is `0`.
 
 #### Next steps
 
 - Wire the Modbus coil into your reject or marking station, then run Step 3.
-- Point your MES or historian at the MQTT topic. The device publishes only; it
-  never writes to a time-series database itself.
-- Measure this board before trusting it. No throughput, latency or on-device
-  accuracy figure exists for the Hailo path; the `/healthz` counters are the
-  first real data anyone will have.
+- Point your MES or historian at the MQTT topic.
+- Take this board's throughput and latency from the `/healthz` counters.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| The page does not load | Port 8080 is served on the host network. Confirm the container is up (`docker ps`) and that nothing else already holds 8080 |
-| Preview moving but no boxes ever appear | Either nothing defective is in frame, or the threshold is too high. Check `/events` for recent verdicts before changing anything |
-| `frames_dropped` climbing | The source is delivering faster than the pipeline consumes. An RTSP source drops the oldest frame by design; lower the configured FPS |
-| `mqtt.rejected` non-zero | Payloads are failing contract validation on the publish path. Check the container logs — this normally means a backend change altered the payload shape |
+| The page does not load | Run `docker ps` to confirm the container is up, and check nothing else holds port 8080 |
+| Preview moving but no boxes ever appear | Check `/events` for recent verdicts first, then confirm a defect is in frame or lower the threshold |
+| `frames_dropped` climbing | Lower the configured FPS |
+| `mqtt.rejected` non-zero | Check the container logs for contract validation errors |
 
 ---
 
 ## Step 3: Check the Modbus Output {#plc_check_hailo type=manual required=false verify=true config=devices/plc_check.yaml}
 
-Confirm a Modbus master sees what the PLC will act on. Skip this on an
-installation that consumes MQTT only.
+Confirm a Modbus master reads the correct verdict. Skip this on an installation that consumes MQTT only.
 
 ### Prerequisites
 
 1. A machine on the same network segment that can act as a Modbus TCP master.
-2. The device IP, and the unit id you set during deployment (the register map
-   below assumes unit 1).
+2. The device IP and the unit id set during deployment (the table below assumes unit 1).
 
 ### Deployment Complete
 
@@ -423,7 +234,7 @@ The register map, unit 1 on port 502:
 |---|---|
 | Coil 0 | NG, mutually exclusive with coil 1 |
 | Coil 1 | OK, mutually exclusive with coil 0 |
-| HR 0 | Primary defect class id — the highest-scoring box in the frame; 0 when OK |
+| HR 0 | Primary defect class id (the highest-scoring box in the frame); 0 when OK |
 | HR 1 | Defect count |
 | HR 2 | Primary box cx, normalised x10000 |
 | HR 3 | Primary box cy, normalised x10000 |
@@ -434,57 +245,42 @@ The register map, unit 1 on port 502:
 
 #### Quick verification
 
-1. Poll unit 1 on port 502 and read coils 0-1 and HR 0-7. The upstream repo's
-   helper does it directly:
-   `python evaluation/read_modbus.py --host <device-ip> --port 502 --unit 1`.
-2. Sample continuously while a defective sample passes the camera and watch the
-   coil pair flip.
-3. Confirm the coils are never both 1 in the same sample. If you ever read
-   `(1,1)`, stop — a PLC latching on either coil would act on a verdict that
-   does not exist.
-4. On an NG frame, confirm HR 2-5 are within 0-10000 and decode to the same box
-   the MQTT message carries. On an OK frame, confirm HR 0-5 are all zero.
-5. Confirm HR 6-7 keep advancing on their own interval even when no new verdict
-   arrives — the heartbeat is independent of the verdict path.
+1. Read coils 0-1 and HR 0-7 on unit 1, port 502, for example with the upstream repo's `python evaluation/read_modbus.py --host <device-ip> --port 502 --unit 1`.
+2. Sample continuously while a defective sample passes the camera: the coil pair flips.
+3. The coils are never both 1 in the same sample; if you read `(1,1)`, stop and investigate.
+4. On an NG frame, HR 2-5 are within 0-10000 and match the box in the MQTT message; on an OK frame, HR 0-5 are all zero.
+5. HR 6-7 keep advancing even when no new verdict arrives.
 
 #### Next steps
 
-- Latch on the coil, not on the registers: the registers are updated atomically
-  first, so by the time the coil flips they already describe that frame.
-- Alarm on a stale heartbeat. That is the only signal a Modbus-only integration
-  gets when the inspector stops.
+- Have the PLC trigger on the coil; when the coil flips, the registers already hold that frame's data.
+- Alarm on a stale heartbeat to tell "no defect" apart from "the inspector stopped".
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Connection refused on 502 | Modbus is disabled in the config, or the container is not up. Check `modbus.enabled` in `config/config.json` on the device |
-| Registers all zero while MQTT shows detections | You are reading a different unit id than the one written during deployment, or reading during an OK frame |
-| Values look plausible but the box is wrong | HR 2-5 are normalised x10000 centre/width/height, not pixels. Divide by 10000 and multiply by the frame size |
-| Several cameras but only one set of registers | That is by design — the contract defines one register block, and with several streams the last verdict wins. Per-stream registers need a contract change |
+| Connection refused on 502 | Check `modbus.enabled` in `config/config.json` on the device and confirm the container is up |
+| Registers all zero while MQTT shows detections | Check the unit id, or read again on an NG frame |
+| The box position is wrong | HR 2-5 are normalised x10000 centre/width/height; divide by 10000 and multiply by the frame size |
+| Several cameras but only one set of registers | There is one register block and the last verdict wins; take per-stream results from MQTT |
 
 ---
 
 ## Step 4: Enable Unsupervised Anomaly Detection (Optional) {#enable_anomaly_hailo type=manual required=false verify=true config=devices/enable_anomaly.yaml}
 
-Optional, identical to the Jetson preset. Runs EfficientAD-S on CPU
-(`accelerator: "cpu"` — no Hailo backend for this model exists yet)
-alongside the detector so a frame can be flagged as unlike the OK reference
-set. This never enters the verdict path.
+Optional. Runs EfficientAD-S on the CPU (`accelerator: "cpu"`; this model has no Hailo build) to flag frames unlike the OK reference set. It does not affect the verdict.
 
 ### Prerequisites
 
-- The runtime already deployed (Step 1), so a config edit and container
-  restart are enough.
-- The EfficientAD-S ONNX copied onto the device — it is not on the CDN yet.
-- Your own OK-sample images from the actual inspection camera before trusting
-  `anomaly.threshold` — the shipped evaluation's OK set is DeepPCB template
-  scans, not photographs from this camera.
+- Step 1 completed; a config edit and container restart are enough.
+- The EfficientAD-S ONNX copied onto the device by hand (not on the CDN).
+- Before relying on `anomaly_score`, calibrate `anomaly.threshold` with your own OK samples from the actual inspection camera.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
 | `anomaly_score` never appears in the MQTT event | Confirm `anomaly.enabled: true` was saved and the container restarted; check the container logs for a model-load error at `anomaly.path` |
-| `anomaly_score` looks stable near one value regardless of the sample | The threshold was likely copied from this solution's own evaluation, calibrated on DeepPCB images, not your camera's OK images. Recalibrate on your own OK set |
-| Treating a single `anomaly_score` as "this frame is abnormal" gives inconsistent results | Known limit — the shipped evaluation's image-level AUROC is 0.52 (near random). Use the pixel/region signal, not a single frame-level cutoff |
+| `anomaly_score` stays near one value for every sample | Recalibrate `anomaly.threshold` on your own camera's OK set |
+| Judging a frame abnormal from a single `anomaly_score` gives inconsistent results | The single-frame score is near random; use the pixel/region signal (`heatmap_ref` plus the score) |

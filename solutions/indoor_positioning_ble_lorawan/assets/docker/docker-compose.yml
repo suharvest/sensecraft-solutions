@@ -1,16 +1,12 @@
 # Single-container application stack. The image carries the FastAPI server and
 # the built Vue frontend; nothing else is needed on the host beyond Docker.
 #
-# IMAGE TAG NOT PUBLISHED YET.
-# seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05 is the tag this
-# package targets, built from solution-indoor-positioning @ feature/outdoor. It
-# has not been pushed. The previously used untagged (latest) image is the
-# pre-outdoor code: no GNSS positioning, no geofences, no floor-plan
-# georeferencing, no PMTiles switch. Build and push that tag, or retag a local
-# build under the same name, before deploying.
+# Image built from solution-indoor-positioning @ feature/map-overhaul (568c9a4,
+# includes the outdoor features), linux/arm64 + linux/amd64, pushed 2026-09-15.
+# Default dashboard login is admin / 12345678; change it after first login.
 services:
   app:
-    image: seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05
+    image: sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-09-15
     container_name: indoor-positioning
     ports:
       - "5173:5173"

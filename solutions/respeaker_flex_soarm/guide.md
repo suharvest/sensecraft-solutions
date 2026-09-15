@@ -12,7 +12,7 @@ Deploy a voice-controlled robotic arm in one step: a single Docker container on 
 **What you'll get:**
 - A robotic arm you control hands-free with natural language
 - Wake word activation ("Hey Jarvis") — arm listens only when called
-- Fully local AI: Paraformer ASR + Qwen3-4B-AWQ LLM + Matcha-TTS, all on the Jetson GPU
+- Speech recognition, LLM and TTS all run locally on the Jetson
 - A library of named poses + gesture sequences, editable as YAML without rebuilding the image
 - Live joint state at `GET /observation` for integration with other solutions
 
@@ -45,7 +45,7 @@ The calibration file lands at `~/.cache/huggingface/lerobot/calibration/robots/s
 
 ## Step 2: Deploy Voice Arm {#voice_arm type=docker_deploy required=true config=devices/voice_brain.yaml}
 
-Deploy the voice + arm container to the Jetson. The container probes the SO-ARM serial port and microphone on first boot, writes default `actions.yaml` / `prompt.yaml` if they're missing, then starts the voice pipeline plus an HTTP server on port 8765 for `GET /observation`.
+Deploy the voice + arm container to the Jetson. On first boot the container detects the SO-ARM serial port and microphone, and serves joint state on port 8765.
 
 ### Troubleshooting
 

@@ -1,92 +1,67 @@
 ## Preset: SenseCAP Cloud {#cloud}
 
-The nodes already report to the SenseCAP cloud through a gateway you have
-running. Nothing on the radio side changes. A bridge container reads the cloud —
-history first, then the live stream — and publishes Home Assistant entities to a
-local broker.
+SenseCAP S21xx nodes already report to the SenseCAP cloud through a SenseCAP M2 gateway; nothing on the radio side changes. A bridge container pulls history and live data from the cloud and publishes them as local Home Assistant entities.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP S21xx nodes | Measure soil and air, report over LoRaWAN |
-| SenseCAP M2 gateway | Forwards uplinks to the SenseCAP cloud |
-| Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
-
-**Important:** two cloud MQTT hostnames are in circulation and the deployment
-step offers both. Treat the first deployment as a bring-up, and read the bridge
-log before trusting the dashboard.
+- **Host:** A Linux host with Docker for Home Assistant, the MQTT broker and the bridge.
+- **Account:** A SenseCAP Portal account and an API key pair.
+- **Known limits:** Two cloud MQTT hostnames are in circulation and the deployment offers both; after the first deployment, check the bridge log to confirm it connected.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
-Start Home Assistant and a Mosquitto broker on one host. Skip this only if you
-already run both and can point the bridge at your existing broker.
+Starts Home Assistant and a Mosquitto broker on one host. Skip this if you already run both and the bridge can reach your existing broker.
 
 ### Prerequisites
 
-1. A Linux host with Docker running, reachable over SSH. Any architecture with
-   Docker works — the images used here publish both amd64 and arm64.
-2. At least 8 GB free disk. The Home Assistant image alone is around 1.5 GB.
-3. Ports 8123 and 1883 free, or different ports chosen in the step's inputs.
-4. A broker password you choose now. The bridge step asks for the same value,
-   so write it down — the broker refuses anonymous clients on purpose, because
-   the bridge may run on a different machine.
+1. At least 8 GB free disk on the host.
+2. Ports 8123 and 1883 free, or different ports set in this step's inputs.
+3. A broker password, written down; the bridge step asks for the same value.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Port 8123 or 1883 already in use | Something else is on it — an existing Home Assistant or Mosquitto. Stop it, or set different ports in this step's inputs |
-| Mosquitto restarts with `Unable to open pwfile` | The password file was written but not owned by the `mosquitto` user. The bundled compose file fixes this with a `chown`; a hand-edited copy that dropped it will fail exactly this way |
-| Home Assistant never answers on 8123 | First start takes a few minutes. Check `docker logs agri-env-homeassistant` before assuming it failed |
-| Deploy cannot connect | Confirm SSH is reachable and the username is right — Raspberry Pi OS uses `pi`, Seeed reComputer images use `recomputer` |
+| Port 8123 or 1883 already in use | Stop the existing Home Assistant or Mosquitto, or set different ports in this step's inputs |
+| Mosquitto restarts with `Unable to open pwfile` | Make the password file owned by the `mosquitto` user |
+| Home Assistant never answers on 8123 | First start takes a few minutes; run `docker logs agri-env-homeassistant` |
+| Deploy cannot connect | Confirm SSH is reachable and the username is right (`pi` on Raspberry Pi OS, `recomputer` on reComputer) |
 
 ### Target {#deploy_ha_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy to the host over SSH from this computer.
+Deploy over SSH to a Linux host with Docker; amd64 and arm64 both work.
 
 ### Target {#deploy_ha_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
 
-Run this directly on the host if you are working on the machine itself.
+Deploy to this machine, which must be a Linux host with Docker.
 
 ---
 
 ## Step 2: Deploy the Cloud Bridge {#deploy_cloud_bridge type=docker_deploy required=true config=devices/cloud_bridge.yaml}
 
-Deploy the bridge with its SenseCAP cloud source enabled. It lists the devices on
-your account, backfills their history, then subscribes to the live stream.
+Deploys the bridge that reads the SenseCAP cloud. It lists the devices on your account, backfills their history, then subscribes to live data.
 
 ### Prerequisites
 
-1. A SenseCAP API key pair — Access ID and Access Key — from the SenseCAP
-   Portal under Security → Access API Keys. The Access Key is written only to a
-   mode-600 `.env` file on the target host.
-2. The broker address, port, username and password from step 1. Use the host's
-   LAN address rather than `127.0.0.1` if the bridge runs on a different machine.
-3. The bridge image. Published at
-   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
-   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it. Build from the
-   upstream project and set `BRIDGE_IMAGE` to your own tag to deploy a local
-   build instead.
-4. A decision on the backfill window. The OpenAPI reaches back three months at
-   most and serves one month per request, so three months means three times the
-   requests per device.
+1. A SenseCAP API key pair (Access ID and Access Key) from the SenseCAP Portal under Security → Access API Keys.
+2. The broker address, port, username and password from step 1. If the bridge runs on a different machine, use the LAN IP rather than `127.0.0.1`.
+3. A backfill window: up to three months; a longer window means more requests.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Bridge log shows a DNS failure for the cloud host | The two candidate hostnames are both unconfirmed. Redeploy with the other option in the MQTT host selector |
+| Bridge log shows a DNS failure for the cloud host | Redeploy with the other option in the MQTT host selector |
 | Bridge log shows an authentication failure | Check the Access ID and Access Key pair, and that the key has not been revoked in the Portal |
-| Devices appear but no values | Backfill puts only the latest value per entity into Home Assistant. If the nodes report hourly, the first live update can be up to an hour away |
-| `no such image` on deploy | Only relevant with a self-built `BRIDGE_IMAGE` override — build it locally and re-run |
-| Nothing reaches the broker | Check the broker address is the LAN address, not `127.0.0.1`, when the bridge is not on the Home Assistant host |
+| Devices appear but no values | Backfill writes only the latest value per entity; with hourly reporting, the first live update can take up to an hour |
+| `no such image` on deploy | With a self-built `BRIDGE_IMAGE`, build it locally first and re-run |
+| Nothing reaches the broker | When the bridge is not on the Home Assistant host, set the broker address to the LAN IP |
 
 ### Target {#cloud_bridge_remote type=remote device_name="Bridge Host" config=devices/cloud_bridge.yaml default=true}
 
-Deploy the bridge to the host over SSH.
+Deploy the bridge over SSH to a host with Docker.
 
 ### Target {#cloud_bridge_local type=local device_name="Bridge Host" config=devices/cloud_bridge.yaml}
 
-Run it directly on the host.
+Deploy to this machine, which must have Docker installed.
 
 ---
 
@@ -96,152 +71,110 @@ Open Home Assistant and confirm the nodes arrived as devices with entities.
 
 ### Deployment Complete
 
-Every node on the account is now a Home Assistant device named
-`SenseCAP <DevEUI>`, with one entity per measurement it reports.
+Every node on the account is a Home Assistant device named `SenseCAP <DevEUI>`, with one entity per measurement.
 
 #### Quick verification
 
-1. Sign in to Home Assistant and complete the onboarding wizard if this is a
-   fresh install.
-2. Settings → Devices & Services → Add integration → **MQTT**. Broker is the
-   host running the stack, port 1883, with the username and password from step 1.
-   Skip if MQTT is already configured.
-3. Open the MQTT integration. Each node appears as a device; open one and check
-   its entities carry units — `°C`, `%`, `dS/m` — rather than plain numbers.
-4. Import the dashboard: Overview → three-dot menu → Edit dashboard → three-dot
-   menu → Raw configuration editor, and paste
-   `assets/homeassistant/agri_env_dashboard.yaml`. Replace the example DevEUIs
-   with your own.
-5. Install the threshold alerts: merge
-   `assets/homeassistant/automations.yaml` into Home Assistant's
-   `automations.yaml` and reload automations. Adjust the thresholds and the
-   `for:` durations — the shipped durations are zero, which is right for testing
-   and wrong for a field where a single reading can wobble.
+1. Sign in to Home Assistant and complete the onboarding wizard on a fresh install.
+2. Settings → Devices & Services → Add integration → **MQTT**, with the host running the stack, port 1883, and the username and password from step 1. Skip if MQTT is already configured.
+3. Open the MQTT integration, open a device, and check its entities carry units (`°C`, `%`, `dS/m`).
+4. Import the dashboard: Overview → three-dot menu → Edit dashboard → three-dot menu → Raw configuration editor, paste `assets/homeassistant/agri_env_dashboard.yaml`, and replace the example DevEUIs with your own.
+5. Import the threshold alerts: merge `assets/homeassistant/automations.yaml` into Home Assistant's `automations.yaml` and reload automations. The shipped `for:` durations are zero; adjust thresholds and durations before field use so a single noisy reading does not trigger an alert.
 
 #### Next steps
 
-- Set the offline threshold to match your nodes' reporting interval. The default
-  assumes hourly reporting; nodes that report every six hours will otherwise be
-  marked offline between uplinks.
-- Add the entities you actually act on to a separate view. A dashboard listing
-  every measurement every node emits is a dashboard nobody reads.
+- Set the offline threshold to match the nodes' reporting interval. The default assumes hourly reporting; nodes reporting every six hours are marked offline between uplinks.
+- Put the entities you act on in a separate view.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| MQTT integration connects but no devices appear | The bridge is not publishing. Check `docker logs agri-env-bridge-cloud` for the cloud connection line |
-| Entities appear as `unavailable` right away | No uplink has arrived within the offline threshold. Either the nodes are silent, or the threshold is shorter than their reporting interval |
-| An entity has no unit | Its `measurementId` is not in `assets/config/measurements.yaml`. Add it there — the file cites the decoder source line for every existing entry |
-| Old entity ids keep coming back | Discovery configs are retained. Clear the broker's retained messages and Home Assistant's entity registry together, or the old topics reappear on restart |
+| MQTT integration connects but no devices appear | Run `docker logs agri-env-bridge-cloud` and confirm the cloud connection line is there |
+| Entities appear as `unavailable` right away | Confirm the nodes are reporting and the offline threshold is not shorter than their interval |
+| An entity has no unit | Add its `measurementId` to `assets/config/measurements.yaml` |
+| Old entity ids keep coming back | Clear the broker's retained messages and Home Assistant's entity registry together |
 
 ---
 
 ## Preset: Self-hosted The Things Stack {#tts_local}
 
-You run the network server. A reComputer R12 Series gateway feeds a The Things
-Stack Open Source instance, and the bridge subscribes to its Application Server
-MQTT. No cloud account is involved.
+A reComputer R12 Series gateway receives data from SenseCAP S21xx nodes and hands it to a self-hosted The Things Stack Open Source instance; the bridge subscribes to its MQTT and publishes Home Assistant entities. No cloud account is needed.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP S21xx nodes | Measure soil and air, report over LoRaWAN |
-| reComputer R12 Series gateway | The gateway radio, plus the packet forwarder and the stack on the same machine |
-| Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
-
-**Important:** the steps below are written from the gateway and stack
-documentation, and each is the kind of step that fails in a way specific to the
-board. Treat the first deployment as a bring-up and check available memory
-before starting the stack.
+- **Host:** A Linux host with Docker for Home Assistant, the MQTT broker and the bridge.
+- **Nodes:** Each node's DevEUI, JoinEUI and AppKey, with the node band matching the gateway.
+- **Known limits:** Check available memory on the gateway host before starting the stack.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
-The same Home Assistant and broker as the other presets. Deploy it first so the
-bridge has somewhere to publish.
+Starts Home Assistant and a Mosquitto broker on one host.
 
 ### Prerequisites
 
-1. A Linux host with Docker running, reachable over SSH.
-2. At least 8 GB free disk.
-3. Ports 8123 and 1883 free, or different ports chosen in the step's inputs.
-4. A broker password you choose now — the stack step asks for the same value.
+1. At least 8 GB free disk on the host.
+2. Ports 8123 and 1883 free, or different ports set in this step's inputs.
+3. A broker password, written down; the stack step asks for the same value.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
 | Port 8123 or 1883 already in use | Stop what holds it, or set different ports in this step's inputs |
-| Mosquitto restarts with `Unable to open pwfile` | The password file must be owned by the `mosquitto` user; the bundled compose file does this |
-| Home Assistant never answers on 8123 | First start takes a few minutes — read `docker logs agri-env-homeassistant` |
-| Deploy cannot connect | Check SSH and the username for your image |
+| Mosquitto restarts with `Unable to open pwfile` | Make the password file owned by the `mosquitto` user |
+| Home Assistant never answers on 8123 | First start takes a few minutes; run `docker logs agri-env-homeassistant` |
+| Deploy cannot connect | Check SSH and the username for your OS image |
 
 ### Target {#deploy_ha_tts_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy to the host over SSH.
+Deploy over SSH to a Linux host with Docker.
 
 ### Target {#deploy_ha_tts_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
 
-Run it directly on the host.
+Deploy to this machine, which must be a Linux host with Docker.
 
 ---
 
 ## Step 2: Bring Up the Gateway Radio {#r12_gateway_tts type=manual required=true config=devices/r12_gateway_tts.yaml}
 
-The concentrator is inside the R12 unit; connect the antenna, confirm the SPI
-device, and run a packet forwarder pointed at the stack.
+On the R12, connect the antenna, confirm the SPI device, and run a packet forwarder pointed at The Things Stack.
 
 ### Wiring
 
-1. Connect the LoRa antenna to its SMA jack before applying power;
-   transmitting into an open port can damage the radio.
-2. Confirm `/dev/spidev0.0` is present. The shipped image usually exposes it
-   already; if not, enable SPI and reboot.
-3. The reset, power-enable and SX1261 control lines come from the R12 product
-   wiki. Write down the pin numbers — the packet forwarder configuration
-   refers to them.
-4. Check the regional band the unit was ordered on against the band your nodes
-   use. A mismatch presents exactly as a gateway that hears nothing, and the
-   band cannot be changed in software.
+1. Connect the LoRa antenna to its SMA jack before applying power; transmitting without an antenna can damage the radio.
+2. Confirm `/dev/spidev0.0` is present; if not, enable SPI and reboot.
+3. Look up the reset, power-enable and SX1261 pin numbers in the R12 product wiki and write them down for the packet forwarder configuration.
+4. Check that the regional band the gateway was ordered on matches the nodes' band; the band cannot be changed in software.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Forwarder exits without printing an EUI | SPI is not enabled or the reset line is wrong. Confirm `/dev/spidev0.0` exists first |
-| Gateway stays disconnected in the Console | UDP 1700 is not reaching the stack host. Check the firewall before touching the radio configuration |
-| Concentrator starts but no uplinks | Band mismatch between the unit, the frequency plan and the nodes is the first thing to rule out |
+| Forwarder exits without printing an EUI | Confirm `/dev/spidev0.0` exists, then check the reset pin |
+| Gateway stays disconnected in the Console | Check that the firewall passes UDP 1700 to the stack host |
+| Concentrator starts but no uplinks | Check that the gateway band, frequency plan and node band match |
 
 ---
 
 ## Step 3: Deploy The Things Stack and the Bridge {#deploy_tts type=docker_deploy required=true config=devices/tts_stack.yaml}
 
-Bring up The Things Stack with Postgres and Redis, initialise it, and start the
-bridge beside it. Allow 15–30 min for the first run.
+Starts The Things Stack (with Postgres and Redis), initialises it, and starts the bridge. Allow 15–30 min for the first run.
 
 ### Prerequisites
 
-1. At least 10 GB free disk for the stack, database and Redis images plus the
-   database volume.
-2. The host's LAN address. The Console's OAuth URLs are built from it, so
-   `127.0.0.1` produces a Console you cannot sign in to from another machine.
+1. At least 10 GB free disk.
+2. The host's LAN IP (not `127.0.0.1`, or other machines cannot sign in to the Console).
 3. Ports 1885 (Console) and 1700/udp (packet forwarder) free.
 4. The broker address, port, username and password from step 1.
-5. The bridge image. Published at
-   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
-   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it; build your own
-   and override `BRIDGE_IMAGE` to use a local build instead.
-6. The application ID and API key are asked for here but created in step 4.
-   Deploy this step, create them in the Console, then restart the bridge with
-   `docker compose restart bridge`.
+5. The application ID and API key are created in step 4: deploy this step, create them in the Console and fill them in, then run `docker compose restart bridge`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `is-db migrate` fails | Postgres was not ready. Re-run the initialisation — every command in it is safe to repeat |
-| Console loads but sign-in loops | The OAuth URLs were built from the wrong host. Redeploy with the LAN address |
-| Bridge log shows no `TTS MQTT connected` | The application or its API key does not exist yet. Create them in step 4 and restart the bridge |
-| Stack container is killed on start | Check available memory first, then the configuration |
+| `is-db migrate` fails | Postgres was not ready; re-run the initialisation |
+| Console loads but sign-in loops | Redeploy with the host's LAN IP |
+| Bridge log shows no `TTS MQTT connected` | Create the application and API key in step 4, then restart the bridge |
+| Stack container is killed on start | Check the host's available memory |
 
 ### Target {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
 
@@ -249,32 +182,28 @@ Deploy to the gateway host over SSH.
 
 ### Target {#tts_stack_local type=local device_name="Gateway Host" config=devices/tts_stack.yaml}
 
-Run it directly on the gateway host.
+Deploy to this machine, which must be the gateway host.
 
 ---
 
 ## Step 4: Join the Sensors to The Things Stack {#join_tts type=manual required=true config=devices/join_tts_device.yaml}
 
 Create the application, install the payload formatter, and join the nodes.
-**Awaiting hardware verification** — no node was joined while packaging this.
 
 ### Prerequisites
 
 1. The gateway shows as `Connected` in the Console.
-2. Each node's DevEUI, JoinEUI and AppKey, printed on the node or readable with
-   the SenseCAP Mate app over NFC.
-3. The SenseCAP decoder for your node series, from the upstream repository. The
-   uplinks are binary — without it no entity can appear. That repository has no
-   LICENSE file and its licensing is unconfirmed; installing it is your decision.
+2. Each node's DevEUI, JoinEUI and AppKey, printed on the node or readable with the SenseCAP Mate app over NFC.
+3. The SenseCAP decoder for your node series (upstream repository); without it no entity appears. That repository has no LICENSE file and its licensing is unconfirmed.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Join request but no join accept | The keys or the regional parameters do not match the node |
-| No join request at all | The gateway is not hearing the node. Check the gateway's status before re-checking keys |
-| Uplinks arrive with no `decoded_payload` | The payload formatter is missing or attached to a different application |
-| `decoded_payload` present but no `messages` array | Wrong decoder for the node series — take the one for your series, not a neighbouring one |
+| Join request but no join accept | Check the keys and regional parameters |
+| No join request at all | Check the gateway status first to confirm it hears the node |
+| Uplinks arrive with no `decoded_payload` | Install the payload formatter on this application |
+| `decoded_payload` present but no `messages` array | Use the decoder for your node series |
 
 ---
 
@@ -284,163 +213,129 @@ Open Home Assistant and confirm the nodes arrived.
 
 ### Deployment Complete
 
-The nodes are on a network server you control, and their measurements are Home
-Assistant entities with the same ids the other presets produce.
+Each joined node is a Home Assistant device, with the same entity ids as the other presets.
 
 #### Quick verification
 
-1. Sign in to Home Assistant and complete onboarding if this is a fresh install.
-2. Settings → Devices & Services → Add integration → **MQTT**, pointed at the
-   broker from step 1.
-3. Open the MQTT integration. Each joined node is a device named
-   `SenseCAP <DevEUI>`; open one and check the units are present.
-4. Import `assets/homeassistant/agri_env_dashboard.yaml` into the Lovelace raw
-   configuration editor and replace the example DevEUIs with your own.
-5. Merge `assets/homeassistant/automations.yaml` into Home Assistant's
-   `automations.yaml`, reload automations, and set the thresholds and `for:`
-   durations for your site.
+1. Sign in to Home Assistant and complete onboarding on a fresh install.
+2. Settings → Devices & Services → Add integration → **MQTT**, pointed at the broker from step 1.
+3. Open the MQTT integration; each node is a device named `SenseCAP <DevEUI>`. Open one and check the entities carry units.
+4. Paste `assets/homeassistant/agri_env_dashboard.yaml` into the Lovelace raw configuration editor and replace the example DevEUIs with your own.
+5. Merge `assets/homeassistant/automations.yaml` into Home Assistant's `automations.yaml`, reload automations, and set the thresholds and `for:` durations for your site.
 
 #### Next steps
 
 - Set the offline threshold to match the nodes' reporting interval.
-- Keep the Console's gateway page open during the first day. A gateway that
-  drops and reconnects shows there long before it shows on the dashboard.
+- Keep the Console's gateway page open during the first day; gateway drops and reconnects show there first.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Devices appear, entities are `unavailable` | No uplink within the offline threshold — check the interval against the threshold |
-| One node missing while others work | Check that node's Live data in the Console. If uplinks arrive there, the decoder is the difference |
-| An entity has no unit | Its `measurementId` is not in `assets/config/measurements.yaml`. Add it |
-| Old entity ids keep coming back | Retained discovery configs. Clear them on the broker and clear the entity registry together |
+| Devices appear, entities are `unavailable` | Check the reporting interval against the offline threshold |
+| One node missing while others work | Check that node's Live data in the Console; if uplinks arrive there, check the decoder |
+| An entity has no unit | Add its `measurementId` to `assets/config/measurements.yaml` |
+| Old entity ids keep coming back | Clear the broker's retained messages and the entity registry together |
 
 ---
 
 ## Preset: Local ChirpStack {#chirpstack_local}
 
-ChirpStack is the network server, either built into the M2 gateway or running in
-Docker on a reComputer R12 Series gateway. This is the shortest route to a deployment
-that never touches the internet.
+ChirpStack is the network server, either built into the SenseCAP M2 gateway or running in Docker on a reComputer R12 Series gateway; data from the SenseCAP S21xx nodes never leaves the local network.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP S21xx nodes | Measure soil and air, report over LoRaWAN |
-| SenseCAP M2 gateway | Radio plus, in local mode, the network server itself |
-| reComputer R12 Series gateway | The alternative to the M2 — runs ChirpStack in Docker |
-| Linux host with Docker | Runs Home Assistant, the MQTT broker and the bridge |
-
-**Important:** switching the M2 to local mode takes it off the SenseCAP cloud.
-Confirm on the unit in front of you whether your firmware can report to the
-cloud and to a local network server at the same time before planning around it.
+- **Host:** A Linux host with Docker for Home Assistant, the MQTT broker and the bridge.
+- **Nodes:** Each node's DevEUI, JoinEUI and AppKey, with the node band matching the gateway.
+- **Known limits:** Local mode takes the M2 off the SenseCAP cloud; whether your firmware can report to both at once has to be confirmed on the unit.
 
 ## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_cs type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
 
-The same Home Assistant and broker as the other presets.
+Starts Home Assistant and a Mosquitto broker on one host.
 
 ### Prerequisites
 
-1. A Linux host with Docker running, reachable over SSH.
-2. At least 8 GB free disk.
-3. Ports 8123 and 1883 free, or different ports chosen in the step's inputs.
-4. A broker password you choose now — the ChirpStack step asks for the same value.
+1. At least 8 GB free disk on the host.
+2. Ports 8123 and 1883 free, or different ports set in this step's inputs.
+3. A broker password, written down; the ChirpStack step asks for the same value.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
 | Port 8123 or 1883 already in use | Stop what holds it, or set different ports in this step's inputs |
-| Mosquitto restarts with `Unable to open pwfile` | The password file must be owned by the `mosquitto` user; the bundled compose file does this |
-| Home Assistant never answers on 8123 | First start takes a few minutes — read `docker logs agri-env-homeassistant` |
-| Deploy cannot connect | Check SSH and the username for your image |
+| Mosquitto restarts with `Unable to open pwfile` | Make the password file owned by the `mosquitto` user |
+| Home Assistant never answers on 8123 | First start takes a few minutes; run `docker logs agri-env-homeassistant` |
+| Deploy cannot connect | Check SSH and the username for your OS image |
 
 ### Target {#deploy_ha_cs_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy to the host over SSH.
+Deploy over SSH to a Linux host with Docker.
 
 ### Target {#deploy_ha_cs_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
 
-Run it directly on the host.
+Deploy to this machine, which must be a Linux host with Docker.
 
 ---
 
 ## Step 2: Switch the M2 to Local Network Server {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
 
-Take the gateway off the cloud and turn on its built-in ChirpStack. Do this step
-**or** step 3, not both. **Awaiting hardware verification** — no M2 was switched
-while packaging this.
+Take the M2 off the cloud and turn on its built-in ChirpStack. Do this step **or** step 3, not both.
 
 ### Prerequisites
 
-1. The M2's LAN address and its web interface credentials.
-2. The model, band and firmware version from its status page, written down. The
-   menu path below is `LoRa → LoRa Network`; if what you see differs, the
-   firmware version is the first thing to quote when asking about it.
-3. An MQTT host, port, username and password for the built-in network server to
-   publish to. This is a direct MQTT connection — not Semtech UDP, not Basic
-   Station — so the bridge subscribes to that broker.
+1. The M2's LAN IP and web interface credentials.
+2. The model, band and firmware version from its status page, written down. The menu path is `LoRa → LoRa Network`; if yours differs, check the firmware version first.
+3. An MQTT host, port, username and password for the built-in network server to publish to; the bridge subscribes to that broker.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Uplinks stop appearing in the Portal | Expected — local mode takes the gateway off the cloud. Confirm on your own unit whether both can run at once |
+| Uplinks stop appearing in the Portal | Expected in local mode |
 | The built-in ChirpStack has no application | Create the tenant, application and device profile before joining nodes in step 5 |
-| Uplinks arrive with no `object` | The device profile has no codec. Paste the SenseCAP decoder for your node series into it |
+| Uplinks arrive with no `object` | Paste the SenseCAP decoder for your node series into the device profile's codec |
 
 ---
 
 ## Step 3: Bring Up the Gateway Radio {#r12_gateway_chirpstack type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
 
-The alternative to step 2: run the gateway and ChirpStack on a reComputer R12
-Series gateway instead of the M2.
+The alternative to step 2: use a reComputer R12 Series gateway instead of the M2, with the gateway and ChirpStack both running on the R12.
 
 ### Wiring
 
 1. Connect the LoRa antenna to its SMA jack before applying power.
 2. Confirm `/dev/spidev0.0` is present; if not, enable SPI and reboot.
-3. Take the reset, power-enable and SX1261 pin numbers from the R12 product
-   wiki and write them down.
-4. The regional band the unit was ordered on must match the frequency plan
-   chosen in step 4 and the band the nodes use.
+3. Look up the reset, power-enable and SX1261 pin numbers in the R12 product wiki and write them down.
+4. The regional band the gateway was ordered on must match the frequency plan chosen in step 4 and the nodes' band.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Forwarder exits without printing an EUI | SPI is not enabled or the reset line is wrong |
-| Gateway's `Last seen` never updates | Packets are not arriving — check UDP 1700 through the firewall first |
-| Concentratord starts but the gateway bridge sees nothing | Its ZMQ endpoints must be reachable from inside the container — this is the fragile part of this route. Fall back to the UDP packet forwarder to get uplinks flowing, then revisit |
+| Forwarder exits without printing an EUI | Confirm SPI is enabled, then check the reset pin |
+| Gateway's `Last seen` never updates | Check that the firewall passes UDP 1700 |
+| Concentratord starts but the gateway bridge sees nothing | Switch to the UDP packet forwarder to get uplinks flowing, then check whether the concentratord ZMQ endpoints are reachable from inside the container |
 
 ---
 
 ## Step 4: Deploy ChirpStack and the Bridge {#deploy_chirpstack type=docker_deploy required=true config=devices/chirpstack_stack.yaml}
 
-One step covers both routes. Choose `m2` to start only the bridge, or `local` to
-bring up ChirpStack on this host as well.
+Choose `m2` to start only the bridge, or `local` to start ChirpStack on this host as well.
 
 ### Prerequisites
 
-1. On the `m2` route: the M2's broker address, port, username and password from
-   step 2.
-2. On the `local` route: at least 8 GB free disk, and a frequency plan matching
-   the concentrator and the nodes.
+1. On the `m2` route: the M2's broker address, port, username and password from step 2.
+2. On the `local` route: at least 8 GB free disk, and a frequency plan matching the gateway and the nodes.
 3. The broker address, port, username and password from step 1.
-4. The bridge image. Published at
-   `sensecraft-missionpack.seeed.cn/solution/agri-env-bridge:0.1.0`
-   (linux/amd64 + linux/arm64) — `BRIDGE_IMAGE` defaults to it; build your own
-   and override `BRIDGE_IMAGE` to use a local build instead.
-5. The application ID. `+` subscribes to every application on that broker, which
-   is the simplest thing that works for a single-tenant site.
+4. The application ID; `+` subscribes to every application on that broker.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Bridge log shows no `ChirpStack MQTT connected` | On the `m2` route, re-check the address and credentials from the gateway's LoRa Network page. On the `local` route, check `docker compose --profile local-lns ps` |
-| ChirpStack services did not start on the `local` route | The profile is only activated when `lns_mode` is `local`. Re-run the step with the right choice |
-| Web interface on 8080 is unreachable | Only the `local` route runs one. On the `m2` route ChirpStack lives inside the gateway |
-| `no such image` on deploy | Only relevant with a self-built `BRIDGE_IMAGE` override — build it locally and re-run |
+| Bridge log shows no `ChirpStack MQTT connected` | On the `m2` route, re-check the address and credentials on the gateway's LoRa Network page; on the `local` route, run `docker compose --profile local-lns ps` |
+| ChirpStack services did not start on the `local` route | Confirm `lns_mode` is `local` and re-run this step |
+| Web interface on 8080 is unreachable | Only the `local` route has it; on the `m2` route, use the gateway's web interface |
+| `no such image` on deploy | With a self-built `BRIDGE_IMAGE`, build it locally first and re-run |
 
 ### Target {#chirpstack_remote type=remote device_name="Bridge Host" config=devices/chirpstack_stack.yaml default=true}
 
@@ -448,89 +343,66 @@ Deploy over SSH to the host that will run the bridge.
 
 ### Target {#chirpstack_local_target type=local device_name="Bridge Host" config=devices/chirpstack_stack.yaml}
 
-Run it directly on that host.
+Deploy to this machine, which will run the bridge.
 
 ---
 
 ## Step 5: Join the Sensors to ChirpStack {#join_chirpstack type=manual required=true config=devices/join_chirpstack_device.yaml}
 
-Register the nodes and confirm their uplinks decode. **Awaiting hardware
-verification** — no node was joined while packaging this.
+Register the nodes and confirm their uplinks decode.
 
 ### Prerequisites
 
-1. A device profile whose LoRaWAN version and regional parameters match the
-   nodes, with the SenseCAP decoder for their series in its codec field. That
-   repository has no LICENSE file and its licensing is unconfirmed; installing
-   it is your decision.
+1. A device profile whose LoRaWAN version and regional parameters match the nodes, with the SenseCAP decoder for their series in its codec field (the upstream repository has no LICENSE file and its licensing is unconfirmed).
 2. Each node's DevEUI, JoinEUI and AppKey.
 3. The gateway visible in ChirpStack with a recent `Last seen`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| ChirpStack rejects the DevEUI | It already exists in another tenant — the usual surprise when moving a node off another network |
-| Join request but no accept | Keys or regional parameters do not match |
-| Uplinks arrive with no `object.messages` | The device profile has no codec, or the wrong one for the series |
+| ChirpStack rejects the DevEUI | The DevEUI already exists in another tenant, which is common when moving nodes from another network |
+| Join request but no accept | Check the keys and regional parameters |
+| Uplinks arrive with no `object.messages` | Set the codec for the node series in the device profile |
 
 ---
 
 ## Step 6: Check the Data in Home Assistant {#verify_chirpstack type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-Open Home Assistant and confirm the nodes arrived — then, if this is an offline
-deployment, confirm it stays working with the internet cut.
+Open Home Assistant and confirm the nodes arrived; for an offline deployment, also confirm it keeps working with the internet cut.
 
 ### Deployment Complete
 
-The whole path from node to dashboard is on your own network. Nothing in it
-depends on a cloud account.
+Data from node to dashboard stays on the local network and does not depend on a cloud account.
 
 #### Quick verification
 
-1. Sign in to Home Assistant and complete onboarding if this is a fresh install.
-2. Settings → Devices & Services → Add integration → **MQTT**, pointed at the
-   broker from step 1.
-3. Open the MQTT integration. Each joined node is a device named
-   `SenseCAP <DevEUI>`; open one and check the units are present.
-4. Import `assets/homeassistant/agri_env_dashboard.yaml` into the Lovelace raw
-   configuration editor and replace the example DevEUIs with your own.
-5. Merge `assets/homeassistant/automations.yaml` into Home Assistant's
-   `automations.yaml`, reload automations, and set the thresholds and `for:`
-   durations for your site.
+1. Sign in to Home Assistant and complete onboarding on a fresh install.
+2. Settings → Devices & Services → Add integration → **MQTT**, pointed at the broker from step 1.
+3. Open the MQTT integration; each node is a device named `SenseCAP <DevEUI>`. Open one and check the entities carry units.
+4. Paste `assets/homeassistant/agri_env_dashboard.yaml` into the Lovelace raw configuration editor and replace the example DevEUIs with your own.
+5. Merge `assets/homeassistant/automations.yaml` into Home Assistant's `automations.yaml`, reload automations, and set the thresholds and `for:` durations for your site.
 
 #### Offline acceptance
 
-Run this once the dashboard is working, to confirm the deployment survives with
-no internet:
+Run this once the dashboard works:
 
 1. Note the current value and last-updated time of one entity per node.
-2. Cut the site's WAN — unplug the uplink, or block outbound traffic at the
-   firewall. Leave the local network up.
-3. Wait for at least two reporting intervals. Every entity must keep updating.
-   If any stop, something in the path is still reaching outward; the bridge log
-   and the gateway's own page will say which.
-4. Restart the gateway. Time how long it takes from power-on to the first uplink
-   appearing in Home Assistant, and record it — this is the number to quote for
-   recovery, and it is site-specific.
-5. Restore the WAN. Nothing should change, because nothing was using it.
-
-Record what you measure. This package ships no distance, node-count or
-success-rate figures because none have been measured; the numbers you take here
-are the ones that describe your site.
+2. Cut the site's WAN (unplug the uplink or block outbound traffic at the firewall) and leave the local network up.
+3. Wait for at least two reporting intervals; every entity should keep updating. If any stop, check the bridge log and the gateway's page.
+4. Restart the gateway and record the time from power-on to the first uplink in Home Assistant as the site's recovery time.
+5. Restore the WAN; the data is unaffected.
 
 #### Next steps
 
 - Set the offline threshold to match the nodes' reporting interval.
-- For an air-gapped site, pull the container images once while the host still has
-  a network, or load them from an archive — the compose files reference public
-  registries and will not pull with the WAN cut.
+- For an air-gapped site, pull the container images while the host still has a network, or load them from an archive; they cannot be pulled with the WAN cut.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Devices appear, entities are `unavailable` | No uplink within the offline threshold — check the interval against the threshold |
-| Entities stop updating when the WAN is cut | Something in the path still resolves or reaches outward. Read the bridge log and the gateway's network page |
-| An entity has no unit | Its `measurementId` is not in `assets/config/measurements.yaml`. Add it |
-| Old entity ids keep coming back | Retained discovery configs. Clear them on the broker and clear the entity registry together |
+| Devices appear, entities are `unavailable` | Check the reporting interval against the offline threshold |
+| Entities stop updating when the WAN is cut | Check the bridge log and the gateway's network page for whatever still reaches outward |
+| An entity has no unit | Add its `measurementId` to `assets/config/measurements.yaml` |
+| Old entity ids keep coming back | Clear the broker's retained messages and the entity registry together |

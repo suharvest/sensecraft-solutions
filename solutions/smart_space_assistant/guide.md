@@ -1,18 +1,10 @@
 ## Preset: Face Recognition {#face_recognition}
 
-Add face recognition to your Xiaozhi, letting it recognize family and friends.
+SenseCAP Watcher recognizes enrolled faces and greets them. Enroll and manage faces from the panel (up to 20 people), and enable, query or delete faces by voice.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | AI voice assistant with camera |
-| USB-C data cable | For firmware flashing |
-
-**What you'll get:**
-- Automatic greeting when recognized face appears
-- Enroll and manage faces from the web panel (up to 20 people)
-- Voice control to enable, query, and delete faces
-
-**Requirements:** WiFi network · [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding
+- **Devices:** SenseCAP Watcher, USB-C data cable.
+- **Network:** 2.4 GHz WiFi.
+- **Account:** [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding.
 
 ## Step 1: Flash Xiaozhi Firmware {#face_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
@@ -28,8 +20,8 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
 | No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
@@ -52,8 +44,8 @@ Write the face recognition program to the Watcher's AI chip.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Device not responding | Unplug and reconnect the USB cable |
 | Flash stuck or fails | Press the reset button and try again |
 | Flash fails repeatedly | Use a different USB cable or port |
@@ -81,9 +73,9 @@ Wake up the device by saying "Xiaozhi Xiaozhi" to test voice interaction. If it 
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| WiFi connection failed | Ensure using 2.4GHz network, check password |
+| Symptom | Fix |
+|---------|-----|
+| WiFi connection failed | Ensure using 2.4 GHz network, check password |
 | QR code not showing | Restart device, wait for boot complete |
 
 ---
@@ -108,19 +100,17 @@ Manage the face recognition database through the app interface.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | "Please complete Step X first" | Go back and select the correct serial port in the indicated step |
 | Camera not showing | Check USB connection, try refreshing ports in Step 2 |
 | Enrollment failed | Ensure good lighting, face the camera directly, try again |
 
 ### Deployment Complete
 
-Face recognition is ready! Let's try it out.
+**Step 1: Enroll faces**
 
-**Step 1: Enroll faces from the panel above**
-
-Use the **Face Database** panel to enroll family or colleagues (see "Register a New Face" above).
+Enroll faces in the **Face Database** panel (see "Register a New Face" above).
 
 **Step 2: Enable face recognition by voice**
 
@@ -132,7 +122,7 @@ Once confirmed, Watcher will automatically scan for faces while idle.
 
 **Step 3: Experience automatic recognition**
 
-Walk in front of the Watcher — it will recognize you and greet you by name!
+Walk in front of the Watcher; it recognizes you and greets you by name.
 
 **Voice Commands**
 
@@ -149,25 +139,14 @@ Walk in front of the Watcher — it will recognize you and greet you by name!
 
 ## Preset: Display Cast {#display_cast}
 
-Cast Xiaozhi conversations to TV or large display, ideal for exhibition halls, meeting rooms and multi-person scenarios.
+Show Xiaozhi conversations live on a TV or large display and connect to it by voice; narrate mode switches background images based on the conversation.
 
-| Device | Purpose |
-|--------|---------|
-| SenseCAP Watcher | AI voice assistant |
-| reComputer R1100 | Edge computing device, runs display service |
-| HDMI Display | Shows cast content |
-
-**What you'll get:**
-- Real-time conversation display on big screen
-- Fullscreen mode for presentations
-- mDNS auto-discovery - connect by voice command
-- Narrate mode - AI controls background images for storytelling & guided tours
-
-**Requirements:** All devices on same network
+- **Devices:** SenseCAP Watcher, USB-C data cable, HDMI display; the display service runs on a reComputer R1100 or a local computer.
+- **Network:** all devices on the same network.
 
 ## Step 1: Flash Watcher Firmware {#display_watcher type=esp32_usb required=true config=devices/display_watcher.yaml}
 
-Write the voice assistant program to the Watcher for display casting.
+Write the voice assistant program to the Watcher.
 
 ### Wiring
 
@@ -175,12 +154,12 @@ Write the voice assistant program to the Watcher for display casting.
 
 1. Connect Watcher to your computer using USB-C cable
 2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-B** on Windows, or the higher-numbered one on macOS / Linux (`...53` / `ttyACM1`)
-3. If not detected, try a different USB port or cable
+3. Click the Flash button
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Serial port not found | Try a different USB cable or USB port |
 | Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
 | Flash failed | Unplug and reconnect the device |
@@ -193,7 +172,7 @@ Start the display service that shows conversations on your screen.
 
 ### Target {#display_service_local type=local config=devices/display_service_deploy.yaml}
 
-Deploy the display service on your local computer.
+Deploy on your local computer; Docker must be installed and running.
 
 ### Wiring
 
@@ -205,8 +184,8 @@ Deploy the display service on your local computer.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Docker not found | Install Docker Desktop |
 | Port 8765 busy | Stop other services using this port |
 
@@ -225,15 +204,13 @@ Deploy the display service to reComputer R1100.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | SSH connection failed | Check IP address and credentials |
 | Docker pull failed | Check network connection, retry deployment |
 | Watcher can't find display | Ensure both devices on same network, check firewall |
 
 ### Deployment Complete
-
-Display cast is ready!
 
 **Test it:**
 1. Open `http://<device-ip>:8765` on display browser
@@ -242,8 +219,7 @@ Display cast is ready!
 
 **Voice commands:** "Start casting", "Stop casting", "Cast status"
 
-**Narrate Mode (New):**
-The display now supports a narrate mode where AI can control background images — ideal for presentations, storytelling, and guided tours.
+**Narrate Mode:** switches background images based on the conversation.
 
 1. Click the gear icon (top-left) to open the config panel
 2. Toggle "Enable Narrate Mode"
@@ -253,20 +229,11 @@ The display now supports a narrate mode where AI can control background images �
 
 ## Preset: reTerminal D1001 Voice Agent {#reterminal_d1001}
 
-Turn the reTerminal D1001 into a Xiaozhi voice agent with an 8" touch screen, camera face wake and a LAN push panel.
+Run a Xiaozhi voice agent on the reTerminal D1001: wake-word conversation with barge-in, on-screen settings, camera face wake, and a LAN push panel on port 8080 (markdown to the screen, on-screen choices, camera snapshot).
 
-| Device | Purpose |
-|--------|---------|
-| reTerminal D1001 | Touch-screen AI voice agent with camera |
-| USB-C data cable | For firmware flashing |
-
-**What you'll get:**
-- Voice conversations with wake word, full-duplex barge-in and multiline subtitles
-- On-screen settings: Wi-Fi (incl. static IP), rotation, volume, sleep, face wake modes
-- Face wake: on-device detection, optional remote recognizer for known-person wake
-- LAN push panel on port 8080: push markdown to the screen, on-screen choices, camera snapshot
-
-**Requirements:** 2.4GHz WiFi network · [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding
+- **Devices:** reTerminal D1001, data-capable USB-C cable.
+- **Network:** 2.4 GHz WiFi.
+- **Account:** [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding.
 
 ## Step 1: Flash D1001 Firmware {#d1001_esp32 type=esp32_usb required=true config=devices/d1001_esp32.yaml}
 
@@ -280,8 +247,8 @@ Write the voice agent firmware to the device.
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Serial port not found | Use a data-capable USB-C cable, try another port |
 | Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
 
@@ -295,7 +262,7 @@ Set up WiFi on the touch screen, then bind the device.
 
 1. The device prompts for setup on first boot
 2. Tap the network icon in the status bar
-3. Pick your 2.4GHz network and enter the password
+3. Pick your 2.4 GHz network and enter the password
 
 ### Bind Xiaozhi Account
 
@@ -313,7 +280,7 @@ Tap the person icon for face settings: mode (off / detect-wake / recognize-wake)
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| WiFi connection failed | Ensure a 2.4GHz network; recheck the password on screen |
+| Symptom | Fix |
+|---------|-----|
+| WiFi connection failed | Ensure a 2.4 GHz network; recheck the password on screen |
 | No QR code | Wait for boot to complete, or restart the device |

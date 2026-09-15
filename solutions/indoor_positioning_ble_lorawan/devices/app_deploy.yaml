@@ -14,12 +14,8 @@ detection:
     - docker_running
 
 # Image: assets/docker/docker-compose.yml pins
-# seeedcloud/sensecraft-indoor-positioning:outdoor-2026-09-05.
-# THIS TAG IS NOT PUBLISHED YET. The previously shipped tag is the pre-outdoor
-# code and does not contain GNSS positioning, geofences, floor-plan
-# georeferencing or the PMTiles basemap switch. Build and push the tag from
-# solution-indoor-positioning @ feature/outdoor, or retag locally, before
-# running this step.
+# sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-09-15
+# (solution-indoor-positioning @ feature/map-overhaul 568c9a4, arm64 + amd64).
 
 docker:
   compose_file: assets/docker/docker-compose.yml

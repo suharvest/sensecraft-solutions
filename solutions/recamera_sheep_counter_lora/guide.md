@@ -20,7 +20,7 @@ Count sheep at the gate and see real-time totals on your phone and in a Home Ass
 
 ## Step 1: Deploy Sheep Counter to reCamera {#deploy_recamera type=recamera_cpp required=true config=devices/recamera.yaml}
 
-Deploy the versioned YOLO sheep counter package and its managed boot services to your reCamera.
+Deploy the sheep counter to your reCamera; it starts automatically on boot.
 
 ### Wiring
 
@@ -33,12 +33,7 @@ Deploy the versioned YOLO sheep counter package and its managed boot services to
 
 ### Deployment Complete
 
-The deployer will:
-- Stop the default Node-RED and SSCMA services to free the NPU
-- Download and checksum-verify the `recamera-sheep-counter-lora` package from the SenseCraft CDN
-- Install its counter and supervisor as init.d services that start on every boot
-
-After deployment, SSH into the camera and tail the log to confirm it's running:
+Deployment stops the reCamera's default Node-RED service. After deployment, SSH into the camera and tail the log to confirm it's running:
 
 ```
 ssh recamera@192.168.42.1
@@ -92,7 +87,7 @@ Once configured, trigger a test crossing by briefly pulling GPIO 490 HIGH. You s
 
 ## Step 3: Deploy Gateway Bridge to reComputer {#deploy_gateway type=script required=true config=devices/gateway.yaml}
 
-Deploy the two Python bridge services (`meshtastic_mqtt_bridge` and `ha_bridge`) to your local gateway computer via an automated install script. These services listen for LoRa messages and publish sheep counts to Home Assistant via MQTT.
+Deploy the bridge services to your local gateway computer. They publish the sheep counts received over LoRa to Home Assistant via MQTT.
 
 Before you start, ensure Home Assistant is running on your LAN and its MQTT integration is connected to the same broker with discovery enabled. You will enter the gateway SSH connection, MQTT broker IP, and Meshtastic receiver serial port in the deploy form.
 
