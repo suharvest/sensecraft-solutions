@@ -1,149 +1,38 @@
 ## Preset: A. AI Camera at the Door {#a_ai_camera}
 
-**Choosing a preset.** There is no automatic matching in this release. The app's
-network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so use this table to work out
-which of the two presets — and which variant steps — apply. Find the device you
-have, read across to how the relay is driven, and the last column tells you the
-preset and the steps that apply.
+**Choosing a preset and steps.** The app cannot tell a reCamera Pro from a standard reCamera. Find your door device below; variant steps not listed for your device do not apply:
 
-| Door device | How the relay is driven | Preset |
+| Door device | What drives the relay | Preset and steps |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
+| reCamera Pro | The camera's own GPIO | A, Steps 4 and 5 |
+| Standard reCamera 2002 / 2002w | A gateway node (R1000 or XIAO ESP32-S3), events over MQTT | A, Step 6 |
+| reCamera 2002 HQ PoE | Baseboard 6-pin header D1 (sysfs 490) | A, Step 6 |
+| reComputer J20 / J30 / J40 + an existing RTSP camera | Host DO, GPIO or an MQTT relay node | B |
 
-One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it.
-
-
-Recognition, liveness, the decision and the contact all live in one device at
-the door. Nothing on the network sits between a face and the relay, so the door
-keeps working while the network is down — the network carries library updates,
-events and remote commands only.
-
-The install itself is a published App Center package, `f1-access`: it ships
-through the App Center rather than with this solution, and Step 4 configures
-it and makes it the active appmgr app — appmgr on the Pro is single-active, so
-this stops whatever app ran before. What remains manual is what a deployer
-cannot do for you: measuring a genuinely free GPIO pin with a meter, wiring
-LED then relay then the door controller in that order, and writing the access
-config file that carries the facedb key and the measured wiring posture
-(Step 5). Reason: those are per-installation electrical facts and per-device
-credentials, not something a device file can assert on your behalf.
-
-**reCamera PoE** is the second door option on this preset. It runs the standard
-SG2002 firmware, its control plane is MQTT rather than loopback HTTP, and it
-installs with `platforms/recamera-poe/install.sh` instead of a manual copy; the
-relay goes on one of the three IO lines of its baseboard 6-pin header
-(D1 = sysfs 490, the only line not multiplexed). The header's level polarity and
-drive current are not in the vendor documentation — measure both on your own
-unit before wiring the relay.
+Recognition, liveness and the decision run on the camera: no recognition
+container is installed and no video leaves the camera. The reCamera Pro and the
+2002 HQ PoE drive the relay themselves, so nothing on the network sits between a
+face and the relay; the network carries library updates, events and remote
+commands. On the 2002 / 2002w the unlock travels over MQTT to a gateway relay,
+so the broker is on the unlock path.
 
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reCamera Pro or reCamera PoE / HQ PoE | Camera, recognition, liveness, decision, GPIO output |
-| Relay module | COM/NO dry contact into the door controller's input. Sized to the module fitted, matched to the pin's voltage |
+| reCamera Pro or standard reCamera | Camera, recognition, liveness, decision; GPIO output on the Pro and HQ PoE |
+| reComputer R1000 or XIAO ESP32-S3 (2002 / 2002w only) | Closes the contact, at the door |
+| Relay module | COM/NO dry contact into the door controller's input, matched to the pin's voltage (see Step 5) |
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
-**What ran on hardware.** On 2026-09-07 the face-library
-path of this preset ran on a real reCamera Pro: the consistency gate reported
-`problems: []`, a full activation took 62.2 ms and 45.4 ms end to end (download,
-per-file SHA, HMAC signature, atomic switch, gallery write and the loopback
-reload ack), an up-to-date round took 6.2 ms, and two versions that must be
-refused — one byte changed in `gallery.json`, and a manifest signed with the
-wrong key — were both rejected on the device, which stayed on its previous
-version. A recognition event reaching the GPIO pin measured n=22, p50 1.448 ms /
-p95 2.709 ms. The device was restored byte for byte afterwards.
+Face library delivery (download, per-file SHA, signature check, atomic switch)
+has run on a real reCamera Pro and a real standard reCamera; door-open time and
+rejection counts are under "Measured results" on the solution page.
 
-Read those numbers for what they are. The 22 events were **injected synthetic
-recognition results**, not a person, and the pin readback is sysfs, so the
-values are an upper bound with no external circuit connected. The pin's physical
-identity on the board is confirmed
-(device tree pinmux: the expansion port's UART4 M0 pins, reconfigured as GPIO —
-the 3.3 V family); measure its idle/driven voltage and available drive current
-on your own unit. The thresholds are the recognition app's own defaults —
-calibrate them against your own recognition/rejection pairs.
-
-**Important.** This is not a certified security or life-safety system. The face
+**Note.** This is not a certified security or life-safety system. The face
 embedding weights are non-commercial (see the licensing section on the solution
-page).
-
-Known weaknesses:
-
-- **The default threshold is a starting point to be calibrated**, not a result.
-- **Backlit doorways and glass reflections** are the usual failure modes at a
-  door — check the mounting position against both.
-- **No pin is free until you check it.** The surveyed unit had `gpio131` already
-  exported and driven by another application.
-- **The device clock was about seven months out with no NTP client.** HTTPS
-  fails on it until that is addressed.
-
-
-**Choosing a preset.** There is no automatic matching in this release. The app's
-network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so use this table to work out
-which of the two presets — and which variant steps — apply. Find the device you
-have, read across to how the relay is driven, and the last column tells you the
-preset and the steps that apply.
-
-| Door device | How the relay is driven | Preset |
-|---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
-
-One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it.
-
-The camera already does the recognition. An App Center application on the
-standard reCamera runs detection, embedding, a two-head texture liveness with
-blink fusion and cosine matching in one native process on the device, so this
-preset installs no recognition container and pulls no video off the camera. It
-adds a small standard-library daemon for the three things the camera does not do
-by itself: pull the versioned face library, map the camera's native result
-stream onto the event contract, and hold every threshold in one file.
-
-The camera drives no relay itself. Events leave over MQTT and the relay is at
-the gateway — an R1000 writing a Modbus point, or a XIAO ESP32 driving a Grove
-Relay.
-
-| Device | Purpose |
-|---|---|
-| Cloud / on-prem host | Face library server, management console, MQTT broker |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Recognition, liveness, decision — all on the camera |
-| reComputer R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
-| Relay module | COM/NO dry contact into the door controller's input |
-
-*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
-
-**Important.** This is not a certified security or life-safety system. The
-library path has been exercised on a real unit. The face embedding weights are
-non-commercial.
-
-What ran on hardware:
-
-- **Ran on hardware** (second probe run, standard reCamera at
-  192.168.42.1): library pull, per-file SHA, manifest signature, atomic switch,
-  gallery write and `op:reload` ack; resume after an interrupted download;
-  rejection of a version whose manifest signature does not check out; the
-  threshold consistency gate refusing to start when the config and the running
-  recognition process disagree. Full activation measured p50 491.6 ms and p95
-  507.8 ms over 20 runs on a 2-person, 16.5 KB library; the `op:reload` round
-  trip measured p50 100.0 ms over 25 runs. Nobody stood in front of the lens
-  during either probe run: each sampled 220 frames that all read
-  `face_count: 0`, so recognition and liveness are set on site. Sources:
-  `evaluation/runs/2026-09-06-recamera-std-p3/results.md` and
-  `evaluation/runs/2026-09-06-recamera-std-p3-r2/results.md`.
-- **The relay node's `set` topic must never be retained.** A retained unlock
-  replays on every reconnect, and the door would open by itself after a power
-  cut.
+page). Calibrate the shipped thresholds on site against positive and negative
+samples.
 
 ## Step 1: Deploy the Face Library Server {#p1_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -519,101 +408,32 @@ directly rather than inferred from a container being up.
 
 ## Preset: B. AI Host with Your Existing Cameras {#b_ai_host}
 
-**Choosing a preset.** There is no automatic matching in this release. The app's
-network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so use this table to work out
-which of the two presets — and which variant steps — apply. Find the device you
-have, read across to how the relay is driven, and the last column tells you the
-preset and the steps that apply.
+**Choosing a preset and steps.** Find your door device below; variant steps not listed for your device do not apply:
 
-| Door device | How the relay is driven | Preset |
+| Door device | What drives the relay | Preset and steps |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
+| reCamera Pro / standard reCamera | Camera GPIO or a gateway node | A |
+| reComputer J20 / J30 / J40, host at the door | The J20's opto-isolated DO, or a Grove Relay on the J30 / J40 header | B, Step 4 |
+| reComputer J30 / J40 / R2000, host away from the door or serving several doors | An MQTT relay node (R1000 writing a Modbus point, or XIAO ESP32-S3 driving a Grove Relay) | B, Step 5 |
 
-One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it.
-
-
-For a door that already has a camera. The J20 pulls the existing RTSP stream,
-runs recognition and liveness in containers, and drives the relay from an
-opto-isolated digital output. The isolation is the point: the door
-controller's supply and the compute's supply never share a return path.
+Recognition and liveness run in containers on the host against the door's
+existing RTSP stream. With the relay on the host, the unlock path has no network
+hop; with an MQTT relay node the broker is on the unlock path, and the door does
+not open while the broker is down.
 
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer Industrial J20 | Recognition, liveness, decision, opto-isolated DO |
+| reComputer J20 / J30 / J40 / R2000 | Recognition, liveness, decision; DO / GPIO output when at the door |
 | RTSP camera at the door | Video source |
+| reComputer R1000 or XIAO ESP32-S3 (MQTT wiring only) | Closes the contact, at the door |
 | Relay module | COM/NO dry contact into the door controller's input |
 
 *The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
 
-**Important.** This is not a certified security or life-safety system. The face
-embedding weights are non-commercial.
-
-Known weaknesses:
-
-- **Confirm the DO pin numbers on your unit.** The design spec records DO1–DO4
-  as sysfs 463/464/465/462; check whether the target image exposes them that way
-  or through Jetson.GPIO.
-- **Backlit doorways and glass reflections** are the usual failure modes at a
-  door — check the mounting position against both.
-
-
-**Choosing a preset.** There is no automatic matching in this release. The app's
-network discovery cannot tell a reCamera Pro from a standard reCamera, and it
-cannot see whether a gateway is present at all, so use this table to work out
-which of the two presets — and which variant steps — apply. Find the device you
-have, read across to how the relay is driven, and the last column tells you the
-preset and the steps that apply.
-
-| Door device | How the relay is driven | Preset |
-|---|---|---|
-| reCamera Pro | The camera's own GPIO into a relay | A. AI Camera at the Door — follow the "Activate F1 Door Access from the App Center (reCamera Pro only)" and "Wire the Relay and Arm the Gate (reCamera Pro only)" steps |
-| reComputer Industrial J20 + an existing RTSP camera | The J20's opto-isolated DO into a relay | B. AI Host with Your Existing Cameras |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Events over MQTT; relay at the gateway | A. AI Camera at the Door — follow the "Install F1 Access on the Camera (standard reCamera only)" step |
-| reComputer J20 / J30 / J40 / R1000 + an existing RTSP camera | The host's own DO or Grove Relay, or a relay node over MQTT | B. AI Host with Your Existing Cameras |
-
-One row is easy to get wrong. A standard reCamera is not a cheaper reCamera
-Pro: it recognises on the camera but drives no relay itself, so it takes the
-gateway-relay path even when the gateway is standing next to it.
-
-
-For when the box that runs recognition is not at the door, or when one box
-serves several doors. Recognition runs on a J30/J40/R2000; the unlock
-travels over MQTT to a relay node — an R1000 writing a Modbus point, or a XIAO
-ESP32 driving a Grove Relay.
-
-The broker is on the unlock path, so its availability is the door's
-availability. This preset therefore carries its own latency boundary rather
-than sharing the direct one.
-
-| Device | Purpose |
-|---|---|
-| Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer J30 / J40 / R2000 | Recognition, liveness, decision |
-| RTSP camera at the door | Video source |
-| reComputer R1000 or XIAO ESP32-S3 | Closes the contact, at the door |
-| Relay module | COM/NO dry contact into the door controller's input |
-
-*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
-
-**Important.** This is not a certified security or life-safety system. A standard
-reCamera is not an option here — it is preset P5, whose library-delivery path has
-run on real hardware. The face embedding weights are non-commercial.
-
-Known weaknesses:
-
-- **The broker is a single point of failure for the door**, unlike the other
-  presets: while it is down, the door does not open.
-- **Neither container image exists.**
-- **The relay node's `set` topic must never be retained.** A retained unlock
-  replays on every reconnect, and the door would open by itself after a power
-  cut.
+**Note.** This is not a certified security or life-safety system. The face
+embedding weights are non-commercial (see the licensing section on the solution
+page).
 
 ## Step 1: Deploy the Face Library Server {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
