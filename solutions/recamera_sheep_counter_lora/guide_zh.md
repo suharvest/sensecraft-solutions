@@ -20,7 +20,7 @@
 
 ## 步骤 1: 将绵羊计数器部署到 reCamera {#deploy_recamera type=recamera_cpp required=true config=devices/recamera.yaml}
 
-将带版本的 YOLO 绵羊计数器软件包及其受管启动服务部署到 reCamera。
+将绵羊计数程序部署到 reCamera，开机自动启动。
 
 ### 接线
 
@@ -33,12 +33,7 @@
 
 ### 部署完成
 
-部署程序将：
-- 停止默认 Node-RED 和 SSCMA 服务以释放 NPU
-- 从 SenseCraft CDN 下载并校验带 SHA256 的 `recamera-sheep-counter-lora` 软件包
-- 将计数器和守护程序安装为每次开机自动启动的 init.d 服务
-
-部署完成后，通过 SSH 登录摄像头并查看日志，确认程序正在运行：
+部署会停止 reCamera 默认的 Node-RED 服务。部署完成后，通过 SSH 登录摄像头并查看日志，确认程序正在运行：
 
 ```
 ssh recamera@192.168.42.1
@@ -92,7 +87,7 @@ tail -f /var/log/sheep_counter.log
 
 ## 步骤 3: 将网关桥接服务部署到 reComputer {#deploy_gateway type=script required=true config=devices/gateway.yaml}
 
-通过自动安装脚本将两个 Python 桥接服务（`meshtastic_mqtt_bridge` 和 `ha_bridge`）部署到本地网关电脑。这些服务监听 LoRa 消息，并通过 MQTT 将羊只计数发布到 Home Assistant。
+将桥接服务部署到本地网关电脑，把 LoRa 收到的羊只计数通过 MQTT 发布到 Home Assistant。
 
 开始部署前，请确认 Home Assistant 已在局域网中运行，且 MQTT 集成已连接到同一 Broker 并启用自动发现。部署表单中需要填写网关 SSH 连接、MQTT Broker IP 和 Meshtastic 接收器串口。
 
