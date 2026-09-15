@@ -87,11 +87,11 @@ intro:
       name: SenseCAP BC03 Indoor Bluetooth Beacon
       image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-bc03-bluetooth-beacon.jpg
       product_url: https://www.seeedstudio.com/Indoor-Bluetooth-Beacon-BC03-p-6732.html
-      description: Bluetooth LE 5.0 beacon with iBeacon/Eddystone support, up to 2 years battery life
+      description: Bluetooth LE 5.0 beacon with iBeacon/Eddystone support, 5+ years battery life
       name_i18n:
         zh: SenseCAP BC03 室内蓝牙信标
       description_i18n:
-        zh: 蓝牙 LE 5.0 信标，支持 iBeacon/Eddystone，电池寿命长达 2 年
+        zh: 蓝牙 LE 5.0 信标，支持 iBeacon/Eddystone，电池寿命 5 年以上
     sensecap_m2_gateway:
       description: LoRaWAN gateway for indoor positioning; choose the regional frequency variant when purchasing
       description_i18n:
@@ -134,7 +134,7 @@ intro:
           device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
-          default_count: 6
+          default_count: 9
           description: 'Recommended: 3-5 per zone for accurate positioning'
           name_i18n:
             zh: BLE 信标
@@ -187,7 +187,7 @@ intro:
           device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
-          default_count: 15
+          default_count: 23
           description: 'Recommended: 3-5 per zone for accurate positioning'
           name_i18n:
             zh: BLE 信标
@@ -238,7 +238,7 @@ intro:
           device_ref: external_bc03_beacon
           min_count: 3
           max_count: 100
-          default_count: 30
+          default_count: 36
           description: 'Recommended: 3-5 per zone for accurate positioning'
           name_i18n:
             zh: BLE 信标
