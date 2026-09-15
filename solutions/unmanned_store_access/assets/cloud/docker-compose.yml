@@ -103,7 +103,11 @@ services:
       USA_MATCH_THRESHOLD: ${USA_MATCH_THRESHOLD:?set USA_MATCH_THRESHOLD}
       # Written into each manifest and compared byte for byte by devices, so a
       # library built for one embedding model cannot be loaded by another.
-      USA_MODEL_TAG: ${USA_MODEL_TAG:-buffalo_l@face_rec_api}
+      USA_MODEL_TAG: ${USA_MODEL_TAG:?set USA_MODEL_TAG}
+      # Without these two the console refuses to start: FaceDbStore rejects
+      # a version whose model or weights provenance is "unknown".
+      USA_MODEL_SHA: ${USA_MODEL_SHA:?set USA_MODEL_SHA}
+      USA_WEB_CONFIG: /app/config/web-config.json
       # MQTT control-plane endpoints for the device pages: a JSON list of
       # {device_id, host, port, cmd_topic, ack_topic, timeout_s}. Empty means
       # the device control and status pages have nothing to show.
@@ -128,6 +132,8 @@ services:
       # environment variable is readable from `docker inspect` and lands in
       # process listings. The deployment step writes it with mode 600.
       - ./secret/facedb.key:/run/secrets/facedb.key:ro
+      # license_block has no environment variable of its own.
+      - ./config/web-config.json:/app/config/web-config.json:ro
     depends_on:
       facedb:
         condition: service_started
