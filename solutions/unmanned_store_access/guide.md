@@ -1,13 +1,12 @@
 ## Preset: A. AI Camera at the Door {#a_ai_camera}
 
-**Choosing a preset and steps.** The app cannot tell a reCamera Pro from a standard reCamera. Find your door device below; variant steps not listed for your device do not apply:
+**Steps by door device.** This preset has three door devices, each with its own install steps:
 
-| Door device | What drives the relay | Preset and steps |
+| Door device | What drives the relay | Steps |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO | A, Steps 4 and 5 |
-| Standard reCamera 2002 / 2002w | A gateway node (R1000 or XIAO ESP32-S3), events over MQTT | A, Step 6 |
-| reCamera 2002 HQ PoE | Baseboard 6-pin header D1 (sysfs 490) | A, Step 6 |
-| reComputer J20 / J30 / J40 + an existing RTSP camera | Host DO, GPIO or an MQTT relay node | B |
+| reCamera Pro | The camera's own GPIO | Steps 4 and 5 |
+| Standard reCamera 2002 / 2002w | A gateway node (R1000 or XIAO ESP32-S3), events over MQTT | Step 6 |
+| reCamera 2002 HQ PoE | Baseboard 6-pin header D1 (sysfs 490) | Step 6 |
 
 Recognition, liveness and the decision run on the camera: no recognition
 container is installed and no video leaves the camera. The reCamera Pro and the
@@ -413,13 +412,12 @@ directly rather than inferred from a container being up.
 
 ## Preset: B. AI Host with Your Existing Cameras {#b_ai_host}
 
-**Choosing a preset and steps.** Find your door device below; variant steps not listed for your device do not apply:
+**Steps by relay wiring.**
 
-| Door device | What drives the relay | Preset and steps |
+| Host location | What drives the relay | Steps |
 |---|---|---|
-| reCamera Pro / standard reCamera | Camera GPIO or a gateway node | A |
-| reComputer J20 / J30 / J40, host at the door | The J20's opto-isolated DO, or a Grove Relay on the J30 / J40 header | B, Step 4 |
-| reComputer J30 / J40 / R2000, host away from the door or serving several doors | An MQTT relay node (R1000 writing a Modbus point, or XIAO ESP32-S3 driving a Grove Relay) | B, Step 5 |
+| Host at the door | The J20's opto-isolated DO, or a Grove Relay on the J30 / J40 header | Step 4 |
+| Host away from the door, or serving several doors | An MQTT relay node (R1000 writing a Modbus point, or XIAO ESP32-S3 driving a Grove Relay) | Step 5 |
 
 Recognition and liveness run in containers on the host against the door's
 existing RTSP stream. With the relay on the host, the unlock path has no network
@@ -429,7 +427,7 @@ not open while the broker is down.
 | Device | Purpose |
 |---|---|
 | Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer J20 / J30 / J40 / R2000 | Recognition, liveness, decision; DO / GPIO output when at the door |
+| reComputer J20 / J30 / J40 / R1000 | Recognition, liveness, decision; DO / GPIO output when at the door |
 | RTSP camera at the door | Video source |
 | reComputer R1000 or XIAO ESP32-S3 (MQTT wiring only) | Closes the contact, at the door |
 | Relay module | COM/NO dry contact into the door controller's input |

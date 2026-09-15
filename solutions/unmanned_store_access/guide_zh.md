@@ -1,13 +1,12 @@
 ## 套餐: A. AI 摄像头直控 {#a_ai_camera}
 
-**选套餐与步骤。** App 分不出 reCamera Pro 与标准版 reCamera，按手上的门口设备对照下表，表里没列出的变体步骤不用做：
+**按门口设备选步骤。** 本套餐的门口设备有三种，各走不同的安装步骤：
 
-| 门口设备 | 继电器由谁驱动 | 套餐与步骤 |
+| 门口设备 | 继电器由谁驱动 | 适用步骤 |
 |---|---|---|
-| reCamera Pro | 摄像头自己的 GPIO | A，步骤 4、5 |
-| 标准版 reCamera 2002 / 2002w | 网关侧节点（R1000 或 XIAO ESP32-S3），事件经 MQTT 发出 | A，步骤 6 |
-| reCamera 2002 HQ PoE | 底板 6-pin 排针 D1（sysfs 490） | A，步骤 6 |
-| reComputer J20 / J30 / J40 + 现有 RTSP 摄像头 | 主机 DO、GPIO 或 MQTT 继电器节点 | B |
+| reCamera Pro | 摄像头自己的 GPIO | 步骤 4、5 |
+| 标准版 reCamera 2002 / 2002w | 网关侧节点（R1000 或 XIAO ESP32-S3），事件经 MQTT 发出 | 步骤 6 |
+| reCamera 2002 HQ PoE | 底板 6-pin 排针 D1（sysfs 490） | 步骤 6 |
 
 识别、活体与判定在摄像头上完成，不装识别容器，也不从摄像头拉视频。reCamera Pro 与
 2002 HQ PoE 直接驱动继电器，人脸到继电器之间没有网络环节；网络只承载人脸库更新、事件与
@@ -339,13 +338,12 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 
 ## 套餐: B. AI 主机 + 现有摄像头 {#b_ai_host}
 
-**选套餐与步骤。** 按手上的门口设备对照下表，表里没列出的变体步骤不用做：
+**按继电器接法选步骤。**
 
-| 门口设备 | 继电器由谁驱动 | 套餐与步骤 |
+| 主机位置 | 继电器由谁驱动 | 适用步骤 |
 |---|---|---|
-| reCamera Pro / 标准版 reCamera | 摄像头 GPIO 或网关侧节点 | A |
-| reComputer J20 / J30 / J40，主机在门边 | J20 的光隔 DO，或 J30 / J40 排针上的 Grove Relay | B，步骤 4 |
-| reComputer J30 / J40 / R2000，主机不在门边或一台管多道门 | MQTT 继电器节点（R1000 写 Modbus 点位，或 XIAO ESP32-S3 驱动 Grove Relay） | B，步骤 5 |
+| 主机在门边 | J20 的光隔 DO，或 J30 / J40 排针上的 Grove Relay | 步骤 4 |
+| 主机不在门边，或一台管多道门 | MQTT 继电器节点（R1000 写 Modbus 点位，或 XIAO ESP32-S3 驱动 Grove Relay） | 步骤 5 |
 
 识别与活体跑在主机的容器里，拉门口现有摄像头的 RTSP 流。继电器接在主机上时，开门路径
 不经过网络；用 MQTT 继电器节点时，broker 在开门路径上，broker 不可用期间门开不了。
@@ -353,7 +351,7 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 设备 | 作用 |
 |---|---|
 | 云端 / 本地服务器 | 人脸库服务、管理界面、MQTT broker |
-| reComputer J20 / J30 / J40 / R2000 | 识别、活体、判定；主机在门边时输出 DO / GPIO |
+| reComputer J20 / J30 / J40 / R1000 | 识别、活体、判定；主机在门边时输出 DO / GPIO |
 | 门口的 RTSP 摄像头 | 视频源 |
 | reComputer R1000 或 XIAO ESP32-S3（仅 MQTT 接法） | 在门口闭合触点 |
 | 继电器模块 | COM/NO 干接点接到门控输入 |
