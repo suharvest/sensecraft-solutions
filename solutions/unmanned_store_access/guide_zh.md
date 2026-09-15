@@ -220,7 +220,7 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 2. 2002 HQ PoE：排针 D1 → 继电器 SIG，3.3 V → VCC，GND → GND。想先测试可改接 LED 加限流电阻到 D1 与 GND。
 3. 2002 / 2002w：摄像头没有排针，继电器接到 R1000 或 XIAO ESP32-S3 继电器节点上。
 4. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
-5. 在表单中按实际硬件选择摄像头型号，填写设备 ID、执行器 ID、人脸库地址、匹配阈值（与步骤 1 相同），然后部署。
+5. 在表单中按实际硬件选择摄像头型号，填写设备 ID 和执行器 ID。人脸库地址、匹配阈值、签名密钥已从步骤 1 带入；只有摄像头访问服务器的地址不同才需要改地址。然后部署。
 
 ### 故障排查
 
@@ -228,7 +228,7 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 |---|---|
 | 摄像头上仍是原厂 face-recognition 应用 | 在摄像头上移除 `face-recognition` 后重新部署。 |
 | `agent.log` 结尾是 `thresholds are not single-sourced` | 重新部署这一步，不要手动修改 `/userdata/f1-access/face-recognition.conf`。 |
-| 一个库版本都没激活 | 把匹配阈值改成步骤 1 的值后重新部署。 |
+| 一个库版本都没激活 | 确认摄像头能访问人脸库地址；匹配阈值若被改成与步骤 1 不同的值，改回后重新部署。 |
 | 2002 / 2002w 上提示 `mqtt.host` 不匹配 | 在 `/userdata/f1-access/face-recognition.conf` 中设置 `[mqtt] host = localhost`。 |
 | 启动时门开了一次 | 摄像头型号或有效电平选错，接门禁控制器之前先改正。 |
 

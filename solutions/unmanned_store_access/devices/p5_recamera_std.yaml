@@ -131,6 +131,15 @@ actions:
         set_conf facedb url '{{facedb_url}}'
         set_conf facedb key_id 'facedb-key-1'
         set_conf recognition match_threshold '{{match_threshold}}'
+        # spec §10.5: the agent compares its own conf against the recogniser's
+        # actual argv on start and refuses to run when they disagree
+        # ("thresholds are not single-sourced"). The recogniser's --match comes
+        # from /usr/share/f1-access/recogniser.conf (shipped 0.40); K92f1-access
+        # sources that first and then $RUNDIR/recogniser.conf, so writing the
+        # single overridden key here keeps both sides on the value entered
+        # above. Without it, any threshold other than 0.40 installs fine and
+        # then never starts.
+        printf 'MATCH_THRESHOLD=%s\n' '{{match_threshold}}' > /userdata/f1-access/recogniser.conf
         # 2002 HQ PoE drives its relay from the on-camera GPIO header; a plain
         # 2002/2002w has no such header and must leave [gpio] disabled, or the
         # first start tries to export a pin that is not wired to anything.
@@ -142,6 +151,16 @@ actions:
       name_i18n:
         zh: 配置门禁代理
 
+# Face Library URL, Match Threshold and the signing key are carried over from
+# Step 1 (p5_cloud_facedb) by default_template; only the camera address, its
+# password, the variant and the two per-door identifiers are per-device.
+#
+# actuator_id stays an input on purpose. It names the relay channel this camera
+# actually opens: on a 2002 HQ PoE that is the camera's own header, but on a
+# 2002 / 2002w the relay sits on a separate MQTT node whose id is chosen when
+# that node is flashed, so there is nothing earlier in this preset to derive it
+# from -- and a wrong value here means the event log names a door that is not
+# the one that opened.
 user_inputs:
   - id: host
     name: Device IP Address
@@ -218,8 +237,12 @@ user_inputs:
   - id: facedb_url
     name: Face Library URL
     type: text
+    # Filled in from the Step 1 server address and library port. Typing it by
+    # hand is the most common way this step ends with a device that installs
+    # cleanly and then never activates a library version.
+    default_template: "http://{{p5_cloud_facedb.host}}:{{facedb_port}}"
     placeholder: "http://192.168.1.50:8080"
-    description: "Address of the face library server, e.g. http://<server IP>:8080"
+    description: The server from Step 1. Leave the filled-in value unless you deployed Step 1 on this computer; then enter this computer's IP.
     required: true
     row: 2
     validation:
@@ -227,7 +250,7 @@ user_inputs:
     name_i18n:
       zh: 人脸库地址
     description_i18n:
-      zh: 人脸库服务地址，例如 http://<服务器 IP>:8080
+      zh: 步骤 1 的服务器。步骤 1 部署在这台电脑上时，填这台电脑的 IP。
   - id: facedb_signing_key
     name: Face Library Signing Key
     type: password
@@ -243,7 +266,11 @@ user_inputs:
     name: Match Threshold
     type: text
     default: "0.40"
-    description: Same value as in the face library step
+    # Carried over from Step 1. A device whose threshold differs from the
+    # library's rejects every version the server publishes, so this is not a
+    # value to re-type per door.
+    default_template: "{{match_threshold}}"
+    description: Carried over from Step 1. The device rejects library versions built at a different threshold.
     required: true
     row: 3
     validation:
@@ -251,7 +278,7 @@ user_inputs:
     name_i18n:
       zh: 匹配阈值
     description_i18n:
-      zh: 与人脸库服务步骤填同一个值
+      zh: 沿用步骤 1 的值。与步骤 1 不一致时设备会拒绝服务端发布的库版本。
 
 post_deployment:
   open_browser: false

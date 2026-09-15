@@ -220,7 +220,7 @@ Installs the door access app on the reCamera and writes its face library setting
 2. 2002 HQ PoE: wire header D1 → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a resistor between D1 and GND instead.
 3. 2002 / 2002w: the camera has no header; wire the relay to the R1000 or XIAO ESP32-S3 relay node.
 4. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
-5. In the form, set Camera Variant to match the hardware, fill Device ID, Actuator ID, Face Library URL and Match Threshold (same as Step 1), then deploy.
+5. In the form, set Camera Variant to match the hardware and fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
 
 ### Troubleshooting
 
@@ -228,7 +228,7 @@ Installs the door access app on the reCamera and writes its face library setting
 |---|---|
 | The stock face-recognition app is still on the camera | Remove `face-recognition` on the camera, then deploy again. |
 | `agent.log` ends with `thresholds are not single-sourced` | Deploy this step again; do not hand-edit `/userdata/f1-access/face-recognition.conf`. |
-| No library version ever activates | Set Match Threshold to the Step 1 value and deploy again. |
+| No library version ever activates | Check the camera reaches Face Library URL; if Match Threshold was changed away from the Step 1 value, set it back and deploy again. |
 | `mqtt.host` mismatch on a 2002 / 2002w | Set `[mqtt] host = localhost` in `/userdata/f1-access/face-recognition.conf`. |
 | The door opens once at start-up | Camera Variant or active level is wrong. Fix it before connecting the door controller. |
 
