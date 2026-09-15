@@ -39,16 +39,16 @@ Tested on reCamera Pro; the open time excludes the mechanical action of the rela
 | MQTT "access/v1/commands/{door_id}" | Remote unlock / hold-open / close commands |
 | HTTP "/api/…" | Console API: people, devices, events, record verification |
 
-## Two routes
+## Three presets
 
-| | A. AI camera at the door | B. AI host + existing cameras |
-|---|---|---|
-| Device | reCamera Pro, or standard reCamera | reComputer J20 / J30 / J40 / R1000 |
-| Camera | Built into the device | RTSP cameras already at the door |
-| Does the unlock path go over the network | Not on Pro; over MQTT on standard | Not when the relay is wired to the host |
+| | A. reCamera Pro at the door | B. Standard reCamera | C. AI host + existing cameras |
+|---|---|---|---|
+| Device | reCamera Pro | reCamera 2002 / 2002w / 2002 HQ PoE | reComputer J20 / J30 / J40 / R1000 |
+| Camera | Built into the device | Built into the device | RTSP cameras already at the door |
+| Does the unlock path go over the network | No | 2002 HQ PoE: no; 2002 / 2002w: over MQTT | Not when the relay is wired to the host |
 
-**Choose A**: there is no camera at the door yet and you want one device to do it all.
-**Choose B**: the door already has a camera, or one host needs to manage several doors.
+**Choose A or B**: there is no camera at the door yet; pick by the camera model you have.
+**Choose C**: the door already has a camera, or one host needs to manage several doors.
 
 ## Usage Notes
 

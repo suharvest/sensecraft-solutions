@@ -1,20 +1,11 @@
-## 套餐: A. AI 摄像头直控 {#a_ai_camera}
-
-**按门口设备选步骤**
-
-| 门口设备 | 继电器接在哪 | 适用步骤 |
-|---|---|---|
-| reCamera Pro | 摄像头 GPIO | 步骤 4、5 |
-| 标准版 reCamera 2002 / 2002w | 网关节点（R1000 或 XIAO ESP32-S3），经 MQTT 收开门指令；broker 不可用时门打不开 | 步骤 6 |
-| reCamera 2002 HQ PoE | 底板 6-pin 排针 D1 | 步骤 6 |
+## 套餐: A. reCamera Pro 直控 {#a_ai_camera}
 
 **需要准备**
 
 | 设备 | 用途 |
 |---|---|
 | Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
-| reCamera Pro 或标准版 reCamera | 识别人脸、判定是否开门 |
-| R1000 或 XIAO ESP32-S3（仅 2002 / 2002w） | 驱动继电器 |
+| reCamera Pro | 识别人脸、判定是否开门，GPIO 输出到继电器 |
 | 继电器模块 | 干接点接门禁控制器的开门输入 |
 
 ## 步骤 1: 部署人脸库服务 {#p1_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
@@ -41,7 +32,15 @@
 | 出现 `NTP is not synchronised` 警告 | 现在就修，不要拖。下游每台设备的时间戳都依赖这台主机。 |
 | 8080 端口被占用 | 在向导里改人脸库端口；设备侧会拿到同一个值。 |
 
-## 步骤 2: 部署管理界面 {#p1_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml}
+### 部署目标 {#p1_facedb_remote type=remote config=devices/cloud_facedb.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p1_facedb_local type=local config=devices/cloud_facedb.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
+
+## 步骤 2: 部署管理界面 {#p1_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml target_inherit_from=p1_cloud_facedb}
 
 配置三档角色 token，并在同一台主机、同一个 compose 项目里拉起管理界面，
 使它与服务端共用人脸库卷。
@@ -62,6 +61,14 @@
 | 匿名 `GET /api/events` 返回 200 | token 闸门没挡在数据前面。停下来排查——这一步会打印这条检查的结果。 |
 | 界面起来了但人员库是空的 | 首次注册之前这是正确的。 |
 | 注册过的人一直认不出来 | 识别服务地址留空导致界面退化成假的取向量实现。填上它并重新注册——但先看下面 P1 的已知限制，不要假设这就修好了。 |
+
+### 部署目标 {#p1_web_remote type=remote config=devices/cloud_web.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p1_web_local type=local config=devices/cloud_web.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
 
 ## 步骤 3: 注册人员 {#p1_register type=web_dashboard required=true config=devices/register_person.yaml}
 
@@ -95,7 +102,7 @@ reCamera 路径（P5）不受影响**——它在设备上做嵌入，不经这�
 | 回滚被拒并点名了某个人 | 删除屏障。改为生成一个新版本；这条拒绝正是机制在起作用。 |
 | 设备报 `model_tag` 不匹配 | 库是按另一个嵌入模型构建的。按门上真正跑的那个模型重建。 |
 
-## 步骤 4: 从应用市场激活 F1 门禁（仅 reCamera Pro） {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+## 步骤 4: 从应用市场激活 F1 门禁 {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
 
 `f1-access` 是一个已发布的 reCamera Pro App Center 包（catalog id `f1-access`），
 把人脸识别应用的识别级联与门控逻辑合成一体：驱动一路 sysfs GPIO 干接点，并发布
@@ -129,7 +136,7 @@ reCamera 路径（P5）不受影响**——它在设备上做嵌入，不经这�
 | `require_installed` 校验失败 | 这台设备的应用市场里还没有 `f1-access`。先在应用市场装上——这一步不能代装包。 |
 | 这一步跑完后仍是别的应用在跑 | 查 `GET /api/appMgr/list` 的 `last_exit`；`entry.cgi` 的 `/model/inference` 端点在长时间高负载后可能挂住，让 `activate` 报超时。重启即可恢复。 |
 
-## 步骤 5: 接线继电器并让门禁上线（仅 reCamera Pro） {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
+## 步骤 5: 接线继电器并让门禁上线 {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
 以 root 登录摄像头，找到并实测一个空闲引脚，按 LED → 继电器 → 门控的顺序接线，
 写入门禁配置与 facedb 密钥，并确认门禁真的上线了——不只是应用在跑。
@@ -187,7 +194,165 @@ reCamera 路径（P5）不受影响**——它在设备上做嵌入，不经这�
 | 解析配置时 `gpio = 131` 被拒 | 它在 `KNOWN_BUSY_GPIO` 里——真机上已被另一个应用 export。 |
 | `pulse_ms must be 500..5000 ms` | 脉宽超出合法范围。 |
 
-## 步骤 6: 在摄像头上安装 F1 门禁（仅标准版 reCamera） {#p5_install type=recamera_cpp required=false config=devices/p5_recamera_std.yaml}
+## 步骤 6: 核对人脸库是否已到设备 {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
+这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
+导致的门打不开，看起来一模一样，只有这一页能把两者分开。
+
+### 前置条件
+
+- 上一步的门口设备已上电、在网、正在运行。
+- 至少注册了一个人，这样才有版本可激活。
+- 一个 viewer token；对有 MQTT 命令通道的设备，还需要该设备已列在管理界面的
+  `USA_DEVICE_ENDPOINTS` 里。列表为空时这一页看起来像"没有设备"，而不是"没配"。
+
+### 故障排查
+
+| 问题 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端的 `current` | 设备还没轮询到。默认轮询周期 30 s，等一下再刷新。 |
+| `desired_version` 对上了但 `active_version` 落后 | 设备看到了这个版本却没激活成功。`last_error` 会说原因——通常是签名 key id 或密钥与管理界面不一致、`match_threshold` 与 `USA_MATCH_THRESHOLD` 不等，或者 manifest 里没有 `artifacts.gallery_v2`。 |
+| `signature.verified` 是 `null` | 还没校验过任何版本，不是验签失败。 |
+| `clock.valid` 是 `false` | 没有 NTP 的设备上这是预期内的。完整性边界在 manifest 签名上，不在时钟上。 |
+| 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
+| 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
+
+## 步骤 7: 端到端验证这道门 {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+
+已注册人员开门一次；照片完全打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
+
+### 前置条件
+
+- 步骤 1–5 已完成，门控已接上，且有人已注册在当前库版本里。
+- 同一个人的一张打印照片。
+- 一个 operator token 与一个 viewer token，用来双向检查角色闸门。
+
+### 部署完成
+
+门已装好，四条要紧的行为都是直接观察到的，而不是从"容器起来了"推断出来的。
+
+#### 快速验证
+
+1. 复现纯软件那一半，不需要硬件：在上游仓库的克隆里跑
+   `uv run python tools/verify_software_loop.py`。参考运行的结果是 52 项全过。
+2. 以已注册身份站到摄像头前。预期恰好一次配置宽度的触点闭合、界面上一条放行事件、
+   审计链增加一条记录。
+3. 在去抖窗口内退开再上前。预期第二条事件 reason 为 `debounced`，且**没有**第二个脉冲。
+4. 把打印照片举给摄像头。预期 `liveness_failed` 且没有脉冲。如果门开了，立刻停下来：
+   检查识别服务是否报告活体已加载。
+5. 以 operator 身份在界面上下发一次远程开门。预期一次闭合和一张走到 executed 的回执。
+   再以 viewer 身份重试：预期被拒绝。
+6. 删掉一位已注册人员，然后尝试回滚到仍包含此人的版本。预期一条点名该人员的拒绝，
+   且当前版本不变。
+7. 跑一次界面的审计校验。预期链条校验通过。
+
+#### 后续步骤
+
+- 在装好的摄像头上用正负对标定阈值。随包的值是起点，不是结论。
+- 换掉随包的 broker 配置。它是匿名明文的；开门 topic 接受匿名发布就谈不上门禁。
+  改成 TLS、按设备身份与 topic ACL。
+- 在管理界面前面放一个终止 TLS 的反向代理。
+- 把你实测的东西——引脚、电平、电流、脉宽、触点、门控类型——随安装记录留档。
+  下一个接手的人没法从软件里把它们反推出来。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 照片能开门 | 活体不在链路上。检查 `/health` 是否报告活体已加载；适配层本应在活体未加载时拒绝启动。在解决之前把这道门停用。 |
+| 远程开门回执是 executed，但触点没闭合 | 判定到达了执行器而执行器没动作。查引脚的健康输出与接线，不是查 broker。 |
+| 重放的指令把门开了两次 | 重放表不在链路上。指令闸门的其余部分也就都不可信了；停下来排查。 |
+| 审计校验失败 | 要么日志被改过，要么有两个进程在写它。两种都要紧。把文件留着。 |
+| 事件停了但门还能开 | broker 连接断了。这是预期行为——这个套餐的开门路径不过网络——但界面上应该能靠 retained 遗嘱看到设备已离线。 |
+
+## 套餐: B. 标准版 reCamera {#a_recamera_std}
+
+**需要准备**
+
+| 设备 | 用途 |
+|---|---|
+| Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
+| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 识别人脸、判定是否开门 |
+| R1000 或 XIAO ESP32-S3（仅 2002 / 2002w） | 经 MQTT 收开门指令并驱动继电器；broker 不可用时门打不开 |
+| 继电器模块 | 干接点接门禁控制器的开门输入；2002 HQ PoE 的继电器接底板排针 D1 |
+
+## 步骤 1: 部署人脸库服务 {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
+
+同一台云端主机，与其他套餐是同一步。拉起人脸库服务、broker 与管理界面容器，并写入签名密钥。
+
+### 前置条件
+
+- 一台装了 Docker 与 compose 插件、且从门口可达的 Linux 主机。
+- **它的时钟必须准确**——门口设备从它取时间修正。
+- **容器镜像已发布**，compose 文件的默认值已经指向它。
+- 一个签名密钥：`openssl rand -hex 32`。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 拉取镜像失败 | 镜像推送前这是预期结果。在主机上构建并重打 tag。 |
+| 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
+| 人脸库接口返回 404 | 首次注册之前这是正确的。 |
+| 出现 `NTP is not synchronised` 警告 | 在部署任何一道门之前先修好。 |
+| 8080 端口被占用 | 改人脸库端口；设备侧会拿到同一个值。 |
+
+### 部署目标 {#p5_facedb_remote type=remote config=devices/cloud_facedb.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p5_facedb_local type=local config=devices/cloud_facedb.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
+
+## 步骤 2: 部署管理界面 {#p5_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml target_inherit_from=p5_cloud_facedb}
+
+配置三档角色 token，并在服务端旁边拉起管理界面。
+
+### 前置条件
+
+- 步骤 1 已完成且人脸库接口有响应。
+- 已定好 admin token，以及可选的 operator 与 viewer token。
+- 在本地网络之外能访问之前，先放一个终止 TLS 的反向代理。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 提示「人脸库服务没有响应」 | 步骤 1 没做完，或端口不一致。 |
+| 匿名 `GET /api/events` 返回 200 | token 闸门没挡在数据前面。排查。 |
+| 界面起来了但人员库是空的 | 首次注册之前这是正确的。 |
+| 注册过的人一直认不出来 | 用了假的取向量实现。填上识别服务地址并重新注册。 |
+
+### 部署目标 {#p5_web_remote type=remote config=devices/cloud_web.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p5_web_local type=local config=devices/cloud_web.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
+
+## 步骤 3: 注册人员 {#p5_register type=web_dashboard required=true config=devices/register_person.yaml}
+
+打开管理界面的人员库。每人 3 到 8 张照片；每次注册生成一个新版本。
+
+### 前置条件
+
+- 步骤 2 里的 admin token。
+- 每人 3–8 张照片。
+- 已配好识别服务地址，确保向量来自真实模型。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| 注册被拒，提示图片少于三张 | 这是设计如此。至少给三张。 |
+| 新版本已发布，门仍然拒绝这个人 | 等一个轮询周期加下载时间。 |
+| 回滚被拒并点名了某个人 | 删除屏障。改为生成一个新版本。 |
+| 设备报 `model_tag` 不匹配 | 库是按另一个嵌入模型构建的。 |
+
+## 步骤 4: 在摄像头上安装 F1 门禁 {#p5_install type=recamera_cpp required=true config=devices/p5_recamera_std.yaml}
 
 安装 `.deb`，把五个 cvimodel 放到 `/userdata/local/models/`，再把人脸库签名密钥与
 现场专属字段写进已生成的配置文件。
@@ -254,7 +419,7 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 普通 2002/2002w 上 `mqtt.host` 不匹配 | 闸门按字面比较配置的 `[mqtt] host` 与识别进程实际的 `-m` 参数；出厂默认是 `localhost`，不是 `127.0.0.1`。 |
 | 设备上版本目录越堆越多 | 激活成功后由 `[facedb] keep_versions`（默认 3）约束。回滚不依赖它们——服务端会把旧内容以新版本号重新发布。 |
 
-## 步骤 7: 核对人脸库是否已到设备 {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+## 步骤 5: 核对人脸库是否已到设备 {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
 打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
 这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
@@ -278,62 +443,50 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
 | 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
 
-## 步骤 8: 端到端验证这道门 {#p1_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 6: 端到端验证这道门 {#p5_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
-已注册人员开门一次；照片完全打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
+已注册人员开门一次；照片打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
 
 ### 前置条件
 
-- 步骤 1–5 已完成，门控已接上，且有人已注册在当前库版本里。
+- 步骤 1–4 已完成，门控已接上，且有人已注册在当前版本里。
 - 同一个人的一张打印照片。
-- 一个 operator token 与一个 viewer token，用来双向检查角色闸门。
+- 一个 operator token 与一个 viewer token。
 
 ### 部署完成
 
-门已装好，四条要紧的行为都是直接观察到的，而不是从"容器起来了"推断出来的。
+门已装好，四条要紧的行为都是直接观察到的。
 
 #### 快速验证
 
-1. 复现纯软件那一半，不需要硬件：在上游仓库的克隆里跑
+1. 复现纯软件那一半：在上游仓库的克隆里跑
    `uv run python tools/verify_software_loop.py`。参考运行的结果是 52 项全过。
-2. 以已注册身份站到摄像头前。预期恰好一次配置宽度的触点闭合、界面上一条放行事件、
-   审计链增加一条记录。
-3. 在去抖窗口内退开再上前。预期第二条事件 reason 为 `debounced`，且**没有**第二个脉冲。
-4. 把打印照片举给摄像头。预期 `liveness_failed` 且没有脉冲。如果门开了，立刻停下来：
-   检查识别服务是否报告活体已加载。
-5. 以 operator 身份在界面上下发一次远程开门。预期一次闭合和一张走到 executed 的回执。
+2. 以已注册身份站到摄像头前。预期恰好一次触点闭合、一条放行事件、审计链增加一条记录。
+3. 在去抖窗口内退开再上前。预期 `debounced` 且没有第二个脉冲。
+4. 把打印照片举起来。预期 `liveness_failed` 且没有脉冲。
+5. 以 operator 身份下发一次远程开门。预期一次闭合和一张 executed 回执。
    再以 viewer 身份重试：预期被拒绝。
-6. 删掉一位已注册人员，然后尝试回滚到仍包含此人的版本。预期一条点名该人员的拒绝，
-   且当前版本不变。
+6. 删掉一位已注册人员，然后尝试回滚到仍包含此人的版本。预期一条点名该人员的拒绝。
 7. 跑一次界面的审计校验。预期链条校验通过。
 
 #### 后续步骤
 
-- 在装好的摄像头上用正负对标定阈值。随包的值是起点，不是结论。
-- 换掉随包的 broker 配置。它是匿名明文的；开门 topic 接受匿名发布就谈不上门禁。
-  改成 TLS、按设备身份与 topic ACL。
+- 在装好的摄像头上标定阈值。
+- 把随包的 broker 配置换成 TLS、按设备身份与 topic ACL。
 - 在管理界面前面放一个终止 TLS 的反向代理。
-- 把你实测的东西——引脚、电平、电流、脉宽、触点、门控类型——随安装记录留档。
-  下一个接手的人没法从软件里把它们反推出来。
+- 把 DO 编号、电平、脉宽、触点与门控类型随安装记录留档。
 
 ### 故障排查
 
 | 问题 | 解决办法 |
 |---|---|
-| 照片能开门 | 活体不在链路上。检查 `/health` 是否报告活体已加载；适配层本应在活体未加载时拒绝启动。在解决之前把这道门停用。 |
-| 远程开门回执是 executed，但触点没闭合 | 判定到达了执行器而执行器没动作。查引脚的健康输出与接线，不是查 broker。 |
-| 重放的指令把门开了两次 | 重放表不在链路上。指令闸门的其余部分也就都不可信了；停下来排查。 |
-| 审计校验失败 | 要么日志被改过，要么有两个进程在写它。两种都要紧。把文件留着。 |
-| 事件停了但门还能开 | broker 连接断了。这是预期行为——这个套餐的开门路径不过网络——但界面上应该能靠 retained 遗嘱看到设备已离线。 |
+| 照片能开门 | 活体不在链路上。在解决之前把这道门停用。 |
+| 回执是 executed，触点没闭合 | 执行器没动作。查继电器接线与执行器健康输出。 |
+| 重放的指令把门开了两次 | 重放表不在链路上。停下来排查。 |
+| 审计校验失败 | 日志被改过，或有两个进程在写它。把文件留着。 |
+| 容器反复重启 | `docker logs usa-access-node`。执行器或人脸库配置不合法导致的拒绝启动，看起来和崩溃一样，但它不是崩溃。 |
 
-## 套餐: B. AI 主机 + 现有摄像头 {#b_ai_host}
-
-**按继电器接法选步骤**
-
-| 主机位置 | 继电器接在哪 | 适用步骤 |
-|---|---|---|
-| 主机在门边 | J20 的光隔 DO，或 J30 / J40 排针上的 Grove Relay | 步骤 4 |
-| 主机不在门边，或一台主机管多道门 | MQTT 继电器节点（R1000 或 XIAO ESP32-S3）；broker 不可用时门打不开 | 步骤 5 |
+## 套餐: C. AI 主机 + 现有摄像头 {#b_ai_host}
 
 **需要准备**
 
@@ -342,7 +495,7 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
 | reComputer J20 / J30 / J40 / R1000 | 拉门口摄像头的 RTSP 流，识别人脸、判定是否开门 |
 | 门口现有的 RTSP 摄像头 | 视频源 |
-| R1000 或 XIAO ESP32-S3（仅主机不在门边时） | 驱动继电器 |
+| R1000 或 XIAO ESP32-S3（仅主机不在门边时） | 经 MQTT 收开门指令并驱动继电器；broker 不可用时门打不开 |
 | 继电器模块 | 干接点接门禁控制器的开门输入 |
 
 ## 步骤 1: 部署人脸库服务 {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
@@ -366,7 +519,15 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 出现 `NTP is not synchronised` 警告 | 在部署任何一道门之前先修好。 |
 | 8080 端口被占用 | 改人脸库端口；设备侧会拿到同一个值。 |
 
-## 步骤 2: 部署管理界面 {#p2_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml}
+### 部署目标 {#p2_facedb_remote type=remote config=devices/cloud_facedb.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p2_facedb_local type=local config=devices/cloud_facedb.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
+
+## 步骤 2: 部署管理界面 {#p2_cloud_web type=docker_deploy required=true config=devices/cloud_web.yaml target_inherit_from=p2_cloud_facedb}
 
 配置三档角色 token，并在服务端旁边拉起管理界面。
 
@@ -384,6 +545,14 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 匿名 `GET /api/events` 返回 200 | token 闸门没挡在数据前面。排查。 |
 | 界面起来了但人员库是空的 | 首次注册之前这是正确的。 |
 | 注册过的人一直认不出来 | 用了假的取向量实现。填上识别服务地址并重新注册。 |
+
+### 部署目标 {#p2_web_remote type=remote config=devices/cloud_web.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p2_web_local type=local config=devices/cloud_web.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
 
 ## 步骤 3: 注册人员 {#p2_register type=web_dashboard required=true config=devices/register_person.yaml}
 
@@ -404,46 +573,53 @@ init 脚本刻意装在停止位（`K92`，不是 `S92`）：同一时间只能�
 | 回滚被拒并点名了某个人 | 删除屏障。改为生成一个新版本。 |
 | 设备报 `model_tag` 不匹配 | 库是按另一个嵌入模型构建的。 |
 
-## 步骤 4: 在 J20 上部署门禁节点（继电器接主机自己的输出） {#p2_deploy type=docker_deploy required=true config=devices/p2_j20.yaml}
+## 步骤 4: 部署门禁节点 {#p2_deploy type=docker_deploy required=true config=devices/p2_j20.yaml}
 
-上传服务栈，检查 DO 引脚是不是已经被别的东西占着，写入实测出来的执行器设置与人脸库配置，
-再启动识别服务与门禁节点。
+在主机上拉起识别服务与门禁节点。按主机型号与继电器接法选择部署目标。
 
 ### 前置条件
 
-- J20 上装好 Docker 与 compose 插件。
-- **在 J20 上**测通 RTSP 地址，不是在你的笔记本上。
-- **两个镜像引用。** 一个 digest 锁定的识别镜像——写 digest 不写 tag，因为同一个 tag
-  但 digest 不同的两道门，嵌入不可比，症状是"认不出人"。以及本项目的门禁节点镜像。
-  两者都已发布，compose 默认值已指向它们；只有要钉 digest 或换自己的构建时才改。
-- 在装好的硬件上实测出来的执行器设置：引脚坐标（J20 上是 sysfs 编号，J30/J40 上是
-  gpiochip + line 偏移，见下面的《哪个引脚，哪台盒子》）、有效电平、脉宽、继电器触点，
-  以及与你接的门控一致的失效模式。
-- 能访问 `sensecraft-statics.seeed.cc`：这一步把人脸模型权重下到 `/opt/usa/models`
-  （约 32 MB），逐个核对 SHA-256。识别容器首启时用它们构建 TensorRT engine——
-  在 reComputer J40 Series 上实测 61 s + 62 s + 73 s，容器启动 214 s 后 `/health` 有应答。
-  之后再启动会直接复用缓存的 engine。
+- 主机上装好 Docker 与 compose 插件。
+- 在主机上测通 RTSP 地址，不要在你的笔记本上测。
+- 能访问 `sensecraft-statics.seeed.cc`：部署时下载人脸模型权重（约 32 MB）到 `/opt/usa/models`
+  并逐个核对 SHA-256。识别容器首次启动时构建 TensorRT engine，reComputer J40 上实测容器
+  启动 214 s 后 `/health` 才有应答；之后启动复用缓存。
 - 至少 15 GB 可用空间。
+- 在装好的硬件上实测出的执行器设置：引脚、有效电平、脉宽、继电器触点（`NO` / `NC`）、
+  断电后门的状态（`fail_safe` / `fail_secure`）。
+
+### 故障排查
+
+| 问题 | 解决办法 |
+|---|---|
+| `access-node` 容器反复重启，`docker logs` 里是 `config error:` | 配置闸门拒了某一项。`docker compose exec access-node access-node check-config` 会指出是哪一项；常见的是四个接线字段和没替换掉的占位串。 |
+| `access-node` 一直 `unhealthy`，日志里却没有报错 | healthcheck 打的是 `/readyz`，只要刷脸开不了门它就是红的。`docker compose exec access-node access-node healthcheck` 会打出四个闸门里哪一个不通：face-rec-api、摄像头、人脸库、引脚锁。 |
+| 提示「LIVENESS IS NOT LOADED」 | 识别服务起来了但没带活体模型。门禁节点会拒绝启动，这是对的。修镜像，不要绕过这道检查。 |
+| RTSP 流在你笔记本上能开，在 J20 上开不了 | 路由或凭据问题。在盒子本机上测。 |
+| 这一步拒绝了明文人脸库地址 | 没给签名密钥。明文地址下 manifest 签名就是完整性保护的全部。 |
+| 上电时门被脉冲了一次 | 有效电平配反了。接回门控之前先改对。 |
+
+### 部署目标 {#p2_j20 type=remote device=recomputer_j20 device_name="reComputer J20" config=devices/p2_j20.yaml default=true}
+
+继电器接 J20 的光隔 DO。**GPIO 接口选 sysfs**，填 sysfs 编号。设计 spec 记录 DO1–DO4 是
+sysfs 463/464/465/462，接锁之前先在这台主机上测出哪个编号对应哪个端子。部署时会打印所选引脚
+是否已被占用。
 
 ### 接线
 
-顺序与其他套餐一样：先 LED，再继电器，最后门控。
+1. **引脚上先接 LED 加限流电阻。** 确认极性与脉宽。
+2. **接继电器模块。** 确认每个脉冲触点响一次。
+3. **继电器的 COM/NO 干接点接到门禁控制器的开门输入。**
 
-1. **DO 上先接 LED 加限流电阻。** 确认极性与脉宽。
-2. **继电器模块。** 确认每个脉冲触点响一次。DO 只负责切换继电器，别的什么都不做。
-3. **继电器的 COM/NO 干接点接到门控的输入。** 门锁、锁电源以及门控本身都由
-   门控方供电与接线——不在这个方案的 BOM 里。
+### 故障排查
 
-部署步骤会打印所选 sysfs 引脚是否已被 export，以及它的 direction 与 value。
-如果有别的东西占着它，先查清是什么再继续。
+| 问题 | 解决办法 |
+|---|---|
+| 提示「gpio N is ALREADY EXPORTED」 | 有别的东西在驱动这路输出。确认它就是门的 DO 再继续。 |
 
-### 哪个引脚，哪台盒子
+### 部署目标 {#p2_jetson type=remote device=recomputer_j40 device_name="reComputer J30 / J40" config=devices/p2_j20.yaml}
 
-引脚坐标在不同盒子上不是同一类数，没有一个对两边都成立的默认值。
-
-**J20（内核 4.9/5.10，sysfs）。** `/sys/class/gpio` 存在。设计 spec 记录 DO1–DO4 是
-sysfs 463/464/465/462。接锁之前先在这台盒子上测出哪个编号对应哪个端子，按测到的填。
-**GPIO 接口选 sysfs**，填 sysfs 编号。
+继电器接 40-pin 排针。
 
 **J30 / J40（JetPack 6，Tegra 5.15，libgpiod）。** 这些内核根本不导出
 `/sys/class/gpio`——`ls /sys/class/gpio` 返回 *No such file or directory*，没有 sysfs
@@ -482,45 +658,29 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND——继电器模�
 选之前先在盒子上跑 `gpioinfo`：它会列出每条线的名字与当前占用者，标着 `[used]` 的
 是别人的。实测那台 J40 Series 上，上表这十七条线都是空闲的。
 
-### 故障排查
+### 接线
 
-| 问题 | 解决办法 |
-|---|---|
-| 报 `set FACE_REC_API_IMAGE` / `set ACCESS_NODE_IMAGE` | 用未改过的 compose 文件不该出现这个提示——两个镜像都带了默认 digest/tag。出现说明变量被清空或 compose 文件被改过；补上 digest/tag，或恢复默认值。 |
-| `access-node` 容器反复重启，`docker logs` 里是 `config error:` | 配置闸门拒了某一项。`docker compose exec access-node access-node check-config` 会指出是哪一项；常见的是四个接线字段和没替换掉的占位串。 |
-| `access-node` 一直 `unhealthy`，日志里却没有报错 | healthcheck 打的是 `/readyz`，只要刷脸开不了门它就是红的。`docker compose exec access-node access-node healthcheck` 会打出四个闸门里哪一个不通：face-rec-api、摄像头、人脸库、引脚锁。 |
-| 提示「gpio N is ALREADY EXPORTED」 | 有别的东西在驱动这路输出。确认它就是门的 DO 再继续。 |
-| 提示「LIVENESS IS NOT LOADED」 | 识别服务起来了但没带活体模型。门禁节点会拒绝启动，这是对的。修镜像，不要绕过这道检查。 |
-| 这一步拒绝了明文人脸库地址 | 没给签名密钥。明文地址下 manifest 签名就是完整性保护的全部。 |
-| RTSP 流在你笔记本上能开，在 J20 上开不了 | 路由或凭据问题。在盒子本机上测。 |
-| 上电时门被脉冲了一次 | 有效电平配反了。接回门控之前先改对。 |
+1. **引脚上先接 LED 加限流电阻。** 确认极性与脉宽。
+2. **接继电器模块。** 确认每个脉冲触点响一次。
+3. **继电器的 COM/NO 干接点接到门禁控制器的开门输入。**
 
-## 步骤 5: 部署门禁主机并指向 MQTT 继电器节点（主机不在门口） {#p3_deploy type=docker_deploy required=false config=devices/p3_mqtt_relay.yaml}
+### 部署目标 {#p3_mqtt_relay type=remote device=mqtt_relay device_name="MQTT 继电器" config=devices/p3_mqtt_relay.yaml}
 
-检查 broker 可达，上传服务栈，写入继电器后端与人脸库配置，
-并确认继电器节点的 retained 状态已经在 broker 上。
+主机不在门边、或一台主机管多道门时选这个。开门指令经 MQTT 发到继电器节点（R1000 或
+XIAO ESP32-S3），broker 不可用期间门打不开。
 
 ### 前置条件
 
-- 门禁主机上装好 Docker 与 compose 插件。
-- **broker 从门禁主机可达。** 这一步在这里失败而不是留到门口才失败，
-  因为在这个套餐里 broker 不可达就意味着门开不了。
-- 在门禁主机上测通 RTSP 地址。
-- **两个镜像引用**：识别镜像与门禁节点镜像都已发布，默认值已填好。
-- 继电器节点已经在 broker 上，且它的 id 在整个站点内唯一。
-- 与门控匹配的继电器触点与失效模式——即使触点在别处，也记录在这里，
-  因为继电器固件不知道另一头接的是什么，也不该知道。
+- broker 从主机可达，部署时会先检查。
+- 继电器节点已连上 broker，id 在整个站点内唯一。
 
 ### 接线
 
-接线在继电器节点上，不在门禁主机上——后者完全没有门控连接。
+接线在继电器节点上，主机不接门禁。
 
 1. **继电器节点输出上先接 LED 加限流电阻。** 确认极性与脉宽。
-2. **继电器模块。** 确认每条 `set` 消息触点闭合一次。
-3. **继电器的 COM/NO 干接点接到门控的输入。** 门锁、锁电源以及门控本身都由
-   门控方供电与接线——不在这个方案的 BOM 里。
-
-脉冲由继电器自己的固件定时器结束，丢包不会让门一直开着。
+2. **接继电器模块。** 确认每条 `set` 消息触点闭合一次。
+3. **继电器的 COM/NO 干接点接到门禁控制器的开门输入。**
 
 ### 故障排查
 
@@ -531,9 +691,8 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND——继电器模�
 | 开门被接受但触点没闭合 | 订阅 `access/v1/relay/<id>/state` 读 `result`。`duplicate`、`expired`、`rejected` 三者含义各不相同。 |
 | 断电恢复后门自己开了 | `set` topic 被以 retained 发布了。它绝不能是 retained。 |
 | 脉宽被拒绝 | 指令层的范围是 500–5000 ms。继电器固件自身的线格式允许 100–10000 ms；两者不是同一约束，以更窄的为准。 |
-| 提示「LIVENESS IS NOT LOADED」 | 识别服务起来了但没带活体模型。修镜像。 |
 
-## 步骤 6: 核对人脸库是否已到设备 {#p2_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+## 步骤 5: 核对人脸库是否已到设备 {#p2_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
 打开管理界面的设备页，确认你发布的那个版本就是门口设备实际在用来匹配的版本。
 这一步要放在把脸放到摄像头前之前做：因为"库根本没激活"导致的门打不开，和"识别没通过"
@@ -557,7 +716,7 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND——继电器模�
 | 有人出现在 `only_on_device` 里 | 有人绕过云端在本地注册过。下一次激活会覆盖它。查清是谁、为什么。 |
 | 这一页是空的 | `USA_DEVICE_ENDPOINTS` 是 `[]`，或者从来没有设备上报过。先看管理界面的环境文件。 |
 
-## 步骤 7: 端到端验证这道门 {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+## 步骤 6: 端到端验证这道门 {#p2_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
 
 已注册人员开门一次；照片打不开；远程开门拿到回执；删掉的人无法通过回滚复活。
 
