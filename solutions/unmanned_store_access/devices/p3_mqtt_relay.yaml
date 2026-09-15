@@ -136,6 +136,7 @@ remote_overrides:
           fdb = cfg["facedb"]
           fdb["url"] = "{{facedb_url}}"
           fdb["signature_key"] = "{{facedb_signing_key}}" or None
+          fdb["signature_key_id"] = "facedb-key-1"
           fdb["poll_interval_s"] = int("{{facedb_poll_s}}")
           mq = cfg["mqtt"]
           mq["host"] = "{{mqtt_host}}"
@@ -240,19 +241,13 @@ remote_overrides:
       type: text
       default: "front"
       required: true
-      description: >-
-        The remote-unlock topic is access/v1/commands/<door id>, so this is what
-        the console addresses when someone opens the door from the dashboard. It
-        is separate from the device name: one box may drive one door but be
-        replaced, and the door keeps its identity across that swap.
+      description: Remote unlock commands address this ID.
       validation:
         pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
       name_i18n:
         zh: 门编号（指令主题）
       description_i18n:
-        zh: >-
-          远程开门的主题是 access/v1/commands/<门编号>，控制台从面板开门时寻址的就是它。
-          它与设备名分开：一台盒子可能被换掉，但那道门的编号跨越这次更换保持不变。
+        zh: 远程开门指令按这个编号寻址。
     - id: rtsp_url
       name: Camera RTSP URL
       type: text
@@ -267,42 +262,28 @@ remote_overrides:
       required: true
       default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:4abd23c8ac6dbbb7e53157a522471f3beaa072700bb55609851e652128007eac"
       placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
-      description: >-
-        A digest, not a tag. The default is the 2026-09-07 build
-        (solution/face-rec-api:0.1.0-usa-jetson, arm64); it ships no weights,
-        so mount the engines built on this box and run with `--runtime nvidia`.
+      description: Keep the default unless you run your own build.
       name_i18n:
         zh: 识别服务镜像（digest 锁定）
       description_i18n:
-        zh: >-
-          写 digest，不要写 tag。默认值是 2026-09-07 的构建
-          （solution/face-rec-api:0.1.0-usa-jetson，arm64）；镜像里不带权重，
-          需要把本机生成的 engine 挂进去，并加 `--runtime nvidia`。
+        zh: 保持默认值，除非使用自己的构建。
     - id: access_node_image
       name: Access Node Image
       type: text
       required: true
       default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
       placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
-      description: >-
-        The door-side process: pulls RTSP, asks face-rec-api for an embedding
-        and a liveness score, decides against the local face database, and
-        pulses the dry-contact relay. Built for linux/amd64 and linux/arm64 and
-        carries no weights. Change this only to pin a digest or run your own
-        build.
+      description: Keep the default unless you run your own build.
       name_i18n:
         zh: 门禁节点镜像
       description_i18n:
-        zh: >-
-          门边那个进程：拉 RTSP、向 face-rec-api 要嵌入和活体分、对本地人脸库判定、
-          驱动干接点继电器。amd64 与 arm64 两个架构，镜像里不带权重。
-          只有要钉 digest 或换自己的构建时才改它。
+        zh: 保持默认值，除非使用自己的构建。
     - id: relay_backend
       name: Relay Backend
       type: select
       default: mqtt_esp32
       required: true
-      description: Which node closes the contact. The R1000 path suits sites already running one for other industrial IO; the XIAO path is the cheaper standalone node.
+      description: Which node closes the relay.
       options:
         - value: mqtt_esp32
           label: XIAO ESP32-S3 + Grove Relay — subscribes to access/v1/relay/{id}/set
@@ -343,7 +324,7 @@ remote_overrides:
       type: text
       default: "1500"
       required: true
-      description: 500–5000 ms. Out-of-range values are rejected, not clamped. Note the relay firmware's own wire-format range is wider (100–10000 ms); the two are different constraints and the narrower one governs here.
+      description: How long the relay stays closed, 500–5000 ms.
       validation:
         pattern: "^[0-9]{3,4}$"
       name_i18n:
@@ -354,7 +335,7 @@ remote_overrides:
       name: Relay Contact
       type: select
       required: true
-      description: The relay firmware does not know what kind of lock is on the other side and must not — this is where the lock type is recorded.
+      description: NC for a lock that opens on power loss, NO for one that stays locked.
       options:
         - value: "NC"
           label: COM + NC — for fail-safe magnetic locks (unlock on power loss)
@@ -388,7 +369,7 @@ remote_overrides:
       type: text
       default: "0.62"
       required: true
-      description: A starting point, not a calibrated value. Sweep positive and negative pairs on the installed camera and set it from that.
+      description: Starting value; adjust after testing on the installed camera.
       validation:
         pattern: "^0(\\.[0-9]+)?$"
       name_i18n:
@@ -407,11 +388,10 @@ remote_overrides:
       name: Library Signing Key
       type: password
       required: true
-      description: The key from the cloud step. Mandatory on a plaintext http:// URL.
+      default_template: "{{facedb_signing_key}}"
+      generate: hex32
       name_i18n:
         zh: 人脸库签名密钥
-      description_i18n:
-        zh: 云端那一步填的密钥。明文 http:// 地址下是必填项。
     - id: facedb_poll_s
       name: Library Poll Interval (s)
       type: text
@@ -445,7 +425,7 @@ remote_overrides:
       type: select
       default: "false"
       required: true
-      description: The bundled broker configuration is anonymous plaintext and is a bench configuration only.
+      description: The bundled broker has no TLS; use Off with it.
       options:
         - value: "false"
           label: Off — bench only
@@ -458,4 +438,4 @@ remote_overrides:
       name_i18n:
         zh: MQTT TLS
       description_i18n:
-        zh: 随包的 broker 配置是匿名明文，只能用于台面测试。
+        zh: 随包 broker 不带 TLS，配合它时选关闭。

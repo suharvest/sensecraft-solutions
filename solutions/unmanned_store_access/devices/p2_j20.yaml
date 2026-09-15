@@ -218,6 +218,7 @@ remote_overrides:
           fdb = cfg["facedb"]
           fdb["url"] = "{{facedb_url}}"
           fdb["signature_key"] = "{{facedb_signing_key}}" or None
+          fdb["signature_key_id"] = "facedb-key-1"
           fdb["poll_interval_s"] = int("{{facedb_poll_s}}")
           mq = cfg["mqtt"]
           mq["host"] = "{{mqtt_host}}"
@@ -338,83 +339,52 @@ remote_overrides:
       type: text
       default: "front"
       required: true
-      description: >-
-        The remote-unlock topic is access/v1/commands/<door id>, so this is what
-        the console addresses when someone opens the door from the dashboard. It
-        is separate from the device name: one box may drive one door but be
-        replaced, and the door keeps its identity across that swap.
+      description: Remote unlock commands address this ID.
       validation:
         pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
       name_i18n:
         zh: 门编号（指令主题）
       description_i18n:
-        zh: >-
-          远程开门的主题是 access/v1/commands/<门编号>，控制台从面板开门时寻址的就是它。
-          它与设备名分开：一台盒子可能被换掉，但那道门的编号跨越这次更换保持不变。
+        zh: 远程开门指令按这个编号寻址。
     - id: rtsp_url
       name: Camera RTSP URL
       type: text
       required: true
       default_template: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
       placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
-      description: Test it in VLC from this box before deploying. A stream that only plays from your laptop is not reachable from the J20.
+      description: Test this URL from the host before deploying.
       name_i18n:
         zh: 摄像头 RTSP 地址
       description_i18n:
-        zh: 部署前先在这台盒子上用 VLC 试一下。只在你笔记本上能播的流，不等于 J20 能拉到。
+        zh: 部署前先在主机上测通这个地址。
     - id: face_rec_api_image
       name: Recognition Image (digest-pinned)
       type: text
       required: true
       default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:0b0f37e2b170194f3e5b0577b6cd18ef6565143b7e637bd5d0ffb383aec0d5a1"
       placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
-      description: >-
-        A digest, not a tag. Two doors on the same tag but different digests
-        hold embeddings that are not comparable, and the symptom is people not
-        being recognised rather than an obvious version error. The default is
-        the 2026-09-08 build (solution/face-rec-api:0.1.1-usa-jetson, arm64),
-        which ships no weights: the step above downloads the ONNX to
-        /opt/usa/models and the container builds its TensorRT engines there on
-        first start. It runs with `runtime: nvidia` and four host bind mounts
-        for the CUDA / TensorRT libraries.
+      description: Keep the default unless you run your own build.
       name_i18n:
         zh: 识别服务镜像（digest 锁定）
       description_i18n:
-        zh: >-
-          写 digest，不要写 tag。同一个 tag 但 digest 不同的两道门，嵌入不可比，
-          症状是"认不出人"而不是显眼的版本错误。默认值是 2026-09-08 的构建
-          （solution/face-rec-api:0.1.1-usa-jetson，arm64）。镜像里不带权重：
-          上一步把 ONNX 下到 /opt/usa/models，容器首启在本机构建 TensorRT engine。
-          它以 `runtime: nvidia` 运行，并从宿主机挂四份 CUDA / TensorRT 库。
+        zh: 保持默认值，除非使用自己的构建。
     - id: access_node_image
       name: Access Node Image
       type: text
       required: true
       default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
       placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
-      description: >-
-        The door-side process: pulls RTSP, asks face-rec-api for an embedding
-        and a liveness score, decides against the local face database, and
-        pulses the dry-contact relay. Built for linux/amd64 and linux/arm64 and
-        carries no weights. Change this only to pin a digest or run your own
-        build.
+      description: Keep the default unless you run your own build.
       name_i18n:
         zh: 门禁节点镜像
       description_i18n:
-        zh: >-
-          门边那个进程：拉 RTSP、向 face-rec-api 要嵌入和活体分、对本地人脸库判定、
-          驱动干接点继电器。amd64 与 arm64 两个架构，镜像里不带权重。
-          只有要钉 digest 或换自己的构建时才改它。
+        zh: 保持默认值，除非使用自己的构建。
     - id: gpio_backend
       name: GPIO Interface
       type: select
       required: true
       default: "sysfs"
-      description: >-
-        Which kernel interface drives the door pin. It is decided by the kernel,
-        not by preference: the J20's 4.9/5.10 kernel has /sys/class/gpio, while
-        Tegra 5.15 on the J30/J40 does not export it at all and only offers
-        /dev/gpiochipN. Check with `ls /sys/class/gpio` on the box.
+      description: sysfs for J20; libgpiod for J30 / J40.
       options:
         - value: "sysfs"
           label: sysfs — /sys/class/gpio (J20, and other 4.9/5.10 kernels)
@@ -427,67 +397,43 @@ remote_overrides:
       name_i18n:
         zh: GPIO 接口
       description_i18n:
-        zh: >-
-          用哪套内核接口驱动门控引脚。这由内核决定，不是偏好：J20 的 4.9/5.10 内核有
-          /sys/class/gpio；J30/J40 上的 Tegra 5.15 根本不导出它，只有 /dev/gpiochipN。
-          在盒子上 `ls /sys/class/gpio` 就能确认。
+        zh: J20 选 sysfs；J30 / J40 选 libgpiod。
     - id: gpiochip
       name: GPIO Chip
       type: text
       default: "gpiochip0"
       required: true
-      description: >-
-        libgpiod only. On a reComputer J4012 the 40-pin header is entirely on
-        gpiochip0 (164 lines, the SoC controller); gpiochip1 is the AON
-        controller and gpiochip2 is carrier-board I/O, neither of which reaches
-        the header. `gpioinfo` lists all three.
+      description: libgpiod only. gpiochip0 on reComputer J30 / J40.
       validation:
         pattern: "^gpiochip[0-9]+$"
       name_i18n:
         zh: GPIO 控制器
       description_i18n:
-        zh: >-
-          只对 libgpiod 有意义。reComputer J4012 上 40-pin 排针全在 gpiochip0
-          （164 条线，SoC 控制器）；gpiochip1 是 AON 控制器，gpiochip2 是载板 I/O，
-          两者都不在排针上。`gpioinfo` 能列出这三个。
+        zh: 仅 libgpiod。reComputer J30 / J40 上为 gpiochip0。
     - id: gpio_line
       name: GPIO Line Offset
       type: text
       required: false
       placeholder: "106"
-      description: >-
-        libgpiod only, and it is a line offset on the chip, not a pin number on
-        the header. On the J401 carrier header pin 31 is line 106 and pin 29 is
-        line 105; the full table is in unmanned-store-access
-        platforms/jetson/README.md. `gpioinfo` also shows which lines are
-        already claimed — do not take one that is.
+      description: libgpiod only. Line offset from the pin table in the guide (pin 31 = 106). Do not use a line `gpioinfo` marks as used.
       validation:
         pattern: "^[0-9]*$"
       name_i18n:
         zh: GPIO 线号
       description_i18n:
-        zh: >-
-          只对 libgpiod 有意义，而且它是芯片上的 line 偏移，不是排针上的 pin 号。
-          J401 载板上排针 pin 31 是 line 106、pin 29 是 line 105，完整对照表在
-          unmanned-store-access platforms/jetson/README.md。`gpioinfo` 还会显示
-          哪些线已经被占——被占的不要用。
+        zh: 仅 libgpiod。按部署页对照表填写 line（pin 31 = 106），不要用 `gpioinfo` 标为 used 的线。
     - id: do_gpio
       name: DO sysfs GPIO Number
       type: text
       required: false
       placeholder: "463"
-      description: >-
-        The design spec records DO1–DO4 as 463/464/465/462 on this box. Verify
-        with a meter which sysfs number moves which terminal before wiring
-        anything to a lock.
+      description: sysfs only. DO1–DO4 are expected at 463/464/465/462; confirm with a multimeter.
       validation:
         pattern: "^[0-9]+$"
       name_i18n:
         zh: DO 的 sysfs GPIO 编号
       description_i18n:
-        zh: >-
-          设计 spec 记录这台盒子的 DO1–DO4 是 463/464/465/462。接锁之前先用万用表确认
-          哪个 sysfs 编号对应哪个端子。
+        zh: 仅 sysfs。DO1–DO4 预期为 463/464/465/462，用万用表确认。
     - id: active_high
       name: Active Level
       type: select
@@ -511,7 +457,7 @@ remote_overrides:
       type: text
       default: "1500"
       required: true
-      description: How long the contact stays closed, 500–5000 ms. Out-of-range values are rejected rather than clamped — clamping would turn a misconfigured 10 s into a plausible-looking 5 s.
+      description: How long the relay stays closed, 500–5000 ms.
       validation:
         pattern: "^[0-9]{3,4}$"
       name_i18n:
@@ -522,7 +468,7 @@ remote_overrides:
       name: Relay Contact
       type: select
       required: true
-      description: Which contact the lock is wired through. A fail-safe magnetic lock on NO stands open permanently and looks like a working installation.
+      description: NC for a lock that opens on power loss, NO for one that stays locked.
       options:
         - value: "NC"
           label: COM + NC — for fail-safe magnetic locks (unlock on power loss)
@@ -559,17 +505,13 @@ remote_overrides:
       type: text
       default: "0.62"
       required: true
-      description: >-
-        A starting point, not a calibrated value. Sweep positive and negative
-        pairs on the installed camera and set it from that.
+      description: Starting value; adjust after testing on the installed camera.
       validation:
         pattern: "^0(\\.[0-9]+)?$"
       name_i18n:
         zh: 匹配阈值
       description_i18n:
-        zh: >-
-          这是起点，不是标定值。本项目在任何硬件上都没有 FAR / FRR 实测。
-          请在装好的摄像头上做正负对扫描，据此设定。
+        zh: 初始值，在装好的摄像头上测试后调整。
     - id: facedb_url
       name: Face Library URL
       type: text
@@ -582,11 +524,10 @@ remote_overrides:
       name: Library Signing Key
       type: password
       required: true
-      description: The key from the cloud step. Mandatory on a plaintext http:// URL — the node refuses to start without it, and that refusal is checked during this deployment rather than left for the door to discover.
+      default_template: "{{facedb_signing_key}}"
+      generate: hex32
       name_i18n:
         zh: 人脸库签名密钥
-      description_i18n:
-        zh: 云端那一步填的密钥。明文 http:// 地址下它是必填项——没有它节点拒绝启动，这条检查在本次部署中就会跑，而不是留给门去发现。
     - id: facedb_poll_s
       name: Library Poll Interval (s)
       type: text
@@ -620,7 +561,7 @@ remote_overrides:
       type: select
       default: "false"
       required: true
-      description: The bundled broker configuration is anonymous plaintext and is a bench configuration only. An unlock topic that accepts anonymous publishes is not access control.
+      description: The bundled broker has no TLS; use Off with it.
       options:
         - value: "false"
           label: Off — bench only
@@ -633,4 +574,4 @@ remote_overrides:
       name_i18n:
         zh: MQTT TLS
       description_i18n:
-        zh: 随包的 broker 配置是匿名明文，只能用于台面测试。开门 topic 接受匿名发布，就谈不上门禁。
+        zh: 随包 broker 不带 TLS，配合它时选关闭。
