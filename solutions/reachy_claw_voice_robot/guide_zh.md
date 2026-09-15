@@ -21,7 +21,7 @@
 
 ### 部署完成
 
-执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -42,7 +42,7 @@
 
 ### 部署完成
 
-执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -67,7 +67,7 @@
 
 ### 部署完成
 
-执行 `curl http://<jetson-ip>:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
+访问 `http://<jetson-ip>:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
 
 ### 故障排查
 
@@ -87,7 +87,7 @@
 
 ### 部署完成
 
-执行 `curl http://localhost:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
+访问 `http://localhost:11435/v1/models`，返回的模型列表含 `Qwen/Qwen3-4B-AWQ`。
 
 ### 故障排查
 
@@ -139,10 +139,10 @@
 
 | 现象 | 处理 |
 |------|----------|
-| 对话响应慢（>10 秒） | 执行 `docker logs edge-llm-chat-service` 和 `curl http://<jetson-ip>:11435/v1/models` 检查 Edge LLM |
+| 对话响应慢（>10 秒） | 执行 `docker logs edge-llm-chat-service`，并访问 `http://<jetson-ip>:11435/v1/models` 检查 Edge LLM |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
 | 没有声音 | 检查 Reachy Mini 内置扬声器和配置中的 `audio.device` |
-| 仪表盘打不开 | 等待 30 秒，执行 `curl http://<jetson-ip>:8042/health` |
+| 仪表盘打不开 | 等待 30 秒，访问 `http://<jetson-ip>:8042/health` |
 | 没有摄像头画面 | 视觉服务首次启动需约 5 分钟构建引擎，执行 `docker logs vision-trt` 查看 |
 | 开机后摄像头未找到 | 视觉服务会自动重试约 90 秒，稍等 |
 | 摄像头运行一段时间后失联 | 物理拔插 Reachy USB 线 |
@@ -166,7 +166,7 @@
 |------|----------|
 | 未找到 NVIDIA 运行时 | 执行 `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
+| 仪表盘打不开 | 等待 30 秒，访问 `http://localhost:8042/health` |
 | 没有摄像头画面 | 视觉服务首次启动需约 5 分钟构建引擎，执行 `docker logs vision-trt` 查看 |
 
 ## 套餐: AI Industrial R21 + Hailo-8 {#r2000_hailo}
@@ -193,7 +193,7 @@
 
 ### 部署完成
 
-执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -214,7 +214,7 @@
 
 ### 部署完成
 
-执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -274,8 +274,8 @@
 | `hailo-all` 安装失败 | 按 `vision-hailo` 仓库的 `INSTALL.md` 手动添加 Hailo apt 源 |
 | 容器报版本不匹配 | 执行 `sudo apt install --reinstall hailo-all` 后重新部署 |
 | FPS 低于 5 | 把 CPU scaling governor 设为 `performance` |
-| 仪表盘上没有人脸数据 | 执行 `curl http://localhost:8630/` 检查视觉服务 |
-| 语音不工作 | 在 R21 上执行 `curl http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
+| 仪表盘上没有人脸数据 | 访问 `http://localhost:8630/` 检查视觉服务 |
+| 语音不工作 | 在 R21 上访问 `http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
 
 ### 部署目标 {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
@@ -297,7 +297,7 @@
 |------|----------|
 | `/dev/hailo0` 找不到 | 重新插紧 M.2 槽位上的 Hailo-8 并重启 |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
+| 仪表盘打不开 | 等待 30 秒，访问 `http://localhost:8042/health` |
 
 ## 套餐: Reachy Mini Wireless（CM4） {#cm4}
 
@@ -322,7 +322,7 @@
 
 ### 部署完成
 
-执行 `curl http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://<jetson-ip>:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -343,7 +343,7 @@
 
 ### 部署完成
 
-执行 `curl http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
+访问 `http://localhost:8621/health`，返回 `{"asr": true, "tts": true, "streaming_asr": true}`。
 
 ### 故障排查
 
@@ -398,10 +398,10 @@
 | 现象 | 处理 |
 |------|----------|
 | Docker 未安装 | 用 get.docker.com 官方脚本安装 |
-| 语音不工作 | 在 CM4 上执行 `curl http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
+| 语音不工作 | 在 CM4 上访问 `http://<jetson-ip>:8621/health` 确认 Jetson 可达 |
 | 没有摄像头画面 | 执行 `ls /dev/video*`，为空时重新插拔 USB 摄像头 |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
+| 仪表盘打不开 | 等待 30 秒，访问 `http://localhost:8042/health` |
 
 ### 部署目标 {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
@@ -421,4 +421,4 @@
 |------|----------|
 | Docker 未安装 | 用 get.docker.com 官方脚本安装 |
 | 机器人不动 | 重新插拔 USB 线后执行 `docker restart reachy-daemon` |
-| 仪表盘打不开 | 等待 30 秒，执行 `curl http://localhost:8042/health` |
+| 仪表盘打不开 | 等待 30 秒，访问 `http://localhost:8042/health` |
