@@ -21,7 +21,7 @@ Deploy over SSH to a Jetson Orin NX 16GB running JetPack 6.x.
 
 ### Deployment Complete
 
-Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -42,7 +42,7 @@ Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Con
 
 ### Deployment Complete
 
-Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -67,7 +67,7 @@ Deploy over SSH to the Jetson from Step 1; the SSH credentials carry over.
 
 ### Deployment Complete
 
-Run `curl http://<jetson-ip>:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
+Open `http://<jetson-ip>:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
 
 ### Troubleshooting
 
@@ -87,7 +87,7 @@ Deploy to this machine, which must be a Jetson on JetPack 6.x with Docker and th
 
 ### Deployment Complete
 
-Run `curl http://localhost:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
+Open `http://localhost:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
 
 ### Troubleshooting
 
@@ -139,10 +139,10 @@ Open `http://<jetson-ip>:8042` and say something to the robot; it replies.
 
 | Symptom | Fix |
 |-------|----------|
-| Slow reply (>10 s) | Run `docker logs edge-llm-chat-service` and `curl http://<jetson-ip>:11435/v1/models` to check the Edge LLM |
+| Slow reply (>10 s) | Run `docker logs edge-llm-chat-service` and open `http://<jetson-ip>:11435/v1/models` to check the Edge LLM |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
 | No audio output | Check Reachy Mini's built-in speaker and `audio.device` in the config |
-| Dashboard not loading | Wait 30 seconds, then run `curl http://<jetson-ip>:8042/health` |
+| Dashboard not loading | Wait 30 seconds, then open `http://<jetson-ip>:8042/health` |
 | No camera feed | The vision service builds its engines on first boot (~5 min); run `docker logs vision-trt` |
 | Camera not found on boot | The vision service retries automatically for about 90 seconds; wait |
 | Camera drops after hours | Physically replug the Reachy USB cable |
@@ -166,7 +166,7 @@ Open `http://localhost:8042` and say something to the robot; it replies.
 |-------|----------|
 | NVIDIA runtime not found | Run `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
+| Dashboard not loading | Wait 30 seconds, then open `http://localhost:8042/health` |
 | No camera feed | The vision service builds its engines on first boot (~5 min); run `docker logs vision-trt` |
 
 ## Preset: AI Industrial R21 + Hailo-8 {#r2000_hailo}
@@ -193,7 +193,7 @@ Deploy over SSH to a Jetson running JetPack 6.x.
 
 ### Deployment Complete
 
-Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -214,7 +214,7 @@ Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Con
 
 ### Deployment Complete
 
-Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -274,8 +274,8 @@ Open `http://<r2000-ip>:8042` and say something to the robot; it replies.
 | `hailo-all` install fails | Add the Hailo apt source manually as described in `INSTALL.md` in the `vision-hailo` repo |
 | Container fails with version mismatch | Run `sudo apt install --reinstall hailo-all`, then redeploy |
 | FPS below 5 | Set the CPU scaling governor to `performance` |
-| No face data on dashboard | Run `curl http://localhost:8630/` to check the vision service |
-| Speech not working | On the R21, run `curl http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
+| No face data on dashboard | Open `http://localhost:8630/` to check the vision service |
+| Speech not working | On the R21, open `http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
 
 ### Target {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
@@ -297,7 +297,7 @@ Open `http://localhost:8042` and say something to the robot; it replies.
 |-------|----------|
 | `/dev/hailo0` not found | Reseat the Hailo-8 in the M.2 slot and reboot |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
+| Dashboard not loading | Wait 30 seconds, then open `http://localhost:8042/health` |
 
 ## Preset: Reachy Mini Wireless (CM4) {#cm4}
 
@@ -322,7 +322,7 @@ Deploy over SSH to a Jetson running JetPack 6.x.
 
 ### Deployment Complete
 
-Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -343,7 +343,7 @@ Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Con
 
 ### Deployment Complete
 
-Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
+Open `http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
@@ -398,10 +398,10 @@ Open `http://<cm4-ip>:8042` and say something to the robot; it replies.
 | Symptom | Fix |
 |-------|----------|
 | Docker not installed | Install it with the official script from get.docker.com |
-| Speech not working | On the CM4, run `curl http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
+| Speech not working | On the CM4, open `http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
 | No camera feed | Run `ls /dev/video*`; if empty, replug the USB camera |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
+| Dashboard not loading | Wait 30 seconds, then open `http://localhost:8042/health` |
 
 ### Target {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
@@ -421,4 +421,4 @@ Open `http://localhost:8042` and say something to the robot; it replies.
 |-------|----------|
 | Docker not installed | Install it with the official script from get.docker.com |
 | Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
+| Dashboard not loading | Wait 30 seconds, then open `http://localhost:8042/health` |
