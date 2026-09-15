@@ -180,6 +180,8 @@ facedb key, and confirm the gate came up armed — not just the app active.
 - A meter. Measure the pin number, polarity and available drive current on your
   own unit before connecting anything to it.
 - A facedb key id and secret matching the console's, from Step 2.
+- The device has no NTP client. The surveyed unit's clock was about seven months
+  out, and HTTPS fails on it for that reason.
 
 ### Wiring
 
@@ -271,6 +273,9 @@ for the gateway to act on, as in the rest of this preset. This has to be set
 before the first start, not edited afterward — the deploy auto-starts the
 service right after configuration, and a first start with the PoE default
 tries to export a pin that is not wired to anything on a plain unit.
+
+The gateway relay node's `set` topic must never be retained: a retained unlock
+replays on every reconnect, and the door would open by itself after a power cut.
 
 ### What lands on the device
 
@@ -511,7 +516,8 @@ recognition and the access node.
 - **Both image references.** A digest-pinned recognition image — a digest, not a
   tag, because two doors on the same tag with different digests hold embeddings
   that are not comparable and the symptom is people not being recognised. And
-  this project's device image, which you must build yourself.
+  this project's access-node image. Both are published and the compose defaults
+  point at them; change them only to pin a digest or run your own build.
 - The actuator settings measured on the installed hardware: the pin coordinate
   (a sysfs number on the J20, a gpiochip + line offset on the J30/J40 — see
   *Which pin, on which box* below), active level, pulse width, relay contact,
@@ -615,7 +621,8 @@ the broker.
   at the door, because in this preset an unreachable broker means an
   unopenable door.
 - The RTSP URL tested from the access host.
-- **Both image references**, neither of which exists yet.
+- **Both image references**: the recognition image and the access-node image are
+  published, with defaults filled in.
 - The relay node already on the broker, with an id that is unique across the
   site.
 - The relay contact and fail mode that match the door controller — recorded
