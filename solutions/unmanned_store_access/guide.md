@@ -1,37 +1,21 @@
 ## Preset: A. AI Camera at the Door {#a_ai_camera}
 
-**Steps by door device.** This preset has three door devices, each with its own install steps:
+**Steps by door device**
 
-| Door device | What drives the relay | Steps |
+| Door device | Where the relay connects | Steps |
 |---|---|---|
-| reCamera Pro | The camera's own GPIO | Steps 4 and 5 |
-| Standard reCamera 2002 / 2002w | A gateway node (R1000 or XIAO ESP32-S3), events over MQTT | Step 6 |
-| reCamera 2002 HQ PoE | Baseboard 6-pin header D1 (sysfs 490) | Step 6 |
+| reCamera Pro | Camera GPIO | Steps 4 and 5 |
+| Standard reCamera 2002 / 2002w | A gateway node (R1000 or XIAO ESP32-S3) receiving unlocks over MQTT; the door does not open while the broker is down | Step 6 |
+| reCamera 2002 HQ PoE | Baseboard 6-pin header D1 | Step 6 |
 
-Recognition, liveness and the decision run on the camera: no recognition
-container is installed and no video leaves the camera. The reCamera Pro and the
-2002 HQ PoE drive the relay themselves, so nothing on the network sits between a
-face and the relay; the network carries library updates, events and remote
-commands. On the 2002 / 2002w the unlock travels over MQTT to a gateway relay,
-so the broker is on the unlock path.
+**What you need**
 
 | Device | Purpose |
 |---|---|
-| Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reCamera Pro or standard reCamera | Camera, recognition, liveness, decision; GPIO output on the Pro and HQ PoE |
-| reComputer R1000 or XIAO ESP32-S3 (2002 / 2002w only) | Closes the contact, at the door |
-| Relay module | COM/NO dry contact into the door controller's input, matched to the pin's voltage (see Step 5) |
-
-*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
-
-Face library delivery (download, per-file SHA, signature check, atomic switch)
-has run on a real reCamera Pro and a real standard reCamera; door-open time and
-rejection counts are under "Measured results" on the solution page.
-
-**Note.** This is not a certified security or life-safety system. The face
-embedding weights are non-commercial (see the licensing section on the solution
-page). Calibrate the shipped thresholds on site against positive and negative
-samples.
+| Linux server (Docker, no GPU needed) | Face library, management console, MQTT broker |
+| reCamera Pro or standard reCamera | Recognises faces and decides whether to unlock |
+| R1000 or XIAO ESP32-S3 (2002 / 2002w only) | Drives the relay |
+| Relay module | Dry contact into the door controller's unlock input |
 
 ## Step 1: Deploy the Face Library Server {#p1_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -412,31 +396,22 @@ directly rather than inferred from a container being up.
 
 ## Preset: B. AI Host with Your Existing Cameras {#b_ai_host}
 
-**Steps by relay wiring.**
+**Steps by relay wiring**
 
-| Host location | What drives the relay | Steps |
+| Host location | Where the relay connects | Steps |
 |---|---|---|
 | Host at the door | The J20's opto-isolated DO, or a Grove Relay on the J30 / J40 header | Step 4 |
-| Host away from the door, or serving several doors | An MQTT relay node (R1000 writing a Modbus point, or XIAO ESP32-S3 driving a Grove Relay) | Step 5 |
+| Host away from the door, or one host for several doors | An MQTT relay node (R1000 or XIAO ESP32-S3); the door does not open while the broker is down | Step 5 |
 
-Recognition and liveness run in containers on the host against the door's
-existing RTSP stream. With the relay on the host, the unlock path has no network
-hop; with an MQTT relay node the broker is on the unlock path, and the door does
-not open while the broker is down.
+**What you need**
 
 | Device | Purpose |
 |---|---|
-| Cloud / on-prem host | Face library server, management console, MQTT broker |
-| reComputer J20 / J30 / J40 / R1000 | Recognition, liveness, decision; DO / GPIO output when at the door |
-| RTSP camera at the door | Video source |
-| reComputer R1000 or XIAO ESP32-S3 (MQTT wiring only) | Closes the contact, at the door |
-| Relay module | COM/NO dry contact into the door controller's input |
-
-*The lock, its power supply and the door controller are the door-control party's scope — outside this BOM.*
-
-**Note.** This is not a certified security or life-safety system. The face
-embedding weights are non-commercial (see the licensing section on the solution
-page).
+| Linux server (Docker, no GPU needed) | Face library, management console, MQTT broker |
+| reComputer J20 / J30 / J40 / R1000 | Pulls the door camera's RTSP stream, recognises faces and decides whether to unlock |
+| Existing RTSP camera at the door | Video source |
+| R1000 or XIAO ESP32-S3 (host away from the door only) | Drives the relay |
+| Relay module | Dry contact into the door controller's unlock input |
 
 ## Step 1: Deploy the Face Library Server {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
