@@ -57,9 +57,9 @@ one asset serves both the English and Chinese guides.
 `panel-dashboard-zh.jpg`, `panel-dashboard-en.jpg`, `panel-room-detail-zh.jpg`,
 `panel-room-offline-zh.jpg`, `panel-config-live-view-zh.jpg`,
 `panel-config-conflict-409-zh.jpg`, `panel-draw-save-reload.gif`,
-`alarm-state-machine.svg` and `alarm-architecture.svg` were carried over
-unchanged from the retired `eldercare_alarm` solution; only the two SVGs were
-renamed (`eldercare-alarm-state-machine.svg`, `eldercare-alarm-architecture.svg`).
+`alarm-state-machine.svg` were carried over unchanged from the retired
+`eldercare_alarm` solution; only the SVG was renamed
+(`eldercare-alarm-state-machine.svg`).
 
 The `panel-*` files come from the operator panel (`eldercare-alarm-panel`, see
 `media/panel-2026-09-07/README.md` there for the capture manifest). Playwright +
@@ -95,12 +95,11 @@ state comes from a local mosquitto plus `evaluation/replay/replayer.py`.
 `eldercare/statemachine`, with the default windows from
 `eldercare-alarm/config.example.yaml` (`evidence_sec: 5.0`,
 `confirm_window_sec: 60.0`, `notify_deadline_sec: 5.0`, `retry_interval_sec:
-30.0`). `alarm-architecture.svg` was drawn from the event flow in the upstream
-project's README, section 1. Both are schematics, not screenshots — no camera
+30.0`). It is a schematic, not a screenshot — no camera
 footage, no person, no dataset material, so no third-party licence applies and
 there is nothing to de-identify. Wordless except for field and component names
 that are identical in both languages, so one file serves the English and the
-Chinese page. `alarm-architecture.svg`, `panel-room-offline-zh.jpg`,
+Chinese page. `panel-room-offline-zh.jpg`,
 `panel-config-conflict-409-zh.jpg` and `panel-draw-save-reload.gif` are not
 referenced from `solution.yaml` today; they are kept here for the landing page.
 
