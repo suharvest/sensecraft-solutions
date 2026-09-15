@@ -1,65 +1,13 @@
 ## Preset: Rockchip NPU — RK3588 / RK3576 {#p1_rockchip}
 
-Both models run on the Rockchip NPU as fp16 `.rknn`: the detector and the
-embedder. The console — registration, gallery, UI, broker — runs in containers
-on a separate host.
+**What you need**
 
 | Device | Purpose |
 |---|---|
-| Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
-| reComputer RK3588 series | Detection and embedding, both on the NPU |
+| Linux server (Docker, no GPU needed) | Registration service, management UI, MQTT broker, gallery |
+| reComputer RK3588 or RK3576 | Detection and embedding, both on the NPU |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
-| An x86_64 machine | Model conversion. rknn-toolkit2 does not run on the board |
-
-**What has been measured on this hardware**, all on an RK3588 board
-(librknnrt 2.3.2, driver 0.9.8):
-
-| Segment | Number |
-|---|---|
-| Detector, RKNN fp16 vs CPU reference | 99.85% box agreement, 56.7 ms p50 |
-| Detector, RKNN INT8 vs CPU reference | 98.35% box agreement, 26.0 ms p50 |
-| Embedder (DINOv2-small + ArcFace), RKNN fp16 vs fp32 ONNX CPU | largest gap 0.85 pp across 21 retrieval metrics |
-| Embedder, RKNN fp16, one crop, three NPU cores | 48.93 ms p50 / 56.47 ms p95 |
-| Embedder, same model on the CPU (dynamic INT8, 4 threads) | 93.45 ms p50 / 94.86 ms p95 |
-| Detector and embedder sharing all three cores | embedder 88.94 ms p50, detector 76.91 ms p50 |
-| Detector on core 2, embedder on cores 0+1 | embedder 53.19 ms p50, detector 60.88 ms p50 |
-| End to end (frame in, recognised item published), core 2 / core 0+1 split, embedding on the device, retrieval on `console:0.2.0` (`embedder_backend=none`, `/v1/gallery/match`) | 924 ms p50, 1153 ms p95 |
-
-Two facts follow from the shared-core row and are worth setting before you deploy:
-give each model its own cores (`RETAIL_RKNN_DET_CORE_MASK=2`,
-`RETAIL_RKNN_EMBED_CORE_MASK=01`), and do not leave the core mask at `AUTO` —
-`AUTO` was measured to use core 0 only, with cores 1 and 2 at 0% throughout.
-
-The table above is RK3588 only. On RK3576 (dual NPU core, librknnrt 2.3.2,
-driver 0.9.8), the same 704 `ok`-state crops used for the RK3588 top-1 check
-below were run through the same detector+embedder RKNN fp16 conversion,
-matched against a CPU fp32 ONNX reference computed on the same board: CPU
-fp32 scored 542/704 (76.99%) top-1, RKNN fp16 scored 537/704 (76.28%), and the
-two backends agreed on the same predicted SKU in 699/704 cases (99.29%).
-Embedder latency (per 224x224 crop, dual NPU core) was 61.0 ms p50 / 66.95 ms
-p95 — this benchmark only times the embedder call, not the detector. Full
-record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3576-acceptance`
-results.md.
-
-**What has been measured end to end, and what has not.** The device-side
-process that joins detection, embedding, lookup and publishing exists upstream
-(`platforms/rk3588/runtime.py` against `platforms/rk3588/runtime.yaml`); this
-preset still does not deploy or supervise it — running it on your own line is
-your step. What that process was measured doing, once, on a 20-SKU shelf
-replay with the console's `embedder_backend=none` and `gallery.match_url`
-pointed at `console_stack:0.2.0` (device computes the embedding on its own
-NPU, console only does the retrieval): 924 ms p50 / 1153 ms p95 end to end,
-zero publish errors, and automatic MQTT reconnect after a 38 s console outage
-with no event loss on the device side (the console's own on-disk receipt was
-not independently checked). A top-1 comparison against the same crops embedded on a CPU with the fp32
-ONNX source model, on the same shelf replay's full 704 `ok`-state crops (40
-source frames), matched: RKNN fp16 and CPU fp32 both scored 541/704
-(76.85%) and agreed on the same predicted SKU in 695/704 cases (98.72%); of
-the 9 disagreements, 8 were correctness flips (one backend right, the other
-wrong), all within a <0.01 similarity margin. Mean cosine similarity between
-the two vectors was 0.99969 (the embedding-level comparison in the table
-above, 0.85 pp over 21 retrieval metrics, is not superseded by this). Full
-record: edge-retail-recognition `evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9.
+| An x86_64 machine | Model conversion (rknn-toolkit2 does not run on the board) |
 
 ## Step 1: Deploy the Registration Console {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -93,6 +41,14 @@ console host, and writes the role token table.
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate — the step prints this check's result. |
 | `GET /v1/gallery` with the admin token returns an empty gallery | Correct before the first registration. |
 | Port 8089 already in use | Change the service port in the wizard. Devices must be given the same value — that is the port they pull the gallery from. |
+
+### Target {#p1_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+Deploy to a Linux server the recognition devices can reach.
+
+### Target {#p1_console_local type=local config=devices/console_stack.yaml}
+
+Deploy to this computer. The recognition devices must be able to reach its IP.
 
 ## Step 2: Place the Embedding Model {#p1_embed type=manual required=true config=devices/place_embedder.yaml}
 
@@ -166,6 +122,9 @@ settles where embedding runs.
   commercial deployment has to retrain it on first-party or permissively
   licensed capture and rebuild every gallery version, because vectors from one
   embedder are not comparable to vectors from another.
+- Give detection and embedding their own NPU cores in the device-side runtime:
+  `RETAIL_RKNN_DET_CORE_MASK=2`, `RETAIL_RKNN_EMBED_CORE_MASK=01`. Do not leave
+  `AUTO`; measured, `AUTO` used core 0 only.
 
 ### Troubleshooting
 
@@ -222,38 +181,14 @@ number for your own converted artifact.
 
 ## Preset: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU {#p2_pi5_hailo}
 
-Both stages have run on the target hardware here too. The detector
-is an INT8 HEF on the Hailo-8; the embedder is a dynamically quantised INT8
-DINOv2-small on the Pi's own four cores, because the NPU path for it does not
-work.
+**What you need**
 
 | Device | Purpose |
 |---|---|
-| Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
+| Linux server (Docker, no GPU needed) | Registration service, management UI, MQTT broker, gallery |
 | reComputer R2000 with Hailo-8 (M.2) | Detection on the NPU, embedding on the CPU |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
-| An x86_64 machine | HEF compilation. The Hailo Dataflow Compiler does not run on the Pi |
-
-**What has been measured on this hardware.** Detection: 9.04 ms p50, 9.10 ms
-p95, 110.4 fps single-stream, 94.77% box agreement with the CPU reference on 200
-images (`evaluation/runs/2026-09-06-det-hef/`, both boundary files `status:
-measured`). End to end with letterboxing, assembly, decode and NMS: 18.74 ms p50
-/ 24.25 ms p95 — the NMS over ~160 boxes costs more than the inference.
-Embedding: 91.95 ms p50 / 105.98 ms p95 per crop on four threads, within 0.65
-percentage points of its own fp32 retrieval accuracy across seven configurations
-(`evaluation/runs/2026-09-06-embed-small/` §8).
-
-**Why the embedder is on the CPU.** Both Hailo quantisation attempts failed
-the ≤3 point acceptance threshold. The default profile lost 21 to 44 points of
-top-1; the aggressive profile collapsed, producing an identical vector for all
-8171 evaluation images with AUROC exactly 50.00
-(`evaluation/runs/2026-09-06-embed-hailo/`). No embedder HEF was produced, so
-there is no device latency for that path either.
-
-**The number to plan around is 92 ms per crop.** A five-item checkout basket is
-about half a second of embedding. A shelf frame at the measured density of 157.6
-boxes is about 14 seconds. Shelf use needs frame skipping or slot-level
-sampling, and that decision belongs before installation, not after.
+| An x86_64 machine | HEF compilation (the Hailo Dataflow Compiler does not run on the device) |
 
 ## Step 1: Deploy the Registration Console {#p2_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -280,6 +215,14 @@ Same console stack as every preset — registration service, management UI, brok
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate. |
 | The Pi cannot reach the service port | Devices pull the gallery over that port, not through the UI. Check it from the Pi, not from a browser on another network. |
 | Port 8089 already in use | Change it in the wizard and give devices the same value. |
+
+### Target {#p2_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+Deploy to a Linux server the recognition devices can reach.
+
+### Target {#p2_console_local type=local config=devices/console_stack.yaml}
+
+Deploy to this computer. The recognition devices must be able to reach its IP.
 
 ## Step 2: Place the Embedding Model {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
@@ -402,31 +345,17 @@ number for your own HEF.
 
 ## Preset: Jetson Orin — TensorRT {#p3_jetson_orin}
 
-Both stages run as TensorRT fp16 engines on the Orin NX's own GPU. Measured on
-a Seeed reComputer J40 unit itself — a reComputer J40 integrated-machine
-measurement, not a reference board: detector 5.18 ms p50 / 5.28 ms p95, 99.91%
-box agreement with the CPU reference (50 images, the same batch RK3588 was
-checked against); embedder 4.23 ms p50 / 4.69 ms p95, 21 retrieval metrics
-within 0.24 percentage points of fp32. A 2956-frame checkout replay ran
-through the full device-side runtime — detector, embedder, gallery lookup,
-MQTT publish — with zero dropped frames. The RK3588 preset has run a comparable full-loop
-measurement too, on a shelf replay (see its own preset section); the Hailo-8
-and RK3576 presets stop at model conversion. All figures are n=300,
-inference only, on an engine built on the device it ran on.
+**What you need**
 
 | Device | Purpose |
 |---|---|
-| Console / on-prem host | Registration service, management UI, MQTT broker, gallery storage |
-| reComputer J40 (Orin NX 16GB) | Detection and embedding, both on the GPU via TensorRT fp16 — the measured unit |
-| reComputer J30 (Orin Nano 8GB, J3011) | Same family, same role. Also measured directly: detector 5.88 ms p50 / 8.89 ms p95, embedder 5.06 ms p50 / 7.64 ms p95, 21 retrieval metrics within 0.21pp of fp32, 6726-frame replay with zero dropped frames |
+| Linux server (Docker, no GPU needed) | Registration service, management UI, MQTT broker, gallery |
+| reComputer J40 (Orin NX 16GB) or J30 (Orin Nano 8GB) | Detection and embedding, both on the GPU via TensorRT fp16 |
 | RTSP / USB camera | Frames over the checkout belt or facing the shelf |
 
 ## Step 1: Deploy the Registration Console {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
-The console stack is real and deploys the same way here as in the other two
-presets. Unlike the RK3588 and Hailo-8 presets, this one does not stop at the
-console — Step 4 also builds a device-side runtime that has run end to end on
-hardware.
+Starts the registration service, management UI and broker on the console host, and writes the role token table.
 
 ### Prerequisites
 
@@ -446,6 +375,14 @@ hardware.
 | Anonymous `GET /v1/gallery` returns 200 | The token gate is not in front of the gallery. Stop and investigate. |
 | `docker compose` not found | Install `docker-compose-plugin`. |
 | Port 8089 already in use | Change it in the wizard. |
+
+### Target {#p3_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+Deploy to a Linux server the recognition devices can reach.
+
+### Target {#p3_console_local type=local config=devices/console_stack.yaml}
+
+Deploy to this computer. The recognition devices must be able to reach its IP.
 
 ## Step 2: Place the Embedding Model {#p3_embed type=manual required=true config=devices/place_embedder_jetson.yaml}
 

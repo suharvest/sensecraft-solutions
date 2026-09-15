@@ -1,54 +1,13 @@
 ## 套餐: Rockchip NPU —— RK3588 / RK3576 {#p1_rockchip}
 
-检测器与嵌入器都以 fp16 `.rknn` 跑在 Rockchip NPU 上。管理端——注册、商品库、界面、
-broker——以容器跑在另一台主机上。
+**需要准备**
 
-| 设备 | 作用 |
+| 设备 | 用途 |
 |---|---|
-| 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
-| reComputer RK3588 系列 | 检测与嵌入都跑在 NPU 上 |
+| Linux 服务器（装 Docker，不需要 GPU） | 注册服务、管理界面、MQTT broker、商品库 |
+| reComputer RK3588 或 RK3576 | 检测与嵌入都跑在 NPU 上 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
-| 一台 x86_64 机器 | 模型转换。rknn-toolkit2 不在板上运行 |
-
-**这套硬件上测到了什么。** 全部在 RK3588 板上（librknnrt 2.3.2，driver 0.9.8）：
-
-| 段 | 数 |
-|---|---|
-| 检测器，RKNN fp16 对 CPU 参考 | 框一致率 99.85%，p50 56.7 ms |
-| 检测器，RKNN INT8 对 CPU 参考 | 框一致率 98.35%，p50 26.0 ms |
-| 嵌入器（DINOv2-small + ArcFace），RKNN fp16 对 fp32 ONNX CPU | 21 个检索指标最大差 0.85 pp |
-| 嵌入器，RKNN fp16，单裁剪，三个 NPU 核 | 48.93 ms p50 / 56.47 ms p95 |
-| 嵌入器，同一模型跑 CPU（动态 INT8，4 线程） | 93.45 ms p50 / 94.86 ms p95 |
-| 检测与嵌入共用三个核 | 嵌入 88.94 ms p50，检测 76.91 ms p50 |
-| 检测占 core 2、嵌入占 core 0+1 | 嵌入 53.19 ms p50，检测 60.88 ms p50 |
-| 端到端（进画面到上报识别结果），检测 core 2 / 嵌入 core 0+1，嵌入在设备上算、检索走 `console:0.2.0`（`embedder_backend=none`，`/v1/gallery/match`） | p50 924 ms，p95 1153 ms |
-
-共用三核那一行对应两个部署前要设好的开关：给两个模型各自的核
-（`RETAIL_RKNN_DET_CORE_MASK=2`、`RETAIL_RKNN_EMBED_CORE_MASK=01`）；核掩码不要
-留 `AUTO`——实测 `AUTO` 只用 core 0，core 1 与 core 2 全程 0%。
-
-上面这张表只来自 RK3588。RK3576（双 NPU 核，librknnrt 2.3.2，driver 0.9.8）
-用同一批 704 张 `ok` 状态货位裁剪，跑同一套检测器+嵌入器 RKNN fp16 转换，
-对照同一块板上算的 CPU fp32 ONNX 参考：CPU fp32 top-1 76.99%（542/704），
-RKNN fp16 top-1 76.28%（537/704），两条链路预测一致 99.29%（699/704）。
-嵌入器延迟（224×224 单裁剪，双 NPU 核）p50 61.0 ms / p95 66.95 ms——这项测量只计
-嵌入器调用耗时，不含检测器。完整记录见
-edge-retail-recognition 仓库 `evaluation/runs/2026-09-08-rk3576-acceptance`
-的 results.md。
-
-**端到端测到了什么、没测到什么。** 把检测、嵌入、检索与上报串起来的设备侧进程在
-上游是有的（`platforms/rk3588/runtime.py` 配 `platforms/rk3588/runtime.yaml`），
-这个套餐仍然不负责部署和托管它——在自己的产线上把那个进程跑起来是你这边的一步。
-那个进程测过一次：20 SKU 货架回放，console 端 `embedder_backend=none`、
-`gallery.match_url` 指向 `console_stack:0.2.0`（设备在自己的 NPU 上算嵌入，
-console 只做检索）。结果：端到端 p50 924 ms / p95 1153 ms，发布错误 0 次，
-console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自己是否完整落盘
-没有单独核实）。同一次货架回放取 704 张裁剪（40 个源帧的全部 `ok` 状态货位），
-换成 CPU 上的 fp32 ONNX 源模型跑 top-1 对照：RKNN fp16 与 CPU fp32 准确率均为
-541/704（76.85%），预测一致率 98.72%（695/704），其中 8 条对/错判断不一致的
-翻转全部是相似度差 <0.01 的临界样本，向量余弦相似度均值 0.99969、最小 0.99846。
-完整记录见 edge-retail-recognition 仓库
-`evaluation/runs/2026-09-08-rk3588-console-acceptance-020` §9。
+| 一台 x86_64 机器 | 模型转换（rknn-toolkit2 不在板上运行） |
 
 ## 步骤 1: 部署注册管理端 {#p1_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -76,6 +35,14 @@ console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查——这一步会打印这条检查的结果。 |
 | 带 admin token 的 `GET /v1/gallery` 返回空库 | 首次注册之前这是正确的。 |
 | 8089 端口被占用 | 在向导里改服务端口。设备必须拿到同一个值——那是它们拉商品库的端口。 |
+
+### 部署目标 {#p1_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+部署到识别设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p1_console_local type=local config=devices/console_stack.yaml}
+
+部署到这台电脑。识别设备必须能访问这台电脑的 IP。
 
 ## 步骤 2: 放置嵌入模型 {#p1_embed type=manual required=true config=devices/place_embedder.yaml}
 
@@ -138,6 +105,8 @@ console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自
   训练数据（骨干 `facebook/dinov2-base` 本身是 Apache-2.0）。不得随本包分发，
   也不得打进镜像；商用部署必须用自采或许可宽松的数据重训它，并重建每一个商品库版本——
   一个嵌入器产出的向量与另一个的不可比。
+- 设备侧运行时给检测与嵌入分配各自的 NPU 核：`RETAIL_RKNN_DET_CORE_MASK=2`、
+  `RETAIL_RKNN_EMBED_CORE_MASK=01`。不要留 `AUTO`，实测 `AUTO` 只用 core 0。
 
 ### 故障排查
 
@@ -187,31 +156,14 @@ console 断线 38 秒后 MQTT 自动重连、设备侧事件不丢（console 自
 
 ## 套餐: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU {#p2_pi5_hailo}
 
-两段都在目标硬件上跑过：检测器是 Hailo-8 上的 INT8 HEF；
-嵌入器是 Pi 自己四个核上动态量化 INT8 的 DINOv2-small——因为它的 NPU 路线走不通。
+**需要准备**
 
-| 设备 | 作用 |
+| 设备 | 用途 |
 |---|---|
-| 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
+| Linux 服务器（装 Docker，不需要 GPU） | 注册服务、管理界面、MQTT broker、商品库 |
 | reComputer R2000 + Hailo-8（M.2） | NPU 上做检测，CPU 上做嵌入 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
-| 一台 x86_64 机器 | 编译 HEF。Hailo Dataflow Compiler 不在 Pi 上运行 |
-
-**这套硬件上测到了什么。** 检测：p50 9.04 ms、p95 9.10 ms，单流 110.4 fps，
-在 200 张上与 CPU 参考的框一致率 94.77%（`evaluation/runs/2026-09-06-det-hef/`，
-两个 boundary 文件均 `status: measured`）。端到端含 letterbox、拼接、解码与 NMS：
-p50 18.74 ms / p95 24.25 ms——对约 160 个框做 NMS 比推理本身还贵。
-嵌入：四线程下每个裁剪 p50 91.95 ms / p95 105.98 ms，在 7 个档位上与自身 fp32 的
-检索准确率相差 0.65 个百分点以内（`evaluation/runs/2026-09-06-embed-small/` §8）。
-
-**为什么嵌入器在 CPU 上。** 两档 Hailo 量化都没过 ≤3 个百分点的验收线。
-default 档 top-1 掉 21–44 个百分点；激进档直接塌缩，8171 张评测图产出同一个向量、
-AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
-嵌入器没有生成 HEF，因此那条路径也没有设备延迟数据。
-
-**做规划要盯的数是每个裁剪 92 ms。** 五件商品的收银篮约半秒嵌入。
-货架一帧按实测密度 157.6 个框算约 14 秒。货架场景需要抽帧或按货位采样，
-而这个决定属于安装之前，不是安装之后。
+| 一台 x86_64 机器 | 编译 HEF（Hailo Dataflow Compiler 不在设备上运行） |
 
 ## 步骤 1: 部署注册管理端 {#p2_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
@@ -235,6 +187,14 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查。 |
 | Pi 访问不到服务端口 | 设备是从那个端口拉商品库的，不是走界面。在 Pi 上试，不要在另一个网络的浏览器上试。 |
 | 8089 端口被占用 | 在向导里改掉，并把同一个值给设备。 |
+
+### 部署目标 {#p2_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+部署到识别设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p2_console_local type=local config=devices/console_stack.yaml}
+
+部署到这台电脑。识别设备必须能访问这台电脑的 IP。
 
 ## 步骤 2: 放置嵌入模型 {#p2_embed type=manual required=true config=devices/place_embedder_pi.yaml}
 
@@ -344,25 +304,17 @@ AUROC 精确等于 50.00（`evaluation/runs/2026-09-06-embed-hailo/`）。
 
 ## 套餐: Jetson Orin —— TensorRT {#p3_jetson_orin}
 
-两段都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上。实测于一台 Seeed
-reComputer J40 整机——是整机实测：检测器 p50 5.18 ms / p95 5.28 ms，
-与 CPU 参考的框一致率 99.91%（50 张，与 RK3588 用的同一批 golden）；嵌入器
-p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24 个百分点。
-一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、嵌入、库检索、
-MQTT 上报——零掉帧。RK3588 套餐也有同类的全链路实测（货架回放，见该套餐一节）；
-Hailo-8 与 RK3576 套餐止步于模型转换。以上数字均为 n=300、纯推理，engine 在运行它的这台设备上构建。
+**需要准备**
 
-| 设备 | 作用 |
+| 设备 | 用途 |
 |---|---|
-| 管理端 / 本地服务器 | 注册服务、管理界面、MQTT broker、商品库存储 |
-| reComputer J40（Orin NX 16GB） | 检测与嵌入，两段都经 TensorRT fp16 跑在 GPU 上——实测机型 |
-| reComputer J30（Orin Nano 8GB，J3011） | 同一家族、同样角色。同样已实测：检测器 p50 5.88 ms / p95 8.89 ms，嵌入器 p50 5.06 ms / p95 7.64 ms，21 项检索指标与 fp32 最大差 0.21 个百分点，6726 帧回放零掉帧 |
+| Linux 服务器（装 Docker，不需要 GPU） | 注册服务、管理界面、MQTT broker、商品库 |
+| reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB） | 检测与嵌入都经 TensorRT fp16 跑在 GPU 上 |
 | RTSP / USB 摄像头 | 收银台上方或正对货架的画面 |
 
 ## 步骤 1: 部署注册管理端 {#p3_console type=docker_deploy required=true config=devices/console_stack.yaml}
 
-管理端是真的，在这里的部署方式与另外两个套餐一样。与 RK3588、Hailo-8 套餐不同，
-这个套餐不止步于管理端——步骤 4 还会构建一套已经在真机上跑通端到端的设备侧运行时。
+在管理端主机上拉起注册服务、管理界面与 broker，并写入角色 token 表。
 
 ### 前置条件
 
@@ -381,6 +333,14 @@ Hailo-8 与 RK3576 套餐止步于模型转换。以上数字均为 n=300、纯�
 | 匿名 `GET /v1/gallery` 返回 200 | token 闸门没挡在商品库前面。停下来排查。 |
 | 找不到 `docker compose` | 安装 `docker-compose-plugin`。 |
 | 8089 端口被占用 | 在向导里改掉。 |
+
+### 部署目标 {#p3_console_remote type=remote config=devices/console_stack.yaml default=true}
+
+部署到识别设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p3_console_local type=local config=devices/console_stack.yaml}
+
+部署到这台电脑。识别设备必须能访问这台电脑的 IP。
 
 ## 步骤 2: 放置嵌入模型 {#p3_embed type=manual required=true config=devices/place_embedder_jetson.yaml}
 
