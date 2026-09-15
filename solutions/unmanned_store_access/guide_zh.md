@@ -55,32 +55,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 | 回滚被拒并提示某个人 | 此人已被删除。通过注册或编辑发布新版本，不要回滚。 |
 | 设备提示 `model_tag` 不匹配 | 把识别服务地址指向门口设备上的识别服务，重新部署步骤 1 后重新注册。 |
 
-## 步骤 3: 激活 F1 门禁应用 {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+## 步骤 3: 接继电器 {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
-在摄像头上启动 F1 门禁应用，摄像头上正在运行的其他应用会被停止。
-
-### 前置条件
-
-1. 登录摄像头的网页控制台，打开**应用中心**。
-2. 找到 **F1 门禁**，点**安装**，等待安装完成。
-
-### 故障排查
-
-| 现象 | 处理 |
-|---|---|
-| 提示应用未安装 | 按前置条件在应用中心安装 F1 门禁。 |
-| 激活超时 | 刚装完第一次激活较慢，重试一次。 |
-| 激活后仍是别的应用在运行 | 重启摄像头后再部署这一步。 |
-
-## 步骤 4: 接继电器并启用门禁 {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
-
-把继电器接到摄像头和门禁控制器，再在摄像头上写入门禁配置。
-
-### 前置条件
-
-- 步骤 3 已完成，可以用 root 通过 SSH 登录摄像头。
-- 万用表、Grove 继电器，以及步骤 1 的签名密钥。
-- 门锁类型：断电开门（fail-safe）还是断电保持锁闭（fail-secure）。
+把继电器接到摄像头和门禁控制器。
 
 ### 接线
 
@@ -88,24 +65,36 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 1. 用万用表确认 GPIO 130 是排针上哪个脚、输出为 3.3 V。
 2. 摄像头 GPIO 130 → 继电器 SIG，3.3 V → VCC，GND → GND。想先测试可改接 LED 加限流电阻到 GPIO 130 与 GND。
-3. 以 root 创建配置：`mkdir -p /userdata/local/appdata/f1-access && cp /userdata/local/apps/f1-access/face-recognition.conf.sample /userdata/local/appdata/f1-access/face-recognition.conf`
-4. 在该文件中设置 `[device] device_id`、`[facedb] url = http://<服务器 IP>:8080`、`[facedb] key_id = facedb-key-1`、`[mqtt] host = <服务器 IP>`、`[recognition] match_threshold`（与步骤 1 相同）、`[pro] gpio = 130`、`[pro] relay_contact`（`NO` 或 `NC`）、`[pro] fail_mode`（`fail_safe` 或 `fail_secure`）。
-5. 写入签名密钥（在步骤 1 底部「自动生成的密钥」里复制）：`printf '%s' '<签名密钥>' > /userdata/local/appdata/f1-access/facedb.key && chmod 600 /userdata/local/appdata/f1-access/facedb.key`
-6. 执行 `cat /run/f1-access/health.json`，确认 `state` 为 `armed`。
-7. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+3. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |---|---|
-| 写文件报 `EACCES` | 用 root 登录。 |
-| `state` 一直是 `disarmed` | 在 `/userdata/local/apps/f1-access/logs/app.log` 查看原因，改正其中指出的配置项。 |
-| 门禁拒绝启用并提示某个引脚 | 该引脚被其他程序占用，换一个空闲 GPIO 并修改 `[pro] gpio`。 |
-| `gpio = 131` 被拒 | 这台摄像头上 GPIO 131 已被占用，用 130。 |
-| 上电时门开了一次 | 有效电平反了，接门禁控制器之前先改正。 |
-| 启动提示 `relay_contact=unverified` | 填写 `[pro] relay_contact` 和 `[pro] fail_mode`。 |
-| 提示 `pulse_ms must be 500..5000 ms` | 把 `[policy] pulse_ms` 设在 500 到 5000 之间。 |
-| health 中 `stuck_active` 为 `true` | 继电器可能仍处于闭合，到现场检查门。 |
+| GPIO 130 被其他程序占用 | 换一个空闲 GPIO，下一步填写对应编号。 |
+
+## 步骤 4: 激活并配置 F1 门禁 {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+
+在摄像头上启动 F1 门禁并写入门禁设置，摄像头上正在运行的其他应用会被停止。
+
+### 前置条件
+
+先在摄像头上装好 F1 门禁（0.1.5 或以上）：
+
+1. 登录摄像头的网页控制台，打开**应用中心**。
+2. 找到 **F1 门禁**，点**安装**，等待安装完成。
+
+表单中的服务器 IP、端口、匹配阈值与签名密钥自动取自步骤 1，只需填写门名称、GPIO 编号、继电器触点与断电后门的状态。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 提示应用未安装 | 按前置条件在应用中心安装 F1 门禁。 |
+| 提示 `unknown parameter` | F1 门禁版本低于 0.1.5，在应用中心更新后重新部署。 |
+| 激活超时 | 刚装完第一次激活较慢，重试一次。 |
+| 提示 `npu.direct is busy` | 在应用中心停止正在运行的其他应用后重新部署。 |
+| 上电时门开了一次 | 继电器触点选反了，改正后重新部署。 |
 
 ## 步骤 5: 核对人脸库已到设备 {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 

@@ -55,57 +55,46 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 | Rollback refused, naming a person | That person was deleted. Enrol or edit to publish a new version instead. |
 | `model_tag` mismatch on the device | Point Recognition Service URL at the door device's recognition service, redeploy Step 1 and enrol again. |
 
-## Step 3: Activate the F1 Door Access App {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+## Step 3: Wire the Relay {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
-Starts the F1 Door Access app on the camera; any other app running on the camera is stopped.
-
-### Prerequisites
-
-1. Log in to the camera's web console and open the **App Center**.
-2. Find **F1 Door Access**, choose **Install**, and wait for it to finish.
-
-### Troubleshooting
-
-| Issue | Solution |
-|---|---|
-| The app is reported as not installed | Install F1 Door Access from the App Center as described above. |
-| Activation times out | The first activation right after install is slow; retry once. |
-| Another app is still running after activation | Reboot the camera, then run this step again. |
-
-## Step 4: Wire the Relay and Arm the Gate {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
-
-Wire the relay to the camera and door controller, then write the access config on the camera.
-
-### Prerequisites
-
-- Step 3 finished and root SSH access to the camera.
-- A multimeter, a Grove Relay, and the signing key from Step 1.
-- The door lock type: opens on power loss (fail-safe) or stays locked (fail-secure).
+Connect the relay to the camera and the door controller.
 
 ### Wiring
 
 ![reCamera Pro relay wiring](gallery/wiring-recamera-pro.svg)
 
 1. With a multimeter, confirm which header pin is GPIO 130 and that it outputs 3.3 V.
-2. Wire camera GPIO 130 → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a resistor between GPIO 130 and GND instead.
-3. As root, create the config: `mkdir -p /userdata/local/appdata/f1-access && cp /userdata/local/apps/f1-access/face-recognition.conf.sample /userdata/local/appdata/f1-access/face-recognition.conf`
-4. In that file set `[device] device_id`, `[facedb] url = http://<server IP>:8080`, `[facedb] key_id = facedb-key-1`, `[mqtt] host = <server IP>`, `[recognition] match_threshold` (same as Step 1), `[pro] gpio = 130`, `[pro] relay_contact` (`NO` or `NC`) and `[pro] fail_mode` (`fail_safe` or `fail_secure`).
-5. Write the signing key (copy it from "Auto-generated secrets" at the bottom of Step 1): `printf '%s' '<signing key>' > /userdata/local/appdata/f1-access/facedb.key && chmod 600 /userdata/local/appdata/f1-access/facedb.key`
-6. Run `cat /run/f1-access/health.json` and check `state` is `armed`.
-7. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+2. Camera GPIO 130 → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a series resistor between GPIO 130 and GND instead.
+3. Relay COM and NO to the door controller's unlock input (COM and NC for a fail-safe magnetic lock).
 
 ### Troubleshooting
 
 | Issue | Solution |
 |---|---|
-| `EACCES` when writing files | Log in as root. |
-| `state` stays `disarmed` | Read the reason in `/userdata/local/apps/f1-access/logs/app.log` and fix the named config field. |
-| The gate refuses to arm, naming a pin | Another program uses that pin. Choose a free GPIO and set `[pro] gpio`. |
-| `gpio = 131` rejected | GPIO 131 is in use on this camera. Use 130. |
-| The door opens once at power-up | The active level is inverted. Fix it before connecting the door controller. |
-| Start-up warning names `relay_contact=unverified` | Set `[pro] relay_contact` and `[pro] fail_mode`. |
-| `pulse_ms must be 500..5000 ms` | Set `[policy] pulse_ms` between 500 and 5000. |
-| `stuck_active` is `true` in health | The relay may still be closed. Check the door on site. |
+| GPIO 130 is used by another program | Use a free GPIO and enter its number in the next step. |
+
+## Step 4: Activate and Configure F1 Door Access {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+
+Starts F1 Door Access on the camera and writes the door settings; any other app running on the camera is stopped.
+
+### Prerequisites
+
+Install F1 Door Access (0.1.5 or later) on the camera first:
+
+1. Log in to the camera's web console and open the **App Center**.
+2. Find **F1 Door Access**, choose **Install**, and wait for it to finish.
+
+The server IP, port, match threshold and signing key are filled in from Step 1. Enter the door name, GPIO number, relay contact and the door state on power loss.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| The app is reported as not installed | Install F1 Door Access from the App Center as described above. |
+| `unknown parameter` | F1 Door Access is older than 0.1.5. Update it in the App Center and deploy again. |
+| Activation times out | The first activation right after install is slow; retry once. |
+| `npu.direct is busy` | Stop the other running app in the App Center, then deploy again. |
+| The door opens once at power-up | The relay contact is set the wrong way; correct it and deploy again. |
 
 ## Step 5: Check the Library Reached the Device {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
