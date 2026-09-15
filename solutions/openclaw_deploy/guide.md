@@ -127,7 +127,6 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 #### Try a Conversation
 
 1. Click **Chat** in the left sidebar and send a message to verify AI is responding
-2. If local AI model is enabled, it's already configured — no extra setup needed
 
 #### Connect Messaging Platforms
 

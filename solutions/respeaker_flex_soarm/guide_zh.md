@@ -12,7 +12,7 @@
 **你将获得：**
 - 一只能用自然语言指挥的机械臂
 - 唤醒词激活（"Hey Jarvis"），只在被叫到时听
-- 完全本地的 AI 栈：Paraformer 语音识别 + Qwen3-4B-AWQ 推理 + Matcha 语音合成，全部跑在 Jetson GPU
+- 语音识别、大模型和语音合成全部在 Jetson 本地运行
 - 命名姿态库 + 手势序列库，YAML 可编辑，不用重构镜像
 - `GET /observation` 提供实时关节状态供其他方案集成
 
@@ -45,7 +45,7 @@
 
 ## 步骤 2: 部署语音机械臂容器 {#voice_arm type=docker_deploy required=true config=devices/voice_brain.yaml}
 
-把语音 + 机械臂容器部署到 Jetson。容器首次启动时会探测 SO-ARM 串口和麦克风，没有用户配置就拷贝默认的 `actions.yaml` / `prompt.yaml`，然后启动语音 pipeline 和 8765 端口上的观测 HTTP 服务。
+把语音 + 机械臂容器部署到 Jetson。容器首次启动时自动识别 SO-ARM 串口和麦克风，并在 8765 端口提供关节状态接口。
 
 ### 故障排查
 
@@ -64,7 +64,7 @@
 
 ## 步骤 3: 验证机械臂状态 {#verify_arm type=robot_inspect verify=true required=true config=devices/verify_arm.yaml}
 
-实时查看 SO-ARM 的关节状态，并在线教新的手势。面板会以 5Hz 轮询 `GET /observation`，展开"详细数据"可以看到完整 JSON。下方的动作录制器可以在运行时给手势库加新条目 —— 不用重构镜像。
+实时查看 SO-ARM 的关节状态，展开"详细数据"可以看到完整 JSON。下方的动作录制器可以给手势库加新动作，不用重构镜像。
 
 ### 默认支持的语音指令
 

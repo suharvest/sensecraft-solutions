@@ -1,18 +1,17 @@
 ## Preset: Voice Grasping on Jetson {#default}
 
-Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle"** and the reBot B601-DM finds the object with its wrist RGB-D camera and picks it up. One compose file runs the whole stack on the Jetson — wake word, streaming ASR, a Qwen3.5-4B LLM, object detection, grasp planning, arm control and TTS reply. Fully local, no online API.
+Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle"** and the reBot B601-DM finds the object with its wrist RGB-D camera and picks it up. Wake word, speech recognition, LLM, object detection, grasp planning, arm control and TTS reply all run locally on the Jetson, with no online API.
 
 | Device | Purpose |
 |--------|---------|
 | reBot B601-DM | 6-DoF arm with parallel gripper (0.100 m max jaw) — USB serial |
 | Orbbec Gemini 2 | wrist-mounted RGB-D camera (eye-in-hand) — USB 3.0 |
-| reComputer J40 series | Jetson Orin NX 16GB — runs all four containers |
+| reComputer J40 series | Jetson Orin NX 16GB, runs all services |
 | reSpeaker USB mic + speaker | far-field voice in, TTS reply out |
 
 **What you'll get:**
-- Voice-commanded grasping of boxes, standing (opaque) bottles, bananas, cups and oranges — all verified on real hardware
-- Native TensorRT object detection: scene capture in 0.6–1.6 s, a full grasp cycle in ~11 s
-- Open-vocabulary detection (YOLOE, embeddings-as-input): the object list is editable config — no re-export, no retraining
+- Voice-commanded grasping of boxes, standing (opaque) bottles, bananas, cups and oranges
+- The object list is editable config, no retraining
 - Live dashboard with the wrist-camera view and arm state (`:8776`)
 - Cartesian observation API (`:8775/observation`) for integration with other solutions
 
@@ -21,7 +20,7 @@ Deploy a voice-controlled grasping arm: say **"Hey Jarvis, grab the water bottle
 2. Gemini 2 on a **USB 3.0** port (blue connector — USB 2 starves the depth stream)
 3. reSpeaker mic + speaker connected; note your desktop user's uid (`id -u`, usually `1000`)
 4. Docker + NVIDIA runtime (standard on JetPack 6); ~10 GB free disk
-5. Internet on first boot (~8.5 GB of models on top of ~1.4 GB of container images: LLM engine 4.9 GB, speech engines 3.2 GB, detector 0.3 GB)
+5. Internet on first boot to download ~1.4 GB of container images and ~8.5 GB of models
 
 > **China networks**: set the *HuggingFace Endpoint* input to `https://hf-mirror.com` in Step 1 — the LLM engine, speech models and grasp detector all download through it.
 
@@ -31,13 +30,13 @@ Deploy the voice, LLM, arm-control and inventory services to the Jetson.
 
 ### Services
 
-One compose file starts three services — `rebot-arm` (the agent), `seeed-voice` (Qwen3 ASR + MOSS-TTS-Nano) and `edge-llm` (Qwen3.5-4B-AWQ on TensorRT-Edge-LLM) — plus two one-shot init services that stage the host TensorRT libraries and fetch the grasp detector into `/opt/rebot-models/`.
+Deployment starts three services — `rebot-arm` (arm control), `seeed-voice` (speech recognition and synthesis) and `edge-llm` (LLM) — and downloads the grasp detector.
 
 ### Troubleshooting
 
-| Symptom | Cause / fix |
+| Symptom | Fix |
 |---|---|
-| Grasp detection is slow | The prebuilt TensorRT engine did not load on this Jetson/JetPack, so `model-init` fell back to the ONNX Runtime build of the same model — same detections, slower. The first line of `docker logs voice-rebot-arm` shows which one is active. |
+| Grasp detection is slow | If the TensorRT engine fails to load, the stack switches to ONNX Runtime — same detections, slower. The first line of `docker logs voice-rebot-arm` shows which one is active. |
 | SSH connection fails | Check the Jetson IP address, SSH username/password and that port `22` is reachable. |
 | Arm serial device is missing | Confirm `ls /dev/ttyACM*` on the Jetson and update the Arm Serial Device field. |
 | `edge-llm` stays unhealthy on first boot | The TensorRT engine is still downloading or warming up; watch `docker logs edge-llm`. |
@@ -48,14 +47,9 @@ Deploy to a Jetson over SSH. Enter the Jetson IP address and SSH credentials, th
 
 ### Target {#rebot_stack_local type=local device=jetson device_name="Jetson (Local)" config=devices/rebot_stack.yaml}
 
-Deploy directly on the current machine. Use this only when the app or CLI is running on the Jetson itself.
+Deploy directly on the current machine; use this only when the app or CLI is running on the Jetson itself. Fill in the arm serial device, audio user id and HuggingFace endpoint.
 
-Fill in:
-- **Arm Serial Device** — from the checklist (default `/dev/ttyACM0`)
-- **Host Audio User ID** — the `id -u` result (default `1000`)
-- **HuggingFace Endpoint** — default outside China; `https://hf-mirror.com` inside
-
-First boot takes several minutes: the LLM engine (~2 GB) downloads and warms up. `edge-llm` reports healthy only after its TensorRT warm-up completes (up to ~10 min on slow links — watch `docker logs edge-llm` if curious).
+First boot downloads and warms up the LLM engine; on slow links `edge-llm` may take up to ~10 min to report healthy — watch `docker logs edge-llm`.
 
 ## Step 2: Open the Dashboard {#verify_dashboard type=web_dashboard verify=true required=true config=devices/verify_dashboard.yaml}
 
@@ -76,12 +70,12 @@ The arm waves and the speaker confirms. Voice + LLM + arm control all work now. 
 
 ### Troubleshooting
 
-| Symptom | Cause / fix |
+| Symptom | Fix |
 |---|---|
 | No camera image | Gemini 2 on a USB 2 port, or another process holds the camera — replug into USB 3.0, restart the `rebot-arm` container |
 | No voice response | `docker logs voice-rebot-arm \| grep -i wake`; check the audio uid input matches `id -u` |
 | `edge-llm` unhealthy for long | Engine still downloading/warming — normal on first boot |
-| Disk slowly fills with `tegra-xusb: buffer overrun` kernel logs | Known JetPack driver noise from the camera's USB 3 stream — harmless but can bloat `/var/log` by gigabytes over weeks. Drop just those lines: `echo ':msg, contains, "buffer overrun event for slot" stop' \| sudo tee /etc/rsyslog.d/30-tegra-xusb-spam.conf && sudo systemctl restart rsyslog` |
+| Disk slowly fills with `tegra-xusb: buffer overrun` kernel logs | JetPack driver logs; harmless but can take gigabytes over weeks. Filter those lines: `echo ':msg, contains, "buffer overrun event for slot" stop' \| sudo tee /etc/rsyslog.d/30-tegra-xusb-spam.conf && sudo systemctl restart rsyslog` |
 
 ## Step 3: Hand-Eye Calibration — unlocks grasping {#handeye type=manual required=false}
 
@@ -89,7 +83,7 @@ Finish one-time hand-eye calibration before using grasp commands.
 
 ### Prerequisites
 
-Grasping converts camera pixels into arm coordinates through a transform that is physically unique to your unit (how the camera sits on the wrist). Until `/opt/rebot-models/hand_eye.npz` exists, grasp commands detect objects but decline to move the arm. One-time, ~30 minutes:
+Each unit needs its own calibration. Until `/opt/rebot-models/hand_eye.npz` exists, grasp commands detect objects but do not move the arm. One-time, ~30 minutes:
 
 1. Download and print the [official ArUco calibration PDF](https://raw.githubusercontent.com/Seeed-Projects/reBot-DevArm-Grasp/main/aruco100x100.pdf) (DICT_4X4_50, ID 0, nominal 100 mm), then **measure the printed black outer square with a ruler** — printers rescale. A 1 mm error in that value corresponds to about a 1 cm grasp offset.
 2. Tape the board flat on the table ~65 cm in front of the arm base.
@@ -104,17 +98,17 @@ Place a small cardboard box (each face under 9.5 cm) about 25–30 cm in front o
 
 The arm scans, announces what it found, grasps, lifts and carries it home. Then try a cup, a banana, an orange, then an opaque bottle (standing).
 
-**Known-good placements**: straight ahead or moderately left/right of center. **Use opaque objects** — transparent bottles are invisible to the depth camera (stereo-depth physics, not a bug).
+**Known-good placements**: straight ahead or moderately left/right of center. **Use opaque objects** — the depth camera cannot see transparent bottles.
 
 ### Troubleshooting
 
-| Symptom | Cause / fix |
+| Symptom | Fix |
 |---|---|
 | "I couldn't find the …" occasionally | Detection confidence is marginal at some angles — repeat the command; move the object toward the center |
 | "The box is too big for me to grip" | Every visible face exceeds the 0.100 m jaw — expected; use a smaller object or turn a narrow face toward the arm |
-| First attempt fails, retry works | Rare scan-pose IK flakiness — mostly fixed by the built-in IK fallback; a retry covers the rest |
+| First attempt fails, retry works | Occasional; retry the command |
 | Grasp lands centimeters off | Recalibrate — and re-measure the printed marker size (step 1 above) |
 | Arm joints fault (`status_code=12`) | The stack clears this latched fault automatically at startup; if it persists after a container restart, power-cycle the arm |
-| Arm was power-cycled and now ignores commands | `docker restart voice-rebot-arm`. The container re-resolves the serial port by USB identity, so this works even when the power cycle moved the arm to a different `/dev/ttyACM*`. |
-| Detection slower than the quoted numbers | The prebuilt engine did not load and the stack fell back to ONNX Runtime. Check the first line of `docker logs voice-rebot-arm`, then `docker logs voice-rebot-arm-model-init-1` for the reason |
-| Restarting the stack re-downloads several GB | Something removed the named volumes — `docker compose down -v` deletes them. Use plain `down` (or `restart`); the engines live in `speech-models` and `edgellm-v090` and are re-verified, not re-fetched, when they survive |
+| Arm was power-cycled and now ignores commands | Run `docker restart voice-rebot-arm`; a changed `/dev/ttyACM*` number is picked up automatically. |
+| Detection is slow | The stack fell back to ONNX Runtime. Check the first line of `docker logs voice-rebot-arm`, then `docker logs voice-rebot-arm-model-init-1` for the reason |
+| Restarting the stack re-downloads several GB | Do not use `docker compose down -v` (it deletes the model data); use `down` or `restart` |

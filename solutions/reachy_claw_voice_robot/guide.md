@@ -1,633 +1,424 @@
 ## Preset: Jetson All-in-One {#jetson}
 
-Deploy the full voice conversation stack on a single Jetson device. The robot will listen, think with a local AI model, speak, and express emotions — all under 1 second latency.
+Speech recognition and synthesis, the local LLM, vision and robot control all run on one Jetson.
 
-| Device | Purpose |
-|--------|---------|
-| NVIDIA Jetson Orin NX 16GB | Runs AI conversation, speech, vision, and robot control |
-| Reachy Mini | Desktop robot with arms, head, antennas, and camera |
-
-**What gets deployed:**
-- **Robot Control** — motor, camera, and sensor management
-- **Conversation Engine** — AI dialogue + emotion system + web dashboard
-- **Vision Analysis** — face detection, emotion recognition, and person tracking (GPU-accelerated)
-- **Edge LLM Chat Service** — Qwen3.5-4B-AWQ (GDN+MTP) TensorRT runtime that powers the robot's thinking ability
-
-**Prerequisites:**
-- Reachy Mini connected to Jetson via USB
-- Jetson with JetPack 6.x, SSH access, and internet
+- **Robot:** Reachy Mini connected to the Jetson via USB.
+- **Network:** The Jetson is reachable over SSH and has internet access during deployment to pull images.
 
 ## Step 1: Deploy Speech Service {#speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-Deploy the GPU-accelerated speech recognition (ASR) and voice synthesis (TTS) service. The pre-built image includes all dependencies and models — just pull and run.
+Deploys the speech recognition (ASR) and voice synthesis (TTS) service; the image includes the models.
 
 ### Target {#speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-Deploy to your Jetson over SSH with one click.
+Deploy over SSH to a Jetson Orin NX 16GB running JetPack 6.x.
 
 ### Wiring
 
-1. Connect your Jetson to the network
+1. Connect the Jetson to the network
 2. Enter the Jetson's IP address and SSH credentials
-3. Click **Deploy** — the system will pull the pre-built image and start the service automatically
+3. Click **Deploy**
 
 ### Deployment Complete
 
-Speech service is running at `http://<jetson-ip>:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://<jetson-ip>:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| SSH connection failed | Verify the IP address and credentials. Try `ssh username@ip` from your computer first |
-| Image pull slow | The image is ~8GB compressed. Ensure stable internet on the Jetson |
-| Service not starting | Check logs: `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| SSH connection failed | Try `ssh username@ip` from your computer first and check the IP and credentials |
+| Image pull slow | The image is ~8 GB compressed; ensure stable internet on the Jetson |
+| Service not starting | Run `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ### Target {#speech_local type=local config=devices/speech_deploy.yaml}
 
-Deploy directly on the current machine (requires NVIDIA GPU).
+Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Container Toolkit installed.
 
 ### Wiring
 
-1. Ensure Docker and NVIDIA Container Toolkit are installed
-2. Click **Deploy** to start installation
-
-> **Note:** First startup may take 10-15 minutes for Docker image download and model initialization.
+1. Click **Deploy**; the first image download and model initialization take 10-15 minutes
 
 ### Deployment Complete
 
-Speech service is running at `http://localhost:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://localhost:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Port 8621 already in use | Stop existing services on port 8621 |
-| Container keeps restarting | Check logs: `docker logs reachy-jetson-voice-speech-1` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| NVIDIA runtime not found | Run `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| Port 8621 already in use | Stop the service using port 8621 |
+| Container keeps restarting | Run `docker logs reachy-jetson-voice-speech-1` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ## Step 2: Deploy Edge LLM Chat Service {#edge_llm_service type=docker_deploy required=true config=devices/edge_llm_deploy.yaml target_inherit_from=speech_service}
 
-Deploy the TensorRT-accelerated Qwen3.5-4B chat service on the same Jetson.
+Deploys the Qwen3.5-4B chat service on the same Jetson. First startup takes about 10 minutes to download ~3 GB of model files and warm up, and the service uses about 6 GB of GPU memory.
 
 ### Target {#edge_llm_remote type=remote config=devices/edge_llm_deploy.yaml default=true}
 
-Deploy to your Jetson over SSH (credentials inherited from Step 1).
+Deploy over SSH to the Jetson from Step 1; the SSH credentials carry over.
 
 ### Wiring
 
-1. Reuse the SSH credentials from Step 1 (the deployer inherits them)
-2. Click **Deploy** — the system will pull the prebuilt image and start the container
-
-> **Note:** First startup takes ~10 minutes — the container downloads a prebuilt TensorRT engine and the Qwen3.5-4B AWQ weights, then runs warmup inference. Subsequent restarts are fast.
+1. Click **Deploy**
 
 ### Deployment Complete
 
-Edge LLM service is reachable at `http://<jetson-ip>:11435`. Quick test:
-
-```bash
-curl http://<jetson-ip>:11435/v1/models
-# Expected: {"object":"list","data":[{"id":"Qwen/Qwen3-4B-AWQ", ...}]}
-```
+Run `curl http://<jetson-ip>:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Health check times out | First run downloads ~3 GB of engine + weights. Watch progress: `docker logs -f edge-llm-chat-service` |
-| Out of memory during warmup | Edge LLM needs ~6 GB GPU memory; close other GPU workloads and redeploy |
-| `/v1/models` returns 502 | Container is still warming up; wait until logs print `Uvicorn running` then retry |
+| Health check times out | Run `docker logs -f edge-llm-chat-service` to watch the download |
+| Out of memory during warmup | Close other GPU workloads and redeploy |
+| `/v1/models` returns 502 | Wait until the logs print `Uvicorn running`, then retry |
 
 ### Target {#edge_llm_local type=local config=devices/edge_llm_deploy.yaml}
 
-Deploy directly on the current machine (requires NVIDIA Jetson with JetPack 6.x).
+Deploy to this machine, which must be a Jetson on JetPack 6.x with Docker and the NVIDIA Container Toolkit installed.
 
 ### Wiring
 
-1. Ensure Docker and NVIDIA Container Toolkit are installed
-2. Click **Deploy** to start installation
-
-> **Note:** First startup takes ~10 minutes for engine + weights download and warmup inference.
+1. Click **Deploy**
 
 ### Deployment Complete
 
-Edge LLM service is reachable at `http://localhost:11435`. Quick test:
-
-```bash
-curl http://localhost:11435/v1/models
-```
+Run `curl http://localhost:11435/v1/models`; the model list includes `Qwen/Qwen3-4B-AWQ`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Health check times out | First run downloads ~3 GB of engine + weights. Watch progress: `docker logs -f edge-llm-chat-service` |
-| Out of memory during warmup | Edge LLM needs ~6 GB GPU memory; close other GPU workloads and redeploy |
+| Health check times out | Run `docker logs -f edge-llm-chat-service` to watch the download |
+| Out of memory during warmup | Close other GPU workloads and redeploy |
 
 ## Step 3: Deploy Reachy Voice Robot {#reachy_deploy type=docker_deploy required=true config=devices/reachy_jetson_deploy.yaml target_inherit_from=speech_service}
 
-Deploy the robot control, conversation, and vision services to your Jetson. The conversation engine consumes the Edge LLM service deployed in Step 2.
+Deploys the robot control, conversation and vision services. The Edge LLM service from Step 2 must already be running.
 
 
 ### Deployment Complete
 
-Your Reachy Mini voice robot is now running!
+The robot is ready about 30 seconds after deployment.
 
 #### What's Happening
 
-The robot runs in **Conversation Mode** by default — it listens and responds. Talk to it and it replies in one short sentence, with a matching emotion and head/antenna motion. No setup needed; just speak.
+The robot starts in conversation mode: talk to it and it replies in one sentence with a matching emotion and head/antenna motion.
 
 #### Service Overview
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
-| Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM Chat Service | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
-| Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
+The dashboard is on port 8042; other ports: robot control 38001, vision 8630, Edge LLM 11435, speech 8621.
 
 #### Next Steps
 
-- Open the **Settings Dashboard** at `http://<jetson-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
-- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
-  ```bash
-  ssh user@<jetson-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
+- Open the dashboard at `http://<jetson-ip>:8042` to see conversation logs and robot status and to adjust settings.
+- To change the persona, edit the active speech profile's `instructions.txt`. To tune mic gain `audio_volume`, VAD sensitivity `client_vad_threshold` or `tts_speed`, edit `~/reachy-jetson-llm/reachy-voice.yaml`.
+- After editing these files or changing settings on the dashboard, run `docker restart reachy-voice`.
 
 ### Target {#reachy_remote type=remote config=devices/reachy_jetson_deploy.yaml default=true}
 
-Deploy to your Jetson over SSH with one click.
+Deploy over SSH to the Jetson from Step 1.
 
 ### Wiring
 
-1. Connect Reachy Mini to Jetson via USB cable
-2. Ensure the Jetson is on the network and SSH is accessible
-3. Enter the Jetson's IP address and SSH credentials
-4. Configure the data directory (default: `~/reachy-data`) for captures and face database
-5. Optionally enable **Kiosk Mode** to auto-launch the dashboard fullscreen on boot
-6. Click **Deploy** — the system will pull and start robot control, conversation, and vision (TensorRT GPU-accelerated) services. The Edge LLM service from Step 2 must already be running.
+1. Connect Reachy Mini to the Jetson via USB cable
+2. Enter the Jetson's IP address and SSH credentials
+3. Configure the data directory (default `~/reachy-data`) for captures and the face database
+4. Optionally enable **Kiosk Mode** to open the dashboard fullscreen on boot
+5. Click **Deploy**
 
 ### Deployment Complete
 
-The robot is ready within 30 seconds after deployment. Open the dashboard to monitor activity:
-
-```
-http://<jetson-ip>:8042
-```
-
-**Default mode:** Conversation — the robot listens and responds. Talk to it and it replies in one short sentence with a matching emotion and head/antenna motion.
-
-To check all services are running:
-```bash
-ssh user@<jetson-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+Open `http://<jetson-ip>:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Slow reply (>10 s) | Edge LLM container is degraded. Check: `docker logs edge-llm-chat-service` and `curl http://<jetson-ip>:11435/v1/models` |
-| Robot not moving | Check USB connection. A udev rule now auto-reconnects the daemon when the robot is plugged in; if it still won't move, replug the USB cable and restart: `docker restart reachy-daemon` |
-| No audio output | Verify Reachy Mini's built-in speaker is working. Check `audio.device` in config |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://<jetson-ip>:8042/health` |
-| No camera feed | Vision service builds TRT engines on first boot (~5 min). Check: `docker logs vision-trt` |
-| Camera not found on boot | USB camera takes 15-30s to enumerate. Vision service retries automatically (~90s) |
-| Camera drops after hours | USB power-management regression. A udev rule disabling autosuspend is installed by the deployer; if it recurs, physically replug the Reachy USB cable |
+| Slow reply (>10 s) | Run `docker logs edge-llm-chat-service` and `curl http://<jetson-ip>:11435/v1/models` to check the Edge LLM |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
+| No audio output | Check Reachy Mini's built-in speaker and `audio.device` in the config |
+| Dashboard not loading | Wait 30 seconds, then run `curl http://<jetson-ip>:8042/health` |
+| No camera feed | The vision service builds its engines on first boot (~5 min); run `docker logs vision-trt` |
+| Camera not found on boot | The vision service retries automatically for about 90 seconds; wait |
+| Camera drops after hours | Physically replug the Reachy USB cable |
 
 ### Target {#reachy_local type=local config=devices/reachy_jetson_deploy.yaml}
 
-Deploy directly on the current machine (requires NVIDIA Jetson with Reachy Mini connected).
+Deploy to this machine, which must be a Jetson with Reachy Mini connected and Docker and the NVIDIA Container Toolkit installed.
 
 ### Wiring
 
-1. Connect Reachy Mini to the machine via USB cable
-2. Ensure Docker and NVIDIA Container Toolkit are installed
-3. Click **Deploy** to start installation
-
-> **Note:** First startup may take 5-10 minutes for Docker image download and model initialization.
+1. Connect Reachy Mini to this machine via USB cable
+2. Click **Deploy**; the first image download and model initialization take 5-10 minutes
 
 ### Deployment Complete
 
-The robot should start talking within 30 seconds after deployment. Open the dashboard to monitor activity:
-
-```
-http://localhost:8042
-```
+Open `http://localhost:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Robot not moving | Check USB connection. Try replugging the USB cable and restart: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
-| No camera feed | Vision service builds TRT engines on first boot (~5 min). Check: `docker logs vision-trt` |
+| NVIDIA runtime not found | Run `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
+| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
+| No camera feed | The vision service builds its engines on first boot (~5 min); run `docker logs vision-trt` |
 
 ## Preset: AI Industrial R21 + Hailo-8 {#r2000_hailo}
 
-Deploy the full Reachy voice robot stack on a single AI Industrial R21 (Hailo-8). Vision runs on the Hailo NPU, while speech and LLM are consumed from a remote Jetson voice assistant.
+Robot control, conversation and Hailo-8 vision run on the AI Industrial R21; speech and the LLM come from a remote Jetson.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer AI Industrial R21 (Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
-| Reachy Mini | Desktop robot connected to the AI Industrial R21 via USB |
-| Jetson (remote) | Speech (ASR/TTS) + Edge LLM (TensorRT-Edge-LLM) — deployed in Step 1 |
-
-**What gets deployed:**
-- **Robot Control** — motor, camera, and sensor management
-- **Conversation Engine** — AI dialogue + emotion system + web dashboard
-- **Vision Analysis** — face detection, emotion recognition, and person tracking (Hailo-8 NPU)
-
-**Prerequisites:**
-- Reachy Mini connected to AI Industrial R21 via USB
-- USB camera attached to AI Industrial R21
-- Hailo-8 AI HAT seated in M.2 slot, PCIe Gen3 enabled in `/boot/firmware/config.txt`
-- Jetson device with JetPack 6.x, SSH access, and internet (speech service will be deployed in Step 1)
+- **Devices:** A Jetson on JetPack 6.x for speech and the LLM (Step 1 deploys the speech service; the LLM service `edge-llm-chat-service` must be running on that Jetson), and an AI Industrial R21.
+- **Peripherals:** Reachy Mini and a USB camera both connect to the AI Industrial R21.
+- **Network:** Both devices are reachable over SSH, and the AI Industrial R21 can reach ports 8621 and 11435 on the Jetson.
 
 ## Step 1: Deploy Speech Service {#hailo_speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-Deploy the GPU-accelerated speech recognition (ASR) and voice synthesis (TTS) service to your Jetson. The pre-built image includes all dependencies and models — just pull and run.
+Deploys the speech recognition (ASR) and voice synthesis (TTS) service on the Jetson; the image includes the models.
 
 ### Target {#hailo_speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-Deploy to your Jetson over SSH with one click.
+Deploy over SSH to a Jetson running JetPack 6.x.
 
 ### Wiring
 
-1. Connect your Jetson to the network
+1. Connect the Jetson to the network
 2. Enter the Jetson's IP address and SSH credentials
-3. Click **Deploy** — the system will pull the pre-built image and start the service automatically
+3. Click **Deploy**
 
 ### Deployment Complete
 
-Speech service is running at `http://<jetson-ip>:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://<jetson-ip>:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| SSH connection failed | Verify the IP address and credentials. Try `ssh username@ip` from your computer first |
-| Image pull slow | The image is ~8GB compressed. Ensure stable internet on the Jetson |
-| Service not starting | Check logs: `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| SSH connection failed | Try `ssh username@ip` from your computer first and check the IP and credentials |
+| Image pull slow | The image is ~8 GB compressed; ensure stable internet on the Jetson |
+| Service not starting | Run `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ### Target {#hailo_speech_local type=local config=devices/speech_deploy.yaml}
 
-Deploy directly on the current machine (requires NVIDIA GPU).
+Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Container Toolkit installed.
 
 ### Wiring
 
-1. Ensure Docker and NVIDIA Container Toolkit are installed
-2. Click **Deploy** to start installation
-
-> **Note:** First startup may take 10-15 minutes for Docker image download and model initialization.
+1. Click **Deploy**; the first image download and model initialization take 10-15 minutes
 
 ### Deployment Complete
 
-Speech service is running at `http://localhost:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://localhost:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Port 8621 already in use | Stop existing services on port 8621 |
-| Container keeps restarting | Check logs: `docker logs reachy-jetson-voice-speech-1` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| NVIDIA runtime not found | Run `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| Port 8621 already in use | Stop the service using port 8621 |
+| Container keeps restarting | Run `docker logs reachy-jetson-voice-speech-1` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ## Step 2: Deploy Reachy Voice Robot (Hailo) {#reachy_hailo_deploy type=docker_deploy required=true config=devices/reachy_hailo_deploy.yaml target_inherit_from=hailo_speech_service}
 
-Deploy the robot control, conversation, and Hailo-accelerated vision services to your AI Industrial R21 in one step. The deployer will automatically install the Hailo stack if missing.
+Deploys the robot control, conversation and Hailo vision services on the AI Industrial R21, installing the Hailo driver if it is missing.
 
 
 ### Deployment Complete
 
-Your Reachy Mini voice robot is now running!
+The robot is ready about 30 seconds after deployment.
 
 #### What's Happening
 
-The robot runs in **Conversation Mode** by default — it listens and responds. Talk to it and it replies in one short sentence, with a matching emotion and head/antenna motion. No setup needed; just speak.
+The robot starts in conversation mode: talk to it and it replies in one sentence with a matching emotion and head/antenna motion.
 
 #### Service Overview
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
-| Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM (remote Jetson) | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
-| Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
+The dashboard is on port 8042 of the AI Industrial R21; other ports: robot control 38001 and vision 8630 / 8631 on the R21, speech 8621 and Edge LLM 11435 on the Jetson.
 
 #### Next Steps
 
-- Open the **Settings Dashboard** at `http://<r2000-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
-- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
-  ```bash
-  ssh pi@<r2000-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ — Qwen3.5-4B) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit its `instructions.txt` persona rather than swapping the model.
-- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
+- Open the dashboard at `http://<r2000-ip>:8042` to see conversation logs and robot status and to adjust settings.
+- To change the persona, edit the active speech profile's `instructions.txt`. To tune mic gain `audio_volume`, VAD sensitivity `client_vad_threshold` or `tts_speed`, edit `~/reachy-jetson-llm/reachy-voice.yaml`.
+- After editing these files or changing settings on the dashboard, run `docker restart reachy-voice`.
 
 ### Target {#reachy_hailo_remote type=remote config=devices/reachy_hailo_deploy.yaml default=true}
 
-Deploy to your AI Industrial R21 over SSH with one click.
+Deploy over SSH to the AI Industrial R21. The Hailo-8 must be seated in the M.2 slot with PCIe Gen3 enabled in `/boot/firmware/config.txt`.
 
 ### Wiring
 
-1. Connect Reachy Mini to AI Industrial R21 via USB cable
+1. Connect Reachy Mini to the AI Industrial R21 via USB cable
 2. Plug the USB camera into the AI Industrial R21
-3. Ensure the AI Industrial R21 is on the network and SSH is accessible
-4. Enter the AI Industrial R21's IP address and SSH credentials (default user: `pi`)
-5. Enter the **Voice Assistant Host** — the IP of the Jetson running speech + LLM (e.g. `192.168.1.100`)
-6. Configure the data directory (default: `~/reachy-data`)
-7. Optionally enable **Kiosk Mode** to auto-launch the dashboard fullscreen on boot
-8. Click **Deploy** — the system will:
-   - Verify or install the Hailo stack (driver + userspace) if missing
-   - Pull and start robot control, conversation, and Hailo-accelerated vision services
+3. Enter the AI Industrial R21's IP address and SSH credentials (default user `pi`)
+4. Enter the **Voice Assistant Host**: the IP of the Jetson running speech and the LLM (e.g. `192.168.1.100`)
+5. Configure the data directory (default `~/reachy-data`)
+6. Optionally enable **Kiosk Mode** to open the dashboard fullscreen on boot
+7. Click **Deploy**
 
 ### Deployment Complete
 
-The robot should start talking within 30 seconds. Open the dashboard:
-
-```
-http://<r2000-ip>:8042
-```
-
-To verify all services:
-```bash
-ssh pi@<r2000-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+Open `http://<r2000-ip>:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `/dev/hailo0` not found | Reseat the Hailo HAT in the M.2 slot, reboot, retry. Check `lspci \| grep -i hailo` |
-| `hailo-all` install fails | Add the Hailo apt source manually — see `INSTALL.md` in the `vision-hailo` repo |
-| Container fails with version mismatch | Host driver and container userspace must be the same version. `sudo apt install --reinstall hailo-all` then redeploy |
-| FPS below 5 | Check CPU frequency: set scaling governor to `performance` |
-| No face data on dashboard | Verify vision service: `curl http://localhost:8630/` |
-| Speech not working | Verify VOICE_ASSISTANT_HOST is reachable: `curl http://<jetson-ip>:8621/health` |
-| Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
+| `/dev/hailo0` not found | Reseat the Hailo-8 in the M.2 slot and reboot; check `lspci \| grep -i hailo` |
+| `hailo-all` install fails | Add the Hailo apt source manually as described in `INSTALL.md` in the `vision-hailo` repo |
+| Container fails with version mismatch | Run `sudo apt install --reinstall hailo-all`, then redeploy |
+| FPS below 5 | Set the CPU scaling governor to `performance` |
+| No face data on dashboard | Run `curl http://localhost:8630/` to check the vision service |
+| Speech not working | On the R21, run `curl http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
 
 ### Target {#reachy_hailo_local type=local config=devices/reachy_hailo_deploy.yaml}
 
-Deploy directly on the current machine (requires reComputer AI Industrial R21 with Hailo-8 and Reachy Mini connected via USB).
+Deploy to this machine, which must be an AI Industrial R21 with Hailo-8, Docker installed and Reachy Mini connected via USB.
 
 ### Wiring
 
-1. Connect Reachy Mini to the machine via USB
-2. Ensure Docker is installed
-3. Click **Deploy** to start installation
-
-> **Note:** First startup may take 5-10 minutes for Docker image download.
+1. Connect Reachy Mini to this machine via USB
+2. Click **Deploy**; the first image download takes 5-10 minutes
 
 ### Deployment Complete
 
-The robot should start talking within 30 seconds. Open the dashboard:
-
-```
-http://localhost:8042
-```
+Open `http://localhost:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `/dev/hailo0` not found | Reseat the Hailo HAT in the M.2 slot, reboot, retry |
-| Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
-
-# Service Overview (AI Industrial R21 preset)
-
-| Service | Host | Port | Purpose |
-|---------|------|------|---------|
-| Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
-| Robot Control | AI Industrial R21 | 38001 | Reachy daemon (motors) |
-| Conversation Engine | AI Industrial R21 | 8042 | Dialogue + dashboard |
-| Vision (Hailo) | AI Industrial R21 | 8630 / 8631 | Face detection + emotion + tracking |
-
----
+| `/dev/hailo0` not found | Reseat the Hailo-8 in the M.2 slot and reboot |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
+| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
 
 ## Preset: Reachy Mini Wireless (CM4) {#cm4}
 
-Deploy the full Reachy voice robot stack on the Reachy Mini Wireless CM4. Vision runs on the CM4's CPU, while speech and LLM are consumed from a remote Jetson voice assistant.
+Robot control, conversation and CPU vision run on the CM4 inside Reachy Mini Wireless; speech and the LLM come from a remote Jetson.
 
-| Device | Purpose |
-|--------|---------|
-| Reachy Mini Wireless (CM4) | Robot control, conversation, CPU-based vision |
-| Jetson (remote) | Speech (ASR/TTS) + Edge LLM (TensorRT-Edge-LLM) — deployed in Step 1 |
-
-**What gets deployed:**
-- **Robot Control** — motor, camera, and sensor management
-- **Conversation Engine** — AI dialogue + emotion system + web dashboard
-- **Vision Analysis** — face detection, emotion recognition, and person tracking (CPU)
-
-**Prerequisites:**
-- Reachy Mini Wireless with onboard CM4
-- Docker installed on the CM4
-- Jetson device with JetPack 6.x, SSH access, and internet (speech service will be deployed in Step 1)
+- **Devices:** A Jetson on JetPack 6.x for speech and the LLM (Step 1 deploys the speech service; the LLM service `edge-llm-chat-service` must be running on that Jetson), and a Reachy Mini Wireless.
+- **Network:** Both devices are reachable over SSH, and the CM4 can reach ports 8621 and 11435 on the Jetson.
 
 ## Step 1: Deploy Speech Service {#cm4_speech_service type=docker_deploy required=true config=devices/speech_deploy.yaml}
 
-Deploy the GPU-accelerated speech recognition (ASR) and voice synthesis (TTS) service to your Jetson. The pre-built image includes all dependencies and models — just pull and run.
+Deploys the speech recognition (ASR) and voice synthesis (TTS) service on the Jetson; the image includes the models.
 
 ### Target {#cm4_speech_remote type=remote config=devices/speech_deploy.yaml default=true}
 
-Deploy to your Jetson over SSH with one click.
+Deploy over SSH to a Jetson running JetPack 6.x.
 
 ### Wiring
 
-1. Connect your Jetson to the network
+1. Connect the Jetson to the network
 2. Enter the Jetson's IP address and SSH credentials
-3. Click **Deploy** — the system will pull the pre-built image and start the service automatically
+3. Click **Deploy**
 
 ### Deployment Complete
 
-Speech service is running at `http://<jetson-ip>:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://<jetson-ip>:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://<jetson-ip>:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| SSH connection failed | Verify the IP address and credentials. Try `ssh username@ip` from your computer first |
-| Image pull slow | The image is ~8GB compressed. Ensure stable internet on the Jetson |
-| Service not starting | Check logs: `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| SSH connection failed | Try `ssh username@ip` from your computer first and check the IP and credentials |
+| Image pull slow | The image is ~8 GB compressed; ensure stable internet on the Jetson |
+| Service not starting | Run `ssh user@ip "cd reachy-jetson-voice && docker compose logs"` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ### Target {#cm4_speech_local type=local config=devices/speech_deploy.yaml}
 
-Deploy directly on the current machine (requires NVIDIA GPU).
+Deploy to this machine, which needs an NVIDIA GPU with Docker and the NVIDIA Container Toolkit installed.
 
 ### Wiring
 
-1. Ensure Docker and NVIDIA Container Toolkit are installed
-2. Click **Deploy** to start installation
-
-> **Note:** First startup may take 10-15 minutes for Docker image download and model initialization.
+1. Click **Deploy**; the first image download and model initialization take 10-15 minutes
 
 ### Deployment Complete
 
-Speech service is running at `http://localhost:8621`. Quick test:
-
-```bash
-# Check service health
-curl http://localhost:8621/health
-# Expected: {"asr": true, "tts": true, "streaming_asr": true}
-```
+Run `curl http://localhost:8621/health`; it returns `{"asr": true, "tts": true, "streaming_asr": true}`.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Port 8621 already in use | Stop existing services on port 8621 |
-| Container keeps restarting | Check logs: `docker logs reachy-jetson-voice-speech-1` |
-| Health check fails | First startup takes ~40 seconds for model warmup. Wait and retry |
+| NVIDIA runtime not found | Run `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
+| Port 8621 already in use | Stop the service using port 8621 |
+| Container keeps restarting | Run `docker logs reachy-jetson-voice-speech-1` |
+| Health check fails | First startup takes ~40 seconds for model warmup; wait and retry |
 
 ## Step 2: Deploy Reachy Voice Robot (CM4) {#reachy_cm4_deploy type=docker_deploy required=true config=devices/reachy_cm4_deploy.yaml target_inherit_from=cm4_speech_service}
 
-Deploy the robot control, conversation, and vision services to your CM4 in one step.
+Deploys the robot control, conversation and vision services on the CM4.
 
 
 ### Deployment Complete
 
-Your Reachy Mini voice robot is now running!
+The robot is ready about 30 seconds after deployment.
 
 #### What's Happening
 
-The robot runs in **Conversation Mode** by default — it listens and responds. Talk to it and it replies in one short sentence, with a matching emotion and head/antenna motion. No setup needed; just speak.
+The robot starts in conversation mode: talk to it and it replies in one sentence with a matching emotion and head/antenna motion.
 
 #### Service Overview
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Robot Control | 38001 | Motor, camera, and sensor management |
-| Conversation Engine | 8042 | AI dialogue + emotion system + dashboard |
-| Vision Analysis | 8630 | Face detection, emotion recognition, person tracking |
-| Edge LLM (remote Jetson) | 11435 | Qwen3.5-4B-AWQ (GDN+MTP) TensorRT — powers the robot's thinking ability |
-| Speech Service | 8621 | Listens and speaks (deployed in Step 1) |
+The dashboard is on port 8042 of the CM4; other ports: robot control 38001 and vision 8630 / 8631 on the CM4, speech 8621 and Edge LLM 11435 on the Jetson.
 
 #### Next Steps
 
-- Open the **Settings Dashboard** at `http://<cm4-ip>:8042` to see conversation logs, robot status, and adjust runtime settings
-- To change the robot's **persona / system prompt**, edit the active speech profile's `instructions.txt`. To tune runtime knobs (mic gain `audio_volume`, VAD sensitivity `client_vad_threshold`, `tts_speed`, plus the URL/language fields), edit `reachy-voice.yaml`:
-  ```bash
-  ssh pi@<cm4-ip>
-  nano ~/reachy-jetson-llm/reachy-voice.yaml   # tunables: client_vad_threshold, audio_volume, tts_speed, ...
-  docker restart reachy-voice
-  ```
-- The AI model is served by the Edge LLM service (`edge-llm-chat-service`, Qwen/Qwen3-4B-AWQ — Qwen3.5-4B) on the remote Jetson — there is no Ollama. To change the robot's behaviour, edit its `instructions.txt` persona rather than swapping the model.
-- After editing `instructions.txt` (persona) or `reachy-voice.yaml` (tunables) — or changing settings via the `:8042` dashboard — apply with `docker restart reachy-voice`.
+- Open the dashboard at `http://<cm4-ip>:8042` to see conversation logs and robot status and to adjust settings.
+- To change the persona, edit the active speech profile's `instructions.txt`. To tune mic gain `audio_volume`, VAD sensitivity `client_vad_threshold` or `tts_speed`, edit `~/reachy-jetson-llm/reachy-voice.yaml`.
+- After editing these files or changing settings on the dashboard, run `docker restart reachy-voice`.
 
 ### Target {#reachy_cm4_remote type=remote config=devices/reachy_cm4_deploy.yaml default=true}
 
-Deploy to your CM4 over SSH with one click.
+Deploy over SSH to the CM4 in Reachy Mini Wireless; Docker must be installed on the CM4.
 
 ### Wiring
 
-1. Ensure the CM4 is on the network and SSH is accessible
-2. Enter the CM4's IP address and SSH credentials (default user: `pi`)
-3. Enter the **Voice Assistant Host** — the IP of the Jetson running speech + LLM (e.g. `192.168.1.100`)
-4. Configure the data directory (default: `~/reachy-data`)
-5. Optionally enable **Kiosk Mode** to auto-launch the dashboard fullscreen on boot
-6. Click **Deploy** — the system will pull and start all services
+1. Enter the CM4's IP address and SSH credentials (default user `pi`)
+2. Enter the **Voice Assistant Host**: the IP of the Jetson running speech and the LLM (e.g. `192.168.1.100`)
+3. Configure the data directory (default `~/reachy-data`)
+4. Optionally enable **Kiosk Mode** to open the dashboard fullscreen on boot
+5. Click **Deploy**
 
 ### Deployment Complete
 
-The robot should start talking within 30 seconds. Open the dashboard:
-
-```
-http://<cm4-ip>:8042
-```
-
-To verify all services:
-```bash
-ssh pi@<cm4-ip> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
-```
+Open `http://<cm4-ip>:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Docker not installed | Install via the official script from get.docker.com |
-| Speech not working | Verify VOICE_ASSISTANT_HOST is reachable: `curl http://<jetson-ip>:8621/health` |
-| No camera feed | Check: `ls /dev/video*`. If empty, replug the USB camera |
-| Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
+| Docker not installed | Install it with the official script from get.docker.com |
+| Speech not working | On the CM4, run `curl http://<jetson-ip>:8621/health` to confirm the Jetson is reachable |
+| No camera feed | Run `ls /dev/video*`; if empty, replug the USB camera |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
+| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |
 
 ### Target {#reachy_cm4_local type=local config=devices/reachy_cm4_deploy.yaml}
 
-Deploy directly on the Reachy Mini Wireless CM4.
+Deploy directly on the CM4 in Reachy Mini Wireless; Docker must be installed on the CM4.
 
 ### Wiring
 
-1. Ensure Docker is installed on the CM4
-2. Click **Deploy** to start installation
-
-> **Note:** First startup may take 5-10 minutes for Docker image download.
+1. Click **Deploy**; the first image download takes 5-10 minutes
 
 ### Deployment Complete
 
-The robot should start talking within 30 seconds. Open the dashboard:
-
-```
-http://localhost:8042
-```
+Open `http://localhost:8042` and say something to the robot; it replies.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| Docker not installed | Install via the official script from get.docker.com |
-| Robot not moving | Check USB connection. Try replugging: `docker restart reachy-daemon` |
-| Dashboard not loading | Wait 30 seconds for startup. Check: `curl http://localhost:8042/health` |
-
-# Service Overview (CM4 preset)
-
-| Service | Host | Port | Purpose |
-|---------|------|------|---------|
-| Speech Service | Jetson (remote) | 8621 | ASR + TTS |
-| Edge LLM | Jetson (remote) | 11435 | TensorRT-Edge-LLM (Qwen3.5-4B-AWQ GDN+MTP) |
-| Robot Control | CM4 | 38001 | Reachy daemon (motors) |
-| Conversation Engine | CM4 | 8042 | Dialogue + dashboard |
-| Vision (CM4) | CM4 | 8630 / 8631 | Face detection + emotion + tracking |
+| Docker not installed | Install it with the official script from get.docker.com |
+| Robot not moving | Replug the USB cable and run `docker restart reachy-daemon` |
+| Dashboard not loading | Wait 30 seconds, then run `curl http://localhost:8042/health` |

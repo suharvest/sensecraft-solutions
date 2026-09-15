@@ -1,89 +1,77 @@
 ## Preset: Multi-Protocol Data Hub {#standard}
 
-Deploy one lightweight integration layer that turns different controllers into a unified, controllable point model.
+Bring OPC UA, Modbus, BACnet/IP and MQTT controllers into one point model, read and control them from one console, and expose data, commands and receipts over MQTT topics.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer R1000 / R1100 Series | Unifies field protocols into one point model and MQTT interface |
-| reTerminal DM Series | Runs the same services with an on-device touch display |
-| Industrial controllers | Provide OPC UA, Modbus, BACnet/IP, or MQTT data |
-
-**What you'll get:**
-- One place to configure OPC UA, Modbus, BACnet/IP, and MQTT controllers
-- Automatic discovery where available, with manual point entry as the fallback
-- One point table for reading, filtering, and safely controlling field data
-- One versioned MQTT contract for upstream data, commands, and receipts
-
-**Requirements:** Docker Engine 20.10+ · 4 GB free disk space · Network access to the target controllers
+- **Devices:** a host or reComputer R1000 / R1100 / reTerminal DM to run the service; industrial controllers providing OPC UA, Modbus, BACnet/IP or MQTT data.
+- **Software:** Docker Engine 20.10+, at least 4 GB free disk space.
+- **Network:** the host can reach the controller network and `sensecraft-missionpack.seeed.cn`.
 
 ## Step 1: Deploy the Multi-Protocol Data Hub {#gateway type=docker_deploy required=true config=devices/gateway.yaml}
 
-Start protocol integration and data services while preserving point configuration, audit history, and models across restarts.
+Start the protocol integration and data services.
 
 ### Target {#gateway_local type=local config=devices/gateway.yaml default=true}
 
-Deploy on the machine running SenseCraft Solution.
+Deploy on the machine running SenseCraft Solution. BACnet/IP broadcast discovery may not work on Docker Desktop; enter BACnet addresses manually, or use the remote target.
 
 ### Wiring
 
 ![Connection architecture](gallery/architecture.svg)
 
-1. Connect this machine to the same network as the Ethernet controllers.
-2. The standard local Docker target does not attach a serial device. Use a serial-device deployment profile for Modbus RTU and keep production writes disabled until hardware validation is complete.
-3. Keep the default web and MQTT ports, or select unused host ports before deployment.
-
-BACnet/IP broadcast discovery may not cross Docker Desktop's bridge network. Use manual BACnet addressing here, or choose the remote Linux target for subnet discovery.
+1. Connect this machine to the controller network.
+2. Keep the default web (8280) and MQTT (1883) ports, or pick unused ports in the deployment form.
+3. The local target does not attach a serial device. For Modbus RTU use the serial-device deployment profile, and keep production writes disabled until hardware validation is complete.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
+| Symptom | Fix |
+|---------|-----|
 | Docker is not available | Start Docker Desktop or Docker Engine, then retry |
-| Port 8280 or 1883 is busy | Choose another web or MQTT host port in the deployment form |
+| Port 8280 or 1883 is busy | Choose other ports in the deployment form |
 | Image download fails | Confirm the host can reach `sensecraft-missionpack.seeed.cn` and has at least 4 GB free |
-| Health check stays pending | Inspect `docker logs missionpack-industrial-gateway` and confirm `/readyz` returns HTTP 200 |
+| Health check stays pending | Run `docker logs missionpack-industrial-gateway` to see why |
 
 ### Target {#gateway_edge type=remote device_name="reComputer R1000 / R1100 / reTerminal DM" config=devices/gateway.yaml}
 
-Deploy over SSH to a reComputer R1000/R1100 Series or reTerminal DM device on the controller network.
+Deploy over SSH to a reComputer R1000 / R1100 or reTerminal DM on the controller network. reTerminal DM can be operated from its own touch display.
 
 ### Wiring
 
 ![Connection architecture](gallery/architecture.svg)
 
-1. Connect the selected reComputer R1000 / R1100 or reTerminal DM Ethernet interface to the controller network and record its IP address.
-2. If Modbus RTU is required, use the serial-device installer/profile to attach the USB-to-RS-485 adapter; do not enable production writes before hardware validation.
+1. Connect the device's Ethernet port to the controller network and note its IP address.
+2. For Modbus RTU, attach a USB-to-RS-485 adapter and use the serial-device deployment profile; keep production writes disabled until hardware validation is complete.
 3. Enter the device SSH address and credentials, then start deployment.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
+| Symptom | Fix |
+|---------|-----|
 | SSH connection fails | Check the device IP, username, credentials, and SSH service |
 | Registry cannot be reached | Confirm DNS and firewall access to `sensecraft-missionpack.seeed.cn` |
-| Web console cannot be opened | Allow the selected web port through the device firewall and verify the container is healthy |
+| Web console cannot be opened | Allow the web port through the device firewall and verify the container is healthy |
 | BACnet discovery returns no devices | Select the interface on the BACnet subnet and check that broadcasts are not blocked |
 
 ## Step 2: Configure Unified Access and Data Service {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
-Open the web console, create the first administrator, and bring the first field controller into the unified point model.
+Open the web console, create an administrator, and connect the first controller.
 
 1. Create the first administrator account; no token is required.
 2. Open **Access**, click **Add**, choose OPC UA, Modbus, BACnet/IP, or MQTT, and configure the controller.
-3. Run protocol discovery where available, review the candidates, and confirm only the points you need. Use manual configuration when discovery is unavailable or incomplete.
-4. Open **Points** to verify live values and quality before granting write access.
+3. Run discovery and confirm only the points you need; add points manually when discovery is unavailable or incomplete.
+4. Open **Points** and check live values and quality before granting write access.
 
 ### Prerequisites
 
-The service container from Step 1 must be healthy. No registration token is required for first-run administrator setup.
+The service from Step 1 is healthy.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| The page does not load | Wait for Step 1 to report healthy, then verify the selected web port |
-| A discovered point is missing | Use manual point configuration as the fallback and verify its protocol address |
-| A control command is rejected | Check point write permission, current quality, safety rules, and the command receipt |
+| Symptom | Fix |
+|---------|-----|
+| The page does not load | Wait for Step 1 to report healthy, then check the web port |
+| A discovered point is missing | Add the point manually and verify its protocol address |
+| A control command is rejected | Check point write permission, data quality, safety rules, and the command receipt |
 | MQTT control is unavailable | Enable TLS and configure a control identity; plaintext mode is telemetry-only |
 
 ### Deployment Complete
@@ -91,77 +79,56 @@ The service container from Step 1 must be healthy. No registration token is requ
 #### Next steps
 
 - Open **Data Service** to configure the embedded MQTT broker and review point, presence, command, and receipt topics.
-- Optionally open the prediction plugin to import CSV data and configure input/output points.
+- For prediction, open the prediction plugin to import CSV data and configure input/output points.
 
 ## Step 3: Publish Northbound and Verify Store-and-Forward — pending image build {#northbound type=manual required=false}
 
-Point the gateway at an external or cloud MQTT broker, then prove that a broker outage buffers data on disk and replays it in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
+Send gateway data to an external or cloud MQTT broker. During a broker outage data is buffered locally and replayed in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
 
 ### Prerequisites
 
-> **This step is not runnable with the image this package deploys.** The published tag
-> `missionpack-knn:v1.6.7` used by Step 1 does not contain the northbound publisher, so every
-> call below returns HTTP 404. The step therefore carries no configuration to run and no
-> verification to pass — it is reference material for the pending build. Once the image that
-> carries the feature is published, this step gets a device file and `verify=true` back, with
-the calls below as its substeps, and the verification below becomes the step's verification.
+> **The deployed image `v1.6.7` does not include this feature, so this step cannot be completed yet.** Every call below returns HTTP 404.
 
-An administrator session from Step 2, a reachable external MQTT broker with a CA bundle, and an image tag that carries northbound publishing.
-
-**Image tag status.** The published tag `sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.6.7` used by this package does **not** contain the northbound publisher. The feature exists upstream on `feature/northbound-publish` (`f831bae`); the image has not been built or pushed yet. The immutable tag it will carry is **to be assigned** — do not substitute `latest`. Until that tag is published, `GET /system/northbound-publish/status` returns HTTP 404 and this step cannot be completed.
-
-**Endpoints.**
-
-| Call | Purpose |
-|------|---------|
-| `PUT /system/northbound-publish/config` | Broker host/port, topic prefix, batch flush size and interval, spool limits, TLS material. Credentials are write-only and are never echoed back |
-| `POST /system/northbound-publish/start` | Connect and begin publishing |
-| `POST /system/northbound-publish/stop` | Disconnect and publish an offline status message |
-| `GET /system/northbound-publish/status` | Running, connected, queue capacity, and whether a credential is configured |
-| `GET /system/runtime-metrics` | `northbound.spool` counters: `queued`, `queued_bytes`, `dropped`, `replayed`, `oldest_age_seconds` |
-
-**TLS.** TLS 1.2 or newer with CA and hostname verification; mutual TLS optional. Plaintext transport is refused unless the runtime profile is exactly `test` or `development`, so a production deployment must supply a CA bundle.
-
-**Topics.** `<prefix>/{gateway}/telemetry` (batched, QoS1, not retained), `<prefix>/{gateway}/sources/{source_id}/health` (QoS1, retained), `<prefix>/{gateway}/status` (last will, QoS1, retained), `<prefix>/{gateway}/heartbeat` (QoS0, not retained, never buffered — a replayed heartbeat would misreport liveness).
+- The administrator account from Step 2.
+- A reachable external MQTT broker and its CA certificate. TLS 1.2 or newer is required; plaintext is refused in production.
+- Configure and start through the management API: `PUT /system/northbound-publish/config` (broker address, topic prefix, buffer limits, TLS material), then `POST /system/northbound-publish/start`.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| `/system/northbound-publish/status` returns 404 | The running image predates the feature; check the tag and wait for the pending build |
-| Start fails with a transport error | Plaintext is refused outside the test and development runtime profiles; supply TLS material |
-| Status reports running but not connected | Check broker reachability, credentials, and that the CA bundle matches the broker certificate chain |
-| `queued_bytes` grows and never drains | The link is still down, or the spool limit was reached and old batches were dropped; check `dropped` and `oldest_age_seconds` |
-| Messages are missing at the cloud after a broker restart | Use a persistent broker and a durable subscriber session; an in-memory broker discards messages that arrive before the subscriber re-subscribes |
+| Symptom | Fix |
+|---------|-----|
+| `/system/northbound-publish/status` returns 404 | The running image does not include this feature |
+| Start fails with a transport error | Supply TLS material; plaintext is refused in production |
+| Status reports running but not connected | Check broker reachability, credentials, and that the CA certificate matches the broker certificate |
+| `queued_bytes` grows and never drains | The link is still down, or the buffer is full and old data is being dropped; check `dropped` and `oldest_age_seconds` |
+| Messages are missing at the cloud after a broker restart | Use a persistent broker and a durable subscriber session |
 
 ### Deployment Complete
 
 #### Quick verification — enabled once the image is published
 
-These checks need the pending build; against `v1.6.7` step 1 already fails with HTTP 404.
-
-1. `GET /system/northbound-publish/status` reports running, connected, and a queue capacity greater than zero.
-2. A cloud subscriber on `<prefix>/{gateway}/telemetry` receives envelopes carrying `schema_version`, `message_id`, `gateway_id`, and a `samples` array.
-3. Stop the broker. `northbound.spool.queued` and `queued_bytes` in `/system/runtime-metrics` grow while the link is down.
-4. Restart the broker. The buffered batches replay in order, `northbound.spool.queued` returns to 0, and `dropped` has not increased.
-5. Confirm the retained `<prefix>/{gateway}/status` topic flipped back to online.
+1. `GET /system/northbound-publish/status` reports running and connected.
+2. A cloud subscriber on `<prefix>/{gateway}/telemetry` receives messages with `message_id`, `gateway_id`, and `samples`.
+3. Stop the broker; `northbound.spool.queued` in `/system/runtime-metrics` grows.
+4. Restart the broker; `northbound.spool.queued` returns to 0 and `dropped` has not increased.
+5. The `<prefix>/{gateway}/status` topic is back to online.
 
 #### Running the capacity soak
 
-The upstream repository ships the `r14_capacity_soak.py` harness that produced the numbers in the solution description. To reproduce them on your own hardware, clone the upstream repository onto the target device and run:
+Clone the upstream repository onto the target device and run:
 
 ```
 uv run python scripts/r14_capacity_soak.py --profile release \
   --evidence-root log/r14-capacity-evidence --run-id release-<UTC timestamp>
 ```
 
-The `release` profile runs 2,000 points for 24 h and refuses to start unless the git worktree is clean — it treats any untracked file, including macOS AppleDouble `._*` files left by a file copy, as an unfrozen source. `capacity-smoke` is the same shape at 180 s for a quick check, and the `northbound-*` profiles add cloud-broker outage injection. A run passes only when `verdict.json` reports `passed=true`, `failures=[]`, and `exit_code=0`.
+The `release` profile runs for 24 h; `capacity-smoke` runs for 180 s. A run passes when `verdict.json` reports `passed=true`.
 
 #### Next steps
 
-1. Set the spool limits from your own worst-case outage: at about 350 events/s the reference rig buffered 60.1 KB/s.
-2. Give the cloud consumer a deduplication key — replay is ordered at-least-once and reuses the same `message_id`.
-3. Alert on `northbound.spool.dropped` and `oldest_age_seconds`; a growing `dropped` means the spool limit is discarding data.
+1. Set the buffer limits from your longest expected outage.
+2. Deduplicate on `message_id` in the cloud consumer; replayed messages can repeat.
+3. Alert on `northbound.spool.dropped` and `oldest_age_seconds`.
 
 #### Protocol Release Status
 
@@ -169,8 +136,8 @@ The `release` profile runs 2,000 points for 24 h and refuses to start unless the
 |----------|------------------|
 | OPC UA | Source configuration, browse/manual points, live reads, and controlled writes |
 | Modbus TCP | Manual points, unit scan, live reads, and controlled writes |
-| BACnet/IP | Who-Is discovery, manual points, ReadProperty, and WriteProperty with priority and Null relinquish. COV subscription, BBMD/Foreign-Device registration, and MS-TP are **not** implemented |
+| BACnet/IP | Who-Is discovery, manual points, ReadProperty, and WriteProperty with priority and Null relinquish. COV subscription, BBMD/Foreign-Device registration, and MS-TP are **not** supported |
 | MQTT source | Explicit topic mappings and bounded topic observation |
-| Modbus RTU/RS-485 | Configuration and transport included; requires the serial-device deployment profile and USB hardware validation |
-| Northbound MQTT publish | Batched telemetry, retained health and status, heartbeat, and SQLite store-and-forward with ordered at-least-once replay. Requires the pending image tag; not in `v1.6.7` |
-| Northbound topic contract | MissionPack v1 native topics; Sparkplug B is not implemented in this release |
+| Modbus RTU/RS-485 | Requires the serial-device deployment profile and USB hardware validation |
+| Northbound MQTT publish | Batched telemetry, health and status, heartbeat, outage buffering and ordered replay. Not in `v1.6.7` |
+| Northbound topic contract | MissionPack v1 topics; Sparkplug B is not supported |

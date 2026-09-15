@@ -2,25 +2,21 @@
 
 在你的边缘设备上部署流式语音识别（ASR）和语音合成（TTS）服务——支持 Jetson Orin、RK3576、RK3588 和第五代树莓派。
 
-| 设备 | 推理引擎 | 最适合 |
-|------|---------|--------|
-| NVIDIA Jetson Orin | TensorRT-EdgeLLM / sherpa-onnx（GPU） | 最低延迟，多语言，声音克隆 |
-| RK3576 / RK3588 | RKNN（NPU） | 高效端侧语音识别 + 语音合成 |
-| 第五代树莓派 | sherpa-onnx（CPU） | 低成本中英文语音输入输出 |
-
 **部署完成后你可以：**
 - 实时流式语音识别（WebSocket）
 - 低延迟语音合成（HTTP 流式 + 批量）
 - 多种语言模式：中文+英文、纯英文、或 52 种语言 Qwen3
 - 通过 HTTP + WebSocket API（端口 8621）调用
 
-**前提条件：** 可通过 SSH 连接设备 · 需要联网拉取 Docker 镜像和下载模型 · 磁盘空间：Jetson 7.5 GB，RK 4.4 GB，树莓派 2.8 GB
+**前提条件：** 可通过 SSH 连接设备 · 需要联网拉取 Docker 镜像和下载模型
 
 ## 步骤 1: 部署语音服务 {#speech_service type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-将语音服务部署到你的边缘设备。预构建镜像已包含所有依赖，模型在首次启动时自动下载。
+将语音服务部署到你的边缘设备，模型在首次启动时自动下载。
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_deploy.yaml default=true}
+
+通过 SSH 部署到 Jetson Orin，用 GPU 推理，支持多语言和声音克隆。需要至少 7.5 GB 可用磁盘。
 
 ### 接线
 
@@ -56,7 +52,7 @@ curl -X POST http://<设备 IP>:8621/tts \
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson（本地）" config=devices/jetson_deploy.yaml}
 
-直接部署到当前机器（需要本机是 Jetson，并已安装 NVIDIA Container Toolkit）。
+直接部署到当前机器（需要本机是 Jetson，并已安装 NVIDIA Container Toolkit）。需要至少 7.5 GB 可用磁盘。
 
 ### 接线
 
@@ -85,6 +81,8 @@ curl http://localhost:8621/health
 
 ### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_deploy.yaml}
 
+通过 SSH 部署到 RK3576，用 NPU 推理。需要至少 4.4 GB 可用磁盘。
+
 ### 接线
 
 1. 将 RK3576 设备连接到网络
@@ -109,9 +107,11 @@ curl http://<设备 IP>:8621/health
 | NPU 未检测到 | 确保 `rknpu` 驱动已加载：`ls /dev/rknpu` |
 | 模型未下载 | 检查网络和 HF endpoint。模型约 3.6 GB，可能需要 10-20 分钟 |
 | 健康检查失败 | 首次启动需约 60 秒初始化模型 |
-| 内存不足 | RK3576 需要 4GB+ 可用内存，RK3588 需要 6GB+ |
+| 内存不足 | RK3576 需要 4GB+ 可用内存 |
 
 ### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_deploy.yaml}
+
+通过 SSH 部署到 RK3588，用 NPU 推理。需要至少 4.4 GB 可用磁盘。
 
 ### 接线
 
@@ -141,12 +141,14 @@ curl http://<设备 IP>:8621/health
 
 ### 部署目标 {#rpi_remote type=remote device=rpi device_name="Raspberry Pi" config=devices/rpi_deploy.yaml}
 
+通过 SSH 部署到第五代树莓派，用 CPU 推理，支持中英文。需要至少 2.8 GB 可用磁盘。
+
 ### 接线
 
 1. 将树莓派连接到网络
 2. 输入树莓派的 IP 地址和 SSH 凭据
 3. 从下拉菜单选择语音配置
-4. 点击 **部署** — CPU 镜像仅 568 MB
+4. 点击 **部署** — 系统会自动拉取镜像并启动服务
 
 ### 部署完成
 
