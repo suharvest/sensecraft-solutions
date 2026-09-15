@@ -1,12 +1,9 @@
 ## 套餐: A. reCamera Pro 直控 {#a_ai_camera}
 
-**需要准备**
+reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
-| 设备 | 用途 |
-|---|---|
-| Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
-| reCamera Pro | 识别人脸、判定是否开门，GPIO 输出到继电器 |
-| 继电器模块 | 干接点接门禁控制器的开门输入 |
+- **服务器：** 一台装 Docker 的 Linux 服务器（不需要 GPU），运行人脸库、管理界面和 MQTT broker。
+- **外设：** 继电器模块，干接点接门禁控制器的开门输入。
 
 ## 步骤 1: 部署人脸库与管理界面 {#p1_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -161,14 +158,10 @@
 
 ## 套餐: B. 标准版 reCamera {#a_recamera_std}
 
-**需要准备**
+标准版 reCamera（2002 / 2002w / 2002 HQ PoE）识别人脸并判定是否开门。
 
-| 设备 | 用途 |
-|---|---|
-| Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
-| 标准版 reCamera（2002 / 2002w / 2002 HQ PoE） | 识别人脸、判定是否开门 |
-| R1000 或 XIAO ESP32-S3（仅 2002 / 2002w） | 经 MQTT 收开门指令并驱动继电器；broker 不可用时门打不开 |
-| 继电器模块 | 干接点接门禁控制器的开门输入；2002 HQ PoE 的继电器接底板排针 D1 |
+- **服务器：** 一台装 Docker 的 Linux 服务器（不需要 GPU），运行人脸库、管理界面和 MQTT broker。
+- **外设：** 继电器模块，干接点接门禁控制器的开门输入。2002 HQ PoE 的继电器接底板排针 D1；2002 / 2002w 另需一台 R1000 或 XIAO ESP32-S3 经 MQTT 收开门指令并驱动继电器，broker 不可用时门打不开。
 
 ## 步骤 1: 部署人脸库与管理界面 {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -302,15 +295,11 @@
 
 ## 套餐: C. AI 主机 + 现有摄像头 {#b_ai_host}
 
-**需要准备**
+AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否开门。
 
-| 设备 | 用途 |
-|---|---|
-| Linux 服务器（装 Docker，不需要 GPU） | 人脸库、管理界面、MQTT broker |
-| reComputer J20 / J30 / J40 / R1000 | 拉门口摄像头的 RTSP 流，识别人脸、判定是否开门 |
-| 门口现有的 RTSP 摄像头 | 视频源 |
-| R1000 或 XIAO ESP32-S3（仅主机不在门边时） | 经 MQTT 收开门指令并驱动继电器；broker 不可用时门打不开 |
-| 继电器模块 | 干接点接门禁控制器的开门输入 |
+- **服务器：** 一台装 Docker 的 Linux 服务器（不需要 GPU），运行人脸库、管理界面和 MQTT broker。
+- **摄像头：** 门口现有的 RTSP 摄像头。
+- **外设：** 继电器模块，干接点接门禁控制器的开门输入。
 
 ## 步骤 1: 部署人脸库与管理界面 {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 

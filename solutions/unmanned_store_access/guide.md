@@ -1,12 +1,9 @@
 ## Preset: A. reCamera Pro at the Door {#a_ai_camera}
 
-**What you need**
+The reCamera Pro recognises faces, decides whether to unlock, and drives the relay from its GPIO.
 
-| Device | Purpose |
-|---|---|
-| Linux server (Docker, no GPU needed) | Face library, management console, MQTT broker |
-| reCamera Pro | Recognises faces, decides whether to unlock, drives the relay from its GPIO |
-| Relay module | Dry contact into the door controller's unlock input |
+- **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
+- **Peripherals:** A relay module with a dry contact into the door controller's unlock input.
 
 ## Step 1: Deploy the Face Library and Console {#p1_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -161,14 +158,10 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ## Preset: B. Standard reCamera {#a_recamera_std}
 
-**What you need**
+A standard reCamera (2002 / 2002w / 2002 HQ PoE) recognises faces and decides whether to unlock.
 
-| Device | Purpose |
-|---|---|
-| Linux server (Docker, no GPU needed) | Face library, management console, MQTT broker |
-| Standard reCamera (2002 / 2002w / 2002 HQ PoE) | Recognises faces and decides whether to unlock |
-| R1000 or XIAO ESP32-S3 (2002 / 2002w only) | Receives unlocks over MQTT and drives the relay; the door does not open while the broker is down |
-| Relay module | Dry contact into the door controller's unlock input; on the 2002 HQ PoE the relay connects to baseboard header D1 |
+- **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
+- **Peripherals:** A relay module with a dry contact into the door controller's unlock input. On the 2002 HQ PoE the relay connects to baseboard header D1; the 2002 / 2002w also need an R1000 or XIAO ESP32-S3 that receives unlocks over MQTT and drives the relay, and the door does not open while the broker is down.
 
 ## Step 1: Deploy the Face Library and Console {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -302,15 +295,11 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ## Preset: C. AI Host with Your Existing Cameras {#b_ai_host}
 
-**What you need**
+The AI host pulls the stream from the existing RTSP camera at the door, recognises faces and decides whether to unlock.
 
-| Device | Purpose |
-|---|---|
-| Linux server (Docker, no GPU needed) | Face library, management console, MQTT broker |
-| reComputer J20 / J30 / J40 / R1000 | Pulls the door camera's RTSP stream, recognises faces and decides whether to unlock |
-| Existing RTSP camera at the door | Video source |
-| R1000 or XIAO ESP32-S3 (host away from the door only) | Receives unlocks over MQTT and drives the relay; the door does not open while the broker is down |
-| Relay module | Dry contact into the door controller's unlock input |
+- **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
+- **Camera:** The existing RTSP camera at the door.
+- **Peripherals:** A relay module with a dry contact into the door controller's unlock input.
 
 ## Step 1: Deploy the Face Library and Console {#p2_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 

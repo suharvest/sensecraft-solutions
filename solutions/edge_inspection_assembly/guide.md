@@ -1,178 +1,82 @@
 ## Preset: Camera + reComputer J30 / J40 (Orin) {#jetson}
 
-The measured path. The runtime, the MQTT broker and the Modbus server all run
-on one Jetson Orin box; a TensorRT engine is built on the device during the
-first deploy, which takes about five minutes and ties the engine to that board
-and that TensorRT version. Every number on the intro page was taken here.
+Detection, assembly comparison, dimension measurement, Modbus TCP and MQTT all run on one Jetson Orin. The camera can be any RTSP or ONVIF camera, a USB camera or a recorded file.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer J30 / J40 | Detection, assembly comparison, dimension measurement, Modbus TCP server, MQTT broker and the web panel |
-| Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
-
-**Important.** The shipped model is trained on DeepPCB, a bare-board
-copper-defect dataset used here to prove the chain end to end; a real station
-needs a model trained on your own images. Three known weaknesses to plan
-around: expected-item ROIs are picture coordinates, so any camera movement
-invalidates the template; a tilted part or a calibration reference at a
-different working distance biases every measurement; and all camera streams
-share one Modbus register bank, so per-stream results have to come from MQTT.
+- **Model:** The shipped model is trained on DeepPCB, a bare-board copper-defect dataset, and only proves the chain end to end; a real station needs a model trained on your own images.
+- **Known limits:** Expected-item ROIs are picture coordinates, so moving the camera invalidates the template; a tilted part or a calibration reference outside the measured plane biases measurements; all cameras share one Modbus register bank, so per-stream results come from MQTT only.
+- **Network:** The camera is reachable from the Jetson, and the PLC can reach port 502 on the Jetson.
 
 ## Step 1: Deploy the Inspection Runtime {#deploy_jetson_assembly type=docker_deploy required=true config=devices/jetson_assembly.yaml}
 
-Uploads the compose project and the configuration, downloads and checksums the
-ONNX model, builds the TensorRT engine on the device, then starts the runtime
-and its MQTT broker.
+Downloads the model, builds the TensorRT engine on the device (about five minutes on first deploy), then starts the runtime and its MQTT broker.
 
 ### Prerequisites
 
-- JetPack 6.x (L4T r36.x) with the TensorRT dev packages, so that
-  `/usr/src/tensorrt/bin/trtexec` exists and runs.
-- Docker with the NVIDIA runtime configured, and at least 10 GB free.
-- The runtime image `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev`
-  pullable from the device (`docker pull` it once, or let compose pull it). It
-  was built for linux/arm64 and pushed on 2026-09-07, digest
-  `sha256:755f4b1d96052bf97e0cb84fc529d3cd61e6459f6a988144e593b06bdb7af997`.
-  If the device cannot reach the registry, build the tag on the board
-  (`docker build --network=host -f platforms/jetson/Dockerfile.slim -t
-  sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev .`)
-  or set `INSPECTION_IMAGE`. The deploy checks for it before doing anything else.
-- The camera reachable from the Jetson. Test an RTSP address in VLC first.
-- Ports 1883, 502 and 8080 free on the host — the containers use host
-  networking so the PLC can reach Modbus directly.
+- Ports 1883, 502 and 8080 free on the device.
+- The RTSP address tested in VLC.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `Image ... is not on this device` | Run `docker pull sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev` first; if the registry is unreachable, build the tag on the board or point `INSPECTION_IMAGE` at a tag you can pull |
-| Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and 10 GB is free; delete a half-built `*.engine.part` from an interrupted run before retrying |
-| ONNX checksum mismatch | The model file is not the one these measurements came from. Remove it and let the step download again |
-| No video from the camera | Test the RTSP URL in VLC; a wrong path or wrong credentials is the most common failure |
-| Container restarts every ~30 s | A file source that reached its end and exited — expected for a recorded clip without looping, not a crash |
-| Deploy cannot connect | Confirm SSH is reachable and the username is right; Seeed images use `recomputer` or `nvidia` |
-| Modbus port 502 refused | Another Modbus server on the host already holds it, or the container did not start — check `docker logs edge-inspection-assembly-app` |
+| `Image ... is not on this device` | Confirm the device can reach `sensecraft-missionpack.seeed.cn`, then deploy again |
+| Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and 10 GB is free; delete a half-built `*.engine.part` before retrying |
+| ONNX checksum mismatch | Delete the model file and deploy again so it is downloaded again |
+| No video from the camera | Test the RTSP URL in VLC and check the path and credentials |
+| Container restarts every ~30 s | A recorded file without looping exits at its end; this is expected |
+| Deploy cannot connect | Confirm SSH is reachable and the username is right (usually `recomputer` or `nvidia`) |
+| Modbus port 502 refused | Another Modbus server holds the port, or the container did not start; run `docker logs edge-inspection-assembly-app` |
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_assembly.yaml default=true}
 
-Deploy over SSH from this computer to a Jetson on the network. Use this unless
-you are running the app on the Jetson itself.
+Deploy over SSH to a Jetson on the network. The device needs JetPack 6.x with the TensorRT dev packages, Docker with the NVIDIA runtime, and at least 10 GB free disk.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_assembly.yaml}
 
-Deploy onto the machine this app is running on. Only valid when that machine is
-the Jetson.
+Deploy to this machine, which must be the Jetson. Same requirements as the remote target: JetPack 6.x with the TensorRT dev packages, Docker with the NVIDIA runtime, and at least 10 GB free disk.
 
 ## Step 2: Set Up the Dimension Calibration {#calibrate_dimension_jetson type=manual required=false config=devices/calibrate_dimension.yaml}
 
-Optional, and only needed if you want the dimension check. A station that only
-compares against the expected-item list can skip it — the dimension section then
-reports `uncalibrated` and Modbus HR 11 = 4, which is a defined state rather
-than a fault.
+Optional, only needed for the dimension check. When skipped, the dimension section reports `uncalibrated` and Modbus HR 11 = 4; the assembly comparison is unaffected.
 
 ### Prerequisites
 
-- A calibration reference in the **same plane** as the measured surface: an
-  ArUco marker (the example expects `DICT_4X4_50`, id 7, 25 mm wide) or any
-  object of a known width. Measure the printed marker with a caliper — printers
-  scale to fit the page.
+- A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
 - A known-good part to confirm the result against.
-- The runtime already deployed, so the self-check can run inside its image.
+- Step 1 completed.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `check_aruco.py` exits non-zero | This OpenCV build has no `aruco` module; rebuild the image with `opencv-contrib-python-headless`. The pinned `opencv-python-headless==4.10.0.84` does carry it — ArUco moved into the main `objdetect` module in OpenCV 4.7, so `contrib` is not required |
-| `status: uncalibrated` | The reference was not detected — check `calibration.roi` bounds it, and that `aruco_dict` and `aruco_id` match the marker you printed |
-| `status: not_found` | No contour large enough inside the measurement ROI; usually low contrast or a window drawn around the wrong feature |
-| Measurement is consistently off by a few percent | The reference is not in the plane of the part, or the printed marker is not the width configured in `ref_object_width_mm` |
-| Everything reads NG at nominal size | `tolerance_mm` is tighter than the station's own measurement error; measure a known-good part and set the tolerance above that spread |
+| `check_aruco.py` exits non-zero | Rebuild the image with `opencv-contrib-python-headless` |
+| `status: uncalibrated` | Check that `calibration.roi` bounds the reference and that `aruco_dict` and `aruco_id` match the printed marker |
+| `status: not_found` | Raise the contrast, or draw the measurement ROI around the right feature |
+| Measurement is consistently off by a few percent | Put the reference in the plane of the part and set `ref_object_width_mm` to the caliper width |
+| Everything reads NG at nominal size | Measure several known-good parts and set `tolerance_mm` above their spread |
 
 ## Step 3: Watch the Verdicts {#preview_assembly_jetson type=web_dashboard required=false config=devices/preview_assembly.yaml}
 
-Opens the runtime's own panel on port 8080 — live counters, recent events and an
-MJPEG preview with detection boxes and the assembly ROIs drawn in.
+Opens the panel on port 8080 with live counters, recent events and a preview with detection boxes and assembly ROIs.
 
 ### Deployment Complete
 
-The station is running. It publishes one MQTT event per frame, keeps the Modbus
-registers and coils current, and serves the panel locally.
+The station publishes one MQTT event per frame and keeps the Modbus registers and coils current.
 
 #### Quick verification
 
-1. Open `http://<jetson-ip>:8080/healthz` and confirm `frames_processed` is
-   increasing and `mqtt_rejected` stays at 0.
-2. Subscribe to the results:
-   `mosquitto_sub -h <jetson-ip> -t '<station-name>/inspection/#' -C 5`.
-   Each event must carry an `assembly` section (`expected_count`,
-   `matched_count`, `missing_count`, `missing[]`) and a `dimension` section
-   (`calibrated`, `mm_per_pixel`, `measurements[]`), plus `verdict_reasons`.
-3. Take one expected part off the fixture. `missing_count` rises,
-   `verdict_reasons` gains `missing`, and `verdict` becomes `NG` even when
-   `defect_count` is 0.
-4. Watch the coil flip with a Modbus client on port 502, unit 1: Coil 0 = NG and
-   Coil 1 = OK are mutually exclusive, and HR 8 tracks the missing count you
-   just created.
+1. Open `http://<jetson-ip>:8080/healthz`: `frames_processed` increases and `mqtt_rejected` stays at 0.
+2. Run `mosquitto_sub -h <jetson-ip> -t '<station-name>/inspection/#' -C 5`: each event carries `assembly`, `dimension` and `verdict_reasons`.
+3. Take one expected part off the fixture: `missing_count` rises and `verdict` becomes `NG`.
+4. Connect a Modbus client to port 502, unit 1: Coil 0 (NG) and Coil 1 (OK) are mutually exclusive, and HR 8 equals the missing count.
 
 #### Configuring the expected-item list
 
-`assembly` and `dimension` are configured **per source** — the ROIs are picture
-coordinates, so each camera carries its own block under `sources[]` in
-`config/config.json` (a top-level block is only a fallback). The shipped example
-holds six items generated from one DeepPCB frame:
+Configure `assembly` and `dimension` per camera under `sources[]` in `config/config.json`:
 
-```json
-{
-  "stream_id": "line1-pcb",
-  "uri": "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101",
-  "kind": "rtsp",
-  "fps": 10,
-  "assembly": {
-    "expected": [
-      {"class": "open", "roi": [0.29328, 0.34656, 0.42078, 0.43156],
-       "min_count": 1, "label": "slot00-open"},
-      {"class": "mousebite", "roi": [0.36469, 0.45766, 0.44469, 0.52516],
-       "min_count": 1, "label": "slot01-mousebite"}
-    ],
-    "match_distance": 0.12,
-    "min_score": 0.25,
-    "report_extra": false
-  }
-}
-```
-
-One entry per part slot. `class` must be one of the model's `classes`; `roi` is
-`[x1, y1, x2, y2]` normalised to 0–1 in this camera's framing; `min_count` is how
-many instances that slot expects; `label` is what the operator sees in the
-`missing[]` list. `match_distance` is the largest normalised centre distance
-still counted as a match, `min_score` drops low-confidence detections before
-matching, and `report_extra` decides whether detections outside every expected
-ROI are reported as `extra` (and therefore, with `ng_on_extra`, can fail a
-board).
-
-The dimension block sits on whichever source sees the calibration reference:
-
-```json
-"dimension": {
-  "calibration": {"detect": "aruco", "aruco_dict": "DICT_4X4_50", "aruco_id": 7,
-                  "ref_object_width_mm": 25.0,
-                  "roi": [0.020695, 0.320312, 0.245305, 0.679688]},
-  "measurements": [
-    {"name": "gauge-block", "roi": [0.401906, 0.2375, 0.894094, 0.7625],
-     "nominal_width_mm": 60.0, "nominal_height_mm": 40.0, "tolerance_mm": 1.0}
-  ]
-}
-```
-
-`calibration.roi` bounds the reference and yields `mm_per_pixel`; each
-measurement has its own ROI, nominal size and tolerance. Set
-`ref_object_width_mm` to the width you measured with a caliper, not the width
-you asked the printer for.
-
-Which reasons can fail a board is configurable: `rules.ng_on_defect`,
-`ng_on_missing`, `ng_on_extra` and `ng_on_dimension` switch the four
-independently.
+- `assembly.expected[]`: one entry per part slot with `class` (one of the model classes), `roi` (`[x1, y1, x2, y2]` normalised to this camera's picture), `min_count` and `label` (the name shown when the part is missing).
+- `dimension`: on the source that sees the calibration reference; `calibration` bounds the reference, and each `measurements[]` entry has an ROI, nominal size and `tolerance_mm`.
+- `rules.ng_on_defect`, `ng_on_missing`, `ng_on_extra` and `ng_on_dimension` decide which reasons fail a board.
 
 #### Reading the outputs
 
@@ -188,219 +92,125 @@ Modbus TCP, unit 1, port 502:
 | HR 10 | Primary measurement in millimetres x100 (long edge) |
 | HR 11 | Tolerance code: 0 ok / 1 undersize / 2 oversize / 3 not_found / 4 uncalibrated |
 
-HR 0–7 are bit-identical to the surface-inspection contract v1, so an existing
-PLC program that reads them keeps working. `HR 10 = 0` does not mean "measured
-0 mm" — read HR 11 first. Registers are written before the coil flips, under one
-lock.
-
-MQTT, `<station-name>/inspection/<stream-id>/results`, schema `2.0.0`:
-
-```json
-{"type": "assembly_inspection_result", "version": "2.0.0",
- "stream_id": "line1-pcb", "frame_id": 10423, "verdict": "NG",
- "verdict_reasons": ["missing", "dimension_out_of_tolerance"],
- "defect_count": 0,
- "assembly": {"enabled": true, "expected_count": 3, "matched_count": 2,
-              "missing_count": 1, "extra_count": 1,
-              "missing": [{"label": "C7-cap", "class_name": "copper",
-                           "roi": [0.62, 0.10, 0.78, 0.28],
-                           "min_count": 1, "expected": 1, "found": 0}]},
- "dimension": {"enabled": true, "calibrated": true, "mm_per_pixel": 0.052083,
-               "out_of_tolerance_count": 1,
-               "measurements": [{"name": "board_edge", "status": "oversize",
-                                 "status_code": 2, "measured_long_mm": 60.42,
-                                 "nominal_long_mm": 60.0, "tolerance_mm": 0.3,
-                                 "deviation_mm": 0.42}]}}
-```
-
-Both sections are always present, with `enabled: false` when the module is off
-for that source, so a consumer never has to test for their existence. In v2,
-`verdict = NG` no longer implies `defect_count > 0`.
+When `HR 10 = 0`, read HR 11 first. MQTT publishes on `<station-name>/inspection/<stream-id>/results`; `verdict = NG` does not imply `defect_count > 0`.
 
 #### Next steps
 
-- Replace the example expected list with your own slots, and retrain the model
-  on your own images — the shipped weights find PCB copper defects, not your
-  parts.
-- Point `mqtt.host` at your own broker once you have one with credentials; the
-  bundled mosquitto is anonymous and local by design.
-- Add cameras by appending to `sources[]`, each with its own `assembly` or
-  `dimension` block. Eight streams at 10 fps was the last stable point measured
-  on a reComputer J30 series unit (J3011, Orin Nano 8GB), with MQTT and Modbus
-  disabled during that test — budget fewer with the full I/O path in place.
+- Replace the example expected list with your own slots and retrain the model on your own images.
+- Point `mqtt.host` at a broker with credentials; the bundled mosquitto allows anonymous local access.
+- Add cameras by appending to `sources[]`. A reComputer J30 series unit (Orin Nano 8GB) ran 8 streams at 10 fps stably with MQTT and Modbus disabled; plan for fewer with the full I/O path.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| The panel does not open | Confirm port 8080 is reachable from this computer; the containers use host networking, so a host firewall is the usual cause |
-| Panel loads but the preview is black | The source has not connected yet; check `/healthz` for a rising `frames_processed`, then the container logs for the camera URI |
-| The coil and the registers disagree | The write side is atomic; a reader that issues two Modbus requests can land between verdicts — seen at ~20 verdicts/s in testing. Poll the registers first and treat the coil as the trigger |
-| Everything is NG the moment the line starts | The expected list is still the shipped example. Rebuild it for your station before drawing any conclusion |
-| `dimension.enabled` is false in every event | That source has no `dimension` block; the calibration camera is a separate source in the shipped configuration |
+| The panel does not open | Check that the host firewall allows port 8080 |
+| Panel loads but the preview is black | Check `/healthz` for a rising `frames_processed`, then the camera URI in the container logs |
+| The coil and the registers disagree | Read the registers first and treat the coil as the trigger |
+| Everything is NG the moment the line starts | The expected list is still the shipped example; rebuild it for your station |
+| `dimension.enabled` is false in every event | That source has no `dimension` block; check the events from the calibration camera's source |
 
 ## Step 4: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_jetson type=manual required=false config=devices/annotate_with_sam2.yaml}
 
-Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`,
-SAM2-assisted) on a GPU workstation to turn your own images into an
-`assembly.expected[]` template and a versioned `roi_profile_sha256`, instead of
-hand-writing ROIs. Nothing in this step runs on the inspection device itself.
+Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`) on a GPU workstation to generate the `assembly.expected[]` template and ROI profile from your own images instead of hand-writing ROIs. Nothing in this step runs on the inspection device.
 
 ### Prerequisites
 
-- A GPU workstation with the upstream `edge-inspection-assembly`
-  repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
-  is a weaker baseline).
-- Your own station images and a COCO-style category list, or a willingness to
-  label a handful of classes by hand first.
+- A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).
+- Your own station images and a COCO-style category list.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| The SAM2 backend fails to start or crawls | It needs a GPU on the workstation. Re-run with `--backend otsu` — no GPU required, but a weaker baseline |
-| The runtime on the device rejects the generated template | The `roi_profile_sha256` it holds does not match the exported profile. Copy the `assembly.expected[]` template and ROI profile from this step over again and reload |
-| SAM2 proposes no useful boxes on your station images | Your category list does not cover the parts. Label a handful of classes by hand first, then re-run |
+| Symptom | Fix |
+|------|------|
+| The SAM2 backend fails to start or is slow | Confirm the workstation has a GPU, or re-run with `--backend otsu` |
+| The runtime on the device rejects the generated template | Copy the `assembly.expected[]` template and ROI profile from this step over together and reload |
+| SAM2 proposes no useful boxes | Add your parts to the category list, label a few classes by hand, then re-run |
 
 ## Preset: Camera + reComputer R2000 (Hailo-8) {#hailo}
 
-Same runtime, INT8 model, less power. The HEF is compiled off-device and
-downloaded during the deploy, so there is no build step on the board. Measured
-on the same Hailo-8 platform: 106.75 FPS hardware inference, 43.92 FPS full
-pipeline, mAP50 0.9858 against the CPU baseline — reference values, to be
-updated after a re-test on the reComputer unit. Stream capacity on this path is
-not part of that run; the multi-stream sweep is Orin-only.
+Detection runs on the Hailo-8 accelerator; assembly comparison, dimension measurement, Modbus TCP and MQTT run on the reComputer R2000. The camera can be any RTSP or ONVIF camera, a USB camera or a recorded file. The model is precompiled, so there is no build step on the board.
 
-| Device | Purpose |
-|--------|---------|
-| reComputer R2000 with Hailo-8 (M.2) | Detection on the accelerator, assembly comparison and dimension measurement on the CPU, Modbus TCP server, MQTT broker and the web panel |
-| Camera | Supplies the video of the inspection station; any RTSP or ONVIF camera works, as does a USB camera or a recorded file |
-
-**Important.** The shipped model is trained on the DeepPCB bare-board defect
-dataset rather than on assembly images; retrain on your own images for a real
-station. The same three weaknesses apply — picture-coordinate ROIs, calibration plane sensitivity, and one shared
-Modbus register bank across streams.
+- **Model:** The shipped model is trained on the DeepPCB bare-board defect dataset; a real station needs a model trained on your own images.
+- **Known limits:** Expected-item ROIs are picture coordinates, so moving the camera invalidates the template; the calibration reference must be in the measured plane; all cameras share one Modbus register bank. Measure one stream on this board before adding more.
+- **Network:** The camera is reachable from the device, and the PLC can reach port 502 on the device.
 
 ## Step 1: Deploy the Inspection Runtime {#deploy_hailo_assembly type=docker_deploy required=true config=devices/hailo_assembly.yaml}
 
-Checks the Hailo runtime, uploads the compose project and the configuration,
-downloads and checksums the HEF, then starts the runtime and its MQTT broker.
+Checks the Hailo runtime, downloads the model, then starts the runtime and its MQTT broker.
 
 ### Prerequisites
 
-Three of these fail late and confusingly if they are wrong, so the deploy checks
-them first:
-
-- **Python minor versions must match.** The compose file mounts the host's
-  `hailo_platform` package into the container; its `_pyhailort.cpython-3XX-*.so`
-  only imports under the same minor version. Compare `python3 --version` on the
-  host with `docker run --rm <image> python3 -V`.
-- **HailoRT must be 4.21.x**, and the driver, the user-space library and the
-  Python bindings must all be that same version — the HEF was compiled by
-  Dataflow Compiler 3.31.0, which pairs with HailoRT 4.21.0. Hold both packages
-  (`apt-mark hold hailort hailort-pcie-driver`); holding only the driver lets an
-  upgrade move the user-space library out from under it.
-- **`hailo_pci` needs `force_desc_page_size=4096`.** The Pi 5 kernel uses 16 KB
-  pages and the Hailo-8's maximum descriptor page is 4 KB. Without it `VDevice()`
-  and `hailortcli fw-control identify` both succeed and `configure(hef)` is where
-  it breaks.
-- The runtime image `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev`
-  pullable from the device. It was built for linux/arm64 and pushed on
-  2026-09-07, digest
-  `sha256:695aa8011186595764e0cbb680c2cad6b88d6c0fe54e075ad6e19eae3d33f944`; its
-  python3 is 3.11.2, matching Pi OS bookworm. If the registry is unreachable,
-  build it on the board, load it from an exported tar, or set `INSPECTION_IMAGE`.
-- At least 4 GB free, `/dev/hailo0` present, and ports 1883, 502 and 8080 free.
+- Ports 1883, 502 and 8080 free on the device.
+- The RTSP address tested in VLC.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `No /dev/hailo0` | The accelerator is not seated or the driver is not loaded; check `lspci` and `dmesg` for the PCIe link |
-| `libhailort.so.4.21.0 not found` | This HEF is ABI-locked to HailoRT 4.21.x. Install that version across driver, library and bindings rather than changing the mount |
-| Import of `hailo_platform` fails in the container | Host and image Python minor versions differ; rebuild the image on a matching base, or install HailoRT inside the image instead of mounting the host's |
-| `configure(hef)` crashes after a clean identify | `force_desc_page_size=4096` is missing from `/etc/modprobe.d/`; add it and reboot |
-| `Image ... is not on this device` | The pull step could not reach the registry or the tag was not found; check network access to `sensecraft-missionpack.seeed.cn`, or build the tag from the upstream repository and load it on the board |
-| HEF checksum mismatch | The file is not the one this solution was evaluated with; delete it and let the step fetch again |
-| No video from the camera | Test the RTSP URL in VLC first |
+| `No /dev/hailo0` | Check the accelerator is seated; look at `lspci` and `dmesg` for the PCIe link |
+| `libhailort.so.4.21.0 not found` | Install HailoRT 4.21.x for the driver, library and Python bindings, and run `apt-mark hold hailort hailort-pcie-driver` |
+| Import of `hailo_platform` fails in the container | The host Python version must match the image (3.11, Pi OS bookworm) |
+| `configure(hef)` crashes after a clean identify | Add `force_desc_page_size=4096` for `hailo_pci` in `/etc/modprobe.d/` and reboot |
+| `Image ... is not on this device` | Confirm the device can reach `sensecraft-missionpack.seeed.cn`, then deploy again |
+| HEF checksum mismatch | Delete the HEF file and deploy again so it is downloaded again |
+| No video from the camera | Test the RTSP URL in VLC |
 
 ### Target {#hailo_remote type=remote device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml default=true}
 
-Deploy over SSH from this computer to a reComputer R2000 on the network.
+Deploy over SSH to a reComputer R2000 on the network. The device needs HailoRT 4.21.x, `/dev/hailo0` present, and at least 4 GB free disk.
 
 ### Target {#hailo_local type=local device=hailo device_name="reComputer R2000" config=devices/hailo_assembly.yaml}
 
-Deploy onto the machine this app is running on. Only valid when that machine is
-the reComputer R2000.
+Deploy to this machine, which must be the reComputer R2000. Same requirements as the remote target: HailoRT 4.21.x, `/dev/hailo0` present, and at least 4 GB free disk.
 
 ## Step 2: Set Up the Dimension Calibration {#calibrate_dimension_hailo type=manual required=false config=devices/calibrate_dimension.yaml}
 
-Identical to the Jetson preset, with one substitution: the self-check runs
-inside `sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev`. Skip this step if the
-station only needs the missing-part check.
+Optional, only needed for the dimension check. When skipped, the dimension section reports `uncalibrated` and Modbus HR 11 = 4; the assembly comparison is unaffected.
 
 ### Prerequisites
 
-- A calibration reference in the **same plane** as the measured surface: an
-  ArUco marker (`DICT_4X4_50`, id 7, 25 mm wide in the example) or any object of
-  a known width, its printed size confirmed with a caliper.
+- A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
 - A known-good part to confirm the result against.
-- The runtime already deployed, so the self-check can run inside its image.
+- Step 1 completed.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| `check_aruco.py` exits non-zero | This OpenCV build has no `aruco` module; rebuild with `opencv-contrib-python-headless`. The pinned `opencv-python-headless==4.10.0.84` does carry it — ArUco lives in the main `objdetect` module since OpenCV 4.7, so `contrib` is not required |
-| `status: uncalibrated` | The reference was not detected — check `calibration.roi`, `aruco_dict` and `aruco_id` |
-| `status: not_found` | No contour large enough inside the measurement ROI; usually low contrast or the wrong window |
-| Measurement is consistently off by a few percent | The reference is not in the plane of the part, or its real width differs from `ref_object_width_mm` |
-| Everything reads NG at nominal size | `tolerance_mm` is tighter than the station's own measurement error |
+| `check_aruco.py` exits non-zero | Rebuild the image with `opencv-contrib-python-headless` |
+| `status: uncalibrated` | Check `calibration.roi`, `aruco_dict` and `aruco_id` |
+| `status: not_found` | Raise the contrast, or draw the measurement ROI around the right feature |
+| Measurement is consistently off by a few percent | Put the reference in the plane of the part and set `ref_object_width_mm` to the caliper width |
+| Everything reads NG at nominal size | Measure several known-good parts and set `tolerance_mm` above their spread |
 
 ## Step 3: Watch the Verdicts {#preview_assembly_hailo type=web_dashboard required=false config=devices/preview_assembly.yaml}
 
-Opens the runtime's own panel on port 8080 — the same page as on the Jetson
-preset, served by the same code.
+Opens the panel on port 8080 with live counters, recent events and a preview with detection boxes and assembly ROIs.
 
 ### Deployment Complete
 
-The station is running on the Hailo-8. It publishes one MQTT event per frame,
-keeps the Modbus registers and coils current, and serves the panel locally.
+The station publishes one MQTT event per frame and keeps the Modbus registers and coils current.
 
 #### Quick verification
 
-1. Open `http://<pi-ip>:8080/healthz` and confirm `frames_processed` is
-   increasing and `mqtt_rejected` stays at 0.
-2. Subscribe to the results:
-   `mosquitto_sub -h <pi-ip> -t '<station-name>/inspection/#' -C 5`.
-   Each event must carry an `assembly` section and a `dimension` section, plus
-   `verdict_reasons`.
-3. Take one expected part off the fixture. `missing_count` rises,
-   `verdict_reasons` gains `missing`, and `verdict` becomes `NG` even when
-   `defect_count` is 0.
-4. Watch the coil flip with a Modbus client on port 502, unit 1, and confirm
-   HR 8 tracks the missing count you just created.
-5. Record what this board actually does — frames per second at your resolution,
-   and the panel's `inference_ms_avg`. No on-device numbers exist for this
-   preset yet, and yours will be the first.
+1. Open `http://<device-ip>:8080/healthz`: `frames_processed` increases and `mqtt_rejected` stays at 0.
+2. Run `mosquitto_sub -h <device-ip> -t '<station-name>/inspection/#' -C 5`: each event carries `assembly`, `dimension` and `verdict_reasons`.
+3. Take one expected part off the fixture: `missing_count` rises and `verdict` becomes `NG`.
+4. Connect a Modbus client to port 502, unit 1: Coil 0 (NG) and Coil 1 (OK) are mutually exclusive, and HR 8 equals the missing count.
+5. Record the frame rate and `inference_ms_avg` from the panel as this board's actual performance.
 
 #### Configuring the expected-item list
 
-Identical to the Jetson preset: `assembly` and `dimension` live per source under
-`sources[]` in `config/config.json`, because the ROIs are picture coordinates.
-One `expected[]` entry per part slot with `class`, `roi` (`[x1, y1, x2, y2]`
-normalised to 0–1), `min_count` and `label`; `match_distance`, `min_score` and
-`report_extra` control the matching. The `dimension` block carries
-`calibration` (`detect: aruco`, `aruco_dict`, `aruco_id`,
-`ref_object_width_mm`, `roi`) and `measurements[]` (`roi`,
-`nominal_width_mm`, `nominal_height_mm`, `tolerance_mm`). `rules.ng_on_defect`,
-`ng_on_missing`, `ng_on_extra` and `ng_on_dimension` decide which reasons fail a
-board. Only the `model` section differs from the Jetson configuration: a `.hef`
-path and `accelerator: hailo`.
+Configure `assembly` and `dimension` per camera under `sources[]` in `config/config.json`:
+
+- `assembly.expected[]`: one entry per part slot with `class` (one of the model classes), `roi` (`[x1, y1, x2, y2]` normalised to this camera's picture), `min_count` and `label` (the name shown when the part is missing).
+- `dimension`: on the source that sees the calibration reference; `calibration` bounds the reference, and each `measurements[]` entry has an ROI, nominal size and `tolerance_mm`.
+- `rules.ng_on_defect`, `ng_on_missing`, `ng_on_extra` and `ng_on_dimension` decide which reasons fail a board.
 
 #### Reading the outputs
 
-The register map and the MQTT schema are the same on both presets:
+Modbus TCP, unit 1, port 502:
 
 | Register | Meaning |
 |---|---|
@@ -412,140 +222,85 @@ The register map and the MQTT schema are the same on both presets:
 | HR 10 | Primary measurement in millimetres x100 (long edge) |
 | HR 11 | Tolerance code: 0 ok / 1 undersize / 2 oversize / 3 not_found / 4 uncalibrated |
 
-`HR 10 = 0` does not mean "measured 0 mm" — read HR 11 first. MQTT publishes
-schema `2.0.0` on `<station-name>/inspection/<stream-id>/results`, with the
-`assembly` and `dimension` sections always present and `verdict = NG` no longer
-implying `defect_count > 0`.
+When `HR 10 = 0`, read HR 11 first. MQTT publishes on `<station-name>/inspection/<stream-id>/results`; `verdict = NG` does not imply `defect_count > 0`.
 
 #### Next steps
 
-- Replace the example expected list with your own slots and retrain on your own
-  images.
-- Point `mqtt.host` at a broker with credentials; the bundled mosquitto is
-  anonymous and local.
-- Before adding streams, measure one. The multi-stream figures on the intro page
-  are from the Jetson preset and do not transfer to this board.
+- Replace the example expected list with your own slots and retrain the model on your own images.
+- Point `mqtt.host` at a broker with credentials; the bundled mosquitto allows anonymous local access.
+- Measure one stream before adding more.
 
 ### Troubleshooting
 
-| Issue | Solution |
+| Symptom | Fix |
 |-------|----------|
-| The panel does not open | Confirm port 8080 is reachable; host networking means a host firewall is the usual cause |
-| Panel loads but the preview is black | The source has not connected; check `/healthz` for a rising `frames_processed`, then the container logs |
-| The coil and the registers disagree | The write side is atomic; a reader issuing two Modbus requests can land between verdicts. Poll the registers first and treat the coil as the trigger |
-| Frame rate is far below the Jetson figures | Expected — those numbers are from a reComputer J30 series (Orin Nano 8GB) with a TensorRT engine. Measure this board and use its own number |
+| The panel does not open | Check that the host firewall allows port 8080 |
+| Panel loads but the preview is black | Check `/healthz` for a rising `frames_processed`, then the container logs |
+| The coil and the registers disagree | Read the registers first and treat the coil as the trigger |
 | Everything is NG the moment the line starts | The expected list is still the shipped example; rebuild it for your station |
 
 ## Step 4: Generate Expected List and ROIs with SAM2 (Optional) {#annotate_sam2_hailo type=manual required=false config=devices/annotate_with_sam2.yaml}
 
-Optional, identical to the Jetson preset. Runs the upstream semi-automatic
-annotation tool on a GPU workstation — nothing in this step runs on
-the reComputer R2000.
+Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`) on a GPU workstation to generate the `assembly.expected[]` template and ROI profile from your own images instead of hand-writing ROIs. Nothing in this step runs on the reComputer R2000.
 
 ### Prerequisites
 
-- A GPU workstation with the upstream `edge-inspection-assembly`
-  repository and, for the SAM2 backend, a GPU (`--backend otsu` needs none but
-  is a weaker baseline).
-- Your own station images and a COCO-style category list, or a willingness to
-  label a handful of classes by hand first.
+- A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).
+- Your own station images and a COCO-style category list.
 
 ### Troubleshooting
 
-Same tool as the Jetson preset, same failure modes:
-
-| Issue | Solution |
-|-------|----------|
-| The SAM2 backend fails to start or crawls | It needs a GPU on the workstation. Re-run with `--backend otsu` — no GPU required, but a weaker baseline |
-| The runtime on the device rejects the generated template | The `roi_profile_sha256` it holds does not match the exported profile. Copy the `assembly.expected[]` template and ROI profile from this step over again and reload |
-| SAM2 proposes no useful boxes on your station images | Your category list does not cover the parts. Label a handful of classes by hand first, then re-run |
+| Symptom | Fix |
+|------|------|
+| The SAM2 backend fails to start or is slow | Confirm the workstation has a GPU, or re-run with `--backend otsu` |
+| The runtime on the device rejects the generated template | Copy the `assembly.expected[]` template and ROI profile from this step over together and reload |
+| SAM2 proposes no useful boxes | Add your parts to the category list, label a few classes by hand, then re-run |
 
 ## Preset: reCamera Pro {#recamera_pro}
 
-Camera and inspection node in one enclosure. Detection, the OK/NG verdict,
-Modbus TCP and MQTT all run on the camera; there is no host and no network hop
-in the decision path. The detector runs in INT8 on the camera's RV1126B NPU.
+Detection, the OK/NG verdict, Modbus TCP and MQTT all run on the reCamera Pro; no host is needed.
 
-Measured on this hardware over the 205-image DeepPCB validation split, with the
-camera's built-in application stopped: mAP50 0.9870 against 0.9876 for the
-fp32 CPU reference. Inference p50 30.9 ms, p95 34.5 ms. An
-fp16 build of the same model is published alongside it: mAP50-95 0.8221, p50
-110.3 ms.
-
-| Device | Purpose |
-|--------|---------|
-| reCamera Pro (RV1126B) | Capture, detection on the NPU, OK/NG verdict, Modbus TCP server, MQTT publisher and the local status panel |
-
-**Important.** Assembly comparison and dimension measurement
-are off in this preset: both need ROIs marked per station, which no generic
-form can carry — the Orin and Hailo presets cover them. The camera runs one App
-Center application at a time, so activating this one stops whatever was
-running before.
+- **Known limits:** This preset only detects defects; it does not compare assemblies or measure dimensions (choose the Orin or Hailo preset for those). The camera runs one App Center application at a time, so activating this one stops the running app.
+- **Account:** Admin credentials for the camera's web console.
+- **Network:** The PLC can reach port 502 on the camera; prepare a broker address if you want MQTT.
 
 ## Step 1: Deploy the Inspection Node on reCamera Pro {#deploy_recamera_pro_assembly type=recamera_pro_app required=true config=devices/recamera_pro_assembly.yaml}
 
-The node ships as an App Center application, `inspection-assembly`. Install it
-from the App Center on the camera's web console, then this step names it,
-applies your settings and makes it the active app. The model is not inside the
-package: the App Center delivers it separately into
-`/userdata/local/models/inspection-assembly/`.
+Install `inspection-assembly` from the App Center on the camera's web console first; this step applies your settings and makes it the active app. About 20 MB free on `/userdata` is needed.
 
-You need the web console's admin credentials and about 20 MB free on
-`/userdata`. There is nothing to build and nothing to copy by hand.
-
-Fill in a device name and, if you want the verdicts on a broker as well, a
-broker address. Leave the broker empty and the verdict still leaves the device
-over Modbus TCP.
+Fill in a device name, and a broker address if you want verdicts on a broker. With the broker empty, verdicts still leave the device over Modbus TCP.
 
 ### Wiring
 
-With a broker configured, every processed frame arrives on
-`inspection/<device name>/results` as one JSON record — published at QoS 0 while
-the broker connection is up, so this is one attempted publish per frame, not a
-delivery guarantee — carrying the verdict and its reasons, the defect count,
-every box with class and score, the inference time and both model hashes — the
-same event shape this solution publishes on Orin and on Hailo, validated
-against the contract before it is sent.
+With a broker configured, every processed frame publishes one JSON record to `inspection/<device name>/results` (QoS 0) carrying the verdict, defect count, boxes and inference time.
 
 #### What the PLC reads
 
-Modbus TCP on port 502, unit 1: coil 0 is NG, coil 1 is OK, and holding
-registers 0-11 carry the class, defect count, the primary box, a heartbeat and
-the assembly and dimension counters. Registers are written before the coil
-flips, so a PLC that sees the coil already has the matching data.
+Modbus TCP on port 502, unit 1: coil 0 is NG, coil 1 is OK, and holding registers 0-11 carry the class, defect count, primary box, heartbeat and the assembly and dimension counters.
 
 ### Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| The app is not in the App Center list | It has to be published to that camera's catalog first. This step names an installed app; it does not install one |
-| Activation stops another app | Expected — the App Center runs one application at a time |
-| No events on the broker, but the panel shows frames processed | The broker address or credentials are wrong; the verdict is still on Modbus. Check `mqtt.last_error` on the status panel |
-| Nothing on Modbus 502 | Confirm the app is the active one and that nothing else on the camera holds port 502 |
-| Frame rate is far below the Orin figures | Expected — those numbers are from a reComputer J30 series (Orin Nano 8GB) with a TensorRT engine. Use this camera's own number |
+| Symptom | Fix |
+|------|------|
+| The app is not in the App Center list | Install `inspection-assembly` from the App Center first |
+| Activation stops another app | Expected; the App Center runs one application at a time |
+| No events on the broker, but the panel shows frames processed | Check the broker address and credentials, and `mqtt.last_error` on the status panel |
+| Nothing on Modbus 502 | Confirm the app is the active one and nothing else on the camera holds port 502 |
 
 ## Step 2: Confirm One Verdict Leaves the Camera {#verify_recamera_pro_assembly type=manual required=true verify=true config=devices/verify_recamera_pro_assembly.yaml}
 
-The app's status panel binds to loopback on the camera, so the check that
-matters here is the one a PLC would make: read Modbus TCP.
+Read Modbus TCP from the network to confirm verdicts are leaving the camera.
 
 1. Point the camera at the station so a board is in frame
-2. From any machine on the network, read coil 0/1 and holding registers 0-11 on
-   port 502, unit 1
+2. From any machine on the network, read coil 0/1 and holding registers 0-11 on port 502, unit 1
 3. Read them again a second later
 
-You have a working node when the heartbeat in HR 6/7 has advanced between the
-two reads and exactly one of coil 0 and coil 1 is set.
+The check passes when the heartbeat in HR 6/7 has advanced between the two reads and exactly one of coil 0 and coil 1 is set. With a defective board in frame, coil 0 is set and HR 1 is the defect count; with a clean board, coil 1 is set and HR 1 is 0.
 
 ### Troubleshooting
 
-With a defective board in frame, coil 0 is set and HR 1 carries the defect
-count; with a clean board, coil 1 is set and HR 1 is 0. If you filled in a
-broker, subscribing to `inspection/<device name>/results` shows the same
-verdict as one JSON record per processed frame.
-
-| Issue | Solution |
-|-------|----------|
-| Connection refused on 502 | The app is not the active one, or another process on the camera holds the port |
-| The heartbeat does not advance | Frames are not arriving. The app reads the camera's RTSP substream, which comes from the built-in `rkipc`; if that is stopped there is no video |
-| Both coils read 0 | No verdict has been written yet — the first frame has not completed. Read again |
+| Symptom | Fix |
+|------|------|
+| Connection refused on 502 | Confirm the app is the active one and no other process holds the port |
+| The heartbeat does not advance | The app reads the RTSP substream from the camera's built-in `rkipc`; confirm `rkipc` is running |
+| Both coils read 0 | The first frame has not completed yet; read again |
