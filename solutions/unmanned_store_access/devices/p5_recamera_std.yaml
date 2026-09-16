@@ -126,6 +126,27 @@ actions:
           ' "$CONF" > "$tmp" || { rm -f "$tmp"; echo "config key not found: [$section] $key" >&2; exit 1; }
           mv "$tmp" "$CONF"
         }
+        # `delete_op` is not in the shipped conf, so set_conf (replace-only)
+        # would fail the step. This one appends the key at the end of its
+        # section when it is missing and replaces it when present. Measured
+        # 2026-09-16: without it a first deploy on a stock unit dies with
+        # "config key not found: [facedb] delete_op".
+        add_conf() {
+          section="$1"; key="$2"; value="$3"
+          tmp="$CONF.tmp.$$"
+          awk -v s="$section" -v k="$key" -v v="$value" '
+            BEGIN { insec = 0; done = 0 }
+            /^\[/ {
+              if (insec && !done) { print k " = " v; done = 1 }
+              insec = ($0 == "[" s "]")
+            }
+            insec && $0 ~ ("^" k " *=") { print k " = " v; done = 1; next }
+            { print }
+            END { if (insec && !done) { print k " = " v; done = 1 }
+                  exit(done ? 0 : 1) }
+          ' "$CONF" > "$tmp" || { rm -f "$tmp"; echo "config section not found: [$section]" >&2; exit 1; }
+          mv "$tmp" "$CONF"
+        }
         set_conf device device_id '{{device_id}}'
         set_conf device actuator_id '{{actuator_id}}'
         set_conf facedb url '{{facedb_url}}'
@@ -136,7 +157,7 @@ actions:
         # came back "unknown op; expected enroll, remove, list, reload or
         # liveness_capture", so a person revoked in the cloud stayed on the
         # device and kept opening the door.
-        set_conf facedb delete_op 'remove'
+        add_conf facedb delete_op 'remove'
         set_conf recognition match_threshold '{{match_threshold}}'
         # spec §10.5: the agent compares its own conf against the recogniser's
         # actual argv on start and refuses to run when they disagree
