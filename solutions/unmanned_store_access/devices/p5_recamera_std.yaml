@@ -146,7 +146,21 @@ actions:
         # single overridden key here keeps both sides on the value entered
         # above. Without it, any threshold other than 0.40 installs fine and
         # then never starts.
-        printf 'MATCH_THRESHOLD=%s\n' '{{match_threshold}}' > /userdata/f1-access/recogniser.conf
+        # Events and device status go to the console's broker, and the same
+        # [mqtt] section is also the recogniser's command channel, which the
+        # gate byte-compares against its `-m`. So both sides are moved together:
+        # the broker host is the face library server (same host runs mosquitto),
+        # written into the conf and into the recogniser override below. Leaving
+        # it at the shipped `localhost` keeps every event on the camera and the
+        # console's device page stays empty.
+        BROKER=$(printf '%s' '{{facedb_url}}' | sed -e 's#^[a-z]*://##' -e 's#[:/].*##')
+        set_conf mqtt host "$BROKER"
+        set_conf mqtt port '1883'
+        {
+          printf 'MATCH_THRESHOLD=%s\n' '{{match_threshold}}'
+          printf 'MQTT_HOST=%s\n' "$BROKER"
+          printf 'MQTT_PORT=%s\n' '1883'
+        } > /userdata/f1-access/recogniser.conf
         # 2002 HQ PoE drives its relay from the on-camera GPIO header; a plain
         # 2002/2002w has no such header and must leave [gpio] disabled, or the
         # first start tries to export a pin that is not wired to anything.
