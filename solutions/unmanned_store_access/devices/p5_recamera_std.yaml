@@ -130,6 +130,13 @@ actions:
         set_conf device actuator_id '{{actuator_id}}'
         set_conf facedb url '{{facedb_url}}'
         set_conf facedb key_id 'facedb-key-1'
+        # The packaged recogniser only accepts `remove`; the agent's default is
+        # `delete` (agent_config.py DEFAULT_DELETE_OP) and the shipped conf does
+        # not set this key. Measured on a real unit 2026-09-16: every `delete`
+        # came back "unknown op; expected enroll, remove, list, reload or
+        # liveness_capture", so a person revoked in the cloud stayed on the
+        # device and kept opening the door.
+        set_conf facedb delete_op 'remove'
         set_conf recognition match_threshold '{{match_threshold}}'
         # spec §10.5: the agent compares its own conf against the recogniser's
         # actual argv on start and refuses to run when they disagree
