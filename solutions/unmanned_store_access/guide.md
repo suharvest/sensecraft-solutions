@@ -145,12 +145,150 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 | Audit verification fails | Keep the log file and check whether two processes write to it. |
 | Events stop but the door still opens | The camera unlocks locally; check its connection to the MQTT broker on port 1883. |
 
-## Preset: B. Standard reCamera {#a_recamera_std}
+## Preset: B. reCamera PoE {#a_recamera_poe}
 
-A standard reCamera (2002 / 2002w / 2002 HQ PoE) recognises faces and decides whether to unlock.
+A reCamera 2002 HQ PoE recognises faces, decides whether to unlock, and drives the relay from its own baseboard header. The unlock path does not go over the network.
 
 - **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
-- **Peripherals:** A relay module with a dry contact into the door controller's unlock input. On the 2002 HQ PoE the relay connects to baseboard header D1; the 2002 / 2002w also need an R1000 or XIAO ESP32-S3 that receives unlocks over MQTT and drives the relay, and the door does not open while the broker is down.
+- **Camera:** reCamera 2002 HQ PoE, powered over PoE.
+- **Peripherals:** A relay module on baseboard header D1, with a dry contact into the door controller's unlock input.
+
+## Step 1: Deploy the Face Library and Console {#p6_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
+
+Starts the face library, MQTT broker and management console on one server.
+
+### Prerequisites
+
+- A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
+- Server clock synchronised by NTP; door devices take their time from it.
+- Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
+- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `docker compose` not found | Install `docker-compose-plugin` on the server. |
+| `NTP is not synchronised` warning | Run `sudo timedatectl set-ntp true` on the server. |
+| Port 8080 in use | Change Face Library Port, and use the same port in later Face Library URLs. |
+| Port 8088 in use | Free port 8088; the console pages in later steps open on it. |
+| Face library answers 404 | Normal before the first enrolment. |
+| Console does not come up | Run `docker logs usa-web` on the server. |
+
+### Target {#p6_facedb_remote type=remote config=devices/cloud_facedb.yaml default=true}
+
+Deploy to a Linux server the door devices can reach.
+
+### Target {#p6_facedb_local type=local config=devices/cloud_facedb.yaml}
+
+Deploy to this computer. The door devices must be able to reach its IP.
+
+## Step 2: Enrol People {#p6_register type=web_dashboard required=true config=devices/register_person.yaml}
+
+Enrol each person with 3 to 8 photos in the console's Person Library.
+
+### Prerequisites
+
+- The admin token from Step 1.
+- 3 to 8 clear, front-facing photos per person.
+- Recognition Service URL filled in Step 1; without it enrolled people are not recognised.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Enrolment refused: fewer than three images | Upload at least 3 photos. |
+| Door still refuses a newly enrolled person | Wait 30 s for the device to fetch the new version, then try again. |
+| Rollback refused, naming a person | That person was deleted. Enrol or edit to publish a new version instead. |
+| `model_tag` mismatch on the device | Point Recognition Service URL at the door device's recognition service, redeploy Step 1 and enrol again. |
+
+## Step 3: Install F1 Access on the Camera {#p6_install type=recamera_cpp required=true config=devices/p6_recamera_poe.yaml}
+
+Installs the door access app on the reCamera PoE and writes its face library settings.
+
+### Prerequisites
+
+- The camera on USB-C (IP `192.168.42.1`) or on your network, and the `recamera` SSH password.
+- The camera can reach `http://<server IP>:8080`.
+- About 20 MB free on `/userdata`.
+
+### Wiring
+
+![reCamera 2002 HQ PoE relay wiring](gallery/wiring-recamera-2002-poe.svg)
+
+1. With a multimeter, confirm the 3.3 V and GND pins on the baseboard's 6-pin header.
+2. Wire header D1 (sysfs GPIO 490) → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a resistor between D1 and GND instead.
+3. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+4. In the form, fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| The stock face-recognition app is still on the camera | Remove `face-recognition` on the camera, then deploy again. |
+| `agent.log` ends with `thresholds are not single-sourced` | Deploy this step again; do not hand-edit `/userdata/f1-access/face-recognition.conf`. |
+| No library version ever activates | Check the camera reaches Face Library URL; if Match Threshold was changed away from the Step 1 value, set it back and deploy again. |
+| The door opens once at start-up | The active level is wrong. Fix it before connecting the door controller. |
+| The relay never clicks | Check D1 is on the header pin you wired, and that `[gpio] enabled = true` in `/userdata/f1-access/face-recognition.conf`. |
+
+## Step 4: Check the Library Reached the Device {#p6_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+Check on the console's Devices page that the door device uses the version you just published.
+
+### Prerequisites
+
+- The camera is powered on and online.
+- At least one person enrolled.
+- The camera listed in Device Control Endpoints in Step 1.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `desired_version` behind the server's `current` | Wait 30 s and reload the page. |
+| `active_version` behind `desired_version` | Read `last_error`. Usually the match threshold differs from Step 1; redeploy the device step with the same value. |
+| `signature.verified` is `null` | Normal. Signature failures appear in `last_error`. |
+| `clock.valid` is `false` | Normal on devices without NTP. |
+| A person listed under `only_on_device` | Someone enrolled on the device directly; the next version overwrites it. |
+| The page is empty | Fill Device Control Endpoints in Step 1 and redeploy it. |
+
+## Step 5: Verify the Door {#p6_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+
+Test the door: an enrolled person opens it, a photo does not, remote unlock works.
+
+### Prerequisites
+
+- The door controller connected and at least one person enrolled.
+- A printed photo of that person.
+- The admin token from Step 1.
+
+### Deployment Complete
+
+1. Stand in front of the camera as an enrolled person: the relay clicks once and the console shows an allowed event.
+2. Step back and forward right away: the console shows `debounced` and the relay does not click again.
+3. Hold up the printed photo: the console shows `liveness_failed` and the relay does not click.
+4. On the console's Devices page, click unlock: the relay clicks once and the receipt shows `executed`.
+5. Delete a person: within 30 s the door no longer opens for them, and rolling back to a version that still contains them is refused.
+6. Unplug the server and stand in front of the camera: the door still opens.
+7. Before real use: switch the MQTT broker to TLS with per-device accounts, and put the console behind HTTPS.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| A photo opens the door | Take the door out of service and check the recognition service `/health` reports liveness `loaded`. |
+| Receipt says `executed` but the relay does not click | Check the header D1 wiring and the relay's trigger level. |
+| Relay clicks twice per approach | Increase the debounce window on the device, then test again. |
+| Audit verification fails | Keep the log file and check whether two processes write to it. |
+| No events in the console | Check the camera can reach the server on port 1883. |
+
+## Preset: C. Standard reCamera (2002 / 2002w) {#a_recamera_std}
+
+A reCamera 2002 or 2002w recognises faces and decides whether to unlock. The camera has no usable header, so the unlock goes over MQTT to a relay node.
+
+- **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
+- **Camera:** reCamera 2002 or 2002w.
+- **Relay node:** An R1000 or XIAO ESP32-S3 on the same MQTT broker, with a relay module whose dry contact goes into the door controller's unlock input. The door does not open while the broker is down.
 
 ## Step 1: Deploy the Face Library and Console {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -207,20 +345,18 @@ Installs the door access app on the reCamera and writes its face library setting
 
 ### Prerequisites
 
-- The reCamera on USB-C (IP `192.168.42.1`) or on your network, and the `recamera` SSH password.
+- The camera on USB-C (IP `192.168.42.1`) or on your network, and the `recamera` SSH password.
 - The camera can reach `http://<server IP>:8080`.
 - About 20 MB free on `/userdata`.
-- 2002 / 2002w: an R1000 or XIAO ESP32-S3 relay node connected to the same MQTT broker.
+- An R1000 or XIAO ESP32-S3 relay node connected to the same MQTT broker, and the Relay ID set on it.
 
 ### Wiring
 
-![reCamera 2002 HQ PoE relay wiring](gallery/wiring-recamera-2002-poe.svg)
+![XIAO ESP32-S3 relay wiring](gallery/wiring-xiao-relay.svg)
 
-1. 2002 HQ PoE: with a multimeter, confirm the 3.3 V and GND pins on the 6-pin header.
-2. 2002 HQ PoE: wire header D1 → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a resistor between D1 and GND instead.
-3. 2002 / 2002w: the camera has no header; wire the relay to the R1000 or XIAO ESP32-S3 relay node.
-4. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
-5. In the form, set Camera Variant to match the hardware and fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
+1. The camera has no usable header. Wire the relay to the relay node: XIAO ESP32-S3 relay firmware GPIO → relay SIG, 3V3 → VCC, GND → GND; on an R1000, wire the relay to the output behind its Modbus Point ID.
+2. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+3. In the form, fill Device ID and set Actuator ID to the Relay ID configured on the relay node. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
 
 ### Troubleshooting
 
@@ -229,8 +365,8 @@ Installs the door access app on the reCamera and writes its face library setting
 | The stock face-recognition app is still on the camera | Remove `face-recognition` on the camera, then deploy again. |
 | `agent.log` ends with `thresholds are not single-sourced` | Deploy this step again; do not hand-edit `/userdata/f1-access/face-recognition.conf`. |
 | No library version ever activates | Check the camera reaches Face Library URL; if Match Threshold was changed away from the Step 1 value, set it back and deploy again. |
-| `mqtt.host` mismatch on a 2002 / 2002w | Set `[mqtt] host = localhost` in `/userdata/f1-access/face-recognition.conf`. |
-| The door opens once at start-up | Camera Variant or active level is wrong. Fix it before connecting the door controller. |
+| `mqtt.host` mismatch | Set `[mqtt] host = localhost` in `/userdata/f1-access/face-recognition.conf`. |
+| Unlock sent but the relay does not click | Check the relay node is connected to the broker and its Relay ID matches Actuator ID. |
 
 ## Step 4: Check the Library Reached the Device {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
@@ -238,7 +374,7 @@ Check on the console's Devices page that the door device uses the version you ju
 
 ### Prerequisites
 
-- The door device is powered on and online.
+- The camera is powered on and online.
 - At least one person enrolled.
 - The camera listed in Device Control Endpoints in Step 1.
 
@@ -277,12 +413,12 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 | Issue | Solution |
 |---|---|
 | A photo opens the door | Take the door out of service and check the recognition service `/health` reports liveness `loaded`. |
-| Receipt says `executed` but the relay does not click | Check the relay wiring and the pin set on the device. |
+| Receipt says `executed` but the relay does not click | Check the relay wiring and the pin set on the relay node. |
 | Relay clicks twice per approach | Increase the debounce window on the device, then test again. |
 | Audit verification fails | Keep the log file and check whether two processes write to it. |
 | No events in the console | Check the camera can reach the server on port 1883. |
 
-## Preset: C. AI Host with Your Existing Cameras {#b_ai_host}
+## Preset: D. AI Host with Your Existing Cameras {#b_ai_host}
 
 The AI host pulls the stream from the existing RTSP camera at the door, recognises faces and decides whether to unlock.
 

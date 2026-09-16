@@ -533,24 +533,24 @@ intro:
             - device_ref: generic_relay_module
           default: generic_relay_module
 
-    - id: a_recamera_std
-      name: B. Standard reCamera
+    - id: a_recamera_poe
+      name: B. reCamera PoE
       name_i18n:
-        zh: B. 标准版 reCamera
+        zh: B. reCamera PoE
       badge: Beta
       badge_i18n:
         zh: 测试版
       description: >-
-        A standard reCamera (2002 / 2002w / 2002 HQ PoE) recognises, checks
-        liveness and decides on the camera. The 2002 HQ PoE drives the relay
-        from its baseboard header; on the 2002 / 2002w the unlock goes over
-        MQTT to a relay node, and the door does not open while the broker is
-        down.
+        A reCamera 2002 HQ PoE recognises, checks liveness and decides on the
+        camera, and drives the relay from its baseboard header D1
+        (sysfs GPIO 490). The unlock path has no network hop. Deployment and face library
+        delivery were run on hardware on 2026-09-16; no relay was connected in
+        that run, so the pin was only exported and held at its idle level.
       description_i18n:
         zh: >-
-          标准版 reCamera（2002 / 2002w / 2002 HQ PoE）在摄像头上识别、验活体、判定。
-          2002 HQ PoE 从底板排针驱动继电器；2002 / 2002w 的开门指令经 MQTT 发到继电器节点，
-          broker 不可用时门打不开。
+          reCamera 2002 HQ PoE 在摄像头上识别、验活体、判定，并用底板排针 D1
+          （sysfs GPIO 490）驱动继电器，开门路径不经过网络。部署与人脸库下发已于
+          2026-09-16 在真机上跑通；那次没有接继电器，引脚只做了导出并保持空闲电平。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -565,6 +565,12 @@ intro:
           name: Door Camera
           name_i18n:
             zh: 门口摄像头
+          description: >-
+            The 2002 HQ PoE variant. Its baseboard carries the 6-pin header
+            this preset drives the relay from.
+          description_i18n:
+            zh: >-
+              2002 HQ PoE 型号。本套餐驱动继电器用的 6-pin 排针在它的底板上。
           type: single
           required: true
           options:
@@ -580,17 +586,83 @@ intro:
             input is normally-closed needs an "NC" terminal: order the Grove
             SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
             trigger on hardware or feed its own VCC/GND from a separate 5 V
-            source. On the standard-reCamera route the relay hangs off the
-            XIAO's own pin, so the XIAO 1-Channel Relay add-on (SKU 114993555)
-            also fits; it is SPST-NO as well, so it carries the same
-            fail-secure-only limit.
+            source. The header's level polarity and available drive current are
+            undocumented by the vendor, so confirm both with a meter and an LED
+            before wiring a lock.
           description_i18n:
             zh: >-
               Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
               接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
               改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
-              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。标准版 reCamera
-              路线上继电器接在 XIAO 自己的引脚上，XIAO 1-Channel Relay 扩展板
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。排针的电平极性
+              与可供电流厂商没写，接锁之前先用万用表与 LED 确认。
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
+
+    - id: a_recamera_std
+      name: C. Standard reCamera (2002 / 2002w)
+      name_i18n:
+        zh: C. 标准版 reCamera（2002 / 2002w）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: >-
+        A reCamera 2002 or 2002w recognises, checks liveness and decides on the
+        camera. These units have no usable header, so the unlock goes over MQTT
+        to a relay node and the door does not open while the broker is down.
+        This route has not been run on hardware.
+      description_i18n:
+        zh: >-
+          reCamera 2002 或 2002w 在摄像头上识别、验活体、判定。这两款没有可用排针，
+          开门指令经 MQTT 发到继电器节点，broker 不可用时门打不开。该路径尚未在真机上验证。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: door
+          name: Door Camera
+          name_i18n:
+            zh: 门口摄像头
+          description: >-
+            The 2002 or 2002w variant. Neither carries a usable header pin, so
+            the relay does not sit on the camera.
+          description_i18n:
+            zh: >-
+              2002 或 2002w 型号。两款都没有可用排针，继电器不接在摄像头上。
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: relay
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On this route the relay hangs off the relay node's own pin,
+            so the XIAO 1-Channel Relay add-on (SKU 114993555) also fits; it is
+            SPST-NO as well, so it carries the same fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。本路线上继电器
+              接在继电器节点自己的引脚上，XIAO 1-Channel Relay 扩展板
               （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
               fail-secure。
           type: single
@@ -599,26 +671,28 @@ intro:
             - device_ref: generic_relay_module
           default: generic_relay_module
         - id: relay_node
-          name: Relay Node (2002 / 2002w only)
+          name: Relay Node
           name_i18n:
-            zh: 继电器节点（仅 2002 / 2002w）
+            zh: 继电器节点
           description: >-
-            Needed on the 2002 / 2002w, which have no usable header pin. Not
-            needed on the 2002 HQ PoE.
+            The 2002 / 2002w have no usable header pin, so the relay is driven
+            from this node over MQTT. Without it the door has nothing to open
+            it.
           description_i18n:
             zh: >-
-              2002 / 2002w 没有可用排针，需要它来驱动继电器。2002 HQ PoE 不需要。
+              2002 / 2002w 没有可用排针，继电器由这个节点经 MQTT 驱动。
+              没有它这道门就没有东西能开。
           type: single
-          required: false
+          required: true
           options:
             - device_ref: xiao_esp32s3
             - device_ref: recomputer_r10
           default: xiao_esp32s3
 
     - id: b_ai_host
-      name: C. AI Host with Your Existing Cameras
+      name: D. AI Host with Your Existing Cameras
       name_i18n:
-        zh: C. AI 主机 + 现有摄像头
+        zh: D. AI 主机 + 现有摄像头
       badge: Beta
       badge_i18n:
         zh: 测试版
