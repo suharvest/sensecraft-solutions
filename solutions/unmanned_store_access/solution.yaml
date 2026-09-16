@@ -544,13 +544,14 @@ intro:
         A reCamera 2002 HQ PoE recognises, checks liveness and decides on the
         camera, and drives the relay from its baseboard header D1
         (sysfs GPIO 490). The unlock path has no network hop. Deployment and face library
-        delivery were run on hardware on 2026-09-16; no relay was connected in
-        that run, so the pin was only exported and held at its idle level.
+        delivery were run on a real 2002 HQ PoE on 2026-09-16; no relay was
+        connected in that run, so the pin was only exported and held at its
+        idle level.
       description_i18n:
         zh: >-
           reCamera 2002 HQ PoE 在摄像头上识别、验活体、判定，并用底板排针 D1
           （sysfs GPIO 490）驱动继电器，开门路径不经过网络。部署与人脸库下发已于
-          2026-09-16 在真机上跑通；那次没有接继电器，引脚只做了导出并保持空闲电平。
+          2026-09-16 在一台 2002 HQ PoE 真机上跑通；那次没有接继电器，引脚只做了导出并保持空闲电平。
       device_groups:
         - id: cloud
           name: Cloud Host

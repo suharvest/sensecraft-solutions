@@ -27,12 +27,12 @@ Not for doors where admitting the wrong person causes a safety incident. This is
 | Registered person | **door opened in 24 of 24 runs** |
 | Stranger | **0 false opens in 40 runs** |
 | Phone screen replay, still screen image | **0 false opens in 60 runs** |
-| Adding a person (standard reCamera firmware) | **median 331 ms**, tested up to 21 people in the library |
+| Adding a person (reCamera 2002 HQ PoE) | **median 331 ms**, tested up to 21 people in the library |
 
 Face-to-door-open, registered/stranger/replay rows tested on reCamera Pro; the open time
 excludes the mechanical action of the relay and lock. The person-adding row was tested on
-a reCamera running the standard firmware (reCamera OS 0.2.4, 2026-09-16); the unit does not
-report whether it is a 2002 HQ PoE. Timing did not grow with library size over the tested range.
+reCamera 2002 HQ PoE (reCamera OS 0.2.4, 2026-09-16); timing did not grow with library size
+over the tested range.
 
 ## Output Interfaces
 
