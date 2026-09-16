@@ -14,6 +14,7 @@ Starts the face library, MQTT broker and management console on one server.
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
+- Set **Door Device** to reCamera Pro for this preset.
 - The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
 
 ### Troubleshooting
@@ -151,7 +152,7 @@ A reCamera 2002 HQ PoE recognises faces, decides whether to unlock, and drives t
 
 - **Server:** A Linux server with Docker (no GPU needed) for the face library, management console and MQTT broker.
 - **Camera:** reCamera 2002 HQ PoE, powered over PoE.
-- **Peripherals:** A relay module on baseboard header D1, with a dry contact into the door controller's unlock input.
+- **Peripherals:** A Grove Relay (SKU 103020005, SPST-NO, 3.3-5 V trigger) on baseboard header D1, with a dry contact into the door controller's unlock input. For a normally-closed controller input, use the Grove SPDT Relay 30A (SKU 103020012) instead.
 
 ## Step 1: Deploy the Face Library and Console {#p6_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -162,6 +163,7 @@ Starts the face library, MQTT broker and management console on one server.
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
+- Set **Door Device** to standard reCamera for this preset.
 - The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
 
 ### Troubleshooting
@@ -216,10 +218,14 @@ Installs the door access app on the reCamera PoE and writes its face library set
 
 ![reCamera 2002 HQ PoE relay wiring](gallery/wiring-recamera-2002-poe.svg)
 
-1. With a multimeter, confirm the 3.3 V and GND pins on the baseboard's 6-pin header.
-2. Wire header D1 (sysfs GPIO 490) → relay SIG, 3.3 V → VCC, GND → GND. To test first, connect an LED with a resistor between D1 and GND instead.
-3. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
-4. In the form, fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
+You need: a Grove Relay (SKU 103020005), its 4-wire Grove cable, jumper wires (the header is not a Grove socket, so the far end of the cable breaks out into single wires), and a multimeter.
+
+1. **Measure the header first.** The vendor documentation does not give the levels on this 6-pin header. Before connecting anything, confirm with a multimeter which pin is 3.3 V, which is GND, and which is D1 (sysfs GPIO 490).
+2. **Connect three wires only**, leaving the relay's NC wire unconnected: header D1 → relay **SIG**, 3.3 V → **VCC**, GND → **GND**.
+3. **Test with an LED first.** Put an LED with a series resistor between D1 and GND, deploy, and check that it lights once for the configured pulse width. Then swap in the relay.
+4. **Confirm one click per pulse.** If the relay does not click, go back to step 1 and re-check the pin and its level.
+5. **Connect the door controller.** Relay **COM** and **NO** go to its unlock input; neither terminal carries any voltage of ours. A lock that opens on power loss needs a normally-closed contact, which the Grove Relay does not have — use the Grove SPDT Relay 30A (SKU 103020012) and wire COM and NC.
+6. In the form, fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
 
 ### Troubleshooting
 
@@ -299,6 +305,7 @@ Starts the face library, MQTT broker and management console on one server.
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
+- Set **Door Device** to standard reCamera for this preset.
 - The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
 
 ### Troubleshooting
@@ -435,6 +442,7 @@ Starts the face library, MQTT broker and management console on one server.
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
+- Set **Door Device** to AI host for this preset.
 - The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
 
 ### Troubleshooting

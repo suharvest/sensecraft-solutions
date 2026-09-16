@@ -472,19 +472,13 @@ intro:
     - id: a_ai_camera
       name: A. reCamera Pro at the Door
       name_i18n:
-        zh: A. reCamera Pro 直控
+        zh: A.reCamera Pro
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        A reCamera Pro recognises the face, checks liveness, decides, and
-        drives the relay from its own GPIO. The unlock path has no network hop.
-        Console enrolment does not yet produce a library usable on the Pro
-        (see Step 3).
+      description: A reCamera Pro recognises and drives the relay from its own GPIO — no network hop.
       description_i18n:
-        zh: >-
-          reCamera Pro 自己识别、验活体、判定，并用自己的 GPIO 驱动继电器，开门路径不经过
-          网络。经管理界面注册目前产不出 Pro 可用的人脸库（见步骤 3）。
+        zh: reCamera Pro 自行识别、验活体、判定，用自身 GPIO 驱动继电器，不经网络。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -536,22 +530,13 @@ intro:
     - id: a_recamera_poe
       name: B. reCamera PoE
       name_i18n:
-        zh: B. reCamera PoE
+        zh: B.reCamera PoE
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        A reCamera 2002 HQ PoE recognises, checks liveness and decides on the
-        camera, and drives the relay from its baseboard header D1
-        (sysfs GPIO 490). The unlock path has no network hop. Deployment and face library
-        delivery were run on a real 2002 HQ PoE on 2026-09-16; no relay was
-        connected in that run, so the pin was only exported and held at its
-        idle level.
+      description: A 2002 HQ PoE recognises on-camera and drives the relay from header D1 — no network hop.
       description_i18n:
-        zh: >-
-          reCamera 2002 HQ PoE 在摄像头上识别、验活体、判定，并用底板排针 D1
-          （sysfs GPIO 490）驱动继电器，开门路径不经过网络。部署与人脸库下发已于
-          2026-09-16 在一台 2002 HQ PoE 真机上跑通；那次没有接继电器，引脚只做了导出并保持空闲电平。
+        zh: 2002 HQ PoE 在摄像头上识别判定，用排针 D1 驱动继电器，不经网络。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -604,21 +589,15 @@ intro:
           default: generic_relay_module
 
     - id: a_recamera_std
-      name: C. Standard reCamera (2002 / 2002w)
+      name: C. Standard reCamera
       name_i18n:
-        zh: C. 标准版 reCamera（2002 / 2002w）
+        zh: C.标准版 reCamera
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        A reCamera 2002 or 2002w recognises, checks liveness and decides on the
-        camera. These units have no usable header, so the unlock goes over MQTT
-        to a relay node and the door does not open while the broker is down.
-        This route has not been run on hardware.
+      description: A 2002/2002w recognises on-camera. No usable header; unlock goes via MQTT to a relay node.
       description_i18n:
-        zh: >-
-          reCamera 2002 或 2002w 在摄像头上识别、验活体、判定。这两款没有可用排针，
-          开门指令经 MQTT 发到继电器节点，broker 不可用时门打不开。该路径尚未在真机上验证。
+        zh: 2002 / 2002w 在摄像头识别判定，无可用排针，开门经 MQTT 发给继电器节点。
       device_groups:
         - id: cloud
           name: Cloud Host
@@ -691,23 +670,15 @@ intro:
           default: xiao_esp32s3
 
     - id: b_ai_host
-      name: D. AI Host with Your Existing Cameras
+      name: D. AI Host + Existing Cameras
       name_i18n:
-        zh: D. AI 主机 + 现有摄像头
+        zh: D.AI主机+现有摄像头
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        For doors that already have cameras. A reComputer pulls the existing
-        RTSP stream, runs recognition and liveness in containers, and closes a
-        relay — on its own output when it is at the door, or through an MQTT
-        relay node when it is not. With the MQTT relay node the door does not
-        open while the broker is down.
+      description: "For doors with existing cameras: reComputer pulls RTSP, recognises, and shuts a relay."
       description_i18n:
-        zh: >-
-          适合门口已经有摄像头的场合。reComputer 拉取现有 RTSP 流，在容器里跑识别与活体，
-          再闭合继电器：主机在门边时接主机自己的输出，不在门边时经 MQTT 继电器节点。
-          用 MQTT 继电器节点时，broker 不可用期间门打不开。
+        zh: 适合已有摄像头的门口：reComputer 拉 RTSP 流，容器内识别，闭合继电器。
       device_groups:
         - id: cloud
           name: Cloud Host

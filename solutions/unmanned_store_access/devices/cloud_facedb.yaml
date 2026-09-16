@@ -224,8 +224,9 @@ remote_overrides:
       name: Door Device
       type: select
       required: true
-      default: recamera_pro
-      description: Sets the model tag written into every library version. It must match the device at the door, or nobody is recognised.
+      # No default on purpose: the same cloud step serves four presets, and a
+      # wrong model tag is invisible until nobody is recognised at the door.
+      description: Sets the model tag written into every library version. It must match the device at the door, or nobody is recognised. Preset A -> reCamera Pro; presets B and C -> standard reCamera; preset D -> AI host.
       options:
         - value: recamera_pro
           label: reCamera Pro
@@ -242,7 +243,7 @@ remote_overrides:
       name_i18n:
         zh: 门口设备
       description_i18n:
-        zh: 决定人脸库版本里写入的模型标识。必须与门口实际设备一致，否则谁都认不出来。
+        zh: 决定人脸库版本里写入的模型标识。必须与门口实际设备一致，否则谁都认不出来。套餐 A 选 reCamera Pro；套餐 B、C 选标准版 reCamera；套餐 D 选 AI 主机。
     - id: facedb_signing_key
       name: Library Signing Key
       type: password
