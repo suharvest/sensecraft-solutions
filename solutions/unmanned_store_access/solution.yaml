@@ -472,7 +472,7 @@ intro:
     - id: a_ai_camera
       name: A. reCamera Pro at the Door
       name_i18n:
-        zh: A.reCamera Pro
+        zh: A. reCamera Pro 直控
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -530,7 +530,7 @@ intro:
     - id: a_recamera_poe
       name: B. reCamera PoE
       name_i18n:
-        zh: B.reCamera PoE
+        zh: B. reCamera PoE
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -589,9 +589,9 @@ intro:
           default: generic_relay_module
 
     - id: a_recamera_std
-      name: C. Standard reCamera
+      name: C. Standard reCamera (2002 / 2002w)
       name_i18n:
-        zh: C.标准版 reCamera
+        zh: C. 2002 / 2002w
       badge: Beta
       badge_i18n:
         zh: 测试版
@@ -670,9 +670,9 @@ intro:
           default: xiao_esp32s3
 
     - id: b_ai_host
-      name: D. AI Host + Existing Cameras
+      name: D. AI Host with Your Existing Cameras
       name_i18n:
-        zh: D.AI主机+现有摄像头
+        zh: D. AI 主机 + 现有摄像头
       badge: Beta
       badge_i18n:
         zh: 测试版

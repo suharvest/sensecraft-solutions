@@ -11,17 +11,14 @@
 <rect class="b" x="660" y="60" width="210" height="220" rx="8"/>
 <text class="t h" x="765" y="92" text-anchor="middle">Door controller</text>
 <text class="t m" x="765" y="112" text-anchor="middle">门禁控制器</text>
-<text class="t s" x="262" y="164" text-anchor="end">D1 (GPIO 490)</text>
+<text class="t s" x="262" y="164" text-anchor="end">D1 (GPIO 490, 排针 / header)</text>
 <circle class="p" cx="280" cy="160" r="5"/>
 <circle class="p" cx="380" cy="160" r="5"/>
 <text class="t s" x="394" y="164">SIG</text>
 <line class="w" x1="280" y1="160" x2="380" y2="160"/>
-<text class="t s" x="262" y="204" text-anchor="end">3.3V (按实测)</text>
-<circle class="p" cx="280" cy="200" r="5"/>
 <circle class="p" cx="380" cy="200" r="5"/>
-<text class="t s" x="394" y="204">VCC</text>
-<line class="w" x1="280" y1="200" x2="380" y2="200"/>
-<text class="t s" x="262" y="244" text-anchor="end">GND (按实测)</text>
+<text class="t s" x="394" y="204">VCC ← 外部 3.3–5V</text>
+<text class="t s" x="262" y="244" text-anchor="end">GND (排针 / header)</text>
 <circle class="p" cx="280" cy="240" r="5"/>
 <circle class="p" cx="380" cy="240" r="5"/>
 <text class="t s" x="394" y="244">GND</text>
@@ -39,5 +36,6 @@
 <text class="t m" x="470" y="268" text-anchor="middle">Fail-safe maglock: COM/NC</text>
 <text class="t m" x="765" y="268" text-anchor="middle">断电开电磁锁接 COM/NC</text>
 <text class="t h" x="30" y="36">reCamera 2002 HQ PoE → Relay → Door controller</text>
-<text class="t m" x="30" y="320">按实测 = confirm the header pin with a multimeter before wiring / 接线前用万用表确认脚位</text>
+<text class="t m" x="30" y="320">排针只有 GND / GPIO488 / GPIO487 / TX / GPIO490 / RX，没有供电脚；电平未文档化，接线前用万用表确认</text>
+<text class="t m" x="30" y="344">The header carries GND / GPIO488 / GPIO487 / TX / GPIO490 / RX and no supply pin; power the relay from a separate 3.3–5V supply sharing GND</text>
 </svg>

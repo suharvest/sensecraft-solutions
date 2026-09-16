@@ -218,14 +218,17 @@ Installs the door access app on the reCamera PoE and writes its face library set
 
 ![reCamera 2002 HQ PoE relay wiring](gallery/wiring-recamera-2002-poe.svg)
 
-You need: a Grove Relay (SKU 103020005), its 4-wire Grove cable, jumper wires (the header is not a Grove socket, so the far end of the cable breaks out into single wires), and a multimeter.
+You need: a Grove Relay (SKU 103020005), its 4-wire Grove cable, jumper wires (the header is not a Grove socket, so the far end of the cable breaks out into single wires), a 3.3-5 V supply, and a multimeter.
 
-1. **Measure the header first.** The vendor documentation does not give the levels on this 6-pin header. Before connecting anything, confirm with a multimeter which pin is 3.3 V, which is GND, and which is D1 (sysfs GPIO 490).
-2. **Connect three wires only**, leaving the relay's NC wire unconnected: header D1 → relay **SIG**, 3.3 V → **VCC**, GND → **GND**.
-3. **Test with an LED first.** Put an LED with a series resistor between D1 and GND, deploy, and check that it lights once for the configured pulse width. Then swap in the relay.
-4. **Confirm one click per pulse.** If the relay does not click, go back to step 1 and re-check the pin and its level.
-5. **Connect the door controller.** Relay **COM** and **NO** go to its unlock input; neither terminal carries any voltage of ours. A lock that opens on power loss needs a normally-closed contact, which the Grove Relay does not have — use the Grove SPDT Relay 30A (SKU 103020012) and wire COM and NC.
-6. In the form, fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
+Header pinout ([vendor wiki](https://wiki.seeedstudio.com/reCamera_hq_poe_hardware_and_specs/)): **GND, GPIO488, GPIO487, TX, GPIO490, RX**. The three IO ports are D1 = GPIO490, CLK = GPIO487, SMD = GPIO488; this solution uses D1.
+
+1. **The header has no supply pin.** Power the relay's VCC separately: a 5 V USB charger, or the door side's existing 12 V stepped down to 5 V, with its ground tied to the header GND. A GPIO drives 3.3 V logic levels, while the Grove Relay draws 100 mA, so the GPIO carries SIG only. This route needs no XIAO.
+2. **The levels are undocumented.** Measure GPIO490's high level with a multimeter before connecting the relay.
+3. **Connect three wires**, leaving the relay's NC wire unconnected: header GPIO490 → relay **SIG**, the external 3.3-5 V → **VCC**, header GND → **GND** (the external supply's ground lands here too).
+4. **Test with an LED first.** Put an LED with a series resistor between GPIO490 and GND, deploy, and check that it lights once for the configured pulse width. Then swap in the relay.
+5. **Confirm one click per pulse.** If the relay does not click, go back to step 2 and re-check the level.
+6. **Connect the door controller.** Relay **COM** and **NO** go to its unlock input; neither terminal carries any voltage of ours. A lock that opens on power loss needs a normally-closed contact, which the Grove Relay does not have — use the Grove SPDT Relay 30A (SKU 103020012) and wire COM and NC.
+7. In the form, fill Device ID and Actuator ID. Face Library URL, Match Threshold and the signing key are carried over from Step 1; change the URL only if the camera reaches the server at a different address. Then deploy.
 
 ### Troubleshooting
 
