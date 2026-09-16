@@ -17,7 +17,7 @@
 <text class="t s" x="394" y="164">SIG</text>
 <line class="w" x1="280" y1="160" x2="380" y2="160"/>
 <circle class="p" cx="380" cy="200" r="5"/>
-<text class="t s" x="394" y="204">VCC ← 外部 3.3–5V</text>
+<text class="t s" x="394" y="204">VCC ← 5V（外部或板上焊盘）</text>
 <text class="t s" x="262" y="244" text-anchor="end">GND (排针 / header)</text>
 <circle class="p" cx="280" cy="240" r="5"/>
 <circle class="p" cx="380" cy="240" r="5"/>

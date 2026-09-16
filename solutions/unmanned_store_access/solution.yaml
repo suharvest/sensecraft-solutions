@@ -255,218 +255,68 @@ intro:
       name: Cloud / On-Prem Host
       name_i18n:
         zh: 云端 / 本地服务器
-      description: >-
-        Runs the face library server, the management console and the MQTT
-        broker in containers. Present in every preset — the library and the
-        console are shared infrastructure, not per-preset extras. Neither
-        container image has been pushed to a registry yet.
+      description: Runs face library, management console and MQTT broker in containers
       description_i18n:
-        zh: >-
-          以容器运行人脸库服务、管理界面与 MQTT broker。每个套餐都要它——人脸库与
-          管理界面是共用基础设施，不是某个套餐的附加项。两个容器镜像都还没有推送到
-          registry。
+        zh: 容器运行人脸库、管理界面与 MQTT broker
     recamera_pro:
-      description: >-
-        Runs recognition, liveness and the door logic on the camera itself,
-        as F1 Door Access — a published App Center package installed once
-        from the camera's own App Center and activated by this deployment,
-        not a package this solution installs from scratch. Two of the board's
-        exposed lines are native GPIO outputs that swing 12–21 V depending on
-        DC-IN; separately, a UART or CAN pin on the expansion port can be
-        reconfigured to a 3.3 V GPIO. This solution's default, `gpio130`
-        (GPIO4_A2), is identified by device tree pinctrl evidence as one of
-        the expansion port's UART4 M0 pins reconfigured this way — it
-        belongs to the 3.3 V family, not the two native 12–21 V outputs —
-        so confirm its exact TX/RX role, idle/driven voltage and available
-        drive current with a meter or schematic on your own unit. The device
-        survey also found "gpio131" (the paired UART4 pin) already exported
-        by another application, so check every pin before using it.
+      description: Runs face recognition and door control on-camera (F1 Door Access app)
       description_i18n:
-        zh: >-
-          识别、活体与门控判定都跑在摄像头本机，作为「F1 门禁」——一个已发布的
-          App Center 包，从摄像头自己的应用中心装一次，再由这次部署激活，
-          不是本方案从零安装的包。板上外露的两路原生 GPIO 输出摆幅 12–21 V
-          （取决于 DC-IN）；另外，扩展口上的 UART 或 CAN 脚可以改配成 3.3 V
-          GPIO。本方案默认的 `gpio130`（GPIO4_A2），依据设备树 pinctrl 证据
-          判定为扩展口 UART4 M0 那对脚之一，改配成 GPIO——属于 3.3 V 这一类，
-          不是那两路 12–21 V 原生输出——它具体是 TX 还是 RX、空闲/驱动电平
-          与可提供电流，请在自己的设备上用万用表或原理图确认。
-          真机盘点还发现「gpio131」（UART4 配对脚）已被另一个应用 export，
-          所以任何引脚都不能假定空闲。
+        zh: 识别与门控都跑在摄像头本机（F1 门禁应用）
     recamera_2002:
-      description: >-
-        The standard reCamera, and a different shape from the Pro rather than a
-        variant of it. It already recognises faces on its own — an App Center
-        application does detection, embedding, a two-head texture liveness with
-        blink fusion, and matching, entirely on the camera — and its control
-        plane is MQTT, not the Pro's loopback HTTP. It drives no lock: events
-        leave over MQTT and the relay sits at the gateway, which is why it
-        belongs to the MQTT preset rather than the on-device one. What gets
-        installed on it is a small standard-library daemon that pulls the face
-        library, maps the native result stream onto the event contract, and pins
-        every threshold in one file against the recognition process's actual
-        arguments. One variant is the exception to "drives no lock": the
-        2002 HQ PoE carries a 6-pin header on its baseboard with three IO lines
-        (D1 = sysfs 490, the only one not multiplexed; CLK = 487; SMD = 488), so
-        a relay can sit on the camera itself and it becomes a second door option
-        under the on-device preset. The header's level polarity and available
-        drive current are undocumented by the vendor, so confirm both with a
-        meter and an LED before wiring a lock.
+      description: On-device face recognition via MQTT; HQ PoE model has relay header
       description_i18n:
-        zh: >-
-          标准版 reCamera，与 Pro 是两种形态，不是同一形态的变体。它本身就会识别人脸
-          ——一个 App Center 应用在摄像头内完成检测、嵌入、双头纹理活体加眨眼融合与匹配
-          ——而它的控制面是 MQTT，不是 Pro 的回环 HTTP。它不驱动任何锁：事件经 MQTT 发出，
-          继电器在网关侧，这正是它属于 MQTT 套餐而不是端侧直控套餐的原因。装在它上面的是
-          一个纯标准库的小守护进程，负责拉人脸库、把原生结果流映射成事件契约，
-          并把所有阈值钉在一个文件里，与识别进程的实际启动参数逐项比对。
-          "不驱动任何锁"有一个例外：2002 HQ PoE 的底板上有一组 6-pin 排针，三路 IO
-          （D1 = sysfs 490，唯一一路非复用；CLK = 487；SMD = 488），继电器可以接在
-          摄像头自己身上，于是它成为端侧直控套餐的第二个门口设备选项。
-          排针的电平极性与可供电流厂商没写，接锁之前先用万用表与 LED 确认。
+        zh: 机载人脸识别，MQTT 控制；HQ PoE 型号带继电器排针
     recomputer_j20:
-      description: >-
-        The industrial box preset. Recognition runs in containers against an
-        existing RTSP camera, and the door is driven from an opto-isolated
-        digital output — sysfs 463/464/465/462 for DO1–DO4 per the design spec;
-        confirm on your image whether they are exposed that way or through
-        Jetson.GPIO. The DO switches the relay; it never carries lock current.
+      description: Industrial box; recognition in containers, door via opto-isolated DO
       description_i18n:
-        zh: >-
-          工业盒子套餐。识别在容器里跑，接现有 RTSP 摄像头，门控由光隔数字输出驱动——
-          按设计 spec，DO1–DO4 是 sysfs 463/464/465/462，目标镜像究竟以这种方式
-          还是通过 Jetson.GPIO 暴露它们，需要在真机上确认。DO 只负责切换继电器，
-          绝不承载锁电流。
+        zh: 工业盒子，容器跑识别，门控走光隔数字输出
     recomputer_j40:
-      description: >-
-        The compute host for the MQTT-relay preset — any of these boxes, or a
-        standard reCamera. It has no local door wiring at all: the unlock
-        travels over MQTT to a relay node elsewhere, which is what makes this
-        the preset for doors that are not next to the compute.
+      description: Compute host for the MQTT-relay preset; no local door wiring
       description_i18n:
-        zh: >-
-          MQTT 继电器套餐的计算主机——这几款盒子任选其一，或者一台标准 reCamera。
-          它本机完全没有门控接线：开门指令经 MQTT 发到别处的继电器节点，
-          这正是"门不在计算机旁边"时选这个套餐的原因。
+        zh: MQTT 继电器套餐主机，本机无门控接线
     recomputer_j30:
-      description: >-
-        The smaller Orin Nano option for the same role. It carries recognition
-        the same way and has no local door wiring either; the numbers on this
-        page come from the Orin NX (J40).
+      description: Smaller Orin Nano option for the same MQTT-relay role
       description_i18n:
-        zh: >-
-          同一角色下更小的 Orin Nano 选项。它以同样的方式承载识别，本机同样没有门控接线；
-          本页数字来自 Orin NX（J40）。
+        zh: 同一角色下更小的 Orin Nano 选项
     recomputer_r10:
-      description: >-
-        One of the two relay options for the MQTT preset. The unlock is written
-        as a point on the gateway, going through its point-command path rather
-        than around it. Suits sites that already run a reComputer R1000 for
-        other industrial IO. The relay itself is a separate item below.
+      description: Relay option for the MQTT preset; unlock is a point write on gateway
       description_i18n:
-        zh: >-
-          MQTT 套餐的两个继电器选项之一。开门写成网关上的一个点位，走它自己的点位
-          指令通道而不是绕过它。适合站点上本来就用 reComputer R1000 接其他工业 IO
-          的情况。继电器本身在下面单列。
+        zh: MQTT 套餐继电器选项，开门写成网关点位
     xiao_esp32s3:
-      description: >-
-        The relay node option reached over MQTT, in presets B and C. It subscribes to one topic, drives one dry contact, and
-        ends the pulse from its own firmware timer — a dropped packet cannot
-        leave the door standing open. The "set" topic must never be retained.
+      description: MQTT relay node; drives a dry contact, pulse timed by firmware
       description_i18n:
-        zh: >-
-          B、C 两个套餐里经 MQTT 到达的继电器节点选项。它订阅一个 topic、
-          驱动一路干接点，脉冲由固件自己的定时器结束——丢包不会让门一直开着。
-          「set」 topic 绝不能是 retained。
+        zh: MQTT 继电器节点，驱动干接点，脉冲由固件计时
     generic_relay_module:
       name: Grove Relay
       name_i18n:
         zh: Grove 继电器
       product_url: https://www.seeedstudio.com/Grove-Relay.html
-      description: >-
-        SKU 103020005. SPST-NO, transistor-driven mechanical (non-SSR) relay,
-        3.3-5 V trigger — the "COM"/"NO" contact has no electrical connection
-        to our circuit, nothing downstream of "COM"/"NO" carries any
-        voltage of ours, in any state. This is the whole output of every
-        preset: whoever owns the door controller wires its input to "COM" and
-        "NO" and decides what a momentary closure does from there. It has no
-        "NC" terminal, so a door controller whose input is normally-closed
-        instead needs SKU 103020012 (Grove - SPDT Relay(30A)) in its place.
-        "relay_contact" has no default value on purpose — get NO/NC backwards
-        and the controller reads the wrong idle state, which is not the same
-        failure as leaving a lock open, but is just as invisible until
-        someone tests it.
+      description: SPST-NO relay, 3.3-5V trigger; isolated dry contact, no NC terminal
       description_i18n:
-        zh: >-
-          SKU 103020005。SPST-NO、晶体管驱动的机械继电器（非
-          SSR）、3.3–5 V 触发——「COM」/「NO」 触点与我们的电路无电气连接，
-          下游任何状态都不出现我们的电压。这就是每个套餐的
-          全部输出：门控控制器的所有者把自己输入接到 「COM」 和 「NO」，瞬时闭合之后
-          怎么动作由他决定。它没有 「NC」 端子，门控输入是常闭型的话要换成 SKU
-          103020012（Grove - SPDT Relay(30A)）。「relay_contact」 故意不设默认值——
-          NO/NC 接反，门控读到的空闲态就是错的，这不等同于把锁开着，但同样要等
-          有人测试才会发现。
+        zh: SPST-NO 继电器，3.3–5V 触发，无 NC
     generic_relay_module_spdt:
       name: Grove - SPDT Relay(30A)
       name_i18n:
         zh: Grove - SPDT 继电器（30A）
       product_url: https://www.seeedstudio.com/Grove-SPDT-Relay-30A.html
-      description: >-
-        SKU 103020012. The alternative to the default Grove Relay, for a door
-        controller whose input is normally-closed and therefore needs "NC" as
-        well as "COM"/"NO". Its 3.3 V trigger reliability is not documented by
-        the vendor (the datasheet gives only a 5 V nominal coil) and has not
-        been measured on any preset's GPIO/DO — confirm on hardware before
-        relying on it, or feed the relay's own VCC/GND from a separate 5 V
-        source.
+      description: SPDT relay with NC terminal, for normally-closed door controllers
       description_i18n:
-        zh: >-
-          SKU 103020012。默认 Grove Relay 的备选——门控输入是常闭型、需要 「NC」
-          而不只是 「COM」/「NO」 时才用它。厂商没有文档化 3.3 V 触发可靠性
-          （数据手册只写了 5 V 标称线圈），上板前先在自己的设备上确认，或者给继电器的
-          VCC/GND 单独接一路 5 V 电源。
+        zh: SPDT 继电器带 NC 端子，供常闭型门控使用
     generic_relay_module_xiao:
       name: XIAO 1-Channel Relay
       name_i18n:
         zh: XIAO 1-Channel Relay
       product_url: https://www.seeedstudio.com/Relay-add-on-module-for-XIAO-p-6310.html
-      description: >-
-        SKU 114993555. A stackable add-on board for the XIAO ESP32-S3 rather
-        than a Grove-cabled module — driven by the XIAO's own D1 pin, which
-        the board's schematic (Hongfa HF32FA-G relay, NPN low-side driver)
-        wires as active-high: GPIO high closes the relay. It exposes only two
-        screw-terminal contacts — SPST-NO, no "NC" — rated 10 A / 250 VAC, so
-        only a fail-secure posture is physically possible with this module; a
-        door controller that needs "NC" (fail-safe) requires the Grove Relay
-        or the Grove - SPDT Relay(30A) instead. The coil draws its 5 V from
-        the XIAO's own USB/VBUS rail, not a separate supply, and there is no
-        opto-isolation between the control side and the coil driver — the
-        contact side ("NO" to the door controller) is the only isolated part.
-        No wiki page exists for it (product page and schematic PDF only).
-        Source: internal schematic review, "docs/reports/f1-relay-module-selection-2026-09-07.md"
-        appendix B. There is no cataloged accessory family for this SKU yet —
-        the Grove Relay (103020005) is a documented substitute when a
-        standalone Grove-cabled relay is preferred over the add-on board.
+      description: XIAO stackable relay board; SPST-NO only, active-high, no isolation
       description_i18n:
-        zh: >-
-          SKU 114993555。XIAO ESP32-S3 的叠板式扩展板，不是 Grove 排线模组——
-          由 XIAO 自己的 D1 引脚驱动，原理图（Hongfa HF32FA-G 继电器、NPN
-          低边驱动）走线是高电平触发：GPIO 拉高即吸合。对外只引出 2 个螺丝端子——
-          SPST-NO，没有 「NC」，额定 10A/250VAC，因此这颗模块物理上只能做
-          fail-secure；门控输入需要 「NC」（fail-safe）就要换成 Grove Relay 或
-          Grove - SPDT Relay(30A)。线圈的 5V 取自 XIAO 自身的 USB/VBUS 轨，不是
-          独立供电；控制侧与线圈驱动之间没有光耦隔离——只有触点侧（「NO」 到门控
-          输入）是隔离的。没有独立 wiki 页（只有商品页和原理图 PDF）。来源：
-          内部原理图核实，「docs/reports/f1-relay-module-selection-2026-09-07.md」
-          附录 B。这颗 SKU 目前没有对应的采购族——如果更想用独立的 Grove 排线
-          继电器而不是这块扩展板，Grove Relay（103020005）是有文档记录的替代。
+        zh: XIAO 叠板继电器，仅 SPST-NO，高电平触发，无隔离
     generic_rtsp_camera:
       name: RTSP / IP Camera
       name_i18n:
         zh: RTSP / IP 摄像头
-      description: Any RTSP camera at the door, for the presets that do not carry their own sensor
+      description: Any RTSP camera at the door, for presets without their own sensor
       description_i18n:
-        zh: 门口任意一台 RTSP 摄像头，供不自带传感器的套餐使用
+        zh: 门口任意 RTSP 摄像头，供无自带传感器的套餐用
 
   presets:
     - id: a_ai_camera
