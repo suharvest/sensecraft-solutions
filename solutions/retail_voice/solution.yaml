@@ -54,7 +54,7 @@ intro:
       caption: reComputer RK3576 — the NPU board, and the host for the server stack
       caption_i18n:
         zh: reComputer RK3576——NPU 板，也是服务端栈的主机
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: solution
   tags:
     - voice

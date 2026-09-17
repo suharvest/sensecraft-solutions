@@ -6,7 +6,7 @@ intro:
   description_file: description.md
   cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/lerobot_flex.png
   repo_url: https://github.com/Seeed-Projects/Seeed_RoboController
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: technical
   tags: [voice, robot, so-arm, lerobot, jetson, respeaker, local-llm, qwen3, edge-llm, asr, tts, offline]
 

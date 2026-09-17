@@ -10,7 +10,7 @@ intro:
     zh: description_zh.md
   cover_image: gallery/cover.svg
   repo_url: https://github.com/Love4yzp/sensecraft-data-mcp
-  category: voice_ai
+  category: interactive_smart_display
   solution_type: technical
   tags:
     - mcp

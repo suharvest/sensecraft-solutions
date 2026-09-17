@@ -16,7 +16,7 @@ intro:
       caption: TensorRT engine generation
       caption_i18n:
         zh: TensorRT 引擎生成过程
-  category: vision
+  category: vision_video_ai
   solution_type: technical
   tags: [jetson, depth-estimation, docker, edge-ai]
 

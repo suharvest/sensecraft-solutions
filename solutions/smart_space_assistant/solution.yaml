@@ -16,7 +16,7 @@ intro:
       caption: Display System Architecture
       caption_i18n:
         zh: 投屏系统架构
-  category: voice_ai
+  category: interactive_smart_display
   solution_type: solution
   tags:
     - watcher

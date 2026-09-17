@@ -21,7 +21,7 @@ intro:
       caption: Node-RED Dashboard Interface
       caption_i18n:
         zh: Node-RED 控制面板界面
-  category: sensing
+  category: vision_video_ai
   solution_type: technical
   output_interfaces:
     - type: http

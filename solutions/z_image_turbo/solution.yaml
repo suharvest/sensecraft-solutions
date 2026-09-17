@@ -11,7 +11,7 @@ intro:
       caption: image-to-image comparison — reference (left) vs output with red collar prompt (right)
       caption_i18n:
         zh: 图生图对比——左为参考图，右为加上红色项圈提示词的输出
-  category: generative_ai
+  category: on_device_lm
   solution_type: technical
   tags: [jetson, image-generation, tensorrt, docker, edge-ai]
 

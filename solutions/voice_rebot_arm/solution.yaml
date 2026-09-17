@@ -6,7 +6,7 @@ intro:
   description_file: description.md
   cover_image: gallery/cover.jpg
   repo_url: https://github.com/suharvest/openvoicestream
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: technical
   tags: [voice, robot, grasping, rebot, jetson, orbbec, rgbd, yoloe, local-llm, qwen3, edge-llm, asr, tts, moss, offline]
 

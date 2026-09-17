@@ -66,7 +66,7 @@ intro:
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
       caption_i18n:
         zh: 探测层通过 MQTT 上报，hub 判定规则并提供工作台
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - security

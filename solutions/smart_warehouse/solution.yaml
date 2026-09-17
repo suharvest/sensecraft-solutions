@@ -21,7 +21,7 @@ intro:
       caption: System architecture diagram
       caption_i18n:
         zh: 系统架构图
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: solution
 
   input_requirements:

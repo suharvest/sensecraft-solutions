@@ -117,7 +117,7 @@ intro:
       caption_i18n:
         zh: 架构——SDM630 电表与暖通控制器把点位送进总表，预测在旁边，写入经读回核实后再下发
 
-  category: industrial_iot
+  category: home_building_automation
   solution_type: solution
 
   input_requirements:
