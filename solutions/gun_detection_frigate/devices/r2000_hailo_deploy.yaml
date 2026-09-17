@@ -54,6 +54,20 @@ post_deployment:
 name_i18n:
   zh: reComputer AI Industrial R21 + Hailo
 
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/models/yolov11s.hef
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/config/model_cache/yolov11s.hef
+    checksum:
+      sha256: c221c193b74c7372aa8e5d411660d2a05f568fe5a5e78906f80220a2f689041a
+  - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/handgun.mp4
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/storage/handgun.mp4
+    checksum:
+      sha256: a0f9f66b05fefab3efce023db3519010f22ec9bc4195382ece5f6a9ccf9996f5
+  - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/machinegun.mov
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/storage/machinegun.mov
+    checksum:
+      sha256: e6219f9df566aa09a9cae49eac7c2e3ce59e92aa5afad20aecf7e6c76d438da7
+
 remote_overrides:
   compose_dir: assets/r2000-hailo
   detection:
@@ -115,6 +129,8 @@ remote_overrides:
             exit 0
           fi
 
+          # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+          # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
           echo "Downloading yolov11s.hef ..."
           curl -fSL --retry 3 --continue-at - -o "$HEF.part" "$URL"
           echo "$SHA  $HEF.part" | sha256sum -c -
@@ -138,6 +154,8 @@ remote_overrides:
               echo "$name already present and verified"
               return 0
             fi
+            # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这两段演示视频放好，
+            # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             echo "Downloading $name ..."
             curl -fSL --retry 3 --continue-at - -o "$dest.part" "$url"
             echo "$sha  $dest.part" | sha256sum -c -
