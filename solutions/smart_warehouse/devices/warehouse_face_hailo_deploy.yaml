@@ -140,11 +140,19 @@ remote_overrides:
           # 这里在目标机上算出它自己的局域网 IP 写进 .env，compose 会替换
           # ${WAREHOUSE_DEVICE_BASE_URL}。
           # .env 必须与 compose 文件同目录 —— docker compose 是按 compose 所在
-          # 目录找 .env 的。引擎把上传内容放在 remote_path/<device_id>/，写在
+          # 目录找 .env 的。引擎把上传内容放在 remote_path/<device yaml id>/，写在
           # remote_path 根下等于没写：容器照常起、healthcheck 照常过，只有
           # 人脸库下发时才会因为地址为空而失败，是最难查的那类静默失败。
           # 2026-08-27 客户 Jetson 上实测：根目录 .env 完全没被读到。
-          COMPOSE_DIR="{{remote_path}}/{{device_id}}"
+          #
+          # 引擎 0.6.11（桌面端 sidecar）的 run 模板上下文里取不到
+          # {{remote_path}} 和 {{device_id}}：两者被静默替换成空串，于是
+          # `touch "$COMPOSE_DIR/.env"` 拼成 `touch //.env`，Permission denied，
+          # 部署直接挂在 before 动作上，后面的 upload / pull / start 全部不执行
+          # （2026-09-17 真机复现）。路径改为 $HOME 推导，取值必须与
+          # docker.remote_path 一致 —— 与同目录的 xiaozhi_console_deploy.yaml 写法对齐。
+          WORKDIR="$HOME/mcp_warehouse"
+          COMPOSE_DIR="$WORKDIR/warehouse_face_hailo_deploy"
           HOST_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
           ENV_FILE="$COMPOSE_DIR/.env"
           if [ -z "$HOST_IP" ]; then
