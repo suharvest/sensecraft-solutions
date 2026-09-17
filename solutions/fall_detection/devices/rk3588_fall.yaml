@@ -43,6 +43,16 @@ post_deployment:
 name_i18n:
   zh: reComputer RK3588
 
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11n_pose_rawhead_fp16.rk3588.rknn
+    remote_path: /home/{{username}}/fall-detection-rk3588/rk3588_fall/models/yolo11n_pose_rawhead_fp16.rk3588.rknn
+    checksum:
+      sha256: 22f00270870b25dc013e4e8e39aed98f82bcabb69b9272302280a6b8b8f48d5c
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/temporal-rk3588.npz
+    remote_path: /home/{{username}}/fall-detection-rk3588/rk3588_fall/models/temporal-rk3588.npz
+    checksum:
+      sha256: b7213580f6f6bd1d1cafbfdecb84306c17b3ecfbe37b907a8b41215310ed4397
+
 remote_overrides:
   remote_path: /home/{{username}}/fall-detection-rk3588
   compose_dir: assets/rk
@@ -187,6 +197,8 @@ remote_overrides:
               echo "$name already present"
               return 0
             fi
+            # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这两个文件放好，
+            # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             curl -fSL --retry 3 -o "$MODELS_DIR/$name.part" "$BASE/$name"
             echo "$want  $MODELS_DIR/$name.part" | sha256sum -c -
             mv -f "$MODELS_DIR/$name.part" "$MODELS_DIR/$name"
