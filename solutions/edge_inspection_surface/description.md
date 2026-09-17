@@ -28,6 +28,7 @@ A fixed camera watches a steel strip or workpiece. The device checks every frame
 | Per-class mAP50 | scratches **0.9685**, pitted surface **0.9301**, crazing **0.3603** |
 | Streams per host at 10 FPS | **8** |
 | reComputer R2000 (Hailo-8) | **P50 11.61 ms / P99 16.63 ms**, mAP50 **0.7091** |
+| reComputer R2000 (Hailo-8) throughput | **106.75 FPS** hardware inference, **46.14 FPS** full pipeline |
 
 Test conditions: NEU6 validation set, 290 images, fed as a 640×640 / 10 FPS video stitched from validation images.
 

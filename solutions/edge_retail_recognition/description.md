@@ -41,10 +41,10 @@ Dropped frames and latency were measured on recorded video replay.
 
 | Preset | Speed | Notes |
 |---|---|---|
-| reComputer J40 (Jetson Orin NX) | Detection p50 5.18 ms, recognition p50 4.23 ms | 2956-frame checkout replay, 0 drops |
-| reComputer J30 (Jetson Orin Nano) | Detection p50 5.88 ms, recognition p50 5.06 ms | 6726-frame replay, 0 drops |
-| reComputer RK3588 series | Detection p50 56.7 ms (INT8 26.0 ms), recognition on CPU | Shelf replay p50 924 ms |
-| reComputer RK3576 | Detection p50 51.05 ms, recognition p50 56.38 ms | Detection and recognition both on the NPU |
+| reComputer J40 (Jetson Orin NX) | Detection p50 5.18 ms, recognition p50 4.23 ms | 2956-frame checkout replay, 0 drops. Under concurrent load (both stages sharing the GPU), latency rises to detection p50 8.76 ms / recognition p50 5.37 ms |
+| reComputer J30 (Jetson Orin Nano) | Detection p50 5.88 ms / p95 8.89 ms, recognition p50 5.06 ms / p95 7.64 ms | 6726-frame replay (2.27 loops), 0 drops, all 84 events published; detection box agreement 99.27% vs CPU golden (different image batch than the Orin NX numbers), recognition within 0.21 percentage points of fp32 |
+| reComputer RK3588 series | Detection p50 56.7 ms (INT8 26.0 ms, 2.2x faster than fp16), recognition on CPU | Shelf replay p50 924 ms |
+| reComputer RK3576 | Detection p50 51.05 ms / p95 54.18 ms, recognition p50 56.38 ms / p95 62.17 ms | Detection and recognition both on the NPU; recognition within 0.36 percentage points of fp32, mean cosine similarity 0.99966; shelf replay top-1 76.28% (CPU fp32 76.99%), same-SKU agreement 99.29%, embedder p50 61.0 ms per crop |
 | reComputer R2000 (Hailo-8) | Detection p50 9.04 ms, recognition 91.95 ms per item (CPU) | A five-item basket takes about half a second |
 
 ## Usage Notes

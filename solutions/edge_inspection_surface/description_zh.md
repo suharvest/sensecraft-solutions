@@ -28,6 +28,7 @@
 | 分类别 mAP50 | scratches **0.9685**、pitted surface **0.9301**、crazing **0.3603** |
 | 10 FPS 下单台主机路数 | **8 路** |
 | reComputer R2000（Hailo-8） | **P50 11.61 ms / P99 16.63 ms**，mAP50 **0.7091** |
+| reComputer R2000（Hailo-8）吞吐 | 硬件推理 **106.75 FPS**，全链路 **46.14 FPS** |
 
 测试条件：NEU6 验证集 290 张，由验证图拼成的 640×640 / 10 FPS 视频输入。
 
