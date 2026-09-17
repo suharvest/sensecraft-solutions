@@ -5,8 +5,8 @@
 | `login.png`, `app-preview.png`, `map-view.png`, `outdoor-map.png` | Re-shot 2026-09-06 after the `sensecraft-ui-kit` v0.1.2 restyle (`solution-indoor-positioning`, branch `feature/ui-kit`, sources kept at `docs/ui/*-after.png`). Playwright / chrome-headless-shell, 1280x800 viewport, admin session against the local backend seeded from `db/app.db`. | First-party. `outdoor-map.png` basemap tiles are © OpenStreetMap contributors (ODbL), <https://www.openstreetmap.org/copyright>. |
 | `floorplan-registration.png` | Screenshot taken during the 2026-09-05 georeferencing run (`solution-indoor-positioning`, branch `feature/outdoor`, `evaluation/runs/2026-09-05-georef/raw/ui-04-registration-saved.png`). Headless Chrome, 1280x720 viewport. | First-party. The floor plan in the shot is a synthetic 1000x800 px test image, not a customer site. Basemap tiles are © OpenStreetMap contributors (ODbL), <https://www.openstreetmap.org/copyright>. |
 | `cover.png` | Copy of `map-view.png` — the live map view, re-shot 2026-09-06 after the `sensecraft-ui-kit` v0.1.2 restyle. Set as the cover on 2026-09-07 so the card shows the product, not the architecture diagram. | First-party. Basemap tiles are © OpenStreetMap contributors (ODbL), <https://www.openstreetmap.org/copyright>. |
-| `architecture.png`, `beacon.png`, `gateway.png`, `t1000.png`, `wiki-overview.jpg` | Carried over from the original package; Seeed first-party product/UI imagery. | First-party. |
-| `map-panel-zh-20260907.jpg`, `map-panel-en-20260907.jpg`, `beacon-list-zh-20260907.jpg`, `beacon-list-en-20260907.jpg` | Captured 2026-09-07 (second pass, DPR 2) against a local `solution-indoor-positioning` stack — see "2026-09-07 (second pass)" below for the run details. | First-party. No basemap tiles in these captures — the floor-plan background is the repo's own synthetic test image, not OSM. |
+| `architecture.png`, `beacon.png`, `gateway.webp`, `t1000.png`, `wiki-overview.jpg` | Carried over from the original package; Seeed first-party product/UI imagery. | First-party. |
+| `map-panel-zh-20260907.jpg`, `map-panel-en-20260907.jpg`, `beacon-list-zh-20260907.webp`, `beacon-list-en-20260907.webp` | Captured 2026-09-07 (second pass, DPR 2) against a local `solution-indoor-positioning` stack — see "2026-09-07 (second pass)" below for the run details. | First-party. No basemap tiles in these captures — the floor-plan background is the repo's own synthetic test image, not OSM. |
 
 ## Desensitisation
 
@@ -31,7 +31,7 @@ cropped from 1280 × 800 to 1270 × 723 and `floorplan-registration.png` from
 1280 × 720 to 1280 × 718 to drop empty canvas; the other screenshots were
 already filled to their edges and are byte-identical to before.
 
-`cover.png`, `beacon.png`, `t1000.png`, `gateway.png` and `wiki-overview.jpg`
+`cover.png`, `beacon.png`, `t1000.png`, `gateway.webp` and `wiki-overview.jpg`
 stay in this directory but are not referenced by `intro.gallery`: the first is a
 duplicate of `map-view.png`, the next three are product photographs on a white
 background, and the last is a stitched montage of the wiki page.
@@ -95,8 +95,8 @@ capture, not two separate deployments.
 |---|---|---|
 | `map-panel-zh-20260907.jpg` | Map Dashboard, zh, "10 Floor" map selected (17 beacons, the busiest of the 5) — beacon dots plotted inside two labelled room outlines, header counters 5 maps / 49 beacons / 2 trackers, WebSocket connected | 3200x2000 |
 | `map-panel-en-20260907.jpg` | Same view after switching the language selector to English, no page reload | 3200x2000 |
-| `beacon-list-zh-20260907.jpg` | Configuration → 信标 (Beacons) tab for the "10 Floor" map: a 17-row table with each beacon's real UUID, major/minor, X/Y, TxPower and MAC, edit/delete actions per row | 3200x2000 |
-| `beacon-list-en-20260907.jpg` | Same table in English. Note: the "Beacon List & Management" heading and helper text under this tab are hard-coded English strings in the frontend — they render in English even when the zh capture's `app-locale` is `zh`. Not fixed here (out of scope), left as-is. | 3200x2000 |
+| `beacon-list-zh-20260907.webp` | Configuration → 信标 (Beacons) tab for the "10 Floor" map: a 17-row table with each beacon's real UUID, major/minor, X/Y, TxPower and MAC, edit/delete actions per row | 3200x2000 |
+| `beacon-list-en-20260907.webp` | Same table in English. Note: the "Beacon List & Management" heading and helper text under this tab are hard-coded English strings in the frontend — they render in English even when the zh capture's `app-locale` is `zh`. Not fixed here (out of scope), left as-is. | 3200x2000 |
 
 No cropping was needed: at this viewport both pages already fill top-to-bottom
 with real UI (nav bar to table/map-preview edge); there is no dead browser

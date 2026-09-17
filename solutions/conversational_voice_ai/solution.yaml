@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/hero.png
+  cover_image: gallery/hero.webp
   gallery:
     - type: image
       src: gallery/architecture.png

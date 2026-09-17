@@ -9,9 +9,9 @@
 | `console-devices-live.png` | Screenshot of the management console during a live reCamera PoE run, 2026-09-07 (`unmanned-store-access` `evaluation/runs/2026-09-07-recamera-poe-p1/media/console-devices-en-20260907.png`) | No |
 | `console-persons-live.png` | Same console and run (`.../console-persons-en-20260907.png`) | No |
 | `architecture.svg` | Drawn for this solution package | No |
-| `ui-events.jpg` / `ui-events-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-events.webp` / `ui-events-en.webp` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-persons.png` / `ui-persons-en.png` | Screenshot of the management console, running on synthetic demo data | No |
-| `ui-devices.jpg` / `ui-devices-en.jpg` | Screenshot of the management console, running on synthetic demo data | No |
+| `ui-devices.webp` / `ui-devices-en.webp` | Screenshot of the management console, running on synthetic demo data | No |
 | `ui-status.jpg` | Screenshot of the management console, running on synthetic demo data | No |
 
 `architecture.svg` is the data path only — the cloud face library and console,
@@ -135,10 +135,10 @@ quality 90; nothing inside the frame was altered or scaled.
 
 | File | Before | After |
 |---|---|---|
-| `ui-events.jpg` | 3200 x 2314 (full page) | 3183 x 2250 |
-| `ui-events-en.jpg` | 3200 x 2398 (full page) | 3183 x 2352 |
-| `ui-devices.jpg` | 3200 x 2000 | 3183 x 1660 |
-| `ui-devices-en.jpg` | 3200 x 2000 | 3183 x 1660 |
+| `ui-events.webp` | 3200 x 2314 (full page) | 3183 x 2250 |
+| `ui-events-en.webp` | 3200 x 2398 (full page) | 3183 x 2352 |
+| `ui-devices.webp` | 3200 x 2000 | 3183 x 1660 |
+| `ui-devices-en.webp` | 3200 x 2000 | 3183 x 1660 |
 | `ui-status.jpg` | 3200 x 2000 | 3183 x 1197 |
 
 `ui-status.jpg` is new: the device-status page was not in the gallery before.

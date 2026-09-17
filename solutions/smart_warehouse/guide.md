@@ -8,7 +8,7 @@ Only a SenseCAP Watcher is needed, no host. Inventory data and the voice service
 
 ## Step 1: Configure Watcher Device {#sensecraft type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Connect your Watcher to SenseCraft cloud platform:
 
@@ -32,7 +32,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ## Step 2: Configure Warehouse System {#cloud_warehouse_config type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 The warehouse system is hosted on Seeed cloud - no deployment needed. Open the cloud warehouse system to complete initial setup:
 
@@ -76,7 +76,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 4: Demo & Testing {#demo type=manual verify=true required=true}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands. To see the resulting inventory records, visit the SenseCraft platform at [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/) after speaking.
 
@@ -172,7 +172,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ## Step 3: Configure Watcher Device {#watcher_setup type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL (you'll need it in Step 6).
 
@@ -228,7 +228,7 @@ Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect R1100 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
@@ -246,7 +246,7 @@ Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 
 
 ## Step 5: Configure Warehouse System {#warehouse_config type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -286,7 +286,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 7: Demo & Testing {#voice_demo_test type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -458,7 +458,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ## Step 3: Configure Watcher Device {#watcher_config type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Connect your Watcher to SenseCraft cloud platform:
 
@@ -492,7 +492,7 @@ Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series,
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the device to power and ethernet, ensure it's on the same network as your computer
 2. Enter the device IP address (or check your router)
@@ -546,7 +546,7 @@ Run directly on this machine (a Jetson device). Needs at least 4 GB of free disk
 
 ## Step 5: Configure Warehouse System {#warehouse_config_private_cloud type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -587,7 +587,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 7: Demo & Testing {#demo_private_cloud type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -766,7 +766,7 @@ Deploy to the reComputer J40 series. Needs at least 4 GB of free disk.
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the J40 series device to power and ethernet, ensure it's on the same network as your computer
 2. Check your router for the J40 series device's IP address and enter it
@@ -802,7 +802,7 @@ Run directly on this machine — only applicable when it is the J40 series devic
 
 ## Step 4: Configure Warehouse System {#warehouse_config_private_cloud_multi type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -937,7 +937,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 > **To change the addresses entered during deployment**: edit the base URL (red box)
 > under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
-> ![Model fields](gallery/console-ovs-form-annotated.png)
+> ![Model fields](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **Base URL**: voice service address, format `http://<device IP>:8621`
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
@@ -996,7 +996,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ## Step 9: Demo & Testing {#demo_private_cloud_multi type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -1128,7 +1128,7 @@ Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect Industrial R21 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
@@ -1146,7 +1146,7 @@ Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up
 
 ## Step 4: Configure Warehouse System {#warehouse_config_edge_computing type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -1276,7 +1276,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 > **To change the addresses entered during deployment**: edit the base URL (red box)
 > under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
-> ![Model fields](gallery/console-ovs-form-annotated.png)
+> ![Model fields](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **Base URL**: voice service address, format `http://<device IP>:8621`
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
@@ -1329,7 +1329,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ## Step 9: Demo & Testing {#demo_edge_computing type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 

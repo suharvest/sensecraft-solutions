@@ -42,27 +42,27 @@ intro:
       caption_i18n:
         zh: 同一面墙按下 F 之后——全屏、九格、顶栏消失。这就是控制室接 HDMI 大屏的模式，Esc 退回导航。这九路里有五路是在浏览器里挂上去的，没有动配置文件，也没有重启容器。取自本套件的 mock hub，所以每格画面是彩条测试图而不是摄像头；其余都是实际发布的控制台。
     - type: image
-      src: gallery/workbench-add-camera.gif
+      src: gallery/workbench-add-camera.webp
       caption: Adding a camera while the system runs, against the kit's mock hub. The RTSP address is typed in, its password masked in the echo below the field, and the button stays on "connecting to the camera" until the mock detector has opened the source - so when the dialog closes, the new tile on the wall is already producing its colour-bar test image rather than queued. The dialog, timing and tile behaviour are the shipped console's; the source it connects to is the mock, not a live camera.
       caption_i18n:
         zh: 系统运行中加一路摄像头，取自本套件的 mock hub。填入 RTSP 地址，下方回显时密码打码；按钮停在「正在连接摄像头」直到模拟检测器把流打开——所以对话框一关，墙上新出现的那一格就已经在出彩条测试图，而不是排在队列里。对话框、时序与格子行为都是实际发布的控制台；连接的源是模拟的，不是真实摄像头。
     - type: image
-      src: gallery/workbench-alert.gif
+      src: gallery/workbench-alert.webp
       caption: The workbench while an RK3588 board keeps reporting. Line-crossing alerts from rk3588-01/cam-0 drop in at the top of the list, each carrying the corridor frame the detector captured at that moment, and clicking Acknowledge turns the row green with the operator name and time while the pending count drops and the acknowledged count rises.
       caption_i18n:
         zh: RK3588 板卡持续上报时的告警工作台。rk3588-01/cam-0 的越线告警落到列表顶部，每条都带着检测器当时截下的走廊画面；点「确认」后该条变绿并记下处置人和时间，待处理计数减少、已确认计数增加。
     - type: image
-      src: gallery/rules-editor-live.gif
+      src: gallery/rules-editor-live.webp
       caption: Drawing rules on the camera's own frame, proxied by the hub from the RK3588 detector's preview endpoint — four clicks close a second zone over the near corridor, two clicks lay a second line across the corridor mouth, its direction is switched from both ways to forward, and Save turns the header into "Persisted 15:37:03 · rev 2".
       caption_i18n:
         zh: 在摄像头自己的画面上画规则，底图由 hub 从 RK3588 检测器的预览接口代理而来——四次点击围出近处走廊的第二个区域，两次点击在走廊口拉出第二条线，方向从双向改为 forward，保存后标题变成「Persisted 15:37:03 · rev 2」。
     - type: image
-      src: gallery/jetson-rules-overlay.gif
+      src: gallery/jetson-rules-overlay.webp
       caption: The three rules on one frame, from the Jetson package this one absorbed — a tracked person, a restricted-area polygon, and a gate line whose arrow marks the direction the rule counts. The substance is what this package judges; the overlay colours are that detector's, not the ones drawn by the presets here.
       caption_i18n:
         zh: 三条规则同框，取自本方案并入的那个 Jetson 包——被跟踪的人、禁区多边形，以及箭头标出判定方向的越线。判定内容与本方案一致；叠框配色是那个检测器的，不是本方案各套餐画出来的样子。
     - type: image
-      src: gallery/architecture-diagram.png
+      src: gallery/architecture-diagram.webp
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
       caption_i18n:
         zh: 探测层通过 MQTT 上报，hub 判定规则并提供工作台

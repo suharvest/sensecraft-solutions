@@ -54,9 +54,9 @@ one asset serves both the English and Chinese guides.
 
 ## Alarm panel assets (moved here 2026-09-08)
 
-`panel-dashboard-zh.jpg`, `panel-dashboard-en.jpg`, `panel-room-detail-zh.jpg`,
-`panel-room-offline-zh.jpg`, `panel-config-live-view-zh.jpg`,
-`panel-config-conflict-409-zh.jpg`, `panel-draw-save-reload.gif`,
+`panel-dashboard-zh.webp`, `panel-dashboard-en.webp`, `panel-room-detail-zh.jpg`,
+`panel-room-offline-zh.jpg`, `panel-config-live-view-zh.webp`,
+`panel-config-conflict-409-zh.webp`, `panel-draw-save-reload.webp`,
 `alarm-state-machine.svg` were carried over unchanged from the retired
 `eldercare_alarm` solution; only the SVG was renamed
 (`eldercare-alarm-state-machine.svg`).
@@ -68,13 +68,13 @@ source PNG is 3360 x 2332. Cropped to content and saved as JPEG quality 90:
 
 | File | Before | After |
 |---|---|---|
-| `panel-dashboard-zh.jpg` | 3360 x 2332 | 3360 x 2060 |
-| `panel-dashboard-en.jpg` | 3360 x 2332 | 3360 x 2060 |
+| `panel-dashboard-zh.webp` | 3360 x 2332 | 3360 x 2060 |
+| `panel-dashboard-en.webp` | 3360 x 2332 | 3360 x 2060 |
 | `panel-room-detail-zh.jpg` | 3360 x 2332 | 3360 x 1160 |
 | `panel-room-offline-zh.jpg` | 3360 x 2332 | 3360 x 1160 |
-| `panel-config-live-view-zh.jpg` | 3360 x 2332 | 3360 x 1860 |
-| `panel-config-conflict-409-zh.jpg` | 3360 x 2332 | 3360 x 1860 |
-| `panel-draw-save-reload.gif` | copied unchanged | copied unchanged |
+| `panel-config-live-view-zh.webp` | 3360 x 2332 | 3360 x 1860 |
+| `panel-config-conflict-409-zh.webp` | 3360 x 2332 | 3360 x 1860 |
+| `panel-draw-save-reload.webp` | copied unchanged | copied unchanged |
 
 Only trailing blank canvas was removed; nothing inside the frame was altered,
 scaled or re-rendered.
@@ -100,15 +100,15 @@ footage, no person, no dataset material, so no third-party licence applies and
 there is nothing to de-identify. Wordless except for field and component names
 that are identical in both languages, so one file serves the English and the
 Chinese page. `panel-room-offline-zh.jpg`,
-`panel-config-conflict-409-zh.jpg` and `panel-draw-save-reload.gif` are not
+`panel-config-conflict-409-zh.webp` and `panel-draw-save-reload.webp` are not
 referenced from `solution.yaml` today; they are kept here for the landing page.
 
 ## English fixture re-capture (2026-09-09)
 
-`panel-dashboard-en.jpg` already existed but only the panel UI chrome was
+`panel-dashboard-en.webp` already existed but only the panel UI chrome was
 English — the demo fixture data underneath (`101 房`, `101 房床区`,
 `101 房地面活动区`, the site name, the two demo resolver names) was still
-Chinese, and `panel-config-live-view-en.jpg` did not exist at all. Both are
+Chinese, and `panel-config-live-view-en.webp` did not exist at all. Both are
 re-shot end to end against the same local-replay recipe as the 2026-09-07
 capture above (`evaluation/demo_site.py` + go2rtc + local replay of the
 GMDCSA-24 v2.1 footage), with the fixture language switched to English:
@@ -137,7 +137,7 @@ GMDCSA-24 v2.1 footage), with the fixture language switched to English:
 - Playwright + Chrome, viewport 1680×1150, `deviceScaleFactor: 2`,
   full-page capture — same recipe as 2026-09-07, so both screenshots are
   again 3360×2332 before cropping to content and saving as JPEG quality 90
-  (`panel-dashboard-en.jpg` → 3360×2060, `panel-config-live-view-en.jpg` →
+  (`panel-dashboard-en.webp` → 3360×2060, `panel-config-live-view-en.webp` →
   3360×1860, matching their `-zh` counterparts pixel-for-pixel).
 - Frontend note: `eldercare/web/ui/dist` had gone stale (predated the
   Overview/Configuration pages), which briefly hid those two nav items

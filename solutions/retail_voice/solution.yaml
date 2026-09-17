@@ -27,10 +27,10 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/recordings-console.png
+  cover_image: gallery/recordings-console.webp
   gallery:
     - type: image
-      src: gallery/recordings-console.png
+      src: gallery/recordings-console.webp
       caption: The server-stack recordings console (demo data) — transcripts with speaker labels and per-record status, shown with the [[NAME]]/[[PHONE]] placeholder format the redaction step outputs
       caption_i18n:
         zh: 服务端栈的录音管理控制台（演示数据）——带说话人标签和逐条状态的转写列表，[[NAME]]、[[PHONE]] 是脱敏步骤输出的占位符格式
@@ -45,7 +45,7 @@ intro:
       caption_i18n:
         zh: reSpeaker XVF3800——4 麦阵列，带回声消除、波束成形和噪声抑制，两种部署方式都用它
     - type: image
-      src: gallery/rerouter.png
+      src: gallery/rerouter.webp
       caption: reRouter CM4 — the CPU board, Paraformer streaming ASR on four Cortex-A72 cores
       caption_i18n:
         zh: reRouter CM4——CPU 板，Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上

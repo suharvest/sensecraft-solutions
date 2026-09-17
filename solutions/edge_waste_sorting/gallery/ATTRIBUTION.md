@@ -6,7 +6,7 @@
 |---|---|---|
 | `architecture.svg` | Drawn for this solution | No |
 | `waste-recamera-sg2002-20260907.jpg` | Rendered from real on-device output | Yes (GC3, CC BY 4.0) |
-| `waste-npu-4up-20260908.jpg` | Rendered from real on-device output (cover) | Yes (TrashNet MIT + GC3 CC BY 4.0) |
+| `waste-npu-4up-20260908.webp` | Rendered from real on-device output (cover) | Yes (TrashNet MIT + GC3 CC BY 4.0) |
 
 `architecture.svg` is the data path only — trigger, camera, the debounce,
 classify and four-way lookup stages, and the outputs with their ports. Boxes,
@@ -179,7 +179,7 @@ Material Identification" dataset, CC BY 4.0, and are reproduced here under that
 licence with the attribution string recorded above. All four were classified
 correctly; none was swapped for a better-looking result.
 
-## Cover — `waste-npu-4up-20260908.jpg` (reCamera Pro RV1126B NPU)
+## Cover — `waste-npu-4up-20260908.webp` (reCamera Pro RV1126B NPU)
 
 The cover and `intro.gallery[0]`. 1600 × 1200, four 800 × 600 tiles, no gutter
 and no padding. Every label on it is a value the device returned.
