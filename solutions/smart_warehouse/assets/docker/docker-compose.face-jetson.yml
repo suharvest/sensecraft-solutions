@@ -8,7 +8,7 @@ services:
     #   amd64 digest:  sha256:88dafb2b1108c0f5826495b31833a9918031b926d2b1e7183d9cffb8f12aba7c
     #   arm64 digest:  sha256:1821b940dba8336692bf2b57c6a6435cd039ea2f445cb4c778f549622d794585
     # 按 index digest 引用（tag 存在但仍按 digest 固定，防止后续同 tag 覆盖漂走）。发新版时改这一行。
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:6b3346b8c1178fa6af4f9c259e0b6d7fad9c4337026f34e7e159dc324b529195  # tag: 20260908-apikey-warehouse
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:5712d2e058e970f6b9fcda5c9fec62355ace243b47d8752b0d1f549ff090bc5d  # tag: 20260917-we2sim-warehouse
     container_name: mcp_warehouse
     ports:
       - "2125:2125"
@@ -24,8 +24,8 @@ services:
       # 宿主机局域网 IP。留空时后端会在下发人脸库时直接报错并提示如何设置。
       - WAREHOUSE_DEVICE_BASE_URL=${WAREHOUSE_DEVICE_BASE_URL:-}
       - FACE_ENABLED=true
-      # 必须关，原因同 docker-compose.yml 里同名注释（镜像 venv 无 Pillow /
-      # ai-edge-litert，unconditional import 会让容器启动即崩）。
+      # 保持 0，原因同 docker-compose.yml 里同名注释（这个开关只管对外的
+      # /api/face/we2 HTTP 端点，本方案无消费方；录入与下发不看它）。
       - FACE_WE2_SIMULATOR_ENABLED=0
     volumes:
       - warehouse_data:/data
