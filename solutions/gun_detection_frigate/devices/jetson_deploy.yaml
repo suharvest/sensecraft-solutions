@@ -66,6 +66,37 @@ remote_overrides:
     open_browser: true
     url: http://{{host}}:5000
   actions:
+    after_upload:
+      - name: Fetch and verify the demo videos
+        timeout: 300
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/gun-detection-frigate"
+          STORAGE_DIR="$WORKDIR/storage"
+          mkdir -p "$STORAGE_DIR"
+
+          fetch_video() {
+            local name="$1" sha="$2" url="$3"
+            local dest="$STORAGE_DIR/$name"
+            if [ -s "$dest" ] && echo "$sha  $dest" | sha256sum -c - >/dev/null 2>&1; then
+              echo "$name already present and verified"
+              return 0
+            fi
+            echo "Downloading $name ..."
+            curl -fSL --retry 3 --continue-at - -o "$dest.part" "$url"
+            echo "$sha  $dest.part" | sha256sum -c -
+            mv -f "$dest.part" "$dest"
+            echo "$name verified: $dest"
+          }
+
+          fetch_video handgun.mp4 \
+            a0f9f66b05fefab3efce023db3519010f22ec9bc4195382ece5f6a9ccf9996f5 \
+            https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/handgun.mp4
+          fetch_video machinegun.mov \
+            e6219f9df566aa09a9cae49eac7c2e3ce59e92aa5afad20aecf7e6c76d438da7 \
+            https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/machinegun.mov
+        name_i18n:
+          zh: 获取并校验演示视频
     after:
       - name: Configure RTSP cameras
         ignore_error: true
