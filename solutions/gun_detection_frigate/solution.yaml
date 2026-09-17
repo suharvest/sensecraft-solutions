@@ -72,7 +72,7 @@ intro:
       name_i18n:
         zh: reComputer AI Industrial R21 + Hailo
       description_i18n:
-        zh: 在 reComputer AI Industrial R21 上使用 Hailo NPU 加速部署
+        zh: 用 Hailo NPU 在 reComputer R21 上加速部署
   stats:
     difficulty: beginner
     estimated_time: 10min

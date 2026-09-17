@@ -58,7 +58,7 @@ intro:
 
   device_catalog:
     rebot_arm_b601:
-      description: 6-DoF robotic arm with Damiao motors and a parallel gripper (0.100 m max jaw)
+      description: 6-DoF robotic arm with Damiao motors and a parallel gripper
       description_i18n:
         zh: 六自由度达妙电机机械臂，平行夹爪（最大开口 0.100 m）
     external_orbbec_gemini2:
@@ -76,7 +76,7 @@ intro:
     recomputer_j40:
       description: NVIDIA Jetson Orin NX 16GB edge AI computer (JetPack 6)
       description_i18n:
-        zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 主机（JetPack 6）
+        zh: Orin NX 16GB 主机（JetPack 6）
       purchase:
         require:
           module: [orin_nx_16]
@@ -84,7 +84,7 @@ intro:
   presets:
     - id: default
       name: Voice Grasping on Jetson
-      description: Deploy the full 3-service stack (voice, LLM, arm agent) to a Jetson Orin NX with one compose file, then verify via the live dashboard. Hand-eye calibration (one-time, on-site) unlocks grasping.
+      description: One compose file deploys voice+LLM+arm to Jetson Orin NX; calibration unlocks grasping.
       device_groups:
         - id: arm
           name: Robotic Arm
@@ -125,7 +125,7 @@ intro:
       name_i18n:
         zh: Jetson 上的语音抓取
       description_i18n:
-        zh: 一个 compose 文件将 3 个服务（语音、LLM、机械臂 agent）整体部署到 Jetson Orin NX，随后通过实时面板验证。完成一次性的手眼标定后即可解锁抓取。
+        zh: 语音+LLM+机械臂一键部署到 Jetson Orin NX，现场标定后解锁抓取。
 
   stats:
     difficulty: advanced

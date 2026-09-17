@@ -49,28 +49,28 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      description: NVIDIA Jetson Orin NX 16GB edge AI computer with TensorRT GPU acceleration
+      description: Jetson Orin NX 16GB with TensorRT GPU acceleration
       description_i18n:
-        zh: NVIDIA Jetson Orin NX 16GB 边缘 AI 计算机，TensorRT GPU 加速
+        zh: Orin NX 16GB，TensorRT 加速
       purchase:
         require:
           module: [orin_nx_16]
     recomputer_rk3576:
-      description: Runs streaming ASR and TTS locally with RK3576 NPU acceleration
+      description: Runs streaming ASR/TTS locally with RK3576 NPU
       description_i18n:
-        zh: 使用 RK3576 NPU 本地运行流式语音识别和语音合成
+        zh: RK3576 NPU 本地运行流式语音识别与合成
     recomputer_rk3588:
-      description: Runs streaming ASR and TTS locally with RK3588 NPU acceleration
+      description: Runs streaming ASR/TTS locally with RK3588 NPU
       description_i18n:
-        zh: 使用 RK3588 NPU 本地运行流式语音识别和语音合成
+        zh: RK3588 NPU 本地运行流式语音识别与合成
     external_raspberry_pi:
       name: Raspberry Pi
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
-      description: Runs streaming ASR and TTS on CPU — low-cost Chinese + English voice I/O
+      description: Runs streaming ASR/TTS on CPU; low-cost Chinese+English I/O
       name_i18n:
         zh: 树莓派
       description_i18n:
-        zh: CPU 运行流式语音识别和语音合成——低成本中英文语音输入输出
+        zh: CPU 运行流式语音识别与合成，低成本中英文
 
   presets:
     - id: default

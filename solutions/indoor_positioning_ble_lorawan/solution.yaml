@@ -80,22 +80,22 @@ intro:
     - sensecap
   device_catalog:
     sensecap_t1000_tracker:
-      description: LoRaWAN mobile tracker with BLE scanning, GNSS positioning, motion detection, and SOS button
+      description: LoRaWAN tracker with BLE scanning, GNSS, motion detection, SOS button
       description_i18n:
-        zh: LoRaWAN 移动追踪器，支持 BLE 扫描、GNSS 定位、运动检测和 SOS 按钮
+        zh: LoRaWAN 追踪器：BLE、GNSS、运动检测、SOS
     external_bc03_beacon:
       name: SenseCAP BC03 Indoor Bluetooth Beacon
       image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-bc03-bluetooth-beacon.jpg
       product_url: https://www.seeedstudio.com/Indoor-Bluetooth-Beacon-BC03-p-6732.html
-      description: Bluetooth LE 5.0 beacon with iBeacon/Eddystone support, 5+ years battery life
+      description: BLE 5.0 beacon with iBeacon/Eddystone support
       name_i18n:
         zh: SenseCAP BC03 室内蓝牙信标
       description_i18n:
-        zh: 蓝牙 LE 5.0 信标，支持 iBeacon/Eddystone，电池寿命 5 年以上
+        zh: 蓝牙 5.0 信标，支持 iBeacon/Eddystone
     sensecap_m2_gateway:
-      description: LoRaWAN gateway for indoor positioning; choose the regional frequency variant when purchasing
+      description: LoRaWAN gateway for indoor positioning; pick the regional band
       description_i18n:
-        zh: 用于室内定位的 LoRaWAN 网关；购买时选择所在地区对应的频段版本
+        zh: 室内定位用 LoRaWAN 网关，购买选对应频段
   stats:
     deployed_count: 0
     likes_count: 0
