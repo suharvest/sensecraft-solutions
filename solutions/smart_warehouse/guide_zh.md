@@ -8,7 +8,7 @@
 
 ## 步骤 1: 配置 Watcher 设备 {#sensecraft type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 将 Watcher 连接到 SenseCraft 云平台：
 
@@ -32,7 +32,7 @@
 
 ## 步骤 2: 配置仓库系统 {#cloud_warehouse_config type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 仓管系统由 Seeed 云端托管，无需自行部署。打开云端仓库管理系统完成初始配置：
 
@@ -172,7 +172,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 3: 配置 Watcher 设备 {#watcher_setup type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址（步骤 6 会用到）。
 
@@ -246,7 +246,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 5: 配置仓库系统 {#warehouse_config type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -458,7 +458,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 3: 配置 Watcher 设备 {#watcher_config type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 将 Watcher 连接到 SenseCraft 云平台：
 
@@ -546,7 +546,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 5: 配置仓库系统 {#warehouse_config_private_cloud type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -802,7 +802,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 4: 配置仓库系统 {#warehouse_config_private_cloud_multi type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -1146,7 +1146,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 4: 配置仓库系统 {#warehouse_config_edge_computing type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 

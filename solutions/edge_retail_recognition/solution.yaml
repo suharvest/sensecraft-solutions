@@ -53,7 +53,7 @@ intro:
       caption_i18n:
         zh: 同一个二十格布局，某一格补错了商品——该格的框转红并标注 wrong_sku，其余十九格仍为绿色
     - type: image
-      src: gallery/checkout-tracks-rk3588-20260907.gif
+      src: gallery/checkout-tracks-rk3588-20260907.webp
       caption: A checkout replay on the RK3588 board — each item keeps its track id and instance number as it moves across the counter
       caption_i18n:
         zh: RK3588 板子上的一段结账回放——物品经过收银台时各自保持跟踪 id 与实例编号

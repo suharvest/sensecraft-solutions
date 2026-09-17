@@ -56,7 +56,7 @@ one asset serves both the English and Chinese guides.
 
 `panel-dashboard-zh.webp`, `panel-dashboard-en.webp`, `panel-room-detail-zh.jpg`,
 `panel-room-offline-zh.jpg`, `panel-config-live-view-zh.webp`,
-`panel-config-conflict-409-zh.webp`, `panel-draw-save-reload.gif`,
+`panel-config-conflict-409-zh.webp`, `panel-draw-save-reload.webp`,
 `alarm-state-machine.svg` were carried over unchanged from the retired
 `eldercare_alarm` solution; only the SVG was renamed
 (`eldercare-alarm-state-machine.svg`).
@@ -74,7 +74,7 @@ source PNG is 3360 x 2332. Cropped to content and saved as JPEG quality 90:
 | `panel-room-offline-zh.jpg` | 3360 x 2332 | 3360 x 1160 |
 | `panel-config-live-view-zh.webp` | 3360 x 2332 | 3360 x 1860 |
 | `panel-config-conflict-409-zh.webp` | 3360 x 2332 | 3360 x 1860 |
-| `panel-draw-save-reload.gif` | copied unchanged | copied unchanged |
+| `panel-draw-save-reload.webp` | copied unchanged | copied unchanged |
 
 Only trailing blank canvas was removed; nothing inside the frame was altered,
 scaled or re-rendered.
@@ -100,7 +100,7 @@ footage, no person, no dataset material, so no third-party licence applies and
 there is nothing to de-identify. Wordless except for field and component names
 that are identical in both languages, so one file serves the English and the
 Chinese page. `panel-room-offline-zh.jpg`,
-`panel-config-conflict-409-zh.webp` and `panel-draw-save-reload.gif` are not
+`panel-config-conflict-409-zh.webp` and `panel-draw-save-reload.webp` are not
 referenced from `solution.yaml` today; they are kept here for the landing page.
 
 ## English fixture re-capture (2026-09-09)

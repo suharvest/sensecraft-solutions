@@ -8,7 +8,7 @@ Only a SenseCAP Watcher is needed, no host. Inventory data and the voice service
 
 ## Step 1: Configure Watcher Device {#sensecraft type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Connect your Watcher to SenseCraft cloud platform:
 
@@ -32,7 +32,7 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ## Step 2: Configure Warehouse System {#cloud_warehouse_config type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 The warehouse system is hosted on Seeed cloud - no deployment needed. Open the cloud warehouse system to complete initial setup:
 
@@ -172,7 +172,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ## Step 3: Configure Watcher Device {#watcher_setup type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL (you'll need it in Step 6).
 
@@ -246,7 +246,7 @@ Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 
 
 ## Step 5: Configure Warehouse System {#warehouse_config type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -458,7 +458,7 @@ Write the vision detection program to the Watcher's AI chip.
 
 ## Step 3: Configure Watcher Device {#watcher_config type=manual required=true}
 
-![Agent Setup](gallery/configure_agent.gif)
+![Agent Setup](gallery/configure_agent.webp)
 
 Connect your Watcher to SenseCraft cloud platform:
 
@@ -546,7 +546,7 @@ Run directly on this machine (a Jetson device). Needs at least 4 GB of free disk
 
 ## Step 5: Configure Warehouse System {#warehouse_config_private_cloud type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -802,7 +802,7 @@ Run directly on this machine — only applicable when it is the J40 series devic
 
 ## Step 4: Configure Warehouse System {#warehouse_config_private_cloud_multi type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 
@@ -1146,7 +1146,7 @@ Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up
 
 ## Step 4: Configure Warehouse System {#warehouse_config_edge_computing type=manual required=true}
 
-![Setup Demo](gallery/setup_warehous.gif)
+![Setup Demo](gallery/setup_warehous.webp)
 
 After deployment, open the warehouse system to complete initial setup:
 

@@ -92,7 +92,7 @@ rendering path.
 |---|---|---|---|
 | `shelf-ok-rk3588-20260907.jpg` | `evaluation/runs/2026-09-07-runtime-rk3588-r4-shelf-b3/media/shelf-ok.png` | Radxa Rock 5B (RK3588) | 20 slots, window 45, 0/20 mismatches. PNG 1280 × 746 → JPEG 1280 × 746 |
 | `shelf-wrong-sku-rk3588-20260907.jpg` | same run, `shelf-wrong_sku.png` | same | one slot confirmed `wrong_sku`. PNG 1280 × 746 → JPEG 1280 × 746 |
-| `checkout-tracks-rk3588-20260907.gif` | `evaluation/runs/2026-09-07-runtime-rk3588-r5/media/checkout-tracks.gif` | same | copied unchanged |
+| `checkout-tracks-rk3588-20260907.webp` | `evaluation/runs/2026-09-07-runtime-rk3588-r5/media/checkout-tracks.gif` | same | copied unchanged |
 
 The GIF's own caveat travels with it: the overlay tool runs the detector and the
 tracker but not the embedder, so the instance numbers on screen are kinematic
