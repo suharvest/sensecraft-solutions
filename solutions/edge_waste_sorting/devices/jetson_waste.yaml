@@ -60,6 +60,18 @@ post_deployment:
 name_i18n:
   zh: NVIDIA Jetson Orin
 
+# Only the baseline (closed-set) ONNX is actually on the CDN today — verified
+# via HEAD (200). The open_vocab track's ONNX and prototype files are 404
+# (see the TODO(CDN) notes in after_upload below); they are intentionally
+# left out of `files:` since a `files:` entry pointing at a 404 would fail
+# `solutionctl validate --check-urls`. open_vocab deployment already fails
+# on both the old and new engine today — this migration doesn't change that.
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.onnx
+    remote_path: /home/{{username}}/edge-waste-sorting/jetson_waste/models/efficientnet_lite0_waste8.onnx
+    checksum:
+      sha256: e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/jetson
@@ -174,9 +186,13 @@ remote_overrides:
           fi
 
           if [ ! -s "$ONNX" ]; then
-            # TODO(CDN): NOTHING HAS BEEN UPLOADED to this path yet. Until it
-            # is, copy $MODEL_NAME.onnx onto the device at $ONNX by hand; the
-            # sha256 check below still applies either way.
+            # TODO(CDN): open_vocab's siglip2_vision_224.onnx is NOT uploaded
+            # yet (404). Until it is, copy it onto the device at $ONNX by
+            # hand; the sha256 check below still applies either way.
+            # For the baseline track, the new engine will have already placed
+            # this file via the device-level `files:` block above (in
+            # after_upload, before this step) — the download below is the
+            # old engine's fallback path (it silently ignores `files:`).
             echo "Downloading $MODEL_NAME.onnx ..."
             curl -fSL --retry 3 -o "$ONNX.part" \
               "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
@@ -190,7 +206,9 @@ remote_overrides:
             # tower's 768-d embedding into eight class scores. Their sha256s are
             # in assets/models/SHA256SUMS.open_vocab; the runtime republishes
             # the prompt set's sha as the event's prompt_set_sha256.
-            # TODO(CDN): also not uploaded yet — copy by hand for now.
+            # TODO(CDN): also not uploaded yet — copy by hand for now. Not
+            # migrated to `files:` for the same reason as siglip2_vision_224.onnx
+            # above (404 on the CDN today).
             for f in prototypes-en-material8.npz prototypes-en-material8.meta.json; do
               if [ ! -s "$MODELS_DIR/$f" ]; then
                 curl -fSL --retry 3 -o "$MODELS_DIR/$f.part" \
