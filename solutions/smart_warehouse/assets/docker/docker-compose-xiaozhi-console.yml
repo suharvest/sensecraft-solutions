@@ -80,7 +80,7 @@ services:
 
   # 语音服务本体：WebSocket 接设备，配置从智控台拉
   xiaozhi-server:
-    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-server:arm64-20260828-pyav
+    image: sensecraft-missionpack.seeed.cn/solution/xiaozhi-server:arm64-20260916
     container_name: xiaozhi-server
     restart: unless-stopped
     depends_on:
