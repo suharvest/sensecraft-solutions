@@ -42,6 +42,12 @@ deploy_timeout: 1800
 post_deployment:
   open_browser: false
 
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.hef
+    remote_path: /home/{{username}}/edge-inspection-assembly-hailo/hailo_assembly/models/yolox_tiny_deeppcb6.hef
+    checksum:
+      sha256: eed115a2d68866593a0d8f64a76db87325ab7fd8bcc6008d1b83101c86b7e3ce
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-assembly-hailo
   compose_dir: assets/rpi-hailo
@@ -146,8 +152,6 @@ remote_overrides:
           # YOLOX-Tiny INT8, optimization level 1 + Bias Correction, 2 contexts,
           # 8,976,469 bytes, compiled by DFC 3.31.0 for HailoRT 4.21.0.
           SHA=eed115a2d68866593a0d8f64a76db87325ab7fd8bcc6008d1b83101c86b7e3ce
-          # TODO(CDN): this object is not uploaded yet. Until it is, copy the
-          # HEF into $MODELS_DIR by hand; the step verifies the sha either way.
           URL=https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.hef
 
           mkdir -p "$MODELS_DIR" "$WORKDIR/data"
@@ -156,6 +160,8 @@ remote_overrides:
             echo "HEF already present and verified"
             exit 0
           fi
+          # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+          # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
           curl -fSL --retry 3 --continue-at - -o "$HEF.part" "$URL"
           echo "$SHA  $HEF.part" | sha256sum -c -
           mv -f "$HEF.part" "$HEF"

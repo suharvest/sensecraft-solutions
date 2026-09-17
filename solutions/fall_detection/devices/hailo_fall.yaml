@@ -44,6 +44,12 @@ post_deployment:
 name_i18n:
   zh: reComputer R2000（Hailo-8）
 
+files:
+  - url: https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8s_pose.hef
+    remote_path: /home/{{username}}/fall-detection-hailo/hailo_fall/models/yolov8s_pose.hef
+    checksum:
+      sha256: e19856699ed47cf866d23265827f960b263f287dab5e54e82c7ce37e12525a2d
+
 remote_overrides:
   remote_path: /home/{{username}}/fall-detection-hailo
   compose_dir: assets/hailo
@@ -118,6 +124,8 @@ remote_overrides:
             echo "HEF already present"
             exit 0
           fi
+          # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+          # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
           curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/yolov8s_pose.hef.part" "$URL"
           echo "$SHA  $MODELS_DIR/yolov8s_pose.hef.part" | sha256sum -c -
           mv -f "$MODELS_DIR/yolov8s_pose.hef.part" "$MODELS_DIR/yolov8s_pose.hef"

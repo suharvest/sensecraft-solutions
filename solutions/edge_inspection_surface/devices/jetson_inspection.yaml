@@ -188,6 +188,11 @@ remote_overrides:
             # training data is unconfirmed, so nothing is published until that
             # is cleared. Until then, copy $MODEL_NAME.onnx onto the device
             # at the path below by hand; the sha256 check still applies.
+            # Not migrated to device-level `files:` (none of yolox_tiny_neu6,
+            # dfine_s_neu6, rtdetrv2_s_neu6 exist on the CDN yet — verified
+            # 404 on 2026-09-17); a `files:` entry pointing at a 404 would fail
+            # `solutionctl validate --check-urls`. Revisit once the licence
+            # question clears and these are actually published.
             echo "Downloading $MODEL_NAME.onnx ..."
             curl -fSL --retry 3 -o "$ONNX.part" \
               "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$MODEL_NAME.onnx"
