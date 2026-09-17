@@ -19,7 +19,14 @@ services:
       - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - FACE_ENABLED=true
-      - FACE_WE2_SIMULATOR_ENABLED=1
+      # 必须关。app.py 对 FACE_WE2_SIMULATOR_ENABLED=1 是无条件
+      # `from routers.face_we2 import router`，而这个镜像的 venv 里既没有 Pillow
+      # 也没有 ai-edge-litert —— arm64 与 amd64 变体都一样（两者都是 Alpine/musl，
+      # 且 ai-edge-litert 在 PyPI 上没有 musllinux 轮子）。开着就是启动即
+      # ModuleNotFoundError，配合 restart: unless-stopped 变成无限重启，
+      # 部署报 "Service warehouse is not healthy"（2026-09-17 真机复现）。
+      # 等镜像补齐依赖（或换掉 musl 基础镜像）再打开这个开关。
+      - FACE_WE2_SIMULATOR_ENABLED=0
     volumes:
       - warehouse_data:/data
       # 客户通过智控台上传的 ERP Provider（.py）落在这里。必须是卷 ——

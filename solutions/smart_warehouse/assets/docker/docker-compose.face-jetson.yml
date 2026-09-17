@@ -24,7 +24,9 @@ services:
       # 宿主机局域网 IP。留空时后端会在下发人脸库时直接报错并提示如何设置。
       - WAREHOUSE_DEVICE_BASE_URL=${WAREHOUSE_DEVICE_BASE_URL:-}
       - FACE_ENABLED=true
-      - FACE_WE2_SIMULATOR_ENABLED=1
+      # 必须关，原因同 docker-compose.yml 里同名注释（镜像 venv 无 Pillow /
+      # ai-edge-litert，unconditional import 会让容器启动即崩）。
+      - FACE_WE2_SIMULATOR_ENABLED=0
     volumes:
       - warehouse_data:/data
       # 客户通过智控台上传的 ERP Provider（.py）落在这里。必须是卷 ——
