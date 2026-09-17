@@ -8,7 +8,7 @@ services:
     #   amd64 digest:  sha256:88dafb2b1108c0f5826495b31833a9918031b926d2b1e7183d9cffb8f12aba7c
     #   arm64 digest:  sha256:1821b940dba8336692bf2b57c6a6435cd039ea2f445cb4c778f549622d794585
     # 按 index digest 引用（tag 存在但仍按 digest 固定，防止后续同 tag 覆盖漂走）。发新版时改这一行。
-    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:6b3346b8c1178fa6af4f9c259e0b6d7fad9c4337026f34e7e159dc324b529195  # tag: 20260908-apikey-warehouse
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:5712d2e058e970f6b9fcda5c9fec62355ace243b47d8752b0d1f549ff090bc5d  # tag: 20260917-we2sim-warehouse
     container_name: mcp_warehouse
     ports:
       - "2125:2125"
@@ -19,13 +19,16 @@ services:
       - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
       - CORS_ORIGINS=${CORS_ORIGINS:-*}
       - FACE_ENABLED=true
-      # 必须关。app.py 对 FACE_WE2_SIMULATOR_ENABLED=1 是无条件
-      # `from routers.face_we2 import router`，而这个镜像的 venv 里既没有 Pillow
-      # 也没有 ai-edge-litert —— arm64 与 amd64 变体都一样（两者都是 Alpine/musl，
-      # 且 ai-edge-litert 在 PyPI 上没有 musllinux 轮子）。开着就是启动即
-      # ModuleNotFoundError，配合 restart: unless-stopped 变成无限重启，
-      # 部署报 "Service warehouse is not healthy"（2026-09-17 真机复现）。
-      # 等镜像补齐依赖（或换掉 musl 基础镜像）再打开这个开关。
+      # 这个开关只控制一件事：app.py 是否 include_router(routers/face_we2)，
+      # 即把本机伪装成 face_rec_api 端点对外提供 HTTP /api/face/we2/{infer,health}。
+      # 本方案没有这条链路的消费方，所以保持 0（与镜像内 ENV 默认值一致）。
+      #
+      # 注意别把它和人脸录入/下发搞混：那两条走的是进程内直调
+      # endpoint_client._infer_local() → face.we2.get_simulator()，
+      # 不看这个开关。它们需要的 Pillow + ai-edge-litert 由镜像提供 ——
+      # 20260908 那版是 Alpine/musl、两个包都没有（litert 无 musllinux 轮子），
+      # 开着必崩、关着则录入 500、下发静默漏人；20260917-we2sim 起改用
+      # Dockerfile.prod 的 glibc 基础镜像并装上 we2-sim extra，两条链路都可用。
       - FACE_WE2_SIMULATOR_ENABLED=0
     volumes:
       - warehouse_data:/data
