@@ -13,16 +13,16 @@ SHA-256 of the copies, recorded so a later divergence is visible:
 | File | SHA-256 |
 |---|---|
 | `respeaker.jpg` | `11fed631e50e04c036edaa5a85eb00e78d12f47e06b0b55a94c0b1e5f06cb42a` |
-| `rerouter.png` | `0e42a28031b480f9867a7081af251729c9520ed6bc44fddc33dc835ecc12e95e` |
+| `rerouter.webp` | `0e42a28031b480f9867a7081af251729c9520ed6bc44fddc33dc835ecc12e95e` |
 | `recomputer-rk3576.jpg` | `18c81f01025ecd90844f8d009418657a357928f05c37bfd63433ac4a6a8ed7e4` |
 | `architecture.png` | `0635d0f1e7ac393dded8649467a144afca24d9cf57ccb635494c7541726b57f3` |
 | `cover.webp` | `f028d0e5392d7276220bdf70aa6062cdcbee3c721d242dbb0d5fd8d50a33315d` |
 | `wan_lan.png` | `d86a47574dd2db5fbaf665689c73730f046e44a74f956718547c91441489dcdc` |
-| `boot-mode.png` | `25b34b87ecfca7f4100db9808fbd324e5d60e1e2819a4baa99815b2830e8a32c` |
+| `boot-mode.webp` | `25b34b87ecfca7f4100db9808fbd324e5d60e1e2819a4baa99815b2830e8a32c` |
 
 ## What each file shows
 
-- **`recordings-console.png`** — the SenseCraft Voice recordings console
+- **`recordings-console.webp`** — the SenseCraft Voice recordings console
   (录音管理), showing the transcript list with speaker labels (顾客 A / 店员 B /
   顾客 C / 店长 D), per-record status (中间结果 / 最终结果) and PII placeholders
   ([[NAME]], [[PHONE]], [[LOCATION]]) already redacted. It is the cover and
@@ -34,7 +34,7 @@ SHA-256 of the copies, recorded so a later divergence is visible:
   screenshot doesn't.
 - **`respeaker.jpg`** — Seeed product photography of the reSpeaker XVF3800,
   the array both presets use.
-- **`rerouter.png`** — Seeed product photography of the reRouter CM4.
+- **`rerouter.webp`** — Seeed product photography of the reRouter CM4.
 - **`recomputer-rk3576.jpg`** — official product photography for reComputer
   RK3576-30 (SKU 100052518, family `recomputer_rk3576`), downloaded 2026-09-07
   from the Seeed media CDN:
@@ -46,14 +46,14 @@ SHA-256 of the copies, recorded so a later divergence is visible:
 - **`cover.webp`** — a reRouter and a reSpeaker on a table in a shop. Not
   referenced by `intro.cover_image` or `intro.gallery` any more; see the
   2026-09-07 note below. The file stays in this directory.
-- **`wan_lan.png`**, **`boot-mode.png`** — wiring and boot-jumper diagrams used
+- **`wan_lan.png`**, **`boot-mode.webp`** — wiring and boot-jumper diagrams used
   by the reRouter firmware step in the guide.
 
 The earlier packages' client screenshots were **not** carried over. They were
 taken against builds whose pages differ from what these two presets deploy, and
 a gallery image that shows a UI the user will not see is worse than no image.
 Those files (`edge-client.png`, `edge-client-asr.png`, `edge-client-device.png`,
-`rerouter.png` and the rest of `solutions/smart_retail_voice_ai/gallery/`) no
+`rerouter.webp` and the rest of `solutions/smart_retail_voice_ai/gallery/`) no
 longer exist in this repository: that package was deleted on 2026-09-08 when it
 was merged into this one. The files that this gallery uses were copied before
 the deletion and are listed above with their SHA-256.
@@ -100,7 +100,7 @@ but does not itself ban hardware or architecture photos elsewhere); it is the
 editorial call made for this page, on the request that a cover here show the
 software rather than the box it ships in.
 
-The cover is now `recordings-console.png`: the SenseCraft Voice recordings
+The cover is now `recordings-console.webp`: the SenseCraft Voice recordings
 console (`sensecraft_voice/sensecraft-voice-web`, page `/recordings`),
 captured at 3200×2000 px (1600×1000 CSS viewport, device scale factor 2) with
 Playwright, using the repository's own `scripts/shot-recordings.mjs` fixture
@@ -131,10 +131,10 @@ Source of the on-screen content:
 `architecture.png` stays in the gallery (see "What each file shows" above) —
 it still documents the physical kit, just no longer as the cover.
 
-## 2026-09-09 — recordings-console-en.png (English fixture)
+## 2026-09-09 — recordings-console-en.webp (English fixture)
 
-`recordings-console-en.png` is the English-fixture equivalent of
-`recordings-console.png`. Real screenshot of the same SenseCraft Voice
+`recordings-console-en.webp` is the English-fixture equivalent of
+`recordings-console.webp`. Real screenshot of the same SenseCraft Voice
 recordings console (`sensecraft_voice/sensecraft-voice-web`, page
 `/recordings`), run locally (`npm run dev`) against the current frontend
 source with `localStorage.sensecraft.lang = 'en'`. The backend API is

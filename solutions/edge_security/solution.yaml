@@ -62,7 +62,7 @@ intro:
       caption_i18n:
         zh: 三条规则同框，取自本方案并入的那个 Jetson 包——被跟踪的人、禁区多边形，以及箭头标出判定方向的越线。判定内容与本方案一致；叠框配色是那个检测器的，不是本方案各套餐画出来的样子。
     - type: image
-      src: gallery/architecture-diagram.png
+      src: gallery/architecture-diagram.webp
       caption: Detection layer publishes over MQTT, the hub judges the rules and serves the workbench
       caption_i18n:
         zh: 探测层通过 MQTT 上报，hub 判定规则并提供工作台

@@ -76,7 +76,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 4: Demo & Testing {#demo type=manual verify=true required=true}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands. To see the resulting inventory records, visit the SenseCraft platform at [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/) after speaking.
 
@@ -228,7 +228,7 @@ Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect R1100 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
@@ -286,7 +286,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 7: Demo & Testing {#voice_demo_test type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -492,7 +492,7 @@ Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series,
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the device to power and ethernet, ensure it's on the same network as your computer
 2. Enter the device IP address (or check your router)
@@ -587,7 +587,7 @@ Add an agent in the warehouse system to let Watcher control inventory:
 
 ## Step 7: Demo & Testing {#demo_private_cloud type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -766,7 +766,7 @@ Deploy to the reComputer J40 series. Needs at least 4 GB of free disk.
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the J40 series device to power and ethernet, ensure it's on the same network as your computer
 2. Check your router for the J40 series device's IP address and enter it
@@ -937,7 +937,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 > **To change the addresses entered during deployment**: edit the base URL (red box)
 > under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
-> ![Model fields](gallery/console-ovs-form-annotated.png)
+> ![Model fields](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **Base URL**: voice service address, format `http://<device IP>:8621`
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
@@ -996,7 +996,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ## Step 9: Demo & Testing {#demo_private_cloud_multi type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 
@@ -1128,7 +1128,7 @@ Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up
 
 ### Wiring
 
-![Wiring](gallery/R1100_connected.png)
+![Wiring](gallery/R1100_connected.webp)
 
 1. Connect Industrial R21 series device to power and ethernet, ensure it's on the same network as your computer
 2. Enter IP address `reComputer-R110x.local` (or check your router)
@@ -1276,7 +1276,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 > **To change the addresses entered during deployment**: edit the base URL (red box)
 > under Model Configuration → Text-to-Speech → OpenVoiceStream → Edit.
 >
-> ![Model fields](gallery/console-ovs-form-annotated.png)
+> ![Model fields](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **Base URL**: voice service address, format `http://<device IP>:8621`
 > - 🔵 **Voice**: fetched from the device automatically once the base URL is set — no manual entry
@@ -1329,7 +1329,7 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 ## Step 9: Demo & Testing {#demo_edge_computing type=manual required=false}
 
-![Voice Stock-in Demo](gallery/xiaozhi-stock-in.png)
+![Voice Stock-in Demo](gallery/xiaozhi-stock-in.webp)
 
 Try these voice commands:
 

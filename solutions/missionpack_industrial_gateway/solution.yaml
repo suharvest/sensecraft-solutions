@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cover-console-overview-zh.jpg
+  cover_image: gallery/cover-console-overview-zh.webp
   category: industrial_control_automation
   solution_type: solution
   tags:
@@ -30,22 +30,22 @@ intro:
 
   gallery:
     - type: image
-      src: gallery/console-overview-zh.jpg
+      src: gallery/console-overview-zh.webp
       caption: Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success and write-readback rates, points grouped by protocol, and one card per source with its last successful poll
       caption_i18n:
         zh: 站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、按协议分组的点位，以及每个数据源一张卡片带最近一次成功采集时间
     - type: image
-      src: gallery/console-overview-en.jpg
+      src: gallery/console-overview-en.webp
       caption: The same overview in English — four protocols, thirteen devices, one hundred and twenty points on a single page
       caption_i18n:
         zh: 同一总览的英文界面——四种协议、13 台设备、120 个点位在同一页
     - type: image
-      src: gallery/console-topology-zh.jpg
+      src: gallery/console-topology-zh.webp
       caption: Device topology — source to protocol to device to point, with quality and writability on every leaf and offline sources greyed out
       caption_i18n:
         zh: 设备拓扑——数据源 → 协议 → 设备 → 点位，每个叶子标出质量与可写性，离线数据源置灰
     - type: image
-      src: gallery/console-topology-en.jpg
+      src: gallery/console-topology-en.webp
       caption: The same tree in English — an offline Modbus source still shows its points, marked unknown rather than dropped
       caption_i18n:
         zh: 同一棵树的英文界面——离线的 Modbus 源仍然列出点位，标为"未知"而不是消失

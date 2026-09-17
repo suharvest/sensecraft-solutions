@@ -58,22 +58,22 @@ intro:
       caption_i18n:
         zh: RK3588 板子上的一段结账回放——物品经过收银台时各自保持跟踪 id 与实例编号
     - type: image
-      src: gallery/recomputer-rk3588.png
+      src: gallery/recomputer-rk3588.webp
       caption: reComputer RK3588 — the host for the RK3588 detector preset. The RK3588 numbers on this page are reference values from the same platform
       caption_i18n:
         zh: reComputer RK3588——RK3588 检测器套餐的主机。本页 RK3588 数字为同款平台实测参考值
     - type: image
-      src: gallery/ui-events.jpg
+      src: gallery/ui-events.webp
       caption: Recognition events by scene, SKU, device and time. Synthetic demo data from the upstream web_demo tool — the SKUs, scores and events are fixtures, not field results
       caption_i18n:
         zh: 按场景、SKU、设备与时间过滤的识别事件。上游 web_demo 工具产生的合成演示数据——SKU、分数与事件都是测试夹具，不是现场结果
     - type: image
-      src: gallery/ui-event-detail.jpg
+      src: gallery/ui-event-detail.webp
       caption: One event, box by box — similarity, top-2 margin, the OCR block and whether a fallback was used. Synthetic demo data
       caption_i18n:
         zh: 单条事件的逐框详情——相似度、top-2 间距、OCR 块，以及是否用过兜底。合成演示数据
     - type: image
-      src: gallery/ui-gallery.jpg
+      src: gallery/ui-gallery.webp
       caption: The product gallery — register a SKU from 3–8 photographs, browse versions, roll back. Synthetic demo data; no real SKU was registered
       caption_i18n:
         zh: 商品库——用 3–8 张图注册一个 SKU、浏览版本、回滚。合成演示数据，没有注册过任何真实 SKU

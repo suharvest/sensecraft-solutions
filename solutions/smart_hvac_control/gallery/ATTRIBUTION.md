@@ -14,9 +14,9 @@ composites of unrelated screens.
 |---|---|---|---|
 | `architecture.svg` | Schematic block diagram | **Yes** — `intro.gallery[]` | Drawn for this package, first-party |
 | `cover-point-trend-zh.jpg` | Point drawer's 24-hour chart: measured supply temperature, written setpoint and predicted setpoint on one axis | **Yes** — `intro.cover_image` | Screen capture, 2026-09-07, see below |
-| `console-point-trend-zh.jpg` / `-en.jpg` | The whole point drawer — identity, display settings, output policy and the three-line chart | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
-| `console-overview-zh.jpg` | Site overview: counts, unacknowledged alarms, 24-hour poll-success and write-readback trends, points by protocol, source cards | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
-| `console-topology-zh.jpg` | Device topology: source to protocol to device to point, offline sources greyed out | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
+| `console-point-trend-zh.webp` / `-en.jpg` | The whole point drawer — identity, display settings, output policy and the three-line chart | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
+| `console-overview-zh.webp` | Site overview: counts, unacknowledged alarms, 24-hour poll-success and write-readback trends, points by protocol, source cards | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
+| `console-topology-zh.webp` | Device topology: source to protocol to device to point, offline sources greyed out | **Yes** — `intro.gallery[]` | Screen capture, 2026-09-07, see below |
 | `control-dispatch-readback.png` | Data-service page's command-receipts table: manual setpoint and compressor-enable writes with `protocol_acknowledged` status, requested vs. effective value and actor | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `points-source-offline.png` | Point table with the SDM630 Modbus source stopped mid-capture, its ten points showing `offline` quality while the BACnet source stays `good` | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `alarm-banner-source-offline.png` | Point table with the alarm banner raised: one unrecovered, unacknowledged `source-offline` warning after the SDM630 simulator took `SIGTERM` | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
@@ -181,10 +181,10 @@ scaled.
 | File | Before | After |
 |---|---|---|
 | `cover-point-trend-zh.jpg` | 3200 x 2400 | 1438 x 742 (the history-chart card only: heading, series selector, legend, axes) |
-| `console-point-trend-zh.jpg` | 3200 x 2400 | 2000 x 2400 (drawer, blank left column trimmed) |
-| `console-point-trend-en.jpg` | 3200 x 2400 | 2000 x 2400 |
-| `console-overview-zh.jpg` | 3200 x 2790 | 3200 x 2760 |
-| `console-topology-zh.jpg` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
+| `console-point-trend-zh.webp` | 3200 x 2400 | 2000 x 2400 (drawer, blank left column trimmed) |
+| `console-point-trend-en.webp` | 3200 x 2400 | 2000 x 2400 |
+| `console-overview-zh.webp` | 3200 x 2790 | 3200 x 2760 |
+| `console-topology-zh.webp` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
 
 The four 2026-09-06 captures kept in the gallery
 (`control-dispatch-readback.png`, `points-source-offline.png`,

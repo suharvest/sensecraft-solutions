@@ -4,14 +4,14 @@
 
 | File | Origin | Contains dataset imagery |
 |---|---|---|
-| `recomputer-rk3588.png` | Official Seeed Studio product photo, reComputer RK3588-30 (SKU 100071234), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/3/5/3588_26_.png` (product page: https://www.seeedstudio.com/reComputer-RK3588-30-p-6817.html) | No |
+| `recomputer-rk3588.webp` | Official Seeed Studio product photo, reComputer RK3588-30 (SKU 100071234), fetched from `https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/3/5/3588_26_.png` (product page: https://www.seeedstudio.com/reComputer-RK3588-30-p-6817.html) | No |
 | `architecture.svg` | Drawn for this solution | No |
-| `ui-events.jpg` / `ui-events-en.jpg` | Captured from `tools/web_demo.py`, 2026-09-07 | No |
-| `ui-event-detail.jpg` | Same source and session | No |
-| `ui-gallery.jpg` | Same source and session | No |
+| `ui-events.webp` / `ui-events-en.jpg` | Captured from `tools/web_demo.py`, 2026-09-07 | No |
+| `ui-event-detail.webp` | Same source and session | No |
+| `ui-gallery.webp` | Same source and session | No |
 | `ui-board.jpg` / `ui-board-en.jpg` | Same source and session | No |
 
-`recomputer-rk3588.png` is the cover image and first gallery entry. The four
+`recomputer-rk3588.webp` is the cover image and first gallery entry. The four
 `ui-*.png` shots are synthetic fixtures from `tools/web_demo.py` — made-up SKU
 names, generated placeholder images and contract-shaped example events, not a
 real recognition run — so none of them is used as the cover; the official
@@ -126,10 +126,10 @@ altered or scaled.
 |---|---|---|
 | `ui-board.jpg` | 3200 x 2000 | 3183 x 1359 |
 | `ui-board-en.jpg` | 3200 x 2000 | 3183 x 1359 |
-| `ui-events.jpg` | 3200 x 2000 | 3183 x 1663 |
+| `ui-events.webp` | 3200 x 2000 | 3183 x 1663 |
 | `ui-events-en.jpg` | 3200 x 2000 | 3183 x 1783 |
-| `ui-event-detail.jpg` | 3200 x 2000 | 3183 x 1160 |
-| `ui-gallery.jpg` | 3200 x 2000 | 3183 x 1663 |
+| `ui-event-detail.webp` | 3200 x 2000 | 3183 x 1160 |
+| `ui-gallery.webp` | 3200 x 2000 | 3183 x 1663 |
 
 The data behind them is unchanged and still synthetic: an in-memory MQTT
 transport, a `FakeEmbedder` and deterministic-noise registration images. The

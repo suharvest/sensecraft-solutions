@@ -22,12 +22,12 @@ intro:
       caption_i18n:
         zh: 同一地图仪表盘切到英文——信标图层、房间轮廓与统计数字无需刷新页面即可切换
     - type: image
-      src: gallery/beacon-list-zh-20260907.jpg
+      src: gallery/beacon-list-zh-20260907.webp
       caption: Beacon list under Configuration, Chinese UI — the "10 Floor" map's 17-beacon table with real UUID, major/minor, X/Y and MAC per beacon, edit/delete on each row; the screenshot is scrolled to the table header and first row
       caption_i18n:
         zh: 系统设置里的信标列表，中文界面——"10 Floor" 地图下的 17 条信标表格，每个信标带真实 UUID、major/minor、X/Y 坐标与 MAC，每行可编辑/删除；截图停在表头与第一行
     - type: image
-      src: gallery/beacon-list-en-20260907.jpg
+      src: gallery/beacon-list-en-20260907.webp
       caption: The same beacon list in English, same scroll position — the table header and first row
       caption_i18n:
         zh: 同一信标列表的英文版，同样的滚动位置——表头与第一行

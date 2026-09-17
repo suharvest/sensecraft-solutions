@@ -33,7 +33,7 @@ intro:
   cover_image: gallery/cover-point-trend-zh.jpg
   gallery:
     - type: image
-      src: gallery/console-point-trend-zh.jpg
+      src: gallery/console-point-trend-zh.webp
       caption: >-
         Point detail — the demo site's supply temperature, the setpoint that was written and
         the predicted setpoint on one 24-hour chart, so the prediction can be read against
@@ -43,7 +43,7 @@ intro:
           点位详情——演示站点的送风温度、已下发的设定值与预测设定值叠在同一张 24 小时曲线上，
           可以直接对照预测与模拟点位的变化。数据来自生成的 fixture，非已交付的真实楼宇。
     - type: image
-      src: gallery/console-point-trend-en.jpg
+      src: gallery/console-point-trend-en.webp
       caption: >-
         The same point drawer in English — the output policy stays disabled until the safe
         range is saved and the current value and dry-run result are checked.
@@ -51,7 +51,7 @@ intro:
         zh: >-
           同一点位抽屉的英文界面——输出策略在保存安全范围、核对当前值与预演结果之前保持禁用。
     - type: image
-      src: gallery/console-overview-zh.jpg
+      src: gallery/console-overview-zh.webp
       caption: >-
         Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success
         and write-readback rates, points grouped by protocol, and one card per source.
@@ -60,7 +60,7 @@ intro:
           站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、
           按协议分组的点位，以及每个数据源一张卡片。
     - type: image
-      src: gallery/console-topology-zh.jpg
+      src: gallery/console-topology-zh.webp
       caption: >-
         Device topology — source to protocol to device to point, with quality and
         writability on every leaf and offline sources greyed out.

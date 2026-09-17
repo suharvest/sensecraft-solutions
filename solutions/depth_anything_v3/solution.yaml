@@ -4,10 +4,10 @@ name: Depth Anything V3 on Jetson
 intro:
   summary: One-click SSH deployment of Depth Anything V3 on NVIDIA Jetson with a prebuilt Docker image.
   description_file: description.md
-  cover_image: gallery/da3.png
+  cover_image: gallery/da3.webp
   gallery:
     - type: image
-      src: gallery/da3.png
+      src: gallery/da3.webp
       caption: Depth Anything V3 demo view
       caption_i18n:
         zh: Depth Anything V3 演示画面

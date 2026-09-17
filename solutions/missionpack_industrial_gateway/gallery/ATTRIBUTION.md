@@ -77,13 +77,13 @@ or scaled.
 
 | File | Before | After |
 |---|---|---|
-| `cover-console-overview-zh.jpg` | 3200 x 2790 | 3200 x 1810 (KPI row, both trend charts, protocol table) |
-| `console-overview-zh.jpg` | 3200 x 2790 | 3200 x 2760 |
-| `console-overview-en.jpg` | 3200 x 2790 | 3200 x 2760 |
-| `console-topology-zh.jpg` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
-| `console-topology-en.jpg` | 3200 x 2646 | 2480 x 2646 |
+| `cover-console-overview-zh.webp` | 3200 x 2790 | 3200 x 1810 (KPI row, both trend charts, protocol table) |
+| `console-overview-zh.webp` | 3200 x 2790 | 3200 x 2760 |
+| `console-overview-en.webp` | 3200 x 2790 | 3200 x 2760 |
+| `console-topology-zh.webp` | 3200 x 2646 | 2480 x 2646 (blank right margin removed) |
+| `console-topology-en.webp` | 3200 x 2646 | 2480 x 2646 |
 
-The cover is now `cover-console-overview-zh.jpg`. `cover.png` stays as the
+The cover is now `cover-console-overview-zh.webp`. `cover.png` stays as the
 `demo.mp4` thumbnail; `demo.mp4` itself is unchanged and still shows the older
 UI.
 
