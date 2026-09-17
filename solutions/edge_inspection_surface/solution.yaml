@@ -45,7 +45,7 @@ intro:
   # Their underlying images come from NEU-DET, an academic dataset without a
   # formal licence grant, so only these two are used and only to illustrate
   # function. See gallery/ATTRIBUTION.md.
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - surface-inspection

@@ -95,7 +95,7 @@ intro:
   # Real classification screenshots were added 2026-09-07, sourced from
   # TrashNet (MIT) validation images per the escape hatch this package always
   # documented. See gallery/ATTRIBUTION.md for the per-image source table.
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - waste-sorting

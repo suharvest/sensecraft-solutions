@@ -6,7 +6,7 @@ intro:
   description_file: description.md
   cover_image: gallery/cover.png
   repo_url: https://github.com/suharvest/openvoicestream
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: technical
   tags: [voice, jetson, asr, tts, local, rk3576, rk3588, raspberry-pi]
 

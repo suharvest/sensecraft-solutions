@@ -97,7 +97,7 @@ intro:
       caption: One frame in, a SKU-to-quantity list out — detector, embedder and gallery lookup on the device, registration and review in the console
       caption_i18n:
         zh: 一帧进去，SKU→数量清单出来——检测、嵌入与库检索在设备上，注册与查看在管理界面
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - retail

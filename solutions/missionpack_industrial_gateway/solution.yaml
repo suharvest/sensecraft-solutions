@@ -12,7 +12,7 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/cover-console-overview-zh.jpg
-  category: industrial_iot
+  category: industrial_control_automation
   solution_type: solution
   tags:
     - industrial-iot

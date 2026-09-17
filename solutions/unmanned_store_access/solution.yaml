@@ -85,7 +85,7 @@ intro:
       caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
       caption_i18n:
         zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器的干接点，接入门禁控制器输入端；门锁及其供电由门禁施工方负责
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - access-control

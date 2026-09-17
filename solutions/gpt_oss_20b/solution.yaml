@@ -5,7 +5,7 @@ intro:
   summary: One-click SSH deployment of GPT OSS 20B on NVIDIA Jetson with a prebuilt Docker image.
   description_file: description.md
   cover_image: gallery/gpt-oss.gif
-  category: llm
+  category: on_device_lm
   solution_type: technical
   tags: [jetson, llm, docker, edge-ai]
 

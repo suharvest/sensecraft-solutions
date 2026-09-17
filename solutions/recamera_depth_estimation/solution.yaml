@@ -17,7 +17,7 @@ intro:
       caption: A blank ceiling, the model's documented weak case — the usable range collapses
       caption_i18n:
         zh: 大面积无纹理的天花板，模型已知的弱项——可用范围明显塌缩
-  category: vision
+  category: vision_video_ai
   solution_type: technical
   tags:
     - recamera

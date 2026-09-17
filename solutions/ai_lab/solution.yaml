@@ -5,7 +5,7 @@ intro:
   summary: One place to try popular AI models on reComputer RK3576/RK3588 — object detection, chat, and image understanding, all running locally.
   description_file: description.md
   cover_image: https://files.seeedstudio.com/Solution/landpage_asset/recomputer-rk/recomputer-rk3576-c950463b.jpg
-  category: ai
+  category: on_device_lm
   solution_type: technical
   tags: [rk3576, rk3588, edge-ai, npu, yolo, object-detection, llm, deepseek, vlm, qwen, multimodal]
 

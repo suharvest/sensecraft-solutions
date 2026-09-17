@@ -40,7 +40,7 @@ intro:
       caption: Three ingest paths, one bridge, one set of entity ids in Home Assistant
       caption_i18n:
         zh: 三条接入路径、一个桥、Home Assistant 里同一套实体 ID
-  category: sensing
+  category: environmental_sensing
   solution_type: solution
   tags:
     - agriculture

@@ -6,7 +6,7 @@ intro:
   description_file: description.md
   cover_image: https://files.seeedstudio.com/wiki/reSpeaker_flex/banner_javis.png
   repo_url: https://github.com/KasunThushara/Lekiwi-voice
-  category: voice_ai
+  category: acoustic_audio_ai
   solution_type: technical
   output_interfaces:
     - type: serial

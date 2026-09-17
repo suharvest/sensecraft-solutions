@@ -50,7 +50,7 @@ intro:
       caption_i18n:
         zh: 系统架构——检测工位（reCamera Pro 或固定机位的 RTSP/IP 摄像头）接入质检主机，输出到 PLC/剔除执行器、MES/历史库与本地 Web 面板
 
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - industrial-inspection

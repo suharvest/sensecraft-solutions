@@ -83,7 +83,7 @@ intro:
       caption: System architecture — field devices (IP camera or reCamera Pro's own on-device path) into the compute host, out to the alarm panel and its notification output
       caption_i18n:
         zh: 系统架构——现场设备（IP 摄像头，或 reCamera Pro 自带的机上直出路径）接入计算主机，输出到告警面板及其通知渠道
-  category: sensing
+  category: vision_video_ai
   solution_type: solution
   tags:
     - fall-detection

@@ -11,7 +11,7 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/recamera.svg
-  category: automation
+  category: vision_video_ai
   solution_type: technical
   tags: [recamera, onvif, rtsp, nvr, vms, home-assistant, ip-camera]
   output_interfaces:

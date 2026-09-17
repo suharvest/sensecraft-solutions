@@ -24,7 +24,7 @@ intro:
       caption_i18n:
         zh: 系统架构——reCamera + LoRa + Home Assistant
   repo_url: https://github.com/biancayoung/recamera-sheep-counter-lora
-  category: sensing
+  category: off_grid_communication
   solution_type: technical
   output_interfaces:
     - type: mqtt
