@@ -15,7 +15,12 @@ services:
         condition: service_completed_successfully
 
   llm:
-    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260731-kvreuse}
+    # 20260918-hostruntime: thin overlay on 20260731-kvreuse (staged RKNN3 worker
+    # binary + libs byte-identical, md5 600b33ee…/79dad96c…). It adds the host
+    # runtime alignment below and makes the READY timeout configurable.
+    # index sha256:53a5ec99355755c3e66b4c399daaf700394e4d9404a56c8582c0262b3cccfa80
+    # linux/arm64 sha256:53a5ec99355755c3e66b4c399daaf700394e4d9404a56c8582c0262b3cccfa80
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime}
     container_name: conversational-voice-llm
     privileged: true
     init: true
@@ -23,6 +28,20 @@ services:
     volumes:
       - /dev:/dev
       - rk1828-llm-models:/opt/llm/models
+      # The container's RKNN3 client lib must be the SAME GENERATION as this
+      # host's rknn3_transfer_proxy and EP firmware — they ship in one host
+      # package (rknn3-rk182x-m2) and only speak to each other. On a skew the
+      # worker connects, sends its init request and blocks in read() with no
+      # error: the only symptom is the READY timeout firing identically on every
+      # attempt (2026-09-17, recomputer-rk3588-devkit: image 1.0.4 against a host
+      # on 1.1.0, five attempts all at 179.6 s, EP memory never touched).
+      # The entrypoint copies the host's librknn3_api{,_rkcp}.so over its bundled
+      # pair when this is mounted, so the client follows whatever the host has.
+      # A higher runtime loads a lower-version model (Rockchip, 2026-09-18), so
+      # this does NOT require re-exporting the 3.2 GB model artifacts.
+      # The whole dir is mounted, not the two files: a bind mount of a file the
+      # host does not have makes docker CREATE A DIRECTORY at that host path.
+      - /usr/lib:/opt/rk1828/host-lib:ro
     environment:
       RK1828_ARTIFACT_AUTO_DOWNLOAD: "1"
       RK1828_ARTIFACT_REPO_ID: harvestsu/seeed-local-voice-rk-artifacts
@@ -30,6 +49,13 @@ services:
       RK1828_MAX_CONTEXT: "8192"
       RK1828_CORE_MASK: ff
       RK1828_PORT: "1828"
+      # Seconds the supervisor waits for the worker's READY handshake, per
+      # attempt. Model init pushes ~3.2 GB over PCIe; 180 s covers a cold read at
+      # the ~44 MB/s an eMMC/SD rootfs measures. Raise it for slower storage.
+      RK1828_READY_TIMEOUT: ${RK1828_READY_TIMEOUT:-180}
+      # Do NOT raise this to paper over a load that fails identically every time
+      # — failed loads degrade the EP from 8 cores to 4.
+      RK1828_START_ATTEMPTS: ${RK1828_START_ATTEMPTS:-3}
       # Internal service: the agent calls it on 127.0.0.1. Loopback by default
       # so the local LLM is not an open OpenAI-compatible endpoint on the LAN.
       RK1828_HOST: ${RK1828_HOST:-127.0.0.1}
