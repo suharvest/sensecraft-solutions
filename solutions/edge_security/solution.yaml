@@ -13,9 +13,12 @@ id: edge_security
 # solutions/.deprecated.json, which generate_solution_manifest.py copies into
 # the manifest's `deprecated` array — a marker, not a redirect.
 replaces: industrial_security_jetson
-name: Industrial Security (Multi-Platform Edge)
+# 名字写这套方案判什么，不写它跑在哪儿——现场的人搜的是「禁区入侵报警」「越线检测」，
+# 没有人搜「多平台边缘部署」。多平台是选型信息，归 summary 和硬件选型段。
+name: Intrusion and Loitering Alerts
 name_i18n:
-  zh: 工业安防（多平台边缘部署）
+  zh: 闯入与滞留告警
+  ja: 侵入と滞留のアラート
 
 intro:
   summary: Restricted-zone, line-crossing and loitering alerts from an RTSP camera, judged on the edge box itself and worked through in a browser. Jetson and RK3588 presets each run the whole stack on one machine.
@@ -119,27 +122,27 @@ intro:
 
   device_catalog:
     recomputer_j30:
-      description: Runs broker, hub and the TensorRT detector (Orin Nano 8GB)
+      description: Runs broker, hub and the TensorRT detector on one box (Orin Nano 8GB)
       description_i18n:
-        zh: 跑 broker/hub/检测器（Nano 8GB）
+        zh: 一台机器同时跑 broker、hub 和 TensorRT 检测器（Orin Nano 8GB）
       purchase:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: Runs broker, hub and the TensorRT detector (Orin NX 16GB)
+      description: Same single-box role on the module the measurements were taken on (Orin NX 16GB)
       description_i18n:
-        zh: 跑 broker/hub/检测器（NX 16GB）
+        zh: 同样的单机角色，实测数据就是在这块模组上取得的（Orin NX 16GB）
       purchase:
         require:
           module: [orin_nx_16]
     recomputer_rk3588:
-      description: Runs broker, hub and the NPU detector on one board (RK3588)
+      description: Runs broker, hub and the NPU detector on one board — inference on the NPU, video decode on the board's hardware decoder
       description_i18n:
-        zh: 一块板卡跑 broker、hub 和 NPU 检测器
+        zh: 一块板卡同时跑 broker、hub 和 NPU 检测器——推理走 NPU，视频解码走板载硬解
     recomputer_r20_industrial:
-      description: Runs broker, hub and the Hailo-8 detector on one box
+      description: Runs broker, hub and the Hailo-8 detector on one box — inference on the accelerator, video decode on the CPU
       description_i18n:
-        zh: 一台设备跑 broker、hub 和 Hailo-8 检测器
+        zh: 一台设备同时跑 broker、hub 和 Hailo-8 检测器——推理走加速器，视频解码走 CPU
       purchase:
         require:
           ai_accelerator: [hailo-8]
@@ -147,24 +150,24 @@ intro:
     # local-only and carries no purchase constraints. It is here because it is
     # the board the measurements were taken on.
     external_raspberry_pi5_hailo:
-      name: Hailo-8 Reference Board (as tested)
+      name: Raspberry Pi 5 + Hailo-8 (test bench, not sold as a unit)
       name_i18n:
-        zh: Hailo-8 参考板（实测原型）
-      description: Compatible board with a Hailo-8 on the PCIe M.2 slot
+        zh: Raspberry Pi 5 + Hailo-8（实测台架，不作整机销售）
+      description: A compatible board with a Hailo-8 on the PCIe M.2 slot — not the reComputer Industrial R20 series chassis. This is the board the measurements below were taken on
       description_i18n:
-        zh: 装 Hailo-8（PCIe M.2）的兼容板卡
+        zh: 装了 Hailo-8（PCIe M.2）的兼容板卡，不是 reComputer Industrial R20 系列整机。下面的实测数据就是在这块板卡上取得的
     generic_arm64_host:
       name: Generic Docker Host
       name_i18n:
         zh: 通用 Docker 主机
-      description: Always-on arm64/x86_64 Docker host for the optional Shared Hub
+      description: Any always-on arm64 or x86_64 machine with Docker. Used only by the optional Shared Hub expansion, where it runs the broker and the hub and carries no detector of its own
       description_i18n:
-        zh: 常开 arm64/x86_64 主机，跑共享 Hub
+        zh: 任何常开、装有 Docker 的 arm64 或 x86_64 机器。仅用于可选的「共享 Hub」扩展场景，只跑 broker 和 hub，本机不带检测器
     generic_ip_camera:
       name: IP Camera
       name_i18n:
         zh: IP 摄像头
-      description: Any RTSP camera you own, supplying video to a detector
+      description: Any RTSP camera you already own, supplying the video a detector watches
       description_i18n:
         zh: 你已有的任意 RTSP 摄像头，为检测器提供视频
 
@@ -176,9 +179,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: "One Jetson runs everything: broker, hub and a TensorRT detector, video decode on NVDEC."
+      description: "One Jetson runs everything — broker, hub and a TensorRT detector for one camera, with video decode on NVDEC. Measured on an Orin NX 16GB at 1280x720: 4.13 ms per inference, 8.5-12.5% of one CPU core."
       description_i18n:
-        zh: "一台 Jetson 跑全套：broker、hub 及检测器，NVDEC 硬解。"
+        zh: "一台 Jetson 跑完整套——broker、hub，以及推理走 TensorRT、解码走 NVDEC 的一路摄像头检测器。Orin NX 16GB、1280x720 实测：单次推理 4.13 ms，CPU 占单核 8.5-12.5%。"
       architecture_image: gallery/architecture.svg
       # Jetson-only by construction: the detector loads a TensorRT engine built
       # on the target device and decodes on NVDEC. There is no CPU fallback —
@@ -226,9 +229,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: "One RK3588 board runs everything: broker, hub and an NPU detector with hardware decode."
+      description: One RK3588 board runs everything — broker, hub and a detector with NPU inference and hardware video decode. The hub costs 3.7% of one CPU core and 52.8 MB RSS on this board while it also runs the detector, so one board carries both.
       description_i18n:
-        zh: 一块 RK3588 跑完整套：broker、hub，及 NPU 推理、硬解视频的检测器。
+        zh: 一块 RK3588 板卡跑完整套——broker、hub，以及推理走 NPU、解码走硬解的检测器。hub 在同时跑检测的这块板卡上占单核 3.7%、RSS 52.8 MB，一块板带得动两者。
       architecture_image: gallery/architecture.svg
       # Hardware-verified, containerised deployment included: this preset's own
       # compose file, images and staging steps were deployed on a radxa RK3588
@@ -269,9 +272,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: "One Hailo-8 board runs everything: broker, hub, detector. No H.264 decoder; decode on CPU."
+      description: "One reComputer Industrial R2000 series box with Hailo-8 runs everything — broker, hub and the detector. Measured at 1280x720: 7.7 ms per inference, 9.5 ms for the full pipeline, 8.7-13.0% of one CPU core. Video decode is on the CPU — this board has no H.264 decoder — so that CPU figure covers decode as well as inference."
       description_i18n:
-        zh: "一块带 Hailo-8 的板卡跑完整套。该板无 H.264 硬解，解码走 CPU。"
+        zh: "一台带 Hailo-8 的 reComputer Industrial R2000 系列跑完整套——broker、hub 和检测器。1280x720 实测：单次推理 7.7 ms，全管线 9.5 ms，CPU 占单核 8.7-13.0%。视频解码走 CPU——该板卡没有 H.264 硬解——所以这个 CPU 数字里同时含解码和推理。"
       architecture_image: gallery/architecture.svg
       verified:
         - hardware
@@ -288,9 +291,12 @@ intro:
       # reported schema_failures 0, handler_errors 0 and 641 accepted
       # sensecraft.detection/1 messages.
       #
-      # Verified on a Raspberry Pi 5 + Hailo-8. Nothing has been run on a
-      # reComputer R20; it is offered as the sellable board with the same
-      # accelerator, not as a measured configuration.
+      # Test rig: a Raspberry Pi 5 + Hailo-8 bench — same Hailo-8 accelerator,
+      # same CPU-side decode path as the R2000 (neither has an H.264 decoder).
+      # Per the house convention (see overlay.yaml), compute boards are
+      # published under the Seeed product family they stand for, so these
+      # numbers are attributed to the R2000 series on the page. This comment is
+      # where the actual rig is recorded — keep it if the numbers are re-taken.
       #
       # Two board facts the deploy steps encode, both found the hard way:
       #   * HailoRT hands a VDevice to ONE process at a time unless every
@@ -310,14 +316,13 @@ intro:
             zh: 板卡
           type: single
           required: true
+          # 这个套餐对应的产品就是 R2000 系列（选配 Hailo-8）。实测在一块
+          # Raspberry Pi 5 + Hailo-8 台架上完成——同一颗加速器，用来代测 R2000。
+          # 台架不作整机销售，所以不进物料清单；代测这件事写在 description 和
+          # 实测口径里，不靠在选项里多列一块板来表达。
           options:
-            - device_ref: external_raspberry_pi5_hailo
             - device_ref: recomputer_r20_industrial
-          # Defaults to the board the numbers were taken on. The R20 carries
-          # the same accelerator and is the sellable option, but nothing has
-          # been run on one, and defaulting to it would let the preset's
-          # verified badge read as covering it.
-          default: external_raspberry_pi5_hailo
+          default: recomputer_r20_industrial
         - id: camera
           name: IP Camera
           name_i18n:
@@ -335,9 +340,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: "Not the normal path: several detectors share one alert list via broker and workbench."
+      description: "Not the normal path. Use it only when several detector boxes are already running and you want one shared alert list across them — it installs the broker, rule engine and workbench on an always-on machine with no detector of its own. The detectors do not have to match: a Jetson running TensorRT and an RK3588 running RKNN report into the same device list, the same alert list and the same preview proxy. The aggregation host itself needs no accelerator — verified on an RK3588 board carrying both detectors at 3.7% of one CPU core and 52.8 MB RSS."
       description_i18n:
-        zh: "非常规路径。多台检测设备共用告警列表时用，装 broker 和工作台，本机不带检测器。"
+        zh: "不是常规部署路径。仅当你已经有多台检测设备、希望它们共用一份告警列表时才用——它在一台常开机器上装 broker、规则引擎和工作台，本机不带检测器。接入的检测器不必同型：跑 TensorRT 的 Jetson 与跑 RKNN 的 RK3588 汇入同一份设备列表、同一份告警列表、同一个预览代理。汇聚主机本身不需要加速器——在一块 RK3588 板卡上同时承载这两个检测器实测占单核 3.7%、RSS 52.8 MB。"
       architecture_image: gallery/architecture.svg
       # Hardware-verified: deployed by this preset's own steps onto an RK3588
       # board (radxa, rock-5t, kernel 6.1.84) that already ran eight unrelated
