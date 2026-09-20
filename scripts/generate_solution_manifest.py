@@ -9,6 +9,7 @@ Usage:
     uv run python scripts/generate_solution_manifest.py                 # generate + upload to OSS
     uv run python scripts/generate_solution_manifest.py --no-upload     # generate only, no upload
     uv run python scripts/generate_solution_manifest.py --output-dir ./dist
+    uv run python scripts/generate_solution_manifest.py --only some_solution   # publish one package
 """
 
 import argparse
@@ -18,6 +19,7 @@ import re
 import subprocess
 import time
 import sys
+import urllib.request
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -184,6 +186,47 @@ def discover_solutions(solutions_dir: Path) -> list[Path]:
     return results
 
 
+def fetch_live_manifest(base_url: str) -> dict:
+    """Return the manifest currently served from *base_url*.
+
+    A partial publish rewrites that manifest with a few entries replaced, so it
+    has to start from what clients see right now -- not from this checkout,
+    which can be any number of unpublished commits ahead. Any failure is fatal:
+    publishing a manifest built from nothing would drop every other solution.
+    """
+    url = f"{base_url.rstrip('/')}/manifest.json?t={int(time.time())}"
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        manifest = json.loads(resp.read().decode("utf-8"))
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("solutions"), dict):
+        raise ValueError(f"{url} is not a solution manifest")
+    return manifest
+
+
+def merge_partial_manifest(live: dict, built: dict, only: list[str], now: str) -> dict:
+    """Return *live* with just the *only* entries replaced by those in *built*.
+
+    Every other solution keeps its live hash, size and ``updated_at``, and the
+    live ``deprecated`` list stays: those describe content this run did not
+    build, and the checkout may disagree with them (a renamed or retired
+    solution that has not been published yet).
+    """
+    missing = [sid for sid in only if sid not in built]
+    if missing:
+        raise KeyError(f"not built: {missing}")
+    merged = dict(live)
+    merged["solutions"] = dict(live["solutions"])
+    for sid in only:
+        merged["solutions"][sid] = built[sid]
+    merged["generated_at"] = now
+    return merged
+
+
+def changed_ids(live: dict, merged: dict) -> list[str]:
+    """Solution ids whose entry differs between two manifests (added, removed, or re-hashed)."""
+    a, b = live.get("solutions", {}), merged.get("solutions", {})
+    return sorted(sid for sid in set(a) | set(b) if a.get(sid, {}).get("hash") != b.get(sid, {}).get("hash"))
+
+
 def upload_to_oss(local_path: Path, oss_path: str) -> None:
     """Upload a local file to OSS using ossutil."""
     cmd = ["ossutil", "cp", str(local_path), oss_path, "--force"]
@@ -237,7 +280,19 @@ def main() -> None:
             "tree publishes work in progress"
         ),
     )
+    parser.add_argument(
+        "--only",
+        default="",
+        metavar="ID[,ID...]",
+        help=(
+            "Publish only these solutions. Their zips are built and uploaded; "
+            "the manifest and bundled_hashes.json start from the ones live at "
+            "--base-url and change in those entries alone. Use it when main "
+            "carries other unpublished content that should not ship yet."
+        ),
+    )
     args = parser.parse_args()
+    only: list[str] = [sid.strip() for sid in (args.only or "").split(",") if sid.strip()]
 
     # Resolve solutions directory
     if args.solutions_dir is not None:
@@ -279,6 +334,25 @@ def main() -> None:
     if not solutions:
         print("No solutions found (no directories with solution.yaml).")
         sys.exit(0)
+
+    live_manifest: dict | None = None
+    if only:
+        known = {sol.name for sol in solutions}
+        unknown = [sid for sid in only if sid not in known]
+        if unknown:
+            print(f"Error: --only names unknown solution(s): {unknown}", file=sys.stderr)
+            sys.exit(1)
+        try:
+            live_manifest = fetch_live_manifest(args.base_url)
+        except Exception as e:
+            print(
+                f"Error: cannot read the live manifest at {args.base_url}: {e}\n"
+                "A partial publish has nothing to start from; refusing to continue.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        solutions = [sol for sol in solutions if sol.name in only]
+        print(f"Partial publish: {only} (live manifest from {live_manifest.get('generated_at')})\n")
 
     # Load optional deprecation list — IDs of solutions that should be removed
     # from clients that previously had them installed (e.g. merged/retired).
@@ -329,13 +403,25 @@ def main() -> None:
         bundled_hashes[solution_id] = file_hash
 
     # Write manifest.json
-    manifest = {
-        "version": 1,
-        "generated_at": now,
-        "base_url": args.base_url,
-        "deprecated": deprecated_ids,
-        "solutions": manifest_solutions,
-    }
+    if live_manifest is not None:
+        manifest = merge_partial_manifest(live_manifest, manifest_solutions, only, now)
+        drift = changed_ids(live_manifest, manifest)
+        # The whole point of --only: nothing else may move.
+        if not set(drift) <= set(only):
+            print(f"Error: partial publish would change {drift}, asked for {only}", file=sys.stderr)
+            sys.exit(1)
+        unchanged = [sid for sid in only if sid not in drift]
+        print(f"\nAgainst the live manifest: changes {drift or 'nothing'}"
+              + (f"; already live: {unchanged}" if unchanged else ""))
+        bundled_hashes = {sid: entry["hash"] for sid, entry in manifest["solutions"].items()}
+    else:
+        manifest = {
+            "version": 1,
+            "generated_at": now,
+            "base_url": args.base_url,
+            "deprecated": deprecated_ids,
+            "solutions": manifest_solutions,
+        }
 
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -355,7 +441,16 @@ def main() -> None:
     # which on a dirty tree silently staged someone else's work for release.
     solutions_hashes_path = solutions_dir / "bundled_hashes.json"
     if publishing and solutions_hashes_path != hashes_path:
-        solutions_hashes_path.write_text(hashes_content, encoding="utf-8")
+        if only:
+            # The committed file tracks this checkout's ids (which may already
+            # differ from the live ones); move just the published entries.
+            repo_hashes = json.loads(solutions_hashes_path.read_text(encoding="utf-8"))
+            for sid in only:
+                repo_hashes[sid] = manifest_solutions[sid]["hash"]
+            solutions_hashes_path.write_text(
+                json.dumps(repo_hashes, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        else:
+            solutions_hashes_path.write_text(hashes_content, encoding="utf-8")
         print(f"Wrote {solutions_hashes_path}")
     elif not publishing:
         print(f"Dry run: left {solutions_hashes_path} untouched")

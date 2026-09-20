@@ -17,6 +17,10 @@ on:
         description: "Dry run: generate manifest/zips but skip the OSS upload"
         type: boolean
         default: false
+      only:
+        description: "Publish only these solution ids (comma-separated). Empty = every solution on main."
+        type: string
+        default: ""
 
 jobs:
   publish:
@@ -50,10 +54,14 @@ jobs:
       # a dry run leak these secrets into the uploaded dist/ artifact.
       - name: Generate manifest (dry run, no secrets)
         if: ${{ inputs.no_upload }}
+        env:
+          # Through the environment, never interpolated into the script.
+          ONLY: ${{ inputs.only }}
         run: |
           python3 scripts/generate_solution_manifest.py \
             --solutions-dir solutions \
             --output-dir dist \
+            --only "$ONLY" \
             --no-upload
 
       - name: Generate manifest and publish
@@ -62,10 +70,12 @@ jobs:
           OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
           OSS_REGION: us-east-1
+          ONLY: ${{ inputs.only }}
         run: |
           python3 scripts/generate_solution_manifest.py \
             --solutions-dir solutions \
-            --output-dir dist
+            --output-dir dist \
+            --only "$ONLY"
 
       # main is protected (required "guard"/"validate" checks) so this opens
       # a PR rather than pushing straight to main — the bump still goes
