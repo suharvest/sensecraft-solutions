@@ -25,6 +25,20 @@ docker:
 ssh:
   default_user: pi
 
+# Fetched from Hailo's own Model Zoo rather than re-hosted, pinned by digest.
+# App-side prefetch: the provisioning station downloads this once and pushes
+# it over SSH, landing at hailo-models/yolov8n.hef relative to this
+# deployment's remote dir (config.id "hailo_deploy" under docker.remote_path)
+# — the same directory compose's `./hailo-models` mount resolves against.
+# On an offline device this is the only path in; when online it just saves
+# the redundant on-device curl below. Old engines that don't know `files:`
+# fall through to that curl step unchanged.
+files:
+  - url: https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8n.hef
+    remote_path: hailo-models/yolov8n.hef
+    checksum:
+      sha256: 4f250daa6ac16e030cfaaf164e1cbdfe83e5852c81ae6c339c94857dd2b7b8d2
+
 user_inputs:
   - id: rtsp_url
     name: RTSP Camera URL
@@ -131,6 +145,8 @@ actions:
       #   2. 引擎上传前会先清理远端目录，before 阶段建的目录会被抹掉。
       run: |
         set -e
+        # 老引擎不认设备级 files: 声明时的兜底路径；新引擎已把模型经 files:
+        # 放到位，这里的下载会因 sha256 命中而直接跳过。
         # 不要用 {{remote_path}} / {{device_id}}：引擎 action 的模板上下文里
         # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
         # 未命中的 {{}} 被静默替换成空串 → MODELS_DIR=/hailo-models →
