@@ -15,12 +15,12 @@ services:
         condition: service_completed_successfully
 
   llm:
-    # 20260918-hostruntime: thin overlay on 20260731-kvreuse (staged RKNN3 worker
-    # binary + libs byte-identical, md5 600b33ee…/79dad96c…). It adds the host
-    # runtime alignment below and makes the READY timeout configurable.
-    # index sha256:53a5ec99355755c3e66b4c399daaf700394e4d9404a56c8582c0262b3cccfa80
-    # linux/arm64 sha256:53a5ec99355755c3e66b4c399daaf700394e4d9404a56c8582c0262b3cccfa80
-    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime}
+    # 20260919-hostruntime.2: thin overlay on 20260731-kvreuse (staged RKNN3
+    # worker binary + libs byte-identical, md5 600b33ee…/79dad96c…). It adds the
+    # host runtime alignment below and makes the READY timeout configurable.
+    # index       sha256:08b4d4b8d8b0b82beb520c96657707889531b604ea60ce0fb9bcfd137c7e6113
+    # linux/arm64 sha256:f205bd23db9805c9938f0dc7957e0ce0ef472395314d69f8cc73874dcaee2aa6
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime.2}
     container_name: conversational-voice-llm
     privileged: true
     init: true
