@@ -1,4 +1,19 @@
-# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence
+#   index sha256:f05c121d6bb7128e78c47739d5300d6c12b28308c49136e0a58bf6ed1506a81d
+#   (linux/arm64 sha256:eb05622a4815373eceef86f5dbf6244e9749d42dbb6270e865c8146d106cbc29).
+#   Three thin overlays on rk-20260920-piper-en, each measured on RK3588 (radxa)
+#   and RK3576 (cat-remote); this exact image was booted on both boards and
+#   exercised through /asr/stream before this compose pointed at it.
+#   * An utterance of two sentences reaches the LLM whole. The final ASR decode
+#     used to stop at the first sentence terminator, so "They ship today. Do you
+#     want one?" came back as "They ship today." (ASR_FINAL_STOP_ON_PUNCT is now 0
+#     in the RK profiles; two-sentence WER 71.4%/60.0% -> 14.3%/0.0% on RK3588,
+#     57.1%/60.0% -> 0.0%/0.0% on RK3576; single sentences unchanged).
+#   * Continuous speech longer than 5 s comes back whole instead of as its last
+#     ~5 s (the rolling ASR window now commits its text before it rolls).
+#   * Piper English pauses at "," and "." (commas 110-260 ms, sentence ends
+#     300-330 ms); "1,000", "10:30", "3.14", "example.com", "Dr. Smith" stay whole.
+#   Below it, rk-20260920-piper-en:
 #   Thin overlay on rk-20260913.3, one file changed (server/core/profile_loader.py):
 #   env set by the operator in this compose is no longer silently overwritten by
 #   the selected profile. Ownership is derived from what the shipped
@@ -39,7 +54,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -58,7 +73,7 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence}
     container_name: conversational-voice-speech
     privileged: true
     init: true
