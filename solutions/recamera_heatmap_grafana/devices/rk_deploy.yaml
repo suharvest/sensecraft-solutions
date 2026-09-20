@@ -22,6 +22,31 @@ docker:
 ssh:
   default_user: radxa
 
+# The model is the one fall_detection already publishes, reused rather than
+# re-hosted. Split into two entries (not one {{board}}-templated entry) so
+# each carries its own sha256 and only the board the user actually picked
+# gets downloaded. App-side prefetch lands the file at
+# rknn-models/<name> relative to this deployment's remote dir (config.id
+# "rk_deploy" under docker.remote_path) — the same directory the curl
+# fallback below stages into. Offline devices depend on this; online
+# devices just skip the redundant curl. Old engines that don't know
+# `files:` fall through to that curl step unchanged.
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11n_pose_rawhead_fp16.rk3588.rknn
+    remote_path: rknn-models/yolo11n_pose_rawhead_fp16.rk3588.rknn
+    checksum:
+      sha256: 22f00270870b25dc013e4e8e39aed98f82bcabb69b9272302280a6b8b8f48d5c
+    when:
+      field: board
+      value: rk3588
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11n_pose_rawhead_fp16.rk3576.rknn
+    remote_path: rknn-models/yolo11n_pose_rawhead_fp16.rk3576.rknn
+    checksum:
+      sha256: 659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
+    when:
+      field: board
+      value: rk3576
+
 user_inputs:
   - id: board
     name: Board
@@ -117,6 +142,9 @@ actions:
       # 且引擎上传前会先清理远端目录，before 阶段建的目录会被抹掉。
       run: |
         set -e
+        # 老引擎不认设备级 files: 声明时的兜底路径；新引擎已把模型经 files:
+        # 放到位，这里的下载会因 sha256 命中而直接跳过；config.json 仍需
+        # 在这里生成（内容随 user_inputs 变化，不是可 checksum 的静态资源）。
         # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
         # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
         # 未命中的 {} 被静默替换成空串，路径会打到根目录上（非 root 直接
