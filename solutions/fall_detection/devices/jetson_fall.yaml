@@ -53,6 +53,19 @@ post_deployment:
 name_i18n:
   zh: NVIDIA Jetson
 
+# {{pose_model}} picks which ONNX gets engine-built at deploy time; both are
+# published on the CDN today, so both are pre-fetched here (the unused one
+# is harmless idle bytes, not a broken download).
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11s-pose.onnx
+    remote_path: /home/{{username}}/fall-detection/jetson_fall/models/yolo11s-pose.onnx
+    checksum:
+      sha256: 8918cfc11983ee4d38019308fe87be33116da21b715e1c1a0cb2f97e36ffb8d2
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11m-pose.onnx
+    remote_path: /home/{{username}}/fall-detection/jetson_fall/models/yolo11m-pose.onnx
+    checksum:
+      sha256: 7fe8762007efd17976bdf140b99eac9a8069accd7020a5873ad20dd4caaf633c
+
 remote_overrides:
   remote_path: /home/{{username}}/fall-detection
   compose_dir: assets/jetson
@@ -139,6 +152,8 @@ remote_overrides:
           esac
 
           if [ ! -s "$ONNX" ]; then
+            # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+            # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             echo "Downloading $MODEL ONNX ..."
             curl -fSL --retry 3 -o "$ONNX.part" \
               "https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/${MODEL}.onnx"

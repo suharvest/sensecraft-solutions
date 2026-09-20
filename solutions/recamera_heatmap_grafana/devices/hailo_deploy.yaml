@@ -8,7 +8,7 @@ detection:
   manual_entry: true
 
 docker:
-  compose_file: ../docker/docker-compose.hailo.yml
+  compose_file: docker/docker-compose.hailo.yml
   remote_path: /home/{{username}}/retail-vision-hailo
   environment:
     STREAMS: "{{stream_id}}|{{rtsp_url}}"
@@ -85,7 +85,8 @@ user_inputs:
       zh: MQTT 端口
 
 pre_checks:
-  - type: docker
+  - type: docker_version
+    min_version: "20.0"
     description: Docker must be installed and running
   - type: disk_space
     min_gb: 1
@@ -118,13 +119,32 @@ actions:
       name_i18n:
         zh: 检查 Hailo 运行时
 
+  after_upload:
     - name: Download the detection model
       # Fetched from Hailo's own Model Zoo rather than re-hosted, and pinned by
       # digest. NMS runs on-chip in this HEF, so the detector only walks the
       # decoded class-0 block — no DFL decode, no CPU NMS.
+      #
+      # 这一步必须在 after_upload，不能在 before，两个原因：
+      #   1. compose 的挂载是 `./hailo-models`，按 **compose 文件所在目录**
+      #      解析，而 compose 要等上传之后才在设备上；
+      #   2. 引擎上传前会先清理远端目录，before 阶段建的目录会被抹掉。
       run: |
         set -e
-        MODELS_DIR="{{remote_path}}/hailo-models"
+        # 不要用 {{remote_path}} / {{device_id}}：引擎 action 的模板上下文里
+        # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
+        # 未命中的 {{}} 被静默替换成空串 → MODELS_DIR=/hailo-models →
+        # `mkdir -p` 打在根目录上、非 root 直接 Permission denied，部署停在
+        # 这一步（2026-09-20 在 Raspberry Pi 5 上复现）。
+        # 改为在已上传的内容里定位 compose 文件，不依赖任何引擎变量；
+        # 找不到就明确报错，而不是往错误的位置写。
+        ROOT="/home/{{username}}/retail-vision-hailo"
+        COMPOSE=$(find "$ROOT" -maxdepth 3 -name 'docker-compose.hailo.yml' -print -quit 2>/dev/null || true)
+        if [ -z "$COMPOSE" ]; then
+          echo "在 $ROOT 下找不到已上传的 docker-compose.hailo.yml" >&2
+          exit 1
+        fi
+        MODELS_DIR="$(dirname "$COMPOSE")/hailo-models"
         URL=https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8n.hef
         SHA=4f250daa6ac16e030cfaaf164e1cbdfe83e5852c81ae6c339c94857dd2b7b8d2
         mkdir -p "$MODELS_DIR"

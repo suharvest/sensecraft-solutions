@@ -43,7 +43,7 @@ solutions/depth_anything_v3/
 │   └── jetson/
 │       └── docker-compose.yml
 ├── gallery/
-│   ├── da3.png
+│   ├── da3.webp
 │   └── engine.png
 └── INTEGRATION_GUIDE.md
 ```

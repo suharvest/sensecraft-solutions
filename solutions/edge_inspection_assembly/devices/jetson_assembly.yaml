@@ -51,6 +51,12 @@ deploy_timeout: 3600
 post_deployment:
   open_browser: false
 
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.onnx
+    remote_path: /home/{{username}}/edge-inspection-assembly/jetson_assembly/models/yolox_tiny_deeppcb6.onnx
+    checksum:
+      sha256: 1149b92e6d627f9ed6e50357c84f150c00d3e567263de32f81b135896a739e5e
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-assembly
   compose_dir: assets/jetson
@@ -152,9 +158,6 @@ remote_overrides:
           # after download and before the build; a mismatch means the file on
           # the CDN is not the model these numbers came from.
           SHA=1149b92e6d627f9ed6e50357c84f150c00d3e567263de32f81b135896a739e5e
-          # TODO(CDN): this object is not uploaded yet. Until it is, place
-          # yolox_tiny_deeppcb6.onnx in $MODELS_DIR by hand (the step skips the
-          # download when the file is already there and its sha matches).
           URL=https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.onnx
 
           mkdir -p "$MODELS_DIR" "$WORKDIR/data"
@@ -165,6 +168,8 @@ remote_overrides:
           fi
 
           if [ ! -s "$ONNX" ]; then
+            # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+            # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             echo "Downloading the ONNX model ..."
             curl -fSL --retry 3 -o "$ONNX.part" "$URL"
             echo "$SHA  $ONNX.part" | sha256sum -c -

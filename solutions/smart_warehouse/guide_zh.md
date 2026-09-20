@@ -8,7 +8,7 @@
 
 ## 步骤 1: 配置 Watcher 设备 {#sensecraft type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 将 Watcher 连接到 SenseCraft 云平台：
 
@@ -32,7 +32,7 @@
 
 ## 步骤 2: 配置仓库系统 {#cloud_warehouse_config type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 仓管系统由 Seeed 云端托管，无需自行部署。打开云端仓库管理系统完成初始配置：
 
@@ -76,7 +76,7 @@
 
 ## 步骤 4: 效果体验 {#demo type=manual verify=true required=true}
 
-![语音入库演示](gallery/xiaozhi-stock-in.png)
+![语音入库演示](gallery/xiaozhi-stock-in.webp)
 
 试试这些语音指令，说完后到 SenseCraft 平台 [sensecraft.seeed.cc](https://sensecraft.seeed.cc/ai/) 查看产生的库存记录。
 
@@ -172,7 +172,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 3: 配置 Watcher 设备 {#watcher_setup type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址（步骤 6 会用到）。
 
@@ -228,7 +228,7 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
-![接线图](gallery/R1100_connected.png)
+![接线图](gallery/R1100_connected.webp)
 
 1. 将 R1100 系列设备接上电源和网线，确保与电脑在同一网络
 2. 输入 IP 地址 `reComputer-R110x.local`（或从路由器查询）
@@ -246,7 +246,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 5: 配置仓库系统 {#warehouse_config type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -286,7 +286,7 @@ SenseCraft 体验版已就绪！
 
 ## 步骤 7: 效果体验 {#voice_demo_test type=manual required=false}
 
-![语音入库演示](gallery/xiaozhi-stock-in.png)
+![语音入库演示](gallery/xiaozhi-stock-in.webp)
 
 试试这些语音指令：
 
@@ -458,7 +458,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 3: 配置 Watcher 设备 {#watcher_config type=manual required=true}
 
-![Agent 配置](gallery/configure_agent.gif)
+![Agent 配置](gallery/configure_agent.webp)
 
 将 Watcher 连接到 SenseCraft 云平台：
 
@@ -492,7 +492,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
-![接线图](gallery/R1100_connected.png)
+![接线图](gallery/R1100_connected.webp)
 
 1. 将设备接上电源和网线，确保与电脑在同一网络
 2. 输入设备 IP 地址（或从路由器查询）
@@ -546,7 +546,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 5: 配置仓库系统 {#warehouse_config_private_cloud type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -587,7 +587,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 7: 效果体验 {#demo_private_cloud type=manual required=false}
 
-![语音入库演示](gallery/xiaozhi-stock-in.png)
+![语音入库演示](gallery/xiaozhi-stock-in.webp)
 
 试试这些语音指令：
 
@@ -766,7 +766,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
-![接线图](gallery/R1100_connected.png)
+![接线图](gallery/R1100_connected.webp)
 
 1. 将 J40 系列设备接上电源和网线，确保与电脑在同一网络
 2. 从路由器查询 J40 系列设备的 IP 地址，输入到地址栏
@@ -802,7 +802,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 4: 配置仓库系统 {#warehouse_config_private_cloud_multi type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -937,7 +937,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 > **部署时填的地址如需改动**：在智控台「模型配置 → 语音合成 → OpenVoiceStream → 修改」
 > 里改红框处的基础 URL。
 >
-> ![模型配置项](gallery/console-ovs-form-annotated.png)
+> ![模型配置项](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **基础 URL**：语音服务地址，格式 `http://<设备IP>:8621`
 > - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
@@ -996,7 +996,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 9: 效果体验 {#demo_private_cloud_multi type=manual required=false}
 
-![语音入库演示](gallery/xiaozhi-stock-in.png)
+![语音入库演示](gallery/xiaozhi-stock-in.webp)
 
 试试这些语音指令：
 
@@ -1128,7 +1128,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
-![接线图](gallery/R1100_connected.png)
+![接线图](gallery/R1100_connected.webp)
 
 1. 将 Industrial R21 系列设备接上电源和网线，确保与电脑在同一网络
 2. 输入 IP 地址 `reComputer-R110x.local`（或从路由器查询）
@@ -1146,7 +1146,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 4: 配置仓库系统 {#warehouse_config_edge_computing type=manual required=true}
 
-![配置演示](gallery/setup_warehous.gif)
+![配置演示](gallery/setup_warehous.webp)
 
 部署完成后，打开仓库管理系统完成初始配置：
 
@@ -1276,7 +1276,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 > **部署时填的地址如需改动**：在智控台「模型配置 → 语音合成 → OpenVoiceStream → 修改」
 > 里改红框处的基础 URL。
 >
-> ![模型配置项](gallery/console-ovs-form-annotated.png)
+> ![模型配置项](gallery/console-ovs-form-annotated.webp)
 >
 > - 🔴 **基础 URL**：语音服务地址，格式 `http://<设备IP>:8621`
 > - 🔵 **音色**：填好基础 URL 后展开即自动从设备拉取，无需手填
@@ -1329,7 +1329,7 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 9: 效果体验 {#demo_edge_computing type=manual required=false}
 
-![语音入库演示](gallery/xiaozhi-stock-in.png)
+![语音入库演示](gallery/xiaozhi-stock-in.webp)
 
 试试这些语音指令：
 

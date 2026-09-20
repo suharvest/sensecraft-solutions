@@ -176,6 +176,11 @@ remote_overrides:
           # training data is unconfirmed, so nothing is published until that is
           # cleared. Until then, copy the HEF onto the device at the path below
           # by hand; the sha256 check still applies either way.
+          # Not migrated to device-level `files:` (neither yolox_tiny_neu6_o1.hef
+          # nor yolox_tiny_neu6.hef exist on the CDN yet — verified 404 on
+          # 2026-09-17); a `files:` entry pointing at a 404 would fail
+          # `solutionctl validate --check-urls`. Revisit once the licence
+          # question clears and these are actually published.
           curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/$HEF.part" \
             "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$HEF"
           echo "$SHA  $MODELS_DIR/$HEF.part" | sha256sum -c -

@@ -4,15 +4,15 @@ name: Smart Warehouse Management
 intro:
   summary: Voice-controlled warehouse - zero learning curve, real-time data, fully local deployment available.
   description_file: description.md
-  cover_image: gallery/xiaozhi-stock-in.png
+  cover_image: gallery/xiaozhi-stock-in.webp
   gallery:
     - type: image
-      src: gallery/xiaozhi-stock-in.png
+      src: gallery/xiaozhi-stock-in.webp
       caption: A Watcher held in the hand right after a spoken stock-in — the screen reports the item was stocked in, 5 units added, 39 in total
       caption_i18n:
         zh: 说完一句入库后握在手里的 Watcher——屏幕回报入库成功，本次 5 件，库存共 39 件
     - type: image
-      src: gallery/console-ovs-form-annotated.png
+      src: gallery/console-ovs-form-annotated.webp
       caption: The console dialog for the speech model — endpoint, API key and call parameters, with the fields that must be filled in marked
       caption_i18n:
         zh: 控制台里配置语音模型的对话框——接口地址、API Key 与调用参数，必填项已标出

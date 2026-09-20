@@ -36,10 +36,10 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/waste-npu-4up-20260908.jpg
+  cover_image: gallery/waste-npu-4up-20260908.webp
   gallery:
     - type: image
-      src: gallery/waste-npu-4up-20260908.jpg
+      src: gallery/waste-npu-4up-20260908.webp
       caption: >-
         Four single items classified on a reCamera Pro's own RV1126B NPU —
         INT8 RKNN model, one item per frame. Each frame carries the material

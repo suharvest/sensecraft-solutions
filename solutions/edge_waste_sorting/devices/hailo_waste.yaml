@@ -67,6 +67,12 @@ post_deployment:
 name_i18n:
   zh: Raspberry Pi 5 + Hailo-8
 
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8_t2.hef
+    remote_path: /home/{{username}}/edge-waste-sorting/hailo_waste/models/efficientnet_lite0_waste8_u8.hef
+    checksum:
+      sha256: c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/hailo
@@ -181,6 +187,8 @@ remote_overrides:
           fi
 
           echo "Downloading efficientnet_lite0_waste8_u8_t2.hef ..."
+          # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+          # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
           curl -fSL --retry 3 -o "$HEF.part" "$URL"
           echo "$SHA  $HEF.part" | sha256sum -c -
           mv -f "$HEF.part" "$HEF"

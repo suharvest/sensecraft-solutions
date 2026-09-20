@@ -4,7 +4,7 @@ name: Local Voice Service
 intro:
   summary: Streaming ASR + TTS on edge hardware — sub-180ms latency on Jetson, fully offline, no cloud dependency. Supports Jetson Orin, RK3576, RK3588, and Raspberry Pi.
   description_file: description.md
-  cover_image: gallery/cover.png
+  cover_image: gallery/cover.webp
   repo_url: https://github.com/suharvest/openvoicestream
   category: acoustic_audio_ai
   solution_type: technical
