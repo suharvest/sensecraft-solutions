@@ -163,40 +163,40 @@ intro:
 
   device_catalog:
     rerouter_cm4:
-      description: CPU-only edge box (BCM2711, 4 cores, 4 GB RAM). Runs Paraformer streaming ASR on the CPU; no NPU, no TTS.
+      description: CPU-only box (BCM2711, 4-core); runs Paraformer ASR, no NPU/TTS
       description_i18n:
-        zh: 纯 CPU 边缘盒子（BCM2711，4 核，4GB 内存）。在 CPU 上运行 Paraformer 流式 ASR；没有 NPU，不做语音合成。
+        zh: CPU 盒子，跑 Paraformer，无 NPU/TTS
     recomputer_rk3576:
-      description: Runs SenseVoice on the RK3576 NPU, leaving the CPU for punctuation, voiceprint embedding and the capture client. On the server stack preset it also carries MySQL, MinIO and the admin console.
+      description: Runs SenseVoice on RK3576 NPU; server preset also hosts MySQL/MinIO
       description_i18n:
-        zh: 在 RK3576 NPU 上运行 SenseVoice，把 CPU 留给标点恢复、声纹向量和采集客户端。在服务端栈套餐里，它还承载 MySQL、MinIO 和管理后台。
+        zh: RK3576 跑 SenseVoice，套餐带存储
     recomputer_rk3588:
-      description: reComputer RK3588 Series edge computer. The retail voice deployment runs the SenseVoice RKNN profile; Whisper is an optional English backend.
-      description_i18n: {zh: reComputer RK3588 系列边缘计算机。零售语音候选配置运行 SenseVoice RKNN profile，也可选 Whisper 英文后端。}
+      description: Runs SenseVoice RKNN profile; Whisper optional English backend
+      description_i18n: {zh: 跑 SenseVoice，可选 Whisper 英文}
     recomputer_j30:
-      description: reComputer J30 Series edge computer. The retail voice deployment runs the Jetson SenseVoice profile; Whisper is an optional English backend.
-      description_i18n: {zh: reComputer J30 系列边缘计算机。零售语音部署运行 Jetson SenseVoice profile，也可选 Whisper 英文后端。}
+      description: Runs Jetson SenseVoice profile; Whisper optional English backend
+      description_i18n: {zh: 跑 Jetson SenseVoice，可选 Whisper}
     recomputer_j40:
-      description: reComputer J40 Series edge computer. The retail voice deployment runs the Jetson SenseVoice profile; Whisper is an optional English backend.
-      description_i18n: {zh: reComputer J40 系列边缘计算机。零售语音部署运行 Jetson SenseVoice profile，也可选 Whisper 英文后端。}
+      description: Runs Jetson SenseVoice profile; Whisper optional English backend
+      description_i18n: {zh: 跑 Jetson SenseVoice，可选 Whisper}
     recomputer_r20_industrial:
-      description: reComputer R2000 Series edge computer with Hailo-8. The retail voice deployment runs SenseVoice on CPU or Whisper on Hailo-8.
-      description_i18n: {zh: reComputer R2000 系列边缘计算机（Hailo-8）。零售语音候选配置可运行 CPU SenseVoice 或 Hailo-8 Whisper。}
+      description: Hailo-8 box; runs SenseVoice on CPU or Whisper on Hailo-8
+      description_i18n: {zh: Hailo-8 整机，SenseVoice/Whisper}
     respeaker_xvf3800:
-      description: 4-mic array with on-DSP AEC, beamforming and noise suppression; enumerates as a USB audio device.
+      description: 4-mic array with DSP AEC, beamforming, noise suppression; USB audio
       description_i18n:
-        zh: 4 麦阵列，DSP 内置回声消除、波束成形和噪声抑制；以 USB 音频设备枚举。
+        zh: 4 麦阵列，DSP 回声消除、波束成形、降噪，USB 音频
     respeaker_clip:
-      description: reSpeaker Clip capture device. It sends recordings through SenseCraft Voice App and the capture gateway to voice-service, which calls OpenVoiceStream before the retail backend stores and displays the record.
-      description_i18n: {zh: reSpeaker Clip 采集设备。通过 SenseCraft Voice App 和采集网关将录音发送给 voice-service，由其调用 OpenVoiceStream，再由零售后台落库和展示。}
+      description: Capture device; sends recordings via gateway to voice-service/OVS
+      description_i18n: {zh: 采集设备，转发录音到 voice-service}
     generic_linux_host:
-      description: Any arm64 Linux host with Docker for the server stack. The bundled ASR image is the RK3576 build — on a host without an RKNN NPU the ASR container has to be swapped for a matching build.
+      description: Any arm64 Docker host; bundled ASR image targets RK3576 NPU
       description_i18n:
-        zh: 任意装有 Docker 的 arm64 Linux 主机，用于承载服务端栈。随包的 ASR 镜像是 RK3576 版本——主机没有 RKNN NPU 时需要换成对应构建。
+        zh: arm64 主机，自带 RK3576 ASR 镜像
     external_mobile_app:
-      description: Your existing mobile app. It lives outside this repository — the server stack preset only publishes the ASR endpoint for it to point at.
+      description: Your existing mobile app; preset only exposes the ASR endpoint
       description_i18n:
-        zh: 你已有的手机 App。它不在本仓库内——服务端栈套餐只对外提供供其指向的 ASR 端点。
+        zh: 已有手机 App，套餐只对外暴露 ASR 端点
 
   presets:
     - id: local_transcribe
@@ -240,7 +240,7 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Clip records the conversation, your phone uploads the audio, and the retail voice platform turns it into text.
+      description: Clip records audio, your phone uploads it, and the platform transcribes it to text.
       description_i18n:
         zh: Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
       device_groups:

@@ -27,8 +27,12 @@ Not for doors where admitting the wrong person causes a safety incident. This is
 | Registered person | **door opened in 24 of 24 runs** |
 | Stranger | **0 false opens in 40 runs** |
 | Phone screen replay, still screen image | **0 false opens in 60 runs** |
+| Adding a person (reCamera 2002 HQ PoE) | **median 331 ms**, tested up to 21 people in the library |
 
-Tested on reCamera Pro; the open time excludes the mechanical action of the relay and lock.
+Face-to-door-open, registered/stranger/replay rows tested on reCamera Pro; the open time
+excludes the mechanical action of the relay and lock. The person-adding row was tested on
+reCamera 2002 HQ PoE (reCamera OS 0.2.4, 2026-09-16); timing did not grow with library size
+over the tested range.
 
 ## Output Interfaces
 
@@ -39,16 +43,17 @@ Tested on reCamera Pro; the open time excludes the mechanical action of the rela
 | MQTT "access/v1/commands/{door_id}" | Remote unlock / hold-open / close commands |
 | HTTP "/api/…" | Console API: people, devices, events, record verification |
 
-## Three presets
+## Four presets
 
-| | A. reCamera Pro at the door | B. Standard reCamera | C. AI host + existing cameras |
-|---|---|---|---|
-| Device | reCamera Pro | reCamera 2002 / 2002w / 2002 HQ PoE | reComputer J20 / J30 / J40 / R1000 |
-| Camera | Built into the device | Built into the device | RTSP cameras already at the door |
-| Does the unlock path go over the network | No | 2002 HQ PoE: no; 2002 / 2002w: over MQTT | Not when the relay is wired to the host |
+| | A. reCamera Pro at the door | B. reCamera PoE | C. Standard reCamera (2002 / 2002w) | D. AI host + existing cameras |
+|---|---|---|---|---|
+| Device | reCamera Pro | reCamera 2002 HQ PoE | reCamera 2002 / 2002w | reComputer J20 / J30 / J40 / R1000 |
+| Camera | Built into the device | Built into the device | Built into the device | RTSP cameras already at the door |
+| Where the relay sits | On the device's own GPIO | On baseboard header D1 (sysfs GPIO 490) | On an R1000 or XIAO ESP32-S3 relay node | On the host's own output, or on an MQTT relay node |
+| Does the unlock path go over the network | No | No | Yes, over MQTT | Not when the relay is wired to the host |
 
-**Choose A or B**: there is no camera at the door yet; pick by the camera model you have.
-**Choose C**: the door already has a camera, or one host needs to manage several doors.
+**Choose A, B or C**: there is no camera at the door yet; pick by the camera model you have.
+**Choose D**: the door already has a camera, or one host needs to manage several doors.
 
 ## Usage Notes
 

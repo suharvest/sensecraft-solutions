@@ -41,10 +41,10 @@
 
 | 套餐 | 速度 | 说明 |
 |---|---|---|
-| reComputer J40（Jetson Orin NX） | 检测 p50 5.18 ms，识别 p50 4.23 ms | 2956 帧收银回放 0 丢帧 |
-| reComputer J30（Jetson Orin Nano） | 检测 p50 5.88 ms，识别 p50 5.06 ms | 6726 帧回放 0 丢帧 |
-| reComputer RK3588 系列 | 检测 p50 56.7 ms（INT8 26.0 ms），识别在 CPU 上 | 货架回放 p50 924 ms |
-| reComputer RK3576 | 检测 p50 51.05 ms，识别 p50 56.38 ms | 检测与识别都在 NPU 上 |
+| reComputer J40（Jetson Orin NX） | 检测 p50 5.18 ms，识别 p50 4.23 ms | 2956 帧收银回放 0 丢帧。并发负载下（两段共享同一块 GPU）延迟升至检测 p50 8.76 ms、识别 p50 5.37 ms |
+| reComputer J30（Jetson Orin Nano） | 检测 p50 5.88 ms / p95 8.89 ms，识别 p50 5.06 ms / p95 7.64 ms | 6726 帧（2.27 轮）回放 0 丢帧，84 个事件全部发布成功；检测框一致率 99.27%（与 CPU golden 相比，图片批次与 Orin NX 不同），识别与 fp32 最大差 0.21 个百分点 |
+| reComputer RK3588 系列 | 检测 p50 56.7 ms（INT8 26.0 ms，比 fp16 快 2.2 倍），识别在 CPU 上 | 货架回放 p50 924 ms |
+| reComputer RK3576 | 检测 p50 51.05 ms / p95 54.18 ms，识别 p50 56.38 ms / p95 62.17 ms | 检测与识别都在 NPU 上；识别与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966；货架回放 top-1 76.28%（CPU fp32 76.99%），同 SKU 一致率 99.29%，嵌入器单裁剪 p50 61.0 ms |
 | reComputer R2000（Hailo-8） | 检测 p50 9.04 ms，识别每件 91.95 ms（CPU） | 五件商品一篮约半秒 |
 
 ## 使用须知

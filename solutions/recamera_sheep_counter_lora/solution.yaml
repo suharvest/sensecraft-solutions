@@ -61,9 +61,9 @@ intro:
 
   device_catalog:
     recamera_2002:
-      description: Edge AI camera running the sheep detector and gate-crossing counter
+      description: Edge AI camera running sheep detection and crossing counter
       description_i18n:
-        zh: 运行绵羊检测和穿越计数的边缘 AI 摄像头
+        zh: 边缘 AI 摄像头，跑绵羊检测与穿越计数
       # Upstream folded the HQ PoE product into the reCamera 2002 family as a
       # model axis value, so the constraint moves here rather than naming a
       # family that no longer exists.
@@ -71,25 +71,25 @@ intro:
         require:
           model: [2002_hq_poe]
     xiao_meshtastic_kit:
-      description: Meshtastic LoRa node (XIAO ESP32-S3 + Wio-SX1262) — receives UART events from reCamera and broadcasts over LoRa
+      description: Meshtastic LoRa node (XIAO ESP32-S3+Wio-SX1262); relays UART events
       description_i18n:
-        zh: Meshtastic LoRa 节点（XIAO ESP32-S3 + Wio-SX1262）——接收来自 reCamera 的 UART 事件并通过 LoRa 广播
+        zh: Meshtastic 节点，转发 UART 事件
       purchase:
         require:
           soc: [esp32s3]
     recomputer_r11:
-      description: Local gateway — receives LoRa messages and forwards counts to Home Assistant via MQTT
+      description: Local gateway; forwards LoRa counts to Home Assistant via MQTT
       description_i18n:
-        zh: 本地网关——接收 LoRa 消息，通过 MQTT 将计数转发到 Home Assistant
+        zh: 网关，经 MQTT 把 LoRa 计数转发到 HA
 
   presets:
     - id: lora_gateway
       name: LoRa Gateway (Full System)
       name_i18n:
         zh: LoRa 网关（完整系统）
-      description: Deploy the sheep counter to reCamera, flash the LoRa transmitter node, then set up the gateway bridge and Home Assistant dashboard.
+      description: "Full system: reCamera counter, LoRa node, gateway bridge, Home Assistant dashboard."
       description_i18n:
-        zh: 将绵羊计数器部署到 reCamera，刷写 LoRa 发射节点固件，然后设置网关桥接服务和 Home Assistant 看板。
+        zh: 完整系统：reCamera 计数、LoRa 节点、网关桥接、HA 看板。
       verified:
         - hardware
       device_groups:

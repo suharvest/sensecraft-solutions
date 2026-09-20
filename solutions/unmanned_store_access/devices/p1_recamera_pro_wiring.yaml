@@ -1,25 +1,11 @@
 version: "1.0"
 id: p1_recamera_pro_wiring
-name: Wire the Relay and Arm the Gate
+name: Wire the Relay
 name_i18n:
-  zh: 接继电器并启用门禁
+  zh: 接继电器
 type: manual
 
 steps:
-  - id: reach_device
-    name: Log in to the camera as root
-    name_i18n:
-      zh: 以 root 登录摄像头
-    description: >-
-      SSH to the camera as root. Check the app is active:
-      `curl -s http://127.0.0.1:8130/api/appMgr/list` shows `f1-access` with
-      `active: true`.
-    description_i18n:
-      zh: >-
-        以 root 身份 SSH 登录摄像头。确认应用已激活：
-        `curl -s http://127.0.0.1:8130/api/appMgr/list` 中 `f1-access` 为 `active: true`。
-    optional: false
-
   - id: wire_relay
     name: Wire the relay
     name_i18n:
@@ -33,46 +19,4 @@ steps:
       zh: >-
         先用万用表确认 GPIO 130 是排针上哪个脚、电平为 3.3 V。接 GPIO → 继电器 SIG，
         3.3 V → VCC，GND → GND。继电器 COM/NO 接门禁控制器开门输入（断电开的电磁锁接 COM/NC）。
-    optional: false
-
-  - id: configure_gate
-    name: Write the access config and signing key
-    name_i18n:
-      zh: 写入门禁配置与签名密钥
-    description: >-
-      Run `mkdir -p /userdata/local/appdata/f1-access` and copy
-      `/userdata/local/apps/f1-access/face-recognition.conf.sample` to
-      `/userdata/local/appdata/f1-access/face-recognition.conf`. Edit
-      `[device] device_id`/`actuator_id`, `[facedb] url`
-      (`http://<server IP>:8080`), `[facedb] key_id = facedb-key-1`,
-      `[mqtt] host`/`port`, `[recognition] match_threshold` (same as the
-      server step), `[pro] gpio = 130`, `[pro] relay_contact` (`NO`/`NC`),
-      `[pro] fail_mode` (`fail_safe`/`fail_secure`) and `[policy] pulse_ms`
-      (500–5000, default 1500). Then write the signing key:
-      `printf '%s' '<signing key>' > /userdata/local/appdata/f1-access/facedb.key && chmod 600 /userdata/local/appdata/f1-access/facedb.key`.
-    description_i18n:
-      zh: >-
-        执行 `mkdir -p /userdata/local/appdata/f1-access`，把
-        `/userdata/local/apps/f1-access/face-recognition.conf.sample` 复制为
-        `/userdata/local/appdata/f1-access/face-recognition.conf`。修改
-        `[device] device_id`/`actuator_id`、`[facedb] url`（`http://<服务器 IP>:8080`）、
-        `[facedb] key_id = facedb-key-1`、`[mqtt] host`/`port`、
-        `[recognition] match_threshold`（与服务器步骤一致）、`[pro] gpio = 130`、
-        `[pro] relay_contact`（`NO`/`NC`）、`[pro] fail_mode`（`fail_safe`/`fail_secure`）、
-        `[policy] pulse_ms`（500–5000，默认 1500）。再写入签名密钥：
-        `printf '%s' '<签名密钥>' > /userdata/local/appdata/f1-access/facedb.key && chmod 600 /userdata/local/appdata/f1-access/facedb.key`。
-    optional: false
-
-  - id: check_gate_armed
-    name: Confirm the gate is armed
-    name_i18n:
-      zh: 确认门禁已启用
-    description: >-
-      Run `cat /run/f1-access/health.json`. `state` must be `armed`. If it is
-      `disarmed`, the reason is in
-      `/userdata/local/apps/f1-access/logs/app.log`.
-    description_i18n:
-      zh: >-
-        执行 `cat /run/f1-access/health.json`，`state` 应为 `armed`。若为 `disarmed`，
-        原因见 `/userdata/local/apps/f1-access/logs/app.log`。
     optional: false

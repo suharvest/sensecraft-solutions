@@ -1,5 +1,5 @@
 version: "1.0"
-id: p5_recamera_std
+id: p6_recamera_poe
 name: Install F1 Access on the Camera
 name_i18n:
   zh: 在摄像头上安装 F1 门禁
@@ -14,10 +14,10 @@ device_class: recamera
 # and the access agent -- as one unit and only returns 0 once both have
 # actually exited (source: unmanned-store-access docs/SPEC.md §14.3).
 #
-# This file is the plain 2002 / 2002w variant only. Those units have no usable
-# header, so [gpio] enabled is fixed to false here and the relay is driven from
-# a separate node over MQTT. The 2002 HQ PoE route is a separate preset
-# (devices/p6_recamera_poe.yaml).
+# This file is the 2002 HQ PoE variant only. Its baseboard carries a 6-pin
+# header with a GPIO line (D1 = sysfs 490) into a relay, so [gpio] enabled is
+# fixed to true here and the unlock never leaves the camera. The plain
+# 2002 / 2002w route is a separate preset (devices/p5_recamera_std.yaml).
 #
 # Source of every path and figure below: unmanned-store-access
 # packaging/recamera-deb/ (the package build), docs/SPEC.md §14.3 (lifecycle
@@ -181,24 +181,23 @@ actions:
           printf 'MQTT_HOST=%s\n' "$BROKER"
           printf 'MQTT_PORT=%s\n' '1883'
         } > /userdata/f1-access/recogniser.conf
-        # A plain 2002 / 2002w has no usable header, so [gpio] stays disabled
-        # or the first start tries to export a pin that is not wired to
-        # anything. Applied here, before the service's first start, not as a
+        # 2002 HQ PoE drives its relay from the on-camera GPIO header
+        # (D1 = sysfs 490), so [gpio] is enabled unconditionally in this
+        # preset. Applied here, before the service's first start, not as a
         # manual post-deploy edit -- auto_start means the console starts the
         # service right after this step.
-        set_conf gpio enabled 'false'
+        set_conf gpio enabled 'true'
       sudo: true
       name_i18n:
         zh: 配置门禁代理
 
 # Face Library URL, Match Threshold and the signing key are carried over from
-# Step 1 (p5_cloud_facedb) by default_template; only the camera address, its
+# Step 1 (p6_cloud_facedb) by default_template; only the camera address, its
 # password and the two per-door identifiers are per-device.
 #
-# actuator_id stays an input on purpose. The relay sits on a separate MQTT node
-# whose id is chosen when that node is flashed, so there is nothing earlier in
-# this preset to derive it from -- and a wrong value here means the event log
-# names a door that is not the one that opened.
+# actuator_id stays an input on purpose. It names the relay channel this camera
+# actually opens -- here the camera's own header -- and a wrong value means the
+# event log names a door that is not the one that opened.
 user_inputs:
   - id: host
     name: Device IP Address
@@ -223,7 +222,7 @@ user_inputs:
   - id: device_id
     name: Device ID
     type: text
-    default: "recamera-2002-01"
+    default: "recamera-poe-01"
     description: Letters, digits, underscore, dot and hyphen only
     required: true
     row: 1
@@ -236,8 +235,8 @@ user_inputs:
   - id: actuator_id
     name: Actuator ID
     type: text
-    default: "gateway-relay-1"
-    description: The relay channel on the gateway node that this camera opens -- must match the Relay ID on that node. Letters, digits, underscore, dot and hyphen only
+    default: "poe-header-relay-1"
+    description: The relay on header D1 that this camera opens -- must match the wiring. Letters, digits, underscore, dot and hyphen only
     required: true
     row: 1
     validation:
@@ -245,14 +244,14 @@ user_inputs:
     name_i18n:
       zh: 执行器 ID
     description_i18n:
-      zh: 这台摄像头要开的那一路网关侧继电器——必须与该节点上的 Relay ID 一致。仅限字母、数字、下划线、点和连字符
+      zh: 这台摄像头接在排针 D1 上的那一路继电器——必须与接线对上。仅限字母、数字、下划线、点和连字符
   - id: facedb_url
     name: Face Library URL
     type: text
     # Filled in from the Step 1 server address and library port. Typing it by
     # hand is the most common way this step ends with a device that installs
     # cleanly and then never activates a library version.
-    default_template: "http://{{p5_cloud_facedb.host}}:{{facedb_port}}"
+    default_template: "http://{{p6_cloud_facedb.host}}:{{facedb_port}}"
     placeholder: "http://192.168.1.50:8080"
     description: The server from Step 1. Leave the filled-in value unless you deployed Step 1 on this computer; then enter this computer's IP.
     required: true

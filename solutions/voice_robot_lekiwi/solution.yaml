@@ -36,29 +36,29 @@ intro:
         zh: 网络连接用于访问 Groq API（Whisper 语音识别、Llama 3 推理、Orpheus 语音合成）
   device_catalog:
     xiao_esp32s3:
-      description: Compact ESP32-S3 board with Wi-Fi, used as robot motor controller
+      description: Compact ESP32-S3 board with Wi-Fi, used as motor controller
       description_i18n:
-        zh: 紧凑型 ESP32-S3 开发板，用作机器人电机控制器
+        zh: 紧凑型 ESP32-S3 开发板，机器人电机控制器
     lekiwi:
-      description: 3-wheeled Kiwi-drive robot chassis with 3× STS3215 smart servos
+      description: 3-wheeled Kiwi-drive chassis with 3x STS3215 smart servos
       description_i18n:
-        zh: 三轮 Kiwi-drive 机器人底盘，含 3 个 STS3215 智能舵机
+        zh: 三轮 Kiwi 底盘，3 个 STS3215 舵机
     respeaker_flex:
-      description: 4-microphone circular array with XMOS XVF3800 for high-quality far-field voice capture
+      description: 4-mic circular array with XMOS XVF3800 for far-field capture
       description_i18n:
-        zh: 4 麦克风圆形阵列，采用 XMOS XVF3800 实现高质量远场语音采集
+        zh: 4 麦圆阵，XMOS XVF3800 远场语音采集
     external_raspberry_pi:
       name: Pi 5 (8GB)
       product_url: https://www.seeedstudio.com/Raspberry-Pi-5-8GB-p-5810.html
-      description: Single-board computer hosting the voice AI brain (wake word + STT + LLM + TTS)
+      description: SBC hosting the voice AI brain; wake word, STT, LLM, TTS
       name_i18n:
         zh: 第五代树莓派（8GB 版）
       description_i18n:
-        zh: 单板计算机，承载语音 AI 大脑（唤醒词、语音识别、LLM、语音合成）
+        zh: 单板机，语音大脑（唤醒/ASR/LLM/TTS）
   presets:
     - id: default
       name: Voice Control Your LeKiwi
-      description: Assemble the robot, set servo IDs, flash the motor controller firmware, and deploy the voice AI brain to your Raspberry Pi.
+      description: Assemble the robot, flash motor firmware, and deploy the voice AI brain to Raspberry Pi.
       device_groups:
         - id: lekiwi_kit
           name: Robot Chassis

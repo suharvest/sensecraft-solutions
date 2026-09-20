@@ -187,12 +187,9 @@ intro:
 
   device_catalog:
     recomputer_r11:
-      description: >-
-        Runs the point model, the KNN prediction service, the control write path with
-        readback and rollback, and the web console
+      description: Runs point model, KNN prediction, control read-back/rollback, web UI
       description_i18n:
-        zh: >-
-          运行点位模型、KNN 预测服务、带读回与回滚的控制写入链路，以及 Web 控制台
+        zh: 跑点位模型、KNN 预测、读回回滚控制链路和 Web 控制台
 
   stats:
     deployed_count: 0
@@ -208,13 +205,9 @@ intro:
       name: Standard Deployment
       name_i18n:
         zh: 标准部署
-      description: >-
-        Deploy the KNN prediction service, register the energy meter, commission control in
-        observe-first mode, and verify readback, rollback and alarms before enabling writes.
+      description: Deploys KNN service in observe-first mode; verified before control writes are enabled.
       description_i18n:
-        zh: >-
-          部署 KNN 预测服务，注册电能表，以"先观察"模式完成控制调试，并在开启写入之前验证
-          读回、回滚和告警。
+        zh: 先以观察模式部署 KNN 预测服务，验证无误后再开启写入控制。
       device_groups:
         - id: edge_device
           name: Edge Device

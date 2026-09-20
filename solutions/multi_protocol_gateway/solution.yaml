@@ -146,7 +146,7 @@ intro:
       description_i18n:
         zh: 将现场协议统一为一套点位模型和 MQTT 接口
     reterminal_dm:
-      description: Unifies field protocols and provides a local touch display for setup and operations
+      description: Unifies field protocols, with a local touch display for setup
       description_i18n:
         zh: 统一现场协议，并通过本机触控屏完成配置与日常操作
 
@@ -155,7 +155,7 @@ intro:
       name: Multi-Protocol Data Hub
       name_i18n:
         zh: 多协议数据中枢
-      description: Deploy one reusable protocol integration layer, then onboard controllers and expose a unified MQTT interface.
+      description: Deploy a reusable protocol layer, onboard controllers, expose a unified MQTT interface.
       description_i18n:
         zh: 部署一套可复用的协议融合层，接入现场控制器，并提供统一 MQTT 读写接口。
       device_groups:

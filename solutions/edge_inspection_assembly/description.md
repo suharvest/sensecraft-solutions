@@ -27,7 +27,11 @@ A camera watches one inspection station and checks every frame for defects, miss
 | Streams per host at 10 fps | **8** |
 | Missing-part check | **6 / 6** matched on the template frame, **6 / 6** flagged after swapping boards |
 | Dimension error vs calibration reference | **0.65%** worst case |
-| Continuous run | **67 hours**, 0 frames dropped |
+| Continuous run | **67 hours**, 0 frames dropped, CPU vs TensorRT box agreement **0.9992** |
+| reComputer R2000 (Hailo-8) throughput | **106.75 FPS** hardware inference, **43.92 FPS** full pipeline |
+| reCamera Pro detection (INT8, 205-image DeepPCB split) | mAP50-95 **0.8000** (fp32 CPU reference **0.8213**), inference **p95 34.5 ms**, precision/recall **0.9299 / 0.9741** at the frozen 0.35 score, **30** missed boxes |
+| reCamera Pro INT8 calibration | **64** calibration images, drawn from the same 205-image validation split |
+| reCamera Pro fp16 build (same model) | mAP50-95 **0.8221**, **p50 110.3 ms** |
 
 Test device: reComputer J30 series (J3011, Orin Nano 8GB); dataset: DeepPCB6 validation set, 205 images.
 

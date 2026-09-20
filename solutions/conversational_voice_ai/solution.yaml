@@ -43,24 +43,24 @@ intro:
 
   device_catalog:
     recomputer_rk3576:
-      description: Runs Qwen3 speech recognition and Matcha voice synthesis on RK3576.
+      description: Runs Qwen3 ASR and Matcha TTS on RK3576
       description_i18n:
-        zh: 在 RK3576 上运行 Qwen3 语音识别和 Matcha 语音合成。
+        zh: RK3576 上运行 Qwen3 语音识别与合成
     recomputer_rk3588:
-      description: Runs the speech stack on RK3588 and can pair with an RK1828 card for a local Qwen3-4B model.
+      description: Runs the speech stack on RK3588; pair with RK1828 for local Qwen3-4B
       description_i18n:
-        zh: 在 RK3588 上运行语音链路，并可配 RK1828 加速卡运行本地 Qwen3-4B。
+        zh: RK3588 语音链路+RK1828 本地 Qwen3-4B
     recomputer_j30:
-      description: Runs Qwen3 speech recognition and Matcha voice synthesis on Jetson Orin Nano; use a cloud LLM for conversation.
+      description: Runs Qwen3 ASR/TTS on Jetson Orin Nano; use cloud LLM for chat
       description_i18n:
-        zh: 在 Jetson Orin Nano 上运行 Qwen3 语音识别和 Matcha 语音合成；对话能力建议接云端。
+        zh: Orin Nano 跑 Qwen3 语音，对话接云端
       purchase:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: Runs the speech stack and an optional local Qwen3.5-4B model together on Orin NX 16GB.
+      description: Runs speech stack plus optional local Qwen3.5-4B on Orin NX 16GB
       description_i18n:
-        zh: 在 Orin NX 16GB 上同时运行语音链路和可选的本地 Qwen3.5-4B。
+        zh: NX 16GB 语音链路+本地 Qwen3.5-4B
       purchase:
         require:
           module: [orin_nx_16]
@@ -70,13 +70,13 @@ intro:
     # is the reComputer Industrial R20 series (Raspberry Pi CM5); nothing has
     # been run on one.
     external_raspberry_pi_5:
-      description: Runs the CPU speech stack on the reComputer Industrial R20 series. English only - this board has no Qwen3-ASR backend, so Chinese is refused rather than served by a model that cannot read it.
+      description: CPU speech stack, English only; no Qwen3-ASR backend for Chinese
       description_i18n:
-        zh: 在 reComputer Industrial R20 系列上运行 CPU 语音链路。仅支持英文——该板没有 Qwen3-ASR 后端，中文直接拒绝，不会交给读不懂中文的模型。
+        zh: CPU 语音链路，仅支持英文——没有中文 ASR 后端
     respeaker_xvf3800:
-      description: USB microphone array with hardware echo cancellation, noise suppression, and beamforming.
+      description: USB mic array with hardware AEC, noise suppression, beamforming
       description_i18n:
-        zh: 支持硬件回声消除、降噪和波束成形的 USB 麦克风阵列。
+        zh: USB 麦克风阵列，硬件回声消除、降噪、波束成形
   presets:
     - id: cloud_llm
       name: Cloud or OpenAI-Compatible LLM
@@ -84,7 +84,7 @@ intro:
       badge: Recommended
       badge_i18n: {zh: 推荐}
       description: Use Qwen API defaults or enter any OpenAI-compatible base URL, key, and model ID.
-      description_i18n: {zh: 默认连接 Qwen API，也可填写任意 OpenAI 兼容接口地址、Key 和模型 ID。}
+      description_i18n: {zh: 默认连接 Qwen API，也可填自定义 OpenAI 兼容接口和模型。}
       device_groups:
         - id: cloud_compute
           name: Compute Device
@@ -111,7 +111,7 @@ intro:
       name: Fully Local Conversation
       name_i18n: {zh: 全本地对话}
       description: Keep audio and text on-device with RK3588 + RK1828 Qwen3-4B or Orin NX 16GB + Qwen3.5-4B.
-      description_i18n: {zh: 使用 RK3588 + RK1828 的 Qwen3-4B，或 Orin NX 16GB 的 Qwen3.5-4B，让音频和文字都留在本地。}
+      description_i18n: {zh: RK3588+RK1828 或 Orin NX 本地跑模型，音频文字不出设备。}
       device_groups:
         - id: local_compute
           name: Local AI Device

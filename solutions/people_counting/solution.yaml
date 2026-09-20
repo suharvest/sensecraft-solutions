@@ -43,9 +43,9 @@ intro:
 
   device_catalog:
     grove_vision_ai:
-      description: Himax WE2 camera module (Cortex-M55 + Ethos-U55 NPU) that runs detection, tracking and counting on device
+      description: Himax WE2 module (Cortex-M55+Ethos-U55); on-device tracking
       description_i18n:
-        zh: Himax WE2 摄像头模组（Cortex-M55 + Ethos-U55 NPU），在设备本地完成检测、跟踪与计数
+        zh: Himax WE2 模组，机载完成检测、跟踪与计数
       purchase:
         require:
           version: [v2]

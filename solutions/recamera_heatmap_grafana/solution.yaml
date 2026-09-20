@@ -47,9 +47,9 @@ intro:
       description_i18n:
         zh: AI 摄像头，自动识别人员位置并打码保护隐私
     recamera_pro:
-      description: Newer all-in-one camera — detection, tracking, dwell states and entry/exit counting on device
+      description: Newer all-in-one camera — detection, tracking, entry/exit counting
       description_i18n:
-        zh: 更新一代的一体机——检测、跟踪、驻足状态和进出店计数全部在设备本地完成
+        zh: 一体机：检测、跟踪、驻店与进出计数全在本地
     recomputer_r11:
       description: Edge computing device for running Grafana dashboard
       description_i18n:
@@ -66,7 +66,7 @@ intro:
       name: IP Camera
       name_i18n:
         zh: IP 摄像头
-      description: Any RTSP camera you already own, supplying the video the detector watches
+      description: Any RTSP camera you own, supplying video to the detector
       description_i18n:
         zh: 你已有的任意 RTSP 摄像头，为检测器提供视频
     recomputer_r20_industrial:
@@ -129,9 +129,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Newer hardware, same one-camera setup. The analytics app ships in the device's App Center; this preset points it at your dashboard.
+      description: Newer hardware, one-camera setup. App ships via the device App Center, wired to dashboard.
       description_i18n:
-        zh: 更新一代硬件，同样一台摄像头搞定。分析应用随设备应用中心分发，本套餐负责把它接到你的看板。
+        zh: 更新一代硬件，同样一台摄像头。应用随设备应用中心分发，本套餐接到你的看板。
       device_groups:
         - id: camera
           name: Camera
@@ -196,7 +196,7 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Keep your current IP cameras — a Hailo-8 accelerator runs the detector with a native C++ hot path.
+      description: Keep your current IP cameras — a Hailo-8 accelerator runs the detector natively in C++.
       description_i18n:
         zh: 保留现有 IP 摄像头，由 Hailo-8 加速器跑检测，热路径为原生 C++。
       # Verified against a live RTSP source: 440 frames in 30.7 s = 14.3 fps

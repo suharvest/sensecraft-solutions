@@ -64,7 +64,7 @@ intro:
       verify_exempt: true
       name: reTerminal D1001 Voice Agent
       name_i18n: {zh: reTerminal D1001 语音智能体}
-      description: Xiaozhi voice agent on the 8" touch HMI with on-screen Wi-Fi setup, camera face wake and local push panel.
+      description: Xiaozhi voice agent on the 8" touch HMI — Wi-Fi setup, face wake, local push panel.
       description_i18n: {zh: 8 寸触摸屏上的小智语音智能体：屏上配网、人脸唤醒、局域网推送面板。}
       device_groups:
         - id: d1001_device
