@@ -75,12 +75,18 @@ metrics:
   - name: V2V stop_to_final (ASR latency after audio ends)
     unit: ms
     direction: lower_is_better
-    value: "n=10 (2 utterances x 5 runs), p50=1771ms, mean=1732ms, min=1284ms, max=2049ms"
-    observation: measured via bench/perf/measure_v2v_unified.py against /v2v/stream, 1 warmup run discarded.
+    value: "n=10 (2 utterances x 5 runs), p50=1771ms, mean=1732ms, min=1284ms, max=2049ms（原值保留，存疑）"
+    observation: >-
+      measured via bench/perf/measure_v2v_unified.py against /v2v/stream, 1
+      warmup run discarded. DISPUTED 2026-09-20: 同一指标在空闲设备、镜像
+      rk-20260913.3 上重测得 5111/5161/5128/5113ms（约 5.1s），而同一轮的
+      stop_to_tts_audio 只有约 1.6s —— 文字 final 晚于合成语音，顺序反常，说明
+      两个指标在 RK 上不是同一条通路。成因未定位。原值 1771ms 与重测值 5.1s
+      相差三倍，两个数都不可用于对外；见下方 2026-09-20 的条目。
   - name: V2V stop_to_tts_audio (first TTS PCM frame after audio ends, echo mode)
     unit: ms
     direction: lower_is_better
-    value: "n=5, p50=3782ms, mean=3640ms, min=3061ms, max=3892ms"
+    value: "n=5, p50=3782ms, mean=3640ms, min=3061ms, max=3892ms（已被 2026-09-20 重测取代）"
     observation: >-
       No LLM in the loop: the harness echoes the ASR-final text straight into
       TTS (server has no api_key plumbing for a real dashscope call in
@@ -95,6 +101,12 @@ metrics:
       complete, at the cost of some NPU contention from the second
       utterance's concurrently-arriving audio — a genuine caveat, not
       corrected for.
+    superseded_by: >-
+      2026-09-20 重测（见下方同名 2026-09-20 条目）：同一指标稳定在约 1.6s。
+      原 3782ms 很可能是超时状态下的统计产物 —— RK 上 --multi 2 的第二句稳定
+      timeout（TTS 约 450ms/句，第一句还没合成完 socket 已被服务端关闭），
+      脚本 summary 表因此全为 "no samples"，落到这里的聚合值缺少完整轮次支撑。
+      详见 openvoicestream docs/known-issues/rk3576-v2v-multi-utterance-timeout.md。
     caveat: 完整回复（末帧/tts_done 时刻）未采集：现有 measure_v2v_unified.py 只记录首帧 PCM 到达时间，不记录 tts_done。若需要完整回复时长，可用 TTS RTF（0.204）x 回复音频时长做估算，但那是推算不是实测，故此处未测n填写。
 
   - name: ASR CER — offline /asr (model capability, no VAD endpoint)
@@ -161,6 +173,38 @@ metrics:
       --multi 2 required to keep the session open past the single-session
       limiter). Lower than 2026-09-06 (p50=3782ms) — same caveat about
       session-window conditions as the TTS RTF re-verification above.
+
+  - name: V2V stop_to_tts_audio (first TTS PCM frame after audio ends, echo mode), re-measured 2026-09-20
+    unit: ms
+    direction: lower_is_better
+    value: "n=4, 1575/1624/1596/1580ms（约 1.6s）；final_to_tts_audio 约 450ms"
+    observation: >-
+      在 cat-remote 上重测，设备空闲（load 0.25，只有 conversational-voice-speech
+      一个容器），镜像 sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260913.3
+      （本文件上方 conditions 记录的是 rk-20260903.10，相差十天）。脚本
+      bench/perf/measure_v2v_unified.py（md5 9a3ff631817fb2dc7300d7895db2bed4），
+      参数 --tts --multi 2 --runs 5 --warmup 1，端口 8621，音频
+      corpus/short/zh_short_01.wav（sha256 e7c9cfc1a6b9d06466c959623fd80e7c19921038f4e6c85af432b1497306cea9，
+      与 Orin NX 上那份逐字节相同）。取值口径：只有每轮第一句产出了完整样本，
+      第二句全部 error="timeout"，脚本 summary 表全为 "no samples"，故这里记的是
+      四轮第一句的原始值，不是脚本聚合值。回声模式，链路中无对话模型。
+      与 2026-09-06 的 p50=3782ms、2026-09-08 的 p50=3017ms 相差一倍以上；
+      3782ms 不可能成立的逻辑理由是：同方案含对话模型的实测在 800ms 以内，
+      不含模型的值不可能大于含模型的值。
+    caveat: >-
+      n=4，单次重测，未独立复现。第二句恒 timeout 这一现象本身是产品行为问题
+      （服务端在第一个 asr_final 后即关闭会话），记录在 openvoicestream
+      docs/known-issues/rk3576-v2v-multi-utterance-timeout.md。
+  - name: V2V stop_to_final (ASR latency after audio ends), re-measured 2026-09-20 — 存疑，不可对外
+    unit: ms
+    direction: lower_is_better
+    value: "n=4, 5111/5161/5128/5113ms（约 5.1s）"
+    observation: >-
+      同一次运行、同一批轮次里测得，条件同上条。该值大于同轮的
+      stop_to_tts_audio（约 1.6s）—— 文字 final 晚于合成语音出现，顺序反常，
+      说明这两个指标在 RK 上不是同一条通路。成因未定位，此处只记录观测，不做推测。
+      与 2026-09-06 的 p50=1771ms、2026-09-08 的 p50=1589ms 也不一致。
+      结论：stop_to_final 在 RK3576 上目前没有可对外引用的值。
 
 resources_snapshot:
   docker_stats: "CPU 112.83%, MEM 2.76GiB/7.324GiB (37.69%), container conversational-voice-speech, snapshot taken during zh bench window"
