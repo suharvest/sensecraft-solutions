@@ -15,6 +15,7 @@ Usage:
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -187,7 +188,44 @@ def discover_solutions(solutions_dir: Path) -> list[Path]:
     return results
 
 
-OSS_PREFIX = "oss://sensecraft-statics/solution-app/solutions"
+OSS_BUCKET = "sensecraft-statics"
+OSS_KEY_PREFIX = "solution-app/solutions"
+OSS_PREFIX = f"oss://{OSS_BUCKET}/{OSS_KEY_PREFIX}"
+PUBLISH_LOCK_KEY = f"{OSS_KEY_PREFIX}/.publish.lock"
+
+
+def acquire_publish_lock(note: str) -> None:
+    """Take the publish lock, or exit.
+
+    Every publish reads the published manifest, rewrites it and uploads it, so
+    two runs that overlap lose an update -- and a partial run that loses to a
+    full one leaves new packages under the hashes it wrote back. The workflow's
+    concurrency group only covers runs of that workflow; this covers a person
+    running the script by hand as well. ``--forbid-overwrite`` makes the put an
+    atomic create-if-absent (OSS answers 409 FileAlreadyExists), which is what
+    turns an object into a lock.
+    """
+    put = subprocess.run(
+        ["ossutil", "api", "put-object", "--bucket", OSS_BUCKET, "--key", PUBLISH_LOCK_KEY,
+         "--body", note, "--forbid-overwrite", "true"],
+        capture_output=True, text=True,
+    )
+    if put.returncode == 0:
+        return
+    holder = subprocess.run(["ossutil", "cat", f"oss://{OSS_BUCKET}/{PUBLISH_LOCK_KEY}"],
+                            capture_output=True, text=True).stdout.strip()
+    print(
+        "Error: another publish holds the lock"
+        + (f" ({holder})" if holder else f": {(put.stderr or put.stdout).strip()[:300]}")
+        + f".\nNothing was written. If that run is dead, remove oss://{OSS_BUCKET}/{PUBLISH_LOCK_KEY} and retry.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
+def release_publish_lock() -> None:
+    subprocess.run(["ossutil", "rm", f"oss://{OSS_BUCKET}/{PUBLISH_LOCK_KEY}", "-f"],
+                   capture_output=True, text=True)
 
 
 def fetch_live_manifest(base_url: str, from_origin: bool = False) -> dict:
@@ -312,11 +350,26 @@ def main() -> None:
     )
     args = parser.parse_args()
     only: list[str] = [sid.strip() for sid in (args.only or "").split(",") if sid.strip()]
-    if (args.only or "").strip() and not only:
-        # "," or " , " names nothing. Falling through would publish everything,
-        # the opposite of what someone reaching for --only wants.
+    if args.only and not only:
+        # "," or "  " names nothing. Falling through would publish everything,
+        # the opposite of what someone reaching for --only wants. Only the empty
+        # string -- what the workflow passes for a full run -- means "all".
         print(f"Error: --only {args.only!r} names no solution", file=sys.stderr)
         sys.exit(1)
+
+    if args.upload and not args.no_upload:
+        acquire_publish_lock(
+            f"{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')} "
+            f"only={','.join(only) or 'ALL'} run={os.environ.get('GITHUB_RUN_ID', 'manual')}")
+        try:
+            _generate(args, only)
+        finally:
+            release_publish_lock()
+    else:
+        _generate(args, only)
+
+
+def _generate(args: argparse.Namespace, only: list[str]) -> None:
 
     # Resolve solutions directory
     if args.solutions_dir is not None:

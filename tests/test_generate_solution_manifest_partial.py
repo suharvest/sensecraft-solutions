@@ -91,6 +91,7 @@ def _run(monkeypatch, tmp_path, argv, live=None, fail_fetch=False):
 
     def fetch(base_url, from_origin=False):
         fetches.append(from_origin)
+        _run.events.append("read-baseline")
         if fail_fetch:
             raise OSError("network down")
         if callable(live):
@@ -98,6 +99,10 @@ def _run(monkeypatch, tmp_path, argv, live=None, fail_fetch=False):
         return live
 
     uploads: list[str] = []
+    events: list[str] = []
+    monkeypatch.setattr(gsm, "acquire_publish_lock", lambda note: events.append(f"lock:{note.split()[1]}"))
+    monkeypatch.setattr(gsm, "release_publish_lock", lambda: events.append("unlock"))
+    _run.events = events
     monkeypatch.setattr(gsm, "fetch_live_manifest", fetch)
     monkeypatch.setattr(gsm, "upload_to_oss", lambda local, remote: uploads.append(remote.rsplit("/", 1)[-1]))
     monkeypatch.setattr(gsm, "_dirty_paths", lambda _dir: [])
@@ -173,7 +178,7 @@ def test_publish_aborts_when_the_baseline_moved_underneath_it(monkeypatch, tmp_p
     assert json.loads((sol / "bundled_hashes.json").read_text())["alpha"] == "sha256:old-a"
 
 
-@pytest.mark.parametrize("value", [",", " , ", ",,"])
+@pytest.mark.parametrize("value", [",", " , ", ",,", " ", "\t"])
 def test_only_that_names_nothing_is_an_error_not_a_full_publish(monkeypatch, tmp_path, value):
     _sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", value], live=LIVE)
     with pytest.raises(SystemExit) as exc:
@@ -197,3 +202,54 @@ def test_partial_publish_refuses_to_write_into_the_solutions_dir(monkeypatch, tm
         gsm.main()
     assert exc.value.code == 1 and uploads == []
     assert json.loads((sol / "bundled_hashes.json").read_text()) == {"alpha": "sha256:old-a", "beta": "sha256:old-b"}
+
+
+def test_publish_takes_the_lock_before_reading_and_releases_it_after(monkeypatch, tmp_path):
+    live = {"version": 1, "generated_at": "t0", "base_url": "u", "deprecated": [],
+            "solutions": {"alpha": _entry("live-a"), "beta": _entry("live-b")}}
+    _run(monkeypatch, tmp_path, ["--only", "alpha"], live=live)
+    gsm.main()
+    assert _run.events == ["lock:only=alpha", "read-baseline", "read-baseline", "unlock"]
+
+
+def test_a_full_publish_is_locked_too(monkeypatch, tmp_path):
+    _run(monkeypatch, tmp_path, [])
+    gsm.main()
+    assert _run.events == ["lock:only=ALL", "unlock"]
+
+
+def test_the_lock_is_released_when_the_run_aborts(monkeypatch, tmp_path):
+    _run(monkeypatch, tmp_path, ["--only", "alpha"], fail_fetch=True)
+    with pytest.raises(SystemExit):
+        gsm.main()
+    assert _run.events[0] == "lock:only=alpha" and _run.events[-1] == "unlock"
+
+
+def test_a_dry_run_takes_no_lock(monkeypatch, tmp_path):
+    live = {"version": 1, "generated_at": "t0", "base_url": "u", "deprecated": [],
+            "solutions": {"alpha": _entry("live-a")}}
+    _run(monkeypatch, tmp_path, ["--only", "alpha", "--no-upload"], live=live)
+    gsm.main()
+    assert [e for e in _run.events if "lock" in e] == []
+
+
+def test_a_held_lock_stops_the_run_before_anything_is_read_or_written(monkeypatch, tmp_path):
+    sol, out, uploads = _run(monkeypatch, tmp_path, ["--only", "alpha"], live=LIVE)
+
+    class _Done:
+        def __init__(self, rc, out=""): self.returncode, self.stdout, self.stderr = rc, out, "FileAlreadyExists"
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        return _Done(2) if cmd[:3] == ["ossutil", "api", "put-object"] else _Done(0, "2026-01-01T00:00:00Z only=ALL run=1")
+    monkeypatch.undo()                       # real acquire_publish_lock, fake ossutil
+    monkeypatch.setattr(gsm.subprocess, "run", fake_run)
+    monkeypatch.setattr(sys, "argv", ["x", "--solutions-dir", str(sol), "--output-dir", str(out), "--only", "alpha"])
+    with pytest.raises(SystemExit) as exc:
+        gsm.main()
+    assert exc.value.code == 1
+    assert calls[0][:3] == ["ossutil", "api", "put-object"] and "--forbid-overwrite" in calls[0]
+    assert not any(c[:2] == ["ossutil", "cp"] for c in calls)      # no baseline read, no upload
+    assert not any(c[:2] == ["ossutil", "rm"] for c in calls)      # never releases a lock it does not hold
+    assert not out.exists() or not any(out.iterdir())
