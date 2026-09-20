@@ -81,7 +81,19 @@ actions:
         # 引擎把上传内容放在 remote_path/<device_id>/，compose 的相对挂载
         # （./go2rtc 等）也按 compose 所在目录解析。写 remote_path 根下会
         # 落到一个没人读的位置，而 fail_fast: false 会把这个失败一并吞掉。
-        CONF="{{remote_path}}/{{device_id}}/go2rtc/go2rtc.yaml"
+        # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
+        # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
+        # 未命中的 {} 被静默替换成空串，路径会打到根目录上（非 root 直接
+        # Permission denied）。改为在已上传的内容里定位 compose 文件，不依赖
+        # 任何引擎变量；找不到就明确报错，而不是往错误的位置写。
+        ROOT="/home/{{username}}/recamera-heatmap"
+        COMPOSE=$(find "$ROOT" -maxdepth 3 -name 'docker-compose.yml' -print -quit 2>/dev/null || true)
+        if [ -z "$COMPOSE" ]; then
+          echo "在 $ROOT 下找不到已上传的 docker-compose.yml" >&2
+          exit 1
+        fi
+        COMPOSE_DIR="$(dirname "$COMPOSE")"
+        CONF="$COMPOSE_DIR/go2rtc/go2rtc.yaml"
         API=http://127.0.0.1:1984
 
         # go2rtc has to be up before it can be asked anything.

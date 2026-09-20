@@ -93,10 +93,70 @@ pre_checks:
 
 actions:
   before:
-    - name: Write the detector config
+    - name: Build the TensorRT engine for this board
+      # A TensorRT plan is tied to the GPU architecture and to the TensorRT
+      # build that produced it, so it cannot ship in the image — it is built
+      # here, once, into a named volume that later deployments reuse. Takes
+      # 2-5 minutes the first time and is skipped afterwards.
       run: |
         set -e
-        CONFIG_DIR="{{remote_path}}/jetson-config"
+        # The runtime image talks to TensorRT directly and carries no torch or
+        # ultralytics — that is why it is 233 MB instead of 2.4 GB. Exporting a
+        # .engine still needs ultralytics, so the export runs once in the fat
+        # upstream image, pinned by digest, and that image is never part of the
+        # running deployment.
+        IMAGE=sensecraft-missionpack.seeed.cn/solution/retail-vision-jetson:0.2.0
+        BUILDER=crpi-z7h4oz0xl00q2129.cn-hangzhou.personal.cr.aliyuncs.com/lorraine-jetson/yolo11-jetson@sha256:bd17225df0f5bf10d89f945b7730c45d3e7f408f8cc835ee270e775906cff96e
+        VOLUME=retail-vision-jetson-models
+
+        if docker run --rm -v "$VOLUME":/models --entrypoint sh "$IMAGE" \
+             -c 'test -s /models/yolo11n.engine' 2>/dev/null; then
+          echo "TensorRT engine already built, reusing it"
+          exit 0
+        fi
+
+        echo "Building the TensorRT engine (2-5 minutes, once per board)..."
+        docker run --rm --runtime nvidia \
+          -e NVIDIA_VISIBLE_DEVICES=all \
+          -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+          -v /usr/local/cuda:/usr/local/cuda:ro \
+          -v /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu \
+          -v /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra \
+          -v /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro \
+          -v "$VOLUME":/models \
+          --entrypoint python3 "$BUILDER" -c '
+        import shutil
+        from ultralytics import YOLO
+        out = YOLO("/app/yolo11n.pt").export(format="engine", half=True, imgsz=640)
+        shutil.move(str(out), "/models/yolo11n.engine")
+        print("engine written to /models/yolo11n.engine")
+        '
+        docker run --rm -v "$VOLUME":/models --entrypoint sh "$IMAGE" \
+          -c 'ls -l /models/yolo11n.engine'
+      name_i18n:
+        zh: 为这块板卡编译 TensorRT engine
+
+  after_upload:
+    - name: Write the detector config
+      #
+      # 这一步必须在 after_upload，不能在 before：compose 的相对挂载按
+      # **compose 文件所在目录** 解析，而 compose 要等上传之后才在设备上；
+      # 且引擎上传前会先清理远端目录，before 阶段建的目录会被抹掉。
+      run: |
+        set -e
+        # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
+        # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
+        # 未命中的 {} 被静默替换成空串，路径会打到根目录上（非 root 直接
+        # Permission denied）。改为在已上传的内容里定位 compose 文件，不依赖
+        # 任何引擎变量；找不到就明确报错，而不是往错误的位置写。
+        ROOT="/home/{{username}}/retail-vision-jetson"
+        COMPOSE=$(find "$ROOT" -maxdepth 3 -name 'docker-compose.jetson.yml' -print -quit 2>/dev/null || true)
+        if [ -z "$COMPOSE" ]; then
+          echo "在 $ROOT 下找不到已上传的 docker-compose.jetson.yml" >&2
+          exit 1
+        fi
+        COMPOSE_DIR="$(dirname "$COMPOSE")"
+        CONFIG_DIR="$COMPOSE_DIR/jetson-config"
         mkdir -p "$CONFIG_DIR"
         cat > "$CONFIG_DIR/config.json" <<EOF
         {
@@ -147,49 +207,6 @@ actions:
           ]
         }
         EOF
-
-    - name: Build the TensorRT engine for this board
-      # A TensorRT plan is tied to the GPU architecture and to the TensorRT
-      # build that produced it, so it cannot ship in the image — it is built
-      # here, once, into a named volume that later deployments reuse. Takes
-      # 2-5 minutes the first time and is skipped afterwards.
-      run: |
-        set -e
-        # The runtime image talks to TensorRT directly and carries no torch or
-        # ultralytics — that is why it is 233 MB instead of 2.4 GB. Exporting a
-        # .engine still needs ultralytics, so the export runs once in the fat
-        # upstream image, pinned by digest, and that image is never part of the
-        # running deployment.
-        IMAGE=sensecraft-missionpack.seeed.cn/solution/retail-vision-jetson:0.2.0
-        BUILDER=crpi-z7h4oz0xl00q2129.cn-hangzhou.personal.cr.aliyuncs.com/lorraine-jetson/yolo11-jetson@sha256:bd17225df0f5bf10d89f945b7730c45d3e7f408f8cc835ee270e775906cff96e
-        VOLUME=retail-vision-jetson-models
-
-        if docker run --rm -v "$VOLUME":/models --entrypoint sh "$IMAGE" \
-             -c 'test -s /models/yolo11n.engine' 2>/dev/null; then
-          echo "TensorRT engine already built, reusing it"
-          exit 0
-        fi
-
-        echo "Building the TensorRT engine (2-5 minutes, once per board)..."
-        docker run --rm --runtime nvidia \
-          -e NVIDIA_VISIBLE_DEVICES=all \
-          -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-          -v /usr/local/cuda:/usr/local/cuda:ro \
-          -v /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu \
-          -v /usr/lib/aarch64-linux-gnu/tegra:/usr/lib/aarch64-linux-gnu/tegra \
-          -v /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro \
-          -v "$VOLUME":/models \
-          --entrypoint python3 "$BUILDER" -c '
-        import shutil
-        from ultralytics import YOLO
-        out = YOLO("/app/yolo11n.pt").export(format="engine", half=True, imgsz=640)
-        shutil.move(str(out), "/models/yolo11n.engine")
-        print("engine written to /models/yolo11n.engine")
-        '
-        docker run --rm -v "$VOLUME":/models --entrypoint sh "$IMAGE" \
-          -c 'ls -l /models/yolo11n.engine'
-      name_i18n:
-        zh: 为这块板卡编译 TensorRT engine
 
 post_deployment:
   open_browser: false
