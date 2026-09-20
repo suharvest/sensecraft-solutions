@@ -45,7 +45,7 @@ intro:
     recomputer_j40:
       description: NVIDIA Jetson edge AI computer for real-time depth estimation
       description_i18n:
-        zh: 用于实时深度估计的 NVIDIA Jetson 边缘 AI 计算机
+        zh: NVIDIA Jetson 边缘计算机，跑实时深度估计
   presets:
     - id: jetson_depth
       name: Jetson One-Click Depth Demo

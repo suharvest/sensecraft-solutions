@@ -1,51 +1,25 @@
 version: "1.0"
 id: p1_recamera_pro
-name: Activate F1 Door Access from the App Center
+name: Activate and Configure F1 Door Access
 name_i18n:
-  zh: 从应用市场激活 F1 门禁
+  zh: 激活并配置 F1 门禁
 type: recamera_pro_app
 
-# f1-access is a published reCamera Pro App Center package (catalog
-# https://sensecraft-statics.seeed.cc/solution-app/recamera_pro/catalog.json,
-# app id "f1-access", confirmed present 2026-09-07). It is a single kit app
-# that combines the recognition cascade of the face-recognition app (SCRFD-500M
-# detection, ArcFace embedding, gallery match, fused liveness) with the door
-# logic that used to run as a separate sidecar daemon: it drives one sysfs GPIO
-# dry contact and publishes access/v1/events. Because it ships through the App
-# Center rather than with this solution, this step only configures an app that
-# is already installed and makes it the active one — appmgr on a reCamera Pro
-# is a single-active supervisor, so activating f1-access stops whatever app was
-# running before (retail-vision, fall-detection, the plain face-recognition
-# app, ...). If the device does not have f1-access installed, install it from
-# the App Center first; this step does not upload or install packages, because
-# installation requires a release-signed archive from a private packaging
-# chain (see spec/device.schema.json RecameraProAppConfig).
+# f1-access >= 0.1.5 (unmanned-store-access branch feat/f1-access-config-push)
+# accepts the access-side settings as appmgr config items and, on start, writes
+# appdata/f1-access/face-recognition.conf and facedb.key (0600) from them, then
+# clears facedb_secret from config.json so GET /api/appMgr/config no longer
+# returns it. Verified on a reCamera Pro 2026-09-15 (192.168.10.33): conf and
+# key written, secret cleared, gate armed on the pushed gpio, re-POST is a noop.
+# Older f1-access versions reject these keys as unknown parameters (HTTP 400).
 #
-# Fields, source solutions/unmanned_store_access-adjacent upstream
-# platforms/recamera-pro/app/README.md §6 (unmanned-store-access repo):
-#   - liveness_enabled: true is mandatory, not a preference. The app manifest
-#     ships liveness_enabled=false by default (the plain face-recognition app
-#     can skip liveness); f1-access's own consistency gate refuses to arm the
-#     door when it is false, because a door that reports a liveness verdict it
-#     never computed is worse than a door that refuses to start.
-#   - min_face_px: 40 matches the recognition app's own default; left explicit
-#     here rather than silently inherited, so a future manifest change does not
-#     silently loosen it.
-#   - access.f1_conf points at the ini file (facedb URL/key, GPIO pin, wiring
-#     posture, policy thresholds) that actually arms the gate. Its value here
-#     is the manifest's own default path; the file's *contents* are NOT
-#     delivered by this step. It carries the facedb HMAC key and the measured
-#     wiring posture (relay_contact / fail_mode / gpio) — those are per-device
-#     credentials and per-installation electrical facts, prepared on the
-#     device itself in the next step (devices/p1_recamera_pro_wiring.yaml). An
-#     app freshly activated with no such file present stays "disarmed":
-#     recognition keeps running, but no pin is exported and no access event is
-#     published — see that step's gate check.
-#
-# activation_timeout is raised from the deployer's 60 s default to 180 s
-# because the manifest lists six .rknn models (detection, embedding, two
-# liveness heads, depth liveness, plus the gallery matcher's own tables) that
-# all have to load before appmgr reports the app active.
+# The deployer substitutes {{placeholders}} inside `config` and coerces
+# numeric-looking strings to numbers; appmgr type-checks the result.
+#   - active_high and pulse_ms are literals: a placeholder would arrive as the
+#     string "true", which appmgr's boolean check rejects.
+#   - device_id must not be all digits (it would be coerced to int).
+#   - cmd_port is not set: the package default (8126) avoids appmgr's result
+#     hub on 8125.
 recamera_pro_app:
   app_id: f1-access
   activation_timeout: 180
@@ -54,11 +28,20 @@ recamera_pro_app:
     liveness_enabled: true
     min_face_px: 40
     f1_conf: /userdata/local/appdata/f1-access/face-recognition.conf
+    device_id: "{{device_id}}"
+    facedb_url: "http://{{facedb_host}}:{{facedb_port}}"
+    facedb_key_id: facedb-key-1
+    facedb_secret: "{{facedb_signing_key}}"
+    mqtt_host: "{{facedb_host}}"
+    match_threshold: "{{match_threshold}}"
+    gpio: "{{gpio}}"
+    active_high: true
+    pulse_ms: 1500
+    relay_contact: "{{relay_contact}}"
+    fail_mode: "{{fail_mode}}"
 
-# The App renders its connection panel from this block, and the panel — not
-# user_inputs — supplies host/username/password. Without it the form showed a
-# default user of "recomputer" on port 22, neither of which applies here: the
-# credentials are the web console's and the transport is HTTPS, not SSH.
+# The App renders its connection panel from this block; the credentials are the
+# camera web console's and the transport is HTTPS.
 ssh:
   port: 443
   default_user: admin
@@ -66,3 +49,94 @@ ssh:
 
 post_deployment:
   open_browser: false
+
+user_inputs:
+  - id: device_id
+    name: Door Name
+    type: text
+    default: "door-1"
+    required: true
+    validation:
+      pattern: "^[A-Za-z][A-Za-z0-9_-]*$"
+    description: Shown in the console's device list. Letters, digits, - and _, starting with a letter.
+    name_i18n:
+      zh: 门名称
+    description_i18n:
+      zh: 显示在管理界面的设备列表中。字母开头，可用字母、数字、- 和 _。
+  - id: facedb_host
+    name: Server IP
+    type: text
+    required: true
+    default_template: "{{p1_cloud_facedb.host}}"
+    placeholder: "192.168.1.50"
+    description: The server from Step 1. Leave the filled-in value unless you deployed Step 1 on this computer; then enter this computer's IP.
+    name_i18n:
+      zh: 服务器 IP
+    description_i18n:
+      zh: 步骤 1 的服务器。步骤 1 部署在这台电脑上时，填这台电脑的 IP。
+  - id: facedb_port
+    name: Face Library Port
+    type: text
+    default: "8080"
+    default_template: "{{facedb_port}}"
+    required: true
+    name_i18n:
+      zh: 人脸库端口
+  - id: match_threshold
+    name: Match Threshold
+    type: text
+    default: "0.40"
+    default_template: "{{match_threshold}}"
+    required: true
+    name_i18n:
+      zh: 匹配阈值
+  - id: facedb_signing_key
+    name: Library Signing Key
+    type: password
+    required: true
+    default_template: "{{facedb_signing_key}}"
+    generate: hex32
+    name_i18n:
+      zh: 人脸库签名密钥
+  - id: gpio
+    name: GPIO Number
+    type: text
+    default: "130"
+    required: true
+    validation:
+      pattern: "^[0-9]+$"
+    description: The GPIO the relay SIG wire is connected to in Step 3.
+    name_i18n:
+      zh: GPIO 编号
+    description_i18n:
+      zh: 步骤 3 中继电器 SIG 线接的 GPIO。
+  - id: relay_contact
+    name: Relay Contact
+    type: select
+    required: true
+    options:
+      - value: "NC"
+        label: COM + NC — fail-safe magnetic lock (unlocks on power loss)
+        label_i18n:
+          zh: COM + NC——断电即开的电磁锁
+      - value: "NO"
+        label: COM + NO — fail-secure strike (stays locked on power loss)
+        label_i18n:
+          zh: COM + NO——断电即锁的电插锁
+    name_i18n:
+      zh: 继电器触点
+  - id: fail_mode
+    name: Door State on Power Loss
+    type: select
+    required: true
+    options:
+      - value: "fail_safe"
+        label: Unlocked (fail-safe)
+        label_i18n:
+          zh: 打开（fail-safe）
+      - value: "fail_secure"
+        label: Locked (fail-secure)
+        label_i18n:
+          zh: 锁住（fail-secure）
+    name_i18n:
+      zh: 断电后门的状态

@@ -28,9 +28,9 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      description: Runs AI conversation, speech, and (in Jetson preset) vision with GPU acceleration — Orin NX 16GB module
+      description: Runs AI conversation, speech and vision with GPU (Orin NX 16GB)
       description_i18n:
-        zh: GPU 加速运行 AI 对话、语音和（Jetson 方案下）视觉——Orin NX 16GB 模组
+        zh: GPU 加速跑对话、语音与视觉（Orin NX 16GB）
       purchase:
         require:
           module: [orin_nx_16]
@@ -65,7 +65,7 @@ intro:
     - id: r2000_hailo
       verify_exempt: true
       name: reComputer AI Industrial R21 + Hailo-8 (Vision on NPU)
-      description: Everything on one reComputer AI Industrial R21 (Hailo-8) with vision on the NPU — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
+      description: Runs on one R21 (Hailo-8) with vision on the NPU; speech and LLM run on a remote Jetson.
       device_groups:
         - id: hailo_device
           name: reComputer AI Industrial R21 Device (Hailo)
@@ -79,11 +79,11 @@ intro:
       name_i18n:
         zh: reComputer AI Industrial R21 + Hailo-8（NPU 视觉）
       description_i18n:
-        zh: 所有服务运行在 reComputer AI Industrial R21（Hailo-8）上，视觉跑在 NPU——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
+        zh: 运行在 R21（Hailo-8），视觉在 NPU，语音和 LLM 连远程 Jetson。
     - id: cm4
       verify_exempt: true
       name: Reachy Mini Wireless (CM4)
-      description: Self-contained deployment on the Reachy Mini Wireless CM4 — speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST
+      description: Self-contained on the Reachy Mini Wireless CM4; speech and LLM run on a remote Jetson.
       device_groups:
         - id: cm4_device
           name: CM4 Device
@@ -97,7 +97,7 @@ intro:
       name_i18n:
         zh: Reachy Mini Wireless（CM4 版）
       description_i18n:
-        zh: Reachy Mini Wireless CM4 一体化部署——语音和 LLM 通过 VOICE_ASSISTANT_HOST 连接远程 Jetson
+        zh: Reachy Mini CM4 一体化部署，语音和 LLM 连接远程 Jetson。
   stats:
     difficulty: intermediate
     estimated_time: 30min

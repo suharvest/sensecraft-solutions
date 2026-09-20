@@ -157,24 +157,24 @@ intro:
 
   device_catalog:
     recamera_pro:
-      description: Newer all-in-one camera — pose, multi-person tracking and fall logic on device
+      description: Newer all-in-one camera — pose, tracking and fall logic on device
       description_i18n:
-        zh: 更新一代的一体机——姿态、多人跟踪与跌倒判定全部在设备本地完成
+        zh: 一体机：姿态、跟踪与跌倒判定全在本地完成
     recamera_2002:
-      description: All-in-one AI camera — runs pose estimation, the fall state machine, RTSP and MQTT locally
+      description: All-in-one AI camera — pose, fall logic, RTSP and MQTT locally
       description_i18n:
-        zh: 一体化 AI 摄像头——本地运行姿态估计、跌倒状态机、RTSP 和 MQTT
+        zh: 一体化 AI 摄像头，本地跑姿态与跌倒检测
     recomputer_j30:
       description: Runs the fall detector on your RTSP streams (Orin Nano 8GB)
       description_i18n:
-        zh: 在你的 RTSP 视频上运行跌倒检测（Orin Nano 8GB）
+        zh: 在 RTSP 视频上跑跌倒检测（Orin Nano 8GB）
       purchase:
         require:
           module: [orin_nano_8]
     recomputer_j40:
-      description: Runs the fall detector with the larger YOLO11m pose model (Orin NX 16GB)
+      description: Runs the fall detector, larger pose model (Orin NX 16GB)
       description_i18n:
-        zh: 用更大的 YOLO11m 姿态模型运行跌倒检测（Orin NX 16GB）
+        zh: 跑跌倒检测，用更大姿态模型（Orin NX 16GB）
       purchase:
         require:
           module: [orin_nx_16]
@@ -183,34 +183,34 @@ intro:
       description_i18n:
         zh: 在 RK3576 NPU 上运行跌倒检测
     recomputer_rk3588:
-      description: Runs the fall detector on the RK3588 NPU, with more headroom for extra streams
+      description: Runs the fall detector on RK3588 NPU, more stream headroom
       description_i18n:
         zh: 在 RK3588 NPU 上运行跌倒检测，可支撑更多路视频
     recomputer_r20_industrial:
       description: Runs the fall detector on a Hailo-8 accelerator, native C++ hot path
       description_i18n:
-        zh: 在 Hailo-8 加速器上运行跌倒检测，热路径为原生 C++
+        zh: 在 Hailo-8 加速器上跑跌倒检测（C++）
       purchase:
         require:
           ai_accelerator: [hailo-8]
     recomputer_r10:
-      description: Runs the alarm panel next to the cameras — no AI accelerator needed, it consumes the MQTT event stream only
+      description: Runs the alarm panel by the cameras, no AI accelerator needed
       description_i18n:
-        zh: 在摄像头旁边运行告警面板——不需要 AI 算力，只消费 MQTT 事件流
+        zh: 在摄像头旁跑告警面板，无需 AI 算力
     external_docker_host:
       name: Existing Docker Host
       name_i18n:
         zh: 已有的 Docker 主机
-      description: Any x86_64 or arm64 Linux machine you already run, with Docker and the compose plugin, hosting the alarm panel instead of a new box
+      description: Any Linux Docker host you already run, hosting the alarm panel
       description_i18n:
-        zh: 你已有的任意 x86_64 或 arm64 Linux 机器，装有 Docker 与 compose 插件，用它承载告警面板而不必新增设备
+        zh: 你已有的 Linux Docker 主机，用来跑告警面板
     generic_ip_camera:
       name: IP Camera
       name_i18n:
         zh: IP 摄像头
-      description: Any RTSP or ONVIF camera you already own, supplying the video the detector watches
+      description: Any RTSP or ONVIF camera you own, supplying video to the detector
       description_i18n:
-        zh: 你已有的任意 RTSP 或 ONVIF 摄像头，为检测器提供视频
+        zh: 你已有的 RTSP 或 ONVIF 摄像头，供检测器取流
 
   presets:
     - id: recamera
@@ -254,7 +254,7 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: One device, newer hardware. The detector ships in the device's App Center; this preset configures it and makes it active.
+      description: Newer hardware. Detector ships via the App Center; configures and activates it.
       description_i18n:
         zh: 一台设备搞定，硬件更新。检测器随设备应用中心分发，本套餐负责配置并将其设为运行中的应用。
       device_groups:
@@ -287,9 +287,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Keep your existing cameras — a Jetson Orin runs a larger pose model and covers the most streams. The alarm panel is part of this stack.
+      description: Keeps IP cameras; Jetson Orin runs pose model, covers most streams. Alarm panel included.
       description_i18n:
-        zh: 保留现有摄像头——由 Jetson Orin 运行更大的姿态模型，可支撑的路数最多。告警面板包含在这套栈里。
+        zh: 保留现有摄像头，Jetson Orin 跑姿态模型，可支撑路数最多，含告警面板。
       # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
       # source: image pulled, engine built on-device, sha256 verified, and MQTT
       # published with a person tracked through fallen -> recovering.
@@ -323,9 +323,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Rockchip NPU board. Board-native temporal profile, frozen against the held-out test set. The alarm panel is part of this stack.
+      description: Detector runs on a Rockchip NPU board with its own model. Includes the alarm panel.
       description_i18n:
-        zh: 把检测器跑在瑞芯微 NPU 板卡上。板卡专属时序权重，已在留出测试集上冻结。告警面板包含在这套栈里。
+        zh: 检测器跑在瑞芯微 NPU 板卡上，用板卡专属时序模型，含告警面板。
       # Deployed onto both boards against a live RTSP source: RK3576 on
       # cat-remote and RK3588 on radxa, each pulling the image, staging the
       # board's RKNN Lite and MPP plugins, downloading and checksumming its own
@@ -361,9 +361,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Run the detector on a Hailo-8 accelerator with a native C++ hot path. Hailo-specific temporal profile, frozen against the held-out test set. The alarm panel is part of this stack.
+      description: Detector runs on Hailo-8 via a C++ hot path, with its own model. Includes the alarm panel.
       description_i18n:
-        zh: 把检测器跑在 Hailo-8 加速器上，热路径为原生 C++。Hailo 专属时序权重，已在留出测试集上冻结。告警面板包含在这套栈里。
+        zh: 检测器跑在 Hailo-8 加速器上，原生 C++ 热路径，用专属时序模型，含告警面板。
       device_groups:
         - id: compute
           name: Detector Host

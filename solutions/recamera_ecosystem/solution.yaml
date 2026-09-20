@@ -69,17 +69,17 @@ intro:
 
   device_catalog:
     recamera_2002:
-      description: All-in-one AI camera — runs the app gallery, RTSP, ONVIF and a local MQTT broker on device
+      description: All-in-one AI camera; app gallery, RTSP, ONVIF, local MQTT broker
       description_i18n:
-        zh: 一体化 AI 摄像头——应用画廊、RTSP、ONVIF 和本地 MQTT broker 都在设备上运行
+        zh: 一体化摄像头，含画廊、RTSP、ONVIF、MQTT
     recamera_pro:
-      description: Newer all-in-one AI camera — runs the App Center, where each app carries its own output and MQTT configuration
+      description: Newer all-in-one camera; runs App Center apps with own MQTT config
       description_i18n:
-        zh: 更新一代的一体化 AI 摄像头——运行应用中心，每个应用各自带一份输出与 MQTT 配置
+        zh: 更新一代一体机，运行应用中心，各应用自带 MQTT 配置
     recomputer_r11:
-      description: Edge computing device for running Home Assistant and the MQTT broker
+      description: Edge computer running Home Assistant and the MQTT broker
       description_i18n:
-        zh: 边缘计算设备，运行 Home Assistant 和 MQTT broker
+        zh: 边缘设备，运行 HA 和 MQTT broker
 
   presets:
     - id: recamera
@@ -89,9 +89,9 @@ intro:
       badge: Start Here
       badge_i18n:
         zh: 从这里开始
-      description: Update the console, pick an app from the gallery, and forward the results to Home Assistant over MQTT.
+      description: Update console, pick a gallery app, forward results to Home Assistant via MQTT.
       description_i18n:
-        zh: 升级控制台、从画廊里挑一个应用，再通过 MQTT 把结果转发到 Home Assistant。
+        zh: 升级控制台，从画廊选应用，通过 MQTT 转发到 Home Assistant。
       verified:
         - hardware
       device_groups:
@@ -123,9 +123,9 @@ intro:
       badge: New Hardware
       badge_i18n:
         zh: 新硬件
-      description: Same flow on the newer camera — update the firmware, pick an app from the App Center, and forward the results to Home Assistant over MQTT.
+      description: Newer camera; update firmware, pick an app from the App Center, forward via MQTT.
       description_i18n:
-        zh: 新一代摄像头，同样的流程——更新固件、从应用中心挑一个应用，再通过 MQTT 把结果转发到 Home Assistant。
+        zh: 新一代摄像头，更新固件、从应用中心选应用，通过 MQTT 转发。
       device_groups:
         - id: camera
           name: AI Camera

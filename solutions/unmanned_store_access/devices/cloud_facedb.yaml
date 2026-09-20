@@ -83,13 +83,30 @@ remote_overrides:
           mkdir -p "$WORKDIR/assets/cloud/secret"
           printf '%s' '{{facedb_signing_key}}' > "$WORKDIR/assets/cloud/secret/facedb.key"
           chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
+          # The model tag and its sha are written into every library version and
+          # compared byte for byte on the device: a mismatch shows up as "nobody
+          # is recognised". The console refuses to start without them.
+          case "{{door_device}}" in
+            recamera_pro)
+              MODEL_TAG='rv1126b:scrfd500m+mbf512@fp16'
+              MODEL_SHA='cb1022b986dd46b33b389e484feceb482690cda0caf7bc8f7143c5e6862b2ea9' ;;
+            recamera_std)
+              MODEL_TAG='cvi:scrfd500m+mbf512@bf16'
+              MODEL_SHA='762c2509309cec8acb63339eea2be0a25d32359f3c57a0a8b9c21314750938ed' ;;
+            *)
+              MODEL_TAG='insightface:scrfd500m+mbf512@onnx-fp32'
+              MODEL_SHA='2e8bc48bb037cac6df950903542d9f7a158ec456aa05f5709d6f2607a92ae9a6' ;;
+          esac
           cat > "$WORKDIR/.env" <<EOF
           USA_FACEDB_KEY_ID=facedb-key-1
           USA_MATCH_THRESHOLD={{match_threshold}}
           USA_WEB_TOKENS={{web_admin_token}}:admin
           USA_DEVICE_ENDPOINTS={{device_endpoints}}
           USA_FACE_REC_API={{face_rec_api_url}}
-          MQTT_HOST=127.0.0.1
+          USA_MODEL_TAG=$MODEL_TAG
+          USA_MODEL_SHA=$MODEL_SHA
+          # The console runs in the compose network; 127.0.0.1 there is itself.
+          MQTT_HOST=mosquitto
           MQTT_PORT=1883
           MQTT_TLS=0
           FACEDB_PORT={{facedb_port}}
@@ -203,6 +220,30 @@ remote_overrides:
         zh: 设备控制端点（JSON）
       description_i18n:
         zh: 要在管理界面设备页显示的标准版 reCamera。其他套餐保持 `[]`。
+    - id: door_device
+      name: Door Device
+      type: select
+      required: true
+      # No default on purpose: the same cloud step serves four presets, and a
+      # wrong model tag is invisible until nobody is recognised at the door.
+      description: Sets the model tag written into every library version. It must match the device at the door, or nobody is recognised. Preset A -> reCamera Pro; presets B and C -> standard reCamera; preset D -> AI host.
+      options:
+        - value: recamera_pro
+          label: reCamera Pro
+          label_i18n:
+            zh: reCamera Pro
+        - value: recamera_std
+          label: Standard reCamera (2002 / 2002w / 2002 HQ PoE)
+          label_i18n:
+            zh: 标准版 reCamera（2002 / 2002w / 2002 HQ PoE）
+        - value: ai_host
+          label: AI host with an existing camera
+          label_i18n:
+            zh: AI 主机 + 现有摄像头
+      name_i18n:
+        zh: 门口设备
+      description_i18n:
+        zh: 决定人脸库版本里写入的模型标识。必须与门口实际设备一致，否则谁都认不出来。套餐 A 选 reCamera Pro；套餐 B、C 选标准版 reCamera；套餐 D 选 AI 主机。
     - id: facedb_signing_key
       name: Library Signing Key
       type: password

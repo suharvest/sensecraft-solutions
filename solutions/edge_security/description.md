@@ -225,15 +225,20 @@ deploy finishes.
   GPU through TensorRT and decode on NVDEC. The engine is built on the device
   during deployment, which adds about five minutes to the first install.
 - **RK3588 Single Box** — an RK3588 board watching one camera, inference on the
-  NPU and decode on the board's hardware decoder.
+  NPU and decode on the board's hardware decoder. On this board the hub itself
+  costs **3.7% of one CPU core and 52.8 MB RSS** while it also runs the
+  detector, so one board carries both.
 - **Hailo Single Box** — a reComputer Industrial R20 series unit with a Hailo-8 watching one camera,
-  inference on the accelerator. Decode runs on the CPU here, which is the
+  inference on the accelerator. Measured at 1280x720: **7.7 ms per inference,
+  9.5 ms for the full pipeline, 8.7-13.0% of one CPU core**. Decode runs on the CPU here, which is the
   primary path rather than a fallback: the board has no H.264 decoder, so the
   detector's CPU figure covers decode as well as inference.
 - **Shared Hub (Optional Expansion)** — not a deployment path on its own. Use it
   only after several detector boxes are running and you want one alert list
   across them; it installs the broker and hub on a separate always-on machine,
-  and each detector's `mqtt_host` is then repointed at it.
+  and each detector's `mqtt_host` is then repointed at it. The aggregation host
+  itself needs no accelerator — verified on an RK3588 board carrying both
+  detectors at **3.7% of one CPU core and 52.8 MB RSS**.
 
 ## One Failure Mode Worth Knowing Before You Start
 

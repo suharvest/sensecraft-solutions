@@ -33,7 +33,7 @@ intro:
 
   device_catalog:
     recomputer_r11:
-      description: Edge computing device with Docker support — runs the MCP bridge container
+      description: Edge device with Docker, runs the MCP bridge container
       description_i18n:
         zh: 支持 Docker 的边缘计算设备，运行 MCP 桥接容器
 

@@ -49,20 +49,20 @@ intro:
       description_i18n:
         zh: AI 语音助手，所有套餐必选
     reterminal_d1001:
-      description: 8" touch HMI voice terminal with camera (ESP32-P4), alternative to the Watcher
+      description: 8-inch touch voice terminal with camera (ESP32-P4), alt. to Watcher
       description_i18n:
-        zh: 8 寸触摸屏语音终端，带摄像头（ESP32-P4），可替代 Watcher
+        zh: 8 寸触控语音终端，带摄像头，可替代 Watcher
     recomputer_r11:
-      description: Edge gateway, runs warehouse management system. Choose a 4 GB memory configuration or higher.
+      description: Edge gateway, runs the warehouse system (4 GB RAM minimum)
       description_i18n:
         zh: 边缘网关，运行仓库管理系统。请选择 4 GB 内存及以上配置
       purchase:
         require:
           ram_gb: "4.."
     recomputer_r21_industrial:
-      description: Edge gateway, runs warehouse system + voice AI service, face recognition needs the Hailo-8 accelerator
+      description: Edge gateway for warehouse + voice AI; face recognition needs Hailo-8
       description_i18n:
-        zh: 边缘网关，运行仓管系统 + 语音 AI 服务，人脸识别需要 Hailo-8 加速卡
+        zh: 边缘网关：仓管系统+语音 AI，人脸识别需 Hailo-8
       purchase:
         require:
           ai_accelerator: [hailo-8]
@@ -135,7 +135,7 @@ intro:
       badge_i18n:
         zh: 推荐
       description_i18n:
-        zh: 需要外网 · 连接 SenseCraft 云服务 · 快速部署、低成本起步，不支持高精度人脸识别
+        zh: 需要外网 · 连接 SenseCraft 云 · 快速低成本，不支持高精度人脸识别
     - id: private_cloud
       name: Tier 2A · Advanced (Single Site)
       description: SenseCraft voice plus local high-accuracy face recognition with liveness
@@ -166,7 +166,7 @@ intro:
         zh: 需要外网 · SenseCraft 语音 · 本地高精度人脸识别（含活体检测）
     - id: private_cloud_multi
       name: Tier 2B · Advanced (Multi Site)
-      description: One Jetson runs everything on site - warehouse, face recognition and local speech - shared by up to 3 Watchers
+      description: One Jetson runs warehouse, face recognition, and speech on site for up to 3 Watchers.
       device_groups:
         - id: watcher
           name: Voice Assistant
@@ -196,7 +196,7 @@ intro:
       name_i18n:
         zh: 套餐二B · 升级版（多点位）
       description_i18n:
-        zh: 需要外网 · 一台 J40 系列设备全包：仓库系统 + 人脸识别 + 本地语音 · 最多 3 路语音并发
+        zh: 需要外网 · 一台 J40 全包仓库+人脸+语音，最多 3 路并发
     - id: edge_computing
       name: Tier 3 · Premium
       description: Pure LAN, fully offline, supports face recognition

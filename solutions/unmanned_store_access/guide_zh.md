@@ -14,6 +14,7 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
+- 「门口设备」按本套餐选：reCamera Pro。
 - 签名密钥和 admin token 自动生成，部署后在本步骤底部「自动生成的密钥」里查看，登录管理界面用 admin token。
 
 ### 故障排查
@@ -55,32 +56,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 | 回滚被拒并提示某个人 | 此人已被删除。通过注册或编辑发布新版本，不要回滚。 |
 | 设备提示 `model_tag` 不匹配 | 把识别服务地址指向门口设备上的识别服务，重新部署步骤 1 后重新注册。 |
 
-## 步骤 3: 激活 F1 门禁应用 {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+## 步骤 3: 接继电器 {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
 
-在摄像头上启动 F1 门禁应用，摄像头上正在运行的其他应用会被停止。
-
-### 前置条件
-
-1. 登录摄像头的网页控制台，打开**应用中心**。
-2. 找到 **F1 门禁**，点**安装**，等待安装完成。
-
-### 故障排查
-
-| 现象 | 处理 |
-|---|---|
-| 提示应用未安装 | 按前置条件在应用中心安装 F1 门禁。 |
-| 激活超时 | 刚装完第一次激活较慢，重试一次。 |
-| 激活后仍是别的应用在运行 | 重启摄像头后再部署这一步。 |
-
-## 步骤 4: 接继电器并启用门禁 {#p1_wire type=manual required=true config=devices/p1_recamera_pro_wiring.yaml}
-
-把继电器接到摄像头和门禁控制器，再在摄像头上写入门禁配置。
-
-### 前置条件
-
-- 步骤 3 已完成，可以用 root 通过 SSH 登录摄像头。
-- 万用表、Grove 继电器，以及步骤 1 的签名密钥。
-- 门锁类型：断电开门（fail-safe）还是断电保持锁闭（fail-secure）。
+把继电器接到摄像头和门禁控制器。
 
 ### 接线
 
@@ -88,24 +66,36 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 1. 用万用表确认 GPIO 130 是排针上哪个脚、输出为 3.3 V。
 2. 摄像头 GPIO 130 → 继电器 SIG，3.3 V → VCC，GND → GND。想先测试可改接 LED 加限流电阻到 GPIO 130 与 GND。
-3. 以 root 创建配置：`mkdir -p /userdata/local/appdata/f1-access && cp /userdata/local/apps/f1-access/face-recognition.conf.sample /userdata/local/appdata/f1-access/face-recognition.conf`
-4. 在该文件中设置 `[device] device_id`、`[facedb] url = http://<服务器 IP>:8080`、`[facedb] key_id = facedb-key-1`、`[mqtt] host = <服务器 IP>`、`[recognition] match_threshold`（与步骤 1 相同）、`[pro] gpio = 130`、`[pro] relay_contact`（`NO` 或 `NC`）、`[pro] fail_mode`（`fail_safe` 或 `fail_secure`）。
-5. 写入签名密钥（在步骤 1 底部「自动生成的密钥」里复制）：`printf '%s' '<签名密钥>' > /userdata/local/appdata/f1-access/facedb.key && chmod 600 /userdata/local/appdata/f1-access/facedb.key`
-6. 执行 `cat /run/f1-access/health.json`，确认 `state` 为 `armed`。
-7. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+3. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |---|---|
-| 写文件报 `EACCES` | 用 root 登录。 |
-| `state` 一直是 `disarmed` | 在 `/userdata/local/apps/f1-access/logs/app.log` 查看原因，改正其中指出的配置项。 |
-| 门禁拒绝启用并提示某个引脚 | 该引脚被其他程序占用，换一个空闲 GPIO 并修改 `[pro] gpio`。 |
-| `gpio = 131` 被拒 | 这台摄像头上 GPIO 131 已被占用，用 130。 |
-| 上电时门开了一次 | 有效电平反了，接门禁控制器之前先改正。 |
-| 启动提示 `relay_contact=unverified` | 填写 `[pro] relay_contact` 和 `[pro] fail_mode`。 |
-| 提示 `pulse_ms must be 500..5000 ms` | 把 `[policy] pulse_ms` 设在 500 到 5000 之间。 |
-| health 中 `stuck_active` 为 `true` | 继电器可能仍处于闭合，到现场检查门。 |
+| GPIO 130 被其他程序占用 | 换一个空闲 GPIO，下一步填写对应编号。 |
+
+## 步骤 4: 激活并配置 F1 门禁 {#p1_install type=recamera_pro_app required=true config=devices/p1_recamera_pro.yaml}
+
+在摄像头上启动 F1 门禁并写入门禁设置，摄像头上正在运行的其他应用会被停止。
+
+### 前置条件
+
+先在摄像头上装好 F1 门禁（0.1.5 或以上）：
+
+1. 登录摄像头的网页控制台，打开**应用中心**。
+2. 找到 **F1 门禁**，点**安装**，等待安装完成。
+
+表单中的服务器 IP、端口、匹配阈值与签名密钥自动取自步骤 1，只需填写门名称、GPIO 编号、继电器触点与断电后门的状态。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 提示应用未安装 | 按前置条件在应用中心安装 F1 门禁。 |
+| 提示 `unknown parameter` | F1 门禁版本低于 0.1.5，在应用中心更新后重新部署。 |
+| 激活超时 | 刚装完第一次激活较慢，重试一次。 |
+| 提示 `npu.direct is busy` | 在应用中心停止正在运行的其他应用后重新部署。 |
+| 上电时门开了一次 | 继电器触点选反了，改正后重新部署。 |
 
 ## 步骤 5: 核对人脸库已到设备 {#p1_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
@@ -156,12 +146,166 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 | 审计校验失败 | 保留日志文件，检查是否有两个进程在写它。 |
 | 事件不再上报但门仍能开 | 摄像头在本地开门，检查它与 MQTT broker 1883 端口的连接。 |
 
-## 套餐: B. 标准版 reCamera {#a_recamera_std}
+## 套餐: B. reCamera PoE {#a_recamera_poe}
 
-标准版 reCamera（2002 / 2002w / 2002 HQ PoE）识别人脸并判定是否开门。
+reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直接驱动继电器，开门路径不经过网络。
 
 - **服务器：** 一台装 Docker 的 Linux 服务器（不需要 GPU），运行人脸库、管理界面和 MQTT broker。
-- **外设：** 继电器模块，干接点接门禁控制器的开门输入。2002 HQ PoE 的继电器接底板排针 D1；2002 / 2002w 另需一台 R1000 或 XIAO ESP32-S3 经 MQTT 收开门指令并驱动继电器，broker 不可用时门打不开。
+- **摄像头：** reCamera 2002 HQ PoE，PoE 供电。
+- **外设：** Grove Relay（SKU 103020005，SPST-NO，3.3–5 V 触发）接底板排针 D1，干接点接门禁控制器的开门输入。门控输入是常闭型时换 Grove - SPDT Relay 30A（SKU 103020012）。
+
+## 步骤 1: 部署人脸库与管理界面 {#p6_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
+
+在一台服务器上启动人脸库、MQTT broker 和管理界面。
+
+### 前置条件
+
+- 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
+- 服务器时钟已开启 NTP 同步，门口设备以它为准。
+- 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
+- 「门口设备」按本套餐选：标准版 reCamera。
+- 签名密钥和 admin token 自动生成，部署后在本步骤底部「自动生成的密钥」里查看，登录管理界面用 admin token。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 找不到 `docker compose` | 在服务器上安装 `docker-compose-plugin`。 |
+| 提示 `NTP is not synchronised` | 在服务器上执行 `sudo timedatectl set-ntp true`。 |
+| 8080 端口被占用 | 修改人脸库端口，后续步骤的人脸库地址用同一个端口。 |
+| 8088 端口被占用 | 释放 8088 端口，后续步骤的管理界面页面固定打开这个端口。 |
+| 人脸库接口返回 404 | 首次注册前属正常。 |
+| 管理界面打不开 | 在服务器上执行 `docker logs usa-web` 查看原因。 |
+
+### 部署目标 {#p6_facedb_remote type=remote config=devices/cloud_facedb.yaml default=true}
+
+部署到门口设备可以访问的一台 Linux 服务器。
+
+### 部署目标 {#p6_facedb_local type=local config=devices/cloud_facedb.yaml}
+
+部署到这台电脑。门口设备必须能访问这台电脑的 IP。
+
+## 步骤 2: 注册人员 {#p6_register type=web_dashboard required=true config=devices/register_person.yaml}
+
+在管理界面「人员库」为每个人上传 3 到 8 张照片完成注册。
+
+### 前置条件
+
+- 步骤 1 的 admin token。
+- 每人 3 到 8 张清晰的正脸照片。
+- 步骤 1 已填写识别服务地址，否则注册的人不会被识别。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 注册被拒，提示少于三张图 | 至少上传 3 张照片。 |
+| 新注册的人门仍不开 | 等 30 s 让设备拉取新版本后再试。 |
+| 回滚被拒并提示某个人 | 此人已被删除。通过注册或编辑发布新版本，不要回滚。 |
+| 设备提示 `model_tag` 不匹配 | 把识别服务地址指向门口设备上的识别服务，重新部署步骤 1 后重新注册。 |
+
+## 步骤 3: 在摄像头上安装 F1 门禁 {#p6_install type=recamera_cpp required=true config=devices/p6_recamera_poe.yaml}
+
+在 reCamera PoE 上安装门禁应用并写入人脸库设置。
+
+### 前置条件
+
+- 摄像头通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
+- 摄像头能访问 `http://<服务器 IP>:8080`。
+- `/userdata` 至少 20 MB 空闲。
+
+### 接线
+
+![reCamera 2002 HQ PoE 继电器接线](gallery/wiring-recamera-2002-poe.svg)
+
+准备：Grove Relay（SKU 103020005）、它自带的 4 芯 Grove 线、杜邦线（排针不是 Grove 座，Grove 线另一端要转成单根）、一路 3.3–5 V 电源、万用表。
+
+排针脚位（[官方 wiki](https://wiki.seeedstudio.com/reCamera_hq_poe_hardware_and_specs/)）：**GND、GPIO488、GPIO487、TX、GPIO490、RX**。三路 IO 是 D1 = GPIO490、CLK = GPIO487、SMD = GPIO488，本方案用 D1。
+
+1. **排针没有供电脚**，继电器 VCC 另外取电，见下方「继电器怎么取电」。GPIO 输出 3.3 V 逻辑电平，而 Grove Relay 工作电流 100 mA，GPIO 带不动，只接 SIG。这条路线不需要 XIAO。
+2. **电平未文档化**，接继电器之前先用万用表量 GPIO490 的高电平。
+3. **接三根线**，继电器的 NC 线不接：排针 GPIO490 → 继电器 **SIG**，5 V → **VCC**，排针 GND → **GND**（取电电源的地也接到这里）。
+4. **先用 LED 试。** LED 加限流电阻接在 GPIO490 与 GND 之间，部署后看它是否按配置的脉宽亮一次；确认引脚和极性都对，再换成继电器。
+5. **确认继电器每个脉冲响一次。** 不响就回到第 2 步核对电平。
+6. **接门禁控制器。** 继电器 **COM** 与 **NO** 接门控的开门输入，这两个端子上量不到我们的电压。断电开门的电磁锁需要常闭触点，Grove Relay 没有 NC 端子，换 Grove - SPDT Relay 30A（SKU 103020012），接 COM 与 NC。
+7. 在表单中填写设备 ID 和执行器 ID。
+
+**继电器怎么取电。** 两种都行：
+
+外部 5 V——一个 5 V USB 充电头，或门控侧已有的 12 V 经 DC-DC 降到 5 V，电源的地接到排针 GND，不用动板子。
+
+板上焊接——PoE 底板（B3 PoE v1.2）上有 5 V 与 GND 焊盘，位置见下图，焊两根线出来。PoE 供电总量有限（板上保险 2 A、主路标称 1.2 A），继电器 100 mA 在余量内。焊前用万用表确认这两点是 5 V 与 GND。
+
+![reCamera B3 PoE 底板上的 5V 与 GND 焊盘](gallery/poe-5v-gnd-pads.jpg)人脸库地址、匹配阈值、签名密钥已从步骤 1 带入；只有摄像头访问服务器的地址不同才需要改地址。然后部署。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 摄像头上仍是原厂 face-recognition 应用 | 在摄像头上移除 `face-recognition` 后重新部署。 |
+| `agent.log` 结尾是 `thresholds are not single-sourced` | 重新部署这一步，不要手动修改 `/userdata/f1-access/face-recognition.conf`。 |
+| 一个库版本都没激活 | 确认摄像头能访问人脸库地址；匹配阈值若被改成与步骤 1 不同的值，改回后重新部署。 |
+| 启动时门开了一次 | 有效电平选错，接门禁控制器之前先改正。 |
+| 继电器一直不响 | 确认接的是排针 D1，且 `/userdata/f1-access/face-recognition.conf` 中 `[gpio] enabled = true`。 |
+
+## 步骤 4: 核对人脸库已到设备 {#p6_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
+
+在管理界面「设备」页确认门口设备用上了刚发布的库版本。
+
+### 前置条件
+
+- 摄像头已上电并联网。
+- 至少注册了一个人。
+- 步骤 1 的设备控制端点里已填入这台摄像头。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| `desired_version` 落后于服务端 `current` | 等 30 s 后刷新页面。 |
+| `active_version` 落后于 `desired_version` | 查看 `last_error`，多为匹配阈值与步骤 1 不一致，用相同的值重新部署设备步骤。 |
+| `signature.verified` 为 `null` | 正常，验签失败会显示在 `last_error`。 |
+| `clock.valid` 为 `false` | 没有 NTP 的设备上属正常。 |
+| 有人出现在 `only_on_device` | 有人直接在设备上注册过，下一个版本会覆盖。 |
+| 页面为空 | 在步骤 1 填写设备控制端点并重新部署。 |
+
+## 步骤 5: 验证这道门 {#p6_verify type=manual required=true verify=true config=devices/remote_unlock.yaml}
+
+测试这道门：注册的人能开，照片不能开，远程开门可用。
+
+### 前置条件
+
+- 门禁控制器已接好，至少注册了一个人。
+- 此人的一张打印照片。
+- 步骤 1 的 admin token。
+
+### 部署完成
+
+1. 已注册的人站到摄像头前：继电器响一次，管理界面出现放行事件。
+2. 马上退开再上前：管理界面出现 `debounced`，继电器不再响。
+3. 举起打印照片：管理界面出现 `liveness_failed`，继电器不响。
+4. 在管理界面「设备」页点开门：继电器响一次，回执为 `executed`。
+5. 删除一个人：30 s 内门不再为他打开，回滚到仍包含此人的版本会被拒绝。
+6. 断开服务器后站到摄像头前：门照常打开。
+7. 正式使用前：MQTT broker 改用 TLS 和按设备分配的账号，管理界面放到 HTTPS 后面。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 照片能开门 | 停用这道门，检查识别服务 `/health` 中活体为 `loaded`。 |
+| 回执为 `executed` 但继电器不响 | 检查排针 D1 的接线和继电器的触发电平。 |
+| 一次靠近继电器响两次 | 调大设备上的去抖时间后重测。 |
+| 审计校验失败 | 保留日志文件，检查是否有两个进程在写它。 |
+| 管理界面没有事件 | 检查摄像头能访问服务器 1883 端口。 |
+
+## 套餐: C. 标准版 reCamera（2002 / 2002w） {#a_recamera_std}
+
+reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可用排针，开门指令经 MQTT 发到继电器节点。
+
+- **服务器：** 一台装 Docker 的 Linux 服务器（不需要 GPU），运行人脸库、管理界面和 MQTT broker。
+- **摄像头：** reCamera 2002 或 2002w。
+- **继电器节点：** 一台接同一 MQTT broker 的 R1000 或 XIAO ESP32-S3，外接继电器模块，干接点接门禁控制器的开门输入。broker 不可用时门打不开。
 
 ## 步骤 1: 部署人脸库与管理界面 {#p5_cloud_facedb type=docker_deploy required=true config=devices/cloud_facedb.yaml}
 
@@ -172,6 +316,7 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
+- 「门口设备」按本套餐选：标准版 reCamera。
 - 签名密钥和 admin token 自动生成，部署后在本步骤底部「自动生成的密钥」里查看，登录管理界面用 admin token。
 
 ### 故障排查
@@ -218,20 +363,18 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
-- reCamera 通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
+- 摄像头通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
 - 摄像头能访问 `http://<服务器 IP>:8080`。
 - `/userdata` 至少 20 MB 空闲。
-- 2002 / 2002w：一台连到同一 MQTT broker 的 R1000 或 XIAO ESP32-S3 继电器节点。
+- 一台连到同一 MQTT broker 的 R1000 或 XIAO ESP32-S3 继电器节点，并已设置好它的 Relay ID。
 
 ### 接线
 
-![reCamera 2002 HQ PoE 继电器接线](gallery/wiring-recamera-2002-poe.svg)
+![XIAO ESP32-S3 继电器接线](gallery/wiring-xiao-relay.svg)
 
-1. 2002 HQ PoE：用万用表确认 6-pin 排针上的 3.3 V 和 GND 脚。
-2. 2002 HQ PoE：排针 D1 → 继电器 SIG，3.3 V → VCC，GND → GND。想先测试可改接 LED 加限流电阻到 D1 与 GND。
-3. 2002 / 2002w：摄像头没有排针，继电器接到 R1000 或 XIAO ESP32-S3 继电器节点上。
-4. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
-5. 在表单中按实际硬件选择摄像头型号，填写设备 ID、执行器 ID、人脸库地址、匹配阈值（与步骤 1 相同），然后部署。
+1. 摄像头没有可用排针，继电器接到继电器节点上：XIAO ESP32-S3 按继电器固件的 GPIO → 继电器 SIG，3V3 → VCC，GND → GND；R1000 则接到其 Modbus 点位号对应的输出。
+2. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+3. 在表单中填写设备 ID，执行器 ID 填继电器节点上配置的 Relay ID。人脸库地址、匹配阈值、签名密钥已从步骤 1 带入；只有摄像头访问服务器的地址不同才需要改地址。然后部署。
 
 ### 故障排查
 
@@ -239,9 +382,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 |---|---|
 | 摄像头上仍是原厂 face-recognition 应用 | 在摄像头上移除 `face-recognition` 后重新部署。 |
 | `agent.log` 结尾是 `thresholds are not single-sourced` | 重新部署这一步，不要手动修改 `/userdata/f1-access/face-recognition.conf`。 |
-| 一个库版本都没激活 | 把匹配阈值改成步骤 1 的值后重新部署。 |
-| 2002 / 2002w 上提示 `mqtt.host` 不匹配 | 在 `/userdata/f1-access/face-recognition.conf` 中设置 `[mqtt] host = localhost`。 |
-| 启动时门开了一次 | 摄像头型号或有效电平选错，接门禁控制器之前先改正。 |
+| 一个库版本都没激活 | 确认摄像头能访问人脸库地址；匹配阈值若被改成与步骤 1 不同的值，改回后重新部署。 |
+| 提示 `mqtt.host` 不匹配 | 在 `/userdata/f1-access/face-recognition.conf` 中设置 `[mqtt] host = localhost`。 |
+| 已下发开门但继电器不响 | 确认继电器节点已连上 broker，且它的 Relay ID 与执行器 ID 一致。 |
 
 ## 步骤 4: 核对人脸库已到设备 {#p5_facedb_status type=web_dashboard required=true verify=true config=devices/network_face_database.yaml}
 
@@ -249,7 +392,7 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
-- 门口设备已上电并联网。
+- 摄像头已上电并联网。
 - 至少注册了一个人。
 - 步骤 1 的设备控制端点里已填入这台摄像头。
 
@@ -288,12 +431,12 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 | 现象 | 处理 |
 |---|---|
 | 照片能开门 | 停用这道门，检查识别服务 `/health` 中活体为 `loaded`。 |
-| 回执为 `executed` 但继电器不响 | 检查继电器接线和设备上配置的引脚。 |
+| 回执为 `executed` 但继电器不响 | 检查继电器接线和继电器节点上配置的引脚。 |
 | 一次靠近继电器响两次 | 调大设备上的去抖时间后重测。 |
 | 审计校验失败 | 保留日志文件，检查是否有两个进程在写它。 |
 | 管理界面没有事件 | 检查摄像头能访问服务器 1883 端口。 |
 
-## 套餐: C. AI 主机 + 现有摄像头 {#b_ai_host}
+## 套餐: D. AI 主机 + 现有摄像头 {#b_ai_host}
 
 AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否开门。
 
@@ -310,6 +453,7 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
+- 「门口设备」按本套餐选：AI 主机。
 - 签名密钥和 admin token 自动生成，部署后在本步骤底部「自动生成的密钥」里查看，登录管理界面用 admin token。
 
 ### 故障排查

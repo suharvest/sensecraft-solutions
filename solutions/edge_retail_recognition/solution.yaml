@@ -222,109 +222,36 @@ intro:
       name: Console / On-Prem Host
       name_i18n:
         zh: 管理端 / 本地服务器
-      description: >-
-        Runs the registration service, the management UI and the broker in
-        containers. Present in all three presets — the gallery and the UI are
-        shared infrastructure, not a per-preset extra. Both container images
-        are published; override the image variables to deploy a local build
-        instead.
+      description: Runs registration service, management UI and broker in containers
       description_i18n:
-        zh: >-
-          以容器运行注册服务、管理界面与 broker。三个套餐都要它——商品库与管理界面是
-          共用基础设施，不是某个套餐的附加项。两个容器镜像均已发布；要部署自建版本，
-          覆盖对应的镜像变量即可。
+        zh: 容器运行注册服务、管理界面与 broker
     recomputer_rk3588:
-      description: >-
-        Runs the detector on the RK3588 NPU. The RKNN fp16 conversion of the
-        640² checkout detector has been measured on RK3588: 99.85%
-        box agreement with the CPU golden and 56.7 ms p50. The embedding step
-        has no RKNN conversion — it has not been attempted — so on this board
-        embedding runs on the CPU through onnxruntime, and that path has not
-        been timed on RK3588.
+      description: Detector runs on RK3588 NPU (RKNN fp16); embedding runs on CPU
       description_i18n:
-        zh: >-
-          在 RK3588 NPU 上跑检测。640² 收银台检测器的 RKNN fp16 转换已在 RK3588
-          上实测：与 CPU golden 的框一致率 99.85%，p50 56.7 ms。嵌入段没有 RKNN 转换——
-          没有尝试过——因此这块板上嵌入走 onnxruntime CPU，而这条路径在 RK3588 上没有测过延迟。
+        zh: RK3588 NPU 跑检测，嵌入走 CPU
     recomputer_rk3576:
-      description: >-
-        The smaller Rockchip option, same toolchain and same conversion
-        script, with its own two-core NPU (RK3588 has three). Measured on the
-        same RK3576 chip platform, inference only: detector RKNN fp16, dual
-        NPU core, 51.05 ms p50 / 54.18 ms p95, 99.91% box agreement with the
-        CPU reference; embedder RKNN fp16, dual NPU core, 56.38 ms p50 /
-        62.17 ms p95, 21 retrieval metrics within 0.36 percentage points of
-        fp32, mean cosine similarity 0.99966. On the same platform, a 704-crop
-        shelf replay scored 76.28% top-1 (CPU fp32 76.99%), 99.29% same-SKU
-        agreement, embedder p50 61.0 ms per crop. Reference value on the same
-        RK3576 platform; will be updated after a re-test on the reComputer
-        unit.
+      description: Smaller Rockchip option; dual-core NPU runs detector and embedder
       description_i18n:
-        zh: >-
-          更小的 Rockchip 选项，工具链与转换脚本相同，NPU 只有两核（RK3588 是三核）。
-          同款 RK3576 芯片平台实测，纯推理：检测器 RKNN fp16，双核，
-          p50 51.05 ms / p95 54.18 ms，与 CPU 参考的框一致率 99.91%；
-          嵌入器 RKNN fp16，双核，p50 56.38 ms / p95 62.17 ms，21 项检索指标
-          与 fp32 最大差 0.36 个百分点，余弦相似度均值 0.99966。同款平台上，
-          704 张货架裁剪回放 top-1 76.28%（CPU fp32 76.99%），预测一致 99.29%，
-          嵌入器单裁剪 p50 61.0 ms。
-          同款 RK3576 平台实测参考值，reComputer 整机复测后更新。
+        zh: 更小的 Rockchip 选项，双核 NPU 跑检测与嵌入
     recomputer_r20_industrial:
-      description: >-
-        An industrial box with a Hailo-8 on the M.2 slot. On the same Hailo-8
-        platform the detector HEF measured 9.04 ms p50 and 94.77% box agreement
-        with the CPU golden, and the embedder ran on the CPU as a dynamically
-        quantised INT8 DINOv2-small at 91.95 ms per crop — reference values, to
-        be updated after a re-test on the reComputer unit.
+      description: Industrial box with Hailo-8 NPU; embedder runs on CPU
       description_i18n:
-        zh: >-
-          M.2 插槽上装了 Hailo-8 的工业整机。同款 Hailo-8 平台实测：检测器 HEF
-          p50 9.04 ms，与 CPU golden 的框一致率 94.77%；嵌入段跑 CPU，是动态量化
-          INT8 的 DINOv2-small，单个裁剪 91.95 ms。以上为参考值，
-          reComputer 整机复测后更新。
+        zh: Hailo-8 工业整机；嵌入段跑 CPU
       purchase:
         require:
           ai_accelerator: [hailo-8]
     recomputer_j40:
-      description: >-
-        The Orin NX 16GB option for the TensorRT path. Runs both the detector
-        and the embedder as TensorRT fp16 engines on the GPU — measured on a
-        Seeed reComputer J40 unit itself, not a reference board: detector 5.18 ms
-        p50 / 5.28 ms p95, 99.91% box agreement with the CPU golden (50
-        images, the same batch RK3588 was checked against); embedder 4.23 ms
-        p50 / 4.69 ms p95, 21 retrieval metrics within 0.24 percentage points
-        of fp32. A 2956-frame checkout replay ran through the full
-        device-side runtime with zero dropped frames.
+      description: Orin NX 16GB; detector and embedder run as TensorRT fp16 on GPU
       description_i18n:
-        zh: >-
-          TensorRT 路线的 Orin NX 16GB 选项。检测器与嵌入器都以 TensorRT fp16
-          engine 跑在 GPU 上——实测于一台 Seeed reComputer J40 整机，不是台架：
-          检测器 p50 5.18 ms / p95 5.28 ms，与 CPU golden 的框一致率 99.91%
-          （50 张，与 RK3588 用的同一批 golden）；嵌入器 p50 4.23 ms / p95 4.69 ms，
-          21 项检索指标与 fp32 最大差 0.24 个百分点。一次 2956 帧的收银台回放
-          跑通了完整的设备侧运行时，零掉帧。
+        zh: Orin NX 16GB，检测/嵌入用 TensorRT
       purchase:
         require:
           module:
             - orin_nx_16
     recomputer_j30:
-      description: >-
-        The smaller Orin Nano 8GB option in the same reComputer J30 / J40
-        family. Also measured directly on this board (reComputer J30 series,
-        J3011): detector 5.88 ms p50 / 8.89 ms p95, 99.27% box agreement with
-        the CPU golden (a different 50-image batch than the Orin NX unit's,
-        so not bit-for-bit comparable); embedder 5.06 ms p50 / 7.64 ms p95,
-        21 retrieval metrics within 0.21 percentage points of fp32. A
-        6726-frame checkout replay (2.27 loops) ran with zero dropped frames
-        and all 84 events published.
+      description: Smaller Orin Nano 8GB option in the same TensorRT family
       description_i18n:
-        zh: >-
-          同一 reComputer J30 / J40 家族里更小的 Orin Nano 8GB 选项。同样已在
-          本机实测（reComputer J30 系列，J3011）：检测器 p50 5.88 ms /
-          p95 8.89 ms，与 CPU golden 的框一致率 99.27%（与 Orin NX 机型用的
-          不是同一批 50 张图，不可逐位对齐）；嵌入器 p50 5.06 ms / p95 7.64 ms，
-          21 项检索指标与 fp32 最大差 0.21 个百分点。一次 6726 帧（2.27 轮）
-          的收银台回放零掉帧，84 个事件全部发布成功。
+        zh: 同家族更小的 Orin Nano 8GB 选项
       purchase:
         require:
           module:
@@ -333,9 +260,9 @@ intro:
       name: RTSP / USB Camera
       name_i18n:
         zh: RTSP / USB 摄像头
-      description: Any camera over the checkout belt or facing the shelf, supplying the frames the detector reads
+      description: Any camera over the checkout belt or facing the shelf
       description_i18n:
-        zh: 任意一台架在收银台上方或正对货架的摄像头，为检测器提供画面
+        zh: 任意架在收银台或货架前的摄像头
 
   presets:
     - id: p1_rockchip
@@ -345,24 +272,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        The detector runs on the Rockchip NPU as an fp16 `.rknn`, converted on
-        an x86_64 host. On RK3588 that path agrees with the CPU golden on
-        99.85% of boxes at 56.7 ms p50, and the INT8 variant is 2.2x faster at
-        98.35%; embedding has no RKNN conversion on RK3588 and falls back to
-        onnxruntime on the CPU. RK3576 has a different core count and
-        its own measured detector and embedder numbers, both on the NPU — see
-        its device description below. There is no device-side service that
-        joins the two stages — this preset converts the model, proves the
-        conversion on the board, and stops there.
+      description: Detector runs as .rknn on Rockchip NPU; embedding falls back to CPU. Conversion only.
       description_i18n:
-        zh: >-
-          检测器以 fp16 `.rknn` 跑在 Rockchip NPU 上，转换在 x86_64 主机上完成。
-          在 RK3588 上这条路径与 CPU golden 的框一致率 99.85%、p50 56.7 ms，
-          INT8 变体快 2.2 倍、一致率 98.35%；嵌入段在 RK3588 上没有 RKNN 转换，
-          退到 CPU 上的 onnxruntime。RK3576 核数不同，检测与嵌入都有
-          自己的实测数字，且都跑在 NPU 上——见下方设备说明。没有把两段串起来的
-          设备侧服务——这个套餐做的是转换模型、在板上证明转换正确，到此为止。
+        zh: 检测器以 .rknn 跑 Rockchip NPU，嵌入退到 CPU，仅做模型转换。
       device_groups:
         - id: console
           name: Console Host
@@ -394,30 +306,15 @@ intro:
           default: generic_rtsp_camera
 
     - id: p2_pi5_hailo
-      name: reComputer R2000 (Hailo-8) — Detector on the NPU, Embedder on the CPU
+      name: reComputer R2000 (Hailo-8)
       name_i18n:
-        zh: reComputer R2000（Hailo-8）—— 检测上 NPU，嵌入留 CPU
+        zh: reComputer R2000（Hailo-8）
       badge: Recommended
       badge_i18n:
         zh: 推荐
-      description: >-
-        Both stages measured on one board of the same Hailo-8 platform — the
-        detector an INT8 HEF at 9.04 ms p50 and 94.77% box agreement, the
-        embedder a dynamically quantised INT8 DINOv2-small on the four CPU cores
-        at 91.95 ms per crop, within 0.65 pp of its own fp32 retrieval accuracy.
-        Reference values, to be updated after a re-test on the reComputer unit.
-        That 92 ms is the
-        number to plan around — a checkout basket of a few items is comfortable,
-        a shelf frame with 160 boxes is not, and shelf use needs frame skipping
-        or slot-level sampling.
+      description: Detector on Hailo-8 NPU (INT8 HEF); embedder runs quantised INT8 on the CPU.
       description_i18n:
-        zh: >-
-          两段都在同款 Hailo-8 平台的同一块板上实测。检测器是 INT8 HEF，
-          p50 9.04 ms、框一致率 94.77%；嵌入器是动态量化 INT8 的 DINOv2-small，
-          跑在四个 CPU 核上，单个裁剪 91.95 ms，检索准确率与自身 fp32 相差
-          0.65pp 以内。以上为参考值，reComputer 整机复测后更新。
-          这 92 ms 是做规划时要盯的数——收银台一次几件商品够用，货架一帧 160 个框不够用，
-          货架场景需要抽帧或按货位采样。
+        zh: 检测器用 INT8 HEF 跑 Hailo-8 NPU，嵌入器量化后跑 CPU。
       device_groups:
         - id: console
           name: Console Host
@@ -454,31 +351,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: >-
-        Both the detector and the embedder run as TensorRT fp16 engines on the
-        Orin NX's own GPU — measured on a Seeed reComputer J40 unit itself, a
-        reComputer J40 integrated-machine measurement rather than a reference
-        board. Detector 5.18 ms p50 / 5.28 ms p95, 99.91% box agreement with
-        the CPU reference (50 images); embedder 4.23 ms p50 / 4.69 ms p95, 21
-        retrieval metrics within 0.24 percentage points of fp32. A 2956-frame
-        checkout replay ran through the full device-side runtime — detector,
-        embedder, gallery lookup, MQTT publish — with zero dropped frames,
-        which makes this the only preset where that full loop has run on
-        hardware rather than stopping at model conversion. Under concurrent
-        load, with both stages sharing the GPU, latency degrades to 8.76 ms
-        p50 (detector) and 5.37 ms p50 (embedder) — still the fastest
-        detector path measured across all presets.
+      description: Both stages run as TensorRT fp16 on the Orin GPU; full pipeline runs on-device.
       description_i18n:
-        zh: >-
-          检测器与嵌入器都以 TensorRT fp16 engine 跑在 Orin NX 自己的 GPU 上——
-          实测于一台 Seeed reComputer J40 整机，是整机实测，不是台架。检测器 p50
-          5.18 ms / p95 5.28 ms，与 CPU 参考的框一致率 99.91%（50 张）；
-          嵌入器 p50 4.23 ms / p95 4.69 ms，21 项检索指标与 fp32 最大差 0.24
-          个百分点。一次 2956 帧的收银台回放跑通了完整的设备侧运行时——检测、
-          嵌入、库检索、MQTT 上报——零掉帧，这也是本包里唯一一个把两段串起来
-          在真机上跑过的套餐，而不是止步于模型转换。并发负载下（两段共享同一块
-          GPU）延迟降到检测 p50 8.76 ms、嵌入 p50 5.37 ms——仍是所有套餐里最快
-          的检测路径。
+        zh: 两段都以 TensorRT fp16 跑在 Orin GPU 上，完整链路跑通。
       device_groups:
         - id: console
           name: Console Host

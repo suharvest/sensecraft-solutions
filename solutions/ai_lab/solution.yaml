@@ -57,17 +57,17 @@ intro:
         zh: USB 摄像头（可选，仅目标检测预设的实时视频功能需要）
   device_catalog:
     recomputer_rk3576:
-      description: Rockchip RK3576 edge AI computer — runs object detection, LLM, and vision models locally
+      description: RK3576 NPU edge AI computer for detection, LLM, and vision
       description_i18n:
-        zh: 搭载 RK3576 NPU 的边缘 AI 计算机——本地运行目标检测、大模型和视觉模型
+        zh: 搭载 RK3576 NPU，跑检测、大模型与视觉
     recomputer_rk3588:
-      description: Rockchip RK3588 edge AI computer — runs object detection with stronger NPU performance
+      description: RK3588 NPU edge AI computer, stronger NPU for detection
       description_i18n:
-        zh: 搭载 RK3588 NPU 的边缘 AI 计算机——以更强 NPU 算力运行目标检测
+        zh: 搭载 RK3588 NPU，算力更强，跑目标检测
   presets:
     - id: object_detection
       name: "Object Detection (YOLO 11)"
-      description: Run YOLO 11 on RK3576 or RK3588 to detect 80 common objects. Choose model size (Nano / Small / Medium) at deploy time.
+      description: Runs YOLO 11 on RK3576 or RK3588, detecting 80 objects; choose model size at deploy time.
       device_groups:
         - id: edge_device
           name: Edge Device
@@ -86,12 +86,12 @@ intro:
           name_i18n:
             zh: 边缘设备
       name_i18n:
-        zh: "目标检测（YOLO 11）"
+        zh: 目标检测（YOLO 11）
       description_i18n:
-        zh: 在 RK3576 或 RK3588 上运行 YOLO 11，识别 80 种常见物体。部署时可选模型大小（极速版 / 均衡版 / 精确版）。
+        zh: RK3576 / RK3588 运行 YOLO 11，识别 80 种物体，可选模型大小。
     - id: llm_chat
       name: "LLM Chat (DeepSeek-R1)"
-      description: Run DeepSeek-R1 locally on RK3576 with NPU acceleration. Choose between 1.5B and 7B variants with different quantization.
+      description: Runs DeepSeek-R1 locally on RK3576 NPU; choose 1.5B or 7B with different quantization.
       device_groups:
         - id: edge_device
           name: Edge Device
@@ -103,12 +103,12 @@ intro:
           name_i18n:
             zh: 边缘设备
       name_i18n:
-        zh: "大模型对话（DeepSeek-R1）"
+        zh: 大模型对话（DeepSeek-R1）
       description_i18n:
-        zh: 在 RK3576 上利用 NPU 加速本地运行 DeepSeek-R1，支持 1.5B 和 7B 多种量化变体。
+        zh: RK3576 NPU 运行 DeepSeek-R1，支持 1.5B / 7B 量化。
     - id: vlm_chat
       name: "Vision Chat (Qwen2.5-VL)"
-      description: Run Qwen2.5-VL on RK3576 for image understanding and visual Q&A. OpenAI-compatible vision API.
+      description: Runs Qwen2.5-VL on RK3576 for image understanding via an OpenAI-compatible API.
       device_groups:
         - id: edge_device
           name: Edge Device
@@ -121,9 +121,9 @@ intro:
           name_i18n:
             zh: 边缘设备
       name_i18n:
-        zh: "视觉对话（Qwen2.5-VL）"
+        zh: 视觉对话（Qwen2.5-VL）
       description_i18n:
-        zh: 在 RK3576 上运行 Qwen2.5-VL，实现图片理解和视觉问答。提供 OpenAI 兼容的视觉 API。
+        zh: RK3576 运行 Qwen2.5-VL，图片理解与问答，兼容 OpenAI API。
   stats:
     difficulty: beginner
     estimated_time: 15min

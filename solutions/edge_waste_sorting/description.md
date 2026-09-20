@@ -30,9 +30,17 @@ Not for: conveyor sorting, or detecting litter on the ground.
 | Trigger to result | **4.122 ms** (reComputer J40 series, Orin NX) |
 | Four-way top-1 | **0.9500** |
 | Material top-1 (8 classes) | **0.8877** |
-| reComputer R2000 (Hailo-8) material / four-way top-1 | **0.8889 / 0.9507**, p50 **3.166 ms** |
+| reComputer R2000 (Hailo-8) material / four-way top-1 | **0.8889 / 0.9507**, p50 **3.166 ms** / p95 **3.249 ms** |
+| reComputer R2000 (Hailo-8) vs fp32 host, same images | **0.12 pp** accuracy difference |
+| reComputer R2000 (Hailo-8) p50→p95 spread | **0.08 ms**, vs **0.69 ms** on the other NPU preset (reComputer RK3588) at the same 3.2 ms median |
+| reCamera (SG2002), 1060-image subset | material top-1 **0.8792**, four-way top-1 **0.9566**, p50 **24.3 ms**, peak resident memory **11.6 MB**; BF16, **+0.47 pp** vs fp32 host on the same images |
+| reCamera Pro, 1060-image subset | material top-1 **0.8764**, four-way top-1 **0.9566**, p50 **5.8 ms** / p95 **6.0 ms**; INT8 is **2.9x** the speed of fp16 on this camera and **4.2x** the reCamera figure; INT8/fp16/host fp32 agree within **0.2 pp** |
+| reComputer RK3588, full 7417-image validation set | material top-1 **0.8882**, p50 **3.2 ms** / p95 **3.9 ms**; fp16 gives the same top-1 at p50 **6.0 ms** (INT8 **1.9x** faster); both within **0.05 pp** of fp32 host |
+| reComputer J30/J40 (TensorRT), 1060-image subset | material top-1 **0.8755**, **99.91%** agreement vs CPU (first measured on J40, reproduces bit-identically on J30) |
+| reComputer R2000 (Hailo-8), inference steadiness | p50 **3.2 ms**, p95 only **0.06 ms** above the median |
+| reComputer R2000 (Hailo-8), INT8 quantization | **2.4** percentage points lower accuracy than the same model on a host |
 
-Test data is photos of single items (full 7417-image validation set on Hailo-8); wet, crushed, stacked or bagged waste is not included.
+Test data is photos of single items (full 7417-image validation set on Hailo-8 and RK3588; a 1060-image subset on the two all-in-one cameras); wet, crushed, stacked or bagged waste is not included.
 
 ## Classifier selection: baseline vs open-vocabulary
 
