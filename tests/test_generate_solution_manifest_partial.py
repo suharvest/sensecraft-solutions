@@ -56,9 +56,17 @@ def test_a_new_solution_is_added_and_reported():
     assert gsm.changed_ids(LIVE, merged) == ["delta"]
 
 
-def test_republishing_identical_content_changes_nothing():
+def test_republishing_identical_content_moves_only_its_own_timestamp():
     merged = gsm.merge_partial_manifest(LIVE, {"alpha": _entry("a1", NOW)}, ["alpha"], NOW)
-    assert gsm.changed_ids(LIVE, merged) == []
+    assert gsm.changed_ids(LIVE, merged) == ["alpha"]          # updated_at, same hash
+    same = gsm.merge_partial_manifest(LIVE, {"alpha": LIVE["solutions"]["alpha"]}, ["alpha"], NOW)
+    assert gsm.changed_ids(LIVE, same) == []
+
+
+def test_changed_ids_compares_whole_entries():
+    other = json.loads(json.dumps(LIVE))
+    other["solutions"]["gamma"]["size"] = 2               # same hash, different size
+    assert gsm.changed_ids(LIVE, other) == ["gamma"]
 
 
 def test_asking_for_something_that_was_not_built_fails():
@@ -79,9 +87,14 @@ def _run(monkeypatch, tmp_path, argv, live=None, fail_fetch=False):
     (sol / "bundled_hashes.json").write_text(
         json.dumps({"alpha": "sha256:old-a", "beta": "sha256:old-b"}) + "\n", encoding="utf-8")
 
-    def fetch(base_url):
+    fetches: list[bool] = []
+
+    def fetch(base_url, from_origin=False):
+        fetches.append(from_origin)
         if fail_fetch:
             raise OSError("network down")
+        if callable(live):
+            return live(len(fetches))
         return live
 
     uploads: list[str] = []
@@ -90,6 +103,7 @@ def _run(monkeypatch, tmp_path, argv, live=None, fail_fetch=False):
     monkeypatch.setattr(gsm, "_dirty_paths", lambda _dir: [])
     out = tmp_path / "dist"
     monkeypatch.setattr(sys, "argv", ["x", "--solutions-dir", str(sol), "--output-dir", str(out), *argv])
+    _run.fetches = fetches
     return sol, out, uploads
 
 
@@ -100,6 +114,9 @@ def test_partial_publish_uploads_one_zip_and_keeps_the_rest(monkeypatch, tmp_pat
     gsm.main()
 
     assert uploads == ["alpha.zip", "manifest.json", "bundled_hashes.json"]
+    # A real publish reads the OSS object, never the CDN -- and reads it again
+    # right before uploading.
+    assert _run.fetches == [True, True]
     assert not (out / "beta.zip").exists()
     manifest = json.loads((out / "manifest.json").read_text())
     assert manifest["solutions"]["beta"] == live["solutions"]["beta"]
@@ -131,3 +148,52 @@ def test_empty_only_is_the_full_publish(monkeypatch, tmp_path):
     gsm.main()
     assert uploads == ["alpha.zip", "beta.zip", "manifest.json", "bundled_hashes.json"]
     assert set(json.loads((out / "manifest.json").read_text())["solutions"]) == {"alpha", "beta"}
+
+
+def test_dry_run_reads_through_the_cdn_and_uploads_nothing(monkeypatch, tmp_path):
+    live = {"version": 1, "generated_at": "t0", "base_url": "u", "deprecated": [],
+            "solutions": {"alpha": _entry("live-a"), "beta": _entry("live-b")}}
+    sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", "alpha", "--no-upload"], live=live)
+    gsm.main()
+    assert uploads == [] and _run.fetches == [False]
+    assert json.loads((sol / "bundled_hashes.json").read_text())["alpha"] == "sha256:old-a"
+
+
+def test_publish_aborts_when_the_baseline_moved_underneath_it(monkeypatch, tmp_path):
+    first = {"version": 1, "generated_at": "t0", "base_url": "u", "deprecated": [],
+             "solutions": {"alpha": _entry("live-a"), "beta": _entry("live-b")}}
+    second = json.loads(json.dumps(first)); second["generated_at"] = "t1"
+    second["solutions"]["beta"] = _entry("someone-elses-publish")
+    sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", "alpha"],
+                              live=lambda n: first if n == 1 else second)
+    with pytest.raises(SystemExit) as exc:
+        gsm.main()
+    assert exc.value.code == 1 and uploads == []
+    # ...and the committed hashes were not touched either.
+    assert json.loads((sol / "bundled_hashes.json").read_text())["alpha"] == "sha256:old-a"
+
+
+@pytest.mark.parametrize("value", [",", " , ", ",,"])
+def test_only_that_names_nothing_is_an_error_not_a_full_publish(monkeypatch, tmp_path, value):
+    _sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", value], live=LIVE)
+    with pytest.raises(SystemExit) as exc:
+        gsm.main()
+    assert exc.value.code == 1 and uploads == []
+
+
+def test_partial_publish_refuses_a_solution_the_live_manifest_retires(monkeypatch, tmp_path):
+    live = {"version": 1, "generated_at": "t0", "base_url": "u", "deprecated": ["alpha"],
+            "solutions": {"beta": _entry("live-b")}}
+    _sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", "alpha"], live=live)
+    with pytest.raises(SystemExit) as exc:
+        gsm.main()
+    assert exc.value.code == 1 and uploads == []
+
+
+def test_partial_publish_refuses_to_write_into_the_solutions_dir(monkeypatch, tmp_path):
+    sol, _out, uploads = _run(monkeypatch, tmp_path, ["--only", "alpha"], live=LIVE)
+    monkeypatch.setattr(sys, "argv", ["x", "--solutions-dir", str(sol), "--output-dir", str(sol), "--only", "alpha"])
+    with pytest.raises(SystemExit) as exc:
+        gsm.main()
+    assert exc.value.code == 1 and uploads == []
+    assert json.loads((sol / "bundled_hashes.json").read_text()) == {"alpha": "sha256:old-a", "beta": "sha256:old-b"}

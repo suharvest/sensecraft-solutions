@@ -22,6 +22,12 @@ on:
         type: string
         default: ""
 
+# One publish at a time, full or partial: each run reads the published manifest,
+# rewrites it and uploads it, so two overlapping runs would lose an update.
+concurrency:
+  group: cdn-publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest

@@ -17,6 +17,7 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 import time
 import sys
 import urllib.request
@@ -186,19 +187,35 @@ def discover_solutions(solutions_dir: Path) -> list[Path]:
     return results
 
 
-def fetch_live_manifest(base_url: str) -> dict:
-    """Return the manifest currently served from *base_url*.
+OSS_PREFIX = "oss://sensecraft-statics/solution-app/solutions"
+
+
+def fetch_live_manifest(base_url: str, from_origin: bool = False) -> dict:
+    """Return the manifest currently published.
 
     A partial publish rewrites that manifest with a few entries replaced, so it
-    has to start from what clients see right now -- not from this checkout,
+    has to start from what is published right now -- not from this checkout,
     which can be any number of unpublished commits ahead. Any failure is fatal:
     publishing a manifest built from nothing would drop every other solution.
+
+    *from_origin* reads the OSS object itself. A real publish must: the CDN in
+    front of it can serve a cached copy, and writing a stale baseline back
+    would silently roll other solutions back to their previous packages while
+    the "only the named entries changed" check still passed. A dry run has no
+    OSS credentials and reads through the CDN, which is fine for a preview.
     """
-    url = f"{base_url.rstrip('/')}/manifest.json?t={int(time.time())}"
-    with urllib.request.urlopen(url, timeout=30) as resp:
-        manifest = json.loads(resp.read().decode("utf-8"))
+    if from_origin:
+        source = f"{OSS_PREFIX}/manifest.json"
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp) / "manifest.json"
+            subprocess.run(["ossutil", "cp", source, str(local), "--force"], check=True)
+            manifest = json.loads(local.read_text(encoding="utf-8"))
+    else:
+        source = f"{base_url.rstrip('/')}/manifest.json?t={int(time.time())}"
+        with urllib.request.urlopen(source, timeout=30) as resp:
+            manifest = json.loads(resp.read().decode("utf-8"))
     if not isinstance(manifest, dict) or not isinstance(manifest.get("solutions"), dict):
-        raise ValueError(f"{url} is not a solution manifest")
+        raise ValueError(f"{source} is not a solution manifest")
     return manifest
 
 
@@ -224,7 +241,9 @@ def merge_partial_manifest(live: dict, built: dict, only: list[str], now: str) -
 def changed_ids(live: dict, merged: dict) -> list[str]:
     """Solution ids whose entry differs between two manifests (added, removed, or re-hashed)."""
     a, b = live.get("solutions", {}), merged.get("solutions", {})
-    return sorted(sid for sid in set(a) | set(b) if a.get(sid, {}).get("hash") != b.get(sid, {}).get("hash"))
+    # Whole entries, not just hashes: size / updated_at / min_app_version of a
+    # solution this run did not build must not move either.
+    return sorted(sid for sid in set(a) | set(b) if a.get(sid) != b.get(sid))
 
 
 def upload_to_oss(local_path: Path, oss_path: str) -> None:
@@ -293,6 +312,11 @@ def main() -> None:
     )
     args = parser.parse_args()
     only: list[str] = [sid.strip() for sid in (args.only or "").split(",") if sid.strip()]
+    if (args.only or "").strip() and not only:
+        # "," or " , " names nothing. Falling through would publish everything,
+        # the opposite of what someone reaching for --only wants.
+        print(f"Error: --only {args.only!r} names no solution", file=sys.stderr)
+        sys.exit(1)
 
     # Resolve solutions directory
     if args.solutions_dir is not None:
@@ -336,14 +360,20 @@ def main() -> None:
         sys.exit(0)
 
     live_manifest: dict | None = None
+    publishing = args.upload and not args.no_upload
     if only:
+        if output_dir == solutions_dir:
+            # The full-manifest hashes are written to output_dir first, which
+            # would overwrite the committed file before the per-key update.
+            print("Error: --only needs an --output-dir other than the solutions directory", file=sys.stderr)
+            sys.exit(1)
         known = {sol.name for sol in solutions}
         unknown = [sid for sid in only if sid not in known]
         if unknown:
             print(f"Error: --only names unknown solution(s): {unknown}", file=sys.stderr)
             sys.exit(1)
         try:
-            live_manifest = fetch_live_manifest(args.base_url)
+            live_manifest = fetch_live_manifest(args.base_url, from_origin=publishing)
         except Exception as e:
             print(
                 f"Error: cannot read the live manifest at {args.base_url}: {e}\n"
@@ -351,8 +381,15 @@ def main() -> None:
                 file=sys.stderr,
             )
             sys.exit(1)
+        retired = [sid for sid in only if sid in (live_manifest.get("deprecated") or [])]
+        if retired:
+            # Clients are told to remove these; shipping a package for one in
+            # the same manifest is a contradiction only a full publish can settle.
+            print(f"Error: {retired} is in the live deprecated list; publish it with a full run", file=sys.stderr)
+            sys.exit(1)
         solutions = [sol for sol in solutions if sol.name in only]
-        print(f"Partial publish: {only} (live manifest from {live_manifest.get('generated_at')})\n")
+        print(f"Partial publish: {only} (live manifest from {live_manifest.get('generated_at')}, "
+              f"read from {'OSS' if publishing else 'the CDN'})\n")
 
     # Load optional deprecation list — IDs of solutions that should be removed
     # from clients that previously had them installed (e.g. merged/retired).
@@ -425,7 +462,6 @@ def main() -> None:
 
     manifest_path = output_dir / "manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    publishing = args.upload and not args.no_upload
 
     print(f"\nWrote {manifest_path}")
 
@@ -434,6 +470,19 @@ def main() -> None:
     hashes_path = output_dir / "bundled_hashes.json"
     hashes_path.write_text(hashes_content, encoding="utf-8")
     print(f"Wrote {hashes_path}")
+
+    if publishing and live_manifest is not None:
+        # Someone else may have published since the baseline was read. The
+        # workflow serializes runs, but this script is also run by hand.
+        latest = fetch_live_manifest(args.base_url, from_origin=True)
+        if latest != live_manifest:
+            print(
+                "Error: the published manifest changed while this run was building "
+                f"({live_manifest.get('generated_at')} -> {latest.get('generated_at')}). "
+                "Nothing was uploaded; run again.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     # The in-repo copy is the runtime source of truth and gets committed, so it
     # is only refreshed on a real publish. A --no-upload run is a dry run and
@@ -457,7 +506,7 @@ def main() -> None:
 
     # Upload unless --no-upload
     if publishing:
-        oss_prefix = "oss://sensecraft-statics/solution-app/solutions"
+        oss_prefix = OSS_PREFIX
         print("\nUploading to OSS ...")
 
         for solution_id in manifest_solutions:
