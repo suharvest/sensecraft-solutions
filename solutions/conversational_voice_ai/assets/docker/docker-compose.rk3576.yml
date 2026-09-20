@@ -1,11 +1,11 @@
-# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260919-envownership
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en
 #   Thin overlay on rk-20260913.3, one file changed (server/core/profile_loader.py):
 #   env set by the operator in this compose is no longer silently overwritten by
 #   the selected profile. Ownership is derived from what the shipped
 #   profiles/leaves declare plus the selected profile's own keys, so a
 #   bind-mounted / OVS_PROFILE_JSON profile for a backend the tree does not carry
 #   yet no longer wins over `-e` values here. index
-#   sha256:c17693df0363a22a3e5d76d344d00b65e3e2a41ac50409f203ea4fb26da7ac7e
+#   sha256:47966ea63759bf3727d05f1645032248c0367683a0f1625a6635b772f48f0456
 # (sha256:d1677071dff68d0be3a3edd26d5959b4598a502ad05162901e509a706723794a, verified with
 # `docker manifest inspect` → linux/arm64, 2026-09-13).
 # Same image as the RK3588 compose (one openvoicestream final-slim tag serves
@@ -35,7 +35,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260919-envownership}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -54,7 +54,7 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260919-envownership}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260920-piper-en}
     container_name: conversational-voice-speech
     privileged: true
     init: true
