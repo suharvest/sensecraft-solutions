@@ -1,8 +1,8 @@
 version: "1.0"
-id: missionpack_industrial_gateway
-name: Industrial Multi-Protocol Data Hub
+id: multi_protocol_gateway
+name: Multi-Protocol Industrial Gateway
 name_i18n:
-  zh: 工业多协议数据中枢
+  zh: 多协议工业网关
 
 intro:
   summary: Bring OPC UA, Modbus, BACnet/IP, and MQTT devices into one point model, then read and control them through one MQTT interface.

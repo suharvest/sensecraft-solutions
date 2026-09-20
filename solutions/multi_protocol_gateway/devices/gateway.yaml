@@ -18,7 +18,7 @@ docker:
     MISSIONPACK_MQTT_PORT: "{{mqtt_port}}"
     TZ: "{{timezone}}"
   options:
-    project_name: missionpack_industrial_gateway
+    project_name: multi_protocol_gateway
     remove_orphans: true
     build: false
   services:

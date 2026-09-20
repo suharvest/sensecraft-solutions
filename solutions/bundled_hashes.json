@@ -13,7 +13,7 @@
   "gun_detection_frigate": "sha256:8a7f8bc8cf71516d464f427c00d3b005989c0db8fe41e918ae22ca2b8500e80a",
   "indoor_positioning_ble_lorawan": "sha256:b95a5525a995814bd0e0c855256e49a3eea62d1fc6a08c3b966d2dcb63fcac9c",
   "jetson_voice_assistant": "sha256:9760ecca196428e70f3e8eac10498746ba7cf81e25bebca1f6f00ff90dca0b4b",
-  "missionpack_industrial_gateway": "sha256:6325234b37608cb6aa6788b68e36f7f3ae720bf966c47f229d530ac09309c19d",
+  "multi_protocol_gateway": "sha256:6325234b37608cb6aa6788b68e36f7f3ae720bf966c47f229d530ac09309c19d",
   "openclaw_deploy": "sha256:96156133ae09968463b65eb70c6f573495867720abf779d52601e9e16516f4e0",
   "people_counting": "sha256:644f7f4e8a54c975970266ad8302305eb2607b50de8f6e84b7f924c7708384c8",
   "reachy_claw_voice_robot": "sha256:77af51b86e9e1ebd1d85c2a9c05221449eb64b6494402fb283c0989974693d5e",
