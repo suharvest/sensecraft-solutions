@@ -13,7 +13,7 @@ detection:
   manual_entry: true
 
 docker:
-  compose_file: ../docker/docker-compose.jetson.yml
+  compose_file: docker/docker-compose.jetson.yml
   remote_path: /home/{{username}}/retail-vision-jetson
   options:
     project_name: retail-vision-jetson
@@ -85,7 +85,8 @@ user_inputs:
       zh: MQTT 端口
 
 pre_checks:
-  - type: docker
+  - type: docker_version
+    min_version: "20.0"
     description: Docker must be installed and running
   - type: disk_space
     min_gb: 4

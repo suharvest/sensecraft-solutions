@@ -17,7 +17,7 @@ docker:
   # endpoint responds. Only lightweight x86 stacks should set this — GPU/Jetson
   # or hardware-flash presets cannot come up in a generic CI runner.
   ci_smoke: true
-  compose_file: ../docker/docker-compose.yml
+  compose_file: docker/docker-compose.yml
   environment:
     DOCKER_INFLUXDB_INIT_USERNAME: admin
     DOCKER_INFLUXDB_INIT_PASSWORD: adminpassword
@@ -49,7 +49,8 @@ user_inputs:
       zh: 只有 ONVIF 发现不到的摄像头才需要填，格式 id=地址，逗号分隔
 
 pre_checks:
-  - type: docker
+  - type: docker_version
+    min_version: "20.0"
     description: Docker must be installed and running
   - type: port_available
     ports:

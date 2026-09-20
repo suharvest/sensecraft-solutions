@@ -10,7 +10,7 @@ detection:
 docker:
   # Shares the docker/ directory with the backend stack — one copy of the
   # grafana, mosquitto, telegraf and heatmap-demo trees for every preset.
-  compose_file: ../docker/docker-compose.rknn.yml
+  compose_file: docker/docker-compose.rknn.yml
   remote_path: /home/{{username}}/retail-vision-rknn
   options:
     project_name: retail-vision-rknn
@@ -97,7 +97,8 @@ user_inputs:
       zh: MQTT 端口
 
 pre_checks:
-  - type: docker
+  - type: docker_version
+    min_version: "20.0"
     description: Docker must be installed and running
   - type: disk_space
     min_gb: 1
