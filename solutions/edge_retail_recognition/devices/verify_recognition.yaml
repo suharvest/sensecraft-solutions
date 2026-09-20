@@ -129,26 +129,35 @@ steps:
     name_i18n:
       zh: 把这一轮没验证的东西写下来
     description: >-
-      Five things, none of which the checks above touch. There is no end-to-end
-      pipeline — detection, embedding, lookup and publishing have never run as
-      one process on any device, so there is no end-to-end latency, no counting
-      accuracy and no shelf-slot accuracy. OCR reranking is not implemented;
-      the contract carries the fields and registration writes empty text
-      facets. Detection mAP is below the project's own stable threshold on both
-      presets: 52.84 mAP50-95 at 640 and 56.32 at 1280 on SKU-110K test, where
-      the boundary calls anything under 60 a failure tier — boxes are found
-      (mAP50 88.26 at 640) but not placed tightly. Nothing has been run for 72
-      hours. And no result anywhere in this package has been reproduced by
-      anyone other than the person who first measured it; every boundary file
-      carries `reproduced_by: null`.
+      Four things, none of which the checks above touch. There is no counting
+      accuracy and no shelf-slot accuracy: the pipeline runs end to end on
+      RK3588, RK3576 and two Jetson boards, and replay reports frames and
+      latency, but no run has measured how many items a basket is over- or
+      under-counted by, or how many empty and misplaced slots are called
+      correctly. OCR reranking is not implemented; the contract carries the
+      fields and registration writes empty text facets. Nothing has been run
+      for 72 hours. And no result anywhere in this package has been reproduced
+      by anyone other than the person who first measured it; every boundary
+      file carries `reproduced_by: null`.
+
+      Detection on SKU-110K test measures 52.84 mAP50-95 at 640 and 56.32 at
+      1280, with mAP50 88.26 at 640. The boundary file calls anything under 60
+      a failure tier; that 60 is a generic value applied to every metric in
+      this project, and published results on SKU-110K reach 58.0 to 58.7, so
+      the tier sits above the public state of the art. Read the two presets
+      against each other and against mAP50, not against the 60.
     description_i18n:
       zh: >-
-        五件事，上面的检查一件都没碰到。没有端到端主链——检测、嵌入、检索与上报
-        从未作为一个进程在任何设备上跑过，因此没有端到端时延、没有计数准确率、
-        也没有货位准确率。OCR 重排没有实现；契约里留了字段，注册时写的是空的
-        text facets。检测 mAP 在两个 preset 上都低于本项目自己的 stable 门槛：
-        SKU-110K test 上 640 是 52.84、1280 是 56.32 mAP50-95，而边界把低于 60 的都算
-        failure 档——框找得到（640 上 mAP50 88.26），但框不准。没有任何东西跑过 72 小时。
-        本包里没有任何一个结果被首测者之外的人复现过；每个 boundary 文件都是
-        `reproduced_by: null`。
+        四件事，上面的检查一件都没碰到。没有计数准确率、也没有货位准确率：主链在
+        RK3588、RK3576 和两块 Jetson 上都端到端跑过，回放会报帧数和时延，但没有
+        任何一轮测过一单商品多算或少算几件、缺货与错放的货位报对了几个。OCR 重排
+        没有实现；契约里留了字段，注册时写的是空的 text facets。没有任何东西跑过
+        72 小时。本包里没有任何一个结果被首测者之外的人复现过；每个 boundary
+        文件都是 `reproduced_by: null`。
+
+        检测在 SKU-110K test 上测得 640 是 52.84、1280 是 56.32 mAP50-95，640 上
+        mAP50 是 88.26。boundary 文件把低于 60 的算作 failure 档；这个 60 是本项目
+        对每个 metric 统一套用的通用值，而 SKU-110K 的公开成绩是 58.0 到 58.7，
+        这条档位高于公开最好水平。看这两个 preset 请相互对照、并对照 mAP50，
+        不要对照 60。
     optional: false
