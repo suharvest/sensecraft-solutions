@@ -213,22 +213,20 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 - 摄像头通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
 - 摄像头能访问 `http://<服务器 IP>:8080`。
 - `/userdata` 至少 20 MB 空闲。
+- 器材：Grove Relay（SKU 103020005）、它自带的 4 芯 Grove 线、杜邦线（排针不是 Grove 座，Grove 线另一端要转成单根）、一路 3.3–5 V 电源、万用表。
 
 ### 接线
 
 ![reCamera 2002 HQ PoE 继电器接线](gallery/wiring-recamera-2002-poe.svg)
 
-准备：Grove Relay（SKU 103020005）、它自带的 4 芯 Grove 线、杜邦线（排针不是 Grove 座，Grove 线另一端要转成单根）、一路 3.3–5 V 电源、万用表。
-
-排针脚位（[官方 wiki](https://wiki.seeedstudio.com/reCamera_hq_poe_hardware_and_specs/)）：**GND、GPIO488、GPIO487、TX、GPIO490、RX**。三路 IO 是 D1 = GPIO490、CLK = GPIO487、SMD = GPIO488，本方案用 D1。
-
-1. **排针没有供电脚**，继电器 VCC 另外取电，见下方「继电器怎么取电」。GPIO 输出 3.3 V 逻辑电平，而 Grove Relay 工作电流 100 mA，GPIO 带不动，只接 SIG。这条路线不需要 XIAO。
-2. **电平未文档化**，接继电器之前先用万用表量 GPIO490 的高电平。
-3. **接三根线**，继电器的 NC 线不接：排针 GPIO490 → 继电器 **SIG**，5 V → **VCC**，排针 GND → **GND**（取电电源的地也接到这里）。
-4. **先用 LED 试。** LED 加限流电阻接在 GPIO490 与 GND 之间，部署后看它是否按配置的脉宽亮一次；确认引脚和极性都对，再换成继电器。
-5. **确认继电器每个脉冲响一次。** 不响就回到第 2 步核对电平。
-6. **接门禁控制器。** 继电器 **COM** 与 **NO** 接门控的开门输入，这两个端子上量不到我们的电压。断电开门的电磁锁需要常闭触点，Grove Relay 没有 NC 端子，换 Grove - SPDT Relay 30A（SKU 103020012），接 COM 与 NC。
-7. 在表单中填写设备 ID 和执行器 ID。
+1. **认准排针脚位**（[官方 wiki](https://wiki.seeedstudio.com/reCamera_hq_poe_hardware_and_specs/)）：**GND、GPIO488、GPIO487、TX、GPIO490、RX**。三路 IO 是 D1 = GPIO490、CLK = GPIO487、SMD = GPIO488，本方案用 D1。
+2. **排针没有供电脚**，继电器 VCC 另外取电，见下方「继电器怎么取电」。GPIO 输出 3.3 V 逻辑电平，而 Grove Relay 工作电流 100 mA，GPIO 带不动，只接 SIG。这条路线不需要 XIAO。
+3. **电平未文档化**，接继电器之前先用万用表量 GPIO490 的高电平。
+4. **接三根线**，继电器的 NC 线不接：排针 GPIO490 → 继电器 **SIG**，5 V → **VCC**，排针 GND → **GND**（取电电源的地也接到这里）。
+5. **先用 LED 试。** LED 加限流电阻接在 GPIO490 与 GND 之间，部署后看它是否按配置的脉宽亮一次；确认引脚和极性都对，再换成继电器。
+6. **确认继电器每个脉冲响一次。** 不响就回到第 3 步核对电平。
+7. **接门禁控制器。** 继电器 **COM** 与 **NO** 接门控的开门输入，这两个端子上量不到我们的电压。断电开门的电磁锁需要常闭触点，Grove Relay 没有 NC 端子，换 Grove - SPDT Relay 30A（SKU 103020012），接 COM 与 NC。
+8. 在表单中填写设备 ID 和执行器 ID。人脸库地址、匹配阈值、签名密钥已从步骤 1 带入；只有摄像头访问服务器的地址不同才需要改地址。然后部署。
 
 **继电器怎么取电。** 两种都行：
 
@@ -236,7 +234,7 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 
 板上焊接——PoE 底板（B3 PoE v1.2）上有 5 V 与 GND 焊盘，位置见下图，焊两根线出来。PoE 供电总量有限（板上保险 2 A、主路标称 1.2 A），继电器 100 mA 在余量内。焊前用万用表确认这两点是 5 V 与 GND。
 
-![reCamera B3 PoE 底板上的 5V 与 GND 焊盘](gallery/poe-5v-gnd-pads.jpg)人脸库地址、匹配阈值、签名密钥已从步骤 1 带入；只有摄像头访问服务器的地址不同才需要改地址。然后部署。
+![reCamera B3 PoE 底板上的 5V 与 GND 焊盘](gallery/poe-5v-gnd-pads.jpg)
 
 ### 故障排查
 
