@@ -142,18 +142,21 @@ services:
       start_period: 300s
 
   agent:
-    # voiceagent-20260921-bargein.2: index
-    # sha256:921f3f9092dfdff2356ee072d7eb50a48561f93e799832f6e39b231c79d57ac9
-    # (linux/arm64 sha256:1753a7e944e5cb7332f89e9ca0238a19618da7d432efba3798123b5cb7e251c4).
+    # voiceagent-20260921-bargein.3: index
+    # sha256:44edad9f9e80de12a71848a419a85274e6afeb28748954d08d295e104d879352
+    # (linux/arm64 sha256:1e576dd2dfd2bd6f923b9884f8d9bfa87586d67292ab524ef88bbe9cf9d4db41).
     # Thin overlay on voiceagent-20260914-runtimekws, four files from
-    # openvoicestream c03e28f (PRs #110, #111):
+    # openvoicestream 03bc82a (PRs #110, #111, #113):
     #   * barge-in keeps the utterance the user interrupts with (abort keep_asr)
     #   * "Stop, <new instruction>" reaches the LLM instead of ending the turn
     #   * a new user turn cuts the previous reply that is still playing
     #   * the LLM health probe uses GET /health when the server reports a
     #     status, instead of a chat request; with the local RK1828 LLM that
     #     request evicted the prompt cache (TTFT 2.0-2.6 s -> 0.14-0.30 s)
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.2}
+    #   * the LLM warmup no longer registers tools the conversation never uses
+    #     (with the local RK1828 LLM they stuck and the model sometimes
+    #     answered with raw <tool_call> text)
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.3}
     container_name: conversational-voice-agent
     init: true
     network_mode: host
