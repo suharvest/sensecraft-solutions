@@ -1,7 +1,7 @@
 {
   "agri_env_monitor": "sha256:b21de96ae37ab61988a4cf5c61fbde287ae4a8e166c26065ee8fa868f1457dc3",
   "ai_lab": "sha256:1f2862f773940e6f7486aeee8fd74cf4d8fd3a945e3bcf24953fb8dcf40f0c1f",
-  "conversational_voice_ai": "sha256:1eade0373abf0781d4573ecc0b98a8fbd960168c211aca8d35e13455be1ee015",
+  "conversational_voice_ai": "sha256:9b3f919c2c5f21574ba48e5c3fcc4f2f96ba835dfb4fde13319b03e197acf0f5",
   "depth_anything_v3": "sha256:9b5474691d77fd36c139592725d361b2f52f3c932e3924d4ddb7af5261405044",
   "edge_inspection_assembly": "sha256:b52b67e9281e6eec1f63958e72f969722c4382b7cecdd0d202c05afd83d07fc3",
   "edge_inspection_surface": "sha256:b8953ed649d175b05e2e3b2deb9af5cea5032cd48fd3efcab0e98d76b0f54cae",
@@ -29,7 +29,7 @@
   "smart_hvac_control": "sha256:b7890e52c1c6693ad231b710d3cf46b6baf4c1aed577df546c4494dde401b241",
   "smart_space_assistant": "sha256:d592eab1c942fba155d1aca73facb69509728f7888e32809dc3c0d3956a86c04",
   "smart_warehouse": "sha256:39393446afc19edc2bb649fcf0da0d904de4d002718d6a422c5dee45af019454",
-  "unmanned_store_access": "sha256:a57127d3fbc0ed729ade84df463766526bb238e66d9b9b0f161f2ace589d4837",
+  "unmanned_store_access": "sha256:c703baf5416c857e5f26d83cb6bc77e7ec45749282b3f1d222335e5e082e1109",
   "voice_rebot_arm": "sha256:a23bdb8d56d7f7e8dabd88ae9cd21df82741c485991ea3687dc9aa5bd2c7f29b",
   "voice_robot_lekiwi": "sha256:c700114fc1b109f01695ba4c4a48d08bc663dd5c9e214027351d9612325cf2cd",
   "z_image_turbo": "sha256:5f3357b3c6bff14067d23c446d504d6111c375792f237db9f3615bf43dae17ae"
