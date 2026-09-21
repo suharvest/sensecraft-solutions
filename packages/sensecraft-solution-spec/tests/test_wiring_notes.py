@@ -73,3 +73,21 @@ def test_image_line_inside_a_fence_is_kept_verbatim():
     image, _, notes = extract_wiring_for_lang(content)
     assert image == "a.png"
     assert "![b](b.png)" in notes
+
+
+def test_indented_code_line_with_the_same_url_is_kept_as_code():
+    # Same URL as the real first image, but a code block: it must stay in notes
+    # as code, and the real image line is the one consumed.
+    content = "    ![code](a.png)\n\n![a](a.png)\n\n![b](b.png)\n"
+    image, _, notes = extract_wiring_for_lang(content)
+    assert image == "a.png"
+    assert "    ![code](a.png)" in notes
+    assert "![a](a.png)" not in notes
+    assert "![b](b.png)" in notes
+
+
+def test_repeated_image_consumes_only_the_first_occurrence():
+    content = "![a](a.png)\n\ntext\n\n![a](a.png)\n"
+    image, _, notes = extract_wiring_for_lang(content)
+    assert image == "a.png"
+    assert notes.count("![a](a.png)") == 1
