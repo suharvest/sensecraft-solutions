@@ -404,14 +404,14 @@ def extract_wiring_for_lang(content: str) -> tuple[Optional[str], list[str], str
         image = imgs[0]
 
     steps = _extract_wiring_steps(content)
-    notes = _extract_wiring_notes(content)
+    notes = _extract_wiring_notes(content, image)
     return image, steps, notes
 
 
 IMAGE_ONLY_PATTERN = re.compile(r"^!\[[^\]]*\]\([^)]*\)\s*$")
 
 
-def _extract_wiring_notes(content: str) -> str:
+def _extract_wiring_notes(content: str, image: Optional[str] = None) -> str:
     """Return the wiring section's prose — everything ``_extract_wiring_steps``
     and the image extraction do NOT consume.
 
@@ -419,18 +419,25 @@ def _extract_wiring_notes(content: str) -> str:
     sentences, trailing explanations after the numbered list, ``> **Note:**``
     callouts (excluded from steps by design) and fenced command blocks.
 
-    Consumed elsewhere, so skipped here: the first image line (it becomes
-    ``wiring.image``), list items at any indent (nested items are merged into
-    their parent step) and table rows. Later image-only lines are kept -- only
-    one image is consumed, so the rest belong to the prose that references
-    them. Blank lines are preserved so paragraph and block-quote structure
-    survives the markdown -> HTML conversion.
+    Consumed elsewhere, so skipped here: the image line that became
+    ``wiring.image``, list items at any indent (nested items are merged into
+    their parent step) and table rows. Every other image-only line is kept --
+    only one image is consumed, so the rest belong to the prose around them.
+
+    ``image`` is the URL the AST picked as ``wiring.image``. The line to skip
+    is the first image-only line whose URL, normalised by the same parser,
+    equals it -- not simply the first image-only line, which may be an
+    indented code line the AST does not count as an image. When the chosen
+    image sits inline in a paragraph, no line matches and nothing is skipped.
+
+    Blank lines are preserved so paragraph and block-quote structure survives
+    the markdown -> HTML conversion.
     """
     lines = content.split("\n")
     unfenced_idx = {idx for idx, _ in md_ast.iter_unfenced_lines(lines)}
 
     kept: list[str] = []
-    image_consumed = False
+    image_consumed = image is None
     for i, raw in enumerate(lines):
         stripped = raw.strip()
         if not stripped:
@@ -440,7 +447,11 @@ def _extract_wiring_notes(content: str) -> str:
             # Inside a fenced block (or the fence line itself): keep verbatim.
             kept.append(raw)
             continue
-        if IMAGE_ONLY_PATTERN.match(stripped) and not image_consumed:
+        if (
+            not image_consumed
+            and IMAGE_ONLY_PATTERN.match(stripped)
+            and md_ast.extract_images(md_ast.parse(stripped)) == [image]
+        ):
             image_consumed = True
             continue
         if stripped.startswith("|"):
