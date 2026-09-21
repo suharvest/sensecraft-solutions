@@ -419,15 +419,18 @@ def _extract_wiring_notes(content: str) -> str:
     sentences, trailing explanations after the numbered list, ``> **Note:**``
     callouts (excluded from steps by design) and fenced command blocks.
 
-    Consumed elsewhere, so skipped here: the image line, list items at any
-    indent (nested items are merged into their parent step) and table rows.
-    Blank lines are preserved so paragraph and block-quote structure survives
-    the markdown -> HTML conversion.
+    Consumed elsewhere, so skipped here: the first image line (it becomes
+    ``wiring.image``), list items at any indent (nested items are merged into
+    their parent step) and table rows. Later image-only lines are kept -- only
+    one image is consumed, so the rest belong to the prose that references
+    them. Blank lines are preserved so paragraph and block-quote structure
+    survives the markdown -> HTML conversion.
     """
     lines = content.split("\n")
     unfenced_idx = {idx for idx, _ in md_ast.iter_unfenced_lines(lines)}
 
     kept: list[str] = []
+    image_consumed = False
     for i, raw in enumerate(lines):
         stripped = raw.strip()
         if not stripped:
@@ -437,7 +440,8 @@ def _extract_wiring_notes(content: str) -> str:
             # Inside a fenced block (or the fence line itself): keep verbatim.
             kept.append(raw)
             continue
-        if IMAGE_ONLY_PATTERN.match(stripped):
+        if IMAGE_ONLY_PATTERN.match(stripped) and not image_consumed:
+            image_consumed = True
             continue
         if stripped.startswith("|"):
             continue
