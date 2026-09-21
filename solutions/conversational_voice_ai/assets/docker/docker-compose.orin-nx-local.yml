@@ -119,7 +119,20 @@ services:
       start_period: 900s
 
   agent:
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260914-runtimekws}
+    # voiceagent-20260921-bargein.2: index
+    # sha256:921f3f9092dfdff2356ee072d7eb50a48561f93e799832f6e39b231c79d57ac9
+    # (linux/arm64 sha256:1753a7e944e5cb7332f89e9ca0238a19618da7d432efba3798123b5cb7e251c4).
+    # Thin overlay on voiceagent-20260914-runtimekws, four files from
+    # openvoicestream c03e28f (PRs #110, #111):
+    #   * barge-in keeps the utterance the user interrupts with (abort keep_asr)
+    #   * "Stop, <new instruction>" reaches the LLM instead of ending the turn
+    #   * a new user turn cuts the previous reply that is still playing
+    #   * the LLM health probe uses GET /health when the server reports a
+    #     status, instead of a chat request; with the local RK1828 LLM that
+    #     request evicted the prompt cache (TTFT 2.0-2.6 s -> 0.14-0.30 s)
+    # The speech image in this file predates keep_asr and ignores it, so
+    # barge-in here still drops the words spoken before it fires.
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.2}
     container_name: conversational-voice-agent
     init: true
     network_mode: host

@@ -1,4 +1,16 @@
-# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein
+#   index sha256:66c1609280eca64c2e9559f61f047e8d7f593c80d9e136787ac048cdb05fda33
+#   (linux/arm64 sha256:8e24d89a35215906df10779de85d0045a83fea0662d8a386a968d74dd34d041f).
+#   Thin overlay on rk-20260921-twosentence, two files from openvoicestream
+#   c6259e0 (PR #110): an `abort` carrying keep_asr cancels TTS only and keeps
+#   the ASR utterance the user is interrupting with (bounded by
+#   OVS_V2V_ABORT_KEEP_ASR_MAX_S, default 5 s). Measured on an RK3588 devkit:
+#   "Stop, please answer in one sentence." spoken over a reply reached the LLM
+#   whole, 3/3 with a cloud LLM and 3/3 with the local RK1828 LLM (before:
+#   "One sentence.").
+#   Same server change on RK3576; the barge-in run was on RK3588 only.
+# Previous speech image, still the base of the one above:
+#   sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence
 #   index sha256:f05c121d6bb7128e78c47739d5300d6c12b28308c49136e0a58bf6ed1506a81d
 #   (linux/arm64 sha256:eb05622a4815373eceef86f5dbf6244e9749d42dbb6270e865c8146d106cbc29).
 #   Three thin overlays on rk-20260920-piper-en, each measured on RK3588 (radxa)
@@ -50,7 +62,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -69,7 +81,7 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
     container_name: conversational-voice-speech
     privileged: true
     init: true
@@ -130,7 +142,18 @@ services:
       start_period: 300s
 
   agent:
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260914-runtimekws}
+    # voiceagent-20260921-bargein.2: index
+    # sha256:921f3f9092dfdff2356ee072d7eb50a48561f93e799832f6e39b231c79d57ac9
+    # (linux/arm64 sha256:1753a7e944e5cb7332f89e9ca0238a19618da7d432efba3798123b5cb7e251c4).
+    # Thin overlay on voiceagent-20260914-runtimekws, four files from
+    # openvoicestream c03e28f (PRs #110, #111):
+    #   * barge-in keeps the utterance the user interrupts with (abort keep_asr)
+    #   * "Stop, <new instruction>" reaches the LLM instead of ending the turn
+    #   * a new user turn cuts the previous reply that is still playing
+    #   * the LLM health probe uses GET /health when the server reports a
+    #     status, instead of a chat request; with the local RK1828 LLM that
+    #     request evicted the prompt cache (TTFT 2.0-2.6 s -> 0.14-0.30 s)
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.2}
     container_name: conversational-voice-agent
     init: true
     network_mode: host
