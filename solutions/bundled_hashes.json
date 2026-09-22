@@ -1,7 +1,7 @@
 {
   "agri_env_monitor": "sha256:b21de96ae37ab61988a4cf5c61fbde287ae4a8e166c26065ee8fa868f1457dc3",
   "ai_lab": "sha256:1f2862f773940e6f7486aeee8fd74cf4d8fd3a945e3bcf24953fb8dcf40f0c1f",
-  "conversational_voice_ai": "sha256:9b3f919c2c5f21574ba48e5c3fcc4f2f96ba835dfb4fde13319b03e197acf0f5",
+  "conversational_voice_ai": "sha256:4d35e7cdd2dab184423eec65f888559647ecbe446356e000870be85f9a4b61bd",
   "depth_anything_v3": "sha256:9b5474691d77fd36c139592725d361b2f52f3c932e3924d4ddb7af5261405044",
   "edge_inspection_assembly": "sha256:b52b67e9281e6eec1f63958e72f969722c4382b7cecdd0d202c05afd83d07fc3",
   "edge_inspection_surface": "sha256:b8953ed649d175b05e2e3b2deb9af5cea5032cd48fd3efcab0e98d76b0f54cae",
