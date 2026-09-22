@@ -32,6 +32,8 @@
 | 返回 401 | 确认 API Key 属于接口所在地域 |
 | 能识别但不说话 | 查看 agent 日志中的大模型请求错误，确认模型支持流式输出 |
 | 拔插麦克风后没有声音 | 确认运行的是新版 Agent 镜像 |
+| assistant 声音太小或忽大忽小 | 音量由主机混音器控制，部署时已固定为 85%；桌面音量滑块不起作用，因为 agent 独占了 ALSA 设备。如需调整：`RESPEAKER_VOLUME=90% /usr/local/sbin/respeaker-volume.sh` |
+| 麦克风阵列有时不在线 / 开机后设备缺失 | 部署已安装开机自恢复与每 60 秒的看门狗，会自动复位开发板集线器；如需手动恢复：`sudo python3 /usr/local/sbin/hub-reset.py`；仍未恢复时请更换 USB 线缆或接口 |
 
 ### 部署目标 {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
 
