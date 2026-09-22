@@ -254,3 +254,29 @@ remote_overrides:
         - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
         - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
         - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
+  actions:
+    before:
+      # Same name as the jetson device-class profile action, so the profile
+      # copy is dropped and this one runs instead. `sudo: true` makes the SSH
+      # executor feed the password via `sudo -S`; the profile copy calls bare
+      # `sudo` and fails with "a terminal is required" on stock JetPack images
+      # where the login user has no NOPASSWD sudo.
+      - name: Fix Docker iptables for JetPack 6.x
+        scope: remote
+        ignore_error: false
+        sudo: true
+        run: |
+          CONF="/etc/systemd/system/docker.service.d/disable-raw-table.conf"
+          if [ -f "$CONF" ] && grep -q "DOCKER_INSECURE_NO_IPTABLES_RAW=1" "$CONF" 2>/dev/null; then
+            echo "Docker iptables fix already applied"
+          else
+            echo "Applying Docker iptables raw table fix for JetPack 6.x..."
+            mkdir -p /etc/systemd/system/docker.service.d
+            printf '[Service]\nEnvironment="DOCKER_INSECURE_NO_IPTABLES_RAW=1"\n' > "$CONF"
+            systemctl daemon-reload
+            systemctl restart docker
+            sleep 2
+            echo "Docker iptables fix applied"
+          fi
+        name_i18n:
+          zh: 修复 JetPack 6.x Docker 网络问题
