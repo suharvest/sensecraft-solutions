@@ -13,13 +13,34 @@ REST API, started headless for the duration (see ``_engine_http``).
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
+import urllib.error
 from typing import Any, Dict, List, Optional
 
 from .._engine_http import EngineHttpError, get, headless_engine, post
 
 _POLL_SECONDS = 1.0
+
+# Engine messages can quote the request that caused them, and a deploy
+# request carries an SSH password. Never print one.
+_SECRET_KEYS = r"password|passwd|secret|token|api[_-]?key|private[_-]?key"
+# key followed by : or =, then a quoted or bare value.
+_SECRET_RE = re.compile(
+    rf"""(?P<key>["']?\b(?:{_SECRET_KEYS})\b["']?\s*[:=]\s*)
+         (?P<value>"[^"]*"|'[^']*'|\S+)""",
+    re.I | re.X,
+)
+
+
+def _redact(text: object) -> str:
+    """Mask credential-looking values in anything we print.
+
+    Engine messages can quote the request that caused them, and a deploy
+    request carries an SSH password; a CI log is forever.
+    """
+    return _SECRET_RE.sub(lambda m: f"{m.group('key')}<REDACTED>", str(text))
 
 
 def _human(n: int) -> str:
@@ -32,33 +53,42 @@ def _human(n: int) -> str:
     return f"{value:.1f} TB"
 
 
-def _parse_pairs(values: Optional[List[str]], what: str) -> Dict[str, str]:
-    """``--target step=target`` style options into a dict."""
-    out: Dict[str, str] = {}
+def _parse_pairs(values: Optional[List[str]], what: str) -> Dict[str, List[str]]:
+    """``--target step=value`` options into ``{step: [values]}``.
+
+    Repeating a step is how several targets of one step are staged, so the
+    values accumulate; repeating the exact same pair is rejected rather than
+    silently collapsed.
+    """
+    out: Dict[str, List[str]] = {}
     for raw in values or []:
         key, sep, value = raw.partition("=")
-        if not sep or not key.strip():
+        key, value = key.strip(), value.strip()
+        if not sep or not key or not value:
             raise ValueError(f"--{what} expects <step>=<value>, got {raw!r}")
-        out[key.strip()] = value.strip()
+        bucket = out.setdefault(key, [])
+        if value in bucket:
+            raise ValueError(f"--{what} {key}={value} given twice")
+        bucket.append(value)
     return out
 
 
-def _targets_arg(targets: Dict[str, str]) -> Optional[Dict[str, List[str]]]:
-    """The API takes a list of targets per step; the CLI takes one each."""
-    if not targets:
-        return None
-    grouped: Dict[str, List[str]] = {}
-    for step, target in targets.items():
-        grouped.setdefault(step, []).append(target)
-    return grouped
+def _single(pairs: Dict[str, List[str]], what: str) -> Dict[str, str]:
+    """One value per step (architectures, unlike targets, are not repeated)."""
+    out = {}
+    for step, values in pairs.items():
+        if len(values) > 1:
+            raise ValueError(f"--{what} for {step} given more than once")
+        out[step] = values[0]
+    return out
 
 
 def _plan_payload(args) -> Dict[str, Any]:
     return {
         "solution_id": args.solution_id,
         "preset_id": args.preset,
-        "targets": _targets_arg(_parse_pairs(args.target, "target")),
-        "arch": _parse_pairs(args.arch, "arch"),
+        "targets": _parse_pairs(args.target, "target") or None,
+        "arch": _single(_parse_pairs(args.arch, "arch"), "arch"),
         "params": json.loads(args.params) if args.params else {},
         "verify": True,
         "lang": args.lang or "en",
@@ -73,7 +103,7 @@ def _print_entries(entries: List[dict], *, show_items: bool = True) -> None:
         for reason in entry.get("reasons") or []:
             print(f"    partial: {reason}")
         for error in entry.get("errors") or []:
-            print(f"    error: {error}")
+            print(f"    error: {_redact(error)}")
         if not show_items:
             continue
         for item in entry.get("items") or []:
@@ -137,7 +167,7 @@ def prepare(args) -> int:
         print(f"{job.get('status')}: {job.get('message', '')}")
         _print_entries(job.get("entries") or [])
         for error in job.get("errors") or []:
-            print(f"    error: {error}")
+            print(f"    error: {_redact(error)}")
     if job.get("status") != "completed":
         return 2
     return _exit_code(job.get("entries") or [], args.require_full)
@@ -154,7 +184,8 @@ def list_entries(args) -> int:
     entries = data.get("entries") or []
     if args.json:
         print(json.dumps({**data, "changes": changes}, ensure_ascii=False, indent=2))
-        return _exit_code(entries, getattr(args, "require_full", False))
+        # A listing reports, it does not judge -- same exit code either way.
+        return 0
     if not entries:
         print("Nothing prepared on this machine.")
         return 0
@@ -189,7 +220,7 @@ def _refs(args) -> List[dict]:
     refs = []
     for raw in args.entry or []:
         parts = raw.split("/")
-        if len(parts) < 3:
+        if not 3 <= len(parts) <= 5 or any(not p.strip() for p in parts[:3]):
             raise ValueError(
                 f"--entry expects solution/preset/step[/target[/arch]], got {raw!r}"
             )
@@ -252,7 +283,7 @@ def import_(args) -> int:
         f"skipped {len(data.get('skipped') or [])} (already here)"
     )
     for problem in (data.get("conflicts") or []) + (data.get("incomplete") or []):
-        print(f"    {problem}", file=sys.stderr)
+        print(f"    {_redact(problem)}", file=sys.stderr)
     return 1 if (data.get("conflicts") or data.get("incomplete")) else 0
 
 
@@ -277,5 +308,10 @@ def run(args) -> int:
         print(f"error: {e}", file=sys.stderr)
         return 2
     except EngineHttpError as e:
-        print(f"error: {e.detail}", file=sys.stderr)
+        print(f"error: {_redact(e.detail)}", file=sys.stderr)
+        return 2
+    except (RuntimeError, urllib.error.URLError, OSError, TimeoutError) as e:
+        # The engine could not be started or stopped answering: say so
+        # instead of a traceback.
+        print(f"error: engine unavailable: {_redact(e)}", file=sys.stderr)
         return 2

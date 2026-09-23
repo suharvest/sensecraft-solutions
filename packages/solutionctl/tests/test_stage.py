@@ -269,3 +269,94 @@ def test_json_mode_prints_the_payload_unchanged(capsys):
     with _engine({("POST", "/api/staging/plan"): data}):
         stage.plan(_args(json=True))
     assert json.loads(capsys.readouterr().out) == data
+
+
+# --------------------------------------------------------------------------- #
+# Never print a credential; never hand back a traceback
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        'connection {"host": "1.2.3.4", "password": "hunter2"}',
+        "connection {'username': 'pi', 'password': 'hunter2'}",
+        "ssh failed: password=hunter2",
+        'api_key: "hunter2"',
+    ],
+)
+def test_engine_messages_are_redacted(text):
+    assert "hunter2" not in stage._redact(text)
+    assert "<REDACTED>" in stage._redact(text)
+
+
+def test_http_error_detail_is_redacted(capsys):
+    def boom(*a, **kw):
+        raise stage.EngineHttpError(
+            400, 'bad request for {"host": "1.2.3.4", "password": "hunter2"}'
+        )
+
+    @contextmanager
+    def fake_engine(solutions_dir=None):
+        yield "http://engine"
+
+    with patch.object(stage, "headless_engine", fake_engine), patch.object(
+        stage, "post", boom
+    ):
+        assert stage.run(_args()) == 2
+    err = capsys.readouterr().err
+    assert "hunter2" not in err and "<REDACTED>" in err
+
+
+def test_engine_that_will_not_start_is_reported_not_raised(capsys):
+    @contextmanager
+    def fake_engine(solutions_dir=None):
+        raise RuntimeError("engine did not report a ready line (serve --headless)")
+        yield  # pragma: no cover
+
+    with patch.object(stage, "headless_engine", fake_engine):
+        assert stage.run(_args()) == 2
+    assert "engine unavailable" in capsys.readouterr().err
+
+
+# --------------------------------------------------------------------------- #
+# Option shapes
+# --------------------------------------------------------------------------- #
+
+
+def test_repeating_a_step_stages_several_targets():
+    args = _args(target=["step1=rk", "step1=j40"])
+    with _engine({("POST", "/api/staging/plan"): {"entries": []}}) as calls:
+        stage.plan(args)
+    assert calls[0][2]["targets"] == {"step1": ["rk", "j40"]}
+
+
+@pytest.mark.parametrize(
+    "option,value",
+    [("target", ["step1=rk", "step1=rk"]), ("arch", ["step1=aarch64", "step1=x86_64"])],
+)
+def test_contradictory_or_duplicate_options_are_refused(option, value, capsys):
+    assert stage.run(_args(**{option: value})) == 2
+    err = capsys.readouterr().err
+    assert "twice" in err or "more than once" in err
+
+
+@pytest.mark.parametrize("raw", ["s/p", "s/p/step/rk/aarch64/extra", "s//step", "s/p/"])
+def test_malformed_entry_refs_are_refused(raw, capsys):
+    assert stage.run(_args(stage_command="delete", entry=[raw])) == 2
+    assert "--entry expects" in capsys.readouterr().err
+
+
+def test_list_exit_code_is_the_same_with_and_without_json():
+    responses = {
+        ("GET", "/api/staging/entries"): {
+            "entries": [_entry(("missing",))],
+            "total_bytes": 0,
+            "files": 0,
+        }
+    }
+    with _engine(responses):
+        text_rc = stage.list_entries(_args(check=False))
+    with _engine(responses):
+        json_rc = stage.list_entries(_args(check=False, json=True))
+    assert text_rc == json_rc == 0

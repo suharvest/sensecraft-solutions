@@ -15,7 +15,8 @@ from .._engine_http import get, headless_engine
 def list_apps() -> int:
     """List active/deployed applications via the REST API."""
     with headless_engine() as base_url:
-        data = get(base_url, "/api/device-management/active")
+        # 15 s as before this call moved into _engine_http.
+        data = get(base_url, "/api/device-management/active", timeout=15.0)
     print(json.dumps(data, ensure_ascii=False, indent=2))
     return 0
 
