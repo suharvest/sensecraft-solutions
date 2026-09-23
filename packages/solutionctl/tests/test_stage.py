@@ -388,3 +388,57 @@ def test_json_output_is_redacted_and_still_parses(capsys):
     assert "hunter2" not in raw
     parsed = json.loads(raw)  # structure intact
     assert "<REDACTED>" in parsed["entries"][0]["items"][0]["detail"]
+
+
+def test_secret_as_its_own_json_field_is_masked(capsys):
+    """Key and value are separate nodes there: no string shows both, so the
+    text pattern alone would miss it."""
+    entry = _entry(("ready",))
+    entry["params"] = {"board": "rk3588", "password": "hunter2"}
+    with _engine({("POST", "/api/staging/plan"): {"entries": [entry]}}):
+        stage.plan(_args(json=True))
+    raw = capsys.readouterr().out
+    assert "hunter2" not in raw
+    parsed = json.loads(raw)
+    assert parsed["entries"][0]["params"] == {"board": "rk3588", "password": "<REDACTED>"}
+
+
+def test_escaped_quotes_inside_a_secret_do_not_leak():
+    text = r'connection {"password": "hun\"ter2", "host": "1.2.3.4"}'
+    out = stage._redact(text)
+    assert "hun" not in out and "ter2" not in out
+    assert "1.2.3.4" in out  # the rest of the message survives
+
+
+def test_a_token_in_a_download_url_is_masked(capsys):
+    entry = _entry(("missing",))
+    entry["items"][0]["source"] = "https://cdn.example/m.bin?token=hunter2"
+    with _engine({("POST", "/api/staging/plan"): {"entries": [entry]}}):
+        stage.plan(_args())
+    out = capsys.readouterr().out
+    assert "hunter2" not in out and "cdn.example" in out
+
+
+def test_change_errors_are_masked(capsys):
+    responses = {
+        ("GET", "/api/staging/entries"): {
+            "entries": [_entry(("ready",))],
+            "total_bytes": 0,
+            "files": 0,
+        },
+        ("POST", "/api/staging/entries/changes"): {
+            "changes": [
+                {
+                    "key": "sol/p/step1/rk/aarch64",
+                    "added": [],
+                    "changed": [],
+                    "removed": [],
+                    "stale": False,
+                    "error": 'cannot reach {"password": "hunter2"}',
+                }
+            ]
+        },
+    }
+    with _engine(responses):
+        stage.list_entries(_args(check=True))
+    assert "hunter2" not in capsys.readouterr().out

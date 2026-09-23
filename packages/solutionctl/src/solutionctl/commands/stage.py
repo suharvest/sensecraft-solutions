@@ -26,10 +26,11 @@ _POLL_SECONDS = 1.0
 # Engine messages can quote the request that caused them, and a deploy
 # request carries an SSH password. Never print one.
 _SECRET_KEYS = r"password|passwd|secret|token|api[_-]?key|private[_-]?key"
-# key followed by : or =, then a quoted or bare value.
+_SECRET_KEY_RE = re.compile(rf"^(?:{_SECRET_KEYS})$", re.I)
+# key, then : or =, then a quoted value (escapes included) or a bare one.
 _SECRET_RE = re.compile(
     rf"""(?P<key>["']?\b(?:{_SECRET_KEYS})\b["']?\s*[:=]\s*)
-         (?P<value>"[^"]*"|'[^']*'|\S+)""",
+         (?P<value>"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\S+)""",
     re.I | re.X,
 )
 
@@ -37,23 +38,28 @@ _SECRET_RE = re.compile(
 def _redact(text: object) -> str:
     """Mask credential-looking values in anything we print.
 
-    Engine messages can quote the request that caused them, and a deploy
-    request carries an SSH password; a CI log is forever.
+    Engine messages can quote the request that caused them, a deploy request
+    carries an SSH password, and a download URL can carry a token; a CI log
+    is forever.
     """
     return _SECRET_RE.sub(lambda m: f"{m.group('key')}<REDACTED>", str(text))
 
 
 def _redacted_json(value: Any) -> str:
-    """The payload as JSON, with credential-looking strings masked.
+    """The payload as JSON, with credentials masked, structure intact.
 
-    Structure is preserved so `--json` output stays machine-readable.
+    Both shapes are handled: a secret inside a string (an error message
+    quoting a request) and a secret as a field of its own, where the key and
+    the value are separate JSON nodes and no single string shows both.
     """
 
-    def walk(node):
+    def walk(node, key: Optional[str] = None):
         if isinstance(node, dict):
-            return {k: walk(v) for k, v in node.items()}
+            return {k: walk(v, k) for k, v in node.items()}
         if isinstance(node, list):
-            return [walk(v) for v in node]
+            return [walk(v, key) for v in node]
+        if key and _SECRET_KEY_RE.match(key) and node not in (None, ""):
+            return "<REDACTED>"
         return _redact(node) if isinstance(node, str) else node
 
     return json.dumps(walk(value), ensure_ascii=False, indent=2)
@@ -125,7 +131,8 @@ def _print_entries(entries: List[dict], *, show_items: bool = True) -> None:
         for item in entry.get("items") or []:
             status = item.get("status") or "unknown"
             detail = f" ({_redact(item['detail'])})" if item.get("detail") else ""
-            print(f"    {status:<8} {item['kind']:<5} {item['source']}{detail}")
+            # The source can be a URL with a token in its query string.
+            print(f"    {status:<8} {item['kind']:<5} {_redact(item['source'])}{detail}")
 
 
 def _exit_code(entries: List[dict], require_full: bool = False) -> int:
@@ -221,7 +228,7 @@ def list_entries(args) -> int:
         if change:
             pending = len(change.get("added") or []) + len(change.get("changed") or [])
             if change.get("error"):
-                note = f"  [{change['error']}]"
+                note = f"  [{_redact(change['error'])}]"
             elif pending or change.get("stale"):
                 note = f"  [update: {pending} item(s)"
                 note += ", solution changed]" if change.get("stale") else "]"
