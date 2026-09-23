@@ -3,7 +3,6 @@ id: cloud_rpi5
 name: Raspberry Pi 5 with Cloud LLM
 name_i18n: {zh: 树莓派 5 + 云端对话}
 type: docker_deploy
-device_class: raspberry_pi
 deploy_timeout: 2400
 docker:
   compose_file: assets/docker/docker-compose.rpi5.yml
