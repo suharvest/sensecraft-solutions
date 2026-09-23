@@ -25,6 +25,7 @@ from ._env import engine_env
 from ._redact import redact
 from .engine_locator import locate_engine
 
+PUMP_TIMEOUT = 5.0
 READY_TIMEOUT = 30.0
 HEALTH_TIMEOUT = 30.0
 
@@ -122,8 +123,12 @@ def _pump_stderr(proc: subprocess.Popen) -> None:
     """Forward the engine's log lines, redacted, to this process's stderr."""
     if proc.stderr is None:  # pragma: no cover - always piped above
         return
-    for line in proc.stderr:
-        sys.stderr.write(redact(line))
+    # The pipe is closed under this thread when the teardown gives up waiting
+    # for it; that surfaces as ValueError/OSError on the read, not as an error
+    # worth reporting.
+    with contextlib.suppress(ValueError, OSError):
+        for line in proc.stderr:
+            sys.stderr.write(redact(line))
     with contextlib.suppress(Exception):
         proc.stderr.close()
 
@@ -156,13 +161,23 @@ def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
             raise RuntimeError(f"engine never became healthy at {base_url}")
         yield base_url
     finally:
-        proc.terminate()
         try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
-        # Wait for the log pump: the engine's last lines (often the reason it
-        # stopped) are written as it exits, and a daemon thread would be cut
-        # off when the CLI returns.
-        pump.join(timeout=5)
+            proc.terminate()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+        finally:
+            # Wait for the log pump: the engine's last lines (often the reason
+            # it stopped) are written as it exits, and a daemon thread would be
+            # cut off when the CLI returns. Bounded, because the thread can
+            # block on a stderr nothing is draining -- then stop waiting and
+            # close the pipe under it, so it does not sit on the fd for
+            # the rest of this process's life. Best effort: CPython releases
+            # the fd here anyway (measured on macOS), so this only matters
+            # where it does not.
+            pump.join(timeout=PUMP_TIMEOUT)
+            if pump.is_alive() and proc.stderr is not None:
+                with contextlib.suppress(Exception):
+                    proc.stderr.close()
