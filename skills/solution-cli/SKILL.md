@@ -99,6 +99,46 @@ solutionctl validate <solution_path> --spec-dir spec --check-urls
 solutionctl manage list-apps
 ```
 
+## 去没网的现场部署：`stage`
+
+先在有网的地方把方案要用的东西下到本机，到现场再部署。单位是**步骤 × 目标设备**：
+可以只备某一步，也可以给同一步备多个型号。
+
+```bash
+# 1. 看这个套餐每一步需要什么、能不能完全离线、本机已经有哪些
+solutionctl stage plan <solution_id> --preset <preset>
+
+# 2. 下到本机（--target 只备指定步骤；--arch 用于推不出架构的目标）
+solutionctl stage prepare <solution_id> --preset <preset> \
+    --target <step>=<target> --arch <step>=aarch64 --params '{"board":"rk3588"}'
+
+# 3. 看本机备了什么、占多少（--check 顺带报哪些有更新）
+solutionctl stage list --check
+
+# 4. 带到另一台电脑
+solutionctl stage export kit.tar
+solutionctl stage import kit.tar          # 在现场那台执行
+
+# 5. 腾空间
+solutionctl stage delete --entry <solution>/<preset>/<step>[/<target>[/<arch>]]
+```
+
+现场部署时在连接里传 `force_offline`，引擎会在**连接设备之前**核对离线包，缺件就直接
+停下并说明缺什么：
+
+```bash
+solutionctl deploy <solution_id> --preset <preset> --device <step> \
+    --connection '{"<step>":{"host":"<ip>","username":"<user>","password":"<REDACTED>",
+                   "target":"<target>","target_type":"remote","force_offline":true}}' --yes
+```
+
+**退出码**：`0` = 清单里的东西都在本机；`1` = 有缺的；`2` = 清单推不出来（比如目标没写
+设备类型、架构需要用 `--arch` 指定）。加 `--require-full` 后，方案未声明"服务启动后不再
+联网下载"时也会失败（`3`）——目前还没有方案声明，所以默认不开。
+
+**能离线到什么程度取决于方案**：镜像启动后自己去拉模型这类内容，清单推导不出来，
+`plan` 会标成 `partial` 并写明现场仍需联网的是什么。
+
 ### 凭据红线（必须遵守）
 
 - **绝不编造凭据**。SSH 主机 / 用户名 / 密码一律向用户索取。
@@ -118,7 +158,7 @@ docker 拉层进度和 httpx 轮询噪声被过滤掉。需要全量看用 `--ve
 ## 能力边界（诚实写清）
 
 CLI **一把梭覆盖**：方案发现（`solution list`）、部署信息（`deploy-info`）、部署（`deploy`）、
-离线校验（`validate`）、引擎元数据（`meta`）。
+离线校验（`validate`）、引擎元数据（`meta`）、离线预备（`stage`）。
 
 **设备管理那一大块**——启停 / 更新 / OTA / 恢复出厂 / docker 操作（详见 `AGENTS.md` **Part E**）——
 目前 CLI **只有 `manage list-apps`**，其余全部走 **`serve --headless` + REST 端点**。
