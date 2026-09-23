@@ -978,6 +978,27 @@ def _iter_action_scripts(node, path: str = ""):
             yield from _iter_action_scripts(value, f"{path}[{i}]")
 
 
+def _check_device_class(dev_data, label: str, known: list) -> list[str]:
+    """Error on a ``device_class`` the engine has no profile for.
+
+    The engine raises when loading such a device YAML (no
+    ``devices/profiles/<class>.yaml``), so the step fails at deploy time.
+    ``known`` comes from ``capabilities.json``; an older spec without the
+    list skips the check rather than guessing.
+    """
+    if not isinstance(dev_data, dict) or not known:
+        return []
+    declared = dev_data.get("device_class")
+    if not declared or declared in known:
+        return []
+    return [
+        f"{label}: unknown device_class {declared!r} — the engine has no "
+        f"profile for it and the deploy fails when loading this file. "
+        f"Use one of {sorted(known)}, or drop the key if this solution "
+        f"needs no device-class behavior."
+    ]
+
+
 def _check_action_image_refs(dev_data, label: str) -> list[str]:
     """Error on Docker Hub images pulled by an action without the mirror prefix."""
     errors: list[str] = []
@@ -1096,6 +1117,13 @@ def run(
         )
 
     # --- 2. devices/*.yaml against device.schema.json ------------------------
+    caps_path = spec / "capabilities.json"
+    caps = (
+        json.loads(caps_path.read_text(encoding="utf-8"))
+        if caps_path.is_file()
+        else {}
+    )
+    known_device_classes = caps.get("device_classes") or []
     devices_dir = sol_path / "devices"
     if devices_dir.is_dir():
         dev_schema_path = spec / "device.schema.json"
@@ -1118,15 +1146,16 @@ def run(
                     _format_jsonschema_errors(validator_cls, dev_data, dev_schema, label)
                 )
                 errors.extend(_check_action_image_refs(dev_data, label))
+                errors.extend(
+                    _check_device_class(dev_data, label, known_device_classes)
+                )
 
     # --- 3. guide step-type validation via the parser subpackage -------------
-    caps_path = spec / "capabilities.json"
     if not caps_path.is_file():
         errors.append("capabilities.json not found in spec/ — cannot validate step types")
     else:
         from sensecraft_solution_spec import markdown_parser as mp
 
-        caps = json.loads(caps_path.read_text(encoding="utf-8"))
         deployers_info = caps.get("deployers", {})
         deployer_keys = set(deployers_info.keys())
         # Verify step types = deployers with category == "verify" (no drift).

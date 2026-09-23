@@ -4,7 +4,6 @@ name: Gateway Bridge (reComputer / Raspberry Pi)
 name_i18n:
   zh: 网关桥接服务（reComputer / 树莓派）
 type: script
-device_class: linux
 
 ssh:
   port: 22
