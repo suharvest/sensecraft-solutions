@@ -180,12 +180,17 @@ def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
             # thread can block on a stderr nothing is draining.
             pump.join(timeout=PUMP_TIMEOUT)
             if pump.is_alive() and proc.stderr is not None:
-                # Give the fd back rather than hold it for the rest of this
-                # process's life -- but not on this thread: closing a stream
-                # another thread is mid-read on waits for that read, and a
-                # descendant of the engine can keep the write end open long
-                # after the engine itself is gone. Teardown stays inside the
-                # bound above; the close lands when it lands.
+                # Give the fd back rather than hold it for the rest of
+                # this process's life -- but not on this thread: closing a
+                # stream another thread is mid-read on waits for that read,
+                # and a descendant of the engine can keep the write end open
+                # long after the engine itself is gone.
+                #
+                # This bounds the teardown, not the cleanup: if that
+                # descendant never lets go, the thread and the fd stay until
+                # the process exits. Fine for a CLI that does this once per
+                # run; something that spawned engines in a loop would need a
+                # way to cancel it.
                 threading.Thread(
                     target=_close_quietly, args=(proc.stderr,), daemon=True
                 ).start()
