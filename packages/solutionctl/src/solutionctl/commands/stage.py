@@ -43,6 +43,22 @@ def _redact(text: object) -> str:
     return _SECRET_RE.sub(lambda m: f"{m.group('key')}<REDACTED>", str(text))
 
 
+def _redacted_json(value: Any) -> str:
+    """The payload as JSON, with credential-looking strings masked.
+
+    Structure is preserved so `--json` output stays machine-readable.
+    """
+
+    def walk(node):
+        if isinstance(node, dict):
+            return {k: walk(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [walk(v) for v in node]
+        return _redact(node) if isinstance(node, str) else node
+
+    return json.dumps(walk(value), ensure_ascii=False, indent=2)
+
+
 def _human(n: int) -> str:
     """Bytes as the user reads them."""
     value = float(n or 0)
@@ -108,7 +124,7 @@ def _print_entries(entries: List[dict], *, show_items: bool = True) -> None:
             continue
         for item in entry.get("items") or []:
             status = item.get("status") or "unknown"
-            detail = f" ({item['detail']})" if item.get("detail") else ""
+            detail = f" ({_redact(item['detail'])})" if item.get("detail") else ""
             print(f"    {status:<8} {item['kind']:<5} {item['source']}{detail}")
 
 
@@ -138,7 +154,7 @@ def plan(args) -> int:
         data = post(base_url, "/api/staging/plan", payload)
     entries = data.get("entries") or []
     if args.json:
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        print(_redacted_json(data))
     else:
         if not entries:
             print("Nothing to prepare for this preset.")
@@ -157,14 +173,14 @@ def prepare(args) -> int:
         while job.get("status") == "running":
             time.sleep(_POLL_SECONDS)
             job = get(base_url, f"/api/staging/jobs/{job_id}")
-            message = f"{job.get('progress', 0):>3}% {job.get('message', '')}"
+            message = _redact(f"{job.get('progress', 0):>3}% {job.get('message', '')}")
             if message != seen and not args.json:
                 print(message, file=sys.stderr)
                 seen = message
     if args.json:
-        print(json.dumps(job, ensure_ascii=False, indent=2))
+        print(_redacted_json(job))
     else:
-        print(f"{job.get('status')}: {job.get('message', '')}")
+        print(f"{job.get('status')}: {_redact(job.get('message', ''))}")
         _print_entries(job.get("entries") or [])
         for error in job.get("errors") or []:
             print(f"    error: {_redact(error)}")
@@ -183,7 +199,7 @@ def list_entries(args) -> int:
         )
     entries = data.get("entries") or []
     if args.json:
-        print(json.dumps({**data, "changes": changes}, ensure_ascii=False, indent=2))
+        print(_redacted_json({**data, "changes": changes}))
         # A listing reports, it does not judge -- same exit code either way.
         return 0
     if not entries:
@@ -246,7 +262,7 @@ def delete(args) -> int:
     with headless_engine(args.solutions_dir) as base_url:
         data = post(base_url, "/api/staging/entries/delete", refs)
     if args.json:
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        print(_redacted_json(data))
     else:
         for key in data.get("deleted") or []:
             print(f"deleted {key}")
@@ -261,7 +277,7 @@ def export(args) -> int:
     with headless_engine(args.solutions_dir) as base_url:
         data = post(base_url, "/api/staging/export", payload, timeout=3600.0)
     if args.json:
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        print(_redacted_json(data))
     else:
         print(
             f"wrote {data['path']}: {data['entries']} entr(ies), "
@@ -276,7 +292,7 @@ def import_(args) -> int:
             base_url, "/api/staging/import", {"path": args.file}, timeout=3600.0
         )
     if args.json:
-        print(json.dumps(data, ensure_ascii=False, indent=2))
+        print(_redacted_json(data))
         return 1 if (data.get("conflicts") or data.get("incomplete")) else 0
     print(
         f"imported {len(data.get('imported') or [])}, "

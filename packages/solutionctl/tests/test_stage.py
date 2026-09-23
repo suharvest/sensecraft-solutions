@@ -360,3 +360,31 @@ def test_list_exit_code_is_the_same_with_and_without_json():
     with _engine(responses):
         json_rc = stage.list_entries(_args(check=False, json=True))
     assert text_rc == json_rc == 0
+
+
+def test_item_details_and_job_messages_are_redacted(capsys):
+    entry = _entry(("missing",))
+    entry["items"][0]["detail"] = "ssh failed for password=hunter2"
+    job = {
+        "id": "j1",
+        "status": "failed",
+        "progress": 100,
+        "message": 'refused {"password": "hunter2"}',
+        "entries": [entry],
+        "errors": ['connection {"password": "hunter2"}'],
+    }
+    with _engine({("POST", "/api/staging/prepare"): job}):
+        assert stage.prepare(_args()) == 2
+    captured = capsys.readouterr()
+    assert "hunter2" not in captured.out + captured.err
+
+
+def test_json_output_is_redacted_and_still_parses(capsys):
+    entry = _entry(("missing",))
+    entry["items"][0]["detail"] = 'connection {"password": "hunter2"}'
+    with _engine({("POST", "/api/staging/plan"): {"entries": [entry]}}):
+        stage.plan(_args(json=True))
+    raw = capsys.readouterr().out
+    assert "hunter2" not in raw
+    parsed = json.loads(raw)  # structure intact
+    assert "<REDACTED>" in parsed["entries"][0]["items"][0]["detail"]
