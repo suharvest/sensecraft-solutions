@@ -119,18 +119,23 @@ def _wait_healthy(base_url: str, timeout: float) -> bool:
     return False
 
 
+def _close_quietly(stream) -> None:
+    """Close a stream nobody is waiting on any more."""
+    with contextlib.suppress(Exception):
+        stream.close()
+
+
 def _pump_stderr(proc: subprocess.Popen) -> None:
     """Forward the engine's log lines, redacted, to this process's stderr."""
     if proc.stderr is None:  # pragma: no cover - always piped above
         return
-    # The pipe is closed under this thread when the teardown gives up waiting
-    # for it; that surfaces as ValueError/OSError on the read, not as an error
-    # worth reporting.
+    # When the teardown gives up waiting and closes the pipe under this
+    # thread, the pending read -- or the write of what it had already read --
+    # raises. Neither is worth reporting: the CLI is on its way out.
     with contextlib.suppress(ValueError, OSError):
         for line in proc.stderr:
             sys.stderr.write(redact(line))
-    with contextlib.suppress(Exception):
-        proc.stderr.close()
+    _close_quietly(proc.stderr)
 
 
 @contextmanager
@@ -169,15 +174,18 @@ def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
                 proc.kill()
                 proc.wait(timeout=5)
         finally:
-            # Wait for the log pump: the engine's last lines (often the reason
-            # it stopped) are written as it exits, and a daemon thread would be
-            # cut off when the CLI returns. Bounded, because the thread can
-            # block on a stderr nothing is draining -- then stop waiting and
-            # close the pipe under it, so it does not sit on the fd for
-            # the rest of this process's life. Best effort: CPython releases
-            # the fd here anyway (measured on macOS), so this only matters
-            # where it does not.
+            # Wait for the log pump: the engine's last lines (often the
+            # reason it stopped) are written as it exits, and a daemon thread
+            # would be cut off when the CLI returns. Bounded, because the
+            # thread can block on a stderr nothing is draining.
             pump.join(timeout=PUMP_TIMEOUT)
             if pump.is_alive() and proc.stderr is not None:
-                with contextlib.suppress(Exception):
-                    proc.stderr.close()
+                # Give the fd back rather than hold it for the rest of this
+                # process's life -- but not on this thread: closing a stream
+                # another thread is mid-read on waits for that read, and a
+                # descendant of the engine can keep the write end open long
+                # after the engine itself is gone. Teardown stays inside the
+                # bound above; the close lands when it lands.
+                threading.Thread(
+                    target=_close_quietly, args=(proc.stderr,), daemon=True
+                ).start()
