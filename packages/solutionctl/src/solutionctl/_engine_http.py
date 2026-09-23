@@ -162,3 +162,7 @@ def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=5)
+        # Wait for the log pump: the engine's last lines (often the reason it
+        # stopped) are written as it exits, and a daemon thread would be cut
+        # off when the CLI returns.
+        pump.join(timeout=5)

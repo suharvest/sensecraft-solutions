@@ -289,7 +289,9 @@ def run(args) -> int:
     try:
         return handler(args)
     except ValueError as e:
-        print(f"error: {e}", file=sys.stderr)
+        # The message quotes what the user typed, and that can be a secret
+        # (`--params '{"password": ...}'`).
+        print(f"error: {_redact(e)}", file=sys.stderr)
         return 2
     except EngineHttpError as e:
         print(f"error: {_redact(e.detail)}", file=sys.stderr)

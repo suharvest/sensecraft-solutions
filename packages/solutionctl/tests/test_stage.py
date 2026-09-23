@@ -442,3 +442,9 @@ def test_change_errors_are_masked(capsys):
     with _engine(responses):
         stage.list_entries(_args(check=True))
     assert "hunter2" not in capsys.readouterr().out
+
+
+def test_argument_errors_do_not_echo_a_secret(capsys):
+    assert stage.run(_args(target=["step1=token=hunter2", "step1=token=hunter2"])) == 2
+    err = capsys.readouterr().err
+    assert "hunter2" not in err
