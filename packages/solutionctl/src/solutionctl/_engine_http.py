@@ -10,9 +10,11 @@ third-party runtime dependency.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -20,6 +22,7 @@ from contextlib import contextmanager
 from typing import Any, Iterator, Optional
 
 from ._env import engine_env
+from ._redact import redact
 from .engine_locator import locate_engine
 
 READY_TIMEOUT = 30.0
@@ -115,6 +118,16 @@ def _wait_healthy(base_url: str, timeout: float) -> bool:
     return False
 
 
+def _pump_stderr(proc: subprocess.Popen) -> None:
+    """Forward the engine's log lines, redacted, to this process's stderr."""
+    if proc.stderr is None:  # pragma: no cover - always piped above
+        return
+    for line in proc.stderr:
+        sys.stderr.write(redact(line))
+    with contextlib.suppress(Exception):
+        proc.stderr.close()
+
+
 @contextmanager
 def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
     """Spawn ``serve --headless``, yield its base_url, then tear it down."""
@@ -123,11 +136,16 @@ def headless_engine(solutions_dir: Optional[str] = None) -> Iterator[str]:
     proc = subprocess.Popen(
         [str(engine), "serve", "--headless"],
         stdout=subprocess.PIPE,
-        stderr=sys.stderr,
+        # Piped, not inherited: the engine logs what it is doing, and a log
+        # line can carry a credential. Everything it writes goes through the
+        # same redaction as the rest of this CLI's output.
+        stderr=subprocess.PIPE,
         text=True,
         bufsize=1,
         env=engine_env(solutions_dir),
     )
+    pump = threading.Thread(target=_pump_stderr, args=(proc,), daemon=True)
+    pump.start()
     try:
         ready = _read_ready_line(proc, READY_TIMEOUT)
         if ready is None:
