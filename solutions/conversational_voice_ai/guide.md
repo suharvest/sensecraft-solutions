@@ -32,6 +32,8 @@ Ask a question. Within one second of playback starting, speak again; the current
 | API returns 401 | Confirm the API key belongs to the endpoint's region |
 | Speech is recognized but no reply plays | Check the agent log for LLM request errors and confirm the model supports streaming |
 | No audio after replugging the microphone | Confirm the new Agent image is running |
+| Assistant volume too low or inconsistent | The host mixer is the knob; the deploy pins it to 85%. The desktop volume slider has no effect because the agent owns the ALSA device. To change it: `RESPEAKER_VOLUME=90% /usr/local/sbin/respeaker-volume.sh` |
+| Mic array sometimes offline / missing after boot | The deploy installs a boot self-heal plus a 60 s watchdog that pulses the devkit hub reset. Manual recovery: `sudo python3 /usr/local/sbin/hub-reset.py`; if it still fails, suspect the USB cable/port |
 
 ### Target {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
 
