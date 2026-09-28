@@ -285,6 +285,13 @@ remote_overrides:
           config["trigger"]["mode"] = "on_demand"
           config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
           config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+          # The broker address and port are deployment inputs, not constants.
+          # This stack brings its own mosquitto on the same host, and on a
+          # machine where another solution already owns 1883 the app and its
+          # broker have to move together to a free port. Both ends are written
+          # from this one value; the listener below is rewritten to match.
+          config["mqtt"]["host"] = "{{mqtt_host}}"
+          config["mqtt"]["port"] = int("{{mqtt_port}}")
           # The topic prefix is the device name the user chose, so one broker
           # can carry several bins without collisions.
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
@@ -299,6 +306,27 @@ remote_overrides:
               json.dump(config, handle, indent=2)
               handle.write("\n")
           os.replace(tmp, path)
+
+          # mosquitto listens on whatever config/mosquitto.conf says, and that
+          # file is re-uploaded from the asset tree on every deploy. Left alone
+          # it would hold the asset's 1883 while the app points somewhere else,
+          # so the listener is pinned to the port just configured.
+          broker_conf = os.path.join(os.path.dirname(path), "mosquitto.conf")
+          if os.path.exists(broker_conf):
+              with open(broker_conf) as handle:
+                  lines = handle.read().splitlines()
+              listener = f"listener {config['mqtt']['port']} 0.0.0.0"
+              if any(line.startswith("listener") for line in lines):
+                  lines = [
+                      listener if line.startswith("listener") else line
+                      for line in lines
+                  ]
+              else:
+                  lines.append(listener)
+              with open(broker_conf, "w") as handle:
+                  handle.write("\n".join(lines) + "\n")
+              print(f"broker   = {listener}")
+
           print(f"model    = {config['model']['path']} (track={track})")
           print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
           print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
@@ -313,12 +341,17 @@ remote_overrides:
           BROKER=edge-waste-mosquitto
           TOPIC="{{device_name}}/waste/{{stream_id}}/results"
           echo "Waiting for the health endpoint ..."
+          # A fixed /tmp path cannot be relied on: a run that escalated to root
+          # can leave /tmp/healthz.json owned by root, and every later redirect
+          # from this account then fails — which turns the whole loop into a
+          # silent "no result" without ever testing the app.
+          HZ="$(mktemp)"
           for i in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
-              cat /tmp/healthz.json
+            if curl -fsS http://127.0.0.1:8080/healthz >"$HZ" 2>/dev/null; then
+              cat "$HZ"
               # Fire one HTTP trigger and wait for the resulting event. The
               # button and motion sources cannot be exercised from here.
-              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -p {{mqtt_port}} -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
               SUB=$!
               sleep 1
               curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
@@ -506,3 +539,27 @@ remote_overrides:
         zh: 最低置信度
       description_i18n:
         zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。基线 track 在 val 上有 4.5% 的图低于 0.5；调高它意味着更多东西被送进其他垃圾档，而不是去猜。
+    - id: mqtt_host
+      name: MQTT Broker Address
+      type: text
+      default: "127.0.0.1"
+      required: true
+      description: The broker this stack brings runs on the device itself, so the default is loopback. Point it at another host to forward every classification to a bin controller, Home Assistant or your own consumer.
+      validation:
+        pattern: "^[A-Za-z0-9_.-]{1,253}$"
+      name_i18n:
+        zh: MQTT 服务器地址
+      description_i18n:
+        zh: 本方案自带的 broker 就跑在这台设备上，所以默认是回环地址。指向另一台主机就会把每一次分类转发出去——桶体控制器、Home Assistant 或你自己的消费方。
+    - id: mqtt_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      description: The port the bundled broker listens on. Set both this and the app to the same free port on a machine where another solution already owns 1883; the deployment rewrites the broker's listener to this value.
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      name_i18n:
+        zh: MQTT 端口
+      description_i18n:
+        zh: 自带 broker 的监听端口。在 1883 已被其他方案占用的机器上，把它和 app 一起换到同一个空闲端口——部署时会按这个值改写 broker 的 listener。
