@@ -327,6 +327,19 @@ remote_overrides:
                   handle.write("\n".join(lines) + "\n")
               print(f"broker   = {listener}")
 
+          # The event payload's device field comes from the app's --device
+          # argument, which the compose file reads from the DEVICE_NAME
+          # variable — without it the app falls back to a hardcoded name that
+          # matches only one machine by accident. docker compose picks .env
+          # up from the project directory, so the name the user chose lands
+          # there, the same source of truth as the MQTT topic above.
+          env_file = os.path.normpath(
+              os.path.join(os.path.dirname(path), os.pardir, ".env")
+          )
+          with open(env_file, "w") as handle:
+              handle.write(f"DEVICE_NAME={{device_name}}\n")
+          print(f"device   = {{device_name}} ({env_file})")
+
           print(f"model    = {config['model']['path']} (track={track})")
           print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
           print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
