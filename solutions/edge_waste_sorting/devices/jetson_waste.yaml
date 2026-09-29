@@ -333,11 +333,23 @@ remote_overrides:
           # matches only one machine by accident. docker compose picks .env
           # up from the project directory, so the name the user chose lands
           # there, the same source of truth as the MQTT topic above.
+          # Only that one key is touched: compose reads WASTE_IMAGE,
+          # CONFIG_FILE, MODELS_DIR, CAPTURES_DIR and DATA_DIR from the same
+          # file, and rewriting it wholesale would silently drop an override
+          # an operator pinned there (an image tag, say).
           env_file = os.path.normpath(
               os.path.join(os.path.dirname(path), os.pardir, ".env")
           )
+          env_lines = []
+          if os.path.exists(env_file):
+              with open(env_file) as handle:
+                  env_lines = [
+                      line for line in handle.read().splitlines()
+                      if not line.startswith("DEVICE_NAME=")
+                  ]
+          env_lines.append(f"DEVICE_NAME={{device_name}}")
           with open(env_file, "w") as handle:
-              handle.write(f"DEVICE_NAME={{device_name}}\n")
+              handle.write("\n".join(env_lines) + "\n")
           print(f"device   = {{device_name}} ({env_file})")
 
           print(f"model    = {config['model']['path']} (track={track})")
@@ -359,12 +371,17 @@ remote_overrides:
           # from this account then fails — which turns the whole loop into a
           # silent "no result" without ever testing the app.
           HZ="$(mktemp)"
+          trap 'rm -f "$HZ"' EXIT
           for i in $(seq 1 40); do
             if curl -fsS http://127.0.0.1:8080/healthz >"$HZ" 2>/dev/null; then
               cat "$HZ"
               # Fire one HTTP trigger and wait for the resulting event. The
               # button and motion sources cannot be exercised from here.
-              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -p {{mqtt_port}} -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+              # Subscribe on the same host and port the app publishes to,
+              # not on loopback: mqtt_host is a deployment input, and a
+              # hardcoded 127.0.0.1 here would make every verification time
+              # out for anyone who points the app at another broker.
+              docker exec "$BROKER" sh -c "mosquitto_sub -h {{mqtt_host}} -p {{mqtt_port}} -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
               SUB=$!
               sleep 1
               curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
@@ -571,7 +588,7 @@ remote_overrides:
       required: true
       description: The port the bundled broker listens on. Set both this and the app to the same free port on a machine where another solution already owns 1883; the deployment rewrites the broker's listener to this value.
       validation:
-        pattern: "^[0-9]{1,5}$"
+        pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
       name_i18n:
         zh: MQTT 端口
       description_i18n:
