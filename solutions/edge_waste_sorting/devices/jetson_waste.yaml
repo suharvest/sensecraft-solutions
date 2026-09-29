@@ -340,12 +340,23 @@ remote_overrides:
           env_file = os.path.normpath(
               os.path.join(os.path.dirname(path), os.pardir, ".env")
           )
+          # Any form dotenv accepts counts as the old key: a bare assignment,
+          # one with spaces around the '=', or an `export` prefix. Matching on
+          # the parsed key name instead of the line prefix keeps a stale value
+          # from surviving as a duplicate — comments that merely mention the
+          # name are not assignments and stay put.
+          def _is_device_name(line):
+              text = line.strip()
+              if text.startswith("export"):
+                  text = text[len("export"):].lstrip()
+              return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
           env_lines = []
           if os.path.exists(env_file):
               with open(env_file) as handle:
                   env_lines = [
                       line for line in handle.read().splitlines()
-                      if not line.startswith("DEVICE_NAME=")
+                      if not _is_device_name(line)
                   ]
           env_lines.append(f"DEVICE_NAME={{device_name}}")
           with open(env_file, "w") as handle:
