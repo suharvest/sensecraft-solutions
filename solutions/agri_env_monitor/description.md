@@ -40,12 +40,14 @@ Tested by replaying uplinks from 3 devices on a local host, 13 uplinks across th
 
 ## Deployment Comparison
 
-| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack |
-|---|---|---|---|
-| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway |
-| Internet needed | Yes | No | No |
-| History from before install | Yes | No | No |
-| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 |
+| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack | Custom Ops Dashboard |
+|---|---|---|---|---|
+| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway | You want a purpose-built ops console on your own broker |
+| Internet needed | Yes | No | No | No |
+| History from before install | Yes | No | No | No |
+| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 | Light; needs your MQTT broker settings |
+
+The **Custom Ops Dashboard** preset is a standalone alternative to the Home Assistant view: a single container subscribes to your own MQTT broker and serves a receive-only ops console (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It reads ChirpStack-style uplink topics and does not create Home Assistant entities, so it suits sites that want a ready-made display without running Home Assistant.
 
 ## Usage Notes
 

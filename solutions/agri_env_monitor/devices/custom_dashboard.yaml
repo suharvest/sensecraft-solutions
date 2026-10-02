@@ -1,0 +1,253 @@
+version: "1.0"
+id: custom_dashboard
+name: Custom Ops Dashboard
+type: docker_deploy
+
+# Preset 4. One container: the Agri-Env Ops Dashboard bridge, subscribed to the
+# user's own MQTT broker. It serves the ops console over HTTP and pushes live
+# updates over WebSocket. It runs beside any existing deployment as its own
+# compose project, so restarting it never touches Home Assistant or the bridge.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/custom_dashboard/docker-compose.yml
+  compose_dir: assets/custom_dashboard
+  remote_path: /home/{{username}}/agri-env-ops-dashboard
+  options:
+    project_name: agri-env-ops-dashboard
+    remove_orphans: true
+  services:
+    - name: bridge
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 900
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 2
+    description: Dashboard image plus its SQLite store
+
+deploy_timeout: 900
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: 自定义运维看板
+
+remote_overrides:
+  remote_path: /home/{{username}}/agri-env-ops-dashboard
+  compose_dir: assets/custom_dashboard
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the broker is reachable
+        # A dashboard that cannot reach its broker looks identical to one with
+        # bad credentials from the outside, so this is checked first.
+        ignore_error: true
+        run: |
+          if command -v nc >/dev/null 2>&1; then
+            if nc -z -w 5 "{{mqtt_host}}" "{{mqtt_port}}"; then
+              echo "broker {{mqtt_host}}:{{mqtt_port}} is reachable"
+            else
+              echo "WARNING: cannot open {{mqtt_host}}:{{mqtt_port}} — check the broker address and that it is reachable from this host" >&2
+            fi
+          else
+            echo "nc not available, skipping the reachability check"
+          fi
+        name_i18n:
+          zh: 检查 broker 可达
+
+    after_upload:
+      - name: Write the dashboard configuration
+        # Credentials only ever exist in this file, mode 600, on the target
+        # host. They are not written into the image and not committed anywhere.
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/agri-env-ops-dashboard/custom_dashboard"
+          umask 077
+          cat > "$WORKDIR/.env" <<EOF
+          COMPOSE_PROJECT_NAME=agri-env-ops-dashboard
+          TZ={{timezone}}
+          FARM_BIND=0.0.0.0
+          FARM_HTTP_PORT={{http_port}}
+          FARM_WS_PORT={{ws_port}}
+          MQTT_HOST={{mqtt_host}}
+          MQTT_PORT={{mqtt_port}}
+          MQTT_TLS={{mqtt_tls}}
+          MQTT_USER={{mqtt_username}}
+          MQTT_PASSWORD={{mqtt_password}}
+          MQTT_PREFIX={{mqtt_prefix}}
+          MQTT_TOPIC={{mqtt_topic}}
+          EOF
+          echo "wrote $WORKDIR/.env"
+        name_i18n:
+          zh: 写入看板配置
+
+    after:
+      - name: Wait for the dashboard to come up
+        ignore_error: true
+        timeout: 300
+        run: |
+          echo "Watching the dashboard log for the MQTT connection ..."
+          for i in $(seq 1 30); do
+            if docker logs agri-env-ops-dashboard 2>&1 | grep -q "mqtt connected rc=Success"; then
+              echo "Connected to the MQTT broker."
+              docker logs --tail 15 agri-env-ops-dashboard 2>&1
+              exit 0
+            fi
+            if docker logs agri-env-ops-dashboard 2>&1 | grep -q "http listening on"; then
+              echo "Dashboard is serving (MQTT still connecting)."
+              docker logs --tail 15 agri-env-ops-dashboard 2>&1
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Dashboard did not report ready yet." >&2
+          docker logs --tail 40 agri-env-ops-dashboard 2>&1 || true
+        name_i18n:
+          zh: 等待看板就绪
+
+  user_inputs:
+    - id: host
+      name: Dashboard Host Address
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: Where the dashboard container runs — usually the reComputer or any Linux host with Docker
+      name_i18n:
+        zh: 看板主机地址
+      description_i18n:
+        zh: 运行看板容器的机器——通常是 reComputer 或任意装了 Docker 的 Linux 主机
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: timezone
+      name: Time Zone
+      type: text
+      default: "Asia/Shanghai"
+      required: true
+      name_i18n:
+        zh: 时区
+    - id: http_port
+      name: Dashboard HTTP Port
+      type: text
+      default: "8000"
+      required: true
+      description: The port the ops console is served on. On a reComputer R1000, 8000 is taken by another service, so use 8001.
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: 看板 HTTP 端口
+      description_i18n:
+        zh: 运维控制台对外服务的端口。在 reComputer R1000 上 8000 被占用，请改用 8001。
+    - id: ws_port
+      name: Live Updates WebSocket Port
+      type: text
+      default: "8765"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: 实时更新 WebSocket 端口
+    - id: mqtt_host
+      name: MQTT Broker Address
+      type: text
+      required: true
+      placeholder: "broker.example.com"
+      description: The broker your sensor gateway already publishes to. Use a LAN IP or hostname reachable from this host.
+      name_i18n:
+        zh: MQTT Broker 地址
+      description_i18n:
+        zh: 你的传感网关已经在上报的那个 broker。填这台主机能访问到的局域网 IP 或域名。
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_tls
+      name: MQTT over TLS
+      type: select
+      default: "0"
+      required: true
+      options:
+        - value: "0"
+          label: No — plain TCP (1883)
+          label_i18n:
+            zh: 否——明文 TCP（1883）
+        - value: "1"
+          label: Yes — TLS (8883)
+          label_i18n:
+            zh: 是——TLS（8883）
+      name_i18n:
+        zh: MQTT 使用 TLS
+    - id: mqtt_username
+      name: MQTT Username
+      type: text
+      required: false
+      description: Leave empty if your broker allows anonymous reads
+      name_i18n:
+        zh: MQTT 用户名
+      description_i18n:
+        zh: 如果 broker 允许匿名读取可留空
+    - id: mqtt_password
+      name: MQTT Password
+      type: password
+      required: false
+      description: Written only to a mode-600 .env file on the target host
+      name_i18n:
+        zh: MQTT 密码
+      description_i18n:
+        zh: 只写入目标主机上权限 600 的 .env 文件
+    - id: mqtt_prefix
+      name: MQTT Topic Prefix
+      type: text
+      required: false
+      default: ""
+      placeholder: "myfarm/"
+      description: Prepended to the sensor topic, if your relay uses one. Leave empty for none.
+      name_i18n:
+        zh: MQTT 主题前缀
+      description_i18n:
+        zh: 如果你的 relay 使用前缀，会加在传感器主题前面。没有则留空。
+    - id: mqtt_topic
+      name: Sensor Uplink Topic
+      type: text
+      required: true
+      default: "application/+/device/+/event/up"
+      description: The ChirpStack-style uplink topic your sensors publish to
+      name_i18n:
+        zh: 传感器上行主题
+      description_i18n:
+        zh: 你的传感器上报数据所用的 ChirpStack 风格上行主题

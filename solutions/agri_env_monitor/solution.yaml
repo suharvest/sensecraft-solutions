@@ -40,6 +40,11 @@ intro:
       caption: Three ingest paths, one bridge, one set of entity ids in Home Assistant
       caption_i18n:
         zh: 三条接入路径、一个桥、Home Assistant 里同一套实体 ID
+    - type: image
+      src: gallery/custom-dashboard-ops.png
+      caption: The Custom Ops Dashboard preset — a standalone receive-only console (live readings, trends, wind rose, map, mesh messages) served by a single container subscribed to your own MQTT broker
+      caption_i18n:
+        zh: 自定义运维看板套餐——一个独立的仅接收控制台（实时读数、趋势、风向玫瑰、地图、Mesh 消息），由订阅你自己 MQTT broker 的单个容器提供
   category: environmental_sensing
   solution_type: solution
   tags:
@@ -110,6 +115,10 @@ intro:
       description: LoRaWAN gateway with built-in concentrator and network server
       description_i18n:
         zh: 内置集中器的 LoRaWAN 网关，可自建网络服务器
+    recomputer_r10:
+      description: Linux host for the custom ops dashboard; runs the dashboard container in Docker
+      description_i18n:
+        zh: 运行自定义运维看板的 Linux 主机，Docker 部署看板容器
     rerouter_cm4:
       description: Linux host running the network server or dashboard in Docker
       description_i18n:
@@ -246,6 +255,31 @@ intro:
           options:
             - device_ref: generic_arm64_host
           default: generic_arm64_host
+
+    - id: custom_dashboard
+      name: Custom Ops Dashboard
+      name_i18n:
+        zh: 自定义运维看板
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A standalone ops console that subscribes to your own MQTT broker and serves a purpose-built dashboard — an alternative to the Home Assistant view.
+      description_i18n:
+        zh: 一个独立的运维控制台，订阅你自己的 MQTT broker 并提供专门的看板——是 Home Assistant 视图之外的另一种选择。
+      device_groups:
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          description: Any Linux host with Docker; the reComputer R1000 Series works as a kiosk
+          description_i18n:
+            zh: 任意装了 Docker 的 Linux 主机；reComputer R1000 系列可当作信息亭使用
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: generic_arm64_host
+          default: recomputer_r10
 
   stats:
     difficulty: intermediate

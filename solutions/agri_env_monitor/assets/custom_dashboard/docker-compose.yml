@@ -1,0 +1,46 @@
+# Preset 4 — Custom Ops Dashboard.
+#
+# One service: the Agri-Env Ops Dashboard bridge, subscribed to the user's own
+# MQTT broker. It serves the ops console over HTTP and pushes live updates over
+# WebSocket. Configuration comes from the .env written by the deploy step.
+#
+# IMAGE STATUS: referenced as a pre-built image at
+#   sensecraft-missionpack.seeed.cn/solution/agri-env-ops-dashboard:0.1.0
+# (linux/amd64 + linux/arm64). OPS_DASHBOARD_IMAGE defaults to that tag below;
+# build locally from the agri-env-ops-dashboard repository
+# (`docker build -t agri-env-ops-dashboard:0.1.0 .`) or override
+# OPS_DASHBOARD_IMAGE to use your own instead.
+
+name: ${COMPOSE_PROJECT_NAME:-agri-env-ops-dashboard}
+
+services:
+  bridge:
+    image: ${OPS_DASHBOARD_IMAGE:-sensecraft-missionpack.seeed.cn/solution/agri-env-ops-dashboard:0.1.0}
+    container_name: agri-env-ops-dashboard
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - FARM_BIND=0.0.0.0
+      - FARM_HTTP_PORT=${FARM_HTTP_PORT:-8000}
+      - FARM_WS_PORT=${FARM_WS_PORT:-8765}
+      - FARM_DB=/data/farm.db
+      - MQTT_HOST=${MQTT_HOST:?MQTT_HOST must point at your broker}
+      - MQTT_PORT=${MQTT_PORT:-1883}
+      - MQTT_TLS=${MQTT_TLS:-0}
+      - MQTT_USER=${MQTT_USER:-}
+      - MQTT_PASSWORD=${MQTT_PASSWORD:-}
+      - MQTT_PREFIX=${MQTT_PREFIX:-}
+      - MQTT_TOPIC=${MQTT_TOPIC:-application/+/device/+/event/up}
+    ports:
+      - "${FARM_HTTP_PORT:-8000}:${FARM_HTTP_PORT:-8000}"   # HTTP dashboards + JSON API
+      - "${FARM_WS_PORT:-8765}:${FARM_WS_PORT:-8765}"       # WebSocket live updates
+    volumes:
+      - bridge-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  bridge-data:
