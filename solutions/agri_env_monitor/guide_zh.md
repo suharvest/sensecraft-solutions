@@ -406,3 +406,74 @@ ChirpStack 作网络服务器，用 SenseCAP M2 网关内置的 ChirpStack，或
 | 一断 WAN 实体就停更 | 查看桥的日志和网关的网络页面，找出仍访问外网的环节 |
 | 某个实体没有单位 | 把它的 `measurementId` 加进 `assets/config/measurements.yaml` |
 | 旧的实体 ID 总是回来 | 同时清掉 broker 的 retained 消息和实体注册表 |
+
+---
+
+## 套餐: 自定义运维看板 {#custom_dashboard}
+
+一个专门的运维控制台，把 agri-env 桥发布的规范化数据渲染成专门的看板——与 Home Assistant 并行的专注视图。只需一个容器，无需云账号：它订阅桥的 MQTT 输出，显示桥解码出的数据。
+
+- **并行运行：** 与上面三个接入套餐之一（或单独的桥）一起——本看板读取桥的规范化状态主题，本身不解码上行。
+- **主机：** 一台装了 Docker 的 Linux 主机，用来运行看板容器。reComputer R1000 系列可当作信息亭使用。
+- **broker：** agri-env 桥发布到的那个 MQTT broker，主机能访问到它，以及它的用户名和密码（如果有的话）。
+- **已知限制：** 看板仅接收数据，读取桥的规范化状态主题；不使用其他套餐里 Home Assistant 的实体命名。
+- **裸机选项：** 不用 Docker、直接在 reComputer 上带信息亭显示运行看板，见 `assets/custom_dashboard/MISSION-PACK.md`。
+
+## 步骤 1: 部署运维看板 {#deploy_custom_dashboard type=docker_deploy required=true config=devices/custom_dashboard.yaml}
+
+部署看板桥，订阅 agri-env 桥的规范化 MQTT 输出。它通过 HTTP 提供运维控制台，并通过 WebSocket 推送实时更新。
+
+### 前置条件
+
+1. 三个接入套餐之一（或单独的 agri-env 桥）已在运行并在向你的 broker 发布——本看板读取它的输出。
+2. 主机上至少有 2 GB 可用磁盘。
+3. HTTP 与 WebSocket 端口空闲（默认 8000 和 8765；在 reComputer R1000 上 8000 被占用，请改用 8001）。
+4. MQTT broker 的地址、端口，以及凭据（如果有），如果 relay 使用主题前缀也一并准备好。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 看板日志显示 MQTT 认证失败 | 核对 broker 用户名和密码，以及该账号是否有权读取传感器主题 |
+| 看板日志显示连接被拒绝或超时 | 核对 broker 地址和端口，并确认这台主机能访问到 broker（不在同一台机器时用局域网 IP，不要用 `127.0.0.1`） |
+| 页面能打开但每个来源都显示“无数据” | 按小时上报的传感器可能要等最多一小时；在 `/admin` 查看每个来源的数据健康 |
+| 部署时报 `no such image` | 使用自建 `OPS_DASHBOARD_IMAGE` 时，先在本地构建再重新部署 |
+| 端口被占用 | 停掉占用端口的程序，或在本步的输入里改用其他 HTTP 端口（reComputer R1000 上用 8001） |
+
+### 部署目标 {#deploy_custom_dashboard_remote type=remote device_name="Dashboard Host" config=devices/custom_dashboard.yaml default=true}
+
+通过 SSH 部署到一台装了 Docker 的 Linux 主机；amd64 和 arm64 都可以。
+
+### 部署目标 {#deploy_custom_dashboard_local type=local config=devices/custom_dashboard.yaml}
+
+部署到本机，本机必须是装了 Docker 的 Linux 主机。
+
+---
+
+## 步骤 2: 打开运维看板 {#verify_custom_dashboard type=web_dashboard required=false config=devices/custom_dashboard_verify.yaml}
+
+打开运维控制台，确认你的传感器出现。
+
+### 部署完成
+
+看板订阅你的 broker，渲染它解码出的每一条读数，历史保存在主机上。
+
+#### 快速验证
+
+1. 打开 `http://<主机>:<http_port>/ops`，页面加载出运维控制台。
+2. 确认页面顶部的 MQTT 指示显示已连接。如果显示未连接，重新核对第 1 步的 broker 设置。
+3. 等待第一条上行；按小时上报的传感器可能要等最多一小时。每个来源的实时 / 延迟 / 超时状态在 `/admin` 上查看。
+4. 可选信息亭：在 reComputer 上用设备浏览器打开同一个 URL 并保持全屏。
+
+#### 下一步
+
+- 如果 broker 还没有要求认证，给它加上认证，并把看板主机和 broker 放在同一个可信网络里。
+- 要在其他端口运行看板，用不同的 HTTP 端口重新部署第 1 步，再打开新的 URL。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 页面打不开 | 确认容器在运行（`docker ps`），且 HTTP 端口是你设置的那个 |
+| MQTT 显示未连接 | 重新核对第 1 步的 broker 地址、端口和凭据 |
+| 来源一直显示“无数据” | 确认传感器在上报，且主题 / 前缀与你的 relay 发布的一致 |
