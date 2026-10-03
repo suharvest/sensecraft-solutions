@@ -411,22 +411,24 @@ Run this once the dashboard works:
 
 ## Preset: Custom Ops Dashboard {#custom_dashboard}
 
-A standalone ops console that subscribes to your own MQTT broker and serves a purpose-built dashboard — an alternative to the Home Assistant view. One container, no cloud account, no LoRaWAN setup: point it at the broker your sensors already report to.
+A dedicated ops console that renders the normalized data from the agri-env bridge as a purpose-built dashboard — a focused alternative view alongside Home Assistant. One container, no cloud account: it subscribes to the bridge's MQTT output and displays what the bridge decodes.
 
+- **Runs beside:** one of the three ingest presets above (or the bridge alone) — this dashboard reads the bridge's normalized state topics, it does not decode uplinks itself.
 - **Host:** A Linux host with Docker for the dashboard container. The reComputer R1000 Series works as a kiosk.
-- **Broker:** The MQTT broker your sensor gateway already publishes to, reachable from the host, with its username and password if it has any.
-- **Known limits:** The dashboard is receive-only and reads ChirpStack-style uplink topics; it does not use the Home Assistant entity naming from the other presets.
+- **Broker:** The MQTT broker the agri-env bridge publishes to, reachable from the host, with its username and password if it has any.
+- **Known limits:** The dashboard is receive-only and reads the bridge's normalized state topics; it does not use the Home Assistant entity naming from the other presets.
 - **Bare-metal option:** to run the dashboard directly on a reComputer with a kiosk display instead of Docker, see `assets/custom_dashboard/MISSION-PACK.md`.
 
 ## Step 1: Deploy the Ops Dashboard {#deploy_custom_dashboard type=docker_deploy required=true config=devices/custom_dashboard.yaml}
 
-Deploys the dashboard bridge, subscribed to your MQTT broker. It serves the ops console over HTTP and pushes live updates over WebSocket.
+Deploys the dashboard bridge, subscribed to the agri-env bridge's normalized MQTT output. It serves the ops console over HTTP and pushes live updates over WebSocket.
 
 ### Prerequisites
 
-1. At least 2 GB free disk on the host.
-2. The HTTP and WebSocket ports free (defaults 8000 and 8765; on a reComputer R1000, port 8000 is taken, so use 8001).
-3. Your MQTT broker's address, port, and credentials if it has any, plus the topic prefix if your relay uses one.
+1. One of the three ingest presets (or the agri-env bridge alone) already running and publishing to your broker — this dashboard reads its output.
+2. At least 2 GB free disk on the host.
+3. The HTTP and WebSocket ports free (defaults 8000 and 8765; on a reComputer R1000, port 8000 is taken, so use 8001).
+4. The MQTT broker's address, port, and credentials if it has any, plus the topic prefix if your relay uses one.
 
 ### Troubleshooting
 

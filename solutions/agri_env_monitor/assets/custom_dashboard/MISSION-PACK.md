@@ -52,13 +52,18 @@ ExecStart=/home/recomputer/farm-venv/bin/python /home/recomputer/agri-env-ops-da
   --http-port 8001 --ws-port 8765 \
   --mqtt-host <your-broker> --mqtt-port 1883 \
   --mqtt-user <user> --mqtt-pass <password> \
-  --mqtt-prefix <prefix> --mqtt-topic application/+/device/+/event/up
+  --mqtt-prefix <prefix> --mqtt-source bridge --mqtt-topic agri_env/+/+/state
 Restart=always
 RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+> `--mqtt-source bridge` makes the dashboard read the normalized output of the agri-env
+> bridge (`agri_env/<node>/<entity>/state`), so it works with any SenseCAP node the bridge
+> decodes. To decode raw ChirpStack uplinks directly instead (the original standalone mode),
+> use `--mqtt-source uplink --mqtt-topic application/+/device/+/event/up`.
 
 Then:
 

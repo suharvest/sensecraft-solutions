@@ -411,22 +411,24 @@ ChirpStack 作网络服务器，用 SenseCAP M2 网关内置的 ChirpStack，或
 
 ## 套餐: 自定义运维看板 {#custom_dashboard}
 
-一个独立的运维控制台，订阅你自己的 MQTT broker 并提供专门的看板——是 Home Assistant 视图之外的另一种选择。只需一个容器，无需云账号、无需 LoRaWAN 配置：把它指向你的传感器已经在上报的那个 broker 即可。
+一个专门的运维控制台，把 agri-env 桥发布的规范化数据渲染成专门的看板——与 Home Assistant 并行的专注视图。只需一个容器，无需云账号：它订阅桥的 MQTT 输出，显示桥解码出的数据。
 
+- **并行运行：** 与上面三个接入套餐之一（或单独的桥）一起——本看板读取桥的规范化状态主题，本身不解码上行。
 - **主机：** 一台装了 Docker 的 Linux 主机，用来运行看板容器。reComputer R1000 系列可当作信息亭使用。
-- **broker：** 你的传感网关已经在上报的 MQTT broker，主机能访问到它，以及它的用户名和密码（如果有的话）。
-- **已知限制：** 看板仅接收数据，读取 ChirpStack 风格的上行主题；不使用其他套餐里 Home Assistant 的实体命名。
+- **broker：** agri-env 桥发布到的那个 MQTT broker，主机能访问到它，以及它的用户名和密码（如果有的话）。
+- **已知限制：** 看板仅接收数据，读取桥的规范化状态主题；不使用其他套餐里 Home Assistant 的实体命名。
 - **裸机选项：** 不用 Docker、直接在 reComputer 上带信息亭显示运行看板，见 `assets/custom_dashboard/MISSION-PACK.md`。
 
 ## 步骤 1: 部署运维看板 {#deploy_custom_dashboard type=docker_deploy required=true config=devices/custom_dashboard.yaml}
 
-部署看板桥，订阅你的 MQTT broker。它通过 HTTP 提供运维控制台，并通过 WebSocket 推送实时更新。
+部署看板桥，订阅 agri-env 桥的规范化 MQTT 输出。它通过 HTTP 提供运维控制台，并通过 WebSocket 推送实时更新。
 
 ### 前置条件
 
-1. 主机上至少有 2 GB 可用磁盘。
-2. HTTP 与 WebSocket 端口空闲（默认 8000 和 8765；在 reComputer R1000 上 8000 被占用，请改用 8001）。
-3. 你的 MQTT broker 地址、端口，以及凭据（如果有），如果 relay 使用主题前缀也一并准备好。
+1. 三个接入套餐之一（或单独的 agri-env 桥）已在运行并在向你的 broker 发布——本看板读取它的输出。
+2. 主机上至少有 2 GB 可用磁盘。
+3. HTTP 与 WebSocket 端口空闲（默认 8000 和 8765；在 reComputer R1000 上 8000 被占用，请改用 8001）。
+4. MQTT broker 的地址、端口，以及凭据（如果有），如果 relay 使用主题前缀也一并准备好。
 
 ### 故障排查
 

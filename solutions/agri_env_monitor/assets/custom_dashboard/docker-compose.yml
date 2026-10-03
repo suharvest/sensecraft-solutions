@@ -29,7 +29,9 @@ services:
       - MQTT_USER=${MQTT_USER:-}
       - MQTT_PASSWORD=${MQTT_PASSWORD:-}
       - MQTT_PREFIX=${MQTT_PREFIX:-}
-      - MQTT_TOPIC=${MQTT_TOPIC:-application/+/device/+/event/up}
+      # Input mode: this preset consumes the normalized agri-env bridge contract.
+      - MQTT_SOURCE=${MQTT_SOURCE:-bridge}
+      - MQTT_TOPIC=${MQTT_TOPIC:-agri_env/+/+/state}
     ports:
       - "${FARM_HTTP_PORT:-8000}:${FARM_HTTP_PORT:-8000}"   # HTTP dashboards + JSON API
       - "${FARM_WS_PORT:-8765}:${FARM_WS_PORT:-8765}"       # WebSocket live updates

@@ -42,12 +42,12 @@ Tested by replaying uplinks from 3 devices on a local host, 13 uplinks across th
 
 | | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack | Custom Ops Dashboard |
 |---|---|---|---|---|
-| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway | You want a purpose-built ops console on your own broker |
+| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway | You want a focused ops console on top of the bridge |
 | Internet needed | Yes | No | No | No |
 | History from before install | Yes | No | No | No |
-| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 | Light; needs your MQTT broker settings |
+| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 | Light; runs beside one of the other presets |
 
-The **Custom Ops Dashboard** preset is a standalone alternative to the Home Assistant view: a single container subscribes to your own MQTT broker and serves a receive-only ops console (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It reads ChirpStack-style uplink topics and does not create Home Assistant entities, so it suits sites that want a ready-made display without running Home Assistant.
+The **Custom Ops Dashboard** preset adds a focused, receive-only console on top of the agri-env bridge: a single container subscribes to the bridge's normalized MQTT output and serves a purpose-built dashboard (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It runs beside any of the three ingest presets (or the bridge alone) and reads the bridge's state topics, so it works with any SenseCAP node the bridge decodes — a companion display, not a separate ingest path.
 
 ## Usage Notes
 

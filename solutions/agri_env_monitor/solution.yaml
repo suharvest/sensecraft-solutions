@@ -263,9 +263,9 @@ intro:
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: A standalone ops console that subscribes to your own MQTT broker and serves a purpose-built dashboard — an alternative to the Home Assistant view.
+      description: A dedicated ops console that renders the normalized data from the agri-env bridge as a purpose-built dashboard — a focused alternative view alongside Home Assistant.
       description_i18n:
-        zh: 一个独立的运维控制台，订阅你自己的 MQTT broker 并提供专门的看板——是 Home Assistant 视图之外的另一种选择。
+        zh: 一个专门的运维控制台，把 agri-env 桥发布的规范化数据渲染成专门的看板——与 Home Assistant 并行的专注视图。
       device_groups:
         - id: host
           name: Dashboard Host

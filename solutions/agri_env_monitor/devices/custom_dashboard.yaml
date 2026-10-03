@@ -95,6 +95,7 @@ remote_overrides:
           MQTT_USER={{mqtt_username}}
           MQTT_PASSWORD={{mqtt_password}}
           MQTT_PREFIX={{mqtt_prefix}}
+          MQTT_SOURCE=bridge
           MQTT_TOPIC={{mqtt_topic}}
           EOF
           echo "wrote $WORKDIR/.env"
@@ -242,12 +243,12 @@ remote_overrides:
       description_i18n:
         zh: 如果你的 relay 使用前缀，会加在传感器主题前面。没有则留空。
     - id: mqtt_topic
-      name: Sensor Uplink Topic
+      name: Sensor State Topic
       type: text
       required: true
-      default: "application/+/device/+/event/up"
-      description: The ChirpStack-style uplink topic your sensors publish to
+      default: "agri_env/+/+/state"
+      description: The normalized state topic the agri-env bridge publishes. One of the three ingest presets (or the bridge alone) must be running — this dashboard reads its output.
       name_i18n:
-        zh: 传感器上行主题
+        zh: 传感器状态主题
       description_i18n:
-        zh: 你的传感器上报数据所用的 ChirpStack 风格上行主题
+        zh: agri-env 桥发布的规范化状态主题。三个接入套餐（或单独的桥）之一必须在运行——本看板读取它的输出。
