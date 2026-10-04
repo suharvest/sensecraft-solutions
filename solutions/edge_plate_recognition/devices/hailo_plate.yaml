@@ -80,8 +80,23 @@ actions:
         MQTT_PASSWORD: '{{mqtt_password}}'
       run: |
         set -e
-        WORKDIR="/home/{{username}}/edge-parking/hailo_plate"
-        CONFIG="$WORKDIR/config/plate.json"
+        # 不硬编码部署根：local 与 remote 两个 view 都会跑 after_upload，
+        # local 卡没有 /home/{{username}}/edge-parking/。在候选位置里定位
+        # 已上传/仓库内的 docker-compose.yml，把配置写到 compose 同级的
+        # config/（compose 的相对挂载按自身目录解析，两种部署都挂得上）。
+        COMPOSE=""
+        for root in "/home/{{username}}/edge-parking/hailo_plate" "assets/hailo" "."; do
+          [ -d "$root" ] || continue
+          f=$(find "$root" -maxdepth 2 -name 'docker-compose.yml' -print -quit 2>/dev/null || true)
+          if [ -n "$f" ]; then COMPOSE="$f"; break; fi
+        done
+        if [ -z "$COMPOSE" ]; then
+          echo "找不到已上传的 docker-compose.yml（local/remote 两种部署根都试过）" >&2
+          exit 1
+        fi
+        CONFIG_DIR="$(dirname "$COMPOSE")/config"
+        mkdir -p "$CONFIG_DIR"
+        CONFIG="$CONFIG_DIR/plate.json"
         python3 - "$CONFIG" <<'PY'
         import json, os, sys
 
@@ -114,26 +129,6 @@ actions:
 
 
 user_inputs:
-  - id: host
-    name: R2035 IP
-    type: text
-    required: true
-    placeholder: "192.168.1.100"
-    name_i18n:
-      zh: R2035 IP
-  - id: username
-    name: SSH Username
-    type: text
-    default: recomputer
-    required: true
-    name_i18n:
-      zh: SSH 用户名
-  - id: password
-    name: SSH Password
-    type: password
-    required: true
-    name_i18n:
-      zh: SSH 密码
   - id: rtsp_url
     name: Camera RTSP URL
     type: text
@@ -207,6 +202,97 @@ remote_overrides:
   detection:
     method: network_scan
     manual_entry: true
+  # Remote view replaces the base inputs wholesale (same semantics as
+  # recamera_heatmap_grafana), so it must carry the full set: app inputs
+  # plus the SSH connection fields.
+  user_inputs:
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: site_id
+      name: Site ID
+      type: text
+      default: "demo-lot"
+      required: true
+      description: First MQTT topic segment — one per parking site
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 站点编号
+      description_i18n:
+        zh: MQTT 主题第一段——一个停车场一个
+    - id: camera_id
+      name: Camera ID
+      type: text
+      default: "gate-a"
+      required: true
+      description: Identifies this lane/camera in events and topics
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 摄像头编号
+      description_i18n:
+        zh: 在事件与主题里标识这条车道/这台摄像头
+    - id: mqtt_host
+      name: MQTT Broker Host
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: Usually the reComputer R1124-10 that runs the gate service — this host runs it too if you skip the R1124
+      name_i18n:
+        zh: MQTT 服务器地址
+      description_i18n:
+        zh: 通常是跑开闸服务的 reComputer R1124-10
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_username
+      name: MQTT Username
+      type: text
+      required: false
+      description: Leave empty if the broker allows anonymous clients
+      name_i18n:
+        zh: MQTT 用户名
+      description_i18n:
+        zh: broker 允许匿名连接就留空
+    - id: mqtt_password
+      name: MQTT Password
+      type: password
+      required: false
+      name_i18n:
+        zh: MQTT 密码
+
+    - id: host
+      name: R2035 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: R2035 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
 
 
 name_i18n:
