@@ -1,0 +1,12 @@
+# DRAFT — 镜像 edge-parking-jetson 待 NRD-2 X2 产出（FROM vision-base-jetson），
+# tag 待回填；config/plate.json 由部署步 after_upload 渲染。
+services:
+  edge-parking:
+    image: sensecraft/edge-parking-jetson:0.1.0-draft
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./models:/models:ro
+      - ./config:/config
+      - ./data:/data
+    command: ["--config", "/config/plate.json"]

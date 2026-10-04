@@ -1,0 +1,80 @@
+version: "1.0"
+id: gate_wiring
+name: Wire the Barrier Gate
+type: manual
+
+# DRAFT（NRD-3 §6.9）。DO 的电气类型（源型/漏型/继电器）、额定电压电流
+# 需核实 R1000 系列 wiki 后画定稿接线图；定稿图由人工核对道闸说明书后
+# 签字确认，随 guide 发布。以下为接线约定草稿。
+
+steps:
+  - id: check_do_spec
+    name: Confirm the DO electrical spec
+    name_i18n:
+      zh: 确认 DO 电气规格
+    description: >-
+      Look up the reComputer R1000 series wiki for the R1124-10 digital output:
+      whether it is sourcing or open-drain, its rated voltage and current, and
+      the Linux line name (gpiod). Choose the interposing relay's coil voltage
+      to match — DIN-rail mount, coil rating per the wiki values.
+    description_i18n:
+      zh: >-
+        查 reComputer R1000 系列 wiki，确认 R1124-10 数字输出的电气类型
+        （源型/开漏）、额定电压电流，以及 Linux 线名（gpiod）。
+        据此选择中间继电器的线圈电压——DIN 导轨安装，线圈规格按 wiki 数值。
+    optional: false
+
+  - id: wire_relay
+    name: Wire the DO through the relay to the barrier
+    name_i18n:
+      zh: 经中间继电器把 DO 接到道闸
+    description: >-
+      R1124-10 DO_n to the relay coil (+); DO_COM/GND to coil (−). Relay NO
+      contact to the barrier controller's OPEN terminal; relay COM to the
+      controller's COM terminal. Use the NO (normally open) contact only —
+      closing the barrier stays the barrier's own logic (ground radar / loop
+      detector), this system never drives the close input.
+    description_i18n:
+      zh: >-
+        R1124-10 的 DO_n 接继电器线圈 (+)，DO_COM/GND 接线圈 (−)；继电器
+        NO 触点接道闸控制器「开闸/OPEN」端子，COM 接「公共/COM」端子。
+        只用 NO（常开）触点——关闸由道闸自身逻辑负责（地感/雷达），
+        本系统不接关闸端子。
+    optional: false
+
+  - id: upload_whitelist
+    name: Upload the whitelist CSV
+    name_i18n:
+      zh: 上传白名单 CSV
+    description: >-
+      PUT the whitelist to the gate service: `curl -X PUT --data-binary
+      @whitelist.csv http://<r1124>:8081/whitelist`. Header row must be
+      `plate,label,valid_from,valid_until`; a 400 response names the offending
+      line. Matching is exact after normalization — no fuzzy match.
+    description_i18n:
+      zh: >-
+        把白名单 PUT 到开闸服务：`curl -X PUT --data-binary @whitelist.csv
+        http://<r1124>:8081/whitelist`。表头必须是
+        `plate,label,valid_from,valid_until`；返回 400 时会指出出错行号。
+        匹配为归一化后的精确匹配——不做模糊匹配。
+    optional: false
+
+  - id: test_pulse
+    name: Fire a test pulse
+    name_i18n:
+      zh: 触发一次测试脉冲
+    description: >-
+      `curl -X POST http://<r1124>:8081/gate/test` — the relay should click
+      for one 500 ms pulse and a gate event with trigger `manual_test` should
+      appear on `<site>/parking/<camera>/gate`. Verify with a multimeter or the
+      relay indicator before putting a vehicle in front of the barrier.
+    description_i18n:
+      zh: >-
+        `curl -X POST http://<r1124>:8081/gate/test`——继电器应吸合约
+        500 ms 一次，同时 `<site>/parking/<camera>/gate` 主题上应出现一条
+        trigger 为 `manual_test` 的开闸事件。先用万用表或继电器指示灯确认，
+        再让车辆开到道闸前实测。
+    optional: false
+
+name_i18n:
+  zh: 道闸接线

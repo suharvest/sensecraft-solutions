@@ -1,0 +1,431 @@
+# ============================================================================
+# DRAFT / staging — edge_plate_recognition (NRD-3 上游交付物草稿)
+#
+# 上游应用仓库（待发布，NRD-2 §11 D1 推荐地址，尚未建库）：
+#   github.com/Seeed-Solution/edge-parking-vision
+# 所依赖的 vision-base tag：待回填（BASE-1 发布第一个 tag 后写入）。
+#
+# 模型与数据许可摘要（详见 LICENSES.md）：
+#   - 检测 YOLOX（Apache-2.0）；自训权重 plate_det_* 按 Apache-2.0 发布
+#   - 识别 PlateRecNet（本仓库自写，Apache-2.0）；plate_rec_* 权重 Apache-2.0
+#   - 训练数据 CCPD（MIT）；PP-OCRv5 仅基线评测、不随交付分发
+# gallery 来源说明：暂无任何实拍图（真机验收 P10/P11 之前不得编造截图），
+#   见 gallery/ATTRIBUTION.md。cover_image 与 gallery[] 待实拍后回填。
+#
+# verified 状态：所有 preset 均未过真机验收（NRD-3 §8 Y1–Y6），一律不加
+#   `verified:`。某平台验收通过后只给对应 preset 追加。
+#
+# `visibility` 不是 spec 字段（spec/solution.schema.json 无此键，加载时被
+# 静默丢弃，见 spec/CONTRACT.md「extra 字段处理」）。写在这里是作为草稿
+# 状态的书面记录，真正的发布门是 registry.yaml 的 review → live。
+# ============================================================================
+version: "1.0"
+id: edge_plate_recognition
+name: Edge License Plate Recognition
+name_i18n:
+  zh: 边缘车牌识别
+  ja: エッジナンバープレート認識
+
+intro:
+  # 见文件头注释：非 spec 字段，仅作草稿状态记录。
+  visibility: staging
+  summary: >-
+    Recognize license plates at the edge and open the barrier for whitelisted
+    vehicles — on an all-in-one AI camera or on your existing IP cameras with an
+    edge host. Events go out over MQTT with snapshot links; nothing leaves the
+    site unless you say so.
+  summary_i18n:
+    zh: >-
+      在边缘侧识别车牌，白名单车辆自动开闸——可用一体化 AI 摄像头，也可用现有
+      IP 摄像头加边缘主机。识别事件经 MQTT 输出并附截图链接，数据不出园区。
+    ja: >-
+      エッジでナンバープレートを認識し、ホワイトリスト登録車両のゲートを自動
+      で開放——オールインワン AI カメラ、または既存の IP カメラ＋エッジホスト
+      で動作します。イベントは
+      MQTT で出力され、スナップショットへのリンク付き。データは構内から出ません。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - parking
+    - license-plate
+    - anpr
+    - mqtt
+    - barrier-gate
+    - yolox
+    - recamera
+    - jetson
+    - rknn
+    - hailo
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<camera>/plate
+      description: One event per vehicle — plate string, confidence, vote count, bounding box and a snapshot URL with its sha256. Delivered via the MQTT broker on the reComputer R1124-10.
+      schema_type: json
+      payload_example: '{"schema":"parking.plate/1","event_id":"...","site_id":"demo-lot","camera_id":"gate-a","ts":1790000000789,"seq":2211,"replayed":false,"plate":"粤B12345","plate_normalized":"粤B12345","region":"cn","plate_type":"cn_blue","confidence":0.93,"votes":5,"frames":7,"bbox":[0.41,0.62,0.55,0.67],"track_id":77,"snapshot":{"url":"http://camera.local:8080/snapshots/2211.jpg","sha256":"...","width":1920,"height":1080}}'
+      description_i18n:
+        zh: 每辆车一条事件——车牌字符串、置信度、投票数、检测框与带 sha256 的截图链接。经 reComputer R1124-10 上的 MQTT broker 投递。
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<camera>/gate
+      description: Gate actions from the R1124 gate service — open_pulse or suppressed (cooldown), with the triggering plate event id and pulse latency.
+      schema_type: json
+      payload_example: '{"schema":"parking.gate/1","event_id":"...","site_id":"demo-lot","camera_id":"gate-a-barrier","ts":1790000000912,"seq":18,"replayed":false,"action":"open_pulse","trigger":"whitelist","plate_event_id":"...","plate_normalized":"粤B12345","whitelist_label":"员工-张","pulse_ms":500,"latency_ms":123}'
+      description_i18n:
+        zh: R1124 开闸服务的动作事件——open_pulse 或 suppressed（冷却中），带触发的车牌事件 id 与脉冲时延。
+    - type: mqtt
+      port: 1883
+      topic: <root>/status
+      description: Runtime status of the vision pipeline (vb.status/1), published periodically and as retained last will.
+      schema_type: json
+      description_i18n:
+        zh: 视觉管线运行状态（vb.status/1），周期发布并以遗嘱消息保留。
+    - type: http
+      port: 8080
+      endpoint: /snapshots/{seq}.jpg
+      method: GET
+      description: Recognition-side snapshot referenced by plate events. Snapshots are kept locally for 7 days by default and never embedded in the event itself.
+      schema_type: binary
+      description_i18n:
+        zh: 车牌事件引用的识别端截图。默认本地保留 7 天，图片不内嵌在事件里。
+    - type: http
+      port: 8081
+      endpoint: /whitelist
+      method: GET
+      description: Gate service on the R1124 — GET returns the current whitelist CSV, PUT uploads a new one (atomic replace, 400 with the line number on validation failure). POST /gate/test fires one test pulse.
+      schema_type: csv
+      description_i18n:
+        zh: R1124 上的开闸服务——GET 返回当前白名单 CSV，PUT 上传新名单（原子替换，校验失败返回 400 与行号）。POST /gate/test 触发一次测试脉冲。
+    - type: http
+      port: 8099
+      endpoint: /healthz
+      method: GET
+      description: Pipeline health — liveness plus inference latency percentiles of the detector and recognizer.
+      schema_type: json
+      description_i18n:
+        zh: 管线健康检查——存活状态与检测/识别推理时延分位数。
+
+  input_requirements:
+    - type: camera_view
+      description: A fixed view of the lane at 3–8 m where plates stay legible. The reCamera presets use the built-in sensor; the host presets take an RTSP stream from your own IP camera (1080p or better).
+      required: true
+      description_i18n:
+        zh: 距车道 3–8 m 的固定机位，车牌保持清晰可辨。reCamera 套餐用自带传感器；主机套餐通过 RTSP 接你自己的 IP 摄像头（1080p 及以上）。
+
+  device_catalog:
+    recamera_pro:
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      description: Recommended all-in-one camera — plate detection and recognition on device (RV1126B)
+      description_i18n:
+        zh: 推荐的一体化摄像头——检测与识别都在机上完成（RV1126B）
+    recamera_2002:
+      name: reCamera 2002 HQ PoE
+      name_i18n:
+        zh: reCamera 2002 HQ PoE
+      description: Minimum configuration — a single PoE camera does detection and recognition on device (SG2002)
+      description_i18n:
+        zh: 最低配置——一台 PoE 摄像头在机上完成检测与识别（SG2002）
+    recomputer_j30:
+      name: reComputer J30 (Jetson Orin)
+      name_i18n:
+        zh: reComputer J30（Jetson Orin）
+      description: Edge host for existing IP cameras — TensorRT inference on Orin
+      description_i18n:
+        zh: 接现有 IP 摄像头的边缘主机——Orin 上跑 TensorRT 推理
+    recomputer_rk3588:
+      name: reComputer RK3588-30
+      name_i18n:
+        zh: reComputer RK3588-30
+      description: Recommended host for existing cameras — RKNN INT8 on the RK3588 NPU, multi-stream headroom
+      description_i18n:
+        zh: 推荐的主机形态——RK3588 NPU 上跑 RKNN INT8，可支撑多路视频
+    recomputer_rk3576:
+      name: reComputer RK3576-30
+      name_i18n:
+        zh: reComputer RK3576-30
+      description: Runs detection and recognition on the RK3576 NPU
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行检测与识别
+    recomputer_r20_industrial:
+      name: reComputer R2035-12 (Hailo-8)
+      name_i18n:
+        zh: reComputer R2035-12（Hailo-8）
+      description: Runs detection and recognition on a Hailo-8 accelerator
+      description_i18n:
+        zh: 在 Hailo-8 加速器上运行检测与识别
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    recomputer_r11:
+      name: reComputer R1124-10
+      name_i18n:
+        zh: reComputer R1124-10
+      description: MQTT broker plus the gate service — its digital output pulses the barrier through an interposing relay
+      description_i18n:
+        zh: MQTT broker 加开闸服务——用数字输出经中间继电器给道闸发开闸脉冲
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP or ONVIF camera you already own, supplying video to the host presets
+      description_i18n:
+        zh: 你已有的 RTSP 或 ONVIF 摄像头，为主机套餐供流
+
+  presets:
+    - id: recamera_pro
+      name: reCamera Pro (Recommended)
+      name_i18n:
+        zh: reCamera Pro（推荐）
+        ja: reCamera Pro（推奨）
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: One camera does everything — plate detection, recognition and MQTT events on device. Add an R1124-10 for barrier control.
+      description_i18n:
+        zh: 一台摄像头完成全部——机上检测、识别并输出 MQTT 事件。需要开闸时加一台 R1124-10。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay. Skip it and the camera still publishes plate events.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。不加则摄像头照常只发车牌事件。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+    - id: recamera_2002
+      name: reCamera 2002 HQ PoE (Minimum)
+      name_i18n:
+        zh: reCamera 2002 HQ PoE（最低配置）
+        ja: reCamera 2002 HQ PoE（最小構成）
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: Lowest-cost setup — one PoE camera runs detection and recognition on device. Whether it runs full on-device recognition or detect-only plus host-side recognition on the R1124 is decided by the platform acceptance tests; this page will state the measured form.
+      description_i18n:
+        zh: 成本最低的方案——一台 PoE 摄像头在机上完成检测与识别。最终形态（端上完整识别，或端上检测 + R1124 主机侧识别）以该平台验收实测为准，本页会写明实测结论。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output. In detect-only fallback mode it also runs the host-side recognizer.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出。降级模式下它还承担主机侧识别。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+    - id: jetson
+      name: IP Camera + reComputer J30 (Jetson)
+      name_i18n:
+        zh: IP 摄像头 + reComputer J30（Jetson）
+        ja: IP カメラ + reComputer J30（Jetson）
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: Keeps your existing gate cameras — Jetson Orin runs detection and recognition with TensorRT FP16. Add an R1124-10 for barrier control.
+      description_i18n:
+        zh: 保留现有出入口摄像头——Jetson Orin 用 TensorRT FP16 跑检测与识别。需要开闸时加一台 R1124-10。
+      device_groups:
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+    - id: rk3588
+      name: IP Camera + reComputer RK3588-30
+      name_i18n:
+        zh: IP 摄像头 + reComputer RK3588-30
+        ja: IP カメラ + reComputer RK3588-30
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: Recommended host form — RKNN INT8 on the RK3588 NPU with multi-stream headroom. Add an R1124-10 for barrier control.
+      description_i18n:
+        zh: 推荐的主机形态——RK3588 NPU 上跑 RKNN INT8，可支撑多路视频。需要开闸时加一台 R1124-10。
+      device_groups:
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+    - id: rk3576
+      name: IP Camera + reComputer RK3576-30
+      name_i18n:
+        zh: IP 摄像头 + reComputer RK3576-30
+        ja: IP カメラ + reComputer RK3576-30
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: RKNN INT8 on the RK3576 NPU for your existing gate cameras. Add an R1124-10 for barrier control.
+      description_i18n:
+        zh: 用现有出入口摄像头，RK3576 NPU 上跑 RKNN INT8。需要开闸时加一台 R1124-10。
+      device_groups:
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+    - id: hailo
+      name: IP Camera + reComputer R2035-12 (Hailo-8)
+      name_i18n:
+        zh: IP 摄像头 + reComputer R2035-12（Hailo-8）
+        ja: IP カメラ + reComputer R2035-12（Hailo-8）
+      badge: Draft
+      badge_i18n:
+        zh: 草稿
+      description: Detection and recognition on a Hailo-8 accelerator for your existing gate cameras. Add an R1124-10 for barrier control.
+      description_i18n:
+        zh: 用现有出入口摄像头，Hailo-8 加速器上跑检测与识别。需要开闸时加一台 R1124-10。
+      device_groups:
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
+          description_i18n:
+            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+
+  # 待回填：应用仓库尚未建库（NRD-2 §11 D1 为推荐地址），建库后补 links.github。
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

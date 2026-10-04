@@ -1,0 +1,33 @@
+{
+  "_comment": "DRAFT vb.config/1 预设 plate.json（NRD-3 §5.4，rk3576/RKNN INT8）。contexts_per_worker 2、core_masks [1,2]（NRD-3 Y3）；stage2.charset 与 vote.accept 由 core_parking.plate.charset 生成，不手写。",
+  "backend": {
+    "name": "rknn",
+    "model_path": "/models/plate_det_yolox_tiny_640.rk3576.int8.rknn",
+    "input_hw": [640, 640],
+    "contexts_per_worker": 2,
+    "core_masks": [1, 2]
+  },
+  "streams": [],
+  "app": {
+    "name": "edge-parking-plate",
+    "module": "core_parking.plate.hooks_plate:PlateHooks",
+    "options": {
+      "site_id": "demo-lot",
+      "mqtt": {"host": "r1124.local", "port": 1883, "username": "", "password": "", "keepalive_s": 30},
+      "http": {"port": 8080},
+      "spool": {"max_events": 50000},
+      "preview_frame_stride": 15,
+      "plate": {
+        "mode": "full",
+        "region": "cn",
+        "roi": [[0.2, 0.3], [0.8, 0.3], [0.8, 0.95], [0.2, 0.95]],
+        "stage2": {"model_path": "/models/plate_rec_cn_96x32.rk3576.int8.rknn", "input_hw": [32, 96], "classes": [0], "expand": 0.08, "max_per_track": 7, "color": "rgb", "scale": 0.0039215686, "backend": ""},
+        "vote": {"window": 7, "min_agree": 3, "min_conf": 0.6, "flush_min_agree": 2},
+        "dedup_s": 30,
+        "snapshot_dir": "/data/edge-parking/snapshots",
+        "snapshot_retention_days": 7,
+        "snapshot_max_mb": 2048
+      }
+    }
+  }
+}

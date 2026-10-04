@@ -1,0 +1,29 @@
+version: "1.0"
+id: dashboard
+name: Open the Recognition Preview
+type: web_dashboard
+
+# 识别端 HTTP 8080（NRD-3 §5.1 http_app）：/preview 为实时画面叠加车牌框，
+# 快照可通过 /snapshots/{seq}.jpg 按事件里的 URL 取回。
+# 自带 host 输入（默认取上游部署步的主机），各 preset 共用本文件。
+web_dashboard:
+  url: "http://{{host}}:8080/preview"
+  title: Plate Recognition Preview
+  title_i18n:
+    zh: 车牌识别预览
+  description: Live view with plate boxes and the latest recognized plates. A plate event with a snapshot URL on the MQTT topic means the pipeline is working end to end.
+  description_i18n:
+    zh: 实时画面叠加车牌框与最新识别结果。MQTT 主题上出现带截图链接的车牌事件，说明管线已端到端跑通。
+
+user_inputs:
+  - id: host
+    name: Recognition Device IP
+    type: text
+    default: localhost
+    default_template: "{{host}}"
+    required: true
+    name_i18n:
+      zh: 识别设备 IP
+
+name_i18n:
+  zh: 打开识别预览

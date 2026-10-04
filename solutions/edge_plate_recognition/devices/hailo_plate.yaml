@@ -1,0 +1,203 @@
+version: "1.0"
+id: hailo_plate
+name: reComputer R2035 (Hailo-8) Plate Recognition
+type: docker_deploy
+
+# DRAFT（NRD-3 Y4 未验收）。
+# - 运行镜像 edge-parking-hailo（FROM vision-base-hailo）待 NRD-2 X4 产出，
+#   assets/hailo/docker-compose.yml 里的 tag 待回填。镜像内不含 HailoRT，
+#   libhailort 由宿主挂载，版本须与驱动一致（check_hailort.sh 预检，脚本
+#   待 NRD-2 X4 产出后回填到 actions.before）。
+# - 三个 .hef 待 Y4 转换任务产出（hailo_ai_sw_suite_2025-04 DFC 容器），
+#   sha256 待产出后回填。
+# - 若同进程两个 network group 不可用或识别 parity 不过，预设改
+#   stage2.backend: "cpu"（识别在 Pi5 CPU 上跑 ONNX Runtime，备用预设
+#   plate_cpu_rec.json），验收结论与原因写进 wiki。
+
+docker:
+  compose_file: assets/hailo/docker-compose.yml
+  compose_dir: assets/hailo
+  options:
+    project_name: edge_plate
+    remove_orphans: true
+  services:
+    - name: edge-parking
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 600
+
+pre_checks:
+  - type: disk_space
+    min_gb: 6
+    description: HEF models and the container image live on the device
+
+post_deployment:
+  open_browser: false
+
+files:
+  # 待回填：NRD-3 Y4 产出后上传（solution-assets skill，人工），sha256 回填。
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_det_yolox_tiny_640.hef
+    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_det_yolox_tiny_640.hef
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32.hef
+    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_rec_cn_96x32.hef
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_de_96x32.hef
+    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_rec_de_96x32.hef
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-parking
+  compose_dir: assets/hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the Hailo runtime
+        # 简化版预检；三处版本比对（驱动 / libhailort / 基座期望）的完整
+        # check_hailort.sh 待 NRD-2 X4 产出后替换本动作。
+        run: |
+          set -e
+          if [ ! -e /dev/hailo0 ]; then
+            echo "/dev/hailo0 not found — Hailo-8 driver not loaded" >&2
+            exit 1
+          fi
+          if ! ldconfig -p 2>/dev/null | grep -q libhailort; then
+            echo "libhailort not found — install the HailoRT package matching your driver" >&2
+            exit 1
+          fi
+          echo "Hailo device and runtime present"
+        name_i18n:
+          zh: 检查 Hailo 运行时
+
+    after_upload:
+      - name: Write the plate recognition config
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-parking/hailo_plate"
+          CONFIG="$WORKDIR/config/plate.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          app = config.setdefault("app", {}).setdefault("options", {})
+          app["site_id"] = "{{site_id}}"
+          app.setdefault("mqtt", {})["host"] = "{{mqtt_host}}"
+          app["mqtt"]["port"] = int("{{mqtt_port}}")
+          app["mqtt"]["username"] = "{{mqtt_username}}"
+          app["mqtt"]["password"] = "{{mqtt_password}}"
+          config["streams"] = [{
+              "id": "{{camera_id}}",
+              "rtsp_url": "{{rtsp_url}}",
+              "enabled": True,
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2, ensure_ascii=False)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"site_id = {app['site_id']}")
+          print(f"stream  = {config['streams'][0]['id']}")
+          PY
+        name_i18n:
+          zh: 写入车牌识别配置
+
+  user_inputs:
+    - id: host
+      name: R2035 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      name_i18n:
+        zh: R2035 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+    - id: site_id
+      name: Site ID
+      type: text
+      default: "demo-lot"
+      required: true
+      description: First MQTT topic segment — one per parking site
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 站点编号
+      description_i18n:
+        zh: MQTT 主题第一段——一个停车场一个
+    - id: camera_id
+      name: Camera ID
+      type: text
+      default: "gate-a"
+      required: true
+      description: Identifies this lane/camera in events and topics
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 摄像头编号
+      description_i18n:
+        zh: 在事件与主题里标识这条车道/这台摄像头
+    - id: mqtt_host
+      name: MQTT Broker Host
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      description: Usually the reComputer R1124-10 that runs the gate service — this host runs it too if you skip the R1124
+      name_i18n:
+        zh: MQTT 服务器地址
+      description_i18n:
+        zh: 通常是跑开闸服务的 reComputer R1124-10
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_username
+      name: MQTT Username
+      type: text
+      required: false
+      description: Leave empty if the broker allows anonymous clients
+      name_i18n:
+        zh: MQTT 用户名
+      description_i18n:
+        zh: broker 允许匿名连接就留空
+    - id: mqtt_password
+      name: MQTT Password
+      type: password
+      required: false
+      name_i18n:
+        zh: MQTT 密码
+
+name_i18n:
+  zh: reComputer R2035（Hailo-8）车牌识别

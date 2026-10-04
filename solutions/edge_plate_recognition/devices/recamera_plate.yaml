@@ -1,0 +1,151 @@
+version: "1.0"
+id: recamera_plate
+name: reCamera 2002 Plate Recognition
+type: recamera_cpp
+device_class: recamera
+
+# DRAFT（NRD-3 Y6 未验收）。deb 包与三个 cvimodel 均待 NRD-2 X6
+# （build-deb.sh，含 plate_crop_picker 插件 .so 打包）与 Y6 转换任务产出；
+# 下面的 URL 按既有 CDN 路径规则（solution-app/<repo>/<kind>/）的预期文件名
+# 书写，文件尚不存在，sha256 一律待产出后回填，不得编造。
+# 上传走 solution-assets skill，人工执行。
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  deb_package:
+    # 待回填：NRD-2 X6 产出（edge-parking-plate_<ver>_riscv64.deb）
+    path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/packages/edge-parking-plate_0.1.0_riscv64.deb
+    name: edge-parking-plate
+    includes_init_script: true
+    # checksum.sha256 待回填
+
+  models:
+    # 待回填：NRD-3 Y6 转换任务产出（sophgo/tpuc_dev:v3.1，INT8 失败退 BF16
+    # 时文件名相应变化）。检测为 416 输入（车道 ROI 硬件裁切后缩放）。
+    - path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_det_yolox_tiny_416_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: plate_det_yolox_tiny_416_cv181x_int8.cvimodel
+    - path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: plate_rec_cn_96x32_cv181x_int8.cvimodel
+    - path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_de_96x32_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: plate_rec_de_96x32_cv181x_int8.cvimodel
+
+  service_name: edge-parking-plate
+  service_priority: 92
+  # 一次只能有一个应用占用摄像头（VPSS Grp），装之前必须让出。
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+  auto_start: true
+
+actions:
+  after:
+    - name: Write plate recognition config
+      run: |
+        set -e
+        CONF=/etc/edge-parking-plate.conf
+        set_kv() {
+          key="$1"; val="$2"
+          if grep -qE "^[[:space:]]*${key}=" "$CONF" 2>/dev/null; then
+            sed -i "s|^[[:space:]]*${key}=.*|${key}=${val}|" "$CONF"
+          else
+            echo "${key}=${val}" >> "$CONF"
+          fi
+        }
+        [ -f "$CONF" ] || touch "$CONF"
+        set_kv SITE_ID "{{site_id}}"
+        set_kv CAMERA_ID "{{camera_id}}"
+        [ -n "{{mqtt_host}}" ] && set_kv MQTT_HOST "{{mqtt_host}}"
+        [ -n "{{mqtt_port}}" ] && set_kv MQTT_PORT "{{mqtt_port}}"
+        # 默认 full（端上完整识别）。Y6 验收触发降级条件时改为 detect_only，
+        # 由 R1124 上的 plate-host 完成识别（NRD-3 §5.3）。
+        set_kv PLATE_MODE "full"
+      sudo: true
+      name_i18n:
+        zh: 写入车牌识别配置
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: site_id
+    name: Site ID
+    type: text
+    default: "demo-lot"
+    required: true
+    description: First MQTT topic segment — one per parking site
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 站点编号
+    description_i18n:
+      zh: MQTT 主题第一段——一个停车场一个
+  - id: camera_id
+    name: Camera ID
+    type: text
+    default: "gate-a"
+    required: true
+    description: Identifies this lane/camera in events and topics
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 摄像头编号
+    description_i18n:
+      zh: 在事件与主题里标识这条车道/这台摄像头
+  - id: mqtt_host
+    name: MQTT Broker Address (optional)
+    type: text
+    required: false
+    placeholder: "192.168.1.50"
+    description: Usually the reComputer R1124-10 that runs the gate service. Leave empty to use the camera's local broker.
+    name_i18n:
+      zh: MQTT 服务器地址（可选）
+    description_i18n:
+      zh: 通常是跑开闸服务的 reComputer R1124-10。留空则用摄像头本地 broker。
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    required: false
+    name_i18n:
+      zh: MQTT 端口
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 2002 车牌识别
