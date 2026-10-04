@@ -33,16 +33,16 @@ reComputer R1124-10。
 打开实时预览——车牌框与最新识别结果。MQTT 主题上出现带截图链接的车牌
 事件，说明管线已端到端跑通。
 
-## 步骤 3: 道闸接线（可选） {#wire_pro type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_pro type=script required=false config=devices/gate_controller.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_pro type=script required=false config=devices/gate_controller.yaml}
 
 在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。开闸服务订阅车牌
 事件、匹配白名单并给数字输出脉冲——带冷却保护，且不会把补发的历史事件
 送进道闸。
+
+## 步骤 4: 道闸接线（可选） {#wire_pro type=manual required=false config=devices/gate_wiring.yaml}
+
+把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
+并触发一次测试脉冲。
 
 ---
 
@@ -73,16 +73,16 @@ reComputer R1124-10。
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 道闸接线（可选） {#wire_2002 type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_2002 type=script required=false config=devices/gate_controller.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_2002 type=script required=false config=devices/gate_controller.yaml}
 
 在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。降级模式下这台主机
 还要跑主机侧识别（plate-host），所以对 2002 来说 R1124 实际上是管线的
 一部分，不只是开闸。
+
+## 步骤 4: 道闸接线（可选） {#wire_2002 type=manual required=false config=devices/gate_wiring.yaml}
+
+把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
+并触发一次测试脉冲。
 
 ---
 
@@ -123,15 +123,15 @@ reComputer R1124-10。
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 道闸接线（可选） {#wire_jetson type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_jetson type=script required=false config=devices/gate_controller.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_jetson type=script required=false config=devices/gate_controller.yaml}
 
 在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。使用时把 Jetson 的
 MQTT 服务器地址指向 R1124。
+
+## 步骤 4: 道闸接线（可选） {#wire_jetson type=manual required=false config=devices/gate_wiring.yaml}
+
+把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
+并触发一次测试脉冲。
 
 ---
 
@@ -169,14 +169,14 @@ MQTT 服务器地址指向 R1124。
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 道闸接线（可选） {#wire_rk3588 type=manual required=false config=devices/gate_wiring.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_rk3588 type=script required=false config=devices/gate_controller.yaml}
+
+在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
+
+## 步骤 4: 道闸接线（可选） {#wire_rk3588 type=manual required=false config=devices/gate_wiring.yaml}
 
 把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
 并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_rk3588 type=script required=false config=devices/gate_controller.yaml}
-
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
 
 ---
 
@@ -213,14 +213,14 @@ MQTT 服务器地址指向 R1124。
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 道闸接线（可选） {#wire_rk3576 type=manual required=false config=devices/gate_wiring.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_rk3576 type=script required=false config=devices/gate_controller.yaml}
+
+在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
+
+## 步骤 4: 道闸接线（可选） {#wire_rk3576 type=manual required=false config=devices/gate_wiring.yaml}
 
 把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
 并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_rk3576 type=script required=false config=devices/gate_controller.yaml}
-
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
 
 ---
 
@@ -259,11 +259,11 @@ MQTT 服务器地址指向 R1124。
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 道闸接线（可选） {#wire_hailo type=manual required=false config=devices/gate_wiring.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_hailo type=script required=false config=devices/gate_controller.yaml}
+
+在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
+
+## 步骤 4: 道闸接线（可选） {#wire_hailo type=manual required=false config=devices/gate_wiring.yaml}
 
 把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
 并触发一次测试脉冲。
-
-## 步骤 4: 安装道闸控制器（可选） {#gate_hailo type=script required=false config=devices/gate_controller.yaml}
-
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。

@@ -34,17 +34,17 @@ app. The app itself ships through the device's App Center.
 Open the live preview — plates boxed, latest reads listed. A plate event with a
 snapshot URL on the MQTT topic means the pipeline works end to end.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_pro type=manual required=false config=devices/gate_wiring.yaml}
-
-Wire the R1124-10 digital output through an interposing relay to the barrier's
-OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_pro type=script required=false config=devices/gate_controller.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_pro type=script required=false config=devices/gate_controller.yaml}
 
 Installs the MQTT broker and the gate service on the reComputer R1124-10. The
 gate service subscribes to plate events, matches the whitelist and pulses the
 digital output — cooldown-guarded, and it never replays old events into the
 barrier.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_pro type=manual required=false config=devices/gate_wiring.yaml}
+
+Wire the R1124-10 digital output through an interposing relay to the barrier's
+OPEN input, then upload the whitelist and fire a test pulse.
 
 ---
 
@@ -78,17 +78,17 @@ reCamera 2002 and start it.
 
 Open the live preview — plates boxed, latest reads listed.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_2002 type=manual required=false config=devices/gate_wiring.yaml}
-
-Wire the R1124-10 digital output through an interposing relay to the barrier's
-OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_2002 type=script required=false config=devices/gate_controller.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_2002 type=script required=false config=devices/gate_controller.yaml}
 
 Installs the MQTT broker and the gate service on the reComputer R1124-10. In
 detect-only fallback mode this host also runs the host-side recognizer
 (plate-host), so for the 2002 the R1124 is effectively part of the pipeline,
 not just the gate.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_2002 type=manual required=false config=devices/gate_wiring.yaml}
+
+Wire the R1124-10 digital output through an interposing relay to the barrier's
+OPEN input, then upload the whitelist and fire a test pulse.
 
 ---
 
@@ -129,15 +129,15 @@ Run this directly on the Jetson if you are working on the device itself.
 
 Open the live preview — plates boxed, latest reads listed.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_jetson type=manual required=false config=devices/gate_wiring.yaml}
-
-Wire the R1124-10 digital output through an interposing relay to the barrier's
-OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_jetson type=script required=false config=devices/gate_controller.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_jetson type=script required=false config=devices/gate_controller.yaml}
 
 Installs the MQTT broker and the gate service on the reComputer R1124-10. Point
 the Jetson's MQTT broker host at the R1124 when you use this.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_jetson type=manual required=false config=devices/gate_wiring.yaml}
+
+Wire the R1124-10 digital output through an interposing relay to the barrier's
+OPEN input, then upload the whitelist and fire a test pulse.
 
 ---
 
@@ -176,14 +176,14 @@ Run this directly on the RK3588 if you are working on the device itself.
 
 Open the live preview — plates boxed, latest reads listed.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_rk3588 type=manual required=false config=devices/gate_wiring.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_rk3588 type=script required=false config=devices/gate_controller.yaml}
+
+Installs the MQTT broker and the gate service on the reComputer R1124-10.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_rk3588 type=manual required=false config=devices/gate_wiring.yaml}
 
 Wire the R1124-10 digital output through an interposing relay to the barrier's
 OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_rk3588 type=script required=false config=devices/gate_controller.yaml}
-
-Installs the MQTT broker and the gate service on the reComputer R1124-10.
 
 ---
 
@@ -220,14 +220,14 @@ Run this directly on the RK3576 if you are working on the device itself.
 
 Open the live preview — plates boxed, latest reads listed.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_rk3576 type=manual required=false config=devices/gate_wiring.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_rk3576 type=script required=false config=devices/gate_controller.yaml}
+
+Installs the MQTT broker and the gate service on the reComputer R1124-10.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_rk3576 type=manual required=false config=devices/gate_wiring.yaml}
 
 Wire the R1124-10 digital output through an interposing relay to the barrier's
 OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_rk3576 type=script required=false config=devices/gate_controller.yaml}
-
-Installs the MQTT broker and the gate service on the reComputer R1124-10.
 
 ---
 
@@ -268,11 +268,11 @@ Run this directly on the R2035 if you are working on the device itself.
 
 Open the live preview — plates boxed, latest reads listed.
 
-## Step 3: Wire the Barrier Gate (optional) {#wire_hailo type=manual required=false config=devices/gate_wiring.yaml}
+## Step 3: Install the Gate Controller (optional) {#gate_hailo type=script required=false config=devices/gate_controller.yaml}
+
+Installs the MQTT broker and the gate service on the reComputer R1124-10.
+
+## Step 4: Wire the Barrier Gate (optional) {#wire_hailo type=manual required=false config=devices/gate_wiring.yaml}
 
 Wire the R1124-10 digital output through an interposing relay to the barrier's
 OPEN input, then upload the whitelist and fire a test pulse.
-
-## Step 4: Install the Gate Controller (optional) {#gate_hailo type=script required=false config=devices/gate_controller.yaml}
-
-Installs the MQTT broker and the gate service on the reComputer R1124-10.
