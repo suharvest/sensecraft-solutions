@@ -1,0 +1,14 @@
+language: zh-CN
+intents:
+  HassClimateGetTemperature:
+    data:
+      - sentences:
+          - "{area}温度多少"
+        metadata:
+          t3_case: temperature_short
+  HassGetState:
+    data:
+      - sentences:
+          - "{name}湿度多少"
+        metadata:
+          t3_case: humidity_short

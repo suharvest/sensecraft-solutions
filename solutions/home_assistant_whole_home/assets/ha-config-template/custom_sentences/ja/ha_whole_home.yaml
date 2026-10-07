@@ -1,0 +1,20 @@
+language: ja
+intents:
+  HassGetState:
+    data:
+      - sentences:
+          - "{name}の温度は(何度|どのくらい|いくつ)[ですか]"
+        metadata:
+          t3_case: temperature
+      - sentences:
+          - "{name}の湿度は(何パーセント|どのくらい|いくつ)[ですか]"
+        metadata:
+          t3_case: humidity
+      - sentences:
+          - "{name}は(閉まっています|開いています)か"
+        metadata:
+          t3_case: state
+responses:
+  intents:
+    HassGetState:
+      default: "{{ slots.name }}の状態は{{ state.state_with_unit | default(state.state) }}です"

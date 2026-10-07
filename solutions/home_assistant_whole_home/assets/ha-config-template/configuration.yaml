@@ -1,0 +1,3 @@
+# Seed configuration copied only when the operator has no configuration.yaml.
+homeassistant:
+  packages: !include_dir_named packages

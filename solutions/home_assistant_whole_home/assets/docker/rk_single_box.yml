@@ -1,0 +1,41 @@
+include:
+  - ../common/ha-services.yml
+services:
+  homeassistant:
+    extends:
+      file: ../common/ha-services.yml
+      service: homeassistant
+  voice:
+    image: ${RK_VOICE_IMAGE:?set RK_VOICE_IMAGE}@${RK_VOICE_DIGEST:?set RK_VOICE_DIGEST}
+    privileged: true
+    network_mode: host
+    command: ["/bin/sh", "-c", "exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8621"]
+    environment:
+      OVS_PROFILE: ${RK_OVS_PROFILE:?set RK_OVS_PROFILE}
+      OVS_PROFILE_DEFAULT: ${RK_OVS_PROFILE}
+      RK_ARTIFACT_SET: ${RK_ARTIFACT_SET:?set RK_ARTIFACT_SET}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+    volumes:
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      - rk-tts-models:/opt/tts/models
+      - voice-data:/opt/seeed-local-voice/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+  wyoming-adapter:
+    image: ${ADAPTER_IMAGE:?set ADAPTER_IMAGE to an approved built adapter image}
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      SLV_BASE_URL: ${SLV_BASE_URL}
+
+volumes:
+  rk-asr-models:
+  rk-tts-models:
+  voice-data:
