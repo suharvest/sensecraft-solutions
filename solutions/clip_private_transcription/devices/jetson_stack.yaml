@@ -1,0 +1,16 @@
+version: "1.0"
+id: jetson_stack
+name: Jetson transcription stack
+name_i18n: {zh: Jetson 转写栈}
+type: docker_deploy
+device_class: jetson
+docker: {compose_file: assets/docker/jetson.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_jetson, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /health, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /health, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "{{asr_model_dir}}", MQTT_IMAGE: "{{mqtt_image}}"}}
+ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
+pre_checks: [{type: disk_space, min_gb: 15, description: Models and local transcripts require at least 15 GB free.}, {type: nvidia_runtime, description: NVIDIA container runtime is required for the voice stack.}]
+user_inputs:
+  - {id: clip_pt_image, name: clip-pt image, name_i18n: {zh: clip-pt 镜像}, type: text, required: true}
+  - {id: slv_image, name: SLV image, name_i18n: {zh: SLV 镜像}, type: text, required: true, description: No public image is implied; provide an approved private build containing the OVS runtime.}
+  - {id: asr_model_dir, name: Jetson ASR model bundle directory, name_i18n: {zh: Jetson ASR 模型包目录}, type: text, required: true, description: Existing absolute directory on the selected Jetson (for example /opt/models/clip-asr), not a path on the app computer or an upload. Mounts read-only at /models. Required tree: sensevoice-trt/sense-voice-encoder.scaled.fixed.onnx, sensevoice-trt/am.mvn, sensevoice-trt/embedding.npy, sensevoice-trt/chn_jpn_yue_eng_ko_spectok.bpe.model, sensevoice-trt/sensevoice.plan; whisper/encoder/jetson/enc_base_30s_bf16.plan, whisper/mel_80_filters.txt, whisper/vocab_en.txt; plans/prefill_fp16.plan and plans/step_fp16.plan; speaker/campplus.plan. The BF16 encoder and decoder plans and the CAM++ plan must be built for this Jetson model/runtime (NX plans are device-specific and are not portable).}
+  - {id: config_path, name: clip-pt config path, name_i18n: {zh: clip-pt 配置路径}, type: text, required: true}
+  - {id: mqtt_image, name: Mosquitto image, name_i18n: {zh: Mosquitto 镜像}, type: text, required: true, description: Approved Mosquitto image compatible with Jetson., description_i18n: {zh: 与 Jetson 兼容的获准 Mosquitto 镜像。}}
+remote_overrides: {environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "{{asr_model_dir}}", MQTT_IMAGE: "{{mqtt_image}}"}}

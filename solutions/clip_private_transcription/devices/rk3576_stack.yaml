@@ -1,0 +1,17 @@
+version: "1.0"
+id: rk3576_stack
+name: RK3576 transcription stack
+name_i18n: {zh: RK3576 转写栈}
+type: docker_deploy
+device_class: rk3576
+docker: {compose_file: assets/docker/rk3576.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_rk3576, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /readyz, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /readyz, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", SLV_SENSEVOICE_MODEL_DIR: "{{slv_sensevoice_model_dir}}", SLV_WHISPER_MODEL_DIR: "{{slv_whisper_model_dir}}", CLIP_CONFIG: "{{config_path}}", MQTT_IMAGE: "{{mqtt_image}}"}}
+ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
+pre_checks: [{type: disk_space, min_gb: 15, description: Models and local transcripts require at least 15 GB free.}]
+user_inputs:
+  - {id: clip_pt_image, name: clip-pt image, name_i18n: {zh: clip-pt 镜像}, type: text, required: true, description: No image is published; supply an approved local build.}
+  - {id: slv_image, name: SLV image, name_i18n: {zh: SLV 镜像}, type: text, required: true, description: Approved image compatible with the selected RK3576 runtime; no image is published by this solution., description_i18n: {zh: 与所选 RK3576 runtime 兼容的获准镜像；本方案不发布该镜像。}}
+  - {id: slv_sensevoice_model_dir, name: SLV SenseVoice model root, name_i18n: {zh: SLV SenseVoice 模型根目录}, type: text, required: true, description: Existing absolute RK3576 model root mounted read-only at /opt/asr; it must contain the profile path sensevoice-rknn and matching RKNN assets., description_i18n: {zh: 目标设备上已有的 RK3576 模型根目录，只读挂载到 /opt/asr；必须包含 profile 使用的 sensevoice-rknn 目录及匹配的 RKNN 文件。}}
+  - {id: slv_whisper_model_dir, name: SLV Whisper model root, name_i18n: {zh: SLV Whisper 模型根目录}, type: text, required: true, description: Existing absolute RK3576 model root mounted read-only at /opt/models; it must contain the base10 RKNN encoder and decoder assets under whisper., description_i18n: {zh: 目标设备上已有的 RK3576 模型根目录，只读挂载到 /opt/models；必须包含 whisper 下的 base10 RKNN encoder 和 decoder 文件。}}
+  - {id: mqtt_image, name: Mosquitto image, name_i18n: {zh: Mosquitto 镜像}, type: text, required: true, description: Approved Mosquitto image compatible with the selected target., description_i18n: {zh: 与所选目标兼容的获准 Mosquitto 镜像。}}
+  - {id: config_path, name: clip-pt config path, name_i18n: {zh: clip-pt 配置路径}, type: text, required: true}
+remote_overrides: {environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", SLV_SENSEVOICE_MODEL_DIR: "{{slv_sensevoice_model_dir}}", SLV_WHISPER_MODEL_DIR: "{{slv_whisper_model_dir}}", CLIP_CONFIG: "{{config_path}}", MQTT_IMAGE: "{{mqtt_image}}"}}

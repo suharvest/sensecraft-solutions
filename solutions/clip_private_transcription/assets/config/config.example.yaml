@@ -1,0 +1,37 @@
+host_id: store-01-box
+data_dir: /var/lib/clip-pt
+timezone: Asia/Shanghai
+devices:
+  - name: "REPLACE_WITH_CLIP_NAME"
+    address: "REPLACE_WITH_CLIP_BLE_MAC"
+    label: REPLACE_WITH_LOCAL_LABEL
+    language: auto
+sync:
+  ble_adapter: hci0
+  scan_interval_s: 60
+  wifi_enabled: true
+  wifi_iface: wlan_clip
+  wifi_min_pending_mb: 5
+  file_timeout_s: 300
+  set_time_on_connect: true
+  recording_mode: enhanced
+  autodel_days: 7
+  max_attempts: 5
+  backoff_s: [30, 60, 120, 300, 600]
+pipeline:
+  expected_speakers: 0
+  min_segment_s: 0.3
+  merge_gap_s: 0.5
+  max_segment_s: 20
+  summary_enabled: true
+  require_gpu_diarization: true
+asr:
+  sensevoice: {base_url: http://127.0.0.1:8621}
+  whisper: {enabled: true, base_url: http://127.0.0.1:8622}
+  api_key: ""
+  timeout_s: 120
+  diarize_timeout_s: 900
+# OpenAI-compatible endpoint supplied by the user; root or /v1 base URL is accepted.
+llm: {base_url: "", model_name: "", api_key: "", timeout_s: 900}
+mqtt: {enabled: true, host: 127.0.0.1, port: 1883, username: "", password: "", topic_prefix: clip-pt, qos: 1}
+api: {bind: 0.0.0.0, port: 8631, key: "", max_upload_bytes: 134217728}

@@ -1,0 +1,95 @@
+# DRAFT / disabled: Clip/BLE, host, offline, and licensed ASR/diarization
+# acceptance remain incomplete; the full software and hardware package is not verified.
+version: "1.0"
+id: clip_private_transcription
+name: Private Clip Transcription
+name_i18n: {zh: Clip 本地私有转写}
+enabled: false
+intro:
+  visibility: staging
+  summary: Synchronize reSpeaker Clip recordings to a local host and expose private transcription results through HTTP and MQTT.
+  summary_i18n: {zh: 将 reSpeaker Clip 录音同步到本地主机，并通过 HTTP 与 MQTT 提供私有转写结果。}
+  description_file: description.md
+  description_file_i18n: {zh: description_zh.md}
+  category: acoustic_audio_ai
+  solution_type: solution
+  tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, sensevoice, whisper, mqtt, offline]
+  output_interfaces:
+    - type: http
+      port: 8631
+      endpoint: /healthz
+      method: GET
+      schema_type: json
+      description: clip-pt health and local API.
+      description_i18n: {zh: clip-pt 健康与本地 API。}
+    - type: mqtt
+      port: 1883
+      topic: clip-pt/<host-id>/transcript/<transcript-id>/ready
+      schema_type: json
+      description: Transcript ready event from the local broker.
+      description_i18n: {zh: 本地 broker 发布的转写完成事件。}
+  input_requirements:
+    - type: bluetooth
+      description: Clip must be paired to the host and not concurrently bound to a phone app.
+      description_i18n: {zh: Clip 必须配对到主机，不能同时绑定手机 App。}
+    - type: wifi
+      description: Optional Wi-Fi sync requires a dedicated host adapter.
+      description_i18n: {zh: Wi-Fi 同步为可选功能，需要专用主机无线网卡。}
+  device_catalog:
+    respeaker_clip:
+      name: reSpeaker Clip
+      name_i18n: {zh: reSpeaker Clip}
+      description: Wearable recorder; physical pairing and consent are required.
+      description_i18n: {zh: 可穿戴录音设备，需要真机配对和同意书。}
+    recomputer_rk3576:
+      name: reComputer RK3576
+      name_i18n: {zh: reComputer RK3576}
+      description: Host for the SenseVoice/Whisper stack.
+      description_i18n: {zh: 运行 SenseVoice/Whisper 栈的主机。}
+      purchase: {require: {ram_gb: [8]}}
+    recomputer_rk3588:
+      name: reComputer RK3588
+      name_i18n: {zh: reComputer RK3588}
+      description: Host for the SenseVoice/Whisper stack.
+      description_i18n: {zh: 运行 SenseVoice/Whisper 栈的主机。}
+    recomputer_j40:
+      name: reComputer J4012
+      name_i18n: {zh: reComputer J4012}
+      description: Jetson host for the Orin ASR stack.
+      description_i18n: {zh: 运行 Orin ASR 栈的 Jetson 主机。}
+    usb_wifi_adapter:
+      name: Dedicated USB Wi-Fi adapter
+      name_i18n: {zh: 专用 USB Wi-Fi 网卡}
+      description: Optional adapter reserved for Clip Wi-Fi sync.
+      description_i18n: {zh: 为 Clip Wi-Fi 同步保留的可选网卡。}
+  presets:
+    - id: rk3576_ble
+      name: RK3576 + Clip BLE (Draft)
+      name_i18n: {zh: RK3576 + Clip BLE（草稿）}
+      badge: Draft / acceptance incomplete
+      badge_i18n: {zh: 草稿 / 验收未完成}
+      description: Requires a local clip-pt artifact and approved SLV images.
+      description_i18n: {zh: 需要本地 clip-pt artifact 和获准的 SLV 镜像。}
+      device_groups: [{id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, options: [{device_ref: recomputer_rk3576}], default: recomputer_rk3576}, {id: recorder, name: Clip, name_i18n: {zh: Clip}, type: single, required: true, options: [{device_ref: respeaker_clip}], default: respeaker_clip}]
+    - id: rk3588_wifi
+      name: RK3588 + Clip Wi-Fi (Draft)
+      name_i18n: {zh: RK3588 + Clip Wi-Fi（草稿）}
+      badge: Draft / acceptance incomplete
+      badge_i18n: {zh: 草稿 / 验收未完成}
+      description: Wi-Fi sync and local transcription draft; physical acceptance is open.
+      description_i18n: {zh: Wi-Fi 同步与本地转写草案；真机验收未完成。}
+      device_groups: [{id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, options: [{device_ref: recomputer_rk3588}], default: recomputer_rk3588}, {id: recorder, name: Clip, name_i18n: {zh: Clip}, type: single, required: true, options: [{device_ref: respeaker_clip}], default: respeaker_clip}, {id: wireless, name: Wi-Fi adapter, name_i18n: {zh: Wi-Fi 网卡}, type: single, required: true, options: [{device_ref: usb_wifi_adapter}], default: usb_wifi_adapter}]
+    - id: jetson_wifi
+      name: Jetson + Clip Wi-Fi (Draft)
+      name_i18n: {zh: Jetson + Clip Wi-Fi（草稿）}
+      badge: Draft / acceptance incomplete
+      badge_i18n: {zh: 草稿 / 验收未完成}
+      description: Jetson voice host and local clip-pt service draft.
+      description_i18n: {zh: Jetson 语音主机与本地 clip-pt 服务草案。}
+      device_groups: [{id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, options: [{device_ref: recomputer_j40}], default: recomputer_j40}, {id: recorder, name: Clip, name_i18n: {zh: Clip}, type: single, required: true, options: [{device_ref: respeaker_clip}], default: respeaker_clip}, {id: wireless, name: Wi-Fi adapter, name_i18n: {zh: Wi-Fi 网卡}, type: single, required: true, options: [{device_ref: usb_wifi_adapter}], default: usb_wifi_adapter}]
+  stats: {difficulty: advanced, estimated_time: 90min}
+  links: {}
+deployment:
+  guide_file: guide.md
+  guide_file_i18n: {zh: guide_zh.md}
+  selection_mode: sequential
