@@ -88,6 +88,12 @@ python3 -c 'import secrets; print(secrets.token_hex(32))'
 Jetson 语音后端和 CUDA runtime 需要获准 artifact；这里不暗示存在 registry
 digest。
 
+两个 SLV 服务要求 Jetson runtime ABI：JetPack 6.2、TensorRT 10.3.0 和
+Python 3.10。部署会在 Compose 启动前检查主机 TensorRT binding 和库，然后以只读方式挂载
+binding、`/usr/src/tensorrt`、`/usr/local/cuda/lib64`、NVIDIA 库及 ARM64 系统库。
+镜像加载路径固定到这些挂载；路径缺失或 TensorRT 版本不符时 fail closed，不提供 CPU fallback。
+这项要求与下方按设备生成的模型 plan 分开，模型仍必须匹配目标 Jetson。
+
 请提供五个部署输入：获准的本地 `clip-pt` 镜像、获准的私有 OVS 镜像、编辑后的
 Clip 配置、选定 Jetson 上已有的绝对 ASR 模型包目录（例如 `/opt/models/clip-asr`）、
 获准的 Mosquitto 镜像。这些目录是

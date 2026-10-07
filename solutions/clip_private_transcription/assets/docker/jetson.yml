@@ -24,6 +24,7 @@ services:
     ipc: host
     network_mode: host
     environment:
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
       OVS_PROFILE_JSON: /config/profiles/jetson-sensevoice-c64.json
       OVS_AUTO_DOWNLOAD_ARTIFACTS: "0"
       OVS_SPEAKER_EMB_BACKEND: jetson_trt
@@ -39,6 +40,11 @@ services:
       HF_HUB_CACHE: /var/cache/ovs-sensevoice/hf
     volumes:
       - "${ASR_MODEL_DIR:?set ASR_MODEL_DIR to the approved Jetson ASR bundle}:/models:ro"
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
       - ./profiles/jetson-sensevoice-c64.json:/config/profiles/jetson-sensevoice-c64.json:ro
       - slv-sensevoice-data:/var/lib/ovs-sensevoice
       - slv-sensevoice-cache:/var/cache/ovs-sensevoice
@@ -57,6 +63,7 @@ services:
     ipc: host
     network_mode: host
     environment:
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
       OVS_PROFILE_JSON: /config/profiles/jetson-whisper-trt.json
       OVS_AUTO_DOWNLOAD_ARTIFACTS: "0"
       MODEL_DIR: /models
@@ -86,6 +93,11 @@ services:
       HF_HUB_CACHE: /var/cache/ovs-whisper/hf
     volumes:
       - "${ASR_MODEL_DIR:?set ASR_MODEL_DIR to the approved Jetson ASR bundle}:/models:ro"
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
       - ./profiles/jetson-whisper-trt.json:/config/profiles/jetson-whisper-trt.json:ro
       - slv-whisper-data:/var/lib/ovs-whisper
       - slv-whisper-cache:/var/cache/ovs-whisper

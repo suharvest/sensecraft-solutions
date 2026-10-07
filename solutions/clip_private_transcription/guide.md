@@ -108,6 +108,15 @@ scheduled.
 The Jetson voice backend and CUDA runtime require approved artifacts; no
 registry digest is implied here.
 
+The two SLV services require the Jetson runtime ABI: JetPack 6.2 with
+TensorRT 10.3.0 and Python 3.10. The deployment checks the host TensorRT
+binding and libraries before Compose starts, then mounts the binding,
+`/usr/src/tensorrt`, `/usr/local/cuda/lib64`, NVIDIA libraries, and the ARM64
+system libraries read-only. The image loader path is fixed to those mounts;
+missing paths or a different TensorRT version fail closed. This requirement is
+separate from the device-specific model plans below and does not provide a CPU
+fallback.
+
 Provide the approved local `clip-pt` image, approved private OVS image, edited
 Clip config, existing absolute ASR bundle directory on the selected Jetson (for
 example `/opt/models/clip-asr`), and approved Mosquitto image. The LLM remains an
