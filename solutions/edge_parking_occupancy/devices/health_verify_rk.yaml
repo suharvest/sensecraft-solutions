@@ -1,0 +1,18 @@
+version: "1.0"
+id: health_verify_rk
+name: Verify RK SlotsApp health
+name_i18n: {zh: 验证 RK SlotsApp 健康状态}
+type: http_debug
+http_debug:
+  endpoints:
+    - id: healthz
+      name: Native RK SlotsApp health endpoint
+      name_i18n: {zh: 原生 RK SlotsApp 健康端点}
+      url_template: http://{{host}}:8099/healthz
+      expected_status: 200
+user_inputs:
+  - id: host
+    name: RK host
+    name_i18n: {zh: RK 主机地址}
+    type: text
+    required: true

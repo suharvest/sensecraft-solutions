@@ -1,0 +1,160 @@
+version: "1.0"
+id: rk3588_occupancy
+name: reComputer RK3588 Parking Occupancy
+name_i18n:
+  zh: reComputer RK3588 停车场车位占用
+type: docker_deploy
+
+docker:
+  compose_file: assets/docker-compose.rk3588.yml
+  compose_dir: assets
+  remote_path: /home/{{username}}/edge-parking-occupancy-rk3588
+  options:
+    project_name: edge_parking_occupancy_rk3588
+    remove_orphans: false
+  services:
+    - name: parking
+      required: true
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{parking_config}}"
+    PARKING_MODELS_DIR: "{{parking_models_dir}}"
+    PARKING_DATA_DIR: "{{parking_data_dir}}"
+    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+    PARKING_RGA_LIB: "{{parking_rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password]
+  connection_timeout: 30
+  command_timeout: 3600
+pre_checks:
+  - type: disk_space
+    min_gb: 1
+    description: Existing local image, model and data paths must fit the host budget.
+actions:
+  before:
+    - name: Check RK inputs, cached image and host ABI
+      name_i18n: {zh: 检查 RK 输入、缓存镜像和宿主机 ABI}
+      env:
+        PARKING_IMAGE: "{{parking_image}}"
+        PARKING_CONFIG: "{{parking_config}}"
+        PARKING_MODELS_DIR: "{{parking_models_dir}}"
+        PARKING_DATA_DIR: "{{parking_data_dir}}"
+        PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+        PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+        PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+        PARKING_RGA_LIB: "{{parking_rga_lib}}"
+        PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+      run: |
+        set -eu
+        docker image inspect "$PARKING_IMAGE" >/dev/null
+        test -f "$PARKING_CONFIG"
+        test -d "$PARKING_MODELS_DIR"
+        test -f "$PARKING_MODELS_DIR/vehicle_640.rk3588.w8a8.rknn"
+        echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $PARKING_MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
+        test -d "$PARKING_DATA_DIR"
+        test -w "$PARKING_DATA_DIR"
+        test -e "$PARKING_DRI_DEVICE"
+        for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+        echo "RK inputs, cached image, model SHA and ABI paths exist"
+      name_i18n:
+        zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径
+post_deployment:
+  open_browser: false
+user_inputs:
+  - id: parking_image
+    name: Reviewed local RK parking image
+    name_i18n: {zh: 已审查的本地 RK 停车镜像}
+    type: text
+    required: true
+    description: No public image is supplied; use a locally built native RK image already cached on the host.
+    description_i18n: {zh: 未提供公开镜像；使用宿主机已缓存的本地原生 RK 镜像。}
+  - id: parking_config
+    name: Host config path
+    name_i18n: {zh: 宿主机配置路径}
+    type: text
+    required: true
+    description: Copy assets/config/slots-rk3588.json to the host, edit it, and supply that already-edited matching vb.config/1 file. Set site_id and device_id (each <=32 characters), unique mqtt client_id and topic_root, broker host/port/username/password (use empty username/password for an anonymous broker), every RTSP URL and per-stream h264 or h265 codec, the pinned model path and SHA256, slot polygons with their stream mapping, and an existing writable state_dir. The JSON health host is 0.0.0.0 so the RK LAN address can answer port 8099.
+    description_i18n: {zh: 将 assets/config/slots-rk3588.json 复制到宿主机并编辑后，填写这份已编辑且与板卡匹配的 vb.config/1 文件。设置 site_id 和 device_id（各不超过 32 个字符）、唯一的 mqtt client_id 和 topic_root、broker host/port/username/password（匿名 broker 时 username/password 留空）、每路 RTSP URL 及 h264 或 h265 编码、与固定 SHA256 匹配的模型路径、车位多边形及其流映射，以及已存在且可写的 state_dir。JSON 中的 health host 为 0.0.0.0，RK 局域网地址可应答 8099 端口。}
+  - id: parking_models_dir
+    name: Host model directory
+    name_i18n: {zh: 宿主机模型目录}
+    type: text
+    required: true
+    description: Existing directory containing vehicle_640.rk3588.w8a8.rknn; SHA256 must be 7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3.
+    description_i18n: {zh: 包含 vehicle_640.rk3588.w8a8.rknn 的现有目录；SHA256 必须为 7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3。}
+  - id: parking_data_dir
+    name: Existing writable data directory
+    name_i18n: {zh: 现有可写数据目录}
+    type: text
+    required: true
+  - id: parking_dri_device
+    name: Host DRM device path
+    name_i18n: {zh: 宿主机 DRM 设备路径}
+    type: text
+    required: true
+    description: Existing device such as /dev/dri; the package does not create it.
+    description_i18n: {zh: 已存在的设备路径，例如 /dev/dri；本包不会创建。}
+  - id: parking_mpp_plugin
+    name: Host Rockchip MPP GStreamer plugin
+    name_i18n: {zh: 宿主机 Rockchip MPP GStreamer 插件}
+    type: text
+    required: true
+  - id: parking_mpp_lib
+    name: Host Rockchip MPP library
+    name_i18n: {zh: 宿主机 Rockchip MPP 库}
+    type: text
+    required: true
+  - id: parking_rga_lib
+    name: Host RGA library
+    name_i18n: {zh: 宿主机 RGA 库}
+    type: text
+    required: true
+  - id: parking_rknnrt_lib
+    name: Host RKNN runtime library
+    name_i18n: {zh: 宿主机 RKNN runtime 库}
+    type: text
+    required: true
+remote_overrides:
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{parking_config}}"
+    PARKING_MODELS_DIR: "{{parking_models_dir}}"
+    PARKING_DATA_DIR: "{{parking_data_dir}}"
+    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+    PARKING_RGA_LIB: "{{parking_rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+  actions:
+    before:
+      - name: Check RK inputs, cached image and host ABI
+        name_i18n: {zh: 检查 RK 输入、缓存镜像和宿主机 ABI}
+        env:
+          PARKING_IMAGE: "{{parking_image}}"
+          PARKING_CONFIG: "{{parking_config}}"
+          PARKING_MODELS_DIR: "{{parking_models_dir}}"
+          PARKING_DATA_DIR: "{{parking_data_dir}}"
+          PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+          PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+          PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+          PARKING_RGA_LIB: "{{parking_rga_lib}}"
+          PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+        run: |
+          set -eu
+          docker image inspect "$PARKING_IMAGE" >/dev/null
+          test -f "$PARKING_CONFIG"
+          test -d "$PARKING_MODELS_DIR"
+          test -f "$PARKING_MODELS_DIR/vehicle_640.rk3588.w8a8.rknn"
+          echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $PARKING_MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
+          test -d "$PARKING_DATA_DIR"
+          test -w "$PARKING_DATA_DIR"
+          test -e "$PARKING_DRI_DEVICE"
+          for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+          echo "RK inputs, cached image, model SHA and ABI paths exist"
+        name_i18n:
+          zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径
