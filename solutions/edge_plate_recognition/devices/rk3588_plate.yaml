@@ -42,8 +42,6 @@ files:
     remote_path: /home/{{username}}/edge-parking/rk3588_plate/models/plate_det_yolox_tiny_640.rk3588.int8.rknn
   - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32.rk3588.int8.rknn
     remote_path: /home/{{username}}/edge-parking/rk3588_plate/models/plate_rec_cn_96x32.rk3588.int8.rknn
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_de_96x32.rk3588.int8.rknn
-    remote_path: /home/{{username}}/edge-parking/rk3588_plate/models/plate_rec_de_96x32.rk3588.int8.rknn
 
 actions:
   before:

@@ -93,21 +93,22 @@ reComputer R1124-10。
 
 ## 步骤 1: 部署车牌识别 {#deploy_jetson type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-在 Jetson 上部署识别栈。首次部署会在设备上构建 TensorRT 引擎——预留
-充足时间。
+在 Jetson 上使用本地构建的停车镜像部署识别栈。部署会从提供的目标设备
+模型目录读取检测和中文识别 TensorRT engine；engine 构建和验收仍待完成。
 
 ### 前置条件
 
 1. Jetson 运行 JetPack 6.x，NVIDIA 容器运行时可用。
 2. 至少 10 GB 可用磁盘。
-3. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-4. 摄像头距车道 3–8 m，1080p 及以上。
+3. 已本地构建的停车镜像、渲染后的 `vb.config/1` 文件，以及包含检测和中文识别 TensorRT engine 的目标设备模型目录。
+4. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
+5. 摄像头距车道 3–8 m，1080p 及以上。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |-------|----------|
-| 引擎构建失败 | 确认 Docker 能看到 NVIDIA 运行时，且磁盘有 10 GB 可用 |
+| engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘有 10 GB 可用 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址；路径或凭据错误是最常见原因 |
 | 容器反复重启 | 看日志里的 engine 路径；中断产生的半成品 engine 要删掉 |
 

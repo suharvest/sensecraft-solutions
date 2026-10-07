@@ -22,7 +22,7 @@
 | 权重 | 来源链 | 许可证 | 允许商用 | 备注 |
 |---|---|---|---|---|
 | `plate_det_*`（自训检测权重） | YOLOX 代码（Apache-2.0）+ 训练数据（CCPD + 自研合成，见 §3） | **待核实** | **待核实** | 代码 Apache-2.0 不能推断权重许可；取决于训练数据权利链与 selfie 数据授权（§13）。来源链：YOLOX 初始化权重（COCO 预训练，Apache-2.0）→ 在 CCPD2019 base 5 万张 + CCPD2020 全部 + 合成 DE 2 万整图上微调 |
-| `plate_rec_cn_*` / `plate_rec_de_*`（PlateRecNet 自训识别权重） | 本仓库自写模型结构 + 随机初始化 + 训练数据（同上） | **待核实** | **待核实** | 自写结构（Apache-2.0）；训练含 CCPD 图像，权利链未锁定前不得写可商用 |
+| `plate_rec_cn_*`（本期交付；DE 权重不在本期） | 本仓库自写模型结构 + 随机初始化 + 训练数据（同上） | **待核实** | **待核实** | 自写结构（Apache-2.0）；训练含 CCPD 图像，权利链未锁定前不得写可商用 |
 | PP-OCRv5_mobile_rec（基线评测用权重） | https://huggingface.co/PaddlePaddle/PP-OCRv5_mobile_rec | Apache-2.0（模型卡 `license: apache-2.0`） | 是 | **仅基线评测，不随交付分发**；运行镜像与资产包不含该权重 |
 | fast-plate-ocr 预训练权重 | github.com/ankandrew/fast-plate-ocr | 代码 MIT；权重训练数据未说明 | **不使用** | 附录候选，明确不用其预训练权重 |
 

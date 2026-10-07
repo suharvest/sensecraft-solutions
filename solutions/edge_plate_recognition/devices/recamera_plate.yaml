@@ -39,9 +39,6 @@ binary:
     - path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32_cv181x_int8.cvimodel
       target_path: /userdata/local/models
       filename: plate_rec_cn_96x32_cv181x_int8.cvimodel
-    - path: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_de_96x32_cv181x_int8.cvimodel
-      target_path: /userdata/local/models
-      filename: plate_rec_de_96x32_cv181x_int8.cvimodel
 
   service_name: edge-parking-plate
   service_priority: 92

@@ -99,21 +99,24 @@ runs detection and recognition with TensorRT FP16.
 
 ## Step 1: Deploy Plate Recognition {#deploy_jetson type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-Deploy the recognition stack on the Jetson. The first deployment builds the
-TensorRT engines on the device — allow extra time.
+Deploy the recognition stack on the Jetson with a locally built parking image.
+The deployment consumes detector and CN recognizer TensorRT engines from the
+provided target-device model directory. Engine construction and acceptance are
+still pending for this draft.
 
 ### Prerequisites
 
 1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
 2. At least 10 GB free disk.
-3. Your gate camera's RTSP URL, credentials included if it requires them.
-4. The camera mounted 3–8 m from the lane, 1080p or better.
+3. A locally built parking image, a rendered `vb.config/1` file, and a target-device model directory containing the detector and CN recognizer TensorRT engines.
+4. Your gate camera's RTSP URL, credentials included if it requires them.
+5. The camera mounted 3–8 m from the lane, 1080p or better.
 
 ### Troubleshooting
 
 | Symptom | Action |
 |-------|----------|
-| Engine build fails | Confirm the NVIDIA runtime is visible to Docker and the disk has 10 GB free |
+| Engine or runtime validation fails | Confirm the supplied image, config, target-device engine directory, NVIDIA runtime, and 10 GB free disk |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
 | Container restarts repeatedly | Check the logs for the engine path; delete a half-built engine from an interrupted run |
 

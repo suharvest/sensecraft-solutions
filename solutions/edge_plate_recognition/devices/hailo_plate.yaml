@@ -46,8 +46,6 @@ files:
     remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_det_yolox_tiny_640.hef
   - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32.hef
     remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_rec_cn_96x32.hef
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_de_96x32.hef
-    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_rec_de_96x32.hef
 
 actions:
   before:
