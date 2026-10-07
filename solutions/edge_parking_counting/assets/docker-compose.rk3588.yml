@@ -1,0 +1,61 @@
+services:
+  parking:
+    image: ${PARKING_IMAGE:?set PARKING_IMAGE to the reviewed local RK image}
+    pull_policy: never
+    container_name: ${PARKING_CONTAINER_NAME:-edge-parking-counting-rk3588}
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    devices:
+      - "${PARKING_DRI_DEVICE:?set PARKING_DRI_DEVICE to an existing /dev/dri path}:/dev/dri"
+    tmpfs:
+      - /root/.cache
+    volumes:
+      - type: bind
+        source: ${PARKING_CONFIG:?set PARKING_CONFIG to an existing vb.config/1 JSON}
+        target: /config/config.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MODELS_DIR:?set PARKING_MODELS_DIR to an existing directory}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_DATA_DIR:?set PARKING_DATA_DIR to an existing writable directory}
+        target: /data/edge-parking
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MPP_PLUGIN:?set PARKING_MPP_PLUGIN to an existing host MPP GStreamer plugin}
+        target: /lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MPP_LIB:?set PARKING_MPP_LIB to an existing host Rockchip MPP library}
+        target: /lib/aarch64-linux-gnu/librockchip_mpp.so.1
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_RGA_LIB:?set PARKING_RGA_LIB to an existing host RGA library}
+        target: /lib/aarch64-linux-gnu/librga.so
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_RKNNRT_LIB:?set PARKING_RKNNRT_LIB to an existing host RKNN runtime library}
+        target: /usr/lib/librknnrt.so
+        read_only: true
+        bind:
+          create_host_path: false
+    command: ["--config", "/config/config.json"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/healthz', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

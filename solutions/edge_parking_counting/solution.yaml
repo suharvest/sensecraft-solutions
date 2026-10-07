@@ -1,0 +1,156 @@
+# DRAFT / blocked: NRD-2. The native application, public image/model artifact,
+# and platform acceptance evidence are not released. Keep disabled until those
+# inputs are supplied and the acceptance matrix passes.
+version: "1.0"
+id: edge_parking_counting
+name: Edge Parking Vehicle Counting
+name_i18n:
+  zh: 边缘停车场车辆进出计数
+enabled: false
+intro:
+  visibility: staging
+  summary: Count vehicles crossing a configured entrance line on a Jetson edge host and publish occupancy events over MQTT.
+  summary_i18n:
+    zh: 在 Jetson 边缘主机上按配置的出入口计数线统计车辆进出，并通过 MQTT 发布事件。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  category: vision_video_ai
+  solution_type: solution
+  tags: [parking, vehicle-counting, mqtt, yolox, jetson]
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<device>/crossing
+      schema_type: json
+      description: Vehicle crossing events. The broker is an external site service.
+      description_i18n:
+        zh: 车辆越线事件；broker 由现场外部服务提供。
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<device>/occupancy
+      schema_type: json
+      description: Occupancy snapshot and remaining capacity.
+      description_i18n:
+        zh: 场内占用与剩余容量快照。
+    - type: http
+      port: 8099
+      endpoint: /healthz
+      method: GET
+      schema_type: json
+      description: Native runtime and parking hook health.
+      description_i18n:
+        zh: 原生运行时与停车钩子健康状态。
+  input_requirements:
+    - type: rtsp
+      description: An H.264 or H.265 RTSP gate camera with a stable entrance view.
+      description_i18n:
+        zh: 稳定拍摄出入口的 H.264 或 H.265 RTSP 摄像头。
+  device_catalog:
+    recomputer_j30:
+      name: reComputer J30 (Jetson Orin)
+      name_i18n:
+        zh: reComputer J30（Jetson Orin）
+      description: JetPack 6 Jetson host for the native TensorRT parking runtime.
+      description_i18n:
+        zh: 运行原生 TensorRT 停车运行时的 JetPack 6 Jetson 主机。
+    recomputer_rk3576:
+      name: reComputer RK3576 Series
+      name_i18n: {zh: reComputer RK3576 系列}
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    recomputer_rk3588:
+      name: reComputer RK3588 Series
+      name_i18n: {zh: reComputer RK3588 系列}
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Existing RTSP camera at the gate.
+      description_i18n:
+        zh: 现场已有的出入口 RTSP 摄像头。
+  presets:
+    - id: jetson
+      name: IP Camera + Jetson (Draft)
+      name_i18n:
+        zh: IP 摄像头 + Jetson（草稿）
+      badge: Blocked artifact
+      badge_i18n:
+        zh: artifact 阻塞
+      description: Draft only. Requires a locally built native application image and a target-device TensorRT engine.
+      description_i18n:
+        zh: 仅为草案；需要本地构建的原生应用镜像和目标设备上的 TensorRT engine。
+      device_groups:
+        - id: compute
+          name: Edge Host
+          name_i18n:
+            zh: 边缘主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+          default: recomputer_j30
+        - id: camera
+          name: Gate Camera
+          name_i18n:
+            zh: 出入口摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+    - id: rk3576
+      name: IP Camera + RK3576 (Draft)
+      name_i18n: {zh: IP 摄像头 + RK3576（草稿）}
+      badge: Blocked artifact / not verified
+      badge_i18n: {zh: artifact 阻塞 / 未验证}
+      description: Requires a local native RK image, RKNN model and matching host ABI paths.
+      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
+      device_groups:
+        - id: compute
+          name: Edge Host
+          name_i18n: {zh: 边缘主机}
+          type: single
+          required: true
+          options: [{device_ref: recomputer_rk3576}]
+          default: recomputer_rk3576
+        - id: camera
+          name: Gate Camera
+          name_i18n: {zh: 出入口摄像头}
+          type: single
+          required: true
+          options: [{device_ref: generic_ip_camera}]
+          default: generic_ip_camera
+    - id: rk3588
+      name: IP Camera + RK3588 (Draft)
+      name_i18n: {zh: IP 摄像头 + RK3588（草稿）}
+      badge: Blocked artifact / not verified
+      badge_i18n: {zh: artifact 阻塞 / 未验证}
+      description: Requires a local native RK image, RKNN model and matching host ABI paths.
+      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
+      device_groups:
+        - id: compute
+          name: Edge Host
+          name_i18n: {zh: 边缘主机}
+          type: single
+          required: true
+          options: [{device_ref: recomputer_rk3588}]
+          default: recomputer_rk3588
+        - id: camera
+          name: Gate Camera
+          name_i18n: {zh: 出入口摄像头}
+          type: single
+          required: true
+          options: [{device_ref: generic_ip_camera}]
+          default: generic_ip_camera
+  stats:
+    difficulty: advanced
+    estimated_time: 60min
+  links: {}
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

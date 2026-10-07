@@ -1,0 +1,180 @@
+version: "1.0"
+id: jetson_counting
+name: Jetson Native Counting App
+name_i18n:
+  zh: Jetson 原生计数应用
+type: docker_deploy
+device_class: jetson
+docker:
+  compose_file: assets/docker-compose.jetson.yml
+  compose_dir: assets
+  remote_path: /home/{{username}}/edge-parking-counting
+  options:
+    project_name: edge_parking_counting_jetson
+    remove_orphans: false
+  services:
+    - name: parking
+      required: true
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{config_path}}"
+    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password]
+  connection_timeout: 30
+  command_timeout: 3600
+pre_checks:
+  - type: disk_space
+    min_gb: 0.5
+    description: Cached/pre-staged image, model and TensorRT engine are supplied before deployment; keep at least 0.5 GiB free for runtime files, logs and metadata. This is not a capacity or accuracy acceptance guarantee.
+  - type: nvidia_runtime
+    description: NVIDIA container runtime must be available on the Jetson.
+deploy_timeout: 3600
+post_deployment:
+  open_browser: false
+actions:
+  after:
+    - name: Wait for the counting service readiness endpoint
+      name_i18n:
+        zh: 等待计数服务就绪接口
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "{{health_port}}"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
+user_inputs:
+  - id: parking_image
+    name: Locally built parking image
+    name_i18n: {zh: 本地构建的停车镜像}
+    type: text
+    required: true
+    description: No public image is supplied. Use only an image built from the reviewed source snapshot.
+    description_i18n: {zh: 未提供公开镜像；只能使用基于审查源码快照本地构建的镜像。}
+  - id: config_path
+    name: Host config path
+    name_i18n: {zh: 宿主机配置路径}
+    type: text
+    required: true
+    description: Path to the vb.config/1 JSON, including the entrance line and model path.
+    description_i18n: {zh: vb.config/1 JSON 路径，需包含计数线和模型路径。}
+  - id: models_dir
+    name: Host model directory
+    name_i18n: {zh: 宿主机模型目录}
+    type: text
+    required: true
+    description: Directory containing the target-device TensorRT engine; models are not embedded.
+    description_i18n: {zh: 包含目标设备 TensorRT engine 的目录；模型不内嵌。}
+  - id: health_port
+    name: Health port
+    name_i18n: {zh: 健康端口}
+    type: text
+    default: "8099"
+    required: false
+    description: HTTP health port exposed by the mounted config. Keep 8099 for the stock config; use the configured port when it differs.
+    description_i18n: {zh: 挂载配置暴露的 HTTP 健康端口。默认配置使用 8099；配置不同端口时填写对应值。}
+  - id: memory_limit
+    name: Container memory limit
+    name_i18n: {zh: 容器内存上限}
+    type: text
+    default: "0"
+    required: false
+    description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
+    description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
+  - id: data_dir
+    name: Persistent data directory
+    name_i18n: {zh: 持久化数据目录}
+    type: text
+    default: "./data"
+    required: false
+    description: Existing writable host directory for restart-persistent state; it is mounted at /data/edge-parking.
+    description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态；该目录挂载到 /data/edge-parking。}
+remote_overrides:
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{config_path}}"
+    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"
