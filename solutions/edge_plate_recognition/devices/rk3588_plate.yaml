@@ -181,6 +181,92 @@ actions:
         PY
       name_i18n:
         zh: 写入车牌识别配置
+  after:
+    - name: Wait for the plate recognition service to start
+      name_i18n:
+        zh: 等待车牌识别服务启动
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
 
 
 user_inputs:

@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer J30 系列（Jetson Orin Nano）/ RK3588 系列 / RK3576 系列 | 识别主机，三选一 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）/ RK3588 系列 / RK3576 系列 | 识别主机，三选一 |
 | 网络摄像头 | 拍摄车道画面，1080p 及以上，支持 RTSP |
 | reComputer R1100 系列（R1124-10） | 道闸控制器：比对白名单、给道闸发开闸信号（可选） |
 | 中间继电器 | 接在道闸控制器与道闸之间（可选） |
@@ -27,9 +27,13 @@
 3. MQTT 服务器地址：要自动抬杆时填道闸控制器的 IP（步骤 3 会在它上面安装消息服务）；只记录、不接道闸时填你已有的 MQTT 服务器地址。
 4. 识别主机上 8080 端口（识别预览）和 8099 端口（状态检查）没有被其他程序占用。
 
-### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml default=true}
+### 部署完成
 
-从这台电脑通过网络部署到 reComputer J30 系列（Jetson Orin Nano，JetPack 6.2）。
+部署最后一步会等识别服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<主机IP>:8080/preview`（本机部署时主机 IP 为 127.0.0.1），能看到实时画面；也可以在步骤 2 直接打开。
+
+### 部署目标 {#jetson_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_plate.yaml default=true}
+
+从这台电脑通过网络部署到 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）。
 
 ### 接线
 
@@ -42,15 +46,15 @@
 
 | 现象 | 处理 |
 |------|------|
-| 提示模组或 JetPack 版本不匹配 | 只支持 Jetson Orin Nano 模组 + JetPack 6.2；其他 Jetson 模组请改用 RK3588 或 RK3576 主机 |
+| 提示模组或 JetPack 版本不匹配 | 只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX）+ JetPack 6.2；其他 Jetson 模组请改用 RK3588 或 RK3576 主机 |
 | 提示缺少 NVIDIA 容器运行时 | 在 Jetson 上运行 `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker` 后重新部署 |
 | 部署最后一步等待服务就绪超时 | 8099 端口可能被占用：把「状态端口」改成一个空闲端口（如 18099）后重新部署 |
 | 摄像头没有画面 | 先用 VLC 打开 RTSP 地址；地址路径或用户名密码写错最常见 |
 | 下载识别模型失败 | 确认 Jetson 能访问互联网后重新部署 |
 
-### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml}
+### 部署目标 {#jetson_local type=local device=jetson device_name="reComputer J30 / J40" config=devices/jetson_plate.yaml}
 
-直接在这台 reComputer J30 系列（Jetson Orin Nano，JetPack 6.2）上部署。
+直接在这台 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）上部署。
 
 ### 接线
 
@@ -62,7 +66,7 @@
 
 | 现象 | 处理 |
 |------|------|
-| 提示模组或 JetPack 版本不匹配 | 只支持 Jetson Orin Nano 模组 + JetPack 6.2 |
+| 提示模组或 JetPack 版本不匹配 | 只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX）+ JetPack 6.2 |
 | 部署最后一步等待服务就绪超时 | 把「状态端口」改成一个空闲端口后重新部署 |
 | 摄像头没有画面 | 先用 VLC 打开 RTSP 地址，检查路径和用户名密码 |
 
@@ -182,7 +186,7 @@
 
 1. 道闸控制器接上电源和网线，与识别主机在同一局域网，并能访问互联网
 2. 填写道闸控制器的 IP、SSH 用户名和密码
-3. 站点编号填与步骤 1 相同的值；道闸编号用来在开闸记录里区分不同道闸
+3. 站点编号会自动带入步骤 1 的值；道闸编号用来在开闸记录里区分不同道闸
 4. 道闸输出线名：接继电器的那一路数字输出在系统里的名称，查 reComputer R1000 系列 Wiki 的数字输出（DO）章节
 5. 点击部署；完成后回到步骤 1，确认 MQTT 服务器地址填的是这台道闸控制器的 IP
 

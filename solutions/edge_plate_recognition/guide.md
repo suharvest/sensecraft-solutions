@@ -4,7 +4,7 @@ Keep your existing gate cameras and let one recognition host read plates on site
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 Series (Jetson Orin Nano) / RK3588 Series / RK3576 Series | Recognition host, pick one |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) / RK3588 Series / RK3576 Series | Recognition host, pick one |
 | IP camera | Films the lane, 1080p or better, with RTSP |
 | reComputer R1100 Series (R1124-10) | Gate controller: checks the whitelist and sends the open signal to the barrier (optional) |
 | Interposing relay | Sits between the gate controller and the barrier (optional) |
@@ -27,9 +27,13 @@ Install the plate recognition service on the recognition host and connect it to 
 3. MQTT broker address: for automatic barrier opening, use the IP of the gate controller (Step 3 installs the message service on it); for logging only, use your own MQTT broker.
 4. Ports 8080 (recognition preview) and 8099 (status check) are not used by another program on the recognition host.
 
-### Target {#jetson_remote type=remote device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml default=true}
+### Deployment Complete
 
-Deploy from this computer over the network to a reComputer J30 Series (Jetson Orin Nano, JetPack 6.2).
+The last deploy step waits until plate recognition is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/preview` in a browser (127.0.0.1 when deployed on this machine) and you should see the live picture; Step 2 opens it directly.
+
+### Target {#jetson_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_plate.yaml default=true}
+
+Deploy from this computer over the network to a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2).
 
 ### Wiring
 
@@ -42,15 +46,15 @@ Deploy from this computer over the network to a reComputer J30 Series (Jetson Or
 
 | Issue | Solution |
 |-------|----------|
-| Module or JetPack version mismatch | Only the Jetson Orin Nano module with JetPack 6.2 is supported; for other Jetson modules use an RK3588 or RK3576 host |
+| Module or JetPack version mismatch | Only reComputer J30 / J40 (Jetson Orin Nano / Orin NX) with JetPack 6.2 is supported; for other Jetson modules use an RK3588 or RK3576 host |
 | NVIDIA container runtime missing | Run `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker` on the Jetson, then deploy again |
 | The last deploy step times out waiting for the service | Port 8099 may be taken: set "Status port" to a free port (for example 18099) and deploy again |
 | No video from the camera | Open the RTSP URL in VLC first; a wrong path or wrong credentials is the most common cause |
 | Model download fails | Make sure the Jetson can reach the internet, then deploy again |
 
-### Target {#jetson_local type=local device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml}
+### Target {#jetson_local type=local device=jetson device_name="reComputer J30 / J40" config=devices/jetson_plate.yaml}
 
-Deploy directly on this reComputer J30 Series (Jetson Orin Nano, JetPack 6.2).
+Deploy directly on this reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2).
 
 ### Wiring
 
@@ -62,7 +66,7 @@ Deploy directly on this reComputer J30 Series (Jetson Orin Nano, JetPack 6.2).
 
 | Issue | Solution |
 |-------|----------|
-| Module or JetPack version mismatch | Only the Jetson Orin Nano module with JetPack 6.2 is supported |
+| Module or JetPack version mismatch | Only reComputer J30 / J40 (Jetson Orin Nano / Orin NX) with JetPack 6.2 is supported |
 | The last deploy step times out waiting for the service | Set "Status port" to a free port and deploy again |
 | No video from the camera | Open the RTSP URL in VLC and check the path and credentials |
 
@@ -182,7 +186,7 @@ Install the message service and the gate service on the reComputer R1100 Series 
 
 1. Connect the gate controller to power and Ethernet, on the same local network as the recognition host and with internet access
 2. Enter the gate controller's IP, SSH username and password
-3. Use the same Site ID as in Step 1; the Gate ID tells barriers apart in the gate records
+3. Site ID is carried over from Step 1; the Gate ID tells barriers apart in the gate records
 4. Gate output line: the system name of the digital output wired to the relay; look it up in the digital output (DO) section of the reComputer R1000 Series wiki
 5. Click Deploy; afterwards make sure the MQTT broker address in Step 1 is this gate controller's IP
 

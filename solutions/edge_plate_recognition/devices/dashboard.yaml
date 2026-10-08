@@ -19,7 +19,7 @@ user_inputs:
   - id: host
     name: Recognition Host IP
     type: text
-    default: localhost
+    default: "127.0.0.1"
     default_template: "{{host}}"
     required: true
     name_i18n:

@@ -62,14 +62,15 @@ user_inputs:
     name: Site ID
     type: text
     default: "demo-lot"
+    default_template: "{{site_id}}"
     required: true
-    description: Use the same Site ID as the recognition host in Step 1
+    description: Filled in from the Site ID of the recognition host in Step 1
     validation:
       pattern: "^[A-Za-z0-9_-]+$"
     name_i18n:
       zh: 站点编号
     description_i18n:
-      zh: 与步骤 1 识别主机填写的站点编号相同
+      zh: 自动带入步骤 1 识别主机填写的站点编号
   - id: gate_id
     name: Gate ID
     type: text
