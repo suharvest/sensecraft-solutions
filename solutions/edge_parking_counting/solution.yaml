@@ -1,4 +1,5 @@
-# NRD-2. Targets offered: Jetson Orin Nano (TensorRT) and RK3588 (RKNN).
+# NRD-2. Targets offered: Jetson Orin Nano / Orin NX (TensorRT; NX accepted on owner
+# decision 2026-10-08, engine built and device-run on Orin Nano only) and RK3588 (RKNN).
 # RK3576 was removed 2026-10-08: its device run used a substitute image and
 # never ran the package compose (receipt acceptance-20261008/cat-remote/
 # edge_parking_counting). The removed device YAML, compose and config are in
@@ -64,9 +65,13 @@ intro:
         zh: 出入口的网络摄像头，提供 RTSP 视频流（H.264 或 H.265），固定安装，车辆整车入镜穿过画面。
   device_catalog:
     recomputer_j30:
-      description: Analyses the camera picture and counts vehicles, 30 frames per second. Jetson Orin Nano module with JetPack 6.2 only.
+      description: Analyses the camera picture and counts vehicles, 30 frames per second measured. Jetson Orin Nano module with JetPack 6.2.
       description_i18n:
-        zh: 分析摄像头画面并统计进出车辆，每秒处理 30 帧。仅支持 Jetson Orin Nano 模组，需 JetPack 6.2。
+        zh: 分析摄像头画面并统计进出车辆，实测每秒处理 30 帧。Jetson Orin Nano 模组，需 JetPack 6.2。
+    recomputer_j40:
+      description: Analyses the camera picture and counts vehicles. Jetson Orin NX module with JetPack 6.2.
+      description_i18n:
+        zh: 分析摄像头画面并统计进出车辆。Jetson Orin NX 模组，需 JetPack 6.2。
     recomputer_rk3588:
       description: Analyses the camera picture and counts vehicles, about 3 frames per second; suited to barrier entrances where vehicles slow down.
       description_i18n: {zh: 分析摄像头画面并统计进出车辆，每秒处理约 3 帧，适合车辆减速通过的道闸出入口。}
@@ -83,10 +88,10 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 边缘算力盒子
         ja: IP カメラ + エッジコンピューティングボックス
-      description: Keep your entrance camera and add a reComputer next to it. Jetson Orin Nano processes 30 frames per second; RK3588 about 3, suited to barrier entrances where vehicles slow down.
+      description: Keep your entrance camera and add a reComputer next to it. reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or RK3588. Measured on Orin Nano, 30 frames per second; RK3588 about 3, suited to barrier entrances where vehicles slow down.
       description_i18n:
-        zh: 沿用出入口现有摄像头，旁边加一台 reComputer。Jetson Orin Nano 每秒处理 30 帧；RK3588 每秒约 3 帧，适合车辆减速通过的道闸出入口。
-        ja: 出入口の既存カメラをそのまま使い、隣に reComputer を 1 台追加します。Jetson Orin Nano は毎秒 30 フレーム、RK3588 は毎秒約 3 フレームを処理し、車両が減速して通過するゲート出入口に向いています。
+        zh: 沿用出入口现有摄像头，旁边加一台 reComputer。reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 RK3588；实测 Orin Nano 每秒处理 30 帧，RK3588 每秒约 3 帧，适合车辆减速通过的道闸出入口。
+        ja: 出入口の既存カメラをそのまま使い、隣に reComputer を 1 台追加します。reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）または RK3588 を使います。実測で Orin Nano は毎秒 30 フレーム、RK3588 は毎秒約 3 フレームを処理し、車両が減速して通過するゲート出入口に向いています。
       # `verified: [hardware]` reflects the Jetson and RK3588 targets.
       # - Jetson: device run 2026-10-08 on Jetson Orin Nano (acceptance
       #   receipt orin-nano/edge_parking_counting): package compose + locally
@@ -115,11 +120,12 @@ intro:
             zh: 计数设备
           type: single
           required: true
-          description: The device that analyses the camera picture. Jetson Orin Nano for entrances where vehicles drive through; RK3588 for barrier entrances where they slow down.
+          description: The device that analyses the camera picture. reComputer J30 / J40 (Jetson Orin Nano / Orin NX) for entrances where vehicles drive through; RK3588 for barrier entrances where they slow down.
           description_i18n:
-            zh: 分析摄像头画面的设备。车辆直接驶过的出入口选 Jetson Orin Nano；车辆减速通过的道闸出入口可选 RK3588。
+            zh: 分析摄像头画面的设备。车辆直接驶过的出入口选 reComputer J30 / J40（Jetson Orin Nano / Orin NX）；车辆减速通过的道闸出入口可选 RK3588。
           options:
             - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
             - device_ref: recomputer_rk3588
           default: recomputer_j30
         - id: camera

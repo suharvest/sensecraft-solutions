@@ -36,7 +36,7 @@
 
 | 设备 | 说明 | 必需 |
 |------|------|------|
-| reComputer J30 系列（Jetson Orin Nano） | 分析摄像头画面并计数；需 JetPack 6.2 | 二选一 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2） | 分析摄像头画面并计数；需 JetPack 6.2 | 二选一 |
 | reComputer RK3588 系列 | 分析摄像头画面并计数 | 二选一 |
 | 出入口网络摄像头 | 支持 RTSP 视频流（H.264 或 H.265），固定拍摄车道 | ✓ 必选 |
 | MQTT 服务器 | 接收计数结果，可用现场已有的服务器或自行安装 Mosquitto | ✓ 必选 |
@@ -49,11 +49,11 @@
 
 ## 方案对比
 
-| | reComputer J30 系列（Jetson Orin Nano） | reComputer RK3588 系列 |
+| | reComputer J30 / J40（Jetson Orin Nano / Orin NX） | reComputer RK3588 系列 |
 |---|---|---|
-| 设备实测处理速度 | 每秒 30 帧（输入 640×360、30 帧/秒） | 每秒约 3 帧（输入 1280×720、5 帧/秒） |
-| 单帧分析耗时 | 约 3.6 ms | 约 18 ms |
+| 设备实测处理速度 | Orin Nano 每秒 30 帧（输入 640×360、30 帧/秒） | 每秒约 3 帧（输入 1280×720、5 帧/秒） |
+| 单帧分析耗时 | Orin Nano 约 3.6 ms | 约 18 ms |
 | 适合的出入口 | 车辆正常行驶通过的出入口 | 车辆减速或停车抬杆后通过的道闸出入口 |
-| 系统要求 | 仅支持 Jetson Orin Nano 模组，JetPack 6.2 | 部署时自动检查板上的 NPU 运行库和视频解码库，缺少时提示安装 |
+| 系统要求 | Jetson Orin Nano 或 Orin NX 模组，JetPack 6.2 | 部署时自动检查板上的 NPU 运行库和视频解码库，缺少时提示安装 |
 
 Jetson Orin Nano 实测：30 帧/秒测试视频中，41 次越线全部计入，进出方向全部正确。RK3588 每秒处理约 3 帧，车辆经过计数线时需在画面中停留约 1 秒以上才能被稳定计数。
