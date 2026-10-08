@@ -95,7 +95,7 @@ R2035-12（Hailo-8）。每个部署目标写明了其真机验收状态。
 ## 步骤 1: 部署车牌识别 {#deploy_host type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
 在所选主机上部署识别栈。Jetson 目标使用已发布的停车镜像和已发布的检测、中文识别
-TensorRT engine 模型包（Orin Nano、JetPack 6.2.1 构建）；RK3588、RK3576 目标使用已发布的
+TensorRT engine 模型包（Orin Nano、L4T R36.4 / JetPack 6.2、TensorRT 10.3 构建）；RK3588、RK3576 目标使用已发布的
 RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部署时下载并校验 SHA-256。
 
 ### 前置条件
@@ -131,6 +131,8 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_plate.yaml default=true}
 
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+
 从本机通过 SSH 部署到 Jetson。2026-10-08 已在 Jetson Orin Nano 上验证（部署与
 输出链路），本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP 轮播：
 1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
@@ -138,6 +140,8 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
 （白天、夜间）未运行，因此不给出准确率。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
+
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
 
 如果你就在 Jetson 上操作，直接在本机运行。2026-10-08 已在 Jetson Orin Nano 上
 验证（部署与输出链路）：1080p 下 29.86 fps，检测 p50 5.61 ms / p95 5.75 ms，56 条

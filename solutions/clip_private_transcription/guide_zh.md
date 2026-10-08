@@ -88,6 +88,8 @@ compose 契约关闭模型下载。两个 ASR-only 服务使用同一私有 OVS 
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
 
+预编译的 TensorRT plan 只适用于 Jetson Orin NX（P3767-0000 / P3767-0001）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+
 通过 SSH 连接这台 Jetson。整包验收受阻：2026-10-08 在 Orin NX 上，clip-pt 镜像
 sha256:bbb11d88 的每个任务都在转写 schema 校验处失败，没有结果落盘；修复属于
 clip-pt 应用仓库。用带 schema 修复的重建 clip-pt 镜像再跑一轮，HTTP 上传链路
@@ -95,6 +97,8 @@ clip-pt 应用仓库。用带 schema 修复的重建 clip-pt 镜像再跑一轮�
 输出转写）通过。Clip BLE/Wi-Fi 同步需要 Clip 实物，2026-10-08 没有可用的 Clip。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
+
+预编译的 TensorRT plan 只适用于 Jetson Orin NX（P3767-0000 / P3767-0001）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
 
 在这台 Jetson 上运行 Docker。整包验收受阻：HTTP 上传链路仅在使用带 schema 修复的
 重建 clip-pt 镜像时于 Orin NX 上通过；Clip BLE/Wi-Fi 同步需要 Clip 实物。

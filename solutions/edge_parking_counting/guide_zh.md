@@ -50,11 +50,15 @@ context；RK3588 使用三个 RKNN context，输入相同。默认流编码为 H
 
 ### 部署目标 {#counting_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_counting.yaml default=true}
 
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+
 通过 SSH 连接这台 Jetson。2026-10-08 已验证（Jetson Orin Nano，本地构建镜像，
 640x360 30 fps 合成片段，每 6 s 一辆车越线）：处理 29.98 fps，推理 p50 3.58 ms /
 p95 3.64 ms，预期 41 次越线全部检出且方向交替。尚无真实出入口视频上的计数准确率。
 
 ### 部署目标 {#counting_local type=local device=jetson device_name="Jetson" config=devices/jetson_counting.yaml}
+
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
 
 在这台 Jetson 上运行 Docker。2026-10-08 已在 Jetson Orin Nano 上验证：处理
 29.98 fps，推理 p50 3.58 ms / p95 3.64 ms，合成片段上预期 41 次越线全部检出。尚无

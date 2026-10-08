@@ -42,6 +42,37 @@ files:
     checksum:
       sha256: 54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5
 actions:
+  before:
+    - name: Check the Jetson module and JetPack match the prebuilt engines
+      name_i18n: {zh: 检查 Jetson 模组与 JetPack 是否匹配预编译引擎}
+      ignore_error: false
+      run: |
+        set -eu
+        # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
+        want="p3767-0003 p3767-0004"
+        compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
+        rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
+        trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
+        echo "module:   ${compat:-unknown}"
+        echo "L4T:      ${rel:-unknown}"
+        echo "TensorRT: ${trt:-not found}"
+        ok=0
+        for m in $want; do
+          case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
+        done
+        if [ "$ok" -ne 1 ]; then
+          echo "UNSUPPORTED_JETSON_MODULE: the TensorRT engines in this package were built on Jetson Orin Nano (P3767-0003 / P3767-0004); this board reports '${compat:-unknown}'. Use that module." >&2
+          exit 1
+        fi
+        case "$rel" in
+          "# R36 (release), REVISION: 4."*) ;;
+          *) echo "UNSUPPORTED_JETPACK: the engines were built on L4T R36.4 (JetPack 6.2); this board reports '${rel:-unknown}'." >&2; exit 1 ;;
+        esac
+        case "$trt" in
+          10.3.*) ;;
+          *) echo "UNSUPPORTED_TENSORRT: the engines were built with TensorRT 10.3; this board has '${trt:-none}'." >&2; exit 1 ;;
+        esac
+        echo "Jetson module and JetPack match the prebuilt engines"
   after_upload:
     - name: Fetch and unpack the model bundle
       name_i18n: {zh: 获取并解包模型包}

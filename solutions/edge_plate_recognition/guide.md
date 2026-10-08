@@ -104,7 +104,7 @@ and runs detection and recognition. Pick the box in the deploy step: Jetson
 
 Deploy the recognition stack on the selected host. The Jetson target uses the
 published parking image and the published detector and CN recognizer TensorRT
-engine bundle (built on Orin Nano, JetPack 6.2.1); the RK3588 and RK3576
+engine bundle (built on Orin Nano, L4T R36.4 / JetPack 6.2, TensorRT 10.3); the RK3588 and RK3576
 targets use the published RKNN bundles; the R2035 target uses the published HEF
 bundle. Model bundles are downloaded and SHA-256 checked at deploy time.
 
@@ -145,6 +145,8 @@ bundle. Model bundles are downloaded and SHA-256 checked at deploy time.
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_plate.yaml default=true}
 
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+
 Deploy to the Jetson over SSH from this computer. Verified 2026-10-08 on a
 Jetson Orin Nano (deployment and output path) with a locally built image and a
 1080p 30 fps RTSP slideshow of 40 labelled CCPD stills: 29.86 fps processed at
@@ -154,6 +156,8 @@ formal Chinese plate corpus (day and night) has not been run, so no accuracy
 figure is stated.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
+
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
 
 Run this directly on the Jetson if you are working on the device itself.
 Verified 2026-10-08 on a Jetson Orin Nano (deployment and output path): 29.86

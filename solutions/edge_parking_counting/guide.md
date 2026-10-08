@@ -47,6 +47,8 @@ the config for an H.265 camera.
 
 ### Target {#counting_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_counting.yaml default=true}
 
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+
 Connect to this Jetson host over SSH. Verified 2026-10-08 on a Jetson Orin
 Nano with a locally built image and a synthetic 640x360 30 fps clip (one
 vehicle crossing the line every 6 s): 29.98 fps processed, inference p50
@@ -54,6 +56,8 @@ vehicle crossing the line every 6 s): 29.98 fps processed, inference p50
 No counting-accuracy figure on real gate video.
 
 ### Target {#counting_local type=local device=jetson device_name="Jetson" config=devices/jetson_counting.yaml}
+
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
 
 Run Docker on this Jetson host. Verified 2026-10-08 on a Jetson Orin Nano:
 29.98 fps processed, inference p50 3.58 ms / p95 3.64 ms, 41 of 41 expected

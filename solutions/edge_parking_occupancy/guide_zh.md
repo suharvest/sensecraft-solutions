@@ -54,12 +54,16 @@ cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。
 
 ### 部署目标 {#occupancy_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml default=true}
 
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+
 通过 SSH 连接这台 Jetson。2026-10-08 已验证（Jetson Orin Nano，本地构建镜像，
 640x360 合成片段：停车场静帧 20 s / 黑帧 20 s，1 路 1 fps）：处理 0.988 fps，推理
 p50 6.48 ms / p95 6.69 ms，丢帧 0，300 s 内每个车位 15 次 occupied/free 切换。尚无
 真实停车视频上的车位准确率；本轮未重测多路容量。
 
 ### 部署目标 {#occupancy_local type=local device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml}
+
+预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
 
 在这台 Jetson 上运行 Docker。2026-10-08 已在 Jetson Orin Nano 上验证：处理
 0.988 fps（1 路 1 fps），推理 p50 6.48 ms / p95 6.69 ms，丢帧 0。尚无真实停车视频

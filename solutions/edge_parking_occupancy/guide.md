@@ -48,6 +48,8 @@ Draw each slot polygon around one parking space so that a parked car the detecto
 
 ### Target {#occupancy_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml default=true}
 
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+
 Connect to this Jetson host over SSH. Verified 2026-10-08 on a Jetson Orin
 Nano with a locally built image and a synthetic 640x360 clip (parking-lot still
 20 s / black 20 s, 1 stream at 1 fps): 0.988 fps processed, inference p50
@@ -56,6 +58,8 @@ over 300 s. No slot-accuracy figure on real parking video; multi-stream
 capacity was not re-measured in this run.
 
 ### Target {#occupancy_local type=local device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml}
+
+The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
 
 Run Docker on this Jetson host. Verified 2026-10-08 on a Jetson Orin Nano:
 0.988 fps processed (1 stream at 1 fps), inference p50 6.48 ms / p95 6.69 ms,

@@ -112,6 +112,8 @@ container.
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
 
+The prebuilt TensorRT plans are for Jetson Orin NX (P3767-0000 / P3767-0001) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+
 Connect to this Jetson host over SSH. Package acceptance blocked: on Orin NX
 (2026-10-08) the clip-pt image sha256:bbb11d88 failed every job at transcript
 schema validation, so nothing was persisted; the fix belongs to the clip-pt app
@@ -121,6 +123,8 @@ LLM summary, transcript over HTTP and MQTT). Clip BLE/Wi-Fi sync needs
 a physical Clip; none was available on 2026-10-08.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
+
+The prebuilt TensorRT plans are for Jetson Orin NX (P3767-0000 / P3767-0001) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
 
 Run Docker on this Jetson host. Package acceptance blocked: the HTTP-upload
 path passed on Orin NX only with a rebuilt clip-pt image carrying the schema
