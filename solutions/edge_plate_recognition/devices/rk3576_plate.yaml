@@ -30,7 +30,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 6
-    description: RKNN models and the container image live on the device
+    description: The recognition software and models are stored on the device
 
 post_deployment:
   open_browser: false
@@ -44,9 +44,9 @@ files:
 
 actions:
   before:
-    - name: Check the RKNN runtime and host libraries
+    - name: Check the on-board AI and video decoding components
       name_i18n:
-        zh: 检查 RKNN 运行时与宿主机库
+        zh: 检查板载 AI 与视频解码组件
       run: |
         set -eu
         # The compose file mounts these host files into the container (paths
@@ -69,11 +69,11 @@ actions:
           echo "Install the RKNN runtime (rknpu2), Rockchip MPP/RGA and gstreamer1.0-plugins-bad + gstreamer1.0-rockchip on this board first" >&2
           exit 1
         fi
-        echo "RKNN runtime and host libraries OK"
+        echo "AI and video decoding components OK"
 
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the recognition models
+      name_i18n: {zh: 下载识别模型}
       timeout: 1800
       run: |
         set -eu
@@ -231,11 +231,11 @@ user_inputs:
     name: MQTT Username
     type: text
     required: false
-    description: Leave empty if the broker allows anonymous clients
+    description: Leave empty if the MQTT broker allows anonymous connections
     name_i18n:
       zh: MQTT 用户名
     description_i18n:
-      zh: broker 允许匿名连接就留空
+      zh: MQTT 服务器允许匿名连接时留空
   - id: mqtt_password
     name: MQTT Password
     type: password
@@ -310,11 +310,11 @@ remote_overrides:
       name: MQTT Username
       type: text
       required: false
-      description: Leave empty if the broker allows anonymous clients
+      description: Leave empty if the MQTT broker allows anonymous connections
       name_i18n:
         zh: MQTT 用户名
       description_i18n:
-        zh: broker 允许匿名连接就留空
+        zh: MQTT 服务器允许匿名连接时留空
     - id: mqtt_password
       name: MQTT Password
       type: password

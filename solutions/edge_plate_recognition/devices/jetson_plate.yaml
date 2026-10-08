@@ -39,7 +39,7 @@ pre_checks:
     min_gb: 0.5
     description: Keep at least 0.5 GB free for plate snapshots and logs
   - type: nvidia_runtime
-    description: Check the NVIDIA container runtime is available
+    description: Check that Docker can use the Jetson GPU
 
 deploy_timeout: 3600
 
@@ -54,8 +54,8 @@ files:
       sha256: a5e0e456c945256a6dee8e614cfcfd9cb10380b3459504d0d1fccd5e5d16d64d
 actions:
   before:
-    - name: Check the Jetson module and JetPack match the prebuilt engines
-      name_i18n: {zh: 检查 Jetson 模组与 JetPack 是否匹配预编译引擎}
+    - name: Check the Jetson module and JetPack version
+      name_i18n: {zh: 检查 Jetson 模组与 JetPack 版本}
       ignore_error: false
       run: |
         set -eu
@@ -72,19 +72,19 @@ actions:
           case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
         done
         if [ "$ok" -ne 1 ]; then
-          echo "UNSUPPORTED_JETSON_MODULE: the TensorRT engines in this package were built on Jetson Orin Nano (P3767-0003 / P3767-0004); this board reports '${compat:-unknown}'. Use that module." >&2
+          echo "UNSUPPORTED_JETSON_MODULE: this solution supports Jetson Orin Nano (P3767-0003 / P3767-0004) only; this board reports '${compat:-unknown}'. Use an Orin Nano, or an RK3588 / RK3576 host." >&2
           exit 1
         fi
         case "$rel" in
           "# R36 (release), REVISION: 4."*) ;;
-          *) echo "UNSUPPORTED_JETPACK: the engines were built on L4T R36.4 (JetPack 6.2); this board reports '${rel:-unknown}'." >&2; exit 1 ;;
+          *) echo "UNSUPPORTED_JETPACK: this solution needs JetPack 6.2 (L4T R36.4); this board reports '${rel:-unknown}'. Flash JetPack 6.2." >&2; exit 1 ;;
         esac
         case "$trt" in
           10.3.*) ;;
-          *) echo "UNSUPPORTED_TENSORRT: the engines were built with TensorRT 10.3; this board has '${trt:-none}'." >&2; exit 1 ;;
+          *) echo "UNSUPPORTED_TENSORRT: this solution needs TensorRT 10.3 as shipped with JetPack 6.2; this board has '${trt:-none}'." >&2; exit 1 ;;
         esac
-        echo "Jetson module and JetPack match the prebuilt engines"
-    - name: Validate Jetson runtime
+        echo "Jetson module and JetPack version OK"
+    - name: Check the NVIDIA container runtime
       run: |
         set -e
         if [ ! -f /etc/nv_tegra_release ]; then
@@ -98,12 +98,12 @@ actions:
         fi
         echo "Jetson runtime OK"
       name_i18n:
-        zh: 校验 Jetson 运行环境
+        zh: 检查 NVIDIA 容器运行时
 
   after:
-    - name: Wait for the plate recognition service readiness endpoint
+    - name: Wait for the plate recognition service to start
       name_i18n:
-        zh: 等待车牌识别服务就绪接口
+        zh: 等待车牌识别服务启动
       timeout: 130
       ignore_error: false
       env:
@@ -188,8 +188,8 @@ actions:
         PY
 
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the recognition models
+      name_i18n: {zh: 下载识别模型}
       timeout: 1800
       run: |
         set -eu
@@ -352,11 +352,11 @@ user_inputs:
     name: MQTT Username
     type: text
     required: false
-    description: Leave empty if the broker allows anonymous clients
+    description: Leave empty if the MQTT broker allows anonymous connections
     name_i18n:
       zh: MQTT 用户名
     description_i18n:
-      zh: broker 允许匿名连接就留空
+      zh: MQTT 服务器允许匿名连接时留空
   - id: mqtt_password
     name: MQTT Password
     type: password
@@ -449,11 +449,11 @@ remote_overrides:
       name: MQTT Username
       type: text
       required: false
-      description: Leave empty if the broker allows anonymous clients
+      description: Leave empty if the MQTT broker allows anonymous connections
       name_i18n:
         zh: MQTT 用户名
       description_i18n:
-        zh: broker 允许匿名连接就留空
+        zh: MQTT 服务器允许匿名连接时留空
     - id: mqtt_password
       name: MQTT Password
       type: password
@@ -473,11 +473,11 @@ remote_overrides:
       type: text
       default: recomputer
       required: true
-      description: "Common defaults: recomputer (Seeed reComputer J30 / J40 series), nvidia, or ubuntu."
+      description: "Common defaults: recomputer (reComputer J30 Series), nvidia, or ubuntu."
       name_i18n:
         zh: SSH 用户名
       description_i18n:
-        zh: "常见默认值：recomputer（Seeed reComputer J30 / J40 系列）、nvidia 或 ubuntu。"
+        zh: "常见默认值：recomputer（reComputer J30 系列）、nvidia 或 ubuntu。"
     - id: password
       name: SSH Password
       type: password

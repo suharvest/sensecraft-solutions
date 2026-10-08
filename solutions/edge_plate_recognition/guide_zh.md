@@ -1,116 +1,220 @@
-# 边缘车牌识别 — 部署指南
+## 套餐: IP 摄像头 + 识别主机 {#ip_camera_box}
 
-> **草稿（staging）。** Jetson、RK3588、RK3576 部署目标已通过真机验收（部署与输出
-> 链路，2026-10-08）；R2035（Hailo-8）目标尚未通过。本版本不提供 reCamera 摄像头端套餐。以下步骤为预期的部署流程，摘掉「草稿」标前会在真机上重新验证。
+保留现有出入口摄像头，由一台识别主机在现场读车牌；需要自动抬杆时再加一台 reComputer R1100 系列控制道闸。
 
-## 套餐: IP 摄像头 + 边缘算力盒子 {#ip_camera_box}
+| 设备 | 用途 |
+|------|------|
+| reComputer J30 系列（Jetson Orin Nano）/ RK3588 系列 / RK3576 系列 | 识别主机，三选一 |
+| 网络摄像头 | 拍摄车道画面，1080p 及以上，支持 RTSP |
+| reComputer R1100 系列（R1124-10） | 道闸控制器：比对白名单、给道闸发开闸信号（可选） |
+| 中间继电器 | 接在道闸控制器与道闸之间（可选） |
 
-保留现有出入口摄像头——边缘算力盒子拉 RTSP 流，跑检测与识别。在部署步骤里
-选择盒子：Jetson（TensorRT FP16）、RK3588 或 RK3576（NPU 上跑 RKNN INT8）、
-R2035-12（Hailo-8）。每个部署目标写明了其真机验收状态。
+**部署完成后你可以：**
+- 在浏览器里实时看到车牌框和最新识别结果
+- 每辆车收到一条记录：车牌号、可信度和截图链接
+- 白名单车辆到达时道闸自动抬杆
+
+**前提条件：** 摄像头与识别主机在同一局域网 · 首次部署时识别主机能联网
 
 ## 步骤 1: 部署车牌识别 {#deploy_host type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-在所选主机上部署识别栈。Jetson 目标使用已发布的停车镜像和已发布的检测、中文识别
-TensorRT engine 模型包（Orin Nano、L4T R36.4 / JetPack 6.2、TensorRT 10.3 构建）；RK3588、RK3576 目标使用已发布的
-RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部署时下载并校验 SHA-256。
+在识别主机上安装车牌识别服务，并接入出入口摄像头。
 
 ### 前置条件
 
-1. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-2. 摄像头距车道 3–8 m，1080p 及以上。
-3. **Jetson：** 运行 JetPack 6.x，NVIDIA 容器运行时可用。除镜像和 engine 外
-   至少 0.5 GiB 可用磁盘。已发布的停车镜像和 engine 模型包在部署时获取；你需要提供
-   渲染后的 `vb.config/1` 文件。
-   可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机
-   8099 已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`
-   （默认 `./data`，已存在且可写，存放状态和快照）与计数包一致。
-4. **RK3588 / RK3576：** 板子上已安装 RKNN 运行时（librknnrt）、Rockchip MPP/RGA 和
-   GStreamer `h264parse` 插件（`gstreamer1.0-plugins-bad`）——容器使用这些宿主机库，
-   部署步骤会检查它们是否存在。至少 6 GB 可用磁盘。容器使用宿主机网络：8099（健康
-   检查）和 8080（应用 HTTP，即 `config/plate.json` 的 `app.options.http.port`）须空闲。
-5. **R2035（Hailo-8）：** 已安装 Hailo-8 驱动与 HailoRT，且存在 `/dev/hailo0`。
-   HailoRT 版本必须与驱动一致——需自行从 Hailo Developer Zone 获取。至少 6 GB
-   可用磁盘。
+1. 摄像头的 RTSP 地址；摄像头需要登录时，地址里带上用户名和密码。
+2. 摄像头装在距车道 3–8 米处，车牌出现在画面中下部。
+3. MQTT 服务器地址：要自动抬杆时填道闸控制器的 IP（步骤 3 会在它上面安装消息服务）；只记录、不接道闸时填你已有的 MQTT 服务器地址。
+4. 识别主机上 8080 端口（识别预览）和 8099 端口（状态检查）没有被其他程序占用。
+
+### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml default=true}
+
+从这台电脑通过网络部署到 reComputer J30 系列（Jetson Orin Nano，JetPack 6.2）。
+
+### 接线
+
+1. Jetson 接上电源和网线，与这台电脑、摄像头在同一局域网
+2. 填写 Jetson 的 IP、SSH 用户名和密码
+3. 填写摄像头 RTSP 地址和 MQTT 服务器地址，站点编号、摄像头编号可保持默认
+4. 点击部署；部署会先检查模组和 JetPack 版本，再下载识别模型并启动服务
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 提示模组或 JetPack 版本不匹配 | 只支持 Jetson Orin Nano 模组 + JetPack 6.2；其他 Jetson 模组请改用 RK3588 或 RK3576 主机 |
+| 提示缺少 NVIDIA 容器运行时 | 在 Jetson 上运行 `sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker` 后重新部署 |
+| 部署最后一步等待服务就绪超时 | 8099 端口可能被占用：把「状态端口」改成一个空闲端口（如 18099）后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址；地址路径或用户名密码写错最常见 |
+| 下载识别模型失败 | 确认 Jetson 能访问互联网后重新部署 |
+
+### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson Orin Nano" config=devices/jetson_plate.yaml}
+
+直接在这台 reComputer J30 系列（Jetson Orin Nano，JetPack 6.2）上部署。
+
+### 接线
+
+1. Jetson 接上网线，与摄像头在同一局域网
+2. 填写摄像头 RTSP 地址和 MQTT 服务器地址
+3. 点击部署
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 提示模组或 JetPack 版本不匹配 | 只支持 Jetson Orin Nano 模组 + JetPack 6.2 |
+| 部署最后一步等待服务就绪超时 | 把「状态端口」改成一个空闲端口后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址，检查路径和用户名密码 |
+
+### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
+
+从这台电脑通过网络部署到 reComputer RK3588 系列，需要至少 6 GB 可用磁盘。
+
+### 接线
+
+1. RK3588 接上电源和网线，与这台电脑、摄像头在同一局域网
+2. 填写 RK3588 的 IP、SSH 用户名和密码
+3. 填写摄像头 RTSP 地址和 MQTT 服务器地址，站点编号、摄像头编号可保持默认
+4. 点击部署；部署会先检查板载 AI 与视频解码组件，再下载识别模型并启动服务
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 部署第一步提示缺少组件 | 使用 reComputer 出厂系统；自装系统需先安装 rknpu2 运行库、Rockchip MPP / RGA、`gstreamer1.0-plugins-bad` 和 `gstreamer1.0-rockchip` |
+| 服务起不来，8080 或 8099 端口被占用 | 停掉占用这两个端口的程序后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址；地址路径或用户名密码写错最常见 |
+| 下载识别模型失败 | 确认设备能访问互联网后重新部署 |
+
+### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
+
+直接在这台 reComputer RK3588 系列上部署，需要至少 6 GB 可用磁盘。
+
+### 接线
+
+1. RK3588 接上网线，与摄像头在同一局域网
+2. 填写摄像头 RTSP 地址和 MQTT 服务器地址
+3. 点击部署
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 部署第一步提示缺少组件 | 使用 reComputer 出厂系统，或先安装提示中列出的软件包 |
+| 服务起不来，8080 或 8099 端口被占用 | 停掉占用这两个端口的程序后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址，检查路径和用户名密码 |
+
+### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
+
+从这台电脑通过网络部署到 reComputer RK3576 系列，需要至少 6 GB 可用磁盘。
+
+### 接线
+
+1. RK3576 接上电源和网线，与这台电脑、摄像头在同一局域网
+2. 填写 RK3576 的 IP、SSH 用户名和密码
+3. 填写摄像头 RTSP 地址和 MQTT 服务器地址，站点编号、摄像头编号可保持默认
+4. 点击部署；部署会先检查板载 AI 与视频解码组件，再下载识别模型并启动服务
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 部署第一步提示缺少组件 | 使用 reComputer 出厂系统；自装系统需先安装 rknpu2 运行库、Rockchip MPP / RGA、`gstreamer1.0-plugins-bad` 和 `gstreamer1.0-rockchip` |
+| 服务起不来，8080 或 8099 端口被占用 | 停掉占用这两个端口的程序后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址；地址路径或用户名密码写错最常见 |
+| 下载识别模型失败 | 确认设备能访问互联网后重新部署 |
+
+### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
+
+直接在这台 reComputer RK3576 系列上部署，需要至少 6 GB 可用磁盘。
+
+### 接线
+
+1. RK3576 接上网线，与摄像头在同一局域网
+2. 填写摄像头 RTSP 地址和 MQTT 服务器地址
+3. 点击部署
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| 部署第一步提示缺少组件 | 使用 reComputer 出厂系统，或先安装提示中列出的软件包 |
+| 服务起不来，8080 或 8099 端口被占用 | 停掉占用这两个端口的程序后重新部署 |
+| 摄像头没有画面 | 先用 VLC 打开 RTSP 地址，检查路径和用户名密码 |
+
+---
+
+## 步骤 2: 查看识别结果 {#view_host type=web_dashboard required=false config=devices/dashboard.yaml}
+
+打开实时预览，确认摄像头画面和车牌识别都正常。
+
+### 接线
+
+1. 确认识别主机 IP（默认带入步骤 1 部署的主机）
+2. 打开预览页面，确认能看到摄像头实时画面
+3. 让一辆车开到车道上，或把车牌照片举到摄像头前，画面上应出现车牌框，旁边列出识别出的车牌号
+
+### 部署完成
+
+识别主机已经在读取出入口画面。
+
+#### 快速验证
+
+1. 一辆车开过车道，预览页面列出它的车牌号
+2. 用 MQTT 客户端订阅 `<站点编号>/parking/#`，每辆车收到一条车牌记录，记录里带车牌号、可信度和截图链接
+3. 要自动抬杆时，继续完成步骤 3 和步骤 4
 
 ### 故障排查
 
 | 现象 | 处理 |
-|-------|----------|
-| 摄像头没有画面 | 先用 VLC 测 RTSP 地址；路径或凭据错误是最常见原因 |
-| Jetson：engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘至少有 0.5 GiB 可用 |
-| Jetson：容器反复重启 | 看日志里的 engine 路径；中断产生的半成品 engine 要删掉 |
-| RK3588 / RK3576：找不到 librknnrt | 先为该板卡安装 RKNN 运行时（rknpu2） |
-| RK3588：日志里 NPU 空闲 | 确认 RKNN 模型文件下载完整——截断的模型会报错或退化 |
-| R2035：找不到 /dev/hailo0 | 先加载 Hailo-8 驱动再部署 |
-| R2035：HailoRT 版本不一致 | 安装与驱动匹配的 HailoRT 包——预检会打印它找到的版本 |
-| R2035：识别跑在 CPU 上 | 两个 network group 无法共享设备时的预期行为；准确率不受影响，吞吐较低 |
+|------|------|
+| 页面打不开 | 部署完成后等 30 秒再刷新；确认 IP 填的是识别主机 |
+| 有画面但没有车牌框 | 车牌要出现在画面中下部（左右各留约 20%，上方约 30% 不识别）；调整摄像头角度 |
+| 车牌框出现了但没有识别结果 | 同一辆车需要连续几帧读到一致的车牌才会上报；车速过快或车牌太小时把摄像头拉近 |
 
-### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_plate.yaml default=true}
-
-预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
-
-从本机通过 SSH 部署到 Jetson。2026-10-08 已在 Jetson Orin Nano 上验证（部署与
-输出链路），本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP 轮播：
-1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
-`parking.plate/1` MQTT 事件及 JPEG 快照。这些静态图不用于给出识别准确率；交付前用
-自己出入口摄像头的白天、夜间画面测量准确率。
-
-### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
-
-预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
-
-如果你就在 Jetson 上操作，直接在本机运行。2026-10-08 已在 Jetson Orin Nano 上
-验证（部署与输出链路）：1080p 下 29.86 fps，检测 p50 5.61 ms / p95 5.75 ms，56 条
-`parking.plate/1` 事件及快照。识别准确率尚未验收。
-
-### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
-
-从本机通过 SSH 部署到 RK3588。2026-10-08 已在一块 RK3588 板上验证（部署与输出链路）：
-按本目标的检查、模型包、配置步骤，用随包 compose、已发布的 `nrd-parking-rk:20261008`
-镜像和已发布的 RK3588 模型包，输入 40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP
-轮播，约 160 s 内输出 36 条 `parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收。
-
-### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
-
-如果你就在 RK3588 上操作，直接在本机运行。与 SSH 目标使用同一 compose、配置和模型包，
-SSH 目标已于 2026-10-08 验证（36 条 `parking.plate/1` 事件及快照）；本机部署路径本身未运行。
-识别准确率尚未验收。
-
-### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
-
-从本机通过 SSH 部署到 RK3576。2026-10-08 已在一块 RK3576 板上验证（部署与输出链路）：
-按本目标的检查、模型包、配置步骤，用随包 compose、已发布的 `nrd-parking-rk:20261008`
-镜像和已发布的 RK3576 模型包，输入同一段 1080p 30 fps 轮播，约 170 s 内输出 44 条
-`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收。
-
-### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
-
-如果你就在 RK3576 上操作，直接在本机运行。与 SSH 目标使用同一 compose、配置和模型包，
-SSH 目标已于 2026-10-08 验证（44 条 `parking.plate/1` 事件及快照）；本机部署路径本身未运行。
-识别准确率尚未验收。
-
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
-
-从本机通过 SSH 部署到 R2035。验收受阻：运行镜像
-`sensecraft/edge-parking-hailo:0.1.0-draft` 尚未构建，视觉运行时的 Hailo 后端
-不打补丁时还不接受车牌检测模型的分层输出。
-
-### 部署目标 {#hailo_local type=local device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
-
-如果你就在 R2035 上操作，直接在本机运行。验收受阻：运行镜像尚未构建，Hailo 后端
-需要补丁才能运行车牌检测模型。
-
-## 步骤 2: 查看识别结果 {#view_host type=web_dashboard required=false config=devices/dashboard.yaml}
-
-打开实时预览——车牌框与最新识别结果。
+---
 
 ## 步骤 3: 安装道闸控制器（可选） {#gate_host type=script required=false config=devices/gate_controller.yaml}
 
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。使用时把识别主机的
-MQTT 服务器地址指向 R1124。
+在道闸控制器（reComputer R1100 系列）上安装消息服务和开闸服务，用于比对白名单并控制道闸。
+
+### 接线
+
+1. 道闸控制器接上电源和网线，与识别主机在同一局域网，并能访问互联网
+2. 填写道闸控制器的 IP、SSH 用户名和密码
+3. 站点编号填与步骤 1 相同的值；道闸编号用来在开闸记录里区分不同道闸
+4. 道闸输出线名：接继电器的那一路数字输出在系统里的名称，查 reComputer R1000 系列 Wiki 的数字输出（DO）章节
+5. 点击部署；完成后回到步骤 1，确认 MQTT 服务器地址填的是这台道闸控制器的 IP
+
+### 故障排除
+
+| 现象 | 处理 |
+|------|------|
+| SSH 连接失败 | 确认 IP、用户名、密码正确，用 ping 测试网络 |
+| 提示道闸输出线名为空 | 按 Wiki 查到线名后填写再部署 |
+| 安装消息服务失败 | 道闸控制器需要能访问互联网来下载软件包 |
+| 识别主机连不上消息服务 | 确认两台设备在同一局域网，道闸控制器的 1883 端口没有被防火墙拦截 |
+
+---
 
 ## 步骤 4: 道闸接线（可选） {#wire_host type=manual required=false config=devices/gate_wiring.yaml}
 
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
+把道闸控制器的数字输出经中间继电器接到道闸的「开闸」端子，导入白名单并测试一次开闸。
+
+### 接线
+
+1. 查 reComputer R1000 系列 Wiki，确认数字输出的类型和额定电压电流，选择线圈电压匹配的导轨式中间继电器
+2. 道闸控制器的 DO 输出接继电器线圈正极，DO 公共端 / GND 接线圈负极
+3. 继电器常开（NO）触点接道闸控制器的「开闸」端子，公共（COM）触点接道闸的公共端子；不要接关闸端子，关闸由道闸自己的地感或雷达负责
+4. 准备白名单 CSV，第一行必须是 `plate,label,valid_from,valid_until`，然后上传：`curl -X PUT --data-binary @whitelist.csv http://<道闸控制器IP>:8081/whitelist`
+5. 触发一次测试开闸：`curl -X POST http://<道闸控制器IP>:8081/gate/test`，继电器应吸合约 0.5 秒
+6. 先用万用表或继电器指示灯确认动作正常，再让车辆开到道闸前实测
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 上传白名单返回 400 | 返回内容会指出出错的行号；检查表头和该行格式 |
+| 测试开闸时继电器不动作 | 检查 DO 接线和继电器线圈电压；确认步骤 3 填的道闸输出线名正确 |
+| 继电器动作但道闸不抬杆 | 确认接的是常开（NO）触点和道闸的「开闸」端子 |
+| 白名单车辆到了不抬杆 | 车牌按完全一致比对：检查白名单里的车牌号、有效期；同一车牌短时间内重复到达会被忽略 |
