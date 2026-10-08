@@ -1,20 +1,57 @@
-# Edge Multi-Camera Parking Occupancy
+## What this solution does
 
-> **Draft.** The SlotsApp runtime image and the per-target vehicle640 model
-> bundles are published (2026-10-08) and fetched at deploy time; each
-> deployment target states its acceptance status. Broker credentials and host
-> proprietary libraries are not bundled.
+To know which bays in a car park are taken, the usual answer is a magnetic or ultrasonic sensor in every bay — each one wired, powered and maintained. This solution uses the IP cameras already on site instead: every bay a camera can see is a bay it can watch. You draw a box around each bay on a web page, the edge box keeps checking whether there is a car in each box, and it sends every bay's occupied / free state to your system for guidance signs, wayfinding or billing.
 
-SlotsApp samples one or more RTSP streams, applies the native `slot_coverage`
-analyzer to configured parking polygons, and publishes retained slot states to
-an external MQTT broker. The HTTP editor and `/healthz` endpoints are part of
-the intended app contract.
+## Key benefits
 
-The current package records Jetson and RK3576/RK3588 staging contracts; the
-deployment guide states the measured result of each target. Before production,
-measure multi-camera capacity, slot accuracy and disconnect recovery on your
-own cameras and lot.
+| Benefit | Details |
+|------|---------|
+| No per-bay sensors | One camera covers every bay it can see; nothing to install or wire per bay |
+| Changes reported within seconds | A bay turns occupied about 3 s after a car stops, and free about 5 s after it leaves |
+| You draw the bays | Draw and name each bay over the live picture in a web page; it takes effect on save and survives restarts |
+| Video stays on site | Pictures are analysed on the edge box; only bay states leave it, never video |
+| A dead camera is visible | About 10 s after a camera stream drops, its bays turn `unknown` instead of repeating a stale state |
 
-## RK3576 and RK3588 deployment targets
+## Use cases
 
-The RK3576 and RK3588 deployment targets of the single preset describe native RKNN SlotsApp deployment on reComputer RK3576 and RK3588. Copy the board-specific shipped `assets/config/slots-rk3576.json` or `slots-rk3588.json` to the host and edit it before deployment: use site/device IDs of at most 32 characters, unique MQTT client IDs and topic roots, matching broker maps, RTSP URLs/codecs, the pinned vehicle640 model path/SHA, slot polygons mapped to stream IDs, and an existing state path. Each RK target also requires a locally built image, writable data directory, DRM device, and user-supplied RKNN/RGA/MPP host paths. The conversion artifacts are recorded by SHA and are not bundled or downloaded, so place them on the host before deployment. H.264 is the default stream codec; H.265 is selected with per-stream `options.codec`. Slot messages use `<site>/parking/<camera>/slots`, where `<camera>` is the configured stream ID. The native health server binds `0.0.0.0:8099`; use the RK host's reachable address for a remote `/healthz` check.
+| Scenario | How it's used |
+|------|--------|
+| Underground car park guidance signs | A few cameras per level; add up free bays per level and show them at the entrance and on each level |
+| Mall / office car park | Count free bays per zone and send drivers to zones that still have space |
+| Reserved bays | Draw separate boxes for EV-charging or visitor bays and alert staff when one is taken |
+| Bay utilisation | Log how long each bay is occupied to find peak hours and bays that sit empty |
+
+## What you get after deployment
+
+- **Slot editor**: open it in a browser, pick a camera, click around a bay to draw it, type its number (for example B1-023) and save.
+- **Bay state messages**: one MQTT topic per camera, `<site-id>/parking/<camera-id>/slots`. Whenever any bay changes, a message lists every bay on that camera with its state (`occupied` / `free` / `unknown`) plus the occupied, free and unknown counts. Your guidance signs, parking system or Home Assistant subscribe to that topic.
+
+## Usage Notes
+
+### Core hardware
+
+| Device | Role | Required |
+|------|------|------|
+| reComputer J30 (Jetson Orin Nano) | Runs bay detection; must be a Jetson Orin Nano module on JetPack 6.2 | Pick one |
+| reComputer RK3588 | Runs bay detection on the board's built-in AI accelerator | Pick one |
+| IP camera | Your existing cameras, able to send an H.264 RTSP stream | ✓ Required |
+| MQTT server | Receives the bay states, for example an existing Mosquitto | ✓ Required |
+
+Measured performance (each camera analysed at 1 frame per second):
+
+| Edge box | Time per frame | Multiple cameras |
+|------|------|------|
+| reComputer J30 (Jetson Orin Nano) | about 6.5 ms | 6 cameras at once, 1 frame per second each, no dropped frames |
+| reComputer RK3588 | about 37 ms | Add cameras one at a time and check each keeps updating |
+
+### Network requirements
+
+- Edge box, cameras and MQTT server on the same LAN; the edge box can reach each camera's RTSP address (usually port 554).
+- The edge box needs internet access during deployment to download the program and the detection model; it runs offline afterwards.
+- Your computer must reach port 8080 on the edge box (slot editor).
+
+### Camera requirements
+
+- Mount the camera high and angled down so each bay is clearly visible and not fully hidden by the car next to it.
+- One box per bay. A parked car must cover roughly a third of its box to count as occupied; a large box spanning several bays, or around distant small cars, never turns occupied.
+- The camera's sub-stream is enough, encoded as H.264.
