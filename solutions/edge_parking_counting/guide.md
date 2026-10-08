@@ -4,7 +4,7 @@ The entrance IP camera sends its picture to a reComputer next to it. The reCompu
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 Series | Analyses the camera picture and counts vehicles in and out |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 / RK3576 Series | Analyses the camera picture and counts vehicles in and out |
 | Entrance IP camera | Films the lane and provides an RTSP stream |
 | MQTT server | Receives crossing records and free spaces |
 
@@ -41,11 +41,11 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 | Issue | Solution |
 |-------|----------|
 | UNSUPPORTED_JETSON_MODULE or UNSUPPORTED_JETPACK | This solution supports only reComputer J30 / J40 (Jetson Orin Nano / Orin NX) with JetPack 6.2; use one of those or reflash the system |
-| MISSING_BOARD_LIBRARIES (RK3588) | The message lists what is missing; install the RKNN runtime, MPP/RGA, gstreamer1.0-rockchip and gstreamer1.0-plugins-bad following the board vendor's instructions, then deploy again |
+| MISSING_BOARD_LIBRARIES (RK3588 / RK3576) | The message lists what is missing; install the RKNN runtime, MPP/RGA, gstreamer1.0-rockchip and gstreamer1.0-plugins-bad following the board vendor's instructions, then deploy again |
 | Model or app download fails | Make sure the device can reach the internet, then deploy again; parts already downloaded are reused |
 | Not enough disk space | Remove unused files or images on the device so that at least 1 GB is free |
-| The counting service does not start, or waiting for it times out | Run `docker logs edge-parking-counting-jetson` on the device (`edge-parking-counting-rk3588` on RK3588) to see the error |
-| The log shows Address already in use | Another program on the device uses the port: for 8080, change "Counter service port"; for 8099, change "Status port" on Jetson, or stop the program using 8099 on RK3588. Then deploy again |
+| The counting service does not start, or waiting for it times out | Run `docker logs edge-parking-counting-jetson` on the device (`edge-parking-counting-rk3588` on RK3588, `edge-parking-counting-rk3576` on RK3576) to see the error |
+| The log shows Address already in use | Another program on the device uses the port: for 8080, change "Counter service port"; for 8099, change "Status port" on Jetson, or stop the program using 8099 on RK3588 / RK3576. Then deploy again |
 | An ID is rejected | Site ID and entrance ID may only contain letters, digits, - and _ |
 
 ### Deployment Complete
@@ -68,6 +68,14 @@ Deploy over SSH from this computer to a reComputer RK3588 Series on the LAN; pro
 
 Deploy directly on the reComputer RK3588 Series you are using; processes about 3 frames per second.
 
+### Target: RK3576 (remote) {#rk3576_counting_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
+
+Deploy over SSH from this computer to a reComputer RK3576 Series on the LAN; measured at 30 frames per second.
+
+### Target: RK3576 (this device) {#rk3576_counting_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
+
+Deploy directly on the reComputer RK3576 Series you are using; measured at 30 frames per second.
+
 ## Step 2: View the counting picture {#view_counting type=web_dashboard required=false config=devices/preview.yaml}
 
 Open the counting preview to check the camera picture and where the counting line sits.
@@ -86,7 +94,7 @@ The counting app is running. When a vehicle crosses the counting line, a crossin
 
 1. "Vehicles already inside" is the starting count on first start; after that, restarts and redeployments continue from the saved count.
 2. "Total spaces" is used to work out free spaces; enter the actual number of spaces.
-3. To reset the count when it no longer matches the car park: enter the correct "Vehicles already inside" in Step 1 and deploy again, then run the commands below on the device (on RK3588 set `C=edge-parking-counting-rk3588`; replace `gate-a` with your entrance ID):
+3. To reset the count when it no longer matches the car park: enter the correct "Vehicles already inside" in Step 1 and deploy again, then run the commands below on the device (on RK3588 set `C=edge-parking-counting-rk3588`, on RK3576 `C=edge-parking-counting-rk3576`; replace `gate-a` with your entrance ID):
 
    ```bash
    C=edge-parking-counting-jetson
@@ -114,5 +122,5 @@ The counting app is running. When a vehicle crosses the counting line, a crossin
 | Issue | Solution |
 |-------|----------|
 | Page does not open | Check that the IP is the counting device's address, the port matches "Counter service port" in Step 1, and this computer is on the same network |
-| Page opens but shows no picture | The device cannot reach the camera: open the RTSP address in VLC on the same network and check the path, user name and password; on RK3588 also check that "Camera video format" matches the camera setting. Then deploy again |
+| Page opens but shows no picture | The device cannot reach the camera: open the RTSP address in VLC on the same network and check the path, user name and password; on RK3588 / RK3576 also check that "Camera video format" matches the camera setting. Then deploy again |
 | No MQTT messages arrive | Check the MQTT server address, port, user name and password, and that the device can reach port 1883 on the server, then deploy again |

@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 系列 | 分析摄像头画面、统计进出车辆 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 / RK3576 系列 | 分析摄像头画面、统计进出车辆 |
 | 出入口网络摄像头 | 拍摄车道，提供 RTSP 视频流 |
 | MQTT 服务器 | 接收进出记录和剩余车位 |
 
@@ -41,11 +41,11 @@
 | 问题 | 解决方法 |
 |------|----------|
 | 提示 UNSUPPORTED_JETSON_MODULE 或 UNSUPPORTED_JETPACK | 本方案只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX）+ JetPack 6.2，换用对应设备或重刷系统 |
-| 提示 MISSING_BOARD_LIBRARIES（RK3588） | 提示里列出了缺少的库，按板卡厂商的说明安装 RKNN 运行库、MPP/RGA、gstreamer1.0-rockchip 和 gstreamer1.0-plugins-bad 后重新部署 |
+| 提示 MISSING_BOARD_LIBRARIES（RK3588 / RK3576） | 提示里列出了缺少的库，按板卡厂商的说明安装 RKNN 运行库、MPP/RGA、gstreamer1.0-rockchip 和 gstreamer1.0-plugins-bad 后重新部署 |
 | 下载模型或应用失败 | 确认设备能访问互联网，然后重新部署；已下载的部分会复用 |
 | 磁盘空间不足 | 清理设备上不用的文件或镜像，保证至少 1 GB 可用空间 |
-| 计数服务没有启动，或等待就绪超时 | 在设备上运行 `docker logs edge-parking-counting-jetson`（RK3588 为 `edge-parking-counting-rk3588`）查看报错 |
-| 日志里出现 Address already in use | 设备上已有其他程序占用端口：8080 被占用时改「计数服务端口」；8099 被占用时，Jetson 改「状态检查端口」，RK3588 需先停掉占用 8099 的程序。改好后重新部署 |
+| 计数服务没有启动，或等待就绪超时 | 在设备上运行 `docker logs edge-parking-counting-jetson`（RK3588 为 `edge-parking-counting-rk3588`，RK3576 为 `edge-parking-counting-rk3576`）查看报错 |
+| 日志里出现 Address already in use | 设备上已有其他程序占用端口：8080 被占用时改「计数服务端口」；8099 被占用时，Jetson 改「状态检查端口」，RK3588 / RK3576 需先停掉占用 8099 的程序。改好后重新部署 |
 | 填写的编号被拒绝 | 停车场编号和出入口编号只能用字母、数字、- 和 _ |
 
 ### 部署完成
@@ -68,6 +68,14 @@
 
 在 reComputer RK3588 系列本机上直接部署，每秒处理约 3 帧。
 
+### 部署目标: RK3576（远程部署） {#rk3576_counting_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
+
+从这台电脑通过 SSH 部署到局域网里的 reComputer RK3576 系列，实测每秒处理 30 帧。
+
+### 部署目标: RK3576（本机部署） {#rk3576_counting_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
+
+在 reComputer RK3576 系列本机上直接部署，实测每秒处理 30 帧。
+
 ## 步骤 2: 查看计数画面 {#view_counting type=web_dashboard required=false config=devices/preview.yaml}
 
 打开计数预览，确认摄像头画面和计数线位置正常。
@@ -86,7 +94,7 @@
 
 1. 「场内现有车辆数」是第一次启动时的计数起点；之后设备重启或重新部署会沿用已保存的计数。
 2. 「车位总数」用于计算剩余车位，按停车场实际车位数填写。
-3. 场内车辆数与实际不符需要重设时：先在步骤 1 填入正确的「场内现有车辆数」并重新部署，再在设备上运行下面的命令（RK3588 把 `C=` 后的名称换成 `edge-parking-counting-rk3588`，`gate-a` 换成你的出入口编号）：
+3. 场内车辆数与实际不符需要重设时：先在步骤 1 填入正确的「场内现有车辆数」并重新部署，再在设备上运行下面的命令（RK3588 把 `C=` 后的名称换成 `edge-parking-counting-rk3588`，RK3576 换成 `edge-parking-counting-rk3576`，`gate-a` 换成你的出入口编号）：
 
    ```bash
    C=edge-parking-counting-jetson
@@ -114,5 +122,5 @@
 | 问题 | 解决方法 |
 |------|----------|
 | 页面打不开 | 确认 IP 是计数设备的地址、端口与步骤 1 的「计数服务端口」一致，电脑和设备在同一网络 |
-| 页面打开了但没有画面 | 设备连不上摄像头：在同一网络里用 VLC 重新打开 RTSP 地址，检查路径、用户名和密码；RK3588 还要确认「摄像头视频编码」与摄像头设置一致。改好后重新部署 |
+| 页面打开了但没有画面 | 设备连不上摄像头：在同一网络里用 VLC 重新打开 RTSP 地址，检查路径、用户名和密码；RK3588 / RK3576 还要确认「摄像头视频编码」与摄像头设置一致。改好后重新部署 |
 | 收不到 MQTT 消息 | 检查 MQTT 服务器地址、端口、用户名和密码，并确认设备能访问该服务器的 1883 端口，改好后重新部署 |

@@ -36,8 +36,9 @@ Your parking management system, free-space sign or Home Assistant subscribes to 
 
 | Device | Purpose | Required |
 |--------|---------|----------|
-| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) | Analyses the camera picture and counts; needs JetPack 6.2 | One of the two |
-| reComputer RK3588 Series | Analyses the camera picture and counts | One of the two |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) | Analyses the camera picture and counts; needs JetPack 6.2 | Pick one |
+| reComputer RK3588 Series | Analyses the camera picture and counts | Pick one |
+| reComputer RK3576 Series | Analyses the camera picture and counts | Pick one |
 | Entrance IP camera | RTSP stream (H.264 or H.265), fixed view of the lane | ✓ Required |
 | MQTT server | Receives the counts; an existing site server or a Mosquitto install | ✓ Required |
 
@@ -49,11 +50,11 @@ Your parking management system, free-space sign or Home Assistant subscribes to 
 
 ## Deployment Comparison
 
-| | reComputer J30 / J40 (Jetson Orin Nano / Orin NX) | reComputer RK3588 Series |
-|---|---|---|
-| Measured processing rate | Orin Nano: 30 frames per second (640×360 input at 30 fps) | About 3 frames per second (1280×720 input at 5 fps) |
-| Analysis time per frame | Orin Nano: about 3.6 ms | About 18 ms |
-| Suited to | Entrances where vehicles drive through at normal speed | Barrier entrances where vehicles slow down or stop for the barrier |
-| System requirements | Jetson Orin Nano or Orin NX module, JetPack 6.2 | The deploy step checks the board's NPU runtime and video decoding libraries and tells you what to install if any are missing |
+| | reComputer J30 / J40 (Jetson Orin Nano / Orin NX) | reComputer RK3588 Series | reComputer RK3576 Series |
+|---|---|---|---|
+| Measured processing rate | Orin Nano: 30 frames per second (640×360 input at 30 fps) | About 3 frames per second (1280×720 input at 5 fps) | 30 frames per second (640×360 input at 30 fps) |
+| Analysis time per frame | Orin Nano: about 3.6 ms | About 18 ms | — |
+| Suited to | Entrances where vehicles drive through at normal speed | Barrier entrances where vehicles slow down or stop for the barrier | Entrances where vehicles drive through at normal speed |
+| System requirements | Jetson Orin Nano or Orin NX module, JetPack 6.2 | The deploy step checks the board's NPU runtime and video decoding libraries and tells you what to install if any are missing | Same as RK3588 |
 
-Measured on Jetson Orin Nano: on a 30 fps test video, all 41 line crossings were counted with the correct direction. RK3588 processes about 3 frames per second, so a vehicle needs to be in view for about 1 second or longer as it crosses the line to be counted reliably.
+Measured on Jetson Orin Nano: on a 30 fps test video, all 41 line crossings were counted with the correct direction. RK3588 processes about 3 frames per second, so a vehicle needs to be in view for about 1 second or longer as it crosses the line to be counted reliably. Measured on RK3576: on a 30 fps test video, every frame was processed and vehicles were counted in both directions.
