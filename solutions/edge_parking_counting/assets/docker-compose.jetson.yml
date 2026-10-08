@@ -1,3 +1,6 @@
+# Image: published nrd-parking-jetson:20261008, pinned by digest (override with PARKING_IMAGE).
+# config/counting.json (vb.config/1) is rendered from the deploy inputs by the
+# device YAML's after_upload step.
 services:
   parking:
     image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c}
@@ -35,7 +38,7 @@ services:
       - /usr/lib/aarch64-linux-gnu/libGLdispatch.so.0:/usr/lib/aarch64-linux-gnu/libGLdispatch.so.0:ro
       - /usr/lib/aarch64-linux-gnu/libGLESv2.so.2:/usr/lib/aarch64-linux-gnu/libGLESv2.so.2:ro
       - /usr/lib/aarch64-linux-gnu/libdrm.so.2:/usr/lib/aarch64-linux-gnu/libdrm.so.2:ro
-      - ${PARKING_CONFIG:?set PARKING_CONFIG to a vb.config/1 JSON}:/config/config.json:ro
+      - ${PARKING_CONFIG:-./config/counting.json}:/config/config.json:ro
       - ${PARKING_MODELS_DIR:?set PARKING_MODELS_DIR to the host model directory}:/models:ro
       - ${PARKING_DATA_DIR:-./data}:/data/edge-parking
     command: ["--config", "/config/config.json"]

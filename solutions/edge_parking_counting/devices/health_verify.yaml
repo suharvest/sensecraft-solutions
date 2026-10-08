@@ -1,27 +1,30 @@
 version: "1.0"
 id: health_verify
-name: Verify parking health
+name: Check the counting service
 name_i18n:
-  zh: 验证停车服务健康状态
+  zh: 检查计数服务
 type: http_debug
 http_debug:
   endpoints:
     - id: healthz
-      name: Native health endpoint
-      name_i18n: {zh: 原生健康端点}
+      name: Service status
+      name_i18n: {zh: 服务状态}
       url_template: http://{{host}}:{{port}}/healthz
       expected_status: 200
 user_inputs:
   - id: host
-    name: Edge host
-    name_i18n: {zh: 边缘主机地址}
+    name: Device address
+    name_i18n: {zh: 设备地址}
     type: text
     required: true
+    placeholder: "192.168.1.100"
+    description: IP address of the Jetson or RK3588 that runs the counting service. Use 127.0.0.1 if you deployed on this computer.
+    description_i18n: {zh: 运行计数服务的 Jetson 或 RK3588 的 IP 地址。部署在本机时填 127.0.0.1。}
   - id: port
-    name: Health port
-    name_i18n: {zh: 健康端口}
+    name: Status port
+    name_i18n: {zh: 状态检查端口}
     type: text
     default: "8099"
     required: false
-    description: HTTP health port from the mounted application config. Keep 8099 on RK3576 / RK3588.
-    description_i18n: {zh: 挂载应用配置中的 HTTP 健康端口。RK3576 / RK3588 保持 8099。}
+    description: Keep 8099 unless you changed the status port in the deploy step (Jetson only).
+    description_i18n: {zh: 保持 8099；只有在部署步骤里改过状态检查端口（仅 Jetson）时才填改后的值。}
