@@ -3,40 +3,42 @@ id: gateway
 name: Gateway Bridge (reComputer / Raspberry Pi)
 name_i18n:
   zh: 网关桥接服务（reComputer / 树莓派）
-type: script
+type: docker_deploy
+
+docker:
+  compose_file: assets/gateway/docker-compose.yml
+  compose_dir: assets/gateway
+  remote_path: /home/{{username}}/sheep-gateway
+  options:
+    project_name: sheep_gateway
+    remove_orphans: true
+  services:
+    - name: meshtastic-bridge
+      required: true
+    - name: ha-bridge
+      required: true
+  environment:
+    MQTT_HOST: "{{mqtt_host}}"
+    MQTT_PORT: "1883"
+    SERIAL_PORT: "{{serial_port}}"
 
 ssh:
   port: 22
   default_user: recomputer
-  default_host: ""
+  auth_methods:
+    - password
   connection_timeout: 30
-  command_timeout: 300
+  command_timeout: 600
 
-script:
-  start_command:
-    linux_macos: bash assets/gateway/install.sh
-    env:
-      MQTT_HOST: "{{mqtt_host}}"
-      MQTT_PORT: "1883"
-      SERIAL_PORT: "{{serial_port}}"
-  health_check:
-    type: log_pattern
-    pattern: "active"
-    timeout_seconds: 30
+pre_checks:
+  - type: disk_space
+    min_gb: 1
+    description: The python:3.11-slim image and the pip packages of both bridges
+
+post_deployment:
+  open_browser: false
 
 user_inputs:
-  - id: gateway_host
-    name: Gateway IP Address
-    name_i18n:
-      zh: 网关设备 IP 地址
-    type: text
-    placeholder: "192.168.1.50"
-    description: IP address of your reComputer or Raspberry Pi gateway host.
-    description_i18n:
-      zh: reComputer 或树莓派网关主机的 IP 地址。
-    required: true
-    validation:
-      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
   - id: mqtt_host
     name: Local MQTT Broker IP
     name_i18n:
@@ -62,6 +64,3 @@ user_inputs:
     required: true
     validation:
       pattern: '^/dev/[A-Za-z0-9._/-]+$'
-
-post_deployment:
-  open_browser: false

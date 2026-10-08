@@ -1,0 +1,64 @@
+# Sheep counter gateway bridges. Replaces the former install.sh + systemd units.
+#
+# Base image is the public python:3.11-slim. Python dependencies are installed at
+# first container start into a named volume (/deps) and reused on restart, so no
+# image is built or pushed. The deployer injects PIP_INDEX_URL into the service
+# environment when it detects a CN network; the default below applies otherwise.
+#
+# Inputs reach this file as environment variables set by devices/gateway.yaml:
+#   MQTT_HOST, MQTT_PORT, SERIAL_PORT
+# MQTT_HOST must be an address reachable from the container (a LAN IP, not 127.0.0.1).
+x-bridge: &bridge
+  image: python:3.11-slim
+  restart: unless-stopped
+  working_dir: /app
+  volumes:
+    - ./:/app:ro
+  environment: &bridge-env
+    PYTHONUNBUFFERED: "1"
+    PYTHONPATH: /deps
+    MQTT_HOST: ${MQTT_HOST:-127.0.0.1}
+    MQTT_PORT: ${MQTT_PORT:-1883}
+    PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  meshtastic-bridge:
+    <<: *bridge
+    container_name: sheep-meshtastic-bridge
+    environment:
+      <<: *bridge-env
+      SERIAL_PORT: ${SERIAL_PORT:-/dev/ttyACM0}
+    devices:
+      - "${SERIAL_PORT:-/dev/ttyACM0}:${SERIAL_PORT:-/dev/ttyACM0}"
+    volumes:
+      - ./:/app:ro
+      - meshtastic-deps:/deps
+    command:
+      - sh
+      - -c
+      - |
+        [ -f /deps/.ready ] || { pip install -q --target /deps paho-mqtt==2.1.0 meshtastic==2.7.11 && touch /deps/.ready; } || exit 1
+        exec python /app/meshtastic_mqtt_bridge.py
+
+  ha-bridge:
+    <<: *bridge
+    container_name: sheep-ha-bridge
+    volumes:
+      - ./:/app:ro
+      - ha-deps:/deps
+    command:
+      - sh
+      - -c
+      - |
+        [ -f /deps/.ready ] || { pip install -q --target /deps paho-mqtt==2.1.0 && touch /deps/.ready; } || exit 1
+        exec python /app/ha_bridge.py
+
+volumes:
+  meshtastic-deps:
+  ha-deps:
