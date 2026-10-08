@@ -5,20 +5,20 @@
 # else and devices/jetson_stack.yaml stops the deploy on any other module.
 #
 # RK3576 target restored 2026-10-09 (devices/rk3576_stack.yaml, assets/docker/rk3576.yml):
-# published openvoicestream:rk-20260921-twosentence image (by digest) + model bundle
+# published openvoicestream:rk-20261009 image (by digest) + model bundle
 # clip-rk3576-r1-77ab462087fa (published 2026-10-09, see the files: comment there). SenseVoice
 # RKNN with one NPU worker handles every language (no Whisper: SenseVoice + Whisper do
 # not fit next to other services on an 8 GB board, and clip-pt only routed to Whisper when
 # SenseVoice reported a language, which this image does not). Speaker separation runs
-# CAM++ on the CPU (pipeline.require_gpu_diarization: false). assets/docker/patches/vad.py
-# replaces the image's server/core/vad.py on both targets (rk3576.yml, and both OVS
-# services in jetson.yml): the original ran silero v5 on 256-sample windows without
-# context, which missed quieter speech and dropped utterances in /diarize. The patch is
-# server/core/vad.py from Seeed-Solution/openvoicestream 64a7f656 (512-sample windows +
-# 64-sample context; API is a superset of the images' copy). Tested on an 8 GB RK3576
-# board 2026-10-08 with six uploads (en, ja, four zh two-speaker mixes) using the earlier
-# agent variant of the patch (same window/context): all utterances kept, speakers split on
-# the zh mixes; SenseVoice peak 1.25 GiB, clip-pt 68 MiB. RK3588 is not offered.
+# CAM++ on the CPU (pipeline.require_gpu_diarization: false). The VAD fix (silero v5 on 512-sample windows with
+# 64-sample context; the older images used 256-sample windows without context, which
+# missed quieter speech and dropped utterances in /diarize) ships in the 20261009 speech
+# images, rebuilt from Seeed-Solution/openvoicestream 49dabb85 (PR #119); no file is
+# mounted over the image. Verified on cat-remote (RK3576) and orin-nx (Jetson) with the
+# six fixtures (en, ja, four zh two-speaker mixes); evidence in
+# /tmp/claude-1000/-home-harvest-project-seeed-solutions-hub/04bdce95-7bdd-4d03-960e-19fa79225a80/scratchpad/{rk-results-merged.txt,jetson-e2e.txt}.
+# Earlier checks with the mounted vad.py kept all utterances and split speakers on the
+# zh mixes; SenseVoice peak 1.25 GiB, clip-pt 68 MiB.
 #
 # The Clip config is rendered on the host from deploy inputs by the
 # "Write the Clip configuration" after_upload action in devices/jetson_stack.yaml and
@@ -26,7 +26,7 @@
 # assets/config/config.example.yaml documents the schema only.
 #
 # Device acceptance 2026-10-09 on Orin NX (receipts vadfix-orin-nx): HTTP-upload path,
-# published nrd6-ovs-jetson 20261008 image + patches/vad.py, clip-pt schemafix-r3,
+# published nrd6-ovs-jetson 20261009 image, clip-pt schemafix-r3,
 # summary off, ports 8641/8642/18883, the six RK3576 fixtures. Wall time per upload:
 # en 6.3 s 1.24 s (2 utterances, 2 speakers; the earlier first-sentence drop is gone),
 # ja 34 s 1.71 s (both sentences kept, 1 speaker reported for the 2-speaker clip),

@@ -19,7 +19,7 @@ services:
       start_period: 30s
 
   slv-sensevoice:
-    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence@sha256:f05c121d6bb7128e78c47739d5300d6c12b28308c49136e0a58bf6ed1506a81d}
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261009@sha256:629912ed0e73b812ec127a372b7410a5db5d156f633eccb480743d4370ea1765}
     privileged: true
     init: true
     network_mode: host
@@ -33,10 +33,6 @@ services:
       - /dev:/dev
       - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
       - ./profiles/rk3576-sensevoice.json:/config/profiles/rk3576-sensevoice.json:ro
-      # Silero VAD fix for /diarize (512-sample windows + 64-sample context).
-      # patches/vad.py is server/core/vad.py from Seeed-Solution/openvoicestream
-      # 64a7f656; it replaces the image's older copy (256-sample windows, no context).
-      - ./patches/vad.py:/opt/speech/server/core/vad.py:ro
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
     restart: unless-stopped
     mem_limit: 2g
