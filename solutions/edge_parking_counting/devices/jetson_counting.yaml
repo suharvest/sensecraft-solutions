@@ -4,7 +4,7 @@ name: reComputer J30 / J40 Vehicle Counting
 name_i18n:
   zh: reComputer J30 / J40 车辆计数
 type: docker_deploy
-# Runtime image: compose default (nrd-parking-jetson:20261009, pinned by digest).
+# Runtime image: compose default (nrd-parking-jetson:20261009b, pinned by digest).
 # Model: count_vehicle416_orin_nano bundle, TensorRT FP16 engine built on
 # Jetson Orin Nano or Orin NX (reComputer J30 / J40) / L4T R36.4 / TensorRT 10.3
 # (the before action enforces it). Engines are built on Orin Nano; Orin NX is the
@@ -210,9 +210,12 @@ actions:
         app["state_dir"] = "/data/edge-parking"
         counting = app.setdefault("counting", {})
         # Line, entry side and vehicles already inside are set on /counting/editor after
-        # deploy; the app keeps them in state_dir (app-options.override.json and the
-        # occupancy state), so a redeploy does not reset them. First-start defaults:
-        # vertical line through the middle, standard entry side, 0 vehicles inside.
+        # deploy; the app keeps them in state_dir (line and entry side in
+        # app-options.override.json, vehicles inside in the occupancy state), so a
+        # redeploy does not reset them. capacity and the other counting keys below
+        # apply on every deploy (the override holds only line / in_side since the
+        # 20261009b images). First-start defaults: vertical line through the
+        # middle, standard entry side, 0 vehicles inside.
         counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
         counting["in_side"] = "positive"
         counting["capacity"] = capacity

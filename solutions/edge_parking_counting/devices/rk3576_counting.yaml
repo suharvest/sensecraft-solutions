@@ -5,7 +5,7 @@ name_i18n:
   zh: reComputer RK3576 停车场计数
 type: docker_deploy
 
-# Runtime image: compose default (nrd-parking-rk:20261009, pinned by digest).
+# Runtime image: compose default (nrd-parking-rk:20261009b, pinned by digest).
 # Model: count_vehicle416_rk3576 bundle (files: + after_upload fallback).
 # Host libraries (RKNN runtime, RGA, MPP, GStreamer) are detected on the board
 # by the first after_upload action and written to the compose project's .env;
@@ -220,9 +220,12 @@ actions:
         app["state_dir"] = "/data/edge-parking"
         counting = app.setdefault("counting", {})
         # Line, entry side and vehicles already inside are set on /counting/editor after
-        # deploy; the app keeps them in state_dir (app-options.override.json and the
-        # occupancy state), so a redeploy does not reset them. First-start defaults:
-        # vertical line through the middle, standard entry side, 0 vehicles inside.
+        # deploy; the app keeps them in state_dir (line and entry side in
+        # app-options.override.json, vehicles inside in the occupancy state), so a
+        # redeploy does not reset them. capacity and the other counting keys below
+        # apply on every deploy (the override holds only line / in_side since the
+        # 20261009b images). First-start defaults: vertical line through the
+        # middle, standard entry side, 0 vehicles inside.
         counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
         counting["in_side"] = "positive"
         counting["capacity"] = capacity

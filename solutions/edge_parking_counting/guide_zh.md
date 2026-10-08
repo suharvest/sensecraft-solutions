@@ -93,13 +93,7 @@
 #### 初始设置
 
 1. 场内车辆数与实际不符时，随时在本页「场内现有车辆数」填入正确的数，点「设置」。
-2. 「车位总数」用于计算剩余车位，在步骤 1 填写。保存过计数线之后再改车位总数，重新部署不会生效：先在设备上运行下面的命令删除已保存的计数线（RK3588 把 `C=` 后的名称换成 `edge-parking-counting-rk3588`，RK3576 换成 `edge-parking-counting-rk3576`），再重新部署，然后回到本页重新画线并保存。
-
-   ```bash
-   C=edge-parking-counting-jetson
-   D=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data/edge-parking"}}{{.Source}}{{end}}{{end}}' $C)
-   sudo rm "$D/app-options.override.json"
-   ```
+2. 「车位总数」用于计算剩余车位，在步骤 1 填写。要修改时在步骤 1 填入新值重新部署，已保存的计数线保留。
 
 #### 快速验证
 

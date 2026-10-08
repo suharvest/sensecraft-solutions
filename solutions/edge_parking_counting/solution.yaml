@@ -128,6 +128,8 @@ intro:
       #   (nrd-parking 20261009 images) where the line is drawn and saved
       #   (state_dir/app-options.override.json overrides the rendered counting
       #   section, including capacity) and vehicles inside are set.
+      # - 2026-10-09 (20261009b images): the override keeps only line / in_side;
+      #   capacity follows the deploy form on every redeploy, the saved line stays.
       verified:
         - hardware
       device_groups:

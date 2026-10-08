@@ -1,9 +1,9 @@
-# Image: published nrd-parking-jetson:20261009, pinned by digest (override with PARKING_IMAGE).
+# Image: published nrd-parking-jetson:20261009b, pinned by digest (override with PARKING_IMAGE).
 # config/counting.json (vb.config/1) is rendered from the deploy inputs by the
 # device YAML's after_upload step.
 services:
   parking:
-    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261009@sha256:37ce3447e7486ca43109fc430f639d3a3e1088b79539b811ea154e0b637b5a6d}
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261009b@sha256:bc419e5983c121fd723cc8cebd21229d9d86ae54b71b4e0c1b36301cf4615043}
     mem_limit: ${PARKING_MEMORY_LIMIT:-0}
     container_name: ${PARKING_CONTAINER_NAME:-edge-parking-counting-jetson}
     restart: unless-stopped

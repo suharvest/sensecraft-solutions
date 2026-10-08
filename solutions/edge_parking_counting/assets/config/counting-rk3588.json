@@ -51,7 +51,7 @@
   "native": {
     "binary": "/opt/vb/bin/vb-runtime",
     "hello_timeout_s": 10.0,
-    "snapshot_ring": 2,
+    "snapshot_ring": 24,
     "jpeg_quality": 85
   },
   "tracker": {

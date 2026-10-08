@@ -93,13 +93,7 @@ The counting line is active. When a vehicle crosses it, a crossing record and th
 #### Initial Setup
 
 1. If the count of vehicles inside no longer matches the car park, enter the correct number under "Vehicles inside now" on this page at any time and click "Set".
-2. "Total spaces" is used to work out free spaces and is entered in Step 1. After a counting line has been saved, a new "Total spaces" value does not take effect on redeploy: first run the commands below on the device to delete the saved line (on RK3588 set `C=edge-parking-counting-rk3588`, on RK3576 `C=edge-parking-counting-rk3576`), deploy again, then come back to this page, draw the line and save it.
-
-   ```bash
-   C=edge-parking-counting-jetson
-   D=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data/edge-parking"}}{{.Source}}{{end}}{{end}}' $C)
-   sudo rm "$D/app-options.override.json"
-   ```
+2. "Total spaces" is used to work out free spaces and is entered in Step 1. To change it, enter the new value in Step 1 and deploy again; the saved counting line is kept.
 
 #### Quick Verification
 
