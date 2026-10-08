@@ -28,7 +28,7 @@
     "OVS_SPEAKER_EMB": "0",
     "OVS_TTS_BACKEND": "none",
     "OVS_TTS_MODEL_ID": "",
-    "OVS_MODELS_DIR": "/models",
+    "OVS_MODELS_DIR": "/var/lib/ovs-whisper/resolver",
     "OVS_DATA_DIR": "/var/lib/ovs-whisper/data",
     "OVS_TMP_DIR": "/var/lib/ovs-whisper/tmp",
     "XDG_CACHE_HOME": "/var/cache/ovs-whisper",
