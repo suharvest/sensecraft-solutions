@@ -13,8 +13,6 @@ docker:
   options:
     project_name: edge_plate
     remove_orphans: true
-  environment:
-    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/rk3576_plate/models"
   services:
     - name: edge-parking
       required: true
@@ -30,7 +28,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 6
-    description: RKNN models and the container image live on the device
+    description: The recognition software and models are stored on the device
 
 post_deployment:
   open_browser: false
@@ -44,9 +42,9 @@ files:
 
 actions:
   before:
-    - name: Check the RKNN runtime and host libraries
+    - name: Check the on-board AI and video decoding components
       name_i18n:
-        zh: 检查 RKNN 运行时与宿主机库
+        zh: 检查板载 AI 与视频解码组件
       run: |
         set -eu
         # The compose file mounts these host files into the container (paths
@@ -69,15 +67,25 @@ actions:
           echo "Install the RKNN runtime (rknpu2), Rockchip MPP/RGA and gstreamer1.0-plugins-bad + gstreamer1.0-rockchip on this board first" >&2
           exit 1
         fi
-        echo "RKNN runtime and host libraries OK"
+        echo "AI and video decoding components OK"
 
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the recognition models
+      name_i18n: {zh: 下载识别模型}
       timeout: 1800
       run: |
         set -eu
-        MODELS_DIR="/home/{{username}}/edge-parking/rk3576_plate/models"
+        # Remote: compose_dir is uploaded to {remote_path}/{device id}; local: the
+        # solution's assets/rk3576 (actions run from the solution directory).
+        ROOT=""
+        for root in "/home/{{username}}/edge-parking/rk3576_plate" "/home/{{username}}/edge-parking" "assets/rk3576"; do
+          if [ -f "$root/docker-compose.yml" ]; then ROOT="$root"; break; fi
+        done
+        if [ -z "$ROOT" ]; then
+          echo "docker-compose.yml not found (tried /home/{{username}}/edge-parking/rk3576_plate, /home/{{username}}/edge-parking and assets/rk3576)" >&2
+          exit 1
+        fi
+        MODELS_DIR="$ROOT/models"
         BUNDLE="plate_rk3576-dbd43c252024.tar.gz"
         BUNDLE_SHA="dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz"
@@ -113,15 +121,15 @@ actions:
         set -e
         # The compose file mounts ./config/plate.json; render the vb.config/1
         # preset in place next to it. Remote view: compose_dir is uploaded to
-        # /home/<user>/edge-parking; local view: assets/rk3576 in the solution.
+        # /home/<user>/edge-parking/rk3576_plate; local view: assets/rk3576 in the solution.
         CONFIG=""
-        for root in "/home/{{username}}/edge-parking" "assets/rk3576"; do
+        for root in "/home/{{username}}/edge-parking/rk3576_plate" "/home/{{username}}/edge-parking" "assets/rk3576"; do
           if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
             CONFIG="$root/config/plate.json"; break
           fi
         done
         if [ -z "$CONFIG" ]; then
-          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking and assets/rk3576)" >&2
+          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking/rk3576_plate, /home/{{username}}/edge-parking and assets/rk3576)" >&2
           exit 1
         fi
         mkdir -p "$(dirname "$CONFIG")/../data"
@@ -173,6 +181,92 @@ actions:
         PY
       name_i18n:
         zh: 写入车牌识别配置
+  after:
+    - name: Wait for the plate recognition service to start
+      name_i18n:
+        zh: 等待车牌识别服务启动
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
 
 
 user_inputs:
@@ -231,11 +325,11 @@ user_inputs:
     name: MQTT Username
     type: text
     required: false
-    description: Leave empty if the broker allows anonymous clients
+    description: Leave empty if the MQTT broker allows anonymous connections
     name_i18n:
       zh: MQTT 用户名
     description_i18n:
-      zh: broker 允许匿名连接就留空
+      zh: MQTT 服务器允许匿名连接时留空
   - id: mqtt_password
     name: MQTT Password
     type: password
@@ -310,11 +404,11 @@ remote_overrides:
       name: MQTT Username
       type: text
       required: false
-      description: Leave empty if the broker allows anonymous clients
+      description: Leave empty if the MQTT broker allows anonymous connections
       name_i18n:
         zh: MQTT 用户名
       description_i18n:
-        zh: broker 允许匿名连接就留空
+        zh: MQTT 服务器允许匿名连接时留空
     - id: mqtt_password
       name: MQTT Password
       type: password

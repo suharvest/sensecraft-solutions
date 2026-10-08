@@ -33,7 +33,7 @@ script:
       # 2. gate 服务：由应用仓库的安装脚本完成（systemd unit、gate.json、
       #    白名单目录）。仓库 URL 待回填（NRD-2 §11 D1）。
       if [ -z "{{do_line}}" ]; then
-        echo "do_line is empty — fill in the R1124 DO line name (see the R1000 wiki)" >&2
+        echo "Gate output line is empty — look it up in the digital output (DO) section of the reComputer R1000 Series wiki" >&2
         exit 1
       fi
       curl -fsSL "https://raw.githubusercontent.com/Seeed-Solution/edge-parking-vision/main/platforms/r1124/install.sh" \
@@ -53,45 +53,46 @@ user_inputs:
     type: text
     required: true
     placeholder: "192.168.1.50"
-    description: IP address of the reComputer R1124-10 that runs the broker and gate service
+    description: IP address of the reComputer R1124-10 that controls the barrier
     name_i18n:
       zh: R1124 IP 地址
     description_i18n:
-      zh: 运行 broker 与开闸服务的 reComputer R1124-10 的 IP 地址
+      zh: 控制道闸的 reComputer R1124-10 的 IP 地址
   - id: site_id
     name: Site ID
     type: text
     default: "demo-lot"
+    default_template: "{{site_id}}"
     required: true
-    description: Must match the Site ID used by the recognition device
+    description: Filled in from the Site ID of the recognition host in Step 1
     validation:
       pattern: "^[A-Za-z0-9_-]+$"
     name_i18n:
       zh: 站点编号
     description_i18n:
-      zh: 必须与识别设备填的站点编号一致
+      zh: 自动带入步骤 1 识别主机填写的站点编号
   - id: gate_id
     name: Gate ID
     type: text
     default: "gate-a-barrier"
     required: true
-    description: Identifies this barrier in gate events
+    description: Tells this barrier apart in the gate records
     validation:
       pattern: "^[A-Za-z0-9_-]+$"
     name_i18n:
       zh: 道闸编号
     description_i18n:
-      zh: 在开闸事件里标识这道闸
+      zh: 在开闸记录里区分这道闸
   - id: do_line
-    name: DO Line Name
+    name: Gate Output Line
     type: text
     required: true
-    placeholder: "check the R1000 wiki"
-    description: The gpiod line name of the R1124 digital output wired to the relay — take it from the reComputer R1000 series wiki
+    placeholder: "see the reComputer R1000 Series wiki"
+    description: System name of the digital output wired to the relay — listed in the digital output (DO) section of the reComputer R1000 Series wiki
     name_i18n:
-      zh: DO 线名
+      zh: 道闸输出线名
     description_i18n:
-      zh: 接到继电器的 R1124 数字输出的 gpiod 线名——从 reComputer R1000 系列 wiki 查
+      zh: 接继电器的那一路数字输出在系统里的名称——见 reComputer R1000 系列 Wiki 的数字输出（DO）章节
 
 post_deployment:
   open_browser: false

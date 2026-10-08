@@ -11,19 +11,19 @@ web_dashboard:
   title: Plate Recognition Preview
   title_i18n:
     zh: 车牌识别预览
-  description: Live view with plate boxes and the latest recognized plates. A plate event with a snapshot URL on the MQTT topic means the pipeline is working end to end.
+  description: Live camera view with plate boxes and the latest recognized plates.
   description_i18n:
-    zh: 实时画面叠加车牌框与最新识别结果。MQTT 主题上出现带截图链接的车牌事件，说明管线已端到端跑通。
+    zh: 实时摄像头画面，叠加车牌框和最新识别结果。
 
 user_inputs:
   - id: host
-    name: Recognition Device IP
+    name: Recognition Host IP
     type: text
-    default: localhost
+    default: "127.0.0.1"
     default_template: "{{host}}"
     required: true
     name_i18n:
-      zh: 识别设备 IP
+      zh: 识别主机 IP
 
 name_i18n:
   zh: 打开识别预览

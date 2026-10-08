@@ -29,3 +29,19 @@ The project owner decided on 2026-10-08 to publish `panel-preview-plate-{1,2,3}-
 - Content: real `/preview` screenshots of the package dashboard on Jetson Orin Nano Super (2026-10-08 ~05:11 UTC). Input frames are CCPD2020 green-plate stills streamed over RTSP; the page draws the detected plate box.
 - Source and licence: CCPD (Xu, Z. et al., ECCV 2018), MIT License, Copyright (c) 2017 CCPD — https://github.com/detectRecog/CCPD/blob/master/LICENSE. The dataset README states "This dataset is open-source under MIT license."
 - The images show plate numbers of real vehicles from the public dataset. This supersedes the earlier "no CCPD in gallery" rule for these three files only; other images still follow the rules above.
+
+## Update 2026-10-09 (gallery v2)
+
+`panel-preview-plate-{1,2,3}-20261008.jpg` were removed and replaced by three v2 screenshots. `cover-20261008.jpg` (generated illustration) is unchanged.
+
+| File | Device | Input (CCPD test split) | Read / ground truth |
+|---|---|---|---|
+| `panel-plate-1-jetson-blue-oblique-20261009.jpg` | Jetson Orin Nano Super | CCPD2019 `ccpd_tilt/0483-19_24-196&575_428&749-…-38-44.jpg` (blue, front, oblique) | 皖A62599 0.98 / 皖A62599 |
+| `panel-plate-2-jetson-green-front-20261009.jpg` | Jetson Orin Nano Super | CCPD2020 `ccpd_green/test/04353208812260537-87_261-…-143-154.jpg` (green, front) | 皖AF10528 0.87 / 皖AF10528 |
+| `panel-plate-3-rk3588-blue-rear-20261009.jpg` | Radxa RK3588 | CCPD2019 `ccpd_challenge/0337-7_0-194&393_423&516-…-107-29.jpg` (blue, rear) | 皖ALY625 0.90 / 皖ALY625 |
+
+- Content: browser screenshots (Playwright Chromium, 1440 px viewport, DPR 1) of the app's own `/preview` page, 2026-10-08 09:18–09:33 UTC. Page code: edge-parking-vision `d38901c`; the same page ships in `nrd-parking-{jetson,rk}:20261009` (built from `e5f9dec`).
+- Input: `plate-ccpd8-v2-1080p-96s.mp4` (8 CCPD test-split stills, 10 s each, 2 s dark gap) over RTSP. Each label value is the app's `parking.plate/1` event for that track; ground truth is decoded from the CCPD file name.
+- Processing for the gallery: PNG → JPEG quality 85, 1440 px wide, no other edits. Full evidence: `acceptance-20261008/visuals/edge_plate_recognition/v2/` (ATTRIBUTION.md, captions.yaml, `_evidence/`).
+- Source and licence: CCPD (Xu, Z. et al., "Towards End-to-End License Plate Detection and Recognition: A Large Dataset and Baseline", ECCV 2018), https://github.com/detectRecog/CCPD — MIT License, Copyright (c) 2017 CCPD. The MIT notice travels with these images. The plates belong to real vehicles photographed on public streets; the owner decision of 2026-10-08 above covers these three files.
+- The recognition models were trained on CCPD data; whether training excluded every test-split image used here is 需核实.

@@ -1,45 +1,48 @@
-# Edge License Plate Recognition
+## What This Solution Does
 
-> **Draft (staging).** This reference design has not passed on-device
-> acceptance yet. No accuracy, latency or FPS figures are published here — they
-> will be filled in from the acceptance runs, per platform, before release.
+Opening a barrier usually means a guard watching the lane, or buying an all-in-one plate-recognition camera and replacing the cameras you already have. This solution keeps your existing gate cameras and adds one recognition host on site to read plates. When a whitelisted vehicle arrives, the barrier opens; every entry and exit leaves a record with the plate number and a snapshot. Plates and images stay on site, nothing goes to the cloud.
 
-Recognize license plates where the camera is, not in the cloud. A vehicle
-arrives at the gate; the plate is detected, read character by character, and
-voted on across several frames; one event per vehicle goes out over MQTT with a
-link to the snapshot. If the plate is on your whitelist, the barrier gets an
-open pulse — and a second event records who triggered it and how long the pulse
-took.
+## Core Value
 
-## One pipeline on the edge host
+| Benefit | Details |
+|---------|---------|
+| Keep your cameras | Works with your existing 1080p IP cameras; the recognition host pulls video over the local network |
+| Whitelisted vehicles open the barrier | A whitelisted plate sends one open signal to the barrier; closing stays with the barrier's own loop detector or radar |
+| One record per vehicle | Each vehicle is reported once: plate number, confidence and a snapshot link. Your parking system subscribes once and gets every lane |
+| Data stays on site | Snapshots are stored on the recognition host for 7 days by default and leave it only when someone follows the link |
+| Measured speed | On Jetson Orin Nano: about 30 frames per second at 1080p, about 6 ms of plate detection per frame |
 
-- **Host-side**: keep your existing gate IP cameras. A reComputer (Jetson Orin,
-  RK3588, RK3576 or Hailo-8) pulls the RTSP streams and runs the models — one
-  host can cover several lanes.
-- **Camera-side** (reCamera Pro / reCamera 2002 HQ PoE): not offered in this
-  release; the on-camera app is not published yet.
+## Use Cases
 
-Every host publishes the same event contract, so your parking system subscribes
-once regardless of which hardware sits at the gate.
+| Scenario | How it works |
+|----------|--------------|
+| Residential or campus gate | Residents' plates go on the whitelist and the barrier opens on arrival; visitors are still let in by the guard |
+| Staff car park | Staff plates are imported with validity dates and stop opening the barrier when they expire |
+| Entry/exit log | Without a barrier connection, record each vehicle's plate, time and snapshot for your parking system |
 
-## Barrier control that fails safe
+## Usage Notes
 
-All gate opening goes through a reComputer R1124-10: it hosts the MQTT broker
-and a gate service that matches plates against a local whitelist (CSV upload
-over HTTP, exact match after normalization — no fuzzy matching) and pulses a
-digital output through an interposing relay to the barrier's OPEN input. The
-pulse is cooldown-guarded, replayed or stale events never open the barrier, and
-the output is forced back to open-circuit on any fault. Closing the barrier
-stays the barrier controller's own job.
+### Core Hardware
 
-## Private by construction
+| Device | Role | Required |
+|--------|------|----------|
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) | Recognition host: pulls camera video and reads plates | One of three |
+| reComputer RK3588 Series | Recognition host: pulls camera video and reads plates | One of three |
+| reComputer RK3576 Series | Recognition host: pulls camera video and reads plates | One of three |
+| IP camera | Your existing gate camera, 1080p or better, with an RTSP stream | ✓ Required |
+| reComputer R1100 Series (R1124-10) | Gate controller: receives recognition messages, checks the whitelist and sends the open signal from its digital output | For automatic barrier opening |
+| Interposing relay | DIN-rail relay between the gate controller and the barrier | For automatic barrier opening |
 
-Events carry the plate string, confidence and a snapshot *reference* — images
-never travel inside the event. Snapshots stay on the device, kept for 7 days by
-default with a size cap, and fetched over HTTP only when you follow the link.
-There is no cloud plate database and no video uplink; adding one is your
-integration to make, not a default.
+- On Jetson, the Orin Nano and Orin NX modules (reComputer J30 / J40) are supported, running JetPack 6.2.
+- Mount the camera 3–8 m from the lane so plates are clearly readable.
 
-Supported plate formats at launch: mainland China single-row plates (blue
-7-character and new-energy green 8-character). Two-row, special-purpose and
-overseas formats are out of scope for this release.
+### Network Requirements
+
+- Camera, recognition host and gate controller on the same local network; wired connections recommended.
+- The recognition host needs internet access during the first deployment to download the software and recognition models. After that it runs offline.
+
+### Recognition Scope
+
+- Mainland China single-row plates: blue (7 characters) and new-energy green (8 characters).
+- Two-row, special-purpose and overseas plates are not supported.
+- Before going live, check the results against real plates using day and night footage from your own gate.
