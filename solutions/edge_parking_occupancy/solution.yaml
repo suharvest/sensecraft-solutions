@@ -51,18 +51,12 @@ intro:
       description_i18n: {zh: 一路或多路稳定的 H.264/H.265 RTSP 摄像头，并已配置车位多边形。}
   device_catalog:
     recomputer_j30:
-      name: reComputer J30 (Jetson Orin)
-      name_i18n: {zh: reComputer J30（Jetson Orin）}
       description: JetPack 6 Jetson host for native TensorRT SlotsApp.
       description_i18n: {zh: 运行原生 TensorRT SlotsApp 的 JetPack 6 Jetson 主机。}
     recomputer_rk3576:
-      name: reComputer RK3576 Series
-      name_i18n: {zh: reComputer RK3576 系列}
       description: Staging RKNN host; device ABI and model paths must be supplied locally.
       description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
     recomputer_rk3588:
-      name: reComputer RK3588 Series
-      name_i18n: {zh: reComputer RK3588 系列}
       description: Staging RKNN host; device ABI and model paths must be supplied locally.
       description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
     generic_ip_camera:

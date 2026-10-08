@@ -78,24 +78,16 @@ intro:
       description: External 64-bit Raspberry Pi host for Home Assistant Container.
       description_i18n: {zh: 运行 Home Assistant Container 的外部 64 位树莓派主机。}
     recomputer_j40:
-      name: reComputer J4012 (Orin NX 16GB)
-      name_i18n: {zh: reComputer J4012（Orin NX 16GB）}
       description: Jetson voice host (Qwen3-ASR + Matcha TTS and the Wyoming adapter).
       description_i18n: {zh: Jetson 语音主机（Qwen3-ASR + Matcha TTS 与 Wyoming 适配层）。}
       purchase: {require: {module: [orin_nx_16]}}
     home_assistant_connect_zbt:
-      name: Home Assistant Connect ZBT-2
-      name_i18n: {zh: Home Assistant Connect ZBT-2}
       description: Zigbee coordinator, USB attached.
       description_i18n: {zh: USB 连接的 Zigbee 协调器。}
     home_assistant_voice:
-      name: Home Assistant Voice Preview Edition
-      name_i18n: {zh: Home Assistant Voice Preview Edition}
       description: Voice PE satellite.
       description_i18n: {zh: Voice PE 语音终端。}
     sonoff_snzb_sensor:
-      name: SONOFF Zigbee sensor
-      name_i18n: {zh: SONOFF Zigbee 传感器}
       description: Optional Zigbee sensor for the room setup.
       description_i18n: {zh: 房间场景可选的 Zigbee 传感器。}
   presets:

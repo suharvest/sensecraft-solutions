@@ -140,30 +140,18 @@ intro:
 
   device_catalog:
     recomputer_j30:
-      name: reComputer J30 (Jetson Orin)
-      name_i18n:
-        zh: reComputer J30（Jetson Orin）
       description: Edge host for existing IP cameras — TensorRT inference on Orin
       description_i18n:
         zh: 接现有 IP 摄像头的边缘主机——Orin 上跑 TensorRT 推理
     recomputer_rk3588:
-      name: reComputer RK3588-30
-      name_i18n:
-        zh: reComputer RK3588-30
       description: Recommended host for existing cameras — RKNN INT8 on the RK3588 NPU, multi-stream headroom
       description_i18n:
         zh: 推荐的主机形态——RK3588 NPU 上跑 RKNN INT8，可支撑多路视频
     recomputer_rk3576:
-      name: reComputer RK3576-30
-      name_i18n:
-        zh: reComputer RK3576-30
       description: Runs detection and recognition on the RK3576 NPU
       description_i18n:
         zh: 在 RK3576 NPU 上运行检测与识别
     recomputer_r20_industrial:
-      name: reComputer R2035-12 (Hailo-8)
-      name_i18n:
-        zh: reComputer R2035-12（Hailo-8）
       description: Runs detection and recognition on a Hailo-8 accelerator
       description_i18n:
         zh: 在 Hailo-8 加速器上运行检测与识别
@@ -171,9 +159,6 @@ intro:
         require:
           ai_accelerator: [hailo-8]
     recomputer_r11:
-      name: reComputer R1124-10
-      name_i18n:
-        zh: reComputer R1124-10
       description: MQTT broker plus the gate service — its digital output pulses the barrier through an interposing relay
       description_i18n:
         zh: MQTT broker 加开闸服务——用数字输出经中间继电器给道闸发开闸脉冲
