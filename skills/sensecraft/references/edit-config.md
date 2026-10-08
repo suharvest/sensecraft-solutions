@@ -56,7 +56,8 @@ curl -s -X POST "BASE/api/editor/solutions/<id>/apply"
 
 - `200` with `active_path` equal to `path` → the edit copy is live, including
   changes to `solution.yaml` and the guides.
-- `422` → the same report as `validate`; nothing was reloaded. Fix and retry.
+- `422` → `{"detail": <the same report as validate>}`; nothing was reloaded.
+  Fix the `detail.errors` entries and retry.
 
 Then redeploy the affected device (`deploy.md` §6).
 

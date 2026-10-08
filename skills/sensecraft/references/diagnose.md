@@ -13,6 +13,10 @@ curl -s "BASE/api/ai/context"            # what is running right now, and what t
 
 ## 2. Collect evidence
 
+`/summary` and `/logs` only know deployments made since the app last started;
+an older id from the list returns 404. In that case read the engine log (below)
+for that time, or reproduce the failure by deploying again.
+
 Start with the summary. **The real error is usually in the failing step's
 `message`** (`devices[].steps[]` with `status: failed`); the top-level `errors`
 list and the error-level logs may only say "Device X deployment failed".

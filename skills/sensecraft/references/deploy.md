@@ -41,7 +41,10 @@ curl -s "BASE/api/docker-devices/local/check"               # local Docker
 
 Ask the user for every `<REQUIRED: ...>` value (device IP, username, password,
 and any user inputs). For `docker_deploy` steps pick the target with
-`"target": "<target id>"`; remote targets also need `host`, `username`,
+`"target": "<target id>"` **and set `"target_type"` to that target's own type**
+(`local` / `remote`, from deploy-info `targets`) — or remove `target_type`. The
+template carries the default target's type; leaving it while switching
+`target` is rejected with a 400. Remote targets also need `host`, `username`,
 `password`. Add `"auto_replace_containers": true` only if the user agrees to
 replace existing containers with the same name.
 
