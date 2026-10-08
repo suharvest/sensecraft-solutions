@@ -1,0 +1,26 @@
+version: "1.0"
+id: health_verify
+name: Verify SlotsApp health
+name_i18n: {zh: 验证 SlotsApp 健康状态}
+type: http_debug
+http_debug:
+  endpoints:
+    - id: healthz
+      name: Native SlotsApp health endpoint
+      name_i18n: {zh: 原生 SlotsApp 健康端点}
+      url_template: http://{{host}}:{{port}}/healthz
+      expected_status: 200
+user_inputs:
+  - id: host
+    name: Edge host
+    name_i18n: {zh: 边缘主机地址}
+    type: text
+    required: true
+  - id: port
+    name: Health port
+    name_i18n: {zh: 健康端口}
+    type: text
+    default: "8099"
+    required: false
+    description: HTTP health port from the mounted SlotsApp config. Keep 8099 on RK3576 / RK3588.
+    description_i18n: {zh: 挂载 SlotsApp 配置中的 HTTP 健康端口。RK3576 / RK3588 保持 8099。}

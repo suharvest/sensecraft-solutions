@@ -1,0 +1,236 @@
+version: "1.0"
+id: jetson_occupancy
+name: Jetson Native SlotsApp
+name_i18n: {zh: Jetson 原生 SlotsApp}
+type: docker_deploy
+device_class: jetson
+docker:
+  compose_file: assets/docker-compose.jetson.yml
+  compose_dir: assets
+  remote_path: /home/{{username}}/edge-parking-occupancy
+  options:
+    project_name: edge_parking_occupancy_jetson
+    remove_orphans: false
+  services:
+    - name: parking
+      required: true
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{camera_config_path}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy/models"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password]
+  connection_timeout: 30
+  command_timeout: 3600
+pre_checks:
+  - type: disk_space
+    min_gb: 0.5
+    description: Cached/pre-staged image, model and TensorRT engine are supplied before deployment; keep at least 0.5 GiB free for runtime files, logs and metadata. This is not a capacity or accuracy acceptance guarantee.
+  - type: nvidia_runtime
+    description: NVIDIA container runtime must be available on the Jetson.
+deploy_timeout: 3600
+post_deployment: {open_browser: false}
+files:
+  # slots_vehicle640_orin_nano: 10066157 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz
+    remote_path: /home/{{username}}/edge-parking-occupancy/models/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz
+    checksum:
+      sha256: 54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5
+actions:
+  before:
+    - name: Check the Jetson module and JetPack match the prebuilt engines
+      name_i18n: {zh: 检查 Jetson 模组与 JetPack 是否匹配预编译引擎}
+      ignore_error: false
+      run: |
+        set -eu
+        # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
+        want="p3767-0003 p3767-0004"
+        compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
+        rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
+        trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
+        echo "module:   ${compat:-unknown}"
+        echo "L4T:      ${rel:-unknown}"
+        echo "TensorRT: ${trt:-not found}"
+        ok=0
+        for m in $want; do
+          case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
+        done
+        if [ "$ok" -ne 1 ]; then
+          echo "UNSUPPORTED_JETSON_MODULE: the TensorRT engines in this package were built on Jetson Orin Nano (P3767-0003 / P3767-0004); this board reports '${compat:-unknown}'. Use that module." >&2
+          exit 1
+        fi
+        case "$rel" in
+          "# R36 (release), REVISION: 4."*) ;;
+          *) echo "UNSUPPORTED_JETPACK: the engines were built on L4T R36.4 (JetPack 6.2); this board reports '${rel:-unknown}'." >&2; exit 1 ;;
+        esac
+        case "$trt" in
+          10.3.*) ;;
+          *) echo "UNSUPPORTED_TENSORRT: the engines were built with TensorRT 10.3; this board has '${trt:-none}'." >&2; exit 1 ;;
+        esac
+        echo "Jetson module and JetPack match the prebuilt engines"
+  after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking-occupancy/models"
+        BUNDLE="slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+        BUNDLE_SHA="54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+          echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
+  after:
+    - name: Wait for the occupancy service readiness endpoint
+      name_i18n:
+        zh: 等待车位服务就绪接口
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "{{health_port}}"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
+user_inputs:
+  - id: camera_config_path
+    name: Host SlotsApp config path
+    name_i18n: {zh: 宿主机 SlotsApp 配置路径}
+    type: text
+    required: true
+    description: vb.config/1 JSON with streams and slots polygons; use SlotsApp, not SlotHooks.
+    description_i18n: {zh: 包含 streams 和 slots 多边形的 vb.config/1 JSON；使用 SlotsApp，不使用 SlotHooks。}
+  - id: parking_image
+    name: Parking image
+    name_i18n: {zh: 停车镜像}
+    type: text
+    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
+    required: false
+    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
+  - id: health_port
+    name: Health port
+    name_i18n: {zh: 健康端口}
+    type: text
+    default: "8099"
+    required: false
+    description: HTTP health port exposed by the mounted config. Keep 8099 for the stock config; use the configured port when it differs.
+    description_i18n: {zh: 挂载配置暴露的 HTTP 健康端口。默认配置使用 8099；配置不同端口时填写对应值。}
+  - id: memory_limit
+    name: Container memory limit
+    name_i18n: {zh: 容器内存上限}
+    type: text
+    default: "0"
+    required: false
+    description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
+    description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
+  - id: data_dir
+    name: Persistent data directory
+    name_i18n: {zh: 持久化数据目录}
+    type: text
+    default: "./data"
+    required: false
+    description: Existing writable host directory for restart-persistent state; it is mounted at /data/edge-parking.
+    description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态；该目录挂载到 /data/edge-parking。}
+remote_overrides:
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{camera_config_path}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy/models"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"

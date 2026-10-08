@@ -1,0 +1,123 @@
+# DRAFT / disabled: voice artifacts, commercial voice licenses, and physical
+# ecosystem acceptance are incomplete. Compose inputs fail closed on blanks.
+version: "1.0"
+id: home_assistant_whole_home
+name: Whole-Home Home Assistant with Local Voice
+name_i18n: {zh: 全屋 Home Assistant 接入与本地语音}
+enabled: true
+intro:
+  visibility: staging
+  summary: Connect HomeKit and Aqara devices to Home Assistant with a local voice pipeline; Xiaomi Home remains an explicitly non-commercial user-installed example.
+  summary_i18n: {zh: 将 HomeKit 和 Aqara 设备接入 Home Assistant，并使用本地语音控制；米家仅作为用户自行安装的非商业示例。}
+  description_file: description.md
+  description_file_i18n: {zh: description_zh.md}
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-dashboard-zh-20261008.jpg
+      caption: "Home Assistant on an ARM64 host with simulated devices: living-room light (switched on by a Chinese voice command), curtain, air conditioner (2026-10-08)"
+      caption_i18n:
+        zh: "运行在 ARM64 主机上的 Home Assistant，设备为模拟设备：客厅灯（由中文语音指令打开）、窗帘、空调（2026-10-08）"
+        ja: "ARM64 ホスト上の Home Assistant（デバイスはシミュレーション）：中国語の音声コマンドで点灯したリビング照明、カーテン、エアコン（2026-10-08）"
+    - type: image
+      src: gallery/panel-assist-debug-zh-20261008.jpg
+      caption: "Assist debug view on the ARM64 HA host: speech recognized as 打开客厅灯 by STT on Jetson Orin NX, local intent HassTurnOn, reply 客厅灯已打开 (2026-10-08)"
+      caption_i18n:
+        zh: "ARM64 HA 主机上的 Assist 调试视图：Jetson Orin NX 语音转文字识别为「打开客厅灯」，本地意图 HassTurnOn 执行，回复「客厅灯已打开」（2026-10-08）"
+        ja: "ARM64 HA ホスト上の Assist デバッグ画面：Jetson Orin NX の音声認識が「打开客厅灯」と認識、ローカルインテント HassTurnOn を実行、応答「客厅灯已打开」（2026-10-08）"
+    - type: image
+      src: gallery/panel-assist-debug-zh-stages-20261008.jpg
+      caption: "Stage timings of the same run: speech-to-text 0.11 s on Jetson Orin NX via Wyoming, intent handled locally on the Pi, text-to-speech seeed-local-voice (2026-10-08)"
+      caption_i18n:
+        zh: "同一次运行的阶段耗时：经 Wyoming 调用 Jetson Orin NX 语音转文字 0.11 s，意图在树莓派本地处理，文字转语音 seeed-local-voice（2026-10-08）"
+        ja: "同じ実行のステージ時間：Wyoming 経由の Jetson Orin NX 音声認識 0.11 s、インテントは Pi 上でローカル処理、音声合成 seeed-local-voice（2026-10-08）"
+    - type: image
+      src: gallery/panel-pipeline-config-zh-20261008.jpg
+      caption: "Chinese voice pipeline on the ARM64 HA host: Home Assistant conversation agent, STT and TTS from seeed-local-voice on Jetson Orin NX (2026-10-08)"
+      caption_i18n:
+        zh: "ARM64 HA 主机上的中文语音管道：对话代理 Home Assistant，语音转文字与文字转语音为 Jetson Orin NX 上的 seeed-local-voice（2026-10-08）"
+        ja: "ARM64 HA ホスト上の中国語音声パイプライン：会話エージェント Home Assistant、音声認識・音声合成は Jetson Orin NX 上の seeed-local-voice（2026-10-08）"
+    - type: image
+      src: gallery/panel-wyoming-integration-zh-20261008.jpg
+      caption: "Wyoming Protocol integration on the ARM64 HA host with two seeed-local-voice services (STT and TTS) served from Jetson Orin NX (2026-10-08)"
+      caption_i18n:
+        zh: "ARM64 HA 主机上的 Wyoming Protocol 集成：两个 seeed-local-voice 服务（语音转文字、文字转语音），由 Jetson Orin NX 提供（2026-10-08）"
+        ja: "ARM64 HA ホスト上の Wyoming Protocol 統合：Jetson Orin NX が提供する 2 つの seeed-local-voice サービス（音声認識・音声合成）（2026-10-08）"
+  category: voice_ai
+  solution_type: solution
+  tags: [home-assistant, homekit, zigbee, zha, wyoming, local-voice, qwen3-asr, matcha-tts]
+  output_interfaces:
+    - type: http
+      port: 8123
+      endpoint: /
+      method: GET
+      schema_type: html
+      description: Home Assistant web UI.
+      description_i18n: {zh: Home Assistant Web 界面。}
+    - type: tcp
+      port: 10300
+      schema_type: binary
+      description: Wyoming STT endpoint.
+      description_i18n: {zh: Wyoming STT 端点。}
+    - type: tcp
+      port: 10200
+      schema_type: binary
+      description: Wyoming TTS endpoint.
+      description_i18n: {zh: Wyoming TTS 端点。}
+  input_requirements:
+    - type: wifi
+      description: Voice PE and Home Assistant host must share a LAN.
+      description_i18n: {zh: Voice PE 与 Home Assistant 主机必须在同一局域网。}
+    - type: bluetooth
+      description: ZBT-2 is connected to the Home Assistant host by USB.
+      description_i18n: {zh: ZBT-2 通过 USB 连接到 Home Assistant 主机。}
+  device_catalog:
+    external_raspberry_pi_5:
+      name: ARM64 Linux host (8GB)
+      name_i18n: {zh: ARM64 Linux 主机（8GB）}
+      description: External 64-bit Raspberry Pi host for Home Assistant Container.
+      description_i18n: {zh: 运行 Home Assistant Container 的外部 64 位树莓派主机。}
+    recomputer_j40:
+      description: Jetson voice host (Qwen3-ASR + Matcha TTS and the Wyoming adapter).
+      description_i18n: {zh: Jetson 语音主机（Qwen3-ASR + Matcha TTS 与 Wyoming 适配层）。}
+      purchase: {require: {module: [orin_nx_16]}}
+    home_assistant_connect_zbt:
+      description: Zigbee coordinator, USB attached.
+      description_i18n: {zh: USB 连接的 Zigbee 协调器。}
+    home_assistant_voice:
+      description: Voice PE satellite.
+      description_i18n: {zh: Voice PE 语音终端。}
+    sonoff_snzb_sensor:
+      description: Optional Zigbee sensor for the room setup.
+      description_i18n: {zh: 房间场景可选的 Zigbee 传感器。}
+  presets:
+    - id: rpi_jetson
+      name: Raspberry Pi + Jetson Voice (Draft)
+      name_i18n: {zh: 树莓派 + Jetson 语音（草稿）}
+      badge: Blocked artifact
+      badge_i18n: {zh: artifact 阻塞}
+      description: HA Container on Raspberry Pi; Qwen3-ASR + Matcha TTS with the Wyoming adapter on J4012.
+      description_i18n: {zh: 树莓派运行 HA Container，J4012 运行 Qwen3-ASR + Matcha TTS 与 Wyoming 适配层。}
+      # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
+      # built-in intent -> entity state change" only (receipts
+      # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
+      # HA 2026.9.3 from this package's docker-compose.rpi-ha.yml on a Pi 5, voice endpoint on an
+      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; docker-compose.jetson-voice.yml
+      # now uses this single-OVS layout, but the compose file itself was not
+      # run on 2026-10-08 — Orin NX root disk full). TTS-generated speech streamed to Assist, virtual
+      # demo lights: 5/5 zh+en commands action_done, processed locally, STT final
+      # 0.11-0.95 s after audio end. NOT verified: HomeKit pairing, Aqara/ZHA
+      # (no ZBT-2), Voice PE, ESPHome, physical mic/speaker, offline, ja.
+      verified:
+        - hardware
+      device_groups:
+        - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: external_raspberry_pi_5}], default: external_raspberry_pi_5}
+        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}], default: recomputer_j40}
+        - {id: radio, name: Zigbee coordinator, name_i18n: {zh: Zigbee 协调器}, type: single, required: true, options: [{device_ref: home_assistant_connect_zbt}], default: home_assistant_connect_zbt}
+        - {id: satellite, name: Voice satellite, name_i18n: {zh: 语音终端}, type: single, required: true, options: [{device_ref: home_assistant_voice}], default: home_assistant_voice}
+  stats: {difficulty: advanced, estimated_time: 90min}
+  links: {}
+deployment:
+  guide_file: guide.md
+  guide_file_i18n: {zh: guide_zh.md}
+  selection_mode: sequential

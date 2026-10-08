@@ -1,0 +1,152 @@
+{
+  "schema": "vb.config/1",
+  "device_id": "rk3588-counting",
+  "state_dir": "/data/edge-parking",
+  "backend": {
+    "name": "rknn",
+    "model_path": "/models/vehicle_416.rk3588.w8a8.rknn",
+    "model_sha256": "cae18aab580e9cb8930fd339b8ca609a50ec9b69343505edbd0d26e6a5faea96",
+    "input_size": [
+      416,
+      416
+    ],
+    "align": "top_left",
+    "score_threshold": 0.35,
+    "nms_threshold": 0.45,
+    "input": {
+      "color_order": "bgr",
+      "divide": 1.0
+    },
+    "options": {
+      "codec": "h264"
+    },
+    "decoder": {
+      "type": "yolox",
+      "num_classes": 80,
+      "strides": [
+        8,
+        16,
+        32
+      ],
+      "grid_center_activation": "none"
+    },
+    "core_masks": [
+      1,
+      2,
+      4
+    ],
+    "max_contexts": 3
+  },
+  "runtime": {
+    "workers": 1,
+    "max_streams_per_worker": 0,
+    "contexts_per_worker": 3,
+    "publishers_per_process": 1,
+    "publish_queue": 256,
+    "max_streams": 16,
+    "open_timeout_s": 8.0,
+    "reconnect_delay_s": 1.0,
+    "restart_backoff_s": 5.0
+  },
+  "native": {
+    "binary": "/opt/vb/bin/vb-runtime",
+    "hello_timeout_s": 10.0,
+    "snapshot_ring": 2,
+    "jpeg_quality": 85
+  },
+  "tracker": {
+    "enabled": true,
+    "iou_threshold": 0.2,
+    "dist_threshold": 0.15,
+    "max_misses": 15,
+    "max_lost_s": 1.5,
+    "min_hits": 1,
+    "class_aware": true,
+    "anchor": "bottom_center"
+  },
+  "analyzers": {
+    "plugins": []
+  },
+  "mqtt": {
+    "host": "r1124.local",
+    "port": 1883,
+    "client_id": "demo-lot-rk3588-counting",
+    "username": "demo-lot-rk3588-counting",
+    "password": "",
+    "tls": false,
+    "ca_file": "",
+    "topic_root": "demo-lot/parking/rk3588-counting",
+    "status_interval_s": 10
+  },
+  "health": {
+    "host": "0.0.0.0",
+    "port": 8099
+  },
+  "streams_file": "",
+  "streams": [
+    {
+      "stream_id": "gate-a",
+      "url": "rtsp://camera.local:554/live",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "codec": "h264"
+      }
+    }
+  ],
+  "app": {
+    "name": "edge-parking-counting",
+    "module": "core_parking.config:ParkingApp",
+    "options": {
+      "site_id": "demo-lot",
+      "mqtt": {
+        "host": "r1124.local",
+        "port": 1883,
+        "username": "demo-lot-rk3588-counting",
+        "password": "",
+        "keepalive_s": 30
+      },
+      "http": {
+        "port": 8080
+      },
+      "state_dir": "/data/edge-parking",
+      "classes": [
+        2,
+        3,
+        5,
+        7
+      ],
+      "spool": {
+        "max_events": 50000
+      },
+      "preview_frame_stride": 15,
+      "counting": {
+        "line": {
+          "a": [
+            0.5,
+            0.2
+          ],
+          "b": [
+            0.5,
+            0.8
+          ]
+        },
+        "in_side": "positive",
+        "count_directions": [
+          "in",
+          "out"
+        ],
+        "band": 0.03,
+        "segment_margin": 0.05,
+        "min_track_frames": 3,
+        "min_travel": 0.06,
+        "reborn_window_s": 2.0,
+        "reborn_dist": 0.08,
+        "capacity": 120,
+        "initial_occupancy": 0,
+        "publish_interval_ms": 1000
+      }
+    }
+  }
+}

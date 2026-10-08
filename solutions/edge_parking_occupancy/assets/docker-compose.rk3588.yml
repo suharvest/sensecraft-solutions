@@ -1,0 +1,110 @@
+services:
+  parking:
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb}
+    container_name: ${PARKING_CONTAINER_NAME:-edge-parking-occupancy-rk3588}
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    devices:
+      - "${PARKING_DRI_DEVICE:?set PARKING_DRI_DEVICE to an existing /dev/dri path}:/dev/dri"
+    environment:
+      GST_PLUGIN_PATH: "/opt/vb/host-gst"
+      GST_PLUGIN_SYSTEM_PATH: "/usr/lib/aarch64-linux-gnu/gstreamer-1.0"
+      LD_LIBRARY_PATH: "/opt/vb/host-gst-runtime:/opt/vb/lib:/opt/vb/host-libs:/usr/lib/aarch64-linux-gnu:/usr/lib"
+      GST_REGISTRY_1_0: "/tmp/gst-registry.bin"
+    tmpfs:
+      - /root/.cache
+    volumes:
+      - type: bind
+        source: ${PARKING_CONFIG:?set PARKING_CONFIG to an existing vb.config/1 JSON}
+        target: /config/config.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MODELS_DIR:?set PARKING_MODELS_DIR to an existing directory}
+        target: /models
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_DATA_DIR:?set PARKING_DATA_DIR to an existing writable directory}
+        target: /data/edge-parking
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MPP_PLUGIN:?set PARKING_MPP_PLUGIN to an existing host MPP GStreamer plugin}
+        target: /lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MPP_LIB:?set PARKING_MPP_LIB to an existing host Rockchip MPP library}
+        target: /lib/aarch64-linux-gnu/librockchip_mpp.so.1
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_RGA_LIB:?set PARKING_RGA_LIB to an existing host RGA library}
+        target: /lib/aarch64-linux-gnu/librga.so.2
+        read_only: true
+        bind:
+          create_host_path: false
+      # Host GStreamer runtime + h264parse (videoparsersbad). Measured on radxa
+      # (RK3588, host GStreamer 1.22.9) with image 6a5c781d: without these the
+      # pipeline fails with "GStreamer element unavailable: h264parse".
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/libgstreamer-1.0.so.0
+        target: /opt/vb/host-gst-runtime/libgstreamer-1.0.so.0
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/libgstbase-1.0.so.0
+        target: /opt/vb/host-gst-runtime/libgstbase-1.0.so.0
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/libgstvideo-1.0.so.0
+        target: /opt/vb/host-gst-runtime/libgstvideo-1.0.so.0
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/libgstallocators-1.0.so.0
+        target: /opt/vb/host-gst-runtime/libgstallocators-1.0.so.0
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/libgstcodecparsers-1.0.so.0
+        target: /usr/lib/aarch64-linux-gnu/libgstcodecparsers-1.0.so.0
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_MPP_PLUGIN:?set PARKING_MPP_PLUGIN to an existing host MPP GStreamer plugin}
+        target: /opt/vb/host-gst/libgstrockchipmpp.so
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}/gstreamer-1.0/libgstvideoparsersbad.so
+        target: /opt/vb/host-gst/libgstvideoparsersbad.so
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PARKING_RKNNRT_LIB:?set PARKING_RKNNRT_LIB to an existing host RKNN runtime library}
+        target: /usr/lib/librknnrt.so
+        read_only: true
+        bind:
+          create_host_path: false
+    command: ["--config", "/config/config.json"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/healthz', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

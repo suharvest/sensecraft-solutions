@@ -1,0 +1,260 @@
+{
+  "schema": "vb.config/1",
+  "device_id": "rk3588-occupancy",
+  "state_dir": "/data/edge-parking",
+  "backend": {
+    "name": "rknn",
+    "model_path": "/models/vehicle_640.rk3588.w8a8.rknn",
+    "model_sha256": "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3",
+    "input_size": [
+      640,
+      640
+    ],
+    "align": "top_left",
+    "score_threshold": 0.3,
+    "nms_threshold": 0.45,
+    "input": {
+      "color_order": "bgr",
+      "divide": 1.0
+    },
+    "options": {
+      "codec": "h264"
+    },
+    "decoder": {
+      "type": "yolox",
+      "num_classes": 80,
+      "strides": [
+        8,
+        16,
+        32
+      ],
+      "grid_center_activation": "none"
+    },
+    "core_masks": [
+      1,
+      2,
+      4
+    ],
+    "max_contexts": 3
+  },
+  "runtime": {
+    "workers": 1,
+    "max_streams_per_worker": 0,
+    "contexts_per_worker": 3,
+    "publishers_per_process": 1,
+    "publish_queue": 256,
+    "max_streams": 16,
+    "open_timeout_s": 8.0,
+    "reconnect_delay_s": 1.0,
+    "restart_backoff_s": 5.0
+  },
+  "native": {
+    "binary": "/opt/vb/bin/vb-runtime",
+    "hello_timeout_s": 10.0,
+    "snapshot_ring": 2,
+    "jpeg_quality": 85
+  },
+  "tracker": {
+    "enabled": true,
+    "iou_threshold": 0.2,
+    "dist_threshold": 0.15,
+    "max_misses": 15,
+    "max_lost_s": 1.5,
+    "min_hits": 1,
+    "class_aware": true,
+    "anchor": "bottom_center"
+  },
+  "analyzers": {
+    "plugins": []
+  },
+  "mqtt": {
+    "host": "r1124.local",
+    "port": 1883,
+    "client_id": "demo-lot-rk3588-occupancy",
+    "username": "demo-lot-rk3588-occupancy",
+    "password": "",
+    "tls": false,
+    "ca_file": "",
+    "topic_root": "demo-lot/parking/rk3588-occupancy",
+    "status_interval_s": 10
+  },
+  "health": {
+    "host": "0.0.0.0",
+    "port": 8099
+  },
+  "streams_file": "",
+  "streams": [
+    {
+      "stream_id": "cam-b1-01",
+      "url": "rtsp://camera-b1-01.local:554/Streaming/Channels/102",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "max_fps": 1,
+        "codec": "h264"
+      }
+    },
+    {
+      "stream_id": "cam-b1-02",
+      "url": "rtsp://camera-b1-02.local:554/Streaming/Channels/102",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "max_fps": 1,
+        "codec": "h264"
+      }
+    },
+    {
+      "stream_id": "cam-b1-03",
+      "url": "rtsp://camera-b1-03.local:554/Streaming/Channels/102",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "max_fps": 1,
+        "codec": "h264"
+      }
+    },
+    {
+      "stream_id": "cam-b1-04",
+      "url": "rtsp://camera-b1-04.local:554/Streaming/Channels/102",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "max_fps": 1,
+        "codec": "h264"
+      }
+    }
+  ],
+  "app": {
+    "name": "edge-parking-slots",
+    "module": "core_parking.slots.app:SlotsApp",
+    "options": {
+      "site_id": "demo-lot",
+      "mqtt": {
+        "host": "r1124.local",
+        "port": 1883,
+        "username": "demo-lot-rk3588-occupancy",
+        "password": "",
+        "keepalive_s": 30
+      },
+      "http": {
+        "port": 8080
+      },
+      "state_dir": "/data/edge-parking",
+      "spool": {
+        "max_events": 50000
+      },
+      "target_fps": 1,
+      "unknown_after_s": 10,
+      "slot_coverage": {
+        "occupied_ratio": 0.3,
+        "free_ratio": 0.2,
+        "hold_s": 3.0,
+        "free_hold_s": 5.0,
+        "classes": [
+          2,
+          5,
+          7
+        ]
+      },
+      "slots": {
+        "cam-b1-01": [
+          {
+            "id": "B1-023",
+            "polygon": [
+              [
+                0.095,
+                0.645
+              ],
+              [
+                0.165,
+                0.645
+              ],
+              [
+                0.165,
+                0.77
+              ],
+              [
+                0.095,
+                0.77
+              ]
+            ]
+          }
+        ],
+        "cam-b1-02": [
+          {
+            "id": "B1-030",
+            "polygon": [
+              [
+                0.1,
+                0.5
+              ],
+              [
+                0.3,
+                0.5
+              ],
+              [
+                0.3,
+                0.9
+              ],
+              [
+                0.1,
+                0.9
+              ]
+            ]
+          }
+        ],
+        "cam-b1-03": [
+          {
+            "id": "B1-040",
+            "polygon": [
+              [
+                0.4,
+                0.5
+              ],
+              [
+                0.6,
+                0.5
+              ],
+              [
+                0.6,
+                0.9
+              ],
+              [
+                0.4,
+                0.9
+              ]
+            ]
+          }
+        ],
+        "cam-b1-04": [
+          {
+            "id": "B1-050",
+            "polygon": [
+              [
+                0.1,
+                0.5
+              ],
+              [
+                0.3,
+                0.5
+              ],
+              [
+                0.3,
+                0.9
+              ],
+              [
+                0.1,
+                0.9
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

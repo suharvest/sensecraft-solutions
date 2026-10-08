@@ -1,0 +1,47 @@
+services:
+  parking:
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c}
+    mem_limit: ${PARKING_MEMORY_LIMIT:-0}
+    container_name: ${PARKING_CONTAINER_NAME:-edge-parking-counting-jetson}
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "8m"
+        max-file: "3"
+        compress: "false"
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    environment:
+      NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      LD_LIBRARY_PATH: /usr/local/cuda/lib64:/host-nvidia:/host-trt:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/nvidia
+      GST_PLUGIN_PATH: /usr/lib/aarch64-linux-gnu/gstreamer-1.0
+    volumes:
+      # The host owns CUDA/TRT/NVDEC ABI. These are read-only mounts; do not
+      # replace them with libraries copied from a development workstation.
+      - /usr/lib/aarch64-linux-gnu/libnvinfer.so.10:/host-trt/libnvinfer.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvinfer_plugin.so.10:/host-trt/libnvinfer_plugin.so.10:ro
+      - /usr/lib/aarch64-linux-gnu/libnvonnxparser.so.10:/host-trt/libnvonnxparser.so.10:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia:ro
+      # Jetson NVDEC elements are host ABI plugins. Mount only the elements
+      # used by the RTSP pipeline; the image keeps its own plugin directory.
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvvideo4linux2.so:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvvideo4linux2.so:ro
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvvidconv.so:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvvidconv.so:ro
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvcodec.so:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstnvcodec.so:ro
+      - /usr/lib/aarch64-linux-gnu/libEGL.so.1:/usr/lib/aarch64-linux-gnu/libEGL.so.1:ro
+      - /usr/lib/aarch64-linux-gnu/libGLdispatch.so.0:/usr/lib/aarch64-linux-gnu/libGLdispatch.so.0:ro
+      - /usr/lib/aarch64-linux-gnu/libGLESv2.so.2:/usr/lib/aarch64-linux-gnu/libGLESv2.so.2:ro
+      - /usr/lib/aarch64-linux-gnu/libdrm.so.2:/usr/lib/aarch64-linux-gnu/libdrm.so.2:ro
+      - ${PARKING_CONFIG:?set PARKING_CONFIG to a vb.config/1 JSON}:/config/config.json:ro
+      - ${PARKING_MODELS_DIR:?set PARKING_MODELS_DIR to the host model directory}:/models:ro
+      - ${PARKING_DATA_DIR:-./data}:/data/edge-parking
+    command: ["--config", "/config/config.json"]
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${PARKING_HEALTH_PORT:-8099}/healthz', timeout=2)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

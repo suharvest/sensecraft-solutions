@@ -1,0 +1,147 @@
+# DRAFT / blocked: NRD-2. The native application, public image/model artifact,
+# and platform acceptance evidence are not released. Keep disabled until those
+# inputs are supplied and the acceptance matrix passes.
+version: "1.0"
+id: edge_parking_counting
+name: Edge Parking Vehicle Counting
+name_i18n:
+  zh: 边缘停车场车辆进出计数
+enabled: true
+intro:
+  visibility: staging
+  summary: Count vehicles crossing a configured entrance line on a Jetson edge host and publish occupancy events over MQTT.
+  summary_i18n:
+    zh: 在 Jetson 边缘主机上按配置的出入口计数线统计车辆进出，并通过 MQTT 发布事件。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-preview-counting-1-20261008.jpg
+      caption: "Counting preview on Jetson Orin Nano Super: tracked vehicle box with track ID and score, yellow counting line, live in/out counters (synthetic test clip, 2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 上的计数预览：车辆跟踪框（轨迹号与置信度）、黄色计数线、实时进出计数（合成测试片段，2026-10-08）"
+        ja: "Jetson Orin Nano Super のカウントプレビュー：追跡中の車両枠（トラック ID・スコア）、黄色のカウントライン、入出庫カウンタ（合成テスト映像、2026-10-08）"
+    - type: image
+      src: gallery/panel-preview-counting-2-20261008.jpg
+      caption: "Same preview a few seconds later: the next vehicle track approaching the counting line, counters in_today 2 / out_today 1 (Jetson Orin Nano Super, 2026-10-08)"
+      caption_i18n:
+        zh: "数秒后的同一预览：下一条车辆轨迹接近计数线，计数 in_today 2 / out_today 1（Jetson Orin Nano Super，2026-10-08）"
+        ja: "数秒後の同じプレビュー：次の車両トラックがカウントラインに接近、in_today 2 / out_today 1（Jetson Orin Nano Super、2026-10-08）"
+  category: vision_video_ai
+  solution_type: solution
+  tags: [parking, vehicle-counting, mqtt, yolox, jetson]
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<device>/crossing
+      schema_type: json
+      description: Vehicle crossing events. The broker is an external site service.
+      description_i18n:
+        zh: 车辆越线事件；broker 由现场外部服务提供。
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<device>/occupancy
+      schema_type: json
+      description: Occupancy snapshot and remaining capacity.
+      description_i18n:
+        zh: 场内占用与剩余容量快照。
+    - type: http
+      port: 8099
+      endpoint: /healthz
+      method: GET
+      schema_type: json
+      description: Native runtime and parking hook health.
+      description_i18n:
+        zh: 原生运行时与停车钩子健康状态。
+  input_requirements:
+    - type: rtsp
+      description: An H.264 or H.265 RTSP gate camera with a stable entrance view.
+      description_i18n:
+        zh: 稳定拍摄出入口的 H.264 或 H.265 RTSP 摄像头。
+  device_catalog:
+    recomputer_j30:
+      description: JetPack 6 Jetson host for the native TensorRT parking runtime.
+      description_i18n:
+        zh: 运行原生 TensorRT 停车运行时的 JetPack 6 Jetson 主机。
+    recomputer_rk3576:
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    recomputer_rk3588:
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Existing RTSP camera at the gate.
+      description_i18n:
+        zh: 现场已有的出入口 RTSP 摄像头。
+  presets:
+    - id: ip_camera_box
+      name: IP Camera + Edge Compute Box (Draft)
+      name_i18n:
+        zh: IP 摄像头 + 边缘算力盒子（草稿）
+        ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
+      badge: Draft / acceptance incomplete
+      badge_i18n:
+        zh: 草稿 / 验收未完成
+      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target uses the published native image and its target-device model bundle (fetched at deploy time). Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
+      description_i18n:
+        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都使用已发布的原生镜像和对应目标设备的模型包（部署时自动获取）。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
+        ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドのネイティブイメージとターゲットデバイス用モデルが必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
+      # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
+      # status is written into each target's description in the guides.
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance
+      #   receipt orin-nano/edge_parking_counting): package compose + locally
+      #   built image, synthetic 640x360 30 fps clip (one vehicle crossing every
+      #   6 s) over RTSP. 29.98 fps processed (NVDEC, no fallback), inference p50
+      #   3.58 / p95 3.64 ms, 41/41 expected crossings, ready 11.9 s. Not
+      #   covered: accuracy on real gate video, multi-stream capacity, SenseCraft
+      #   one-click path, public image.
+      # - RK3588: hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance
+      #   receipt radxa/edge_parking_counting): package compose with the
+      #   librga.so.2 and host GStreamer mounts, locally built image 6a5c781d,
+      #   real 1280x720 H.264 5 fps parking-lot clip looped over RTSP. 3.0 fps
+      #   processed of 5 (about 26 % dropped, cause not diagnosed), RKNN p50
+      #   17.8 / p95 20.0 ms, MPP decode, 107 MQTT events with contiguous seq.
+      #   Not covered: accuracy (clip loops every 10 s), r2 image, public
+      #   artifact.
+      # - RK3576 (cat-remote): not verified — r2 image could not be loaded
+      #   (root disk), package compose not exercised; substitute-image run only.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Edge Host
+          name_i18n:
+            zh: 边缘主机
+          type: single
+          required: true
+          description: Choose the edge host. The deploy step offers one target per host.
+          description_i18n:
+            zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_j30
+        - id: camera
+          name: Gate Camera
+          name_i18n:
+            zh: 出入口摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+  stats:
+    difficulty: advanced
+    estimated_time: 60min
+  links: {}
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

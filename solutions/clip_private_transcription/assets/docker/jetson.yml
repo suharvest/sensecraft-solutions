@@ -1,0 +1,138 @@
+services:
+  clip-pt:
+    image: ${CLIP_PT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71}
+    network_mode: host
+    depends_on:
+      slv-sensevoice: {condition: service_healthy}
+      slv-whisper: {condition: service_healthy}
+      mosquitto: {condition: service_healthy}
+    volumes:
+      - "${CLIP_CONFIG:?set CLIP_CONFIG}:/config/config.yaml:ro"
+      - clip-data:/var/lib/clip-pt
+    command: ["run", "--config", "/config/config.yaml"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8631/healthz\", timeout=5)' "]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  slv-sensevoice:
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111}
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    environment:
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+      OVS_PROFILE_JSON: /config/profiles/jetson-sensevoice-c64.json
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "0"
+      OVS_SPEAKER_EMB_BACKEND: jetson_trt
+      OVS_DIARIZE: "1"
+      DIAR_CAMPPLUS_ENGINE_FILE: /models/speaker/campplus.plan
+      MODEL_DIR: /models
+      SENSEVOICE_TRT_MODEL_DIR: /models/sensevoice-trt
+      # Writable: the engine resolver locks $OVS_MODELS_DIR/.engine_resolver.lock;
+      # /models is the read-only model bundle (engine paths are absolute).
+      OVS_MODELS_DIR: /var/lib/ovs-sensevoice/resolver
+      OVS_DATA_DIR: /var/lib/ovs-sensevoice/data
+      OVS_TMP_DIR: /var/lib/ovs-sensevoice/tmp
+      XDG_CACHE_HOME: /var/cache/ovs-sensevoice
+      HF_HOME: /var/cache/ovs-sensevoice/hf
+      HF_HUB_CACHE: /var/cache/ovs-sensevoice/hf
+    volumes:
+      - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - ./profiles/jetson-sensevoice-c64.json:/config/profiles/jetson-sensevoice-c64.json:ro
+      - slv-sensevoice-data:/var/lib/ovs-sensevoice
+      - slv-sensevoice-cache:/var/cache/ovs-sensevoice
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import json,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8621/readyz\", timeout=5); d=json.load(urllib.request.urlopen(\"http://127.0.0.1:8621/health\", timeout=5)); assert d.get(\"asr\") is True and d.get(\"asr_backend\") == \"sensevoice_trt\"' "]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 900s
+
+  slv-whisper:
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111}
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    environment:
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+      OVS_PROFILE_JSON: /config/profiles/jetson-whisper-trt.json
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "0"
+      MODEL_DIR: /models
+      WHISPER_MODEL_DIR: /models/whisper
+      WHISPER_ENCODER_PATH: /models/whisper/encoder/jetson/enc_base_30s_bf16.plan
+      WHISPER_DECODER_DIR: /models/whisper/decoder/base
+      WHISPER_DECODER_KIND: tensorrt
+      WHISPER_DECODER_PREFILL_PLAN: /models/plans/prefill_fp16.plan
+      WHISPER_DECODER_STEP_PLAN: /models/plans/step_fp16.plan
+      WHISPER_VOCAB_DIR: /models/whisper
+      WHISPER_LANGUAGE: en
+      WHISPER_VARIANT: base
+      WHISPER_WINDOW_S: "30"
+      WHISPER_PADDING_CUTOFF_S: "0"
+      WHISPER_MAX_CONCURRENT: "1"
+      OVS_MAX_CONCURRENT_SESSIONS: "1"
+      OVS_VAD_BACKEND: none
+      OVS_PUNCT: "0"
+      OVS_SPEAKER_EMB: "0"
+      OVS_TTS_BACKEND: none
+      OVS_TTS_MODEL_ID: ""
+      # Writable: the engine resolver locks $OVS_MODELS_DIR/.engine_resolver.lock;
+      # /models is the read-only model bundle (engine paths are absolute).
+      OVS_MODELS_DIR: /var/lib/ovs-whisper/resolver
+      OVS_DATA_DIR: /var/lib/ovs-whisper/data
+      OVS_TMP_DIR: /var/lib/ovs-whisper/tmp
+      XDG_CACHE_HOME: /var/cache/ovs-whisper
+      HF_HOME: /var/cache/ovs-whisper/hf
+      HF_HUB_CACHE: /var/cache/ovs-whisper/hf
+    volumes:
+      - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - ./profiles/jetson-whisper-trt.json:/config/profiles/jetson-whisper-trt.json:ro
+      - slv-whisper-data:/var/lib/ovs-whisper
+      - slv-whisper-cache:/var/cache/ovs-whisper
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8622"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import json,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8622/readyz\", timeout=5); d=json.load(urllib.request.urlopen(\"http://127.0.0.1:8622/health\", timeout=5)); assert d.get(\"asr\") is True and d.get(\"asr_backend\") == \"whisper-tensorrt\"' "]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 900s
+
+  mosquitto:
+    image: ${MQTT_IMAGE:?set MQTT_IMAGE to an approved Mosquitto image}
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 5 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  clip-data: {}
+  slv-sensevoice-data: {}
+  slv-sensevoice-cache: {}
+  slv-whisper-data: {}
+  slv-whisper-cache: {}
+  mqtt-data: {}

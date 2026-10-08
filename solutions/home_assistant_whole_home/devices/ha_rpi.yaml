@@ -1,0 +1,103 @@
+version: "1.0"
+id: ha_rpi
+name: Home Assistant Container on Raspberry Pi
+name_i18n: {zh: 树莓派 Home Assistant Container}
+type: docker_deploy
+docker:
+  compose_file: assets/docker/docker-compose.rpi-ha.yml
+  compose_dir: assets
+  remote_path: /opt/ha-whole-home
+  options: {project_name: ha_whole_home_rpi, remove_orphans: false}
+  services: [{name: homeassistant, required: true}]
+  environment:
+    HA_IMAGE: "ghcr.io/home-assistant/home-assistant:2026.9.3"
+    HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
+    TZ: "Asia/Shanghai"
+    HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
+    ZBT_DEVICE: "{{zbt_device}}"
+    ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
+    ESPHOME_DIGEST: "sha256:4ad55931c0186d2910dc128526237acabb422a662697a4e8bb356d390a1332a1"
+    ESPHOME_CONFIG_DIR: "/opt/ha-whole-home/esphome"
+ssh: {port: 22, default_user: pi, auth_methods: [password], connection_timeout: 30, command_timeout: 1800}
+pre_checks:
+  - {type: disk_space, min_gb: 8, description: HA image and recorder data require at least 8 GB free.}
+  - {type: tcp_port, port: 8123, description: Home Assistant port must be available.}
+user_inputs:
+  - id: zbt_device
+    name: ZBT-2 device path
+    name_i18n: {zh: ZBT-2 设备路径}
+    type: text
+    required: false
+    description: /dev/serial/by-id/... path of the ZBT-2. Leave empty to install Home Assistant before the dongle is connected; redeploy with the path to add it.
+    description_i18n: {zh: ZBT-2 的 /dev/serial/by-id/... 路径。留空可在接入加密狗之前先安装 Home Assistant；接入后填写路径重新部署。}
+# Local view only: remote_overrides.actions below replaces this block for the
+# remote view, which copies from the uploaded /opt/ha-whole-home/ha_rpi copy.
+actions:
+  after_upload:
+    - name: Initialize HA configuration if absent
+      name_i18n: {zh: 初始化 HA 配置（如不存在）}
+      run: |
+        set -eu
+        # Local actions run in the solution directory and without sudo.
+        SRC="assets/ha-config-template"
+        DST="/opt/ha-whole-home/ha-config"
+        if [ ! -d "$SRC" ]; then
+          echo "HA_CONFIG_TEMPLATE_MISSING: $(pwd)/$SRC" >&2
+          exit 1
+        fi
+        if ! mkdir -p "$DST" 2>/dev/null || [ ! -w "$DST" ]; then
+          if sudo -n true 2>/dev/null; then
+            sudo -n mkdir -p "$DST"
+            sudo -n chown "$(id -u):$(id -g)" "$DST"
+          else
+            echo "HA_CONFIG_DIR_NOT_WRITABLE: run 'sudo mkdir -p $DST && sudo chown $(id -un) $DST', then deploy again" >&2
+            exit 1
+          fi
+        fi
+        mkdir -p "$DST/packages" "$DST/custom_sentences"
+        if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
+        if [ ! -e "$DST/packages/ha_whole_home.yaml" ]; then cp "$SRC/packages/ha_whole_home.yaml" "$DST/packages/ha_whole_home.yaml"; fi
+        for lang in en ja zh-CN; do
+          mkdir -p "$DST/custom_sentences/$lang"
+          for src in "$SRC/custom_sentences/$lang"/*; do
+            [ -f "$src" ] || continue
+            dst="$DST/custom_sentences/$lang/$(basename "$src")"
+            if [ ! -e "$dst" ]; then cp "$src" "$dst"; fi
+          done
+        done
+        if ! grep -Eq '!include_dir_named[[:space:]]+packages' "$DST/configuration.yaml"; then
+          echo "HA_CONFIG_REQUIRES_MANUAL_PACKAGES_INCLUDE: $DST/configuration.yaml" >&2
+          exit 1
+        fi
+remote_overrides:
+  environment:
+    HA_IMAGE: "ghcr.io/home-assistant/home-assistant:2026.9.3"
+    HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
+    TZ: "Asia/Shanghai"
+    HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
+    ZBT_DEVICE: "{{zbt_device}}"
+    ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
+    ESPHOME_DIGEST: "sha256:4ad55931c0186d2910dc128526237acabb422a662697a4e8bb356d390a1332a1"
+    ESPHOME_CONFIG_DIR: "/opt/ha-whole-home/esphome"
+  actions:
+    after_upload:
+      - name: Initialize HA configuration if absent
+        run: |
+          set -eu
+          SRC="/opt/ha-whole-home/ha_rpi/ha-config-template"
+          DST="/opt/ha-whole-home/ha-config"
+          mkdir -p "$DST/packages" "$DST/custom_sentences"
+          if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
+          if [ ! -e "$DST/packages/ha_whole_home.yaml" ]; then cp "$SRC/packages/ha_whole_home.yaml" "$DST/packages/ha_whole_home.yaml"; fi
+          for lang in en ja zh-CN; do
+            mkdir -p "$DST/custom_sentences/$lang"
+            for src in "$SRC/custom_sentences/$lang"/*; do
+              [ -f "$src" ] || continue
+              dst="$DST/custom_sentences/$lang/$(basename "$src")"
+              if [ ! -e "$dst" ]; then cp "$src" "$dst"; fi
+            done
+          done
+          if ! grep -Eq '!include_dir_named[[:space:]]+packages' "$DST/configuration.yaml"; then
+            echo "HA_CONFIG_REQUIRES_MANUAL_PACKAGES_INCLUDE: $DST/configuration.yaml" >&2
+            exit 1
+          fi

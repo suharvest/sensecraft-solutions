@@ -1,0 +1,13 @@
+version: "1.0"
+id: verify_ha
+name: Verify Home Assistant
+name_i18n: {zh: 验证 Home Assistant}
+type: web_dashboard
+web_dashboard:
+  url: "http://{{ha_host}}:8123/"
+  title: Home Assistant
+  title_i18n: {zh: Home Assistant}
+  description: Open Home Assistant and execute the documented local voice check after the physical integrations are configured.
+  description_i18n: {zh: 配置实体后打开 Home Assistant，并执行文档中的本地语音检查。}
+user_inputs:
+  - {id: ha_host, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机地址}, type: text, required: true}

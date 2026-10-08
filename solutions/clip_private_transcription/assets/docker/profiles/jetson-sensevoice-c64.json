@@ -1,0 +1,14 @@
+{
+  "name": "jetson-sensevoice-c64",
+  "description": "ASR-only SenseVoice TensorRT profile for the Jetson Clip stack.",
+  "asr_backend": "jetson.sensevoice_trt",
+  "asr_model_id": "sensevoice",
+  "execution_policy": {"mode": "serialized", "shared_resource": "gpu"},
+  "env": {
+    "SENSEVOICE_TRT_MODEL_DIR": "/models/sensevoice-trt",
+    "OVS_VAD_BACKEND": "silero",
+    "OVS_VAD_SILENCE_MS": "400"
+  },
+  "asr_max_slots": 1,
+  "max_concurrent_sessions": 1
+}

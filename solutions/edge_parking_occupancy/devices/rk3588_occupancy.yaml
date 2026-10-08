@@ -1,0 +1,224 @@
+version: "1.0"
+id: rk3588_occupancy
+name: reComputer RK3588 Parking Occupancy
+name_i18n:
+  zh: reComputer RK3588 停车场车位占用
+type: docker_deploy
+
+docker:
+  compose_file: assets/docker-compose.rk3588.yml
+  compose_dir: assets
+  remote_path: /home/{{username}}/edge-parking-occupancy-rk3588
+  options:
+    project_name: edge_parking_occupancy_rk3588
+    remove_orphans: false
+  services:
+    - name: parking
+      required: true
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{parking_config}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
+    PARKING_DATA_DIR: "{{parking_data_dir}}"
+    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+    PARKING_RGA_LIB: "{{parking_rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password]
+  connection_timeout: 30
+  command_timeout: 3600
+pre_checks:
+  - type: disk_space
+    min_gb: 1
+    description: Existing local image, model and data paths must fit the host budget.
+files:
+  # slots_vehicle640_rk3588: 4741125 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz
+    remote_path: /home/{{username}}/edge-parking-occupancy-rk3588/models/slots_vehicle640_rk3588-d1c7059860ef.tar.gz
+    checksum:
+      sha256: d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c
+actions:
+  after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking-occupancy-rk3588/models"
+        BUNDLE="slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
+        BUNDLE_SHA="d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+          echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
+  before:
+    - name: Check RK inputs and host ABI
+      name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
+      env:
+        PARKING_IMAGE: "{{parking_image}}"
+        PARKING_CONFIG: "{{parking_config}}"
+        PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
+        PARKING_DATA_DIR: "{{parking_data_dir}}"
+        PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+        PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+        PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+        PARKING_RGA_LIB: "{{parking_rga_lib}}"
+        PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+        PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+      run: |
+        set -eu
+        test -f "$PARKING_CONFIG"
+        test -d "$PARKING_DATA_DIR"
+        test -w "$PARKING_DATA_DIR"
+        test -e "$PARKING_DRI_DEVICE"
+        for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+        L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+        for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
+        echo "RK inputs and ABI paths exist"
+      name_i18n:
+        zh: 检查 RK 输入和宿主机 ABI 路径
+post_deployment:
+  open_browser: false
+user_inputs:
+  - id: parking_image
+    name: Parking image
+    name_i18n: {zh: 停车镜像}
+    type: text
+    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb"
+    required: false
+    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
+  - id: parking_config
+    name: Host config path
+    name_i18n: {zh: 宿主机配置路径}
+    type: text
+    required: true
+    description: Copy assets/config/slots-rk3588.json to the host, edit it, and supply that already-edited matching vb.config/1 file. Set site_id and device_id (each <=32 characters), unique mqtt client_id and topic_root, broker host/port/username/password (use empty username/password for an anonymous broker), every RTSP URL and per-stream h264 or h265 codec, the pinned model path and SHA256, slot polygons with their stream mapping, and an existing writable state_dir. The JSON health host is 0.0.0.0 so the RK LAN address can answer port 8099.
+    description_i18n: {zh: 将 assets/config/slots-rk3588.json 复制到宿主机并编辑后，填写这份已编辑且与板卡匹配的 vb.config/1 文件。设置 site_id 和 device_id（各不超过 32 个字符）、唯一的 mqtt client_id 和 topic_root、broker host/port/username/password（匿名 broker 时 username/password 留空）、每路 RTSP URL 及 h264 或 h265 编码、与固定 SHA256 匹配的模型路径、车位多边形及其流映射，以及已存在且可写的 state_dir。JSON 中的 health host 为 0.0.0.0，RK 局域网地址可应答 8099 端口。}
+  - id: parking_data_dir
+    name: Existing writable data directory
+    name_i18n: {zh: 现有可写数据目录}
+    type: text
+    required: true
+  - id: parking_dri_device
+    name: Host DRM device path
+    name_i18n: {zh: 宿主机 DRM 设备路径}
+    type: text
+    required: true
+    description: Existing device such as /dev/dri; the package does not create it.
+    description_i18n: {zh: 已存在的设备路径，例如 /dev/dri；本包不会创建。}
+  - id: parking_mpp_plugin
+    name: Host Rockchip MPP GStreamer plugin
+    name_i18n: {zh: 宿主机 Rockchip MPP GStreamer 插件}
+    type: text
+    required: true
+  - id: parking_mpp_lib
+    name: Host Rockchip MPP library
+    name_i18n: {zh: 宿主机 Rockchip MPP 库}
+    type: text
+    required: true
+  - id: parking_rga_lib
+    name: Host RGA library
+    name_i18n: {zh: 宿主机 RGA 库}
+    type: text
+    required: true
+    description: Host RGA library file, for example /usr/lib/aarch64-linux-gnu/librga.so.2.1.0. It is mounted as librga.so.2, the soname vb-runtime links against.
+    description_i18n: {zh: 宿主机 RGA 库文件，例如 /usr/lib/aarch64-linux-gnu/librga.so.2.1.0；挂载为 vb-runtime 链接的 soname librga.so.2。}
+  - id: parking_rknnrt_lib
+    name: Host RKNN runtime library
+    name_i18n: {zh: 宿主机 RKNN runtime 库}
+    type: text
+    required: true
+  - id: parking_host_lib_dir
+    name: Host GStreamer library directory
+    name_i18n: {zh: 宿主机 GStreamer 库目录}
+    type: text
+    default: "/lib/aarch64-linux-gnu"
+    required: false
+    description: Host directory holding libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 and gstreamer-1.0/libgstvideoparsersbad.so (Debian package gstreamer1.0-plugins-bad). These are mounted so the container uses the host GStreamer runtime and h264parse.
+    description_i18n: {zh: 存放 libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 与 gstreamer-1.0/libgstvideoparsersbad.so（Debian 包 gstreamer1.0-plugins-bad）的宿主机目录。挂载后容器使用宿主机 GStreamer 运行时和 h264parse。}
+remote_overrides:
+  environment:
+    PARKING_IMAGE: "{{parking_image}}"
+    PARKING_CONFIG: "{{parking_config}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
+    PARKING_DATA_DIR: "{{parking_data_dir}}"
+    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+    PARKING_RGA_LIB: "{{parking_rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+  actions:
+    after_upload:
+      - name: Fetch and unpack the model bundle
+        name_i18n: {zh: 获取并解包模型包}
+        timeout: 1800
+        run: |
+          set -eu
+          MODELS_DIR="/home/{{username}}/edge-parking-occupancy-rk3588/models"
+          BUNDLE="slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
+          BUNDLE_SHA="d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+            echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
+    before:
+      - name: Check RK inputs and host ABI
+        name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
+        env:
+          PARKING_IMAGE: "{{parking_image}}"
+          PARKING_CONFIG: "{{parking_config}}"
+          PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
+          PARKING_DATA_DIR: "{{parking_data_dir}}"
+          PARKING_DRI_DEVICE: "{{parking_dri_device}}"
+          PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
+          PARKING_MPP_LIB: "{{parking_mpp_lib}}"
+          PARKING_RGA_LIB: "{{parking_rga_lib}}"
+          PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+          PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+        run: |
+          set -eu
+          test -f "$PARKING_CONFIG"
+          test -d "$PARKING_DATA_DIR"
+          test -w "$PARKING_DATA_DIR"
+          test -e "$PARKING_DRI_DEVICE"
+          for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+          L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+          for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
+          echo "RK inputs and ABI paths exist"
+        name_i18n:
+          zh: 检查 RK 输入和宿主机 ABI 路径
