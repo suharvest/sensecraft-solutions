@@ -5,6 +5,10 @@ services:
     privileged: true
     environment:
       TZ: ${TZ}
+      # HA 2026.9+ reads the HTTP port from .storage/http. SETUP_PORT sets the
+      # default port that the first boot writes there as the stable config;
+      # later boots use the stored value. Do not use YAML `http: server_port`.
+      SETUP_PORT: ${HA_PORT:-8123}
     restart: unless-stopped
     volumes:
       - ${HA_CONFIG_DIR}:/config

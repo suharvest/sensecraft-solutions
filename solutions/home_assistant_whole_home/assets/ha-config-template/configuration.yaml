@@ -5,3 +5,7 @@ default_config:
 
 homeassistant:
   packages: !include_dir_named packages
+
+# Do not add `http: server_port:` here. Home Assistant 2026.9 migrates it to a
+# pending trial that reverts to 8123 after 5 minutes unless promoted from the
+# UI. The port comes from the deploy input (HA_PORT -> SETUP_PORT).
