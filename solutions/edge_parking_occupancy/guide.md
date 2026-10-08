@@ -1,111 +1,168 @@
-# Deployment Guide
+## Preset: IP Cameras + Edge Box {#ip_camera_box}
 
-> **Draft / disabled.** Do not deploy this package as a released artifact.
+Keep the IP cameras already in your car park and add one edge box on the same network to analyse their pictures. You draw a box around each bay in a web page; the box sends every bay's occupied / free state to your MQTT server.
 
-## Preset: IP Cameras + Edge Compute Box (Draft) {#ip_camera_box}
+| Device | Purpose |
+|--------|---------|
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 / RK3576 | Analyses every camera picture and decides whether each bay has a car |
+| IP camera | Your existing cameras, sending an H.264 RTSP stream |
+| MQTT server | Receives the bay states for guidance signs, a parking system or Home Assistant |
 
-This draft describes an existing RTSP camera set and an edge host. Pick the
-host in the deploy step: Jetson Orin (TensorRT), RK3588 or RK3576 (RKNN). The
-config must use `core_parking.slots.app:SlotsApp`; `SlotHooks` is not an app
-entrypoint. Slot polygons, stream URLs, and the target-device model are mounted
-from the host. Each target states its on-device acceptance status.
+**What you'll get:**
+- Draw and name every bay over the live camera picture in a web page
+- Whenever a bay changes, an MQTT message with the latest state of every bay on that camera
+- A visible signal when a camera stream drops (its bays turn `unknown`)
 
-## Step 1: Deploy SlotsApp {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
+**Requirements:** Edge box, cameras and MQTT server on the same LAN · Internet access on the edge box during deployment · An MQTT server (for example Mosquitto)
 
-The compose file keeps the model and configuration outside the image. On
-Jetson, CUDA, TensorRT, NVDEC, and other Jetson ABI libraries remain
-host-owned. The broker is an external service.
+## Step 1: Deploy Bay Detection {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
 
-On RK3576 the app uses BGR 0–255 input, top-left padding, YOLOX COCO-80
-decoding, and two RKNN contexts; on RK3588 it uses three RKNN contexts. The
-default stream codec is H.264; set each stream's `options.codec` to `h265` for
-H.265 input.
-
-Draw each slot polygon around one parking space so that a parked car the detector sees covers at least `occupied_ratio` (0.30) of it. A polygon spanning several small or distant cars stays below that ratio and never reports `occupied`: on the acceptance fixtures a wide ROI gave cover 0.0 (Orin Nano) and 0.11 (RK3588), a single-car ROI gave 0.40–0.45. The shipped `cam-b1-01` polygon (Jetson and RK3588 configs) matches the acceptance fixture; the shipped RK3576 polygons are placeholders. Redraw every polygon for your camera.
+Install the bay detection service on the edge box. Enter the camera addresses and the MQTT server; there is no config file to edit.
 
 ### Prerequisites
 
-1. Each RTSP stream has been tested independently.
-2. **Jetson:** JetPack 6 and the NVIDIA container runtime are installed. Copy
-   `assets/config/slots.json` to a host path and edit its streams, MQTT
-   broker, site/device IDs, slot polygons, and target engine path. The image
-   and vehicle640 engine are the published 2026-10-08 artifacts, fetched at deploy time. Optional
-   `health_port` defaults to `8099`; set it to the port in the mounted JSON.
-   Optional `memory_limit` defaults to `0` (no Compose cgroup limit); a bounded
-   test may set `768m`. Optional `data_dir` defaults to `./data` and must be an
-   existing writable directory so state survives container restart. Compose
-   keeps a local JSON log cap of 8 MiB × 3. The Jetson precheck requires at least 0.5 GiB
-   free on `/`; this path assumes the image, model, and TensorRT engine are
-   already cached or staged and uses the space for runtime files, logs, and
-   metadata. Prepare additional space separately when loading or building
-   those artifacts; this threshold does not certify capacity or accuracy.
-3. **RK3576 / RK3588:** the published native RK image and the board-targeted
-   vehicle640 RKNN bundle (both fetched at deploy time), slot configuration, and matching host ABI paths.
-   Copy the shipped `assets/config/slots-rk3576.json` or
-   `assets/config/slots-rk3588.json` to the RK host and pass that host path as
-   `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input.
-4. **RK3588:** the compose mounts the host RGA library as `librga.so.2` and the host GStreamer runtime plus `h264parse` (`gstreamer1.0-plugins-bad`) from `parking_host_lib_dir` (default `/lib/aarch64-linux-gnu`). The stock `app.options.http.port` is 8080 under host networking; change it when another service on the host already uses 8080.
+1. With a reComputer J30 / J40: it must be a Jetson Orin Nano or Orin NX module on JetPack 6.2. Other Jetson modules or system versions are stopped at the first deploy step.
+2. With a reComputer RK3588 or RK3576: its system must include Rockchip's AI accelerator (RKNN), video decode (MPP) and RGA libraries.
+3. Every camera's RTSP address has been opened in VLC and shows a picture.
+4. You know the MQTT server's address and port, plus a username and password if it requires login.
+5. Ports 8080 (slot editor) and 8099 (status check) are free on the box. If 8080 is taken, enter a different slot editor port in the form.
 
-### Target {#occupancy_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml default=true}
+### Wiring
 
-The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+1. Mount each camera high and angled down so every bay is clearly visible and not fully hidden by the car next to it.
+2. Connect the cameras and the edge box by Ethernet to the same switch or router (a PoE switch can power the cameras).
+3. In each camera's web settings, set the stream you will use (the sub-stream is enough) to H.264.
+4. Note each camera's RTSP address. For a Hikvision camera: `rtsp://user:password@camera-ip:554/Streaming/Channels/102` (102 is the sub-stream).
+5. Fill in the camera addresses (comma-separated for several cameras), the site ID and the MQTT server, then click Deploy.
 
-Connect to this Jetson host over SSH. Verified 2026-10-08 on a Jetson Orin
-Nano with a locally built image and a synthetic 640x360 clip (parking-lot still
-20 s / black 20 s, 1 stream at 1 fps): 0.988 fps processed, inference p50
-6.48 ms / p95 6.69 ms, 0 dropped frames, 15 occupied/free transitions per slot
-over 300 s. No slot-accuracy figure on real parking video; multi-stream
-capacity was not re-measured in this run.
+Each camera starts with one example bay, P-01 (a box in the lower middle of the picture). Delete it or drag it onto a real bay in Step 2.
 
-### Target {#occupancy_local type=local device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml}
+### Troubleshooting
 
-The prebuilt TensorRT engines are for Jetson Orin Nano (P3767-0003 / P3767-0004) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
+| Issue | Solution |
+|-------|----------|
+| Deploy stops at "UNSUPPORTED_JETSON_MODULE" | This Jetson is not an Orin Nano or Orin NX module. This solution supports reComputer J30 / J40 (Jetson Orin Nano / Orin NX) only |
+| Deploy stops at "UNSUPPORTED_JETPACK" or "UNSUPPORTED_TENSORRT" | The system is not JetPack 6.2; reflash JetPack 6.2 and deploy again |
+| The RK3588 / RK3576 check reports "missing …" | If a path is printed below it, enter that path in the matching field (for example "RKNN runtime library") and deploy again. If no path is printed, the board lacks that library: install the RKNN runtime (rknpu2), MPP, RGA, gstreamer1.0-plugins-bad and gstreamer1.0-rockchip first |
+| "Not an RTSP address" | Camera addresses must start with `rtsp://`, with commas between addresses |
+| Camera addresses and camera IDs do not match in number | Give one ID per address, or leave the IDs empty to number them automatically |
+| Downloading the detection model fails | Make sure the edge box can reach the internet, then deploy again |
+| Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`, RK3576: `edge-parking-occupancy-rk3576`). The usual cause is port 8080 or 8099 in use: choose another slot editor port, or stop the service holding 8099 |
 
-Run Docker on this Jetson host. Verified 2026-10-08 on a Jetson Orin Nano:
-0.988 fps processed (1 stream at 1 fps), inference p50 6.48 ms / p95 6.69 ms,
-0 dropped frames. No slot-accuracy figure on real parking video.
+### Target {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
-### Target {#rk3588_occupancy_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+Deploy to a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) over the network (SSH) from this computer.
 
-Connect to the RK3588 host over SSH. Verified with conditions on 2026-10-08:
-measured on an RK3588 device with a locally built image (6a5c781d) and
-a synthetic occupied/empty fixture (1 stream at 1 fps, single-car ROI): 17
-occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms, 0 dropped
-frames. No slot-accuracy figure; measure multi-stream capacity on your own streams.
+### Deployment Complete
 
-### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
-Run Docker on the RK3588 host after the required-path precheck passes.
-Verified with conditions on 2026-10-08 (RK3588 device, 1 stream at 1 fps): 17
-occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms. No
-slot-accuracy figure.
+### Target {#occupancy_local type=local device=jetson device_name="reComputer J30 / J40 (this machine)" config=devices/jetson_occupancy.yaml}
 
-### Target {#rk3576_occupancy_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+Install on this machine when this app runs on the reComputer J30 / J40 itself.
 
-Connect to the RK3576 host over SSH. Acceptance blocked: on the 2026-10-08
-test board the package image could not be loaded (root disk too small), so the
-package compose path was not exercised; a run with a substitute image produced
-slot events but no occupied transition.
+### Deployment Complete
 
-### Target {#rk3576_occupancy_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
-Run Docker on the RK3576 host after the required-path precheck passes.
-Acceptance blocked: the package image could not be loaded on the RK3576 test
-board.
+### Target {#rk3588_occupancy_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_occupancy.yaml}
 
-## Step 2: Verify SlotsApp health {#verify_occupancy type=http_debug required=true config=devices/health_verify.yaml}
+Deploy to a reComputer RK3588 over the network (SSH) from this computer.
 
-The HTTP verify step automatically checks only that `/healthz` returns HTTP
-200. After it passes, manually inspect the response body and open
-`http://<host>:<app.options.http.port>/slots/editor` (the stock port is 8080)
-to inspect the configured polygons. For a local check use `127.0.0.1`; for a
-remote deployment enter the host's reachable LAN or Fleet address — the
-verifier does not inherit the engine SSH host automatically. On Jetson, the
-mounted JSON `health.port`, the deploy `health_port` input, and the verify
-`port` input must be the same value; the Docker healthcheck uses
-container-local `127.0.0.1` on that port. `memory_limit=0` leaves the service
-uncapped; use `768m` only for a bounded test. On RK3576 / RK3588 the app binds
-its health server to `0.0.0.0:8099`, so keep the verify `port` at `8099`; the
-compose healthcheck continues to probe container-local `127.0.0.1:8099`. HTTP
-200, body inspection, and the editor view do not prove slot accuracy,
-capacity, device verification, or multi-camera acceptance.
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588 (this machine)" config=devices/rk3588_occupancy.yaml}
+
+Install on this machine when this app runs on the reComputer RK3588 itself.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#rk3576_occupancy_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/rk3576_occupancy.yaml}
+
+Deploy to a reComputer RK3576 over the network (SSH) from this computer.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#rk3576_occupancy_local type=local device=rk3576 device_name="reComputer RK3576 (this machine)" config=devices/rk3576_occupancy.yaml}
+
+Install on this machine when this app runs on the reComputer RK3576 itself.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+## Step 2: Draw the Parking Bays {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
+
+Draw a box around every bay on each camera's picture, give it a bay number, and see each bay's live state.
+
+### Wiring
+
+1. Open the slot editor (`http://<edge-box-ip>:8080/slots/editor`, or the port you entered when deploying) and pick a camera in the Camera list; the live picture appears.
+2. Deal with the example bay P-01 first: click the ✕ next to it in the list on the right to delete it, or drag its four corners onto a real bay and change P-01 to the real bay number in the list.
+3. Press and drag on an empty area of the picture (outside any bay) to draw a rectangle; releasing the mouse adds a bay.
+4. Drag the bay's four corners onto the four corners of the parking bay in the picture.
+5. In the list on the right, replace the generated number with the bay number (for example B1-023).
+6. Repeat steps 3–5 for every bay this camera can see. To delete a bay, click its ✕ in the list.
+7. Click Save. The message "Saved, applied, kept across restarts" means it is done; the bays apply immediately.
+8. Switch to the next camera in the Camera list and repeat.
+
+Once drawn, each bay is coloured by its live state: red is occupied, green is free, grey is unknown (no camera picture, or just saved and not judged yet). The Occupied and Free tiles under "Live status" count this camera's bays.
+
+When drawing:
+
+- One box per bay. Drag the four corners along the bay lines; the shape must be convex (no corner pointing inwards).
+- A parked car must cover roughly a third of its box in the picture to count as occupied. A box spanning several bays, or around distant small cars, never turns occupied.
+- If a bay is mostly hidden by cars in front, draw it on a camera with a better angle.
+
+### Deployment Complete
+
+Bay detection is running and every bay you drew reports its state.
+
+#### Initial Setup
+
+1. Make sure the example bay P-01 has been deleted or turned into a real bay on every camera.
+2. Subscribe your guidance signs, parking system or Home Assistant to `<site-id>/parking/<camera-id>/slots`. The camera ID is the one you entered when deploying; if you left it empty they are `cam-01`, `cam-02`, …
+
+#### Quick Verification
+
+1. On a computer that can reach the MQTT server, run `mosquitto_sub -h <mqtt-server-ip> -t '<site-id>/parking/+/slots' -v`
+2. Every camera sends messages, with `stream_ok` set to `true`.
+3. Drive a car into a bay you drew: about 3 s later that bay turns `occupied`; about 5 s after it leaves it turns back to `free`.
+
+#### Reading the Bay States
+
+Each message covers one camera and carries the current state of every bay on it:
+
+| Field | Meaning |
+|-------|---------|
+| `camera_id` | Camera ID |
+| `slots` | One entry per bay: `id` is the bay number, `state` is `occupied`, `free` or `unknown` |
+| `occupied` / `free` / `unknown` | Number of occupied, free and unknown bays on this camera |
+| `changed` | Bays whose state changed in this message; empty when the message comes from a stream dropping, recovering or a bay-list update |
+| `stream_ok` | Whether the camera picture is fine. About 10 s after the stream drops it becomes `false` and the bays turn `unknown` |
+
+Add up `free` across all cameras to get the free bays for the whole car park.
+
+#### Next Steps
+
+- Adjust bays at any time in the slot editor; changes apply on save.
+- To add cameras, run Step 1 again and append the new camera's address at the end (if you entered camera IDs, keep the existing IDs for the existing cameras). Bays you have drawn are kept.
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Check the port matches the slot editor port from the deploy step and that this computer can reach the edge box |
+| Picture is black or fails to load | That camera has no picture yet: wait a few seconds, the picture refreshes every second; if it persists, check the camera's RTSP address |
+| One camera's bays stay `unknown` (grey) | The box cannot reach that camera: open its RTSP address in VLC on the same network and check the address, username, password and encoding (must be H.264) |
+| "Bay … is not convex" | One corner points inwards; drag that corner so all four point outwards |
+| "Bay id cannot be empty" | Type a bay number for that bay in the list |
+| "Duplicate bay id" | Bay numbers must be unique on one camera; choose another |
+| Dragging moves an existing bay instead of drawing a new one | Dragging inside a bay moves it; start the drag outside any bay |
+| A car is parked but the bay stays `free` | The box is too large or the car too far away to cover a third of it; tighten the box to a single bay |

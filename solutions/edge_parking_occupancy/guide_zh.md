@@ -1,105 +1,168 @@
-# 部署指南
+## 套餐: IP 摄像头 + 边缘主机 {#ip_camera_box}
 
-> **草稿 / 禁用。** 不要把本包作为已发布 artifact 部署。
+保留停车场现有的 IP 摄像头，在同一网络里加一台边缘主机分析画面。你在网页上给每个车位画框，主机把每个车位的「占用 / 空闲」状态发到你的 MQTT 服务器。
 
-## 套餐：IP 摄像头 + 边缘算力盒子（草稿）{#ip_camera_box}
+| 设备 | 用途 |
+|------|------|
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 / RK3576 | 分析所有摄像头画面，判断每个车位有没有车 |
+| IP 摄像头 | 现场已有的摄像头，输出 H.264 编码的 RTSP 视频流 |
+| MQTT 服务器 | 接收车位状态，供余位屏、停车管理系统或 Home Assistant 使用 |
 
-本草案描述现有 RTSP 摄像头组与边缘主机。在部署步骤里选择主机：Jetson Orin
-（TensorRT）、RK3588 或 RK3576（RKNN）。配置必须使用
-`core_parking.slots.app:SlotsApp`；`SlotHooks` 不是应用入口。车位多边形、流
-地址和目标设备模型从宿主机挂载。每个部署目标写明了其真机验收状态。
+**部署完成后你可以：**
+- 在网页上对着实时画面给每个车位画框、命名
+- 车位一有变化，就在 MQTT 上收到这路摄像头所有车位的最新状态
+- 看到某路摄像头断流（它下面的车位变成「未知」）
 
-## 步骤 1：部署 SlotsApp {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
+**前提条件：** 边缘主机与摄像头、MQTT 服务器在同一局域网 · 部署时主机能上网 · 已有 MQTT 服务器（例如 Mosquitto）
 
-compose 将模型和配置留在镜像外。在 Jetson 上，CUDA、TensorRT、NVDEC 及其他
-Jetson ABI 库由宿主持有。broker 由外部服务提供。
+## 步骤 1: 部署车位检测 {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
 
-RK3576 上应用使用 BGR 0–255、左上角 padding、YOLOX COCO-80 解码和两个 RKNN
-context；RK3588 使用三个 RKNN context。默认流编码为 H.264；H.265 输入可为每路流
-设置 `options.codec: h265`。
-
-每个车位多边形只框一个车位，使检测器看到的停放车辆覆盖其面积至少 `occupied_ratio`（0.30）。
-框住多辆小车或远处车辆的大多边形达不到该比例，永远不会报 `occupied`：验收素材上，大 ROI 的
-cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。随包 `cam-b1-01` 多边形
-（Jetson 与 RK3588 配置）对应验收素材；随包 RK3576 多边形为占位值。现场需按自己的摄像头
-重画全部多边形。
+在边缘主机上安装车位检测服务，填好摄像头地址和 MQTT 服务器即可，不需要手动改配置文件。
 
 ### 前置条件
 
-1. 每路 RTSP 流已独立验证。
-2. **Jetson：** 已安装 JetPack 6 和 NVIDIA container runtime。将
-   `assets/config/slots.json` 复制到宿主机，编辑其中的流、MQTT broker、
-   站点/设备编号、车位多边形和目标 engine 路径。镜像与 vehicle640 engine 为 2026-10-08
-   发布的制品，部署时自动获取。可选 `health_port` 默认 `8099`，需与挂载 JSON 中的端口一致。可选
-   `memory_limit` 默认 `0`（Compose 不设置 cgroup 上限）；有界测试可填写 `768m`。
-   可选 `data_dir` 默认 `./data`，必须是已存在且可写的目录，以便容器重启后保留状态。
-   Compose 本地 JSON 日志上限为 8 MiB × 3。 Jetson 预检查要求 `/` 至少有 0.5 GiB 可用空间；该路径假设镜像、模型和
-   TensorRT engine 已提前缓存或暂存，余量用于运行文件、日志和元数据。加载或构建这些
-   artifact 需另行准备空间；该门槛不代表容量或准确率验收。
-3. **RK3576 / RK3588：** 已发布的原生 RK 镜像和面向该板卡的 vehicle640 RKNN
-   模型包（均在部署时获取）、车位配置和匹配的宿主机 ABI 路径。将随包提供的
-   `assets/config/slots-rk3576.json` 或 `assets/config/slots-rk3588.json` 复制到
-   RK 宿主机，并把该宿主机路径填写为 `PARKING_CONFIG`。编辑复制出的 JSON：`site_id` 和
-   `device_id` 各不超过 32 个字符；`mqtt.client_id` 和 `mqtt.topic_root` 必须唯一；
-   顶层 `mqtt` 与 `app.options.mqtt` 两个映射都填写现场 broker 的 host、port、username
-   和 password（匿名 broker 时 username 和 password 留空）；为每路 RTSP 填真实地址，
-   并把对应 `options.codec` 设为 `h264` 或 `h265`；填写与固定 vehicle640 artifact
-   匹配的 `backend.model_path` 和 `backend.model_sha256`；在 `app.options.slots` 中
-   填写车位多边形，并把每组多边形映射到对应的 stream ID；填写已存在且可写的
-   `app.options.state_dir`。将这份已编辑的文件作为 `parking_config` 输入。
-4. **RK3588：** compose 把宿主机 RGA 库挂载为 `librga.so.2`，并从
-   `parking_host_lib_dir`（默认 `/lib/aarch64-linux-gnu`）挂载宿主机 GStreamer 运行时与
-   `h264parse`（`gstreamer1.0-plugins-bad`）。host 网络下 `app.options.http.port`
-   默认 8080；宿主机已有服务占用 8080 时改用其他端口。
+1. 用 reComputer J30 / J40 时：必须是 Jetson Orin Nano 或 Orin NX 模组，系统为 JetPack 6.2。其他 Jetson 模组或系统版本会在部署第一步被拦下。
+2. 用 reComputer RK3588 或 RK3576 时：系统需自带 Rockchip 的 AI 加速（RKNN）、视频解码（MPP）和 RGA 库。
+3. 每路摄像头的 RTSP 地址都已用 VLC 打开过，能看到画面。
+4. 知道 MQTT 服务器的地址和端口；服务器要求登录的话，准备好用户名和密码。
+5. 主机上 8080 端口（车位编辑页）和 8099 端口（状态检查）没有被其他服务占用。8080 被占用时，可以在表单里换一个车位编辑页端口。
 
-### 部署目标 {#occupancy_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml default=true}
+### 接线
 
-预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+1. 摄像头装在高处、斜向下拍，让每个车位都能看清，不被相邻车辆完全挡住。
+2. 摄像头和边缘主机用网线接入同一个交换机或路由器（摄像头可用 PoE 交换机供电）。
+3. 在摄像头的网页设置里，把要用的码流（子码流即可）设为 H.264 编码。
+4. 记下每路摄像头的 RTSP 地址。以海康摄像头为例：`rtsp://用户名:密码@摄像头IP:554/Streaming/Channels/102`（102 为子码流）。
+5. 在表单里填写摄像头地址（多路用英文逗号分隔）、站点编号和 MQTT 服务器，点击部署。
 
-通过 SSH 连接这台 Jetson。2026-10-08 已验证（Jetson Orin Nano，本地构建镜像，
-640x360 合成片段：停车场静帧 20 s / 黑帧 20 s，1 路 1 fps）：处理 0.988 fps，推理
-p50 6.48 ms / p95 6.69 ms，丢帧 0，300 s 内每个车位 15 次 occupied/free 切换。尚无
-真实停车视频上的车位准确率；本轮未重测多路容量。
+部署时每路摄像头会先放一个示例车位 P-01（画面中间偏下的一个框），步骤 2 里删掉它或拖到真实车位上。
 
-### 部署目标 {#occupancy_local type=local device=jetson device_name="Jetson" config=devices/jetson_occupancy.yaml}
+### 故障排查
 
-预编译的 TensorRT engine 只适用于 Jetson Orin Nano（P3767-0003 / P3767-0004）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
+| 问题 | 解决方法 |
+|------|----------|
+| 部署停在「UNSUPPORTED_JETSON_MODULE」 | 这台 Jetson 不是 Orin Nano 或 Orin NX 模组。本方案只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX） |
+| 部署停在「UNSUPPORTED_JETPACK」或「UNSUPPORTED_TENSORRT」 | 系统不是 JetPack 6.2，重刷 JetPack 6.2 后再部署 |
+| RK3588 / RK3576 检查提示「missing …」 | 提示下方给出了实际路径时，把它填到对应的输入框（如「RKNN 运行库」）再部署；没有给出路径，说明板卡缺少该库，先安装 RKNN 运行库（rknpu2）、MPP、RGA 和 gstreamer1.0-plugins-bad、gstreamer1.0-rockchip |
+| 提示「Not an RTSP address」 | 摄像头地址要以 `rtsp://` 开头，多个地址之间用英文逗号分隔 |
+| 提示摄像头地址和编号数量不一致 | 摄像头编号要和地址一一对应，或者把编号留空让它自动编号 |
+| 下载识别模型失败 | 确认边缘主机能上网，然后重新部署 |
+| 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`，RK3576 为 `edge-parking-occupancy-rk3576`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口，或停掉占用 8099 的服务 |
 
-在这台 Jetson 上运行 Docker。2026-10-08 已在 Jetson Orin Nano 上验证：处理
-0.988 fps（1 路 1 fps），推理 p50 6.48 ms / p95 6.69 ms，丢帧 0。尚无真实停车视频
-上的车位准确率。
+### 部署目标 {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
-### 部署目标 {#rk3588_occupancy_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+从这台电脑通过网络（SSH）部署到 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）。
 
-通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（RK3588 设备，本地构建镜像 6a5c781d，合成占用/空位素材，1 路 1 fps，单车 ROI）：17 次
-occupied/free 状态切换，推理 p50 36.6 ms / p95 40.5 ms，丢帧 0。不给出车位准确率；
-多路容量请用自己的视频流测量。
+### 部署完成
 
-### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<主机IP>:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
 
-通过所需路径预检后，在 RK3588 主机运行 Docker。2026-10-08 有条件验证（RK3588
-设备，1 路 1 fps）：17 次 occupied/free 状态切换，推理 p50 36.6 ms / p95 40.5 ms。不给出
-车位准确率。
+### 部署目标 {#occupancy_local type=local device=jetson device_name="reComputer J30 / J40（本机）" config=devices/jetson_occupancy.yaml}
 
-### 部署目标 {#rk3576_occupancy_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+本应用就运行在这台 reComputer J30 / J40 上时，直接装在本机。
 
-通过 SSH 连接 RK3576 主机。验收受阻：2026-10-08 的测试板根分区空间不足，无法加载
-本包镜像，随包 compose 路径未参与运行；用替代镜像运行时输出了车位事件，但没有出现
-occupied 切换。
+### 部署完成
 
-### 部署目标 {#rk3576_occupancy_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://127.0.0.1:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
 
-通过所需路径预检后，在 RK3576 主机运行 Docker。验收受阻：RK3576 测试板无法加载
-本包镜像。
+### 部署目标 {#rk3588_occupancy_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_occupancy.yaml}
 
-## 步骤 2：验证 SlotsApp 健康状态 {#verify_occupancy type=http_debug required=true config=devices/health_verify.yaml}
+从这台电脑通过网络（SSH）部署到 reComputer RK3588。
 
-HTTP 验证步骤自动只检查 `/healthz` 返回 HTTP 200。通过后需人工查看响应体，并打开
-`http://<host>:<app.options.http.port>/slots/editor`（stock 默认端口为 8080）检查
-车位多边形。本机检查使用 `127.0.0.1`；远程部署填写主机可达的局域网或 Fleet 地址——
-验证步骤不会自动继承引擎的 SSH 主机。Jetson 上，挂载 JSON 的 `health.port`、部署
-输入 `health_port` 和验证输入 `port` 必须相同，Docker 健康检查在容器内使用该端口；
-`memory_limit=0` 表示不设上限，有界测试使用 `768m`。RK3576 / RK3588 上应用健康服务
-绑定 `0.0.0.0:8099`，验证输入 `port` 保持 `8099`；compose 健康检查仍在容器内访问
-`127.0.0.1:8099`。HTTP 200、响应体检查和 editor 页面不代表车位准确率、承载能力、
-设备验证或多摄像头验收通过。
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<主机IP>:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588（本机）" config=devices/rk3588_occupancy.yaml}
+
+本应用就运行在这台 reComputer RK3588 上时，直接装在本机。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://127.0.0.1:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#rk3576_occupancy_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/rk3576_occupancy.yaml}
+
+从这台电脑通过网络（SSH）部署到 reComputer RK3576。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<主机IP>:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#rk3576_occupancy_local type=local device=rk3576 device_name="reComputer RK3576（本机）" config=devices/rk3576_occupancy.yaml}
+
+本应用就运行在这台 reComputer RK3576 上时，直接装在本机。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://127.0.0.1:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+## 步骤 2: 画车位 {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
+
+在每路摄像头的画面上给每个车位画一个框，填上车位编号，并看到每个车位的实时状态。
+
+### 接线
+
+1. 打开车位编辑页（地址为 `http://<边缘主机 IP>:8080/slots/editor`，端口以部署时填写的为准），在「摄像头」下拉框里选一路摄像头，能看到实时画面。
+2. 先处理示例车位 P-01：在右侧列表里点它后面的 ✕ 删除；或者拖动它的四个角对齐到一个真实车位，再在列表里把 P-01 改成真实编号。
+3. 在画面上没有车位框的地方按住鼠标拖出一个矩形，松开后就新建了一个车位。
+4. 拖动这个车位的四个角，贴合画面里车位的四个角。
+5. 在右侧列表里把自动生成的编号改成车位编号（例如 B1-023）。
+6. 对这路摄像头能看到的每个车位重复第 3–5 步。删除车位点列表里的 ✕。
+7. 点「保存」。看到「已保存并生效，重启后保留」即完成，保存后立即生效。
+8. 在「摄像头」里切换到下一路，重复以上步骤。
+
+画好后每个车位按实时状态着色：红色为占用，绿色为空闲，灰色为未知（摄像头没有画面或刚保存还没判定）。右侧「实时状态」里的「占用」「空闲」是这路摄像头的车位数。
+
+画框时注意：
+
+- 一个框只框一个车位，沿车位线拖四个角即可，框必须是凸的（不能有向内凹的角）。
+- 车停进去后，车身在画面中要占到框面积的三分之一左右才会判为占用。框住好几个车位，或框住很远处的小车，都不会判为占用。
+- 被前排车辆挡住大半的车位，换一路角度更好的摄像头来画。
+
+### 部署完成
+
+车位检测已经在运行，画好的车位会持续上报状态。
+
+#### 初始设置
+
+1. 确认每路摄像头的示例车位 P-01 都已删除或改成了真实车位。
+2. 在你的余位屏、停车管理系统或 Home Assistant 里订阅主题 `<站点编号>/parking/<摄像头编号>/slots`。摄像头编号就是部署时填的编号；没填时依次为 `cam-01`、`cam-02`……
+
+#### 快速验证
+
+1. 在能访问 MQTT 服务器的电脑上运行：`mosquitto_sub -h <MQTT服务器IP> -t '<站点编号>/parking/+/slots' -v`
+2. 每路摄像头都会收到消息，消息里的 `stream_ok` 为 `true`。
+3. 让一辆车开进一个画好的车位，约 3 秒后该车位变成 `occupied`；车开走后约 5 秒变回 `free`。
+
+#### 怎么读车位状态
+
+每条消息对应一路摄像头，内容是这路摄像头下所有车位的当前状态：
+
+| 字段 | 含义 |
+|------|------|
+| `camera_id` | 摄像头编号 |
+| `slots` | 每个车位一项：`id` 车位编号，`state` 为 `occupied`（占用）/ `free`（空闲）/ `unknown`（未知） |
+| `occupied` / `free` / `unknown` | 这路摄像头下占用、空闲、未知的车位数 |
+| `changed` | 这次状态发生变化的车位编号；为空表示这条消息是摄像头断流、恢复或车位表更新引起的 |
+| `stream_ok` | 摄像头画面是否正常。断流约 10 秒后为 `false`，车位变为 `unknown` |
+
+把所有摄像头消息里的 `free` 相加，就是全场空闲车位数。
+
+#### 后续步骤
+
+- 车位调整随时回到车位编辑页修改，保存后立即生效。
+- 要加摄像头，重新执行步骤 1，把新摄像头的地址加在最后（填了摄像头编号的话，原有摄像头沿用原来的编号）。已画好的车位会保留。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 页面打不开 | 确认端口与部署时填的「车位编辑页端口」一致，且电脑能访问边缘主机 |
+| 画面一片黑或加载失败 | 这路摄像头还没出画面：等几秒，画面每秒自动刷新；仍不行就检查摄像头 RTSP 地址 |
+| 某路摄像头的车位一直是 `unknown`（灰色） | 主机连不上这路摄像头：用 VLC 在同一网络里打开它的 RTSP 地址，检查地址、用户名密码和编码（需为 H.264） |
+| 提示车位「不是凸四边形」 | 有一个角向内凹了，拖动那个角，让四个角都朝外 |
+| 提示「车位 id 不能为空」 | 在右侧列表里给这个车位填上编号 |
+| 提示「车位 id 重复」 | 同一路摄像头里车位编号不能重复，换一个编号 |
+| 拖矩形时选中了已有车位 | 在已有车位框内拖动会移动它；从没有车位框的地方开始拖 |
+| 车停进去了，状态还是 `free` | 框太大或车太远，车身占不到框的三分之一：把框收紧到单个车位 |

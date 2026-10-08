@@ -1,6 +1,6 @@
 services:
   parking:
-    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb}
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261009b@sha256:ca72f50c883432dae805aad169905048bb885301f06b787f043d6167942e305c}
     container_name: ${PARKING_CONTAINER_NAME:-edge-parking-occupancy-rk3588}
     restart: unless-stopped
     privileged: true

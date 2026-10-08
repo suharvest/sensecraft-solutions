@@ -1,0 +1,35 @@
+version: "1.0"
+id: slot_editor
+name: Draw the parking bays
+name_i18n: {zh: 画车位}
+type: web_dashboard
+web_dashboard:
+  url: "http://{{host}}:{{editor_port}}/slots/editor"
+  title: Slot editor
+  title_i18n:
+    zh: 车位编辑页
+  description: Pick a camera, drag a rectangle on an empty area of the live picture, drag its four corners onto the bay, and rename it in the list (✕ deletes a bay). Bays show red when occupied, green when free, grey when unknown. Click Save; it applies immediately and is kept across restarts.
+  description_i18n:
+    zh: 选择摄像头，在实时画面的空白处拖出一个矩形，拖动四个角贴合车位，在列表里改车位编号（✕ 删除车位）。车位红色为占用、绿色为空闲、灰色为未知。点「保存」后立即生效，重启后保留。
+user_inputs:
+  - id: host
+    name: Edge box IP address
+    name_i18n: {zh: 边缘主机 IP 地址}
+    type: text
+    default: "127.0.0.1"
+    default_template: "{{host}}"
+    required: true
+    placeholder: "192.168.1.100"
+    description: Filled in from the deploy step. For a deployment on this machine it is 127.0.0.1.
+    description_i18n: {zh: 自动带入部署步骤填写的地址；在本机部署时为 127.0.0.1。}
+  - id: editor_port
+    name: Slot editor port
+    name_i18n: {zh: 车位编辑页端口}
+    type: text
+    default: "8080"
+    default_template: "{{editor_port}}"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: Filled in from the slot editor port in the deploy step.
+    description_i18n: {zh: 自动带入部署步骤里的「车位编辑页端口」。}
