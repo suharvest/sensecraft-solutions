@@ -43,6 +43,8 @@ services:
       SLV_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
       SLV_ASR_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
       SLV_TTS_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      WYOMING_STT_PORT: ${WYOMING_STT_PORT:-10300}
+      WYOMING_TTS_PORT: ${WYOMING_TTS_PORT:-10200}
 
 volumes:
   jetson-models:

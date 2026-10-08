@@ -14,6 +14,8 @@ docker:
     JETSON_VOICE_IMAGE: "{{jetson_voice_image}}"
     JETSON_VOICE_DIGEST: "{{jetson_voice_digest}}"
     VOICE_PORT: "{{voice_port}}"
+    WYOMING_STT_PORT: "{{wyoming_stt_port}}"
+    WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
     ADAPTER_IMAGE: "{{adapter_image}}"
     JETSON_VOICE_PROFILE: "jetson-edgellm-v091-matcha"
 ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
@@ -24,12 +26,16 @@ user_inputs:
   - {id: jetson_voice_image, name: Jetson voice image, name_i18n: {zh: Jetson 语音镜像}, type: text, required: true, default: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008", description: Published OVS runtime image nrd6-ovs-jetson (2026-10-08)., description_i18n: {zh: 已发布的 OVS 运行镜像 nrd6-ovs-jetson（2026-10-08）。}}
   - {id: jetson_voice_digest, name: Jetson voice image digest, name_i18n: {zh: Jetson 语音镜像 digest}, type: text, required: true, default: "sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111"}
   - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", description: Local HTTP port of the OpenVoiceStream service (ASR + TTS); the Wyoming adapter connects to it on 127.0.0.1. Change it if 8623 is taken., description_i18n: {zh: OpenVoiceStream 服务（ASR + TTS）的本机 HTTP 端口，Wyoming 适配层经 127.0.0.1 连接。8623 被占用时修改。}}
+  - {id: wyoming_stt_port, name: Wyoming STT port, name_i18n: {zh: Wyoming STT 端口}, type: text, required: false, default: "10300", description: Port Home Assistant uses for speech-to-text. Change it if 10300 is taken., description_i18n: {zh: Home Assistant 连接语音转文字的端口。10300 被占用时修改。}}
+  - {id: wyoming_tts_port, name: Wyoming TTS port, name_i18n: {zh: Wyoming TTS 端口}, type: text, required: false, default: "10200", description: Port Home Assistant uses for text-to-speech. Change it if 10200 is taken., description_i18n: {zh: Home Assistant 连接文字转语音的端口。10200 被占用时修改。}}
   - {id: adapter_image, name: Wyoming adapter image, name_i18n: {zh: Wyoming 适配层镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b", description: Published wyoming-slv-adapter image pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 wyoming-slv-adapter 镜像（2026-10-08，按 digest 固定）。}}
 remote_overrides:
   environment:
     JETSON_VOICE_IMAGE: "{{jetson_voice_image}}"
     JETSON_VOICE_DIGEST: "{{jetson_voice_digest}}"
     VOICE_PORT: "{{voice_port}}"
+    WYOMING_STT_PORT: "{{wyoming_stt_port}}"
+    WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
     ADAPTER_IMAGE: "{{adapter_image}}"
     JETSON_VOICE_PROFILE: "jetson-edgellm-v091-matcha"
   actions:
