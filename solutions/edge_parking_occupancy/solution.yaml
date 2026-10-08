@@ -13,6 +13,14 @@ intro:
     zh: 在 Jetson 主机上从多路 RTSP 摄像头分析配置的车位多边形，并通过 MQTT 发布保留的车位状态。
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-slot-editor-20261008.jpg
+      caption: "Slot editor on Jetson Orin Nano Super: two parking-slot polygons (B1-023, B1-024) drawn over the live snapshot; both reported occupied over MQTT (test clip, 2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 上的车位编辑页：在实时快照上绘制的两个车位多边形（B1-023、B1-024）；当时 MQTT 上报两个车位均为占用（测试片段，2026-10-08）"
+        ja: "Jetson Orin Nano Super の駐車枠エディタ：ライブスナップショット上に描いた 2 つの枠（B1-023、B1-024）。その時点で MQTT は両枠とも占有と報告（テスト映像、2026-10-08）"
   category: vision_video_ai
   solution_type: solution
   tags: [parking, occupancy, rtsp, multi-camera, mqtt, yolox, jetson]
