@@ -26,7 +26,7 @@ is plain `curl`, available on macOS, Linux and Windows 10+.
    | Edit the solution's edit copy (see `references/edit-config.md`) | No — show the diff afterwards; the user sees it in the app as "locally modified" and can restore the official version in one click |
    | Change anything on a device: stop/remove containers, delete files, install packages, change system settings | **Yes** |
    | Redeploy | First retry: no. Every later retry: **yes** |
-   | Open a GitHub issue or pull request | **Yes** |
+   | Prepare an issue report (the user submits it) or open a pull request | **Yes** |
 
 3. **At most 3 fix-and-retry rounds** per problem. After that, stop and give the
    user a report (what failed, what you checked, what you changed).

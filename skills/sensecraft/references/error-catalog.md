@@ -20,5 +20,5 @@ environment, **Config** = solution configuration, **Engine** = app bug.
 | Containers up, but the page / port does not answer from another machine | Env | Device firewall | Check `sudo iptables -L -n` / `ufw status`; propose opening the port (user OK) |
 | USB device not detected (`No device found`, `detect` returns nothing) | Env | Cable is charge-only, wrong port, driver missing | Ask the user to replug with a data cable; on Windows check Device Manager for a COM port |
 | YAML / validation error naming a solution file | Config | Broken solution file | Fix it via `edit-config.md`; `validate` gives file and line |
-| Python traceback mentioning `provisioning_station/` | Engine | App bug | Issue draft (`diagnose.md` §6) |
-| Same step fails identically on two different devices after the environment checks pass | Engine (likely) | App bug | Issue draft |
+| Python traceback mentioning `provisioning_station/` | Engine | App bug | Issue report (`diagnose.md` §6) |
+| Same step fails identically on two different devices after the environment checks pass | Engine (likely) | App bug | Issue report (`diagnose.md` §6) |

@@ -65,7 +65,7 @@ three classes:
 |---|---|---|
 | **Device / environment** | port taken, disk full, Docker missing, network blocked, wrong password | Propose the exact fix commands → user OK → run them → retry |
 | **Solution configuration** | wrong port in compose, health check hits an auth endpoint, missing env var, bad image tag | Fix it in the edit copy (`edit-config.md`) → validate → apply → retry |
-| **Engine bug** | traceback inside `provisioning_station`, a step that fails the same way on any device, behaviour contradicting the solution's own config | Stop. Write the issue draft below |
+| **Engine bug** | traceback inside `provisioning_station`, a step that fails the same way on any device, behaviour contradicting the solution's own config | Stop. Prepare the issue report below |
 
 If the evidence does not fit any row, say so and show the user the first error
 with your best hypothesis and what would confirm it. Do not guess-and-retry.
@@ -81,23 +81,36 @@ After 3 rounds without success, stop and report.
 Always finish with: what failed, the evidence (first error line), what you
 changed (commands run, files edited with a diff), and the result.
 
-### Engine bug: issue draft
+### Engine bug: issue report
 
-Give the user this draft and ask before submitting it to
-https://github.com/suharvest/sensecraft-solutions/issues :
+Engine bugs are reported on the public repository
+`suharvest/sensecraft-solutions` with the **App / engine bug** form; the
+maintainers move them on from there. Do not submit it yourself — give the user
+a link to open in the browser and submit with their own GitHub account.
 
-```
-Title: [engine] <step type> fails: <first error, one line>
+1. Fill these fields (passwords, tokens and IP addresses removed):
 
-App version: <app_version from runtime.json>  Contract: <contract_version>
-OS: <this computer's OS>   Target device: <model / OS / arch>
-Solution: <solution_id>  Preset: <preset_id>  Step: <step id> (<type>)
-Edited locally: yes/no (attach the diff if yes)
+   | Field id | Content |
+   |---|---|
+   | `title` | `[engine] <step type> fails: <first error, one line>` |
+   | `app_version` | `app_version` from `runtime.json` |
+   | `os` | this computer's OS and version |
+   | `device` | target device model, OS, CPU architecture (or "this computer (local Docker)") |
+   | `solution` | `<solution_id> / <preset_id> / <step id> (<type>)` |
+   | `edited` | `No` or `Yes (diff below)` |
+   | `what_happened` | first error and the 10–20 log lines around it |
+   | `reproduce` | numbered steps |
+   | `ruled_out` | device checks that passed |
+   | `diff` | output of `/api/editor/solutions/<id>/diff`, only if edited |
 
-What happened:
-<first error and the 10–20 log lines around it, passwords and IPs redacted>
+2. Build the link, URL-encoding every value:
 
-Reproduce:
-1. ...
-What was ruled out: <device checks that passed>
-```
+   ```
+   https://github.com/suharvest/sensecraft-solutions/issues/new?template=engine-bug.yml&title=<...>&app_version=<...>&os=<...>&device=<...>&solution=<...>&edited=<...>&what_happened=<...>&reproduce=<...>&ruled_out=<...>
+   ```
+
+   Keep the link under about 7,000 characters: if the log excerpt or diff is
+   longer, leave those fields out of the link and give the user that text
+   separately to paste into the form.
+3. Show the user the filled fields and the link, and say the report will be
+   public.
