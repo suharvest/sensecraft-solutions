@@ -70,6 +70,14 @@ intro:
       badge_i18n: {zh: artifact 阻塞}
       description: Draft only. Requires a locally built SlotsApp image, target-device engine, and slot configuration.
       description_i18n: {zh: 仅为草案；需要本地构建的 SlotsApp 镜像、目标设备 engine 和车位配置。}
+      # Hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance receipt
+      # orin-nano/edge_parking_occupancy): package compose + locally built image,
+      # 1 stream at 1 fps, synthetic 640x360 clip (still 20 s / black 20 s).
+      # 0.988 fps processed, inference p50 6.48 / p95 6.69 ms, 0 dropped,
+      # 15 occupied/free transitions per slot over 300 s. Not covered: slot
+      # accuracy on real video, multi-stream capacity re-run, one-click path.
+      verified:
+        - hardware
       device_groups:
         - id: compute
           name: Edge Host
@@ -110,10 +118,18 @@ intro:
     - id: rk3588
       name: Multi-Camera RK3588 Occupancy (Draft)
       name_i18n: {zh: RK3588 多摄像头占用检测（草稿）}
-      badge: Blocked artifact / not verified
-      badge_i18n: {zh: artifact 阻塞 / 未验证}
+      badge: Blocked artifact
+      badge_i18n: {zh: artifact 阻塞}
       description: Requires a local native RK image, RKNN model and matching host ABI paths.
       description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
+      # Hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance receipt
+      # radxa/edge_parking_occupancy): package compose with the librga.so.2 and
+      # host GStreamer mounts, locally built image 6a5c781d, synthetic
+      # occupied/empty fixture, 1 stream at 1 fps, single-car ROI. 17 state
+      # changes, RKNN p50 36.6 / p95 40.5 ms, 0 dropped, MPP decode. Not covered:
+      # slot accuracy, multi-stream capacity, r2 image, public artifact.
+      verified:
+        - hardware
       device_groups:
         - id: compute
           name: Edge Host

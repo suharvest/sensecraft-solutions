@@ -8,6 +8,10 @@
 `core_parking.slots.app:SlotsApp`；`SlotHooks` 不是应用入口。车位多边形、流
 地址和目标设备 engine 从宿主机挂载。
 
+设备实测（Jetson Orin Nano，本地构建镜像，640x360 合成片段：停车场静帧 20 s / 黑帧
+20 s，1 路 1 fps）：处理 0.988 fps，推理 p50 6.48 ms / p95 6.69 ms，丢帧 0，300 s 内
+每个车位 15 次 occupied/free 切换。尚无真实停车视频上的车位准确率；本轮未重测多路容量。
+
 ## 步骤 1：部署 SlotsApp {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
 
 compose 将模型和配置留在镜像外。CUDA、TensorRT、NVDEC 及其他 Jetson ABI 库
@@ -19,6 +23,10 @@ compose 将模型和配置留在镜像外。CUDA、TensorRT、NVDEC 及其他 Je
 2. 每路 RTSP 流已独立验证。
 3. 将 `assets/config/slots.json` 复制到宿主机，编辑其中的流、MQTT broker、
    站点/设备编号、车位多边形和目标 engine 路径。
+   每个车位多边形只框一个车位，使检测器看到的停放车辆覆盖其面积至少 `occupied_ratio`（0.30）。
+   框住多辆小车或远处车辆的大多边形达不到该比例，永远不会报 `occupied`：验收素材上，大 ROI 的
+   cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。随包 `cam-b1-01` 多边形
+   对应验收素材，现场需按自己的摄像头重画全部多边形。
 4. 镜像与 vehicle640 engine 来自获准的本地构建。可选 `health_port` 默认 `8099`，
    需与挂载 JSON 中的端口一致。可选 `memory_limit` 默认 `0`（Compose 不设置
    cgroup 上限）；有界测试可填写 `768m`。可选 `data_dir` 默认 `./data`，必须是
@@ -63,6 +71,11 @@ artifact、车位配置和匹配的宿主机 ABI 路径。该转换尚未完成�
 填写车位多边形，并把每组多边形映射到对应的 stream ID；填写已存在且可写的
 `app.options.state_dir`。将这份已编辑的文件作为 `parking_config` 输入。
 
+每个车位多边形只框一个车位，使检测器看到的停放车辆覆盖其面积至少 `occupied_ratio`（0.30）。
+框住多辆小车或远处车辆的大多边形达不到该比例，永远不会报 `occupied`：验收素材上，大 ROI 的
+cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。随包 RK3576 多边形
+为占位值，现场需按自己的摄像头重画全部多边形。
+
 ### 部署目标 {#rk3576_occupancy_local type=local device=rk3576_occupancy device_name="RK3576" config=devices/rk3576_occupancy.yaml}
 
 通过所需路径预检后，在 RK3576 主机运行 Docker。
@@ -81,7 +94,13 @@ artifact、车位配置和匹配的宿主机 ABI 路径。该转换尚未完成�
 ## 套餐：RK3588 多摄像头占用检测（草稿）{#rk3588}
 
 此禁用套餐需要本地审查过的原生 RK 镜像、面向 RK3588 的 vehicle640 RKNN
-artifact、车位配置和匹配的宿主机 ABI 路径。该转换尚未完成设备验证。
+artifact、车位配置和匹配的宿主机 ABI 路径。设备实测（Radxa Rock 5T / RK3588，本地构建
+镜像 6a5c781d，合成占用/空位素材，1 路 1 fps，单车 ROI）：17 次 occupied/free 状态切换，
+推理 p50 36.6 ms / p95 40.5 ms，丢帧 0。不给出车位准确率；未测多路容量。
+compose 把宿主机 RGA 库挂载为 `librga.so.2`，并从 `parking_host_lib_dir`（默认
+`/lib/aarch64-linux-gnu`）挂载宿主机 GStreamer 运行时与 `h264parse`
+（`gstreamer1.0-plugins-bad`）。host 网络下 `app.options.http.port` 默认 8080；宿主机已有
+服务占用 8080 时改用其他端口。
 
 ## 步骤 1：部署 RK3588 SlotsApp {#deploy_rk3588_occupancy type=docker_deploy required=true config=devices/rk3588_occupancy.yaml}
 
@@ -97,6 +116,11 @@ RK3588 使用三个 RKNN context。默认流编码为 H.264；摄像头使用 H.
 匹配的 `backend.model_path` 和 `backend.model_sha256`；在 `app.options.slots` 中
 填写车位多边形，并把每组多边形映射到对应的 stream ID；填写已存在且可写的
 `app.options.state_dir`。将这份已编辑的文件作为 `parking_config` 输入。
+
+每个车位多边形只框一个车位，使检测器看到的停放车辆覆盖其面积至少 `occupied_ratio`（0.30）。
+框住多辆小车或远处车辆的大多边形达不到该比例，永远不会报 `occupied`：验收素材上，大 ROI 的
+cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。随包 `cam-b1-01` 多边形
+对应验收素材，现场需按自己的摄像头重画全部多边形。
 
 ### 部署目标 {#rk3588_occupancy_local type=local device=rk3588_occupancy device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 

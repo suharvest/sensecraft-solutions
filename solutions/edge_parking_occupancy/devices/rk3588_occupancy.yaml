@@ -25,6 +25,7 @@ docker:
     PARKING_MPP_LIB: "{{parking_mpp_lib}}"
     PARKING_RGA_LIB: "{{parking_rga_lib}}"
     PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
 ssh:
   port: 22
   default_user: recomputer
@@ -49,6 +50,7 @@ actions:
         PARKING_MPP_LIB: "{{parking_mpp_lib}}"
         PARKING_RGA_LIB: "{{parking_rga_lib}}"
         PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+        PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
       run: |
         set -eu
         docker image inspect "$PARKING_IMAGE" >/dev/null
@@ -60,6 +62,8 @@ actions:
         test -w "$PARKING_DATA_DIR"
         test -e "$PARKING_DRI_DEVICE"
         for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+        L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+        for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
         echo "RK inputs, cached image, model SHA and ABI paths exist"
       name_i18n:
         zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径
@@ -114,11 +118,21 @@ user_inputs:
     name_i18n: {zh: 宿主机 RGA 库}
     type: text
     required: true
+    description: Host RGA library file, for example /usr/lib/aarch64-linux-gnu/librga.so.2.1.0. It is mounted as librga.so.2, the soname vb-runtime links against.
+    description_i18n: {zh: 宿主机 RGA 库文件，例如 /usr/lib/aarch64-linux-gnu/librga.so.2.1.0；挂载为 vb-runtime 链接的 soname librga.so.2。}
   - id: parking_rknnrt_lib
     name: Host RKNN runtime library
     name_i18n: {zh: 宿主机 RKNN runtime 库}
     type: text
     required: true
+  - id: parking_host_lib_dir
+    name: Host GStreamer library directory
+    name_i18n: {zh: 宿主机 GStreamer 库目录}
+    type: text
+    default: "/lib/aarch64-linux-gnu"
+    required: false
+    description: Host directory holding libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 and gstreamer-1.0/libgstvideoparsersbad.so (Debian package gstreamer1.0-plugins-bad). These are mounted so the container uses the host GStreamer runtime and h264parse.
+    description_i18n: {zh: 存放 libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 与 gstreamer-1.0/libgstvideoparsersbad.so（Debian 包 gstreamer1.0-plugins-bad）的宿主机目录。挂载后容器使用宿主机 GStreamer 运行时和 h264parse。}
 remote_overrides:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
@@ -130,6 +144,7 @@ remote_overrides:
     PARKING_MPP_LIB: "{{parking_mpp_lib}}"
     PARKING_RGA_LIB: "{{parking_rga_lib}}"
     PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
   actions:
     before:
       - name: Check RK inputs, cached image and host ABI
@@ -144,6 +159,7 @@ remote_overrides:
           PARKING_MPP_LIB: "{{parking_mpp_lib}}"
           PARKING_RGA_LIB: "{{parking_rga_lib}}"
           PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+          PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
         run: |
           set -eu
           docker image inspect "$PARKING_IMAGE" >/dev/null
@@ -155,6 +171,8 @@ remote_overrides:
           test -w "$PARKING_DATA_DIR"
           test -e "$PARKING_DRI_DEVICE"
           for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
+          L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+          for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
           echo "RK inputs, cached image, model SHA and ABI paths exist"
         name_i18n:
           zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径

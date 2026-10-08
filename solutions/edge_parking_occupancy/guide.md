@@ -9,6 +9,12 @@ config must use `core_parking.slots.app:SlotsApp`; `SlotHooks` is not an app
 entrypoint. Slot polygons, stream URLs, and the target-device engine are
 mounted from the host.
 
+Measured on a Jetson Orin Nano with a locally built image and a synthetic
+640x360 clip (parking-lot still 20 s / black 20 s, 1 stream at 1 fps): 0.988 fps
+processed, inference p50 6.48 ms / p95 6.69 ms, 0 dropped frames, 15
+occupied/free transitions per slot over 300 s. No slot-accuracy figure on real
+parking video; multi-stream capacity was not re-measured in this run.
+
 ## Step 1: Deploy SlotsApp {#deploy_occupancy type=docker_deploy required=true config=devices/jetson_occupancy.yaml}
 
 The compose file keeps the model and configuration outside the image. CUDA,
@@ -21,6 +27,7 @@ is an external service.
 2. Each RTSP stream has been tested independently.
 3. Copy `assets/config/slots.json` to a host path and edit its streams, MQTT
    broker, site/device IDs, slot polygons, and target engine path.
+   Draw each slot polygon around one parking space so that a parked car the detector sees covers at least `occupied_ratio` (0.30) of it. A polygon spanning several small or distant cars stays below that ratio and never reports `occupied`: on the acceptance fixtures a wide ROI gave cover 0.0 (Orin Nano) and 0.11 (RK3588), a single-car ROI gave 0.40–0.45. The shipped `cam-b1-01` polygon matches the acceptance fixture; redraw every polygon for your camera.
 4. The image and vehicle640 engine come from an approved local build. Optional
    `health_port` defaults to `8099`; set it to the port in the mounted JSON.
    Optional `memory_limit` defaults to `0` (no Compose cgroup limit); a bounded
@@ -62,7 +69,7 @@ This disabled preset requires a locally reviewed native RK image, the RK3576-tar
 
 The app uses BGR 0–255 input, top-left padding, YOLOX COCO-80 decoding, two RKNN contexts, and default H.264 streams. Set each stream's `options.codec` to `h265` for H.265 input.
 
-Before deployment, copy the shipped `assets/config/slots-rk3576.json` to the RK3576 host and pass that host path as `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input.
+Before deployment, copy the shipped `assets/config/slots-rk3576.json` to the RK3576 host and pass that host path as `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input. Draw each slot polygon around one parking space so that a parked car the detector sees covers at least `occupied_ratio` (0.30) of it. A polygon spanning several small or distant cars stays below that ratio and never reports `occupied`: on the acceptance fixtures a wide ROI gave cover 0.0 (Orin Nano) and 0.11 (RK3588), a single-car ROI gave 0.40–0.45. The shipped RK3576 polygons are placeholders; redraw every polygon for your camera.
 
 ### Target {#rk3576_occupancy_local type=local device=rk3576_occupancy device_name="RK3576" config=devices/rk3576_occupancy.yaml}
 
@@ -78,13 +85,13 @@ Require HTTP 200 from `/healthz`. For a local check, use `127.0.0.1`; for a remo
 
 ## Preset: Multi-Camera RK3588 Occupancy (Draft) {#rk3588}
 
-This disabled preset requires a locally reviewed native RK image, the RK3588-targeted vehicle640 RKNN artifact, slot configuration, and matching host ABI paths. The conversion remains device-unverified.
+This disabled preset requires a locally reviewed native RK image, the RK3588-targeted vehicle640 RKNN artifact, slot configuration, and matching host ABI paths. Measured on a Radxa Rock 5T (RK3588) with a locally built image (6a5c781d) and a synthetic occupied/empty fixture (1 stream at 1 fps, single-car ROI): 17 occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms, 0 dropped frames. No slot-accuracy figure; multi-stream capacity was not measured. The compose mounts the host RGA library as `librga.so.2` and the host GStreamer runtime plus `h264parse` (`gstreamer1.0-plugins-bad`) from `parking_host_lib_dir` (default `/lib/aarch64-linux-gnu`). The stock `app.options.http.port` is 8080 under host networking; change it when another service on the host already uses 8080.
 
 ## Step 1: Deploy RK3588 SlotsApp {#deploy_rk3588_occupancy type=docker_deploy required=true config=devices/rk3588_occupancy.yaml}
 
 The app uses three RKNN contexts on RK3588. The default stream codec is H.264; set `options.codec` to `h265` when the camera input is H.265.
 
-Before deployment, copy the shipped `assets/config/slots-rk3588.json` to the RK3588 host and pass that host path as `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input.
+Before deployment, copy the shipped `assets/config/slots-rk3588.json` to the RK3588 host and pass that host path as `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input. Draw each slot polygon around one parking space so that a parked car the detector sees covers at least `occupied_ratio` (0.30) of it. A polygon spanning several small or distant cars stays below that ratio and never reports `occupied`: on the acceptance fixtures a wide ROI gave cover 0.0 (Orin Nano) and 0.11 (RK3588), a single-car ROI gave 0.40–0.45. The shipped `cam-b1-01` polygon matches the acceptance fixture; redraw every polygon for your camera.
 
 ### Target {#rk3588_occupancy_local type=local device=rk3588_occupancy device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 
