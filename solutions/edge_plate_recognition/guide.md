@@ -101,22 +101,32 @@ runs detection and recognition with TensorRT FP16.
 
 Deploy the recognition stack on the Jetson with a locally built parking image.
 The deployment consumes detector and CN recognizer TensorRT engines from the
-provided target-device model directory. Engine construction and acceptance are
-still pending for this draft.
+provided target-device model directory.
+
+Measured on a Jetson Orin Nano with a locally built image and a 1080p 30 fps
+RTSP slideshow of 40 labelled CCPD stills: 29.86 fps processed at 1080p,
+detector inference p50 5.61 ms / p95 5.75 ms, 56 `parking.plate/1` MQTT events
+with JPEG snapshots. Recognition accuracy is not accepted yet: the formal
+Chinese plate corpus (day and night) has not been run, so no accuracy figure is
+stated.
 
 ### Prerequisites
 
 1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
-2. At least 10 GB free disk.
+2. At least 0.5 GiB free disk beyond the image and engines, which must already be cached or staged on the host.
 3. A locally built parking image, a rendered `vb.config/1` file, and a target-device model directory containing the detector and CN recognizer TensorRT engines.
 4. Your gate camera's RTSP URL, credentials included if it requires them.
+   Optional `health_port` defaults to `8099` and must match `health.port` in the
+   mounted JSON; change both when 8099 is already taken on the host. Optional
+   `memory_limit` (default `0`, no limit) and `data_dir` (default `./data`,
+   existing writable directory for state and snapshots) match the counting package.
 5. The camera mounted 3–8 m from the lane, 1080p or better.
 
 ### Troubleshooting
 
 | Symptom | Action |
 |-------|----------|
-| Engine or runtime validation fails | Confirm the supplied image, config, target-device engine directory, NVIDIA runtime, and 10 GB free disk |
+| Engine or runtime validation fails | Confirm the supplied image, config, target-device engine directory, NVIDIA runtime, and at least 0.5 GiB free disk |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
 | Container restarts repeatedly | Check the logs for the engine path; delete a half-built engine from an interrupted run |
 

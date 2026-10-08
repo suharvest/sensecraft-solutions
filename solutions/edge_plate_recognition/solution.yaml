@@ -12,8 +12,9 @@
 # gallery 来源说明：暂无任何实拍图（真机验收 P10/P11 之前不得编造截图），
 #   见 gallery/ATTRIBUTION.md。cover_image 与 gallery[] 待实拍后回填。
 #
-# verified 状态：所有 preset 均未过真机验收（NRD-3 §8 Y1–Y6），一律不加
-#   `verified:`。某平台验收通过后只给对应 preset 追加。
+# verified 状态：仅 jetson preset 带 `verified: [hardware]`（2026-10-08 Orin Nano
+#   部署与输出链路验收；识别准确率未验收）。其余 preset 未过真机验收（NRD-3 §8
+#   Y1–Y6），不加 `verified:`。某平台验收通过后只给对应 preset 追加。
 #
 # `visibility` 不是 spec 字段（spec/solution.schema.json 无此键，加载时被
 # 静默丢弃，见 spec/CONTRACT.md「extra 字段处理」）。写在这里是作为草稿
@@ -257,6 +258,17 @@ intro:
       description: Keeps your existing gate cameras — Jetson Orin runs detection and recognition with TensorRT FP16. Add an R1124-10 for barrier control.
       description_i18n:
         zh: 保留现有出入口摄像头——Jetson Orin 用 TensorRT FP16 跑检测与识别。需要开闸时加一台 R1124-10。
+      # Hardware-verified 2026-10-08 on Jetson Orin Nano for the DEPLOYMENT AND
+      # OUTPUT PATH only (acceptance receipt orin-nano/edge_plate_recognition):
+      # package compose + locally built image, RTSP 1080p 30 fps slideshow of 40
+      # labelled CCPD stills -> NVDEC -> TRT detector + CN recognizer -> vote ->
+      # MQTT parking.plate/1 + JPEG snapshots. 29.86 fps at 1080p, detector p50
+      # 5.61 / p95 5.75 ms, 56 plate events, ready 5.4 s.
+      # Recognition accuracy is NOT accepted: the formal CN corpus gate (day
+      # >=95 % N>=120 / night >=90 % N>=80) was not run; frame-to-event p50 and
+      # the gate controller / relay steps were not measured.
+      verified:
+        - hardware
       device_groups:
         - id: compute
           name: Recognition Host

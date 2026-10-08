@@ -19,6 +19,9 @@ docker:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{config_path}}"
     PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"
   services:
     - name: edge-parking
       required: true
@@ -34,8 +37,8 @@ ssh:
 
 pre_checks:
   - type: disk_space
-    min_gb: 10
-    description: Models, TensorRT engines and the container image live on the device
+    min_gb: 0.5
+    description: Cached/pre-staged image, detector/recognizer TensorRT engines are supplied before deployment; keep at least 0.5 GiB free for runtime files, logs, snapshots and metadata. This is not a capacity or accuracy acceptance guarantee.
   - type: nvidia_runtime
     description: Check the NVIDIA container runtime is available
 
@@ -69,7 +72,7 @@ actions:
       timeout: 130
       ignore_error: false
       env:
-        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_PORT: "{{health_port}}"
         PARKING_HEALTH_DEADLINE_SECONDS: "120"
       run: |
         set -e
@@ -305,6 +308,30 @@ user_inputs:
     required: true
     description: Directory containing the target-device TensorRT detector and CN recognizer engines. Engine build/acceptance remains pending.
     description_i18n: {zh: 包含目标设备 TensorRT 检测和中文识别 engine 的目录；engine 构建和验收仍待完成。}
+  - id: health_port
+    name: Health port
+    name_i18n: {zh: 健康端口}
+    type: text
+    default: "8099"
+    required: false
+    description: HTTP health port exposed by the mounted config (health.port). Keep 8099 for the stock config; use the configured port when it differs or 8099 is already taken on the host.
+    description_i18n: {zh: 挂载配置（health.port）暴露的 HTTP 健康端口。默认配置使用 8099；配置了其他端口或宿主机 8099 已被占用时填写对应值。}
+  - id: memory_limit
+    name: Container memory limit
+    name_i18n: {zh: 容器内存上限}
+    type: text
+    default: "0"
+    required: false
+    description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
+    description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
+  - id: data_dir
+    name: Persistent data directory
+    name_i18n: {zh: 持久化数据目录}
+    type: text
+    default: "./data"
+    required: false
+    description: Existing writable host directory for restart-persistent state and plate snapshots; it is mounted at /data/edge-parking.
+    description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态和车牌快照；该目录挂载到 /data/edge-parking。}
 
 remote_overrides:
   remote_path: /home/{{username}}/edge-parking
@@ -313,6 +340,9 @@ remote_overrides:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{config_path}}"
     PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_HEALTH_PORT: "{{health_port}}"
+    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
+    PARKING_DATA_DIR: "{{data_dir}}"
   detection:
     method: network_scan
     manual_entry: true
@@ -341,6 +371,30 @@ remote_overrides:
       required: true
       description: Directory containing the target-device TensorRT detector and CN recognizer engines. Engine build/acceptance remains pending.
       description_i18n: {zh: 包含目标设备 TensorRT 检测和中文识别 engine 的目录；engine 构建和验收仍待完成。}
+    - id: health_port
+      name: Health port
+      name_i18n: {zh: 健康端口}
+      type: text
+      default: "8099"
+      required: false
+      description: HTTP health port exposed by the mounted config (health.port). Keep 8099 for the stock config; use the configured port when it differs or 8099 is already taken on the host.
+      description_i18n: {zh: 挂载配置（health.port）暴露的 HTTP 健康端口。默认配置使用 8099；配置了其他端口或宿主机 8099 已被占用时填写对应值。}
+    - id: memory_limit
+      name: Container memory limit
+      name_i18n: {zh: 容器内存上限}
+      type: text
+      default: "0"
+      required: false
+      description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
+      description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
+    - id: data_dir
+      name: Persistent data directory
+      name_i18n: {zh: 持久化数据目录}
+      type: text
+      default: "./data"
+      required: false
+      description: Existing writable host directory for restart-persistent state and plate snapshots; it is mounted at /data/edge-parking.
+      description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态和车牌快照；该目录挂载到 /data/edge-parking。}
     - id: rtsp_url
       name: Camera RTSP URL
       type: text

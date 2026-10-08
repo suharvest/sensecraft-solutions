@@ -94,21 +94,29 @@ reComputer R1124-10。
 ## 步骤 1: 部署车牌识别 {#deploy_jetson type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
 在 Jetson 上使用本地构建的停车镜像部署识别栈。部署会从提供的目标设备
-模型目录读取检测和中文识别 TensorRT engine；engine 构建和验收仍待完成。
+模型目录读取检测和中文识别 TensorRT engine。
+
+设备实测（Jetson Orin Nano，本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps
+RTSP 轮播）：1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
+`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收：正式中文车牌语料（白天、
+夜间）未运行，因此不给出准确率。
 
 ### 前置条件
 
 1. Jetson 运行 JetPack 6.x，NVIDIA 容器运行时可用。
-2. 至少 10 GB 可用磁盘。
+2. 镜像和 engine 已缓存或预置在宿主机上，此外至少 0.5 GiB 可用磁盘。
 3. 已本地构建的停车镜像、渲染后的 `vb.config/1` 文件，以及包含检测和中文识别 TensorRT engine 的目标设备模型目录。
 4. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
+   可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机 8099
+   已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`（默认
+   `./data`，已存在且可写，存放状态和快照）与计数包一致。
 5. 摄像头距车道 3–8 m，1080p 及以上。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |-------|----------|
-| engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘有 10 GB 可用 |
+| engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘至少有 0.5 GiB 可用 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址；路径或凭据错误是最常见原因 |
 | 容器反复重启 | 看日志里的 engine 路径；中断产生的半成品 engine 要删掉 |
 

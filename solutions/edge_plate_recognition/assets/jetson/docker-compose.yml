@@ -7,6 +7,7 @@ services:
     ipc: host
     network_mode: host
     restart: unless-stopped
+    mem_limit: ${PARKING_MEMORY_LIMIT:-0}
     environment:
       NVIDIA_VISIBLE_DEVICES: ${NVIDIA_VISIBLE_DEVICES:-all}
       NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
