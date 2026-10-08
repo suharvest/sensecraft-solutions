@@ -1,50 +1,35 @@
+# Jetson voice side: one OpenVoiceStream service (Qwen3-ASR + Matcha TTS,
+# profile jetson-edgellm-v091-matcha) serving both ASR and TTS, plus the
+# Wyoming adapter (STT :10300, TTS :10200) that Home Assistant connects to.
+# Same layout as the 2026-10-08 Orin NX acceptance run.
+# The model volume is writable: the engine resolver takes its lock at
+# $OVS_MODELS_DIR/.engine_resolver.lock (default /opt/models) and downloads
+# missing artifacts into it on first start.
 services:
-  voice-asr:
+  voice:
     image: ${JETSON_VOICE_IMAGE:?set JETSON_VOICE_IMAGE}@${JETSON_VOICE_DIGEST:?set JETSON_VOICE_DIGEST}
     runtime: nvidia
     ipc: host
     network_mode: host
-    command: ["/bin/sh", "-c", "exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8621"]
+    command: ["/bin/sh", "-c", "exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port ${VOICE_PORT:-8623}"]
     environment:
-      OVS_PROFILE: ${JETSON_ASR_PROFILE:?set JETSON_ASR_PROFILE}
-      OVS_PROFILE_DEFAULT: ${JETSON_ASR_PROFILE}
+      OVS_PROFILE: ${JETSON_VOICE_PROFILE:-jetson-edgellm-v091-matcha}
+      OVS_PROFILE_DEFAULT: ${JETSON_VOICE_PROFILE:-jetson-edgellm-v091-matcha}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
       OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
       HF_MODEL_CACHE_ROOT: /opt/models
+      OVS_MODELS_DIR: /opt/models
     volumes:
       - jetson-models:/opt/models
       - voice-data:/opt/seeed-local-voice/data
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
       - /usr/local/cuda/lib64:/host-cuda:ro
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 900s
-  voice-tts:
-    image: ${JETSON_VOICE_IMAGE:?set JETSON_VOICE_IMAGE}@${JETSON_VOICE_DIGEST:?set JETSON_VOICE_DIGEST}
-    runtime: nvidia
-    ipc: host
-    network_mode: host
-    command: ["/bin/sh", "-c", "exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port 8622"]
-    environment:
-      OVS_PROFILE: ${JETSON_TTS_PROFILE:?set JETSON_TTS_PROFILE}
-      OVS_PROFILE_DEFAULT: ${JETSON_TTS_PROFILE}
-      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
-      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
-      HF_MODEL_CACHE_ROOT: /opt/models
-    volumes:
-      - jetson-models:/opt/models
-      - voice-data:/opt/seeed-local-voice/data
-      - /usr/local/cuda/lib64:/host-cuda:ro
-      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
-      - /lib/aarch64-linux-gnu:/host-libs:ro
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8622/health"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${VOICE_PORT:-8623}/health >/dev/null"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,9 +38,11 @@ services:
     image: ${ADAPTER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b}
     network_mode: host
     restart: unless-stopped
+    depends_on: [voice]
     environment:
-      SLV_ASR_BASE_URL: ${SLV_ASR_BASE_URL}
-      SLV_TTS_BASE_URL: ${SLV_TTS_BASE_URL}
+      SLV_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      SLV_ASR_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      SLV_TTS_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
 
 volumes:
   jetson-models:

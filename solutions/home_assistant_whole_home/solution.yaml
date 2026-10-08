@@ -121,14 +121,15 @@ intro:
       name_i18n: {zh: 树莓派 + Jetson 语音（草稿）}
       badge: Blocked artifact
       badge_i18n: {zh: artifact 阻塞}
-      description: HA Container on Raspberry Pi and split voice services on J4012.
-      description_i18n: {zh: 树莓派运行 HA Container，J4012 运行分体语音服务。}
+      description: HA Container on Raspberry Pi; Qwen3-ASR + Matcha TTS with the Wyoming adapter on J4012.
+      description_i18n: {zh: 树莓派运行 HA Container，J4012 运行 Qwen3-ASR + Matcha TTS 与 Wyoming 适配层。}
       # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
       # built-in intent -> entity state change" only (receipts
       # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
       # HA 2026.9.3 from this package's rpi_ha.yml on a Pi 5, voice endpoint on an
-      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; not the package's
-      # split jetson_voice.yml). TTS-generated speech streamed to Assist, virtual
+      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; jetson_voice.yml
+      # now uses this single-OVS layout, but the compose file itself was not
+      # run on 2026-10-08 — Orin NX root disk full). TTS-generated speech streamed to Assist, virtual
       # demo lights: 5/5 zh+en commands action_done, processed locally, STT final
       # 0.11-0.95 s after audio end. NOT verified: HomeKit pairing, Aqara/ZHA
       # (no ZBT-2), Voice PE, ESPHome, physical mic/speaker, offline, ja.

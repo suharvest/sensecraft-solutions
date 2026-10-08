@@ -51,12 +51,15 @@ Connect to this Raspberry Pi over SSH.
 
 ## Step 2: Deploy Jetson voice services {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
 
-The ASR/TTS image and digest default to the published `nrd6-ovs-jetson:20261008`;
-the Wyoming adapter defaults to the published `wyoming-slv-adapter:20261008`. The current record has no
-verified TTS E2E and no license-cleared distributable voice artifact. The
-2026-10-08 measurement above used a different voice service on the Jetson (one
-OpenVoiceStream container with Qwen3-ASR and Matcha TTS plus the Wyoming
-adapter); this step's split ASR/TTS compose was not exercised.
+Runs one OpenVoiceStream service (Qwen3-ASR + Matcha TTS, profile
+`jetson-edgellm-v091-matcha`, image `nrd6-ovs-jetson:20261008`) for both ASR and
+TTS on port `voice_port` (default 8623), plus the Wyoming adapter
+(`wyoming-slv-adapter:20261008`, STT 10300 / TTS 10200) that Home Assistant
+connects to. On first start the service downloads its models into the
+`jetson-models` volume (at least 30 GB free disk). This is the layout of the
+2026-10-08 Orin NX measurement above (same image, same profile); this compose
+file itself was not run on a device on 2026-10-08 — the Orin NX had no free
+disk. No license-cleared distributable voice artifact is recorded yet.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
 

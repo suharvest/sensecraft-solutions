@@ -49,11 +49,12 @@
 
 ## 步骤 2：部署 Jetson 语音服务 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
 
-ASR/TTS 镜像和 digest 默认使用已发布的 `nrd6-ovs-jetson:20261008`；Wyoming 适配层默认使用
-已发布的 `wyoming-slv-adapter:20261008`。当前没有已验证的 TTS E2E，也没有完成许可
-核实的可分发语音 artifact。上文 2026-10-08 的实测在 Jetson 上使用了另一套语音服务
-（一个 OpenVoiceStream 容器运行 Qwen3-ASR 与 Matcha TTS，加 Wyoming 适配器），
-未运行本步骤的分体 ASR/TTS compose。
+运行一个 OpenVoiceStream 服务（Qwen3-ASR + Matcha TTS，配置 `jetson-edgellm-v091-matcha`，
+镜像 `nrd6-ovs-jetson:20261008`）同时提供 ASR 和 TTS，端口为 `voice_port`（默认 8623）；
+另有 Home Assistant 连接的 Wyoming 适配层（`wyoming-slv-adapter:20261008`，STT 10300 /
+TTS 10200）。首次启动时服务把模型下载到 `jetson-models` 卷（至少 30 GB 可用磁盘）。
+这与上文 2026-10-08 Orin NX 实测的布局相同（同一镜像、同一配置）；本 compose 文件本身
+2026-10-08 未在设备上运行——当时 Orin NX 没有可用磁盘。尚无完成许可核实的可分发语音 artifact。
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
 
