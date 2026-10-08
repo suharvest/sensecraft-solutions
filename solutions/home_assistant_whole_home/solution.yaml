@@ -109,8 +109,8 @@ intro:
       # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
       # built-in intent -> entity state change" only (receipts
       # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
-      # HA 2026.9.3 from this package's rpi_ha.yml on a Pi 5, voice endpoint on an
-      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; jetson_voice.yml
+      # HA 2026.9.3 from this package's docker-compose.rpi-ha.yml on a Pi 5, voice endpoint on an
+      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; docker-compose.jetson-voice.yml
       # now uses this single-OVS layout, but the compose file itself was not
       # run on 2026-10-08 — Orin NX root disk full). TTS-generated speech streamed to Assist, virtual
       # demo lights: 5/5 zh+en commands action_done, processed locally, STT final

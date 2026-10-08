@@ -4,7 +4,7 @@ name: Home Assistant Container on Raspberry Pi
 name_i18n: {zh: 树莓派 Home Assistant Container}
 type: docker_deploy
 docker:
-  compose_file: assets/docker/rpi_ha.yml
+  compose_file: assets/docker/docker-compose.rpi-ha.yml
   compose_dir: assets
   remote_path: /opt/ha-whole-home
   options: {project_name: ha_whole_home_rpi, remove_orphans: false}

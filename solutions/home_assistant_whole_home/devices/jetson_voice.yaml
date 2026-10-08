@@ -5,7 +5,7 @@ name_i18n: {zh: Jetson 语音栈}
 type: docker_deploy
 device_class: jetson
 docker:
-  compose_file: assets/docker/jetson_voice.yml
+  compose_file: assets/docker/docker-compose.jetson-voice.yml
   compose_dir: assets
   remote_path: /opt/ha-whole-home
   options: {project_name: ha_whole_home_jetson_voice, remove_orphans: false}
