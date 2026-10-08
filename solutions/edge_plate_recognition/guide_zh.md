@@ -94,17 +94,17 @@ R2035-12（Hailo-8）。每个部署目标写明了其真机验收状态。
 
 ## 步骤 1: 部署车牌识别 {#deploy_host type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-在所选主机上部署识别栈。Jetson 目标使用本地构建的停车镜像，从提供的目标设备
-模型目录读取检测和中文识别 TensorRT engine；RK3588、RK3576 目标使用转换好的
-RKNN 模型；R2035 目标使用编译好的 HEF 模型。
+在所选主机上部署识别栈。Jetson 目标使用已发布的停车镜像和已发布的检测、中文识别
+TensorRT engine 模型包（Orin Nano、JetPack 6.2.1 构建）；RK3588、RK3576 目标使用已发布的
+RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部署时下载并校验 SHA-256。
 
 ### 前置条件
 
 1. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
 2. 摄像头距车道 3–8 m，1080p 及以上。
-3. **Jetson：** 运行 JetPack 6.x，NVIDIA 容器运行时可用。镜像和 engine 已缓存或
-   预置在宿主机上，此外至少 0.5 GiB 可用磁盘。已本地构建的停车镜像、渲染后的
-   `vb.config/1` 文件，以及包含检测和中文识别 TensorRT engine 的目标设备模型目录。
+3. **Jetson：** 运行 JetPack 6.x，NVIDIA 容器运行时可用。除镜像和 engine 外
+   至少 0.5 GiB 可用磁盘。已发布的停车镜像和 engine 模型包在部署时获取；你需要提供
+   渲染后的 `vb.config/1` 文件。
    可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机
    8099 已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`
    （默认 `./data`，已存在且可写，存放状态和快照）与计数包一致。

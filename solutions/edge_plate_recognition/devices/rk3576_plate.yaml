@@ -5,7 +5,7 @@ type: docker_deploy
 
 # DRAFT（NRD-3 Y3 未验收）。
 # - 运行镜像 edge-parking-rk（FROM vision-base-rk）待 NRD-2 X3 产出，
-#   assets/rk3576/docker-compose.yml 里的 tag 待回填。
+#   assets/rk3576/docker-compose.yml 现用已发布的 nrd-parking-rk:20261008（按 digest 固定）。
 # - 三个 .rknn 待 Y3 转换任务产出（edge-parking-rknn-convert:2.3.2 容器，
 #   --target rk3576 --quant int8；识别 parity < 0.98 时改 fp16 重转，文件名
 #   相应变化），sha256 待产出后回填。
@@ -37,11 +37,11 @@ post_deployment:
   open_browser: false
 
 files:
-  # 待回填：NRD-3 Y3 产出后上传（solution-assets skill，人工），sha256 回填。
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_det_yolox_tiny_640.rk3576.int8.rknn
-    remote_path: /home/{{username}}/edge-parking/rk3576_plate/models/plate_det_yolox_tiny_640.rk3576.int8.rknn
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32.rk3576.int8.rknn
-    remote_path: /home/{{username}}/edge-parking/rk3576_plate/models/plate_rec_cn_96x32.rk3576.int8.rknn
+  # plate_rk3576: 5540641 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz
+    remote_path: /home/{{username}}/edge-parking/rk3576_plate/models/plate_rk3576-dbd43c252024.tar.gz
+    checksum:
+      sha256: dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655
 
 actions:
   before:
@@ -58,6 +58,34 @@ actions:
         zh: 检查 RKNN 运行时
 
   after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking/rk3576_plate/models"
+        BUNDLE="plate_rk3576-dbd43c252024.tar.gz"
+        BUNDLE_SHA="dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "859f70bf62bea907c944c2cb65f382d060ecf6b6a90432636f712a08ce9dbf0e  $MODELS_DIR/plate_det_yolox_tiny_640.rk3576.int8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "1c916574dedd7993684696b231e45c93d6cf0e428e823a48d784454c6eefbf2c  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
+          echo "859f70bf62bea907c944c2cb65f382d060ecf6b6a90432636f712a08ce9dbf0e  $MODELS_DIR/plate_det_yolox_tiny_640.rk3576.int8.rknn" | sha256sum -c -
+          echo "1c916574dedd7993684696b231e45c93d6cf0e428e823a48d784454c6eefbf2c  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
       env:
         SITE_ID: '{{site_id}}'

@@ -102,20 +102,20 @@ and runs detection and recognition. Pick the box in the deploy step: Jetson
 
 ## Step 1: Deploy Plate Recognition {#deploy_host type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-Deploy the recognition stack on the selected host. The Jetson target uses a
-locally built parking image and consumes detector and CN recognizer TensorRT
-engines from the provided target-device model directory; the RK3588 and RK3576
-targets use converted RKNN models; the R2035 target uses compiled HEF models.
+Deploy the recognition stack on the selected host. The Jetson target uses the
+published parking image and the published detector and CN recognizer TensorRT
+engine bundle (built on Orin Nano, JetPack 6.2.1); the RK3588 and RK3576
+targets use the published RKNN bundles; the R2035 target uses the published HEF
+bundle. Model bundles are downloaded and SHA-256 checked at deploy time.
 
 ### Prerequisites
 
 1. Your gate camera's RTSP URL, credentials included if it requires them.
 2. The camera mounted 3–8 m from the lane, 1080p or better.
 3. **Jetson:** JetPack 6.x with the NVIDIA container runtime available. At
-   least 0.5 GiB free disk beyond the image and engines, which must already be
-   cached or staged on the host. A locally built parking image, a rendered
-   `vb.config/1` file, and a target-device model directory containing the
-   detector and CN recognizer TensorRT engines. Optional `health_port` defaults
+   least 0.5 GiB free disk beyond the image and engines. The published parking
+   image and engine bundle are fetched at deploy time; you supply a rendered
+   `vb.config/1` file. Optional `health_port` defaults
    to `8099` and must match `health.port` in the mounted JSON; change both when
    8099 is already taken on the host. Optional `memory_limit` (default `0`, no
    limit) and `data_dir` (default `./data`, existing writable directory for

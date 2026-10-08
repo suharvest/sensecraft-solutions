@@ -4,8 +4,8 @@ name: NVIDIA Jetson Plate Recognition
 type: docker_deploy
 
 # DRAFT（NRD-3 Y2 未验收）。
-# - 运行镜像由本地构建产物参数提供；不假设公开镜像。
-# - 目标设备 TensorRT detector/CN recognizer engine、构建与验收仍待 NRD-3 产物完成。
+# - 运行镜像默认用已发布的 nrd-parking-jetson:20261008（按 digest 固定）。
+# - TensorRT engine 来自已发布的 plate_jetson_orin_nano 模型包（Orin Nano / JetPack 6.2.1 / TRT 10.3 构建）。
 
 device_class: jetson
 
@@ -18,7 +18,7 @@ docker:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{config_path}}"
-    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/jetson_plate/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_MEMORY_LIMIT: "{{memory_limit}}"
     PARKING_DATA_DIR: "{{data_dir}}"
@@ -47,6 +47,12 @@ deploy_timeout: 3600
 post_deployment:
   open_browser: false
 
+files:
+  # plate_jetson_orin_nano: 11238840 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_jetson_orin_nano-a5e0e456c945.tar.gz
+    remote_path: /home/{{username}}/edge-parking/jetson_plate/models/plate_jetson_orin_nano-a5e0e456c945.tar.gz
+    checksum:
+      sha256: a5e0e456c945256a6dee8e614cfcfd9cb10380b3459504d0d1fccd5e5d16d64d
 actions:
   before:
     - name: Validate Jetson runtime
@@ -153,6 +159,34 @@ actions:
         PY
 
   after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking/jetson_plate/models"
+        BUNDLE="plate_jetson_orin_nano-a5e0e456c945.tar.gz"
+        BUNDLE_SHA="a5e0e456c945256a6dee8e614cfcfd9cb10380b3459504d0d1fccd5e5d16d64d"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_jetson_orin_nano-a5e0e456c945.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "898b3afcab5bf9a4e68608d4e0d5b869d471df4e7a36975b64228de0ea0863a9  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
+          echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c -
+          echo "898b3afcab5bf9a4e68608d4e0d5b869d471df4e7a36975b64228de0ea0863a9  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
       # 渲染 vb.config/1 预设 plate.json 的实例配置：站点、流、broker。
       # 检测/识别 engine 路径与构建动作待 Y2 回填。
@@ -288,12 +322,13 @@ user_inputs:
       zh: MQTT 密码
 
   - id: parking_image
-    name: Locally built parking image
-    name_i18n: {zh: 本地构建的停车镜像}
+    name: Parking image
+    name_i18n: {zh: 停车镜像}
     type: text
-    required: true
-    description: Use a locally built image from the reviewed source snapshot; no public image is supplied.
-    description_i18n: {zh: 使用基于已审查源码快照本地构建的镜像；不提供公开镜像。}
+    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
+    required: false
+    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
   - id: config_path
     name: Host config path
     name_i18n: {zh: 宿主机配置路径}
@@ -301,13 +336,6 @@ user_inputs:
     required: true
     description: Path to the vb.config/1 JSON rendered for this camera and MQTT broker.
     description_i18n: {zh: 针对本摄像头和 MQTT broker 渲染的 vb.config/1 JSON 路径。}
-  - id: models_dir
-    name: Target-device engine directory
-    name_i18n: {zh: 目标设备 engine 目录}
-    type: text
-    required: true
-    description: Directory containing the target-device TensorRT detector and CN recognizer engines. Engine build/acceptance remains pending.
-    description_i18n: {zh: 包含目标设备 TensorRT 检测和中文识别 engine 的目录；engine 构建和验收仍待完成。}
   - id: health_port
     name: Health port
     name_i18n: {zh: 健康端口}
@@ -339,7 +367,7 @@ remote_overrides:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{config_path}}"
-    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/jetson_plate/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_MEMORY_LIMIT: "{{memory_limit}}"
     PARKING_DATA_DIR: "{{data_dir}}"
@@ -351,12 +379,13 @@ remote_overrides:
   # plus the SSH connection fields.
   user_inputs:
     - id: parking_image
-      name: Locally built parking image
-      name_i18n: {zh: 本地构建的停车镜像}
+      name: Parking image
+      name_i18n: {zh: 停车镜像}
       type: text
-      required: true
-      description: Use a locally built image from the reviewed source snapshot; no public image is supplied.
-      description_i18n: {zh: 使用基于已审查源码快照本地构建的镜像；不提供公开镜像。}
+      default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
+      required: false
+      description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+      description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
     - id: config_path
       name: Host config path
       name_i18n: {zh: 宿主机配置路径}
@@ -364,13 +393,6 @@ remote_overrides:
       required: true
       description: Path to the vb.config/1 JSON rendered for this camera and MQTT broker.
       description_i18n: {zh: 针对本摄像头和 MQTT broker 渲染的 vb.config/1 JSON 路径。}
-    - id: models_dir
-      name: Target-device engine directory
-      name_i18n: {zh: 目标设备 engine 目录}
-      type: text
-      required: true
-      description: Directory containing the target-device TensorRT detector and CN recognizer engines. Engine build/acceptance remains pending.
-      description_i18n: {zh: 包含目标设备 TensorRT 检测和中文识别 engine 的目录；engine 构建和验收仍待完成。}
     - id: health_port
       name: Health port
       name_i18n: {zh: 健康端口}

@@ -2,7 +2,7 @@
   "_comment": "DRAFT vb.config/1 预设 plate.json（NRD-3 §5.4，rk3588/RKNN INT8）。contexts_per_worker 3、core_masks [1,2,4]（NRD-3 Y3）；stage2.charset 与 vote.accept 由 core_parking.plate.charset 生成，不手写。",
   "backend": {
     "name": "rknn",
-    "model_path": "/models/plate_det_yolox_tiny_640.rk3588.int8.rknn",
+    "model_path": "/models/plate_det_yolox_tiny_640_w8a8.rk3588.rknn",
     "input_hw": [640, 640],
     "contexts_per_worker": 3,
     "core_masks": [1, 2, 4]

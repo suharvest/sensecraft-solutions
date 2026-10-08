@@ -1,8 +1,7 @@
-# DRAFT — 镜像 edge-parking-rk 待 NRD-2 X3 产出（FROM vision-base-rk），
-# tag 待回填；config/plate.json 由部署步 after_upload 渲染。
+# 镜像：已发布的 nrd-parking-rk:20261008（按 digest 固定）；config/plate.json 由部署步 after_upload 渲染。
 services:
   edge-parking:
-    image: sensecraft/edge-parking-rk:0.1.0-draft
+    image: sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb
     network_mode: host
     restart: unless-stopped
     volumes:

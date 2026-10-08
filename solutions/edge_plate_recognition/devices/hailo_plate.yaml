@@ -41,11 +41,11 @@ post_deployment:
   open_browser: false
 
 files:
-  # 待回填：NRD-3 Y4 产出后上传（solution-assets skill，人工），sha256 回填。
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_det_yolox_tiny_640.hef
-    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_det_yolox_tiny_640.hef
-  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_parking/models/plate_rec_cn_96x32.hef
-    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_rec_cn_96x32.hef
+  # plate_hailo8: 6803299 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_hailo8-3d28c0569093.tar.gz
+    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_hailo8-3d28c0569093.tar.gz
+    checksum:
+      sha256: 3d28c05690938ae5f2ab470a628bedfee552ae5dae67547d5ec0e0f5c22924ca
 
 actions:
   before:
@@ -67,6 +67,34 @@ actions:
         zh: 检查 Hailo 运行时
 
   after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking/hailo_plate/models"
+        BUNDLE="plate_hailo8-3d28c0569093.tar.gz"
+        BUNDLE_SHA="3d28c05690938ae5f2ab470a628bedfee552ae5dae67547d5ec0e0f5c22924ca"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_hailo8-3d28c0569093.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "19a1256a2bf77440fbb125c99756c20be7fcc91a4e080975e515fecc5603ca13  $MODELS_DIR/plate_det_yolox_tiny_640.hef" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "340db0a625d8b1724f29fcdf210aabae20357517ef87082e2a2dd9fb845ca7d0  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
+          echo "19a1256a2bf77440fbb125c99756c20be7fcc91a4e080975e515fecc5603ca13  $MODELS_DIR/plate_det_yolox_tiny_640.hef" | sha256sum -c -
+          echo "340db0a625d8b1724f29fcdf210aabae20357517ef87082e2a2dd9fb845ca7d0  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
       env:
         SITE_ID: '{{site_id}}'

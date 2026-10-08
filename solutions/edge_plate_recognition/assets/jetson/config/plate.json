@@ -3,7 +3,7 @@
   "device_id": "jetson-plate-gate-a",
   "backend": {
     "name": "trt",
-    "model_path": "/models/plate_det_yolox_tiny_640.trt",
+    "model_path": "/models/plate_det_yolox_tiny_640_fp16.engine",
     "input_size": [640, 640],
     "align": "top_left",
     "input": {"color_order": "bgr", "divide": 1.0},
@@ -32,7 +32,7 @@
         "mode": "full",
         "region": "cn",
         "roi": [[0.2, 0.3], [0.8, 0.3], [0.8, 0.95], [0.2, 0.95]],
-        "stage2": {"model_path": "/models/plate_rec_cn_96x32.trt", "input_hw": [32, 96], "classes": [0], "expand": 0.08, "max_per_track": 7, "color": "rgb", "scale": 0.0039215686},
+        "stage2": {"model_path": "/models/plate_rec_cn_96x32_fp16.engine", "input_hw": [32, 96], "classes": [0], "expand": 0.08, "max_per_track": 7, "color": "rgb", "scale": 0.0039215686},
         "vote": {"window": 7, "min_agree": 3, "min_conf": 0.6, "flush_min_agree": 2},
         "dedup_s": 30,
         "snapshot_dir": "/data/edge-parking/snapshots",
