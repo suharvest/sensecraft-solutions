@@ -1,6 +1,6 @@
 services:
   clip-pt:
-    image: ${CLIP_PT_IMAGE:?set CLIP_PT_IMAGE to an approved local build}
+    image: ${CLIP_PT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71}
     network_mode: host
     depends_on:
       slv-sensevoice: {condition: service_healthy}
@@ -19,7 +19,7 @@ services:
       start_period: 30s
 
   slv-sensevoice:
-    image: ${SLV_IMAGE:?set SLV_IMAGE to an approved private build}
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111}
     runtime: nvidia
     ipc: host
     network_mode: host
@@ -39,7 +39,7 @@ services:
       HF_HOME: /var/cache/ovs-sensevoice/hf
       HF_HUB_CACHE: /var/cache/ovs-sensevoice/hf
     volumes:
-      - "${ASR_MODEL_DIR:?set ASR_MODEL_DIR to the approved Jetson ASR bundle}:/models:ro"
+      - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
       - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
       - /usr/src/tensorrt:/usr/src/tensorrt:ro
       - /usr/local/cuda/lib64:/host-cuda:ro
@@ -58,7 +58,7 @@ services:
       start_period: 900s
 
   slv-whisper:
-    image: ${SLV_IMAGE:?set SLV_IMAGE to an approved private build}
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111}
     runtime: nvidia
     ipc: host
     network_mode: host
@@ -92,7 +92,7 @@ services:
       HF_HOME: /var/cache/ovs-whisper/hf
       HF_HUB_CACHE: /var/cache/ovs-whisper/hf
     volumes:
-      - "${ASR_MODEL_DIR:?set ASR_MODEL_DIR to the approved Jetson ASR bundle}:/models:ro"
+      - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
       - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
       - /usr/src/tensorrt:/usr/src/tensorrt:ro
       - /usr/local/cuda/lib64:/host-cuda:ro

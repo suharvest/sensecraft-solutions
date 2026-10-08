@@ -1,7 +1,7 @@
 # Deployment Guide
 
-> **Draft / disabled.** The compose files are reviewable contracts only; they
-> fail closed until approved local images and physical evidence exist.
+> **Draft.** The compose files are reviewable contracts; inputs without a
+> published default fail closed.
 
 ## Preset: Clip + Edge Compute Box (Draft) {#clip_edge_box}
 
@@ -11,8 +11,9 @@ target states its on-device acceptance status.
 
 ## Step 1: Deploy local transcription stack {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
 
-Provide approved local clip-pt, SLV/OVS, and Mosquitto image references, the
-preloaded ASR model roots on the selected host, and a config based on the
+The clip-pt image defaults to the published 2026-10-08 image; on Jetson the
+OVS image and ASR model bundle are published too. Provide the SLV image and
+preloaded ASR model roots on RK hosts, a Mosquitto image reference, and a config based on the
 reviewed `assets/config/config.example.yaml`. Pair the Clip manually and use
 one host binding only.
 
@@ -48,8 +49,8 @@ set it to `false`: this contract only accepts the Jetson CUDA CAM++ metadata,
 and no matching RKNN speaker backend is claimed here. With `false`, the
 existing legacy CPU/empty-result behavior is retained.
 
-**Jetson.** The Jetson voice backend and CUDA runtime require approved
-artifacts; no registry digest is implied here.
+**Jetson.** The Jetson voice backend uses the published
+`nrd6-ovs-jetson:20261008` image (pinned by digest); the CUDA runtime stays host-owned.
 
 The two SLV services require the Jetson runtime ABI: JetPack 6.2 with
 TensorRT 10.3.0 and Python 3.10. The deployment checks the host TensorRT
@@ -60,11 +61,13 @@ missing paths or a different TensorRT version fail closed. This requirement is
 separate from the device-specific model plans below and does not provide a CPU
 fallback.
 
-Provide the approved local `clip-pt` image, approved private OVS image, edited
-Clip config, existing absolute ASR bundle directory on the selected Jetson (for
-example `/opt/models/clip-asr`), and approved Mosquitto image. A Jetson LLM
+Provide the edited Clip config and an approved Mosquitto image. The `clip-pt`
+and OVS images default to the published 2026-10-08 images (pinned by digest),
+and the deployment downloads the `clip-orin-nx-r1` ASR bundle (SHA-256
+checked) into `/opt/clip-private-transcription/models` on the Jetson; its plans
+were built for Orin NX. A Jetson LLM
 endpoint such as port 8000 may be used when it exists, but this package does
-not assume or verify one. Before deployment, create this tree with the exact
+not assume or verify one. The bundle unpacks to this tree with the exact
 filenames consumed by the profiles:
 
 ```text

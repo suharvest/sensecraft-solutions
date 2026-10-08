@@ -1,7 +1,7 @@
 # 部署指南
 
-> **草稿 / 禁用。** compose 只是可审查契约；获准的本地镜像和真机证据齐备前
-> 会 fail closed。
+> **草稿。** compose 是可审查契约；没有已发布默认值的输入会
+> fail closed。
 
 ## 套餐：Clip + 边缘算力盒子（草稿）{#clip_edge_box}
 
@@ -10,8 +10,8 @@
 
 ## 步骤 1：部署本地转写栈 {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
 
-提供获准的本地 clip-pt、SLV/OVS 和 Mosquitto 镜像引用、所选主机上已预载的 ASR
-模型根目录，并基于审查过的 `assets/config/config.example.yaml` 准备配置。手动配对
+clip-pt 镜像默认使用 2026-10-08 发布的镜像；Jetson 上的 OVS 镜像和 ASR 模型包也已发布。
+请提供 RK 主机上的 SLV 镜像和已预载的 ASR 模型根目录、Mosquitto 镜像引用，并基于审查过的 `assets/config/config.example.yaml` 准备配置。手动配对
 Clip，并保持单一主机绑定。
 
 compose 栈会启动 clip-pt、独立的 SenseVoice 与 Whisper SLV 服务和 Mosquitto。LLM 使用用户在共享配置中填写的 OpenAI 兼容端点（`base_url`、`model_name`、`api_key`、`timeout_s`）；
@@ -35,8 +35,8 @@ python3 -c 'import secrets; print(secrets.token_hex(32))'
 RK3576/RK3588 部署必须将其设为 `false`：当前严格契约只接受 Jetson CUDA CAM++ 元数据，
 本文不宣称存在匹配的 RKNN speaker backend。设为 `false` 时保留现有 legacy CPU/空结果行为。
 
-**Jetson。** Jetson 语音后端和 CUDA runtime 需要获准 artifact；这里不暗示存在 registry
-digest。
+**Jetson。** Jetson 语音后端使用已发布的 `nrd6-ovs-jetson:20261008` 镜像（按 digest 固定）；
+CUDA runtime 由宿主机提供。
 
 两个 SLV 服务要求 Jetson runtime ABI：JetPack 6.2、TensorRT 10.3.0 和
 Python 3.10。部署会在 Compose 启动前检查主机 TensorRT binding 和库，然后以只读方式挂载
@@ -44,11 +44,12 @@ binding、`/usr/src/tensorrt`、`/usr/local/cuda/lib64`、NVIDIA 库及 ARM64 �
 镜像加载路径固定到这些挂载；路径缺失或 TensorRT 版本不符时 fail closed，不提供 CPU fallback。
 这项要求与下方按设备生成的模型 plan 分开，模型仍必须匹配目标 Jetson。
 
-请提供五个部署输入：获准的本地 `clip-pt` 镜像、获准的私有 OVS 镜像、编辑后的
-Clip 配置、选定 Jetson 上已有的绝对 ASR 模型包目录（例如 `/opt/models/clip-asr`）、
-获准的 Mosquitto 镜像。这些目录是
+请提供两个部署输入：编辑后的 Clip 配置和获准的 Mosquitto 镜像。`clip-pt` 和 OVS
+镜像默认使用 2026-10-08 发布的镜像（按 digest 固定），部署时把 `clip-orin-nx-r1` ASR
+模型包（校验 SHA-256）下载到 Jetson 的 `/opt/clip-private-transcription/models`；
+其中的 plan 按 Orin NX 构建。这些目录是
 Jetson 上的路径，不是 App 所在电脑的路径，也不会上传。
-部署前请按当前 profile 使用的准确文件名准备目录：
+模型包解包后的目录与 profile 使用的准确文件名一致：
 
 ```text
 /opt/models/clip-asr/

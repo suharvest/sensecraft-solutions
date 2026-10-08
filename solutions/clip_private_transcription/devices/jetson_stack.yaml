@@ -4,10 +4,44 @@ name: Jetson transcription stack
 name_i18n: {zh: Jetson 转写栈}
 type: docker_deploy
 device_class: jetson
-docker: {compose_file: assets/docker/jetson.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_jetson, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /health, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /health, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "{{asr_model_dir}}", MQTT_IMAGE: "{{mqtt_image}}"}}
+docker: {compose_file: assets/docker/jetson.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_jetson, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /health, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /health, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models", MQTT_IMAGE: "{{mqtt_image}}"}}
 ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
 pre_checks: [{type: disk_space, min_gb: 15, description: Models and local transcripts require at least 15 GB free.}, {type: nvidia_runtime, description: NVIDIA container runtime is required for the voice stack.}]
+files:
+  # clip-orin-nx-r1: 1775453326 bytes, published 2026-10-08 (14 files: SenseVoice TRT, Whisper base TRT plans,
+  # CAM++ plan; built for Jetson Orin NX / TensorRT 10.3). after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/clip-orin-nx-r1-fd3ec0762602.tar.gz
+    remote_path: /opt/clip-private-transcription/models/clip-orin-nx-r1-fd3ec0762602.tar.gz
+    sudo: true
+    checksum:
+      sha256: fd3ec0762602822084e30a2f7f24901b42669d0411dac12d264a4ca783b282d1
 actions:
+  after_upload:
+    - name: Fetch and unpack the ASR model bundle
+      name_i18n: {zh: 获取并解包 ASR 模型包}
+      sudo: true
+      timeout: 3600
+      run: |
+        set -eu
+        D="/opt/clip-private-transcription/models"
+        BUNDLE="clip-orin-nx-r1-fd3ec0762602.tar.gz"
+        BUNDLE_SHA="fd3ec0762602822084e30a2f7f24901b42669d0411dac12d264a4ca783b282d1"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/clip-orin-nx-r1-fd3ec0762602.tar.gz"
+        mkdir -p "$D"
+        if [ -f "$D/models/SHA256SUMS.ok" ]; then
+          echo "ASR model bundle already unpacked"
+        else
+          if ! echo "$BUNDLE_SHA  $D/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$D/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $D/$BUNDLE.part" | sha256sum -c -
+            mv -f "$D/$BUNDLE.part" "$D/$BUNDLE"
+          fi
+          tar -xzf "$D/$BUNDLE" --no-same-owner -C "$D"
+          (cd "$D" && sha256sum -c SHA256SUMS)
+          chmod -R a+rX "$D/models"
+          touch "$D/models/SHA256SUMS.ok"
+        fi
   before:
     - name: Check Jetson TensorRT host ABI
       name_i18n: {zh: 检查 Jetson TensorRT 主机 ABI}
@@ -54,9 +88,8 @@ actions:
           exit 1
         fi
 user_inputs:
-  - {id: clip_pt_image, name: clip-pt image, name_i18n: {zh: clip-pt 镜像}, type: text, required: true}
-  - {id: slv_image, name: SLV image, name_i18n: {zh: SLV 镜像}, type: text, required: true, description: No public image is implied; provide an approved private build containing the OVS runtime.}
-  - {id: asr_model_dir, name: Jetson ASR model bundle directory, name_i18n: {zh: Jetson ASR 模型包目录}, type: text, required: true, description: Existing absolute directory on the selected Jetson (for example /opt/models/clip-asr), not a path on the app computer or an upload. Mounts read-only at /models. Required tree: sensevoice-trt/sense-voice-encoder.scaled.fixed.onnx, sensevoice-trt/am.mvn, sensevoice-trt/embedding.npy, sensevoice-trt/chn_jpn_yue_eng_ko_spectok.bpe.model, sensevoice-trt/sensevoice.plan; whisper/encoder/jetson/enc_base_30s_bf16.plan, whisper/mel_80_filters.txt, whisper/vocab_en.txt; plans/prefill_fp16.plan and plans/step_fp16.plan; speaker/campplus.plan. The BF16 encoder and decoder plans and the CAM++ plan must be built for this Jetson model/runtime (NX plans are device-specific and are not portable).}
+  - {id: clip_pt_image, name: clip-pt image, name_i18n: {zh: clip-pt 镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71", description: Published clip-pt image pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 clip-pt 镜像（2026-10-08，按 digest 固定）。}}
+  - {id: slv_image, name: SLV image, name_i18n: {zh: SLV 镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111", description: Published OVS runtime image nrd6-ovs-jetson pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 OVS 运行镜像 nrd6-ovs-jetson（2026-10-08，按 digest 固定）。}}
   - {id: config_path, name: clip-pt config path, name_i18n: {zh: clip-pt 配置路径}, type: text, required: true}
   - {id: mqtt_image, name: Mosquitto image, name_i18n: {zh: Mosquitto 镜像}, type: text, required: true, description: Approved Mosquitto image compatible with Jetson., description_i18n: {zh: 与 Jetson 兼容的获准 Mosquitto 镜像。}}
-remote_overrides: {environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "{{asr_model_dir}}", MQTT_IMAGE: "{{mqtt_image}}"}}
+remote_overrides: {environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models", MQTT_IMAGE: "{{mqtt_image}}"}}

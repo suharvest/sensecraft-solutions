@@ -28,7 +28,7 @@ version: "1.0"
 id: clip_private_transcription
 name: Private Clip Transcription
 name_i18n: {zh: Clip 本地私有转写}
-enabled: false
+enabled: true
 intro:
   visibility: staging
   summary: Synchronize reSpeaker Clip recordings to a local host and expose private transcription results through HTTP and MQTT.
@@ -108,9 +108,9 @@ intro:
         ja: Clip + エッジコンピューティングボックス（ドラフト）
       badge: Draft / acceptance incomplete
       badge_i18n: {zh: 草稿 / 验收未完成}
-      description: Pick a Jetson, RK3588 or RK3576 host in the deploy step. Requires a local clip-pt artifact and approved SLV images; Clip syncs over BLE, Wi-Fi sync needs a dedicated adapter. No target has passed physical acceptance.
+      description: Pick a Jetson, RK3588 or RK3576 host in the deploy step. Uses the published clip-pt image; Jetson also uses the published OVS image and ASR bundle, RK hosts need approved SLV images; Clip syncs over BLE, Wi-Fi sync needs a dedicated adapter. No target has passed physical acceptance.
       description_i18n:
-        zh: 在部署步骤里选择 Jetson、RK3588 或 RK3576 主机。需要本地 clip-pt artifact 和获准的 SLV 镜像；Clip 经 BLE 同步，Wi-Fi 同步需要专用网卡。尚无部署目标通过真机验收。
+        zh: 在部署步骤里选择 Jetson、RK3588 或 RK3576 主机。使用已发布的 clip-pt 镜像；Jetson 还使用已发布的 OVS 镜像和 ASR 模型包，RK 主机需要获准的 SLV 镜像；Clip 经 BLE 同步，Wi-Fi 同步需要专用网卡。尚无部署目标通过真机验收。
         ja: デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。ローカルの clip-pt アーティファクトと承認済み SLV イメージが必要です。Clip は BLE で同期し、Wi-Fi 同期には専用アダプターが必要です。実機受け入れに合格したターゲットはまだありません。
       device_groups:
         - {id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, description: Choose the edge host. The deploy step offers one target per host., description_i18n: {zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。}, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3588}, {device_ref: recomputer_rk3576}], default: recomputer_j40}

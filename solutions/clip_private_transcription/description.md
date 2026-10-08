@@ -1,8 +1,9 @@
 # Private Clip Transcription
 
-> **Draft / disabled.** M7/M8 software gates and a local wheel exist, but no
-> physical Clip/BLE/Wi-Fi or host acceptance has passed. SLV artifacts,
-> model licenses, and a distributable clip-pt image are not supplied.
+> **Draft.** M7/M8 software gates and a local wheel exist, but no
+> physical Clip/BLE/Wi-Fi or host acceptance has passed. The clip-pt image,
+> the Jetson OVS image, and the Jetson ASR model bundle are published
+> (2026-10-08); RK SLV artifacts and model licenses are not supplied.
 
 The intended flow synchronizes recordings locally, performs diarization and
 ASR through local services, and exposes transcript results through an

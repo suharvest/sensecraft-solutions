@@ -1,6 +1,6 @@
 services:
   clip-pt:
-    image: ${CLIP_PT_IMAGE:?set CLIP_PT_IMAGE to an approved local build}
+    image: ${CLIP_PT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71}
     network_mode: host
     depends_on:
       slv-sensevoice: {condition: service_healthy}
