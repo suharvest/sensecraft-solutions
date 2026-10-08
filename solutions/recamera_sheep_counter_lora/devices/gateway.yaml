@@ -14,11 +14,9 @@ ssh:
 
 script:
   start_command:
-    command: |
+    linux_macos: |
       MQTT_HOST={{mqtt_host}} MQTT_PORT=1883 SERIAL_PORT={{serial_port}} \
         bash assets/gateway/install.sh
-    sudo: true
-    timeout: 300
   health_check:
     type: log_pattern
     pattern: "active"
