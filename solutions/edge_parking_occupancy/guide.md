@@ -71,7 +71,7 @@ Connect to the RK3588 host over SSH. Verified with conditions on 2026-10-08:
 measured on an RK3588 device with a locally built image (6a5c781d) and
 a synthetic occupied/empty fixture (1 stream at 1 fps, single-car ROI): 17
 occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms, 0 dropped
-frames. No slot-accuracy figure; multi-stream capacity was not measured.
+frames. No slot-accuracy figure; measure multi-stream capacity on your own streams.
 
 ### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 

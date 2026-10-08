@@ -53,8 +53,8 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
 从本机通过 SSH 部署到 Jetson。2026-10-08 已在 Jetson Orin Nano 上验证（部署与
 输出链路），本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP 轮播：
 1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
-`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收：正式中文车牌语料
-（白天、夜间）未运行，因此不给出准确率。
+`parking.plate/1` MQTT 事件及 JPEG 快照。这些静态图不用于给出识别准确率；交付前用
+自己出入口摄像头的白天、夜间画面测量准确率。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
 

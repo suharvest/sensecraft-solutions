@@ -73,7 +73,7 @@ p50 6.48 ms / p95 6.69 ms，丢帧 0，300 s 内每个车位 15 次 occupied/fre
 
 通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（RK3588 设备，本地构建镜像 6a5c781d，合成占用/空位素材，1 路 1 fps，单车 ROI）：17 次
 occupied/free 状态切换，推理 p50 36.6 ms / p95 40.5 ms，丢帧 0。不给出车位准确率；
-未测多路容量。
+多路容量请用自己的视频流测量。
 
 ### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 

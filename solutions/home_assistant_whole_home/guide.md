@@ -12,8 +12,9 @@ the voice endpoint on a Jetson Orin NX over Wyoming: 5 of 5 voice commands
 all handled by the built-in intent agent locally. STT final result 0.11–0.95 s
 after the end of audio (median 0.12 s). Input was TTS-generated speech streamed
 to the Assist pipeline, not a microphone, and the entities were virtual demo
-lights. Not verified: HomeKit pairing, Aqara/ZHA with ZBT-2, Voice PE, ESPHome,
-physical microphone/speaker, offline operation, Japanese.
+lights. HomeKit pairing, Aqara/ZHA with ZBT-2, Voice PE, ESPHome, a physical
+microphone/speaker, offline operation and Japanese commands are outside this
+measurement: test the ones you need on your own installation before handover.
 
 ## Step 1: Deploy Home Assistant Container {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 

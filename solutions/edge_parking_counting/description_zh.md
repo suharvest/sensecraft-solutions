@@ -17,6 +17,6 @@ MQTT broker 发布越线与占用消息。
 并编辑：site/device ID 不超过 32 个字符，MQTT client ID 和 topic root 唯一，两个 MQTT
 映射一致，填写 RTSP 地址/编码、固定 vehicle416 模型路径/SHA、计数线/方向/容量和已
 存在的状态路径。部署还需要本地构建镜像、可写数据目录、DRM 设备以及宿主机
-RKNN/RGA/MPP 路径。记录中的转换 SHA 只用于部署输入核对；artifact 仍未完成设备验证，
-本包不会内置或自动下载。默认流编码为 H.264；每路流可通过 `options.codec` 选择 H.265。
+RKNN/RGA/MPP 路径。记录中的转换 SHA 只用于部署输入核对；本包不会内置或自动下载 artifact，
+部署前需放到宿主机上。各部署目标的实测结果见部署指南。默认流编码为 H.264；每路流可通过 `options.codec` 选择 H.265。
 原生健康服务绑定 `0.0.0.0:8099`；远程 `/healthz` 检查使用 RK 主机可达地址。

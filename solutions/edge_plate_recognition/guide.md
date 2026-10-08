@@ -64,9 +64,9 @@ Deploy to the Jetson over SSH from this computer. Verified 2026-10-08 on a
 Jetson Orin Nano (deployment and output path) with a locally built image and a
 1080p 30 fps RTSP slideshow of 40 labelled CCPD stills: 29.86 fps processed at
 1080p, detector inference p50 5.61 ms / p95 5.75 ms, 56 `parking.plate/1` MQTT
-events with JPEG snapshots. Recognition accuracy is not accepted yet: the
-formal Chinese plate corpus (day and night) has not been run, so no accuracy
-figure is stated.
+events with JPEG snapshots. No recognition-accuracy figure is stated for these
+stills; measure accuracy on day and night footage from your own gate cameras
+before handover.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
 
