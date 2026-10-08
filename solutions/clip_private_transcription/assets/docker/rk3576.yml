@@ -1,58 +1,63 @@
 services:
   clip-pt:
-    image: ${CLIP_PT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71}
+    image: ${CLIP_PT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261009b@sha256:df7f440a7642bc41bb160230df00f1f3a1042df5f411dd0caf66b175e6b8b35e}
     network_mode: host
     depends_on:
       slv-sensevoice: {condition: service_healthy}
-      slv-whisper: {condition: service_healthy}
       mosquitto: {condition: service_healthy}
-    volumes: ["${CLIP_CONFIG:?set CLIP_CONFIG}:/config/config.yaml:ro", "clip-data:/var/lib/clip-pt"]
+    volumes:
+      - "${CLIP_CONFIG:?set CLIP_CONFIG}:/config/config.yaml:ro"
+      - clip-data:/var/lib/clip-pt
     command: ["run", "--config", "/config/config.yaml"]
     restart: unless-stopped
-    healthcheck: {test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8631/healthz\")'"], interval: 30s, timeout: 5s, retries: 3}
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8631/healthz\", timeout=5)' "]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   slv-sensevoice:
-    image: ${SLV_IMAGE:?set SLV_IMAGE to an approved local build}
+    image: ${SLV_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261009@sha256:629912ed0e73b812ec127a372b7410a5db5d156f633eccb480743d4370ea1765}
     privileged: true
     init: true
     network_mode: host
+    environment:
+      OVS_PROFILE_JSON: /config/profiles/rk3576-sensevoice.json
+      RK_ARTIFACT_AUTO_DOWNLOAD: "0"
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "0"
+      OVS_SPEAKER_EMB_MODEL: /models/speaker/campplus.onnx
+      MODEL_DIR: /models
+    volumes:
+      - /dev:/dev
+      - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
+      - ./profiles/rk3576-sensevoice.json:/config/profiles/rk3576-sensevoice.json:ro
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
-    environment:
-      OVS_PROFILE_JSON: /opt/speech/configs/profiles/rk3576-sensevoice.json
-      RK_ARTIFACT_AUTO_DOWNLOAD: "0"
-    volumes:
-      - /dev:/dev
-      - ./profiles/rk3576-sensevoice.json:/opt/speech/configs/profiles/rk3576-sensevoice.json:ro
-      - "${SLV_SENSEVOICE_MODEL_DIR:?set SLV_SENSEVOICE_MODEL_DIR to the approved RK3576 SenseVoice model root}:/opt/asr:ro"
+    restart: unless-stopped
+    mem_limit: 2g
     healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import json,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8621/readyz\", timeout=5); d=json.load(urllib.request.urlopen(\"http://127.0.0.1:8621/health\", timeout=5)); assert d.get(\"asr\") is True and d.get(\"asr_backend\") == \"sensevoice_rknn\"'"]
+      test: ["CMD-SHELL", "python3 -c 'import json,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8621/readyz\", timeout=5); d=json.load(urllib.request.urlopen(\"http://127.0.0.1:8621/health\", timeout=5)); assert d.get(\"asr\") is True and d.get(\"asr_backend\") in (\"sensevoice_rknn\", \"rk:sensevoice_rknn\")' "]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
-  slv-whisper:
-    image: ${SLV_IMAGE:?set SLV_IMAGE to an approved local build}
-    privileged: true
-    init: true
-    network_mode: host
-    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8622"]
-    environment:
-      OVS_PROFILE_JSON: /opt/speech/configs/profiles/rk3576-whisper.json
-      RK_ARTIFACT_AUTO_DOWNLOAD: "0"
-    volumes:
-      - /dev:/dev
-      - ./profiles/rk3576-whisper.json:/opt/speech/configs/profiles/rk3576-whisper.json:ro
-      - "${SLV_WHISPER_MODEL_DIR:?set SLV_WHISPER_MODEL_DIR to the approved RK3576 Whisper model root}:/opt/models:ro"
-    healthcheck:
-      test: ["CMD-SHELL", "python3 -c 'import json,urllib.request; urllib.request.urlopen(\"http://127.0.0.1:8622/readyz\", timeout=5); d=json.load(urllib.request.urlopen(\"http://127.0.0.1:8622/health\", timeout=5)); assert d.get(\"asr\") is True and d.get(\"asr_backend\") == \"whisper-rknn\"'"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      start_period: 300s
+
   mosquitto:
-    image: ${MQTT_IMAGE:?set MQTT_IMAGE to an approved Mosquitto image}
+    image: ${MQTT_IMAGE:-eclipse-mosquitto:2.0.20}
     network_mode: host
     command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
-    volumes: ["./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro", "mqtt-data:/mosquitto/data"]
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt-data:/mosquitto/data
     restart: unless-stopped
-    healthcheck: {test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 5 >/dev/null 2>&1"], interval: 30s, timeout: 10s, retries: 3, start_period: 10s}
-volumes: {clip-data: {}, mqtt-data: {}}
+    healthcheck:
+      test: ["CMD-SHELL", "mosquitto_sub -h 127.0.0.1 -t '$$SYS/broker/uptime' -C 1 -W 5 >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  clip-data: {}
+  mqtt-data: {}

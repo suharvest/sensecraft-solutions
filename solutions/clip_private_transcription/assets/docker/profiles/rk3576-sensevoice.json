@@ -1,6 +1,6 @@
 {
   "name": "rk3576-sensevoice",
-  "description": "Rockchip RK3576: SenseVoice offline ASR on the NPU (RKNN fp16, zh/en/ja/ko/yue). ASR-only transcription profile (no TTS) — SenseVoice encoder+CTC serves the offline /asr path, validated on real RK3576 NPU.",
+  "description": "Rockchip RK3576: SenseVoice offline ASR on the NPU (RKNN fp16, zh/en/ja/ko/yue) for Clip transcription. One NPU worker: the backend reports supports_parallel=False, and a second worker needs about 1 GB more RAM than an 8 GB RK3576 has free next to other services.",
   "asr_backend": "rk.asr",
   "execution_policy": {
     "mode": "concurrent",
@@ -11,12 +11,12 @@
     "RK_PLATFORM": "rk3576",
     "ASR_BACKEND": "sensevoice_rknn",
     "ASR_PLATFORM": "rk3576",
-    "SENSEVOICE_RKNN_MODEL_DIR": "/opt/asr/sensevoice-rknn",
-    "ASR_MODEL_DIR": "/opt/asr/models",
+    "SENSEVOICE_RKNN_MODEL_DIR": "/models/sensevoice-rknn",
+    "ASR_MODEL_DIR": "/models",
     "RK_ARTIFACT_AUTO_DOWNLOAD": "0",
     "RK_ENSURE_MATCHA_RESOURCES": "0",
-    "SENSEVOICE_RKNN_WORKERS": "2",
-    "ASR_MAX_SESSIONS": "8",
-    "OVS_ASR_INFER_CONCURRENCY": "2"
+    "SENSEVOICE_RKNN_WORKERS": "1",
+    "ASR_MAX_SESSIONS": "4",
+    "OVS_ASR_INFER_CONCURRENCY": "1"
   }
 }

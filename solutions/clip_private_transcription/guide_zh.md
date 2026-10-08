@@ -1,140 +1,204 @@
-# 部署指南
+## 套餐: Clip + reComputer {#clip_edge_box}
 
-> **草稿。** compose 是可审查契约；没有已发布默认值的输入会
-> fail closed。
+录音从 Clip 同步到 reComputer，在主机上转写并分出说话人，结果在本地网页查看。
 
-## 套餐：Clip + 边缘算力盒子（草稿）{#clip_edge_box}
+| 设备 | 用途 |
+|------|------|
+| reSpeaker Clip | 佩戴录音 |
+| reComputer J40（Jetson Orin NX，JetPack 6.2）或 reComputer RK3576（8 GB） | 同步录音、转写、提供结果页 |
 
-在部署步骤里选择主机：Jetson、RK3588 或 RK3576。Clip 同步始终走 BLE；Wi-Fi 同步
-为可选项，需要专用主机网卡。每个部署目标写明了其真机验收状态。
+**部署完成后你可以：**
+- 在浏览器打开结果页，查看带时间戳和说话人标签的文字稿
+- 用 HTTP 接口上传录音或取回转写结果
+- 订阅 MQTT 消息，在转写完成时收到通知
+- 可选：为每段转写生成 AI 摘要
 
-## 步骤 1：部署本地转写栈 {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
+**前提条件：** 主机有蓝牙 · 可用磁盘：Jetson 15 GB，RK3576 5 GB · 首次部署需要联网
 
-clip-pt 镜像默认使用 2026-10-08 发布的镜像；Jetson 上的 OVS 镜像和 ASR 模型包也已发布。
-请提供 RK 主机上的 SLV 镜像和已预载的 ASR 模型根目录、Mosquitto 镜像引用，并基于审查过的 `assets/config/config.example.yaml` 准备配置。手动配对
-Clip，并保持单一主机绑定。
+## 步骤 1: 部署转写服务 {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
 
-compose 栈会启动 clip-pt、独立的 SenseVoice 与 Whisper SLV 服务和 Mosquitto。LLM 使用用户在共享配置中填写的 OpenAI 兼容端点（`base_url`、`model_name`、`api_key`、`timeout_s`）；
-`base_url` 可填写根地址或 `/v1`。端点可以是云端、RK1828 或 Jetson 服务，本方案不启动本地 LLM runtime。
-LLM 复用语音 RD 的 `base_url`、`model_name`、`api_key` 字段，由用户在应用配置中填写；本包不写入真实密钥。
-云端端点需要网络；可达的 RK1828 或 Jetson 端点可支持本地断网链路。Mosquitto 使用包内的本机匿名 broker 配置。
+在 reComputer 上安装转写服务，并把你的 Clip 写入配置。
 
-上传前，把所有 `REPLACE_WITH_*` 替换为实际 Clip 广播名称、BLE MAC 地址和本地标签，
-不能保留示例占位符。使用 Wi-Fi 同步时，把 `sync.wifi_iface` 改为专用网卡的实际接口名；
-没有专用网卡时设置 `sync.wifi_enabled: false`，Clip 只走 BLE 同步。请在本机生成 API key，
-并将输出的 64 个十六进制字符填入 `api.key`；包内示例保持空值，未配置时会 fail closed：
+### 部署目标: reComputer J40 远程部署 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
+
+从这台电脑通过 SSH 部署到 reComputer J40。
+
+### 前置条件
+
+- 主机是 Jetson Orin NX 模组，系统为 JetPack 6.2；其他型号或版本会在部署开始时停止并提示
+- 主机有至少 15 GB 可用磁盘，并且能访问互联网
+- Clip 已从手机 App 解除绑定
+
+### 接线
+
+1. 给 reComputer J40 接上电源和网线，确认它与这台电脑在同一网络
+2. 把 Clip 充上电，放在主机旁边
+3. 填写主机 IP、SSH 用户名和密码
+4. 填写 Clip 名称：“Clip” 加上机身上印的 4 位编号，例如 `Clip 7036`；手机 App 中显示的也是这个名称
+5. 按需打开“通过 Wi-Fi 加速同步”和“AI 摘要（可选）”，然后点击部署
+
+### 部署完成
+
+首次部署会下载语音识别模型（约 1.8 GB）并启动服务，耗时取决于网速。完成后：
+
+1. 在部署日志末尾找到 API key，保存好
+2. 在浏览器打开 `http://<主机IP>:8631/`，输入 API key 进入结果页
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 提示 Jetson 模组或 JetPack 不匹配 | 这个部署目标只支持 Jetson Orin NX + JetPack 6.2；RK3576 主机请选 RK3576 部署目标 |
+| 磁盘空间不足 | 清理主机磁盘，留出至少 15 GB |
+| 模型下载失败或很慢 | 检查主机能否访问互联网后重新部署，已下载的模型会保留 |
+| 提示 Clip 名称格式不对 | 按 `Clip 7036` 的格式填写：Clip、空格、4 位编号 |
+| 提示 AI 摘要缺少服务地址 | 填写服务地址和模型名称，或关闭 AI 摘要 |
+| 端口 8631、8621、8622 或 1883 被占用 | 停止主机上占用这些端口的其他服务后重新部署 |
+
+### 部署目标: reComputer J40 本机部署 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
+
+在 reComputer J40 本机上运行 SenseCraft Solution 并部署。
+
+### 前置条件
+
+- 本机是 Jetson Orin NX 模组，系统为 JetPack 6.2
+- 本机有至少 15 GB 可用磁盘，并且能访问互联网
+- Clip 已从手机 App 解除绑定
+
+### 接线
+
+1. 确认本机已接网
+2. 把 Clip 充上电，放在主机旁边
+3. 填写 Clip 名称，例如 `Clip 7036`
+4. 按需打开“通过 Wi-Fi 加速同步”和“AI 摘要（可选）”，然后点击部署
+
+### 部署完成
+
+首次部署会下载语音识别模型（约 1.8 GB）并启动服务，耗时取决于网速。完成后：
+
+1. 在部署日志末尾找到 API key，保存好
+2. 在浏览器打开 `http://localhost:8631/`，输入 API key 进入结果页
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 提示 Jetson 模组或 JetPack 不匹配 | 这个部署目标只支持 Jetson Orin NX + JetPack 6.2 |
+| 写入配置或模型时提示权限不足 | 改用“reComputer J40 远程部署”，从另一台电脑通过 SSH 部署到本机 |
+| 磁盘空间不足 | 清理磁盘，留出至少 15 GB |
+| 端口 8631、8621、8622 或 1883 被占用 | 停止占用这些端口的其他服务后重新部署 |
+
+### 部署目标: reComputer RK3576 远程部署 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
+
+从这台电脑通过 SSH 部署到 reComputer RK3576。
+
+### 前置条件
+
+- 主机是 8 GB 内存的 RK3576 主板；部署时需要约 1.6 GB 空闲内存
+- 主机有至少 5 GB 可用磁盘，并且能访问互联网
+- 主机有蓝牙
+- Clip 已从手机 App 解除绑定
+
+### 接线
+
+1. 给 reComputer RK3576 接上电源和网线，确认它与这台电脑在同一网络
+2. 把 Clip 充上电，放在主机旁边
+3. 填写主机 IP、SSH 用户名和密码
+4. 填写 Clip 名称：“Clip” 加上机身上印的 4 位编号，例如 `Clip 7036`；手机 App 中显示的也是这个名称
+5. 按需打开“通过 Wi-Fi 加速同步”和“AI 摘要（可选）”，然后点击部署
+
+### 部署完成
+
+首次部署会下载语音识别模型（约 460 MB）和语音服务（约 1.7 GB）并启动服务，耗时取决于网速。完成后：
+
+1. 在部署日志末尾找到 API key，保存好
+2. 在浏览器打开 `http://<主机IP>:8631/`，输入 API key 进入结果页
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 主板检查提示不是 RK3576 | 本部署目标只支持 RK3576 主板 |
+| 主板检查提示空闲内存不足 | 停止主机上的其他服务，空出约 1.6 GB 内存后重新部署 |
+| 磁盘空间不足 | 清理主机磁盘，留出至少 5 GB |
+| 模型下载失败或很慢 | 检查主机能否访问互联网后重新部署，已下载的模型会保留 |
+| 提示 Clip 名称格式不对 | 按 `Clip 7036` 的格式填写：Clip、空格、4 位编号 |
+| 提示 AI 摘要缺少服务地址 | 填写服务地址和模型名称，或关闭 AI 摘要 |
+| 端口 8631、8621 或 1883 被占用 | 停止主机上占用这些端口的其他服务后重新部署 |
+
+### 部署目标: reComputer RK3576 本机部署 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
+
+在 reComputer RK3576 本机上运行 SenseCraft Solution 并部署。
+
+### 前置条件
+
+- 本机是 8 GB 内存的 RK3576 主板；需要约 1.6 GB 空闲内存
+- 本机有至少 5 GB 可用磁盘、能访问互联网，并且有蓝牙
+- Clip 已从手机 App 解除绑定
+
+### 接线
+
+1. 确认本机已接网
+2. 把 Clip 充上电，放在主机旁边
+3. 填写 Clip 名称，例如 `Clip 7036`
+4. 按需打开“通过 Wi-Fi 加速同步”和“AI 摘要（可选）”，然后点击部署
+
+### 部署完成
+
+首次部署会下载语音识别模型（约 460 MB）和语音服务（约 1.7 GB）并启动服务，耗时取决于网速。完成后：
+
+1. 在部署日志末尾找到 API key，保存好
+2. 在浏览器打开 `http://localhost:8631/`，输入 API key 进入结果页
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 主板检查提示空闲内存不足 | 停止其他服务，空出约 1.6 GB 内存后重新部署 |
+| 写入配置或模型时提示权限不足 | 改用“reComputer RK3576 远程部署”，从另一台电脑通过 SSH 部署 |
+| 磁盘空间不足 | 清理磁盘，留出至少 5 GB |
+| 端口 8631、8621 或 1883 被占用 | 停止占用这些端口的其他服务后重新部署 |
+
+## 步骤 2: 检查服务状态 {#verify_stack type=http_debug required=true config=devices/verify_clip.yaml}
+
+确认转写服务已经就绪。
+
+### 接线
+
+1. 填写主机 IP（本机部署填 `localhost`）
+2. 点击检查，返回 HTTP 200 表示服务就绪
+
+### 部署完成
+
+转写服务已在 reComputer 上运行。
+
+#### 初始设置
+
+1. 在浏览器打开 `http://<主机IP>:8631/`，输入部署日志末尾显示的 API key
+2. 忘记 API key 时，在主机上运行 `sudo cat /opt/clip-private-transcription/config/api_key` 查看
+3. 要改 Clip、Wi-Fi 同步或 AI 摘要设置，回到步骤 1 修改后重新部署；API key 留空会沿用原来的
+4. 在结果页「设置」面板保存的修改存放在数据卷（`/var/lib/clip-pt/settings.override.yaml`），重启和重新部署后仍保留，同一字段以它为准、优先于步骤 1 的值。要恢复为步骤 1 的值，运行 `sudo docker exec $(sudo docker ps -qf label=com.docker.compose.service=clip-pt) rm /var/lib/clip-pt/settings.override.yaml` 后重启服务
+
+#### 快速验证
+
+1. 用 Clip 录一段 30 秒左右的对话，放回主机旁边
+2. 等录音同步完成，在结果页看到新的文字稿，每段有时间戳和说话人标签
+
+没有 Clip 在手时，也可以上传一段 16 kHz 单声道 WAV 录音测试：
 
 ```bash
-python3 -c 'import secrets; print(secrets.token_hex(32))'
+curl -H "Authorization: Bearer <API key>" -F file=@sample.wav http://<主机IP>:8631/v1/transcribe
 ```
 
-**RK3576 / RK3588。** 复制的 profile 分别在 8621 选择 `rk.asr`、在 8622 选择
-`rk.whisper`，并关闭 artifact 下载；请按 profile 声明的路径提供两个模型根目录（RK3576
-使用 base10 Whisper RKNN 文件，RK3588 使用 base20）。SLV 镜像、profile 和模型根目录
-必须与所选 RK runtime 匹配。共享示例为 Jetson 启用了 `pipeline.require_gpu_diarization`；
-RK3576/RK3588 部署必须将其设为 `false`：当前严格契约只接受 Jetson CUDA CAM++ 元数据，
-本文不宣称存在匹配的 RKNN speaker backend。设为 `false` 时保留现有 legacy CPU/空结果行为。
+订阅转写完成通知：`mosquitto_sub -h <主机IP> -t 'clip-pt/+/transcript/+/ready'`
 
-**Jetson。** Jetson 语音后端使用已发布的 `nrd6-ovs-jetson:20261008` 镜像（按 digest 固定）；
-CUDA runtime 由宿主机提供。
+### 故障排查
 
-两个 SLV 服务要求 Jetson runtime ABI：JetPack 6.2、TensorRT 10.3.0 和
-Python 3.10。部署会在 Compose 启动前检查主机 TensorRT binding 和库，然后以只读方式挂载
-binding、`/usr/src/tensorrt`、`/usr/local/cuda/lib64`、NVIDIA 库及 ARM64 系统库。
-镜像加载路径固定到这些挂载；路径缺失或 TensorRT 版本不符时 fail closed，不提供 CPU fallback。
-这项要求与下方按设备生成的模型 plan 分开，模型仍必须匹配目标 Jetson。
-
-请提供两个部署输入：编辑后的 Clip 配置和获准的 Mosquitto 镜像。`clip-pt` 和 OVS
-镜像默认使用 2026-10-08 发布的镜像（按 digest 固定），部署时把 `clip-orin-nx-r1` ASR
-模型包（校验 SHA-256）下载到 Jetson 的 `/opt/clip-private-transcription/models`；
-其中的 plan 按 Orin NX 构建。这些目录是
-Jetson 上的路径，不是 App 所在电脑的路径，也不会上传。
-模型包解包后的目录与 profile 使用的准确文件名一致：
-
-```text
-/opt/models/clip-asr/
-├── sensevoice-trt/
-│   ├── sense-voice-encoder.scaled.fixed.onnx
-│   ├── am.mvn
-│   ├── embedding.npy
-│   ├── chn_jpn_yue_eng_ko_spectok.bpe.model
-│   └── sensevoice.plan
-├── whisper/
-│   ├── encoder/jetson/enc_base_30s_bf16.plan
-│   ├── mel_80_filters.txt
-│   └── vocab_en.txt
-├── plans/
-│   ├── prefill_fp16.plan
-│   └── step_fp16.plan
-└── speaker/
-    └── campplus.plan
-```
-
-该目录以只读方式挂载到 `/models`。Whisper BF16 encoder plan 和 TensorRT decoder
-plans 必须匹配选定 Jetson 型号及其 runtime；NX 上验证的 plan 只适用于对应设备，
-不能宣称可跨 Jetson 复用。包内 profile 会显式挂载；SenseVoice 和 Whisper 两个服务
-分别监听主机 8621、8622，并各自使用一个串行 GPU 执行上下文。
-
-示例还要求获准的离线 CAM++ plan 位于 `/models/speaker/campplus.plan`。
-`OVS_SPEAKER_EMB_BACKEND=jetson_trt` 是严格选择：plan 缺失、不兼容或运行失败时返回
-错误，不改用 CPU speaker 模型。GPU 证明只覆盖 CAM++ 神经前向；VAD、fbank 和聚类仍在
-CPU 上执行。
-
-compose 契约关闭模型下载。两个 ASR-only 服务使用同一私有 OVS 镜像启动，并要求两个
-检查都通过：`/readyz` 必须接受请求（后端就绪、会话容量和 GPU watchdog 状态），随后
-`/health` 返回 `{"asr": true}`，且 `asr_backend` 分别为 `sensevoice_trt` 或
-`whisper-tensorrt`。会话容量满时 `/readyz` 可能短暂 not ready；该 healthcheck 本身
-不会主动重启容器。
-
-### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
-
-预编译的 TensorRT plan 只适用于 Jetson Orin NX（P3767-0000 / P3767-0001）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
-
-通过 SSH 连接这台 Jetson。2026-10-08 在 Orin NX 上，现已发布为
-`clip-private-transcription:20261008` 的 clip-pt 构建用测试 compose（改用其他端口）跑通
-HTTP 上传链路（上传、GPU 说话人分离、SenseVoice/Whisper TensorRT ASR、LLM 摘要、经
-HTTP 与 MQTT 输出转写）。本目标的 compose 文件 2026-10-08 也在 Orin NX 上运行过，所用镜像的 config digest 与已发布的 20261008
-clip-pt、OVS 镜像一致
-（关闭摘要；因主机端口与磁盘已被占用，改用端口 8641/8642/18883 和 tmpfs 数据目录，模型只读绑定挂载）：
-6.3 s 的 LibriSpeech 上传 1.2 s 完成，34 s 双人 FLEURS 日语上传 2.2 s 完成，识别出 2 位说话人。
-英文样本只转写出第二句（说话人分离步骤丢掉了第一句）。Clip BLE/Wi-Fi 同步需要 Clip 实物，当天没有可用的 Clip。
-
-### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
-
-预编译的 TensorRT plan 只适用于 Jetson Orin NX（P3767-0000 / P3767-0001）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
-
-在这台 Jetson 上运行 Docker。与 SSH 目标使用同一 compose 文件：该 compose
-2026-10-08 已在 Orin NX 上跑通 HTTP 上传链路（见 SSH 目标）。Clip BLE/Wi-Fi 同步需要 Clip 实物。
-
-### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
-
-通过 SSH 连接这台 RK3588。整包验收受阻：2026-10-08 在 Rock 5T 上无法满足 15 GB 磁盘
-预检。用重建的 clip-pt 镜像直接经 Compose 启动时，HTTP 上传链路（SenseVoice RKNN
-ASR、CPU CAM++ 说话人分离、RK1828 LLM 摘要、转写与 MQTT）通过；Whisper 服务健康但
-没有任务使用。Clip BLE/Wi-Fi 同步需要 Clip 实物。
-
-### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
-
-在这台 RK3588 上运行 Docker。整包验收受阻：HTTP 上传链路仅在使用重建 clip-pt 镜像时
-于 Rock 5T 上通过；Clip BLE/Wi-Fi 同步需要 Clip 实物。
-
-### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
-
-通过 SSH 连接这台 RK3576。验收受阻：2026-10-08 的测试板无法满足 15 GB 磁盘预检，缺少
-SLV RK 模型根目录，且在已有服务旁的空闲内存不足以同时运行 SenseVoice 与 Whisper。
-Clip BLE 同步需要 Clip 实物。
-
-### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
-
-在这台 RK3576 上运行 Docker。验收受阻：RK3576 测试板的磁盘预检与空闲内存不足，整包栈
-无法端到端运行。
-
-## 步骤 2：验证 API {#verify_stack type=http_debug required=true config=devices/verify_clip.yaml}
-
-要求 8631 上 clip-pt `/healthz` 返回 HTTP 200，再检查 8621 的 SenseVoice、8622 的
-Whisper（Jetson 为 `/health`，RK 为 `/readyz`）以及 1883 上的 Mosquitto broker；按共享
-配置中的 `base_url`、`model_name`、`api_key`、`timeout_s` 验证已配置的 LLM 端点，再执行
-受控同步并检查转写 schema。M10 测试矩阵中的 API、MQTT、续传和断网检查须在真机门开启后
-用真实 Clip 硬件执行。本方案不提供或实测验证云端服务商、模型、密钥、Mosquitto 镜像或
-GPU speaker-embedding artifact。示例配置仍保持 summary、MQTT 和 diarization 开启；
-容器健康检查不能代表离线、摘要、MQTT、diarization 或 Clip 真机验收已完成。
+| 问题 | 解决方法 |
+|------|----------|
+| 返回 503 | 语音识别仍在加载，等几分钟再试 |
+| 连接被拒绝 | 确认主机 IP 正确，并在主机上运行 `docker ps` 查看服务是否在运行 |
+| 结果页一直没有新录音 | 确认 Clip 有电、在主机蓝牙范围内，且没有同时绑定手机 App |
+| 附近有多个 Clip，连错了设备 | 在步骤 1 填写“Clip 蓝牙地址（可选）”后重新部署 |
+| 开启 Wi-Fi 同步后同步失败 | 确认填写的无线接口没有被主机用来上网；没有空闲接口时关闭 Wi-Fi 同步，只用蓝牙 |
+| 没有生成摘要 | 检查 AI 对话服务的地址、模型名称和密钥；很短的录音不生成摘要 |

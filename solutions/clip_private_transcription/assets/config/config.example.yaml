@@ -1,3 +1,6 @@
+# Schema reference only. The deploy step renders the real config on the host
+# (/opt/clip-private-transcription/config/config.yaml) from the deploy inputs; see
+# the "Write the Clip configuration" action in devices/jetson_stack.yaml.
 host_id: store-01-box
 data_dir: /var/lib/clip-pt
 timezone: Asia/Shanghai
@@ -25,6 +28,7 @@ pipeline:
   max_segment_s: 20
   summary_enabled: true
   require_gpu_diarization: true
+  language: auto   # WAV uploads; Clip recordings use devices[].language. The deploy step writes both from the recording-language input.
 asr:
   sensevoice: {base_url: http://127.0.0.1:8621}
   whisper: {enabled: true, base_url: http://127.0.0.1:8622}

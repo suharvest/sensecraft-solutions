@@ -1,7 +1,7 @@
 version: "1.0"
 id: verify_clip
-name: Verify clip-pt API
-name_i18n: {zh: 验证 clip-pt API}
+name: Check the transcription service
+name_i18n: {zh: 检查转写服务}
 type: http_debug
-http_debug: {endpoints: [{id: healthz, name: clip-pt health, name_i18n: {zh: clip-pt 健康状态}, url_template: "http://{{host}}:8631/healthz", expected_status: 200}]}
-user_inputs: [{id: host, name: Host address, name_i18n: {zh: 主机地址}, type: text, required: true}]
+http_debug: {endpoints: [{id: healthz, name: Service status, name_i18n: {zh: 服务状态}, url_template: "http://{{host}}:8631/healthz", expected_status: 200}]}
+user_inputs: [{id: host, name: Host IP, name_i18n: {zh: 主机 IP}, type: text, required: true, placeholder: 192.168.1.100}]
