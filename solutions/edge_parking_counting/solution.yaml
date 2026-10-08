@@ -15,6 +15,20 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-preview-counting-1-20261008.jpg
+      caption: "Counting preview on Jetson Orin Nano Super: tracked vehicle box with track ID and score, yellow counting line, live in/out counters (synthetic test clip, 2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 上的计数预览：车辆跟踪框（轨迹号与置信度）、黄色计数线、实时进出计数（合成测试片段，2026-10-08）"
+        ja: "Jetson Orin Nano Super のカウントプレビュー：追跡中の車両枠（トラック ID・スコア）、黄色のカウントライン、入出庫カウンタ（合成テスト映像、2026-10-08）"
+    - type: image
+      src: gallery/panel-preview-counting-2-20261008.jpg
+      caption: "Same preview a few seconds later: the next vehicle track approaching the counting line, counters in_today 2 / out_today 1 (Jetson Orin Nano Super, 2026-10-08)"
+      caption_i18n:
+        zh: "数秒后的同一预览：下一条车辆轨迹接近计数线，计数 in_today 2 / out_today 1（Jetson Orin Nano Super，2026-10-08）"
+        ja: "数秒後の同じプレビュー：次の車両トラックがカウントラインに接近、in_today 2 / out_today 1（Jetson Orin Nano Super、2026-10-08）"
   category: vision_video_ai
   solution_type: solution
   tags: [parking, vehicle-counting, mqtt, yolox, jetson]
