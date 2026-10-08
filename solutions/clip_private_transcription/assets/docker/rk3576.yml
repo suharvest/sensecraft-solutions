@@ -33,8 +33,9 @@ services:
       - /dev:/dev
       - "${ASR_MODEL_DIR:-/opt/clip-private-transcription/models/models}:/models:ro"
       - ./profiles/rk3576-sensevoice.json:/config/profiles/rk3576-sensevoice.json:ro
-      # Silero VAD fix for /diarize (512-sample windows + 64-sample context);
-      # replaces the image's server/core/vad.py, which is identical in this image and in source.
+      # Silero VAD fix for /diarize (512-sample windows + 64-sample context).
+      # patches/vad.py is server/core/vad.py from Seeed-Solution/openvoicestream
+      # 64a7f656; it replaces the image's older copy (256-sample windows, no context).
       - ./patches/vad.py:/opt/speech/server/core/vad.py:ro
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
     restart: unless-stopped

@@ -11,11 +11,14 @@
 # not fit next to other services on an 8 GB board, and clip-pt only routed to Whisper when
 # SenseVoice reported a language, which this image does not). Speaker separation runs
 # CAM++ on the CPU (pipeline.require_gpu_diarization: false). assets/docker/patches/vad.py
-# replaces the image's server/core/vad.py: the original ran silero v5 on 256-sample
-# windows without context, which missed quieter speech and dropped utterances in /diarize
-# (also on Jetson). Tested on an 8 GB RK3576 board 2026-10-08 with six uploads (en, ja,
-# four zh two-speaker mixes): all utterances kept, speakers split on the zh mixes;
-# SenseVoice peak 1.25 GiB, clip-pt 68 MiB. RK3588 is not offered.
+# replaces the image's server/core/vad.py on both targets (rk3576.yml, and both OVS
+# services in jetson.yml): the original ran silero v5 on 256-sample windows without
+# context, which missed quieter speech and dropped utterances in /diarize. The patch is
+# server/core/vad.py from Seeed-Solution/openvoicestream 64a7f656 (512-sample windows +
+# 64-sample context; API is a superset of the images' copy). Tested on an 8 GB RK3576
+# board 2026-10-08 with six uploads (en, ja, four zh two-speaker mixes) using the earlier
+# agent variant of the patch (same window/context): all utterances kept, speakers split on
+# the zh mixes; SenseVoice peak 1.25 GiB, clip-pt 68 MiB. RK3588 is not offered.
 #
 # The Clip config is rendered on the host from deploy inputs by the
 # "Write the Clip configuration" after_upload action in devices/jetson_stack.yaml and

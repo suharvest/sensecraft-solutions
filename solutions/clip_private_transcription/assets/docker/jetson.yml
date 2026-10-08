@@ -49,6 +49,10 @@ services:
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
       - ./profiles/jetson-sensevoice-c64.json:/config/profiles/jetson-sensevoice-c64.json:ro
+      # Silero VAD fix for /diarize (512-sample windows + 64-sample context).
+      # patches/vad.py is server/core/vad.py from Seeed-Solution/openvoicestream
+      # 64a7f656; it replaces the image's older copy (256-sample windows, no context).
+      - ./patches/vad.py:/opt/speech/server/core/vad.py:ro
       - slv-sensevoice-data:/var/lib/ovs-sensevoice
       - slv-sensevoice-cache:/var/cache/ovs-sensevoice
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
@@ -105,6 +109,9 @@ services:
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
       - ./profiles/jetson-whisper-trt.json:/config/profiles/jetson-whisper-trt.json:ro
+      # Same vad.py as slv-sensevoice, so both services from this image run one
+      # VAD implementation (this service sets OVS_VAD_BACKEND=none).
+      - ./patches/vad.py:/opt/speech/server/core/vad.py:ro
       - slv-whisper-data:/var/lib/ovs-whisper
       - slv-whisper-cache:/var/cache/ovs-whisper
     command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8622"]
