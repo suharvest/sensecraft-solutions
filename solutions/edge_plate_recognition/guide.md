@@ -1,97 +1,10 @@
 # Edge License Plate Recognition — Deployment Guide
 
-> **Draft (staging).** Only the Jetson target of the IP camera preset has
-> passed on-device acceptance (deployment and output path, 2026-10-08). Models,
-> images and the app package for the other presets and targets are still being
-> produced by the platform tasks. Steps below are the intended deployment flow
+> **Draft (staging).** The Jetson, RK3588 and RK3576 targets have passed
+> on-device acceptance for the deployment and output path (2026-10-08); the
+> R2035 (Hailo-8) target has not. Camera-side reCamera presets are not offered
+> in this release. Steps below are the intended deployment flow
 > and will be re-validated on hardware before this page loses its Draft badge.
-
-## Preset: reCamera Pro (Recommended) {#recamera_pro}
-
-One camera does detection, recognition and MQTT events on device. Add a
-reComputer R1124-10 when you want whitelist-based barrier opening.
-
-## Step 1: Install Plate Recognition {#deploy_pro type=recamera_pro_app required=true config=devices/recamera_pro_plate.yaml}
-
-Configure the plate recognition app on the reCamera Pro and make it the active
-app. The app itself ships through the device's App Center.
-
-### Prerequisites
-
-1. The reCamera Pro is on your network and you can sign in to its web console.
-2. A mounting point 3–8 m from the lane where plates are legible. The camera
-   needs a 12 V supply — it does not support PoE.
-
-### Troubleshooting
-
-| Symptom | Action |
-|-------|----------|
-| App not found on the device | The app package is still in staging — install it from the App Center once published, then rerun this step |
-| No plate events | Draw the lane ROI on the preview page; plates outside the ROI are not read |
-| Plates misread at night | Add IR/white illumination at the gate; check the preview at night before trusting the whitelist |
-
-## Step 2: Watch Recognition Results {#view_pro type=web_dashboard required=false config=devices/dashboard.yaml}
-
-Open the live preview — plates boxed, latest reads listed. A plate event with a
-snapshot URL on the MQTT topic means the pipeline works end to end.
-
-## Step 3: Install the Gate Controller (optional) {#gate_pro type=script required=false config=devices/gate_controller.yaml}
-
-Installs the MQTT broker and the gate service on the reComputer R1124-10. The
-gate service subscribes to plate events, matches the whitelist and pulses the
-digital output — cooldown-guarded, and it never replays old events into the
-barrier.
-
-## Step 4: Wire the Barrier Gate (optional) {#wire_pro type=manual required=false config=devices/gate_wiring.yaml}
-
-Wire the R1124-10 digital output through an interposing relay to the barrier's
-OPEN input, then upload the whitelist and fire a test pulse.
-
----
-
-## Preset: reCamera 2002 HQ PoE (Minimum) {#recamera_2002}
-
-The lowest-cost setup: one PoE camera on the gate. Whether it runs full
-on-device recognition or detect-only plus host-side recognition on the R1124
-is decided by the platform acceptance tests — the measured form will be stated
-here.
-
-## Step 1: Install Plate Recognition {#deploy_2002 type=recamera_cpp required=true config=devices/recamera_plate.yaml}
-
-Install the plate recognition package (detector, recognizer, plugin) on the
-reCamera 2002 and start it.
-
-### Prerequisites
-
-1. The reCamera 2002 is reachable over the network (USB default
-   `192.168.42.1`) and you have its SSH password.
-2. A mounting point 3–8 m from the lane; PoE switch or injector for power.
-
-### Troubleshooting
-
-| Symptom | Action |
-|-------|----------|
-| Service exits immediately | Another camera app is still running; only one app can hold the camera — reboot and retry |
-| Node-RED stopped working after install | Expected — installing takes the camera from Node-RED and any other vision app |
-| No plate events | Check the ROI covers the lane on the preview page, and that the camera can resolve plates at your mounting distance |
-
-## Step 2: Watch Recognition Results {#view_2002 type=web_dashboard required=false config=devices/dashboard.yaml}
-
-Open the live preview — plates boxed, latest reads listed.
-
-## Step 3: Install the Gate Controller (optional) {#gate_2002 type=script required=false config=devices/gate_controller.yaml}
-
-Installs the MQTT broker and the gate service on the reComputer R1124-10. In
-detect-only fallback mode this host also runs the host-side recognizer
-(plate-host), so for the 2002 the R1124 is effectively part of the pipeline,
-not just the gate.
-
-## Step 4: Wire the Barrier Gate (optional) {#wire_2002 type=manual required=false config=devices/gate_wiring.yaml}
-
-Wire the R1124-10 digital output through an interposing relay to the barrier's
-OPEN input, then upload the whitelist and fire a test pulse.
-
----
 
 ## Preset: IP Camera + Edge Compute Box {#ip_camera_box}
 

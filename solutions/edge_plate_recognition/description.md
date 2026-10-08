@@ -11,16 +11,15 @@ link to the snapshot. If the plate is on your whitelist, the barrier gets an
 open pulse — and a second event records who triggered it and how long the pulse
 took.
 
-## Two deployment forms, one pipeline
+## One pipeline on the edge host
 
-- **Camera-side**: a reCamera Pro or reCamera 2002 HQ PoE mounted at the lane
-  does detection and recognition on the device itself. Minimum configuration is
-  a single PoE camera.
 - **Host-side**: keep your existing gate IP cameras. A reComputer (Jetson Orin,
-  RK3588, RK3576 or Hailo-8) pulls the RTSP streams and runs the same models —
-  one host can cover several lanes.
+  RK3588, RK3576 or Hailo-8) pulls the RTSP streams and runs the models — one
+  host can cover several lanes.
+- **Camera-side** (reCamera Pro / reCamera 2002 HQ PoE): not offered in this
+  release; the on-camera app is not published yet.
 
-Both forms publish the same event contract, so your parking system subscribes
+Every host publishes the same event contract, so your parking system subscribes
 once regardless of which hardware sits at the gate.
 
 ## Barrier control that fails safe
