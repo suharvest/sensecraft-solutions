@@ -14,10 +14,18 @@
 3. 打码情况：非自有车辆车牌一律打码；页面与 gallery 不出现他人完整车牌（spec §10 隐私项）。
 4. 来源：现场实拍，注明拍摄时间与拍摄者；不接受任何来源不明的图片。
 
-CCPD 等含真实车牌的公开数据集图片**禁止**进入 gallery 或随交付分发（见 `../LICENSES.md` §3）。
+CCPD 等含真实车牌的公开数据集图片原则上不进入 gallery、不随交付分发（见 `../LICENSES.md` §3）；例外见下方 2026-10-08 决定。
 
 ## Update 2026-10-08
 
 `cover-20261008.jpg` is a generated illustration, not a screenshot. It is the only image registered for this package.
 
 Real preview screenshots from the Jetson Orin Nano Super run of 2026-10-08 exist (`panel-preview-plate-1..3`), but they show CCPD2020 green-plate stills with full plate numbers of real vehicles (CCPD, MIT License, Copyright (c) 2017 CCPD; Xu, Z. et al., ECCV 2018). This file's rules and `../LICENSES.md` section 3 prohibit CCPD images and other people's full plate numbers in the gallery, so those screenshots are not published here. A gallery needs screenshots of own or consented vehicles, or masked plates.
+
+## Decision 2026-10-08 (gallery uses CCPD screenshots)
+
+The project owner decided on 2026-10-08 to publish `panel-preview-plate-{1,2,3}-20261008.jpg` unmasked.
+
+- Content: real `/preview` screenshots of the package dashboard on Jetson Orin Nano Super (2026-10-08 ~05:11 UTC). Input frames are CCPD2020 green-plate stills streamed over RTSP; the page draws the detected plate box.
+- Source and licence: CCPD (Xu, Z. et al., ECCV 2018), MIT License, Copyright (c) 2017 CCPD — https://github.com/detectRecog/CCPD/blob/master/LICENSE. The dataset README states "This dataset is open-source under MIT license."
+- The images show plate numbers of real vehicles from the public dataset. This supersedes the earlier "no CCPD in gallery" rule for these three files only; other images still follow the rules above.

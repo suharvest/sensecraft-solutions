@@ -30,7 +30,7 @@
 
 | 数据集 | 版本 / 下载 | 许可证 | 原文链接 | 允许商用 | 署名 / 限制 |
 |---|---|---|---|---|---|
-| CCPD（CCPD2019 + CCPD2020 绿牌） | 官方 README 提供的 Google Drive / 百度网盘，人工下载 | MIT | https://github.com/detectRecog/CCPD/blob/master/LICENSE | 是 | LICENSE 原文 "MIT License, Copyright (c) 2017 CCPD"；README 写明 "This dataset is open-source under MIT license"。**CCPD 图片含真实车牌：只用于训练，不进 gallery、不随交付分发** |
+| CCPD（CCPD2019 + CCPD2020 绿牌） | 官方 README 提供的 Google Drive / 百度网盘，人工下载 | MIT | https://github.com/detectRecog/CCPD/blob/master/LICENSE | 是 | LICENSE 原文 "MIT License, Copyright (c) 2017 CCPD"；README 写明 "This dataset is open-source under MIT license"。**CCPD 图片含真实车牌：只用于训练，不随交付分发**；gallery 例外：2026-10-08 负责人决定 gallery 使用 3 张 CCPD 输入的真机预览截图（见 `gallery/ATTRIBUTION.md`） |
 | 自拍测试集（CN/DE 过车） | 自有车辆 + 已获书面同意的同事车辆 | 自有 | — | 是 | 仅自有或已获书面同意的车辆；发布截图全部打码 |
 | 合成数据（`training/plate_synth.py` 生成） | 本仓库自写生成器 + 下方两款字体 + 自有背景图 | 随方案许可（代码 Apache-2.0；含字体许可义务，见 §4） | — | 待核实（受字体许可约束） | 模板用 PIL 程序绘制，不用第三方车牌图片/模板文件；不用 COCO 图片合成，避免再分发问题 |
 
