@@ -117,7 +117,7 @@ services:
       start_period: 900s
 
   mosquitto:
-    image: ${MQTT_IMAGE:?set MQTT_IMAGE to an approved Mosquitto image}
+    image: ${MQTT_IMAGE:-eclipse-mosquitto:2.0.20}
     network_mode: host
     command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
     volumes:

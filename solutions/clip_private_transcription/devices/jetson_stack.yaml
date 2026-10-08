@@ -1,12 +1,12 @@
 version: "1.0"
 id: jetson_stack
-name: Jetson transcription stack
-name_i18n: {zh: Jetson 转写栈}
+name: Transcription service on reComputer Jetson
+name_i18n: {zh: reComputer Jetson 上的转写服务}
 type: docker_deploy
 device_class: jetson
-docker: {compose_file: assets/docker/jetson.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_jetson, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /health, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /health, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models", MQTT_IMAGE: "{{mqtt_image}}"}}
+docker: {compose_file: assets/docker/jetson.yml, compose_dir: assets/docker, remote_path: /opt/clip-private-transcription, options: {project_name: clip_pt_jetson, remove_orphans: false}, services: [{name: clip-pt, port: 8631, health_check_endpoint: /healthz, required: true}, {name: slv-sensevoice, port: 8621, health_check_endpoint: /health, required: true}, {name: slv-whisper, port: 8622, health_check_endpoint: /health, required: true}, {name: mosquitto, port: 1883, required: true}], environment: {CLIP_CONFIG: "/opt/clip-private-transcription/config/config.yaml", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models"}}
 ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
-pre_checks: [{type: disk_space, min_gb: 15, description: Models and local transcripts require at least 15 GB free.}, {type: nvidia_runtime, description: NVIDIA container runtime is required for the voice stack.}]
+pre_checks: [{type: disk_space, min_gb: 15, description: Speech models and recordings need at least 15 GB of free disk.}, {type: nvidia_runtime, description: The NVIDIA container runtime (included with JetPack) is required.}]
 files:
   # clip-orin-nx-r1: 1775453326 bytes, published 2026-10-08 (14 files: SenseVoice TRT, Whisper base TRT plans,
   # CAM++ plan; built for Jetson Orin NX / TensorRT 10.3). after_upload unpacks it into models/.
@@ -17,8 +17,8 @@ files:
       sha256: fd3ec0762602822084e30a2f7f24901b42669d0411dac12d264a4ca783b282d1
 actions:
   after_upload:
-    - name: Fetch and unpack the ASR model bundle
-      name_i18n: {zh: 获取并解包 ASR 模型包}
+    - name: Download the speech recognition models
+      name_i18n: {zh: 下载语音识别模型}
       sudo: true
       timeout: 3600
       run: |
@@ -43,9 +43,133 @@ actions:
           (cd "$D" && sha256sum -c SHA256SUMS)
           chmod -R a+rX "$D/models"
         fi
+    - name: Write the Clip configuration
+      name_i18n: {zh: 写入 Clip 配置}
+      # Renders /opt/clip-private-transcription/config/config.yaml from the deploy
+      # inputs (it replaces the old hand-edited copy of assets/config/config.example.yaml).
+      # The file is written as JSON, which clip-pt's YAML loader reads unchanged and
+      # which needs no escaping of user text. api.key: the input wins; otherwise the
+      # key from the previous deploy is kept; otherwise a new 64-hex key is generated.
+      # With summary off, llm.model_name still gets a placeholder because the clip-pt
+      # config schema requires a non-empty model name. The container runs as uid 10001.
+      sudo: true
+      timeout: 120
+      run: |
+        set -eu
+        D="/opt/clip-private-transcription/config"
+        mkdir -p "$D"
+        chmod 0755 "$D"
+        umask 077
+        # Quoted heredoc: user text is written literally, never expanded by the shell.
+        cat > "$D/.inputs" <<'INPUTS'
+        clip_name={{clip_name}}
+        clip_mac={{clip_mac}}
+        clip_label={{clip_label}}
+        clip_language={{clip_language}}
+        wifi_sync={{wifi_sync}}
+        wifi_iface={{wifi_iface}}
+        api_key={{api_key}}
+        summary_enabled={{summary_enabled}}
+        llm_base_url={{llm_base_url}}
+        llm_model={{llm_model}}
+        llm_api_key={{llm_api_key}}
+        INPUTS
+        python3 - "$D" <<'PY'
+        import json, os, re, secrets, socket, sys
+        d = sys.argv[1]
+        inp = {}
+        with open(os.path.join(d, ".inputs"), encoding="utf-8") as fh:
+            for line in fh:
+                key, _, value = line.rstrip("\n").partition("=")
+                inp[key.strip()] = value.strip()
+        os.remove(os.path.join(d, ".inputs"))
+        def fail(msg):
+            print(msg, file=sys.stderr)
+            raise SystemExit(1)
+        name = re.sub(r"\s+", " ", inp.get("clip_name", ""))
+        if not re.fullmatch(r"(?i)clip[- ][0-9a-f]{4}", name):
+            fail("CLIP_NAME_INVALID: enter the name shown on the Clip or in the phone app, e.g. 'Clip 7036'.")
+        mac = inp.get("clip_mac", "").upper() or None
+        if mac and not re.fullmatch(r"[0-9A-F]{2}(:[0-9A-F]{2}){5}", mac):
+            fail("CLIP_MAC_INVALID: use the form AA:BB:CC:DD:EE:FF, or leave it empty.")
+        language = inp.get("clip_language") or "auto"
+        if language not in ("auto", "zh", "en", "ja"):
+            language = "auto"
+        key_file = os.path.join(d, "api_key")
+        key = inp.get("api_key", "").lower()
+        if key and not re.fullmatch(r"[0-9a-f]{64}", key):
+            fail("API_KEY_INVALID: the API key must be 64 characters of 0-9 and a-f, or leave it empty to generate one.")
+        if not key and os.path.exists(key_file):
+            old = open(key_file, encoding="utf-8").read().strip()
+            if re.fullmatch(r"[0-9a-f]{64}", old):
+                key = old
+        if not key:
+            key = secrets.token_hex(32)
+        summary = inp.get("summary_enabled") == "true"
+        llm_url = inp.get("llm_base_url", "")
+        llm_model = inp.get("llm_model", "")
+        if summary and (not llm_url or not llm_model):
+            fail("SUMMARY_ENDPOINT_MISSING: AI summary is on; fill in the service address and model name, or turn it off.")
+        host_id = re.sub(r"[^A-Za-z0-9_-]", "-", socket.gethostname()) or "clip-box"
+        tz = "UTC"
+        try:
+            target = os.path.realpath("/etc/localtime")
+            if "/zoneinfo/" in target:
+                tz = target.split("/zoneinfo/", 1)[1]
+        except OSError:
+            pass
+        wifi = inp.get("wifi_sync") == "true"
+        config = {
+            "host_id": host_id,
+            "data_dir": "/var/lib/clip-pt",
+            "timezone": tz,
+            "devices": [{
+                "name": name,
+                "address": mac,
+                "label": inp.get("clip_label") or name,
+                "language": language,
+            }],
+            "sync": {
+                "ble_adapter": "hci0", "scan_interval_s": 60,
+                "wifi_enabled": wifi, "wifi_iface": inp.get("wifi_iface") or "wlan0",
+                "wifi_min_pending_mb": 5, "file_timeout_s": 300, "set_time_on_connect": True,
+                "recording_mode": "enhanced", "autodel_days": 7, "max_attempts": 5,
+                "backoff_s": [30, 60, 120, 300, 600],
+            },
+            "pipeline": {
+                "expected_speakers": 0, "min_segment_s": 0.3, "merge_gap_s": 0.5,
+                "max_segment_s": 20, "summary_enabled": summary, "require_gpu_diarization": True,
+            },
+            "asr": {
+                "sensevoice": {"base_url": "http://127.0.0.1:8621"},
+                "whisper": {"enabled": True, "base_url": "http://127.0.0.1:8622"},
+                "api_key": "", "timeout_s": 120, "diarize_timeout_s": 900,
+            },
+            "llm": {
+                "base_url": llm_url if summary else "",
+                "model_name": llm_model if summary else "disabled",
+                "api_key": inp.get("llm_api_key", "") if summary else "",
+                "timeout_s": 900,
+            },
+            "mqtt": {"enabled": True, "host": "127.0.0.1", "port": 1883, "username": "",
+                     "password": "", "topic_prefix": "clip-pt", "qos": 1},
+            "api": {"bind": "0.0.0.0", "port": 8631, "key": key, "max_upload_bytes": 134217728},
+        }
+        path = os.path.join(d, "config.yaml")
+        with open(path + ".tmp", "w", encoding="utf-8") as fh:
+            json.dump(config, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        os.chmod(path + ".tmp", 0o600)
+        os.chown(path + ".tmp", 10001, 10001)
+        os.replace(path + ".tmp", path)
+        with open(key_file, "w", encoding="utf-8") as fh:
+            fh.write(key + "\n")
+        os.chmod(key_file, 0o600)
+        print("wrote %s for %s (Wi-Fi sync %s, AI summary %s)" % (path, name, "on" if wifi else "off", "on" if summary else "off"))
+        PY
   before:
-    - name: Check the Jetson module and JetPack match the prebuilt plans
-      name_i18n: {zh: 检查 Jetson 模组与 JetPack 是否匹配预编译计划文件}
+    - name: Check the Jetson module and JetPack version
+      name_i18n: {zh: 检查 Jetson 型号和 JetPack 版本}
       ignore_error: false
       run: |
         set -eu
@@ -74,8 +198,8 @@ actions:
           *) echo "UNSUPPORTED_TENSORRT: the plans were built with TensorRT 10.3; this board has '${trt:-none}'." >&2; exit 1 ;;
         esac
         echo "Jetson module and JetPack match the prebuilt plans"
-    - name: Check Jetson TensorRT host ABI
-      name_i18n: {zh: 检查 Jetson TensorRT 主机 ABI}
+    - name: Check the Jetson AI runtime
+      name_i18n: {zh: 检查 Jetson AI 运行环境}
       sudo: true
       ignore_error: false
       run: |
@@ -118,9 +242,110 @@ actions:
           echo "JETSON_TRT_ABI_MISSING: ldconfig libcudart.so.12" >&2
           exit 1
         fi
+  after:
+    - name: Show the API key
+      name_i18n: {zh: 显示 API key}
+      sudo: true
+      ignore_error: true
+      run: |
+        echo "Results page: port 8631 on this host, e.g. http://<host-ip>:8631/"
+        echo "API key (sign in to the results page and call the HTTP API with it):"
+        cat /opt/clip-private-transcription/config/api_key
 user_inputs:
-  - {id: clip_pt_image, name: clip-pt image, name_i18n: {zh: clip-pt 镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/clip-private-transcription:20261008@sha256:77a47dac9e6df4c4dd32d10b30feb61e5281b8ebacecb152673e414f763feb71", description: Published clip-pt image pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 clip-pt 镜像（2026-10-08，按 digest 固定）。}}
-  - {id: slv_image, name: SLV image, name_i18n: {zh: SLV 镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008@sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111", description: Published OVS runtime image nrd6-ovs-jetson pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 OVS 运行镜像 nrd6-ovs-jetson（2026-10-08，按 digest 固定）。}}
-  - {id: config_path, name: clip-pt config path, name_i18n: {zh: clip-pt 配置路径}, type: text, required: true}
-  - {id: mqtt_image, name: Mosquitto image, name_i18n: {zh: Mosquitto 镜像}, type: text, required: true, description: Approved Mosquitto image compatible with Jetson., description_i18n: {zh: 与 Jetson 兼容的获准 Mosquitto 镜像。}}
-remote_overrides: {environment: {CLIP_PT_IMAGE: "{{clip_pt_image}}", SLV_IMAGE: "{{slv_image}}", CLIP_CONFIG: "{{config_path}}", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models", MQTT_IMAGE: "{{mqtt_image}}"}}
+  - id: clip_name
+    name: Clip name
+    name_i18n: {zh: Clip 名称}
+    type: text
+    required: true
+    placeholder: Clip 7036
+    description: "\"Clip\" plus the four characters printed on the Clip; the phone app shows the same name."
+    description_i18n: {zh: "“Clip” 加上 Clip 机身上印的 4 位编号，手机 App 里显示的也是这个名称。"}
+    validation: {pattern: "^[Cc][Ll][Ii][Pp][- ][0-9A-Fa-f]{4}$"}
+  - id: clip_mac
+    name: Clip Bluetooth address (optional)
+    name_i18n: {zh: Clip 蓝牙地址（可选）}
+    type: text
+    required: false
+    placeholder: AA:BB:CC:DD:EE:FF
+    description: Leave empty and the host finds the Clip by its name. Fill it in only when several Clips are near the host.
+    description_i18n: {zh: 留空时主机按名称查找 Clip。只有附近有多个 Clip 时才需要填写。}
+    validation: {pattern: "^([0-9A-Fa-f]{2}(:[0-9A-Fa-f]{2}){5})?$"}
+  - id: clip_label
+    name: Display name (optional)
+    name_i18n: {zh: 显示名称（可选）}
+    type: text
+    required: false
+    placeholder: Front desk
+    description: Shown next to each recording on the results page, e.g. who wears the Clip or where it is used. Defaults to the Clip name.
+    description_i18n: {zh: 显示在结果页每段录音旁，例如佩戴人或使用位置。留空时使用 Clip 名称。}
+    row: 1
+  - id: clip_language
+    name: Recording language
+    name_i18n: {zh: 录音语言}
+    type: select
+    required: true
+    default: auto
+    options:
+      - {value: auto, label: Detect automatically, label_i18n: {zh: 自动识别}}
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英文}}
+      - {value: ja, label: Japanese, label_i18n: {zh: 日文}}
+    row: 1
+  - id: wifi_sync
+    name: Faster sync over Wi-Fi
+    name_i18n: {zh: 通过 Wi-Fi 加速同步}
+    type: checkbox
+    default: "false"
+    description: Off, recordings sync over Bluetooth. On, the host also joins the Clip's own hotspot to download large recordings faster; that needs a wireless interface the host does not use for its network connection.
+    description_i18n: {zh: 关闭时录音经蓝牙同步。开启后主机还会连上 Clip 自己的热点，更快地下载较大的录音；这需要一个不用于主机上网的无线接口。}
+  - id: wifi_iface
+    name: Wireless interface for the Clip
+    name_i18n: {zh: 连接 Clip 用的无线接口}
+    type: text
+    required: true
+    default: wlan0
+    description: wlan0 is the built-in Wi-Fi; keep it when the host is on Ethernet. When the host uses its built-in Wi-Fi for the network, plug in a USB Wi-Fi adapter and enter its name (run ip link on the host to list interfaces).
+    description_i18n: {zh: wlan0 是主机自带的 Wi-Fi，主机用网线上网时保持默认即可。主机用自带 Wi-Fi 上网时，插一个 USB 无线网卡并填它的名称（在主机上运行 ip link 可列出接口）。}
+    show_when: {field: wifi_sync, value: "true"}
+  - id: api_key
+    name: API key (optional)
+    name_i18n: {zh: API key（可选）}
+    type: password
+    required: false
+    description: Protects the results page and the HTTP API. Leave empty to generate one on the first deploy and keep it on later deploys; it is shown at the end of the deploy log.
+    description_i18n: {zh: 保护结果页和 HTTP 接口。留空时首次部署自动生成，之后重新部署沿用同一个；部署日志末尾会显示它。}
+    validation: {pattern: "^([0-9a-f]{64})?$"}
+  - id: summary_enabled
+    name: AI summary (optional)
+    name_i18n: {zh: AI 摘要（可选）}
+    type: checkbox
+    default: "false"
+    description: Adds a short summary to each transcript. Needs an AI chat service that accepts the OpenAI API format, in the cloud or on your own network. With a cloud service, transcript text is sent to it; recordings stay on the host.
+    description_i18n: {zh: 为每段转写生成简短摘要。需要一个兼容 OpenAI 接口格式的 AI 对话服务，可以是云端服务，也可以是你内网里的服务。使用云端服务时，转写文字会发给该服务；录音本身仍只保存在主机上。}
+  - id: llm_base_url
+    name: Service address
+    name_i18n: {zh: 服务地址}
+    type: text
+    required: true
+    placeholder: https://api.openai.com/v1
+    description: Address of the AI chat service, with or without /v1.
+    description_i18n: {zh: AI 对话服务的地址，带不带 /v1 都可以。}
+    show_when: {field: summary_enabled, value: "true"}
+  - id: llm_model
+    name: Model name
+    name_i18n: {zh: 模型名称}
+    type: text
+    required: true
+    placeholder: gpt-4o-mini
+    show_when: {field: summary_enabled, value: "true"}
+    row: 2
+  - id: llm_api_key
+    name: Service key
+    name_i18n: {zh: 服务密钥}
+    type: password
+    required: false
+    description: Leave empty if the service needs no key.
+    description_i18n: {zh: 服务不需要密钥时留空。}
+    show_when: {field: summary_enabled, value: "true"}
+    row: 2
+remote_overrides: {environment: {CLIP_CONFIG: "/opt/clip-private-transcription/config/config.yaml", ASR_MODEL_DIR: "/opt/clip-private-transcription/models/models"}}

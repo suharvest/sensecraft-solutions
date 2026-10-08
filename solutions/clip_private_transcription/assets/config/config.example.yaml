@@ -1,3 +1,6 @@
+# Schema reference only. The deploy step renders the real config on the host
+# (/opt/clip-private-transcription/config/config.yaml) from the deploy inputs; see
+# the "Write the Clip configuration" action in devices/jetson_stack.yaml.
 host_id: store-01-box
 data_dir: /var/lib/clip-pt
 timezone: Asia/Shanghai
