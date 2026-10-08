@@ -1,16 +1,16 @@
 version: "1.0"
 id: verify_ha
-name: Verify Home Assistant
-name_i18n: {zh: 验证 Home Assistant}
+name: Connect local voice and verify
+name_i18n: {zh: 接入本地语音并验证}
 type: web_dashboard
 web_dashboard:
   url: "http://{{ha_host}}:{{ha_port}}/"
   title: Home Assistant
   title_i18n: {zh: Home Assistant}
-  description: Open Home Assistant and execute the documented local voice check after the physical integrations are configured.
-  description_i18n: {zh: 配置实体后打开 Home Assistant，并执行文档中的本地语音检查。}
+  description: Open Home Assistant, add the two voice services, and test with "Turn on the living room light".
+  description_i18n: {zh: 打开 Home Assistant，添加两个语音服务，然后说「打开客厅灯」测试。}
 user_inputs:
-  - {id: ha_host, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机地址}, type: text, required: true}
+  - {id: ha_host, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机地址}, type: text, required: true, description: IP address of the ARM64 Linux host running Home Assistant., description_i18n: {zh: 运行 Home Assistant 的 ARM64 Linux 主机的 IP 地址。}}
   - id: ha_port
     name: Home Assistant port
     name_i18n: {zh: Home Assistant 端口}

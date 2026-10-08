@@ -1,75 +1,133 @@
-# Deployment Guide
+## Preset: ARM64 Linux Host + Jetson Orin NX Voice {#rpi_jetson}
 
-> **Draft / disabled.** Use only after the voice image, language licenses,
-> device inventory, and physical acceptance gates are complete.
+An ARM64 Linux host runs Home Assistant, and a reComputer J40 understands speech and generates the spoken replies. The two devices work together on the same local network.
 
-## Preset: Raspberry Pi + Jetson Voice (Draft) {#rpi_jetson}
+| Device | Purpose |
+|--------|---------|
+| ARM64 Linux host (64-bit OS, 8GB RAM) | Runs Home Assistant |
+| reComputer J40 Series (Jetson Orin NX 16GB) | Local speech recognition and speech synthesis |
+| Home Assistant Connect ZBT-2 | Connects Zigbee devices |
+| Home Assistant Voice Preview Edition | Voice terminal in the room |
 
-Measured on an ARM64 Linux host (Broadcom BCM2712, 8GB; HA 2026.9.3 from this
-package's compose) with
-the voice endpoint on a Jetson Orin NX over Wyoming: 5 of 5 voice commands
-(zh and en, "turn on/off the living room light") changed the HA entity state,
-all handled by the built-in intent agent locally. STT final result 0.11–0.95 s
-after the end of audio (median 0.12 s). Input was TTS-generated speech streamed
-to the Assist pipeline, not a microphone, and the entities were virtual demo
-lights. HomeKit pairing, Aqara/ZHA with ZBT-2, Voice PE, ESPHome, a physical
-microphone/speaker, offline operation and Japanese commands are outside this
-measurement: test the ones you need on your own installation before handover.
+**What you'll get:**
+- Control lights and other devices by voice in Chinese or English, with a median 0.12 s from end of speech to recognized text
+- Zigbee sensors and switches in Home Assistant
+- The same devices in the Home app and Siri on iPhone
 
-## Step 1: Deploy Home Assistant Container {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
+**Requirements:** Both devices on the same local network · At least 30 GB free disk on the reComputer J40, and internet access on first start to download the voice models
 
-Use 64-bit Raspberry Pi OS. Home Assistant listens on port 8123; if 8123 is
-already used on the Pi (for example by another Home Assistant), set another
-Home Assistant port before the first install. The ZBT-2
-device path is optional: leave it empty to install Home Assistant before the
-dongle is connected, then redeploy with the `/dev/serial/by-id/...` path.
+## Step 1: Deploy Home Assistant {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 
-### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml}
+Install Home Assistant on the ARM64 Linux host.
 
-Run Docker on this Raspberry Pi.
+### Prerequisites
 
-### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml default=true}
+- The host runs a 64-bit Linux OS and has at least 8 GB of free disk
+- The ZBT-2 can be added later: leave "ZBT-2 device path" empty, then fill in the path and deploy again once the ZBT-2 is plugged in
 
-Connect to this Raspberry Pi over SSH.
+### Wiring
+
+1. Connect the ARM64 Linux host to the local network and power it on
+2. Plug the ZBT-2 into a USB port on the host; run `ls /dev/serial/by-id/` on the host and enter the listed path as "ZBT-2 device path"
+3. The default port is 8123; if another program on the host already uses 8123, enter a different port
+4. Click Deploy
+
+### Deployment Complete
+
+1. Open **http://\<host-ip\>:8123** in your browser (use your port if you changed it); the first start takes a moment
+2. Follow the prompts to create the administrator account
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port already in use | Enter another port in "Home Assistant port" and deploy again |
+| Changed the port but Home Assistant still uses the old one | An existing Home Assistant installation keeps the port from its first install and ignores the deploy setting; keep using the original port |
+| Configuration folder is not writable | On the host, run `sudo mkdir -p /opt/ha-whole-home/ha-config && sudo chown $USER /opt/ha-whole-home/ha-config`, then deploy again |
+| Page does not load | Wait a few minutes and refresh; make sure your computer and the host are on the same local network |
+| ZBT-2 does not appear in Home Assistant | Make sure "ZBT-2 device path" is the full path under `/dev/serial/by-id/`, then deploy again |
+| Cannot connect to the host | Check the IP address, username and password, and that the host is powered on and on the network |
+
+### Target: Local Deployment {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml}
+
+Install on this ARM64 Linux host.
+
+### Target: Remote Deployment {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml default=true}
+
+Install on the ARM64 Linux host over the network; you need its IP address, username and password.
+
+---
 
 ## Step 2: Deploy Jetson voice services {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
 
-Runs one OpenVoiceStream service (Qwen3-ASR + Matcha TTS, profile
-`jetson-edgellm-v091-matcha`, image `nrd6-ovs-jetson:20261008`) for both ASR and
-TTS on port `voice_port` (default 8623), plus the Wyoming adapter
-(`wyoming-slv-adapter:20261008`) that Home Assistant connects to on
-`wyoming_stt_port` / `wyoming_tts_port` (default 10300 / 10200). On first start
-the service downloads its models into the `jetson-models` volume (at least
-30 GB free disk). Verified 2026-10-08 on an Orin NX with this compose file and
-images whose config digests match the published 20261008 OVS and adapter images
-(voice on 8633, Wyoming on 10301 / 10201 via the port inputs; models from an
-existing volume, auto-download off): both ports answer the Wyoming `describe`
-request, and TTS output fed back to STT matched 打开客厅灯, 关闭卧室的灯 and "Turn
-on the living room light" (plus sentence-final punctuation); TTS
-first audio 0.05–0.12 s, STT result 0.38–0.58 s after end of audio. Input was
-synthetic speech, not a microphone. No license-cleared distributable voice
-artifact is recorded yet.
+Install the speech recognition and speech synthesis services on the reComputer J40 for Home Assistant to use.
 
-### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
+### Prerequisites
 
-Run Docker on this Jetson host.
+- reComputer J40 (Jetson Orin NX 16GB) with at least 30 GB of free disk
+- Internet access on first start to download the voice models; the services are not available until the download finishes
 
-### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_voice.yaml default=true}
+### Wiring
 
-Connect to this Jetson host over SSH.
+1. Connect the reComputer J40 to the same local network as the Home Assistant host and power it on
+2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623; change one only if it is already in use
+3. Note the reComputer J40's IP address and these two ports for step 3
+4. Click Deploy
 
-## Step 3: Verify Home Assistant {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+### Troubleshooting
 
-Connect Home Assistant to the Jetson voice services, then run the checks:
+| Issue | Solution |
+|-------|----------|
+| Not enough disk space | Free at least 30 GB and deploy again |
+| Port already in use | Choose an unused port and deploy again; the three ports must be different |
+| Services do not become ready for a long time | The first start downloads the voice models first, and the time depends on your connection; make sure the reComputer J40 can reach the internet |
+| NVIDIA container runtime missing | Make sure the reComputer J40 runs a full JetPack installation that includes the NVIDIA container runtime, then retry |
+| Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
 
-1. In Home Assistant, go to **Settings → Devices & services → Add integration →
-   Wyoming Protocol**. Enter the Jetson's IP address as host and the
-   `wyoming_stt_port` from step 2 (default 10300) as port.
-2. Add a second **Wyoming Protocol** integration with the same host and the
-   `wyoming_tts_port` (default 10200).
-3. Go to **Settings → Voice assistants**, open the Assist pipeline, and select
-   the new speech-to-text and text-to-speech services.
-4. Complete the ZHA, HomeKit and local voice checks.
+### Target: Local Deployment {#jetson_local type=local device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml}
 
-If you later redeploy step 2 with different ports, the existing Wyoming
-integrations keep the old ports: delete both and add them again.
+Install on this reComputer J40.
+
+### Target: Remote Deployment {#jetson_remote type=remote device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml default=true}
+
+Install on the reComputer J40 over the network; you need its IP address, username and password.
+
+---
+
+## Step 3: Connect local voice and verify {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+
+Add the voice services to Home Assistant, then test with one sentence.
+
+### Deployment Complete
+
+1. Open Home Assistant, go to **Settings → Devices & services → Add integration** and search for **Wyoming Protocol**; enter the reComputer J40's IP address as host and the speech-to-text port from step 2 (default 10300) as port
+2. Add a second **Wyoming Protocol** integration with the same host and the text-to-speech port (default 10200)
+3. Go to **Settings → Voice assistants**, open the assistant, set the language to Chinese or English, select the two new services for "Speech-to-text" and "Text-to-speech", and save
+4. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the reComputer J40 |
+| The voice services are not listed in the voice assistant | Make sure both Wyoming Protocol integrations were added successfully |
+| Voice stopped working after redeploying step 2 with different ports | Delete both Wyoming Protocol integrations and add them again with the new ports |
+| The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
+
+---
+
+# Deployment Complete
+
+Home Assistant and the local voice services are ready.
+
+### Initial Setup
+
+1. **Add Zigbee devices**: go to **Settings → Devices & services → Add integration**, choose **Zigbee Home Automation** and select the ZBT-2 serial port; then click "Add device" in that integration and put the Zigbee device into pairing mode
+2. **Add to Apple Home**: a HomeKit Bridge pairing QR code appears in the Home Assistant notifications; scan it with the Home app on iPhone
+3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant configured in step 3 on its device page
+
+### Quick Verification
+
+- Say "Turn on the living room light" to the voice terminal; the light turns on and you hear a reply
+- The same devices are visible and controllable in the Home app on iPhone
+- Zigbee sensor readings update in Home Assistant

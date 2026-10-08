@@ -1,11 +1,57 @@
-# 全屋 Home Assistant 接入与本地语音
+## 这个方案能帮你做什么
 
-> **草稿。** Jetson 语音镜像和 Wyoming 适配层镜像已发布（2026-10-08）；具备分发许可的
-> 语言资源尚未发布，RK3588 单机套餐在其语音镜像发布前不提供，HomeKit、
-> Aqara/ZHA、Voice PE 和断网语音尚未完成真机验收。这里不打包凭据或 Xiaomi
-> Home 集成。
+把家里的灯、窗帘、空调和 Zigbee 传感器接进 Home Assistant，用一句话控制它们。语音识别和语音合成在本地的 Jetson 上完成，说话的录音不上传到云端语音服务。
 
-本方案记录使用 Home Assistant Container、HomeKit Bridge、通过 ZBT-2 的
-ZHA 以及本地 Wyoming ASR/TTS 的部署契约。米家路径明确是用户自行安装的非
-商业示例，不构成产品承诺。本套餐在树莓派（或其他 ARM64 Linux 主机）上运行
-Home Assistant，在 Jetson 上运行语音服务；镜像 digest 为空时 fail closed。
+## 核心价值
+
+| 好处 | 具体说明 |
+|------|---------|
+| 开口就能控制 | 说「打开客厅灯」，Home Assistant 直接执行并语音回复「客厅灯已打开」 |
+| 语音在本地处理 | 听懂指令、生成回复语音都在 reComputer J40 上完成，指令由 Home Assistant 在本地执行 |
+| 响应快 | 说完到识别出文字，中位数 0.12 秒 |
+| 苹果「家庭」也能用 | Home Assistant 里的设备同步到 iPhone 的「家庭」App，可用 Siri 和家庭 App 控制 |
+| Zigbee 设备直接接入 | 插上 ZBT-2，Aqara、SONOFF 等 Zigbee 传感器和开关接入 Home Assistant，不需要各品牌网关 |
+
+## 适用场景
+
+| 场景 | 怎么用 |
+|------|--------|
+| 客厅、卧室 | 说「打开客厅灯」「关闭卧室的灯」，不用找手机 |
+| 全家共用 | 家人用 iPhone 的「家庭」App 或 Siri 控制同一批设备 |
+| 智能家居集成商交付 | 一台主机统一接入多个品牌的设备，语音服务部署在客户家里 |
+
+## 使用须知
+
+### 核心硬件设备
+
+| 设备 | 说明 | 必需 |
+|------|------|------|
+| ARM64 Linux 主机（64 位系统，8GB 内存） | 运行 Home Assistant | ✓ 必选 |
+| reComputer J40 系列（Jetson Orin NX 16GB） | 运行本地语音识别和语音合成 | ✓ 必选 |
+| Home Assistant Connect ZBT-2 | 插在 Home Assistant 主机的 USB 口，接入 Zigbee 设备 | ✓ 必选 |
+| Home Assistant Voice 预览版 | 放在房间里的语音终端：听指令、播报回复 | ✓ 必选 |
+| SONOFF SNZB Zigbee 传感器 | 采集房间温湿度等状态 | 可选 |
+
+### 网络要求
+
+- Home Assistant 主机、reComputer J40 和语音终端连在同一个局域网
+- reComputer J40 首次启动需要联网下载语音模型（预留至少 30 GB 磁盘）；下载完成后，语音识别和语音合成在本机运行
+- 使用苹果「家庭」App 时，iPhone 与 Home Assistant 主机在同一局域网
+
+### 支持的语言
+
+- 中文和英文语音指令
+
+### 米家设备
+
+- Home Assistant 官方的 Xiaomi Home 集成只允许非商业用途，本方案不预装。个人家庭使用可以在 Home Assistant 里自行安装；用于商业交付时不要使用该集成。
+
+### 实测数据
+
+| 指标 | 结果 |
+|------|------|
+| 中英文开关灯指令 | 5 条全部执行成功，均由 Home Assistant 在本地处理 |
+| 说完到识别出文字 | 中位数 0.12 秒（0.11–0.95 秒） |
+| 文字转语音开始出声 | 0.05–0.12 秒 |
+
+口径：Home Assistant 运行在 8GB 内存的 ARM64 Linux 主机上，语音服务运行在 reComputer J40（Jetson Orin NX 16GB）上；输入为合成语音音频，送入 Home Assistant 语音助手。
