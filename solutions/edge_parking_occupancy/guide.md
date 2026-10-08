@@ -4,7 +4,7 @@ Keep the IP cameras already in your car park and add one edge box on the same ne
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 (Jetson Orin Nano) or reComputer RK3588 | Analyses every camera picture and decides whether each bay has a car |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 | Analyses every camera picture and decides whether each bay has a car |
 | IP camera | Your existing cameras, sending an H.264 RTSP stream |
 | MQTT server | Receives the bay states for guidance signs, a parking system or Home Assistant |
 
@@ -21,7 +21,7 @@ Install the bay detection service on the edge box. Enter the camera addresses an
 
 ### Prerequisites
 
-1. With a reComputer J30: it must be a Jetson Orin Nano module on JetPack 6.2. Other Jetson modules or system versions are stopped at the first deploy step.
+1. With a reComputer J30 / J40: it must be a Jetson Orin Nano or Orin NX module on JetPack 6.2. Other Jetson modules or system versions are stopped at the first deploy step.
 2. With a reComputer RK3588: its system must include Rockchip's AI accelerator (RKNN), video decode (MPP) and RGA libraries.
 3. Every camera's RTSP address has been opened in VLC and shows a picture.
 4. You know the MQTT server's address and port, plus a username and password if it requires login.
@@ -35,13 +35,13 @@ Install the bay detection service on the edge box. Enter the camera addresses an
 4. Note each camera's RTSP address. For a Hikvision camera: `rtsp://user:password@camera-ip:554/Streaming/Channels/102` (102 is the sub-stream).
 5. Fill in the camera addresses (comma-separated for several cameras), the site ID and the MQTT server, then click Deploy.
 
-Each camera starts with one example bay, P-01 (a box in the lower middle of the picture). Delete it or drag it onto a real bay in Step 3.
+Each camera starts with one example bay, P-01 (a box in the lower middle of the picture). Delete it or drag it onto a real bay in Step 2.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Deploy stops at "UNSUPPORTED_JETSON_MODULE" | This Jetson is not an Orin Nano module. This solution supports Jetson Orin Nano only; use a reComputer J30 |
+| Deploy stops at "UNSUPPORTED_JETSON_MODULE" | This Jetson is not an Orin Nano or Orin NX module. This solution supports reComputer J30 / J40 (Jetson Orin Nano / Orin NX) only |
 | Deploy stops at "UNSUPPORTED_JETPACK" or "UNSUPPORTED_TENSORRT" | The system is not JetPack 6.2; reflash JetPack 6.2 and deploy again |
 | The RK3588 check reports "missing …" | If a path is printed below it, enter that path in the matching field (for example "RKNN runtime library") and deploy again. If no path is printed, the board lacks that library: install the RKNN runtime (rknpu2), MPP, RGA, gstreamer1.0-plugins-bad and gstreamer1.0-rockchip first |
 | "Not an RTSP address" | Camera addresses must start with `rtsp://`, with commas between addresses |
@@ -49,21 +49,21 @@ Each camera starts with one example bay, P-01 (a box in the lower middle of the 
 | Downloading the detection model fails | Make sure the edge box can reach the internet, then deploy again |
 | Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`). The usual cause is port 8080 or 8099 in use: choose another slot editor port, or stop the service holding 8099 |
 
-### Target {#occupancy_remote type=remote device=jetson device_name="reComputer J30" config=devices/jetson_occupancy.yaml default=true}
+### Target {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
-Deploy to a reComputer J30 over the network (SSH) from this computer.
-
-### Deployment Complete
-
-The service is running on the reComputer J30. Next, confirm it in Step 2, then draw the bays in Step 3.
-
-### Target {#occupancy_local type=local device=jetson device_name="reComputer J30 (this machine)" config=devices/jetson_occupancy.yaml}
-
-Install on this machine when this app runs on the reComputer J30 itself.
+Deploy to a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) over the network (SSH) from this computer.
 
 ### Deployment Complete
 
-The service is running on this machine. Next, confirm it in Step 2 (enter 127.0.0.1 as the address), then draw the bays in Step 3.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://\<host-ip\>:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#occupancy_local type=local device=jetson device_name="reComputer J30 / J40 (this machine)" config=devices/jetson_occupancy.yaml}
+
+Install on this machine when this app runs on the reComputer J30 / J40 itself.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://127.0.0.1:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ### Target {#rk3588_occupancy_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_occupancy.yaml}
 
@@ -71,7 +71,7 @@ Deploy to a reComputer RK3588 over the network (SSH) from this computer.
 
 ### Deployment Complete
 
-The service is running on the reComputer RK3588. Next, confirm it in Step 2, then draw the bays in Step 3.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://\<host-ip\>:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588 (this machine)" config=devices/rk3588_occupancy.yaml}
 
@@ -79,20 +79,9 @@ Install on this machine when this app runs on the reComputer RK3588 itself.
 
 ### Deployment Complete
 
-The service is running on this machine. Next, confirm it in Step 2 (enter 127.0.0.1 as the address), then draw the bays in Step 3.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://127.0.0.1:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
-## Step 2: Check the Service Is Running {#verify_occupancy type=http_debug required=true config=devices/health_verify.yaml}
-
-Enter the edge box's IP address to confirm the bay detection service has started.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Connection fails or times out | The service takes about 20 s to start; try again shortly. Check that you entered the edge box's IP and that this computer can reach its port 8099 |
-| Status is fine but one camera's bays stay `unknown` | The box cannot reach that camera: open its RTSP address in VLC on the same network and check the address, username, password and encoding (must be H.264) |
-
-## Step 3: Draw the Parking Bays {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
+## Step 2: Draw the Parking Bays {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
 
 Draw a box around every bay on each camera's picture and give it a bay number.
 
@@ -151,6 +140,7 @@ Add up `free` across all cameras to get the free bays for the whole car park.
 |-------|----------|
 | Page does not open | Check the port matches the slot editor port from the deploy step and that this computer can reach the edge box |
 | Picture is black or fails to load | That camera has no picture yet: wait a few seconds and click 刷新快照 (Refresh snapshot); if it persists, check the camera's RTSP address |
+| One camera's bays stay `unknown` | The box cannot reach that camera: open its RTSP address in VLC on the same network and check the address, username, password and encoding (must be H.264) |
 | "非凸" (not convex) after closing the polygon | One corner points inwards; click 撤销顶点 (Undo vertex) and click that corner again |
 | "请先在 id 框输入车位名" (enter a bay name first) | Type the bay number in the id box before closing the polygon |
 | "id 重复" (duplicate id) | Bay numbers must be unique on one camera; choose another |

@@ -16,17 +16,20 @@ user_inputs:
     name: Edge box IP address
     name_i18n: {zh: 边缘主机 IP 地址}
     type: text
+    default: "127.0.0.1"
+    default_template: "{{host}}"
     required: true
     placeholder: "192.168.1.100"
-    description: The same address you deployed to. Use 127.0.0.1 if you deployed on this machine.
-    description_i18n: {zh: 和部署时填的是同一个地址。在本机部署的填 127.0.0.1。}
+    description: Filled in from the deploy step. For a deployment on this machine it is 127.0.0.1.
+    description_i18n: {zh: 自动带入部署步骤填写的地址；在本机部署时为 127.0.0.1。}
   - id: editor_port
     name: Slot editor port
     name_i18n: {zh: 车位编辑页端口}
     type: text
     default: "8080"
+    default_template: "{{editor_port}}"
     required: true
     validation:
       pattern: "^[0-9]{1,5}$"
-    description: The slot editor port you entered in the deploy step.
-    description_i18n: {zh: 部署步骤里填的「车位编辑页端口」。}
+    description: Filled in from the slot editor port in the deploy step.
+    description_i18n: {zh: 自动带入部署步骤里的「车位编辑页端口」。}

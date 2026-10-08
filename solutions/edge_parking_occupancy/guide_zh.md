@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer J30（Jetson Orin Nano）或 reComputer RK3588 | 分析所有摄像头画面，判断每个车位有没有车 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 | 分析所有摄像头画面，判断每个车位有没有车 |
 | IP 摄像头 | 现场已有的摄像头，输出 H.264 编码的 RTSP 视频流 |
 | MQTT 服务器 | 接收车位状态，供余位屏、停车管理系统或 Home Assistant 使用 |
 
@@ -21,7 +21,7 @@
 
 ### 前置条件
 
-1. 用 reComputer J30 时：必须是 Jetson Orin Nano 模组，系统为 JetPack 6.2。其他 Jetson 模组或系统版本会在部署第一步被拦下。
+1. 用 reComputer J30 / J40 时：必须是 Jetson Orin Nano 或 Orin NX 模组，系统为 JetPack 6.2。其他 Jetson 模组或系统版本会在部署第一步被拦下。
 2. 用 reComputer RK3588 时：系统需自带 Rockchip 的 AI 加速（RKNN）、视频解码（MPP）和 RGA 库。
 3. 每路摄像头的 RTSP 地址都已用 VLC 打开过，能看到画面。
 4. 知道 MQTT 服务器的地址和端口；服务器要求登录的话，准备好用户名和密码。
@@ -35,13 +35,13 @@
 4. 记下每路摄像头的 RTSP 地址。以海康摄像头为例：`rtsp://用户名:密码@摄像头IP:554/Streaming/Channels/102`（102 为子码流）。
 5. 在表单里填写摄像头地址（多路用英文逗号分隔）、站点编号和 MQTT 服务器，点击部署。
 
-部署时每路摄像头会先放一个示例车位 P-01（画面中间偏下的一个框），步骤 3 里删掉它或拖到真实车位上。
+部署时每路摄像头会先放一个示例车位 P-01（画面中间偏下的一个框），步骤 2 里删掉它或拖到真实车位上。
 
 ### 故障排查
 
 | 问题 | 解决方法 |
 |------|----------|
-| 部署停在「UNSUPPORTED_JETSON_MODULE」 | 这台 Jetson 不是 Orin Nano 模组。本方案只支持 Jetson Orin Nano，请换用 reComputer J30 |
+| 部署停在「UNSUPPORTED_JETSON_MODULE」 | 这台 Jetson 不是 Orin Nano 或 Orin NX 模组。本方案只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX） |
 | 部署停在「UNSUPPORTED_JETPACK」或「UNSUPPORTED_TENSORRT」 | 系统不是 JetPack 6.2，重刷 JetPack 6.2 后再部署 |
 | RK3588 检查提示「missing …」 | 提示下方给出了实际路径时，把它填到对应的输入框（如「RKNN 运行库」）再部署；没有给出路径，说明板卡缺少该库，先安装 RKNN 运行库（rknpu2）、MPP、RGA 和 gstreamer1.0-plugins-bad、gstreamer1.0-rockchip |
 | 提示「Not an RTSP address」 | 摄像头地址要以 `rtsp://` 开头，多个地址之间用英文逗号分隔 |
@@ -49,21 +49,21 @@
 | 下载识别模型失败 | 确认边缘主机能上网，然后重新部署 |
 | 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口，或停掉占用 8099 的服务 |
 
-### 部署目标 {#occupancy_remote type=remote device=jetson device_name="reComputer J30" config=devices/jetson_occupancy.yaml default=true}
+### 部署目标 {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
-从这台电脑通过网络（SSH）部署到 reComputer J30。
-
-### 部署完成
-
-服务已在 reComputer J30 上运行。接下来用步骤 2 确认状态，再用步骤 3 画车位。
-
-### 部署目标 {#occupancy_local type=local device=jetson device_name="reComputer J30（本机）" config=devices/jetson_occupancy.yaml}
-
-本应用就运行在这台 reComputer J30 上时，直接装在本机。
+从这台电脑通过网络（SSH）部署到 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）。
 
 ### 部署完成
 
-服务已在本机运行。接下来用步骤 2 确认状态（主机地址填 127.0.0.1），再用步骤 3 画车位。
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://\<主机IP\>:8080/slots/editor（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#occupancy_local type=local device=jetson device_name="reComputer J30 / J40（本机）" config=devices/jetson_occupancy.yaml}
+
+本应用就运行在这台 reComputer J30 / J40 上时，直接装在本机。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://127.0.0.1:8080/slots/editor（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
 
 ### 部署目标 {#rk3588_occupancy_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_occupancy.yaml}
 
@@ -71,7 +71,7 @@
 
 ### 部署完成
 
-服务已在 reComputer RK3588 上运行。接下来用步骤 2 确认状态，再用步骤 3 画车位。
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://\<主机IP\>:8080/slots/editor（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
 
 ### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588（本机）" config=devices/rk3588_occupancy.yaml}
 
@@ -79,20 +79,9 @@
 
 ### 部署完成
 
-服务已在本机运行。接下来用步骤 2 确认状态（主机地址填 127.0.0.1），再用步骤 3 画车位。
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://127.0.0.1:8080/slots/editor（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
 
-## 步骤 2: 检查服务是否在运行 {#verify_occupancy type=http_debug required=true config=devices/health_verify.yaml}
-
-填入边缘主机的 IP 地址，确认车位检测服务已经启动。
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连接失败或超时 | 服务启动需要约 20 秒，稍后再试；确认填的是边缘主机的 IP，且电脑能访问它的 8099 端口 |
-| 状态正常，但某路摄像头的车位一直是 `unknown` | 主机连不上这路摄像头：用 VLC 在同一网络里打开它的 RTSP 地址，检查地址、用户名密码和编码（需为 H.264） |
-
-## 步骤 3: 画车位 {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
+## 步骤 2: 画车位 {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
 
 在每路摄像头的画面上给每个车位画一个框，并填上车位编号。
 
@@ -151,6 +140,7 @@
 |------|----------|
 | 页面打不开 | 确认端口与部署时填的「车位编辑页端口」一致，且电脑能访问边缘主机 |
 | 画面一片黑或加载失败 | 这路摄像头还没出画面：等几秒后点「刷新快照」，仍不行就检查摄像头 RTSP 地址 |
+| 某路摄像头的车位一直是 `unknown` | 主机连不上这路摄像头：用 VLC 在同一网络里打开它的 RTSP 地址，检查地址、用户名密码和编码（需为 H.264） |
 | 「闭合多边形」后提示多边形非凸 | 有一个角向内凹了，点「撤销顶点」后重新点那个角 |
 | 提示「请先在 id 框输入车位名」 | 先在 id 框填好车位编号，再闭合多边形 |
 | 提示「id 重复」 | 同一路摄像头里车位编号不能重复，换一个编号 |
