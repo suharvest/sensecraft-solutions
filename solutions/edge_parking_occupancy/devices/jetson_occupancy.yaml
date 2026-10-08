@@ -17,7 +17,7 @@ docker:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{camera_config_path}}"
-    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_MEMORY_LIMIT: "{{memory_limit}}"
     PARKING_DATA_DIR: "{{data_dir}}"
@@ -35,7 +35,40 @@ pre_checks:
     description: NVIDIA container runtime must be available on the Jetson.
 deploy_timeout: 3600
 post_deployment: {open_browser: false}
+files:
+  # slots_vehicle640_orin_nano: 10066157 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz
+    remote_path: /home/{{username}}/edge-parking-occupancy/models/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz
+    checksum:
+      sha256: 54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5
 actions:
+  after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking-occupancy/models"
+        BUNDLE="slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+        BUNDLE_SHA="54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+          echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
   after:
     - name: Wait for the occupancy service readiness endpoint
       name_i18n:
@@ -131,19 +164,13 @@ user_inputs:
     description: vb.config/1 JSON with streams and slots polygons; use SlotsApp, not SlotHooks.
     description_i18n: {zh: 包含 streams 和 slots 多边形的 vb.config/1 JSON；使用 SlotsApp，不使用 SlotHooks。}
   - id: parking_image
-    name: Locally built SlotsApp image
-    name_i18n: {zh: 本地构建的 SlotsApp 镜像}
+    name: Parking image
+    name_i18n: {zh: 停车镜像}
     type: text
-    required: true
-    description: No public image is supplied; use a reviewed local build only.
-    description_i18n: {zh: 未提供公开镜像；只能使用审查过的本地构建。}
-  - id: models_dir
-    name: Host model directory
-    name_i18n: {zh: 宿主机模型目录}
-    type: text
-    required: true
-    description: Directory containing the target-device vehicle640 TensorRT engine.
-    description_i18n: {zh: 包含目标设备 vehicle640 TensorRT engine 的目录。}
+    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
+    required: false
+    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
   - id: health_port
     name: Health port
     name_i18n: {zh: 健康端口}
@@ -172,7 +199,7 @@ remote_overrides:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{camera_config_path}}"
-    PARKING_MODELS_DIR: "{{models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_MEMORY_LIMIT: "{{memory_limit}}"
     PARKING_DATA_DIR: "{{data_dir}}"

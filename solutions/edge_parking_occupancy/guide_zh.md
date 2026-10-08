@@ -29,15 +29,15 @@ cover 为 0.0（Orin Nano）和 0.11（RK3588），单车 ROI 为 0.40–0.45。
 1. 每路 RTSP 流已独立验证。
 2. **Jetson：** 已安装 JetPack 6 和 NVIDIA container runtime。将
    `assets/config/slots.json` 复制到宿主机，编辑其中的流、MQTT broker、
-   站点/设备编号、车位多边形和目标 engine 路径。镜像与 vehicle640 engine 来自获准的
-   本地构建。可选 `health_port` 默认 `8099`，需与挂载 JSON 中的端口一致。可选
+   站点/设备编号、车位多边形和目标 engine 路径。镜像与 vehicle640 engine 为 2026-10-08
+   发布的制品，部署时自动获取。可选 `health_port` 默认 `8099`，需与挂载 JSON 中的端口一致。可选
    `memory_limit` 默认 `0`（Compose 不设置 cgroup 上限）；有界测试可填写 `768m`。
    可选 `data_dir` 默认 `./data`，必须是已存在且可写的目录，以便容器重启后保留状态。
    Compose 本地 JSON 日志上限为 8 MiB × 3。 Jetson 预检查要求 `/` 至少有 0.5 GiB 可用空间；该路径假设镜像、模型和
    TensorRT engine 已提前缓存或暂存，余量用于运行文件、日志和元数据。加载或构建这些
    artifact 需另行准备空间；该门槛不代表容量或准确率验收。
-3. **RK3576 / RK3588：** 本地审查过的原生 RK 镜像、面向该板卡的 vehicle640 RKNN
-   artifact、车位配置和匹配的宿主机 ABI 路径。将随包提供的
+3. **RK3576 / RK3588：** 已发布的原生 RK 镜像和面向该板卡的 vehicle640 RKNN
+   模型包（均在部署时获取）、车位配置和匹配的宿主机 ABI 路径。将随包提供的
    `assets/config/slots-rk3576.json` 或 `assets/config/slots-rk3588.json` 复制到
    RK 宿主机，并把该宿主机路径填写为 `PARKING_CONFIG`。编辑复制出的 JSON：`site_id` 和
    `device_id` 各不超过 32 个字符；`mqtt.client_id` 和 `mqtt.topic_root` 必须唯一；

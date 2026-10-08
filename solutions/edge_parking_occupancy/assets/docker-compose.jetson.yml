@@ -1,7 +1,6 @@
 services:
   parking:
-    image: ${PARKING_IMAGE:?set PARKING_IMAGE to a locally built parking image}
-    pull_policy: never
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c}
     mem_limit: ${PARKING_MEMORY_LIMIT:-0}
     container_name: ${PARKING_CONTAINER_NAME:-edge-parking-occupancy-jetson}
     restart: unless-stopped

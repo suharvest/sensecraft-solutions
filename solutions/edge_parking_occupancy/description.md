@@ -1,9 +1,9 @@
 # Edge Multi-Camera Parking Occupancy
 
-> **Draft / blocked artifact.** This package is disabled. The native SlotsApp,
-> public or approved local image input, vehicle640 engine, and platform
-> acceptance evidence are not available as a releasable artifact. Models,
-> broker credentials, and host proprietary libraries are not bundled.
+> **Draft.** The SlotsApp runtime image and the per-target vehicle640 model
+> bundles are published (2026-10-08) and fetched at deploy time; each
+> deployment target states its acceptance status. Broker credentials and host
+> proprietary libraries are not bundled.
 
 SlotsApp samples one or more RTSP streams, applies the native `slot_coverage`
 analyzer to configured parking polygons, and publishes retained slot states to

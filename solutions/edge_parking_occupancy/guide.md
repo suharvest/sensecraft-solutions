@@ -29,7 +29,7 @@ Draw each slot polygon around one parking space so that a parked car the detecto
 2. **Jetson:** JetPack 6 and the NVIDIA container runtime are installed. Copy
    `assets/config/slots.json` to a host path and edit its streams, MQTT
    broker, site/device IDs, slot polygons, and target engine path. The image
-   and vehicle640 engine come from an approved local build. Optional
+   and vehicle640 engine are the published 2026-10-08 artifacts, fetched at deploy time. Optional
    `health_port` defaults to `8099`; set it to the port in the mounted JSON.
    Optional `memory_limit` defaults to `0` (no Compose cgroup limit); a bounded
    test may set `768m`. Optional `data_dir` defaults to `./data` and must be an
@@ -39,8 +39,8 @@ Draw each slot polygon around one parking space so that a parked car the detecto
    already cached or staged and uses the space for runtime files, logs, and
    metadata. Prepare additional space separately when loading or building
    those artifacts; this threshold does not certify capacity or accuracy.
-3. **RK3576 / RK3588:** a locally reviewed native RK image, the board-targeted
-   vehicle640 RKNN artifact, slot configuration, and matching host ABI paths.
+3. **RK3576 / RK3588:** the published native RK image and the board-targeted
+   vehicle640 RKNN bundle (both fetched at deploy time), slot configuration, and matching host ABI paths.
    Copy the shipped `assets/config/slots-rk3576.json` or
    `assets/config/slots-rk3588.json` to the RK host and pass that host path as
    `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle640 artifact; define slot polygons under `app.options.slots` and map each polygon set to its stream ID; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input.

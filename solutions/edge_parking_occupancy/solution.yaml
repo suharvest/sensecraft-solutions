@@ -5,7 +5,7 @@ id: edge_parking_occupancy
 name: Edge Multi-Camera Parking Occupancy
 name_i18n:
   zh: 边缘多摄像头停车位占用检测
-enabled: false
+enabled: true
 intro:
   visibility: staging
   summary: Track configured parking polygons from multiple RTSP cameras on a Jetson host and publish retained slot states over MQTT.
@@ -76,11 +76,11 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 边缘算力盒子（草稿）
         ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
-      badge: Blocked artifact
-      badge_i18n: {zh: artifact 阻塞}
-      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target requires a locally built SlotsApp image, a target-device model, and slot configuration. Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
+      badge: Draft / acceptance incomplete
+      badge_i18n: {zh: 草稿 / 验收未完成}
+      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target uses the published SlotsApp image and its target-device model bundle (fetched at deploy time) plus slot configuration. Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
       description_i18n:
-        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都需要本地构建的 SlotsApp 镜像、目标设备模型和车位配置。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
+        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都使用已发布的 SlotsApp 镜像、对应目标设备的模型包（部署时自动获取）和车位配置。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
         ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドの SlotsApp イメージ、ターゲットデバイス用モデル、駐車枠設定が必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
       # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
       # status is written into each target's description in the guides.

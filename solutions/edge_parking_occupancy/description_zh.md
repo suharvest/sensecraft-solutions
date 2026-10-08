@@ -1,8 +1,7 @@
 # 边缘多摄像头停车位占用检测
 
-> **草稿 / artifact 阻塞。** 本方案保持禁用。原生 SlotsApp、公开或获准的本地
-> 镜像输入、vehicle640 engine 和平台验收证据尚未形成可发布 artifact。这里不
-> 打包模型、broker 凭据或宿主机专有库。
+> **草稿。** SlotsApp 运行镜像和各部署目标的 vehicle640 模型包已发布（2026-10-08），
+> 部署时自动获取；每个部署目标写明了其验收状态。这里不打包 broker 凭据或宿主机专有库。
 
 SlotsApp 采样一路或多路 RTSP，通过原生 `slot_coverage` 分析器处理配置的车位
 > 多边形，并向外部 MQTT broker 发布保留的车位状态。HTTP 编辑页和 `/healthz`
