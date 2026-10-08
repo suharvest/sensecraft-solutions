@@ -17,7 +17,7 @@
   },
   "runtime": {"workers": 1, "max_streams_per_worker": 0, "contexts_per_worker": 2, "publishers_per_process": 1,
     "publish_queue": 256, "max_streams": 16, "open_timeout_s": 8.0, "reconnect_delay_s": 1.0, "restart_backoff_s": 5.0},
-  "native": {"binary": "/opt/vb/bin/vb-runtime", "hello_timeout_s": 10.0, "snapshot_ring": 2, "jpeg_quality": 85},
+  "native": {"binary": "/opt/vb/bin/vb-runtime", "hello_timeout_s": 10.0, "snapshot_ring": 24, "jpeg_quality": 85},
   "tracker": {"enabled": true, "iou_threshold": 0.2, "dist_threshold": 0.15, "max_misses": 15, "max_lost_s": 1.5,
     "min_hits": 1, "class_aware": true, "anchor": "bottom_center"},
   "analyzers": {"plugins": []},
