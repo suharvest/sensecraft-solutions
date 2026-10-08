@@ -2,8 +2,9 @@
 """Render the parking config from the deploy-form inputs.
 
 Called by the "Write the parking config" after_upload action in
-devices/jetson_occupancy.yaml and devices/rk3588_occupancy.yaml. It reads the
-board's shipped vb.config/1 preset (config/slots.json or slots-rk3588.json),
+devices/jetson_occupancy.yaml, devices/rk3588_occupancy.yaml and
+devices/rk3576_occupancy.yaml. It reads the board's shipped vb.config/1 preset
+(config/slots.json, slots-rk3588.json or slots-rk3576.json),
 replaces the site, cameras, MQTT broker and editor port with the form values,
 and writes the result to the path the compose file mounts.
 

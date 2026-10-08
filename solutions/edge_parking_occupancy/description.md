@@ -34,6 +34,7 @@ To know which bays in a car park are taken, the usual answer is a magnetic or ul
 |------|------|------|
 | reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) | Runs bay detection; must be a Jetson Orin Nano or Orin NX module on JetPack 6.2 | Pick one |
 | reComputer RK3588 | Runs bay detection on the board's built-in AI accelerator | Pick one |
+| reComputer RK3576 | Runs bay detection on the board's built-in AI accelerator | Pick one |
 | IP camera | Your existing cameras, able to send an H.264 RTSP stream | ✓ Required |
 | MQTT server | Receives the bay states, for example an existing Mosquitto | ✓ Required |
 
@@ -43,6 +44,7 @@ Measured performance (each camera analysed at 1 frame per second):
 |------|------|------|
 | reComputer J30 (Jetson Orin Nano) | about 6.5 ms | 6 cameras at once, 1 frame per second each, no dropped frames |
 | reComputer RK3588 | about 37 ms | Add cameras one at a time and check each keeps updating |
+| reComputer RK3576 | — | Measured with 1 camera; add cameras one at a time and check each keeps updating |
 
 ### Network requirements
 

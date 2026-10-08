@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 | 分析所有摄像头画面，判断每个车位有没有车 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 / RK3576 | 分析所有摄像头画面，判断每个车位有没有车 |
 | IP 摄像头 | 现场已有的摄像头，输出 H.264 编码的 RTSP 视频流 |
 | MQTT 服务器 | 接收车位状态，供余位屏、停车管理系统或 Home Assistant 使用 |
 
@@ -22,7 +22,7 @@
 ### 前置条件
 
 1. 用 reComputer J30 / J40 时：必须是 Jetson Orin Nano 或 Orin NX 模组，系统为 JetPack 6.2。其他 Jetson 模组或系统版本会在部署第一步被拦下。
-2. 用 reComputer RK3588 时：系统需自带 Rockchip 的 AI 加速（RKNN）、视频解码（MPP）和 RGA 库。
+2. 用 reComputer RK3588 或 RK3576 时：系统需自带 Rockchip 的 AI 加速（RKNN）、视频解码（MPP）和 RGA 库。
 3. 每路摄像头的 RTSP 地址都已用 VLC 打开过，能看到画面。
 4. 知道 MQTT 服务器的地址和端口；服务器要求登录的话，准备好用户名和密码。
 5. 主机上 8080 端口（车位编辑页）和 8099 端口（状态检查）没有被其他服务占用。8080 被占用时，可以在表单里换一个车位编辑页端口。
@@ -43,11 +43,11 @@
 |------|----------|
 | 部署停在「UNSUPPORTED_JETSON_MODULE」 | 这台 Jetson 不是 Orin Nano 或 Orin NX 模组。本方案只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX） |
 | 部署停在「UNSUPPORTED_JETPACK」或「UNSUPPORTED_TENSORRT」 | 系统不是 JetPack 6.2，重刷 JetPack 6.2 后再部署 |
-| RK3588 检查提示「missing …」 | 提示下方给出了实际路径时，把它填到对应的输入框（如「RKNN 运行库」）再部署；没有给出路径，说明板卡缺少该库，先安装 RKNN 运行库（rknpu2）、MPP、RGA 和 gstreamer1.0-plugins-bad、gstreamer1.0-rockchip |
+| RK3588 / RK3576 检查提示「missing …」 | 提示下方给出了实际路径时，把它填到对应的输入框（如「RKNN 运行库」）再部署；没有给出路径，说明板卡缺少该库，先安装 RKNN 运行库（rknpu2）、MPP、RGA 和 gstreamer1.0-plugins-bad、gstreamer1.0-rockchip |
 | 提示「Not an RTSP address」 | 摄像头地址要以 `rtsp://` 开头，多个地址之间用英文逗号分隔 |
 | 提示摄像头地址和编号数量不一致 | 摄像头编号要和地址一一对应，或者把编号留空让它自动编号 |
 | 下载识别模型失败 | 确认边缘主机能上网，然后重新部署 |
-| 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口，或停掉占用 8099 的服务 |
+| 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`，RK3576 为 `edge-parking-occupancy-rk3576`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口，或停掉占用 8099 的服务 |
 
 ### 部署目标 {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
@@ -76,6 +76,22 @@
 ### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588（本机）" config=devices/rk3588_occupancy.yaml}
 
 本应用就运行在这台 reComputer RK3588 上时，直接装在本机。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://127.0.0.1:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#rk3576_occupancy_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/rk3576_occupancy.yaml}
+
+从这台电脑通过网络（SSH）部署到 reComputer RK3576。
+
+### 部署完成
+
+部署最后一步会等车位检测服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<主机IP>:8080/slots/editor`（端口以「车位编辑页端口」为准），能看到摄像头画面。接下来用步骤 2 画车位。
+
+### 部署目标 {#rk3576_occupancy_local type=local device=rk3576 device_name="reComputer RK3576（本机）" config=devices/rk3576_occupancy.yaml}
+
+本应用就运行在这台 reComputer RK3576 上时，直接装在本机。
 
 ### 部署完成
 

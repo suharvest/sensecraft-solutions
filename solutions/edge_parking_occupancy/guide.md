@@ -4,7 +4,7 @@ Keep the IP cameras already in your car park and add one edge box on the same ne
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 | Analyses every camera picture and decides whether each bay has a car |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 / RK3576 | Analyses every camera picture and decides whether each bay has a car |
 | IP camera | Your existing cameras, sending an H.264 RTSP stream |
 | MQTT server | Receives the bay states for guidance signs, a parking system or Home Assistant |
 
@@ -22,7 +22,7 @@ Install the bay detection service on the edge box. Enter the camera addresses an
 ### Prerequisites
 
 1. With a reComputer J30 / J40: it must be a Jetson Orin Nano or Orin NX module on JetPack 6.2. Other Jetson modules or system versions are stopped at the first deploy step.
-2. With a reComputer RK3588: its system must include Rockchip's AI accelerator (RKNN), video decode (MPP) and RGA libraries.
+2. With a reComputer RK3588 or RK3576: its system must include Rockchip's AI accelerator (RKNN), video decode (MPP) and RGA libraries.
 3. Every camera's RTSP address has been opened in VLC and shows a picture.
 4. You know the MQTT server's address and port, plus a username and password if it requires login.
 5. Ports 8080 (slot editor) and 8099 (status check) are free on the box. If 8080 is taken, enter a different slot editor port in the form.
@@ -43,11 +43,11 @@ Each camera starts with one example bay, P-01 (a box in the lower middle of the 
 |-------|----------|
 | Deploy stops at "UNSUPPORTED_JETSON_MODULE" | This Jetson is not an Orin Nano or Orin NX module. This solution supports reComputer J30 / J40 (Jetson Orin Nano / Orin NX) only |
 | Deploy stops at "UNSUPPORTED_JETPACK" or "UNSUPPORTED_TENSORRT" | The system is not JetPack 6.2; reflash JetPack 6.2 and deploy again |
-| The RK3588 check reports "missing …" | If a path is printed below it, enter that path in the matching field (for example "RKNN runtime library") and deploy again. If no path is printed, the board lacks that library: install the RKNN runtime (rknpu2), MPP, RGA, gstreamer1.0-plugins-bad and gstreamer1.0-rockchip first |
+| The RK3588 / RK3576 check reports "missing …" | If a path is printed below it, enter that path in the matching field (for example "RKNN runtime library") and deploy again. If no path is printed, the board lacks that library: install the RKNN runtime (rknpu2), MPP, RGA, gstreamer1.0-plugins-bad and gstreamer1.0-rockchip first |
 | "Not an RTSP address" | Camera addresses must start with `rtsp://`, with commas between addresses |
 | Camera addresses and camera IDs do not match in number | Give one ID per address, or leave the IDs empty to number them automatically |
 | Downloading the detection model fails | Make sure the edge box can reach the internet, then deploy again |
-| Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`). The usual cause is port 8080 or 8099 in use: choose another slot editor port, or stop the service holding 8099 |
+| Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`, RK3576: `edge-parking-occupancy-rk3576`). The usual cause is port 8080 or 8099 in use: choose another slot editor port, or stop the service holding 8099 |
 
 ### Target {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
@@ -76,6 +76,22 @@ The last deploy step waits until bay detection is ready, so a successful deploy 
 ### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588 (this machine)" config=devices/rk3588_occupancy.yaml}
 
 Install on this machine when this app runs on the reComputer RK3588 itself.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#rk3576_occupancy_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/rk3576_occupancy.yaml}
+
+Deploy to a reComputer RK3576 over the network (SSH) from this computer.
+
+### Deployment Complete
+
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+
+### Target {#rk3576_occupancy_local type=local device=rk3576 device_name="reComputer RK3576 (this machine)" config=devices/rk3576_occupancy.yaml}
+
+Install on this machine when this app runs on the reComputer RK3576 itself.
 
 ### Deployment Complete
 

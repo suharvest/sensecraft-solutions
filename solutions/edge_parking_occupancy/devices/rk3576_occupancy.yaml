@@ -1,0 +1,351 @@
+version: "1.0"
+id: rk3576_occupancy
+name: reComputer RK3576 Parking Occupancy
+name_i18n:
+  zh: reComputer RK3576 车位占用检测
+type: docker_deploy
+
+# Maintainer notes: image and model are the published 20261008 artifacts
+# (model bundle slots_vehicle640_rk3576; config/slots-rk3576.json uses NPU
+# core_masks [1,2] with 2 contexts). The compose file mounts the board's own
+# Rockchip NPU / video-decode / RGA libraries and host GStreamer, same as
+# rk3588_occupancy; run on cat-remote (LubanCat RK3576) 2026-10-08 with the
+# default library paths below, see the solution.yaml header. The deploy form
+# replaces the old hand-edited vb.config/1 JSON: after_upload renders assets/config/slots-rk3576.json with
+# assets/render_config.py into <root>/config.json (H.264 only). The library
+# paths are inputs with the reComputer RK3576 Debian defaults; the `before`
+# check prints where a missing library actually lives.
+docker:
+  compose_file: assets/docker-compose.rk3576.yml
+  compose_dir: assets
+  remote_path: /home/{{username}}/edge-parking-occupancy-rk3576
+  options:
+    project_name: edge_parking_occupancy_rk3576
+    remove_orphans: false
+  services:
+    - name: parking
+      required: true
+  environment:
+    PARKING_CONFIG: "~/edge-parking-occupancy-rk3576/config.json"
+    PARKING_MODELS_DIR: "~/edge-parking-occupancy-rk3576/models"
+    PARKING_DATA_DIR: "~/edge-parking-occupancy-rk3576/data"
+    PARKING_DRI_DEVICE: "/dev/dri"
+    PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+    PARKING_MPP_LIB: "{{mpp_lib}}"
+    PARKING_RGA_LIB: "{{rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+    PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password]
+  connection_timeout: 30
+  command_timeout: 3600
+pre_checks:
+  - type: disk_space
+    min_gb: 1
+    description: Keep at least 1 GB free for the program, the model and its data.
+files:
+  # slots_vehicle640_rk3576: 4972393 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3576-ca97c2bca5d1.tar.gz
+    remote_path: /home/{{username}}/edge-parking-occupancy-rk3576/models/slots_vehicle640_rk3576-ca97c2bca5d1.tar.gz
+    checksum:
+      sha256: ca97c2bca5d1bad22ff72529d508ddad0607c1d2d49bbb205e00d9bcc6c9b10a
+actions:
+  before:
+    - name: Check the board's AI accelerator and video libraries
+      name_i18n: {zh: 检查板卡的 AI 加速与视频解码库}
+      env:
+        PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+        PARKING_MPP_LIB: "{{mpp_lib}}"
+        PARKING_RGA_LIB: "{{rga_lib}}"
+        PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+        PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
+      run: |
+        set -u
+        missing=0
+        check() {
+          # $1 = label, $2 = path, $3 = file name pattern to look for elsewhere
+          if [ -e "$2" ]; then echo "found $2"; return 0; fi
+          missing=1
+          echo "missing $1: $2" >&2
+          alt=$(find /usr/lib /lib -name "$3" 2>/dev/null | head -1)
+          if [ -n "$alt" ]; then echo "  -> found $alt; enter this path in the \"$1\" field" >&2; fi
+        }
+        if [ ! -e /dev/dri ]; then echo "missing /dev/dri: this does not look like a Rockchip board with video and AI drivers" >&2; missing=1; fi
+        check "RKNN runtime library" "$PARKING_RKNNRT_LIB" 'librknnrt.so*'
+        check "RGA library" "$PARKING_RGA_LIB" 'librga.so.2*'
+        check "MPP library" "$PARKING_MPP_LIB" 'librockchip_mpp.so*'
+        check "MPP GStreamer plugin" "$PARKING_MPP_PLUGIN" 'libgstrockchipmpp.so'
+        L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+        for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do
+          check "GStreamer library folder" "$L/$f" "$(basename "$f")"
+        done
+        if [ "$missing" -ne 0 ]; then
+          echo "Install the board's RKNN runtime (rknpu2), Rockchip MPP and RGA, and gstreamer1.0-plugins-bad + gstreamer1.0-rockchip, or correct the paths above, then deploy again." >&2
+          exit 1
+        fi
+        echo "AI accelerator and video libraries: OK"
+  after_upload:
+    - name: Download the detection model
+      name_i18n: {zh: 下载识别模型}
+      timeout: 1800
+      run: |
+        set -eu
+        U="{{username}}"
+        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy-rk3576"; else ROOT="$HOME/edge-parking-occupancy-rk3576"; fi
+        MODELS_DIR="$ROOT/models"
+        BUNDLE="slots_vehicle640_rk3576-ca97c2bca5d1.tar.gz"
+        BUNDLE_SHA="ca97c2bca5d1bad22ff72529d508ddad0607c1d2d49bbb205e00d9bcc6c9b10a"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3576-ca97c2bca5d1.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "c568389ee283b9b88c3b1d70804a8cfca2e018ca6c45384f3b023908d243cb3d  $MODELS_DIR/vehicle_640.rk3576.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+          echo "c568389ee283b9b88c3b1d70804a8cfca2e018ca6c45384f3b023908d243cb3d  $MODELS_DIR/vehicle_640.rk3576.w8a8.rknn" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
+    - name: Write the parking config
+      name_i18n: {zh: 写入车位检测配置}
+      env:
+        RTSP_URLS: "{{rtsp_urls}}"
+        CAMERA_IDS: "{{camera_ids}}"
+        SITE_ID: "{{site_id}}"
+        MQTT_HOST: "{{mqtt_host}}"
+        MQTT_PORT: "{{mqtt_port}}"
+        MQTT_USERNAME: "{{mqtt_username}}"
+        MQTT_PASSWORD: "{{mqtt_password}}"
+        EDITOR_PORT: "{{editor_port}}"
+        STREAM_CODEC: "h264"
+      run: |
+        set -eu
+        # Renders config/slots-rk3576.json (vb.config/1 preset) with the form
+        # values into $ROOT/config.json, the path PARKING_CONFIG points at.
+        # Remote: the compose_dir lands in remote_path/<device id>/; local: cwd
+        # is the solution directory.
+        U="{{username}}"
+        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy-rk3576"; else ROOT="$HOME/edge-parking-occupancy-rk3576"; fi
+        SRC=""
+        for d in "$ROOT/rk3576_occupancy" "$ROOT" "$PWD/assets"; do
+          if [ -f "$d/config/slots-rk3576.json" ] && [ -f "$d/render_config.py" ]; then SRC="$d"; break; fi
+        done
+        if [ -z "$SRC" ]; then
+          echo "config/slots-rk3576.json not found (looked in $ROOT/rk3576_occupancy, $ROOT, $PWD/assets)" >&2
+          exit 1
+        fi
+        mkdir -p "$ROOT/data"
+        python3 "$SRC/render_config.py" "$SRC/config/slots-rk3576.json" "$ROOT/config.json"
+  after:
+    - name: Wait for the parking service to start
+      name_i18n:
+        zh: 等待车位检测服务启动
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
+post_deployment:
+  open_browser: false
+user_inputs:
+  - id: rtsp_urls
+    name: Camera RTSP addresses
+    name_i18n: {zh: 摄像头 RTSP 地址}
+    type: text
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/102"
+    description: One address per camera, separated by commas. Open each one in VLC first — a wrong path or password is the most common failure.
+    description_i18n: {zh: 每路摄像头一个地址，多路用英文逗号分隔。先用 VLC 打开试一下——路径或用户名密码写错是最常见的失败原因。}
+  - id: camera_ids
+    name: Camera IDs
+    name_i18n: {zh: 摄像头编号}
+    type: text
+    required: false
+    placeholder: "b1-north, b1-south"
+    description: Optional. One short name per address, same order, separated by commas (letters, digits, - and _). Used in the MQTT topic. Leave empty to number them cam-01, cam-02, …
+    description_i18n: {zh: 可不填。与上面的地址按顺序一一对应，英文逗号分隔（字母、数字、- 和 _），会用在 MQTT 主题里。留空则自动编为 cam-01、cam-02……}
+  - id: site_id
+    name: Site ID
+    name_i18n: {zh: 站点编号}
+    type: text
+    default: "my-lot"
+    required: true
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,32}$"
+    description: First part of the MQTT topic, one per car park (letters, digits, - and _).
+    description_i18n: {zh: MQTT 主题的第一段，一个停车场一个（字母、数字、- 和 _）。}
+  - id: mqtt_host
+    name: MQTT server address
+    name_i18n: {zh: MQTT 服务器地址}
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: IP address or hostname of the MQTT server that receives the bay states.
+    description_i18n: {zh: 接收车位状态的 MQTT 服务器的 IP 地址或主机名。}
+  - id: mqtt_port
+    name: MQTT port
+    name_i18n: {zh: MQTT 端口}
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+  - id: mqtt_username
+    name: MQTT username
+    name_i18n: {zh: MQTT 用户名}
+    type: text
+    required: false
+    description: Leave empty if the server accepts anonymous clients.
+    description_i18n: {zh: 服务器允许匿名连接就留空。}
+  - id: mqtt_password
+    name: MQTT password
+    name_i18n: {zh: MQTT 密码}
+    type: password
+    required: false
+  - id: editor_port
+    name: Slot editor port
+    name_i18n: {zh: 车位编辑页端口}
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
+    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
+  - id: rknn_lib
+    name: RKNN runtime library
+    name_i18n: {zh: RKNN 运行库}
+    type: text
+    default: "/usr/lib/librknnrt.so"
+    required: true
+    description: Keep the default on reComputer RK3576. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3576 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: rga_lib
+    name: RGA library
+    name_i18n: {zh: RGA 库}
+    type: text
+    default: "/usr/lib/aarch64-linux-gnu/librga.so.2"
+    required: true
+    description: Keep the default on reComputer RK3576. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3576 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: mpp_lib
+    name: MPP library
+    name_i18n: {zh: MPP 库}
+    type: text
+    default: "/usr/lib/aarch64-linux-gnu/librockchip_mpp.so.1"
+    required: true
+    description: Keep the default on reComputer RK3576. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3576 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: mpp_plugin
+    name: MPP GStreamer plugin
+    name_i18n: {zh: MPP GStreamer 插件}
+    type: text
+    default: "/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so"
+    required: true
+    description: Keep the default on reComputer RK3576. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3576 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: gst_lib_dir
+    name: GStreamer library folder
+    name_i18n: {zh: GStreamer 库目录}
+    type: text
+    default: "/lib/aarch64-linux-gnu"
+    required: true
+    description: Keep the default on reComputer RK3576. Change it only if the deploy check reports it missing and prints another folder.
+    description_i18n: {zh: reComputer RK3576 保持默认值。只有部署检查提示找不到、并给出了另一个目录时才改成那个目录。}
+remote_overrides:
+  environment:
+    PARKING_CONFIG: "/home/{{username}}/edge-parking-occupancy-rk3576/config.json"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3576/models"
+    PARKING_DATA_DIR: "/home/{{username}}/edge-parking-occupancy-rk3576/data"
+    PARKING_DRI_DEVICE: "/dev/dri"
+    PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+    PARKING_MPP_LIB: "{{mpp_lib}}"
+    PARKING_RGA_LIB: "{{rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+    PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"

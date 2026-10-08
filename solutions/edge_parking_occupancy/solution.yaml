@@ -1,11 +1,10 @@
 # edge_parking_occupancy (NRD-4) — maintainer notes, not shown to users.
 #
 # Targets offered: Jetson Orin Nano / Orin NX (reComputer J30 / J40; NX accepted
-# on owner decision 2026-10-08, engines built and device-run on Orin Nano only) and RK3588. The RK3576
-# target was removed 2026-10-08: its package compose never ran on a board (the
-# test board could not load the image), so it is not offered. Restore it from
-# git history (devices/rk3576_occupancy.yaml, assets/docker-compose.rk3576.yml,
-# assets/config/slots-rk3576.json) once it has a package-compose run.
+# on owner decision 2026-10-08, engines built and device-run on Orin Nano only), RK3588 and
+# RK3576. RK3576 was removed earlier on 2026-10-08 (its package compose had not
+# run on a board) and restored the same day after the package-compose run on
+# cat-remote described below.
 #
 # `verified: [hardware]` on the preset:
 # - Jetson: 2026-10-08 on Jetson Orin Nano (acceptance receipt
@@ -21,6 +20,18 @@
 #   occupied/empty fixture, 1 stream at 1 fps, single-car ROI. 17 state
 #   changes, RKNN p50 36.6 / p95 40.5 ms, 0 dropped, MPP decode.
 #   Not covered: slot accuracy, multi-stream capacity, published image bytes.
+# - RK3576: 2026-10-08 on cat-remote (LubanCat RK3576, Debian, librknnrt
+#   2.3.2): devices/rk3576_occupancy.yaml actions + compose run by hand in
+#   docker_remote_deployer order (before library check OK with the default
+#   paths, model fallback download, render_config.py, compose up, 8099
+#   readiness 4 s), published image nrd-parking-rk:20261008 @df4bb508. Bays
+#   set through PUT /config/slots on the editor port (the Step 2 path), the
+#   Jetson-run polygons B1-023/B1-024, input slots-occ20-empty20-400s.mp4
+#   (640x360, still 20 s / black 20 s). 1.0 fps per stream, MPP decode, no
+#   fallback; 21 parking.slots/1 messages, occupied<->free for both bays on
+#   every cycle; publisher stopped -> all bays `unknown`, stream_ok false
+#   9.5 s later. Per-frame NPU time is not exposed by /healthz (description
+#   shows "—"). Not covered: slot accuracy, multi-stream capacity.
 # - Health stays `ok` when a stream stalls (orin-nano run 1); the guide
 #   points users at the per-message `stream_ok` / `unknown` state instead.
 #
@@ -54,7 +65,7 @@ intro:
         ja: "駐車枠エディタ：カメラのライブ映像上に、1 台分ずつ枠を描きます。この画面の 2 枠はどちらも「占有」と判定されています。"
   category: vision_video_ai
   solution_type: solution
-  tags: [parking, occupancy, rtsp, multi-camera, mqtt, jetson, rk3588]
+  tags: [parking, occupancy, rtsp, multi-camera, mqtt, jetson, rk3588, rk3576]
   output_interfaces:
     - type: mqtt
       port: 1883
@@ -90,6 +101,9 @@ intro:
     recomputer_rk3588:
       description: Runs bay detection for all cameras on the board's built-in AI accelerator.
       description_i18n: {zh: 用板载 AI 加速芯片为所有摄像头运行车位检测。}
+    recomputer_rk3576:
+      description: Runs bay detection for all cameras on the board's built-in AI accelerator.
+      description_i18n: {zh: 用板载 AI 加速芯片为所有摄像头运行车位检测。}
     generic_ip_camera:
       name: IP Camera
       name_i18n: {zh: IP 摄像头}
@@ -101,10 +115,10 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 边缘主机
         ja: IP カメラ + エッジホスト
-      description: Keep your existing cameras and add one edge box on the same network — reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588. You also need an MQTT server to receive the bay states.
+      description: Keep your existing cameras and add one edge box on the same network — reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2), reComputer RK3588 or reComputer RK3576. You also need an MQTT server to receive the bay states.
       description_i18n:
-        zh: 保留现有摄像头，在同一网络里加一台边缘主机——reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588。另需一台 MQTT 服务器接收车位状态。
-        ja: 既存のカメラはそのまま、同じネットワークにエッジホストを 1 台追加します——reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）または reComputer RK3588。駐車枠の状態を受け取る MQTT サーバーも必要です。
+        zh: 保留现有摄像头，在同一网络里加一台边缘主机——reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）、reComputer RK3588 或 reComputer RK3576。另需一台 MQTT 服务器接收车位状态。
+        ja: 既存のカメラはそのまま、同じネットワークにエッジホストを 1 台追加します——reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）、reComputer RK3588 または reComputer RK3576。駐車枠の状態を受け取る MQTT サーバーも必要です。
       verified:
         - hardware
       device_groups:
@@ -113,12 +127,13 @@ intro:
           name_i18n: {zh: 边缘主机}
           type: single
           required: true
-          description: Pick one. reComputer J30 and J40 share one deploy target; RK3588 has its own.
-          description_i18n: {zh: 选一台。reComputer J30 和 J40 用同一个部署目标，RK3588 另有部署目标。}
+          description: Pick one. reComputer J30 and J40 share one deploy target; RK3588 and RK3576 each have their own.
+          description_i18n: {zh: 选一台。reComputer J30 和 J40 用同一个部署目标，RK3588、RK3576 各有自己的部署目标。}
           options:
             - device_ref: recomputer_j30
             - device_ref: recomputer_j40
             - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
           default: recomputer_j30
         - id: cameras
           name: Parking Cameras
