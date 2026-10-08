@@ -14,9 +14,11 @@ ssh:
 
 script:
   start_command:
-    linux_macos: |
-      MQTT_HOST={{mqtt_host}} MQTT_PORT=1883 SERIAL_PORT={{serial_port}} \
-        bash assets/gateway/install.sh
+    linux_macos: bash assets/gateway/install.sh
+    env:
+      MQTT_HOST: "{{mqtt_host}}"
+      MQTT_PORT: "1883"
+      SERIAL_PORT: "{{serial_port}}"
   health_check:
     type: log_pattern
     pattern: "active"
