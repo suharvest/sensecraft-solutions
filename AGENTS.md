@@ -36,7 +36,9 @@ a skill when its job comes up:
 | `prepare-docker-images` / `prepare-deb-package` / `prepare-esp32-firmware` / `prepare-himax-firmware` / `prepare-recamera-nodered` | Preparing the deploy artifacts for the matching deployer type. |
 | `integrate-jetson-solution` | Building a Jetson `docker_remote` solution package. |
 
-> **Using `sensecraft` without cloning this repo:** copy the `skills/sensecraft/`
+> **Using `sensecraft` without cloning this repo:** in the SenseCraft Solution
+> app open **Settings → Advanced → AI agent skill** and click Install for your agent (the
+> app ships the skill matching its own version). Or copy the `skills/sensecraft/`
 > folder into your agent's skills directory — Claude Code: `~/.claude/skills/`;
 > CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check
 > your version's settings); other agents: point them at `skills/sensecraft/SKILL.md`.
