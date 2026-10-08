@@ -64,7 +64,7 @@ three classes:
 | Class | Example | What you do |
 |---|---|---|
 | **Device / environment** | port taken, disk full, Docker missing, network blocked, wrong password | Propose the exact fix commands → user OK → run them → retry |
-| **Solution configuration** | wrong port in compose, health check hits an auth endpoint, missing env var, bad image tag | Fix it in the edit copy (`edit-config.md`, starting at §1 — editor mode must be on) → validate → apply → retry |
+| **Solution configuration** | wrong port in compose, health check hits an auth endpoint, missing env var, bad image tag | Fix it in the edit copy (`edit-config.md`) → validate → apply → retry |
 | **Engine bug** | traceback inside `provisioning_station`, a step that fails the same way on any device, behaviour contradicting the solution's own config | Stop. Write the issue draft below |
 
 If the evidence does not fit any row, say so and show the user the first error

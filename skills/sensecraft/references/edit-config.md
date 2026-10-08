@@ -4,25 +4,11 @@ Needs `contract_version` 6 or later (see `SKILL.md` Step 0).
 
 The app never changes its bundled solutions. Edits go into an **edit copy** of
 one solution; while the edit copy exists, the app uses it instead of the
-bundled one. Deleting it ("discard") restores the original.
+bundled one. Deleting it ("discard") restores the original. The app marks
+the solution as "locally modified", shows the changes, and offers "restore
+official version" — so the user can always see and undo what you changed.
 
-## 1. Editor mode
-
-```
-curl -s "BASE/api/meta"
-```
-
-If `editor_enabled` is `false`, every `/api/editor/...` call returns **404**
-(as if the feature did not exist). **Ask the user** whether to turn on editor
-mode, then:
-
-```
-curl -s -X POST "BASE/api/meta/editor" -H "Content-Type: application/json" --data "{\"enabled\": true}"
-```
-
-(PowerShell: put `{"enabled": true}` in a file and use `--data @file.json`.)
-
-## 2. Open the edit copy
+## 1. Open the edit copy
 
 ```
 curl -s -X POST "BASE/api/editor/solutions/<id>/enter"
@@ -31,7 +17,7 @@ curl -s -X POST "BASE/api/editor/solutions/<id>/enter"
 Returns `path` — the edit copy's folder. Calling it again is safe; it keeps
 existing edits and returns the same `path`.
 
-## 3. Edit files in `path`
+## 2. Edit files in `path`
 
 | File | Holds |
 |---|---|
@@ -51,7 +37,7 @@ value appears in several places (a port in compose, in `services[].port` and in
 **Device YAMLs and assets are read from disk at deploy time**, so they take
 effect as soon as you save them. Always validate before redeploying.
 
-## 4. Validate
+## 3. Validate
 
 ```
 curl -s -X POST "BASE/api/editor/solutions/<id>/validate"
@@ -62,7 +48,7 @@ is 1-based or null) and validate again. `warnings` do not block; leave
 existing ones (e.g. "missing Chinese translation") alone unless the user asked
 for guide changes.
 
-## 5. Apply
+## 4. Apply
 
 ```
 curl -s -X POST "BASE/api/editor/solutions/<id>/apply"
@@ -74,13 +60,15 @@ curl -s -X POST "BASE/api/editor/solutions/<id>/apply"
 
 Then redeploy the affected device (`deploy.md` §6).
 
-## 6. Show what changed
+## 5. Show what changed
 
-Compare every file you touched with the original in
-`<solutions_dir>/<id>/` (from `runtime.json`) and show the user the diff:
-`diff -u <solutions_dir>/<id>/<file> <path>/<file>` (or
-`git diff --no-index` with the same two paths). On Windows without either,
-show the changed lines before and after.
+```
+curl -s "BASE/api/editor/solutions/<id>/diff"
+```
+
+Returns `files[]` with `path`, `status` (`modified` / `added` / `removed`) and a
+unified `diff` for text files. Show the user these diffs. The same changes are
+visible in the app.
 
 ## Undo, share
 

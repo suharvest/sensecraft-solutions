@@ -23,8 +23,7 @@ is plain `curl`, available on macOS, Linux and Windows 10+.
    |---|---|
    | Read app status, deployment logs, engine log files | No |
    | Read-only checks on a device over SSH (`docker ps`, `docker logs`, `df -h`, `ss -ltnp`, `ping`) | No |
-   | Edit the solution's edit copy (see `references/edit-config.md`) | No — show the diff afterwards; it can be reverted in one call |
-   | Turn on the app's editor mode | **Yes** |
+   | Edit the solution's edit copy (see `references/edit-config.md`) | No — show the diff afterwards; the user sees it in the app as "locally modified" and can restore the official version in one click |
    | Change anything on a device: stop/remove containers, delete files, install packages, change system settings | **Yes** |
    | Redeploy | First retry: no. Every later retry: **yes** |
    | Open a GitHub issue or pull request | **Yes** |
