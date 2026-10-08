@@ -5,6 +5,18 @@ name_i18n:
   zh: reComputer RK3576 停车场计数
 type: docker_deploy
 
+# Runtime image: compose default (nrd-parking-rk:20261009b, pinned by digest).
+# Model: count_vehicle416_rk3576 bundle (files: + after_upload fallback).
+# Host libraries (RKNN runtime, RGA, MPP, GStreamer) are detected on the board
+# by the first after_upload action and written to the compose project's .env;
+# config/counting-rk3576.json is rendered from the deploy inputs.
+# Same image and mounts as rk3588_counting; RK3576 differences are the model
+# bundle and the NPU split in config/counting-rk3576.json (core_masks [1,2],
+# 2 contexts). Device run 2026-10-08 on cat-remote (LubanCat RK3576): this
+# file's actions + compose run in docker_remote_deployer order, published
+# image, 640x360 30 fps synthetic clip -> 29-30 fps processed, MPP decode,
+# 19 crossings in ~115 s, readiness 5 s (see solution.yaml preset comment).
+
 docker:
   compose_file: assets/docker-compose.rk3576.yml
   compose_dir: assets
@@ -16,15 +28,7 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{parking_config}}"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
-    PARKING_DATA_DIR: "{{parking_data_dir}}"
-    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-    PARKING_RGA_LIB: "{{parking_rga_lib}}"
-    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
 ssh:
   port: 22
   default_user: recomputer
@@ -34,7 +38,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 1
-    description: Existing local image, model and data paths must fit the host budget.
+    description: At least 1 GB free for the app image and model.
 files:
   # count_vehicle416_rk3576: 4958009 bytes, published 2026-10-08; after_upload unpacks it into models/.
   - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz
@@ -43,8 +47,57 @@ files:
       sha256: 26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd
 actions:
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Find the board's AI and video libraries
+      name_i18n: {zh: 查找板载 AI 与视频解码库}
+      run: |
+        set -eu
+        ROOT=""
+        for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
+          if [ -f "$r/docker-compose.rk3576.yml" ]; then ROOT="$r"; break; fi
+        done
+        if [ -z "$ROOT" ]; then
+          echo "docker-compose.rk3576.yml not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+          exit 1
+        fi
+        pick() {
+          for c in "$@"; do
+            if [ -e "$c" ]; then echo "$c"; return 0; fi
+          done
+          return 1
+        }
+        missing=""
+        RKNNRT=$(pick /usr/lib/librknnrt.so /usr/lib/aarch64-linux-gnu/librknnrt.so /usr/lib/aarch64-linux-gnu/librknnrt.so.* /usr/lib/librknnrt.so.*) || missing="$missing RKNN-runtime(librknnrt)"
+        RGA=$(pick /usr/lib/aarch64-linux-gnu/librga.so.2 /usr/lib/aarch64-linux-gnu/librga.so.2.* /usr/lib/librga.so.2) || missing="$missing RGA(librga.so.2)"
+        MPP=$(pick /usr/lib/aarch64-linux-gnu/librockchip_mpp.so.1 /usr/lib/aarch64-linux-gnu/librockchip_mpp.so.0 /usr/lib/aarch64-linux-gnu/librockchip_mpp.so) || missing="$missing MPP(librockchip_mpp)"
+        MPP_PLUGIN=$(pick /lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so) || missing="$missing gstreamer1.0-rockchip(libgstrockchipmpp)"
+        DRI=$(pick /dev/dri) || missing="$missing /dev/dri"
+        LIBDIR=""
+        for d in /lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu; do
+          ok=1
+          for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do
+            [ -e "$d/$f" ] || ok=0
+          done
+          if [ "$ok" -eq 1 ]; then LIBDIR="$d"; break; fi
+        done
+        [ -n "$LIBDIR" ] || missing="$missing gstreamer1.0-plugins-bad(libgstvideoparsersbad)"
+        if [ -n "$missing" ]; then
+          echo "MISSING_BOARD_LIBRARIES:$missing" >&2
+          echo "Install the board vendor's RKNN runtime, Rockchip MPP/RGA, gstreamer1.0-rockchip and gstreamer1.0-plugins-bad, then deploy again." >&2
+          exit 1
+        fi
+        cat > "$ROOT/.env" <<EOF_ENV
+        PARKING_RKNNRT_LIB=$RKNNRT
+        PARKING_RGA_LIB=$RGA
+        PARKING_MPP_LIB=$MPP
+        PARKING_MPP_PLUGIN=$MPP_PLUGIN
+        PARKING_DRI_DEVICE=$DRI
+        PARKING_HOST_LIB_DIR=$LIBDIR
+        EOF_ENV
+        mkdir -p "$ROOT/data"
+        echo "wrote $ROOT/.env"
+        cat "$ROOT/.env"
+    - name: Download the vehicle model
+      name_i18n: {zh: 下载车辆识别模型}
       timeout: 1800
       run: |
         set -eu
@@ -69,138 +122,300 @@ actions:
           echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
         fi
         ls -l "$MODELS_DIR"
-  before:
-    - name: Check RK inputs and host ABI
-      name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
+    - name: Write the counting settings
+      name_i18n: {zh: 写入计数设置}
       env:
-        PARKING_IMAGE: "{{parking_image}}"
-        PARKING_CONFIG: "{{parking_config}}"
-        PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
-        PARKING_DATA_DIR: "{{parking_data_dir}}"
-        PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-        PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-        PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-        PARKING_RGA_LIB: "{{parking_rga_lib}}"
-        PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
+        SITE_ID: '{{site_id}}'
+        CAMERA_ID: '{{camera_id}}'
+        RTSP_URL: '{{rtsp_url}}'
+        STREAM_CODEC: '{{stream_codec}}'
+        MQTT_HOST: '{{mqtt_host}}'
+        MQTT_PORT: '{{mqtt_port}}'
+        MQTT_USERNAME: '{{mqtt_username}}'
+        MQTT_PASSWORD: '{{mqtt_password}}'
+        CAPACITY: '{{capacity}}'
+        HTTP_PORT: '{{http_port}}'
       run: |
-        set -eu
-        test -f "$PARKING_CONFIG"
-        test -d "$PARKING_DATA_DIR"
-        test -w "$PARKING_DATA_DIR"
-        test -e "$PARKING_DRI_DEVICE"
-        for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-        echo "RK inputs and ABI paths exist"
+        set -e
+        CONFIG=""
+        for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
+          if [ -f "$r/config/counting-rk3576.json" ]; then CONFIG="$r/config/counting-rk3576.json"; break; fi
+        done
+        if [ -z "$CONFIG" ]; then
+          echo "config/counting-rk3576.json not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+          exit 1
+        fi
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        with open(path) as handle:
+            config = json.load(handle)
+        if config.get("schema") != "vb.config/1":
+            raise SystemExit(f"{path} is not a vb.config/1 preset")
+
+
+        def env_int(name, low, high, label):
+            raw = os.environ.get(name, "").strip()
+            try:
+                value = int(raw)
+            except ValueError:
+                raise SystemExit(f"{label} must be a whole number, got {raw!r}")
+            if not low <= value <= high:
+                raise SystemExit(f"{label} must be between {low} and {high}, got {value}")
+            return value
+
+
+        site_id = os.environ["SITE_ID"].strip()
+        camera_id = os.environ["CAMERA_ID"].strip()
+        device_id = f"{site_id}-{camera_id}"
+        if len(device_id) > 32:
+            raise SystemExit("Site ID + camera ID are too long together; keep them to 31 characters in total")
+        mqtt_port = env_int("MQTT_PORT", 1, 65535, "MQTT port")
+        http_port = env_int("HTTP_PORT", 1, 65535, "Counter port")
+        capacity = env_int("CAPACITY", 0, 100000, "Total spaces")
+        rtsp_url = os.environ["RTSP_URL"].strip()
+        if not rtsp_url.lower().startswith(("rtsp://", "rtsps://")):
+            raise SystemExit("Camera stream URL must start with rtsp://")
+
+        config["device_id"] = device_id
+        config["state_dir"] = "/data/edge-parking"
+        if os.environ.get("MODEL_SHA256"):
+            config.setdefault("backend", {})["model_sha256"] = os.environ["MODEL_SHA256"]
+        health = config.setdefault("health", {})
+        health["host"] = "0.0.0.0"
+        if os.environ.get("HEALTH_PORT"):
+            health["port"] = env_int("HEALTH_PORT", 1, 65535, "Status port")
+
+        mqtt = config.setdefault("mqtt", {})
+        mqtt["host"] = os.environ["MQTT_HOST"].strip()
+        mqtt["port"] = mqtt_port
+        mqtt["client_id"] = device_id
+        mqtt["username"] = os.environ.get("MQTT_USERNAME", "")
+        mqtt["password"] = os.environ.get("MQTT_PASSWORD", "")
+        mqtt["topic_root"] = f"{site_id}/parking/{device_id}"
+
+        template = (config.get("streams") or [{}])[0]
+        options = dict(template.get("options") or {})
+        if os.environ.get("STREAM_CODEC"):
+            options["codec"] = os.environ["STREAM_CODEC"]
+        config["streams_file"] = ""
+        config["streams"] = [{
+            "stream_id": camera_id,
+            "url": rtsp_url,
+            "name": "",
+            "transport": template.get("transport", "tcp"),
+            "score_threshold": None,
+            "options": options,
+        }]
+
+        app = config.setdefault("app", {}).setdefault("options", {})
+        app["site_id"] = site_id
+        app_mqtt = app.setdefault("mqtt", {})
+        app_mqtt["host"] = mqtt["host"]
+        app_mqtt["port"] = mqtt_port
+        app_mqtt["username"] = mqtt["username"]
+        app_mqtt["password"] = mqtt["password"]
+        app.setdefault("http", {})["port"] = http_port
+        app["state_dir"] = "/data/edge-parking"
+        counting = app.setdefault("counting", {})
+        # Line, entry side and vehicles already inside are set on /counting/editor after
+        # deploy; the app keeps them in state_dir (line and entry side in
+        # app-options.override.json, vehicles inside in the occupancy state), so a
+        # redeploy does not reset them. capacity and the other counting keys below
+        # apply on every deploy (the override holds only line / in_side since the
+        # 20261009b images). First-start defaults: vertical line through the
+        # middle, standard entry side, 0 vehicles inside.
+        counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
+        counting["in_side"] = "positive"
+        counting["capacity"] = capacity
+        counting["initial_occupancy"] = 0
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+        os.replace(tmp, path)
+        print(f"config  = {path}")
+        print(f"camera  = {camera_id} -> topics {site_id}/parking/{camera_id}/crossing and /occupancy")
+        print(f"line    = {counting['line']} in_side={counting['in_side']}")
+        PY
+  after:
+    - name: Wait for the counting service to start
       name_i18n:
-        zh: 检查 RK 输入和宿主机 ABI 路径
+        zh: 等待计数服务启动
+      timeout: 130
+      ignore_error: false
+      env:
+        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_DEADLINE_SECONDS: "120"
+      run: |
+        set -e
+        python3 - <<'PY'
+        import json
+        import math
+        import os
+        import signal
+        import time
+        import urllib.error
+        import urllib.request
+
+        raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+        try:
+            port = int(raw_port)
+        except (TypeError, ValueError):
+            print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+            raise SystemExit(2)
+        if not 1 <= port <= 65535:
+            print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+            raise SystemExit(2)
+        try:
+            deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+        except ValueError:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+            raise SystemExit(2)
+        if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+            print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+            raise SystemExit(2)
+
+        url = f"http://127.0.0.1:{port}/healthz"
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        deadline = time.monotonic() + deadline_seconds
+        last_reason = "no response"
+
+        def request_timeout(_signum, _frame):
+            raise TimeoutError("request budget expired")
+
+        signal.signal(signal.SIGALRM, request_timeout)
+        while time.monotonic() < deadline:
+            request_budget = min(2.0, deadline - time.monotonic())
+            if request_budget <= 0:
+                break
+            try:
+                request = urllib.request.Request(url, method="GET")
+                signal.setitimer(signal.ITIMER_REAL, request_budget)
+                with opener.open(request, timeout=request_budget) as response:
+                    if response.status != 200:
+                        last_reason = f"HTTP {response.status}"
+                    else:
+                        try:
+                            payload = response.read(1024 * 1024 + 1)
+                            if len(payload) > 1024 * 1024:
+                                last_reason = "HTTP 200 response exceeds 1 MiB"
+                                continue
+                            body = json.loads(payload.decode("utf-8"))
+                        except (UnicodeDecodeError, json.JSONDecodeError):
+                            last_reason = "HTTP 200 with non-JSON response"
+                        else:
+                            if (time.monotonic() < deadline
+                                    and isinstance(body, dict)
+                                    and body.get("status") == "ok"):
+                                print(f"Readiness confirmed at {url}", flush=True)
+                                raise SystemExit(0)
+                            last_reason = "HTTP 200 JSON status is not ok"
+            except urllib.error.HTTPError as error:
+                last_reason = f"HTTP {error.code}"
+            except (urllib.error.URLError, TimeoutError, OSError) as error:
+                last_reason = f"connection error: {error.__class__.__name__}"
+            finally:
+                signal.setitimer(signal.ITIMER_REAL, 0)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.5, remaining))
+
+        print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+        raise SystemExit(1)
+        PY
 post_deployment:
   open_browser: false
 user_inputs:
-  - id: parking_image
-    name: Parking image
-    name_i18n: {zh: 停车镜像}
+  - id: rtsp_url
+    name: Camera stream URL
+    name_i18n: {zh: 摄像头视频流地址}
     type: text
-    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb"
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: RTSP address of the entrance camera. Open it in VLC first; a wrong path, user name or password is the most common failure.
+    description_i18n: {zh: 出入口摄像头的 RTSP 地址。先用 VLC 打开试一下；路径、用户名或密码写错是最常见的失败原因。}
+  - id: stream_codec
+    name: Camera video format
+    name_i18n: {zh: 摄像头视频编码}
+    type: select
+    default: h264
+    required: true
+    description: Must match the camera's encoding setting.
+    description_i18n: {zh: 要和摄像头里设置的编码一致。}
+    options:
+      - {value: h264, label: H.264}
+      - {value: h265, label: H.265}
+  - id: mqtt_host
+    name: MQTT server address
+    name_i18n: {zh: MQTT 服务器地址}
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: IP address or host name of the MQTT server that receives the counts. It must be reachable from this device.
+    description_i18n: {zh: 接收计数结果的 MQTT 服务器 IP 或主机名，这台设备必须能连上它。}
+  - id: mqtt_port
+    name: MQTT port
+    name_i18n: {zh: MQTT 端口}
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+  - id: mqtt_username
+    name: MQTT user name
+    name_i18n: {zh: MQTT 用户名}
+    type: text
     required: false
-    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
-    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
-  - id: parking_config
-    name: Host config path
-    name_i18n: {zh: 宿主机配置路径}
+    description: Leave empty if the server accepts anonymous connections.
+    description_i18n: {zh: 服务器允许匿名连接时留空。}
+  - id: mqtt_password
+    name: MQTT password
+    name_i18n: {zh: MQTT 密码}
+    type: password
+    required: false
+  - id: site_id
+    name: Site ID
+    name_i18n: {zh: 停车场编号}
     type: text
+    default: "demo-lot"
     required: true
-    description: Copy assets/config/counting-rk3576.json to the host, edit it, and supply that already-edited matching vb.config/1 file. Set site_id and device_id (each <=32 characters), unique mqtt client_id and topic_root, broker host/port/username/password (use empty username/password for an anonymous broker), every RTSP URL and per-stream h264 or h265 codec, the pinned model path and SHA256, counting line/direction/capacity, and an existing writable state_dir. The JSON health host is 0.0.0.0 so the RK LAN address can answer port 8099.
-    description_i18n: {zh: 将 assets/config/counting-rk3576.json 复制到宿主机并编辑后，填写这份已编辑且与板卡匹配的 vb.config/1 文件。设置 site_id 和 device_id（各不超过 32 个字符）、唯一的 mqtt client_id 和 topic_root、broker host/port/username/password（匿名 broker 时 username/password 留空）、每路 RTSP URL 及 h264 或 h265 编码、与固定 SHA256 匹配的模型路径、计数线/方向/容量，以及已存在且可写的 state_dir。JSON 中的 health host 为 0.0.0.0，RK 局域网地址可应答 8099 端口。}
-  - id: parking_data_dir
-    name: Existing writable data directory
-    name_i18n: {zh: 现有可写数据目录}
+    description: First part of every MQTT topic; use one value per car park. Letters, digits, - and _ only, up to 16 characters.
+    description_i18n: {zh: 每条 MQTT 主题的第一段，一个停车场用一个值。只能用字母、数字、- 和 _，最多 16 个字符。}
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,16}$"
+  - id: camera_id
+    name: Entrance ID
+    name_i18n: {zh: 出入口编号}
     type: text
+    default: "gate-a"
     required: true
-  - id: parking_dri_device
-    name: Host DRM device path
-    name_i18n: {zh: 宿主机 DRM 设备路径}
+    description: Names this entrance in topics and events. Letters, digits, - and _ only, up to 15 characters.
+    description_i18n: {zh: 在主题和事件里标识这个出入口。只能用字母、数字、- 和 _，最多 15 个字符。}
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,15}$"
+  - id: capacity
+    name: Total spaces
+    name_i18n: {zh: 车位总数}
     type: text
+    default: "120"
     required: true
-    description: Existing device such as /dev/dri; the package does not create it.
-    description_i18n: {zh: 已存在的设备路径，例如 /dev/dri；本包不会创建。}
-  - id: parking_mpp_plugin
-    name: Host Rockchip MPP GStreamer plugin
-    name_i18n: {zh: 宿主机 Rockchip MPP GStreamer 插件}
+    description: Used to report free spaces. Enter 0 if you only need in/out counts.
+    description_i18n: {zh: 用来计算剩余车位。只需要进出数量时填 0。}
+    validation:
+      pattern: "^[0-9]{1,6}$"
+  - id: http_port
+    name: Counter service port
+    name_i18n: {zh: 计数服务端口}
     type: text
+    default: "8080"
     required: true
-  - id: parking_mpp_lib
-    name: Host Rockchip MPP library
-    name_i18n: {zh: 宿主机 Rockchip MPP 库}
-    type: text
-    required: true
-  - id: parking_rga_lib
-    name: Host RGA library
-    name_i18n: {zh: 宿主机 RGA 库}
-    type: text
-    required: true
-  - id: parking_rknnrt_lib
-    name: Host RKNN runtime library
-    name_i18n: {zh: 宿主机 RKNN runtime 库}
-    type: text
-    required: true
+    description: Local port the counting service listens on. Change it only if another program on this device already uses 8080.
+    description_i18n: {zh: 计数服务在本机监听的端口。只有这台设备上已有其他程序占用 8080 时才需要修改。}
+    validation:
+      pattern: "^[0-9]{1,5}$"
 remote_overrides:
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{parking_config}}"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
-    PARKING_DATA_DIR: "{{parking_data_dir}}"
-    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-    PARKING_RGA_LIB: "{{parking_rga_lib}}"
-    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-  actions:
-    after_upload:
-      - name: Fetch and unpack the model bundle
-        name_i18n: {zh: 获取并解包模型包}
-        timeout: 1800
-        run: |
-          set -eu
-          MODELS_DIR="/home/{{username}}/edge-parking-counting-rk3576/models"
-          BUNDLE="count_vehicle416_rk3576-26acb5d42297.tar.gz"
-          BUNDLE_SHA="26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd"
-          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz"
-          mkdir -p "$MODELS_DIR"
-          have_models() {
-            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
-          }
-          if have_models; then
-            echo "Model files already present"
-          else
-            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
-              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
-              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
-              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
-              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
-            fi
-            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
-            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
-          fi
-          ls -l "$MODELS_DIR"
-    before:
-      - name: Check RK inputs and host ABI
-        name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
-        env:
-          PARKING_IMAGE: "{{parking_image}}"
-          PARKING_CONFIG: "{{parking_config}}"
-          PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
-          PARKING_DATA_DIR: "{{parking_data_dir}}"
-          PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-          PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-          PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-          PARKING_RGA_LIB: "{{parking_rga_lib}}"
-          PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-        run: |
-          set -eu
-          test -f "$PARKING_CONFIG"
-          test -d "$PARKING_DATA_DIR"
-          test -w "$PARKING_DATA_DIR"
-          test -e "$PARKING_DRI_DEVICE"
-          for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-          echo "RK inputs and ABI paths exist"
-        name_i18n:
-          zh: 检查 RK 输入和宿主机 ABI 路径

@@ -1,0 +1,44 @@
+version: "1.0"
+id: counting_editor
+name: Draw the counting line
+name_i18n:
+  zh: 画计数线
+type: web_dashboard
+
+# /counting/editor is served by the counting service on its HTTP port (the deploy
+# step's http_port, default 8080; nrd-parking 20261009 images and later). Saving
+# writes PUT /config/counting -> state_dir/app-options.override.json, kept across
+# restarts and redeploys; "Vehicles inside now" posts to /occupancy. host and
+# http_port are carried over from the deploy step: the SSH host for remote
+# targets, the 127.0.0.1 default for local.
+web_dashboard:
+  url: "http://{{host}}:{{http_port}}/counting/editor"
+  title: Counting line
+  title_i18n:
+    zh: 计数线设置
+  description: Draw the counting line on the live camera picture, swap the in/out sides, set the vehicles already inside, and watch the counts.
+  description_i18n:
+    zh: 在实时摄像头画面上画计数线、交换进出方向、设置场内现有车辆数，并查看实时计数。
+
+user_inputs:
+  - id: host
+    name: Device IP address
+    name_i18n: {zh: 设备 IP 地址}
+    type: text
+    default: "127.0.0.1"
+    default_template: "{{host}}"
+    required: true
+    placeholder: "192.168.1.100"
+    description: Filled in from the deploy step. For a deployment on this device it is 127.0.0.1.
+    description_i18n: {zh: 自动带入部署步骤填写的地址；在本机部署时为 127.0.0.1。}
+  - id: http_port
+    name: Counter service port
+    name_i18n: {zh: 计数服务端口}
+    type: text
+    default: "8080"
+    default_template: "{{http_port}}"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: Filled in from the counter service port in the deploy step.
+    description_i18n: {zh: 自动带入部署步骤里的「计数服务端口」。}
