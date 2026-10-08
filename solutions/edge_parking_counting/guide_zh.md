@@ -50,7 +50,7 @@
 
 ### 部署完成
 
-部署最后一步会等计数服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://\<设备IP\>:8080/preview（本机部署时设备 IP 为 127.0.0.1，端口以「计数服务端口」为准），能看到实时画面和计数线（也可以在步骤 2 直接打开）。
+部署最后一步会等计数服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 `http://<设备IP>:8080/preview`（本机部署时设备 IP 为 127.0.0.1，端口以「计数服务端口」为准），能看到实时画面和计数线（也可以在步骤 2 直接打开）。
 
 ### 部署目标: reComputer J30 / J40（远程部署） {#counting_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml default=true}
 

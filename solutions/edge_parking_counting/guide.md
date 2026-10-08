@@ -50,7 +50,7 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 
 ### Deployment Complete
 
-The last deploy step waits until the counting service is ready, so a successful deploy means it is running. Open http://\<device-ip\>:8080/preview in a browser (127.0.0.1 when deployed on this device; use the "Counter service port" if you changed it) and you should see the live picture with the counting line (Step 2 opens it directly).
+The last deploy step waits until the counting service is ready, so a successful deploy means it is running. Open `http://<device-ip>:8080/preview` in a browser (127.0.0.1 when deployed on this device; use the "Counter service port" if you changed it) and you should see the live picture with the counting line (Step 2 opens it directly).
 
 ### Target: reComputer J30 / J40 (remote) {#counting_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml default=true}
 
