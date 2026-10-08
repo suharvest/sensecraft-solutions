@@ -32,7 +32,7 @@
 
 | 设备 | 说明 | 必需 |
 |------|------|------|
-| reComputer J30（Jetson Orin Nano） | 运行车位检测；必须是 Jetson Orin Nano 模组，系统为 JetPack 6.2 | 二选一 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2） | 运行车位检测；必须是 Jetson Orin Nano 或 Orin NX 模组，系统为 JetPack 6.2 | 二选一 |
 | reComputer RK3588 | 运行车位检测，用板载 AI 加速芯片 | 二选一 |
 | IP 摄像头 | 现场已有的摄像头即可，需能输出 H.264 编码的 RTSP 视频流 | ✓ 必选 |
 | MQTT 服务器 | 接收车位状态，例如现场已有的 Mosquitto | ✓ 必选 |

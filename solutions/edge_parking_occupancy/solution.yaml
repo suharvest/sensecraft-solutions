@@ -1,6 +1,7 @@
 # edge_parking_occupancy (NRD-4) — maintainer notes, not shown to users.
 #
-# Targets offered: Jetson Orin Nano (reComputer J30) and RK3588. The RK3576
+# Targets offered: Jetson Orin Nano / Orin NX (reComputer J30 / J40; NX accepted
+# on owner decision 2026-10-08, engines built and device-run on Orin Nano only) and RK3588. The RK3576
 # target was removed 2026-10-08: its package compose never ran on a board (the
 # test board could not load the image), so it is not offered. Restore it from
 # git history (devices/rk3576_occupancy.yaml, assets/docker-compose.rk3576.yml,
@@ -81,8 +82,11 @@ intro:
       description_i18n: {zh: 一路或多路 IP 摄像头，能输出 H.264 编码的 RTSP 视频流，且边缘主机能通过网络访问到。}
   device_catalog:
     recomputer_j30:
-      description: Runs bay detection for all cameras. Jetson Orin Nano module with JetPack 6.2 only.
-      description_i18n: {zh: 为所有摄像头运行车位检测。仅支持 Jetson Orin Nano 模组，系统为 JetPack 6.2。}
+      description: Runs bay detection for all cameras. Jetson Orin Nano module with JetPack 6.2.
+      description_i18n: {zh: 为所有摄像头运行车位检测。Jetson Orin Nano 模组，系统为 JetPack 6.2。}
+    recomputer_j40:
+      description: Runs bay detection for all cameras. Jetson Orin NX module with JetPack 6.2.
+      description_i18n: {zh: 为所有摄像头运行车位检测。Jetson Orin NX 模组，系统为 JetPack 6.2。}
     recomputer_rk3588:
       description: Runs bay detection for all cameras on the board's built-in AI accelerator.
       description_i18n: {zh: 用板载 AI 加速芯片为所有摄像头运行车位检测。}
@@ -97,10 +101,10 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 边缘主机
         ja: IP カメラ + エッジホスト
-      description: Keep your existing cameras and add one edge box on the same network — reComputer J30 (Jetson Orin Nano) or reComputer RK3588. You also need an MQTT server to receive the bay states.
+      description: Keep your existing cameras and add one edge box on the same network — reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588. You also need an MQTT server to receive the bay states.
       description_i18n:
-        zh: 保留现有摄像头，在同一网络里加一台边缘主机——reComputer J30（Jetson Orin Nano）或 reComputer RK3588。另需一台 MQTT 服务器接收车位状态。
-        ja: 既存のカメラはそのまま、同じネットワークにエッジホストを 1 台追加します——reComputer J30（Jetson Orin Nano）または reComputer RK3588。駐車枠の状態を受け取る MQTT サーバーも必要です。
+        zh: 保留现有摄像头，在同一网络里加一台边缘主机——reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588。另需一台 MQTT 服务器接收车位状态。
+        ja: 既存のカメラはそのまま、同じネットワークにエッジホストを 1 台追加します——reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）または reComputer RK3588。駐車枠の状態を受け取る MQTT サーバーも必要です。
       verified:
         - hardware
       device_groups:
@@ -109,10 +113,11 @@ intro:
           name_i18n: {zh: 边缘主机}
           type: single
           required: true
-          description: Pick one. The deploy step has a target for each.
-          description_i18n: {zh: 二选一，部署步骤里分别有对应的部署目标。}
+          description: Pick one. reComputer J30 and J40 share one deploy target; RK3588 has its own.
+          description_i18n: {zh: 选一台。reComputer J30 和 J40 用同一个部署目标，RK3588 另有部署目标。}
           options:
             - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
             - device_ref: recomputer_rk3588
           default: recomputer_j30
         - id: cameras

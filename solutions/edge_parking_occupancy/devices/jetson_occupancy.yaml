@@ -1,7 +1,7 @@
 version: "1.0"
 id: jetson_occupancy
-name: reComputer J30 Parking Occupancy
-name_i18n: {zh: reComputer J30 车位占用检测}
+name: reComputer J30 / J40 Parking Occupancy
+name_i18n: {zh: reComputer J30 / J40 车位占用检测}
 type: docker_deploy
 device_class: jetson
 
@@ -9,7 +9,7 @@ device_class: jetson
 # solution.yaml header for the acceptance runs). The deploy form replaces the
 # old hand-edited vb.config/1 JSON: after_upload renders assets/config/slots.json
 # with assets/render_config.py into <root>/config.json. Health is fixed at
-# 8099 (bound to 0.0.0.0 so the verify step can reach it from the LAN); the
+# 8099 (bound to 0.0.0.0; the after action polls it to confirm the deploy); the
 # image comes from the compose default; no memory limit (compose default 0).
 docker:
   compose_file: assets/docker-compose.jetson.yml
@@ -47,13 +47,13 @@ files:
       sha256: 54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5
 actions:
   before:
-    - name: Check this Jetson is an Orin Nano on JetPack 6.2
-      name_i18n: {zh: 检查这台 Jetson 是 Orin Nano 且系统为 JetPack 6.2}
+    - name: Check this Jetson is an Orin Nano or Orin NX on JetPack 6.2
+      name_i18n: {zh: 检查这台 Jetson 是 Orin Nano 或 Orin NX 且系统为 JetPack 6.2}
       ignore_error: false
       run: |
         set -eu
         # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
-        want="p3767-0003 p3767-0004"
+        want="p3767-0000 p3767-0001 p3767-0003 p3767-0004"
         compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
         rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
         trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
@@ -65,7 +65,7 @@ actions:
           case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
         done
         if [ "$ok" -ne 1 ]; then
-          echo "UNSUPPORTED_JETSON_MODULE: this solution runs on a Jetson Orin Nano module (P3767-0003 / P3767-0004) only; this board reports '${compat:-unknown}'." >&2
+          echo "UNSUPPORTED_JETSON_MODULE: this solution runs on Jetson Orin Nano or Orin NX (reComputer J30 / J40) only; this board reports '${compat:-unknown}'." >&2
           exit 1
         fi
         case "$rel" in
@@ -76,7 +76,7 @@ actions:
           10.3.*) ;;
           *) echo "UNSUPPORTED_TENSORRT: this solution needs TensorRT 10.3 (part of JetPack 6.2); this board has '${trt:-none}'." >&2; exit 1 ;;
         esac
-        echo "Jetson Orin Nano with JetPack 6.2: OK"
+        echo "Jetson Orin Nano / Orin NX with JetPack 6.2: OK"
   after_upload:
     - name: Download the detection model
       name_i18n: {zh: 下载识别模型}
