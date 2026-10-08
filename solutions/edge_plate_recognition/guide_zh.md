@@ -108,7 +108,10 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
    可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机
    8099 已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`
    （默认 `./data`，已存在且可写，存放状态和快照）与计数包一致。
-4. **RK3588 / RK3576：** 板子上已安装 RKNN 运行时（librknnrt），至少 6 GB 可用磁盘。
+4. **RK3588 / RK3576：** 板子上已安装 RKNN 运行时（librknnrt）、Rockchip MPP/RGA 和
+   GStreamer `h264parse` 插件（`gstreamer1.0-plugins-bad`）——容器使用这些宿主机库，
+   部署步骤会检查它们是否存在。至少 6 GB 可用磁盘。容器使用宿主机网络：8099（健康
+   检查）和 8080（应用 HTTP，即 `config/plate.json` 的 `app.options.http.port`）须空闲。
 5. **R2035（Hailo-8）：** 已安装 Hailo-8 驱动与 HailoRT，且存在 `/dev/hailo0`。
    HailoRT 版本必须与驱动一致——需自行从 Hailo Developer Zone 获取。至少 6 GB
    可用磁盘。
@@ -142,24 +145,29 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
 
 ### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-从本机通过 SSH 部署到 RK3588。运行镜像与 RKNN 模型已发布（20261008）。验收受阻：随包的
-`assets/rk3588/config/plate.json` 还不是可运行的 `vb.config/1` 文件。
+从本机通过 SSH 部署到 RK3588。2026-10-08 已在一块 RK3588 板上验证（部署与输出链路）：
+按本目标的检查、模型包、配置步骤，用随包 compose、已发布的 `nrd-parking-rk:20261008`
+镜像和已发布的 RK3588 模型包，输入 40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP
+轮播，约 160 s 内输出 36 条 `parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收。
 
 ### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-如果你就在 RK3588 上操作，直接在本机运行。验收受阻：随包车牌配置还不是可运行的 `vb.config/1` 文件。
+如果你就在 RK3588 上操作，直接在本机运行。与 SSH 目标使用同一 compose、配置和模型包，
+SSH 目标已于 2026-10-08 验证（36 条 `parking.plate/1` 事件及快照）；本机部署路径本身未运行。
+识别准确率尚未验收。
 
 ### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-从本机通过 SSH 部署到 RK3576。运行镜像与 RK3576 RKNN 模型已发布（20261008）。验收受阻：随包车牌配置
-还不是可运行的 `vb.config/1` 文件。
-2026-10-08 在一块 RK3576 板上用替代镜像跑通到 `parking.plate/1` 事件；随包
-compose 路径未参与该次运行。
+从本机通过 SSH 部署到 RK3576。2026-10-08 已在一块 RK3576 板上验证（部署与输出链路）：
+按本目标的检查、模型包、配置步骤，用随包 compose、已发布的 `nrd-parking-rk:20261008`
+镜像和已发布的 RK3576 模型包，输入同一段 1080p 30 fps 轮播，约 170 s 内输出 44 条
+`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收。
 
 ### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-如果你就在 RK3576 上操作，直接在本机运行。验收受阻：随包车牌配置还不是可运行的
-`vb.config/1` 文件。
+如果你就在 RK3576 上操作，直接在本机运行。与 SSH 目标使用同一 compose、配置和模型包，
+SSH 目标已于 2026-10-08 验证（44 条 `parking.plate/1` 事件及快照）；本机部署路径本身未运行。
+识别准确率尚未验收。
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 

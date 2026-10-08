@@ -120,8 +120,12 @@ bundle. Model bundles are downloaded and SHA-256 checked at deploy time.
    8099 is already taken on the host. Optional `memory_limit` (default `0`, no
    limit) and `data_dir` (default `./data`, existing writable directory for
    state and snapshots) match the counting package.
-4. **RK3588 / RK3576:** the RKNN runtime (librknnrt) is installed on the board,
-   and at least 6 GB free disk.
+4. **RK3588 / RK3576:** the RKNN runtime (librknnrt), Rockchip MPP/RGA and the
+   GStreamer `h264parse` plugin (`gstreamer1.0-plugins-bad`) are installed on the
+   board — the container uses these host libraries, and the deploy step checks
+   they exist. At least 6 GB free disk. The container uses host networking:
+   ports 8099 (health) and 8080 (app HTTP, `app.options.http.port` in
+   `config/plate.json`) must be free.
 5. **R2035 (Hailo-8):** the Hailo-8 driver and HailoRT are installed, and
    `/dev/hailo0` exists. HailoRT must match the driver version — you fetch it
    yourself from the Hailo Developer Zone. At least 6 GB free disk.
@@ -158,27 +162,35 @@ with snapshots. Recognition accuracy is not accepted yet.
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-Deploy to the RK3588 over SSH from this computer. The runtime image and RKNN
-models are published (20261008). Acceptance blocked: the shipped
-`assets/rk3588/config/plate.json` is not yet a runnable `vb.config/1` file.
+Deploy to the RK3588 over SSH from this computer. Verified 2026-10-08 on an
+RK3588 board (deployment and output path): this target's check, bundle and
+config steps, its compose file, the published `nrd-parking-rk:20261008` image and
+the published RK3588 model bundle, fed a 1080p 30 fps RTSP slideshow of 40
+labelled CCPD stills, produced 36 `parking.plate/1` MQTT events with JPEG
+snapshots in about 160 s. Recognition accuracy is not accepted yet.
 
 ### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-Run this directly on the RK3588 if you are working on the device itself.
-Acceptance blocked: the shipped plate config is not yet a runnable `vb.config/1` file.
+Run this directly on the RK3588 if you are working on the device itself. Uses
+the same compose file, config and model bundle as the SSH target, which was
+verified 2026-10-08 (36 `parking.plate/1` events with snapshots); the local
+deploy path itself was not run. Recognition accuracy is not accepted yet.
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-Deploy to the RK3576 over SSH from this computer. The runtime image and RK3576
-RKNN models are published (20261008). Acceptance blocked: the shipped plate
-config is not yet a runnable `vb.config/1` file. A 2026-10-08 run on an RK3576 board with
-a substitute image reached `parking.plate/1` events; the packaged compose path
-was not exercised.
+Deploy to the RK3576 over SSH from this computer. Verified 2026-10-08 on an
+RK3576 board (deployment and output path): this target's check, bundle and
+config steps, its compose file, the published `nrd-parking-rk:20261008` image and
+the published RK3576 model bundle, fed the same 1080p 30 fps slideshow, produced
+44 `parking.plate/1` MQTT events with JPEG snapshots in about 170 s. Recognition
+accuracy is not accepted yet.
 
 ### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-Run this directly on the RK3576 if you are working on the device itself.
-Acceptance blocked: the shipped plate config is not yet a runnable `vb.config/1` file.
+Run this directly on the RK3576 if you are working on the device itself. Uses
+the same compose file, config and model bundle as the SSH target, which was
+verified 2026-10-08 (44 `parking.plate/1` events with snapshots); the local
+deploy path itself was not run. Recognition accuracy is not accepted yet.
 
 ### Target {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 

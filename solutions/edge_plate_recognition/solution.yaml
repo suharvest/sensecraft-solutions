@@ -276,11 +276,11 @@ intro:
       badge: Draft
       badge_i18n:
         zh: 草稿
-      description: Keeps your existing gate cameras — pick a Jetson, RK3588, RK3576 or R2035 (Hailo-8) host in the deploy step. Only the Jetson target is hardware-verified. Add an R1124-10 for barrier control.
+      description: Keeps your existing gate cameras — pick a Jetson, RK3588, RK3576 or R2035 (Hailo-8) host in the deploy step. The Jetson, RK3588 and RK3576 targets are hardware-verified (deployment and output path). Add an R1124-10 for barrier control.
       description_i18n:
-        zh: 保留现有出入口摄像头——在部署步骤里选择 Jetson、RK3588、RK3576 或 R2035（Hailo-8）主机。仅 Jetson 部署目标通过真机验证。需要开闸时加一台 R1124-10。
-        ja: 既存のゲートカメラをそのまま使用——デプロイ手順で Jetson、RK3588、RK3576、R2035（Hailo-8）からホストを選択します。実機検証済みは Jetson ターゲットのみ。ゲート制御には R1124-10 を追加します。
-      # `verified: [hardware]` covers the Jetson target only; per-target status
+        zh: 保留现有出入口摄像头——在部署步骤里选择 Jetson、RK3588、RK3576 或 R2035（Hailo-8）主机。Jetson、RK3588、RK3576 部署目标通过真机验证（部署与输出链路）。需要开闸时加一台 R1124-10。
+        ja: 既存のゲートカメラをそのまま使用——デプロイ手順で Jetson、RK3588、RK3576、R2035（Hailo-8）からホストを選択します。実機検証済みは Jetson、RK3588、RK3576 ターゲット（デプロイと出力経路）。ゲート制御には R1124-10 を追加します。
+      # `verified: [hardware]` covers the Jetson, RK3588 and RK3576 targets; per-target status
       # is written into each target's description in guide.md / guide_zh.md.
       # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano for the
       #   DEPLOYMENT AND OUTPUT PATH only (acceptance receipt
@@ -292,10 +292,13 @@ intro:
       #   formal CN corpus gate (day >=95 % N>=120 / night >=90 % N>=80) was not
       #   run; frame-to-event p50 and the gate controller / relay steps were not
       #   measured.
-      # - RK3588 (radxa): not verified — package image and RKNN models missing,
-      #   assets/rk3588/config/plate.json is not vb.config/1.
-      # - RK3576 (cat-remote): not verified as packaged — image and models
-      #   unpublished; round-2 output-path run used a substitute image.
+      # - RK3588 (radxa) and RK3576 (cat-remote): hardware-verified 2026-10-08
+      #   for the DEPLOYMENT AND OUTPUT PATH (evidence
+      #   acceptance-20261008/fix4/<device>): device-yaml before/after_upload
+      #   steps + package compose + published nrd-parking-rk:20261008 image +
+      #   published plate_rk3588 / plate_rk3576 bundles, same 1080p slideshow;
+      #   36 (rk3588) / 44 (rk3576) parking.plate/1 events with snapshots.
+      #   Recognition accuracy not accepted.
       # - R2035 / Hailo-8 (harvest-pi): not verified as packaged — no runtime
       #   image; Hailo backend needs the YOLOX split-output patch.
       verified:

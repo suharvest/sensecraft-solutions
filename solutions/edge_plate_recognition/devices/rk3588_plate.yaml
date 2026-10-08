@@ -3,12 +3,9 @@ id: rk3588_plate
 name: reComputer RK3588 Plate Recognition
 type: docker_deploy
 
-# DRAFT（NRD-3 Y3 未验收）。
-# - 运行镜像 edge-parking-rk（FROM vision-base-rk）待 NRD-2 X3 产出，
-#   assets/rk3588/docker-compose.yml 现用已发布的 nrd-parking-rk:20261008（按 digest 固定）。
-# - 三个 .rknn 待 Y3 转换任务产出（edge-parking-rknn-convert:2.3.2 容器，
-#   --target rk3588 --quant int8；识别 parity < 0.98 时改 fp16 重转，文件名
-#   相应变化），sha256 待产出后回填。
+# 2026-10-08 已在 RK3588 板上验证部署与输出链路（本文件的 before / after_upload 步骤 +
+# assets/rk3588/docker-compose.yml + 已发布的 nrd-parking-rk:20261008 + plate_rk3588 模型包）。
+# config/plate.json 是 vb.config/1 预设，after_upload 只改站点、流和 broker。
 
 docker:
   compose_file: assets/rk3588/docker-compose.yml
@@ -16,6 +13,8 @@ docker:
   options:
     project_name: edge_plate
     remove_orphans: true
+  environment:
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/rk3588_plate/models"
   services:
     - name: edge-parking
       required: true
@@ -45,17 +44,32 @@ files:
 
 actions:
   before:
-    - name: Check the RKNN runtime
+    - name: Check the RKNN runtime and host libraries
+      name_i18n:
+        zh: 检查 RKNN 运行时与宿主机库
       run: |
-        set -e
-        if ! ldconfig -p 2>/dev/null | grep -q librknnrt; then
-          echo "librknnrt not found — install the RKNN runtime (rknpu2) for this board first" >&2
+        set -eu
+        # The compose file mounts these host files into the container (paths
+        # can be overridden with the PARKING_* variables in docker-compose.yml).
+        missing=0
+        for f in \
+          "${PARKING_RKNNRT_LIB:-/usr/lib/librknnrt.so}" \
+          "${PARKING_RGA_LIB:-/usr/lib/aarch64-linux-gnu/librga.so.2}" \
+          "${PARKING_MPP_LIB:-/usr/lib/aarch64-linux-gnu/librockchip_mpp.so.1}" \
+          "${PARKING_MPP_PLUGIN:-/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so}" \
+          /lib/aarch64-linux-gnu/libgstreamer-1.0.so.0 \
+          /lib/aarch64-linux-gnu/libgstbase-1.0.so.0 \
+          /lib/aarch64-linux-gnu/libgstvideo-1.0.so.0 \
+          /lib/aarch64-linux-gnu/libgstallocators-1.0.so.0 \
+          /lib/aarch64-linux-gnu/libgstcodecparsers-1.0.so.0 \
+          /lib/aarch64-linux-gnu/gstreamer-1.0/libgstvideoparsersbad.so; do
+          if [ -e "$f" ]; then echo "found $f"; else echo "missing $f" >&2; missing=1; fi
+        done
+        if [ "$missing" -ne 0 ]; then
+          echo "Install the RKNN runtime (rknpu2), Rockchip MPP/RGA and gstreamer1.0-plugins-bad + gstreamer1.0-rockchip on this board first" >&2
           exit 1
         fi
-        ldconfig -p | grep librknnrt
-        echo "RKNN runtime OK"
-      name_i18n:
-        zh: 检查 RKNN 运行时
+        echo "RKNN runtime and host libraries OK"
 
   after_upload:
     - name: Fetch and unpack the model bundle
@@ -97,40 +111,55 @@ actions:
         MQTT_PASSWORD: '{{mqtt_password}}'
       run: |
         set -e
-        # 不硬编码部署根：local 与 remote 两个 view 都会跑 after_upload，
-        # local 卡没有 /home/{{username}}/edge-parking/。在候选位置里定位
-        # 已上传/仓库内的 docker-compose.yml，把配置写到 compose 同级的
-        # config/（compose 的相对挂载按自身目录解析，两种部署都挂得上）。
-        COMPOSE=""
-        for root in "/home/{{username}}/edge-parking/rk3588_plate" "assets/rk3588" "."; do
-          [ -d "$root" ] || continue
-          f=$(find "$root" -maxdepth 2 -name 'docker-compose.yml' -print -quit 2>/dev/null || true)
-          if [ -n "$f" ]; then COMPOSE="$f"; break; fi
+        # The compose file mounts ./config/plate.json; render the vb.config/1
+        # preset in place next to it. Remote view: compose_dir is uploaded to
+        # /home/<user>/edge-parking; local view: assets/rk3588 in the solution.
+        CONFIG=""
+        for root in "/home/{{username}}/edge-parking" "assets/rk3588"; do
+          if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
+            CONFIG="$root/config/plate.json"; break
+          fi
         done
-        if [ -z "$COMPOSE" ]; then
-          echo "找不到已上传的 docker-compose.yml（local/remote 两种部署根都试过）" >&2
+        if [ -z "$CONFIG" ]; then
+          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking and assets/rk3588)" >&2
           exit 1
         fi
-        CONFIG_DIR="$(dirname "$COMPOSE")/config"
-        mkdir -p "$CONFIG_DIR"
-        CONFIG="$CONFIG_DIR/plate.json"
+        mkdir -p "$(dirname "$CONFIG")/../data"
         python3 - "$CONFIG" <<'PY'
         import json, os, sys
 
         path = sys.argv[1]
         with open(path) as handle:
             config = json.load(handle)
+        if config.get("schema") != "vb.config/1":
+            raise SystemExit(f"{path} is not a vb.config/1 preset")
 
+        site_id = os.environ["SITE_ID"]
+        camera_id = os.environ["CAMERA_ID"]
+        mqtt_port = int(os.environ["MQTT_PORT"])
+        device_id = f"{site_id}-{camera_id}"
         app = config.setdefault("app", {}).setdefault("options", {})
-        app["site_id"] = os.environ["SITE_ID"]
+        config["device_id"] = device_id
+        app["site_id"] = site_id
+        mqtt = config.setdefault("mqtt", {})
+        mqtt["host"] = os.environ["MQTT_HOST"]
+        mqtt["port"] = mqtt_port
+        mqtt["client_id"] = device_id
+        mqtt["username"] = os.environ.get("MQTT_USERNAME", "")
+        mqtt["password"] = os.environ.get("MQTT_PASSWORD", "")
+        mqtt["topic_root"] = f"{site_id}/parking/{device_id}"
         app.setdefault("mqtt", {})["host"] = os.environ["MQTT_HOST"]
-        app["mqtt"]["port"] = int(os.environ["MQTT_PORT"])
+        app["mqtt"]["port"] = mqtt_port
         app["mqtt"]["username"] = os.environ.get("MQTT_USERNAME", "")
         app["mqtt"]["password"] = os.environ.get("MQTT_PASSWORD", "")
+        template = (config.get("streams") or [{}])[0]
         config["streams"] = [{
-            "id": os.environ["CAMERA_ID"],
-            "rtsp_url": os.environ["RTSP_URL"],
-            "enabled": True,
+            "stream_id": camera_id,
+            "url": os.environ["RTSP_URL"],
+            "name": "",
+            "transport": template.get("transport", "tcp"),
+            "score_threshold": None,
+            "options": template.get("options", {"codec": "h264"}),
         }]
 
         tmp = path + ".tmp"
@@ -138,8 +167,9 @@ actions:
             json.dump(config, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(tmp, path)
+        print(f"config  = {path}")
         print(f"site_id = {app['site_id']}")
-        print(f"stream  = {config['streams'][0]['id']}")
+        print(f"stream  = {config['streams'][0]['stream_id']}")
         PY
       name_i18n:
         zh: 写入车牌识别配置
@@ -216,6 +246,8 @@ user_inputs:
 remote_overrides:
   remote_path: /home/{{username}}/edge-parking
   compose_dir: assets/rk3588
+  environment:
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/rk3588_plate/models"
   detection:
     method: network_scan
     manual_entry: true

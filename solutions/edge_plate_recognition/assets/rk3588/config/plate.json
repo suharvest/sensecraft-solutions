@@ -1,28 +1,145 @@
 {
-  "_comment": "DRAFT vb.config/1 预设 plate.json（NRD-3 §5.4，rk3588/RKNN INT8）。contexts_per_worker 3、core_masks [1,2,4]（NRD-3 Y3）；stage2.charset 与 vote.accept 由 core_parking.plate.charset 生成，不手写。",
+  "schema": "vb.config/1",
+  "device_id": "demo-lot-gate-a",
+  "state_dir": "/data/edge-parking",
   "backend": {
     "name": "rknn",
     "model_path": "/models/plate_det_yolox_tiny_640_w8a8.rk3588.rknn",
-    "input_hw": [640, 640],
-    "contexts_per_worker": 3,
-    "core_masks": [1, 2, 4]
+    "model_sha256": "32a4544aebb92dae6a1f76cad68cd74f18ce62d5705ee72fe261915a1534f6cb",
+    "input_size": [
+      640,
+      640
+    ],
+    "align": "top_left",
+    "input": {
+      "color_order": "bgr",
+      "divide": 1.0
+    },
+    "options": {
+      "codec": "h264"
+    },
+    "decoder": {
+      "type": "yolox",
+      "num_classes": 1,
+      "strides": [
+        8,
+        16,
+        32
+      ],
+      "grid_center_activation": "none"
+    },
+    "core_masks": [
+      1,
+      2
+    ],
+    "max_contexts": 2
   },
-  "streams": [],
+  "runtime": {
+    "workers": 1,
+    "max_streams_per_worker": 0,
+    "contexts_per_worker": 2,
+    "publishers_per_process": 1,
+    "publish_queue": 256,
+    "max_streams": 16,
+    "open_timeout_s": 8.0,
+    "reconnect_delay_s": 1.0,
+    "restart_backoff_s": 5.0
+  },
+  "native": {
+    "binary": "/opt/vb/bin/vb-runtime",
+    "hello_timeout_s": 10.0,
+    "snapshot_ring": 2,
+    "jpeg_quality": 85
+  },
+  "mqtt": {
+    "host": "r1124.local",
+    "port": 1883,
+    "client_id": "demo-lot-gate-a",
+    "username": "",
+    "password": "",
+    "tls": false,
+    "ca_file": "",
+    "topic_root": "demo-lot/parking/demo-lot-gate-a",
+    "status_interval_s": 10
+  },
+  "health": {
+    "host": "0.0.0.0",
+    "port": 8099
+  },
+  "streams_file": "",
+  "streams": [
+    {
+      "stream_id": "gate-a",
+      "url": "rtsp://camera.local:554/live",
+      "name": "",
+      "transport": "tcp",
+      "score_threshold": null,
+      "options": {
+        "codec": "h264"
+      }
+    }
+  ],
   "app": {
     "name": "edge-parking-plate",
-    "module": "core_parking.plate.hooks_plate:PlateHooks",
+    "module": "core_parking.config:ParkingApp",
     "options": {
       "site_id": "demo-lot",
-      "mqtt": {"host": "r1124.local", "port": 1883, "username": "", "password": "", "keepalive_s": 30},
-      "http": {"port": 8080},
-      "spool": {"max_events": 50000},
+      "mqtt": {
+        "host": "r1124.local",
+        "port": 1883,
+        "username": "",
+        "password": "",
+        "keepalive_s": 30
+      },
+      "http": {
+        "port": 8080
+      },
+      "state_dir": "/data/edge-parking",
+      "spool": {
+        "max_events": 50000
+      },
       "preview_frame_stride": 15,
       "plate": {
         "mode": "full",
         "region": "cn",
-        "roi": [[0.2, 0.3], [0.8, 0.3], [0.8, 0.95], [0.2, 0.95]],
-        "stage2": {"model_path": "/models/plate_rec_cn_96x32.rk3588.int8.rknn", "input_hw": [32, 96], "classes": [0], "expand": 0.08, "max_per_track": 7, "color": "rgb", "scale": 0.0039215686, "backend": ""},
-        "vote": {"window": 7, "min_agree": 3, "min_conf": 0.6, "flush_min_agree": 2},
+        "roi": [
+          [
+            0.2,
+            0.3
+          ],
+          [
+            0.8,
+            0.3
+          ],
+          [
+            0.8,
+            0.95
+          ],
+          [
+            0.2,
+            0.95
+          ]
+        ],
+        "stage2": {
+          "model_path": "/models/plate_rec_cn_96x32.rk3588.int8.rknn",
+          "input_hw": [
+            32,
+            96
+          ],
+          "classes": [
+            0
+          ],
+          "expand": 0.08,
+          "max_per_track": 7,
+          "color": "rgb",
+          "scale": 0.0039215686
+        },
+        "vote": {
+          "window": 7,
+          "min_agree": 3,
+          "min_conf": 0.6,
+          "flush_min_agree": 2
+        },
         "dedup_s": 30,
         "snapshot_dir": "/data/edge-parking/snapshots",
         "snapshot_retention_days": 7,
