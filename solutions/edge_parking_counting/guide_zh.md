@@ -7,6 +7,10 @@
 本套餐记录现有 RTSP 出入口摄像头与 Jetson Orin 主机的部署契约。需要本地
 构建镜像、目标 Jetson TensorRT engine、JSON 配置和外部 MQTT broker。
 
+设备实测（Jetson Orin Nano，本地构建镜像，640x360 30 fps 合成片段，每 6 s 一辆车
+越线）：处理 29.98 fps，推理 p50 3.58 ms / p95 3.64 ms，预期 41 次越线全部检出且
+方向交替。尚无真实出入口视频上的计数准确率。
+
 ## 步骤 1：部署原生计数应用 {#deploy_counting type=docker_deploy required=true config=devices/jetson_counting.yaml}
 
 compose 将宿主机配置和模型目录挂载进容器。镜像应包含原生 `vb-runtime`
@@ -83,8 +87,14 @@ artifact、匹配的 `vb.config/1` 文件和宿主机 ABI 路径。该转换 art
 ## 套餐：IP 摄像头 + RK3588（草稿）{#rk3588}
 
 此禁用套餐需要本地审查过的原生 RK 镜像、面向 RK3588 的 vehicle416 RKNN
-artifact、匹配的 `vb.config/1` 文件和宿主机 ABI 路径。该转换 artifact 尚未完成
-设备验证。
+artifact、匹配的 `vb.config/1` 文件和宿主机 ABI 路径。设备实测（Radxa Rock 5T / RK3588，
+本地构建镜像 6a5c781d，循环播放 1280x720 H.264 5 fps 停车场片段）：处理 3.0 fps
+（源 5 fps，约 26 % 帧被丢弃，原因未定位），推理 p50 17.8 ms / p95 20.0 ms，
+107 条 MQTT 事件且 seq 连续。片段每 10 s 循环一次，不给出计数准确率。
+compose 把宿主机 RGA 库挂载为 `librga.so.2`，并从 `parking_host_lib_dir`（默认
+`/lib/aarch64-linux-gnu`）挂载宿主机 GStreamer 运行时与 `h264parse`
+（`gstreamer1.0-plugins-bad`）。host 网络下 `app.options.http.port` 默认 8080；宿主机已有
+服务占用 8080 时改用其他端口。
 
 ## 步骤 1：部署 RK3588 计数应用 {#deploy_rk3588_counting type=docker_deploy required=true config=devices/rk3588_counting.yaml}
 

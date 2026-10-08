@@ -8,6 +8,11 @@ This preset is a reviewable deployment contract for an existing RTSP gate
 camera and a Jetson Orin host. It requires a locally built image, a target
 Jetson TensorRT engine, a JSON configuration, and an external MQTT broker.
 
+Measured on a Jetson Orin Nano with a locally built image and a synthetic
+640x360 30 fps clip (one vehicle crossing the line every 6 s): 29.98 fps
+processed, inference p50 3.58 ms / p95 3.64 ms, 41 of 41 expected crossings
+with alternating directions. No counting-accuracy figure on real gate video.
+
 ## Step 1: Deploy the native counting app {#deploy_counting type=docker_deploy required=true config=devices/jetson_counting.yaml}
 
 The compose file mounts the host configuration and model directory. The image
@@ -75,7 +80,7 @@ Require HTTP 200 from `/healthz`. For a local check, use `127.0.0.1`; for a remo
 
 ## Preset: IP Camera + RK3588 (Draft) {#rk3588}
 
-This disabled preset requires a locally reviewed native RK image, the RK3588-targeted vehicle416 RKNN artifact, a matching `vb.config/1` file, and host ABI paths. The selected artifact is a draft conversion and remains device-unverified.
+This disabled preset requires a locally reviewed native RK image, the RK3588-targeted vehicle416 RKNN artifact, a matching `vb.config/1` file, and host ABI paths. Measured on a Radxa Rock 5T (RK3588) with a locally built image (6a5c781d) and a looped 1280x720 H.264 5 fps parking-lot clip: 3.0 fps processed of the 5 fps source (about 26 % of frames dropped, cause not diagnosed), inference p50 17.8 ms / p95 20.0 ms, 107 MQTT events with contiguous seq. The clip repeats every 10 s, so no counting-accuracy figure is stated. The compose mounts the host RGA library as `librga.so.2` and the host GStreamer runtime plus `h264parse` (`gstreamer1.0-plugins-bad`) from `parking_host_lib_dir` (default `/lib/aarch64-linux-gnu`). The stock `app.options.http.port` is 8080 under host networking; change it when another service on the host already uses 8080.
 
 ## Step 1: Deploy the RK3588 counting app {#deploy_rk3588_counting type=docker_deploy required=true config=devices/rk3588_counting.yaml}
 
