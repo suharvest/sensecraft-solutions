@@ -58,11 +58,11 @@ intro:
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
-      src: gallery/panel-slot-editor-20261008.jpg
-      caption: "Slot editor: one box per bay drawn over the live camera picture. Both bays in this frame were reported occupied."
+      src: gallery/panel-occupancy-1-mixed-20261009.jpg
+      caption: "Bay occupancy on Jetson Orin Nano Super: six bays drawn on the camera frame, four occupied (red) and two free (green), totals in the side panel"
       caption_i18n:
-        zh: "车位编辑页：在摄像头实时画面上给每个车位画一个框。画面中的两个车位都被识别为占用。"
-        ja: "駐車枠エディタ：カメラのライブ映像上に、1 台分ずつ枠を描きます。この画面の 2 枠はどちらも「占有」と判定されています。"
+        zh: "Jetson Orin Nano Super 车位占用：画面上的 6 个车位，4 个占用（红）、2 个空闲（绿），右侧显示合计"
+        ja: "Jetson Orin Nano Super の駐車枠占有：映像上の 6 枠のうち 4 枠が使用中（赤）、2 枠が空き（緑）。右側に合計"
   category: vision_video_ai
   solution_type: solution
   tags: [parking, occupancy, rtsp, multi-camera, mqtt, jetson, rk3588, rk3576]
