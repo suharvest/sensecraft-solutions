@@ -15,3 +15,9 @@
 4. 来源：现场实拍，注明拍摄时间与拍摄者；不接受任何来源不明的图片。
 
 CCPD 等含真实车牌的公开数据集图片**禁止**进入 gallery 或随交付分发（见 `../LICENSES.md` §3）。
+
+## Update 2026-10-08
+
+`cover-20261008.jpg` is a generated illustration, not a screenshot. It is the only image registered for this package.
+
+Real preview screenshots from the Jetson Orin Nano Super run of 2026-10-08 exist (`panel-preview-plate-1..3`), but they show CCPD2020 green-plate stills with full plate numbers of real vehicles (CCPD, MIT License, Copyright (c) 2017 CCPD; Xu, Z. et al., ECCV 2018). This file's rules and `../LICENSES.md` section 3 prohibit CCPD images and other people's full plate numbers in the gallery, so those screenshots are not published here. A gallery needs screenshots of own or consented vehicles, or masked plates.

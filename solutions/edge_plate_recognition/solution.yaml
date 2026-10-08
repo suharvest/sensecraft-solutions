@@ -48,6 +48,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+  cover_image: gallery/cover-20261008.jpg
   category: vision_video_ai
   solution_type: solution
   tags:
