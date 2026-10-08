@@ -1,179 +1,132 @@
-# Deployment Guide
+## Preset: Clip + reComputer Jetson {#clip_edge_box}
 
-> **Draft.** The compose files are reviewable contracts; inputs without a
-> published default fail closed.
+Recordings sync from the Clip to a reComputer Jetson, are transcribed and split by speaker on the host, and are shown on a local web page.
 
-## Preset: Clip + Edge Compute Box (Draft) {#clip_edge_box}
+| Device | Purpose |
+|--------|---------|
+| reSpeaker Clip | Wearable recording |
+| reComputer J40 (Jetson Orin NX, JetPack 6.2) | Syncs recordings, transcribes them, serves the results page |
 
-Pick the host in the deploy step: Jetson, RK3588 or RK3576. Clip sync always
-runs over BLE. Wi-Fi sync is optional: the host joins the Clip's own hotspot on a Wi-Fi interface that is not its network uplink: the built-in Wi-Fi works when the host is on Ethernet; if Wi-Fi is the host's only uplink, add a USB Wi-Fi adapter. Each
-target states its on-device acceptance status.
+**What you'll get:**
+- A results page in the browser with timestamped transcripts and speaker labels
+- An HTTP API to upload recordings or fetch transcripts
+- MQTT messages that announce each finished transcript
+- Optional AI summaries for each transcript
 
-## Step 1: Deploy local transcription stack {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
+**Requirements:** Bluetooth on the host (Jetson wireless module) · At least 15 GB of free disk · Internet access for the first deploy
 
-The clip-pt image defaults to the published 2026-10-08 image; on Jetson the
-OVS image and ASR model bundle are published too. Provide the SLV image and
-preloaded ASR model roots on RK hosts, a Mosquitto image reference, and a config based on the
-reviewed `assets/config/config.example.yaml`. Pair the Clip manually and use
-one host binding only.
+## Step 1: Deploy the transcription service {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
 
-The compose stack starts clip-pt, separate SenseVoice and Whisper SLV services,
-and Mosquitto. The LLM is a user-supplied OpenAI-compatible endpoint configured in the shared
-config (`base_url`, `model_name`, `api_key`, `timeout_s`); the base URL may be a
-root URL or `/v1`. It can point to a cloud service, an RK1828 service, or a Jetson
-service. No local LLM runtime is started by this package. The endpoint contract reuses the voice RD fields `base_url`, `model_name`, and
-`api_key`; the user supplies the endpoint, model, and key through the application
-configuration. Do not put real keys in this package. A cloud endpoint requires
-network access; a reachable RK1828 or Jetson endpoint can support an offline
-local chain. Mosquitto uses the bundled anonymous local broker configuration.
+Install the transcription service on the reComputer Jetson and register your Clip.
 
-Before upload, replace every `REPLACE_WITH_*` value with the actual Clip
-advertised name, BLE MAC address, and local label; do not leave the example
-placeholders. For Wi-Fi sync, set `sync.wifi_iface` to the Wi-Fi interface that is not
-the host's network uplink (for example `wlan0` when the host is on Ethernet);
-without a spare interface, set `sync.wifi_enabled: false` and the Clip syncs
-over BLE only. Generate an API key locally and put the resulting 64
-hexadecimal characters in `api.key`; the shipped example keeps this field
-empty so startup fails closed until it is configured:
+### Target: Remote deployment {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
+
+Deploy from this computer to a reComputer J40 over SSH.
+
+### Prerequisites
+
+- The host is a Jetson Orin NX module running JetPack 6.2; any other module or version stops the deploy at the start with a message
+- The host has at least 15 GB of free disk and internet access
+- The Clip has been unbound from the phone app
+
+### Wiring
+
+1. Power the reComputer J40 and connect it to the same network as this computer
+2. Charge the Clip and place it next to the host
+3. Enter the host IP, SSH username and password
+4. Enter the Clip name: "Clip" plus the four characters printed on the Clip, e.g. `Clip 7036`; the phone app shows the same name
+5. Turn on "Faster sync over Wi-Fi" and "AI summary (optional)" if you need them, then click Deploy
+
+### Deployment Complete
+
+The first deploy downloads the speech models (about 1.8 GB) and starts the services; how long it takes depends on your network speed. Then:
+
+1. Find the API key at the end of the deploy log and keep it
+2. Open `http://<host-ip>:8631/` in your browser and enter the API key
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Jetson module or JetPack mismatch | This solution supports Jetson Orin NX with JetPack 6.2 only; use a matching host |
+| Not enough disk space | Free up at least 15 GB on the host |
+| Model download fails or is slow | Check the host's internet access and deploy again; a completed download is kept |
+| Clip name format error | Use the form `Clip 7036`: Clip, a space, and the four characters |
+| AI summary is missing the service address | Fill in the service address and model name, or turn AI summary off |
+| Port 8631, 8621, 8622 or 1883 in use | Stop the other service using that port on the host and deploy again |
+
+### Target: This computer {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
+
+Run SenseCraft Solution on the reComputer J40 itself and deploy there.
+
+### Prerequisites
+
+- This computer is a Jetson Orin NX module running JetPack 6.2
+- It has at least 15 GB of free disk and internet access
+- The Clip has been unbound from the phone app
+
+### Wiring
+
+1. Make sure this computer is online
+2. Charge the Clip and place it next to the host
+3. Enter the Clip name, e.g. `Clip 7036`
+4. Turn on "Faster sync over Wi-Fi" and "AI summary (optional)" if you need them, then click Deploy
+
+### Deployment Complete
+
+The first deploy downloads the speech models (about 1.8 GB) and starts the services; how long it takes depends on your network speed. Then:
+
+1. Find the API key at the end of the deploy log and keep it
+2. Open `http://localhost:8631/` in your browser and enter the API key
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Jetson module or JetPack mismatch | This solution supports Jetson Orin NX with JetPack 6.2 only |
+| Permission denied while writing the configuration or models | Use "Remote deployment" from another computer over SSH instead |
+| Not enough disk space | Free up at least 15 GB |
+| Port 8631, 8621, 8622 or 1883 in use | Stop the other service using that port and deploy again |
+
+## Step 2: Check the service {#verify_stack type=http_debug required=true config=devices/verify_clip.yaml}
+
+Confirm the transcription service is ready.
+
+### Wiring
+
+1. Enter the host IP (`localhost` when you deployed on this computer)
+2. Click Check; HTTP 200 means the service is ready
+
+### Deployment Complete
+
+The transcription service is running on your reComputer Jetson.
+
+#### Initial Setup
+
+1. Open `http://<host-ip>:8631/` in your browser and enter the API key shown at the end of the deploy log
+2. If you lose the API key, run `sudo cat /opt/clip-private-transcription/config/api_key` on the host
+3. To change the Clip, Wi-Fi sync or AI summary settings, edit them in Step 1 and deploy again; leave the API key empty to keep the current one
+
+#### Quick Verification
+
+1. Record about 30 seconds of conversation on the Clip and put it back next to the host
+2. Once it has synced, a new transcript appears on the results page with timestamps and speaker labels
+
+Without a Clip at hand, upload a 16 kHz mono WAV recording instead:
 
 ```bash
-python3 -c 'import secrets; print(secrets.token_hex(32))'
+curl -H "Authorization: Bearer <API key>" -F file=@sample.wav http://<host-ip>:8631/v1/transcribe
 ```
 
-**RK3576 / RK3588.** The copied profiles select `rk.asr` on port 8621 and
-`rk.whisper` on port 8622; downloads are disabled. Provide the two model roots
-at the paths declared by those profiles (RK3576 uses the base10 Whisper RKNN
-assets, RK3588 base20). The SLV image, profiles, and model roots must match the
-selected RK runtime. The shared example enables
-`pipeline.require_gpu_diarization` for Jetson; RK3576/RK3588 deployments must
-set it to `false`: this contract only accepts the Jetson CUDA CAM++ metadata,
-and no matching RKNN speaker backend is claimed here. With `false`, the
-existing legacy CPU/empty-result behavior is retained.
+Subscribe to finished-transcript messages: `mosquitto_sub -h <host-ip> -t 'clip-pt/+/transcript/+/ready'`
 
-**Jetson.** The Jetson voice backend uses the published
-`nrd6-ovs-jetson:20261008` image (pinned by digest); the CUDA runtime stays host-owned.
+### Troubleshooting
 
-The two SLV services require the Jetson runtime ABI: JetPack 6.2 with
-TensorRT 10.3.0 and Python 3.10. The deployment checks the host TensorRT
-binding and libraries before Compose starts, then mounts the binding,
-`/usr/src/tensorrt`, `/usr/local/cuda/lib64`, NVIDIA libraries, and the ARM64
-system libraries read-only. The image loader path is fixed to those mounts;
-missing paths or a different TensorRT version fail closed. This requirement is
-separate from the device-specific model plans below and does not provide a CPU
-fallback.
-
-Provide the edited Clip config and an approved Mosquitto image. The `clip-pt`
-and OVS images default to the published 2026-10-08 images (pinned by digest),
-and the deployment downloads the `clip-orin-nx-r1` ASR bundle (SHA-256
-checked) into `/opt/clip-private-transcription/models` on the Jetson; its plans
-were built for Orin NX. A Jetson LLM
-endpoint such as port 8000 may be used when it exists, but this package does
-not assume or verify one. The bundle unpacks to this tree with the exact
-filenames consumed by the profiles:
-
-```text
-/opt/models/clip-asr/
-├── sensevoice-trt/
-│   ├── sense-voice-encoder.scaled.fixed.onnx
-│   ├── am.mvn
-│   ├── embedding.npy
-│   ├── chn_jpn_yue_eng_ko_spectok.bpe.model
-│   └── sensevoice.plan
-├── whisper/
-│   ├── encoder/jetson/enc_base_30s_bf16.plan
-│   ├── mel_80_filters.txt
-│   └── vocab_en.txt
-├── plans/
-│   ├── prefill_fp16.plan
-│   └── step_fp16.plan
-└── speaker/
-    └── campplus.plan
-```
-
-The directory is mounted read-only at `/models`. The Whisper BF16 encoder plan
-and TensorRT decoder plans must match the selected Jetson model and runtime; an
-NX plan is device-specific and must not be treated as portable to another
-Jetson. The shipped profiles are mounted explicitly; the SenseVoice and Whisper
-services listen on host ports 8621 and 8622 and each uses one serialized GPU
-execution context.
-
-The example also requires the approved offline CAM++ plan at
-`/models/speaker/campplus.plan`. `OVS_SPEAKER_EMB_BACKEND=jetson_trt` is a
-strict selection: a missing, incompatible, or failed plan returns an error
-instead of using the CPU speaker model. GPU provenance covers the CAM++ neural
-forward; VAD, fbank, and clustering remain CPU work.
-
-The compose contract keeps model downloads disabled. It starts two ASR-only
-services from the same private OVS image and requires both checks: `/readyz`
-must accept requests (backend readiness, session capacity, and GPU watchdog
-state), then `/health` must report `{"asr": true}` with `asr_backend` equal to
-`sensevoice_trt` or `whisper-tensorrt`. `/readyz` can be temporarily not ready
-when session capacity is full; this healthcheck does not itself restart a
-container.
-
-### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
-
-The prebuilt TensorRT plans are for Jetson Orin NX (P3767-0000 / P3767-0001) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
-
-Connect to this Jetson host over SSH. On Orin NX (2026-10-08) the clip-pt build
-now published as `clip-private-transcription:20261008` passed the HTTP-upload
-path (upload, GPU diarization, SenseVoice/Whisper TensorRT ASR, LLM summary,
-transcript over HTTP and MQTT) with a test compose on other ports. This
-target's compose file was also run on the Orin NX on 2026-10-08 with images
-whose config digests match the published 20261008 clip-pt and OVS images
-(summary off; ports 8641/8642/18883 and a tmpfs data
-directory because the host's ports and disk were taken; models bind-mounted
-read-only): a 6.3 s LibriSpeech upload finished in 1.2 s, a 34 s two-speaker
-FLEURS Japanese upload in 2.2 s with 2 speakers. On the English clip only the
-second utterance is transcribed (the diarization step drops the first). Clip
-BLE/Wi-Fi sync needs a physical Clip; none was available.
-
-### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
-
-The prebuilt TensorRT plans are for Jetson Orin NX (P3767-0000 / P3767-0001) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
-
-Run Docker on this Jetson host. Same compose file as the SSH target: the
-compose file passed the HTTP-upload path on an Orin NX
-on 2026-10-08 (see the SSH target). Clip BLE/Wi-Fi sync needs a physical Clip.
-
-### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
-
-Connect to this RK3588 host over SSH. Package acceptance blocked: on a Rock 5T
-(2026-10-08) the 15 GB disk pre-check could not be met. With a rebuilt clip-pt
-image started directly with Compose, the HTTP-upload path passed (SenseVoice RKNN
-ASR, CPU CAM++ diarization, RK1828 LLM summary, transcript and MQTT); Whisper
-was healthy but not used by any job. Clip BLE/Wi-Fi sync needs a physical
-Clip; none was available.
-
-### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
-
-Run Docker on this RK3588 host. Package acceptance blocked: the HTTP-upload
-path passed on a Rock 5T only with a rebuilt clip-pt image; Clip BLE/Wi-Fi sync
-needs a physical Clip.
-
-### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
-
-Connect to this RK3576 host over SSH. Acceptance blocked: on the 2026-10-08 test
-board the 15 GB disk pre-check could not be met, the SLV RK model roots were
-absent, and SenseVoice plus Whisper did not fit together in the free RAM next
-to the services already running there. Clip BLE sync needs a physical Clip.
-
-### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
-
-Run Docker on this RK3576 host. Acceptance blocked: the disk pre-check and free RAM on the RK3576 test board
-stopped an end-to-end run of the package stack.
-
-## Step 2: Verify API {#verify_stack type=http_debug required=true config=devices/verify_clip.yaml}
-
-Require clip-pt `/healthz` HTTP 200 on port 8631, then check SenseVoice on
-8621, Whisper on 8622 (`/health` on Jetson, `/readyz` on RK), and the
-Mosquitto broker on 1883. Verify the configured shared LLM endpoint with the
-application-level voice RD contract (`base_url`, `model_name`, `api_key`,
-`timeout_s`), then run a controlled sync and inspect the transcript schema.
-Run the API, MQTT, resume, and offline checks of the documented M10 matrix only
-with real Clip hardware once the physical gate is scheduled. The package does
-not provide or validate a cloud provider, model, or API key, and does not
-physically validate the Mosquitto image or GPU speaker-embedding artifact. The
-example config leaves summary, MQTT, and diarization enabled; do not interpret
-container healthchecks as full offline, summary, MQTT, diarization, or
-physical Clip acceptance.
+| Issue | Solution |
+|-------|----------|
+| Returns 503 | Speech recognition is still loading; wait a few minutes and try again |
+| Connection refused | Check the host IP, then run `docker ps` on the host to see whether the services are running |
+| No new recordings on the results page | Check that the Clip is charged, within Bluetooth range of the host, and not bound to the phone app |
+| Several Clips nearby and the wrong one connects | Fill in "Clip Bluetooth address (optional)" in Step 1 and deploy again |
+| Sync fails after turning on Wi-Fi sync | Make sure the wireless interface you entered is not the one the host uses for its network; without a spare interface, turn Wi-Fi sync off and use Bluetooth only |
+| No summary is generated | Check the AI service address, model name and key; very short recordings get no summary |

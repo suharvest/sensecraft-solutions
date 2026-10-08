@@ -1,29 +1,25 @@
-# DRAFT / disabled: Clip/BLE, host, offline, and licensed ASR/diarization
-# acceptance remain incomplete; the full software and hardware package is not verified.
+# Maintainer notes (not shown to users).
 #
-# Presets: the former rk3576_ble / rk3588_wifi / jetson_wifi presets differed
-# only by host and an optional Wi-Fi adapter (BLE sync is always on; Wi-Fi is
-# the sync.wifi_enabled config flag), so they are merged into clip_edge_box
-# with one deploy target per host. Per-target status lives in the guides.
+# Supported hardware: Jetson Orin NX (P3767-0000 / -0001) on L4T R36.4 / JetPack 6.2 /
+# TensorRT 10.3 only; the published clip-orin-nx-r1 TensorRT plans load on nothing
+# else and devices/jetson_stack.yaml stops the deploy on any other module.
 #
-# 2026-10-08 device acceptance: no target verified.
-# - Jetson target (Orin NX): clip-pt image sha256:bbb11d88 (and 4e43d2cf) fails
-#   every job at transcript schema validation, so nothing is persisted. The fix
-#   belongs to the clip-pt app repo, not this package: transcript.schema.json
-#   must accept models.diarization.{embedding_backend, embedding_device,
-#   embedding_fallback, required_gpu} and upload session ids
-#   (^([0-9]{14}|upload-[0-9a-f]{8})$); a failed transcript GET returns 500
-#   instead of 404. Re-run the HTTP-upload E2E once a rebuilt image exists.
-# - RK3576 target (cat-remote) / RK3588 target (radxa): not started; the 15 GB disk
-#   pre-check cannot be met on either board, and SLV RK model roots are absent
-#   on cat-remote. RK presets run without GPU diarization
-#   (pipeline.require_gpu_diarization: false), per the guide.
-# - No physical Clip / BLE / Wi-Fi hop was available on any device.
-# - Later rounds (receipts orin-nx/round2, radxa/round3, cat-remote/round2):
-#   with a rebuilt clip-pt image carrying the schema fix, the HTTP-upload path
-#   passed on Orin NX and on RK3588 (run directly with Compose); RK3576 did
-#   not fit SenseVoice + Whisper in free RAM. Still no `verified:`: the
-#   packaged path and the Clip hop are untested.
+# RK3576 / RK3588 targets were removed 2026-10-08: they needed RK speech-service
+# images and RKNN model roots that are not published, and ran without GPU
+# diarization (pipeline.require_gpu_diarization: false). Their compose files,
+# device YAMLs and profiles are in git history before this change.
+#
+# The Clip config is rendered on the host from deploy inputs by the
+# "Write the Clip configuration" after_upload action in devices/jetson_stack.yaml;
+# assets/config/config.example.yaml documents the schema only.
+#
+# Device acceptance as of 2026-10-08 (receipts orin-nx/round2): the HTTP-upload
+# path passed on Orin NX with the published clip-pt 20261008 and nrd6-ovs-jetson
+# 20261008 images (summary off, ports 8641/8642/18883): 6.3 s LibriSpeech upload
+# done in 1.2 s, 34 s two-speaker FLEURS Japanese upload done in 2.2 s with 2
+# speakers. Known issue: on the English sample only the second sentence was
+# transcribed (diarization dropped the first). Not yet tested: the Clip BLE /
+# Wi-Fi hop (no physical Clip was available) and the packaged deploy path end to end.
 version: "1.0"
 id: clip_private_transcription
 name: Private Clip Transcription
@@ -31,83 +27,74 @@ name_i18n: {zh: Clip 本地私有转写}
 enabled: true
 intro:
   visibility: staging
-  summary: Synchronize reSpeaker Clip recordings to a local host and expose private transcription results through HTTP and MQTT.
-  summary_i18n: {zh: 将 reSpeaker Clip 录音同步到本地主机，并通过 HTTP 与 MQTT 提供私有转写结果。}
+  summary: Sync reSpeaker Clip recordings to your own reComputer Jetson and get speaker-labelled transcripts without uploading anything to the cloud.
+  summary_i18n: {zh: 把 reSpeaker Clip 的录音同步到你自己的 reComputer Jetson 上转写，分出说话人，录音不上传云端。}
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
       src: gallery/panel-transcript-list-20261008.jpg
-      caption: "Transcript list on the local result page of a Jetson Orin NX: two uploaded recordings with duration, speaker count and summary status (2026-10-08)"
+      caption: "Transcript list on the local results page: each recording with its duration, speaker count and whether it has a summary"
       caption_i18n:
-        zh: "Jetson Orin NX 本地结果页的转写列表：两段上传录音，显示时长、说话人数与是否有摘要（2026-10-08）"
-        ja: "Jetson Orin NX のローカル結果ページの文字起こし一覧：アップロードした 2 件の録音と長さ・話者数・要約の有無（2026-10-08）"
+        zh: "本地结果页的转写列表：每段录音显示时长、说话人数和是否有摘要"
+        ja: "ローカル結果ページの文字起こし一覧：録音ごとの長さ・話者数・要約の有無"
     - type: image
       src: gallery/panel-transcript-detail-ja-20261008.jpg
-      caption: "Japanese two-source recording (34 s) processed on Jetson Orin NX: timestamped segments with speaker labels and a local LLM summary (2026-10-08)"
+      caption: "A 34 s two-speaker Japanese recording transcribed on Jetson Orin NX: timestamped segments, speaker labels and an AI summary"
       caption_i18n:
-        zh: "Jetson Orin NX 处理的 34 秒日语双音源录音：带时间戳与说话人标签的分段，以及本地大模型生成的摘要（2026-10-08）"
-        ja: "Jetson Orin NX で処理した 34 秒の日本語 2 音源録音：タイムスタンプと話者ラベル付きの区間、ローカル LLM による要約（2026-10-08）"
+        zh: "Jetson Orin NX 转写的 34 秒两人日语录音：带时间戳和说话人标签的分段，以及 AI 摘要"
+        ja: "Jetson Orin NX で文字起こしした 34 秒・2 人の日本語録音：タイムスタンプと話者ラベル付きの区間、AI 要約"
   category: acoustic_audio_ai
   solution_type: solution
-  tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, sensevoice, whisper, mqtt, offline]
+  tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, mqtt, offline]
   output_interfaces:
     - type: http
       port: 8631
       endpoint: /healthz
       method: GET
       schema_type: json
-      description: clip-pt health and local API.
-      description_i18n: {zh: clip-pt 健康与本地 API。}
+      description: Results page and HTTP API; /healthz reports whether the service is ready.
+      description_i18n: {zh: 结果页和 HTTP 接口；/healthz 返回服务是否就绪。}
     - type: mqtt
       port: 1883
       topic: clip-pt/<host-id>/transcript/<transcript-id>/ready
       schema_type: json
-      description: Transcript ready event from the local broker.
-      description_i18n: {zh: 本地 broker 发布的转写完成事件。}
+      description: Message published on the host when a transcript is ready.
+      description_i18n: {zh: 转写完成时在主机上发布的通知消息。}
   input_requirements:
     - type: bluetooth
-      description: Clip must be paired to the host and not concurrently bound to a phone app.
-      description_i18n: {zh: Clip 必须配对到主机，不能同时绑定手机 App。}
+      description: The host reaches the Clip over Bluetooth; the Clip must not be bound to the phone app at the same time.
+      description_i18n: {zh: 主机通过蓝牙连接 Clip；Clip 不能同时绑定手机 App。}
     - type: wifi
-      description: "Optional Wi-Fi sync: the host joins the Clip's own hotspot on a Wi-Fi interface that is not its network uplink: the built-in Wi-Fi works when the host is on Ethernet; if Wi-Fi is the host's only uplink, add a USB Wi-Fi adapter."
-      description_i18n: {zh: "Wi-Fi 同步为可选功能：主机会连上 Clip 自己开的热点，所用的无线接口不能是主机上网用的那一个：主机走网线上网时用自带 Wi-Fi 即可；主机只靠 Wi-Fi 上网时，再加一个 USB 无线网卡。"}
+      description: "Optional faster Wi-Fi sync: the host joins the Clip's own hotspot. When the host is on Ethernet its built-in Wi-Fi is used; when the host uses Wi-Fi for its network, add a USB Wi-Fi adapter."
+      description_i18n: {zh: "Wi-Fi 加速同步为可选功能：主机会连上 Clip 自己开的热点。主机用网线上网时用自带 Wi-Fi 即可；主机靠 Wi-Fi 上网时，再加一个 USB 无线网卡。"}
   device_catalog:
     respeaker_clip:
-      description: Wearable recorder; physical pairing and consent are required.
-      description_i18n: {zh: 可穿戴录音设备，需要真机配对和同意书。}
-    recomputer_rk3576:
-      description: Host for the SenseVoice/Whisper stack.
-      description_i18n: {zh: 运行 SenseVoice/Whisper 栈的主机。}
-      purchase: {require: {ram_gb: [8]}}
-    recomputer_rk3588:
-      description: Host for the SenseVoice/Whisper stack.
-      description_i18n: {zh: 运行 SenseVoice/Whisper 栈的主机。}
+      description: Wearable recorder; inform the people being recorded.
+      description_i18n: {zh: 佩戴式录音设备；录音前请告知被录音的人。}
     recomputer_j40:
-      description: Jetson host for the Orin ASR stack.
-      description_i18n: {zh: 运行 Orin ASR 栈的 Jetson 主机。}
+      description: Syncs recordings from the Clip, transcribes them and serves the results page. Jetson Orin NX with JetPack 6.2; choose the wireless module (Wi-Fi + Bluetooth).
+      description_i18n: {zh: 从 Clip 同步录音、转写并提供结果页。需 Jetson Orin NX 与 JetPack 6.2；选购时加无线网卡模块（Wi-Fi + 蓝牙）。}
     generic_usb_wifi_adapter:
       name: USB Wi-Fi adapter
       name_i18n: {zh: USB 无线网卡}
-      description: Only needed for Clip Wi-Fi sync when the host's built-in Wi-Fi is its network uplink.
-      description_i18n: {zh: 仅在主机自带 Wi-Fi 用于上网、又要用 Clip Wi-Fi 同步时需要。}
+      description: Only needed for faster Wi-Fi sync when the host uses its built-in Wi-Fi for its network.
+      description_i18n: {zh: 只在主机用自带 Wi-Fi 上网、又要开启 Wi-Fi 加速同步时需要。}
   presets:
     - id: clip_edge_box
-      name: Clip + Edge Compute Box (Draft)
+      name: Clip + reComputer Jetson
       name_i18n:
-        zh: Clip + 边缘算力盒子（草稿）
-        ja: Clip + エッジコンピューティングボックス（ドラフト）
-      badge: Draft / acceptance incomplete
-      badge_i18n: {zh: 草稿 / 验收未完成}
-      description: Pick a Jetson, RK3588 or RK3576 host in the deploy step. Uses the published clip-pt image; Jetson also uses the published OVS image and ASR bundle, RK hosts need approved SLV images; Clip syncs over BLE; Wi-Fi sync needs a Wi-Fi interface that is not the host's uplink. No target has passed physical acceptance.
+        zh: Clip + reComputer Jetson
+        ja: Clip + reComputer Jetson
+      description: Recordings sync from the Clip to a reComputer J40 (Jetson Orin NX) over Bluetooth and are transcribed there, split by speaker. Optional faster sync over Wi-Fi and optional AI summaries.
       description_i18n:
-        zh: 在部署步骤里选择 Jetson、RK3588 或 RK3576 主机。使用已发布的 clip-pt 镜像；Jetson 还使用已发布的 OVS 镜像和 ASR 模型包，RK 主机需要获准的 SLV 镜像；Clip 经 BLE 同步；Wi-Fi 同步需要一个不用于上网的无线接口。尚无部署目标通过真机验收。
-        ja: デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。公開済みの clip-pt イメージを使用します。Jetson は公開済みの OVS イメージと ASR モデルパッケージも使用し、RK ホストには承認済み SLV イメージが必要です。Clip は BLE で同期し、Wi-Fi 同期にはホストのネットワーク接続に使っていない無線インターフェースが必要です。実機受け入れに合格したターゲットはまだありません。
+        zh: 录音经蓝牙从 Clip 同步到 reComputer J40（Jetson Orin NX），在主机上转写并分出说话人。可选 Wi-Fi 加速同步和 AI 摘要。
+        ja: 録音は Bluetooth で Clip から reComputer J40（Jetson Orin NX）に同期され、そこで話者ごとに文字起こしされます。Wi-Fi による高速同期と AI 要約はオプションです。
       device_groups:
-        - {id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, description: Choose the edge host. The deploy step offers one target per host., description_i18n: {zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。}, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3588}, {device_ref: recomputer_rk3576}], default: recomputer_j40}
+        - {id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, description: Jetson Orin NX with JetPack 6.2 and Bluetooth., description_i18n: {zh: Jetson Orin NX，JetPack 6.2，带蓝牙。}, options: [{device_ref: recomputer_j40}], default: recomputer_j40}
         - {id: recorder, name: Clip, name_i18n: {zh: Clip}, type: single, required: true, options: [{device_ref: respeaker_clip}], default: respeaker_clip}
-        - {id: wireless, name: Wi-Fi adapter (optional), name_i18n: {zh: Wi-Fi 网卡（可选）}, type: single, required: false, description: Only for Clip Wi-Fi sync when the host's built-in Wi-Fi is its uplink; BLE sync works without it (set sync.wifi_enabled to false)., description_i18n: {zh: 仅在主机自带 Wi-Fi 用于上网时、为 Clip Wi-Fi 同步而加；不加时 BLE 同步照常工作（将 sync.wifi_enabled 设为 false）。}, options: [{device_ref: generic_usb_wifi_adapter}], default: generic_usb_wifi_adapter}
+        - {id: wireless, name: Wi-Fi adapter (optional), name_i18n: {zh: USB 无线网卡（可选）}, type: single, required: false, description: Only for faster Wi-Fi sync when the host uses its built-in Wi-Fi for its network. Bluetooth sync works without it., description_i18n: {zh: 只在主机用自带 Wi-Fi 上网、又要开启 Wi-Fi 加速同步时需要。不加也能经蓝牙同步。}, options: [{device_ref: generic_usb_wifi_adapter}], default: generic_usb_wifi_adapter}
   stats: {difficulty: advanced, estimated_time: 90min}
   links: {}
 deployment:
