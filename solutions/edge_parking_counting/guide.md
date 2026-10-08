@@ -59,7 +59,7 @@ Run Docker on this Jetson host. Verified 2026-10-08 on a Jetson Orin Nano:
 29.98 fps processed, inference p50 3.58 ms / p95 3.64 ms, 41 of 41 expected
 crossings on a synthetic clip. No counting-accuracy figure on real gate video.
 
-### Target {#rk3588_counting_remote type=remote device=rk3588_counting device_name="RK3588" config=devices/rk3588_counting.yaml}
+### Target {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 Connect to the RK3588 host over SSH. Verified with conditions on 2026-10-08:
 measured on a Radxa Rock 5T (RK3588) with a locally built image (6a5c781d) and
@@ -68,21 +68,21 @@ source (about 26 % of frames dropped, cause not diagnosed), inference p50
 17.8 ms / p95 20.0 ms, 107 MQTT events with contiguous seq. The clip repeats
 every 10 s, so no counting-accuracy figure is stated.
 
-### Target {#rk3588_counting_local type=local device=rk3588_counting device_name="RK3588" config=devices/rk3588_counting.yaml}
+### Target {#rk3588_counting_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 Run Docker on the RK3588 host after the fail-closed host path precheck passes.
 Verified with conditions on 2026-10-08 (Radxa Rock 5T): 3.0 fps processed of
 the 5 fps source (about 26 % of frames dropped, cause not diagnosed), inference
 p50 17.8 ms / p95 20.0 ms. No counting-accuracy figure.
 
-### Target {#rk3576_counting_remote type=remote device=rk3576_counting device_name="RK3576" config=devices/rk3576_counting.yaml}
+### Target {#rk3576_counting_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
 
 Connect to the RK3576 host over SSH. The same path and ABI checks run on the
 remote host. Acceptance blocked: on the 2026-10-08 test board the package
 image could not be loaded (root disk too small), so the package compose path
 was not exercised; a run with a substitute image produced MQTT crossing events.
 
-### Target {#rk3576_counting_local type=local device=rk3576_counting device_name="RK3576" config=devices/rk3576_counting.yaml}
+### Target {#rk3576_counting_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
 
 Run Docker on the RK3576 host. The precheck requires every supplied path and
 the exact vehicle416 model filename to exist. Acceptance blocked: the package

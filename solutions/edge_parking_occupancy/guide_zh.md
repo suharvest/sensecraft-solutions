@@ -65,26 +65,26 @@ p50 6.48 ms / p95 6.69 ms，丢帧 0，300 s 内每个车位 15 次 occupied/fre
 0.988 fps（1 路 1 fps），推理 p50 6.48 ms / p95 6.69 ms，丢帧 0。尚无真实停车视频
 上的车位准确率。
 
-### 部署目标 {#rk3588_occupancy_remote type=remote device=rk3588_occupancy device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+### 部署目标 {#rk3588_occupancy_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 
 通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（Radxa Rock 5T /
 RK3588，本地构建镜像 6a5c781d，合成占用/空位素材，1 路 1 fps，单车 ROI）：17 次
 occupied/free 状态切换，推理 p50 36.6 ms / p95 40.5 ms，丢帧 0。不给出车位准确率；
 未测多路容量。
 
-### 部署目标 {#rk3588_occupancy_local type=local device=rk3588_occupancy device_name="RK3588" config=devices/rk3588_occupancy.yaml}
+### 部署目标 {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 
 通过所需路径预检后，在 RK3588 主机运行 Docker。2026-10-08 有条件验证（Radxa Rock
 5T，1 路 1 fps）：17 次 occupied/free 状态切换，推理 p50 36.6 ms / p95 40.5 ms。不给出
 车位准确率。
 
-### 部署目标 {#rk3576_occupancy_remote type=remote device=rk3576_occupancy device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+### 部署目标 {#rk3576_occupancy_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
 
 通过 SSH 连接 RK3576 主机。验收受阻：2026-10-08 的测试板根分区空间不足，无法加载
 本包镜像，随包 compose 路径未参与运行；用替代镜像运行时输出了车位事件，但没有出现
 occupied 切换。
 
-### 部署目标 {#rk3576_occupancy_local type=local device=rk3576_occupancy device_name="RK3576" config=devices/rk3576_occupancy.yaml}
+### 部署目标 {#rk3576_occupancy_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_occupancy.yaml}
 
 通过所需路径预检后，在 RK3576 主机运行 Docker。验收受阻：RK3576 测试板无法加载
 本包镜像。

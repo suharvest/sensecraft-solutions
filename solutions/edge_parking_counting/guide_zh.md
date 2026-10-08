@@ -60,26 +60,26 @@ p95 3.64 ms，预期 41 次越线全部检出且方向交替。尚无真实出�
 29.98 fps，推理 p50 3.58 ms / p95 3.64 ms，合成片段上预期 41 次越线全部检出。尚无
 真实出入口视频上的计数准确率。
 
-### 部署目标 {#rk3588_counting_remote type=remote device=rk3588_counting device_name="RK3588" config=devices/rk3588_counting.yaml}
+### 部署目标 {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（Radxa Rock 5T /
 RK3588，本地构建镜像 6a5c781d，循环播放 1280x720 H.264 5 fps 停车场片段）：处理
 3.0 fps（源 5 fps，约 26 % 帧被丢弃，原因未定位），推理 p50 17.8 ms / p95 20.0 ms，
 107 条 MQTT 事件且 seq 连续。片段每 10 s 循环一次，不给出计数准确率。
 
-### 部署目标 {#rk3588_counting_local type=local device=rk3588_counting device_name="RK3588" config=devices/rk3588_counting.yaml}
+### 部署目标 {#rk3588_counting_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 通过宿主机路径 fail-closed 预检后，在 RK3588 主机运行 Docker。2026-10-08 有条件
 验证（Radxa Rock 5T）：处理 3.0 fps（源 5 fps，约 26 % 帧被丢弃，原因未定位），
 推理 p50 17.8 ms / p95 20.0 ms。不给出计数准确率。
 
-### 部署目标 {#rk3576_counting_remote type=remote device=rk3576_counting device_name="RK3576" config=devices/rk3576_counting.yaml}
+### 部署目标 {#rk3576_counting_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
 
 通过 SSH 连接 RK3576 主机，并执行相同的路径与 ABI 检查。验收受阻：2026-10-08 的
 测试板根分区空间不足，无法加载本包镜像，随包 compose 路径未参与运行；用替代镜像
 运行时输出了 MQTT 越线事件。
 
-### 部署目标 {#rk3576_counting_local type=local device=rk3576_counting device_name="RK3576" config=devices/rk3576_counting.yaml}
+### 部署目标 {#rk3576_counting_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
 
 在 RK3576 主机运行 Docker。预检要求所有用户路径和准确的 vehicle416 模型文件已
 存在。验收受阻：RK3576 测试板无法加载本包镜像。
