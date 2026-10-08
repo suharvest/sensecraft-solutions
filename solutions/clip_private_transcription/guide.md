@@ -3,110 +3,53 @@
 > **Draft / disabled.** The compose files are reviewable contracts only; they
 > fail closed until approved local images and physical evidence exist.
 
-## Preset: RK3576 + Clip BLE (Draft) {#rk3576_ble}
+## Preset: Clip + Edge Compute Box (Draft) {#clip_edge_box}
 
-## Step 1: Deploy local transcription stack {#rk3576_deploy type=docker_deploy required=true config=devices/rk3576_stack.yaml}
+Pick the host in the deploy step: Jetson, RK3588 or RK3576. Clip sync always
+runs over BLE; Wi-Fi sync is optional and needs a dedicated host adapter. Each
+target states its on-device acceptance status.
 
-Provide approved local clip-pt, SLV, and Mosquitto image references, the
-preloaded SenseVoice and Whisper model roots, and a config based on the reviewed
-`assets/config/config.example.yaml`. Pair the Clip manually and
-use one host binding only.
+## Step 1: Deploy local transcription stack {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
+
+Provide approved local clip-pt, SLV/OVS, and Mosquitto image references, the
+preloaded ASR model roots on the selected host, and a config based on the
+reviewed `assets/config/config.example.yaml`. Pair the Clip manually and use
+one host binding only.
 
 The compose stack starts clip-pt, separate SenseVoice and Whisper SLV services,
 and Mosquitto. The LLM is a user-supplied OpenAI-compatible endpoint configured in the shared
 config (`base_url`, `model_name`, `api_key`, `timeout_s`); the base URL may be a
 root URL or `/v1`. It can point to a cloud service, an RK1828 service, or a Jetson
-service. No local LLM runtime is started by this package. The copied profiles select `rk.asr` on port 8621 and
-`rk.whisper` on port 8622; downloads are disabled. Provide the two model roots
-at the paths declared by those profiles. The endpoint contract reuses the voice RD fields `base_url`, `model_name`, and
+service. No local LLM runtime is started by this package. The endpoint contract reuses the voice RD fields `base_url`, `model_name`, and
 `api_key`; the user supplies the endpoint, model, and key through the application
-configuration. Do not put real keys in this package. Mosquitto uses the bundled
-anonymous local broker configuration. The SLV image, profiles, and model roots
-must match this RK3576 runtime. They are user-provided dependencies and have
-not been validated on a physical RK3576 in this package.
+configuration. Do not put real keys in this package. A cloud endpoint requires
+network access; a reachable RK1828 or Jetson endpoint can support an offline
+local chain. Mosquitto uses the bundled anonymous local broker configuration.
 
 Before upload, replace every `REPLACE_WITH_*` value with the actual Clip
-advertised name, BLE MAC address, and local label. For Wi-Fi presets, set
-`sync.wifi_iface` to the actual host interface. Generate an API key locally and
-put the resulting 64 hexadecimal characters in `api.key`; the shipped example
-keeps this field empty so startup fails closed until it is configured:
-
-The shared example enables `pipeline.require_gpu_diarization` for the Jetson
-preset. RK3576/RK3588 deployments must set it to `false`: this contract only
-accepts the Jetson CUDA CAM++ metadata, and no matching RKNN speaker backend is
-claimed here. With `false`, the existing legacy CPU/empty-result behavior is
-retained.
+advertised name, BLE MAC address, and local label; do not leave the example
+placeholders. For Wi-Fi sync, set `sync.wifi_iface` to the actual name of the
+dedicated adapter; without one, set `sync.wifi_enabled: false` and the Clip
+syncs over BLE only. Generate an API key locally and put the resulting 64
+hexadecimal characters in `api.key`; the shipped example keeps this field
+empty so startup fails closed until it is configured:
 
 ```bash
 python3 -c 'import secrets; print(secrets.token_hex(32))'
 ```
 
-### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
-
-Run Docker on this RK3576 host.
-
-### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml default=true}
-
-Connect to this RK3576 host over SSH.
-
-## Step 2: Verify API {#rk3576_verify type=http_debug required=true config=devices/verify_clip.yaml}
-
-Require `/healthz` HTTP 200, then run a controlled sync and inspect the
-transcript schema. This does not prove physical acceptance.
-
-## Preset: RK3588 + Clip Wi-Fi (Draft) {#rk3588_wifi}
-
-## Step 1: Deploy local transcription stack {#rk3588_deploy type=docker_deploy required=true config=devices/rk3588_stack.yaml}
-
-Provide the approved local clip-pt, SLV, and Mosquitto image
-references, the preloaded SenseVoice and Whisper model roots, and a config based on the reviewed example. Wi-Fi sync requires a dedicated adapter and a host configuration with the
-actual interface name. The Clip name and BLE MAC in `devices[]` must match the
-physical unit; do not leave the example placeholders.
-
-The compose stack starts clip-pt, separate SenseVoice and Whisper SLV services,
-and Mosquitto. The LLM is a user-supplied OpenAI-compatible endpoint configured in the shared
-config (`base_url`, `model_name`, `api_key`, `timeout_s`); the base URL may be a
-root URL or `/v1`. It can point to a cloud service, an RK1828 service, or a Jetson
-service. No local LLM runtime is started by this package. The copied profiles select `rk.asr` on port 8621 and
+**RK3576 / RK3588.** The copied profiles select `rk.asr` on port 8621 and
 `rk.whisper` on port 8622; downloads are disabled. Provide the two model roots
-at the paths declared by those profiles. The endpoint uses the voice RD fields `base_url`, `model_name`, and `api_key`;
-supply them through application configuration and keep keys out of this package.
-A cloud endpoint requires network access; a reachable RK1828 or Jetson endpoint
-can support an offline local chain. The SLV image,
-profile, and model root must match this RK3588 runtime; this package has no
-physical RK3588 deployment evidence for that combination.
+at the paths declared by those profiles (RK3576 uses the base10 Whisper RKNN
+assets, RK3588 base20). The SLV image, profiles, and model roots must match the
+selected RK runtime. The shared example enables
+`pipeline.require_gpu_diarization` for Jetson; RK3576/RK3588 deployments must
+set it to `false`: this contract only accepts the Jetson CUDA CAM++ metadata,
+and no matching RKNN speaker backend is claimed here. With `false`, the
+existing legacy CPU/empty-result behavior is retained.
 
-Prepare the config from `assets/config/config.example.yaml`: replace the Clip
-name, BLE MAC, local label, and `sync.wifi_iface` with the actual values, then
-put a locally generated 64-hex API key in `api.key`:
-
-Set `pipeline.require_gpu_diarization: false` for this RK3588 preset. The
-strict response contract currently covers Jetson CUDA CAM++ only; no RKNN
-speaker backend is claimed. The default legacy behavior remains available.
-
-```bash
-python3 -c 'import secrets; print(secrets.token_hex(32))'
-```
-
-### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
-
-Run Docker on this RK3588 host.
-
-### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml default=true}
-
-Connect to this RK3588 host over SSH.
-
-## Step 2: Verify API {#rk3588_verify type=http_debug required=true config=devices/verify_clip.yaml}
-
-Run the API, MQTT, resume, and offline checks only after the physical gate is
-scheduled.
-
-## Preset: Jetson + Clip Wi-Fi (Draft) {#jetson_wifi}
-
-## Step 1: Deploy local transcription stack {#jetson_deploy type=docker_deploy required=true config=devices/jetson_stack.yaml}
-
-The Jetson voice backend and CUDA runtime require approved artifacts; no
-registry digest is implied here.
+**Jetson.** The Jetson voice backend and CUDA runtime require approved
+artifacts; no registry digest is implied here.
 
 The two SLV services require the Jetson runtime ABI: JetPack 6.2 with
 TensorRT 10.3.0 and Python 3.10. The deployment checks the host TensorRT
@@ -119,12 +62,10 @@ fallback.
 
 Provide the approved local `clip-pt` image, approved private OVS image, edited
 Clip config, existing absolute ASR bundle directory on the selected Jetson (for
-example `/opt/models/clip-asr`), and approved Mosquitto image. The LLM remains an
-user-supplied endpoint using the voice RD fields `base_url`, `model_name`, and
-`api_key`; these are application configuration values, not Jetson files. Do not
-put real keys in this package. A Jetson endpoint such as port 8000 may be used
-when it exists, but this package does not assume or verify one. Before
-deployment, create this tree with the exact filenames consumed by the profiles:
+example `/opt/models/clip-asr`), and approved Mosquitto image. A Jetson LLM
+endpoint such as port 8000 may be used when it exists, but this package does
+not assume or verify one. Before deployment, create this tree with the exact
+filenames consumed by the profiles:
 
 ```text
 /opt/models/clip-asr/
@@ -166,29 +107,60 @@ state), then `/health` must report `{"asr": true}` with `asr_backend` equal to
 when session capacity is full; this healthcheck does not itself restart a
 container.
 
-Prepare the config from `assets/config/config.example.yaml`: replace the Clip
-name, BLE MAC, local label, and `sync.wifi_iface` with the actual values, then
-put a locally generated 64-hex API key in `api.key`:
+### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
 
-```bash
-python3 -c 'import secrets; print(secrets.token_hex(32))'
-```
+Connect to this Jetson host over SSH. Package acceptance blocked: on Orin NX
+(2026-10-08) the clip-pt image sha256:bbb11d88 failed every job at transcript
+schema validation, so nothing was persisted; the fix belongs to the clip-pt app
+repo. A second run with a rebuilt clip-pt image carrying the schema fix passed
+the HTTP-upload path (upload, GPU diarization, SenseVoice/Whisper TensorRT ASR,
+LLM summary, transcript over HTTP and MQTT). Clip BLE/Wi-Fi sync needs
+a physical Clip; none was available on 2026-10-08.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
 
-Run Docker on this Jetson host.
+Run Docker on this Jetson host. Package acceptance blocked: the HTTP-upload
+path passed on Orin NX only with a rebuilt clip-pt image carrying the schema
+fix; Clip BLE/Wi-Fi sync needs a physical Clip.
 
-### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_stack.yaml default=true}
+### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
 
-Connect to this Jetson host over SSH.
+Connect to this RK3588 host over SSH. Package acceptance blocked: on a Rock 5T
+(2026-10-08) the 15 GB disk pre-check could not be met. With a rebuilt clip-pt
+image started directly with Compose, the HTTP-upload path passed (SenseVoice RKNN
+ASR, CPU CAM++ diarization, RK1828 LLM summary, transcript and MQTT); Whisper
+was healthy but not used by any job. Clip BLE/Wi-Fi sync needs a physical
+Clip; none was available.
 
-## Step 2: Verify API {#jetson_verify type=http_debug required=true config=devices/verify_clip.yaml}
+### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
 
-Check Clip `/healthz`, SenseVoice `/health` on 8621, Whisper `/health` on
-8622, and the Mosquitto broker on 1883. Verify the configured shared LLM endpoint
-with the application-level voice RD contract (`base_url`, `model_name`, `api_key`, `timeout_s`)
-before running the documented M10 matrix with real Clip hardware. The package
-does not provide or validate a cloud provider, model, or API key, and does not
-physically validate the Mosquitto image or GPU speaker-embedding artifact. The example config leaves summary, MQTT, and
-diarization enabled; do not interpret container healthchecks as full offline,
-summary, MQTT, diarization, or physical Clip acceptance.
+Run Docker on this RK3588 host. Package acceptance blocked: the HTTP-upload
+path passed on a Rock 5T only with a rebuilt clip-pt image; Clip BLE/Wi-Fi sync
+needs a physical Clip.
+
+### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
+
+Connect to this RK3576 host over SSH. Acceptance blocked: on the 2026-10-08 test
+board the 15 GB disk pre-check could not be met, the SLV RK model roots were
+absent, and SenseVoice plus Whisper did not fit together in the free RAM next
+to the services already running there. Clip BLE sync needs a physical Clip.
+
+### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_stack.yaml}
+
+Run Docker on this RK3576 host. Acceptance blocked: the disk pre-check and free RAM on the RK3576 test board
+stopped an end-to-end run of the package stack.
+
+## Step 2: Verify API {#verify_stack type=http_debug required=true config=devices/verify_clip.yaml}
+
+Require clip-pt `/healthz` HTTP 200 on port 8631, then check SenseVoice on
+8621, Whisper on 8622 (`/health` on Jetson, `/readyz` on RK), and the
+Mosquitto broker on 1883. Verify the configured shared LLM endpoint with the
+application-level voice RD contract (`base_url`, `model_name`, `api_key`,
+`timeout_s`), then run a controlled sync and inspect the transcript schema.
+Run the API, MQTT, resume, and offline checks of the documented M10 matrix only
+with real Clip hardware once the physical gate is scheduled. The package does
+not provide or validate a cloud provider, model, or API key, and does not
+physically validate the Mosquitto image or GPU speaker-embedding artifact. The
+example config leaves summary, MQTT, and diarization enabled; do not interpret
+container healthchecks as full offline, summary, MQTT, diarization, or
+physical Clip acceptance.
