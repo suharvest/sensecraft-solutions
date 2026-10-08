@@ -33,8 +33,10 @@ actions:
   before:
     - name: Check voice and Wyoming ports
       name_i18n: {zh: 检查语音与 Wyoming 端口}
+      sudo: true
       run: |
         set -eu
+        PROJECT="ha_whole_home_jetson_voice"
         VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
         STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
         TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
@@ -48,6 +50,9 @@ actions:
         if [ "$VOICE_PORT" = "$STT_PORT" ] || [ "$VOICE_PORT" = "$TTS_PORT" ] || [ "$STT_PORT" = "$TTS_PORT" ]; then
           echo "PORT_DUPLICATE: voice_port, wyoming_stt_port and wyoming_tts_port must differ ($VOICE_PORT/$STT_PORT/$TTS_PORT)" >&2; exit 1
         fi
+        # Owner lookup needs root (ss -p shows other users' PIDs only to root).
+        AS=""
+        if [ "$(id -u)" -ne 0 ] && sudo -n true 2>/dev/null; then AS="sudo -n"; fi
         # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
         port_listening() {
           if command -v ss >/dev/null 2>&1; then
@@ -60,21 +65,35 @@ actions:
           fi
           return 2
         }
-        # A redeploy finds the ports held by this stack's own containers; skip the
-        # free-port check then (compose recreates them on the same ports).
-        if docker ps -q --filter label=com.docker.compose.project=ha_whole_home_jetson_voice 2>/dev/null | grep -q .; then
-          echo "PORT_CHECK_SKIPPED_EXISTING_DEPLOYMENT: ha_whole_home_jetson_voice containers are running" >&2
-        else
-          for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
-            rc=0; port_listening "$port" || rc=$?
-            if [ "$rc" -eq 0 ]; then
-              echo "PORT_IN_USE: port $port is already used on this host; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2
-              exit 1
-            elif [ "$rc" -eq 2 ]; then
-              echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
-            fi
+        # Prints "own" if every process listening on $1 runs inside a container of
+        # this Compose project (matched by the container id in /proc/<pid>/cgroup),
+        # "foreign" if any listener belongs to something else, "unknown" if the
+        # owner cannot be determined. Host networking means the project label alone
+        # says nothing about who holds a port.
+        port_owner() {
+          command -v ss >/dev/null 2>&1 || { echo unknown; return; }
+          pids=$($AS ss -ltnpH "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u)
+          [ -n "$pids" ] || { echo unknown; return; }
+          own_ids=$($AS docker ps -q --no-trunc --filter "label=com.docker.compose.project=$PROJECT" 2>/dev/null) || { echo unknown; return; }
+          for pid in $pids; do
+            cg=$($AS cat "/proc/$pid/cgroup" 2>/dev/null) || { echo unknown; return; }
+            cid=$(printf '%s\n' "$cg" | grep -Eo '[0-9a-f]{64}' | head -n 1)
+            if [ -z "$cid" ] || ! printf '%s\n' "$own_ids" | grep -qx "$cid"; then echo foreign; return; fi
           done
-        fi
+          echo own
+        }
+        for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
+          rc=0; port_listening "$port" || rc=$?
+          if [ "$rc" -eq 2 ]; then
+            echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+          elif [ "$rc" -eq 0 ]; then
+            case "$(port_owner "$port")" in
+              own) echo "PORT_HELD_BY_THIS_STACK: port $port belongs to a running $PROJECT container; redeploy recreates it" >&2 ;;
+              foreign) echo "PORT_IN_USE: port $port is already used on this host by another process; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2; exit 1 ;;
+              *) echo "PORT_OWNER_UNKNOWN: port $port is in use and its owner cannot be determined (needs root for ss -p and docker); free the port or choose another one" >&2; exit 1 ;;
+            esac
+          fi
+        done
         echo "Voice port check OK: voice=$VOICE_PORT stt=$STT_PORT tts=$TTS_PORT"
 remote_overrides:
   environment:
@@ -89,8 +108,10 @@ remote_overrides:
     before:
       - name: Check voice and Wyoming ports
         name_i18n: {zh: 检查语音与 Wyoming 端口}
+        sudo: true
         run: |
           set -eu
+          PROJECT="ha_whole_home_jetson_voice"
           VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
           STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
           TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
@@ -104,6 +125,9 @@ remote_overrides:
           if [ "$VOICE_PORT" = "$STT_PORT" ] || [ "$VOICE_PORT" = "$TTS_PORT" ] || [ "$STT_PORT" = "$TTS_PORT" ]; then
             echo "PORT_DUPLICATE: voice_port, wyoming_stt_port and wyoming_tts_port must differ ($VOICE_PORT/$STT_PORT/$TTS_PORT)" >&2; exit 1
           fi
+          # Owner lookup needs root (ss -p shows other users' PIDs only to root).
+          AS=""
+          if [ "$(id -u)" -ne 0 ] && sudo -n true 2>/dev/null; then AS="sudo -n"; fi
           # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
           port_listening() {
             if command -v ss >/dev/null 2>&1; then
@@ -116,21 +140,35 @@ remote_overrides:
             fi
             return 2
           }
-          # A redeploy finds the ports held by this stack's own containers; skip the
-          # free-port check then (compose recreates them on the same ports).
-          if docker ps -q --filter label=com.docker.compose.project=ha_whole_home_jetson_voice 2>/dev/null | grep -q .; then
-            echo "PORT_CHECK_SKIPPED_EXISTING_DEPLOYMENT: ha_whole_home_jetson_voice containers are running" >&2
-          else
-            for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
-              rc=0; port_listening "$port" || rc=$?
-              if [ "$rc" -eq 0 ]; then
-                echo "PORT_IN_USE: port $port is already used on this host; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2
-                exit 1
-              elif [ "$rc" -eq 2 ]; then
-                echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
-              fi
+          # Prints "own" if every process listening on $1 runs inside a container of
+          # this Compose project (matched by the container id in /proc/<pid>/cgroup),
+          # "foreign" if any listener belongs to something else, "unknown" if the
+          # owner cannot be determined. Host networking means the project label alone
+          # says nothing about who holds a port.
+          port_owner() {
+            command -v ss >/dev/null 2>&1 || { echo unknown; return; }
+            pids=$($AS ss -ltnpH "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u)
+            [ -n "$pids" ] || { echo unknown; return; }
+            own_ids=$($AS docker ps -q --no-trunc --filter "label=com.docker.compose.project=$PROJECT" 2>/dev/null) || { echo unknown; return; }
+            for pid in $pids; do
+              cg=$($AS cat "/proc/$pid/cgroup" 2>/dev/null) || { echo unknown; return; }
+              cid=$(printf '%s\n' "$cg" | grep -Eo '[0-9a-f]{64}' | head -n 1)
+              if [ -z "$cid" ] || ! printf '%s\n' "$own_ids" | grep -qx "$cid"; then echo foreign; return; fi
             done
-          fi
+            echo own
+          }
+          for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
+            rc=0; port_listening "$port" || rc=$?
+            if [ "$rc" -eq 2 ]; then
+              echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+            elif [ "$rc" -eq 0 ]; then
+              case "$(port_owner "$port")" in
+                own) echo "PORT_HELD_BY_THIS_STACK: port $port belongs to a running $PROJECT container; redeploy recreates it" >&2 ;;
+                foreign) echo "PORT_IN_USE: port $port is already used on this host by another process; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2; exit 1 ;;
+                *) echo "PORT_OWNER_UNKNOWN: port $port is in use and its owner cannot be determined (needs root for ss -p and docker); free the port or choose another one" >&2; exit 1 ;;
+              esac
+            fi
+          done
           echo "Voice port check OK: voice=$VOICE_PORT stt=$STT_PORT tts=$TTS_PORT"
     after_upload:
       - name: Initialize HA configuration if absent
