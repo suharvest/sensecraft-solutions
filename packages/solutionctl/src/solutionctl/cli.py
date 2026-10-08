@@ -93,6 +93,12 @@ def _cmd_manage(args: argparse.Namespace) -> int:
     return manage.run(args.subcommand)
 
 
+def _cmd_stage(args: argparse.Namespace) -> int:
+    from .commands import stage
+
+    return stage.run(args)
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     from .commands import validate
 
@@ -200,6 +206,119 @@ def build_parser() -> argparse.ArgumentParser:
     p_manage = sub.add_parser("manage", help="Drive headless device-management REST")
     p_manage.add_argument("subcommand", help="e.g. list-apps")
     p_manage.set_defaults(func=_cmd_manage)
+
+    p_stage = sub.add_parser(
+        "stage",
+        help="Prepare a solution for deploying without internet access "
+        "(plan / prepare / list / delete / export / import)",
+    )
+    stage_sub = p_stage.add_subparsers(dest="stage_command", required=True)
+
+    def _stage_common(parser, *, needs_solution=True):
+        if needs_solution:
+            parser.add_argument("solution_id", help="Solution id")
+            parser.add_argument(
+                "--preset", required=True, help="Preset id (see deploy-info)"
+            )
+            parser.add_argument(
+                "--target",
+                action="append",
+                metavar="STEP=TARGET",
+                help="Which target of a step to stage; repeatable. Only the "
+                "steps named here are staged. Omitted: every step, each with "
+                "its default target",
+            )
+            parser.add_argument(
+                "--arch",
+                action="append",
+                metavar="STEP=ARCH",
+                help="aarch64 | x86_64 | both, for a target whose architecture "
+                "cannot be inferred; repeatable",
+            )
+            parser.add_argument(
+                "--params",
+                default=None,
+                help="JSON object of user_input values that affect what is "
+                'downloaded, e.g. \'{"board": "rk3588"}\'',
+            )
+            parser.add_argument(
+                "--lang", default="en", choices=["en", "zh"], help="Guide language"
+            )
+        parser.add_argument(
+            "--solutions-dir",
+            default=None,
+            dest="solutions_dir",
+            help="Solutions directory (auto-detected inside a clone)",
+        )
+        parser.add_argument("--json", action="store_true", help="Raw JSON output")
+        parser.add_argument(
+            "--require-full",
+            action="store_true",
+            dest="require_full",
+            help="Also fail (exit 3) when an entry is only 'partial' or "
+            "'unknown' -- i.e. demand a guaranteed-offline package",
+        )
+        parser.set_defaults(func=_cmd_stage)
+
+    _stage_common(
+        stage_sub.add_parser(
+            "plan",
+            help="What each step x target needs, whether it can be fully "
+            "offline, and what is already here. Reads only",
+        )
+    )
+
+    p_stage_prepare = stage_sub.add_parser(
+        "prepare", help="Download what plan lists into this machine's caches"
+    )
+    p_stage_prepare.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Fetch again even when the cache has it (a tag repushed under "
+        "the same name)",
+    )
+    _stage_common(p_stage_prepare)
+
+    p_stage_list = stage_sub.add_parser(
+        "list", help="What is prepared on this machine, and how much it occupies"
+    )
+    p_stage_list.add_argument(
+        "--check",
+        action="store_true",
+        help="Also report what an update would fetch (reads the solution, "
+        "not the network)",
+    )
+    _stage_common(p_stage_list, needs_solution=False)
+
+    p_stage_delete = stage_sub.add_parser(
+        "delete", help="Remove entries and the files nothing else references"
+    )
+    p_stage_delete.add_argument(
+        "--entry",
+        action="append",
+        required=True,
+        metavar="SOLUTION/PRESET/STEP[/TARGET[/ARCH]]",
+        help="Entry to remove; repeatable (see `stage list`)",
+    )
+    _stage_common(p_stage_delete, needs_solution=False)
+
+    p_stage_export = stage_sub.add_parser(
+        "export", help="Write prepared entries to one file, to carry elsewhere"
+    )
+    p_stage_export.add_argument("file", help="Destination .tar")
+    p_stage_export.add_argument(
+        "--entry",
+        action="append",
+        metavar="SOLUTION/PRESET/STEP[/TARGET[/ARCH]]",
+        help="Entry to include; repeatable. Omitted: everything prepared",
+    )
+    _stage_common(p_stage_export, needs_solution=False)
+
+    p_stage_import = stage_sub.add_parser(
+        "import", help="Read a file written by `stage export` into this machine"
+    )
+    p_stage_import.add_argument("file", help="Package written by `stage export`")
+    _stage_common(p_stage_import, needs_solution=False)
 
     p_steps = sub.add_parser(
         "steps",

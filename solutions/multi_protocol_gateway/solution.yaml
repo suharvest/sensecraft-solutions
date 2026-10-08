@@ -184,8 +184,8 @@ intro:
     difficulty: intermediate
     estimated_time: 15min
 
-  links:
-    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
+  # links.github 暂不填：实现仓库 Seeed-Solution/Solution_HVAC_SmartControl 目前私有，
+  # 对外是 404；仓库公开后再加回 `links: { github: <url> }`。
 
 deployment:
   guide_file: guide.md

@@ -79,10 +79,12 @@ remote_overrides:
           WORKDIR="/home/{{username}}/agri-env-monitor/chirpstack_stack"
           umask 077
           gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
-          cat > "$WORKDIR/.env" <<EOF
+          # Quoted heredoc so a `$` / `$(...)` in a user-supplied password is
+          # written literally. Values that are intentionally generated on the
+          # target are appended afterwards with printf.
+          cat > "$WORKDIR/.env" <<'EOF'
           COMPOSE_PROJECT_NAME=agri-env-chirpstack
           TZ={{timezone}}
-          CHIRPSTACK_DB_PASSWORD=$(gen 16)
           CHIRPSTACK_REGION={{region}}
           MQTT_OUT_HOST={{mqtt_host}}
           MQTT_OUT_PORT={{mqtt_port}}
@@ -95,6 +97,7 @@ remote_overrides:
           CHIRPSTACK_APPLICATION_ID={{lns_application_id}}
           BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
           EOF
+          printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$(gen 16)" >> "$WORKDIR/.env"
           echo "wrote $WORKDIR/.env"
         name_i18n:
           zh: 写入 ChirpStack 与桥的配置
@@ -135,165 +138,165 @@ remote_overrides:
         name_i18n:
           zh: 确认桥已连上网络服务器
 
-  user_inputs:
-    - id: host
-      name: Host Address
-      type: text
-      required: true
-      placeholder: "192.168.1.60"
-      description: The machine that runs the bridge — the R1000 on the first route, or any Linux host on the M2 route
-      name_i18n:
-        zh: 主机地址
-      description_i18n:
-        zh: 运行桥的那台机器——第一条路线是 R1000，M2 路线上任意一台 Linux 主机都行
-    - id: username
-      name: SSH Username
-      type: text
-      default: pi
-      required: true
-      name_i18n:
-        zh: SSH 用户名
-    - id: password
-      name: SSH Password
-      type: password
-      required: true
-      name_i18n:
-        zh: SSH 密码
-    - id: timezone
-      name: Time Zone
-      type: text
-      default: "Asia/Shanghai"
-      required: true
-      name_i18n:
-        zh: 时区
-    - id: lns_mode
-      name: Where the Network Server Runs
-      type: select
-      default: "m2"
-      required: true
-      description: Pick `m2` if the gateway runs its own network server — nothing but the bridge starts here. Pick `local` to run ChirpStack on a reComputer R12 Series gateway.
-      options:
-        - value: "m2"
-          label: On the M2 gateway (built-in ChirpStack)
-          label_i18n:
-            zh: 在 M2 网关上（内置 ChirpStack）
-        - value: "local"
-          label: On the R12 gateway (ChirpStack + built-in concentrator)
-          label_i18n:
-            zh: 在 R12 网关上（ChirpStack + 内置集中器）
-      name_i18n:
-        zh: 网络服务器运行在哪里
-      description_i18n:
-        zh: 网关自带网络服务器就选 `m2`，本机只起桥。选 `local` 则在 reComputer R12 系列网关上跑 ChirpStack。
-    - id: region
-      name: Frequency Plan
-      type: select
-      default: "eu868"
-      required: true
-      description: Only used on the `local` route. It must match both the concentrator's band and the nodes' band — a mismatch looks exactly like a gateway that hears nothing.
-      options:
-        - value: "eu868"
-          label: EU868
-        - value: "us915"
-          label: US915
-        - value: "as923"
-          label: AS923
-        - value: "au915"
-          label: AU915
-        - value: "cn470"
-          label: CN470
-      name_i18n:
-        zh: 频段
-      description_i18n:
-        zh: 只在 `local` 路线用。必须同时与集中器频段和节点频段一致——不一致的表现就是网关什么都收不到。
-    - id: lns_mqtt_host
-      name: Network Server Broker Address
-      type: text
-      required: true
-      default: "chirpstack-mosquitto"
-      placeholder: "192.168.1.61"
-      description: On the M2 route, the M2's own address. On the `local` route leave the default — it is the broker inside this compose project.
-      name_i18n:
-        zh: 网络服务器 Broker 地址
-      description_i18n:
-        zh: M2 路线填 M2 自己的地址。`local` 路线保留默认值——那是本 compose 项目里的 broker。
-    - id: lns_mqtt_port
-      name: Network Server Broker Port
-      type: text
-      default: "1883"
-      required: true
-      validation:
-        pattern: "^[0-9]{2,5}$"
-      name_i18n:
-        zh: 网络服务器 Broker 端口
-    - id: lns_mqtt_username
-      name: Network Server Broker Username
-      type: text
-      required: false
-      description: Leave empty on the `local` route. On the M2 route use the credentials shown on the gateway's LoRa Network page.
-      name_i18n:
-        zh: 网络服务器 Broker 用户名
-      description_i18n:
-        zh: "`local` 路线留空。M2 路线填网关 LoRa Network 页面上显示的凭据。"
-    - id: lns_mqtt_password
-      name: Network Server Broker Password
-      type: password
-      required: false
-      name_i18n:
-        zh: 网络服务器 Broker 密码
-    - id: lns_application_id
-      name: Application ID
-      type: text
-      default: "+"
-      required: true
-      description: The ChirpStack application UUID the bridge subscribes to. `+` subscribes to every application on that broker, which is the simplest thing that works for a single-tenant deployment.
-      name_i18n:
-        zh: Application ID
-      description_i18n:
-        zh: 桥要订阅的 ChirpStack application UUID。填 `+` 表示订阅该 broker 上的所有 application——单租户部署这样最省事。
-    - id: mqtt_host
-      name: Home Assistant Broker Address
-      type: text
-      required: true
-      placeholder: "192.168.1.50"
-      description: The Mosquitto deployed with Home Assistant — where the bridge publishes entities
-      name_i18n:
-        zh: Home Assistant Broker 地址
-      description_i18n:
-        zh: 与 Home Assistant 一起部署的那个 Mosquitto——桥把实体发到这里
-    - id: mqtt_port
-      name: Home Assistant Broker Port
-      type: text
-      default: "1883"
-      required: true
-      validation:
-        pattern: "^[0-9]{2,5}$"
-      name_i18n:
-        zh: Home Assistant Broker 端口
-    - id: mqtt_username
-      name: Home Assistant Broker Username
-      type: text
-      default: "agrienv"
-      required: true
-      validation:
-        pattern: "^[A-Za-z0-9_-]+$"
-      name_i18n:
-        zh: Home Assistant Broker 用户名
-    - id: mqtt_password
-      name: Home Assistant Broker Password
-      type: password
-      required: true
-      name_i18n:
-        zh: Home Assistant Broker 密码
-    - id: unavailable_after
-      name: Offline Threshold (seconds)
-      type: text
-      default: "7200"
-      required: true
-      description: No uplink for this long marks the node offline in Home Assistant
-      validation:
-        pattern: "^[0-9]{2,6}$"
-      name_i18n:
-        zh: 离线判定时长（秒）
-      description_i18n:
-        zh: 超过这么久没有上行就在 Home Assistant 里标记为离线
+user_inputs:
+  - id: host
+    name: Host Address
+    type: text
+    required: true
+    placeholder: "192.168.1.60"
+    description: The machine that runs the bridge — the R1000 on the first route, or any Linux host on the M2 route
+    name_i18n:
+      zh: 主机地址
+    description_i18n:
+      zh: 运行桥的那台机器——第一条路线是 R1000，M2 路线上任意一台 Linux 主机都行
+  - id: username
+    name: SSH Username
+    type: text
+    default: pi
+    required: true
+    name_i18n:
+      zh: SSH 用户名
+  - id: password
+    name: SSH Password
+    type: password
+    required: true
+    name_i18n:
+      zh: SSH 密码
+  - id: timezone
+    name: Time Zone
+    type: text
+    default: "Asia/Shanghai"
+    required: true
+    name_i18n:
+      zh: 时区
+  - id: lns_mode
+    name: Where the Network Server Runs
+    type: select
+    default: "m2"
+    required: true
+    description: Pick `m2` if the gateway runs its own network server — nothing but the bridge starts here. Pick `local` to run ChirpStack on a reComputer R12 Series gateway.
+    options:
+      - value: "m2"
+        label: On the M2 gateway (built-in ChirpStack)
+        label_i18n:
+          zh: 在 M2 网关上（内置 ChirpStack）
+      - value: "local"
+        label: On the R12 gateway (ChirpStack + built-in concentrator)
+        label_i18n:
+          zh: 在 R12 网关上（ChirpStack + 内置集中器）
+    name_i18n:
+      zh: 网络服务器运行在哪里
+    description_i18n:
+      zh: 网关自带网络服务器就选 `m2`，本机只起桥。选 `local` 则在 reComputer R12 系列网关上跑 ChirpStack。
+  - id: region
+    name: Frequency Plan
+    type: select
+    default: "eu868"
+    required: true
+    description: Only used on the `local` route. It must match both the concentrator's band and the nodes' band — a mismatch looks exactly like a gateway that hears nothing.
+    options:
+      - value: "eu868"
+        label: EU868
+      - value: "us915"
+        label: US915
+      - value: "as923"
+        label: AS923
+      - value: "au915"
+        label: AU915
+      - value: "cn470"
+        label: CN470
+    name_i18n:
+      zh: 频段
+    description_i18n:
+      zh: 只在 `local` 路线用。必须同时与集中器频段和节点频段一致——不一致的表现就是网关什么都收不到。
+  - id: lns_mqtt_host
+    name: Network Server Broker Address
+    type: text
+    required: true
+    default: "chirpstack-mosquitto"
+    placeholder: "192.168.1.61"
+    description: On the M2 route, the M2's own address. On the `local` route leave the default — it is the broker inside this compose project.
+    name_i18n:
+      zh: 网络服务器 Broker 地址
+    description_i18n:
+      zh: M2 路线填 M2 自己的地址。`local` 路线保留默认值——那是本 compose 项目里的 broker。
+  - id: lns_mqtt_port
+    name: Network Server Broker Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: 网络服务器 Broker 端口
+  - id: lns_mqtt_username
+    name: Network Server Broker Username
+    type: text
+    required: false
+    description: Leave empty on the `local` route. On the M2 route use the credentials shown on the gateway's LoRa Network page.
+    name_i18n:
+      zh: 网络服务器 Broker 用户名
+    description_i18n:
+      zh: "`local` 路线留空。M2 路线填网关 LoRa Network 页面上显示的凭据。"
+  - id: lns_mqtt_password
+    name: Network Server Broker Password
+    type: password
+    required: false
+    name_i18n:
+      zh: 网络服务器 Broker 密码
+  - id: lns_application_id
+    name: Application ID
+    type: text
+    default: "+"
+    required: true
+    description: The ChirpStack application UUID the bridge subscribes to. `+` subscribes to every application on that broker, which is the simplest thing that works for a single-tenant deployment.
+    name_i18n:
+      zh: Application ID
+    description_i18n:
+      zh: 桥要订阅的 ChirpStack application UUID。填 `+` 表示订阅该 broker 上的所有 application——单租户部署这样最省事。
+  - id: mqtt_host
+    name: Home Assistant Broker Address
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: The Mosquitto deployed with Home Assistant — where the bridge publishes entities
+    name_i18n:
+      zh: Home Assistant Broker 地址
+    description_i18n:
+      zh: 与 Home Assistant 一起部署的那个 Mosquitto——桥把实体发到这里
+  - id: mqtt_port
+    name: Home Assistant Broker Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: Home Assistant Broker 端口
+  - id: mqtt_username
+    name: Home Assistant Broker Username
+    type: text
+    default: "agrienv"
+    required: true
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: Home Assistant Broker 用户名
+  - id: mqtt_password
+    name: Home Assistant Broker Password
+    type: password
+    required: true
+    name_i18n:
+      zh: Home Assistant Broker 密码
+  - id: unavailable_after
+    name: Offline Threshold (seconds)
+    type: text
+    default: "7200"
+    required: true
+    description: No uplink for this long marks the node offline in Home Assistant
+    validation:
+      pattern: "^[0-9]{2,6}$"
+    name_i18n:
+      zh: 离线判定时长（秒）
+    description_i18n:
+      zh: 超过这么久没有上行就在 Home Assistant 里标记为离线

@@ -354,6 +354,33 @@ Key flags:
 - `--yes` / `-y` skips confirmation prompts (required for CI)
 - `--solutions-dir` only when running outside a repo clone and the default location is wrong (normally auto-discovered, see note above)
 
+### Deploying where there is no internet — `stage`
+
+Prepare on a machine that has the network, deploy on site without one. The unit is
+**step x target**: stage one step only, or several device models for the same step.
+
+```bash
+solutionctl stage plan <solution_id> --preset <preset>          # what it needs, what is here
+solutionctl stage prepare <solution_id> --preset <preset> \
+    --target <step>=<target> --arch <step>=aarch64              # download it here
+solutionctl stage list --check                                  # what is prepared, what changed
+solutionctl stage export kit.tar                                # carry it to the deploying machine
+solutionctl stage import kit.tar                                # there
+solutionctl stage delete --entry <solution>/<preset>/<step>     # free space
+```
+
+Then deploy with `force_offline` in the connection; the engine checks the offline package
+**before touching the device** and stops with what is missing:
+
+```bash
+--connection '{"<step>":{...,"target_type":"remote","force_offline":true}}'
+```
+
+Exit codes: `0` everything the manifest lists is here, `1` something is missing,
+`2` the manifest could not be derived (e.g. a target with no device class needs `--arch`).
+`--require-full` additionally fails when the solution does not declare that its services
+need nothing else on site.
+
 ### 4. Interpret the result
 
 Process exit code 0 = success, non-zero = failure; the last line prints a result dict (`status` + per-device `steps`).
