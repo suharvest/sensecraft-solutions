@@ -63,19 +63,35 @@ intro:
       description: Existing parking-lot RTSP camera.
       description_i18n: {zh: 现场已有的停车场 RTSP 摄像头。}
   presets:
-    - id: jetson
-      name: Multi-Camera Jetson Occupancy (Draft)
-      name_i18n: {zh: Jetson 多摄像头占用检测（草稿）}
+    - id: ip_camera_box
+      name: IP Cameras + Edge Compute Box (Draft)
+      name_i18n:
+        zh: IP 摄像头 + 边缘算力盒子（草稿）
+        ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
       badge: Blocked artifact
       badge_i18n: {zh: artifact 阻塞}
-      description: Draft only. Requires a locally built SlotsApp image, target-device engine, and slot configuration.
-      description_i18n: {zh: 仅为草案；需要本地构建的 SlotsApp 镜像、目标设备 engine 和车位配置。}
-      # Hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance receipt
-      # orin-nano/edge_parking_occupancy): package compose + locally built image,
-      # 1 stream at 1 fps, synthetic 640x360 clip (still 20 s / black 20 s).
-      # 0.988 fps processed, inference p50 6.48 / p95 6.69 ms, 0 dropped,
-      # 15 occupied/free transitions per slot over 300 s. Not covered: slot
-      # accuracy on real video, multi-stream capacity re-run, one-click path.
+      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target requires a locally built SlotsApp image, a target-device model, and slot configuration. Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
+      description_i18n:
+        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都需要本地构建的 SlotsApp 镜像、目标设备模型和车位配置。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
+        ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドの SlotsApp イメージ、ターゲットデバイス用モデル、駐車枠設定が必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
+      # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
+      # status is written into each target's description in the guides.
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance
+      #   receipt orin-nano/edge_parking_occupancy): package compose + locally
+      #   built image, 1 stream at 1 fps, synthetic 640x360 clip (still 20 s /
+      #   black 20 s). 0.988 fps processed, inference p50 6.48 / p95 6.69 ms,
+      #   0 dropped, 15 occupied/free transitions per slot over 300 s. Not
+      #   covered: slot accuracy on real video, multi-stream capacity re-run,
+      #   one-click path.
+      # - RK3588: hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance
+      #   receipt radxa/edge_parking_occupancy): package compose with the
+      #   librga.so.2 and host GStreamer mounts, locally built image 6a5c781d,
+      #   synthetic occupied/empty fixture, 1 stream at 1 fps, single-car ROI.
+      #   17 state changes, RKNN p50 36.6 / p95 40.5 ms, 0 dropped, MPP decode.
+      #   Not covered: slot accuracy, multi-stream capacity, r2 image, public
+      #   artifact.
+      # - RK3576 (cat-remote): not verified — r2 image could not be loaded
+      #   (root disk), package compose not exercised; substitute-image run only.
       verified:
         - hardware
       device_groups:
@@ -84,60 +100,13 @@ intro:
           name_i18n: {zh: 边缘主机}
           type: single
           required: true
-          options: [{device_ref: recomputer_j30}]
+          description: Choose the edge host. The deploy step offers one target per host.
+          description_i18n: {zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。}
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
           default: recomputer_j30
-        - id: cameras
-          name: Parking Cameras
-          name_i18n: {zh: 停车场摄像头}
-          type: single
-          required: true
-          options: [{device_ref: generic_ip_camera}]
-          default: generic_ip_camera
-    - id: rk3576
-      name: Multi-Camera RK3576 Occupancy (Draft)
-      name_i18n: {zh: RK3576 多摄像头占用检测（草稿）}
-      badge: Blocked artifact / not verified
-      badge_i18n: {zh: artifact 阻塞 / 未验证}
-      description: Requires a local native RK image, RKNN model and matching host ABI paths.
-      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
-      device_groups:
-        - id: compute
-          name: Edge Host
-          name_i18n: {zh: 边缘主机}
-          type: single
-          required: true
-          options: [{device_ref: recomputer_rk3576}]
-          default: recomputer_rk3576
-        - id: cameras
-          name: Parking Cameras
-          name_i18n: {zh: 停车场摄像头}
-          type: single
-          required: true
-          options: [{device_ref: generic_ip_camera}]
-          default: generic_ip_camera
-    - id: rk3588
-      name: Multi-Camera RK3588 Occupancy (Draft)
-      name_i18n: {zh: RK3588 多摄像头占用检测（草稿）}
-      badge: Blocked artifact
-      badge_i18n: {zh: artifact 阻塞}
-      description: Requires a local native RK image, RKNN model and matching host ABI paths.
-      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
-      # Hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance receipt
-      # radxa/edge_parking_occupancy): package compose with the librga.so.2 and
-      # host GStreamer mounts, locally built image 6a5c781d, synthetic
-      # occupied/empty fixture, 1 stream at 1 fps, single-car ROI. 17 state
-      # changes, RKNN p50 36.6 / p95 40.5 ms, 0 dropped, MPP decode. Not covered:
-      # slot accuracy, multi-stream capacity, r2 image, public artifact.
-      verified:
-        - hardware
-      device_groups:
-        - id: compute
-          name: Edge Host
-          name_i18n: {zh: 边缘主机}
-          type: single
-          required: true
-          options: [{device_ref: recomputer_rk3588}]
-          default: recomputer_rk3588
         - id: cameras
           name: Parking Cameras
           name_i18n: {zh: 停车场摄像头}
