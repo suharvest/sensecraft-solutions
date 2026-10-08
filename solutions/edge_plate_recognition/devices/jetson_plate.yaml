@@ -3,9 +3,12 @@ id: jetson_plate
 name: NVIDIA Jetson Plate Recognition
 type: docker_deploy
 
-# DRAFT（NRD-3 Y2 未验收）。
-# - 运行镜像默认用已发布的 nrd-parking-jetson:20261008（按 digest 固定）。
+# 维护者注记（不对用户展示）：
+# - 运行镜像用已发布的 nrd-parking-jetson:20261008（按 digest 固定在 assets/jetson/docker-compose.yml）。
 # - TensorRT engine 来自已发布的 plate_jetson_orin_nano 模型包（Orin Nano / L4T R36.4.3 (JetPack 6.2) / TRT 10.3 构建；before 步骤检查模组与 JetPack）。
+# - 2026-10-08 Orin Nano 验收（部署与输出链路）：29.86 fps @1080p，det p50 5.61 ms。证据 acceptance-20261008/orin-nano/edge_plate_recognition。
+# - config/plate.json（vb.config/1 预设）随 compose_dir 上传，after_upload 按部署输入改写站点、流、broker 与健康端口，
+#   与 RK3588/RK3576 目标相同；用户不再手工提供配置文件路径。
 
 device_class: jetson
 
@@ -16,12 +19,8 @@ docker:
     project_name: edge_plate
     remove_orphans: true
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{config_path}}"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/jetson_plate/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
-    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
-    PARKING_DATA_DIR: "{{data_dir}}"
   services:
     - name: edge-parking
       required: true
@@ -38,7 +37,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 0.5
-    description: Cached/pre-staged image, detector/recognizer TensorRT engines are supplied before deployment; keep at least 0.5 GiB free for runtime files, logs, snapshots and metadata. This is not a capacity or accuracy acceptance guarantee.
+    description: Keep at least 0.5 GB free for plate snapshots and logs
   - type: nvidia_runtime
     description: Check the NVIDIA container runtime is available
 
@@ -218,8 +217,7 @@ actions:
         fi
         ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
-      # 渲染 vb.config/1 预设 plate.json 的实例配置：站点、流、broker。
-      # 检测/识别 engine 路径与构建动作待 Y2 回填。
+      # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口。
       env:
         SITE_ID: '{{site_id}}'
         CAMERA_ID: '{{camera_id}}'
@@ -228,29 +226,42 @@ actions:
         MQTT_PORT: '{{mqtt_port}}'
         MQTT_USERNAME: '{{mqtt_username}}'
         MQTT_PASSWORD: '{{mqtt_password}}'
-        CONFIG_PATH: '{{config_path}}'
+        HEALTH_PORT: '{{health_port}}'
       run: |
         set -e
-        CONFIG="${CONFIG_PATH}"
-        if [ -z "$CONFIG" ] || [ ! -f "$CONFIG" ]; then
-          echo "Required config_path does not exist: $CONFIG" >&2
+        # The compose file mounts ./config/plate.json; render the vb.config/1
+        # preset in place next to it. Remote view: compose_dir is uploaded to
+        # /home/<user>/edge-parking; local view: assets/jetson in the solution.
+        CONFIG=""
+        for root in "/home/{{username}}/edge-parking" "assets/jetson"; do
+          if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
+            CONFIG="$root/config/plate.json"; break
+          fi
+        done
+        if [ -z "$CONFIG" ]; then
+          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking and assets/jetson)" >&2
           exit 1
         fi
+        mkdir -p "$(dirname "$CONFIG")/../data"
         python3 - "$CONFIG" <<'PY'
         import json, os, sys
 
         path = sys.argv[1]
         with open(path) as handle:
             config = json.load(handle)
+        if config.get("schema") != "vb.config/1":
+            raise SystemExit(f"{path} is not a vb.config/1 preset")
 
         site_id = os.environ["SITE_ID"]
         camera_id = os.environ["CAMERA_ID"]
         mqtt_port = int(os.environ["MQTT_PORT"])
+        health_port = int(os.environ.get("HEALTH_PORT") or "8099")
         device_id = f"{site_id}-{camera_id}"
         app = config.setdefault("app", {}).setdefault("options", {})
         config["device_id"] = device_id
         config["state_dir"] = "/data/edge-parking"
         app["site_id"] = site_id
+        config.setdefault("health", {})["port"] = health_port
         mqtt = config.setdefault("mqtt", {})
         mqtt["host"] = os.environ["MQTT_HOST"]
         mqtt["port"] = mqtt_port
@@ -262,13 +273,14 @@ actions:
         app["mqtt"]["port"] = mqtt_port
         app["mqtt"]["username"] = os.environ.get("MQTT_USERNAME", "")
         app["mqtt"]["password"] = os.environ.get("MQTT_PASSWORD", "")
+        template = (config.get("streams") or [{}])[0]
         config["streams"] = [{
             "stream_id": camera_id,
             "url": os.environ["RTSP_URL"],
             "name": "",
-            "transport": "tcp",
+            "transport": template.get("transport", "tcp"),
             "score_threshold": None,
-            "options": {},
+            "options": template.get("options", {}),
         }]
 
         tmp = path + ".tmp"
@@ -276,6 +288,7 @@ actions:
             json.dump(config, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(tmp, path)
+        print(f"config  = {path}")
         print(f"site_id = {app['site_id']}")
         print(f"stream  = {config['streams'][0]['stream_id']}")
         PY
@@ -351,56 +364,21 @@ user_inputs:
     name_i18n:
       zh: MQTT 密码
 
-  - id: parking_image
-    name: Parking image
-    name_i18n: {zh: 停车镜像}
-    type: text
-    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
-    required: false
-    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
-    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
-  - id: config_path
-    name: Host config path
-    name_i18n: {zh: 宿主机配置路径}
-    type: text
-    required: true
-    description: Path to the vb.config/1 JSON rendered for this camera and MQTT broker.
-    description_i18n: {zh: 针对本摄像头和 MQTT broker 渲染的 vb.config/1 JSON 路径。}
   - id: health_port
-    name: Health port
-    name_i18n: {zh: 健康端口}
+    name: Status port
+    name_i18n: {zh: 状态端口}
     type: text
     default: "8099"
     required: false
-    description: HTTP health port exposed by the mounted config (health.port). Keep 8099 for the stock config; use the configured port when it differs or 8099 is already taken on the host.
-    description_i18n: {zh: 挂载配置（health.port）暴露的 HTTP 健康端口。默认配置使用 8099；配置了其他端口或宿主机 8099 已被占用时填写对应值。}
-  - id: memory_limit
-    name: Container memory limit
-    name_i18n: {zh: 容器内存上限}
-    type: text
-    default: "0"
-    required: false
-    description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
-    description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
-  - id: data_dir
-    name: Persistent data directory
-    name_i18n: {zh: 持久化数据目录}
-    type: text
-    default: "./data"
-    required: false
-    description: Existing writable host directory for restart-persistent state and plate snapshots; it is mounted at /data/edge-parking.
-    description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态和车牌快照；该目录挂载到 /data/edge-parking。}
+    description: Port the service uses to report it is running. Keep 8099 unless another program on the Jetson already uses it.
+    description_i18n: {zh: 服务用来报告运行状态的端口。保持 8099，除非 Jetson 上已有别的程序占用。}
 
 remote_overrides:
   remote_path: /home/{{username}}/edge-parking
   compose_dir: assets/jetson
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{config_path}}"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/jetson_plate/models"
     PARKING_HEALTH_PORT: "{{health_port}}"
-    PARKING_MEMORY_LIMIT: "{{memory_limit}}"
-    PARKING_DATA_DIR: "{{data_dir}}"
   detection:
     method: network_scan
     manual_entry: true
@@ -408,45 +386,14 @@ remote_overrides:
   # recamera_heatmap_grafana), so it must carry the full set: app inputs
   # plus the SSH connection fields.
   user_inputs:
-    - id: parking_image
-      name: Parking image
-      name_i18n: {zh: 停车镜像}
-      type: text
-      default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261008@sha256:e5f8e6bdfa356dbef23645ce9510365cef8588fd13fbc88c4201e0c67b716d2c"
-      required: false
-      description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
-      description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
-    - id: config_path
-      name: Host config path
-      name_i18n: {zh: 宿主机配置路径}
-      type: text
-      required: true
-      description: Path to the vb.config/1 JSON rendered for this camera and MQTT broker.
-      description_i18n: {zh: 针对本摄像头和 MQTT broker 渲染的 vb.config/1 JSON 路径。}
     - id: health_port
-      name: Health port
-      name_i18n: {zh: 健康端口}
+      name: Status port
+      name_i18n: {zh: 状态端口}
       type: text
       default: "8099"
       required: false
-      description: HTTP health port exposed by the mounted config (health.port). Keep 8099 for the stock config; use the configured port when it differs or 8099 is already taken on the host.
-      description_i18n: {zh: 挂载配置（health.port）暴露的 HTTP 健康端口。默认配置使用 8099；配置了其他端口或宿主机 8099 已被占用时填写对应值。}
-    - id: memory_limit
-      name: Container memory limit
-      name_i18n: {zh: 容器内存上限}
-      type: text
-      default: "0"
-      required: false
-      description: Docker memory limit such as 768m; 0 leaves the service without a Compose cgroup limit.
-      description_i18n: {zh: Docker 内存上限，例如 768m；0 表示 Compose 不设置 cgroup 上限。}
-    - id: data_dir
-      name: Persistent data directory
-      name_i18n: {zh: 持久化数据目录}
-      type: text
-      default: "./data"
-      required: false
-      description: Existing writable host directory for restart-persistent state and plate snapshots; it is mounted at /data/edge-parking.
-      description_i18n: {zh: 已存在且可写的宿主机目录，用于重启后保留状态和车牌快照；该目录挂载到 /data/edge-parking。}
+      description: Port the service uses to report it is running. Keep 8099 unless another program on the Jetson already uses it.
+      description_i18n: {zh: 服务用来报告运行状态的端口。保持 8099，除非 Jetson 上已有别的程序占用。}
     - id: rtsp_url
       name: Camera RTSP URL
       type: text
