@@ -37,12 +37,17 @@ Connect to this Raspberry Pi over SSH.
 Runs one OpenVoiceStream service (Qwen3-ASR + Matcha TTS, profile
 `jetson-edgellm-v091-matcha`, image `nrd6-ovs-jetson:20261008`) for both ASR and
 TTS on port `voice_port` (default 8623), plus the Wyoming adapter
-(`wyoming-slv-adapter:20261008`, STT 10300 / TTS 10200) that Home Assistant
-connects to. On first start the service downloads its models into the
-`jetson-models` volume (at least 30 GB free disk). This is the layout of the
-2026-10-08 Orin NX measurement above (same image, same profile); this compose
-file itself was not run on a device on 2026-10-08 — the Orin NX had no free
-disk. No license-cleared distributable voice artifact is recorded yet.
+(`wyoming-slv-adapter:20261008`) that Home Assistant connects to on
+`wyoming_stt_port` / `wyoming_tts_port` (default 10300 / 10200). On first start
+the service downloads its models into the `jetson-models` volume (at least
+30 GB free disk). Verified 2026-10-08 on an Orin NX with this compose file and
+the published image and adapter (voice on 8633, Wyoming on 10301 / 10201 via
+the port inputs; models from an existing volume, auto-download off): both
+ports answer the Wyoming `describe` request, and TTS output fed back to STT
+returned 打开客厅灯, 关闭卧室的灯 and "Turn on the living room light" exactly; TTS
+first audio 0.05–0.12 s, STT result 0.38–0.58 s after end of audio. Input was
+synthetic speech, not a microphone. No license-cleared distributable voice
+artifact is recorded yet.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
 
