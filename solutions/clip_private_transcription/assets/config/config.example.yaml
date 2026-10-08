@@ -28,6 +28,7 @@ pipeline:
   max_segment_s: 20
   summary_enabled: true
   require_gpu_diarization: true
+  language: auto   # WAV uploads; Clip recordings use devices[].language. The deploy step writes both from the recording-language input.
 asr:
   sensevoice: {base_url: http://127.0.0.1:8621}
   whisper: {enabled: true, base_url: http://127.0.0.1:8622}

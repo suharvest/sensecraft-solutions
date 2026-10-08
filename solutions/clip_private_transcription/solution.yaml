@@ -34,7 +34,11 @@
 # 1.21 s, C 22.3 s 0.66 s (2 speakers each, split matches the source). Known issue:
 # FLEURS A's first utterance (1.63-9.27 s) is kept as a segment but SenseVoice TRT with
 # language=auto returns only 9 characters for it; the same audio with language=zh returns
-# the full sentence, so this is the ASR auto-language path, not VAD. Not yet tested: the
+# the full sentence, so this is the ASR auto-language path, not VAD. clip-pt 20261009
+# (suharvest/clip-private-transcription e73a8ba) applies the configured language to
+# uploads too (previously uploads always ran auto); Orin NX 2026-10-09: FLEURS A upload
+# with language=zh and with the Clip language set to zh both return the full first
+# sentence, auto is unchanged (receipts acceptance-20261008/clip-lang-orin-nx). Not yet tested: the
 # Clip BLE / Wi-Fi hop (no physical Clip was available) and the packaged deploy path end
 # to end.
 version: "1.0"

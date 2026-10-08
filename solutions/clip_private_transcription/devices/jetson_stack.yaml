@@ -138,7 +138,7 @@ actions:
             },
             "pipeline": {
                 "expected_speakers": 0, "min_segment_s": 0.3, "merge_gap_s": 0.5,
-                "max_segment_s": 20, "summary_enabled": summary, "require_gpu_diarization": True,
+                "max_segment_s": 20, "summary_enabled": summary, "language": language, "require_gpu_diarization": True,
             },
             "asr": {
                 "sensevoice": {"base_url": "http://127.0.0.1:8621"},
@@ -283,6 +283,8 @@ user_inputs:
     name: Recording language
     name_i18n: {zh: 录音语言}
     type: select
+    description: Used for recordings synced from the Clip and for WAV files uploaded on the results page.
+    description_i18n: {zh: 用于从 Clip 同步的录音，也用于在结果页上传的 WAV 文件。}
     required: true
     default: auto
     options:
