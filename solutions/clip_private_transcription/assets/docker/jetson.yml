@@ -32,8 +32,9 @@ services:
       DIAR_CAMPPLUS_ENGINE_FILE: /models/speaker/campplus.plan
       MODEL_DIR: /models
       SENSEVOICE_TRT_MODEL_DIR: /models/sensevoice-trt
-      # Writable: the engine resolver locks $OVS_MODELS_DIR/.engine_resolver.lock;
-      # /models is the read-only model bundle (engine paths are absolute).
+      # Writable dir for the engine resolver lock ($OVS_MODELS_DIR/.engine_resolver.lock).
+      # This profile lists no required_engines, so the resolver takes no lock today
+      # (checked 2026-10-08); kept off the read-only /models bundle for profiles that do.
       OVS_MODELS_DIR: /var/lib/ovs-sensevoice/resolver
       OVS_DATA_DIR: /var/lib/ovs-sensevoice/data
       OVS_TMP_DIR: /var/lib/ovs-sensevoice/tmp
@@ -87,8 +88,9 @@ services:
       OVS_SPEAKER_EMB: "0"
       OVS_TTS_BACKEND: none
       OVS_TTS_MODEL_ID: ""
-      # Writable: the engine resolver locks $OVS_MODELS_DIR/.engine_resolver.lock;
-      # /models is the read-only model bundle (engine paths are absolute).
+      # Writable dir for the engine resolver lock ($OVS_MODELS_DIR/.engine_resolver.lock).
+      # This profile lists no required_engines, so the resolver takes no lock today
+      # (checked 2026-10-08); kept off the read-only /models bundle for profiles that do.
       OVS_MODELS_DIR: /var/lib/ovs-whisper/resolver
       OVS_DATA_DIR: /var/lib/ovs-whisper/data
       OVS_TMP_DIR: /var/lib/ovs-whisper/tmp
