@@ -55,7 +55,7 @@ Deploy to a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) over 
 
 ### Deployment Complete
 
-The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://\<host-ip\>:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ### Target {#occupancy_local type=local device=jetson device_name="reComputer J30 / J40 (this machine)" config=devices/jetson_occupancy.yaml}
 
@@ -63,7 +63,7 @@ Install on this machine when this app runs on the reComputer J30 / J40 itself.
 
 ### Deployment Complete
 
-The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://127.0.0.1:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ### Target {#rk3588_occupancy_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_occupancy.yaml}
 
@@ -71,7 +71,7 @@ Deploy to a reComputer RK3588 over the network (SSH) from this computer.
 
 ### Deployment Complete
 
-The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://\<host-ip\>:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="reComputer RK3588 (this machine)" config=devices/rk3588_occupancy.yaml}
 
@@ -79,7 +79,7 @@ Install on this machine when this app runs on the reComputer RK3588 itself.
 
 ### Deployment Complete
 
-The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open http://127.0.0.1:8080/slots/editor in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
+The last deploy step waits until bay detection is ready, so a successful deploy means the service is running. Open `http://127.0.0.1:8080/slots/editor` in a browser (or the slot editor port you entered) and you should see the camera picture. Next, draw the bays in Step 2.
 
 ## Step 2: Draw the Parking Bays {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
 
@@ -87,7 +87,7 @@ Draw a box around every bay on each camera's picture and give it a bay number.
 
 ### Wiring
 
-1. Open the slot editor (http://\<edge-box-ip\>:8080/slots/editor, or the port you entered when deploying) and pick a camera in the 流 (Stream) list. If no picture shows, click 刷新快照 (Refresh snapshot).
+1. Open the slot editor (`http://<edge-box-ip>:8080/slots/editor`, or the port you entered when deploying) and pick a camera in the 流 (Stream) list. If no picture shows, click 刷新快照 (Refresh snapshot).
 2. Deal with the example bay P-01 first: click inside it to select it and click 删除选中 (Delete selected), or drag its four corners onto a real bay, type its number in the id box and click 重命名选中 (Rename selected).
 3. Type the bay number in the id box (for example B1-023), click 新车位 (New slot), click the bay's four corners on the picture in order, then click 闭合多边形 (Close polygon) — or click the first corner again.
 4. Repeat Step 3 for every bay this camera can see.
