@@ -99,20 +99,24 @@ The last deploy step waits until bay detection is ready, so a successful deploy 
 
 ## Step 2: Draw the Parking Bays {#draw_slots type=web_dashboard required=true config=devices/slot_editor.yaml}
 
-Draw a box around every bay on each camera's picture and give it a bay number.
+Draw a box around every bay on each camera's picture, give it a bay number, and see each bay's live state.
 
 ### Wiring
 
-1. Open the slot editor (`http://<edge-box-ip>:8080/slots/editor`, or the port you entered when deploying) and pick a camera in the 流 (Stream) list. If no picture shows, click 刷新快照 (Refresh snapshot).
-2. Deal with the example bay P-01 first: click inside it to select it and click 删除选中 (Delete selected), or drag its four corners onto a real bay, type its number in the id box and click 重命名选中 (Rename selected).
-3. Type the bay number in the id box (for example B1-023), click 新车位 (New slot), click the bay's four corners on the picture in order, then click 闭合多边形 (Close polygon) — or click the first corner again.
-4. Repeat Step 3 for every bay this camera can see.
-5. Click 保存 (Save). The message 已保存并即时生效 (saved and applied) means it is done; the bays are kept across restarts.
-6. Switch to the next camera in the 流 (Stream) list and repeat.
+1. Open the slot editor (`http://<edge-box-ip>:8080/slots/editor`, or the port you entered when deploying) and pick a camera in the Camera list; the live picture appears.
+2. Deal with the example bay P-01 first: click the ✕ next to it in the list on the right to delete it, or drag its four corners onto a real bay and change P-01 to the real bay number in the list.
+3. Press and drag on an empty area of the picture (outside any bay) to draw a rectangle; releasing the mouse adds a bay.
+4. Drag the bay's four corners onto the four corners of the parking bay in the picture.
+5. In the list on the right, replace the generated number with the bay number (for example B1-023).
+6. Repeat steps 3–5 for every bay this camera can see. To delete a bay, click its ✕ in the list.
+7. Click Save. The message "Saved, applied, kept across restarts" means it is done; the bays apply immediately.
+8. Switch to the next camera in the Camera list and repeat.
+
+Once drawn, each bay is coloured by its live state: red is occupied, green is free, grey is unknown (no camera picture, or just saved and not judged yet). The Occupied and Free tiles under "Live status" count this camera's bays.
 
 When drawing:
 
-- One box per bay. A four-sided shape along the bay lines is enough; the shape must be convex (no corner pointing inwards).
+- One box per bay. Drag the four corners along the bay lines; the shape must be convex (no corner pointing inwards).
 - A parked car must cover roughly a third of its box in the picture to count as occupied. A box spanning several bays, or around distant small cars, never turns occupied.
 - If a bay is mostly hidden by cars in front, draw it on a camera with a better angle.
 
@@ -155,9 +159,10 @@ Add up `free` across all cameras to get the free bays for the whole car park.
 | Issue | Solution |
 |-------|----------|
 | Page does not open | Check the port matches the slot editor port from the deploy step and that this computer can reach the edge box |
-| Picture is black or fails to load | That camera has no picture yet: wait a few seconds and click 刷新快照 (Refresh snapshot); if it persists, check the camera's RTSP address |
-| One camera's bays stay `unknown` | The box cannot reach that camera: open its RTSP address in VLC on the same network and check the address, username, password and encoding (must be H.264) |
-| "非凸" (not convex) after closing the polygon | One corner points inwards; click 撤销顶点 (Undo vertex) and click that corner again |
-| "请先在 id 框输入车位名" (enter a bay name first) | Type the bay number in the id box before closing the polygon |
-| "id 重复" (duplicate id) | Bay numbers must be unique on one camera; choose another |
+| Picture is black or fails to load | That camera has no picture yet: wait a few seconds, the picture refreshes every second; if it persists, check the camera's RTSP address |
+| One camera's bays stay `unknown` (grey) | The box cannot reach that camera: open its RTSP address in VLC on the same network and check the address, username, password and encoding (must be H.264) |
+| "Bay … is not convex" | One corner points inwards; drag that corner so all four point outwards |
+| "Bay id cannot be empty" | Type a bay number for that bay in the list |
+| "Duplicate bay id" | Bay numbers must be unique on one camera; choose another |
+| Dragging moves an existing bay instead of drawing a new one | Dragging inside a bay moves it; start the drag outside any bay |
 | A car is parked but the bay stays `free` | The box is too large or the car too far away to cover a third of it; tighten the box to a single bay |

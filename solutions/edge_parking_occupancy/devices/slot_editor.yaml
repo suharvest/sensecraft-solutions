@@ -8,9 +8,9 @@ web_dashboard:
   title: Slot editor
   title_i18n:
     zh: 车位编辑页
-  description: Pick a camera, click 新车位 (New slot), type the bay number in the id box, click the bay's corners on the picture, then click 闭合多边形 (Close polygon). Repeat for every bay and click 保存 (Save). Saved bays take effect immediately and are kept across restarts.
+  description: Pick a camera, drag a rectangle on an empty area of the live picture, drag its four corners onto the bay, and rename it in the list (✕ deletes a bay). Bays show red when occupied, green when free, grey when unknown. Click Save; it applies immediately and is kept across restarts.
   description_i18n:
-    zh: 选择摄像头，点「新车位」，在 id 框里填车位编号，在画面上依次点车位的几个角，再点「闭合多边形」。每个车位重复一次，最后点「保存」。保存后立即生效，重启后保留。
+    zh: 选择摄像头，在实时画面的空白处拖出一个矩形，拖动四个角贴合车位，在列表里改车位编号（✕ 删除车位）。车位红色为占用、绿色为空闲、灰色为未知。点「保存」后立即生效，重启后保留。
 user_inputs:
   - id: host
     name: Edge box IP address
