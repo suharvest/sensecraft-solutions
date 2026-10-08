@@ -1,0 +1,33 @@
+version: "1.0"
+id: console_dashboard
+name: Open the Console
+type: web_dashboard
+
+# 上游步骤是 guide.md 里的 step id（不是 device id）。App 据此判断面板能否打开、
+# 解析 {{host}}；不声明会退回启发式去找最近的 docker 步，本套餐没有。
+inherit_host_from: deploy_depth
+user_inputs:
+  - id: host
+    name: Device IP Address
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+web_dashboard:
+  url: "http://{{host}}/"
+  title: reCamera Console
+  description: >-
+    Sign in with the camera's account, open Applications and enable Monocular
+    Depth Estimation. Its Debug page shows the live view with the depth preview
+    in the bottom-right corner.
+  title_i18n:
+    zh: reCamera 控制台
+  description_i18n:
+    zh: >-
+      用摄像头账号登录，在「应用」页启用「单目深度估计」。点它的「调试」可以
+      看到实时画面，右下角是深度预览。
+name_i18n:
+  zh: 打开控制台

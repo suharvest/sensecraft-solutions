@@ -61,9 +61,20 @@ user_inputs:
     name: reCamera IP Address
     type: text
     default: "192.168.42.1"
+    default_template: "{{host}}"
     placeholder: "192.168.42.1"
     name_i18n:
       zh: reCamera IP 地址
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: Same password as the previous step (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: 和上一步相同（尝试 'recamera' 或 'recamera.2'）
 
 name_i18n:
   zh: reCamera 深度估计
