@@ -1,5 +1,19 @@
 # DRAFT / disabled: Clip/BLE, host, offline, and licensed ASR/diarization
 # acceptance remain incomplete; the full software and hardware package is not verified.
+#
+# 2026-10-08 device acceptance: no preset verified.
+# - jetson_wifi (Orin NX): clip-pt image sha256:bbb11d88 (and 4e43d2cf) fails
+#   every job at transcript schema validation, so nothing is persisted. The fix
+#   belongs to the clip-pt app repo, not this package: transcript.schema.json
+#   must accept models.diarization.{embedding_backend, embedding_device,
+#   embedding_fallback, required_gpu} and upload session ids
+#   (^([0-9]{14}|upload-[0-9a-f]{8})$); a failed transcript GET returns 500
+#   instead of 404. Re-run the HTTP-upload E2E once a rebuilt image exists.
+# - rk3576_ble (cat-remote) / rk3588_wifi (radxa): not started; the 15 GB disk
+#   pre-check cannot be met on either board, and SLV RK model roots are absent
+#   on cat-remote. RK presets run without GPU diarization
+#   (pipeline.require_gpu_diarization: false), per the guide.
+# - No physical Clip / BLE / Wi-Fi hop was available on any device.
 version: "1.0"
 id: clip_private_transcription
 name: Private Clip Transcription
