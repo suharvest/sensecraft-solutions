@@ -20,17 +20,17 @@ intro:
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
-      src: gallery/panel-preview-counting-1-20261008.jpg
-      caption: "Counting on Jetson Orin Nano: the tracked vehicle, the yellow counting line and the live in/out counters (test video)"
+      src: gallery/panel-counting-1-before-20261009.jpg
+      caption: "Entry/exit counting on Jetson Orin Nano Super: tracked vehicle #48 before it crosses the line; inside 1 / 120, in 24, out 23 today (synthetic test clip, one vehicle)"
       caption_i18n:
-        zh: "Jetson Orin Nano 上的计数画面：被跟踪的车辆、黄色计数线和实时进出计数（测试视频）"
-        ja: "Jetson Orin Nano でのカウント画面：追跡中の車両、黄色のカウントライン、入出庫カウンタ（テスト映像）"
+        zh: "Jetson Orin Nano Super 出入口计数：车辆 #48 越线前；在场 1/120，今日驶入 24、驶出 23（合成测试视频，单辆车）"
+        ja: "Jetson Orin Nano Super の出入口カウント：車両 #48 がラインを越える前。場内 1/120、本日入場 24・出場 23（合成テスト映像、車両 1 台）"
     - type: image
-      src: gallery/panel-preview-counting-2-20261008.jpg
-      caption: "A few seconds later: the next vehicle approaches the line; today's count is 2 in, 1 out"
+      src: gallery/panel-counting-2-after-20261009.jpg
+      caption: "Entry/exit counting on Jetson Orin Nano Super: the same vehicle after crossing; out count 23 → 24, inside 0 / 120 (synthetic test clip, one vehicle)"
       caption_i18n:
-        zh: "几秒后：下一辆车接近计数线，今日已计入 2 辆、驶出 1 辆"
-        ja: "数秒後：次の車両がカウントラインに接近。本日の入庫 2 台・出庫 1 台"
+        zh: "Jetson Orin Nano Super 出入口计数：同一车辆越线后，今日驶出 23 → 24，在场 0/120（合成测试视频，单辆车）"
+        ja: "Jetson Orin Nano Super の出入口カウント：同じ車両がラインを越えた後。本日出場 23 → 24、場内 0/120（合成テスト映像、車両 1 台）"
   category: vision_video_ai
   solution_type: solution
   tags: [parking, vehicle-counting, mqtt, jetson, rk3588, rk3576]
@@ -123,6 +123,11 @@ intro:
       #   gate video, multi-stream capacity, the app's one-click UI path.
       # - Deploy-form inputs (2026-10-08) render the config on the device; run
       #   on RK3576 (above), not yet on Jetson or RK3588.
+      # - 2026-10-09: line orientation / position / entry side / vehicles inside
+      #   removed from the deploy form; step 2 opens /counting/editor
+      #   (nrd-parking 20261009 images) where the line is drawn and saved
+      #   (state_dir/app-options.override.json overrides the rendered counting
+      #   section, including capacity) and vehicles inside are set.
       verified:
         - hardware
       device_groups:
