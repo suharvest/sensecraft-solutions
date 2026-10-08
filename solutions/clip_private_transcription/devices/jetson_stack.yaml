@@ -28,8 +28,10 @@ actions:
         BUNDLE_SHA="fd3ec0762602822084e30a2f7f24901b42669d0411dac12d264a4ca783b282d1"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/clip-orin-nx-r1-fd3ec0762602.tar.gz"
         mkdir -p "$D"
-        if [ -f "$D/models/SHA256SUMS.ok" ]; then
-          echo "ASR model bundle already unpacked"
+        # Re-verify every unpacked file on each deploy (no marker shortcut), so a
+        # corrupted or deleted model file triggers a fresh unpack.
+        if [ -f "$D/SHA256SUMS" ] && (cd "$D" && sha256sum -c --quiet SHA256SUMS) >/dev/null 2>&1; then
+          echo "ASR model bundle present; all files match SHA256SUMS"
         else
           if ! echo "$BUNDLE_SHA  $D/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
             # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
@@ -40,7 +42,6 @@ actions:
           tar -xzf "$D/$BUNDLE" --no-same-owner -C "$D"
           (cd "$D" && sha256sum -c SHA256SUMS)
           chmod -R a+rX "$D/models"
-          touch "$D/models/SHA256SUMS.ok"
         fi
   before:
     - name: Check the Jetson module and JetPack match the prebuilt plans
