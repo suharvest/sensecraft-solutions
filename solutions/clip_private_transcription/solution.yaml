@@ -6,7 +6,7 @@
 #
 # RK3576 target restored 2026-10-09 (devices/rk3576_stack.yaml, assets/docker/rk3576.yml):
 # published openvoicestream:rk-20260921-twosentence image (by digest) + model bundle
-# clip-rk3576-r1-77ab462087fa (pending publish, see the files: comment there). SenseVoice
+# clip-rk3576-r1-77ab462087fa (published 2026-10-09, see the files: comment there). SenseVoice
 # RKNN with one NPU worker handles every language (no Whisper: SenseVoice + Whisper do
 # not fit next to other services on an 8 GB board, and clip-pt only routed to Whisper when
 # SenseVoice reported a language, which this image does not). Speaker separation runs
@@ -25,13 +25,18 @@
 # devices/rk3576_stack.yaml;
 # assets/config/config.example.yaml documents the schema only.
 #
-# Device acceptance as of 2026-10-08 (receipts orin-nx/round2): the HTTP-upload
-# path passed on Orin NX with the published clip-pt 20261008 and nrd6-ovs-jetson
-# 20261008 images (summary off, ports 8641/8642/18883): 6.3 s LibriSpeech upload
-# done in 1.2 s, 34 s two-speaker FLEURS Japanese upload done in 2.2 s with 2
-# speakers. Known issue: on the English sample only the second sentence was
-# transcribed (diarization dropped the first). Not yet tested: the Clip BLE /
-# Wi-Fi hop (no physical Clip was available) and the packaged deploy path end to end.
+# Device acceptance 2026-10-09 on Orin NX (receipts vadfix-orin-nx): HTTP-upload path,
+# published nrd6-ovs-jetson 20261008 image + patches/vad.py, clip-pt schemafix-r3,
+# summary off, ports 8641/8642/18883, the six RK3576 fixtures. Wall time per upload:
+# en 6.3 s 1.24 s (2 utterances, 2 speakers; the earlier first-sentence drop is gone),
+# ja 34 s 1.71 s (both sentences kept, 1 speaker reported for the 2-speaker clip),
+# zh AISHELL A/B/A 16.5 s 1.17 s (A/B/A split), zh FLEURS A 30.5 s 1.17 s, B 26.1 s
+# 1.21 s, C 22.3 s 0.66 s (2 speakers each, split matches the source). Known issue:
+# FLEURS A's first utterance (1.63-9.27 s) is kept as a segment but SenseVoice TRT with
+# language=auto returns only 9 characters for it; the same audio with language=zh returns
+# the full sentence, so this is the ASR auto-language path, not VAD. Not yet tested: the
+# Clip BLE / Wi-Fi hop (no physical Clip was available) and the packaged deploy path end
+# to end.
 version: "1.0"
 id: clip_private_transcription
 name: Private Clip Transcription

@@ -9,9 +9,9 @@ ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_t
 pre_checks: [{type: disk_space, min_gb: 5, description: Speech models and recordings need at least 5 GB of free disk.}]
 files:
   # clip-rk3576-r1: 464046778 bytes (SenseVoice RKNN for RK3576 + CAM++ speaker model, 5 files listed
-  # in its SHA256SUMS). Pending publish: built 2026-10-09 from public HF sources
-  # (harvestsu/sensevoice-rknn @671ee310, csukuangfj/speaker-embedding-models @0743f301) and tested on
-  # an 8 GB RK3576 board; this URL is a placeholder until the bundle is uploaded. after_upload unpacks it into models/.
+  # in its SHA256SUMS). Built 2026-10-09 from public HF sources (harvestsu/sensevoice-rknn @671ee310,
+  # csukuangfj/speaker-embedding-models @0743f301), tested on an 8 GB RK3576 board, published to OSS
+  # 2026-10-09 (public URL and sha256 verified by re-download). after_upload unpacks it into models/.
   - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261009/clip-rk3576-r1-77ab462087fa.tar.gz
     remote_path: /opt/clip-private-transcription/models/clip-rk3576-r1-77ab462087fa.tar.gz
     sudo: true

@@ -8,7 +8,7 @@ Conversations recorded on a reSpeaker Clip, such as meetings, consultations or c
 |---------|---------|
 | Recordings stay on site | The Clip syncs to the host over Bluetooth and transcription runs on the host; nothing is uploaded to the cloud |
 | Who said what | Every segment has a timestamp and a speaker label; Chinese, English and Japanese are recognized |
-| Fast | On a Jetson Orin NX, a 34 s two-speaker Japanese recording was transcribed in 2.2 s with 2 speakers separated; on an RK3576 (8 GB), a 30 s two-speaker Chinese recording took 4.6 s with 2 speakers separated |
+| Fast | On a Jetson Orin NX, a 26 s two-speaker Chinese recording was transcribed in 1.2 s with 2 speakers separated; on an RK3576 (8 GB), a 30 s two-speaker Chinese recording took 4.6 s with 2 speakers separated |
 | Connects to your system | A MQTT message announces each finished transcript; your program fetches the full text over HTTP |
 
 ## Use cases
