@@ -1,6 +1,8 @@
-# DRAFT / blocked: NRD-2. The native application, public image/model artifact,
-# and platform acceptance evidence are not released. Keep disabled until those
-# inputs are supplied and the acceptance matrix passes.
+# NRD-2. Targets offered: Jetson Orin Nano (TensorRT) and RK3588 (RKNN).
+# RK3576 was removed 2026-10-08: its device run used a substitute image and
+# never ran the package compose (receipt acceptance-20261008/cat-remote/
+# edge_parking_counting). The removed device YAML, compose and config are in
+# git history at 1c34fa4 (solutions/edge_parking_counting/).
 version: "1.0"
 id: edge_parking_counting
 name: Edge Parking Vehicle Counting
@@ -9,9 +11,9 @@ name_i18n:
 enabled: true
 intro:
   visibility: staging
-  summary: Count vehicles crossing a configured entrance line on a Jetson edge host and publish occupancy events over MQTT.
+  summary: Count vehicles in and out at a car park entrance with the existing IP camera, and publish vehicles inside and free spaces over MQTT.
   summary_i18n:
-    zh: 在 Jetson 边缘主机上按配置的出入口计数线统计车辆进出，并通过 MQTT 发布事件。
+    zh: 用出入口现有的网络摄像头统计车辆进出，并通过 MQTT 实时发布场内车辆数和剩余车位。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -19,88 +21,81 @@ intro:
   gallery:
     - type: image
       src: gallery/panel-preview-counting-1-20261008.jpg
-      caption: "Counting preview on Jetson Orin Nano Super: tracked vehicle box with track ID and score, yellow counting line, live in/out counters (synthetic test clip, 2026-10-08)"
+      caption: "Counting on Jetson Orin Nano: the tracked vehicle, the yellow counting line and the live in/out counters (test video)"
       caption_i18n:
-        zh: "Jetson Orin Nano Super 上的计数预览：车辆跟踪框（轨迹号与置信度）、黄色计数线、实时进出计数（合成测试片段，2026-10-08）"
-        ja: "Jetson Orin Nano Super のカウントプレビュー：追跡中の車両枠（トラック ID・スコア）、黄色のカウントライン、入出庫カウンタ（合成テスト映像、2026-10-08）"
+        zh: "Jetson Orin Nano 上的计数画面：被跟踪的车辆、黄色计数线和实时进出计数（测试视频）"
+        ja: "Jetson Orin Nano でのカウント画面：追跡中の車両、黄色のカウントライン、入出庫カウンタ（テスト映像）"
     - type: image
       src: gallery/panel-preview-counting-2-20261008.jpg
-      caption: "Same preview a few seconds later: the next vehicle track approaching the counting line, counters in_today 2 / out_today 1 (Jetson Orin Nano Super, 2026-10-08)"
+      caption: "A few seconds later: the next vehicle approaches the line; today's count is 2 in, 1 out"
       caption_i18n:
-        zh: "数秒后的同一预览：下一条车辆轨迹接近计数线，计数 in_today 2 / out_today 1（Jetson Orin Nano Super，2026-10-08）"
-        ja: "数秒後の同じプレビュー：次の車両トラックがカウントラインに接近、in_today 2 / out_today 1（Jetson Orin Nano Super、2026-10-08）"
+        zh: "几秒后：下一辆车接近计数线，今日已计入 2 辆、驶出 1 辆"
+        ja: "数秒後：次の車両がカウントラインに接近。本日の入庫 2 台・出庫 1 台"
   category: vision_video_ai
   solution_type: solution
-  tags: [parking, vehicle-counting, mqtt, yolox, jetson]
+  tags: [parking, vehicle-counting, mqtt, jetson, rk3588]
   output_interfaces:
     - type: mqtt
       port: 1883
-      topic: <site>/parking/<device>/crossing
+      topic: <site>/parking/<entrance>/crossing
       schema_type: json
-      description: Vehicle crossing events. The broker is an external site service.
+      description: One record per vehicle crossing the line - direction (in/out), vehicle type, vehicles inside and free spaces after it. Sent to your own MQTT server.
       description_i18n:
-        zh: 车辆越线事件；broker 由现场外部服务提供。
+        zh: 每辆车越线一条记录：方向（驶入/驶出）、车型、越线后的场内车辆数和剩余车位。发送到你自己的 MQTT 服务器。
     - type: mqtt
       port: 1883
-      topic: <site>/parking/<device>/occupancy
+      topic: <site>/parking/<entrance>/occupancy
       schema_type: json
-      description: Occupancy snapshot and remaining capacity.
+      description: Vehicles inside, total spaces, free spaces and today's in/out totals, sent after every crossing.
       description_i18n:
-        zh: 场内占用与剩余容量快照。
+        zh: 场内车辆数、车位总数、剩余车位和今日进出总数，每次越线后发送。
     - type: http
       port: 8099
       endpoint: /healthz
       method: GET
       schema_type: json
-      description: Native runtime and parking hook health.
+      description: Service status - whether the camera picture is being received and how many frames per second are processed.
       description_i18n:
-        zh: 原生运行时与停车钩子健康状态。
+        zh: 服务状态：是否收到摄像头画面、每秒处理多少帧。
   input_requirements:
     - type: rtsp
-      description: An H.264 or H.265 RTSP gate camera with a stable entrance view.
+      description: An IP camera at the entrance with an RTSP stream (H.264 or H.265), mounted so vehicles cross the picture fully in view.
       description_i18n:
-        zh: 稳定拍摄出入口的 H.264 或 H.265 RTSP 摄像头。
+        zh: 出入口的网络摄像头，提供 RTSP 视频流（H.264 或 H.265），固定安装，车辆整车入镜穿过画面。
   device_catalog:
     recomputer_j30:
-      description: JetPack 6 Jetson host for the native TensorRT parking runtime.
+      description: Analyses the camera picture and counts vehicles, 30 frames per second. Jetson Orin Nano module with JetPack 6.2 only.
       description_i18n:
-        zh: 运行原生 TensorRT 停车运行时的 JetPack 6 Jetson 主机。
-    recomputer_rk3576:
-      description: Staging RKNN host; device ABI and model paths must be supplied locally.
-      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+        zh: 分析摄像头画面并统计进出车辆，每秒处理 30 帧。仅支持 Jetson Orin Nano 模组，需 JetPack 6.2。
     recomputer_rk3588:
-      description: Staging RKNN host; device ABI and model paths must be supplied locally.
-      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+      description: Analyses the camera picture and counts vehicles, about 3 frames per second; suited to barrier entrances where vehicles slow down.
+      description_i18n: {zh: 分析摄像头画面并统计进出车辆，每秒处理约 3 帧，适合车辆减速通过的道闸出入口。}
     generic_ip_camera:
       name: IP Camera
       name_i18n:
         zh: IP 摄像头
-      description: Existing RTSP camera at the gate.
+      description: The entrance camera you already have; it must provide an RTSP stream.
       description_i18n:
-        zh: 现场已有的出入口 RTSP 摄像头。
+        zh: 出入口现有的摄像头，需支持 RTSP 视频流。
   presets:
     - id: ip_camera_box
-      name: IP Camera + Edge Compute Box (Draft)
+      name: IP Camera + Edge Compute Box
       name_i18n:
-        zh: IP 摄像头 + 边缘算力盒子（草稿）
-        ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
-      badge: Draft / acceptance incomplete
-      badge_i18n:
-        zh: 草稿 / 验收未完成
-      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target uses the published native image and its target-device model bundle (fetched at deploy time). Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
+        zh: IP 摄像头 + 边缘算力盒子
+        ja: IP カメラ + エッジコンピューティングボックス
+      description: Keep your entrance camera and add a reComputer next to it. Jetson Orin Nano processes 30 frames per second; RK3588 about 3, suited to barrier entrances where vehicles slow down.
       description_i18n:
-        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都使用已发布的原生镜像和对应目标设备的模型包（部署时自动获取）。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
-        ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドのネイティブイメージとターゲットデバイス用モデルが必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
-      # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
-      # status is written into each target's description in the guides.
-      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance
+        zh: 沿用出入口现有摄像头，旁边加一台 reComputer。Jetson Orin Nano 每秒处理 30 帧；RK3588 每秒约 3 帧，适合车辆减速通过的道闸出入口。
+        ja: 出入口の既存カメラをそのまま使い、隣に reComputer を 1 台追加します。Jetson Orin Nano は毎秒 30 フレーム、RK3588 は毎秒約 3 フレームを処理し、車両が減速して通過するゲート出入口に向いています。
+      # `verified: [hardware]` reflects the Jetson and RK3588 targets.
+      # - Jetson: device run 2026-10-08 on Jetson Orin Nano (acceptance
       #   receipt orin-nano/edge_parking_counting): package compose + locally
       #   built image, synthetic 640x360 30 fps clip (one vehicle crossing every
       #   6 s) over RTSP. 29.98 fps processed (NVDEC, no fallback), inference p50
       #   3.58 / p95 3.64 ms, 41/41 expected crossings, ready 11.9 s. Not
       #   covered: accuracy on real gate video, multi-stream capacity, SenseCraft
       #   one-click path, public image.
-      # - RK3588: hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance
+      # - RK3588: device run 2026-10-08 on Radxa Rock 5T (acceptance
       #   receipt radxa/edge_parking_counting): package compose with the
       #   librga.so.2 and host GStreamer mounts, locally built image 6a5c781d,
       #   real 1280x720 H.264 5 fps parking-lot clip looped over RTSP. 3.0 fps
@@ -108,27 +103,27 @@ intro:
       #   17.8 / p95 20.0 ms, MPP decode, 107 MQTT events with contiguous seq.
       #   Not covered: accuracy (clip loops every 10 s), r2 image, public
       #   artifact.
-      # - RK3576 (cat-remote): not verified — r2 image could not be loaded
-      #   (root disk), package compose not exercised; substitute-image run only.
+      # - RK3576: removed from the package (see the header comment).
+      # - Deploy-form inputs (2026-10-08) render the config on the device; that
+      #   rendering path has not been run on either board yet.
       verified:
         - hardware
       device_groups:
         - id: compute
-          name: Edge Host
+          name: Counting Device
           name_i18n:
-            zh: 边缘主机
+            zh: 计数设备
           type: single
           required: true
-          description: Choose the edge host. The deploy step offers one target per host.
+          description: The device that analyses the camera picture. Jetson Orin Nano for entrances where vehicles drive through; RK3588 for barrier entrances where they slow down.
           description_i18n:
-            zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。
+            zh: 分析摄像头画面的设备。车辆直接驶过的出入口选 Jetson Orin Nano；车辆减速通过的道闸出入口可选 RK3588。
           options:
             - device_ref: recomputer_j30
             - device_ref: recomputer_rk3588
-            - device_ref: recomputer_rk3576
           default: recomputer_j30
         - id: camera
-          name: Gate Camera
+          name: Entrance Camera
           name_i18n:
             zh: 出入口摄像头
           type: single

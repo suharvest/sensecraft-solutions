@@ -95,8 +95,8 @@ actions:
         mkdir -p "$ROOT/data"
         echo "wrote $ROOT/.env"
         cat "$ROOT/.env"
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the vehicle model
+      name_i18n: {zh: 下载车辆识别模型}
       timeout: 1800
       run: |
         set -eu

@@ -1,8 +1,8 @@
 version: "1.0"
 id: jetson_counting
-name: Jetson Native Counting App
+name: Jetson Orin Nano Vehicle Counting
 name_i18n:
-  zh: Jetson 原生计数应用
+  zh: Jetson Orin Nano 车辆计数
 type: docker_deploy
 # Runtime image: compose default (nrd-parking-jetson:20261008, pinned by digest).
 # Model: count_vehicle416_orin_nano bundle, TensorRT FP16 engine built on
@@ -50,8 +50,8 @@ files:
       sha256: 9a5b949eab79792796855acad6f5827b03da2d774fffb16850e7e883f2694b5e
 actions:
   before:
-    - name: Check the Jetson module and JetPack match the prebuilt engines
-      name_i18n: {zh: 检查 Jetson 模组与 JetPack 是否匹配预编译引擎}
+    - name: Check the Jetson module and JetPack version
+      name_i18n: {zh: 检查 Jetson 模组与 JetPack 版本}
       ignore_error: false
       run: |
         set -eu
@@ -81,8 +81,8 @@ actions:
         esac
         echo "Jetson module and JetPack match the prebuilt engines"
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the vehicle model
+      name_i18n: {zh: 下载车辆识别模型}
       timeout: 1800
       run: |
         set -eu
@@ -230,9 +230,9 @@ actions:
         print(f"line    = {counting['line']} in_side={counting['in_side']}")
         PY
   after:
-    - name: Wait for the counting service readiness endpoint
+    - name: Wait for the counting service to start
       name_i18n:
-        zh: 等待计数服务就绪接口
+        zh: 等待计数服务启动
       timeout: 130
       ignore_error: false
       env:

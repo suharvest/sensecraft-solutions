@@ -1,19 +1,59 @@
-# Edge Parking Vehicle Counting
+## What this solution does for you
 
-> **Draft.** The native runtime image and the per-target model bundles are
-> published (2026-10-08) and fetched at deploy time; each deployment target
-> states its acceptance status. No broker or host proprietary library is
-> bundled here.
+Knowing how many free spaces a car park has usually means burying induction loops in every lane or fitting counters to the barriers. This solution uses the IP camera already at the entrance: you place a counting line in the picture, every vehicle that crosses it is counted as in or out, and the number of vehicles inside and the free spaces are sent to your system as they change.
 
-This design counts cars, motorcycles, buses, and trucks crossing a configured
-entrance line. The native TensorRT runtime performs capture, decode, inference,
-tracking, and line analysis. The parking event layer publishes crossing and
-occupancy messages through an external MQTT broker.
+## Key benefits
 
-The current draft documents the Jetson deployment contract only. CPU execution
-is a reference path and does not constitute platform validation. Accuracy,
-throughput, and end-to-end MQTT acceptance remain open.
+| Benefit | Details |
+|---------|---------|
+| Uses your existing camera | Connects to the RTSP IP camera already at the entrance; no loops to bury, no barrier changes |
+| In and out counted separately | Each crossing is classed as entering or leaving, so a two-way lane is still counted correctly |
+| Free spaces updated live | Vehicles inside and free spaces are published after every crossing, ready for a free-space sign or a parking system |
+| Processed on site | The video is analysed on the device next to the entrance; only the counts leave it |
+| Vehicle types | Cars, motorcycles, buses and trucks are told apart, and every crossing record carries the type |
 
-## RK3576 and RK3588 deployment targets
+## Use cases
 
-The RK3576 and RK3588 deployment targets of the single preset describe the native RKNN path for reComputer RK3576 and RK3588. Copy the board-specific shipped `assets/config/counting-rk3576.json` or `counting-rk3588.json` to the host and edit it before deployment: use site/device IDs of at most 32 characters, unique MQTT client IDs and topic roots, matching broker maps, RTSP URLs/codecs, the pinned vehicle416 model path/SHA, counting line/direction/capacity, and an existing state path. They also require a locally built image, writable data directory, DRM device, and host RKNN/RGA/MPP paths. The recorded conversion SHA is checked in deployment input documentation; the artifacts are not bundled or downloaded by this package, so place them on the host before deployment. Per-target measured results are in the deployment guide. H.264 is the default stream codec; H.265 is selected per stream through `options.codec`. The native health server binds `0.0.0.0:8099`; use the RK host's reachable address for a remote `/healthz` check.
+| Scenario | How it works |
+|----------|--------------|
+| Shopping mall or office car park | The entrance sign shows "37 spaces free" and updates as vehicles come and go |
+| Campus or factory gate | Daily in/out totals, with trucks and cars counted separately |
+| Car park full alert | When free spaces reach 0, the parking system receives the message and switches to "Full" |
+| Several entrances | One set per entrance; your system adds them up by site ID |
+
+## What you get after deployment
+
+Each time a vehicle crosses the counting line, the device sends two messages to your MQTT server:
+
+- **Crossing record** (topic `<site ID>/parking/<entrance ID>/crossing`): direction (in / out), vehicle type, confidence, and vehicles inside and free spaces after the crossing.
+- **Car park status** (topic `<site ID>/parking/<entrance ID>/occupancy`): vehicles inside, total spaces, free spaces, and today's in and out totals.
+
+Your parking management system, free-space sign or Home Assistant subscribes to these two topics to use the data.
+
+## Usage Notes
+
+### Core hardware
+
+| Device | Purpose | Required |
+|--------|---------|----------|
+| reComputer J30 Series (Jetson Orin Nano) | Analyses the camera picture and counts; needs JetPack 6.2 | One of the two |
+| reComputer RK3588 Series | Analyses the camera picture and counts | One of the two |
+| Entrance IP camera | RTSP stream (H.264 or H.265), fixed view of the lane | ✓ Required |
+| MQTT server | Receives the counts; an existing site server or a Mosquitto install | ✓ Required |
+
+### Network requirements
+
+- The counting device, the camera and the MQTT server must be on the same LAN or able to reach each other
+- The first deployment downloads the app (about 0.5–0.7 GB) and the vehicle model; after that it runs without internet
+- One device handles one camera, i.e. one entrance
+
+## Deployment Comparison
+
+| | reComputer J30 Series (Jetson Orin Nano) | reComputer RK3588 Series |
+|---|---|---|
+| Measured processing rate | 30 frames per second (640×360 input at 30 fps) | About 3 frames per second (1280×720 input at 5 fps) |
+| Analysis time per frame | About 3.6 ms | About 18 ms |
+| Suited to | Entrances where vehicles drive through at normal speed | Barrier entrances where vehicles slow down or stop for the barrier |
+| System requirements | Jetson Orin Nano module only, JetPack 6.2 | The deploy step checks the board's NPU runtime and video decoding libraries and tells you what to install if any are missing |
+
+Measured on Jetson Orin Nano: on a 30 fps test video, all 41 line crossings were counted with the correct direction. RK3588 processes about 3 frames per second, so a vehicle needs to be in view for about 1 second or longer as it crosses the line to be counted reliably.
