@@ -15,35 +15,17 @@ intro:
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
-      src: gallery/panel-dashboard-zh-20261008.jpg
-      caption: "Home Assistant dashboard: the living-room light switched on by a Chinese voice command, plus curtain and air conditioner (demo devices)"
+      src: gallery/dashboard-zh-20261008.jpg
+      caption: "Home Assistant dashboard: living-room light, curtain, temperature, humidity and air conditioner; bedroom light and humidifier (demo devices)"
       caption_i18n:
-        zh: "Home Assistant 面板：客厅灯由中文语音指令打开，另有窗帘和空调（演示设备）"
-        ja: "Home Assistant ダッシュボード：中国語の音声コマンドで点灯したリビング照明、カーテン、エアコン（デモ用デバイス）"
+        zh: "Home Assistant 面板：客厅灯、窗帘、温度、湿度和空调，卧室灯和加湿器（演示设备）"
+        ja: "Home Assistant ダッシュボード：リビングの照明・カーテン・温度・湿度・エアコン、寝室の照明と加湿器（デモ用デバイス）"
     - type: image
-      src: gallery/panel-assist-debug-zh-20261008.jpg
-      caption: "Voice assistant run: speech recognized as 打开客厅灯 (turn on the living room light), the light is switched on and Home Assistant replies 客厅灯已打开"
+      src: gallery/voice-light-on-zh-20261008.jpg
+      caption: "Spoken command 把客厅灯打开 (turn on the living-room light): recognized by the local voice service on the reComputer J40, Home Assistant replies 客厅灯已打开 and the light turns on"
       caption_i18n:
-        zh: "语音助手运行记录：识别为「打开客厅灯」，灯被打开，Home Assistant 回复「客厅灯已打开」"
-        ja: "音声アシスタントの実行記録：「打开客厅灯」（リビングの照明をつけて）と認識し、照明を点灯、Home Assistant が「客厅灯已打开」と応答"
-    - type: image
-      src: gallery/panel-assist-debug-zh-stages-20261008.jpg
-      caption: "Timing of the same command: speech recognized 0.11 s after the end of speech; the command is handled locally by Home Assistant"
-      caption_i18n:
-        zh: "同一条指令的耗时：说完 0.11 秒识别出文字，指令由 Home Assistant 在本地处理"
-        ja: "同じコマンドの所要時間：発話終了から 0.11 秒で認識、コマンドは Home Assistant がローカルで処理"
-    - type: image
-      src: gallery/panel-pipeline-config-zh-20261008.jpg
-      caption: "Chinese voice assistant settings: speech-to-text and text-to-speech both use the local voice service on the reComputer J40"
-      caption_i18n:
-        zh: "中文语音助手设置：语音转文字和文字转语音都使用 reComputer J40 上的本地语音服务"
-        ja: "中国語音声アシスタントの設定：音声認識と音声合成はどちらも reComputer J40 上のローカル音声サービスを使用"
-    - type: image
-      src: gallery/panel-wyoming-integration-zh-20261008.jpg
-      caption: "The two voice services (speech-to-text and text-to-speech) from the reComputer J40, added to Home Assistant through the Wyoming Protocol integration"
-      caption_i18n:
-        zh: "通过 Wyoming Protocol 集成添加到 Home Assistant 的两个语音服务（语音转文字、文字转语音），由 reComputer J40 提供"
-        ja: "Wyoming Protocol 統合で Home Assistant に追加した 2 つの音声サービス（音声認識・音声合成）、reComputer J40 が提供"
+        zh: "语音指令「把客厅灯打开」：由 reComputer J40 上的本地语音服务识别，Home Assistant 回复「客厅灯已打开」，客厅灯随即打开"
+        ja: "音声コマンド「把客厅灯打开」（リビングの照明をつけて）：reComputer J40 のローカル音声サービスが認識し、Home Assistant が「客厅灯已打开」と応答して照明が点灯"
   category: voice_ai
   solution_type: solution
   tags: [home-assistant, homekit, zigbee, local-voice, voice-assistant]
