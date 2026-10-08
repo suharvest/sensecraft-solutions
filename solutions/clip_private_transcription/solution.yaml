@@ -39,12 +39,6 @@ intro:
       caption_i18n:
         zh: "本地结果页的转写列表：每段录音显示时长、说话人数和是否有摘要"
         ja: "ローカル結果ページの文字起こし一覧：録音ごとの長さ・話者数・要約の有無"
-    - type: image
-      src: gallery/panel-transcript-detail-ja-20261008.jpg
-      caption: "A 34 s two-speaker Japanese recording transcribed on Jetson Orin NX: timestamped segments, speaker labels and an AI summary"
-      caption_i18n:
-        zh: "Jetson Orin NX 转写的 34 秒两人日语录音：带时间戳和说话人标签的分段，以及 AI 摘要"
-        ja: "Jetson Orin NX で文字起こしした 34 秒・2 人の日本語録音：タイムスタンプと話者ラベル付きの区間、AI 要約"
   category: acoustic_audio_ai
   solution_type: solution
   tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, mqtt, offline]
