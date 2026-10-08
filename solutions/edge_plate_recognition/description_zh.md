@@ -26,14 +26,14 @@
 
 | 设备 | 说明 | 必需 |
 |------|------|------|
-| reComputer J30 系列（Jetson Orin Nano） | 识别主机：拉取摄像头画面、识别车牌 | 三选一 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2） | 识别主机：拉取摄像头画面、识别车牌 | 三选一 |
 | reComputer RK3588 系列 | 识别主机：拉取摄像头画面、识别车牌 | 三选一 |
 | reComputer RK3576 系列 | 识别主机：拉取摄像头画面、识别车牌 | 三选一 |
 | 网络摄像头 | 你已有的出入口摄像头，1080p 及以上，支持 RTSP 视频流 | ✓ 必选 |
 | reComputer R1100 系列（R1124-10） | 道闸控制器：收发识别消息、比对白名单，用数字输出给道闸发开闸信号 | 需要自动抬杆时 |
 | 中间继电器 | 导轨式，接在道闸控制器与道闸之间 | 需要自动抬杆时 |
 
-- Jetson 只支持 Orin Nano 模组（reComputer J30 系列），需运行 JetPack 6.2。
+- Jetson 支持 Orin Nano 和 Orin NX 模组（reComputer J30 / J40），需运行 JetPack 6.2。
 - 摄像头装在距车道 3–8 米处，车牌在画面里清晰可读。
 
 ### 网络要求

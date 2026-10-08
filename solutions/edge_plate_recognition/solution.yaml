@@ -140,9 +140,13 @@ intro:
 
   device_catalog:
     recomputer_j30:
-      description: Reads plates from your gate camera; Jetson Orin Nano with JetPack 6.2 only
+      description: Reads plates from your gate camera; Jetson Orin Nano with JetPack 6.2
       description_i18n:
-        zh: 读取出入口摄像头画面并识别车牌；仅支持 Jetson Orin Nano + JetPack 6.2
+        zh: 读取出入口摄像头画面并识别车牌；Jetson Orin Nano + JetPack 6.2
+    recomputer_j40:
+      description: Reads plates from your gate camera; Jetson Orin NX with JetPack 6.2
+      description_i18n:
+        zh: 读取出入口摄像头画面并识别车牌；Jetson Orin NX + JetPack 6.2
     recomputer_rk3588:
       description: Reads plates from your gate camera on its built-in AI processor
       description_i18n:
@@ -169,10 +173,10 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 识别主机
         ja: IP カメラ + 認識ホスト
-      description: Keeps your existing gate cameras. Choose a Jetson Orin Nano, RK3588 or RK3576 recognition host; add a reComputer R1100 Series gate controller to open the barrier automatically.
+      description: Keeps your existing gate cameras. Choose a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2), RK3588 or RK3576 recognition host; add a reComputer R1100 Series gate controller to open the barrier automatically.
       description_i18n:
-        zh: 保留现有出入口摄像头。识别主机可选 Jetson Orin Nano、RK3588 或 RK3576；需要自动抬杆时加一台 reComputer R1100 系列道闸控制器。
-        ja: 既存のゲートカメラをそのまま使用します。認識ホストは Jetson Orin Nano、RK3588、RK3576 から選択。ゲートを自動で開くには reComputer R1100 シリーズのゲートコントローラーを追加します。
+        zh: 保留现有出入口摄像头。识别主机可选 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）、RK3588 或 RK3576；需要自动抬杆时加一台 reComputer R1100 系列道闸控制器。
+        ja: 既存のゲートカメラをそのまま使用します。認識ホストは reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）、RK3588、RK3576 から選択。ゲートを自動で開くには reComputer R1100 シリーズのゲートコントローラーを追加します。
       # `verified: [hardware]` covers the Jetson, RK3588 and RK3576 targets (maintainer
       # notes below; not shown to users).
       # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano for the
@@ -205,11 +209,12 @@ intro:
             zh: 识别主机
           type: single
           required: true
-          description: The device that reads plates from your camera. Jetson supports the Orin Nano module only.
+          description: The device that reads plates from your camera. Jetson supports the Orin Nano and Orin NX modules (reComputer J30 / J40).
           description_i18n:
-            zh: 读取摄像头画面、识别车牌的设备。Jetson 仅支持 Orin Nano 模组。
+            zh: 读取摄像头画面、识别车牌的设备。Jetson 支持 Orin Nano 和 Orin NX 模组（reComputer J30 / J40）。
           options:
             - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
             - device_ref: recomputer_rk3588
             - device_ref: recomputer_rk3576
           default: recomputer_j30

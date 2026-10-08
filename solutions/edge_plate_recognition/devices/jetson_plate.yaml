@@ -6,6 +6,7 @@ type: docker_deploy
 # 维护者注记（不对用户展示）：
 # - 运行镜像用已发布的 nrd-parking-jetson:20261008（按 digest 固定在 assets/jetson/docker-compose.yml）。
 # - TensorRT engine 来自已发布的 plate_jetson_orin_nano 模型包（Orin Nano / L4T R36.4.3 (JetPack 6.2) / TRT 10.3 构建；before 步骤检查模组与 JetPack）。
+#   Orin NX（J40）与 Orin Nano 同属 SM 8.7，2026-10-08 按 owner 决定放行 p3767-0000/0001（未在 NX 真机跑过）。
 # - 2026-10-08 Orin Nano 验收（部署与输出链路）：29.86 fps @1080p，det p50 5.61 ms。证据 acceptance-20261008/orin-nano/edge_plate_recognition。
 # - config/plate.json（vb.config/1 预设）随 compose_dir 上传，after_upload 按部署输入改写站点、流、broker 与健康端口，
 #   与 RK3588/RK3576 目标相同；用户不再手工提供配置文件路径。
@@ -59,7 +60,7 @@ actions:
       run: |
         set -eu
         # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
-        want="p3767-0003 p3767-0004"
+        want="p3767-0000 p3767-0001 p3767-0003 p3767-0004"
         compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
         rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
         trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
@@ -71,7 +72,7 @@ actions:
           case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
         done
         if [ "$ok" -ne 1 ]; then
-          echo "UNSUPPORTED_JETSON_MODULE: this solution supports Jetson Orin Nano (P3767-0003 / P3767-0004) only; this board reports '${compat:-unknown}'. Use an Orin Nano, or an RK3588 / RK3576 host." >&2
+          echo "UNSUPPORTED_JETSON_MODULE: this solution supports Jetson Orin Nano or Orin NX (reComputer J30 / J40) only; this board reports '${compat:-unknown}'. Use one of those, or an RK3588 / RK3576 host." >&2
           exit 1
         fi
         case "$rel" in
@@ -482,11 +483,11 @@ remote_overrides:
       type: text
       default: recomputer
       required: true
-      description: "Common defaults: recomputer (reComputer J30 Series), nvidia, or ubuntu."
+      description: "Common defaults: recomputer (reComputer J30 / J40), nvidia, or ubuntu."
       name_i18n:
         zh: SSH 用户名
       description_i18n:
-        zh: "常见默认值：recomputer（reComputer J30 系列）、nvidia 或 ubuntu。"
+        zh: "常见默认值：recomputer（reComputer J30 / J40）、nvidia 或 ubuntu。"
     - id: password
       name: SSH Password
       type: password

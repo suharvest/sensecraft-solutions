@@ -26,14 +26,14 @@ Opening a barrier usually means a guard watching the lane, or buying an all-in-o
 
 | Device | Role | Required |
 |--------|------|----------|
-| reComputer J30 Series (Jetson Orin Nano) | Recognition host: pulls camera video and reads plates | One of three |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) | Recognition host: pulls camera video and reads plates | One of three |
 | reComputer RK3588 Series | Recognition host: pulls camera video and reads plates | One of three |
 | reComputer RK3576 Series | Recognition host: pulls camera video and reads plates | One of three |
 | IP camera | Your existing gate camera, 1080p or better, with an RTSP stream | ✓ Required |
 | reComputer R1100 Series (R1124-10) | Gate controller: receives recognition messages, checks the whitelist and sends the open signal from its digital output | For automatic barrier opening |
 | Interposing relay | DIN-rail relay between the gate controller and the barrier | For automatic barrier opening |
 
-- On Jetson, only the Orin Nano module (reComputer J30 Series) is supported, running JetPack 6.2.
+- On Jetson, the Orin Nano and Orin NX modules (reComputer J30 / J40) are supported, running JetPack 6.2.
 - Mount the camera 3–8 m from the lane so plates are clearly readable.
 
 ### Network Requirements
