@@ -103,8 +103,8 @@ intro:
       # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
       # HA 2026.9.3 from this package's docker-compose.rpi-ha.yml on a Pi 5, voice endpoint on an
       # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; docker-compose.jetson-voice.yml
-      # now uses this single-OVS layout, but the compose file itself was not
-      # run on 2026-10-08 — Orin NX root disk full). TTS-generated speech streamed to Assist, virtual
+      # uses this single-OVS layout; that compose file itself was run on the
+      # Orin NX on 2026-10-08 too: Wyoming describe + 3/3 zh/en TTS->STT round-trips). TTS-generated speech streamed to Assist, virtual
       # demo lights: 5/5 zh+en commands action_done, processed locally, STT final
       # 0.11-0.95 s after audio end. NOT verified: HomeKit pairing, Aqara/ZHA
       # (no ZBT-2), Voice PE, ESPHome, physical mic/speaker, offline, ja.
