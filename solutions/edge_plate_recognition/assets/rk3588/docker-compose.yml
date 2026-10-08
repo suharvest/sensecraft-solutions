@@ -1,10 +1,10 @@
-# Image: published nrd-parking-rk:20261009, pinned by digest (override with PARKING_IMAGE).
+# Image: published nrd-parking-rk:20261009b, pinned by digest (override with PARKING_IMAGE).
 # config/plate.json (vb.config/1) is rendered by the after_upload step.
 # Host library defaults match reComputer RK3588/RK3576 Debian images; the
 # "before" step checks they exist and the PARKING_* variables override them.
 services:
   edge-parking:
-    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261009@sha256:af0e3d258ab9cb838f6c87c869586918f70500726df0623ab225e65cb0f39ff8}
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261009b@sha256:ca72f50c883432dae805aad169905048bb885301f06b787f043d6167942e305c}
     container_name: ${PARKING_CONTAINER_NAME:-edge-parking-plate-rk3588}
     restart: unless-stopped
     privileged: true

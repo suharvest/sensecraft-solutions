@@ -1,8 +1,8 @@
-# Image: published nrd-parking-jetson:20261009, pinned by digest (override with PARKING_IMAGE).
+# Image: published nrd-parking-jetson:20261009b, pinned by digest (override with PARKING_IMAGE).
 # config/plate.json (vb.config/1) is rendered by the after_upload step.
 services:
   edge-parking:
-    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261009@sha256:37ce3447e7486ca43109fc430f639d3a3e1088b79539b811ea154e0b637b5a6d}
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-jetson:20261009b@sha256:bc419e5983c121fd723cc8cebd21229d9d86ae54b71b4e0c1b36301cf4615043}
     runtime: nvidia
     ipc: host
     network_mode: host
