@@ -25,10 +25,57 @@ pre_checks:
 user_inputs:
   - {id: jetson_voice_image, name: Jetson voice image, name_i18n: {zh: Jetson 语音镜像}, type: text, required: true, default: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261008", description: Published OVS runtime image nrd6-ovs-jetson (2026-10-08)., description_i18n: {zh: 已发布的 OVS 运行镜像 nrd6-ovs-jetson（2026-10-08）。}}
   - {id: jetson_voice_digest, name: Jetson voice image digest, name_i18n: {zh: Jetson 语音镜像 digest}, type: text, required: true, default: "sha256:a3cfde5820119108f27eb7bde018bc096ba66fc0118b837592b3bd5437bf1111"}
-  - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", description: Local HTTP port of the OpenVoiceStream service (ASR + TTS); the Wyoming adapter connects to it on 127.0.0.1. Change it if 8623 is taken., description_i18n: {zh: OpenVoiceStream 服务（ASR + TTS）的本机 HTTP 端口，Wyoming 适配层经 127.0.0.1 连接。8623 被占用时修改。}}
-  - {id: wyoming_stt_port, name: Wyoming STT port, name_i18n: {zh: Wyoming STT 端口}, type: text, required: false, default: "10300", description: Port Home Assistant uses for speech-to-text. Change it if 10300 is taken., description_i18n: {zh: Home Assistant 连接语音转文字的端口。10300 被占用时修改。}}
-  - {id: wyoming_tts_port, name: Wyoming TTS port, name_i18n: {zh: Wyoming TTS 端口}, type: text, required: false, default: "10200", description: Port Home Assistant uses for text-to-speech. Change it if 10200 is taken., description_i18n: {zh: Home Assistant 连接文字转语音的端口。10200 被占用时修改。}}
+  - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Local HTTP port of the OpenVoiceStream service (ASR + TTS); the Wyoming adapter connects to it on 127.0.0.1. Change it if 8623 is taken., description_i18n: {zh: OpenVoiceStream 服务（ASR + TTS）的本机 HTTP 端口，Wyoming 适配层经 127.0.0.1 连接。8623 被占用时修改。}}
+  - {id: wyoming_stt_port, name: Wyoming STT port, name_i18n: {zh: Wyoming STT 端口}, type: text, required: false, default: "10300", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant uses for speech-to-text. Change it if 10300 is taken., description_i18n: {zh: Home Assistant 连接语音转文字的端口。10300 被占用时修改。}}
+  - {id: wyoming_tts_port, name: Wyoming TTS port, name_i18n: {zh: Wyoming TTS 端口}, type: text, required: false, default: "10200", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant uses for text-to-speech. Change it if 10200 is taken., description_i18n: {zh: Home Assistant 连接文字转语音的端口。10200 被占用时修改。}}
   - {id: adapter_image, name: Wyoming adapter image, name_i18n: {zh: Wyoming 适配层镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b", description: Published wyoming-slv-adapter image pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 wyoming-slv-adapter 镜像（2026-10-08，按 digest 固定）。}}
+actions:
+  before:
+    - name: Check voice and Wyoming ports
+      name_i18n: {zh: 检查语音与 Wyoming 端口}
+      run: |
+        set -eu
+        VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
+        STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
+        TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+        for pair in "voice_port=$VOICE_PORT" "wyoming_stt_port=$STT_PORT" "wyoming_tts_port=$TTS_PORT"; do
+          name="${pair%%=*}"; port="${pair#*=}"
+          case "$port" in ''|*[!0-9]*) echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1;; esac
+          if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1
+          fi
+        done
+        if [ "$VOICE_PORT" = "$STT_PORT" ] || [ "$VOICE_PORT" = "$TTS_PORT" ] || [ "$STT_PORT" = "$TTS_PORT" ]; then
+          echo "PORT_DUPLICATE: voice_port, wyoming_stt_port and wyoming_tts_port must differ ($VOICE_PORT/$STT_PORT/$TTS_PORT)" >&2; exit 1
+        fi
+        # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+        port_listening() {
+          if command -v ss >/dev/null 2>&1; then
+            if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif command -v netstat >/dev/null 2>&1; then
+            if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif [ -r /proc/net/tcp ]; then
+            HEX=$(printf '%04X' "$1")
+            if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+          fi
+          return 2
+        }
+        # A redeploy finds the ports held by this stack's own containers; skip the
+        # free-port check then (compose recreates them on the same ports).
+        if docker ps -q --filter label=com.docker.compose.project=ha_whole_home_jetson_voice 2>/dev/null | grep -q .; then
+          echo "PORT_CHECK_SKIPPED_EXISTING_DEPLOYMENT: ha_whole_home_jetson_voice containers are running" >&2
+        else
+          for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
+            rc=0; port_listening "$port" || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "PORT_IN_USE: port $port is already used on this host; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2
+              exit 1
+            elif [ "$rc" -eq 2 ]; then
+              echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+            fi
+          done
+        fi
+        echo "Voice port check OK: voice=$VOICE_PORT stt=$STT_PORT tts=$TTS_PORT"
 remote_overrides:
   environment:
     JETSON_VOICE_IMAGE: "{{jetson_voice_image}}"
@@ -39,6 +86,52 @@ remote_overrides:
     ADAPTER_IMAGE: "{{adapter_image}}"
     JETSON_VOICE_PROFILE: "jetson-edgellm-v091-matcha"
   actions:
+    before:
+      - name: Check voice and Wyoming ports
+        name_i18n: {zh: 检查语音与 Wyoming 端口}
+        run: |
+          set -eu
+          VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
+          STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
+          TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+          for pair in "voice_port=$VOICE_PORT" "wyoming_stt_port=$STT_PORT" "wyoming_tts_port=$TTS_PORT"; do
+            name="${pair%%=*}"; port="${pair#*=}"
+            case "$port" in ''|*[!0-9]*) echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1;; esac
+            if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+              echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1
+            fi
+          done
+          if [ "$VOICE_PORT" = "$STT_PORT" ] || [ "$VOICE_PORT" = "$TTS_PORT" ] || [ "$STT_PORT" = "$TTS_PORT" ]; then
+            echo "PORT_DUPLICATE: voice_port, wyoming_stt_port and wyoming_tts_port must differ ($VOICE_PORT/$STT_PORT/$TTS_PORT)" >&2; exit 1
+          fi
+          # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+          port_listening() {
+            if command -v ss >/dev/null 2>&1; then
+              if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif command -v netstat >/dev/null 2>&1; then
+              if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif [ -r /proc/net/tcp ]; then
+              HEX=$(printf '%04X' "$1")
+              if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+            fi
+            return 2
+          }
+          # A redeploy finds the ports held by this stack's own containers; skip the
+          # free-port check then (compose recreates them on the same ports).
+          if docker ps -q --filter label=com.docker.compose.project=ha_whole_home_jetson_voice 2>/dev/null | grep -q .; then
+            echo "PORT_CHECK_SKIPPED_EXISTING_DEPLOYMENT: ha_whole_home_jetson_voice containers are running" >&2
+          else
+            for port in "$VOICE_PORT" "$STT_PORT" "$TTS_PORT"; do
+              rc=0; port_listening "$port" || rc=$?
+              if [ "$rc" -eq 0 ]; then
+                echo "PORT_IN_USE: port $port is already used on this host; choose another voice_port / wyoming_stt_port / wyoming_tts_port" >&2
+                exit 1
+              elif [ "$rc" -eq 2 ]; then
+                echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+              fi
+            done
+          fi
+          echo "Voice port check OK: voice=$VOICE_PORT stt=$STT_PORT tts=$TTS_PORT"
     after_upload:
       - name: Initialize HA configuration if absent
         run: |
