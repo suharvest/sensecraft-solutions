@@ -72,22 +72,37 @@ intro:
       description_i18n:
         zh: 现场已有的出入口 RTSP 摄像头。
   presets:
-    - id: jetson
-      name: IP Camera + Jetson (Draft)
+    - id: ip_camera_box
+      name: IP Camera + Edge Compute Box (Draft)
       name_i18n:
-        zh: IP 摄像头 + Jetson（草稿）
+        zh: IP 摄像头 + 边缘算力盒子（草稿）
+        ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
       badge: Blocked artifact
       badge_i18n:
         zh: artifact 阻塞
-      description: Draft only. Requires a locally built native application image and a target-device TensorRT engine.
+      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target requires a locally built native image and a target-device model. Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
       description_i18n:
-        zh: 仅为草案；需要本地构建的原生应用镜像和目标设备上的 TensorRT engine。
-      # Hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance receipt
-      # orin-nano/edge_parking_counting): package compose + locally built image,
-      # synthetic 640x360 30 fps clip (one vehicle crossing every 6 s) over RTSP.
-      # 29.98 fps processed (NVDEC, no fallback), inference p50 3.58 / p95 3.64 ms,
-      # 41/41 expected crossings, ready 11.9 s. Not covered: accuracy on real gate
-      # video, multi-stream capacity, SenseCraft one-click path, public image.
+        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都需要本地构建的原生镜像和目标设备模型。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
+        ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドのネイティブイメージとターゲットデバイス用モデルが必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
+      # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
+      # status is written into each target's description in the guides.
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance
+      #   receipt orin-nano/edge_parking_counting): package compose + locally
+      #   built image, synthetic 640x360 30 fps clip (one vehicle crossing every
+      #   6 s) over RTSP. 29.98 fps processed (NVDEC, no fallback), inference p50
+      #   3.58 / p95 3.64 ms, 41/41 expected crossings, ready 11.9 s. Not
+      #   covered: accuracy on real gate video, multi-stream capacity, SenseCraft
+      #   one-click path, public image.
+      # - RK3588: hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance
+      #   receipt radxa/edge_parking_counting): package compose with the
+      #   librga.so.2 and host GStreamer mounts, locally built image 6a5c781d,
+      #   real 1280x720 H.264 5 fps parking-lot clip looped over RTSP. 3.0 fps
+      #   processed of 5 (about 26 % dropped, cause not diagnosed), RKNN p50
+      #   17.8 / p95 20.0 ms, MPP decode, 107 MQTT events with contiguous seq.
+      #   Not covered: accuracy (clip loops every 10 s), r2 image, public
+      #   artifact.
+      # - RK3576 (cat-remote): not verified — r2 image could not be loaded
+      #   (root disk), package compose not exercised; substitute-image run only.
       verified:
         - hardware
       device_groups:
@@ -97,8 +112,13 @@ intro:
             zh: 边缘主机
           type: single
           required: true
+          description: Choose the edge host. The deploy step offers one target per host.
+          description_i18n:
+            zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。
           options:
             - device_ref: recomputer_j30
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
           default: recomputer_j30
         - id: camera
           name: Gate Camera
@@ -108,59 +128,6 @@ intro:
           required: true
           options:
             - device_ref: generic_ip_camera
-          default: generic_ip_camera
-    - id: rk3576
-      name: IP Camera + RK3576 (Draft)
-      name_i18n: {zh: IP 摄像头 + RK3576（草稿）}
-      badge: Blocked artifact / not verified
-      badge_i18n: {zh: artifact 阻塞 / 未验证}
-      description: Requires a local native RK image, RKNN model and matching host ABI paths.
-      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
-      device_groups:
-        - id: compute
-          name: Edge Host
-          name_i18n: {zh: 边缘主机}
-          type: single
-          required: true
-          options: [{device_ref: recomputer_rk3576}]
-          default: recomputer_rk3576
-        - id: camera
-          name: Gate Camera
-          name_i18n: {zh: 出入口摄像头}
-          type: single
-          required: true
-          options: [{device_ref: generic_ip_camera}]
-          default: generic_ip_camera
-    - id: rk3588
-      name: IP Camera + RK3588 (Draft)
-      name_i18n: {zh: IP 摄像头 + RK3588（草稿）}
-      badge: Blocked artifact
-      badge_i18n: {zh: artifact 阻塞}
-      description: Requires a local native RK image, RKNN model and matching host ABI paths.
-      description_i18n: {zh: 需要本地原生 RK 镜像、RKNN 模型和匹配的宿主机 ABI 路径。}
-      # Hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance receipt
-      # radxa/edge_parking_counting): package compose with the librga.so.2 and
-      # host GStreamer mounts, locally built image 6a5c781d, real 1280x720 H.264
-      # 5 fps parking-lot clip looped over RTSP. 3.0 fps processed of 5 (about
-      # 26 % dropped, cause not diagnosed), RKNN p50 17.8 / p95 20.0 ms, MPP
-      # decode, 107 MQTT events with contiguous seq. Not covered: accuracy (clip
-      # loops every 10 s), r2 image, public artifact.
-      verified:
-        - hardware
-      device_groups:
-        - id: compute
-          name: Edge Host
-          name_i18n: {zh: 边缘主机}
-          type: single
-          required: true
-          options: [{device_ref: recomputer_rk3588}]
-          default: recomputer_rk3588
-        - id: camera
-          name: Gate Camera
-          name_i18n: {zh: 出入口摄像头}
-          type: single
-          required: true
-          options: [{device_ref: generic_ip_camera}]
           default: generic_ip_camera
   stats:
     difficulty: advanced

@@ -11,9 +11,9 @@ MQTT broker 发布越线与占用消息。
 当前草案只记录 Jetson 部署契约。CPU 仅作参考路径，不构成平台验证。准确率、
 吞吐和 MQTT 端到端验收仍待完成。
 
-## RK3576 与 RK3588 暂存套餐
+## RK3576 与 RK3588 部署目标
 
-两个禁用的暂存套餐记录 reComputer RK3576 和 RK3588 的原生 RKNN 路径。部署前，将
+套餐中的 RK3576 与 RK3588 部署目标记录 reComputer RK3576 和 RK3588 的原生 RKNN 路径。部署前，将
 随包提供的 `assets/config/counting-rk3576.json` 或 `counting-rk3588.json` 复制到宿主机
 并编辑：site/device ID 不超过 32 个字符，MQTT client ID 和 topic root 唯一，两个 MQTT
 映射一致，填写 RTSP 地址/编码、固定 vehicle416 模型路径/SHA、计数线/方向/容量和已

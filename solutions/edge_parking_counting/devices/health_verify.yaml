@@ -13,8 +13,8 @@ http_debug:
       expected_status: 200
 user_inputs:
   - id: host
-    name: Jetson host
-    name_i18n: {zh: Jetson 主机地址}
+    name: Edge host
+    name_i18n: {zh: 边缘主机地址}
     type: text
     required: true
   - id: port
@@ -23,5 +23,5 @@ user_inputs:
     type: text
     default: "8099"
     required: false
-    description: HTTP health port from the mounted application config.
-    description_i18n: {zh: 挂载应用配置中的 HTTP 健康端口。}
+    description: HTTP health port from the mounted application config. Keep 8099 on RK3576 / RK3588.
+    description_i18n: {zh: 挂载应用配置中的 HTTP 健康端口。RK3576 / RK3588 保持 8099。}
