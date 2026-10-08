@@ -27,7 +27,7 @@ services:
       - /usr/lib/aarch64-linux-gnu/libGLESv2.so.2:/usr/lib/aarch64-linux-gnu/libGLESv2.so.2:ro
       - /usr/lib/aarch64-linux-gnu/libdrm.so.2:/usr/lib/aarch64-linux-gnu/libdrm.so.2:ro
       - ./config/plate.json:/config/config.json:ro
-      - ${PARKING_MODELS_DIR:?set PARKING_MODELS_DIR to the target-device engine directory}:/models:ro
+      - ${PARKING_MODELS_DIR:-./models}:/models:ro
       - ${PARKING_DATA_DIR:-./data}:/data/edge-parking
     command: ["--config", "/config/config.json"]
     healthcheck:

@@ -13,8 +13,6 @@ docker:
   options:
     project_name: edge_plate
     remove_orphans: true
-  environment:
-    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking/rk3576_plate/models"
   services:
     - name: edge-parking
       required: true
@@ -77,7 +75,17 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        MODELS_DIR="/home/{{username}}/edge-parking/rk3576_plate/models"
+        # Remote: compose_dir is uploaded to {remote_path}/{device id}; local: the
+        # solution's assets/rk3576 (actions run from the solution directory).
+        ROOT=""
+        for root in "/home/{{username}}/edge-parking/rk3576_plate" "/home/{{username}}/edge-parking" "assets/rk3576"; do
+          if [ -f "$root/docker-compose.yml" ]; then ROOT="$root"; break; fi
+        done
+        if [ -z "$ROOT" ]; then
+          echo "docker-compose.yml not found (tried /home/{{username}}/edge-parking/rk3576_plate, /home/{{username}}/edge-parking and assets/rk3576)" >&2
+          exit 1
+        fi
+        MODELS_DIR="$ROOT/models"
         BUNDLE="plate_rk3576-dbd43c252024.tar.gz"
         BUNDLE_SHA="dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz"
@@ -113,15 +121,15 @@ actions:
         set -e
         # The compose file mounts ./config/plate.json; render the vb.config/1
         # preset in place next to it. Remote view: compose_dir is uploaded to
-        # /home/<user>/edge-parking; local view: assets/rk3576 in the solution.
+        # /home/<user>/edge-parking/rk3576_plate; local view: assets/rk3576 in the solution.
         CONFIG=""
-        for root in "/home/{{username}}/edge-parking" "assets/rk3576"; do
+        for root in "/home/{{username}}/edge-parking/rk3576_plate" "/home/{{username}}/edge-parking" "assets/rk3576"; do
           if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
             CONFIG="$root/config/plate.json"; break
           fi
         done
         if [ -z "$CONFIG" ]; then
-          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking and assets/rk3576)" >&2
+          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking/rk3576_plate, /home/{{username}}/edge-parking and assets/rk3576)" >&2
           exit 1
         fi
         mkdir -p "$(dirname "$CONFIG")/../data"
