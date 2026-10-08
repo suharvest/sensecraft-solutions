@@ -35,6 +35,20 @@ intro:
   summary_i18n: {zh: 将 reSpeaker Clip 录音同步到本地主机，并通过 HTTP 与 MQTT 提供私有转写结果。}
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-transcript-list-20261008.jpg
+      caption: "Transcript list on the local result page of a Jetson Orin NX: two uploaded recordings with duration, speaker count and summary status (2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin NX 本地结果页的转写列表：两段上传录音，显示时长、说话人数与是否有摘要（2026-10-08）"
+        ja: "Jetson Orin NX のローカル結果ページの文字起こし一覧：アップロードした 2 件の録音と長さ・話者数・要約の有無（2026-10-08）"
+    - type: image
+      src: gallery/panel-transcript-detail-ja-20261008.jpg
+      caption: "Japanese two-source recording (34 s) processed on Jetson Orin NX: timestamped segments with speaker labels and a local LLM summary (2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin NX 处理的 34 秒日语双音源录音：带时间戳与说话人标签的分段，以及本地大模型生成的摘要（2026-10-08）"
+        ja: "Jetson Orin NX で処理した 34 秒の日本語 2 音源録音：タイムスタンプと話者ラベル付きの区間、ローカル LLM による要約（2026-10-08）"
   category: acoustic_audio_ai
   solution_type: solution
   tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, sensevoice, whisper, mqtt, offline]
