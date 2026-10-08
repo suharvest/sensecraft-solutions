@@ -85,11 +85,17 @@ tail -f /var/log/sheep_counter.log
 
 ---
 
-## 步骤 3: 将网关桥接服务部署到 reComputer {#deploy_gateway type=script required=true config=devices/gateway.yaml}
+## 步骤 3: 将网关桥接服务部署到 reComputer {#deploy_gateway type=docker_deploy required=true config=devices/gateway.yaml}
 
-将桥接服务部署到本地网关电脑，把 LoRa 收到的羊只计数通过 MQTT 发布到 Home Assistant。
+通过 SSH 将桥接服务以两个 Docker 容器（`sheep-meshtastic-bridge`、`sheep-ha-bridge`）部署到网关电脑，把 LoRa 收到的羊只计数通过 MQTT 发布到 Home Assistant。
 
 开始部署前，请确认 Home Assistant 已在局域网中运行，且 MQTT 集成已连接到同一 Broker 并启用自动发现。部署表单中需要填写网关 SSH 连接、MQTT Broker IP 和 Meshtastic 接收器串口。
+
+### 前置条件
+
+- 网关已安装 Docker 和 Docker Compose 插件（`docker compose version` 能输出版本号）。
+- 网关首次启动时需能拉取 `python:3.11-slim` 镜像，并从 PyPI 安装 Python 包（`paho-mqtt`、`meshtastic`）。国内网络会自动使用 PyPI 镜像。
+- 网关能访问 MQTT Broker 的 1883 端口。请填写 Broker 的局域网 IP；`127.0.0.1` 指向容器自身。
 
 ### 接线
 
@@ -97,27 +103,36 @@ tail -f /var/log/sheep_counter.log
 
 ### 部署完成
 
-部署完成后，验证 systemd 服务是否正常：
+部署完成后，验证两个容器是否在运行：
 
 ```
 ssh recomputer@<网关-ip>
-systemctl status meshtastic-bridge ha-bridge
+docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 ```
 
-两者均应显示 `active (running)`。
+`sheep-meshtastic-bridge` 和 `sheep-ha-bridge` 均应显示 `Up`。首次启动需要安装 Python 包，比之后的重启多约一分钟。
 
 将 `ha_dashboard.yaml` 导入 Home Assistant：
-1. 将此方案包中的 `assets/gateway/ha_dashboard.yaml` 复制到 HA 配置目录（如果网关脚本已部署，也可使用 `/opt/sheep-gateway/ha_dashboard.yaml`）
+1. 将此方案包中的 `assets/gateway/ha_dashboard.yaml` 复制到 HA 配置目录（也可使用部署时上传到网关的 `~/sheep-gateway/ha_dashboard.yaml`）
 2. 在 HA 中：设置 → 仪表盘 → 导入 → 选择该文件
 
 ### 故障排查
 
 | 问题 | 解决方案 |
 |------|---------|
-| meshtastic-bridge 无法启动 | 确认 Meshtastic USB 无线电已插入网关；检查 `journalctl -u meshtastic-bridge` |
-| ha-bridge 连接失败 | 确认 MQTT Broker IP 的 1883 端口可达，且允许网关连接 |
+| sheep-meshtastic-bridge 反复重启 | 确认 Meshtastic USB 无线电已插入网关，且串口路径正确（`ls /dev/ttyACM*`）；查看 `docker logs sheep-meshtastic-bridge` |
+| sheep-ha-bridge 连接失败 | 确认 MQTT Broker IP 的 1883 端口可达，且允许网关连接 |
 | 无 MQTT 消息 | 检查 MQTT Broker IP 是否正确，以及 Broker 是否接受 1883 端口的匿名连接 |
-| 重启后服务停止 | 执行 `systemctl enable meshtastic-bridge ha-bridge` 重新启用 |
+| 重启后容器不在 | 容器设置了 `restart: unless-stopped`；用 `systemctl is-enabled docker` 确认 Docker 开机自启 |
+| 容器日志中 `pip install` 失败 | 网关无法访问 PyPI；检查网关网络或 DNS，然后在 `~/sheep-gateway` 执行 `docker compose -p sheep_gateway restart` |
+
+### Target: 网关（远程） {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
+
+通过 SSH 从本机部署到网关。填写网关 IP 地址和 SSH 凭据，然后填写 MQTT Broker IP 和串口。
+
+### Target: 网关（本机） {#gateway_local type=local device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml}
+
+在网关本机上执行部署。填写 MQTT Broker IP 和串口。
 
 ---
 

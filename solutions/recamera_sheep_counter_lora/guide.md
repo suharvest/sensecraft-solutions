@@ -85,11 +85,17 @@ Once configured, trigger a test crossing by briefly pulling GPIO 490 HIGH. You s
 
 ---
 
-## Step 3: Deploy Gateway Bridge to reComputer {#deploy_gateway type=script required=true config=devices/gateway.yaml}
+## Step 3: Deploy Gateway Bridge to reComputer {#deploy_gateway type=docker_deploy required=true config=devices/gateway.yaml}
 
-Deploy the bridge services to your local gateway computer. They publish the sheep counts received over LoRa to Home Assistant via MQTT.
+Deploy the bridge services to your gateway computer over SSH as two Docker containers (`sheep-meshtastic-bridge`, `sheep-ha-bridge`). They publish the sheep counts received over LoRa to Home Assistant via MQTT.
 
 Before you start, ensure Home Assistant is running on your LAN and its MQTT integration is connected to the same broker with discovery enabled. You will enter the gateway SSH connection, MQTT broker IP, and Meshtastic receiver serial port in the deploy form.
+
+### Prerequisites
+
+- Docker and the Docker Compose plugin installed on the gateway (`docker compose version` prints a version).
+- The gateway can pull `python:3.11-slim` and install Python packages (`paho-mqtt`, `meshtastic`) from PyPI on first start. A PyPI mirror is applied automatically on networks in China.
+- The MQTT broker IP is reachable from the gateway on port 1883. Use the broker's LAN IP; `127.0.0.1` points to the container itself.
 
 ### Wiring
 
@@ -97,27 +103,36 @@ Before you start, ensure Home Assistant is running on your LAN and its MQTT inte
 
 ### Deployment Complete
 
-After deployment, verify the systemd services are healthy:
+After deployment, verify both containers are running:
 
 ```
 ssh recomputer@<gateway-ip>
-systemctl status meshtastic-bridge ha-bridge
+docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 ```
 
-Both should show `active (running)`.
+`sheep-meshtastic-bridge` and `sheep-ha-bridge` should both show `Up`. The first start installs Python packages and takes about a minute longer than later restarts.
 
 Import the `ha_dashboard.yaml` file into Home Assistant:
-1. Copy `assets/gateway/ha_dashboard.yaml` from this solution package to your HA config directory (or use `/opt/sheep-gateway/ha_dashboard.yaml` if the gateway scripts were already deployed)
+1. Copy `assets/gateway/ha_dashboard.yaml` from this solution package to your HA config directory (or use `~/sheep-gateway/ha_dashboard.yaml` on the gateway, uploaded by the deployment)
 2. In HA: Settings → Dashboards → Import → select the file
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|---------|
-| meshtastic-bridge not starting | Confirm the Meshtastic USB radio is plugged into the gateway; check `journalctl -u meshtastic-bridge` |
-| ha-bridge fails to connect | Confirm the MQTT broker IP is reachable on port 1883 and accepts the gateway connection |
+| sheep-meshtastic-bridge restarting | Confirm the Meshtastic USB radio is plugged into the gateway and the serial port path matches (`ls /dev/ttyACM*`); check `docker logs sheep-meshtastic-bridge` |
+| sheep-ha-bridge fails to connect | Confirm the MQTT broker IP is reachable on port 1883 and accepts the gateway connection |
 | No MQTT messages | Verify the MQTT broker IP and that the broker accepts unauthenticated connections on port 1883 |
-| Services stop on reboot | Run `systemctl enable meshtastic-bridge ha-bridge` to re-enable |
+| Containers missing after reboot | Containers use `restart: unless-stopped`; confirm Docker starts at boot with `systemctl is-enabled docker` |
+| `pip install` fails in the container log | The gateway cannot reach PyPI; check its network or DNS, then run `docker compose -p sheep_gateway restart` in `~/sheep-gateway` |
+
+### Target: Gateway (remote) {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
+
+Deploy over SSH from this machine to the gateway. Enter the gateway IP address and SSH credentials, then the MQTT broker IP and serial port.
+
+### Target: Gateway (this device) {#gateway_local type=local device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml}
+
+Run the deployment on the gateway itself. Enter the MQTT broker IP and serial port.
 
 ---
 
