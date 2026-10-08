@@ -4,13 +4,22 @@
 # TensorRT 10.3 only; the published clip-orin-nx-r1 TensorRT plans load on nothing
 # else and devices/jetson_stack.yaml stops the deploy on any other module.
 #
-# RK3576 / RK3588 targets were removed 2026-10-08: they needed RK speech-service
-# images and RKNN model roots that are not published, and ran without GPU
-# diarization (pipeline.require_gpu_diarization: false). Their compose files,
-# device YAMLs and profiles are in git history before this change.
+# RK3576 target restored 2026-10-09 (devices/rk3576_stack.yaml, assets/docker/rk3576.yml):
+# published openvoicestream:rk-20260921-twosentence image (by digest) + model bundle
+# clip-rk3576-r1-77ab462087fa (pending publish, see the files: comment there). SenseVoice
+# RKNN with one NPU worker handles every language (no Whisper: SenseVoice + Whisper do
+# not fit next to other services on an 8 GB board, and clip-pt only routed to Whisper when
+# SenseVoice reported a language, which this image does not). Speaker separation runs
+# CAM++ on the CPU (pipeline.require_gpu_diarization: false). assets/docker/patches/vad.py
+# replaces the image's server/core/vad.py: the original ran silero v5 on 256-sample
+# windows without context, which missed quieter speech and dropped utterances in /diarize
+# (also on Jetson). Tested on an 8 GB RK3576 board 2026-10-08 with six uploads (en, ja,
+# four zh two-speaker mixes): all utterances kept, speakers split on the zh mixes;
+# SenseVoice peak 1.25 GiB, clip-pt 68 MiB. RK3588 is not offered.
 #
 # The Clip config is rendered on the host from deploy inputs by the
-# "Write the Clip configuration" after_upload action in devices/jetson_stack.yaml;
+# "Write the Clip configuration" after_upload action in devices/jetson_stack.yaml and
+# devices/rk3576_stack.yaml;
 # assets/config/config.example.yaml documents the schema only.
 #
 # Device acceptance as of 2026-10-08 (receipts orin-nx/round2): the HTTP-upload
@@ -27,8 +36,8 @@ name_i18n: {zh: Clip 本地私有转写}
 enabled: true
 intro:
   visibility: staging
-  summary: Sync reSpeaker Clip recordings to your own reComputer Jetson and get speaker-labelled transcripts without uploading anything to the cloud.
-  summary_i18n: {zh: 把 reSpeaker Clip 的录音同步到你自己的 reComputer Jetson 上转写，分出说话人，录音不上传云端。}
+  summary: Sync reSpeaker Clip recordings to your own reComputer (Jetson Orin NX or RK3576) and get speaker-labelled transcripts without uploading anything to the cloud.
+  summary_i18n: {zh: 把 reSpeaker Clip 的录音同步到你自己的 reComputer（Jetson Orin NX 或 RK3576）上转写，分出说话人，录音不上传云端。}
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
   cover_image: gallery/cover-20261008.jpg
@@ -70,6 +79,12 @@ intro:
     recomputer_j40:
       description: Syncs recordings from the Clip, transcribes them and serves the results page. Jetson Orin NX with JetPack 6.2; choose the wireless module (Wi-Fi + Bluetooth).
       description_i18n: {zh: 从 Clip 同步录音、转写并提供结果页。需 Jetson Orin NX 与 JetPack 6.2；选购时加无线网卡模块（Wi-Fi + 蓝牙）。}
+    recomputer_rk3576:
+      description: Syncs recordings from the Clip, transcribes them and serves the results page. 8 GB RAM version; needs Bluetooth.
+      description_i18n: {zh: 从 Clip 同步录音、转写并提供结果页。选 8 GB 内存版本；需要蓝牙。}
+      purchase:
+        require:
+          ram_gb: [8]
     generic_usb_wifi_adapter:
       name: USB Wi-Fi adapter
       name_i18n: {zh: USB 无线网卡}
@@ -77,16 +92,16 @@ intro:
       description_i18n: {zh: 只在主机用自带 Wi-Fi 上网、又要开启 Wi-Fi 加速同步时需要。}
   presets:
     - id: clip_edge_box
-      name: Clip + reComputer Jetson
+      name: Clip + reComputer
       name_i18n:
-        zh: Clip + reComputer Jetson
-        ja: Clip + reComputer Jetson
-      description: Recordings sync from the Clip to a reComputer J40 (Jetson Orin NX) over Bluetooth and are transcribed there, split by speaker. Optional faster sync over Wi-Fi and optional AI summaries.
+        zh: Clip + reComputer
+        ja: Clip + reComputer
+      description: Recordings sync from the Clip to a reComputer J40 (Jetson Orin NX) or reComputer RK3576 over Bluetooth and are transcribed there, split by speaker. Optional faster sync over Wi-Fi and optional AI summaries.
       description_i18n:
-        zh: 录音经蓝牙从 Clip 同步到 reComputer J40（Jetson Orin NX），在主机上转写并分出说话人。可选 Wi-Fi 加速同步和 AI 摘要。
-        ja: 録音は Bluetooth で Clip から reComputer J40（Jetson Orin NX）に同期され、そこで話者ごとに文字起こしされます。Wi-Fi による高速同期と AI 要約はオプションです。
+        zh: 录音经蓝牙从 Clip 同步到 reComputer J40（Jetson Orin NX）或 reComputer RK3576，在主机上转写并分出说话人。可选 Wi-Fi 加速同步和 AI 摘要。
+        ja: 録音は Bluetooth で Clip から reComputer J40（Jetson Orin NX）または reComputer RK3576 に同期され、そこで話者ごとに文字起こしされます。Wi-Fi による高速同期と AI 要約はオプションです。
       device_groups:
-        - {id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, description: Jetson Orin NX with JetPack 6.2 and Bluetooth., description_i18n: {zh: Jetson Orin NX，JetPack 6.2，带蓝牙。}, options: [{device_ref: recomputer_j40}], default: recomputer_j40}
+        - {id: host, name: Host, name_i18n: {zh: 主机}, type: single, required: true, description: Jetson Orin NX with JetPack 6.2, or RK3576 with 8 GB RAM; Bluetooth is required., description_i18n: {zh: Jetson Orin NX（JetPack 6.2）或 RK3576（8 GB 内存）；需要蓝牙。}, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3576}], default: recomputer_j40}
         - {id: recorder, name: Clip, name_i18n: {zh: Clip}, type: single, required: true, options: [{device_ref: respeaker_clip}], default: respeaker_clip}
         - {id: wireless, name: Wi-Fi adapter (optional), name_i18n: {zh: USB 无线网卡（可选）}, type: single, required: false, description: Only for faster Wi-Fi sync when the host uses its built-in Wi-Fi for its network. Bluetooth sync works without it., description_i18n: {zh: 只在主机用自带 Wi-Fi 上网、又要开启 Wi-Fi 加速同步时需要。不加也能经蓝牙同步。}, options: [{device_ref: generic_usb_wifi_adapter}], default: generic_usb_wifi_adapter}
   stats: {difficulty: advanced, estimated_time: 90min}
