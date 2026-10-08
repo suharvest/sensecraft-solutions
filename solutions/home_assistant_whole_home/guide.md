@@ -3,27 +3,6 @@
 > **Draft / disabled.** Use only after the voice image, language licenses,
 > device inventory, and physical acceptance gates are complete.
 
-## Preset: RK3588 Single Box (Draft) {#rk_single_box}
-
-## Step 1: Deploy HA and RK voice {#rk_deploy type=docker_deploy required=true config=devices/rk_voice.yaml}
-
-Fill the approved voice image digest. The `/dev/serial/by-id/...` path for
-ZBT-2 is optional; leave it empty to install before the dongle is connected. The compose also mounts the reviewed HA package and sentences;
-the installation must be completed on the target host before using this draft.
-
-### Target {#rk_local type=local device=rk3588 device_name="RK3588" config=devices/rk_voice.yaml}
-
-Run Docker on this RK3588 host.
-
-### Target {#rk_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk_voice.yaml default=true}
-
-Connect to this RK3588 host over SSH.
-
-## Step 2: Verify Home Assistant {#rk_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
-
-Open the dashboard, pair ZBT-2 in ZHA, add HomeKit Bridge, and run a local
-voice command with Voice PE. This verify step is not a claim of passing.
-
 ## Preset: Raspberry Pi + Jetson Voice (Draft) {#rpi_jetson}
 
 Measured on a Raspberry Pi 5 (HA 2026.9.3 from this package's compose) with

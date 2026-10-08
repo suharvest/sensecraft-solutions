@@ -45,7 +45,7 @@ intro:
         ja: "Raspberry Pi 5 上の Wyoming Protocol 統合：Jetson Orin NX が提供する 2 つの seeed-local-voice サービス（音声認識・音声合成）（2026-10-08）"
   category: voice_ai
   solution_type: solution
-  tags: [home-assistant, homekit, zigbee, zha, wyoming, local-voice, qwen3-asr, kokoro, piper]
+  tags: [home-assistant, homekit, zigbee, zha, wyoming, local-voice, qwen3-asr, matcha-tts]
   output_interfaces:
     - type: http
       port: 8123
@@ -77,17 +77,11 @@ intro:
       name_i18n: {zh: 树莓派 5（8GB）}
       description: External 64-bit Raspberry Pi host for Home Assistant Container.
       description_i18n: {zh: 运行 Home Assistant Container 的外部 64 位树莓派主机。}
-    recomputer_rk3588:
-      name: reComputer RK3588-40 (16GB)
-      name_i18n: {zh: reComputer RK3588-40（16GB）}
-      description: Single-box Home Assistant and RK voice host.
-      description_i18n: {zh: Home Assistant 与 RK 语音同机主机。}
-      purchase: {require: {ram_gb: [16]}}
     recomputer_j40:
       name: reComputer J4012 (Orin NX 16GB)
       name_i18n: {zh: reComputer J4012（Orin NX 16GB）}
-      description: Jetson voice host for the split preset.
-      description_i18n: {zh: 分体套餐的 Jetson 语音主机。}
+      description: Jetson voice host (Qwen3-ASR + Matcha TTS and the Wyoming adapter).
+      description_i18n: {zh: Jetson 语音主机（Qwen3-ASR + Matcha TTS 与 Wyoming 适配层）。}
       purchase: {require: {module: [orin_nx_16]}}
     home_assistant_connect_zbt:
       name: Home Assistant Connect ZBT-2
@@ -105,17 +99,6 @@ intro:
       description: Optional Zigbee sensor for the room setup.
       description_i18n: {zh: 房间场景可选的 Zigbee 传感器。}
   presets:
-    - id: rk_single_box
-      name: RK3588 Single Box (Draft)
-      name_i18n: {zh: RK3588 单机（草稿）}
-      badge: Blocked artifact
-      badge_i18n: {zh: artifact 阻塞}
-      description: HA Container and RK Piper voice stack on one 16GB host.
-      description_i18n: {zh: 在 16GB 主机上运行 HA Container 与 RK Piper 语音栈。}
-      device_groups:
-        - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: recomputer_rk3588}], default: recomputer_rk3588}
-        - {id: radio, name: Zigbee coordinator, name_i18n: {zh: Zigbee 协调器}, type: single, required: true, options: [{device_ref: home_assistant_connect_zbt}], default: home_assistant_connect_zbt}
-        - {id: satellite, name: Voice satellite, name_i18n: {zh: 语音终端}, type: single, required: true, options: [{device_ref: home_assistant_voice}], default: home_assistant_voice}
     - id: rpi_jetson
       name: Raspberry Pi + Jetson Voice (Draft)
       name_i18n: {zh: 树莓派 + Jetson 语音（草稿）}

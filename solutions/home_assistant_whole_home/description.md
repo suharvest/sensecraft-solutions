@@ -1,13 +1,13 @@
 # Whole-Home Home Assistant with Local Voice
 
 > **Draft.** The Jetson voice image and the Wyoming adapter image are
-> published (2026-10-08); the RK voice image and licensed language resources
-> are not released, and HomeKit, Aqara/ZHA, Voice PE, and offline voice have not
+> published (2026-10-08); licensed language resources are not released, an
+> RK3588 single-box preset is not offered until its voice image exists, and HomeKit, Aqara/ZHA, Voice PE, and offline voice have not
 > passed physical acceptance. No credentials or Xiaomi Home integration are
 > bundled.
 
 This package describes Home Assistant Container with HomeKit Bridge, ZHA via
 ZBT-2, and a local Wyoming ASR/TTS pipeline. The Xiaomi Home path is an
 explicitly non-commercial, user-installed example and is not a product
-commitment. The two presets use the reviewed RK and split Raspberry Pi plus
-Jetson compose definitions; blank image digests fail closed.
+commitment. The preset runs Home Assistant on a Raspberry Pi (or another ARM64 Linux
+host) and the voice services on a Jetson; blank image digests fail closed.
