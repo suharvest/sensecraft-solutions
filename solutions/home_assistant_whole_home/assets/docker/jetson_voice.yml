@@ -50,7 +50,7 @@ services:
       retries: 3
       start_period: 900s
   wyoming-adapter:
-    image: ${ADAPTER_IMAGE:?set ADAPTER_IMAGE to an approved built adapter image}
+    image: ${ADAPTER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b}
     network_mode: host
     restart: unless-stopped
     environment:

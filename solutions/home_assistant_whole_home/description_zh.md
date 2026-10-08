@@ -1,6 +1,7 @@
 # 全屋 Home Assistant 接入与本地语音
 
-> **草稿 / 禁用。** 语音镜像和具备分发许可的语言资源尚未发布，HomeKit、
+> **草稿。** Jetson 语音镜像和 Wyoming 适配层镜像已发布（2026-10-08）；RK 语音镜像和
+> 具备分发许可的语言资源尚未发布，HomeKit、
 > Aqara/ZHA、Voice PE 和断网语音尚未完成真机验收。这里不打包凭据或 Xiaomi
 > Home 集成。
 

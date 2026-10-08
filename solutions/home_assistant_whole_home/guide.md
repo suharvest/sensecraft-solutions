@@ -51,7 +51,8 @@ Connect to this Raspberry Pi over SSH.
 
 ## Step 2: Deploy Jetson voice services {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
 
-Provide approved ASR/TTS image and digest values. The current record has no
+The ASR/TTS image and digest default to the published `nrd6-ovs-jetson:20261008`;
+the Wyoming adapter defaults to the published `wyoming-slv-adapter:20261008`. The current record has no
 verified TTS E2E and no license-cleared distributable voice artifact. The
 2026-10-08 measurement above used a different voice service on the Jetson (one
 OpenVoiceStream container with Qwen3-ASR and Matcha TTS plus the Wyoming

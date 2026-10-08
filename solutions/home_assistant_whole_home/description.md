@@ -1,7 +1,8 @@
 # Whole-Home Home Assistant with Local Voice
 
-> **Draft / disabled.** The voice image and licensed language resources are
-> not released, and HomeKit, Aqara/ZHA, Voice PE, and offline voice have not
+> **Draft.** The Jetson voice image and the Wyoming adapter image are
+> published (2026-10-08); the RK voice image and licensed language resources
+> are not released, and HomeKit, Aqara/ZHA, Voice PE, and offline voice have not
 > passed physical acceptance. No credentials or Xiaomi Home integration are
 > bundled.
 

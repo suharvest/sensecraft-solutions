@@ -49,7 +49,8 @@
 
 ## 步骤 2：部署 Jetson 语音服务 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
 
-填写获准的 ASR/TTS 镜像和 digest。当前没有已验证的 TTS E2E，也没有完成许可
+ASR/TTS 镜像和 digest 默认使用已发布的 `nrd6-ovs-jetson:20261008`；Wyoming 适配层默认使用
+已发布的 `wyoming-slv-adapter:20261008`。当前没有已验证的 TTS E2E，也没有完成许可
 核实的可分发语音 artifact。上文 2026-10-08 的实测在 Jetson 上使用了另一套语音服务
 （一个 OpenVoiceStream 容器运行 Qwen3-ASR 与 Matcha TTS，加 Wyoming 适配器），
 未运行本步骤的分体 ASR/TTS compose。

@@ -39,7 +39,7 @@ user_inputs:
     required: false
     description: /dev/serial/by-id/... path of the ZBT-2. Leave empty to install Home Assistant before the dongle is connected; redeploy with the path to add it.
     description_i18n: {zh: ZBT-2 的 /dev/serial/by-id/... 路径。留空可在接入加密狗之前先安装 Home Assistant；接入后填写路径重新部署。}
-  - {id: adapter_image, name: Wyoming adapter image, name_i18n: {zh: Wyoming 适配层镜像}, type: text, required: true}
+  - {id: adapter_image, name: Wyoming adapter image, name_i18n: {zh: Wyoming 适配层镜像}, type: text, required: false, default: "sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b", description: Published wyoming-slv-adapter image pinned by digest (2026-10-08)., description_i18n: {zh: 已发布的 wyoming-slv-adapter 镜像（2026-10-08，按 digest 固定）。}}
 remote_overrides:
   environment:
     RK_VOICE_IMAGE: "{{rk_voice_image}}"

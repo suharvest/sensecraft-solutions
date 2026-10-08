@@ -4,7 +4,7 @@ version: "1.0"
 id: home_assistant_whole_home
 name: Whole-Home Home Assistant with Local Voice
 name_i18n: {zh: 全屋 Home Assistant 接入与本地语音}
-enabled: false
+enabled: true
 intro:
   visibility: staging
   summary: Connect HomeKit and Aqara devices to Home Assistant with a local voice pipeline; Xiaomi Home remains an explicitly non-commercial user-installed example.
