@@ -6,7 +6,7 @@
 ## Preset: Clip + Edge Compute Box (Draft) {#clip_edge_box}
 
 Pick the host in the deploy step: Jetson, RK3588 or RK3576. Clip sync always
-runs over BLE; Wi-Fi sync is optional and needs a dedicated host adapter. Each
+runs over BLE. Wi-Fi sync is optional: the host joins the Clip's own hotspot on a Wi-Fi interface that is not its network uplink: the built-in Wi-Fi works when the host is on Ethernet; if Wi-Fi is the host's only uplink, add a USB Wi-Fi adapter. Each
 target states its on-device acceptance status.
 
 ## Step 1: Deploy local transcription stack {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
@@ -29,9 +29,10 @@ local chain. Mosquitto uses the bundled anonymous local broker configuration.
 
 Before upload, replace every `REPLACE_WITH_*` value with the actual Clip
 advertised name, BLE MAC address, and local label; do not leave the example
-placeholders. For Wi-Fi sync, set `sync.wifi_iface` to the actual name of the
-dedicated adapter; without one, set `sync.wifi_enabled: false` and the Clip
-syncs over BLE only. Generate an API key locally and put the resulting 64
+placeholders. For Wi-Fi sync, set `sync.wifi_iface` to the Wi-Fi interface that is not
+the host's network uplink (for example `wlan0` when the host is on Ethernet);
+without a spare interface, set `sync.wifi_enabled: false` and the Clip syncs
+over BLE only. Generate an API key locally and put the resulting 64
 hexadecimal characters in `api.key`; the shipped example keeps this field
 empty so startup fails closed until it is configured:
 

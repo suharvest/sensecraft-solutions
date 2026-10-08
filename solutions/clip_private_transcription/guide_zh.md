@@ -6,7 +6,7 @@
 ## 套餐：Clip + 边缘算力盒子（草稿）{#clip_edge_box}
 
 在部署步骤里选择主机：Jetson、RK3588 或 RK3576。Clip 同步始终走 BLE；Wi-Fi 同步
-为可选项，需要专用主机网卡。每个部署目标写明了其真机验收状态。
+为可选项：主机会连上 Clip 自己开的热点，所用的无线接口不能是主机上网用的那一个：主机走网线上网时用自带 Wi-Fi 即可；主机只靠 Wi-Fi 上网时，再加一个 USB 无线网卡。每个部署目标写明了其真机验收状态。
 
 ## 步骤 1：部署本地转写栈 {#deploy_stack type=docker_deploy required=true config=devices/jetson_stack.yaml}
 
@@ -20,8 +20,8 @@ LLM 复用语音 RD 的 `base_url`、`model_name`、`api_key` 字段，由用户
 云端端点需要网络；可达的 RK1828 或 Jetson 端点可支持本地断网链路。Mosquitto 使用包内的本机匿名 broker 配置。
 
 上传前，把所有 `REPLACE_WITH_*` 替换为实际 Clip 广播名称、BLE MAC 地址和本地标签，
-不能保留示例占位符。使用 Wi-Fi 同步时，把 `sync.wifi_iface` 改为专用网卡的实际接口名；
-没有专用网卡时设置 `sync.wifi_enabled: false`，Clip 只走 BLE 同步。请在本机生成 API key，
+不能保留示例占位符。使用 Wi-Fi 同步时，把 `sync.wifi_iface` 改为不用于上网的无线接口名（主机走网线时
+一般是 `wlan0`）；没有空闲的无线接口时设置 `sync.wifi_enabled: false`，Clip 只走 BLE 同步。请在本机生成 API key，
 并将输出的 64 个十六进制字符填入 `api.key`；包内示例保持空值，未配置时会 fail closed：
 
 ```bash
