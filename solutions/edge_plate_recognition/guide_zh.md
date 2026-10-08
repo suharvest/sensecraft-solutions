@@ -1,8 +1,8 @@
 # 边缘车牌识别 — 部署指南
 
-> **草稿（staging）。** 所有套餐均未通过真机验收——模型、镜像与应用包仍在
-> 各平台任务中产出。以下步骤为预期的部署流程，摘掉「草稿」标前会在真机上
-> 重新验证。
+> **草稿（staging）。** 仅 IP 摄像头套餐的 Jetson 部署目标通过了真机验收（部署与
+> 输出链路，2026-10-08）。其余套餐与部署目标的模型、镜像与应用包仍在各平台任务中
+> 产出。以下步骤为预期的部署流程，摘掉「草稿」标前会在真机上重新验证。
 
 ## 套餐: reCamera Pro（推荐） {#recamera_pro}
 
@@ -86,193 +86,103 @@ reComputer R1124-10。
 
 ---
 
-## 套餐: IP 摄像头 + reComputer J30（Jetson） {#jetson}
+## 套餐: IP 摄像头 + 边缘算力盒子 {#ip_camera_box}
 
-保留现有出入口摄像头——Jetson Orin 拉 RTSP 流，用 TensorRT FP16 跑检测与
-识别。
+保留现有出入口摄像头——边缘算力盒子拉 RTSP 流，跑检测与识别。在部署步骤里
+选择盒子：Jetson（TensorRT FP16）、RK3588 或 RK3576（NPU 上跑 RKNN INT8）、
+R2035-12（Hailo-8）。每个部署目标写明了其真机验收状态。
 
-## 步骤 1: 部署车牌识别 {#deploy_jetson type=docker_deploy required=true config=devices/jetson_plate.yaml}
+## 步骤 1: 部署车牌识别 {#deploy_host type=docker_deploy required=true config=devices/jetson_plate.yaml}
 
-在 Jetson 上使用本地构建的停车镜像部署识别栈。部署会从提供的目标设备
-模型目录读取检测和中文识别 TensorRT engine。
-
-设备实测（Jetson Orin Nano，本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps
-RTSP 轮播）：1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
-`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收：正式中文车牌语料（白天、
-夜间）未运行，因此不给出准确率。
+在所选主机上部署识别栈。Jetson 目标使用本地构建的停车镜像，从提供的目标设备
+模型目录读取检测和中文识别 TensorRT engine；RK3588、RK3576 目标使用转换好的
+RKNN 模型；R2035 目标使用编译好的 HEF 模型。
 
 ### 前置条件
 
-1. Jetson 运行 JetPack 6.x，NVIDIA 容器运行时可用。
-2. 镜像和 engine 已缓存或预置在宿主机上，此外至少 0.5 GiB 可用磁盘。
-3. 已本地构建的停车镜像、渲染后的 `vb.config/1` 文件，以及包含检测和中文识别 TensorRT engine 的目标设备模型目录。
-4. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-   可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机 8099
-   已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`（默认
-   `./data`，已存在且可写，存放状态和快照）与计数包一致。
-5. 摄像头距车道 3–8 m，1080p 及以上。
+1. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
+2. 摄像头距车道 3–8 m，1080p 及以上。
+3. **Jetson：** 运行 JetPack 6.x，NVIDIA 容器运行时可用。镜像和 engine 已缓存或
+   预置在宿主机上，此外至少 0.5 GiB 可用磁盘。已本地构建的停车镜像、渲染后的
+   `vb.config/1` 文件，以及包含检测和中文识别 TensorRT engine 的目标设备模型目录。
+   可选 `health_port` 默认 `8099`，须与挂载 JSON 中的 `health.port` 一致；宿主机
+   8099 已被占用时两处一起改。可选 `memory_limit`（默认 `0`，不限）和 `data_dir`
+   （默认 `./data`，已存在且可写，存放状态和快照）与计数包一致。
+4. **RK3588 / RK3576：** 板子上已安装 RKNN 运行时（librknnrt），至少 6 GB 可用磁盘。
+5. **R2035（Hailo-8）：** 已安装 Hailo-8 驱动与 HailoRT，且存在 `/dev/hailo0`。
+   HailoRT 版本必须与驱动一致——需自行从 Hailo Developer Zone 获取。至少 6 GB
+   可用磁盘。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |-------|----------|
-| engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘至少有 0.5 GiB 可用 |
 | 摄像头没有画面 | 先用 VLC 测 RTSP 地址；路径或凭据错误是最常见原因 |
-| 容器反复重启 | 看日志里的 engine 路径；中断产生的半成品 engine 要删掉 |
+| Jetson：engine 或运行时校验失败 | 确认镜像、配置、目标设备 engine 目录、NVIDIA 运行时均正确，且磁盘至少有 0.5 GiB 可用 |
+| Jetson：容器反复重启 | 看日志里的 engine 路径；中断产生的半成品 engine 要删掉 |
+| RK3588 / RK3576：找不到 librknnrt | 先为该板卡安装 RKNN 运行时（rknpu2） |
+| RK3588：日志里 NPU 空闲 | 确认 RKNN 模型文件下载完整——截断的模型会报错或退化 |
+| R2035：找不到 /dev/hailo0 | 先加载 Hailo-8 驱动再部署 |
+| R2035：HailoRT 版本不一致 | 安装与驱动匹配的 HailoRT 包——预检会打印它找到的版本 |
+| R2035：识别跑在 CPU 上 | 两个 network group 无法共享设备时的预期行为；准确率不受影响，吞吐较低 |
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_plate.yaml default=true}
 
-从本机通过 SSH 部署到 Jetson。
+从本机通过 SSH 部署到 Jetson。2026-10-08 已在 Jetson Orin Nano 上验证（部署与
+输出链路），本地构建镜像，40 张带标注 CCPD 静图组成的 1080p 30 fps RTSP 轮播：
+1080p 下处理 29.86 fps，检测推理 p50 5.61 ms / p95 5.75 ms，输出 56 条
+`parking.plate/1` MQTT 事件及 JPEG 快照。识别准确率尚未验收：正式中文车牌语料
+（白天、夜间）未运行，因此不给出准确率。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_plate.yaml}
 
-如果你就在 Jetson 上操作，直接在本机运行。
+如果你就在 Jetson 上操作，直接在本机运行。2026-10-08 已在 Jetson Orin Nano 上
+验证（部署与输出链路）：1080p 下 29.86 fps，检测 p50 5.61 ms / p95 5.75 ms，56 条
+`parking.plate/1` 事件及快照。识别准确率尚未验收。
 
-## 步骤 2: 查看识别结果 {#view_jetson type=web_dashboard required=false config=devices/dashboard.yaml}
+### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-打开实时预览——车牌框与最新识别结果。
-
-## 步骤 3: 安装道闸控制器（可选） {#gate_jetson type=script required=false config=devices/gate_controller.yaml}
-
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。使用时把 Jetson 的
-MQTT 服务器地址指向 R1124。
-
-## 步骤 4: 道闸接线（可选） {#wire_jetson type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
----
-
-## 套餐: IP 摄像头 + reComputer RK3588-30 {#rk3588}
-
-推荐的主机形态——RK3588 NPU 上跑 RKNN INT8，可支撑多路车道摄像头。
-
-## 步骤 1: 部署车牌识别 {#deploy_rk3588 type=docker_deploy required=true config=devices/rk3588_plate.yaml}
-
-在 RK3588 上用转换好的 RKNN 模型部署识别栈。
-
-### 前置条件
-
-1. 板子上已安装 RKNN 运行时（librknnrt）。
-2. 至少 6 GB 可用磁盘。
-3. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 找不到 librknnrt | 先为该板卡安装 RKNN 运行时（rknpu2） |
-| 摄像头没有画面 | 先用 VLC 测 RTSP 地址 |
-| 日志里 NPU 空闲 | 确认 RKNN 模型文件下载完整——截断的模型会报错或退化 |
-
-### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml default=true}
-
-从本机通过 SSH 部署到 RK3588。
+从本机通过 SSH 部署到 RK3588。验收受阻：运行镜像
+`sensecraft/edge-parking-rk:0.1.0-draft` 尚未构建，RKNN 模型尚未发布，随包的
+`assets/rk3588/config/plate.json` 还不是可运行的 `vb.config/1` 文件。
 
 ### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-如果你就在 RK3588 上操作，直接在本机运行。
+如果你就在 RK3588 上操作，直接在本机运行。验收受阻：运行镜像与 RKNN 模型尚未发布。
 
-## 步骤 2: 查看识别结果 {#view_rk3588 type=web_dashboard required=false config=devices/dashboard.yaml}
+### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-打开实时预览——车牌框与最新识别结果。
-
-## 步骤 3: 安装道闸控制器（可选） {#gate_rk3588 type=script required=false config=devices/gate_controller.yaml}
-
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
-
-## 步骤 4: 道闸接线（可选） {#wire_rk3588 type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
----
-
-## 套餐: IP 摄像头 + reComputer RK3576-30 {#rk3576}
-
-用现有出入口摄像头，RK3576 NPU 上跑 RKNN INT8。
-
-## 步骤 1: 部署车牌识别 {#deploy_rk3576 type=docker_deploy required=true config=devices/rk3576_plate.yaml}
-
-在 RK3576 上用转换好的 RKNN 模型部署识别栈。
-
-### 前置条件
-
-1. 板子上已安装 RKNN 运行时（librknnrt）。
-2. 至少 6 GB 可用磁盘。
-3. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 找不到 librknnrt | 先为该板卡安装 RKNN 运行时（rknpu2） |
-| 摄像头没有画面 | 先用 VLC 测 RTSP 地址 |
-
-### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml default=true}
-
-从本机通过 SSH 部署到 RK3576。
+从本机通过 SSH 部署到 RK3576。验收受阻：运行镜像
+`sensecraft/edge-parking-rk:0.1.0-draft` 尚未构建，RK3576 RKNN 模型尚未发布。
+2026-10-08 在一块 RK3576 板上用替代镜像跑通到 `parking.plate/1` 事件；随包
+compose 路径未参与该次运行。
 
 ### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-如果你就在 RK3576 上操作，直接在本机运行。
+如果你就在 RK3576 上操作，直接在本机运行。验收受阻：运行镜像与 RK3576 RKNN 模型
+尚未发布。
 
-## 步骤 2: 查看识别结果 {#view_rk3576 type=web_dashboard required=false config=devices/dashboard.yaml}
+### 部署目标 {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 
-打开实时预览——车牌框与最新识别结果。
+从本机通过 SSH 部署到 R2035。验收受阻：运行镜像
+`sensecraft/edge-parking-hailo:0.1.0-draft` 尚未构建，视觉运行时的 Hailo 后端
+不打补丁时还不接受车牌检测模型的分层输出。
 
-## 步骤 3: 安装道闸控制器（可选） {#gate_rk3576 type=script required=false config=devices/gate_controller.yaml}
+### 部署目标 {#hailo_local type=local device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
+如果你就在 R2035 上操作，直接在本机运行。验收受阻：运行镜像尚未构建，Hailo 后端
+需要补丁才能运行车牌检测模型。
 
-## 步骤 4: 道闸接线（可选） {#wire_rk3576 type=manual required=false config=devices/gate_wiring.yaml}
-
-把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
-并触发一次测试脉冲。
-
----
-
-## 套餐: IP 摄像头 + reComputer R2035-12（Hailo-8） {#hailo}
-
-用现有出入口摄像头，Hailo-8 加速器上跑检测与识别。
-
-## 步骤 1: 部署车牌识别 {#deploy_hailo type=docker_deploy required=true config=devices/hailo_plate.yaml}
-
-在 R2035 上用编译好的 HEF 模型部署识别栈。
-
-### 前置条件
-
-1. 已安装 Hailo-8 驱动与 HailoRT，且存在 `/dev/hailo0`。HailoRT 版本必须
-   与驱动一致——需自行从 Hailo Developer Zone 获取。
-2. 至少 6 GB 可用磁盘。
-3. 出入口摄像头的 RTSP 地址（如需鉴权请带用户名密码）。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 找不到 /dev/hailo0 | 先加载 Hailo-8 驱动再部署 |
-| HailoRT 版本不一致 | 安装与驱动匹配的 HailoRT 包——预检会打印它找到的版本 |
-| 识别跑在 CPU 上 | 两个 network group 无法共享设备时的预期行为；准确率不受影响，吞吐较低 |
-
-### 部署目标 {#hailo_remote type=remote device=hailo device_name="R2035" config=devices/hailo_plate.yaml default=true}
-
-从本机通过 SSH 部署到 R2035。
-
-### 部署目标 {#hailo_local type=local device=hailo device_name="R2035" config=devices/hailo_plate.yaml}
-
-如果你就在 R2035 上操作，直接在本机运行。
-
-## 步骤 2: 查看识别结果 {#view_hailo type=web_dashboard required=false config=devices/dashboard.yaml}
+## 步骤 2: 查看识别结果 {#view_host type=web_dashboard required=false config=devices/dashboard.yaml}
 
 打开实时预览——车牌框与最新识别结果。
 
-## 步骤 3: 安装道闸控制器（可选） {#gate_hailo type=script required=false config=devices/gate_controller.yaml}
+## 步骤 3: 安装道闸控制器（可选） {#gate_host type=script required=false config=devices/gate_controller.yaml}
 
-在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。
+在 reComputer R1124-10 上安装 MQTT broker 与开闸服务。使用时把识别主机的
+MQTT 服务器地址指向 R1124。
 
-## 步骤 4: 道闸接线（可选） {#wire_hailo type=manual required=false config=devices/gate_wiring.yaml}
+## 步骤 4: 道闸接线（可选） {#wire_host type=manual required=false config=devices/gate_wiring.yaml}
 
 把 R1124-10 的数字输出经中间继电器接到道闸的「开闸」输入，然后上传白名单
 并触发一次测试脉冲。

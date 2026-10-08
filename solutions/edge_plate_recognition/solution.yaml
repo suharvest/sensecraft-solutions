@@ -12,9 +12,10 @@
 # gallery 来源说明：暂无任何实拍图（真机验收 P10/P11 之前不得编造截图），
 #   见 gallery/ATTRIBUTION.md。cover_image 与 gallery[] 待实拍后回填。
 #
-# verified 状态：仅 jetson preset 带 `verified: [hardware]`（2026-10-08 Orin Nano
-#   部署与输出链路验收；识别准确率未验收）。其余 preset 未过真机验收（NRD-3 §8
-#   Y1–Y6），不加 `verified:`。某平台验收通过后只给对应 preset 追加。
+# verified 状态：仅 ip_camera_box preset 带 `verified: [hardware]`，依据是其
+#   Jetson 部署目标（2026-10-08 Orin Nano 部署与输出链路验收；识别准确率未验收）。
+#   RK3588 / RK3576 / R2035 目标与两个 reCamera preset 未过真机验收（NRD-3 §8
+#   Y1–Y6）；各目标的状态写在 guide 的目标描述里。
 #
 # `visibility` 不是 spec 字段（spec/solution.schema.json 无此键，加载时被
 # 静默丢弃，见 spec/CONTRACT.md「extra 字段处理」）。写在这里是作为草稿
@@ -247,26 +248,36 @@ intro:
             - device_ref: recomputer_r11
           default: recomputer_r11
 
-    - id: jetson
-      name: IP Camera + reComputer J30 (Jetson)
+    - id: ip_camera_box
+      name: IP Camera + Edge Compute Box
       name_i18n:
-        zh: IP 摄像头 + reComputer J30（Jetson）
-        ja: IP カメラ + reComputer J30（Jetson）
+        zh: IP 摄像头 + 边缘算力盒子
+        ja: IP カメラ + エッジコンピューティングボックス
       badge: Draft
       badge_i18n:
         zh: 草稿
-      description: Keeps your existing gate cameras — Jetson Orin runs detection and recognition with TensorRT FP16. Add an R1124-10 for barrier control.
+      description: Keeps your existing gate cameras — pick a Jetson, RK3588, RK3576 or R2035 (Hailo-8) host in the deploy step. Only the Jetson target is hardware-verified. Add an R1124-10 for barrier control.
       description_i18n:
-        zh: 保留现有出入口摄像头——Jetson Orin 用 TensorRT FP16 跑检测与识别。需要开闸时加一台 R1124-10。
-      # Hardware-verified 2026-10-08 on Jetson Orin Nano for the DEPLOYMENT AND
-      # OUTPUT PATH only (acceptance receipt orin-nano/edge_plate_recognition):
-      # package compose + locally built image, RTSP 1080p 30 fps slideshow of 40
-      # labelled CCPD stills -> NVDEC -> TRT detector + CN recognizer -> vote ->
-      # MQTT parking.plate/1 + JPEG snapshots. 29.86 fps at 1080p, detector p50
-      # 5.61 / p95 5.75 ms, 56 plate events, ready 5.4 s.
-      # Recognition accuracy is NOT accepted: the formal CN corpus gate (day
-      # >=95 % N>=120 / night >=90 % N>=80) was not run; frame-to-event p50 and
-      # the gate controller / relay steps were not measured.
+        zh: 保留现有出入口摄像头——在部署步骤里选择 Jetson、RK3588、RK3576 或 R2035（Hailo-8）主机。仅 Jetson 部署目标通过真机验证。需要开闸时加一台 R1124-10。
+        ja: 既存のゲートカメラをそのまま使用——デプロイ手順で Jetson、RK3588、RK3576、R2035（Hailo-8）からホストを選択します。実機検証済みは Jetson ターゲットのみ。ゲート制御には R1124-10 を追加します。
+      # `verified: [hardware]` covers the Jetson target only; per-target status
+      # is written into each target's description in guide.md / guide_zh.md.
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano for the
+      #   DEPLOYMENT AND OUTPUT PATH only (acceptance receipt
+      #   orin-nano/edge_plate_recognition): package compose + locally built
+      #   image, RTSP 1080p 30 fps slideshow of 40 labelled CCPD stills -> NVDEC
+      #   -> TRT detector + CN recognizer -> vote -> MQTT parking.plate/1 + JPEG
+      #   snapshots. 29.86 fps at 1080p, detector p50 5.61 / p95 5.75 ms, 56
+      #   plate events, ready 5.4 s. Recognition accuracy is NOT accepted: the
+      #   formal CN corpus gate (day >=95 % N>=120 / night >=90 % N>=80) was not
+      #   run; frame-to-event p50 and the gate controller / relay steps were not
+      #   measured.
+      # - RK3588 (radxa): not verified — package image and RKNN models missing,
+      #   assets/rk3588/config/plate.json is not vb.config/1.
+      # - RK3576 (cat-remote): not verified as packaged — image and models
+      #   unpublished; round-2 output-path run used a substitute image.
+      # - R2035 / Hailo-8 (harvest-pi): not verified as packaged — no runtime
+      #   image; Hailo backend needs the YOLOX split-output patch.
       verified:
         - hardware
       device_groups:
@@ -276,138 +287,15 @@ intro:
             zh: 识别主机
           type: single
           required: true
+          description: Choose the edge compute box. The deploy step offers one target per host.
+          description_i18n:
+            zh: 选择边缘算力盒子。部署步骤为每种主机提供一个部署目标。
           options:
             - device_ref: recomputer_j30
-          default: recomputer_j30
-        - id: camera
-          name: IP Camera
-          name_i18n:
-            zh: IP 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: generic_ip_camera
-          default: generic_ip_camera
-        - id: gate_server
-          name: Gate Controller (optional)
-          name_i18n:
-            zh: 道闸控制器（可选）
-          type: single
-          required: false
-          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
-          description_i18n:
-            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
-          options:
-            - device_ref: recomputer_r11
-          default: recomputer_r11
-
-    - id: rk3588
-      name: IP Camera + reComputer RK3588-30
-      name_i18n:
-        zh: IP 摄像头 + reComputer RK3588-30
-        ja: IP カメラ + reComputer RK3588-30
-      badge: Draft
-      badge_i18n:
-        zh: 草稿
-      description: Recommended host form — RKNN INT8 on the RK3588 NPU with multi-stream headroom. Add an R1124-10 for barrier control.
-      description_i18n:
-        zh: 推荐的主机形态——RK3588 NPU 上跑 RKNN INT8，可支撑多路视频。需要开闸时加一台 R1124-10。
-      device_groups:
-        - id: compute
-          name: Recognition Host
-          name_i18n:
-            zh: 识别主机
-          type: single
-          required: true
-          options:
             - device_ref: recomputer_rk3588
-          default: recomputer_rk3588
-        - id: camera
-          name: IP Camera
-          name_i18n:
-            zh: IP 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: generic_ip_camera
-          default: generic_ip_camera
-        - id: gate_server
-          name: Gate Controller (optional)
-          name_i18n:
-            zh: 道闸控制器（可选）
-          type: single
-          required: false
-          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
-          description_i18n:
-            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
-          options:
-            - device_ref: recomputer_r11
-          default: recomputer_r11
-
-    - id: rk3576
-      name: IP Camera + reComputer RK3576-30
-      name_i18n:
-        zh: IP 摄像头 + reComputer RK3576-30
-        ja: IP カメラ + reComputer RK3576-30
-      badge: Draft
-      badge_i18n:
-        zh: 草稿
-      description: RKNN INT8 on the RK3576 NPU for your existing gate cameras. Add an R1124-10 for barrier control.
-      description_i18n:
-        zh: 用现有出入口摄像头，RK3576 NPU 上跑 RKNN INT8。需要开闸时加一台 R1124-10。
-      device_groups:
-        - id: compute
-          name: Recognition Host
-          name_i18n:
-            zh: 识别主机
-          type: single
-          required: true
-          options:
             - device_ref: recomputer_rk3576
-          default: recomputer_rk3576
-        - id: camera
-          name: IP Camera
-          name_i18n:
-            zh: IP 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: generic_ip_camera
-          default: generic_ip_camera
-        - id: gate_server
-          name: Gate Controller (optional)
-          name_i18n:
-            zh: 道闸控制器（可选）
-          type: single
-          required: false
-          description: Adds the R1124-10 as MQTT broker and gate output — whitelist hits pulse the barrier through a relay.
-          description_i18n:
-            zh: 加一台 R1124-10 作为 MQTT broker 与开闸输出——白名单命中经继电器给道闸脉冲。
-          options:
-            - device_ref: recomputer_r11
-          default: recomputer_r11
-
-    - id: hailo
-      name: IP Camera + reComputer R2035-12 (Hailo-8)
-      name_i18n:
-        zh: IP 摄像头 + reComputer R2035-12（Hailo-8）
-        ja: IP カメラ + reComputer R2035-12（Hailo-8）
-      badge: Draft
-      badge_i18n:
-        zh: 草稿
-      description: Detection and recognition on a Hailo-8 accelerator for your existing gate cameras. Add an R1124-10 for barrier control.
-      description_i18n:
-        zh: 用现有出入口摄像头，Hailo-8 加速器上跑检测与识别。需要开闸时加一台 R1124-10。
-      device_groups:
-        - id: compute
-          name: Recognition Host
-          name_i18n:
-            zh: 识别主机
-          type: single
-          required: true
-          options:
             - device_ref: recomputer_r20_industrial
-          default: recomputer_r20_industrial
+          default: recomputer_j30
         - id: camera
           name: IP Camera
           name_i18n:
