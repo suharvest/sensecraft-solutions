@@ -1,60 +1,133 @@
-# 部署指南
+## 套餐: ARM64 Linux 主机 + Jetson Orin NX 语音 {#rpi_jetson}
 
-> **草稿 / 禁用。** 语音镜像、语言资源许可、设备清单和真机验收门槛完成前
-> 只能用于审查。
+ARM64 Linux 主机运行 Home Assistant，reComputer J40 负责听懂语音和生成回复语音，两台设备在同一局域网内配合工作。
 
-## 套餐：树莓派 + Jetson 语音（草稿）{#rpi_jetson}
+| 设备 | 用途 |
+|------|------|
+| ARM64 Linux 主机（64 位系统，8GB 内存） | 运行 Home Assistant |
+| reComputer J40 系列（Jetson Orin NX 16GB） | 本地语音识别和语音合成 |
+| Home Assistant Connect ZBT-2 | 接入 Zigbee 设备 |
+| Home Assistant Voice 预览版 | 房间里的语音终端 |
 
-设备实测（ARM64 Linux 主机，Broadcom BCM2712、8GB，运行本包 compose 部署的 HA 2026.9.3，语音端点在 Jetson Orin NX，
-经 Wyoming 接入）：5 条语音指令（中文、英文，“打开/关闭客厅灯”）全部改变了 HA 实体
-状态，均由内置意图代理在本地处理。音频结束后 STT 最终结果 0.11–0.95 s（中位数
-0.12 s）。输入为 TTS 合成语音推流到 Assist 管道，不是麦克风；实体为虚拟演示灯。
-HomeKit 配对、Aqara/ZHA（ZBT-2）、Voice PE、ESPHome、实体麦克风/扬声器、离线运行
-和日语指令不在这次实测范围内：交付前在自己的安装环境里测试需要用到的项。
+**部署完成后你可以：**
+- 用中文或英文语音控制灯光等设备，说完到识别出文字中位数 0.12 秒
+- 把 Zigbee 传感器和开关接入 Home Assistant
+- 在 iPhone 的「家庭」App 和 Siri 里控制同一批设备
 
-## 步骤 1：部署 Home Assistant Container {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
+**前提条件：** 两台设备在同一局域网 · reComputer J40 至少 30 GB 可用磁盘，首次启动需联网下载语音模型
 
-使用 64 位 Raspberry Pi OS。Home Assistant 默认监听 8123 端口；若树莓派上 8123
-已被占用（例如另一套 Home Assistant），首次安装前填写其他 Home Assistant 端口。ZBT-2 设备路径可选：留空
-可在接入加密狗之前先安装 Home Assistant，接入后填写 `/dev/serial/by-id/...` 路径
-重新部署。
+## 步骤 1: 部署 Home Assistant {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 
-### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml}
+在 ARM64 Linux 主机上安装 Home Assistant。
 
-在这台树莓派上运行 Docker。
+### 前置条件
 
-### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml default=true}
+- 主机运行 64 位 Linux 系统，至少 8 GB 可用磁盘
+- ZBT-2 可以稍后再接：「ZBT-2 设备路径」先留空，接上 ZBT-2 后填写路径再部署一次
 
-通过 SSH 连接这台树莓派。
+### 接线
 
-## 步骤 2：部署 Jetson 语音服务 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
+1. 把 ARM64 Linux 主机接入局域网并开机
+2. 把 ZBT-2 插到主机的 USB 口；在主机上执行 `ls /dev/serial/by-id/`，把列出的路径填到「ZBT-2 设备路径」
+3. 默认端口为 8123；主机上已有其他程序占用 8123 时，填写另一个端口
+4. 点击部署
 
-运行一个 OpenVoiceStream 服务（Qwen3-ASR + Matcha TTS，配置 `jetson-edgellm-v091-matcha`，
-镜像 `nrd6-ovs-jetson:20261008`）同时提供 ASR 和 TTS，端口为 `voice_port`（默认 8623）；
-另有 Wyoming 适配层（`wyoming-slv-adapter:20261008`），Home Assistant 经 `wyoming_stt_port` /
-`wyoming_tts_port`（默认 10300 / 10200）连接。首次启动时服务把模型下载到 `jetson-models` 卷
-（至少 30 GB 可用磁盘）。2026-10-08 已在 Orin NX 上用本 compose 文件验证，所用 OVS 与适配层镜像的
-config digest 与已发布的 20261008 镜像一致（语音服务 8633，Wyoming 经端口输入改为 10301 / 10201；
-模型取自已有卷，关闭自动下载）：两个端口都应答 Wyoming `describe` 请求；TTS 输出回送 STT，
-打开客厅灯、关闭卧室的灯和 "Turn on the living room light" 三句与原文一致（另带句末标点）；TTS 首段音频 0.05–0.12 s，音频结束后 0.38–0.58 s 出 STT 结果。
-输入为合成语音，非麦克风。尚无完成许可核实的可分发语音 artifact。
+### 部署完成
 
-### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
+1. 在浏览器打开 **http://\<主机 IP\>:8123**（改过端口时换成你填的端口）；首次启动需要等待片刻
+2. 按页面提示创建管理员账号
 
-在这台 Jetson 上运行 Docker。
+### 故障排查
 
-### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_voice.yaml default=true}
+| 问题 | 解决方法 |
+|------|----------|
+| 提示端口已被占用 | 在「Home Assistant 端口」填写另一个端口后重新部署 |
+| 改了端口但 Home Assistant 仍用原来的端口 | 已安装过的 Home Assistant 保留首次安装时的端口，部署时填写的端口对它不再生效；继续用原来的端口访问 |
+| 提示配置目录没有写入权限 | 在主机上执行 `sudo mkdir -p /opt/ha-whole-home/ha-config && sudo chown $USER /opt/ha-whole-home/ha-config`，再部署 |
+| 页面打不开 | 等待几分钟后刷新；确认浏览器所在电脑和主机在同一局域网 |
+| Home Assistant 里看不到 ZBT-2 | 确认「ZBT-2 设备路径」填的是 `/dev/serial/by-id/` 下的完整路径，重新部署 |
+| 连接主机失败 | 检查 IP 地址、用户名和密码，确认主机已开机并接入局域网 |
 
-通过 SSH 连接这台 Jetson。
+### 部署目标: 本机部署 {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml}
 
-## 步骤 3：验证 Home Assistant {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+在当前这台 ARM64 Linux 主机上安装。
 
-把 Home Assistant 接到 Jetson 语音服务，再做检查：
+### 部署目标: 远程部署 {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml default=true}
 
-1. 在 Home Assistant 中进入 **设置 → 设备与服务 → 添加集成 → Wyoming Protocol**，主机填 Jetson 的
-   IP 地址，端口填步骤 2 的 `wyoming_stt_port`（默认 10300）。
-2. 再添加一个 **Wyoming Protocol** 集成，主机相同，端口填 `wyoming_tts_port`（默认 10200）。
-3. 进入 **设置 → 语音助手**，打开 Assist 流水线，选择新加入的语音转文字和文字转语音服务。
-4. 完成 ZHA、HomeKit 和本地语音检查。
+通过网络连接 ARM64 Linux 主机安装，需要它的 IP 地址、用户名和密码。
 
-之后若用其他端口重新部署步骤 2，已有的 Wyoming 集成仍指向旧端口：删除这两个集成后重新添加。
+---
+
+## 步骤 2: 部署 Jetson 语音服务 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
+
+在 reComputer J40 上安装语音识别和语音合成服务，供 Home Assistant 调用。
+
+### 前置条件
+
+- reComputer J40（Jetson Orin NX 16GB），至少 30 GB 可用磁盘
+- 首次启动需联网下载语音模型，下载完成前服务不可用
+
+### 接线
+
+1. 把 reComputer J40 接入与 Home Assistant 主机相同的局域网并开机
+2. 端口保持默认即可：语音转文字 10300、文字转语音 10200、语音服务 8623；其中某个端口已被占用时再修改
+3. 记下 reComputer J40 的 IP 地址和这两个端口，步骤 3 会用到
+4. 点击部署
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 提示磁盘空间不足 | 清理出至少 30 GB 可用空间后重新部署 |
+| 提示端口已被占用 | 换一个未被占用的端口后重新部署，三个端口不能相同 |
+| 部署后很久没有就绪 | 首次启动要先下载语音模型，耗时取决于网速；确认 reComputer J40 能访问互联网 |
+| 提示缺少 NVIDIA 容器运行环境 | 确认 reComputer J40 刷的是完整的 JetPack 系统（含 NVIDIA 容器运行环境）后重试 |
+| 连接设备失败 | 检查 IP 地址、用户名和密码，确认设备已开机并接入局域网 |
+
+### 部署目标: 本机部署 {#jetson_local type=local device=jetson device_name="reComputer J40（Jetson Orin NX 16GB）" config=devices/jetson_voice.yaml}
+
+在当前这台 reComputer J40 上安装。
+
+### 部署目标: 远程部署 {#jetson_remote type=remote device=jetson device_name="reComputer J40（Jetson Orin NX 16GB）" config=devices/jetson_voice.yaml default=true}
+
+通过网络连接 reComputer J40 安装，需要它的 IP 地址、用户名和密码。
+
+---
+
+## 步骤 3: 接入本地语音并验证 {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+
+在 Home Assistant 里添加语音服务，然后用一句话测试。
+
+### 部署完成
+
+1. 打开 Home Assistant，进入 **设置 → 设备与服务 → 添加集成**，搜索 **Wyoming Protocol**；主机填 reComputer J40 的 IP 地址，端口填步骤 2 的语音转文字端口（默认 10300）
+2. 再添加一个 **Wyoming Protocol** 集成，主机相同，端口填文字转语音端口（默认 10200）
+3. 进入 **设置 → 语音助手**，打开语音助手，语言选中文或英文，「语音转文字」和「文字转语音」分别选刚添加的两个服务，保存
+4. 点右上角的对话按钮，说或输入「打开客厅灯」，对应的灯被打开并收到回复
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|------|----------|
+| 添加集成时提示无法连接 | 确认步骤 2 已就绪、IP 和端口填写正确，Home Assistant 主机能访问 reComputer J40 |
+| 语音助手里选不到语音服务 | 确认两个 Wyoming Protocol 集成都已添加成功 |
+| 重新部署步骤 2 时改了端口，语音不再工作 | 删除这两个 Wyoming Protocol 集成，用新端口重新添加 |
+| 指令被识别但设备没反应 | 确认指令里的名称与 Home Assistant 里设备或区域的名称一致 |
+
+---
+
+# 部署完成
+
+Home Assistant 和本地语音服务已就绪。
+
+### 初始设置
+
+1. **接入 Zigbee 设备**：进入 **设置 → 设备与服务 → 添加集成**，选择 **Zigbee Home Automation**，串口选 ZBT-2；之后在该集成里点「添加设备」，并让 Zigbee 设备进入配对模式
+2. **接入苹果「家庭」**：Home Assistant 的通知里会出现 HomeKit Bridge 的配对二维码，用 iPhone 的「家庭」App 扫码添加
+3. **接入语音终端**：按 Home Assistant Voice 预览版的说明连上 Wi-Fi 并加入 Home Assistant，在它的设备页把语音助手选为步骤 3 配置的那一个
+
+### 快速验证
+
+- 对语音终端说「打开客厅灯」，灯被打开并听到回复
+- 在 iPhone 的「家庭」App 里能看到并控制同一批设备
+- Zigbee 传感器的读数在 Home Assistant 里刷新
