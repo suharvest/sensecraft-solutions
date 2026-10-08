@@ -1,0 +1,72 @@
+name: App / engine bug
+description: A deployment step fails because of the SenseCraft Solution app itself, not the device or the solution's configuration. AI agents using the `sensecraft` skill fill this in for you.
+title: "[engine] "
+labels: ["bug", "engine"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove passwords, tokens and IP addresses from everything you paste.
+  - type: input
+    id: app_version
+    attributes:
+      label: App version
+      description: "`app_version` in ~/.sensecraft/runtime.json, or Settings → About"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: This computer's OS
+      placeholder: macOS 15.1 / Windows 11 / Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Target device
+      placeholder: "reComputer J4012, JetPack 6.2, arm64 — or: this computer (local Docker)"
+    validations:
+      required: true
+  - type: input
+    id: solution
+    attributes:
+      label: Solution, preset and step
+      placeholder: "smart_warehouse / sensecraft_cloud / warehouse (docker_deploy)"
+    validations:
+      required: true
+  - type: dropdown
+    id: edited
+    attributes:
+      label: Was the solution changed locally?
+      description: The app shows "Locally modified" on changed solutions.
+      options:
+        - "No"
+        - "Yes (diff below)"
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened
+      description: The first error and the 10–20 log lines around it.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: ruled_out
+    attributes:
+      label: What was ruled out
+      description: Device / environment checks that passed (disk, ports, network, Docker, credentials).
+  - type: textarea
+    id: diff
+    attributes:
+      label: Local changes (diff)
+      description: Only if the solution was changed locally.
+      render: diff

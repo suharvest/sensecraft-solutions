@@ -27,6 +27,7 @@ a skill when its job comes up:
 
 | Skill | Load it when… |
 |---|---|
+| `sensecraft` | **Agent-neutral entry point for app users** (any agent that can read files and run `curl`): deploy through the running app, diagnose a failed deployment, and fix solution config in an edit copy — one loop, no copy-paste between the app and the agent. |
 | `solution-cli` | Driving the engine from the command line / CI — `solutionctl` for deploy, validate, discover solutions, device ops (Part D). |
 | `deploy-solution` | Deploying via the running backend's REST API (Part C boost flow). |
 | `author-solution` | Creating a new solution from source material (reproduce → validate → document). |
@@ -34,6 +35,16 @@ a skill when its job comes up:
 | `preview-solution-content` | Previewing locally-edited content in the installed app (Part A). |
 | `prepare-docker-images` / `prepare-deb-package` / `prepare-esp32-firmware` / `prepare-himax-firmware` / `prepare-recamera-nodered` | Preparing the deploy artifacts for the matching deployer type. |
 | `integrate-jetson-solution` | Building a Jetson `docker_remote` solution package. |
+
+> **Using `sensecraft` without cloning this repo:** in the SenseCraft Solution
+> app open **Settings → Advanced → AI agent skill** and click Install for your agent (the
+> app ships the skill matching its own version). Or copy the `skills/sensecraft/`
+> folder into your agent's skills directory — Claude Code: `~/.claude/skills/`;
+> CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check
+> your version's settings); other agents: point them at `skills/sensecraft/SKILL.md`.
+> It needs the SenseCraft Solution app running on the same computer
+> (app contract 6+ for config editing); it finds the app via
+> `~/.sensecraft/runtime.json`.
 
 > Windows note: the `.claude/skills` symlink needs `git config core.symlinks true`
 > (and Developer Mode) to clone as a real link; otherwise point your agent at
