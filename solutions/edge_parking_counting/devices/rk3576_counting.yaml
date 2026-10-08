@@ -18,7 +18,7 @@ docker:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{parking_config}}"
-    PARKING_MODELS_DIR: "{{parking_models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
     PARKING_DATA_DIR: "{{parking_data_dir}}"
     PARKING_DRI_DEVICE: "{{parking_dri_device}}"
     PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
@@ -35,14 +35,47 @@ pre_checks:
   - type: disk_space
     min_gb: 1
     description: Existing local image, model and data paths must fit the host budget.
+files:
+  # count_vehicle416_rk3576: 4958009 bytes, published 2026-10-08; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz
+    remote_path: /home/{{username}}/edge-parking-counting-rk3576/models/count_vehicle416_rk3576-26acb5d42297.tar.gz
+    checksum:
+      sha256: 26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd
 actions:
+  after_upload:
+    - name: Fetch and unpack the model bundle
+      name_i18n: {zh: 获取并解包模型包}
+      timeout: 1800
+      run: |
+        set -eu
+        MODELS_DIR="/home/{{username}}/edge-parking-counting-rk3576/models"
+        BUNDLE="count_vehicle416_rk3576-26acb5d42297.tar.gz"
+        BUNDLE_SHA="26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz"
+        mkdir -p "$MODELS_DIR"
+        have_models() {
+          echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+        }
+        if have_models; then
+          echo "Model files already present"
+        else
+          if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+            # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+            curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+            echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+            mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+          fi
+          tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+          echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
+        fi
+        ls -l "$MODELS_DIR"
   before:
-    - name: Check RK inputs, cached image and host ABI
-      name_i18n: {zh: 检查 RK 输入、缓存镜像和宿主机 ABI}
+    - name: Check RK inputs and host ABI
+      name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
       env:
         PARKING_IMAGE: "{{parking_image}}"
         PARKING_CONFIG: "{{parking_config}}"
-        PARKING_MODELS_DIR: "{{parking_models_dir}}"
+        PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
         PARKING_DATA_DIR: "{{parking_data_dir}}"
         PARKING_DRI_DEVICE: "{{parking_dri_device}}"
         PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
@@ -51,28 +84,25 @@ actions:
         PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
       run: |
         set -eu
-        docker image inspect "$PARKING_IMAGE" >/dev/null
         test -f "$PARKING_CONFIG"
-        test -d "$PARKING_MODELS_DIR"
-        test -f "$PARKING_MODELS_DIR/vehicle_416.rk3576.w8a8.rknn"
-        echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $PARKING_MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
         test -d "$PARKING_DATA_DIR"
         test -w "$PARKING_DATA_DIR"
         test -e "$PARKING_DRI_DEVICE"
         for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-        echo "RK inputs, cached image, model SHA and ABI paths exist"
+        echo "RK inputs and ABI paths exist"
       name_i18n:
-        zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径
+        zh: 检查 RK 输入和宿主机 ABI 路径
 post_deployment:
   open_browser: false
 user_inputs:
   - id: parking_image
-    name: Reviewed local RK parking image
-    name_i18n: {zh: 已审查的本地 RK 停车镜像}
+    name: Parking image
+    name_i18n: {zh: 停车镜像}
     type: text
-    required: true
-    description: No public image is supplied; use a locally built native RK image already cached on the host.
-    description_i18n: {zh: 未提供公开镜像；使用宿主机已缓存的本地原生 RK 镜像。}
+    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb"
+    required: false
+    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
+    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
   - id: parking_config
     name: Host config path
     name_i18n: {zh: 宿主机配置路径}
@@ -80,13 +110,6 @@ user_inputs:
     required: true
     description: Copy assets/config/counting-rk3576.json to the host, edit it, and supply that already-edited matching vb.config/1 file. Set site_id and device_id (each <=32 characters), unique mqtt client_id and topic_root, broker host/port/username/password (use empty username/password for an anonymous broker), every RTSP URL and per-stream h264 or h265 codec, the pinned model path and SHA256, counting line/direction/capacity, and an existing writable state_dir. The JSON health host is 0.0.0.0 so the RK LAN address can answer port 8099.
     description_i18n: {zh: 将 assets/config/counting-rk3576.json 复制到宿主机并编辑后，填写这份已编辑且与板卡匹配的 vb.config/1 文件。设置 site_id 和 device_id（各不超过 32 个字符）、唯一的 mqtt client_id 和 topic_root、broker host/port/username/password（匿名 broker 时 username/password 留空）、每路 RTSP URL 及 h264 或 h265 编码、与固定 SHA256 匹配的模型路径、计数线/方向/容量，以及已存在且可写的 state_dir。JSON 中的 health host 为 0.0.0.0，RK 局域网地址可应答 8099 端口。}
-  - id: parking_models_dir
-    name: Host model directory
-    name_i18n: {zh: 宿主机模型目录}
-    type: text
-    required: true
-    description: Existing directory containing vehicle_416.rk3576.w8a8.rknn; SHA256 must be 66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451.
-    description_i18n: {zh: 包含 vehicle_416.rk3576.w8a8.rknn 的现有目录；SHA256 必须为 66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451。}
   - id: parking_data_dir
     name: Existing writable data directory
     name_i18n: {zh: 现有可写数据目录}
@@ -123,7 +146,7 @@ remote_overrides:
   environment:
     PARKING_IMAGE: "{{parking_image}}"
     PARKING_CONFIG: "{{parking_config}}"
-    PARKING_MODELS_DIR: "{{parking_models_dir}}"
+    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
     PARKING_DATA_DIR: "{{parking_data_dir}}"
     PARKING_DRI_DEVICE: "{{parking_dri_device}}"
     PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
@@ -131,13 +154,40 @@ remote_overrides:
     PARKING_RGA_LIB: "{{parking_rga_lib}}"
     PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
   actions:
+    after_upload:
+      - name: Fetch and unpack the model bundle
+        name_i18n: {zh: 获取并解包模型包}
+        timeout: 1800
+        run: |
+          set -eu
+          MODELS_DIR="/home/{{username}}/edge-parking-counting-rk3576/models"
+          BUNDLE="count_vehicle416_rk3576-26acb5d42297.tar.gz"
+          BUNDLE_SHA="26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
     before:
-      - name: Check RK inputs, cached image and host ABI
-        name_i18n: {zh: 检查 RK 输入、缓存镜像和宿主机 ABI}
+      - name: Check RK inputs and host ABI
+        name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
         env:
           PARKING_IMAGE: "{{parking_image}}"
           PARKING_CONFIG: "{{parking_config}}"
-          PARKING_MODELS_DIR: "{{parking_models_dir}}"
+          PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
           PARKING_DATA_DIR: "{{parking_data_dir}}"
           PARKING_DRI_DEVICE: "{{parking_dri_device}}"
           PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
@@ -146,15 +196,11 @@ remote_overrides:
           PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
         run: |
           set -eu
-          docker image inspect "$PARKING_IMAGE" >/dev/null
           test -f "$PARKING_CONFIG"
-          test -d "$PARKING_MODELS_DIR"
-          test -f "$PARKING_MODELS_DIR/vehicle_416.rk3576.w8a8.rknn"
-          echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $PARKING_MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
           test -d "$PARKING_DATA_DIR"
           test -w "$PARKING_DATA_DIR"
           test -e "$PARKING_DRI_DEVICE"
           for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-          echo "RK inputs, cached image, model SHA and ABI paths exist"
+          echo "RK inputs and ABI paths exist"
         name_i18n:
-          zh: 检查 RK 输入、缓存镜像、模型 SHA 和宿主机 ABI 路径
+          zh: 检查 RK 输入和宿主机 ABI 路径

@@ -6,9 +6,9 @@
 
 This preset is a reviewable deployment contract for an existing RTSP gate
 camera and an edge host. Pick the host in the deploy step: Jetson Orin
-(TensorRT), RK3588 or RK3576 (RKNN). Every target requires a locally built
-image, a target-device model, a JSON configuration, and an external MQTT
-broker. Each target states its on-device acceptance status.
+(TensorRT), RK3588 or RK3576 (RKNN). Every target pulls the published
+image and downloads its target-device model bundle; it needs a JSON
+configuration and an external MQTT broker. Each target states its on-device acceptance status.
 
 ## Step 1: Deploy the native counting app {#deploy_counting type=docker_deploy required=true config=devices/jetson_counting.yaml}
 
@@ -28,8 +28,8 @@ the config for an H.265 camera.
 2. **Jetson:** JetPack 6 and the NVIDIA container runtime are installed.
    Copy `assets/config/counting.json` to a host path and edit its RTSP stream,
    MQTT broker, site/device IDs, counting line, and target engine path.
-   `PARKING_IMAGE`, `PARKING_CONFIG`, and `PARKING_MODELS_DIR` point to local,
-   reviewed inputs. Optional `health_port` defaults to `8099`; set it to the
+   `PARKING_IMAGE` defaults to the published image; the TensorRT engine bundle is
+   downloaded into `PARKING_MODELS_DIR`; `PARKING_CONFIG` points to your edited JSON. Optional `health_port` defaults to `8099`; set it to the
    port in the mounted JSON. Optional `memory_limit` defaults to `0` (no
    Compose cgroup limit); a bounded test may set `768m`. Optional `data_dir`
    defaults to `./data` and must be an existing writable directory so state
@@ -38,8 +38,8 @@ the config for an H.265 camera.
    already cached or staged and uses the space for runtime files, logs, and
    metadata. Prepare additional space separately when loading or building
    those artifacts; this threshold does not certify capacity or accuracy.
-3. **RK3576 / RK3588:** a locally reviewed native RK image, the board-targeted
-   vehicle416 RKNN artifact, a matching `vb.config/1` file, and host ABI paths.
+3. **RK3576 / RK3588:** the published native RK image and the board-targeted
+   vehicle416 RKNN bundle (both fetched at deploy time), a matching `vb.config/1` file, and host ABI paths.
    Copy the shipped `assets/config/counting-rk3576.json` or
    `assets/config/counting-rk3588.json` to the RK host and pass that host path
    as `PARKING_CONFIG`. Edit the copied JSON: keep `site_id` and `device_id` at 32 characters or fewer; make `mqtt.client_id` and `mqtt.topic_root` unique; set both the top-level `mqtt` map and `app.options.mqtt` to the real broker host, port, username, and password (leave username and password empty when the broker is anonymous); set every RTSP URL and each stream's `options.codec` to `h264` or `h265`; set `backend.model_path` and `backend.model_sha256` to the pinned vehicle416 artifact; set `app.options.counting.line`, direction, and capacity; and set an existing writable `app.options.state_dir`. Use the already-edited file as the `parking_config` input.

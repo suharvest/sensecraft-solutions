@@ -1,9 +1,9 @@
 # Edge Parking Vehicle Counting
 
-> **Draft / blocked artifact.** This package is disabled until the native
-> `SlotsApp`/counting application, public image or approved local build input,
-> model artifact, and Jetson acceptance evidence are available. No image,
-> model, broker, or host proprietary library is bundled here.
+> **Draft.** The native runtime image and the per-target model bundles are
+> published (2026-10-08) and fetched at deploy time; each deployment target
+> states its acceptance status. No broker or host proprietary library is
+> bundled here.
 
 This design counts cars, motorcycles, buses, and trucks crossing a configured
 entrance line. The native TensorRT runtime performs capture, decode, inference,

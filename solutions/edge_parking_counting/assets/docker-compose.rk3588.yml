@@ -1,7 +1,6 @@
 services:
   parking:
-    image: ${PARKING_IMAGE:?set PARKING_IMAGE to the reviewed local RK image}
-    pull_policy: never
+    image: ${PARKING_IMAGE:-sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb}
     container_name: ${PARKING_CONTAINER_NAME:-edge-parking-counting-rk3588}
     restart: unless-stopped
     privileged: true

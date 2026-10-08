@@ -6,7 +6,7 @@ id: edge_parking_counting
 name: Edge Parking Vehicle Counting
 name_i18n:
   zh: 边缘停车场车辆进出计数
-enabled: false
+enabled: true
 intro:
   visibility: staging
   summary: Count vehicles crossing a configured entrance line on a Jetson edge host and publish occupancy events over MQTT.
@@ -91,12 +91,12 @@ intro:
       name_i18n:
         zh: IP 摄像头 + 边缘算力盒子（草稿）
         ja: IP カメラ + エッジコンピューティングボックス（ドラフト）
-      badge: Blocked artifact
+      badge: Draft / acceptance incomplete
       badge_i18n:
-        zh: artifact 阻塞
-      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target requires a locally built native image and a target-device model. Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
+        zh: 草稿 / 验收未完成
+      description: Draft only. Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target uses the published native image and its target-device model bundle (fetched at deploy time). Jetson is hardware-verified, RK3588 verified with conditions, RK3576 acceptance blocked.
       description_i18n:
-        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都需要本地构建的原生镜像和目标设备模型。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
+        zh: 仅为草案。在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都使用已发布的原生镜像和对应目标设备的模型包（部署时自动获取）。Jetson 已通过真机验证，RK3588 有条件验证，RK3576 验收受阻。
         ja: ドラフトのみ。デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。どのターゲットもローカルビルドのネイティブイメージとターゲットデバイス用モデルが必要です。Jetson は実機検証済み、RK3588 は条件付き検証、RK3576 は受け入れ検証が保留中です。
       # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
       # status is written into each target's description in the guides.

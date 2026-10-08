@@ -5,8 +5,8 @@
 ## 套餐：IP 摄像头 + 边缘算力盒子（草稿）{#ip_camera_box}
 
 本套餐记录现有 RTSP 出入口摄像头与边缘主机的部署契约。在部署步骤里选择主机：
-Jetson Orin（TensorRT）、RK3588 或 RK3576（RKNN）。每个部署目标都需要本地构建
-镜像、目标设备模型、JSON 配置和外部 MQTT broker。每个部署目标写明了其真机验收
+Jetson Orin（TensorRT）、RK3588 或 RK3576（RKNN）。每个部署目标都会拉取已发布
+镜像并下载对应的目标设备模型包，另需 JSON 配置和外部 MQTT broker。每个部署目标写明了其真机验收
 状态。
 
 ## 步骤 1：部署原生计数应用 {#deploy_counting type=docker_deploy required=true config=devices/jetson_counting.yaml}
@@ -25,15 +25,15 @@ context；RK3588 使用三个 RKNN context，输入相同。默认流编码为 H
 2. **Jetson：** 已安装 JetPack 6 和 NVIDIA container runtime。将
    `assets/config/counting.json` 复制到宿主机，编辑其中的 RTSP 流、MQTT
    broker、站点/设备编号、计数线和目标 engine 路径。
-   `PARKING_IMAGE`、`PARKING_CONFIG` 和 `PARKING_MODELS_DIR` 指向审查过的
-   本地输入。可选 `health_port` 默认 `8099`，需与挂载 JSON 中的端口一致。
+   `PARKING_IMAGE` 默认使用已发布镜像；TensorRT engine 模型包下载到
+   `PARKING_MODELS_DIR`；`PARKING_CONFIG` 指向你编辑后的 JSON。可选 `health_port` 默认 `8099`，需与挂载 JSON 中的端口一致。
    可选 `memory_limit` 默认 `0`（Compose 不设置 cgroup 上限）；有界测试可填写
    `768m`。可选 `data_dir` 默认 `./data`，必须是已存在且可写的目录，以便容器
    重启后保留状态。Compose 本地 JSON 日志上限为 8 MiB × 3。 Jetson 预检查要求 `/` 至少有 0.5 GiB 可用空间；该路径假设镜像、模型和
    TensorRT engine 已提前缓存或暂存，余量用于运行文件、日志和元数据。加载或构建这些
    artifact 需另行准备空间；该门槛不代表容量或准确率验收。
-3. **RK3576 / RK3588：** 本地审查过的原生 RK 镜像、面向该板卡的 vehicle416 RKNN
-   artifact、匹配的 `vb.config/1` 文件和宿主机 ABI 路径。将随包提供的
+3. **RK3576 / RK3588：** 已发布的原生 RK 镜像和面向该板卡的 vehicle416 RKNN
+   模型包（均在部署时获取）、匹配的 `vb.config/1` 文件和宿主机 ABI 路径。将随包提供的
    `assets/config/counting-rk3576.json` 或 `assets/config/counting-rk3588.json`
    复制到 RK 宿主机，并把该宿主机路径填写为 `PARKING_CONFIG`。编辑复制出的 JSON：`site_id` 和
    `device_id` 各不超过 32 个字符；`mqtt.client_id` 和 `mqtt.topic_root` 必须唯一；
