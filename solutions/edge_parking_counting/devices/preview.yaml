@@ -1,0 +1,41 @@
+version: "1.0"
+id: preview
+name: Open the counting preview
+name_i18n:
+  zh: 打开计数预览
+type: web_dashboard
+
+# /preview is served by the counting service on its HTTP port (the deploy
+# step's http_port, default 8080). host and http_port are carried over from the
+# deploy step: the SSH host for remote targets, the 127.0.0.1 default for local.
+web_dashboard:
+  url: "http://{{host}}:{{http_port}}/preview"
+  title: Counting preview
+  title_i18n:
+    zh: 计数预览
+  description: Live camera picture with the counting line, tracked vehicles and the in/out counters.
+  description_i18n:
+    zh: 实时摄像头画面，叠加计数线、被跟踪的车辆和进出计数。
+
+user_inputs:
+  - id: host
+    name: Device IP address
+    name_i18n: {zh: 设备 IP 地址}
+    type: text
+    default: "127.0.0.1"
+    default_template: "{{host}}"
+    required: true
+    placeholder: "192.168.1.100"
+    description: Filled in from the deploy step. For a deployment on this device it is 127.0.0.1.
+    description_i18n: {zh: 自动带入部署步骤填写的地址；在本机部署时为 127.0.0.1。}
+  - id: http_port
+    name: Counter service port
+    name_i18n: {zh: 计数服务端口}
+    type: text
+    default: "8080"
+    default_template: "{{http_port}}"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: Filled in from the counter service port in the deploy step.
+    description_i18n: {zh: 自动带入部署步骤里的「计数服务端口」。}

@@ -4,7 +4,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| reComputer J30 系列（Jetson Orin Nano）或 reComputer RK3588 系列 | 分析摄像头画面、统计进出车辆 |
+| reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）或 reComputer RK3588 系列 | 分析摄像头画面、统计进出车辆 |
 | 出入口网络摄像头 | 拍摄车道，提供 RTSP 视频流 |
 | MQTT 服务器 | 接收进出记录和剩余车位 |
 
@@ -25,7 +25,7 @@
 1. 已在电脑上用 VLC 打开过摄像头的 RTSP 地址，能看到出入口画面。
 2. 已知道 MQTT 服务器的 IP 地址和端口（通常是 1883），以及用户名和密码（允许匿名连接则不需要）。
 3. reComputer 已开机、接入局域网，并能访问互联网下载应用和模型。
-4. Jetson：模组为 Orin Nano，系统为 JetPack 6.2。其他模组或系统版本会在部署第一步停止。
+4. Jetson：reComputer J30 / J40（Jetson Orin Nano / Orin NX），系统为 JetPack 6.2。其他模组或系统版本会在部署第一步停止。
 5. 设备上至少有 1 GB 可用磁盘空间。
 
 ### 接线
@@ -40,7 +40,7 @@
 
 | 问题 | 解决方法 |
 |------|----------|
-| 提示 UNSUPPORTED_JETSON_MODULE 或 UNSUPPORTED_JETPACK | 本方案只支持 Jetson Orin Nano + JetPack 6.2，换用对应设备或重刷系统 |
+| 提示 UNSUPPORTED_JETSON_MODULE 或 UNSUPPORTED_JETPACK | 本方案只支持 reComputer J30 / J40（Jetson Orin Nano / Orin NX）+ JetPack 6.2，换用对应设备或重刷系统 |
 | 提示 MISSING_BOARD_LIBRARIES（RK3588） | 提示里列出了缺少的库，按板卡厂商的说明安装 RKNN 运行库、MPP/RGA、gstreamer1.0-rockchip 和 gstreamer1.0-plugins-bad 后重新部署 |
 | 下载模型或应用失败 | 确认设备能访问互联网，然后重新部署；已下载的部分会复用 |
 | 磁盘空间不足 | 清理设备上不用的文件或镜像，保证至少 1 GB 可用空间 |
@@ -48,13 +48,17 @@
 | 日志里出现 Address already in use | 设备上已有其他程序占用端口：8080 被占用时改「计数服务端口」；8099 被占用时，Jetson 改「状态检查端口」，RK3588 需先停掉占用 8099 的程序。改好后重新部署 |
 | 填写的编号被拒绝 | 停车场编号和出入口编号只能用字母、数字、- 和 _ |
 
-### 部署目标: Jetson Orin Nano（远程部署） {#counting_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_counting.yaml default=true}
+### 部署完成
 
-从这台电脑通过 SSH 部署到局域网里的 reComputer J30 系列（Jetson Orin Nano）。
+部署最后一步会等计数服务就绪，日志显示部署成功即表示服务已在运行。在浏览器打开 http://\<设备IP\>:8080/preview（本机部署时设备 IP 为 127.0.0.1，端口以「计数服务端口」为准），能看到实时画面和计数线（也可以在步骤 2 直接打开）。
 
-### 部署目标: Jetson Orin Nano（本机部署） {#counting_local type=local device=jetson device_name="Jetson" config=devices/jetson_counting.yaml}
+### 部署目标: reComputer J30 / J40（远程部署） {#counting_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml default=true}
 
-在 reComputer J30 系列（Jetson Orin Nano）本机上直接部署。
+从这台电脑通过 SSH 部署到局域网里的 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）。
+
+### 部署目标: reComputer J30 / J40（本机部署） {#counting_local type=local device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml}
+
+在 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）本机上直接部署。
 
 ### 部署目标: RK3588（远程部署） {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
@@ -64,27 +68,19 @@
 
 在 reComputer RK3588 系列本机上直接部署，每秒处理约 3 帧。
 
-## 步骤 2: 检查计数服务 {#verify_counting type=http_debug required=true config=devices/health_verify.yaml}
+## 步骤 2: 查看计数画面 {#view_counting type=web_dashboard required=false config=devices/preview.yaml}
 
-确认计数服务已在运行，并且已经拿到摄像头画面。
+打开计数预览，确认摄像头画面和计数线位置正常。
 
 ### 接线
 
-1. 「设备地址」填 reComputer 的 IP 地址；在本机部署时填 `127.0.0.1`。
-2. 「状态检查端口」保持 8099（只有在步骤 1 改过时才填改后的值）。
-3. 点击检查，返回 200 表示服务在运行。
+1. 设备 IP 和计数服务端口会自动带入步骤 1 的值；本机部署时为 127.0.0.1
+2. 打开预览页面，确认能看到摄像头实时画面和黄色计数线
+3. 计数线不在车辆整车可见的位置时，回到步骤 1 调整「计数线位置（%）」后重新部署
 
 ### 部署完成
 
-计数应用已在 reComputer 上运行。车辆越过计数线时，进出记录和场内概况会发送到你的 MQTT 服务器。
-
-#### 检查返回内容
-
-在返回内容的 `streams` 里查看：
-
-1. `state` 为 `running`：已经拿到摄像头画面。
-2. `fps`：每秒处理的帧数。Jetson Orin Nano 应接近摄像头帧率，RK3588 约为 3。
-3. `processed_frames` 随每次检查增加：画面在持续分析。
+计数应用已在运行。车辆越过计数线时，进出记录和场内概况会发送到你的 MQTT 服务器。
 
 #### 初始设置
 
@@ -110,13 +106,13 @@
 
 2. 让一辆车驶入出入口。越线后几秒内会收到一条 `.../crossing` 消息，`direction` 为 `in`，以及一条 `.../occupancy` 消息，`occupancy` 加 1、`free` 减 1。
 3. 让车辆驶出，应收到 `direction` 为 `out` 的记录，`occupancy` 减 1。
-4. 驶入被记成 `out`、驶出被记成 `in` 时，把「进场方向」改为另一项后重新执行步骤 1。
+4. 驶入被记成 `out`、驶出被记成 `in` 时，把「进场方向」改为另一项后重新部署。
 5. 有车辆越线却没有记录时，把计数线挪到整车清晰可见、车辆连续行驶通过的位置；使用 RK3588 时，确认车辆在画面中停留约 1 秒以上。
 
 ### 故障排查
 
 | 问题 | 解决方法 |
 |------|----------|
-| 连接失败 | 检查设备 IP 是否正确，电脑和设备是否在同一网络，端口是否与步骤 1 一致 |
-| `state` 一直是 `reconnecting` 或 `error` | 设备连不上摄像头：在同一网络里用 VLC 重新打开 RTSP 地址，检查路径、用户名和密码；RK3588 还要确认「摄像头视频编码」与摄像头设置一致。改好后重新执行步骤 1 |
-| 返回内容里 MQTT 显示未连接 | 检查 MQTT 服务器地址、端口、用户名和密码，并确认设备能访问该服务器的 1883 端口，改好后重新执行步骤 1 |
+| 页面打不开 | 确认 IP 是计数设备的地址、端口与步骤 1 的「计数服务端口」一致，电脑和设备在同一网络 |
+| 页面打开了但没有画面 | 设备连不上摄像头：在同一网络里用 VLC 重新打开 RTSP 地址，检查路径、用户名和密码；RK3588 还要确认「摄像头视频编码」与摄像头设置一致。改好后重新部署 |
+| 收不到 MQTT 消息 | 检查 MQTT 服务器地址、端口、用户名和密码，并确认设备能访问该服务器的 1883 端口，改好后重新部署 |

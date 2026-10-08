@@ -4,7 +4,7 @@ The entrance IP camera sends its picture to a reComputer next to it. The reCompu
 
 | Device | Purpose |
 |--------|---------|
-| reComputer J30 Series (Jetson Orin Nano) or reComputer RK3588 Series | Analyses the camera picture and counts vehicles in and out |
+| reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) or reComputer RK3588 Series | Analyses the camera picture and counts vehicles in and out |
 | Entrance IP camera | Films the lane and provides an RTSP stream |
 | MQTT server | Receives crossing records and free spaces |
 
@@ -25,7 +25,7 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 1. You have opened the camera's RTSP address in VLC on a computer and can see the entrance.
 2. You know the MQTT server's IP address and port (usually 1883), and its user name and password (not needed if it accepts anonymous connections).
 3. The reComputer is powered on, connected to the LAN, and can reach the internet to download the app and model.
-4. Jetson: the module is an Orin Nano running JetPack 6.2. Any other module or system version stops at the first deployment check.
+4. Jetson: a reComputer J30 / J40 (Jetson Orin Nano / Orin NX) running JetPack 6.2. Any other module or system version stops at the first deployment check.
 5. At least 1 GB of free disk space on the device.
 
 ### Wiring
@@ -40,7 +40,7 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 
 | Issue | Solution |
 |-------|----------|
-| UNSUPPORTED_JETSON_MODULE or UNSUPPORTED_JETPACK | This solution supports only Jetson Orin Nano with JetPack 6.2; use that device or reflash the system |
+| UNSUPPORTED_JETSON_MODULE or UNSUPPORTED_JETPACK | This solution supports only reComputer J30 / J40 (Jetson Orin Nano / Orin NX) with JetPack 6.2; use one of those or reflash the system |
 | MISSING_BOARD_LIBRARIES (RK3588) | The message lists what is missing; install the RKNN runtime, MPP/RGA, gstreamer1.0-rockchip and gstreamer1.0-plugins-bad following the board vendor's instructions, then deploy again |
 | Model or app download fails | Make sure the device can reach the internet, then deploy again; parts already downloaded are reused |
 | Not enough disk space | Remove unused files or images on the device so that at least 1 GB is free |
@@ -48,13 +48,17 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 | The log shows Address already in use | Another program on the device uses the port: for 8080, change "Counter service port"; for 8099, change "Status port" on Jetson, or stop the program using 8099 on RK3588. Then deploy again |
 | An ID is rejected | Site ID and entrance ID may only contain letters, digits, - and _ |
 
-### Target: Jetson Orin Nano (remote) {#counting_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_counting.yaml default=true}
+### Deployment Complete
 
-Deploy over SSH from this computer to a reComputer J30 Series (Jetson Orin Nano) on the LAN.
+The last deploy step waits until the counting service is ready, so a successful deploy means it is running. Open http://\<device-ip\>:8080/preview in a browser (127.0.0.1 when deployed on this device; use the "Counter service port" if you changed it) and you should see the live picture with the counting line (Step 2 opens it directly).
 
-### Target: Jetson Orin Nano (this device) {#counting_local type=local device=jetson device_name="Jetson" config=devices/jetson_counting.yaml}
+### Target: reComputer J30 / J40 (remote) {#counting_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml default=true}
 
-Deploy directly on the reComputer J30 Series (Jetson Orin Nano) you are using.
+Deploy over SSH from this computer to a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) on the LAN.
+
+### Target: reComputer J30 / J40 (this device) {#counting_local type=local device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml}
+
+Deploy directly on the reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2) you are using.
 
 ### Target: RK3588 (remote) {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
@@ -64,27 +68,19 @@ Deploy over SSH from this computer to a reComputer RK3588 Series on the LAN; pro
 
 Deploy directly on the reComputer RK3588 Series you are using; processes about 3 frames per second.
 
-## Step 2: Check the counting service {#verify_counting type=http_debug required=true config=devices/health_verify.yaml}
+## Step 2: View the counting picture {#view_counting type=web_dashboard required=false config=devices/preview.yaml}
 
-Confirm the counting service is running and receiving the camera picture.
+Open the counting preview to check the camera picture and where the counting line sits.
 
 ### Wiring
 
-1. Enter the reComputer's IP address as "Device address"; enter `127.0.0.1` if you deployed on this device.
-2. Keep "Status port" at 8099 (enter your value only if you changed it in Step 1).
-3. Click Check. A 200 response means the service is running.
+1. The device IP and counter service port are carried over from Step 1; for a deployment on this device the IP is 127.0.0.1
+2. Open the preview page and check that the live camera picture and the yellow counting line are visible
+3. If the line is not where vehicles are fully in view, adjust "Line position (%)" in Step 1 and deploy again
 
 ### Deployment Complete
 
-The counting app is running on the reComputer. When a vehicle crosses the counting line, a crossing record and the car park status are sent to your MQTT server.
-
-#### Check the response
-
-In the response, look at `streams`:
-
-1. `state` is `running`: the camera picture is being received.
-2. `fps`: frames processed per second. On Jetson Orin Nano it should be close to the camera frame rate; on RK3588 about 3.
-3. `processed_frames` grows with every check: the picture is being analysed continuously.
+The counting app is running. When a vehicle crosses the counting line, a crossing record and the car park status are sent to your MQTT server.
 
 #### Initial Setup
 
@@ -110,13 +106,13 @@ In the response, look at `streams`:
 
 2. Drive a vehicle in. Within a few seconds of crossing the line you receive a `.../crossing` message with `direction` `in`, and a `.../occupancy` message with `occupancy` up by 1 and `free` down by 1.
 3. Drive it out. You receive a record with `direction` `out` and `occupancy` down by 1.
-4. If vehicles entering are recorded as `out` and vehicles leaving as `in`, switch "Entry direction" and run Step 1 again.
+4. If vehicles entering are recorded as `out` and vehicles leaving as `in`, switch "Entry direction" and deploy again.
 5. If a vehicle crosses without a record, move the counting line to where vehicles are fully visible and drive through steadily; on RK3588, make sure vehicles stay in view for about 1 second or longer.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Connection failed | Check the device IP, that this computer and the device are on the same network, and that the port matches Step 1 |
-| `state` stays `reconnecting` or `error` | The device cannot reach the camera: open the RTSP address in VLC on the same network and check the path, user name and password; on RK3588 also check that "Camera video format" matches the camera setting. Then run Step 1 again |
-| MQTT shows as not connected in the response | Check the MQTT server address, port, user name and password, and that the device can reach port 1883 on the server, then run Step 1 again |
+| Page does not open | Check that the IP is the counting device's address, the port matches "Counter service port" in Step 1, and this computer is on the same network |
+| Page opens but shows no picture | The device cannot reach the camera: open the RTSP address in VLC on the same network and check the path, user name and password; on RK3588 also check that "Camera video format" matches the camera setting. Then deploy again |
+| No MQTT messages arrive | Check the MQTT server address, port, user name and password, and that the device can reach port 1883 on the server, then deploy again |
