@@ -14,7 +14,8 @@ HomeKit 配对、Aqara/ZHA（ZBT-2）、Voice PE、ESPHome、实体麦克风/扬
 
 ## 步骤 1：部署 Home Assistant Container {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 
-使用 64 位 Raspberry Pi OS，树莓派的 8123 端口必须空闲。ZBT-2 设备路径可选：留空
+使用 64 位 Raspberry Pi OS。Home Assistant 默认监听 8123 端口；若树莓派上 8123
+已被占用（例如另一套 Home Assistant），首次安装前填写其他 Home Assistant 端口。ZBT-2 设备路径可选：留空
 可在接入加密狗之前先安装 Home Assistant，接入后填写 `/dev/serial/by-id/...` 路径
 重新部署。
 

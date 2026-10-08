@@ -13,6 +13,7 @@ docker:
     HA_IMAGE: "ghcr.io/home-assistant/home-assistant:2026.9.3"
     HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
     TZ: "Asia/Shanghai"
+    HA_PORT: "{{ha_port}}"
     HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
     ZBT_DEVICE: "{{zbt_device}}"
     ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
@@ -21,8 +22,17 @@ docker:
 ssh: {port: 22, default_user: pi, auth_methods: [password], connection_timeout: 30, command_timeout: 1800}
 pre_checks:
   - {type: disk_space, min_gb: 8, description: HA image and recorder data require at least 8 GB free.}
-  - {type: tcp_port, port: 8123, description: Home Assistant port must be available.}
 user_inputs:
+  - id: ha_port
+    name: Home Assistant port
+    name_i18n: {zh: Home Assistant 端口}
+    type: text
+    required: false
+    default: "8123"
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: HTTP port for the Home Assistant web UI and API. Change it only when 8123 is already used on this host (for example by another Home Assistant). Applied on the first install; an existing installation keeps the port it already stores.
+    description_i18n: {zh: Home Assistant Web 界面与 API 的 HTTP 端口。仅当本机 8123 已被占用（例如另一套 Home Assistant）时修改。首次安装时生效；已有安装保留其已存储的端口。}
   - id: zbt_device
     name: ZBT-2 device path
     name_i18n: {zh: ZBT-2 设备路径}
@@ -33,6 +43,48 @@ user_inputs:
 # Local view only: remote_overrides.actions below replaces this block for the
 # remote view, which copies from the uploaded /opt/ha-whole-home/ha_rpi copy.
 actions:
+  before:
+    - name: Check Home Assistant port
+      name_i18n: {zh: 检查 Home Assistant 端口}
+      run: |
+        set -eu
+        DST="/opt/ha-whole-home/ha-config"
+        HA_PORT="{{ha_port}}"; HA_PORT="${HA_PORT:-8123}"
+        case "$HA_PORT" in ''|*[!0-9]*) echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1;; esac
+        if [ "${#HA_PORT}" -gt 5 ] || [ "$HA_PORT" -lt 1 ] || [ "$HA_PORT" -gt 65535 ]; then
+          echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1
+        fi
+        # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+        port_listening() {
+          if command -v ss >/dev/null 2>&1; then
+            if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif command -v netstat >/dev/null 2>&1; then
+            if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif [ -r /proc/net/tcp ]; then
+            HEX=$(printf '%04X' "$1")
+            if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+          fi
+          return 2
+        }
+        # HA 2026.9 keeps the HTTP port in .storage/http, not YAML. The compose file
+        # passes HA_PORT as SETUP_PORT, which HA stores as the stable port on the first
+        # boot. A YAML `http: server_port` would instead be staged as a pending trial
+        # and reverted to 8123 after 5 minutes.
+        if [ -e "$DST/.storage/http" ]; then
+          STORED_PORT=$(grep -o '"server_port": *[0-9]*' "$DST/.storage/http" | head -n 1 | grep -o '[0-9]*$' || true)
+          if [ -n "$STORED_PORT" ] && [ "$STORED_PORT" != "$HA_PORT" ]; then
+            echo "HA_PORT_KEPT_FROM_STORAGE: existing install uses $STORED_PORT (requested $HA_PORT); the port setting lives in Home Assistant, not in this deploy input" >&2
+          fi
+        else
+          rc=0; port_listening "$HA_PORT" || rc=$?
+          if [ "$rc" -eq 0 ]; then
+            echo "HA_PORT_IN_USE: port $HA_PORT is already used on this host; choose another Home Assistant port" >&2
+            exit 1
+          elif [ "$rc" -eq 2 ]; then
+            echo "HA_PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $HA_PORT is free" >&2
+          fi
+        fi
+        echo "HA port check OK: $HA_PORT"
   after_upload:
     - name: Initialize HA configuration if absent
       name_i18n: {zh: 初始化 HA 配置（如不存在）}
@@ -74,12 +126,55 @@ remote_overrides:
     HA_IMAGE: "ghcr.io/home-assistant/home-assistant:2026.9.3"
     HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
     TZ: "Asia/Shanghai"
+    HA_PORT: "{{ha_port}}"
     HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
     ZBT_DEVICE: "{{zbt_device}}"
     ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
     ESPHOME_DIGEST: "sha256:4ad55931c0186d2910dc128526237acabb422a662697a4e8bb356d390a1332a1"
     ESPHOME_CONFIG_DIR: "/opt/ha-whole-home/esphome"
   actions:
+    before:
+      - name: Check Home Assistant port
+        name_i18n: {zh: 检查 Home Assistant 端口}
+        run: |
+          set -eu
+          DST="/opt/ha-whole-home/ha-config"
+          HA_PORT="{{ha_port}}"; HA_PORT="${HA_PORT:-8123}"
+          case "$HA_PORT" in ''|*[!0-9]*) echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1;; esac
+          if [ "${#HA_PORT}" -gt 5 ] || [ "$HA_PORT" -lt 1 ] || [ "$HA_PORT" -gt 65535 ]; then
+            echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1
+          fi
+          # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+          port_listening() {
+            if command -v ss >/dev/null 2>&1; then
+              if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif command -v netstat >/dev/null 2>&1; then
+              if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif [ -r /proc/net/tcp ]; then
+              HEX=$(printf '%04X' "$1")
+              if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+            fi
+            return 2
+          }
+          # HA 2026.9 keeps the HTTP port in .storage/http, not YAML. The compose file
+          # passes HA_PORT as SETUP_PORT, which HA stores as the stable port on the first
+          # boot. A YAML `http: server_port` would instead be staged as a pending trial
+          # and reverted to 8123 after 5 minutes.
+          if [ -e "$DST/.storage/http" ]; then
+            STORED_PORT=$(grep -o '"server_port": *[0-9]*' "$DST/.storage/http" | head -n 1 | grep -o '[0-9]*$' || true)
+            if [ -n "$STORED_PORT" ] && [ "$STORED_PORT" != "$HA_PORT" ]; then
+              echo "HA_PORT_KEPT_FROM_STORAGE: existing install uses $STORED_PORT (requested $HA_PORT); the port setting lives in Home Assistant, not in this deploy input" >&2
+            fi
+          else
+            rc=0; port_listening "$HA_PORT" || rc=$?
+            if [ "$rc" -eq 0 ]; then
+              echo "HA_PORT_IN_USE: port $HA_PORT is already used on this host; choose another Home Assistant port" >&2
+              exit 1
+            elif [ "$rc" -eq 2 ]; then
+              echo "HA_PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $HA_PORT is free" >&2
+            fi
+          fi
+          echo "HA port check OK: $HA_PORT"
     after_upload:
       - name: Initialize HA configuration if absent
         run: |

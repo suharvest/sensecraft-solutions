@@ -18,7 +18,9 @@ measurement: test the ones you need on your own installation before handover.
 
 ## Step 1: Deploy Home Assistant Container {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 
-Use 64-bit Raspberry Pi OS. Port 8123 must be free on the Pi. The ZBT-2
+Use 64-bit Raspberry Pi OS. Home Assistant listens on port 8123; if 8123 is
+already used on the Pi (for example by another Home Assistant), set another
+Home Assistant port before the first install. The ZBT-2
 device path is optional: leave it empty to install Home Assistant before the
 dongle is connected, then redeploy with the `/dev/serial/by-id/...` path.
 
