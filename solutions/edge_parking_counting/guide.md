@@ -9,6 +9,7 @@ The entrance IP camera sends its picture to a reComputer next to it. The reCompu
 | MQTT server | Receives crossing records and free spaces |
 
 **What you'll get:**
+
 - A record for every vehicle that crosses the line (direction, vehicle type)
 - Live vehicles-inside and free-space figures
 - Data ready for a parking management system, a free-space sign or Home Assistant
