@@ -1,0 +1,32 @@
+version: "1.0"
+id: slot_editor
+name: Draw the parking bays
+name_i18n: {zh: 画车位}
+type: web_dashboard
+web_dashboard:
+  url: "http://{{host}}:{{editor_port}}/slots/editor"
+  title: Slot editor
+  title_i18n:
+    zh: 车位编辑页
+  description: Pick a camera, click 新车位 (New slot), type the bay number in the id box, click the bay's corners on the picture, then click 闭合多边形 (Close polygon). Repeat for every bay and click 保存 (Save). Saved bays take effect immediately and are kept across restarts.
+  description_i18n:
+    zh: 选择摄像头，点「新车位」，在 id 框里填车位编号，在画面上依次点车位的几个角，再点「闭合多边形」。每个车位重复一次，最后点「保存」。保存后立即生效，重启后保留。
+user_inputs:
+  - id: host
+    name: Edge box IP address
+    name_i18n: {zh: 边缘主机 IP 地址}
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The same address you deployed to. Use 127.0.0.1 if you deployed on this machine.
+    description_i18n: {zh: 和部署时填的是同一个地址。在本机部署的填 127.0.0.1。}
+  - id: editor_port
+    name: Slot editor port
+    name_i18n: {zh: 车位编辑页端口}
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: The slot editor port you entered in the deploy step.
+    description_i18n: {zh: 部署步骤里填的「车位编辑页端口」。}

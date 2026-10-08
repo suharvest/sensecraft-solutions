@@ -2,9 +2,17 @@ version: "1.0"
 id: rk3588_occupancy
 name: reComputer RK3588 Parking Occupancy
 name_i18n:
-  zh: reComputer RK3588 停车场车位占用
+  zh: reComputer RK3588 车位占用检测
 type: docker_deploy
 
+# Maintainer notes: image and model are the published 20261008 artifacts. The
+# compose file mounts the board's own Rockchip NPU / video-decode / RGA
+# libraries and host GStreamer (accepted 2026-10-08 with these mounts, see the
+# solution.yaml header). The deploy form replaces the old hand-edited
+# vb.config/1 JSON: after_upload renders assets/config/slots-rk3588.json with
+# assets/render_config.py into <root>/config.json (H.264 only). The library
+# paths are inputs with the reComputer RK3588 Debian defaults; the `before`
+# check prints where a missing library actually lives.
 docker:
   compose_file: assets/docker-compose.rk3588.yml
   compose_dir: assets
@@ -16,16 +24,15 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{parking_config}}"
-    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
-    PARKING_DATA_DIR: "{{parking_data_dir}}"
-    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-    PARKING_RGA_LIB: "{{parking_rga_lib}}"
-    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+    PARKING_CONFIG: "~/edge-parking-occupancy-rk3588/config.json"
+    PARKING_MODELS_DIR: "~/edge-parking-occupancy-rk3588/models"
+    PARKING_DATA_DIR: "~/edge-parking-occupancy-rk3588/data"
+    PARKING_DRI_DEVICE: "/dev/dri"
+    PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+    PARKING_MPP_LIB: "{{mpp_lib}}"
+    PARKING_RGA_LIB: "{{rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+    PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
 ssh:
   port: 22
   default_user: recomputer
@@ -35,7 +42,7 @@ ssh:
 pre_checks:
   - type: disk_space
     min_gb: 1
-    description: Existing local image, model and data paths must fit the host budget.
+    description: Keep at least 1 GB free for the program, the model and its data.
 files:
   # slots_vehicle640_rk3588: 4741125 bytes, published 2026-10-08; after_upload unpacks it into models/.
   - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz
@@ -43,13 +50,49 @@ files:
     checksum:
       sha256: d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c
 actions:
+  before:
+    - name: Check the board's AI accelerator and video libraries
+      name_i18n: {zh: 检查板卡的 AI 加速与视频解码库}
+      env:
+        PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+        PARKING_MPP_LIB: "{{mpp_lib}}"
+        PARKING_RGA_LIB: "{{rga_lib}}"
+        PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+        PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
+      run: |
+        set -u
+        missing=0
+        check() {
+          # $1 = label, $2 = path, $3 = file name pattern to look for elsewhere
+          if [ -e "$2" ]; then echo "found $2"; return 0; fi
+          missing=1
+          echo "missing $1: $2" >&2
+          alt=$(find /usr/lib /lib -name "$3" 2>/dev/null | head -1)
+          if [ -n "$alt" ]; then echo "  -> found $alt; enter this path in the \"$1\" field" >&2; fi
+        }
+        if [ ! -e /dev/dri ]; then echo "missing /dev/dri: this does not look like a Rockchip board with video and AI drivers" >&2; missing=1; fi
+        check "RKNN runtime library" "$PARKING_RKNNRT_LIB" 'librknnrt.so*'
+        check "RGA library" "$PARKING_RGA_LIB" 'librga.so.2*'
+        check "MPP library" "$PARKING_MPP_LIB" 'librockchip_mpp.so*'
+        check "MPP GStreamer plugin" "$PARKING_MPP_PLUGIN" 'libgstrockchipmpp.so'
+        L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
+        for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do
+          check "GStreamer library folder" "$L/$f" "$(basename "$f")"
+        done
+        if [ "$missing" -ne 0 ]; then
+          echo "Install the board's RKNN runtime (rknpu2), Rockchip MPP and RGA, and gstreamer1.0-plugins-bad + gstreamer1.0-rockchip, or correct the paths above, then deploy again." >&2
+          exit 1
+        fi
+        echo "AI accelerator and video libraries: OK"
   after_upload:
-    - name: Fetch and unpack the model bundle
-      name_i18n: {zh: 获取并解包模型包}
+    - name: Download the detection model
+      name_i18n: {zh: 下载识别模型}
       timeout: 1800
       run: |
         set -eu
-        MODELS_DIR="/home/{{username}}/edge-parking-occupancy-rk3588/models"
+        U="{{username}}"
+        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy-rk3588"; else ROOT="$HOME/edge-parking-occupancy-rk3588"; fi
+        MODELS_DIR="$ROOT/models"
         BUNDLE="slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
         BUNDLE_SHA="d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
@@ -70,155 +113,151 @@ actions:
           echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
         fi
         ls -l "$MODELS_DIR"
-  before:
-    - name: Check RK inputs and host ABI
-      name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
+    - name: Write the parking config
+      name_i18n: {zh: 写入车位检测配置}
       env:
-        PARKING_IMAGE: "{{parking_image}}"
-        PARKING_CONFIG: "{{parking_config}}"
-        PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
-        PARKING_DATA_DIR: "{{parking_data_dir}}"
-        PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-        PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-        PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-        PARKING_RGA_LIB: "{{parking_rga_lib}}"
-        PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-        PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
+        RTSP_URLS: "{{rtsp_urls}}"
+        CAMERA_IDS: "{{camera_ids}}"
+        SITE_ID: "{{site_id}}"
+        MQTT_HOST: "{{mqtt_host}}"
+        MQTT_PORT: "{{mqtt_port}}"
+        MQTT_USERNAME: "{{mqtt_username}}"
+        MQTT_PASSWORD: "{{mqtt_password}}"
+        EDITOR_PORT: "{{editor_port}}"
+        STREAM_CODEC: "h264"
       run: |
         set -eu
-        test -f "$PARKING_CONFIG"
-        test -d "$PARKING_DATA_DIR"
-        test -w "$PARKING_DATA_DIR"
-        test -e "$PARKING_DRI_DEVICE"
-        for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-        L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
-        for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
-        echo "RK inputs and ABI paths exist"
-      name_i18n:
-        zh: 检查 RK 输入和宿主机 ABI 路径
+        # Renders config/slots-rk3588.json (vb.config/1 preset) with the form
+        # values into $ROOT/config.json, the path PARKING_CONFIG points at.
+        # Remote: the compose_dir lands in remote_path/<device id>/; local: cwd
+        # is the solution directory.
+        U="{{username}}"
+        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy-rk3588"; else ROOT="$HOME/edge-parking-occupancy-rk3588"; fi
+        SRC=""
+        for d in "$ROOT/rk3588_occupancy" "$ROOT" "$PWD/assets"; do
+          if [ -f "$d/config/slots-rk3588.json" ] && [ -f "$d/render_config.py" ]; then SRC="$d"; break; fi
+        done
+        if [ -z "$SRC" ]; then
+          echo "config/slots-rk3588.json not found (looked in $ROOT/rk3588_occupancy, $ROOT, $PWD/assets)" >&2
+          exit 1
+        fi
+        mkdir -p "$ROOT/data"
+        python3 "$SRC/render_config.py" "$SRC/config/slots-rk3588.json" "$ROOT/config.json"
 post_deployment:
   open_browser: false
 user_inputs:
-  - id: parking_image
-    name: Parking image
-    name_i18n: {zh: 停车镜像}
+  - id: rtsp_urls
+    name: Camera RTSP addresses
+    name_i18n: {zh: 摄像头 RTSP 地址}
     type: text
-    default: "sensecraft-missionpack.seeed.cn/solution/nrd-parking-rk:20261008@sha256:df4bb508037d6d3fc95b03a74914b578b8252be92701c18a996d31bfcb79efbb"
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/102"
+    description: One address per camera, separated by commas. Open each one in VLC first — a wrong path or password is the most common failure.
+    description_i18n: {zh: 每路摄像头一个地址，多路用英文逗号分隔。先用 VLC 打开试一下——路径或用户名密码写错是最常见的失败原因。}
+  - id: camera_ids
+    name: Camera IDs
+    name_i18n: {zh: 摄像头编号}
+    type: text
     required: false
-    description: Published runtime image pinned by digest (2026-10-08). Keep the default unless you are testing another reviewed build.
-    description_i18n: {zh: 已发布的运行镜像（2026-10-08，按 digest 固定）。除非在测试其他已审查构建，否则保持默认值。}
-  - id: parking_config
-    name: Host config path
-    name_i18n: {zh: 宿主机配置路径}
+    placeholder: "b1-north, b1-south"
+    description: Optional. One short name per address, same order, separated by commas (letters, digits, - and _). Used in the MQTT topic. Leave empty to number them cam-01, cam-02, …
+    description_i18n: {zh: 可不填。与上面的地址按顺序一一对应，英文逗号分隔（字母、数字、- 和 _），会用在 MQTT 主题里。留空则自动编为 cam-01、cam-02……}
+  - id: site_id
+    name: Site ID
+    name_i18n: {zh: 站点编号}
+    type: text
+    default: "my-lot"
+    required: true
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,32}$"
+    description: First part of the MQTT topic, one per car park (letters, digits, - and _).
+    description_i18n: {zh: MQTT 主题的第一段，一个停车场一个（字母、数字、- 和 _）。}
+  - id: mqtt_host
+    name: MQTT server address
+    name_i18n: {zh: MQTT 服务器地址}
     type: text
     required: true
-    description: Copy assets/config/slots-rk3588.json to the host, edit it, and supply that already-edited matching vb.config/1 file. Set site_id and device_id (each <=32 characters), unique mqtt client_id and topic_root, broker host/port/username/password (use empty username/password for an anonymous broker), every RTSP URL and per-stream h264 or h265 codec, the pinned model path and SHA256, slot polygons with their stream mapping, and an existing writable state_dir. The JSON health host is 0.0.0.0 so the RK LAN address can answer port 8099.
-    description_i18n: {zh: 将 assets/config/slots-rk3588.json 复制到宿主机并编辑后，填写这份已编辑且与板卡匹配的 vb.config/1 文件。设置 site_id 和 device_id（各不超过 32 个字符）、唯一的 mqtt client_id 和 topic_root、broker host/port/username/password（匿名 broker 时 username/password 留空）、每路 RTSP URL 及 h264 或 h265 编码、与固定 SHA256 匹配的模型路径、车位多边形及其流映射，以及已存在且可写的 state_dir。JSON 中的 health host 为 0.0.0.0，RK 局域网地址可应答 8099 端口。}
-  - id: parking_data_dir
-    name: Existing writable data directory
-    name_i18n: {zh: 现有可写数据目录}
+    placeholder: "192.168.1.50"
+    description: IP address or hostname of the MQTT server that receives the bay states.
+    description_i18n: {zh: 接收车位状态的 MQTT 服务器的 IP 地址或主机名。}
+  - id: mqtt_port
+    name: MQTT port
+    name_i18n: {zh: MQTT 端口}
     type: text
+    default: "1883"
     required: true
-  - id: parking_dri_device
-    name: Host DRM device path
-    name_i18n: {zh: 宿主机 DRM 设备路径}
+    validation:
+      pattern: "^[0-9]{1,5}$"
+  - id: mqtt_username
+    name: MQTT username
+    name_i18n: {zh: MQTT 用户名}
     type: text
-    required: true
-    description: Existing device such as /dev/dri; the package does not create it.
-    description_i18n: {zh: 已存在的设备路径，例如 /dev/dri；本包不会创建。}
-  - id: parking_mpp_plugin
-    name: Host Rockchip MPP GStreamer plugin
-    name_i18n: {zh: 宿主机 Rockchip MPP GStreamer 插件}
+    required: false
+    description: Leave empty if the server accepts anonymous clients.
+    description_i18n: {zh: 服务器允许匿名连接就留空。}
+  - id: mqtt_password
+    name: MQTT password
+    name_i18n: {zh: MQTT 密码}
+    type: password
+    required: false
+  - id: editor_port
+    name: Slot editor port
+    name_i18n: {zh: 车位编辑页端口}
     type: text
+    default: "8080"
     required: true
-  - id: parking_mpp_lib
-    name: Host Rockchip MPP library
-    name_i18n: {zh: 宿主机 Rockchip MPP 库}
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
+    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
+  - id: rknn_lib
+    name: RKNN runtime library
+    name_i18n: {zh: RKNN 运行库}
     type: text
+    default: "/usr/lib/librknnrt.so"
     required: true
-  - id: parking_rga_lib
-    name: Host RGA library
-    name_i18n: {zh: 宿主机 RGA 库}
+    description: Keep the default on reComputer RK3588. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3588 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: rga_lib
+    name: RGA library
+    name_i18n: {zh: RGA 库}
     type: text
+    default: "/usr/lib/aarch64-linux-gnu/librga.so.2"
     required: true
-    description: Host RGA library file, for example /usr/lib/aarch64-linux-gnu/librga.so.2.1.0. It is mounted as librga.so.2, the soname vb-runtime links against.
-    description_i18n: {zh: 宿主机 RGA 库文件，例如 /usr/lib/aarch64-linux-gnu/librga.so.2.1.0；挂载为 vb-runtime 链接的 soname librga.so.2。}
-  - id: parking_rknnrt_lib
-    name: Host RKNN runtime library
-    name_i18n: {zh: 宿主机 RKNN runtime 库}
+    description: Keep the default on reComputer RK3588. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3588 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: mpp_lib
+    name: MPP library
+    name_i18n: {zh: MPP 库}
     type: text
+    default: "/usr/lib/aarch64-linux-gnu/librockchip_mpp.so.1"
     required: true
-  - id: parking_host_lib_dir
-    name: Host GStreamer library directory
-    name_i18n: {zh: 宿主机 GStreamer 库目录}
+    description: Keep the default on reComputer RK3588. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3588 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: mpp_plugin
+    name: MPP GStreamer plugin
+    name_i18n: {zh: MPP GStreamer 插件}
+    type: text
+    default: "/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so"
+    required: true
+    description: Keep the default on reComputer RK3588. Change it only if the deploy check reports it missing and prints another path.
+    description_i18n: {zh: reComputer RK3588 保持默认值。只有部署检查提示找不到、并给出了另一个路径时才改成那个路径。}
+  - id: gst_lib_dir
+    name: GStreamer library folder
+    name_i18n: {zh: GStreamer 库目录}
     type: text
     default: "/lib/aarch64-linux-gnu"
-    required: false
-    description: Host directory holding libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 and gstreamer-1.0/libgstvideoparsersbad.so (Debian package gstreamer1.0-plugins-bad). These are mounted so the container uses the host GStreamer runtime and h264parse.
-    description_i18n: {zh: 存放 libgstreamer/libgstbase/libgstvideo/libgstallocators/libgstcodecparsers-1.0.so.0 与 gstreamer-1.0/libgstvideoparsersbad.so（Debian 包 gstreamer1.0-plugins-bad）的宿主机目录。挂载后容器使用宿主机 GStreamer 运行时和 h264parse。}
+    required: true
+    description: Keep the default on reComputer RK3588. Change it only if the deploy check reports it missing and prints another folder.
+    description_i18n: {zh: reComputer RK3588 保持默认值。只有部署检查提示找不到、并给出了另一个目录时才改成那个目录。}
 remote_overrides:
   environment:
-    PARKING_IMAGE: "{{parking_image}}"
-    PARKING_CONFIG: "{{parking_config}}"
+    PARKING_CONFIG: "/home/{{username}}/edge-parking-occupancy-rk3588/config.json"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
-    PARKING_DATA_DIR: "{{parking_data_dir}}"
-    PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-    PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-    PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-    PARKING_RGA_LIB: "{{parking_rga_lib}}"
-    PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-    PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
-  actions:
-    after_upload:
-      - name: Fetch and unpack the model bundle
-        name_i18n: {zh: 获取并解包模型包}
-        timeout: 1800
-        run: |
-          set -eu
-          MODELS_DIR="/home/{{username}}/edge-parking-occupancy-rk3588/models"
-          BUNDLE="slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
-          BUNDLE_SHA="d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c"
-          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
-          mkdir -p "$MODELS_DIR"
-          have_models() {
-            echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
-          }
-          if have_models; then
-            echo "Model files already present"
-          else
-            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
-              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
-              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
-              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
-              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
-            fi
-            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
-            echo "7ac533a2122ef825967cad58fb3f9a4dcf47a1ec45e4299f6c361a72e81995d3  $MODELS_DIR/vehicle_640.rk3588.w8a8.rknn" | sha256sum -c -
-          fi
-          ls -l "$MODELS_DIR"
-    before:
-      - name: Check RK inputs and host ABI
-        name_i18n: {zh: 检查 RK 输入和宿主机 ABI}
-        env:
-          PARKING_IMAGE: "{{parking_image}}"
-          PARKING_CONFIG: "{{parking_config}}"
-          PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/models"
-          PARKING_DATA_DIR: "{{parking_data_dir}}"
-          PARKING_DRI_DEVICE: "{{parking_dri_device}}"
-          PARKING_MPP_PLUGIN: "{{parking_mpp_plugin}}"
-          PARKING_MPP_LIB: "{{parking_mpp_lib}}"
-          PARKING_RGA_LIB: "{{parking_rga_lib}}"
-          PARKING_RKNNRT_LIB: "{{parking_rknnrt_lib}}"
-          PARKING_HOST_LIB_DIR: "{{parking_host_lib_dir}}"
-        run: |
-          set -eu
-          test -f "$PARKING_CONFIG"
-          test -d "$PARKING_DATA_DIR"
-          test -w "$PARKING_DATA_DIR"
-          test -e "$PARKING_DRI_DEVICE"
-          for p in "$PARKING_MPP_PLUGIN" "$PARKING_MPP_LIB" "$PARKING_RGA_LIB" "$PARKING_RKNNRT_LIB"; do test -f "$p"; done
-          L="${PARKING_HOST_LIB_DIR:-/lib/aarch64-linux-gnu}"
-          for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do test -f "$L/$f"; done
-          echo "RK inputs and ABI paths exist"
-        name_i18n:
-          zh: 检查 RK 输入和宿主机 ABI 路径
+    PARKING_DATA_DIR: "/home/{{username}}/edge-parking-occupancy-rk3588/data"
+    PARKING_DRI_DEVICE: "/dev/dri"
+    PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
+    PARKING_MPP_LIB: "{{mpp_lib}}"
+    PARKING_RGA_LIB: "{{rga_lib}}"
+    PARKING_RKNNRT_LIB: "{{rknn_lib}}"
+    PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
