@@ -9,8 +9,11 @@ services:
     volumes:
       - ${HA_CONFIG_DIR}:/config
       - /run/dbus:/run/dbus:ro
+    # ZBT-2 is optional at install time: with ZBT_DEVICE empty the mapping
+    # falls back to /dev/null so HA can be installed before the dongle arrives.
+    # (An empty ZBT_DEVICE previously rendered a device entry with no source.)
     devices:
-      - ${ZBT_DEVICE}:${ZBT_DEVICE}
+      - ${ZBT_DEVICE:-/dev/null}:${ZBT_DEVICE:-/dev/null}
   esphome:
     profiles: [esphome]
     image: ${ESPHOME_IMAGE}@${ESPHOME_DIGEST}

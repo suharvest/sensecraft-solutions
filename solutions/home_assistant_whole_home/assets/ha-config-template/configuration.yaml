@@ -1,3 +1,7 @@
 # Seed configuration copied only when the operator has no configuration.yaml.
+# default_config loads frontend, onboarding, assist_pipeline, conversation,
+# stt/tts and the other built-ins the Wyoming voice path depends on.
+default_config:
+
 homeassistant:
   packages: !include_dir_named packages

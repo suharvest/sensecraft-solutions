@@ -91,6 +91,17 @@ intro:
       badge_i18n: {zh: artifact 阻塞}
       description: HA Container on Raspberry Pi and split voice services on J4012.
       description_i18n: {zh: 树莓派运行 HA Container，J4012 运行分体语音服务。}
+      # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
+      # built-in intent -> entity state change" only (receipts
+      # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
+      # HA 2026.9.3 from this package's rpi_ha.yml on a Pi 5, voice endpoint on an
+      # Orin NX (OVS Qwen3-ASR + Matcha TTS + Wyoming adapter; not the package's
+      # split jetson_voice.yml). TTS-generated speech streamed to Assist, virtual
+      # demo lights: 5/5 zh+en commands action_done, processed locally, STT final
+      # 0.11-0.95 s after audio end. NOT verified: HomeKit pairing, Aqara/ZHA
+      # (no ZBT-2), Voice PE, ESPHome, physical mic/speaker, offline, ja.
+      verified:
+        - hardware
       device_groups:
         - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: external_raspberry_pi_5}], default: external_raspberry_pi_5}
         - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}], default: recomputer_j40}

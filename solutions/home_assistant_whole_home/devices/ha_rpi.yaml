@@ -23,7 +23,13 @@ pre_checks:
   - {type: disk_space, min_gb: 8, description: HA image and recorder data require at least 8 GB free.}
   - {type: tcp_port, port: 8123, description: Home Assistant port must be available.}
 user_inputs:
-  - {id: zbt_device, name: ZBT-2 device path, name_i18n: {zh: ZBT-2 设备路径}, type: text, required: true}
+  - id: zbt_device
+    name: ZBT-2 device path
+    name_i18n: {zh: ZBT-2 设备路径}
+    type: text
+    required: false
+    description: /dev/serial/by-id/... path of the ZBT-2. Leave empty to install Home Assistant before the dongle is connected; redeploy with the path to add it.
+    description_i18n: {zh: ZBT-2 的 /dev/serial/by-id/... 路径。留空可在接入加密狗之前先安装 Home Assistant；接入后填写路径重新部署。}
 remote_overrides:
   environment:
     HA_IMAGE: "ghcr.io/home-assistant/home-assistant:2026.9.3"
