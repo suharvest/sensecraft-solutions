@@ -11,6 +11,38 @@ intro:
   summary_i18n: {zh: 将 HomeKit 和 Aqara 设备接入 Home Assistant，并使用本地语音控制；米家仅作为用户自行安装的非商业示例。}
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-dashboard-zh-20261008.jpg
+      caption: "Home Assistant on Raspberry Pi 5 with simulated devices: living-room light (switched on by a Chinese voice command), curtain, air conditioner (2026-10-08)"
+      caption_i18n:
+        zh: "运行在 Raspberry Pi 5 上的 Home Assistant，设备为模拟设备：客厅灯（由中文语音指令打开）、窗帘、空调（2026-10-08）"
+        ja: "Raspberry Pi 5 上の Home Assistant（デバイスはシミュレーション）：中国語の音声コマンドで点灯したリビング照明、カーテン、エアコン（2026-10-08）"
+    - type: image
+      src: gallery/panel-assist-debug-zh-20261008.jpg
+      caption: "Assist debug view on Raspberry Pi 5: speech recognized as 打开客厅灯 by STT on Jetson Orin NX, local intent HassTurnOn, reply 客厅灯已打开 (2026-10-08)"
+      caption_i18n:
+        zh: "Raspberry Pi 5 上的 Assist 调试视图：Jetson Orin NX 语音转文字识别为「打开客厅灯」，本地意图 HassTurnOn 执行，回复「客厅灯已打开」（2026-10-08）"
+        ja: "Raspberry Pi 5 上の Assist デバッグ画面：Jetson Orin NX の音声認識が「打开客厅灯」と認識、ローカルインテント HassTurnOn を実行、応答「客厅灯已打开」（2026-10-08）"
+    - type: image
+      src: gallery/panel-assist-debug-zh-stages-20261008.jpg
+      caption: "Stage timings of the same run: speech-to-text 0.11 s on Jetson Orin NX via Wyoming, intent handled locally on the Pi, text-to-speech seeed-local-voice (2026-10-08)"
+      caption_i18n:
+        zh: "同一次运行的阶段耗时：经 Wyoming 调用 Jetson Orin NX 语音转文字 0.11 s，意图在树莓派本地处理，文字转语音 seeed-local-voice（2026-10-08）"
+        ja: "同じ実行のステージ時間：Wyoming 経由の Jetson Orin NX 音声認識 0.11 s、インテントは Pi 上でローカル処理、音声合成 seeed-local-voice（2026-10-08）"
+    - type: image
+      src: gallery/panel-pipeline-config-zh-20261008.jpg
+      caption: "Chinese voice pipeline on Raspberry Pi 5: Home Assistant conversation agent, STT and TTS from seeed-local-voice on Jetson Orin NX (2026-10-08)"
+      caption_i18n:
+        zh: "Raspberry Pi 5 上的中文语音管道：对话代理 Home Assistant，语音转文字与文字转语音为 Jetson Orin NX 上的 seeed-local-voice（2026-10-08）"
+        ja: "Raspberry Pi 5 上の中国語音声パイプライン：会話エージェント Home Assistant、音声認識・音声合成は Jetson Orin NX 上の seeed-local-voice（2026-10-08）"
+    - type: image
+      src: gallery/panel-wyoming-integration-zh-20261008.jpg
+      caption: "Wyoming Protocol integration on Raspberry Pi 5 with two seeed-local-voice services (STT and TTS) served from Jetson Orin NX (2026-10-08)"
+      caption_i18n:
+        zh: "Raspberry Pi 5 上的 Wyoming Protocol 集成：两个 seeed-local-voice 服务（语音转文字、文字转语音），由 Jetson Orin NX 提供（2026-10-08）"
+        ja: "Raspberry Pi 5 上の Wyoming Protocol 統合：Jetson Orin NX が提供する 2 つの seeed-local-voice サービス（音声認識・音声合成）（2026-10-08）"
   category: voice_ai
   solution_type: solution
   tags: [home-assistant, homekit, zigbee, zha, wyoming, local-voice, qwen3-asr, kokoro, piper]
