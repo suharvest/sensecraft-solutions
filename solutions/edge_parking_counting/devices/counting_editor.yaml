@@ -1,21 +1,24 @@
 version: "1.0"
-id: preview
-name: Open the counting preview
+id: counting_editor
+name: Draw the counting line
 name_i18n:
-  zh: 打开计数预览
+  zh: 画计数线
 type: web_dashboard
 
-# /preview is served by the counting service on its HTTP port (the deploy
-# step's http_port, default 8080). host and http_port are carried over from the
-# deploy step: the SSH host for remote targets, the 127.0.0.1 default for local.
+# /counting/editor is served by the counting service on its HTTP port (the deploy
+# step's http_port, default 8080; nrd-parking 20261009 images and later). Saving
+# writes PUT /config/counting -> state_dir/app-options.override.json, kept across
+# restarts and redeploys; "Vehicles inside now" posts to /occupancy. host and
+# http_port are carried over from the deploy step: the SSH host for remote
+# targets, the 127.0.0.1 default for local.
 web_dashboard:
-  url: "http://{{host}}:{{http_port}}/preview"
-  title: Counting preview
+  url: "http://{{host}}:{{http_port}}/counting/editor"
+  title: Counting line
   title_i18n:
-    zh: 计数预览
-  description: Live camera picture with the counting line, tracked vehicles and the in/out counters.
+    zh: 计数线设置
+  description: Draw the counting line on the live camera picture, swap the in/out sides, set the vehicles already inside, and watch the counts.
   description_i18n:
-    zh: 实时摄像头画面，叠加计数线、被跟踪的车辆和进出计数。
+    zh: 在实时摄像头画面上画计数线、交换进出方向、设置场内现有车辆数，并查看实时计数。
 
 user_inputs:
   - id: host

@@ -1,6 +1,6 @@
 ## What this solution does for you
 
-Knowing how many free spaces a car park has usually means burying induction loops in every lane or fitting counters to the barriers. This solution uses the IP camera already at the entrance: you place a counting line in the picture, every vehicle that crosses it is counted as in or out, and the number of vehicles inside and the free spaces are sent to your system as they change.
+Knowing how many free spaces a car park has usually means burying induction loops in every lane or fitting counters to the barriers. This solution uses the IP camera already at the entrance: after deployment you drag a counting line across the picture in a web page, every vehicle that crosses it is counted as in or out, and the number of vehicles inside and the free spaces are sent to your system as they change.
 
 ## Key benefits
 

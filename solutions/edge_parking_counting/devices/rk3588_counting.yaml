@@ -5,7 +5,7 @@ name_i18n:
   zh: reComputer RK3588 停车场计数
 type: docker_deploy
 
-# Runtime image: compose default (nrd-parking-rk:20261008, pinned by digest).
+# Runtime image: compose default (nrd-parking-rk:20261009, pinned by digest).
 # Model: count_vehicle416_rk3588 bundle (files: + after_upload fallback).
 # Host libraries (RKNN runtime, RGA, MPP, GStreamer) are detected on the board
 # by the first after_upload action and written to the compose project's .env;
@@ -132,11 +132,7 @@ actions:
         MQTT_PORT: '{{mqtt_port}}'
         MQTT_USERNAME: '{{mqtt_username}}'
         MQTT_PASSWORD: '{{mqtt_password}}'
-        LINE_ORIENTATION: '{{line_orientation}}'
-        LINE_POSITION: '{{line_position}}'
-        IN_SIDE: '{{in_side}}'
         CAPACITY: '{{capacity}}'
-        INITIAL_OCCUPANCY: '{{initial_occupancy}}'
         HTTP_PORT: '{{http_port}}'
       run: |
         set -e
@@ -176,9 +172,7 @@ actions:
             raise SystemExit("Site ID + camera ID are too long together; keep them to 31 characters in total")
         mqtt_port = env_int("MQTT_PORT", 1, 65535, "MQTT port")
         http_port = env_int("HTTP_PORT", 1, 65535, "Counter port")
-        position = env_int("LINE_POSITION", 10, 90, "Line position") / 100.0
         capacity = env_int("CAPACITY", 0, 100000, "Total spaces")
-        initial = env_int("INITIAL_OCCUPANCY", 0, 100000, "Vehicles already inside")
         rtsp_url = os.environ["RTSP_URL"].strip()
         if not rtsp_url.lower().startswith(("rtsp://", "rtsps://")):
             raise SystemExit("Camera stream URL must start with rtsp://")
@@ -224,13 +218,14 @@ actions:
         app.setdefault("http", {})["port"] = http_port
         app["state_dir"] = "/data/edge-parking"
         counting = app.setdefault("counting", {})
-        if os.environ.get("LINE_ORIENTATION") == "horizontal":
-            counting["line"] = {"a": [0.05, position], "b": [0.95, position]}
-        else:
-            counting["line"] = {"a": [position, 0.05], "b": [position, 0.95]}
-        counting["in_side"] = "negative" if os.environ.get("IN_SIDE") == "swapped" else "positive"
+        # Line, entry side and vehicles already inside are set on /counting/editor after
+        # deploy; the app keeps them in state_dir (app-options.override.json and the
+        # occupancy state), so a redeploy does not reset them. First-start defaults:
+        # vertical line through the middle, standard entry side, 0 vehicles inside.
+        counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
+        counting["in_side"] = "positive"
         counting["capacity"] = capacity
-        counting["initial_occupancy"] = initial
+        counting["initial_occupancy"] = 0
 
         tmp = path + ".tmp"
         with open(tmp, "w") as handle:
@@ -397,38 +392,6 @@ user_inputs:
     description_i18n: {zh: 在主题和事件里标识这个出入口。只能用字母、数字、- 和 _，最多 15 个字符。}
     validation:
       pattern: "^[A-Za-z0-9_-]{1,15}$"
-  - id: line_orientation
-    name: Counting line direction
-    name_i18n: {zh: 计数线方向}
-    type: select
-    default: vertical
-    required: true
-    description: Draw the line across the lane. Choose "vertical" when vehicles move left/right in the picture, "horizontal" when they move up/down.
-    description_i18n: {zh: 计数线要横穿车道。车辆在画面里左右移动选「竖线」，上下移动选「横线」。}
-    options:
-      - {value: vertical, label: Vertical line (vehicles move left/right), label_i18n: {zh: 竖线（车辆左右移动）}}
-      - {value: horizontal, label: Horizontal line (vehicles move up/down), label_i18n: {zh: 横线（车辆上下移动）}}
-  - id: line_position
-    name: Line position (%)
-    name_i18n: {zh: 计数线位置（%）}
-    type: text
-    default: "50"
-    required: true
-    description: Where the line sits, 10 to 90. For a vertical line it is the distance from the left edge of the picture; for a horizontal line, from the top edge. Put it where every vehicle is fully in view.
-    description_i18n: {zh: 计数线所在位置，填 10 到 90。竖线是距画面左边缘的百分比，横线是距画面上边缘的百分比。放在每辆车都能完整入镜的位置。}
-    validation:
-      pattern: "^([1-8][0-9]|90)$"
-  - id: in_side
-    name: Entry direction
-    name_i18n: {zh: 进场方向}
-    type: select
-    default: standard
-    required: true
-    description: If entering vehicles are counted as leaving, switch this and deploy again.
-    description_i18n: {zh: 如果驶入的车被记成驶出，切换这一项后重新部署。}
-    options:
-      - {value: standard, label: Standard, label_i18n: {zh: 默认}}
-      - {value: swapped, label: Swapped, label_i18n: {zh: 反向}}
   - id: capacity
     name: Total spaces
     name_i18n: {zh: 车位总数}
@@ -437,16 +400,6 @@ user_inputs:
     required: true
     description: Used to report free spaces. Enter 0 if you only need in/out counts.
     description_i18n: {zh: 用来计算剩余车位。只需要进出数量时填 0。}
-    validation:
-      pattern: "^[0-9]{1,6}$"
-  - id: initial_occupancy
-    name: Vehicles already inside
-    name_i18n: {zh: 场内现有车辆数}
-    type: text
-    default: "0"
-    required: true
-    description: Number of vehicles already parked when counting starts.
-    description_i18n: {zh: 开始计数时场内已经停着的车辆数。}
     validation:
       pattern: "^[0-9]{1,6}$"
   - id: http_port

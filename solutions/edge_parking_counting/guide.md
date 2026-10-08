@@ -18,7 +18,7 @@ The entrance IP camera sends its picture to a reComputer next to it. The reCompu
 
 ## Step 1: Deploy the vehicle counting app {#deploy_counting type=docker_deploy required=true config=devices/jetson_counting.yaml}
 
-Install the counting app on the reComputer and enter the camera, the MQTT server and where the counting line goes.
+Install the counting app on the reComputer and enter the camera and the MQTT server. You draw the counting line in Step 2.
 
 ### Prerequisites
 
@@ -32,9 +32,7 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 
 1. Connect the reComputer and the camera to the same LAN with Ethernet cables (if the camera is powered by a PoE switch, plug the reComputer into the same switch).
 2. Mount the camera so it looks at the lane, with vehicles moving from one side of the picture to the other and each vehicle fully in view.
-3. Choose the counting line direction: "Vertical line" when vehicles move left/right in the picture, "Horizontal line" when they move up/down. The line must cross the whole lane.
-4. Choose the line position (10–90): for a vertical line, the distance from the left edge of the picture in percent; for a horizontal line, from the top edge. Put it where vehicles drive through steadily and are fully visible, away from where they queue for the barrier.
-5. Enter the camera address, MQTT server, site ID, entrance ID, total spaces and vehicles already inside, then click Deploy.
+3. Enter the camera address, MQTT server, site ID, entrance ID and total spaces, then click Deploy.
 
 ### Troubleshooting
 
@@ -50,7 +48,7 @@ Install the counting app on the reComputer and enter the camera, the MQTT server
 
 ### Deployment Complete
 
-The last deploy step waits until the counting service is ready, so a successful deploy means it is running. Open `http://<device-ip>:8080/preview` in a browser (127.0.0.1 when deployed on this device; use the "Counter service port" if you changed it) and you should see the live picture with the counting line (Step 2 opens it directly).
+The last deploy step waits until the counting service is ready, so a successful deploy means it is running. Next, draw the counting line in Step 2.
 
 ### Target: reComputer J30 / J40 (remote) {#counting_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_counting.yaml default=true}
 
@@ -76,46 +74,43 @@ Deploy over SSH from this computer to a reComputer RK3576 Series on the LAN; mea
 
 Deploy directly on the reComputer RK3576 Series you are using; measured at 30 frames per second.
 
-## Step 2: View the counting picture {#view_counting type=web_dashboard required=false config=devices/preview.yaml}
+## Step 2: Draw the counting line {#draw_line type=web_dashboard required=false config=devices/counting_editor.yaml}
 
-Open the counting preview to check the camera picture and where the counting line sits.
+Open the counting line page, draw the line across the lane, check the in/out sides and enter the vehicles already inside.
 
 ### Wiring
 
-1. The device IP and counter service port are carried over from Step 1; for a deployment on this device the IP is 127.0.0.1
-2. Open the preview page and check that the live camera picture and the yellow counting line are visible
-3. If the line is not where vehicles are fully in view, adjust "Line position (%)" in Step 1 and deploy again
+1. The device IP and counter service port are carried over from Step 1 (127.0.0.1 for a deployment on this device). Open the page; it shows the live camera picture.
+2. Press and drag on the picture to draw a line across the whole lane; drag the dot at either end to fine-tune it. Put the line where vehicles drive through steadily and are fully visible, away from where they queue for the barrier.
+3. Check the "进 IN" and "出 OUT" labels on either side of the line: IN must be the side a vehicle is on after it has entered the car park. If they are reversed, click "Swap in/out".
+4. Click "Save". The line applies immediately and is kept across restarts and redeployments.
+5. Under "Vehicles inside now", enter the number of vehicles parked inside right now and click "Set".
 
 ### Deployment Complete
 
-The counting app is running. When a vehicle crosses the counting line, a crossing record and the car park status are sent to your MQTT server.
+The counting line is active. When a vehicle crosses it, a crossing record and the car park status are sent to your MQTT server.
 
 #### Initial Setup
 
-1. "Vehicles already inside" is the starting count on first start; after that, restarts and redeployments continue from the saved count.
-2. "Total spaces" is used to work out free spaces; enter the actual number of spaces.
-3. To reset the count when it no longer matches the car park: enter the correct "Vehicles already inside" in Step 1 and deploy again, then run the commands below on the device (on RK3588 set `C=edge-parking-counting-rk3588`, on RK3576 `C=edge-parking-counting-rk3576`; replace `gate-a` with your entrance ID):
+1. If the count of vehicles inside no longer matches the car park, enter the correct number under "Vehicles inside now" on this page at any time and click "Set".
+2. "Total spaces" is used to work out free spaces and is entered in Step 1. After a counting line has been saved, a new "Total spaces" value does not take effect on redeploy: first run the commands below on the device to delete the saved line (on RK3588 set `C=edge-parking-counting-rk3588`, on RK3576 `C=edge-parking-counting-rk3576`), deploy again, then come back to this page, draw the line and save it.
 
    ```bash
    C=edge-parking-counting-jetson
    D=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/data/edge-parking"}}{{.Source}}{{end}}{{end}}' $C)
-   docker stop $C
-   sudo rm "$D/gate-a/occupancy.json"
-   docker start $C
+   sudo rm "$D/app-options.override.json"
    ```
 
 #### Quick Verification
 
-1. On a computer that can reach the MQTT server, subscribe to the counting topics (replace `demo-lot` with your site ID):
+1. Keep the page open and drive a vehicle in. It is boxed, and after it crosses the line "In" goes up by 1, "Inside" up by 1 and "Free" down by 1.
+2. Drive it out. "Out" goes up by 1 and "Inside" down by 1.
+3. If entering vehicles are counted as leaving, click "Swap in/out", then "Save".
+4. On a computer that can reach the MQTT server, subscribe to the counting topics (replace `demo-lot` with your site ID). Within a few seconds of a crossing you receive a `.../crossing` message (`direction` `in` or `out`) and a `.../occupancy` message:
 
    ```bash
    mosquitto_sub -h <MQTT server IP> -p 1883 -t 'demo-lot/parking/#' -v
    ```
-
-2. Drive a vehicle in. Within a few seconds of crossing the line you receive a `.../crossing` message with `direction` `in`, and a `.../occupancy` message with `occupancy` up by 1 and `free` down by 1.
-3. Drive it out. You receive a record with `direction` `out` and `occupancy` down by 1.
-4. If vehicles entering are recorded as `out` and vehicles leaving as `in`, switch "Entry direction" and deploy again.
-5. If a vehicle crosses without a record, move the counting line to where vehicles are fully visible and drive through steadily; on RK3588, make sure vehicles stay in view for about 1 second or longer.
 
 ### Troubleshooting
 
@@ -123,4 +118,8 @@ The counting app is running. When a vehicle crosses the counting line, a crossin
 |-------|----------|
 | Page does not open | Check that the IP is the counting device's address, the port matches "Counter service port" in Step 1, and this computer is on the same network |
 | Page opens but shows no picture | The device cannot reach the camera: open the RTSP address in VLC on the same network and check the path, user name and password; on RK3588 / RK3576 also check that "Camera video format" matches the camera setting. Then deploy again |
+| A vehicle crosses but the counts do not change | Move the line to where vehicles are fully visible and drive through steadily, then click "Save"; the line must cross the whole lane. On RK3588, make sure vehicles stay in view for about 1 second or longer |
+| Entries and exits are swapped | Click "Swap in/out", then "Save" |
+| "Line too short" | The drag was too short; drag a longer line on the picture |
+| "Save failed" after clicking Save | Reload the page and draw the line again; if it still fails, run `docker logs edge-parking-counting-jetson` on the device (`edge-parking-counting-rk3588` on RK3588, `edge-parking-counting-rk3576` on RK3576) to see the error |
 | No MQTT messages arrive | Check the MQTT server address, port, user name and password, and that the device can reach port 1883 on the server, then deploy again |
