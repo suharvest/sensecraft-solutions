@@ -11,4 +11,4 @@ Audio fixtures:
 
 Known defect visible in `panel-transcript-detail-ja`: the second FLEURS source (19.5-31.7 s) is labelled S1, and S2 is a 1.9 s tail transcribed as "(clipper buzzing)"; speaker attribution does not match the sources.
 
-`cover-20261008.jpg` is a generated illustration, not a screenshot.
+`cover-20261008.jpg` is a generated illustration, not a screenshot. It reuses the listing-card image of the hub scenario page in-person-conversation-intelligence (https://files.seeedstudio.com/Solution/landpage_asset/voicecollectionanalysis/cover-41074c7f.jpg), resized to 1600 px wide.
