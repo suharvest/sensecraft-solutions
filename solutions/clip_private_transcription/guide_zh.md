@@ -93,7 +93,8 @@ compose 契约关闭模型下载。两个 ASR-only 服务使用同一私有 OVS 
 通过 SSH 连接这台 Jetson。2026-10-08 在 Orin NX 上，现已发布为
 `clip-private-transcription:20261008` 的 clip-pt 构建用测试 compose（改用其他端口）跑通
 HTTP 上传链路（上传、GPU 说话人分离、SenseVoice/Whisper TensorRT ASR、LLM 摘要、经
-HTTP 与 MQTT 输出转写）。本目标的 compose 文件 2026-10-08 也在 Orin NX 上用已发布镜像运行过
+HTTP 与 MQTT 输出转写）。本目标的 compose 文件 2026-10-08 也在 Orin NX 上运行过，所用镜像的 config digest 与已发布的 20261008
+clip-pt、OVS 镜像一致
 （关闭摘要；因主机端口与磁盘已被占用，改用端口 8641/8642/18883 和 tmpfs 数据目录，模型只读绑定挂载）：
 6.3 s 的 LibriSpeech 上传 1.2 s 完成，34 s 双人 FLEURS 日语上传 2.2 s 完成，识别出 2 位说话人。
 英文样本只转写出第二句（说话人分离步骤丢掉了第一句）。Clip BLE/Wi-Fi 同步需要 Clip 实物，当天没有可用的 Clip。
@@ -102,7 +103,7 @@ HTTP 与 MQTT 输出转写）。本目标的 compose 文件 2026-10-08 也在 Or
 
 预编译的 TensorRT plan 只适用于 Jetson Orin NX（P3767-0000 / P3767-0001）、L4T R36.4（JetPack 6.2）、TensorRT 10.3；在其他模组或 JetPack 版本上，部署步骤会直接停止。
 
-在这台 Jetson 上运行 Docker。与 SSH 目标使用同一 compose 文件：该 compose 与已发布镜像
+在这台 Jetson 上运行 Docker。与 SSH 目标使用同一 compose 文件：该 compose
 2026-10-08 已在 Orin NX 上跑通 HTTP 上传链路（见 SSH 目标）。Clip BLE/Wi-Fi 同步需要 Clip 实物。
 
 ### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
