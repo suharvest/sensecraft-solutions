@@ -142,25 +142,24 @@ RKNN 模型包；R2035 目标使用已发布的 HEF 模型包。模型包在部�
 
 ### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-从本机通过 SSH 部署到 RK3588。验收受阻：运行镜像
-`sensecraft/edge-parking-rk:0.1.0-draft` 尚未构建，RKNN 模型尚未发布，随包的
+从本机通过 SSH 部署到 RK3588。运行镜像与 RKNN 模型已发布（20261008）。验收受阻：随包的
 `assets/rk3588/config/plate.json` 还不是可运行的 `vb.config/1` 文件。
 
 ### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-如果你就在 RK3588 上操作，直接在本机运行。验收受阻：运行镜像与 RKNN 模型尚未发布。
+如果你就在 RK3588 上操作，直接在本机运行。验收受阻：随包车牌配置还不是可运行的 `vb.config/1` 文件。
 
 ### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-从本机通过 SSH 部署到 RK3576。验收受阻：运行镜像
-`sensecraft/edge-parking-rk:0.1.0-draft` 尚未构建，RK3576 RKNN 模型尚未发布。
+从本机通过 SSH 部署到 RK3576。运行镜像与 RK3576 RKNN 模型已发布（20261008）。验收受阻：随包车牌配置
+还不是可运行的 `vb.config/1` 文件。
 2026-10-08 在一块 RK3576 板上用替代镜像跑通到 `parking.plate/1` 事件；随包
 compose 路径未参与该次运行。
 
 ### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-如果你就在 RK3576 上操作，直接在本机运行。验收受阻：运行镜像与 RK3576 RKNN 模型
-尚未发布。
+如果你就在 RK3576 上操作，直接在本机运行。验收受阻：随包车牌配置还不是可运行的
+`vb.config/1` 文件。
 
 ### 部署目标 {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 

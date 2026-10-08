@@ -158,28 +158,27 @@ with snapshots. Recognition accuracy is not accepted yet.
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-Deploy to the RK3588 over SSH from this computer. Acceptance blocked: the runtime
-image `sensecraft/edge-parking-rk:0.1.0-draft` has not been built, the RKNN
-models are not published, and the shipped `assets/rk3588/config/plate.json` is
-not yet a runnable `vb.config/1` file.
+Deploy to the RK3588 over SSH from this computer. The runtime image and RKNN
+models are published (20261008). Acceptance blocked: the shipped
+`assets/rk3588/config/plate.json` is not yet a runnable `vb.config/1` file.
 
 ### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
 Run this directly on the RK3588 if you are working on the device itself.
-Acceptance blocked: the runtime image and RKNN models are not published yet.
+Acceptance blocked: the shipped plate config is not yet a runnable `vb.config/1` file.
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-Deploy to the RK3576 over SSH from this computer. Acceptance blocked: the runtime
-image `sensecraft/edge-parking-rk:0.1.0-draft` has not been built and the
-RK3576 RKNN models are not published. A 2026-10-08 run on an RK3576 board with
+Deploy to the RK3576 over SSH from this computer. The runtime image and RK3576
+RKNN models are published (20261008). Acceptance blocked: the shipped plate
+config is not yet a runnable `vb.config/1` file. A 2026-10-08 run on an RK3576 board with
 a substitute image reached `parking.plate/1` events; the packaged compose path
 was not exercised.
 
 ### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
 Run this directly on the RK3576 if you are working on the device itself.
-Acceptance blocked: the runtime image and RK3576 RKNN models are not published yet.
+Acceptance blocked: the shipped plate config is not yet a runnable `vb.config/1` file.
 
 ### Target {#hailo_remote type=remote device=hailo device_name="R2035 (Hailo-8)" config=devices/hailo_plate.yaml}
 
