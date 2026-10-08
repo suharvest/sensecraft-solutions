@@ -51,11 +51,17 @@ intro:
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
-      src: gallery/panel-transcript-list-20261008.jpg
-      caption: "Transcript list on the local results page: each recording with its duration, speaker count and whether it has a summary"
+      src: gallery/panel-transcript-list-zh-20261008.jpg
+      caption: "Transcript list on the results page, reComputer J40 (Jetson Orin NX): three two-speaker Chinese recordings of 22 s, 16 s and 26 s, transcribed in 0.7 s, 1.2 s and 1.7 s respectively. Audio from FLEURS (CC BY 4.0) and AISHELL-1 (Apache 2.0)"
       caption_i18n:
-        zh: "本地结果页的转写列表：每段录音显示时长、说话人数和是否有摘要"
-        ja: "ローカル結果ページの文字起こし一覧：録音ごとの長さ・話者数・要約の有無"
+        zh: "结果页的转写列表，reComputer J40（Jetson Orin NX）：三段双人中文录音，时长 22 秒、16 秒、26 秒，转写分别用时 0.7 秒、1.2 秒、1.7 秒。音频来自 FLEURS（CC BY 4.0）与 AISHELL-1（Apache 2.0）"
+        ja: "結果ページの文字起こし一覧、reComputer J40（Jetson Orin NX）：話者 2 人の中国語録音 3 本（22 秒・16 秒・26 秒）、文字起こし時間はそれぞれ 0.7 秒・1.2 秒・1.7 秒。音声は FLEURS（CC BY 4.0）と AISHELL-1（Apache 2.0）"
+    - type: image
+      src: gallery/panel-transcript-detail-zh-20261008.jpg
+      caption: "Transcript detail, reComputer J40 (Jetson Orin NX): a 16 s Chinese recording with three turns, labelled S1 / S2 / S1 with timestamps and transcribed in 1.2 s; summaries were off. One extra character in the first line (面). Audio: AISHELL-1 (Apache 2.0) and the SenseVoice zh example clip (FunASR model licence)"
+      caption_i18n:
+        zh: "转写详情，reComputer J40（Jetson Orin NX）：16 秒、三轮对话的中文录音，按 S1 / S2 / S1 分开并带时间戳，转写用时 1.2 秒；本次未开启摘要。第一句多识别出一个「面」字。音频：AISHELL-1（Apache 2.0）与 SenseVoice 中文示例音频（FunASR 模型许可）"
+        ja: "文字起こしの詳細、reComputer J40（Jetson Orin NX）：16 秒・3 発話の中国語録音を S1 / S2 / S1 に分け、タイムスタンプ付きで 1.2 秒で文字起こし。要約はオフ。1 行目に余分な 1 文字（面）あり。音声：AISHELL-1（Apache 2.0）と SenseVoice 中国語サンプル音声（FunASR モデルライセンス）"
   category: acoustic_audio_ai
   solution_type: solution
   tags: [respeaker-clip, private-deployment, speech-to-text, speaker-diarization, mqtt, offline]
