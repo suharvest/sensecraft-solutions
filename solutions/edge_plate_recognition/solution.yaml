@@ -9,8 +9,8 @@
 #   - 检测 YOLOX（Apache-2.0）；自训权重 plate_det_* 按 Apache-2.0 发布
 #   - 识别 PlateRecNet（本仓库自写，Apache-2.0）；plate_rec_* 权重 Apache-2.0
 #   - 训练数据 CCPD（MIT）；PP-OCRv5 仅基线评测、不随交付分发
-# gallery 来源说明：2026-10-08 Jetson Orin Nano Super 真机 /preview 截图，输入为 CCPD2020
-#   绿牌测试图（MIT）；2026-10-08 负责人决定直接使用，见 gallery/ATTRIBUTION.md。
+# gallery 来源说明：2026-10-08 Jetson Orin Nano Super 与 RK3588 真机 /preview 截图（v2），输入为
+#   CCPD2019/2020 测试集图（MIT）；2026-10-08 负责人决定直接使用，见 gallery/ATTRIBUTION.md。
 #
 # verified 状态：ip_camera_box preset 带 `verified: [hardware]`，依据是 Jetson /
 #   RK3588 / RK3576 三个部署目标 2026-10-08 的部署与输出链路验收（识别准确率未验收）。
@@ -53,23 +53,23 @@ intro:
   cover_image: gallery/cover-20261008.jpg
   gallery:
     - type: image
-      src: gallery/panel-preview-plate-1-20261008.jpg
-      caption: "Recognition preview: the new-energy green plate is boxed and the recognized number is sent as a record to your parking system (public test image)"
+      src: gallery/panel-plate-1-jetson-blue-oblique-20261009.jpg
+      caption: "Plate recognition on Jetson Orin Nano Super: blue plate 皖A62599 read at 0.98 from an oblique front view; the right panel lists the last five reads (CCPD test image)"
       caption_i18n:
-        zh: "识别预览：新能源绿牌被框出，识别出的车牌号作为一条记录发给停车场系统（公开测试图）"
-        ja: "認識プレビュー：グリーンプレートを枠で示し、認識したナンバーを駐車場システムへ記録として送信（公開テスト画像）"
+        zh: "Jetson Orin Nano Super 车牌识别：斜前方拍摄的蓝牌 皖A62599，置信度 0.98；右侧列出最近 5 次读牌（CCPD 测试图）"
+        ja: "Jetson Orin Nano Super のナンバー認識：斜め前方から撮影した青ナンバー 皖A62599 を信頼度 0.98 で認識。右側は直近 5 件の認識結果（CCPD テスト画像）"
     - type: image
-      src: gallery/panel-preview-plate-2-20261008.jpg
-      caption: "Recognition preview: plate on the front of the vehicle (public test image)"
+      src: gallery/panel-plate-2-jetson-green-front-20261009.jpg
+      caption: "Plate recognition on Jetson Orin Nano Super: green new-energy plate 皖AF10528 read at 0.87 from the front (CCPD test image)"
       caption_i18n:
-        zh: "识别预览：车头车牌（公开测试图）"
-        ja: "認識プレビュー：車両前面のナンバー（公開テスト画像）"
+        zh: "Jetson Orin Nano Super 车牌识别：车头新能源绿牌 皖AF10528，置信度 0.87（CCPD 测试图）"
+        ja: "Jetson Orin Nano Super のナンバー認識：フロントの新エネルギー車用グリーンナンバー 皖AF10528 を信頼度 0.87 で認識（CCPD テスト画像）"
     - type: image
-      src: gallery/panel-preview-plate-3-20261008.jpg
-      caption: "Recognition preview: plate seen at an angle (public test image)"
+      src: gallery/panel-plate-3-rk3588-blue-rear-20261009.jpg
+      caption: "Plate recognition on RK3588: blue plate 皖ALY625 read at 0.90 from the rear of the car (CCPD test image)"
       caption_i18n:
-        zh: "识别预览：斜角拍摄的车牌（公开测试图）"
-        ja: "認識プレビュー：斜めから撮影したナンバー（公開テスト画像）"
+        zh: "RK3588 车牌识别：车尾蓝牌 皖ALY625，置信度 0.90（CCPD 测试图）"
+        ja: "RK3588 のナンバー認識：車両後部の青ナンバー 皖ALY625 を信頼度 0.90 で認識（CCPD テスト画像）"
   category: vision_video_ai
   solution_type: solution
   tags:
