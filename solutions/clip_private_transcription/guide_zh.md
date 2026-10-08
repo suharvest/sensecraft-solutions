@@ -177,6 +177,7 @@
 1. 在浏览器打开 `http://<主机IP>:8631/`，输入部署日志末尾显示的 API key
 2. 忘记 API key 时，在主机上运行 `sudo cat /opt/clip-private-transcription/config/api_key` 查看
 3. 要改 Clip、Wi-Fi 同步或 AI 摘要设置，回到步骤 1 修改后重新部署；API key 留空会沿用原来的
+4. 在结果页「设置」面板保存的修改存放在数据卷（`/var/lib/clip-pt/settings.override.yaml`），重启和重新部署后仍保留，同一字段以它为准、优先于步骤 1 的值。要恢复为步骤 1 的值，运行 `sudo docker exec $(sudo docker ps -qf label=com.docker.compose.service=clip-pt) rm /var/lib/clip-pt/settings.override.yaml` 后重启服务
 
 #### 快速验证
 

@@ -177,6 +177,7 @@ The transcription service is running on your reComputer.
 1. Open `http://<host-ip>:8631/` in your browser and enter the API key shown at the end of the deploy log
 2. If you lose the API key, run `sudo cat /opt/clip-private-transcription/config/api_key` on the host
 3. To change the Clip, Wi-Fi sync or AI summary settings, edit them in Step 1 and deploy again; leave the API key empty to keep the current one
+4. Changes saved in the results page's Settings panel are stored in the data volume (`/var/lib/clip-pt/settings.override.yaml`), survive restarts and redeploys, and take priority over the Step 1 values for the same fields. To go back to the Step 1 values, run `sudo docker exec $(sudo docker ps -qf label=com.docker.compose.service=clip-pt) rm /var/lib/clip-pt/settings.override.yaml` and restart the service
 
 #### Quick Verification
 
