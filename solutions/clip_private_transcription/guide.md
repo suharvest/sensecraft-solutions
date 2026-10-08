@@ -118,18 +118,22 @@ Connect to this Jetson host over SSH. On Orin NX (2026-10-08) the clip-pt build
 now published as `clip-private-transcription:20261008` passed the HTTP-upload
 path (upload, GPU diarization, SenseVoice/Whisper TensorRT ASR, LLM summary,
 transcript over HTTP and MQTT) with a test compose on other ports. This
-target's compose file (ASR services with a writable resolver directory, models
-read-only) was not run on a device on 2026-10-08 — the Orin NX had no free
-disk. Clip BLE/Wi-Fi sync needs a physical Clip; none was available.
+target's compose file was also run on the Orin NX on 2026-10-08 with images
+whose config digests match the published 20261008 clip-pt and OVS images
+(summary off; ports 8641/8642/18883 and a tmpfs data
+directory because the host's ports and disk were taken; models bind-mounted
+read-only): a 6.3 s LibriSpeech upload finished in 1.2 s, a 34 s two-speaker
+FLEURS Japanese upload in 2.2 s with 2 speakers. On the English clip only the
+second utterance is transcribed (the diarization step drops the first). Clip
+BLE/Wi-Fi sync needs a physical Clip; none was available.
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_stack.yaml}
 
 The prebuilt TensorRT plans are for Jetson Orin NX (P3767-0000 / P3767-0001) on L4T R36.4 (JetPack 6.2) with TensorRT 10.3; the deploy step stops on any other module or JetPack version.
 
 Run Docker on this Jetson host. Same compose file as the SSH target: the
-published clip-pt image passed the HTTP-upload path on Orin NX with a test
-compose; this compose file was not run on a device on 2026-10-08. Clip
-BLE/Wi-Fi sync needs a physical Clip.
+compose file passed the HTTP-upload path on an Orin NX
+on 2026-10-08 (see the SSH target). Clip BLE/Wi-Fi sync needs a physical Clip.
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_stack.yaml}
 

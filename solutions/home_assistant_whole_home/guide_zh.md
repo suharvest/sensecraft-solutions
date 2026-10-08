@@ -31,10 +31,13 @@ HomeKit 配对、Aqara/ZHA（ZBT-2）、Voice PE、ESPHome、实体麦克风/扬
 
 运行一个 OpenVoiceStream 服务（Qwen3-ASR + Matcha TTS，配置 `jetson-edgellm-v091-matcha`，
 镜像 `nrd6-ovs-jetson:20261008`）同时提供 ASR 和 TTS，端口为 `voice_port`（默认 8623）；
-另有 Home Assistant 连接的 Wyoming 适配层（`wyoming-slv-adapter:20261008`，STT 10300 /
-TTS 10200）。首次启动时服务把模型下载到 `jetson-models` 卷（至少 30 GB 可用磁盘）。
-这与上文 2026-10-08 Orin NX 实测的布局相同（同一镜像、同一配置）；本 compose 文件本身
-2026-10-08 未在设备上运行——当时 Orin NX 没有可用磁盘。尚无完成许可核实的可分发语音 artifact。
+另有 Wyoming 适配层（`wyoming-slv-adapter:20261008`），Home Assistant 经 `wyoming_stt_port` /
+`wyoming_tts_port`（默认 10300 / 10200）连接。首次启动时服务把模型下载到 `jetson-models` 卷
+（至少 30 GB 可用磁盘）。2026-10-08 已在 Orin NX 上用本 compose 文件验证，所用 OVS 与适配层镜像的
+config digest 与已发布的 20261008 镜像一致（语音服务 8633，Wyoming 经端口输入改为 10301 / 10201；
+模型取自已有卷，关闭自动下载）：两个端口都应答 Wyoming `describe` 请求；TTS 输出回送 STT，
+打开客厅灯、关闭卧室的灯和 "Turn on the living room light" 三句与原文一致（另带句末标点）；TTS 首段音频 0.05–0.12 s，音频结束后 0.38–0.58 s 出 STT 结果。
+输入为合成语音，非麦克风。尚无完成许可核实的可分发语音 artifact。
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_voice.yaml}
 
@@ -46,4 +49,12 @@ TTS 10200）。首次启动时服务把模型下载到 `jetson-models` 卷（至
 
 ## 步骤 3：验证 Home Assistant {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
 
-打开 HA，完成同样的 ZHA、HomeKit 和本地语音检查。
+把 Home Assistant 接到 Jetson 语音服务，再做检查：
+
+1. 在 Home Assistant 中进入 **设置 → 设备与服务 → 添加集成 → Wyoming Protocol**，主机填 Jetson 的
+   IP 地址，端口填步骤 2 的 `wyoming_stt_port`（默认 10300）。
+2. 再添加一个 **Wyoming Protocol** 集成，主机相同，端口填 `wyoming_tts_port`（默认 10200）。
+3. 进入 **设置 → 语音助手**，打开 Assist 流水线，选择新加入的语音转文字和文字转语音服务。
+4. 完成 ZHA、HomeKit 和本地语音检查。
+
+之后若用其他端口重新部署步骤 2，已有的 Wyoming 集成仍指向旧端口：删除这两个集成后重新添加。
