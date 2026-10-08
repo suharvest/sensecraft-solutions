@@ -5,7 +5,7 @@
 
 ## 套餐：树莓派 + Jetson 语音（草稿）{#rpi_jetson}
 
-设备实测（树莓派 5 运行本包 compose 部署的 HA 2026.9.3，语音端点在 Jetson Orin NX，
+设备实测（ARM64 Linux 主机，Broadcom BCM2712、8GB，运行本包 compose 部署的 HA 2026.9.3，语音端点在 Jetson Orin NX，
 经 Wyoming 接入）：5 条语音指令（中文、英文，“打开/关闭客厅灯”）全部改变了 HA 实体
 状态，均由内置意图代理在本地处理。音频结束后 STT 最终结果 0.11–0.95 s（中位数
 0.12 s）。输入为 TTS 合成语音推流到 Assist 管道，不是麦克风；实体为虚拟演示灯。
@@ -18,11 +18,11 @@
 可在接入加密狗之前先安装 Home Assistant，接入后填写 `/dev/serial/by-id/...` 路径
 重新部署。
 
-### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux 主机（如树莓派 5）" config=devices/ha_rpi.yaml}
+### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml}
 
 在这台树莓派上运行 Docker。
 
-### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux 主机（如树莓派 5）" config=devices/ha_rpi.yaml default=true}
+### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux 主机（64 位系统，8GB 内存）" config=devices/ha_rpi.yaml default=true}
 
 通过 SSH 连接这台树莓派。
 

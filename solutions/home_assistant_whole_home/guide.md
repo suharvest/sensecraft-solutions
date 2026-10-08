@@ -5,7 +5,8 @@
 
 ## Preset: Raspberry Pi + Jetson Voice (Draft) {#rpi_jetson}
 
-Measured on a Raspberry Pi 5 (HA 2026.9.3 from this package's compose) with
+Measured on an ARM64 Linux host (Broadcom BCM2712, 8GB; HA 2026.9.3 from this
+package's compose) with
 the voice endpoint on a Jetson Orin NX over Wyoming: 5 of 5 voice commands
 (zh and en, "turn on/off the living room light") changed the HA entity state,
 all handled by the built-in intent agent locally. STT final result 0.11–0.95 s
@@ -20,11 +21,11 @@ Use 64-bit Raspberry Pi OS. Port 8123 must be free on the Pi. The ZBT-2
 device path is optional: leave it empty to install Home Assistant before the
 dongle is connected, then redeploy with the `/dev/serial/by-id/...` path.
 
-### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux host (e.g. Raspberry Pi 5)" config=devices/ha_rpi.yaml}
+### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml}
 
 Run Docker on this Raspberry Pi.
 
-### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux host (e.g. Raspberry Pi 5)" config=devices/ha_rpi.yaml default=true}
+### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml default=true}
 
 Connect to this Raspberry Pi over SSH.
 

@@ -66,7 +66,7 @@ crossings on a synthetic clip. No counting-accuracy figure on real gate video.
 ### Target {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 Connect to the RK3588 host over SSH. Verified with conditions on 2026-10-08:
-measured on a Radxa Rock 5T (RK3588) with a locally built image (6a5c781d) and
+measured on an RK3588 device with a locally built image (6a5c781d) and
 a looped 1280x720 H.264 5 fps parking-lot clip: 3.0 fps processed of the 5 fps
 source (about 26 % of frames dropped, cause not diagnosed), inference p50
 17.8 ms / p95 20.0 ms, 107 MQTT events with contiguous seq. The clip repeats
@@ -75,7 +75,7 @@ every 10 s, so no counting-accuracy figure is stated.
 ### Target {#rk3588_counting_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 Run Docker on the RK3588 host after the fail-closed host path precheck passes.
-Verified with conditions on 2026-10-08 (Radxa Rock 5T): 3.0 fps processed of
+Verified with conditions on 2026-10-08 (RK3588 device): 3.0 fps processed of
 the 5 fps source (about 26 % of frames dropped, cause not diagnosed), inference
 p50 17.8 ms / p95 20.0 ms. No counting-accuracy figure.
 

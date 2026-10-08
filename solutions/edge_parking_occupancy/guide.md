@@ -68,7 +68,7 @@ Run Docker on this Jetson host. Verified 2026-10-08 on a Jetson Orin Nano:
 ### Target {#rk3588_occupancy_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 
 Connect to the RK3588 host over SSH. Verified with conditions on 2026-10-08:
-measured on a Radxa Rock 5T (RK3588) with a locally built image (6a5c781d) and
+measured on an RK3588 device with a locally built image (6a5c781d) and
 a synthetic occupied/empty fixture (1 stream at 1 fps, single-car ROI): 17
 occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms, 0 dropped
 frames. No slot-accuracy figure; multi-stream capacity was not measured.
@@ -76,7 +76,7 @@ frames. No slot-accuracy figure; multi-stream capacity was not measured.
 ### Target {#rk3588_occupancy_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_occupancy.yaml}
 
 Run Docker on the RK3588 host after the required-path precheck passes.
-Verified with conditions on 2026-10-08 (Radxa Rock 5T, 1 stream at 1 fps): 17
+Verified with conditions on 2026-10-08 (RK3588 device, 1 stream at 1 fps): 17
 occupied/free state changes, inference p50 36.6 ms / p95 40.5 ms. No
 slot-accuracy figure.
 

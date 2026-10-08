@@ -66,15 +66,14 @@ p95 3.64 ms，预期 41 次越线全部检出且方向交替。尚无真实出�
 
 ### 部署目标 {#rk3588_counting_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
-通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（Radxa Rock 5T /
-RK3588，本地构建镜像 6a5c781d，循环播放 1280x720 H.264 5 fps 停车场片段）：处理
+通过 SSH 连接 RK3588 主机。2026-10-08 有条件验证：设备实测（RK3588 设备，本地构建镜像 6a5c781d，循环播放 1280x720 H.264 5 fps 停车场片段）：处理
 3.0 fps（源 5 fps，约 26 % 帧被丢弃，原因未定位），推理 p50 17.8 ms / p95 20.0 ms，
 107 条 MQTT 事件且 seq 连续。片段每 10 s 循环一次，不给出计数准确率。
 
 ### 部署目标 {#rk3588_counting_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_counting.yaml}
 
 通过宿主机路径 fail-closed 预检后，在 RK3588 主机运行 Docker。2026-10-08 有条件
-验证（Radxa Rock 5T）：处理 3.0 fps（源 5 fps，约 26 % 帧被丢弃，原因未定位），
+验证（RK3588 设备）：处理 3.0 fps（源 5 fps，约 26 % 帧被丢弃，原因未定位），
 推理 p50 17.8 ms / p95 20.0 ms。不给出计数准确率。
 
 ### 部署目标 {#rk3576_counting_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_counting.yaml}
