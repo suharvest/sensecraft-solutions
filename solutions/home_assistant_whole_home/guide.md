@@ -41,11 +41,11 @@ Use 64-bit Raspberry Pi OS. Port 8123 must be free on the Pi. The ZBT-2
 device path is optional: leave it empty to install Home Assistant before the
 dongle is connected, then redeploy with the `/dev/serial/by-id/...` path.
 
-### Target {#rpi_local type=local device=rpi device_name="Raspberry Pi" config=devices/ha_rpi.yaml}
+### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux host (e.g. Raspberry Pi 5)" config=devices/ha_rpi.yaml}
 
 Run Docker on this Raspberry Pi.
 
-### Target {#rpi_remote type=remote device=rpi device_name="Raspberry Pi" config=devices/ha_rpi.yaml default=true}
+### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux host (e.g. Raspberry Pi 5)" config=devices/ha_rpi.yaml default=true}
 
 Connect to this Raspberry Pi over SSH.
 

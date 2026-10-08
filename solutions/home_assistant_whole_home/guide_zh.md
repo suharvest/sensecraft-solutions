@@ -39,11 +39,11 @@
 可在接入加密狗之前先安装 Home Assistant，接入后填写 `/dev/serial/by-id/...` 路径
 重新部署。
 
-### Target {#rpi_local type=local device=rpi device_name="Raspberry Pi" config=devices/ha_rpi.yaml}
+### Target {#rpi_local type=local device=arm64_linux device_name="ARM64 Linux 主机（如树莓派 5）" config=devices/ha_rpi.yaml}
 
 在这台树莓派上运行 Docker。
 
-### Target {#rpi_remote type=remote device=rpi device_name="Raspberry Pi" config=devices/ha_rpi.yaml default=true}
+### Target {#rpi_remote type=remote device=arm64_linux device_name="ARM64 Linux 主机（如树莓派 5）" config=devices/ha_rpi.yaml default=true}
 
 通过 SSH 连接这台树莓派。
 
