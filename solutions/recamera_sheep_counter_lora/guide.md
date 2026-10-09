@@ -113,7 +113,7 @@ docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 `sheep-meshtastic-bridge` and `sheep-ha-bridge` should both show `Up`. The first start installs Python packages and takes about a minute longer than later restarts.
 
 Import the `ha_dashboard.yaml` file into Home Assistant:
-1. Copy `assets/gateway/ha_dashboard.yaml` from this solution package to your HA config directory (or use `~/sheep-gateway/ha_dashboard.yaml` on the gateway, uploaded by the deployment)
+1. Copy `assets/gateway/ha_dashboard.yaml` from this solution package to your HA config directory (with the remote target, the deployment also uploads it to `~/sheep-gateway/gateway/ha_dashboard.yaml` on the gateway)
 2. In HA: Settings → Dashboards → Import → select the file
 
 ### Troubleshooting
@@ -124,7 +124,7 @@ Import the `ha_dashboard.yaml` file into Home Assistant:
 | sheep-ha-bridge fails to connect | Confirm the MQTT broker IP is reachable on port 1883 and accepts the gateway connection |
 | No MQTT messages | Verify the MQTT broker IP and that the broker accepts unauthenticated connections on port 1883 |
 | Containers missing after reboot | Containers use `restart: unless-stopped`; confirm Docker starts at boot with `systemctl is-enabled docker` |
-| `pip install` fails in the container log | The gateway cannot reach PyPI; check its network or DNS, then run `docker compose -p sheep_gateway restart` in `~/sheep-gateway` |
+| `pip install` fails in the container log | The gateway cannot reach PyPI; check its network or DNS, then run `docker compose -p sheep_gateway restart` in `~/sheep-gateway/gateway` (remote target) or redeploy this step |
 
 ### Target: Gateway (remote) {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
 

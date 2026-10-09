@@ -113,7 +113,7 @@ docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 `sheep-meshtastic-bridge` 和 `sheep-ha-bridge` 均应显示 `Up`。首次启动需要安装 Python 包，比之后的重启多约一分钟。
 
 将 `ha_dashboard.yaml` 导入 Home Assistant：
-1. 将此方案包中的 `assets/gateway/ha_dashboard.yaml` 复制到 HA 配置目录（也可使用部署时上传到网关的 `~/sheep-gateway/ha_dashboard.yaml`）
+1. 将此方案包中的 `assets/gateway/ha_dashboard.yaml` 复制到 HA 配置目录（使用远程部署时，部署也会将该文件上传到网关的 `~/sheep-gateway/gateway/ha_dashboard.yaml`）
 2. 在 HA 中：设置 → 仪表盘 → 导入 → 选择该文件
 
 ### 故障排查
@@ -124,7 +124,7 @@ docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 | sheep-ha-bridge 连接失败 | 确认 MQTT Broker IP 的 1883 端口可达，且允许网关连接 |
 | 无 MQTT 消息 | 检查 MQTT Broker IP 是否正确，以及 Broker 是否接受 1883 端口的匿名连接 |
 | 重启后容器不在 | 容器设置了 `restart: unless-stopped`；用 `systemctl is-enabled docker` 确认 Docker 开机自启 |
-| 容器日志中 `pip install` 失败 | 网关无法访问 PyPI；检查网关网络或 DNS，然后在 `~/sheep-gateway` 执行 `docker compose -p sheep_gateway restart` |
+| 容器日志中 `pip install` 失败 | 网关无法访问 PyPI；检查网关网络或 DNS，然后在 `~/sheep-gateway/gateway` 执行 `docker compose -p sheep_gateway restart`（远程部署），或重新部署此步骤 |
 
 ### Target: 网关（远程） {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
 
