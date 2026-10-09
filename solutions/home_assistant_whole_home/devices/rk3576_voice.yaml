@@ -1,0 +1,274 @@
+version: "1.0"
+id: rk3576_voice
+name: Voice services on the reComputer RK3576 (cloud LLM)
+name_i18n: {zh: reComputer RK3576 语音服务（云端大模型）}
+type: docker_deploy
+device_class: rk3576
+deploy_timeout: 3600
+# RK3576: speech on the RK3576 NPU (profile rk3576-default); the LLM is the cloud API
+# the user enters, called by Home Assistant's LiteLLM conversation agent.
+docker:
+  compose_file: assets/docker/docker-compose.rk-voice.yml
+  compose_dir: assets
+  remote_path: /opt/ha-whole-home
+  options: {project_name: ha_whole_home_rk_voice, remove_orphans: false}
+  services: [{name: voice, required: true}, {name: wyoming-adapter, required: true}]
+  environment:
+    VOICE_PORT: "{{voice_port}}"
+    WYOMING_STT_PORT: "{{wyoming_stt_port}}"
+    WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
+    RK_VOICE_PROFILE: "rk3576-default"
+ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
+pre_checks:
+  - {type: disk_space, min_gb: 10, description: The voice services and their models need at least 10 GB of free disk.}
+user_inputs:
+  - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port used only inside the voice host by the voice services. Change it only if 8623 is already in use., description_i18n: {zh: 语音服务在语音主机内部使用的端口。仅当 8623 已被占用时修改。}}
+  - {id: wyoming_stt_port, name: Speech-to-text port, name_i18n: {zh: 语音转文字端口}, type: text, required: false, default: "10300", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for speech-to-text; enter it when adding the Wyoming Protocol integration in step 3. Change it only if 10300 is already in use., description_i18n: {zh: Home Assistant 连接语音转文字服务的端口，步骤 3 添加 Wyoming Protocol 集成时填写。仅当 10300 已被占用时修改。}}
+  - {id: wyoming_tts_port, name: Text-to-speech port, name_i18n: {zh: 文字转语音端口}, type: text, required: false, default: "10200", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for text-to-speech; enter it when adding the second Wyoming Protocol integration in step 3. Change it only if 10200 is already in use., description_i18n: {zh: Home Assistant 连接文字转语音服务的端口，步骤 3 添加第二个 Wyoming Protocol 集成时填写。仅当 10200 已被占用时修改。}}
+  # 大模型接口: the cloud OpenAI-compatible API that Home Assistant's
+  # conversation agent (LiteLLM integration) calls for requests the built-in
+  # intents do not handle. The deploy step checks the three values against
+  # the API; the same values are entered in Home Assistant in the verify step.
+  - id: llm_base_url
+    name: LLM API address
+    name_i18n: {zh: 大模型服务地址}
+    type: text
+    required: true
+    placeholder: "https://api.deepseek.com"
+    validation: {pattern: "^https?://[^\\s'\"]+$"}
+    description: Address of an OpenAI-compatible API, for example https://api.deepseek.com or https://dashscope.aliyuncs.com/compatible-mode/v1.
+    description_i18n: {zh: 兼容 OpenAI 接口的大模型服务地址，例如 https://api.deepseek.com 或 https://dashscope.aliyuncs.com/compatible-mode/v1。}
+  - id: llm_model
+    name: Model name
+    name_i18n: {zh: 模型名称}
+    type: text
+    required: true
+    validation: {pattern: "^[A-Za-z0-9._:/@-]+$"}
+    description: A model offered by that API, as listed in its model list.
+    description_i18n: {zh: 该服务提供的模型名称，需在服务的模型列表中。}
+  - id: llm_api_key
+    name: API key
+    name_i18n: {zh: 服务密钥}
+    type: password
+    required: true
+    validation: {pattern: "^[A-Za-z0-9._~+/=:-]{8,}$"}
+    description: Key issued by the LLM provider.
+    description_i18n: {zh: 大模型服务商提供的密钥。}
+actions:
+  before:
+    - name: Check voice service ports
+      name_i18n: {zh: 检查语音服务端口}
+      sudo: true
+      run: |
+        set -eu
+        PROJECT="ha_whole_home_rk_voice"
+        VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
+        STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
+        TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+        PAIRS="voice_port=$VOICE_PORT wyoming_stt_port=$STT_PORT wyoming_tts_port=$TTS_PORT"
+        for pair in $PAIRS; do
+          name="${pair%%=*}"; port="${pair#*=}"
+          case "$port" in ''|*[!0-9]*) echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1;; esac
+          if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1
+          fi
+        done
+        DUP=$(for pair in $PAIRS; do echo "${pair#*=}"; done | sort | uniq -d)
+        if [ -n "$DUP" ]; then
+          echo "PORT_DUPLICATE: the service ports must differ ($PAIRS)" >&2; exit 1
+        fi
+        # Owner lookup needs root (ss -p shows other users' PIDs only to root).
+        AS=""
+        if [ "$(id -u)" -ne 0 ] && sudo -n true 2>/dev/null; then AS="sudo -n"; fi
+        # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+        port_listening() {
+          if command -v ss >/dev/null 2>&1; then
+            if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif command -v netstat >/dev/null 2>&1; then
+            if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+          elif [ -r /proc/net/tcp ]; then
+            HEX=$(printf '%04X' "$1")
+            if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+          fi
+          return 2
+        }
+        # Prints "own" if every process listening on $1 runs inside a container of
+        # this Compose project (matched by the container id in /proc/<pid>/cgroup),
+        # "foreign" if any listener belongs to something else, "unknown" if the
+        # owner cannot be determined. Host networking means the project label alone
+        # says nothing about who holds a port.
+        port_owner() {
+          command -v ss >/dev/null 2>&1 || { echo unknown; return; }
+          pids=$($AS ss -ltnpH "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u)
+          [ -n "$pids" ] || { echo unknown; return; }
+          own_ids=$($AS docker ps -q --no-trunc --filter "label=com.docker.compose.project=$PROJECT" 2>/dev/null) || { echo unknown; return; }
+          for pid in $pids; do
+            cg=$($AS cat "/proc/$pid/cgroup" 2>/dev/null) || { echo unknown; return; }
+            cid=$(printf '%s\n' "$cg" | grep -Eo '[0-9a-f]{64}' | head -n 1)
+            if [ -z "$cid" ] || ! printf '%s\n' "$own_ids" | grep -qx "$cid"; then echo foreign; return; fi
+          done
+          echo own
+        }
+        for pair in $PAIRS; do
+          name="${pair%%=*}"; port="${pair#*=}"
+          rc=0; port_listening "$port" || rc=$?
+          if [ "$rc" -eq 2 ]; then
+            echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+          elif [ "$rc" -eq 0 ]; then
+            case "$(port_owner "$port")" in
+              own) echo "PORT_HELD_BY_THIS_STACK: port $port belongs to a running $PROJECT container; redeploy recreates it" >&2 ;;
+              foreign) echo "PORT_IN_USE: port $port is already used on this host by another process; choose another $name" >&2; exit 1 ;;
+              *) echo "PORT_OWNER_UNKNOWN: port $port is in use and its owner cannot be determined (needs root for ss -p and docker); free the port or choose another one" >&2; exit 1 ;;
+            esac
+          fi
+        done
+        echo "Port check OK: $PAIRS"
+    - name: Check the LLM API
+      name_i18n: {zh: 检查大模型接口}
+      run: |
+        set -eu
+        # Same normalisation as Home Assistant's LiteLLM integration: the URL must
+        # end in /v1, and the model must appear in GET <url>/models, because the
+        # agent setup only offers models from that list.
+        BASE="{{llm_base_url}}"; MODEL="{{llm_model}}"
+        BASE="${BASE%/}"
+        case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
+        if ! command -v curl >/dev/null 2>&1; then
+          echo "LLM_CHECK_SKIPPED: curl is not installed; the LLM API was not checked" >&2; exit 0
+        fi
+        BODY=$(mktemp); trap 'rm -f "$BODY"' EXIT
+        # The key goes to curl on stdin, not on its command line.
+        CODE=$(printf 'Authorization: Bearer %s\n' '{{llm_api_key}}' | curl -sS -m 20 -o "$BODY" -w '%{http_code}' -H @- "$BASE/models" 2>/dev/null) || CODE=000
+        case "$CODE" in
+          200) ;;
+          401|403) echo "LLM_AUTH_FAILED: the API key was rejected by $BASE" >&2; exit 1 ;;
+          000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the API address and the network" >&2; exit 1 ;;
+          *) echo "LLM_API_ERROR: $BASE/models returned HTTP $CODE; check the API address" >&2; exit 1 ;;
+        esac
+        if ! grep -Eq "\"id\"[[:space:]]*:[[:space:]]*\"$MODEL\"" "$BODY"; then
+          echo "LLM_MODEL_NOT_FOUND: model $MODEL is not offered by $BASE; enter a model name from its model list" >&2; exit 1
+        fi
+        echo "LLM API check OK: $BASE model=$MODEL"
+remote_overrides:
+  environment:
+    VOICE_PORT: "{{voice_port}}"
+    WYOMING_STT_PORT: "{{wyoming_stt_port}}"
+    WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
+    RK_VOICE_PROFILE: "rk3576-default"
+  actions:
+    before:
+      - name: Check voice service ports
+        name_i18n: {zh: 检查语音服务端口}
+        sudo: true
+        run: |
+          set -eu
+          PROJECT="ha_whole_home_rk_voice"
+          VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
+          STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
+          TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+          PAIRS="voice_port=$VOICE_PORT wyoming_stt_port=$STT_PORT wyoming_tts_port=$TTS_PORT"
+          for pair in $PAIRS; do
+            name="${pair%%=*}"; port="${pair#*=}"
+            case "$port" in ''|*[!0-9]*) echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1;; esac
+            if [ "${#port}" -gt 5 ] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+              echo "PORT_INVALID: $name=$port (expected 1-65535)" >&2; exit 1
+            fi
+          done
+          DUP=$(for pair in $PAIRS; do echo "${pair#*=}"; done | sort | uniq -d)
+          if [ -n "$DUP" ]; then
+            echo "PORT_DUPLICATE: the service ports must differ ($PAIRS)" >&2; exit 1
+          fi
+          # Owner lookup needs root (ss -p shows other users' PIDs only to root).
+          AS=""
+          if [ "$(id -u)" -ne 0 ] && sudo -n true 2>/dev/null; then AS="sudo -n"; fi
+          # Returns 0 if the port is listening, 1 if free, 2 if no probe is available.
+          port_listening() {
+            if command -v ss >/dev/null 2>&1; then
+              if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif command -v netstat >/dev/null 2>&1; then
+              if netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$1$"; then return 0; fi; return 1
+            elif [ -r /proc/net/tcp ]; then
+              HEX=$(printf '%04X' "$1")
+              if cat /proc/net/tcp /proc/net/tcp6 2>/dev/null | awk '$4 == "0A" {print $2}' | grep -Eq ":$HEX$"; then return 0; fi; return 1
+            fi
+            return 2
+          }
+          # Prints "own" if every process listening on $1 runs inside a container of
+          # this Compose project (matched by the container id in /proc/<pid>/cgroup),
+          # "foreign" if any listener belongs to something else, "unknown" if the
+          # owner cannot be determined. Host networking means the project label alone
+          # says nothing about who holds a port.
+          port_owner() {
+            command -v ss >/dev/null 2>&1 || { echo unknown; return; }
+            pids=$($AS ss -ltnpH "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u)
+            [ -n "$pids" ] || { echo unknown; return; }
+            own_ids=$($AS docker ps -q --no-trunc --filter "label=com.docker.compose.project=$PROJECT" 2>/dev/null) || { echo unknown; return; }
+            for pid in $pids; do
+              cg=$($AS cat "/proc/$pid/cgroup" 2>/dev/null) || { echo unknown; return; }
+              cid=$(printf '%s\n' "$cg" | grep -Eo '[0-9a-f]{64}' | head -n 1)
+              if [ -z "$cid" ] || ! printf '%s\n' "$own_ids" | grep -qx "$cid"; then echo foreign; return; fi
+            done
+            echo own
+          }
+          for pair in $PAIRS; do
+            name="${pair%%=*}"; port="${pair#*=}"
+            rc=0; port_listening "$port" || rc=$?
+            if [ "$rc" -eq 2 ]; then
+              echo "PORT_CHECK_SKIPPED: none of ss, netstat or /proc/net/tcp is available; cannot verify that port $port is free" >&2
+            elif [ "$rc" -eq 0 ]; then
+              case "$(port_owner "$port")" in
+                own) echo "PORT_HELD_BY_THIS_STACK: port $port belongs to a running $PROJECT container; redeploy recreates it" >&2 ;;
+                foreign) echo "PORT_IN_USE: port $port is already used on this host by another process; choose another $name" >&2; exit 1 ;;
+                *) echo "PORT_OWNER_UNKNOWN: port $port is in use and its owner cannot be determined (needs root for ss -p and docker); free the port or choose another one" >&2; exit 1 ;;
+              esac
+            fi
+          done
+          echo "Port check OK: $PAIRS"
+      - name: Check the LLM API
+        name_i18n: {zh: 检查大模型接口}
+        run: |
+          set -eu
+          # Same normalisation as Home Assistant's LiteLLM integration: the URL must
+          # end in /v1, and the model must appear in GET <url>/models, because the
+          # agent setup only offers models from that list.
+          BASE="{{llm_base_url}}"; MODEL="{{llm_model}}"
+          BASE="${BASE%/}"
+          case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
+          if ! command -v curl >/dev/null 2>&1; then
+            echo "LLM_CHECK_SKIPPED: curl is not installed; the LLM API was not checked" >&2; exit 0
+          fi
+          BODY=$(mktemp); trap 'rm -f "$BODY"' EXIT
+          # The key goes to curl on stdin, not on its command line.
+          CODE=$(printf 'Authorization: Bearer %s\n' '{{llm_api_key}}' | curl -sS -m 20 -o "$BODY" -w '%{http_code}' -H @- "$BASE/models" 2>/dev/null) || CODE=000
+          case "$CODE" in
+            200) ;;
+            401|403) echo "LLM_AUTH_FAILED: the API key was rejected by $BASE" >&2; exit 1 ;;
+            000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the API address and the network" >&2; exit 1 ;;
+            *) echo "LLM_API_ERROR: $BASE/models returned HTTP $CODE; check the API address" >&2; exit 1 ;;
+          esac
+          if ! grep -Eq "\"id\"[[:space:]]*:[[:space:]]*\"$MODEL\"" "$BODY"; then
+            echo "LLM_MODEL_NOT_FOUND: model $MODEL is not offered by $BASE; enter a model name from its model list" >&2; exit 1
+          fi
+          echo "LLM API check OK: $BASE model=$MODEL"
+    after_upload:
+      - name: Initialize HA configuration if absent
+        name_i18n: {zh: 初始化 HA 配置（若不存在）}
+        run: |
+          set -eu
+          SRC="/opt/ha-whole-home/rk3576_voice/ha-config-template"
+          DST="/opt/ha-whole-home/ha-config"
+          mkdir -p "$DST/packages" "$DST/custom_sentences"
+          if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
+          if [ ! -e "$DST/packages/ha_whole_home.yaml" ]; then cp "$SRC/packages/ha_whole_home.yaml" "$DST/packages/ha_whole_home.yaml"; fi
+          for lang in en ja zh-CN; do
+            mkdir -p "$DST/custom_sentences/$lang"
+            for src in "$SRC/custom_sentences/$lang"/*; do
+              [ -f "$src" ] || continue
+              dst="$DST/custom_sentences/$lang/$(basename "$src")"
+              if [ ! -e "$dst" ]; then cp "$src" "$dst"; fi
+            done
+          done
+          if ! grep -Eq '!include_dir_named[[:space:]]+packages' "$DST/configuration.yaml"; then
+            echo "HA_CONFIG_REQUIRES_MANUAL_PACKAGES_INCLUDE: $DST/configuration.yaml" >&2
+            exit 1
+          fi

@@ -28,7 +28,7 @@ intro:
         ja: "音声コマンド「把客厅灯打开」（リビングの照明をつけて）：reComputer J40 のローカル音声サービスが認識し、Home Assistant が「客厅灯已打开」と応答して照明が点灯"
   category: voice_ai
   solution_type: solution
-  tags: [home-assistant, homekit, zigbee, local-voice, voice-assistant]
+  tags: [home-assistant, homekit, zigbee, local-voice, voice-assistant, local-llm]
   output_interfaces:
     - type: http
       port: 8123
@@ -40,17 +40,17 @@ intro:
     - type: tcp
       port: 10300
       schema_type: binary
-      description: Speech-to-text service on the reComputer J40; Home Assistant connects to it through the Wyoming Protocol integration.
-      description_i18n: {zh: reComputer J40 上的语音转文字服务，Home Assistant 通过 Wyoming Protocol 集成连接。}
+      description: Speech-to-text service on the voice host; Home Assistant connects to it through the Wyoming Protocol integration.
+      description_i18n: {zh: 语音主机上的语音转文字服务，Home Assistant 通过 Wyoming Protocol 集成连接。}
     - type: tcp
       port: 10200
       schema_type: binary
-      description: Text-to-speech service on the reComputer J40; Home Assistant connects to it through the Wyoming Protocol integration.
-      description_i18n: {zh: reComputer J40 上的文字转语音服务，Home Assistant 通过 Wyoming Protocol 集成连接。}
+      description: Text-to-speech service on the voice host; Home Assistant connects to it through the Wyoming Protocol integration.
+      description_i18n: {zh: 语音主机上的文字转语音服务，Home Assistant 通过 Wyoming Protocol 集成连接。}
   input_requirements:
     - type: network
-      description: The voice terminal, the Home Assistant host and the reComputer J40 are on the same local network.
-      description_i18n: {zh: 语音终端、Home Assistant 主机和 reComputer J40 在同一局域网。}
+      description: The voice terminal, the Home Assistant host and the voice host are on the same local network.
+      description_i18n: {zh: 语音终端、Home Assistant 主机和语音主机在同一局域网。}
     - type: usb
       description: The ZBT-2 plugs into a USB port on the Home Assistant host.
       description_i18n: {zh: ZBT-2 插在 Home Assistant 主机的 USB 口上。}
@@ -61,9 +61,23 @@ intro:
       description: Runs Home Assistant. 64-bit Linux OS, 8GB RAM.
       description_i18n: {zh: 运行 Home Assistant。64 位 Linux 系统，8GB 内存。}
     recomputer_j40:
-      description: Runs local speech recognition and speech synthesis for Home Assistant. Choose the Jetson Orin NX 16GB module.
-      description_i18n: {zh: 为 Home Assistant 运行本地语音识别和语音合成。选 Jetson Orin NX 16GB 模组。}
+      description: Runs local speech recognition, speech synthesis and a local LLM for Home Assistant. Choose the Jetson Orin NX 16GB module.
+      description_i18n: {zh: 为 Home Assistant 运行本地语音识别、语音合成和本地大模型。选 Jetson Orin NX 16GB 模组。}
       purchase: {require: {module: [orin_nx_16]}}
+    recomputer_j30:
+      description: Runs local speech recognition and speech synthesis; questions other than device control go to the cloud LLM you enter. Choose the Jetson Orin Nano 8GB module.
+      description_i18n: {zh: 运行本地语音识别和语音合成；设备控制之外的问题交给你填写的云端大模型。选 Jetson Orin Nano 8GB 模组。}
+      purchase: {require: {module: [orin_nano_8]}}
+    # No product family exists for the RK1828 / RM182X card; this entry covers
+    # both the card variant (local LLM) and the cloud-LLM variant, as in
+    # conversational_voice_ai.
+    recomputer_rk3588:
+      description: Runs local speech recognition and speech synthesis. With an RK1828 card (16GB board) it also runs a local LLM; without it, questions other than device control go to the cloud LLM you enter.
+      description_i18n: {zh: 运行本地语音识别和语音合成。装 RK1828 加速卡（16GB 主板）时同时运行本地大模型；不装时，设备控制之外的问题交给你填写的云端大模型。}
+    recomputer_rk3576:
+      description: Runs local speech recognition and speech synthesis; questions other than device control go to the cloud LLM you enter.
+      description_i18n: {zh: 运行本地语音识别和语音合成；设备控制之外的问题交给你填写的云端大模型。}
+      purchase: {require: {ram_gb: [8]}}
     home_assistant_connect_zbt:
       description: Plugs into the Home Assistant host so Zigbee sensors and switches can join.
       description_i18n: {zh: 插在 Home Assistant 主机上，让 Zigbee 传感器和开关接入。}
@@ -75,12 +89,12 @@ intro:
       description_i18n: {zh: 可选，采集房间温湿度等状态。}
   presets:
     - id: rpi_jetson
-      name: ARM64 Linux Host + Jetson Orin NX Voice
-      name_i18n: {zh: ARM64 Linux 主机 + Jetson Orin NX 语音}
+      name: ARM64 Linux Host + Voice Host
+      name_i18n: {zh: ARM64 Linux 主机 + 语音主机}
       badge: Local voice
       badge_i18n: {zh: 本地语音}
-      description: Home Assistant runs on an ARM64 Linux host; speech recognition and speech synthesis run locally on a reComputer J40 (Jetson Orin NX 16GB).
-      description_i18n: {zh: Home Assistant 运行在 ARM64 Linux 主机上，语音识别和语音合成在 reComputer J40（Jetson Orin NX 16GB）上本地运行。}
+      description: Home Assistant runs on an ARM64 Linux host; speech recognition and speech synthesis run locally on a reComputer J40, J30, RK3588 or RK3576. Other questions go to a local LLM (J40, RK3588 + RK1828) or the cloud LLM you enter.
+      description_i18n: {zh: Home Assistant 运行在 ARM64 Linux 主机上，语音识别和语音合成在 reComputer J40、J30、RK3588 或 RK3576 上本地运行；其他问题由本地大模型（J40、RK3588 + RK1828）或你填写的云端大模型回答。}
       # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
       # built-in intent -> entity state change" only (receipts
       # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
@@ -91,11 +105,25 @@ intro:
       # demo lights: 5/5 zh+en commands action_done, processed locally, STT final
       # 0.11-0.95 s after audio end. NOT verified: HomeKit pairing, Aqara/ZHA
       # (no ZBT-2), Voice PE, ESPHome, physical mic/speaker, offline, ja.
+      # 2026-10-09 voice-host extension (throwaway HA 2026.9.3 container on spark,
+      # TTS-generated speech streamed to Assist; pipeline conversation agent =
+      # LiteLLM agent without the HA control API, prefer_local_intents on):
+      #   RK3588 (radxa; docker-compose.rk-voice.yml, openvoicestream:rk-20261009
+      #   @629912ed, rk3588-default, the board's existing model volumes mounted
+      #   read-only): "打开客厅灯" -> STT "打开客厅灯。", local HassTurnOn, light on,
+      #   TTS reply audio; "今天适合开窗吗" -> STT "今天适合开窗吗？", LLM reply via
+      #   DeepSeek deepseek-flash 1.59-1.77 s and via RK1828 Qwen3-4B 1.45 s.
+      #   The RK1828 run used the board's pre-existing edge-llm-rk1828:20260731-kvreuse
+      #   service through a loopback relay, NOT this package's llm service
+      #   (20260919-hostruntime.2): the card holds one model at a time.
+      #   NOT run on hardware: the J40 llm service, J30 (orin-nano had 481 MB free
+      #   root disk), RK3576 (cat-remote ran out of memory next to its existing
+      #   voice stack; the voice service reached healthy, no round trip).
       verified:
         - hardware
       device_groups:
         - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: external_raspberry_pi_5}], default: external_raspberry_pi_5}
-        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}], default: recomputer_j40}
+        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3588}, {device_ref: recomputer_j30}, {device_ref: recomputer_rk3576}], default: recomputer_j40}
         - {id: radio, name: Zigbee coordinator, name_i18n: {zh: Zigbee 协调器}, type: single, required: true, options: [{device_ref: home_assistant_connect_zbt}], default: home_assistant_connect_zbt}
         - {id: satellite, name: Voice terminal, name_i18n: {zh: 语音终端}, type: single, required: true, options: [{device_ref: home_assistant_voice}], default: home_assistant_voice}
   stats: {difficulty: advanced, estimated_time: 90min}
