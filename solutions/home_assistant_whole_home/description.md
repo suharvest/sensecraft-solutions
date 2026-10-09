@@ -37,7 +37,7 @@ Bring the lights, curtains, air conditioner and Zigbee sensors in a home into Ho
 
 - The Home Assistant host, the voice host and the voice terminal are on the same local network
 - The voice host needs internet access on first start to download the models; after that, speech recognition and speech synthesis run on the device
-- With a cloud LLM, questions other than device control are sent as text to the LLM service you enter; device commands do not go through the LLM
+- With a cloud LLM, questions other than device control are sent as text to the LLM service you enter. Device commands are handled locally by Home Assistant when they are recognized; if a device name is misheard, the sentence may go to the LLM, which is instructed not to claim it controlled anything
 - To use the Apple Home app, the iPhone and the Home Assistant host are on the same local network
 
 ### Languages
