@@ -207,7 +207,7 @@ Install Home Assistant on the ARM64 Linux host.
 |-------|----------|
 | Port already in use | Enter another port in "Home Assistant port" and deploy again |
 | Changed the port but Home Assistant still uses the old one | An existing Home Assistant installation keeps the port from its first install and ignores the deploy setting; keep using the original port |
-| Configuration folder is not writable | On the host, run `sudo mkdir -p /opt/ha-whole-home/ha-config && sudo chown $USER /opt/ha-whole-home/ha-config`, then deploy again |
+| Home Assistant was installed by an earlier version of this solution and starts with a new, empty configuration after redeploying | Earlier versions stored the configuration in `/opt/ha-whole-home/ha-config`; it now lives in `~/ha-whole-home/ha-config` and is not moved automatically. On the host, run `docker stop $(docker ps -q --filter label=com.docker.compose.project=ha_whole_home_rpi)`, then `mkdir -p ~/ha-whole-home && sudo cp -a /opt/ha-whole-home/ha-config/. ~/ha-whole-home/ha-config/`, then deploy again |
 | Page does not load | Wait a few minutes and refresh; make sure your computer and the host are on the same local network |
 | ZBT-2 does not appear in Home Assistant | Make sure "ZBT-2 device path" is the full path under `/dev/serial/by-id/`, then deploy again |
 | Cannot connect to the host | Check the IP address, username and password, and that the host is powered on and on the network |
