@@ -12,10 +12,21 @@ docker:
   options:
     project_name: sheep_gateway
     remove_orphans: true
+  # The bridges have no HTTP port. With health_check_endpoint set and no port,
+  # the HTTP probe cannot be made and the deployer falls back to Docker's own
+  # health status every few seconds until health_check_timeout, passing only on
+  # `healthy` (see the healthcheck in the compose file). 600s covers the
+  # first-start pip install on a Raspberry Pi; without an endpoint the deployer
+  # would only require the container to stay `running` for 20s, which it
+  # already is while pip runs.
   services:
-    - name: meshtastic-bridge
+    - name: sheep-meshtastic-bridge
+      health_check_endpoint: /
+      health_check_timeout: 600
       required: true
-    - name: ha-bridge
+    - name: sheep-ha-bridge
+      health_check_endpoint: /
+      health_check_timeout: 600
       required: true
   environment:
     MQTT_HOST: "{{mqtt_host}}"
