@@ -135,17 +135,22 @@ remote_overrides:
         # copy is the documented default; this replaces it wholesale rather
         # than patching, so there is exactly one thing to read on the host when
         # a timeout behaves unexpectedly.
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_WEBHOOK_URL: "{{webhook_url}}"
+          INPUT_BROKER_PASSWORD: "{{broker_password}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/fall-detection-panel/panel_host"
           CONFIG="$WORKDIR/config/alarm-panel.yaml"
           python3 - "$CONFIG" <<'PY'
-          import os, sys
+          import json, os, sys
 
           path = sys.argv[1]
           no_person_sec = int(float("{{no_person_timeout_min}}") * 60)
           no_motion_sec = int(float("{{no_motion_timeout_min}}") * 60)
-          webhook = "{{webhook_url}}".strip()
+          webhook = os.environ["INPUT_WEBHOOK_URL"].strip()
           topic = "{{result_topic}}".strip()
           adapter = "{{camera_model}}"
 
@@ -172,7 +177,7 @@ remote_overrides:
               '  host: "{{broker_host}}"',
               "  port: {{broker_mqtt_port}}",
               '  username: "{{broker_username}}"',
-              '  password: "{{broker_password}}"',
+              "  password: " + json.dumps(os.environ["INPUT_BROKER_PASSWORD"]),
               "  client_id: alarm-panel",
               "  keepalive_sec: 30",
               "  qos: 1",
@@ -187,7 +192,7 @@ remote_overrides:
                   "    type: webhook",
                   "    enabled: true",
                   "    options:",
-                  f"      url: \"{webhook}\"",
+                  f"      url: {json.dumps(webhook)}",
                   "      timeout_sec: 5.0",
               ]
           else:
