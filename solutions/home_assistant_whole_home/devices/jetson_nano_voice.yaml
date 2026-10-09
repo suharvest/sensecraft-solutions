@@ -29,10 +29,10 @@ user_inputs:
   - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port used only inside the voice host by the voice services. Change it only if 8623 is already in use., description_i18n: {zh: 语音服务在语音主机内部使用的端口。仅当 8623 已被占用时修改。}}
   - {id: wyoming_stt_port, name: Speech-to-text port, name_i18n: {zh: 语音转文字端口}, type: text, required: false, default: "10300", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for speech-to-text; enter it when adding the Wyoming Protocol integration in step 3. Change it only if 10300 is already in use., description_i18n: {zh: Home Assistant 连接语音转文字服务的端口，步骤 3 添加 Wyoming Protocol 集成时填写。仅当 10300 已被占用时修改。}}
   - {id: wyoming_tts_port, name: Text-to-speech port, name_i18n: {zh: 文字转语音端口}, type: text, required: false, default: "10200", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for text-to-speech; enter it when adding the second Wyoming Protocol integration in step 3. Change it only if 10200 is already in use., description_i18n: {zh: Home Assistant 连接文字转语音服务的端口，步骤 3 添加第二个 Wyoming Protocol 集成时填写。仅当 10200 已被占用时修改。}}
-  # 大模型接口: the cloud OpenAI-compatible API that Home Assistant's
-  # conversation agent (LiteLLM integration) calls for requests the built-in
-  # intents do not handle. The deploy step checks the three values against
-  # the API; the same values are entered in Home Assistant in the verify step.
+  # 大模型服务地址: the cloud OpenAI-compatible API that Home Assistant's
+  # LiteLLM conversation agent calls for requests the built-in intents do not
+  # handle. Only the address is checked here; the model name and API key are
+  # entered in Home Assistant (step 3), so the key never reaches this device.
   - id: llm_base_url
     name: LLM API address
     name_i18n: {zh: 大模型服务地址}
@@ -40,24 +40,8 @@ user_inputs:
     required: true
     placeholder: "https://api.deepseek.com"
     validation: {pattern: "^https?://[^\\s'\"]+$"}
-    description: Address of an OpenAI-compatible API, for example https://api.deepseek.com or https://dashscope.aliyuncs.com/compatible-mode/v1.
-    description_i18n: {zh: 兼容 OpenAI 接口的大模型服务地址，例如 https://api.deepseek.com 或 https://dashscope.aliyuncs.com/compatible-mode/v1。}
-  - id: llm_model
-    name: Model name
-    name_i18n: {zh: 模型名称}
-    type: text
-    required: true
-    validation: {pattern: "^[A-Za-z0-9._:/@-]+$"}
-    description: A model offered by that API, as listed in its model list.
-    description_i18n: {zh: 该服务提供的模型名称，需在服务的模型列表中。}
-  - id: llm_api_key
-    name: API key
-    name_i18n: {zh: 服务密钥}
-    type: password
-    required: true
-    validation: {pattern: "^[A-Za-z0-9._~+/=:-]{8,}$"}
-    description: Key issued by the LLM provider.
-    description_i18n: {zh: 大模型服务商提供的密钥。}
+    description: Address of an OpenAI-compatible LLM service, for example https://api.deepseek.com. The model name and API key are entered in Home Assistant in step 3.
+    description_i18n: {zh: 兼容 OpenAI 接口的大模型服务地址，例如 https://api.deepseek.com。模型名称和服务密钥在步骤 3 的 Home Assistant 里填写。}
 actions:
   before:
     - name: Check voice service ports
@@ -127,32 +111,38 @@ actions:
           fi
         done
         echo "Port check OK: $PAIRS"
-    - name: Check the LLM API
-      name_i18n: {zh: 检查大模型接口}
+    - name: Check the LLM API address
+      name_i18n: {zh: 检查大模型服务地址}
       run: |
         set -eu
-        # Same normalisation as Home Assistant's LiteLLM integration: the URL must
-        # end in /v1, and the model must appear in GET <url>/models, because the
-        # agent setup only offers models from that list.
-        BASE="{{llm_base_url}}"; MODEL="{{llm_model}}"
+        # Only the address is checked here. The API key is never sent to this device:
+        # the deploy engine passes everything in an action through the SSH command
+        # line, so the key is entered only in Home Assistant (LiteLLM integration).
+        BASE="{{llm_base_url}}"
         BASE="${BASE%/}"
+        # Same normalisation as Home Assistant's LiteLLM integration.
         case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
-        if ! command -v curl >/dev/null 2>&1; then
-          echo "LLM_CHECK_SKIPPED: curl is not installed; the LLM API was not checked" >&2; exit 0
+        if command -v curl >/dev/null 2>&1; then
+          CODE=$(curl -sS -m 20 -o /dev/null -w '%{http_code}' "$BASE/models" 2>/dev/null) || CODE=000
+        elif command -v python3 >/dev/null 2>&1; then
+          CODE=$(python3 - "$BASE/models" <<'PY'
+        import sys, urllib.request, urllib.error
+        try:
+            print(urllib.request.urlopen(sys.argv[1], timeout=20).status)
+        except urllib.error.HTTPError as e:
+            print(e.code)
+        except Exception:
+            print("000")
+        PY
+        )
+        else
+          echo "LLM_CHECK_TOOL_MISSING: neither curl nor python3 is installed on this device; install curl and deploy again" >&2; exit 1
         fi
-        BODY=$(mktemp); trap 'rm -f "$BODY"' EXIT
-        # The key goes to curl on stdin, not on its command line.
-        CODE=$(printf 'Authorization: Bearer %s\n' '{{llm_api_key}}' | curl -sS -m 20 -o "$BODY" -w '%{http_code}' -H @- "$BASE/models" 2>/dev/null) || CODE=000
         case "$CODE" in
-          200) ;;
-          401|403) echo "LLM_AUTH_FAILED: the API key was rejected by $BASE" >&2; exit 1 ;;
-          000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the API address and the network" >&2; exit 1 ;;
-          *) echo "LLM_API_ERROR: $BASE/models returned HTTP $CODE; check the API address" >&2; exit 1 ;;
+          200|401|403) echo "LLM API address OK: $BASE (HTTP $CODE)" ;;
+          000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the address and the network" >&2; exit 1 ;;
+          *) echo "LLM_NOT_OPENAI_COMPATIBLE: $BASE/models returned HTTP $CODE; enter the OpenAI-compatible address of the service" >&2; exit 1 ;;
         esac
-        if ! grep -Eq "\"id\"[[:space:]]*:[[:space:]]*\"$MODEL\"" "$BODY"; then
-          echo "LLM_MODEL_NOT_FOUND: model $MODEL is not offered by $BASE; enter a model name from its model list" >&2; exit 1
-        fi
-        echo "LLM API check OK: $BASE model=$MODEL"
 remote_overrides:
   environment:
     JETSON_VOICE_IMAGE: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261009"
@@ -231,32 +221,38 @@ remote_overrides:
             fi
           done
           echo "Port check OK: $PAIRS"
-      - name: Check the LLM API
-        name_i18n: {zh: 检查大模型接口}
+      - name: Check the LLM API address
+        name_i18n: {zh: 检查大模型服务地址}
         run: |
           set -eu
-          # Same normalisation as Home Assistant's LiteLLM integration: the URL must
-          # end in /v1, and the model must appear in GET <url>/models, because the
-          # agent setup only offers models from that list.
-          BASE="{{llm_base_url}}"; MODEL="{{llm_model}}"
+          # Only the address is checked here. The API key is never sent to this device:
+          # the deploy engine passes everything in an action through the SSH command
+          # line, so the key is entered only in Home Assistant (LiteLLM integration).
+          BASE="{{llm_base_url}}"
           BASE="${BASE%/}"
+          # Same normalisation as Home Assistant's LiteLLM integration.
           case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
-          if ! command -v curl >/dev/null 2>&1; then
-            echo "LLM_CHECK_SKIPPED: curl is not installed; the LLM API was not checked" >&2; exit 0
+          if command -v curl >/dev/null 2>&1; then
+            CODE=$(curl -sS -m 20 -o /dev/null -w '%{http_code}' "$BASE/models" 2>/dev/null) || CODE=000
+          elif command -v python3 >/dev/null 2>&1; then
+            CODE=$(python3 - "$BASE/models" <<'PY'
+          import sys, urllib.request, urllib.error
+          try:
+              print(urllib.request.urlopen(sys.argv[1], timeout=20).status)
+          except urllib.error.HTTPError as e:
+              print(e.code)
+          except Exception:
+              print("000")
+          PY
+          )
+          else
+            echo "LLM_CHECK_TOOL_MISSING: neither curl nor python3 is installed on this device; install curl and deploy again" >&2; exit 1
           fi
-          BODY=$(mktemp); trap 'rm -f "$BODY"' EXIT
-          # The key goes to curl on stdin, not on its command line.
-          CODE=$(printf 'Authorization: Bearer %s\n' '{{llm_api_key}}' | curl -sS -m 20 -o "$BODY" -w '%{http_code}' -H @- "$BASE/models" 2>/dev/null) || CODE=000
           case "$CODE" in
-            200) ;;
-            401|403) echo "LLM_AUTH_FAILED: the API key was rejected by $BASE" >&2; exit 1 ;;
-            000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the API address and the network" >&2; exit 1 ;;
-            *) echo "LLM_API_ERROR: $BASE/models returned HTTP $CODE; check the API address" >&2; exit 1 ;;
+            200|401|403) echo "LLM API address OK: $BASE (HTTP $CODE)" ;;
+            000) echo "LLM_UNREACHABLE: cannot reach $BASE from this device; check the address and the network" >&2; exit 1 ;;
+            *) echo "LLM_NOT_OPENAI_COMPATIBLE: $BASE/models returned HTTP $CODE; enter the OpenAI-compatible address of the service" >&2; exit 1 ;;
           esac
-          if ! grep -Eq "\"id\"[[:space:]]*:[[:space:]]*\"$MODEL\"" "$BODY"; then
-            echo "LLM_MODEL_NOT_FOUND: model $MODEL is not offered by $BASE; enter a model name from its model list" >&2; exit 1
-          fi
-          echo "LLM API check OK: $BASE model=$MODEL"
     after_upload:
       - name: Initialize HA configuration if absent
         name_i18n: {zh: 初始化 HA 配置（若不存在）}

@@ -76,13 +76,14 @@ Install the speech recognition and speech synthesis services on the voice host f
 - Free disk: at least 40 GB on the reComputer J40, 20 GB on the J30, 16 GB on the RK3588 + RK1828, 10 GB on the RK3588 and RK3576
 - Internet access on first start to download the models; the services are not available until the download finishes
 - RK3588 + RK1828: the card is powered, its driver and firmware are installed (a `/dev/pcie-rkep-*` device exists), and no other LLM runs on the card
-- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key
+- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key; the API key is entered only in Home Assistant in step 3
+- Local LLM (J40, RK3588 + RK1828): the IP address of the Home Assistant host; the local LLM accepts connections only from that host and from the voice host itself
 
 ### Wiring
 
 1. Connect the voice host to the same local network as the Home Assistant host and power it on
 2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623, local LLM 8000 (J40) or 1828 (RK1828); change one only if it is already in use
-3. For a voice host with a cloud LLM: enter the LLM API address, model name and API key; deployment checks all three first
+3. Local LLM: enter the Home Assistant host's IP address; cloud LLM: enter the LLM API address, and deployment first checks that the voice host can reach it
 4. Note the voice host's IP address and ports for step 3
 5. Click Deploy
 
@@ -95,9 +96,10 @@ Install the speech recognition and speech synthesis services on the voice host f
 | Services do not become ready for a long time | The first start downloads the models first, and the time depends on your connection; make sure the voice host can reach the internet |
 | NVIDIA container runtime missing | Make sure the reComputer J40 / J30 runs a full JetPack installation that includes the NVIDIA container runtime, then retry |
 | RK1828 card not found | Check the card's power, driver and firmware; without the card, choose "RK3588 (cloud LLM)" instead |
-| The LLM API key is rejected | Check that the key is complete and active with the provider |
 | The LLM service cannot be reached | Check the API address and that the voice host can reach the internet |
-| The model is not found | Enter the model name exactly as it appears in the provider's model list |
+| The address is not an OpenAI-compatible API | Enter the provider's "OpenAI-compatible" address from its documentation |
+| curl is missing | Install curl on the voice host and deploy again |
+| iptables is missing | Install iptables on the voice host and deploy again; it limits the local LLM to the Home Assistant host |
 | Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
 
 ### Target: Local Deployment {#jetson_local type=local device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml}
@@ -136,7 +138,7 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 2. Add a second **Wyoming Protocol** integration with the same host and the text-to-speech port (default 10200)
 3. Add a **LiteLLM** integration:
    - reComputer J40 or RK3588 + RK1828: enter `http://<voice-host-ip>:<local LLM port>` (default 8000 or 1828) as the URL and leave the API key empty
-   - Other voice hosts: enter the LLM API address and API key from step 2
+   - Other voice hosts: enter the LLM API address from step 2 and the API key from your LLM provider
 4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
 
    ```
@@ -150,7 +152,7 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 | Issue | Solution |
 |-------|----------|
 | Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the voice host |
-| Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry; cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
+| Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry, and check that the Home Assistant host IP entered in step 2 is correct (deploy step 2 again after an IP change); cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
 | Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
 | A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the "Instructions" as in item 4 and the LLM asks you to repeat the exact name |
 | Other questions only get "I don't understand" | Choose the LiteLLM agent as the voice assistant's "Conversation agent" |
