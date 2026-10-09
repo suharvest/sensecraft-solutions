@@ -1,7 +1,11 @@
-# Jetson voice side: one OpenVoiceStream service (Qwen3-ASR + Matcha TTS,
-# profile jetson-edgellm-v091-matcha) serving both ASR and TTS, plus the
-# Wyoming adapter (STT :10300, TTS :10200) that Home Assistant connects to.
-# Same layout as the 2026-10-08 Orin NX acceptance run.
+# Jetson Orin NX (reComputer J40) voice side: one OpenVoiceStream service
+# (Qwen3-ASR + Matcha TTS, profile jetson-edgellm-v091-matcha) serving both ASR
+# and TTS, the Wyoming adapter (STT :10300, TTS :10200) that Home Assistant
+# connects to, and the local LLM (edge-llm Qwen3.5-4B, OpenAI-compatible on
+# LLM_PORT) that Home Assistant's LiteLLM conversation agent calls for requests
+# its built-in intents do not handle.
+# docker-compose.jetson-nano-voice.yml reuses the voice and wyoming-adapter
+# services through `extends`, without the llm service.
 # The model volume is writable: the engine resolver takes its lock at
 # $OVS_MODELS_DIR/.engine_resolver.lock (default /opt/models) and downloads
 # missing artifacts into it on first start.
@@ -46,6 +50,48 @@ services:
       WYOMING_STT_PORT: ${WYOMING_STT_PORT:-10300}
       WYOMING_TTS_PORT: ${WYOMING_TTS_PORT:-10200}
 
+  # Local LLM for Home Assistant's conversation agent (LiteLLM integration).
+  # Same image and model pins as conversational_voice_ai's Orin NX local
+  # preset. Listens on all interfaces: the Home Assistant host reaches it at
+  # http://<jetson-ip>:LLM_PORT/v1.
+  # edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13
+  #   linux/arm64 sha256:8e7c8d43bf82de3a1e556b7b3858185dd048e1fd1a6e20f8b606defba8141424
+  llm:
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13@sha256:8e7c8d43bf82de3a1e556b7b3858185dd048e1fd1a6e20f8b606defba8141424}
+    runtime: nvidia
+    privileged: true
+    ipc: host
+    network_mode: host
+    shm_size: 512m
+    environment:
+      EDGELLM_MODEL_PROFILE: qwen35-4b-gdn-mtp
+      EDGELLM_MODEL_NAME: Qwen/Qwen3.5-4B
+      EDGELLM_ENGINE_PROFILE: 8k
+      EDGELLM_ENGINE_DIR: /workspace/models/qwen3.5-4b-gdn-mtp-8k
+      EDGELLM_MAX_INPUT_TOKENS: "8192"
+      EDGELLM_MAX_CONTEXT_TOKENS: "8192"
+      EDGELLM_ENGINE_REPO: harvestsu/qwen3.5-4b-gdn-mtp-jetson-artifacts
+      EDGELLM_ENGINE_REVISION: adb1c78fb61513e2d7d8e7f889f6196dbefb1e5e
+      EDGELLM_EXPECTED_PAYLOAD_SHA256: 9208e46d61a4f1440ac68a312e35dde3d04b88edf0e4ee12b32210e7190d3325
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      PORT: ${LLM_PORT:-8000}
+      WARMUP_TIMEOUT: "300"
+      WARMUP_INFERENCE_TIMEOUT: "300"
+    volumes:
+      - edge-llm-models:/workspace/models
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/local/cuda/targets/aarch64-linux/lib:/host-cudla:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${LLM_PORT:-8000}/health >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 900s
+
 volumes:
   jetson-models:
   voice-data:
+  edge-llm-models:
