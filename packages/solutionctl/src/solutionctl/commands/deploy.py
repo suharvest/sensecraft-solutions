@@ -27,6 +27,11 @@ _KEY_EVENT_TYPES = frozenset(
         "pre_check_passed",
         "pre_check_failed",
         "step_skipped",
+        # Rust engine only: what to check after the deploy (url / endpoint /
+        # instructions) and the final result line. The Python engine emits
+        # neither, so nothing changes for it.
+        "verify_required",
+        "result",
     }
 )
 
@@ -88,6 +93,26 @@ def _render_event(event: dict) -> str:
         if pct is not None:
             prefix += f" {pct}%"
         return f"{prefix} {msg}".rstrip()
+    if etype == "verify_required":
+        label = event.get("name") or event.get("step_id") or event.get("device_id") or ""
+        kind = event.get("kind") or ""
+        head = f"[verify_required] {label}"
+        if kind:
+            head += f" ({kind})"
+        lines = [head]
+        for key in ("url", "endpoint"):
+            if event.get(key):
+                lines.append(f"  {key}: {event[key]}")
+        if event.get("sample_request"):
+            sample = event["sample_request"]
+            if not isinstance(sample, str):
+                sample = json.dumps(sample, ensure_ascii=False)
+            lines.append(f"  sample_request: {sample}")
+        if event.get("instructions"):
+            lines.append(f"  {event['instructions']}")
+        return "\n".join(lines)
+    if etype == "result":
+        return f"[result] {event.get('deployment_id') or ''} {event.get('status') or ''}".rstrip()
     if etype == "step_skipped":
         reason = event.get("reason") or ""
         return f"  [step_skipped] {device} {step} {reason}".rstrip()
@@ -148,6 +173,7 @@ def run(
         env=engine_env(solutions_dir),
     )
     assert proc.stdout is not None
+    result_status: Optional[str] = None
     for line in proc.stdout:
         line = line.rstrip("\n")
         if not line:
@@ -159,8 +185,16 @@ def run(
             print(line)
             continue
         if isinstance(event, dict):
+            if event.get("type") == "result" and event.get("status"):
+                result_status = str(event["status"])
             if _should_render(event, verbose):
                 print(_render_event(event))
         else:
             print(line)
-    return proc.wait()
+    rc = proc.wait()
+    # The Rust engine ends with a ``{"type":"result","status":...}`` line; a
+    # non-completed status is a failure even if the process exit code was 0.
+    # The Python engine emits no such line, so its exit code is used as is.
+    if rc == 0 and result_status is not None and result_status != "completed":
+        return 1
+    return rc
