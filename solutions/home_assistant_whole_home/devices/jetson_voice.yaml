@@ -7,7 +7,7 @@ device_class: jetson
 docker:
   compose_file: assets/docker/docker-compose.jetson-voice.yml
   compose_dir: assets
-  remote_path: /opt/ha-whole-home
+  remote_path: /home/{{username}}/ha-whole-home
   options: {project_name: ha_whole_home_jetson_voice, remove_orphans: false}
   services: [{name: voice, required: true}, {name: wyoming-adapter, required: true}]
   environment:
@@ -173,8 +173,11 @@ remote_overrides:
       - name: Initialize HA configuration if absent
         run: |
           set -eu
-          SRC="/opt/ha-whole-home/jetson_voice/ha-config-template"
-          DST="/opt/ha-whole-home/ha-config"
+          # Same directory as remote_path (/home/{{username}}/ha-whole-home).
+          U="{{username}}"; U="${U:-$(id -un)}"
+          BASE="/home/$U/ha-whole-home"
+          SRC="$BASE/jetson_voice/ha-config-template"
+          DST="$BASE/ha-config"
           mkdir -p "$DST/packages" "$DST/custom_sentences"
           if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
           if [ ! -e "$DST/packages/ha_whole_home.yaml" ]; then cp "$SRC/packages/ha_whole_home.yaml" "$DST/packages/ha_whole_home.yaml"; fi

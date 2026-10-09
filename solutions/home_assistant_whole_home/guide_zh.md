@@ -43,7 +43,7 @@ ARM64 Linux 主机运行 Home Assistant，reComputer J40 负责听懂语音和�
 |------|----------|
 | 提示端口已被占用 | 在「Home Assistant 端口」填写另一个端口后重新部署 |
 | 改了端口但 Home Assistant 仍用原来的端口 | 已安装过的 Home Assistant 保留首次安装时的端口，部署时填写的端口对它不再生效；继续用原来的端口访问 |
-| 提示配置目录没有写入权限 | 在主机上执行 `sudo mkdir -p /opt/ha-whole-home/ha-config && sudo chown $USER /opt/ha-whole-home/ha-config`，再部署 |
+| 用本方案早期版本装过 Home Assistant，重新部署后变成全新的空配置 | 早期版本把配置存放在 `/opt/ha-whole-home/ha-config`，现在改为 `~/ha-whole-home/ha-config`，旧配置不会自动迁移。在主机上执行 `docker stop $(docker ps -q --filter label=com.docker.compose.project=ha_whole_home_rpi)`，再执行 `mkdir -p ~/ha-whole-home && sudo cp -a /opt/ha-whole-home/ha-config/. ~/ha-whole-home/ha-config/`，然后重新部署 |
 | 页面打不开 | 等待几分钟后刷新；确认浏览器所在电脑和主机在同一局域网 |
 | Home Assistant 里看不到 ZBT-2 | 确认「ZBT-2 设备路径」填的是 `/dev/serial/by-id/` 下的完整路径，重新部署 |
 | 连接主机失败 | 检查 IP 地址、用户名和密码，确认主机已开机并接入局域网 |
