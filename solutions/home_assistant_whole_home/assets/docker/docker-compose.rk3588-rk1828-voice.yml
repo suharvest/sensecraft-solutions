@@ -1,0 +1,67 @@
+# RK3588 with an RK1828 / RM182X M.2 card: the voice service and Wyoming
+# adapter from docker-compose.rk-voice.yml plus the local LLM (Qwen3-4B on the
+# RK1828 card, OpenAI-compatible on LLM_PORT) that Home Assistant's LiteLLM
+# conversation agent calls for requests its built-in intents do not handle.
+# Image, artifact and runtime settings follow conversational_voice_ai's
+# local_rk3588_rk1828 preset (docker-compose.rk3588-rk1828.yml there).
+# Host prerequisites live on the host, not in the image: lspci shows the 182a
+# device, rknn3.service is active and /dev/pcie-rkep-* exists.
+# The card holds one ~5 GB context: no other LLM (for example a bare-metal
+# rk1828-llm.service or another compose project's llm) may run on it.
+# edge-llm-rk1828:20260919-hostruntime.2
+#   index       sha256:08b4d4b8d8b0b82beb520c96657707889531b604ea60ce0fb9bcfd137c7e6113
+#   linux/arm64 sha256:f205bd23db9805c9938f0dc7957e0ce0ef472395314d69f8cc73874dcaee2aa6
+services:
+  voice:
+    extends:
+      file: docker-compose.rk-voice.yml
+      service: voice
+  wyoming-adapter:
+    extends:
+      file: docker-compose.rk-voice.yml
+      service: wyoming-adapter
+    depends_on: [voice]
+  llm:
+    container_name: ha-whole-home-llm
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime.2@sha256:f205bd23db9805c9938f0dc7957e0ce0ef472395314d69f8cc73874dcaee2aa6}
+    privileged: true
+    init: true
+    network_mode: host
+    volumes:
+      - /dev:/dev
+      - rk1828-llm-models:/opt/llm/models
+      # RKNN3 client lib must match the host's rknn3_transfer_proxy / EP
+      # firmware generation; the entrypoint copies the host pair when mounted.
+      - /usr/lib:/opt/rk1828/host-lib:ro
+    environment:
+      RK1828_ARTIFACT_AUTO_DOWNLOAD: "1"
+      RK1828_ARTIFACT_REPO_ID: harvestsu/seeed-local-voice-rk-artifacts
+      RK1828_ARTIFACT_PREFIX: rk1828/opt/llm/qwen3-4b
+      # The published Qwen3-4B export holds a 2048-token KV cache. Keep the
+      # Home Assistant agent without the "control Home Assistant" API so its
+      # prompt stays far below that.
+      RK1828_MAX_CONTEXT: "2048"
+      RK1828_CORE_MASK: ff
+      RK1828_PORT: ${LLM_PORT:-1828}
+      RK1828_READY_TIMEOUT: "180"
+      RK1828_START_ATTEMPTS: "3"
+      # The Home Assistant host calls it over the LAN.
+      RK1828_HOST: 0.0.0.0
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    # Not restarted by Docker: at boot ha-whole-home-llm.service first applies
+    # and verifies the firewall rule that limits this port to the Home Assistant
+    # host, then starts this container by name. If the rule cannot be applied,
+    # the LLM stays stopped and the rest of the Docker host is unaffected.
+    restart: "no"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${LLM_PORT:-1828}/health >/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
+volumes:
+  rk-asr-models:
+  rk-tts-models:
+  voice-data:
+  rk1828-llm-models:

@@ -1,0 +1,21 @@
+# Jetson Orin Nano (reComputer J30) voice side: the same OpenVoiceStream voice
+# service and Wyoming adapter as docker-compose.jetson-voice.yml, without the
+# local LLM (Orin Nano 8 GB has no room for the 4B model next to ASR + TTS).
+# Home Assistant's LiteLLM conversation agent calls the cloud OpenAI-compatible
+# API the user enters instead. The profile comes from JETSON_VOICE_PROFILE
+# (jetson-qwen3asr-matcha, the Orin Nano zh cell of the OVS language/device
+# matrix).
+services:
+  voice:
+    extends:
+      file: docker-compose.jetson-voice.yml
+      service: voice
+  wyoming-adapter:
+    extends:
+      file: docker-compose.jetson-voice.yml
+      service: wyoming-adapter
+    depends_on: [voice]
+
+volumes:
+  jetson-models:
+  voice-data:

@@ -1,37 +1,32 @@
 version: "1.0"
-id: jetson_voice
-name: Voice services and local LLM on the reComputer J40
-name_i18n: {zh: reComputer J40 语音服务与本地大模型}
+id: rk3588_rk1828_voice
+name: Voice services and RK1828 local LLM on the reComputer RK3588
+name_i18n: {zh: reComputer RK3588 语音服务与 RK1828 本地大模型}
 type: docker_deploy
-device_class: jetson
+device_class: rk3588
 deploy_timeout: 3600
-# Images are pinned here (nrd6-ovs-jetson 20261009, wyoming-slv-adapter 20261008; the
-# llm image is pinned in the compose file), like HA_IMAGE in ha_rpi.yaml; they are not
-# user inputs. Licence status: ../LICENSES.md.
+# RK3588 with an RK1828 / RM182X card: speech on the RK3588 NPU (profile rk3588-default),
+# Qwen3-4B on the card for Home Assistant's LiteLLM conversation agent.
 docker:
-  compose_file: assets/docker/docker-compose.jetson-voice.yml
+  compose_file: assets/docker/docker-compose.rk3588-rk1828-voice.yml
   compose_dir: assets
   remote_path: /home/{{username}}/ha-whole-home
-  options: {project_name: ha_whole_home_jetson_voice, remove_orphans: false}
+  options: {project_name: ha_whole_home_rk_voice, remove_orphans: false}
   services: [{name: voice, required: true}, {name: wyoming-adapter, required: true}, {name: llm, required: true}]
   environment:
-    JETSON_VOICE_IMAGE: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261009"
-    JETSON_VOICE_DIGEST: "sha256:b33427b31d5eac0083c0d9edb50a679d03ac6afab4180f11b1d030d5b4c99cd9"
     VOICE_PORT: "{{voice_port}}"
     WYOMING_STT_PORT: "{{wyoming_stt_port}}"
     WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
+    RK_VOICE_PROFILE: "rk3588-default"
     LLM_PORT: "{{llm_port}}"
-    ADAPTER_IMAGE: "sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b"
-    JETSON_VOICE_PROFILE: "jetson-edgellm-v091-matcha"
 ssh: {port: 22, default_user: recomputer, auth_methods: [password], connection_timeout: 30, command_timeout: 3600}
 pre_checks:
-  - {type: disk_space, min_gb: 40, description: The voice services, the local LLM and their models need at least 40 GB of free disk.}
-  - {type: nvidia_runtime, description: The NVIDIA container runtime included with JetPack is required.}
+  - {type: disk_space, min_gb: 16, description: The voice services, the local LLM and their models need at least 16 GB of free disk.}
 user_inputs:
   - {id: voice_port, name: Voice service port, name_i18n: {zh: 语音服务端口}, type: text, required: false, default: "8623", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port used only inside the voice host by the voice services. Change it only if 8623 is already in use., description_i18n: {zh: 语音服务在语音主机内部使用的端口。仅当 8623 已被占用时修改。}}
   - {id: wyoming_stt_port, name: Speech-to-text port, name_i18n: {zh: 语音转文字端口}, type: text, required: false, default: "10300", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for speech-to-text; enter it when adding the Wyoming Protocol integration in step 3. Change it only if 10300 is already in use., description_i18n: {zh: Home Assistant 连接语音转文字服务的端口，步骤 3 添加 Wyoming Protocol 集成时填写。仅当 10300 已被占用时修改。}}
   - {id: wyoming_tts_port, name: Text-to-speech port, name_i18n: {zh: 文字转语音端口}, type: text, required: false, default: "10200", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port Home Assistant connects to for text-to-speech; enter it when adding the second Wyoming Protocol integration in step 3. Change it only if 10200 is already in use., description_i18n: {zh: Home Assistant 连接文字转语音服务的端口，步骤 3 添加第二个 Wyoming Protocol 集成时填写。仅当 10200 已被占用时修改。}}
-  - {id: llm_port, name: Local LLM port, name_i18n: {zh: 本地大模型端口}, type: text, required: false, default: "8000", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port of the local LLM; enter it in the LiteLLM integration address in step 3. Change it only if 8000 is already in use., description_i18n: {zh: 本地大模型服务的端口，步骤 3 填写 LiteLLM 集成地址时使用。仅当 8000 已被占用时修改。}}
+  - {id: llm_port, name: Local LLM port, name_i18n: {zh: 本地大模型端口}, type: text, required: false, default: "1828", validation: {pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"}, description: Port of the local LLM on the RK1828 card; enter it in the LiteLLM integration address in step 3. Change it only if 1828 is already in use., description_i18n: {zh: RK1828 加速卡上大模型服务的端口，步骤 3 填写 LiteLLM 集成地址时使用。仅当 1828 已被占用时修改。}}
   - {id: ha_host, name: Home Assistant host IP, name_i18n: {zh: Home Assistant 主机 IP}, type: text, required: true, validation: {pattern: "^((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$"}, description: IPv4 address of the Home Assistant host from step 1. Only this host and this device can reach the local LLM., description_i18n: {zh: 步骤 1 的 Home Assistant 主机的 IPv4 地址。只有这台主机和本机能访问本地大模型。}}
 actions:
   before:
@@ -40,7 +35,7 @@ actions:
       sudo: true
       run: |
         set -eu
-        PROJECT="ha_whole_home_jetson_voice"
+        PROJECT="ha_whole_home_rk_voice"
         VOICE_PORT=$(cat <<'HAWH_INPUT_END'
         {{voice_port}}
         HAWH_INPUT_END
@@ -61,7 +56,7 @@ actions:
         {{llm_port}}
         HAWH_INPUT_END
         )
-        LLM_PORT="${LLM_PORT:-8000}"
+        LLM_PORT="${LLM_PORT:-1828}"
         PAIRS="$PAIRS llm_port=$LLM_PORT"
         for pair in $PAIRS; do
           name="${pair%%=*}"; port="${pair#*=}"
@@ -120,6 +115,15 @@ actions:
           fi
         done
         echo "Port check OK: $PAIRS"
+    - name: Check the RK1828 card
+      name_i18n: {zh: 检查 RK1828 加速卡}
+      run: |
+        set -eu
+        if ! ls /dev/pcie-rkep-* >/dev/null 2>&1; then
+          echo "RK1828_NOT_FOUND: no RK1828 card device (/dev/pcie-rkep-*) on this host; install the card driver and firmware first, or deploy the RK3588 target without the card" >&2
+          exit 1
+        fi
+        echo "RK1828 card found: $(ls /dev/pcie-rkep-* | tr '\n' ' ')"
     - name: Limit the local LLM to the Home Assistant host
       name_i18n: {zh: 只允许 Home Assistant 主机访问本地大模型}
       sudo: true
@@ -139,7 +143,7 @@ actions:
         {{llm_port}}
         HAWH_INPUT_END
         )
-        LLM_PORT="${LLM_PORT:-8000}"
+        LLM_PORT="${LLM_PORT:-1828}"
         case "$HA_HOST" in *"
         "*) echo "HA_HOST_INVALID: enter one IPv4 address" >&2; exit 1 ;; esac
         printf '%s\n' "$HA_HOST" | grep -Eqx '((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])' || { echo "HA_HOST_INVALID: enter the IPv4 address of the Home Assistant host, for example 192.168.1.20" >&2; exit 1; }
@@ -211,14 +215,11 @@ actions:
         echo "Local LLM port $LLM_PORT limited to this device and $HA_HOST"
 remote_overrides:
   environment:
-    JETSON_VOICE_IMAGE: "sensecraft-missionpack.seeed.cn/solution/nrd6-ovs-jetson:20261009"
-    JETSON_VOICE_DIGEST: "sha256:b33427b31d5eac0083c0d9edb50a679d03ac6afab4180f11b1d030d5b4c99cd9"
     VOICE_PORT: "{{voice_port}}"
     WYOMING_STT_PORT: "{{wyoming_stt_port}}"
     WYOMING_TTS_PORT: "{{wyoming_tts_port}}"
+    RK_VOICE_PROFILE: "rk3588-default"
     LLM_PORT: "{{llm_port}}"
-    ADAPTER_IMAGE: "sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b"
-    JETSON_VOICE_PROFILE: "jetson-edgellm-v091-matcha"
   actions:
     before:
       - name: Check voice service ports
@@ -226,7 +227,7 @@ remote_overrides:
         sudo: true
         run: |
           set -eu
-          PROJECT="ha_whole_home_jetson_voice"
+          PROJECT="ha_whole_home_rk_voice"
           VOICE_PORT=$(cat <<'HAWH_INPUT_END'
           {{voice_port}}
           HAWH_INPUT_END
@@ -247,7 +248,7 @@ remote_overrides:
           {{llm_port}}
           HAWH_INPUT_END
           )
-          LLM_PORT="${LLM_PORT:-8000}"
+          LLM_PORT="${LLM_PORT:-1828}"
           PAIRS="$PAIRS llm_port=$LLM_PORT"
           for pair in $PAIRS; do
             name="${pair%%=*}"; port="${pair#*=}"
@@ -306,6 +307,15 @@ remote_overrides:
             fi
           done
           echo "Port check OK: $PAIRS"
+      - name: Check the RK1828 card
+        name_i18n: {zh: 检查 RK1828 加速卡}
+        run: |
+          set -eu
+          if ! ls /dev/pcie-rkep-* >/dev/null 2>&1; then
+            echo "RK1828_NOT_FOUND: no RK1828 card device (/dev/pcie-rkep-*) on this host; install the card driver and firmware first, or deploy the RK3588 target without the card" >&2
+            exit 1
+          fi
+          echo "RK1828 card found: $(ls /dev/pcie-rkep-* | tr '\n' ' ')"
       - name: Limit the local LLM to the Home Assistant host
         name_i18n: {zh: 只允许 Home Assistant 主机访问本地大模型}
         sudo: true
@@ -325,7 +335,7 @@ remote_overrides:
           {{llm_port}}
           HAWH_INPUT_END
           )
-          LLM_PORT="${LLM_PORT:-8000}"
+          LLM_PORT="${LLM_PORT:-1828}"
           case "$HA_HOST" in *"
           "*) echo "HA_HOST_INVALID: enter one IPv4 address" >&2; exit 1 ;; esac
           printf '%s\n' "$HA_HOST" | grep -Eqx '((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])' || { echo "HA_HOST_INVALID: enter the IPv4 address of the Home Assistant host, for example 192.168.1.20" >&2; exit 1; }
@@ -408,7 +418,7 @@ remote_overrides:
           U="${U:-$(id -un)}"
           case "$U" in ''|*[!A-Za-z0-9._-]*) echo "USERNAME_INVALID: $U" >&2; exit 1 ;; esac
           BASE="/home/$U/ha-whole-home"
-          SRC="$BASE/jetson_voice/ha-config-template"
+          SRC="$BASE/rk3588_rk1828_voice/ha-config-template"
           DST="$BASE/ha-config"
           mkdir -p "$DST/packages" "$DST/custom_sentences"
           if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
