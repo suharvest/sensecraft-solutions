@@ -12,6 +12,16 @@ from solutionctl import engine_locator as el
 from solutionctl.engine_locator import EngineNotFoundError, locate_engine
 
 
+@pytest.fixture(autouse=True)
+def _isolated_home(tmp_path, monkeypatch):
+    """Keep Rust-engine discovery (~/.sensecraft, PATH) away from the real host."""
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("PATH", str(tmp_path / "emptybin"))
+
+
 def _make_engine(dir_path: Path, with_internal: bool = True) -> Path:
     """Create a fake executable engine binary (+ optional _internal dir)."""
     binp = dir_path / "provisioning-station"
@@ -213,3 +223,85 @@ def test_linux_first_deb_name_wins(tmp_path, monkeypatch):
     cands = el._native_candidates_linux()
     assert cands == [binp]
     assert calls == ["sense-craft-solution"]
+
+
+# --------------------------------------------------------------------------- #
+# Level 3: Rust engine installer layout
+# --------------------------------------------------------------------------- #
+def _make_rust_engine(path: Path, contract) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    meta = json.dumps({"version": "0.0.1", "contract_version": contract})
+    path.write_text(f"#!/bin/sh\necho '{meta}'\n")
+    path.chmod(0o755)
+    return path
+
+
+def _no_env(monkeypatch):
+    monkeypatch.delenv("SENSECRAFT_ENGINE_BIN", raising=False)
+    monkeypatch.setattr(el, "_from_native", lambda: None)
+
+
+def test_rust_engine_in_sensecraft_bin(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    binp = _make_rust_engine(Path.home() / ".sensecraft" / "bin" / "sensecraft-engine", 6)
+    assert locate_engine(handshake_path=tmp_path / "nope.json") == binp
+
+
+def test_rust_engine_in_engine_current(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    binp = _make_rust_engine(
+        Path.home() / ".sensecraft" / "engine" / "current" / "sensecraft-engine", 6
+    )
+    assert locate_engine(handshake_path=tmp_path / "nope.json") == binp
+
+
+def test_rust_engine_on_path(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    binp = _make_rust_engine(tmp_path / "pathbin" / "sensecraft-engine", "6.2")
+    monkeypatch.setenv("PATH", str(binp.parent))
+    assert locate_engine(handshake_path=tmp_path / "nope.json") == binp
+
+
+def test_rust_engine_wrong_contract_major_is_rejected(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    _make_rust_engine(Path.home() / ".sensecraft" / "bin" / "sensecraft-engine", 7)
+    with pytest.raises(EngineNotFoundError):
+        locate_engine(handshake_path=tmp_path / "nope.json")
+
+
+def test_rust_engine_bad_meta_is_rejected(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    binp = Path.home() / ".sensecraft" / "bin" / "sensecraft-engine"
+    binp.parent.mkdir(parents=True)
+    binp.write_text("#!/bin/sh\necho not-json\n")
+    binp.chmod(0o755)
+    with pytest.raises(EngineNotFoundError):
+        locate_engine(handshake_path=tmp_path / "nope.json")
+
+
+def test_handshake_precedes_rust_install(tmp_path, monkeypatch):
+    _no_env(monkeypatch)
+    _make_rust_engine(Path.home() / ".sensecraft" / "bin" / "sensecraft-engine", 6)
+    hsbin = _make_engine(tmp_path)
+    hs = tmp_path / "engine.json"
+    hs.write_text(json.dumps({"bin": str(hsbin)}))
+    assert locate_engine(handshake_path=hs) == hsbin
+
+
+def test_rust_install_precedes_native(tmp_path, monkeypatch):
+    monkeypatch.delenv("SENSECRAFT_ENGINE_BIN", raising=False)
+    native = _make_engine(tmp_path)
+    monkeypatch.setattr(el, "_from_native", lambda: native)
+    binp = _make_rust_engine(Path.home() / ".sensecraft" / "bin" / "sensecraft-engine", 6)
+    assert locate_engine(handshake_path=tmp_path / "nope.json") == binp
+
+
+def test_windows_candidates(monkeypatch):
+    monkeypatch.setattr(el.platform, "system", lambda: "Windows")
+    names = [c.name for c in el._rust_install_candidates()]
+    assert names == [
+        "sensecraft-engine.cmd",
+        "sensecraft-engine.exe",
+        "sensecraft-engine.cmd",
+        "sensecraft-engine.exe",
+    ]

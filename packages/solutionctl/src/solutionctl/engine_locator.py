@@ -1,10 +1,12 @@
 """Locate the SenseCraft Solution engine binary (zero engine code).
 
-Three-level resolution, per ``docs/OPEN_SOLUTION_SPLIT_PLAN.md`` §4.2:
+Four-level resolution, per ``docs/OPEN_SOLUTION_SPLIT_PLAN.md`` §4.2:
 
 1. ``$SENSECRAFT_ENGINE_BIN``
 2. ``~/.sensecraft/engine.json`` handshake file (``bin`` field)
-3. platform-native discovery (macOS mdfind / Windows registry / Linux dpkg)
+3. engine installer layout (``sensecraft-engine`` under ``~/.sensecraft``, or
+   on ``PATH``), contract-checked via ``meta --json``
+4. platform-native discovery (macOS mdfind / Windows registry / Linux dpkg)
 
 Each candidate is *validated before acceptance*; an invalid candidate falls
 through to the next level. If nothing is found, a friendly
@@ -16,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional
@@ -30,6 +33,13 @@ DISPLAY_NAME = "SenseCraft Solution"
 DEB_PACKAGES = ("sense-craft-solution", "sensecraft-solution")
 DEB_PACKAGE = DEB_PACKAGES[0]  # back-compat alias; primary package name
 ENGINE_BASENAME = "provisioning-station"
+
+RUST_ENGINE_BASENAME = "sensecraft-engine"
+# Major of the engine ``contract_version`` this solutionctl drives. The Rust
+# engine reports an integer (6); a future string version ("6.1") is compared by
+# its first dotted component.
+SUPPORTED_CONTRACT_MAJOR = 6
+META_TIMEOUT = 15
 
 HANDSHAKE_PATH = Path.home() / ".sensecraft" / "engine.json"
 
@@ -129,7 +139,55 @@ def _from_handshake(handshake_path: Path = HANDSHAKE_PATH) -> Optional[Path]:
 
 
 # --------------------------------------------------------------------------- #
-# Level 3: platform-native discovery
+# Level 3: Rust engine as laid out by the engine installer
+# --------------------------------------------------------------------------- #
+def _rust_install_candidates() -> List[Path]:
+    """Where the engine installer puts ``sensecraft-engine``, then PATH.
+
+    ``~/.sensecraft/bin`` holds the launcher/symlink, ``engine/current`` the
+    unpacked release. Windows installs a ``.cmd`` launcher (``.exe`` in the
+    release directory).
+    """
+    root = Path.home() / ".sensecraft"
+    if platform.system() == "Windows":
+        names = (f"{RUST_ENGINE_BASENAME}.cmd", f"{RUST_ENGINE_BASENAME}.exe")
+    else:
+        names = (RUST_ENGINE_BASENAME,)
+    candidates = [root / "bin" / n for n in names]
+    candidates += [root / "engine" / "current" / n for n in names]
+    on_path = shutil.which(RUST_ENGINE_BASENAME)
+    if on_path:
+        candidates.append(Path(on_path))
+    return candidates
+
+
+def _contract_ok(candidate: Path) -> bool:
+    """True if ``<candidate> meta --json`` reports a supported contract major."""
+    try:
+        out = subprocess.run(
+            [str(candidate), "meta", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=META_TIMEOUT,
+        )
+        if out.returncode != 0:
+            return False
+        meta = json.loads(out.stdout)
+        major = int(str(meta["contract_version"]).split(".")[0])
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError, TypeError):
+        return False
+    return major == SUPPORTED_CONTRACT_MAJOR
+
+
+def _from_rust_install() -> Optional[Path]:
+    for cand in _rust_install_candidates():
+        if _is_valid_engine(cand) and _contract_ok(cand):
+            return cand
+    return None
+
+
+# --------------------------------------------------------------------------- #
+# Level 4: platform-native discovery
 # --------------------------------------------------------------------------- #
 def _native_candidates_macos() -> List[Path]:
     candidates: List[Path] = []
@@ -304,6 +362,7 @@ def locate_engine(handshake_path: Path = HANDSHAKE_PATH) -> Path:
     for resolver in (
         _from_env,
         lambda: _from_handshake(handshake_path),
+        _from_rust_install,
         _from_native,
     ):
         found = resolver()
@@ -315,9 +374,12 @@ def locate_engine(handshake_path: Path = HANDSHAKE_PATH) -> Path:
         "Tried, in order:\n"
         "  1. $SENSECRAFT_ENGINE_BIN\n"
         f"  2. handshake file {handshake_path}\n"
-        "  3. platform-native discovery\n\n"
+        "  3. sensecraft-engine in ~/.sensecraft/bin, ~/.sensecraft/engine/current "
+        "or on PATH\n"
+        "  4. platform-native discovery\n\n"
         "Fix one of:\n"
         "  - Install the SenseCraft Solution desktop App (it writes the "
         "handshake file on first launch), or\n"
+        "  - Install the SenseCraft engine with its installer, or\n"
         "  - Set SENSECRAFT_ENGINE_BIN to the engine binary's absolute path."
     )
