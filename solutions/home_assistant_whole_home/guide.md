@@ -137,7 +137,11 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 3. Add a **LiteLLM** integration:
    - reComputer J40 or RK3588 + RK1828: enter `http://<voice-host-ip>:<local LLM port>` (default 8000 or 1828) as the URL and leave the API key empty
    - Other voice hosts: enter the LLM API address and API key from step 2
-4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, and save
+4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
+
+   ```
+   You are the home voice assistant. Answer briefly in spoken language. You cannot control devices in the home and cannot see their state. When the user asks you to switch or adjust a device, do not say it is done; ask them to say it again using the device's exact name.
+   ```
 5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
 6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
 
@@ -148,6 +152,7 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 | Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the voice host |
 | Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry; cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
 | Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
+| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the "Instructions" as in item 4 and the LLM asks you to repeat the exact name |
 | Other questions only get "I don't understand" | Choose the LiteLLM agent as the voice assistant's "Conversation agent" |
 | The voice services are not listed in the voice assistant | Make sure both Wyoming Protocol integrations were added successfully |
 | Voice stopped working after redeploying step 2 with different ports | Delete both Wyoming Protocol integrations and add them again with the new ports |
