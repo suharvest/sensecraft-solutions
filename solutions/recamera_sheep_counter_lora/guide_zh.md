@@ -96,6 +96,15 @@ tail -f /var/log/sheep_counter.log
 - 网关已安装 Docker 和 Docker Compose 插件（`docker compose version` 能输出版本号）。
 - 网关首次启动时需能拉取 `python:3.11-slim` 镜像，并从 PyPI 安装 Python 包（`paho-mqtt`、`meshtastic`）。国内网络会自动使用 PyPI 镜像。
 - 网关能访问 MQTT Broker 的 1883 端口。请填写 Broker 的局域网 IP；`127.0.0.1` 指向容器自身。
+- 如果网关曾用本方案早期的 `install.sh` 安装过，请先停止并禁用它创建的两个 systemd 服务。这两个服务从 `/opt/sheep-gateway` 运行、会自动重启，并占用新容器需要的 Meshtastic 串口：
+
+  ```
+  sudo systemctl disable --now meshtastic-bridge ha-bridge
+  sudo rm /etc/systemd/system/meshtastic-bridge.service /etc/systemd/system/ha-bridge.service
+  sudo systemctl daemon-reload
+  ```
+
+  `/opt/sheep-gateway` 不再使用，可用 `sudo rm -rf /opt/sheep-gateway` 删除。
 
 ### 接线
 
@@ -123,6 +132,7 @@ docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 | sheep-meshtastic-bridge 反复重启 | 确认 Meshtastic USB 无线电已插入网关，且串口路径正确（`ls /dev/ttyACM*`）；查看 `docker logs sheep-meshtastic-bridge` |
 | sheep-ha-bridge 连接失败 | 确认 MQTT Broker IP 的 1883 端口可达，且允许网关连接 |
 | 无 MQTT 消息 | 检查 MQTT Broker IP 是否正确，以及 Broker 是否接受 1883 端口的匿名连接 |
+| 曾用早期 `install.sh` 安装的网关上，sheep-meshtastic-bridge 无法打开串口 | 旧的 `meshtastic-bridge` systemd 服务仍占用串口；用 `systemctl is-active meshtastic-bridge ha-bridge` 检查，并按前置条件中的步骤禁用这两个服务 |
 | 重启后容器不在 | 容器设置了 `restart: unless-stopped`；用 `systemctl is-enabled docker` 确认 Docker 开机自启 |
 | 容器日志中 `pip install` 失败 | 网关无法访问 PyPI；检查网关网络或 DNS，然后在 `~/sheep-gateway/gateway` 执行 `docker compose -p sheep_gateway restart`（远程部署），或重新部署此步骤 |
 

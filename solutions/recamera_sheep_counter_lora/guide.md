@@ -96,6 +96,15 @@ Before you start, ensure Home Assistant is running on your LAN and its MQTT inte
 - Docker and the Docker Compose plugin installed on the gateway (`docker compose version` prints a version).
 - The gateway can pull `python:3.11-slim` and install Python packages (`paho-mqtt`, `meshtastic`) from PyPI on first start. A PyPI mirror is applied automatically on networks in China.
 - The MQTT broker IP is reachable from the gateway on port 1883. Use the broker's LAN IP; `127.0.0.1` points to the container itself.
+- If the gateway was set up with the earlier `install.sh` of this solution, stop and disable its two systemd services first. They run from `/opt/sheep-gateway`, restart automatically, and hold the Meshtastic serial port that the new container needs:
+
+  ```
+  sudo systemctl disable --now meshtastic-bridge ha-bridge
+  sudo rm /etc/systemd/system/meshtastic-bridge.service /etc/systemd/system/ha-bridge.service
+  sudo systemctl daemon-reload
+  ```
+
+  `/opt/sheep-gateway` is no longer used and can be removed with `sudo rm -rf /opt/sheep-gateway`.
 
 ### Wiring
 
@@ -123,6 +132,7 @@ Import the `ha_dashboard.yaml` file into Home Assistant:
 | sheep-meshtastic-bridge restarting | Confirm the Meshtastic USB radio is plugged into the gateway and the serial port path matches (`ls /dev/ttyACM*`); check `docker logs sheep-meshtastic-bridge` |
 | sheep-ha-bridge fails to connect | Confirm the MQTT broker IP is reachable on port 1883 and accepts the gateway connection |
 | No MQTT messages | Verify the MQTT broker IP and that the broker accepts unauthenticated connections on port 1883 |
+| sheep-meshtastic-bridge cannot open the serial port on a gateway set up with the earlier `install.sh` | The old `meshtastic-bridge` systemd service still holds the port; check with `systemctl is-active meshtastic-bridge ha-bridge` and disable both as described in Prerequisites |
 | Containers missing after reboot | Containers use `restart: unless-stopped`; confirm Docker starts at boot with `systemctl is-enabled docker` |
 | `pip install` fails in the container log | The gateway cannot reach PyPI; check its network or DNS, then run `docker compose -p sheep_gateway restart` in `~/sheep-gateway/gateway` (remote target) or redeploy this step |
 
