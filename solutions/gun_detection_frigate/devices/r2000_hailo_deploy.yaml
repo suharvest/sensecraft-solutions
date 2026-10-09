@@ -174,9 +174,14 @@ remote_overrides:
     after:
       - name: Configure RTSP cameras
         ignore_error: true
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_RTSP_URL_1: "{{rtsp_url_1}}"
+          INPUT_RTSP_URL_2: "{{rtsp_url_2}}"
         run: |
-          URL1="{{rtsp_url_1}}"
-          URL2="{{rtsp_url_2}}"
+          URL1="$INPUT_RTSP_URL_1"
+          URL2="$INPUT_RTSP_URL_2"
           CONFIG="/home/{{username}}/gun-detection-r2000-hailo/config/config.yml"
           ADDED=0
 
@@ -206,7 +211,10 @@ remote_overrides:
                     max_area: 500000
           ENDCAM
             sed -i "s|__CAMERA_NAME__|$name|" "$CONFIG"
-            sed -i "s|__CAMERA_URL__|$url|" "$CONFIG"
+            # \ & and | would be read by sed itself; escape them so the
+            # URL lands in the config verbatim.
+            url_sed=$(printf '%s' "$url" | sed -e 's/[\\&|]/\\&/g')
+            sed -i "s|__CAMERA_URL__|$url_sed|" "$CONFIG"
             ADDED=1
           }
 

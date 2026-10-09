@@ -78,6 +78,10 @@ actions:
       # fail_fast: false — a site with no ONVIF cameras at all is a valid
       # deployment, not an error.
       fail_fast: false
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_CAMERA_URLS: "{{camera_urls}}"
       run: |
         # 引擎把上传内容放在 remote_path/<device_id>/，compose 的相对挂载
         # （./go2rtc 等）也按 compose 所在目录解析。写 remote_path 根下会
@@ -103,7 +107,7 @@ actions:
           sleep 1
         done
 
-        python3 - "$CONF" "{{camera_urls}}" <<'PYEOF'
+        python3 - "$CONF" "$INPUT_CAMERA_URLS" <<'PYEOF'
         import json, sys, urllib.request
 
         conf_path, manual = sys.argv[1], sys.argv[2]
@@ -132,7 +136,7 @@ actions:
         body = "streams:\n"
         if streams:
             for name, url in sorted(streams.items()):
-                body += f"  {name}: {url}\n"
+                body += f"  {name}: {json.dumps(url, ensure_ascii=False)}\n"
         else:
             body += "  {}\n"
             print("no cameras configured yet — add them at http://<host>:1984")

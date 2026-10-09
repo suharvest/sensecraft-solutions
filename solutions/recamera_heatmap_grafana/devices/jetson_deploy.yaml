@@ -143,6 +143,10 @@ actions:
       # 这一步必须在 after_upload，不能在 before：compose 的相对挂载按
       # **compose 文件所在目录** 解析，而 compose 要等上传之后才在设备上；
       # 且引擎上传前会先清理远端目录，before 阶段建的目录会被抹掉。
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_RTSP_URL: "{{rtsp_url}}"
       run: |
         set -e
         # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
@@ -159,6 +163,8 @@ actions:
         COMPOSE_DIR="$(dirname "$COMPOSE")"
         CONFIG_DIR="$COMPOSE_DIR/jetson-config"
         mkdir -p "$CONFIG_DIR"
+        # JSON-escaped (\ and "), so any camera URL stays one valid string.
+        json_escape() { printf '%s' "$1" | sed -e 's/[\\"]/\\&/g'; }
         cat > "$CONFIG_DIR/config.json" <<EOF
         {
           "installation": "{{device_name}}",
@@ -198,7 +204,7 @@ actions:
           "streams": [
             {
               "id": "{{stream_id}}",
-              "rtsp_url": "{{rtsp_url}}",
+              "rtsp_url": "$(json_escape "$INPUT_RTSP_URL")",
               "enabled": true,
               "reconnect_delay_ms": 1000,
               "frame_width": 1280,

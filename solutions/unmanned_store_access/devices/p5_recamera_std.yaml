@@ -93,9 +93,13 @@ actions:
     # per-site fields below are written into that seeded copy, after install,
     # not baked into the package.
     - name: Write the face library signing key
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
       run: |
         set -e
-        printf '%s' '{{facedb_signing_key}}' > /userdata/f1-access/facedb.key
+        printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > /userdata/f1-access/facedb.key
         chmod 600 /userdata/f1-access/facedb.key
       sudo: true
       name_i18n:
@@ -110,6 +114,10 @@ actions:
       # non-zero -- failing the whole step under `set -e` -- when the key
       # never matched, so a config drift is a failed deploy, not a silent
       # no-op.
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_FACEDB_URL: "{{facedb_url}}"
       run: |
         set -e
         CONF=/userdata/f1-access/face-recognition.conf
@@ -148,7 +156,7 @@ actions:
         }
         set_conf device device_id '{{device_id}}'
         set_conf device actuator_id '{{actuator_id}}'
-        set_conf facedb url '{{facedb_url}}'
+        set_conf facedb url "$INPUT_FACEDB_URL"
         set_conf facedb key_id 'facedb-key-1'
         # The packaged recogniser only accepts `remove`; the agent's default is
         # `delete` (agent_config.py DEFAULT_DELETE_OP) and the shipped conf does
@@ -173,7 +181,7 @@ actions:
         # written into the conf and into the recogniser override below. Leaving
         # it at the shipped `localhost` keeps every event on the camera and the
         # console's device page stays empty.
-        BROKER=$(printf '%s' '{{facedb_url}}' | sed -e 's#^[a-z]*://##' -e 's#[:/].*##')
+        BROKER=$(printf '%s' "$INPUT_FACEDB_URL" | sed -e 's#^[a-z]*://##' -e 's#[:/].*##')
         set_conf mqtt host "$BROKER"
         set_conf mqtt port '1883'
         {
