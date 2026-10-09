@@ -136,11 +136,11 @@ docker ps --filter name=sheep- --format '{{.Names}}\t{{.Status}}'
 | 重启后容器不在 | 容器设置了 `restart: unless-stopped`；用 `systemctl is-enabled docker` 确认 Docker 开机自启 |
 | 容器日志中 `pip install` 失败 | 网关无法访问 PyPI；检查网关网络或 DNS，然后在 `~/sheep-gateway/gateway` 执行 `docker compose -p sheep_gateway restart`（远程部署），或重新部署此步骤 |
 
-### Target: 网关（远程） {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
+### 部署目标: 网关（远程） {#gateway_remote type=remote device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml default=true}
 
 通过 SSH 从本机部署到网关。填写网关 IP 地址和 SSH 凭据，然后填写 MQTT Broker IP 和串口。
 
-### Target: 网关（本机） {#gateway_local type=local device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml}
+### 部署目标: 网关（本机） {#gateway_local type=local device=gateway device_name="reComputer / Raspberry Pi" config=devices/gateway.yaml}
 
 在网关本机上执行部署。填写 MQTT Broker IP 和串口。
 
