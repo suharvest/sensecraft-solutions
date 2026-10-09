@@ -6,7 +6,7 @@ type: docker_deploy
 docker:
   compose_file: assets/docker/docker-compose.rpi-ha.yml
   compose_dir: assets
-  remote_path: /opt/ha-whole-home
+  remote_path: /home/{{username}}/ha-whole-home
   options: {project_name: ha_whole_home_rpi, remove_orphans: false}
   services: [{name: homeassistant, required: true}]
   environment:
@@ -14,11 +14,11 @@ docker:
     HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
     TZ: "Asia/Shanghai"
     HA_PORT: "{{ha_port}}"
-    HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
+    HA_CONFIG_DIR: "~/ha-whole-home/ha-config"
     ZBT_DEVICE: "{{zbt_device}}"
     ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
     ESPHOME_DIGEST: "sha256:4ad55931c0186d2910dc128526237acabb422a662697a4e8bb356d390a1332a1"
-    ESPHOME_CONFIG_DIR: "/opt/ha-whole-home/esphome"
+    ESPHOME_CONFIG_DIR: "~/ha-whole-home/esphome"
 ssh: {port: 22, default_user: pi, auth_methods: [password], connection_timeout: 30, command_timeout: 1800}
 pre_checks:
   - {type: disk_space, min_gb: 8, description: Home Assistant and its history data need at least 8 GB of free disk.}
@@ -42,14 +42,14 @@ user_inputs:
     description: "Plug in the ZBT-2, run ls /dev/serial/by-id/ on the host and enter the listed path. Leave empty to install Home Assistant first; fill it in and deploy again once the ZBT-2 is plugged in."
     description_i18n: {zh: "插上 ZBT-2 后在主机上执行 ls /dev/serial/by-id/，填写列出的路径。可以先留空安装 Home Assistant，接上 ZBT-2 后填写路径再部署一次。"}
 # Local view only: remote_overrides.actions below replaces this block for the
-# remote view, which copies from the uploaded /opt/ha-whole-home/ha_rpi copy.
+# remote view, which copies from the uploaded /home/<user>/ha-whole-home/ha_rpi copy.
 actions:
   before:
     - name: Check Home Assistant port
       name_i18n: {zh: 检查 Home Assistant 端口}
       run: |
         set -eu
-        DST="/opt/ha-whole-home/ha-config"
+        DST="$HOME/ha-whole-home/ha-config"
         HA_PORT="{{ha_port}}"; HA_PORT="${HA_PORT:-8123}"
         case "$HA_PORT" in ''|*[!0-9]*) echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1;; esac
         if [ "${#HA_PORT}" -gt 5 ] || [ "$HA_PORT" -lt 1 ] || [ "$HA_PORT" -gt 65535 ]; then
@@ -93,19 +93,10 @@ actions:
         set -eu
         # Local actions run in the solution directory and without sudo.
         SRC="assets/ha-config-template"
-        DST="/opt/ha-whole-home/ha-config"
+        DST="$HOME/ha-whole-home/ha-config"
         if [ ! -d "$SRC" ]; then
           echo "HA_CONFIG_TEMPLATE_MISSING: $(pwd)/$SRC" >&2
           exit 1
-        fi
-        if ! mkdir -p "$DST" 2>/dev/null || [ ! -w "$DST" ]; then
-          if sudo -n true 2>/dev/null; then
-            sudo -n mkdir -p "$DST"
-            sudo -n chown "$(id -u):$(id -g)" "$DST"
-          else
-            echo "HA_CONFIG_DIR_NOT_WRITABLE: run 'sudo mkdir -p $DST && sudo chown $(id -un) $DST', then deploy again" >&2
-            exit 1
-          fi
         fi
         mkdir -p "$DST/packages" "$DST/custom_sentences"
         if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
@@ -128,18 +119,21 @@ remote_overrides:
     HA_DIGEST: "sha256:d8922685169707fd91e8b9729902d975f06157d005e422874d201e0261dda196"
     TZ: "Asia/Shanghai"
     HA_PORT: "{{ha_port}}"
-    HA_CONFIG_DIR: "/opt/ha-whole-home/ha-config"
+    HA_CONFIG_DIR: "/home/{{username}}/ha-whole-home/ha-config"
     ZBT_DEVICE: "{{zbt_device}}"
     ESPHOME_IMAGE: "esphome/esphome:2026.9.1"
     ESPHOME_DIGEST: "sha256:4ad55931c0186d2910dc128526237acabb422a662697a4e8bb356d390a1332a1"
-    ESPHOME_CONFIG_DIR: "/opt/ha-whole-home/esphome"
+    ESPHOME_CONFIG_DIR: "/home/{{username}}/ha-whole-home/esphome"
   actions:
     before:
       - name: Check Home Assistant port
         name_i18n: {zh: 检查 Home Assistant 端口}
         run: |
           set -eu
-          DST="/opt/ha-whole-home/ha-config"
+          # Same directory as remote_path (/home/{{username}}/ha-whole-home).
+          U="{{username}}"; U="${U:-$(id -un)}"
+          BASE="/home/$U/ha-whole-home"
+          DST="$BASE/ha-config"
           HA_PORT="{{ha_port}}"; HA_PORT="${HA_PORT:-8123}"
           case "$HA_PORT" in ''|*[!0-9]*) echo "HA_PORT_INVALID: $HA_PORT (expected 1-65535)" >&2; exit 1;; esac
           if [ "${#HA_PORT}" -gt 5 ] || [ "$HA_PORT" -lt 1 ] || [ "$HA_PORT" -gt 65535 ]; then
@@ -181,8 +175,11 @@ remote_overrides:
         name_i18n: {zh: 准备 Home Assistant 配置}
         run: |
           set -eu
-          SRC="/opt/ha-whole-home/ha_rpi/ha-config-template"
-          DST="/opt/ha-whole-home/ha-config"
+          # Same directory as remote_path (/home/{{username}}/ha-whole-home).
+          U="{{username}}"; U="${U:-$(id -un)}"
+          BASE="/home/$U/ha-whole-home"
+          SRC="$BASE/ha_rpi/ha-config-template"
+          DST="$BASE/ha-config"
           mkdir -p "$DST/packages" "$DST/custom_sentences"
           if [ ! -e "$DST/configuration.yaml" ]; then cp "$SRC/configuration.yaml" "$DST/configuration.yaml"; fi
           if [ ! -e "$DST/packages/ha_whole_home.yaml" ]; then cp "$SRC/packages/ha_whole_home.yaml" "$DST/packages/ha_whole_home.yaml"; fi
