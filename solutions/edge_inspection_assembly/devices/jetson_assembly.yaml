@@ -200,6 +200,13 @@ remote_overrides:
           zh: 构建 TensorRT 检测引擎
 
       - name: Write the camera, MQTT and inspection configuration
+        # Passed as environment variables, not spliced into the Python
+        # source: a quote in a camera URL cannot change the program.
+        env:
+          INPUT_STREAM_ID: "{{stream_id}}"
+          INPUT_SOURCE_URI: "{{source_uri}}"
+          INPUT_DIMENSION_SOURCE_URI: "{{dimension_source_uri}}"
+          INPUT_DEVICE_NAME: "{{device_name}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/edge-inspection-assembly/jetson_assembly"
@@ -231,15 +238,15 @@ remote_overrides:
           # Their business sections are kept as-is; only the video source and
           # the stream id are rewritten from the deployment inputs.
           assembly_src = dict(sources[0])
-          assembly_src["stream_id"] = "{{stream_id}}"
-          assembly_src["uri"] = "{{source_uri}}"
-          assembly_src["kind"] = kind_of("{{source_uri}}")
+          assembly_src["stream_id"] = os.environ["INPUT_STREAM_ID"]
+          assembly_src["uri"] = os.environ["INPUT_SOURCE_URI"]
+          assembly_src["kind"] = kind_of(os.environ["INPUT_SOURCE_URI"])
           new_sources = [assembly_src]
 
-          dimension_uri = "{{dimension_source_uri}}".strip()
+          dimension_uri = os.environ["INPUT_DIMENSION_SOURCE_URI"].strip()
           if dimension_uri:
               dimension_src = dict(sources[1])
-              dimension_src["stream_id"] = "{{stream_id}}-gauge"
+              dimension_src["stream_id"] = os.environ["INPUT_STREAM_ID"] + "-gauge"
               dimension_src["uri"] = dimension_uri
               dimension_src["kind"] = kind_of(dimension_uri)
               new_sources.append(dimension_src)
@@ -250,7 +257,7 @@ remote_overrides:
           # The topic prefix is the device name the user chose, so one broker
           # can carry several stations without collisions.
           config.setdefault("mqtt", {})["topic"] = \
-              "{{device_name}}/inspection/{stream_id}/results"
+              os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
 
           tmp = path + ".tmp"
           with open(tmp, "w") as handle:
