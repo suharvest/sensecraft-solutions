@@ -2,14 +2,14 @@
 
 Two ways to get one:
 
-* :func:`engine_session` (``manage``): with the Rust engine (its ``meta --json``
+* :func:`engine_session` (``manage``, ``stage``): with the Rust engine (its ``meta --json``
   lists the ``daemon`` command), ``<bin> daemon ensure`` finds or starts the
   shared engine instance, this process takes a lease on it, heartbeats the
   lease while the command runs and releases it on exit. The instance itself
   keeps running (it exits on its own once idle). Every request carries the
   instance's runtime token. Older engines (the Python ``provisioning-station``
   has no ``daemon`` command) fall back to :func:`headless_engine`.
-* :func:`headless_engine` (``stage``, and the fallback above): ``serve
+* :func:`headless_engine` (the fallback above): ``serve
   --headless`` prints a JSON ready line with its loopback ``base_url``; start
   it, wait for health, run HTTP calls against it and shut it down.
 
