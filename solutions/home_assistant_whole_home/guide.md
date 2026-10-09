@@ -100,7 +100,7 @@ Install the speech recognition and speech synthesis services on the voice host f
 | The address is not an OpenAI-compatible API | Enter the provider's "OpenAI-compatible" address from its documentation |
 | curl is missing | Install curl on the voice host and deploy again |
 | iptables is missing | Install iptables on the voice host and deploy again; it limits the local LLM to the Home Assistant host |
-| The local LLM does not start after the voice host reboots | The local LLM starts only after its access rule is in place; on the voice host run `sudo systemctl status ha-whole-home-llm` to see why, fix it, then run `sudo systemctl restart ha-whole-home-llm` |
+| The local LLM does not start after the voice host or Docker restarts | The local LLM starts only after its access rule is in place (re-applied automatically when the voice host or Docker restarts); on the voice host run `sudo systemctl status ha-whole-home-llm` to see why, fix it, then run `sudo systemctl restart ha-whole-home-llm` |
 | Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
 
 ### Target: Local Deployment {#jetson_local type=local device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml}

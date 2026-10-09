@@ -158,18 +158,26 @@ actions:
           [ -r /proc/sys/net/ipv6/conf/all/disable_ipv6 ] && [ "\$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" = 0 ]
         }
         apply() {
+          # Build the new rules in a second chain, verify them, switch the INPUT jump
+          # to it, and only then remove the old chain. Any failure before the switch
+          # leaves the previous rules (and so the running LLM's protection) in place.
           t=\$1; lo=\$2; extra=\$3
-          \$t -S INPUT | grep -- '-j HAWH_LLM' | sed 's/^-A /-D /' | while read -r rule; do \$t \$rule; done
-          \$t -N HAWH_LLM 2>/dev/null || \$t -F HAWH_LLM
-          \$t -A HAWH_LLM -s "\$lo" -j RETURN
-          if [ -n "\$extra" ]; then \$t -A HAWH_LLM -s "\$extra" -j RETURN; fi
-          \$t -A HAWH_LLM -j DROP
-          \$t -I INPUT -p tcp --dport "\$LLM_PORT" -j HAWH_LLM
-          # Verify every rule; set -e turns a missing rule into a failure.
-          \$t -C INPUT -p tcp --dport "\$LLM_PORT" -j HAWH_LLM
-          \$t -C HAWH_LLM -s "\$lo" -j RETURN
-          if [ -n "\$extra" ]; then \$t -C HAWH_LLM -s "\$extra" -j RETURN; fi
-          \$t -C HAWH_LLM -j DROP
+          if \$t -S INPUT | grep -qx -- '.*-j HAWH_LLM_A'; then new=HAWH_LLM_B; old=HAWH_LLM_A; else new=HAWH_LLM_A; old=HAWH_LLM_B; fi
+          \$t -N "\$new" 2>/dev/null || \$t -F "\$new"
+          \$t -A "\$new" -s "\$lo" -j RETURN
+          if [ -n "\$extra" ]; then \$t -A "\$new" -s "\$extra" -j RETURN; fi
+          \$t -A "\$new" -j DROP
+          # Verify the new chain before any traffic is sent to it.
+          \$t -C "\$new" -s "\$lo" -j RETURN
+          if [ -n "\$extra" ]; then \$t -C "\$new" -s "\$extra" -j RETURN; fi
+          \$t -C "\$new" -j DROP
+          \$t -I INPUT -p tcp --dport "\$LLM_PORT" -j "\$new"
+          \$t -C INPUT -p tcp --dport "\$LLM_PORT" -j "\$new"
+          # Remove every other jump (old chain, the earlier HAWH_LLM name, old ports).
+          \$t -S INPUT | grep -Ex -- '.*-j HAWH_LLM(_A|_B)?' | grep -vx -- ".*-j \$new" | sed 's/^-A /-D /' | while read -r rule; do \$t \$rule; done
+          for c in "\$old" HAWH_LLM; do
+            if \$t -S "\$c" >/dev/null 2>&1; then \$t -F "\$c"; \$t -X "\$c"; fi
+          done
         }
         apply iptables 127.0.0.0/8 "\$HA_HOST"
         if ipv6_enabled; then
@@ -336,18 +344,26 @@ remote_overrides:
             [ -r /proc/sys/net/ipv6/conf/all/disable_ipv6 ] && [ "\$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)" = 0 ]
           }
           apply() {
+            # Build the new rules in a second chain, verify them, switch the INPUT jump
+            # to it, and only then remove the old chain. Any failure before the switch
+            # leaves the previous rules (and so the running LLM's protection) in place.
             t=\$1; lo=\$2; extra=\$3
-            \$t -S INPUT | grep -- '-j HAWH_LLM' | sed 's/^-A /-D /' | while read -r rule; do \$t \$rule; done
-            \$t -N HAWH_LLM 2>/dev/null || \$t -F HAWH_LLM
-            \$t -A HAWH_LLM -s "\$lo" -j RETURN
-            if [ -n "\$extra" ]; then \$t -A HAWH_LLM -s "\$extra" -j RETURN; fi
-            \$t -A HAWH_LLM -j DROP
-            \$t -I INPUT -p tcp --dport "\$LLM_PORT" -j HAWH_LLM
-            # Verify every rule; set -e turns a missing rule into a failure.
-            \$t -C INPUT -p tcp --dport "\$LLM_PORT" -j HAWH_LLM
-            \$t -C HAWH_LLM -s "\$lo" -j RETURN
-            if [ -n "\$extra" ]; then \$t -C HAWH_LLM -s "\$extra" -j RETURN; fi
-            \$t -C HAWH_LLM -j DROP
+            if \$t -S INPUT | grep -qx -- '.*-j HAWH_LLM_A'; then new=HAWH_LLM_B; old=HAWH_LLM_A; else new=HAWH_LLM_A; old=HAWH_LLM_B; fi
+            \$t -N "\$new" 2>/dev/null || \$t -F "\$new"
+            \$t -A "\$new" -s "\$lo" -j RETURN
+            if [ -n "\$extra" ]; then \$t -A "\$new" -s "\$extra" -j RETURN; fi
+            \$t -A "\$new" -j DROP
+            # Verify the new chain before any traffic is sent to it.
+            \$t -C "\$new" -s "\$lo" -j RETURN
+            if [ -n "\$extra" ]; then \$t -C "\$new" -s "\$extra" -j RETURN; fi
+            \$t -C "\$new" -j DROP
+            \$t -I INPUT -p tcp --dport "\$LLM_PORT" -j "\$new"
+            \$t -C INPUT -p tcp --dport "\$LLM_PORT" -j "\$new"
+            # Remove every other jump (old chain, the earlier HAWH_LLM name, old ports).
+            \$t -S INPUT | grep -Ex -- '.*-j HAWH_LLM(_A|_B)?' | grep -vx -- ".*-j \$new" | sed 's/^-A /-D /' | while read -r rule; do \$t \$rule; done
+            for c in "\$old" HAWH_LLM; do
+              if \$t -S "\$c" >/dev/null 2>&1; then \$t -F "\$c"; \$t -X "\$c"; fi
+            done
           }
           apply iptables 127.0.0.0/8 "\$HA_HOST"
           if ipv6_enabled; then

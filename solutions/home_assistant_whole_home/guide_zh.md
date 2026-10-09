@@ -101,7 +101,7 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 | 提示服务地址不是兼容 OpenAI 的接口 | 填服务商文档里「兼容 OpenAI」的地址 |
 | 提示缺少 curl | 在语音主机上安装 curl 后重新部署 |
 | 提示缺少 iptables | 在语音主机上安装 iptables 后重新部署；本地大模型靠它只对 Home Assistant 主机开放 |
-| 语音主机重启后本地大模型没有启动 | 本地大模型要等访问限制生效后才启动；在语音主机上执行 `sudo systemctl status ha-whole-home-llm` 查看原因，排除后执行 `sudo systemctl restart ha-whole-home-llm` |
+| 语音主机或 Docker 重启后本地大模型没有启动 | 本地大模型要等访问限制生效后才启动（语音主机或 Docker 重启时会自动重新应用）；在语音主机上执行 `sudo systemctl status ha-whole-home-llm` 查看原因，排除后执行 `sudo systemctl restart ha-whole-home-llm` |
 | 连接设备失败 | 检查 IP 地址、用户名和密码，确认设备已开机并接入局域网 |
 
 ### 部署目标: 本机部署 {#jetson_local type=local device=jetson device_name="reComputer J40（Jetson Orin NX 16GB）" config=devices/jetson_voice.yaml}
