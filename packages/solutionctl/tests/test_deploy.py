@@ -35,6 +35,8 @@ def run_deploy(tmp_path, monkeypatch, capfd):
     return _run
 
 
+SOLUTIONS = Path(__file__).resolve().parents[3] / "solutions"
+
 VERIFY = {
     "type": "verify_required",
     "step_id": "dash",
@@ -87,3 +89,8 @@ def test_real_rust_engine_smoke(tmp_path):
     meta = subprocess.run(cmd + ["meta"], capture_output=True, text=True, env=env)
     assert meta.returncode == 0, meta.stderr
     assert json.loads(meta.stdout)["contract_version"] == 6
+    lst = subprocess.run(
+        cmd + ["solution", "list", "--solutions-dir", str(SOLUTIONS)],
+        capture_output=True, text=True, env=env,
+    )
+    assert lst.returncode == 0, lst.stderr
