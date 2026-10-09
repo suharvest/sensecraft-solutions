@@ -48,10 +48,10 @@ intro:
       description: Text-to-speech service on the reComputer J40; Home Assistant connects to it through the Wyoming Protocol integration.
       description_i18n: {zh: reComputer J40 上的文字转语音服务，Home Assistant 通过 Wyoming Protocol 集成连接。}
   input_requirements:
-    - type: wifi
+    - type: network
       description: The voice terminal, the Home Assistant host and the reComputer J40 are on the same local network.
       description_i18n: {zh: 语音终端、Home Assistant 主机和 reComputer J40 在同一局域网。}
-    - type: bluetooth
+    - type: usb
       description: The ZBT-2 plugs into a USB port on the Home Assistant host.
       description_i18n: {zh: ZBT-2 插在 Home Assistant 主机的 USB 口上。}
   device_catalog:

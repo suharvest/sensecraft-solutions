@@ -97,8 +97,6 @@ user_inputs:
       - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
       - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
       - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
-pre_checks:
-  - {type: disk_space, min_gb: 18, description: At least 18GB for images and local model artifacts}
   - id: VAD_ENDPOINT_MS
     name: Reply after how much silence
     name_i18n: {zh: 说完话多久开始回答}
@@ -124,6 +122,8 @@ pre_checks:
       - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
       - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
       - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
+pre_checks:
+  - {type: disk_space, min_gb: 18, description: At least 18GB for images and local model artifacts}
 remote_overrides:
   remote_path: /home/{{username}}/conversational_voice_ai
   compose_dir: assets/docker
