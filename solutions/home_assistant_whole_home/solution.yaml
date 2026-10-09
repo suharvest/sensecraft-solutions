@@ -89,12 +89,12 @@ intro:
       description_i18n: {zh: 可选，采集房间温湿度等状态。}
   presets:
     - id: rpi_jetson
-      name: ARM64 Linux Host + Voice Host
-      name_i18n: {zh: ARM64 Linux 主机 + 语音主机}
+      name: ARM64 Linux Host + Voice Host (J40, RK3588 + RK1828 or J30)
+      name_i18n: {zh: ARM64 Linux 主机 + 语音主机（J40、RK3588 + RK1828 或 J30）}
       badge: Local voice
       badge_i18n: {zh: 本地语音}
-      description: Home Assistant runs on an ARM64 Linux host; speech recognition and speech synthesis run locally on a reComputer J40, J30, RK3588 or RK3576. Other questions go to a local LLM (J40, RK3588 + RK1828) or the cloud LLM you enter.
-      description_i18n: {zh: Home Assistant 运行在 ARM64 Linux 主机上，语音识别和语音合成在 reComputer J40、J30、RK3588 或 RK3576 上本地运行；其他问题由本地大模型（J40、RK3588 + RK1828）或你填写的云端大模型回答。}
+      description: Home Assistant runs on an ARM64 Linux host; speech recognition and speech synthesis run locally on a reComputer J40, an RK3588 with an RK1828 card, or a J30. Other questions go to a local LLM (J40, RK3588 + RK1828) or the cloud LLM you enter (J30).
+      description_i18n: {zh: Home Assistant 运行在 ARM64 Linux 主机上，语音识别和语音合成在 reComputer J40、装 RK1828 加速卡的 RK3588 或 J30 上本地运行；其他问题由本地大模型（J40、RK3588 + RK1828）或你填写的云端大模型（J30）回答。}
       # Hardware-verified 2026-10-08 for the Wyoming path "voice command -> HA
       # built-in intent -> entity state change" only (receipts
       # harvest-pi/home_assistant_whole_home + orin-nx/home_assistant_whole_home):
@@ -129,16 +129,34 @@ intro:
       #   light command and 0/10 exact for the question (嗎 instead of 吗);
       #   0.60-1.00 s. Through HA on RK3576: 10/10. Eight fresh RK3576 TTS takes
       #   (all different) 16/16. The two earlier misses did not reproduce.
-      #   NOT run on hardware: the J40 llm service; J30 (orin-nano 2026-10-09: with
-      #   the Whisper service and edge-waste-app stopped MemAvailable was 2.1 GB and
-      #   stayed >= 1.99 GB, but the test override mounted the model volume
-      #   read-only and the voice service exits on the engine lock file
-      #   /opt/models/.engine_resolver.lock; no round trip).
+      #   NOT run on hardware: the J40 llm service. J30 (orin-nano 2026-10-09,
+      #   jetson-qwen3asr-matcha, models via overlayfs on the board's existing
+      #   volume): with nrd6-slv-whisper-asr, edge-waste-app and ovs-sv-test
+      #   stopped, MemAvailable fell from 2.74 GB to 0.23 GB while the voice
+      #   service was still loading (watchdog stop at < 300 MB); the board's other
+      #   residents plus ~1.7 GB of /dev/shm files left no room. No round trip.
+      # Not marked verified: the J40 and RK1828 llm services from this package and
+      # the J30 voice stack have no hardware round trip (see the notes above).
+      device_groups:
+        - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: external_raspberry_pi_5}], default: external_raspberry_pi_5}
+        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3588}, {device_ref: recomputer_j30}], default: recomputer_j40}
+        - {id: radio, name: Zigbee coordinator, name_i18n: {zh: Zigbee 协调器}, type: single, required: true, options: [{device_ref: home_assistant_connect_zbt}], default: home_assistant_connect_zbt}
+        - {id: satellite, name: Voice terminal, name_i18n: {zh: 语音终端}, type: single, required: true, options: [{device_ref: home_assistant_voice}], default: home_assistant_voice}
+    - id: rpi_rk_cloud
+      name: ARM64 Linux Host + RK3588 / RK3576 Voice Host (cloud LLM)
+      name_i18n: {zh: ARM64 Linux 主机 + RK3588 / RK3576 语音主机（云端大模型）}
+      badge: Local voice
+      badge_i18n: {zh: 本地语音}
+      description: Home Assistant runs on an ARM64 Linux host; speech recognition and speech synthesis run locally on a reComputer RK3588 or RK3576. Other questions go to the cloud LLM you enter.
+      description_i18n: {zh: Home Assistant 运行在 ARM64 Linux 主机上，语音识别和语音合成在 reComputer RK3588 或 RK3576 上本地运行；其他问题由你填写的云端大模型回答。}
+      # Hardware round trip 2026-10-09 with this package's rk-voice compose on an
+      # RK3588 (radxa) and an RK3576 (cat-remote), HA 2026.9.3, DeepSeek; see the
+      # rpi_jetson notes above for the measured values.
       verified:
         - hardware
       device_groups:
         - {id: hub, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机}, type: single, required: true, options: [{device_ref: external_raspberry_pi_5}], default: external_raspberry_pi_5}
-        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_j40}, {device_ref: recomputer_rk3588}, {device_ref: recomputer_j30}, {device_ref: recomputer_rk3576}], default: recomputer_j40}
+        - {id: voice_host, name: Voice host, name_i18n: {zh: 语音主机}, type: single, required: true, options: [{device_ref: recomputer_rk3588}, {device_ref: recomputer_rk3576}], default: recomputer_rk3588}
         - {id: radio, name: Zigbee coordinator, name_i18n: {zh: Zigbee 协调器}, type: single, required: true, options: [{device_ref: home_assistant_connect_zbt}], default: home_assistant_connect_zbt}
         - {id: satellite, name: Voice terminal, name_i18n: {zh: 语音终端}, type: single, required: true, options: [{device_ref: home_assistant_voice}], default: home_assistant_voice}
   stats: {difficulty: advanced, estimated_time: 90min}
