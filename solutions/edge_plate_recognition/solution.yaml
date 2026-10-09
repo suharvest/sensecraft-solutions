@@ -14,6 +14,8 @@
 #
 # verified 状态：ip_camera_box preset 带 `verified: [hardware]`，依据是 Jetson /
 #   RK3588 / RK3576 三个部署目标 2026-10-08 的部署与输出链路验收（识别准确率未验收）。
+#   2026-10-10 识别模型换为按运行时轴对齐裁切重训的版本（三个目标的模型包均已替换）；
+#   CCPD 静态图精度见 edge-parking-vision evaluation/results/plate_rec_axis_20261010。
 #   R2035（Hailo-8）目标已从 guide 移除：没有已发布的运行镜像，Hailo 后端还需补丁
 #   才能接受车牌检测模型的分层输出。devices/hailo_plate.yaml 与 assets/hailo/ 保留
 #   待后端补丁后恢复，当前不被任何步骤引用。
