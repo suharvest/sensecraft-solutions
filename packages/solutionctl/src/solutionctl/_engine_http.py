@@ -33,10 +33,14 @@ HEALTH_TIMEOUT = 30.0
 class EngineHttpError(RuntimeError):
     """The engine answered with an error status."""
 
-    def __init__(self, status: int, detail: str):
+    def __init__(self, status: int, detail: str, error: str = ""):
         super().__init__(f"engine returned {status}: {detail}")
         self.status = status
         self.detail = detail
+        # Machine-readable error id from the body (``"error"``), e.g.
+        # ``requires_desktop_app`` for a route the Rust engine leaves to the
+        # Python sidecar.
+        self.error = error
 
 
 def _read_ready_line(proc: subprocess.Popen, timeout: float) -> Optional[dict]:
@@ -83,12 +87,15 @@ def request(
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", "replace")
         detail = raw
+        error = ""
         try:
             parsed = json.loads(raw)
-            detail = parsed.get("detail", raw) if isinstance(parsed, dict) else raw
+            if isinstance(parsed, dict):
+                detail = parsed.get("detail", raw)
+                error = str(parsed.get("error") or "")
         except ValueError:
             pass
-        raise EngineHttpError(e.code, str(detail)) from None
+        raise EngineHttpError(e.code, str(detail), error) from None
     return json.loads(body) if body else None
 
 
