@@ -234,7 +234,7 @@ Install the speech recognition and speech synthesis services on the voice host f
 - Free disk: at least 40 GB on the reComputer J40, 20 GB on the J30, 16 GB on the RK3588 + RK1828, 10 GB on the RK3588 and RK3576
 - Internet access on first start to download the models; the services are not available until the download finishes
 - RK3588 + RK1828: the card is powered, its driver and firmware are installed (a `/dev/pcie-rkep-*` device exists), and no other LLM runs on the card
-- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key; the API key is entered only in Home Assistant in step 3
+- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key; the API key is not entered here, but in step 3
 - Local LLM (J40, RK3588 + RK1828): the IP address of the Home Assistant host; the local LLM accepts connections only from that host and from the voice host itself
 
 ### Wiring
@@ -242,7 +242,7 @@ Install the speech recognition and speech synthesis services on the voice host f
 1. Connect the voice host to the same local network as the Home Assistant host and power it on
 2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623, local LLM 8000 (J40) or 1828 (RK1828); change one only if it is already in use
 3. Local LLM: enter the Home Assistant host's IP address; cloud LLM: enter the LLM API address, and deployment first checks that the voice host can reach it
-4. Note the voice host's IP address and ports for step 3
+4. Step 3 fills in the voice host's IP address and ports from this step
 5. Click Deploy
 
 ### Troubleshooting
@@ -270,36 +270,66 @@ Install on a reComputer RK3576 over the network; questions other than device con
 
 ---
 
-## Step 3: Connect local voice and verify {#rk_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+## Step 3: Connect the voice host to Home Assistant {#rk_ha_connect type=ha_integration required=true config=devices/ha_connect_cloud.yaml}
 
-Add the voice services and the LLM conversation agent to Home Assistant, then test.
+Add the speech services from step 2 and the LLM to Home Assistant and set up the voice assistant. Nothing is installed on the devices in this step.
 
-### Deployment Complete
+### Prerequisites
 
-1. Open Home Assistant, go to **Settings → Devices & services → Add integration** and search for **Wyoming Protocol**; enter the voice host's IP address as host and the speech-to-text port from step 2 (default 10300) as port
-2. Add a second **Wyoming Protocol** integration with the same host and the text-to-speech port (default 10200)
-3. Add a **LiteLLM** integration:
-   - reComputer J40 or RK3588 + RK1828: enter `http://<voice-host-ip>:<local LLM port>` (default 8000 or 1828) as the URL and leave the API key empty
-   - Other voice hosts: enter the LLM API address from step 2 and the API key from your LLM provider
-4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
+- Steps 1 and 2 are deployed, and you have created the Home Assistant administrator account
+- To finish the setup in this step: the API key and model name from your LLM provider
 
-   ```
-   You are the home voice assistant. Answer briefly in spoken language. You cannot control devices in the home and cannot see their state. When the user asks you to switch or adjust a device, do not say it is done; ask them to say it again using the device's exact name.
-   ```
-5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
-6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
+### Wiring
+
+1. Enter the Home Assistant host's IP address and the administrator username and password
+2. The voice host address, ports and LLM address are filled in from steps 1 and 2; check them
+3. Choose the voice assistant language
+4. API key and model name: enter them to talk to the voice assistant right after this step; leave the API key empty to enter it later in Home Assistant (step 4)
+5. Click Deploy
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the voice host |
-| Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry, and check that the Home Assistant host IP entered in step 2 is correct (deploy step 2 again after an IP change); cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
+| Wrong username or password | Enter the Home Assistant administrator account created after step 1 |
+| Cannot connect to Home Assistant | Check the IP address and port, and that Home Assistant has finished starting |
+| No service answered at that address and port | Make sure step 2 is ready and the voice host's IP address and ports are correct |
+| The service rejected the API key | Check the API key; also check the LLM address, and that the Home Assistant host can reach the internet |
+| Check the model name | Enter a model name your LLM provider offers, for example `deepseek-flash` |
+| The speech service does not support the language | Choose the other language |
+
+---
+
+## Step 4: Verify {#rk_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+
+Test the voice assistant in Home Assistant.
+
+### Deployment Complete
+
+**Only if you left the API key empty in step 3**, add the LLM in Home Assistant first:
+
+1. Go to **Settings → Devices & services → Add integration** and add a **LiteLLM** integration: enter the LLM API address from step 2 and the API key from your LLM provider
+2. In the LiteLLM integration, add a conversation agent: choose your model, leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
+
+   ```
+   You are the home voice assistant. Answer briefly in spoken language. You cannot control devices in the home and cannot see their state. When the user asks you to switch or adjust a device, do not say it is done; ask them to say it again using the device's exact name.
+   ```
+3. Go to **Settings → Voice assistants**, open "Home Voice", choose the new LiteLLM agent as "Conversation agent", and save
+
+**Test:**
+
+1. Open Home Assistant, click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply
+2. Ask "Is it a good day to open the windows?" and you get an answer from the LLM
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Adding LiteLLM fails to connect or reports an invalid key | Check the address and key, and that the Home Assistant host can reach the internet |
 | Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
-| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the "Instructions" as in item 4 and the LLM asks you to repeat the exact name |
-| Other questions only get "I don't understand" | Choose the LiteLLM agent as the voice assistant's "Conversation agent" |
-| The voice services are not listed in the voice assistant | Make sure both Wyoming Protocol integrations were added successfully |
-| Voice stopped working after redeploying step 2 with different ports | Delete both Wyoming Protocol integrations and add them again with the new ports |
+| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the agent's "Instructions" as shown above and the LLM asks you to repeat the exact name |
+| Other questions only get "I don't understand" | The API key was left empty in step 3: add the LLM as described above, or deploy step 3 again with the key |
+| Voice stopped working after redeploying step 2 with different ports | Deploy step 3 again with the new ports |
 | The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
 
 
@@ -313,7 +343,7 @@ Home Assistant and the local voice services are ready.
 
 1. **Add Zigbee devices**: go to **Settings → Devices & services → Add integration**, choose **Zigbee Home Automation** and select the ZBT-2 serial port; then click "Add device" in that integration and put the Zigbee device into pairing mode
 2. **Add to Apple Home**: a HomeKit Bridge pairing QR code appears in the Home Assistant notifications; scan it with the Home app on iPhone
-3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant configured in step 3 on its device page
+3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant on its device page ("Home Voice" if Home Assistant was connected automatically)
 
 ### Quick Verification
 

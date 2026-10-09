@@ -152,6 +152,14 @@ intro:
       # Hardware round trip 2026-10-09 with this package's rk-voice compose on an
       # RK3588 (radxa) and an RK3576 (cat-remote), HA 2026.9.3, DeepSeek; see the
       # rpi_jetson notes above for the measured values.
+      # Step 3 (devices/ha_connect_cloud.yaml, ha_integration over HA's API,
+      # app_collaboration feat/ha-integration-config-only) was run 2026-10-10
+      # against a throwaway HA 2026.9.3 container on spark with stub Wyoming
+      # servers (describe only) and DeepSeek deepseek-flash: empty key -> two
+      # Wyoming entries + "Home Voice" pipeline with HA's default agent; with
+      # key -> LiteLLM entry + agent, pipeline agent conversation.deepseek_flash
+      # answered via /api/conversation/process; a third run changed nothing.
+      # Not run with a real voice host or on the Pi.
       verified:
         - hardware
       device_groups:

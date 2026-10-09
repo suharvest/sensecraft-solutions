@@ -362,6 +362,11 @@
           "title": "Name",
           "type": "string"
         },
+        "omit_if_empty": {
+          "default": false,
+          "title": "Omit If Empty",
+          "type": "boolean"
+        },
         "type": {
           "default": "str",
           "title": "Type",
@@ -1137,12 +1142,75 @@
       "title": "FlashConfig",
       "type": "object"
     },
+    "HAConfigEntryConfig": {
+      "description": "A config entry added through HA's config flow API from the deployer\n(no files copied to the HA host).",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFlowField"
+          },
+          "title": "Data",
+          "type": "array"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "skip_if_empty": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Skip If Empty",
+          "type": "array"
+        },
+        "subentries": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HASubentryConfig"
+          },
+          "title": "Subentries",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "id",
+        "domain"
+      ],
+      "title": "HAConfigEntryConfig",
+      "type": "object"
+    },
     "HAIntegrationConfig": {
-      "description": "Home Assistant custom integration deployment configuration",
+      "description": "Home Assistant integration deployment configuration.\n\nEither installs a custom component (``domain`` + ``components_dir``,\noptional single-step ``config_flow_data``), or only configures HA over\nits API (``entries`` / ``pipeline``), or both.",
       "properties": {
         "components_dir": {
-          "title": "Components Dir",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Components Dir"
         },
         "config_flow_data": {
           "default": [],
@@ -1153,8 +1221,24 @@
           "type": "array"
         },
         "domain": {
-          "title": "Domain",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "entries": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HAConfigEntryConfig"
+          },
+          "title": "Entries",
+          "type": "array"
         },
         "include_patterns": {
           "default": [
@@ -1167,13 +1251,162 @@
           },
           "title": "Include Patterns",
           "type": "array"
+        },
+        "pipeline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HAPipelineConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "restart": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restart"
+        }
+      },
+      "title": "HAIntegrationConfig",
+      "type": "object"
+    },
+    "HAPipelineConfig": {
+      "description": "Assist pipeline created or updated by name over HA's WebSocket API.",
+      "properties": {
+        "conversation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conversation"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "language_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language From"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "prefer_local_intents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefer Local Intents"
+        },
+        "set_preferred": {
+          "default": true,
+          "title": "Set Preferred",
+          "type": "boolean"
+        },
+        "stt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stt"
+        },
+        "tts": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tts"
         }
       },
       "required": [
-        "domain",
-        "components_dir"
+        "name"
       ],
-      "title": "HAIntegrationConfig",
+      "title": "HAPipelineConfig",
+      "type": "object"
+    },
+    "HASubentryConfig": {
+      "description": "A config subentry created under an ``HAConfigEntryConfig`` entry\n(``/api/config/config_entries/subentries/flow``), e.g. a LiteLLM\n``conversation`` agent.",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFlowField"
+          },
+          "title": "Data",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title_from_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title From Field"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "HASubentryConfig",
       "type": "object"
     },
     "HimaxModelConfig": {
