@@ -177,7 +177,7 @@ remote_overrides:
               '  host: "{{broker_host}}"',
               "  port: {{broker_mqtt_port}}",
               '  username: "{{broker_username}}"',
-              "  password: " + json.dumps(os.environ["INPUT_BROKER_PASSWORD"]),
+              "  password: " + json.dumps(os.environ["INPUT_BROKER_PASSWORD"], ensure_ascii=False),
               "  client_id: alarm-panel",
               "  keepalive_sec: 30",
               "  qos: 1",
@@ -192,7 +192,7 @@ remote_overrides:
                   "    type: webhook",
                   "    enabled: true",
                   "    options:",
-                  f"      url: {json.dumps(webhook)}",
+                  f"      url: {json.dumps(webhook, ensure_ascii=False)}",
                   "      timeout_sec: 5.0",
               ]
           else:

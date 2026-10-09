@@ -136,7 +136,7 @@ actions:
         body = "streams:\n"
         if streams:
             for name, url in sorted(streams.items()):
-                body += f"  {name}: {json.dumps(url)}\n"
+                body += f"  {name}: {json.dumps(url, ensure_ascii=False)}\n"
         else:
             body += "  {}\n"
             print("no cameras configured yet — add them at http://<host>:1984")

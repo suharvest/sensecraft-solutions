@@ -282,7 +282,7 @@ remote_overrides:
                   "    type: webhook",
                   "    enabled: true",
                   "    options:",
-                  f"      url: {json.dumps(webhook)}",
+                  f"      url: {json.dumps(webhook, ensure_ascii=False)}",
                   "      timeout_sec: 5.0",
               ]
           else:
