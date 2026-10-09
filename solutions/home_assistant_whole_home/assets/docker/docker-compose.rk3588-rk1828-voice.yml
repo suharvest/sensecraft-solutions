@@ -22,6 +22,7 @@ services:
       service: wyoming-adapter
     depends_on: [voice]
   llm:
+    container_name: ha-whole-home-llm
     image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime.2@sha256:f205bd23db9805c9938f0dc7957e0ce0ef472395314d69f8cc73874dcaee2aa6}
     privileged: true
     init: true
@@ -47,7 +48,11 @@ services:
       # The Home Assistant host calls it over the LAN.
       RK1828_HOST: 0.0.0.0
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
-    restart: unless-stopped
+    # Not restarted by Docker: at boot ha-whole-home-llm.service first applies
+    # and verifies the firewall rule that limits this port to the Home Assistant
+    # host, then starts this container by name. If the rule cannot be applied,
+    # the LLM stays stopped and the rest of the Docker host is unaffected.
+    restart: "no"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${LLM_PORT:-1828}/health >/dev/null"]
       interval: 30s

@@ -57,6 +57,7 @@ services:
   # edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13
   #   linux/arm64 sha256:8e7c8d43bf82de3a1e556b7b3858185dd048e1fd1a6e20f8b606defba8141424
   llm:
+    container_name: ha-whole-home-llm
     image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-runtime-20260804-v13@sha256:8e7c8d43bf82de3a1e556b7b3858185dd048e1fd1a6e20f8b606defba8141424}
     runtime: nvidia
     privileged: true
@@ -83,7 +84,11 @@ services:
       - /usr/local/cuda/targets/aarch64-linux/lib:/host-cudla:ro
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
-    restart: unless-stopped
+    # Not restarted by Docker: at boot ha-whole-home-llm.service first applies
+    # and verifies the firewall rule that limits this port to the Home Assistant
+    # host, then starts this container by name. If the rule cannot be applied,
+    # the LLM stays stopped and the rest of the Docker host is unaffected.
+    restart: "no"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${LLM_PORT:-8000}/health >/dev/null"]
       interval: 30s

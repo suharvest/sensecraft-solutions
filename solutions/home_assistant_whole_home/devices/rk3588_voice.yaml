@@ -35,7 +35,7 @@ user_inputs:
     type: text
     required: true
     placeholder: "https://api.deepseek.com"
-    validation: {pattern: "^https?://[^\\s'\"]+$"}
+    validation: {pattern: "^https?://([A-Za-z0-9.-]+|\\[[0-9A-Fa-f:.]+\\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?$"}
     description: Address of an OpenAI-compatible LLM service, for example https://api.deepseek.com. The model name and API key are entered in Home Assistant in step 3.
     description_i18n: {zh: 兼容 OpenAI 接口的大模型服务地址，例如 https://api.deepseek.com。模型名称和服务密钥在步骤 3 的 Home Assistant 里填写。}
 actions:
@@ -46,9 +46,21 @@ actions:
       run: |
         set -eu
         PROJECT="ha_whole_home_rk_voice"
-        VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
-        STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
-        TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+        VOICE_PORT=$(cat <<'HAWH_INPUT_END'
+        {{voice_port}}
+        HAWH_INPUT_END
+        )
+        VOICE_PORT="${VOICE_PORT:-8623}"
+        STT_PORT=$(cat <<'HAWH_INPUT_END'
+        {{wyoming_stt_port}}
+        HAWH_INPUT_END
+        )
+        STT_PORT="${STT_PORT:-10300}"
+        TTS_PORT=$(cat <<'HAWH_INPUT_END'
+        {{wyoming_tts_port}}
+        HAWH_INPUT_END
+        )
+        TTS_PORT="${TTS_PORT:-10200}"
         PAIRS="voice_port=$VOICE_PORT wyoming_stt_port=$STT_PORT wyoming_tts_port=$TTS_PORT"
         for pair in $PAIRS; do
           name="${pair%%=*}"; port="${pair#*=}"
@@ -114,7 +126,17 @@ actions:
         # Only the address is checked here. The API key is never sent to this device:
         # the deploy engine passes everything in an action through the SSH command
         # line, so the key is entered only in Home Assistant (LiteLLM integration).
-        BASE="{{llm_base_url}}"
+        BASE=$(cat <<'HAWH_INPUT_END'
+        {{llm_base_url}}
+        HAWH_INPUT_END
+        )
+
+        # Re-validate: one line, strict URL characters only (no quotes, $, `, ;, spaces).
+        case "$BASE" in *"
+        "*) echo "LLM_URL_INVALID: the LLM API address must be a single line" >&2; exit 1 ;; esac
+        if ! printf '%s\n' "$BASE" | grep -Eqx 'https?://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?'; then
+          echo "LLM_URL_INVALID: enter an http(s) address using only letters, digits and . - _ ~ / :" >&2; exit 1
+        fi
         BASE="${BASE%/}"
         # Same normalisation as Home Assistant's LiteLLM integration.
         case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
@@ -153,9 +175,21 @@ remote_overrides:
         run: |
           set -eu
           PROJECT="ha_whole_home_rk_voice"
-          VOICE_PORT="{{voice_port}}"; VOICE_PORT="${VOICE_PORT:-8623}"
-          STT_PORT="{{wyoming_stt_port}}"; STT_PORT="${STT_PORT:-10300}"
-          TTS_PORT="{{wyoming_tts_port}}"; TTS_PORT="${TTS_PORT:-10200}"
+          VOICE_PORT=$(cat <<'HAWH_INPUT_END'
+          {{voice_port}}
+          HAWH_INPUT_END
+          )
+          VOICE_PORT="${VOICE_PORT:-8623}"
+          STT_PORT=$(cat <<'HAWH_INPUT_END'
+          {{wyoming_stt_port}}
+          HAWH_INPUT_END
+          )
+          STT_PORT="${STT_PORT:-10300}"
+          TTS_PORT=$(cat <<'HAWH_INPUT_END'
+          {{wyoming_tts_port}}
+          HAWH_INPUT_END
+          )
+          TTS_PORT="${TTS_PORT:-10200}"
           PAIRS="voice_port=$VOICE_PORT wyoming_stt_port=$STT_PORT wyoming_tts_port=$TTS_PORT"
           for pair in $PAIRS; do
             name="${pair%%=*}"; port="${pair#*=}"
@@ -221,7 +255,17 @@ remote_overrides:
           # Only the address is checked here. The API key is never sent to this device:
           # the deploy engine passes everything in an action through the SSH command
           # line, so the key is entered only in Home Assistant (LiteLLM integration).
-          BASE="{{llm_base_url}}"
+          BASE=$(cat <<'HAWH_INPUT_END'
+          {{llm_base_url}}
+          HAWH_INPUT_END
+          )
+
+          # Re-validate: one line, strict URL characters only (no quotes, $, `, ;, spaces).
+          case "$BASE" in *"
+          "*) echo "LLM_URL_INVALID: the LLM API address must be a single line" >&2; exit 1 ;; esac
+          if ! printf '%s\n' "$BASE" | grep -Eqx 'https?://([A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(:[0-9]{1,5})?(/[A-Za-z0-9._~/-]*)?'; then
+            echo "LLM_URL_INVALID: enter an http(s) address using only letters, digits and . - _ ~ / :" >&2; exit 1
+          fi
           BASE="${BASE%/}"
           # Same normalisation as Home Assistant's LiteLLM integration.
           case "$BASE" in */v1) ;; *) BASE="$BASE/v1" ;; esac
@@ -252,7 +296,12 @@ remote_overrides:
         run: |
           set -eu
           # Same directory as remote_path (/home/{{username}}/ha-whole-home).
-          U="{{username}}"; U="${U:-$(id -un)}"
+          U=$(cat <<'HAWH_INPUT_END'
+          {{username}}
+          HAWH_INPUT_END
+          )
+          U="${U:-$(id -un)}"
+          case "$U" in ''|*[!A-Za-z0-9._-]*) echo "USERNAME_INVALID: $U" >&2; exit 1 ;; esac
           BASE="/home/$U/ha-whole-home"
           SRC="$BASE/rk3588_voice/ha-config-template"
           DST="$BASE/ha-config"
