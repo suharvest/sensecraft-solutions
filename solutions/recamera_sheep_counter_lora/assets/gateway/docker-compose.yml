@@ -1,0 +1,97 @@
+# Sheep counter gateway bridges. Replaces the former install.sh + systemd units.
+#
+# Base image is the public python:3.11-slim. Python dependencies are installed at
+# first container start into a named volume (/deps) and reused on restart, so no
+# image is built or pushed. The deployer injects PIP_INDEX_URL into the service
+# environment when it detects a CN network; the default below applies otherwise.
+#
+# Inputs reach this file as environment variables set by devices/gateway.yaml:
+#   MQTT_HOST, MQTT_PORT, SERIAL_PORT
+# MQTT_HOST must be an address reachable from the container (a LAN IP, not 127.0.0.1).
+#
+# Health: each service reports healthy only once its pip install has finished
+# (/deps/.ready exists) and PID 1 is the bridge script (the shell has exec'd
+# into python). The deployer waits for `healthy` (devices/gateway.yaml), so a
+# deploy no longer passes while pip is still running or after pip has failed.
+# Service names equal container names because the deployer inspects the
+# container by the service name.
+x-bridge: &bridge
+  image: python:3.11-slim
+  restart: unless-stopped
+  working_dir: /app
+  volumes:
+    - ./:/app:ro
+  environment: &bridge-env
+    PYTHONUNBUFFERED: "1"
+    PYTHONPATH: /deps
+    MQTT_HOST: ${MQTT_HOST:-127.0.0.1}
+    MQTT_PORT: ${MQTT_PORT:-1883}
+    PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+x-healthcheck: &healthcheck
+  interval: 10s
+  timeout: 10s
+  retries: 3
+  # First start runs pip inside the container before the bridge starts. On a
+  # Raspberry Pi with a slow link or SD card this has to cover downloading and
+  # installing meshtastic and its dependencies; 600s matches the deployer's
+  # health_check_timeout in devices/gateway.yaml. Failures inside start_period
+  # do not count, and the first passing check marks the container healthy, so
+  # a fast install is not delayed by it.
+  start_period: 600s
+
+services:
+  sheep-meshtastic-bridge:
+    <<: *bridge
+    container_name: sheep-meshtastic-bridge
+    environment:
+      <<: *bridge-env
+      SERIAL_PORT: ${SERIAL_PORT:-/dev/ttyACM0}
+    devices:
+      - "${SERIAL_PORT:-/dev/ttyACM0}:${SERIAL_PORT:-/dev/ttyACM0}"
+    volumes:
+      - ./:/app:ro
+      - meshtastic-deps:/deps
+    command:
+      - sh
+      - -c
+      - |
+        [ -f /deps/.ready ] || { pip install -q --target /deps paho-mqtt==2.1.0 meshtastic==2.7.11 && touch /deps/.ready; } || exit 1
+        exec python /app/meshtastic_mqtt_bridge.py
+    healthcheck:
+      <<: *healthcheck
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,sys; sys.exit(0 if os.path.exists('/deps/.ready') and b'meshtastic_mqtt_bridge.py' in open('/proc/1/cmdline','rb').read() else 1)"
+
+  sheep-ha-bridge:
+    <<: *bridge
+    container_name: sheep-ha-bridge
+    volumes:
+      - ./:/app:ro
+      - ha-deps:/deps
+    command:
+      - sh
+      - -c
+      - |
+        [ -f /deps/.ready ] || { pip install -q --target /deps paho-mqtt==2.1.0 && touch /deps/.ready; } || exit 1
+        exec python /app/ha_bridge.py
+    healthcheck:
+      <<: *healthcheck
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os,sys; sys.exit(0 if os.path.exists('/deps/.ready') and b'ha_bridge.py' in open('/proc/1/cmdline','rb').read() else 1)"
+
+volumes:
+  meshtastic-deps:
+  ha-deps:
