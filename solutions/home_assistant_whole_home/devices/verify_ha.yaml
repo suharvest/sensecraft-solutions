@@ -10,7 +10,7 @@ web_dashboard:
   description: Open Home Assistant, add the two voice services, and test with "Turn on the living room light".
   description_i18n: {zh: 打开 Home Assistant，添加两个语音服务，然后说「打开客厅灯」测试。}
 user_inputs:
-  - {id: ha_host, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机地址}, type: text, required: true, description: IP address of the ARM64 Linux host running Home Assistant., description_i18n: {zh: 运行 Home Assistant 的 ARM64 Linux 主机的 IP 地址。}}
+  - {id: ha_host, name: Home Assistant host, name_i18n: {zh: Home Assistant 主机地址}, type: text, required: true, validation: {pattern: "^([A-Za-z0-9-]+\\.)*[A-Za-z0-9-]+$|^\\[[0-9A-Fa-f:.]+\\]$"}, description: IP address of the ARM64 Linux host running Home Assistant., description_i18n: {zh: 运行 Home Assistant 的 ARM64 Linux 主机的 IP 地址。}}
   - id: ha_port
     name: Home Assistant port
     name_i18n: {zh: Home Assistant 端口}

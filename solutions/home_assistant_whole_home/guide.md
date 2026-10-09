@@ -1,20 +1,27 @@
-## Preset: ARM64 Linux Host + Jetson Orin NX Voice {#rpi_jetson}
+## Preset: ARM64 Linux Host + Voice Host (J40, RK3588 + RK1828 or J30) {#rpi_jetson}
 
-An ARM64 Linux host runs Home Assistant, and a reComputer J40 understands speech and generates the spoken replies. The two devices work together on the same local network.
+An ARM64 Linux host runs Home Assistant, and a voice host understands speech and generates the spoken replies; questions other than device control are answered by an LLM. The two devices work together on the same local network.
 
 | Device | Purpose |
 |--------|---------|
 | ARM64 Linux host (64-bit OS, 8GB RAM) | Runs Home Assistant |
-| reComputer J40 Series (Jetson Orin NX 16GB) | Local speech recognition and speech synthesis |
+| Voice host (any one from the table below) | Local speech recognition and speech synthesis |
 | Home Assistant Connect ZBT-2 | Connects Zigbee devices |
 | Home Assistant Voice Preview Edition | Voice terminal in the room |
 
+| Voice host | Answers questions other than device control with |
+|------|------|
+| reComputer J40 (Jetson Orin NX 16GB) | An LLM running on the device |
+| reComputer RK3588 (16GB) + RK1828 accelerator card | An LLM running on the card |
+| reComputer J30 (Jetson Orin Nano 8GB) | The cloud LLM service you enter |
+
 **What you'll get:**
 - Control lights and other devices by voice in Chinese or English, with a median 0.12 s from end of speech to recognized text
+- Ask questions such as "Is it a good day to open the windows?" and get an answer from the LLM; device commands are still executed locally by Home Assistant
 - Zigbee sensors and switches in Home Assistant
 - The same devices in the Home app and Siri on iPhone
 
-**Requirements:** Both devices on the same local network · At least 30 GB free disk on the reComputer J40, and internet access on first start to download the voice models
+**Requirements:** Both devices on the same local network · Internet access on the voice host's first start to download the models · For a cloud LLM: the address, model name and API key of an OpenAI-compatible LLM service
 
 ## Step 1: Deploy Home Assistant {#rpi_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
 
@@ -58,61 +65,243 @@ Install on the ARM64 Linux host over the network; you need its IP address, usern
 
 ---
 
-## Step 2: Deploy Jetson voice services {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
+---
 
-Install the speech recognition and speech synthesis services on the reComputer J40 for Home Assistant to use.
+## Step 2: Deploy the voice host {#jetson_deploy type=docker_deploy required=true config=devices/jetson_voice.yaml}
+
+Install the speech recognition and speech synthesis services on the voice host for Home Assistant to use. The reComputer J40 and the RK3588 with an RK1828 card also install a local LLM; the other voice hosts use the cloud LLM service you enter.
 
 ### Prerequisites
 
-- reComputer J40 (Jetson Orin NX 16GB) with at least 30 GB of free disk
-- Internet access on first start to download the voice models; the services are not available until the download finishes
+- Free disk: at least 40 GB on the reComputer J40, 20 GB on the J30, 16 GB on the RK3588 + RK1828, 10 GB on the RK3588 and RK3576
+- Internet access on first start to download the models; the services are not available until the download finishes
+- RK3588 + RK1828: the card is powered, its driver and firmware are installed (a `/dev/pcie-rkep-*` device exists), and no other LLM runs on the card
+- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key; the API key is entered only in Home Assistant in step 3
+- Local LLM (J40, RK3588 + RK1828): the IP address of the Home Assistant host; the local LLM accepts connections only from that host and from the voice host itself
 
 ### Wiring
 
-1. Connect the reComputer J40 to the same local network as the Home Assistant host and power it on
-2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623; change one only if it is already in use
-3. Note the reComputer J40's IP address and these two ports for step 3
-4. Click Deploy
+1. Connect the voice host to the same local network as the Home Assistant host and power it on
+2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623, local LLM 8000 (J40) or 1828 (RK1828); change one only if it is already in use
+3. Local LLM: enter the Home Assistant host's IP address; cloud LLM: enter the LLM API address, and deployment first checks that the voice host can reach it
+4. Note the voice host's IP address and ports for step 3
+5. Click Deploy
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Not enough disk space | Free at least 30 GB and deploy again |
-| Port already in use | Choose an unused port and deploy again; the three ports must be different |
-| Services do not become ready for a long time | The first start downloads the voice models first, and the time depends on your connection; make sure the reComputer J40 can reach the internet |
-| NVIDIA container runtime missing | Make sure the reComputer J40 runs a full JetPack installation that includes the NVIDIA container runtime, then retry |
+| Not enough disk space | Free the space listed under Prerequisites and deploy again |
+| Port already in use | Choose an unused port and deploy again; the ports must be different |
+| Services do not become ready for a long time | The first start downloads the models first, and the time depends on your connection; make sure the voice host can reach the internet |
+| NVIDIA container runtime missing | Make sure the reComputer J40 / J30 runs a full JetPack installation that includes the NVIDIA container runtime, then retry |
+| RK1828 card not found | Check the card's power, driver and firmware; without the card, choose "RK3588 (cloud LLM)" instead |
+| The LLM service cannot be reached | Check the API address and that the voice host can reach the internet |
+| The address is not an OpenAI-compatible API | Enter the provider's "OpenAI-compatible" address from its documentation |
+| curl is missing | Install curl on the voice host and deploy again |
+| iptables is missing | Install iptables on the voice host and deploy again; it limits the local LLM to the Home Assistant host |
+| The local LLM does not start after the voice host or Docker restarts | The local LLM starts only after its access rule is in place (re-applied automatically when the voice host or Docker restarts); on the voice host run `sudo systemctl status ha-whole-home-llm` to see why, fix it, then run `sudo systemctl restart ha-whole-home-llm` |
 | Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
 
 ### Target: Local Deployment {#jetson_local type=local device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml}
 
-Install on this reComputer J40.
+Install on this reComputer J40; the LLM runs on the device.
 
 ### Target: Remote Deployment {#jetson_remote type=remote device=jetson device_name="reComputer J40 (Jetson Orin NX 16GB)" config=devices/jetson_voice.yaml default=true}
 
-Install on the reComputer J40 over the network; you need its IP address, username and password.
+Install on the reComputer J40 over the network; the LLM runs on the device. You need its IP address, username and password.
+
+### Target: RK3588 + RK1828 (local LLM) {#rk3588_rk1828_remote type=remote device=rk3588_rk1828 device_name="reComputer RK3588 (16GB) + RK1828" config=devices/rk3588_rk1828_voice.yaml}
+
+Install on a reComputer RK3588 with an RK1828 card over the network; the LLM runs on the card. You need its IP address, username and password.
+
+### Target: J30 (cloud LLM) {#j30_remote type=remote device=j30 device_name="reComputer J30 (Jetson Orin Nano 8GB)" config=devices/jetson_nano_voice.yaml}
+
+Install on a reComputer J30 over the network; questions other than device control are answered by the cloud LLM you enter.
+
+The voice services need more than 2.5 GB of free memory while they start; do not run other AI services on the J30 at the same time.
 
 ---
 
 ## Step 3: Connect local voice and verify {#rpi_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
 
-Add the voice services to Home Assistant, then test with one sentence.
+Add the voice services and the LLM conversation agent to Home Assistant, then test.
 
 ### Deployment Complete
 
-1. Open Home Assistant, go to **Settings → Devices & services → Add integration** and search for **Wyoming Protocol**; enter the reComputer J40's IP address as host and the speech-to-text port from step 2 (default 10300) as port
+1. Open Home Assistant, go to **Settings → Devices & services → Add integration** and search for **Wyoming Protocol**; enter the voice host's IP address as host and the speech-to-text port from step 2 (default 10300) as port
 2. Add a second **Wyoming Protocol** integration with the same host and the text-to-speech port (default 10200)
-3. Go to **Settings → Voice assistants**, open the assistant, set the language to Chinese or English, select the two new services for "Speech-to-text" and "Text-to-speech", and save
-4. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply
+3. Add a **LiteLLM** integration:
+   - reComputer J40 or RK3588 + RK1828: enter `http://<voice-host-ip>:<local LLM port>` (default 8000 or 1828) as the URL and leave the API key empty
+   - Other voice hosts: enter the LLM API address from step 2 and the API key from your LLM provider
+4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
+
+   ```
+   You are the home voice assistant. Answer briefly in spoken language. You cannot control devices in the home and cannot see their state. When the user asks you to switch or adjust a device, do not say it is done; ask them to say it again using the device's exact name.
+   ```
+5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
+6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the reComputer J40 |
+| Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the voice host |
+| Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry, and check that the Home Assistant host IP entered in step 2 is correct (deploy step 2 again after an IP change); cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
+| Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
+| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the "Instructions" as in item 4 and the LLM asks you to repeat the exact name |
+| Other questions only get "I don't understand" | Choose the LiteLLM agent as the voice assistant's "Conversation agent" |
 | The voice services are not listed in the voice assistant | Make sure both Wyoming Protocol integrations were added successfully |
 | Voice stopped working after redeploying step 2 with different ports | Delete both Wyoming Protocol integrations and add them again with the new ports |
 | The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
+
+---
+
+## Preset: ARM64 Linux Host + RK3588 / RK3576 Voice Host (cloud LLM) {#rpi_rk_cloud}
+
+An ARM64 Linux host runs Home Assistant, and a voice host understands speech and generates the spoken replies; questions other than device control are answered by an LLM. The two devices work together on the same local network.
+
+| Device | Purpose |
+|--------|---------|
+| ARM64 Linux host (64-bit OS, 8GB RAM) | Runs Home Assistant |
+| Voice host (any one from the table below) | Local speech recognition and speech synthesis |
+| Home Assistant Connect ZBT-2 | Connects Zigbee devices |
+| Home Assistant Voice Preview Edition | Voice terminal in the room |
+
+| Voice host | Answers questions other than device control with |
+|------|------|
+| reComputer RK3588 (without RK1828 card) | The cloud LLM service you enter |
+| reComputer RK3576 (8GB) | The cloud LLM service you enter |
+
+**What you'll get:**
+- Control lights and other devices by voice in Chinese or English, with a median 0.12 s from end of speech to recognized text
+- Ask questions such as "Is it a good day to open the windows?" and get an answer from the LLM; device commands are still executed locally by Home Assistant
+- Zigbee sensors and switches in Home Assistant
+- The same devices in the Home app and Siri on iPhone
+
+**Requirements:** Both devices on the same local network · Internet access on the voice host's first start to download the models · The address, model name and API key of an OpenAI-compatible LLM service
+
+## Step 1: Deploy Home Assistant {#rk_ha_deploy type=docker_deploy required=true config=devices/ha_rpi.yaml}
+
+Install Home Assistant on the ARM64 Linux host.
+
+### Prerequisites
+
+- The host runs a 64-bit Linux OS and has at least 8 GB of free disk
+- The ZBT-2 can be added later: leave "ZBT-2 device path" empty, then fill in the path and deploy again once the ZBT-2 is plugged in
+
+### Wiring
+
+1. Connect the ARM64 Linux host to the local network and power it on
+2. Plug the ZBT-2 into a USB port on the host; run `ls /dev/serial/by-id/` on the host and enter the listed path as "ZBT-2 device path"
+3. The default port is 8123; if another program on the host already uses 8123, enter a different port
+4. Click Deploy
+
+### Deployment Complete
+
+1. Open **http://\<host-ip\>:8123** in your browser (use your port if you changed it); the first start takes a moment
+2. Follow the prompts to create the administrator account
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Port already in use | Enter another port in "Home Assistant port" and deploy again |
+| Changed the port but Home Assistant still uses the old one | An existing Home Assistant installation keeps the port from its first install and ignores the deploy setting; keep using the original port |
+| Home Assistant was installed by an earlier version of this solution and starts with a new, empty configuration after redeploying | Earlier versions stored the configuration in `/opt/ha-whole-home/ha-config`; it now lives in `~/ha-whole-home/ha-config` and is not moved automatically. On the host, run `docker stop $(docker ps -q --filter label=com.docker.compose.project=ha_whole_home_rpi)`, then `mkdir -p ~/ha-whole-home && sudo cp -a /opt/ha-whole-home/ha-config/. ~/ha-whole-home/ha-config/`, then deploy again |
+| Page does not load | Wait a few minutes and refresh; make sure your computer and the host are on the same local network |
+| ZBT-2 does not appear in Home Assistant | Make sure "ZBT-2 device path" is the full path under `/dev/serial/by-id/`, then deploy again |
+| Cannot connect to the host | Check the IP address, username and password, and that the host is powered on and on the network |
+
+### Target: Local Deployment {#rk_ha_local type=local device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml}
+
+Install on this ARM64 Linux host.
+
+### Target: Remote Deployment {#rk_ha_remote type=remote device=arm64_linux device_name="ARM64 Linux host (64-bit OS, 8GB RAM)" config=devices/ha_rpi.yaml default=true}
+
+Install on the ARM64 Linux host over the network; you need its IP address, username and password.
+
+---
+
+---
+
+## Step 2: Deploy the voice host {#rk_voice_deploy type=docker_deploy required=true config=devices/rk3588_voice.yaml}
+
+Install the speech recognition and speech synthesis services on the voice host for Home Assistant to use. The reComputer J40 and the RK3588 with an RK1828 card also install a local LLM; the other voice hosts use the cloud LLM service you enter.
+
+### Prerequisites
+
+- Free disk: at least 40 GB on the reComputer J40, 20 GB on the J30, 16 GB on the RK3588 + RK1828, 10 GB on the RK3588 and RK3576
+- Internet access on first start to download the models; the services are not available until the download finishes
+- RK3588 + RK1828: the card is powered, its driver and firmware are installed (a `/dev/pcie-rkep-*` device exists), and no other LLM runs on the card
+- Cloud LLM: the address of an OpenAI-compatible service (for example `https://api.deepseek.com`), a model name and an API key; the API key is entered only in Home Assistant in step 3
+- Local LLM (J40, RK3588 + RK1828): the IP address of the Home Assistant host; the local LLM accepts connections only from that host and from the voice host itself
+
+### Wiring
+
+1. Connect the voice host to the same local network as the Home Assistant host and power it on
+2. Keep the default ports: speech-to-text 10300, text-to-speech 10200, voice service 8623, local LLM 8000 (J40) or 1828 (RK1828); change one only if it is already in use
+3. Local LLM: enter the Home Assistant host's IP address; cloud LLM: enter the LLM API address, and deployment first checks that the voice host can reach it
+4. Note the voice host's IP address and ports for step 3
+5. Click Deploy
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Not enough disk space | Free the space listed under Prerequisites and deploy again |
+| Port already in use | Choose an unused port and deploy again; the ports must be different |
+| Services do not become ready for a long time | The first start downloads the models first, and the time depends on your connection; make sure the voice host can reach the internet |
+| NVIDIA container runtime missing | Make sure the reComputer J40 / J30 runs a full JetPack installation that includes the NVIDIA container runtime, then retry |
+| RK1828 card not found | Check the card's power, driver and firmware; without the card, choose "RK3588 (cloud LLM)" instead |
+| The LLM service cannot be reached | Check the API address and that the voice host can reach the internet |
+| The address is not an OpenAI-compatible API | Enter the provider's "OpenAI-compatible" address from its documentation |
+| curl is missing | Install curl on the voice host and deploy again |
+| iptables is missing | Install iptables on the voice host and deploy again; it limits the local LLM to the Home Assistant host |
+| Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
+
+### Target: RK3588 (cloud LLM) {#rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml default=true}
+
+Install on a reComputer RK3588 without the card over the network; questions other than device control are answered by the cloud LLM you enter.
+
+### Target: RK3576 (cloud LLM) {#rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576 (8GB)" config=devices/rk3576_voice.yaml}
+
+Install on a reComputer RK3576 over the network; questions other than device control are answered by the cloud LLM you enter.
+
+---
+
+## Step 3: Connect local voice and verify {#rk_verify type=web_dashboard required=true config=devices/verify_ha.yaml}
+
+Add the voice services and the LLM conversation agent to Home Assistant, then test.
+
+### Deployment Complete
+
+1. Open Home Assistant, go to **Settings → Devices & services → Add integration** and search for **Wyoming Protocol**; enter the voice host's IP address as host and the speech-to-text port from step 2 (default 10300) as port
+2. Add a second **Wyoming Protocol** integration with the same host and the text-to-speech port (default 10200)
+3. Add a **LiteLLM** integration:
+   - reComputer J40 or RK3588 + RK1828: enter `http://<voice-host-ip>:<local LLM port>` (default 8000 or 1828) as the URL and leave the API key empty
+   - Other voice hosts: enter the LLM API address from step 2 and the API key from your LLM provider
+4. In the LiteLLM integration, add a conversation agent: choose the model name from step 2 (a local LLM lists only one model), leave "Control Home Assistant" unchecked, replace "Instructions" with the text below, and save:
+
+   ```
+   You are the home voice assistant. Answer briefly in spoken language. You cannot control devices in the home and cannot see their state. When the user asks you to switch or adjust a device, do not say it is done; ask them to say it again using the device's exact name.
+   ```
+5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
+6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Adding the integration fails to connect | Make sure step 2 is ready, the IP address and port are correct, and the Home Assistant host can reach the voice host |
+| Adding LiteLLM fails to connect or reports an invalid key | Local LLM: wait until step 2 is ready and retry, and check that the Home Assistant host IP entered in step 2 is correct (deploy step 2 again after an IP change); cloud LLM: check the address and key, and that the Home Assistant host can reach the internet |
+| Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
+| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the "Instructions" as in item 4 and the LLM asks you to repeat the exact name |
+| Other questions only get "I don't understand" | Choose the LiteLLM agent as the voice assistant's "Conversation agent" |
+| The voice services are not listed in the voice assistant | Make sure both Wyoming Protocol integrations were added successfully |
+| Voice stopped working after redeploying step 2 with different ports | Delete both Wyoming Protocol integrations and add them again with the new ports |
+| The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
+
 
 ---
 

@@ -39,6 +39,7 @@ user_inputs:
     placeholder: /dev/serial/by-id/usb-...
     type: text
     required: false
+    validation: {pattern: "^(/dev/serial/by-id/[A-Za-z0-9._:+@-]+|/dev/tty(USB|ACM)[0-9]{1,3})?$"}
     description: "Plug in the ZBT-2, run ls /dev/serial/by-id/ on the host and enter the listed path. Leave empty to install Home Assistant first; fill it in and deploy again once the ZBT-2 is plugged in."
     description_i18n: {zh: "插上 ZBT-2 后在主机上执行 ls /dev/serial/by-id/，填写列出的路径。可以先留空安装 Home Assistant，接上 ZBT-2 后填写路径再部署一次。"}
 # Local view only: remote_overrides.actions below replaces this block for the
