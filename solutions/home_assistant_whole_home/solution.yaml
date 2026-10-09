@@ -116,9 +116,15 @@ intro:
       #   The RK1828 run used the board's pre-existing edge-llm-rk1828:20260731-kvreuse
       #   service through a loopback relay, NOT this package's llm service
       #   (20260919-hostruntime.2): the card holds one model at a time.
-      #   NOT run on hardware: the J40 llm service, J30 (orin-nano had 481 MB free
-      #   root disk), RK3576 (cat-remote ran out of memory next to its existing
-      #   voice stack; the voice service reached healthy, no round trip).
+      #   RK3576 (cat-remote, rk3576-default, resident voice stack stopped for the
+      #   window): "打开客厅灯" 2/4 recognized and handled locally (light on), 2/4
+      #   misheard (厅厅灯, 蜻蜓灯) and sent to the LLM; "今天适合开窗吗" 2/2,
+      #   DeepSeek 1.93-3.31 s; STT 9.6 s on the first sentence, then 0.23-0.54 s.
+      #   With the default agent prompt the LLM claimed "客厅灯已打开" for a
+      #   misheard command; the guide's agent instruction makes it ask again
+      #   (checked by text against DeepSeek through HA's conversation API).
+      #   NOT run on hardware: the J40 llm service; J30 (orin-nano: 523 MB free
+      #   disk and 1.1 GB MemAvailable next to its resident services).
       verified:
         - hardware
       device_groups:
