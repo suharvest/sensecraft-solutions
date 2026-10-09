@@ -47,11 +47,11 @@ post_deployment:
   open_browser: false
 
 files:
-  # plate_jetson_orin_nano: 11238840 bytes, published 2026-10-08; after_upload unpacks it into models/.
-  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_jetson_orin_nano-a5e0e456c945.tar.gz
-    remote_path: /home/{{username}}/edge-parking/jetson_plate/models/plate_jetson_orin_nano-a5e0e456c945.tar.gz
+  # plate_jetson_orin_nano: 11196874 bytes, published 2026-10-10; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_jetson_orin_nano-b3680529cc01.tar.gz
+    remote_path: /home/{{username}}/edge-parking/jetson_plate/models/plate_jetson_orin_nano-b3680529cc01.tar.gz
     checksum:
-      sha256: a5e0e456c945256a6dee8e614cfcfd9cb10380b3459504d0d1fccd5e5d16d64d
+      sha256: b3680529cc0126ad739835894e689c294d6bb51ca9fcc994fcf7d75c75df6116
 actions:
   before:
     - name: Check the Jetson module and JetPack version
@@ -204,13 +204,13 @@ actions:
           exit 1
         fi
         MODELS_DIR="$ROOT/models"
-        BUNDLE="plate_jetson_orin_nano-a5e0e456c945.tar.gz"
-        BUNDLE_SHA="a5e0e456c945256a6dee8e614cfcfd9cb10380b3459504d0d1fccd5e5d16d64d"
-        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_jetson_orin_nano-a5e0e456c945.tar.gz"
+        BUNDLE="plate_jetson_orin_nano-b3680529cc01.tar.gz"
+        BUNDLE_SHA="b3680529cc0126ad739835894e689c294d6bb51ca9fcc994fcf7d75c75df6116"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_jetson_orin_nano-b3680529cc01.tar.gz"
         mkdir -p "$MODELS_DIR"
         have_models() {
           echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
-          echo "898b3afcab5bf9a4e68608d4e0d5b869d471df4e7a36975b64228de0ea0863a9  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "d971442e14c9f38372a08d8e20325c8bb2082a22ea58096ce77bafdeb6b8ba34  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
         }
         if have_models; then
           echo "Model files already present"
@@ -223,7 +223,7 @@ actions:
           fi
           tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
           echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c -
-          echo "898b3afcab5bf9a4e68608d4e0d5b869d471df4e7a36975b64228de0ea0863a9  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c -
+          echo "d971442e14c9f38372a08d8e20325c8bb2082a22ea58096ce77bafdeb6b8ba34  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c -
         fi
         ls -l "$MODELS_DIR"
     - name: Write the plate recognition config

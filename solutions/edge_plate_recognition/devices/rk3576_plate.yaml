@@ -34,11 +34,11 @@ post_deployment:
   open_browser: false
 
 files:
-  # plate_rk3576: 5540641 bytes, published 2026-10-08; after_upload unpacks it into models/.
-  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz
-    remote_path: /home/{{username}}/edge-parking/rk3576_plate/models/plate_rk3576-dbd43c252024.tar.gz
+  # plate_rk3576: 5555131 bytes, published 2026-10-10; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_rk3576-33644b5e41a5.tar.gz
+    remote_path: /home/{{username}}/edge-parking/rk3576_plate/models/plate_rk3576-33644b5e41a5.tar.gz
     checksum:
-      sha256: dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655
+      sha256: 33644b5e41a51ecf833c71110ab8fc1b613e25e2f2e060d71f99da3df5e04c14
 
 actions:
   before:
@@ -86,13 +86,13 @@ actions:
           exit 1
         fi
         MODELS_DIR="$ROOT/models"
-        BUNDLE="plate_rk3576-dbd43c252024.tar.gz"
-        BUNDLE_SHA="dbd43c2520247d1c5785a83493a0132ea0f6f05f7fd6d9c2fca9755c30464655"
-        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_rk3576-dbd43c252024.tar.gz"
+        BUNDLE="plate_rk3576-33644b5e41a5.tar.gz"
+        BUNDLE_SHA="33644b5e41a51ecf833c71110ab8fc1b613e25e2f2e060d71f99da3df5e04c14"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_rk3576-33644b5e41a5.tar.gz"
         mkdir -p "$MODELS_DIR"
         have_models() {
           echo "859f70bf62bea907c944c2cb65f382d060ecf6b6a90432636f712a08ce9dbf0e  $MODELS_DIR/plate_det_yolox_tiny_640.rk3576.int8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
-          echo "1c916574dedd7993684696b231e45c93d6cf0e428e823a48d784454c6eefbf2c  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "ff124d18b2718ee04d0457b45fc7ee43b932f0a0daea6b101a9e09eee0c96f48  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
         }
         if have_models; then
           echo "Model files already present"
@@ -105,7 +105,7 @@ actions:
           fi
           tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
           echo "859f70bf62bea907c944c2cb65f382d060ecf6b6a90432636f712a08ce9dbf0e  $MODELS_DIR/plate_det_yolox_tiny_640.rk3576.int8.rknn" | sha256sum -c -
-          echo "1c916574dedd7993684696b231e45c93d6cf0e428e823a48d784454c6eefbf2c  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c -
+          echo "ff124d18b2718ee04d0457b45fc7ee43b932f0a0daea6b101a9e09eee0c96f48  $MODELS_DIR/plate_rec_cn_96x32.rk3576.int8.rknn" | sha256sum -c -
         fi
         ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
