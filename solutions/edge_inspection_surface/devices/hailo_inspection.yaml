@@ -191,6 +191,16 @@ remote_overrides:
           zh: 下载并校验 HEF
 
       - name: Write the source, MQTT and Modbus configuration
+        # Passed as environment variables, not spliced into the Python
+        # source: a quote in a camera URL cannot change the program.
+        env:
+          INPUT_HEF_VARIANT: "{{hef_variant}}"
+          INPUT_MIN_SCORE: "{{min_score}}"
+          INPUT_DEVICE_NAME: "{{device_name}}"
+          INPUT_MODBUS_UNIT_ID: "{{modbus_unit_id}}"
+          INPUT_STREAM_ID: "{{stream_id}}"
+          INPUT_SOURCE_URI: "{{source_uri}}"
+          INPUT_SOURCE_FPS: "{{source_fps}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/edge-inspection-surface/hailo_inspection"
@@ -202,18 +212,18 @@ remote_overrides:
           with open(path) as handle:
               config = json.load(handle)
 
-          variant = "{{hef_variant}}"
+          variant = os.environ["INPUT_HEF_VARIANT"]
           hef = "yolox_tiny_neu6_o1.hef" if variant == "level1" else "yolox_tiny_neu6.hef"
           config["model"]["path"] = f"/models/{hef}"
           config["model"]["accelerator"] = "hailo"
-          config["rules"]["min_score"] = float("{{min_score}}")
-          config["mqtt"]["topic"] = "{{device_name}}/inspection/{stream_id}/results"
-          config["modbus"]["unit_id"] = int("{{modbus_unit_id}}")
+          config["rules"]["min_score"] = float(os.environ["INPUT_MIN_SCORE"])
+          config["mqtt"]["topic"] = os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
+          config["modbus"]["unit_id"] = int(os.environ["INPUT_MODBUS_UNIT_ID"])
           config["sources"] = [{
-              "stream_id": "{{stream_id}}",
-              "uri": "{{source_uri}}",
+              "stream_id": os.environ["INPUT_STREAM_ID"],
+              "uri": os.environ["INPUT_SOURCE_URI"],
               "kind": "rtsp",
-              "fps": int("{{source_fps}}"),
+              "fps": int(os.environ["INPUT_SOURCE_FPS"]),
           }]
 
           tmp = path + ".tmp"
