@@ -22,6 +22,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 PKG = ROOT / "solutions" / "home_assistant_whole_home"
 DEVICE_FILES = sorted((PKG / "devices").glob("*_voice.yaml"))
+ALL_DEVICE_FILES = sorted((PKG / "devices").glob("*.yaml"))
+# Filled in by the engine from the SSH connection form, not a package input;
+# its pattern has to be enforced by the engine (app_collaboration).
+ENGINE_PROVIDED = {"username"}
 SH = shutil.which("sh")
 
 
@@ -57,6 +61,24 @@ def payloads(marker: Path) -> list[str]:
     ]
 
 
+def terminator_payloads(marker: Path) -> list[str]:
+    """Values that close the HAWH_INPUT_END heredoc early.
+
+    In-script checks cannot stop these (the shell runs the injected line while
+    parsing), so the input validation patterns, enforced by the engine before
+    substitution, must reject them.
+    """
+    m = str(marker)
+    return [
+        f"8000\nHAWH_INPUT_END\ntouch {m}\n#",
+        f"https://example.invalid\nHAWH_INPUT_END\ntouch {m}\n#",
+        f"192.168.1.20\nHAWH_INPUT_END\ntouch {m}\n#",
+        "\nHAWH_INPUT_END\n",
+        "8000\r\nHAWH_INPUT_END",
+        "\n",
+    ]
+
+
 VALID = {
     "voice_port": "8623",
     "wyoming_stt_port": "10300",
@@ -66,6 +88,22 @@ VALID = {
     "llm_base_url": "https://api.deepseek.com",
     "username": "recomputer",
 }
+
+
+@pytest.mark.parametrize("device_file", ALL_DEVICE_FILES, ids=lambda p: p.stem)
+def test_every_interpolated_input_has_a_pattern_that_rejects_heredoc_terminators(device_file, tmp_path):
+    text = device_file.read_text()
+    doc = yaml.safe_load(text)
+    patterns = {spec["id"]: (spec.get("validation") or {}).get("pattern") for spec in doc.get("user_inputs", [])}
+    for name in sorted(set(re.findall(r"\{\{(\w+)\}\}", text)) - ENGINE_PROVIDED):
+        pattern = patterns.get(name)
+        assert pattern, f"{device_file.name}: {{{{{name}}}}} is interpolated but has no validation pattern"
+        for value in terminator_payloads(tmp_path / "MARK") + payloads(tmp_path / "MARK"):
+            # Whole-value match (JSON Schema / ECMAScript semantics) and
+            # Python re.match with the pattern's own anchors must both reject.
+            assert not re.fullmatch(pattern, value), (device_file.name, name, value)
+            if "HAWH_INPUT_END" in value:
+                assert re.match(pattern, value) is None, (device_file.name, name, value)
 
 
 @pytest.mark.parametrize("device_file", DEVICE_FILES, ids=lambda p: p.stem)
