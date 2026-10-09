@@ -123,8 +123,17 @@ intro:
       #   With the default agent prompt the LLM claimed "客厅灯已打开" for a
       #   misheard command; the guide's agent instruction makes it ask again
       #   (checked by text against DeepSeek through HA's conversation API).
-      #   NOT run on hardware: the J40 llm service; J30 (orin-nano: 523 MB free
-      #   disk and 1.1 GB MemAvailable next to its resident services).
+      #   Follow-up with saved WAVs (Wyoming STT direct, 10x each after warm-up):
+      #   RK3588 ASR: RK3588 audio 20/20, RK3576 audio 20/20 (0.39-0.54 s after
+      #   audio stop). RK3576 ASR: RK3588 audio 20/20, RK3576 audio 10/10 for the
+      #   light command and 0/10 exact for the question (嗎 instead of 吗);
+      #   0.60-1.00 s. Through HA on RK3576: 10/10. Eight fresh RK3576 TTS takes
+      #   (all different) 16/16. The two earlier misses did not reproduce.
+      #   NOT run on hardware: the J40 llm service; J30 (orin-nano 2026-10-09: with
+      #   the Whisper service and edge-waste-app stopped MemAvailable was 2.1 GB and
+      #   stayed >= 1.99 GB, but the test override mounted the model volume
+      #   read-only and the voice service exits on the engine lock file
+      #   /opt/models/.engine_resolver.lock; no round trip).
       verified:
         - hardware
       device_groups:
