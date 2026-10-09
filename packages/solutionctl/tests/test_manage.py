@@ -41,9 +41,9 @@ def engine_returning(monkeypatch):
 
         @contextmanager
         def fake():
-            yield url
+            yield _engine_http.EngineConn(base_url=url)
 
-        monkeypatch.setattr(manage, "headless_engine", fake)
+        monkeypatch.setattr(manage, "engine_session", fake)
 
     yield _make
     for s in servers:
@@ -76,7 +76,7 @@ def test_success_prints_json(engine_returning, capsys):
 
 def test_error_id_is_parsed_by_the_http_layer(engine_returning):
     engine_returning(501, {"error": "requires_desktop_app", "detail": "x"})
-    with manage.headless_engine() as url:
+    with manage.engine_session() as conn:
         with pytest.raises(_engine_http.EngineHttpError) as e:
-            _engine_http.get(url, "/x")
+            conn.get("/x")
     assert e.value.status == 501 and e.value.error == "requires_desktop_app"
