@@ -69,5 +69,6 @@ Conditions: Home Assistant on an ARM64 Linux host with 8GB RAM, voice services o
 | "打开客厅灯" | Recognized correctly and executed locally by Home Assistant in 2 of 4 runs; in the other 2 the device name was misheard ("厅厅灯", "蜻蜓灯") and the command went to the LLM |
 | "今天适合开窗吗" | Recognized correctly in both runs, answered by the cloud LLM in 1.93–3.31 s |
 | End of speech to recognized text | 9.6 s for the first sentence after start-up, then 0.23–0.54 s |
+| Repeated runs on fixed recordings | "打开客厅灯" recognized correctly in all 46 runs (recordings synthesized on the RK3588 and on the RK3576, sent straight to speech-to-text or through the Home Assistant voice assistant); "今天适合开窗吗" written with the traditional character 嗎 in 10 of 20 runs, same meaning |
 
 Conditions: Home Assistant 2026.9.3 on a separate ARM64 Linux host, voice services on an RK3588 (16GB) or RK3576 (8GB); local LLM Qwen3-4B on the RK1828 card, cloud LLM DeepSeek; input was synthesized speech audio sent to the Home Assistant voice assistant; LLM time is from the conversation agent receiving the text to its answer.
