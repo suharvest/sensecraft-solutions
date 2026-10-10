@@ -278,7 +278,7 @@ user_inputs:
     default: "1883"
     required: true
     validation:
-      pattern: "^[0-9]{1,5}$"
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
   - id: mqtt_username
     name: MQTT username
     name_i18n: {zh: MQTT 用户名}
@@ -298,7 +298,7 @@ user_inputs:
     default: "8080"
     required: true
     validation:
-      pattern: "^[0-9]{1,5}$"
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
     description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
     description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
   - id: rknn_lib
