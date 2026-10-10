@@ -103,7 +103,7 @@ services:
           create_host_path: false
     command: ["--config", "/config/config.json"]
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/healthz', timeout=2)"]
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${PARKING_HEALTH_PORT:-8099}/healthz', timeout=2)"]
       interval: 15s
       timeout: 5s
       retries: 5

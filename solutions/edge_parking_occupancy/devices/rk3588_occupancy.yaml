@@ -29,6 +29,7 @@ docker:
     PARKING_CONFIG: "./config.json"
     PARKING_MODELS_DIR: "./models"
     PARKING_DATA_DIR: "./data"
+    PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_DRI_DEVICE: "/dev/dri"
     PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
     PARKING_MPP_LIB: "{{mpp_lib}}"
@@ -129,6 +130,7 @@ actions:
         MQTT_USERNAME: "{{mqtt_username}}"
         MQTT_PASSWORD: "{{mqtt_password}}"
         EDITOR_PORT: "{{editor_port}}"
+        HEALTH_PORT: "{{health_port}}"
         STREAM_CODEC: "h264"
       run: |
         set -eu
@@ -155,7 +157,7 @@ actions:
       timeout: 130
       ignore_error: false
       env:
-        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_PORT: "{{health_port}}"
         PARKING_HEALTH_DEADLINE_SECONDS: "120"
       run: |
         set -e
@@ -299,8 +301,18 @@ user_inputs:
     required: true
     validation:
       pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
-    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
-    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
+    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Use a different port from the status port.
+    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要和状态检查端口相同。}
+  - id: health_port
+    name: Status port
+    name_i18n: {zh: 状态检查端口}
+    type: text
+    default: "8099"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: Port for the service status check. Change it only if another program on this box already uses 8099.
+    description_i18n: {zh: 服务状态检查使用的端口。只有这台主机上已有其他程序占用 8099 时才需要修改。}
   - id: rknn_lib
     name: RKNN runtime library
     name_i18n: {zh: RKNN 运行库}
@@ -420,6 +432,7 @@ remote_overrides:
           MQTT_USERNAME: "{{mqtt_username}}"
           MQTT_PASSWORD: "{{mqtt_password}}"
           EDITOR_PORT: "{{editor_port}}"
+          HEALTH_PORT: "{{health_port}}"
           STREAM_CODEC: "h264"
         run: |
           set -eu
@@ -446,7 +459,7 @@ remote_overrides:
         timeout: 130
         ignore_error: false
         env:
-          PARKING_HEALTH_PORT: "8099"
+          PARKING_HEALTH_PORT: "{{health_port}}"
           PARKING_HEALTH_DEADLINE_SECONDS: "120"
         run: |
           set -e
