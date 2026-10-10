@@ -134,7 +134,7 @@ intro:
         zh: 识别服务状态检查，含识别速度。
 
   input_requirements:
-    - type: camera_view
+    - type: rtsp
       description: A fixed view of the lane at 3–8 m where plates stay legible, delivered as an RTSP stream from your own IP camera (1080p or better).
       required: true
       description_i18n:
