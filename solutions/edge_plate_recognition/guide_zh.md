@@ -72,7 +72,7 @@
 
 ### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-从这台电脑通过网络部署到 reComputer RK3588 系列，需要至少 6 GB 可用磁盘。
+从这台电脑通过网络部署到 reComputer RK3588 系列，需要至少 2 GB 可用磁盘。
 
 ### 接线
 
@@ -92,7 +92,7 @@
 
 ### 部署目标 {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-直接在这台 reComputer RK3588 系列上部署，需要至少 6 GB 可用磁盘。
+直接在这台 reComputer RK3588 系列上部署，需要至少 2 GB 可用磁盘。
 
 ### 接线
 
@@ -110,7 +110,7 @@
 
 ### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-从这台电脑通过网络部署到 reComputer RK3576 系列，需要至少 6 GB 可用磁盘。
+从这台电脑通过网络部署到 reComputer RK3576 系列，需要至少 2 GB 可用磁盘。
 
 ### 接线
 
@@ -130,7 +130,7 @@
 
 ### 部署目标 {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-直接在这台 reComputer RK3576 系列上部署，需要至少 6 GB 可用磁盘。
+直接在这台 reComputer RK3576 系列上部署，需要至少 2 GB 可用磁盘。
 
 ### 接线
 

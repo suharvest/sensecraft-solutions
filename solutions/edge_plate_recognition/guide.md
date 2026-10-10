@@ -72,7 +72,7 @@ Deploy directly on this reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPac
 
 ### Target {#rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-Deploy from this computer over the network to a reComputer RK3588 Series; needs at least 6 GB of free disk.
+Deploy from this computer over the network to a reComputer RK3588 Series; needs at least 2 GB of free disk.
 
 ### Wiring
 
@@ -92,7 +92,7 @@ Deploy from this computer over the network to a reComputer RK3588 Series; needs 
 
 ### Target {#rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/rk3588_plate.yaml}
 
-Deploy directly on this reComputer RK3588 Series; needs at least 6 GB of free disk.
+Deploy directly on this reComputer RK3588 Series; needs at least 2 GB of free disk.
 
 ### Wiring
 
@@ -110,7 +110,7 @@ Deploy directly on this reComputer RK3588 Series; needs at least 6 GB of free di
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-Deploy from this computer over the network to a reComputer RK3576 Series; needs at least 6 GB of free disk.
+Deploy from this computer over the network to a reComputer RK3576 Series; needs at least 2 GB of free disk.
 
 ### Wiring
 
@@ -130,7 +130,7 @@ Deploy from this computer over the network to a reComputer RK3576 Series; needs 
 
 ### Target {#rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
 
-Deploy directly on this reComputer RK3576 Series; needs at least 6 GB of free disk.
+Deploy directly on this reComputer RK3576 Series; needs at least 2 GB of free disk.
 
 ### Wiring
 
