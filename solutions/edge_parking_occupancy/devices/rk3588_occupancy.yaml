@@ -63,7 +63,7 @@ actions:
         PARKING_RKNNRT_LIB: "{{rknn_lib}}"
         PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
       run: |
-        set -u
+        set -eu
         missing=0
         check() {
           # $1 = label, $2 = path, $3 = file name pattern to look for elsewhere
