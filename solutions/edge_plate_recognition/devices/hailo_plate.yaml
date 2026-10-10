@@ -41,11 +41,11 @@ post_deployment:
   open_browser: false
 
 files:
-  # plate_hailo8: 6803299 bytes, published 2026-10-08; after_upload unpacks it into models/.
-  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_hailo8-3d28c0569093.tar.gz
-    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_hailo8-3d28c0569093.tar.gz
+  # plate_hailo8: 6786087 bytes, published 2026-10-10; after_upload unpacks it into models/.
+  - url: https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_hailo8-b53c31c16b4b.tar.gz
+    remote_path: /home/{{username}}/edge-parking/hailo_plate/models/plate_hailo8-b53c31c16b4b.tar.gz
     checksum:
-      sha256: 3d28c05690938ae5f2ab470a628bedfee552ae5dae67547d5ec0e0f5c22924ca
+      sha256: b53c31c16b4bf9e2e13aa90ed83b78f12f310c6d383f84205f5c48964ac0f3ac
 
 actions:
   before:
@@ -73,13 +73,13 @@ actions:
       run: |
         set -eu
         MODELS_DIR="/home/{{username}}/edge-parking/hailo_plate/models"
-        BUNDLE="plate_hailo8-3d28c0569093.tar.gz"
-        BUNDLE_SHA="3d28c05690938ae5f2ab470a628bedfee552ae5dae67547d5ec0e0f5c22924ca"
-        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/plate_hailo8-3d28c0569093.tar.gz"
+        BUNDLE="plate_hailo8-b53c31c16b4b.tar.gz"
+        BUNDLE_SHA="b53c31c16b4bf9e2e13aa90ed83b78f12f310c6d383f84205f5c48964ac0f3ac"
+        URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_hailo8-b53c31c16b4b.tar.gz"
         mkdir -p "$MODELS_DIR"
         have_models() {
           echo "19a1256a2bf77440fbb125c99756c20be7fcc91a4e080975e515fecc5603ca13  $MODELS_DIR/plate_det_yolox_tiny_640.hef" | sha256sum -c - >/dev/null 2>&1 || return 1
-          echo "340db0a625d8b1724f29fcdf210aabae20357517ef87082e2a2dd9fb845ca7d0  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c - >/dev/null 2>&1 || return 1
+          echo "ad01cdca9268b2f63f8f74e3d02ea3012836794bfa2e7b08340b4ed5cec5cb90  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c - >/dev/null 2>&1 || return 1
         }
         if have_models; then
           echo "Model files already present"
@@ -92,7 +92,7 @@ actions:
           fi
           tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
           echo "19a1256a2bf77440fbb125c99756c20be7fcc91a4e080975e515fecc5603ca13  $MODELS_DIR/plate_det_yolox_tiny_640.hef" | sha256sum -c -
-          echo "340db0a625d8b1724f29fcdf210aabae20357517ef87082e2a2dd9fb845ca7d0  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c -
+          echo "ad01cdca9268b2f63f8f74e3d02ea3012836794bfa2e7b08340b4ed5cec5cb90  $MODELS_DIR/plate_rec_cn_96x32.hef" | sha256sum -c -
         fi
         ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
