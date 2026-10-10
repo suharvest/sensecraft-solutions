@@ -51,6 +51,395 @@ files:
     checksum:
       sha256: e19856699ed47cf866d23265827f960b263f287dab5e54e82c7ce37e12525a2d
 
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the solution
+# directory as their working directory and the stack runs in place from
+# assets/hailo/, so the paths below are relative to that directory. There is no
+# upload step, so `after_upload` runs straight after `before`. The remote view
+# does not use this block: remote_overrides.actions replaces it in full.
+actions:
+  before:
+    - name: Validate the Hailo runtime
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "No /dev/hailo0 — the Hailo accelerator is not present or its driver is not loaded" >&2
+          exit 1
+        fi
+        # The compose file pins libhailort.so.4.21.0. Plugin, user library and
+        # driver have to move together, so a different minor version needs all
+        # three changed rather than just this mount.
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+          echo "Installed HailoRT:" >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        if [ ! -f /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so ]; then
+          echo "libgsthailo.so not found — install the HailoRT GStreamer plugin." >&2
+          exit 1
+        fi
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+        echo "Hailo runtime OK"
+      name_i18n:
+        zh: 校验 Hailo 运行环境
+
+    - name: Ensure docker compose command
+      # Local view: there is no SSH password to hand to sudo, so the fix is
+      # applied only where sudo works without a prompt; otherwise the step
+      # stops with the command to run.
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+  after_upload:
+    - name: Fetch the pose model
+      timeout: 900
+      run: |
+        set -e
+        WORKDIR="$(pwd)/assets/hailo"
+        MODELS_DIR="$WORKDIR/models"
+        # Official Hailo Model Zoo v2.15 build for Hailo-8, pinned by digest.
+        URL=https://hailo-model-zoo.s3.eu-west-2.amazonaws.com/ModelZoo/Compiled/v2.15.0/hailo8/yolov8s_pose.hef
+        SHA=e19856699ed47cf866d23265827f960b263f287dab5e54e82c7ce37e12525a2d
+        mkdir -p "$MODELS_DIR"
+
+        if [ -s "$MODELS_DIR/yolov8s_pose.hef" ] && \
+           echo "$SHA  $MODELS_DIR/yolov8s_pose.hef" | sha256sum -c - >/dev/null 2>&1; then
+          echo "HEF already present"
+          exit 0
+        fi
+        # 新引擎会通过 device 级 files: 字段在 after_upload 之前把这个文件放好，
+        # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
+        curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/yolov8s_pose.hef.part" "$URL"
+        echo "$SHA  $MODELS_DIR/yolov8s_pose.hef.part" | sha256sum -c -
+        mv -f "$MODELS_DIR/yolov8s_pose.hef.part" "$MODELS_DIR/yolov8s_pose.hef"
+        ls -l "$MODELS_DIR/yolov8s_pose.hef"
+      name_i18n:
+        zh: 获取姿态模型
+
+    - name: Write the camera and MQTT configuration
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_RTSP_URL: "{{rtsp_url}}"
+      run: |
+        set -e
+        WORKDIR="$(pwd)/assets/hailo"
+        # The bundled broker listens on the port from the form (host networking).
+        sed -i "s/^listener [0-9]* /listener {{broker_port}} /" "$WORKDIR/config/mosquitto.conf"
+        # This runtime is configured through the environment rather than a
+        # config file, so the values go into the compose .env.
+        # Double-quoted with \ " $ escaped: compose reads the value
+        # literally instead of expanding ${...} inside a camera password.
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
+        STREAMS="$(dotenv_quote "$INPUT_STREAM_ID|$INPUT_RTSP_URL")"
+        MQTT_HOST=127.0.0.1
+        MQTT_PORT={{broker_port}}
+        MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
+        EOF
+        echo "wrote $WORKDIR/.env:"
+        sed 's/:[^@/]*@/:****@/' "$WORKDIR/.env"
+      name_i18n:
+        zh: 写入摄像头与 MQTT 配置
+
+    - name: Write the alarm panel configuration
+      # Rewrites config/alarm-panel.yaml from the form values. The uploaded
+      # copy is the documented default; this replaces it wholesale rather
+      # than patching, so there is exactly one thing to read on the device
+      # when a timeout behaves unexpectedly.
+      # This runtime has no publish_empty_frames switch and needs none: its
+      # publish call has no empty-frame filter, so frames go out even with
+      # nobody in view and the no-person timeout gets its input.
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_WEBHOOK_URL: "{{webhook_url}}"
+      run: |
+        set -e
+        WORKDIR="$(pwd)/assets/hailo"
+        CONFIG="$WORKDIR/config/alarm-panel.yaml"
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        no_person_sec = int(float("{{no_person_timeout_min}}") * 60)
+        no_motion_sec = int(float("{{no_motion_timeout_min}}") * 60)
+        webhook = os.environ["INPUT_WEBHOOK_URL"].strip()
+
+        lines = [
+            "# Generated by the deploy step. Edit on the device, then run",
+            "# `docker compose restart alarm-panel`.",
+            "zones:",
+            "  - id: {{zone_id}}",
+            "    name: {{zone_id}}",
+            "    rect: [0.0, 0.0, 1.0, 1.0]",
+            '    stream_ids: ["{{stream_id}}"]',
+            f"    no_person_timeout_sec: {no_person_sec}",
+            f"    no_motion_timeout_sec: {no_motion_sec}",
+            "    motion_threshold: 0.02",
+            "    enabled: true",
+            "statemachine:",
+            "  evidence_sec: 5.0",
+            "  confirm_window_sec: 60.0",
+            "  notify_deadline_sec: 5.0",
+            "  retry_interval_sec: 30.0",
+            "  rearm_sec: 120.0",
+            "  confirm_timeout_action: confirmed",
+            "mqtt:",
+            '  host: "127.0.0.1"',
+            "  port: {{broker_port}}",
+            '  username: ""',
+            '  password: ""',
+            "  client_id: alarm-panel",
+            "  keepalive_sec: 30",
+            "  qos: 1",
+            "  tls: false",
+            "  subscriptions:",
+            '    "{{device_name}}/fall-detection/results/+": fall_result_v1',
+            "notifiers:",
+        ]
+        if webhook:
+            lines += [
+                "  - name: ops-webhook",
+                "    type: webhook",
+                "    enabled: true",
+                "    options:",
+                f"      url: {json.dumps(webhook, ensure_ascii=False)}",
+                "      timeout_sec: 5.0",
+            ]
+        else:
+            # No webhook configured: alarms are still recorded and shown on
+            # the panel, they are simply not pushed anywhere.
+            lines += ["  []"]
+        lines += [
+            "store:",
+            "  path: /data/eldercare.sqlite",
+            "  event_retention_days: 90",
+            "  media_retention_days: 7",
+            "  purge_interval_sec: 3600",
+            "  rate_limit: 5",
+            "  rate_limit_window_sec: 600",
+            "web:",
+            "  host: 0.0.0.0",
+            "  port: {{panel_port}}",
+            "  media_dir: /data/media",
+            "  snapshot_enabled: false",
+            "",
+        ]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            handle.write("\n".join(lines))
+        os.replace(tmp, path)
+        print(f"zone          = {{zone_id}}")
+        print(f"no_person_sec = {no_person_sec}")
+        print(f"no_motion_sec = {no_motion_sec}")
+        print(f"webhook       = {'configured' if webhook else 'none'}")
+        PY
+      name_i18n:
+        zh: 写入告警面板配置
+
+  after:
+    - name: Verify the detector is publishing
+      timeout: 180
+      run: |
+        set -e
+        APP=fall_detection_hailo-fall-detection-1
+        BROKER=fall_detection_hailo-mosquitto-1
+        TOPIC="{{device_name}}/fall-detection/results/{{stream_id}}"
+        echo "Waiting for the detector and first MQTT result ..."
+        for i in $(seq 1 30); do
+          # Split the Docker Go-template braces so the solution template
+          # renderer does not treat them as a user-input placeholder.
+          STATUS=$(docker inspect "$APP" --format '{''{.State.Health.Status}}' 2>/dev/null || true)
+          BATCH=$(docker logs "$APP" 2>&1 | grep -E 'HAILO_BATCH .*backend=(legacy|shared)' | tail -1 || true)
+          if [ "$STATUS" = healthy ] && [ -n "$BATCH" ]; then
+            echo "$BATCH"
+            if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -p {{broker_port}} -t "$TOPIC" -C 1 -W 10 >/dev/null; then
+              echo "MQTT result received on $TOPIC"
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        STATUS=$(docker inspect "$APP" --format '{''{.State.Health.Status}}' 2>/dev/null || true)
+        echo "container health=${STATUS:-unknown}"
+        docker logs --tail 40 "$APP" 2>&1 || true
+        echo "No verified MQTT result — check the camera URL and the container logs." >&2
+        exit 1
+      name_i18n:
+        zh: 验证检测器正在发布结果
+
+    - name: Verify the alarm panel is answering
+      # The detector check above already proved the input side — the panel
+      # subscribes to the same broker the detector publishes to. What remains
+      # is that the panel itself came up and serves its API.
+      #
+      # ignore_error: the detector is the deliverable here and it has already
+      # passed its own check by this point. A panel that failed to start must
+      # not turn a working fall-detection deployment into a failed one; it
+      # reports loudly and leaves the rest standing.
+      ignore_error: true
+      timeout: 180
+      run: |
+        set -e
+        for i in $(seq 1 24); do
+          if curl -fsS --max-time 5 "http://127.0.0.1:{{panel_port}}/api/alarms" >/dev/null; then
+            echo "Alarm panel answering on http://127.0.0.1:{{panel_port}}/api/alarms"
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "Alarm panel did not answer on port {{panel_port}}." >&2
+        docker logs --tail 40 fall_detection_hailo-alarm-panel-1 2>&1 || true
+        exit 1
+      name_i18n:
+        zh: 验证告警面板可访问
+
+# The local form. The remote view replaces it with remote_overrides.user_inputs
+# (the same fields plus the SSH connection fields).
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recomputer"
+    required: true
+    description: First segment of the MQTT topic — name this device however you like (product line, room, or site) so several devices stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按你自己的习惯给这台设备取名（产品线、房间或站点都行），多台设备就不会混在一起
+  - id: rtsp_url
+    name: Camera RTSP URL
+    type: text
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+    name_i18n:
+      zh: 摄像头 RTSP 地址
+    description_i18n:
+      zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "cam-01"
+    required: true
+    description: Appended to the MQTT topic so several cameras stay separable
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题后面，用于区分多路摄像头
+  - id: panel_port
+    name: Alarm Panel Port
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: The port the alarm panel page is served on. The stack uses host networking, so change this if 8080 is already taken on the device.
+    name_i18n:
+      zh: 告警面板端口
+    description_i18n:
+      zh: 告警面板页面对外的端口。本套栈使用主机网络，设备上 8080 已被占用就改这里。
+  - id: broker_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: The port the bundled MQTT broker listens on. The stack uses host networking, so change this if 1883 is already taken on the device. The detector and the alarm panel connect to this port, and anything that subscribes to the results must use it too.
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: 内置 MQTT broker 监听的端口。本套栈使用主机网络，设备上 1883 已被占用就改这里。检测器和告警面板都连这个端口，订阅检测结果的其他程序也要用它。
+  - id: zone_id
+    name: Zone Name
+    type: text
+    default: "bedroom"
+    required: true
+    description: The area this camera watches. The deploy creates one zone covering the whole frame; split it into sub-rectangles on the device afterwards if one camera covers two rooms.
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 区域名称
+    description_i18n:
+      zh: 这台摄像头看护的区域。部署会建立一个覆盖整幅画面的区域；若一台摄像头覆盖两个房间，之后在设备上把它拆成多个矩形。
+  - id: no_person_timeout_min
+    name: No-person Timeout (minutes)
+    type: text
+    default: "60"
+    required: true
+    description: How long the zone may stay empty before an alarm is raised. Set it above the longest normal absence — a bathroom zone needs a much shorter value than a bedroom.
+    validation:
+      pattern: "^[0-9]+(\\.[0-9]+)?$"
+    name_i18n:
+      zh: 无人超时（分钟）
+    description_i18n:
+      zh: 区域内允许持续无人多久才告警。要设得高于正常的离开时长——卫生间区域应远短于卧室。
+  - id: no_motion_timeout_min
+    name: No-motion Timeout (minutes)
+    type: text
+    default: "30"
+    required: true
+    description: How long a person may stay in the zone without moving before an alarm is raised. Sleeping hours will trip this unless the zone excludes the bed or the value covers a nap.
+    validation:
+      pattern: "^[0-9]+(\\.[0-9]+)?$"
+    name_i18n:
+      zh: 静止超时（分钟）
+    description_i18n:
+      zh: 区域内有人但持续不动多久才告警。睡眠时段会触发它，除非区域排除床位或阈值覆盖一次午睡。
+  - id: webhook_url
+    name: Webhook URL
+    type: text
+    required: false
+    placeholder: "http://192.168.1.50:9099/alarm"
+    validation:
+      pattern: "^$|^https?://[^\\s\"']+$"
+    description: Where a confirmed alarm is POSTed. The payload carries the alarm id, kind, zone, stream, timestamp and operator — no snapshot and no video. Leave empty to record alarms on the panel only.
+    name_i18n:
+      zh: Webhook 地址
+    description_i18n:
+      zh: 确认后的告警 POST 到哪里。负载只含告警 id、类型、区域、流、时间戳与操作者，不含快照或视频。留空则只在面板里记录。
+
 remote_overrides:
   # Remote view: the panel is reached at the SSH target's address.
   post_deployment:
@@ -147,6 +536,8 @@ remote_overrides:
         run: |
           set -e
           WORKDIR="/home/{{username}}/fall-detection-hailo/hailo_fall"
+          # The bundled broker listens on the port from the form (host networking).
+          sed -i "s/^listener [0-9]* /listener {{broker_port}} /" "$WORKDIR/config/mosquitto.conf"
           # This runtime is configured through the environment rather than a
           # config file, so the values go into the compose .env.
           # Double-quoted with \ " $ escaped: compose reads the value
@@ -155,7 +546,7 @@ remote_overrides:
           cat > "$WORKDIR/.env" <<EOF
           STREAMS="$(dotenv_quote "$INPUT_STREAM_ID|$INPUT_RTSP_URL")"
           MQTT_HOST=127.0.0.1
-          MQTT_PORT=1883
+          MQTT_PORT={{broker_port}}
           MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
           EOF
           echo "wrote $WORKDIR/.env:"
@@ -208,7 +599,7 @@ remote_overrides:
               "  confirm_timeout_action: confirmed",
               "mqtt:",
               '  host: "127.0.0.1"',
-              "  port: 1883",
+              "  port: {{broker_port}}",
               '  username: ""',
               '  password: ""',
               "  client_id: alarm-panel",
@@ -276,7 +667,7 @@ remote_overrides:
             BATCH=$(docker logs "$APP" 2>&1 | grep -E 'HAILO_BATCH .*backend=(legacy|shared)' | tail -1 || true)
             if [ "$STATUS" = healthy ] && [ -n "$BATCH" ]; then
               echo "$BATCH"
-              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null; then
+              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -p {{broker_port}} -t "$TOPIC" -C 1 -W 10 >/dev/null; then
                 echo "MQTT result received on $TOPIC"
                 exit 0
               fi
@@ -379,12 +770,24 @@ remote_overrides:
       default: "8080"
       required: true
       validation:
-        pattern: "^[0-9]{1,5}$"
+        pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
       description: The port the alarm panel page is served on. The stack uses host networking, so change this if 8080 is already taken on the device.
       name_i18n:
         zh: 告警面板端口
       description_i18n:
         zh: 告警面板页面对外的端口。本套栈使用主机网络，设备上 8080 已被占用就改这里。
+    - id: broker_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+      description: The port the bundled MQTT broker listens on. The stack uses host networking, so change this if 1883 is already taken on the device. The detector and the alarm panel connect to this port, and anything that subscribes to the results must use it too.
+      name_i18n:
+        zh: MQTT 端口
+      description_i18n:
+        zh: 内置 MQTT broker 监听的端口。本套栈使用主机网络，设备上 1883 已被占用就改这里。检测器和告警面板都连这个端口，订阅检测结果的其他程序也要用它。
     - id: zone_id
       name: Zone Name
       type: text

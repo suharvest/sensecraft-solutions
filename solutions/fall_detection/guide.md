@@ -114,6 +114,10 @@ The panel goes on a separate box on the camera's network and needs no AI acceler
 
 Deploy to the panel host over SSH.
 
+### Target {#panel_host_recamera_local type=local device_name="Alarm Panel Host" config=devices/panel_host.yaml}
+
+Install the panel on the computer running this app.
+
 ## Step 5: Open the Alarm Panel {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
 Only relevant if you installed the panel in the previous step.
@@ -289,6 +293,10 @@ The panel goes on a separate box on the camera's network and needs no AI acceler
 ### Target {#panel_host_recamera_pro_remote type=remote device_name="Alarm Panel Host" config=devices/panel_host.yaml default=true}
 
 Deploy to the panel host over SSH.
+
+### Target {#panel_host_recamera_pro_local type=local device_name="Alarm Panel Host" config=devices/panel_host.yaml}
+
+Install the panel on the computer running this app.
 
 ## Step 5: Open the Alarm Panel {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
 
