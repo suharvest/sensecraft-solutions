@@ -160,6 +160,8 @@ actions:
       run: |
         set -e
         WORKDIR="$(pwd)/assets/hailo"
+        # The bundled broker listens on the port from the form (host networking).
+        sed -i "s/^listener [0-9]* /listener {{broker_port}} /" "$WORKDIR/config/mosquitto.conf"
         # This runtime is configured through the environment rather than a
         # config file, so the values go into the compose .env.
         # Double-quoted with \ " $ escaped: compose reads the value
@@ -168,7 +170,7 @@ actions:
         cat > "$WORKDIR/.env" <<EOF
         STREAMS="$(dotenv_quote "$INPUT_STREAM_ID|$INPUT_RTSP_URL")"
         MQTT_HOST=127.0.0.1
-        MQTT_PORT=1883
+        MQTT_PORT={{broker_port}}
         MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
         EOF
         echo "wrote $WORKDIR/.env:"
@@ -221,7 +223,7 @@ actions:
             "  confirm_timeout_action: confirmed",
             "mqtt:",
             '  host: "127.0.0.1"',
-            "  port: 1883",
+            "  port: {{broker_port}}",
             '  username: ""',
             '  password: ""',
             "  client_id: alarm-panel",
@@ -289,7 +291,7 @@ actions:
           BATCH=$(docker logs "$APP" 2>&1 | grep -E 'HAILO_BATCH .*backend=(legacy|shared)' | tail -1 || true)
           if [ "$STATUS" = healthy ] && [ -n "$BATCH" ]; then
             echo "$BATCH"
-            if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null; then
+            if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -p {{broker_port}} -t "$TOPIC" -C 1 -W 10 >/dev/null; then
               echo "MQTT result received on $TOPIC"
               exit 0
             fi
@@ -377,6 +379,18 @@ user_inputs:
       zh: 告警面板端口
     description_i18n:
       zh: 告警面板页面对外的端口。本套栈使用主机网络，设备上 8080 已被占用就改这里。
+  - id: broker_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{1,5}$"
+    description: The port the bundled MQTT broker listens on. The stack uses host networking, so change this if 1883 is already taken on the device. The detector and the alarm panel connect to this port, and anything that subscribes to the results must use it too.
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: 内置 MQTT broker 监听的端口。本套栈使用主机网络，设备上 1883 已被占用就改这里。检测器和告警面板都连这个端口，订阅检测结果的其他程序也要用它。
   - id: zone_id
     name: Zone Name
     type: text
@@ -522,6 +536,8 @@ remote_overrides:
         run: |
           set -e
           WORKDIR="/home/{{username}}/fall-detection-hailo/hailo_fall"
+          # The bundled broker listens on the port from the form (host networking).
+          sed -i "s/^listener [0-9]* /listener {{broker_port}} /" "$WORKDIR/config/mosquitto.conf"
           # This runtime is configured through the environment rather than a
           # config file, so the values go into the compose .env.
           # Double-quoted with \ " $ escaped: compose reads the value
@@ -530,7 +546,7 @@ remote_overrides:
           cat > "$WORKDIR/.env" <<EOF
           STREAMS="$(dotenv_quote "$INPUT_STREAM_ID|$INPUT_RTSP_URL")"
           MQTT_HOST=127.0.0.1
-          MQTT_PORT=1883
+          MQTT_PORT={{broker_port}}
           MQTT_TOPIC={{device_name}}/fall-detection/results/{stream_id}
           EOF
           echo "wrote $WORKDIR/.env:"
@@ -583,7 +599,7 @@ remote_overrides:
               "  confirm_timeout_action: confirmed",
               "mqtt:",
               '  host: "127.0.0.1"',
-              "  port: 1883",
+              "  port: {{broker_port}}",
               '  username: ""',
               '  password: ""',
               "  client_id: alarm-panel",
@@ -651,7 +667,7 @@ remote_overrides:
             BATCH=$(docker logs "$APP" 2>&1 | grep -E 'HAILO_BATCH .*backend=(legacy|shared)' | tail -1 || true)
             if [ "$STATUS" = healthy ] && [ -n "$BATCH" ]; then
               echo "$BATCH"
-              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null; then
+              if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -p {{broker_port}} -t "$TOPIC" -C 1 -W 10 >/dev/null; then
                 echo "MQTT result received on $TOPIC"
                 exit 0
               fi
@@ -760,6 +776,18 @@ remote_overrides:
         zh: 告警面板端口
       description_i18n:
         zh: 告警面板页面对外的端口。本套栈使用主机网络，设备上 8080 已被占用就改这里。
+    - id: broker_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      description: The port the bundled MQTT broker listens on. The stack uses host networking, so change this if 1883 is already taken on the device. The detector and the alarm panel connect to this port, and anything that subscribes to the results must use it too.
+      name_i18n:
+        zh: MQTT 端口
+      description_i18n:
+        zh: 内置 MQTT broker 监听的端口。本套栈使用主机网络，设备上 1883 已被占用就改这里。检测器和告警面板都连这个端口，订阅检测结果的其他程序也要用它。
     - id: zone_id
       name: Zone Name
       type: text
