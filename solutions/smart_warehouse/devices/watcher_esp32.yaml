@@ -28,6 +28,9 @@ firmware:
     flash_mode: dio
     flash_freq: 80m
     flash_size: 32MB
+    # Opted in to targeted erasing: no full-chip erase. The merged image is
+    # written from 0x0 and already covers NVS and otadata.
+    erase_regions: []
     partitions:
       - name: merged_firmware
         offset: "0x0"
