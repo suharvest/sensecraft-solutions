@@ -219,6 +219,8 @@ remote_overrides:
           set -e
           WORKDIR="/home/{{username}}/fall-detection-rk3588/rk3588_fall"
           CONFIG="$WORKDIR/config/config.json"
+          # The bundled broker listens on the port from the form (host networking).
+          sed -i "s/^listener [0-9]* /listener {{broker_port}} /" "$WORKDIR/config/mosquitto.conf"
           python3 - "$CONFIG" <<'PY'
           import json, os, sys
 
@@ -227,6 +229,7 @@ remote_overrides:
               config = json.load(handle)
 
           config["model_path"] = "/models/yolo11n_pose_rawhead_fp16.rk3588.rknn"
+          config.setdefault("mqtt", {})["port"] = int("{{broker_port}}")
           # The topic prefix is the device name the user chose, so the same
           # broker can carry several installations without collisions.
           config.setdefault("mqtt", {})["topic"] = \
@@ -298,7 +301,7 @@ remote_overrides:
               "  confirm_timeout_action: confirmed",
               "mqtt:",
               '  host: "127.0.0.1"',
-              "  port: 1883",
+              "  port: {{broker_port}}",
               '  username: ""',
               '  password: ""',
               "  client_id: alarm-panel",
@@ -461,6 +464,18 @@ remote_overrides:
         zh: 告警面板端口
       description_i18n:
         zh: 告警面板页面对外的端口。本套栈使用主机网络，设备上 8080 已被占用就改这里。
+    - id: broker_port
+      name: MQTT Broker Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{1,5}$"
+      description: The port the bundled MQTT broker listens on. The stack uses host networking, so change this if 1883 is already taken on the device. The detector and the alarm panel connect to this port, and anything that subscribes to the results must use it too.
+      name_i18n:
+        zh: MQTT 端口
+      description_i18n:
+        zh: 内置 MQTT broker 监听的端口。本套栈使用主机网络，设备上 1883 已被占用就改这里。检测器和告警面板都连这个端口，订阅检测结果的其他程序也要用它。
     - id: zone_id
       name: Zone Name
       type: text
