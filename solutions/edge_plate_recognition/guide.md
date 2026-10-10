@@ -25,11 +25,11 @@ Install the plate recognition service on the recognition host and connect it to 
 1. The camera's RTSP URL; include the username and password if the camera requires a login.
 2. The camera mounted 3–8 m from the lane, with plates appearing in the lower-middle part of the image.
 3. MQTT broker address: for automatic barrier opening, use the IP of the gate controller (Step 3 installs the message service on it); for logging only, use your own MQTT broker.
-4. Ports 8080 (recognition preview) and 8099 (status check) are not used by another program on the recognition host.
+4. Ports 8080 (recognition preview) and 8099 (status check) are not used by another program on the recognition host. If 8080 is taken, enter a different preview port in the form.
 
 ### Deployment Complete
 
-The last deploy step waits until plate recognition is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/preview` in a browser (127.0.0.1 when deployed on this machine) and you should see the live picture; Step 2 opens it directly.
+The last deploy step waits until plate recognition is ready, so a successful deploy means the service is running. Open `http://<host-ip>:8080/preview` (or the preview port you entered) in a browser (127.0.0.1 when deployed on this machine) and you should see the live picture; Step 2 opens it directly.
 
 ### Target {#jetson_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_plate.yaml default=true}
 
@@ -86,7 +86,7 @@ Deploy from this computer over the network to a reComputer RK3588 Series; needs 
 | Issue | Solution |
 |-------|----------|
 | The first deploy step reports missing components | Use the reComputer factory OS; on a self-installed OS, install the rknpu2 runtime, Rockchip MPP / RGA, `gstreamer1.0-plugins-bad` and `gstreamer1.0-rockchip` first |
-| Service does not start, port 8080 or 8099 in use | Stop the program using those ports and deploy again |
+| Service does not start, port 8080 or 8099 in use | Enter a free preview port in the form, or stop the program using those ports, and deploy again |
 | No video from the camera | Open the RTSP URL in VLC first; a wrong path or wrong credentials is the most common cause |
 | Model download fails | Make sure the device can reach the internet, then deploy again |
 
@@ -105,7 +105,7 @@ Deploy directly on this reComputer RK3588 Series; needs at least 6 GB of free di
 | Issue | Solution |
 |-------|----------|
 | The first deploy step reports missing components | Use the reComputer factory OS, or install the packages listed in the message first |
-| Service does not start, port 8080 or 8099 in use | Stop the program using those ports and deploy again |
+| Service does not start, port 8080 or 8099 in use | Enter a free preview port in the form, or stop the program using those ports, and deploy again |
 | No video from the camera | Open the RTSP URL in VLC and check the path and credentials |
 
 ### Target {#rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/rk3576_plate.yaml}
@@ -124,7 +124,7 @@ Deploy from this computer over the network to a reComputer RK3576 Series; needs 
 | Issue | Solution |
 |-------|----------|
 | The first deploy step reports missing components | Use the reComputer factory OS; on a self-installed OS, install the rknpu2 runtime, Rockchip MPP / RGA, `gstreamer1.0-plugins-bad` and `gstreamer1.0-rockchip` first |
-| Service does not start, port 8080 or 8099 in use | Stop the program using those ports and deploy again |
+| Service does not start, port 8080 or 8099 in use | Enter a free preview port in the form, or stop the program using those ports, and deploy again |
 | No video from the camera | Open the RTSP URL in VLC first; a wrong path or wrong credentials is the most common cause |
 | Model download fails | Make sure the device can reach the internet, then deploy again |
 
@@ -143,7 +143,7 @@ Deploy directly on this reComputer RK3576 Series; needs at least 6 GB of free di
 | Issue | Solution |
 |-------|----------|
 | The first deploy step reports missing components | Use the reComputer factory OS, or install the packages listed in the message first |
-| Service does not start, port 8080 or 8099 in use | Stop the program using those ports and deploy again |
+| Service does not start, port 8080 or 8099 in use | Enter a free preview port in the form, or stop the program using those ports, and deploy again |
 | No video from the camera | Open the RTSP URL in VLC and check the path and credentials |
 
 ---

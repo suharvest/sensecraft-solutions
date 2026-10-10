@@ -257,7 +257,7 @@ actions:
         fi
         ls -l "$MODELS_DIR"
     - name: Write the plate recognition config
-      # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口。
+      # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口、预览端口。
       env:
         SITE_ID: '{{site_id}}'
         CAMERA_ID: '{{camera_id}}'
@@ -266,6 +266,7 @@ actions:
         MQTT_PORT: '{{mqtt_port}}'
         MQTT_USERNAME: '{{mqtt_username}}'
         MQTT_PASSWORD: '{{mqtt_password}}'
+        HTTP_PORT: '{{http_port}}'
         HEALTH_PORT: '{{health_port}}'
       run: |
         set -e
@@ -296,6 +297,10 @@ actions:
         config["device_id"] = device_id
         config["state_dir"] = "/data/edge-parking"
         app["site_id"] = site_id
+        http_port = int(os.environ.get("HTTP_PORT") or "8080")
+        if http_port == health_port:
+            raise SystemExit(f"Port {http_port} is used by the status check; pick another preview port")
+        app.setdefault("http", {})["port"] = http_port
         config.setdefault("health", {})["port"] = health_port
         mqtt = config.setdefault("mqtt", {})
         mqtt["host"] = os.environ["MQTT_HOST"]
@@ -400,6 +405,16 @@ user_inputs:
     required: false
     name_i18n:
       zh: MQTT 密码
+  - id: http_port
+    name: Preview port
+    name_i18n: {zh: 预览页端口}
+    type: text
+    default: "8080"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: Port of the live preview page. Change it only if another program on this host already uses 8080.
+    description_i18n: {zh: 实时预览页使用的端口。只有这台主机上已有其他程序占用 8080 时才需要修改。}
 
   - id: health_port
     name: Status port
@@ -591,7 +606,7 @@ remote_overrides:
           fi
           ls -l "$MODELS_DIR"
       - name: Write the plate recognition config
-        # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口。
+        # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口、预览端口。
         env:
           SITE_ID: '{{site_id}}'
           CAMERA_ID: '{{camera_id}}'
@@ -600,6 +615,7 @@ remote_overrides:
           MQTT_PORT: '{{mqtt_port}}'
           MQTT_USERNAME: '{{mqtt_username}}'
           MQTT_PASSWORD: '{{mqtt_password}}'
+          HTTP_PORT: '{{http_port}}'
           HEALTH_PORT: '{{health_port}}'
         run: |
           set -e
@@ -635,6 +651,10 @@ remote_overrides:
           config["device_id"] = device_id
           config["state_dir"] = "/data/edge-parking"
           app["site_id"] = site_id
+          http_port = int(os.environ.get("HTTP_PORT") or "8080")
+          if http_port == health_port:
+              raise SystemExit(f"Port {http_port} is used by the status check; pick another preview port")
+          app.setdefault("http", {})["port"] = http_port
           config.setdefault("health", {})["port"] = health_port
           mqtt = config.setdefault("mqtt", {})
           mqtt["host"] = os.environ["MQTT_HOST"]
@@ -758,6 +778,16 @@ remote_overrides:
       required: false
       name_i18n:
         zh: MQTT 密码
+    - id: http_port
+      name: Preview port
+      name_i18n: {zh: 预览页端口}
+      type: text
+      default: "8080"
+      required: true
+      validation:
+        pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+      description: Port of the live preview page. Change it only if another program on this host already uses 8080.
+      description_i18n: {zh: 实时预览页使用的端口。只有这台主机上已有其他程序占用 8080 时才需要修改。}
 
     - id: host
       name: Jetson IP
