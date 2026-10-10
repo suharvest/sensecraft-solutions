@@ -24,9 +24,12 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_CONFIG: "~/edge-parking-occupancy-rk3588/config.json"
-    PARKING_MODELS_DIR: "~/edge-parking-occupancy-rk3588/models"
-    PARKING_DATA_DIR: "~/edge-parking-occupancy-rk3588/data"
+    # Local deploy: relative to the compose directory (assets/ in the deployment
+    # workspace); remote: remote_overrides.environment.
+    PARKING_CONFIG: "./config.json"
+    PARKING_MODELS_DIR: "./models"
+    PARKING_DATA_DIR: "./data"
+    PARKING_HEALTH_PORT: "{{health_port}}"
     PARKING_DRI_DEVICE: "/dev/dri"
     PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
     PARKING_MPP_LIB: "{{mpp_lib}}"
@@ -60,7 +63,7 @@ actions:
         PARKING_RKNNRT_LIB: "{{rknn_lib}}"
         PARKING_HOST_LIB_DIR: "{{gst_lib_dir}}"
       run: |
-        set -u
+        set -eu
         missing=0
         check() {
           # $1 = label, $2 = path, $3 = file name pattern to look for elsewhere
@@ -90,9 +93,11 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
-        # ~/edge-parking-occupancy-rk3588/... (the remote copy is in remote_overrides.actions).
-        ROOT="$HOME/edge-parking-occupancy-rk3588"
+        # Local deploy: models/, config.json and data/ go next to the compose file
+        # in assets/ of the deployment workspace, where PARKING_MODELS_DIR /
+        # PARKING_CONFIG / PARKING_DATA_DIR point (the remote copy is in
+        # remote_overrides.actions).
+        ROOT="assets"
         MODELS_DIR="$ROOT/models"
         BUNDLE="slots_vehicle640_rk3588-d1c7059860ef.tar.gz"
         BUNDLE_SHA="d1c7059860efccd73d2d2f4b48a03161b9739bddfe439874fa29520dbec9862c"
@@ -125,15 +130,19 @@ actions:
         MQTT_USERNAME: "{{mqtt_username}}"
         MQTT_PASSWORD: "{{mqtt_password}}"
         EDITOR_PORT: "{{editor_port}}"
+        HEALTH_PORT: "{{health_port}}"
         STREAM_CODEC: "h264"
       run: |
         set -eu
         # Renders config/slots-rk3588.json (vb.config/1 preset) with the form
         # values into $ROOT/config.json, the path PARKING_CONFIG points at.
-        # cwd is the solution directory, so the preset is in assets/.
-        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
-        # ~/edge-parking-occupancy-rk3588/... (the remote copy is in remote_overrides.actions).
-        ROOT="$HOME/edge-parking-occupancy-rk3588"
+        # cwd is the deployment workspace (a mirror of the solution directory),
+        # so the preset is in assets/.
+        # Local deploy: models/, config.json and data/ go next to the compose file
+        # in assets/ of the deployment workspace, where PARKING_MODELS_DIR /
+        # PARKING_CONFIG / PARKING_DATA_DIR point (the remote copy is in
+        # remote_overrides.actions).
+        ROOT="assets"
         SRC="$PWD/assets"
         if [ ! -f "$SRC/config/slots-rk3588.json" ] || [ ! -f "$SRC/render_config.py" ]; then
           echo "config/slots-rk3588.json or render_config.py not found in $SRC" >&2
@@ -148,7 +157,7 @@ actions:
       timeout: 130
       ignore_error: false
       env:
-        PARKING_HEALTH_PORT: "8099"
+        PARKING_HEALTH_PORT: "{{health_port}}"
         PARKING_HEALTH_DEADLINE_SECONDS: "120"
       run: |
         set -e
@@ -271,7 +280,7 @@ user_inputs:
     default: "1883"
     required: true
     validation:
-      pattern: "^[0-9]{1,5}$"
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
   - id: mqtt_username
     name: MQTT username
     name_i18n: {zh: MQTT 用户名}
@@ -291,9 +300,19 @@ user_inputs:
     default: "8080"
     required: true
     validation:
-      pattern: "^[0-9]{1,5}$"
-    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
-    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Use a different port from the status port.
+    description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要和状态检查端口相同。}
+  - id: health_port
+    name: Status port
+    name_i18n: {zh: 状态检查端口}
+    type: text
+    default: "8099"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: Port for the service status check. Change it only if another program on this box already uses 8099.
+    description_i18n: {zh: 服务状态检查使用的端口。只有这台主机上已有其他程序占用 8099 时才需要修改。}
   - id: rknn_lib
     name: RKNN runtime library
     name_i18n: {zh: RKNN 运行库}
@@ -413,6 +432,7 @@ remote_overrides:
           MQTT_USERNAME: "{{mqtt_username}}"
           MQTT_PASSWORD: "{{mqtt_password}}"
           EDITOR_PORT: "{{editor_port}}"
+          HEALTH_PORT: "{{health_port}}"
           STREAM_CODEC: "h264"
         run: |
           set -eu
@@ -439,7 +459,7 @@ remote_overrides:
         timeout: 130
         ignore_error: false
         env:
-          PARKING_HEALTH_PORT: "8099"
+          PARKING_HEALTH_PORT: "{{health_port}}"
           PARKING_HEALTH_DEADLINE_SECONDS: "120"
         run: |
           set -e
