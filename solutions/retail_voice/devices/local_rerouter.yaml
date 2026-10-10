@@ -72,18 +72,6 @@ pre_checks:
   - type: docker_compose_version
     min_version: "2.0"
     description: Check Docker Compose version
-  - type: audio_device
-    device_path: /dev/snd
-    description: Check that an ALSA capture device is present
-    description_i18n:
-      zh: 检查 ALSA 采集设备是否存在
-  - type: port_available
-    ports:
-      - 8621
-      - 8090
-    description: Check that the speech and client ports are free
-    description_i18n:
-      zh: 检查语音服务与客户端端口是否空闲
   - type: disk_space
     min_gb: 4
     description: At least 4GB for the image, models and transcripts
@@ -122,7 +110,7 @@ user_inputs:
     type: text
     required: true
     validation:
-      pattern: "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+      pattern: "^https?://[A-Za-z0-9.-]+(:([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?/?$"
   - id: RETAIL_BACKEND_API_KEY
     name: Retail backend API key
     name_i18n: {zh: 零售后台 API 密钥}
@@ -130,6 +118,158 @@ user_inputs:
     required: true
     validation:
       pattern: "^[A-Fa-f0-9]{64}$"
+
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
+actions:
+  before:
+    - name: Check that an ALSA capture device is present
+      # The remote form lists this as an `audio_device` pre-check. The app's
+      # local pre-check runner has no such check type and fails the deploy on
+      # it ("Unknown check type"), so the local view checks here instead.
+      run: |
+        set -e
+        if ! ls /dev/snd/pcmC*c >/dev/null 2>&1; then
+          echo "No ALSA capture device under /dev/snd. Connect the reSpeaker XVF3800 and deploy again." >&2
+          exit 1
+        fi
+        ls /dev/snd/pcmC*c
+      name_i18n:
+        zh: 检查 ALSA 采集设备是否存在
+
+    - name: Check that the speech and client ports are free
+      # The remote form lists this as a `port_available` pre-check. Run
+      # locally, that check also fails every redeploy, because 8621 and 8090
+      # are then held by this stack's own containers (host networking). A
+      # port held by this solution's own speech or client container is not a
+      # conflict: the deploy recreates those containers in place. Anything
+      # else listening on it still stops the deploy. The Go template braces
+      # are split ('{''{') so the engine's {{var}} substitution leaves them.
+      run: |
+        set -e
+        for pair in 8621:openvoicestream 8090:sensecraft-voice-client; do
+          port=${pair%%:*}
+          name=${pair#*:}
+          owner=$(docker inspect -f '{''{index .Config.Labels "sensecraft.solution_id"}''}' "$name" 2>/dev/null || true)
+          running=$(docker inspect -f '{''{.State.Running}''}' "$name" 2>/dev/null || true)
+          if [ "$owner" = "retail_voice" ] && [ "$running" = "true" ]; then
+            echo "Port $port is held by this stack's previous deployment ($name)"
+            continue
+          fi
+          if python3 -c "import socket, sys; s = socket.socket(); s.settimeout(1); sys.exit(0 if s.connect_ex(('127.0.0.1', int(sys.argv[1]))) == 0 else 1)" "$port"; then
+            echo "Port $port is already in use on this device. Stop the program using it, then deploy again." >&2
+            command -v ss >/dev/null 2>&1 && ss -ltnp "sport = :$port" >&2 || true
+            exit 1
+          fi
+          echo "Port $port is free"
+        done
+      name_i18n:
+        zh: 检查语音服务与客户端端口是否空闲
+
+    - name: Create the output directory
+      run: mkdir -p "/data-iot/retail-voice/cache/asr" "/data-iot/retail-voice/voice" "/data-iot/retail-voice/voiceprints"
+      name_i18n:
+        zh: "\u521B\u5EFA\u8F93\u51FA\u76EE\u5F55"
+
+    - name: Confirm the microphone array enumerated
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - check the port before verifying"
+        arecord -l 2>/dev/null || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u786E\u8BA4\u9EA6\u514B\u98CE\u9635\u5217\u5DF2\u679A\u4E3E"
+
+    - name: Open the ALSA device nodes to the container
+      run: chmod -R 666 /dev/snd/* || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u653E\u5F00 ALSA \u8BBE\u5907\u8282\u70B9\u6743\u9650"
+
+  after_upload:
+    - name: Configure client transcription upload
+      # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
+      # in the deployment workspace. That copy keeps the values from the last
+      # deploy (the workspace sync does not overwrite a file the deploy has
+      # changed), so each field is set by its key rather than by its
+      # __PLACEHOLDER__ marker; a redeploy with new form values replaces the
+      # old ones. Same validation as the remote view.
+      env:
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        python3 - assets/docker/config/voice-client.yaml <<'PY'
+        import json, os, re, sys, tempfile
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        m = re.fullmatch(r'https?://[A-Za-z0-9.-]+(?::([0-9]{1,5}))?/?', url)
+        if not m:
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if m.group(1) is not None and not 1 <= int(m.group(1)) <= 65535:
+            raise SystemExit('The backend URL port must be between 1 and 65535.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path(sys.argv[1])
+        text = p.read_text()
+        fields = [
+            (r'^(  default_language: ).*$', json.dumps(language)),
+            (r'^(    card_id: ).*$', json.dumps(card)),
+            (r'^(  speaker:\n    enabled: ).*$', 'true' if speaker == '1' else 'false'),
+            (r'^(  base_url: ).*$', json.dumps(url.rstrip('/'))),
+            (r'^(      X-API-Token: ).*$', json.dumps(key)),
+        ]
+        for pattern, value in fields:
+            text, count = re.subn(pattern, lambda m: m.group(1) + value, text, flags=re.M)
+            if count != 1:
+                raise SystemExit('Client configuration layout not recognised: %r matched %d times.' % (pattern, count))
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        fd, tmp = tempfile.mkstemp(prefix='.voice-client.', dir=str(p.parent))
+        try:
+            with os.fdopen(fd, 'w') as handle:
+                handle.write(text)
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, p)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        print('Client text upload configured.')
+        PY
+      name_i18n:
+        zh: 配置客户端转写上传
+
+  after:
+    - name: Wait for the first transcript
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        for i in $(seq 1 12); do
+          if ls "/data-iot/retail-voice"/cache/asr/*.json >/dev/null 2>&1; then
+            echo "transcripts are being written"; exit 0
+          fi
+          sleep 5
+        done
+        echo "no transcript yet - speak near the array and re-check, see the verification step"
+      ignore_error: true
+      name_i18n:
+        zh: "\u7B49\u5F85\u7B2C\u4E00\u6761\u8F6C\u5199\u7ED3\u679C"
 
 remote_overrides:
   # Remote view: the dashboard is reached at the SSH target's address.
@@ -207,8 +347,11 @@ remote_overrides:
         language = os.environ['LANGUAGE']
         card = os.environ['AUDIO_CARD_ID']
         speaker = os.environ['RETAIL_SPEAKER']
-        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+        m = re.fullmatch(r'https?://[A-Za-z0-9.-]+(?::([0-9]{1,5}))?/?', url)
+        if not m:
             raise SystemExit('Enter a backend origin URL without a path.')
+        if m.group(1) is not None and not 1 <= int(m.group(1)) <= 65535:
+            raise SystemExit('The backend URL port must be between 1 and 65535.')
         if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
             raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
         if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
@@ -242,6 +385,43 @@ remote_overrides:
     - {id: host, name: Device IP, type: text, required: true, default: "192.168.49.1", placeholder: "192.168.49.1", name_i18n: {zh: 设备 IP}, description: "Default OpenWrt LAN gateway of the reRouter", description_i18n: {zh: reRouter 默认的 OpenWrt LAN 网关地址}}
     - {id: username, name: SSH Username, type: text, required: true, default: "root", name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: false, placeholder: "(empty on a stock OpenWrt image)", name_i18n: {zh: SSH 密码}, description_i18n: {zh: 出厂 OpenWrt 镜像默认为空}}
+    - id: LANGUAGE
+      name: Recognition language
+      name_i18n: {zh: 识别语种}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: Primary language of the transcript. The CPU profile covers Chinese and English; pick the one spoken most in the store.
+      description_i18n: {zh: 转写的主要语种。CPU profile 覆盖中文和英文，选门店里说得最多的那个。}
+      options:
+        - {value: "zh", label: "Chinese", label_i18n: {zh: 中文}}
+        - {value: "en", label: "English", label_i18n: {zh: 英文}}
+    - id: AUDIO_CARD_ID
+      name: Microphone card ID
+      name_i18n: {zh: 麦克风声卡编号}
+      type: text
+      default: "1"
+      required: true
+      description: ALSA card number of the reSpeaker XVF3800. Run `arecord -l` on the device; the array shows as ArrayUAC10.
+      description_i18n: {zh: reSpeaker XVF3800 的 ALSA 声卡编号。在设备上运行 `arecord -l`，阵列显示为 ArrayUAC10。}
+      validation:
+        pattern: "^[0-9]+$"
+        message: Card ID is a number
+    - id: RETAIL_BACKEND_URL
+      name: Retail backend URL
+      name_i18n: {zh: 零售后台地址}
+      type: text
+      required: true
+      validation:
+        pattern: "^https?://[A-Za-z0-9.-]+(:([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?/?$"
+    - id: RETAIL_BACKEND_API_KEY
+      name: Retail backend API key
+      name_i18n: {zh: 零售后台 API 密钥}
+      type: password
+      required: true
+      validation:
+        pattern: "^[A-Fa-f0-9]{64}$"
 
 # Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:

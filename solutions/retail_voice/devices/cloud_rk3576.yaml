@@ -47,6 +47,111 @@ pre_checks:
   - type: disk_space
     min_gb: 20
     description: At least 20GB of free space
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
+actions:
+  before:
+    - name: Fix iptables for Docker on RK3576
+      # The rk3576 device profile applies this over SSH (remote view only). In
+      # the local view the app already talks to this Docker daemon, and on
+      # kernels without nf_tables support Docker does not start at all, so a
+      # running daemon means there is nothing to fix. Otherwise the switch is
+      # applied only where sudo needs no password; without it the step stops
+      # with the commands to run.
+      run: |
+        set -e
+        if docker info >/dev/null 2>&1; then
+          echo "Docker is running; iptables backend left as is"
+          exit 0
+        fi
+        IPT=$(command -v iptables || echo /usr/sbin/iptables)
+        if ! "$IPT" --version 2>&1 | grep -q nf_tables; then
+          echo "iptables already in legacy mode; Docker is not reachable by user $(id -un)." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if ! sudo -n true 2>/dev/null; then
+          echo "Docker is not running and iptables uses nf_tables, which this kernel may not support. Run:" >&2
+          echo "  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy" >&2
+          echo "  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy" >&2
+          echo "  sudo systemctl restart docker" >&2
+          exit 1
+        fi
+        sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+        sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+        sudo systemctl restart docker 2>/dev/null || true
+        echo "Switched to iptables-legacy"
+      name_i18n:
+        zh: 修复 RK3576 上 Docker 的 iptables 兼容性
+
+  after_upload:
+    - name: Prepare the platform
+      name_i18n:
+        zh: "\u51C6\u5907\u90E8\u7F72\u914D\u7F6E"
+      env:
+        PLATFORM_PROFILE: '{"OVS_PROFILE": "rk3576-sensevoice", "OVS_PROFILE_DEFAULT": "rk3576-sensevoice", "ASR_BACKEND": "sensevoice_rknn", "ASR_PLATFORM": "rk3576", "RK_PLATFORM": "rk3576"}'
+      run: |
+        set -eu
+        # The compose directory of the deployment workspace.
+        export PLATFORM_DEPLOY_DIR="$(pwd)/assets/docker"
+        python3 - <<'PYINIT'
+        from pathlib import Path
+        import json, os, secrets, tempfile
+        root = Path(os.environ['PLATFORM_DEPLOY_DIR'])
+        cfg = root / 'config/voice-service.yaml'
+        if not cfg.is_file():
+            raise SystemExit('Platform files are missing from the deployment workspace. Deploy again.')
+        p = root / '.env'
+        text = p.read_text() if p.exists() else ''
+        values = dict(line.split('=', 1) for line in text.splitlines() if '=' in line and not line.lstrip().startswith('#'))
+        def ensure(k, v):
+            if k not in values:
+                values[k] = v
+        for k in ('MYSQL_ROOT_PASSWORD','MINIO_ROOT_PASSWORD','JWT_SECRET','OPERATOR_TOKEN','ADMIN_TOKEN','OVS_API_KEYS'):
+            ensure(k, secrets.token_hex(32))
+            if not values[k]:
+                raise SystemExit('An existing platform credential is empty. Restore it before retrying.')
+        for k,v in {'TZ':'Asia/Shanghai','MYSQL_DATABASE':'voice','MINIO_ROOT_USER':'voiceadmin','VOICE_SERVICE_PORT':'8081','VOICE_WEB_PORT':'3000','CAPTURE_GATEWAY_PORT':'18621','OVS_API_MAX_AUDIO_BYTES':'67108864','CAPTURE_OVS_MODEL':'sensevoice','OVS_ASR_MODEL_ID':'sensevoice'}.items():
+            ensure(k,v)
+        ensure('VOICE_API_TOKENS','edge-client:operator:'+values['OPERATOR_TOKEN']+',ops:admin:'+values['ADMIN_TOKEN'])
+        ensure('ASR_API_TOKENS','edge-client:operator:'+values['OPERATOR_TOKEN']+',voice-service:admin:'+values['ADMIN_TOKEN'])
+        for k,v in json.loads(os.environ['PLATFORM_PROFILE']).items():
+            ensure(k,v)
+        values['VOICE_CONFIG_GID'] = str(os.getgid())
+        values['CAPTURE_OVS_BASE_URL']='http://host.docker.internal:8621'
+        values['CAPTURE_OVS_API_KEY']=values['OVS_API_KEYS'].split(',')[0].strip()
+        config = cfg.read_text()
+        for marker,key in {'CHANGE_ME_JWT_KEY':'JWT_SECRET','CHANGE_ME_MYSQL_PASSWORD':'MYSQL_ROOT_PASSWORD','CHANGE_ME_MINIO_USER':'MINIO_ROOT_USER','CHANGE_ME_MINIO_PASSWORD':'MINIO_ROOT_PASSWORD'}.items():
+            config=config.replace(marker,json.dumps(values[key]))
+        if any('CHANGE_ME_' in line for line in config.splitlines() if not line.lstrip().startswith('#')):
+            raise SystemExit('Platform configuration still contains placeholders.')
+        # Keep comments, unrelated settings and existing credentials across deployments.
+        lines=[]
+        seen=set()
+        for line in text.splitlines():
+            key=line.split('=',1)[0]
+            if '=' in line and key in values and not line.lstrip().startswith('#'):
+                if key not in seen: lines.append(key+'='+values[key]); seen.add(key)
+            else: lines.append(line)
+        lines.extend(k+'='+v for k,v in values.items() if k not in seen)
+        def write_private(path,content,mode):
+            fd,tmp=tempfile.mkstemp(prefix='.'+path.name+'.',dir=path.parent)
+            try:
+                with os.fdopen(fd,'w') as f: f.write(content)
+                os.replace(tmp,path)
+                os.chmod(path,mode)
+            finally:
+                if os.path.exists(tmp): os.unlink(tmp)
+        write_private(p,'\n'.join(lines)+'\n',0o600)
+        write_private(cfg,config,0o640)
+        print('Platform configuration ready.')
+        PYINIT
+
 remote_overrides:
   remote_path: /home/{{username}}/retail_voice_rk3576
   compose_dir: assets/docker
