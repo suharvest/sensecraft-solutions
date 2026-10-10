@@ -38,6 +38,10 @@
 
 ### 部署目标 {#jetson_hub_host type=remote device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml default=true}
 
+### 部署目标 {#jetson_hub_host_local type=local device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml}
+
+如果你就在 reComputer J30 / J40 上操作，直接在本机运行。
+
 ## 步骤 2: 打开告警工作台 {#dashboard_edge_security_jetson_hub type=web_dashboard required=true config=devices/jetson_hub_dashboard.yaml}
 
 登录、画一条边界，走过去看第一条告警。
@@ -134,6 +138,10 @@ broker、hub 和检测器已在这台机器上运行。
 
 ### 部署目标 {#rk3588_board type=remote device_name="RK3588" config=devices/rk3588_detector.yaml default=true}
 
+### 部署目标 {#rk3588_board_local type=local device_name="RK3588" config=devices/rk3588_detector.yaml}
+
+如果你就在 RK3588 板卡上操作，直接在本机运行。
+
 ## 步骤 2: 打开告警工作台 {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
 
 打开工作台，确认解码方式为硬解。
@@ -204,6 +212,10 @@ broker、hub 和检测器已在这台机器上运行。
 | 8090 无响应 | 执行 `docker compose logs hub`，通常是端口被占用。 |
 
 ### 部署目标 {#hailo_board type=remote device_name="Hailo 板卡" config=devices/hailo_detector.yaml default=true}
+
+### 部署目标 {#hailo_board_local type=local device_name="Hailo 板卡" config=devices/hailo_detector.yaml}
+
+如果你就在 Hailo 板卡上操作，直接在本机运行。
 
 ## 步骤 2: 打开告警工作台 {#dashboard_edge_security_hailo type=web_dashboard required=true config=devices/hailo_dashboard.yaml}
 

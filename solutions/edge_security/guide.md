@@ -38,6 +38,10 @@ Enter the machine's address and the camera's RTSP URL; the engine is built and t
 
 ### Target {#jetson_hub_host type=remote device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml default=true}
 
+### Target {#jetson_hub_host_local type=local device_name="reComputer J30 / J40" config=devices/jetson_hub_stack.yaml}
+
+Run this directly on the reComputer J30 / J40 if you are working on the device itself.
+
 ## Step 2: Open the Alert Workbench {#dashboard_edge_security_jetson_hub type=web_dashboard required=true config=devices/jetson_hub_dashboard.yaml}
 
 Log in, draw one boundary, and walk across it to see the first alert.
@@ -134,6 +138,10 @@ Enter the board address and your camera URL; three containers are started on the
 
 ### Target {#rk3588_board type=remote device_name="RK3588" config=devices/rk3588_detector.yaml default=true}
 
+### Target {#rk3588_board_local type=local device_name="RK3588" config=devices/rk3588_detector.yaml}
+
+Run this directly on the RK3588 board if you are working on the device itself.
+
 ## Step 2: Open the Alert Workbench {#dashboard_edge_security_rk3588 type=web_dashboard required=true config=devices/rk3588_dashboard.yaml}
 
 Open the workbench and confirm hardware decode.
@@ -204,6 +212,10 @@ Enter the board address and your camera URL; three containers are started on the
 | Hub does not answer on 8090 | `docker compose logs hub`. A port already in use is the usual cause. |
 
 ### Target {#hailo_board type=remote device_name="Hailo Board" config=devices/hailo_detector.yaml default=true}
+
+### Target {#hailo_board_local type=local device_name="Hailo Board" config=devices/hailo_detector.yaml}
+
+Run this directly on the Hailo board if you are working on the device itself.
 
 ## Step 2: Open the Alert Workbench {#dashboard_edge_security_hailo type=web_dashboard required=true config=devices/hailo_dashboard.yaml}
 

@@ -534,6 +534,25 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 |---|---|
 | 提示 `gpio N is ALREADY EXPORTED` | 该输出被其他程序占用，换一路 DO 或停掉那个程序。 |
 
+### 部署目标 {#p2_j20_local type=local device=recomputer_j20 device_name="reComputer J20" config=devices/p2_j20.yaml}
+
+继电器接 J20 的 DO 输出。**GPIO 接口选 sysfs**，填写 DO 的 sysfs 编号。
+
+### 接线
+
+![AI 主机继电器接线](gallery/wiring-host-relay.svg)
+
+1. 用万用表确认哪个 sysfs 编号对应哪个 DO 端子（DO1–DO4 预期为 463/464/465/462）以及 DO 的输出类型。
+2. DO 端子 → 继电器 SIG，继电器 VCC、GND 接电源。
+3. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+4. 在表单中设置 GPIO 接口 `sysfs`、DO 的 sysfs GPIO 编号、有效电平、继电器触点、失效模式。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 提示 `gpio N is ALREADY EXPORTED` | 该输出被其他程序占用，换一路 DO 或停掉那个程序。 |
+
 ### 部署目标 {#p2_jetson type=remote device=recomputer_j40 device_name="reComputer J30 / J40" config=devices/p2_j20.yaml}
 
 继电器接 40-pin 排针。**GPIO 接口选 libgpiod**，**GPIO 控制器填 gpiochip0**，线号按下表填写：
@@ -575,7 +594,76 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 |---|---|
 | 提示 `/dev/gpiochip0 does not exist on this box` | 执行 `gpioinfo`，填写它列出的控制器名。 |
 
+### 部署目标 {#p2_jetson_local type=local device=recomputer_j40 device_name="reComputer J30 / J40" config=devices/p2_j20.yaml}
+
+继电器接 40-pin 排针。**GPIO 接口选 libgpiod**，**GPIO 控制器填 gpiochip0**，线号按下表填写：
+
+| 排针 pin | 名称 | `gpiochip0` line |
+|---|---|---|
+| 7  | GPIO09    | 144 |
+| 11 | UART1_RTS | 112 |
+| 12 | I2S0_SCLK | 50  |
+| 13 | SPI1_SCK  | 122 |
+| 15 | GPIO12    | 85  |
+| 16 | SPI1_CS1  | 126 |
+| 18 | SPI1_CS0  | 125 |
+| 22 | SPI1_MISO | 123 |
+| 29 | GPIO01    | 105 |
+| 31 | GPIO11    | 106 |
+| 32 | GPIO07    | 41  |
+| 33 | GPIO13    | 43  |
+| 35 | I2S0_FS   | 53  |
+| 36 | UART1_CTS | 113 |
+| 37 | SPI1_MOSI | 124 |
+| 38 | I2S0_SDIN | 52  |
+| 40 | I2S0_SDOUT| 51  |
+
+pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
+
+### 接线
+
+![AI 主机继电器接线](gallery/wiring-host-relay.svg)
+
+1. 在主机上执行 `gpioinfo`，从表中选一条未标 `[used]` 的线。
+2. pin 31（line 106）→ 继电器 SIG，pin 1（3V3）→ VCC，pin 6（GND）→ GND。想先测试可改接 LED 加限流电阻到 pin 31 与 GND。
+3. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+4. 在表单中设置 GPIO 接口 `libgpiod`、GPIO 控制器 `gpiochip0`、GPIO 线号 `106`、有效电平、继电器触点、失效模式。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 提示 `/dev/gpiochip0 does not exist on this box` | 执行 `gpioinfo`，填写它列出的控制器名。 |
+
 ### 部署目标 {#p3_mqtt_relay type=remote device=mqtt_relay device_name="MQTT 继电器" config=devices/p3_mqtt_relay.yaml}
+
+主机不在门边、或一台主机管多道门时选这个。开门指令经 MQTT 发到继电器节点，broker 不可用期间门打不开。
+
+### 前置条件
+
+- 主机能访问 MQTT broker（步骤 1 的服务器，1883 端口）。
+- 继电器节点已运行并连上 broker，继电器 ID 在整个站点内唯一。
+
+### 接线
+
+![XIAO ESP32-S3 继电器接线](gallery/wiring-xiao-relay.svg)
+
+1. XIAO ESP32-S3：继电器固件使用的 GPIO → 继电器 SIG，3V3 → VCC，GND → GND；接线前用万用表确认 GPIO。
+2. reComputer R1000：继电器接到表单中 Modbus 点位 ID 对应的输出。
+3. 继电器 COM、NO 接门禁控制器的开门输入（断电开门的电磁锁接 COM、NC）。
+4. 在表单中设置继电器后端、继电器 ID、继电器触点、失效模式。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 提示 `Cannot reach the MQTT broker` | 检查主机能访问服务器 1883 端口。 |
+| 提示 `No retained state from relay` | 继电器节点还没连上 broker，检查它的网络和继电器 ID。 |
+| 开门被接受但继电器不响 | 订阅 `access/v1/relay/<id>/state`，查看 `result`（`duplicate`、`expired` 或 `rejected`）。 |
+| 断电恢复后门自己开了 | 有程序以 retained 方式发布 `access/v1/relay/<id>/set`，关闭 retain。 |
+| 脉宽被拒 | 使用 500–5000 ms。 |
+
+### 部署目标 {#p3_mqtt_relay_local type=local device=mqtt_relay device_name="MQTT 继电器" config=devices/p3_mqtt_relay.yaml}
 
 主机不在门边、或一台主机管多道门时选这个。开门指令经 MQTT 发到继电器节点，broker 不可用期间门打不开。
 

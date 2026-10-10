@@ -264,9 +264,17 @@ Install the speech recognition and speech synthesis services on the voice host f
 
 Install on a reComputer RK3588 without the card over the network; questions other than device control are answered by the cloud LLM you enter.
 
+### Target: RK3588 (cloud LLM, this device) {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml}
+
+Install on this reComputer RK3588 without the card; questions other than device control are answered by the cloud LLM you enter.
+
 ### Target: RK3576 (cloud LLM) {#rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576 (8GB)" config=devices/rk3576_voice.yaml}
 
 Install on a reComputer RK3576 over the network; questions other than device control are answered by the cloud LLM you enter.
+
+### Target: RK3576 (cloud LLM, this device) {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576 (8GB)" config=devices/rk3576_voice.yaml}
+
+Install on this reComputer RK3576; questions other than device control are answered by the cloud LLM you enter.
 
 ---
 

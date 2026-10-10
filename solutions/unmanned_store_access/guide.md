@@ -534,6 +534,25 @@ The relay connects to the J20's DO output. Set **GPIO Interface = sysfs** and en
 |---|---|
 | `gpio N is ALREADY EXPORTED` | Another program uses that output. Choose another DO or stop that program. |
 
+### Target {#p2_j20_local type=local device=recomputer_j20 device_name="reComputer J20" config=devices/p2_j20.yaml}
+
+The relay connects to the J20's DO output. Set **GPIO Interface = sysfs** and enter the DO's sysfs number.
+
+### Wiring
+
+![AI host relay wiring](gallery/wiring-host-relay.svg)
+
+1. With a multimeter, confirm which sysfs number drives which DO terminal (DO1–DO4 are expected at 463/464/465/462) and the DO output type.
+2. Wire the DO terminal → relay SIG, and power the relay's VCC and GND.
+3. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+4. In the form, set GPIO Interface `sysfs`, DO sysfs GPIO Number, Active Level, Relay Contact and Fail Mode.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `gpio N is ALREADY EXPORTED` | Another program uses that output. Choose another DO or stop that program. |
+
 ### Target {#p2_jetson type=remote device=recomputer_j40 device_name="reComputer J30 / J40" config=devices/p2_j20.yaml}
 
 The relay connects to the 40-pin header. Set **GPIO Interface = libgpiod**, **GPIO Chip = gpiochip0**, and the line offset from this table:
@@ -575,7 +594,76 @@ Pins 1/17 are 3V3, 2/4 are 5V, and 6/9/14/20/25/30/34/39 are GND.
 |---|---|
 | `/dev/gpiochip0 does not exist on this box` | Run `gpioinfo` and enter the chip name it lists. |
 
+### Target {#p2_jetson_local type=local device=recomputer_j40 device_name="reComputer J30 / J40" config=devices/p2_j20.yaml}
+
+The relay connects to the 40-pin header. Set **GPIO Interface = libgpiod**, **GPIO Chip = gpiochip0**, and the line offset from this table:
+
+| Header pin | Name | `gpiochip0` line |
+|---|---|---|
+| 7  | GPIO09    | 144 |
+| 11 | UART1_RTS | 112 |
+| 12 | I2S0_SCLK | 50  |
+| 13 | SPI1_SCK  | 122 |
+| 15 | GPIO12    | 85  |
+| 16 | SPI1_CS1  | 126 |
+| 18 | SPI1_CS0  | 125 |
+| 22 | SPI1_MISO | 123 |
+| 29 | GPIO01    | 105 |
+| 31 | GPIO11    | 106 |
+| 32 | GPIO07    | 41  |
+| 33 | GPIO13    | 43  |
+| 35 | I2S0_FS   | 53  |
+| 36 | UART1_CTS | 113 |
+| 37 | SPI1_MOSI | 124 |
+| 38 | I2S0_SDIN | 52  |
+| 40 | I2S0_SDOUT| 51  |
+
+Pins 1/17 are 3V3, 2/4 are 5V, and 6/9/14/20/25/30/34/39 are GND.
+
+### Wiring
+
+![AI host relay wiring](gallery/wiring-host-relay.svg)
+
+1. Run `gpioinfo` on the host and pick a line from the table that is not marked `[used]`.
+2. Wire pin 31 (line 106) → relay SIG, pin 1 (3V3) → VCC, pin 6 (GND) → GND. To test first, connect an LED with a resistor between pin 31 and GND instead.
+3. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+4. In the form, set GPIO Interface `libgpiod`, GPIO Chip `gpiochip0`, GPIO Line Offset `106`, Active Level, Relay Contact and Fail Mode.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `/dev/gpiochip0 does not exist on this box` | Run `gpioinfo` and enter the chip name it lists. |
+
 ### Target {#p3_mqtt_relay type=remote device=mqtt_relay device_name="MQTT Relay" config=devices/p3_mqtt_relay.yaml}
+
+Choose this when the host is not at the door or serves several doors. Unlocks go over MQTT to a relay node; the door does not open while the broker is down.
+
+### Prerequisites
+
+- The MQTT broker (Step 1 server, port 1883) reachable from the host.
+- The relay node running and connected to the broker, with a Relay ID unique on the site.
+
+### Wiring
+
+![XIAO ESP32-S3 relay wiring](gallery/wiring-xiao-relay.svg)
+
+1. XIAO ESP32-S3: wire the relay firmware's GPIO → relay SIG, 3V3 → VCC, GND → GND; confirm the GPIO with a multimeter before wiring.
+2. reComputer R1000: wire the relay to the output behind the Modbus Point ID you enter in the form.
+3. Connect relay COM and NO to the door controller's unlock input (use COM and NC for a lock that opens on power loss).
+4. In the form, set Relay Backend, Relay ID, Relay Contact and Fail Mode.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `Cannot reach the MQTT broker` | Check the host can reach the server on port 1883. |
+| `No retained state from relay` | The relay node has not connected to the broker. Check its network and Relay ID. |
+| Unlock accepted, relay does not click | Subscribe to `access/v1/relay/<id>/state` and read `result` (`duplicate`, `expired` or `rejected`). |
+| The door opens by itself after a power cut | Something publishes to `access/v1/relay/<id>/set` with retain on. Turn retain off. |
+| Pulse width rejected | Use 500–5000 ms. |
+
+### Target {#p3_mqtt_relay_local type=local device=mqtt_relay device_name="MQTT Relay" config=devices/p3_mqtt_relay.yaml}
 
 Choose this when the host is not at the door or serves several doors. Unlocks go over MQTT to a relay node; the door does not open while the broker is down.
 
