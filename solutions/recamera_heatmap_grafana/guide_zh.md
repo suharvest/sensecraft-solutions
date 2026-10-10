@@ -196,11 +196,23 @@ reCamera Pro 在本地做检测、跟踪、驻足状态和进出店计数，一�
 
 ## 步骤 2: 部署检测器 {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
-通过 SSH 把检测器部署到板卡。板卡型号要选对，选错模型无法加载。看板在同一块板卡上时，MQTT 地址保持 `127.0.0.1`。
+把检测器部署到板卡。板卡型号要选对，选错模型无法加载。看板在同一块板卡上时，MQTT 地址保持 `127.0.0.1`。
 
 ### 部署目标 {#rk_remote type=remote config=devices/rk_deploy.yaml default=true}
 
 板卡须已安装 Docker 和 NPU 驱动（`/usr/lib/librknnrt.so` 存在）。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 容器起不来，报 librknnrt 相关错误 | 板卡上缺 NPU 驱动，确认 `/usr/lib/librknnrt.so` 存在 |
+| 看板没数据 | 用 `ffprobe rtsp://...` 确认摄像头地址能通，检查 MQTT 地址 |
+| 帧率明显偏低、CPU 占满 | 硬件解码未生效，确认板卡上的 MPP 库完整 |
+
+### 部署目标 {#rk_local type=local config=devices/rk_deploy.yaml}
+
+在你正在使用的板卡上直接部署。板卡须已安装 Docker 和 NPU 驱动（`/usr/lib/librknnrt.so` 存在）。
 
 ### 故障排查
 
@@ -254,11 +266,24 @@ reCamera Pro 在本地做检测、跟踪、驻足状态和进出店计数，一�
 
 ## 步骤 2: 部署检测器 {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
-通过 SSH 把检测器部署到板卡。部署前会检查 Hailo 运行时版本，不匹配时停止并显示板上实际的版本。
+把检测器部署到板卡。部署前会检查 Hailo 运行时版本，不匹配时停止并显示板上实际的版本。
 
 ### 部署目标 {#hailo_remote type=remote config=devices/hailo_deploy.yaml default=true}
 
 板卡须已安装 Docker 和 HailoRT **4.21**（驱动、用户库、GStreamer 插件版本一致）。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 报 `HAILO_OUT_OF_PHYSICAL_DEVICES` | 加速卡被另一个应用占用，先停掉它 |
+| 部署时提示 libhailort 版本不符 | 把板上的 HailoRT 换成 4.21，驱动和用户库一起换 |
+| `/dev/hailo0` 不存在 | 加速卡没插好，或 `hailo_pci` 驱动没加载 |
+| 看板没数据 | 用 `ffprobe rtsp://...` 确认摄像头地址能通，检查 MQTT 地址 |
+
+### 部署目标 {#hailo_local type=local config=devices/hailo_deploy.yaml}
+
+在你正在使用的板卡上直接部署。板卡须已安装 Docker 和 HailoRT **4.21**（驱动、用户库、GStreamer 插件版本一致）。
 
 ### 故障排查
 
@@ -310,7 +335,7 @@ reCamera Pro 在本地做检测、跟踪、驻足状态和进出店计数，一�
 
 ## 步骤 2: 部署检测器 {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-通过 SSH 把检测器部署到 Jetson。首次部署会编译 TensorRT engine，需要 2-5 分钟，之后的部署直接复用。
+把检测器部署到 Jetson。首次部署会编译 TensorRT engine，需要 2-5 分钟，之后的部署直接复用。
 
 ### 部署目标 {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
@@ -321,6 +346,18 @@ Jetson 须为 JetPack 6.x，已安装 Docker 和 NVIDIA runtime。
 | 现象 | 处理 |
 |------|------|
 | 连接超时 | 检查网络，用 `ping` 验证 Jetson IP |
+| NVIDIA 运行时错误 | 在 Jetson 上运行 `nvidia-smi` 确认 GPU 可用 |
+| 没有数据 | 用 `ffprobe rtsp://...` 验证 RTSP 地址，检查 MQTT 地址 |
+| 首次启动慢 | 正在编译 TensorRT engine，仅首次，2-5 分钟 |
+
+### 部署目标 {#jetson_local type=local config=devices/jetson_deploy.yaml}
+
+在你正在使用的 Jetson 上直接部署。Jetson 须为 JetPack 6.x，已安装 Docker 和 NVIDIA runtime。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
 | NVIDIA 运行时错误 | 在 Jetson 上运行 `nvidia-smi` 确认 GPU 可用 |
 | 没有数据 | 用 `ffprobe rtsp://...` 验证 RTSP 地址，检查 MQTT 地址 |
 | 首次启动慢 | 正在编译 TensorRT engine，仅首次，2-5 分钟 |
