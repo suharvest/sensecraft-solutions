@@ -481,9 +481,16 @@ remote_overrides:
         # This host is whatever the site already has, so 8080 and 1883 may
         # already be taken. Both are settable in the form; fail here with the
         # name of the process holding the port rather than in `compose up`.
+        # A port published by this stack's own containers (a redeploy) is not
+        # a conflict: `compose up` recreates those containers in place.
         run: |
           set -e
+          OWN=$(docker ps --filter label=com.docker.compose.project=fall_detection_panel --format '{''{.Ports}}' 2>/dev/null || true)
           for p in {{panel_port}} {{broker_port}}; do
+            if printf '%s\n' "$OWN" | grep -qE "(^|[ ,])[^ ,]*:$p->"; then
+              echo "Port $p is held by this stack's previous deployment"
+              continue
+            fi
             if command -v ss >/dev/null 2>&1; then
               HOLDER=$(ss -ltnp "sport = :$p" 2>/dev/null | tail -n +2 || true)
             else
