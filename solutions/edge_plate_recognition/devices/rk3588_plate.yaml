@@ -27,8 +27,8 @@ ssh:
 
 pre_checks:
   - type: disk_space
-    min_gb: 6
-    description: The recognition software and models are stored on the device
+    min_gb: 1
+    description: At least 1 GB free for the app image and model.
 
 post_deployment:
   open_browser: false
