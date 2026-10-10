@@ -28,7 +28,7 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting/models"
+    PARKING_MODELS_DIR: "./models"  # local: next to the compose file; remote: remote_overrides.environment
     PARKING_HEALTH_PORT: "{{health_port}}"
 ssh:
   port: 22
@@ -89,7 +89,9 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        MODELS_DIR="/home/{{username}}/edge-parking-counting/models"
+        # Local deploy: assets/models, which PARKING_MODELS_DIR (./models) mounts
+        # from the compose file's directory.
+        MODELS_DIR="assets/models"
         BUNDLE="count_vehicle416_orin_nano-9a5b949eab79.tar.gz"
         BUNDLE_SHA="9a5b949eab79792796855acad6f5827b03da2d774fffb16850e7e883f2694b5e"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_orin_nano-9a5b949eab79.tar.gz"
@@ -126,12 +128,11 @@ actions:
         MODEL_SHA256: '73363ee8c48eb80195f12dbf5958284e0200955251f406118ff50153f8a2111d'
       run: |
         set -e
-        CONFIG=""
-        for r in "/home/{{username}}/edge-parking-counting/jetson_counting" "assets"; do
-          if [ -f "$r/config/counting.json" ]; then CONFIG="$r/config/counting.json"; break; fi
-        done
-        if [ -z "$CONFIG" ]; then
-          echo "config/counting.json not found (tried /home/{{username}}/edge-parking-counting/jetson_counting and assets)" >&2
+        # Local deploy: actions run from the solution directory; the preset is
+        # rendered in place next to the compose file in assets/.
+        CONFIG="assets/config/counting.json"
+        if [ ! -f "$CONFIG" ]; then
+          echo "$CONFIG not found in $PWD" >&2
           exit 1
         fi
         mkdir -p "$(dirname "$CONFIG")/../data"
@@ -404,6 +405,274 @@ user_inputs:
     validation:
       pattern: "^[0-9]{1,5}$"
 remote_overrides:
+  # Remote deploy: the actions as they run over SSH, with absolute paths
+  # under the SSH user's home. A full copy, because remote_overrides.actions
+  # replaces the base actions wholesale.
+  actions:
+    before:
+      - name: Check the Jetson module and JetPack version
+        name_i18n: {zh: 检查 Jetson 模组与 JetPack 版本}
+        ignore_error: false
+        run: |
+          set -eu
+          # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
+          want="p3767-0000 p3767-0001 p3767-0003 p3767-0004"
+          compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
+          rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
+          trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
+          echo "module:   ${compat:-unknown}"
+          echo "L4T:      ${rel:-unknown}"
+          echo "TensorRT: ${trt:-not found}"
+          ok=0
+          for m in $want; do
+            case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "UNSUPPORTED_JETSON_MODULE: this solution runs on Jetson Orin Nano or Orin NX (reComputer J30 / J40); this board reports '${compat:-unknown}'." >&2
+            exit 1
+          fi
+          case "$rel" in
+            "# R36 (release), REVISION: 4."*) ;;
+            *) echo "UNSUPPORTED_JETPACK: the engines were built on L4T R36.4 (JetPack 6.2); this board reports '${rel:-unknown}'." >&2; exit 1 ;;
+          esac
+          case "$trt" in
+            10.3.*) ;;
+            *) echo "UNSUPPORTED_TENSORRT: the engines were built with TensorRT 10.3; this board has '${trt:-none}'." >&2; exit 1 ;;
+          esac
+          echo "Jetson module and JetPack match the prebuilt engines"
+    after_upload:
+      - name: Download the vehicle model
+        name_i18n: {zh: 下载车辆识别模型}
+        timeout: 1800
+        run: |
+          set -eu
+          MODELS_DIR="/home/{{username}}/edge-parking-counting/models"
+          BUNDLE="count_vehicle416_orin_nano-9a5b949eab79.tar.gz"
+          BUNDLE_SHA="9a5b949eab79792796855acad6f5827b03da2d774fffb16850e7e883f2694b5e"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_orin_nano-9a5b949eab79.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "73363ee8c48eb80195f12dbf5958284e0200955251f406118ff50153f8a2111d  $MODELS_DIR/vehicle416.fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+            echo "73363ee8c48eb80195f12dbf5958284e0200955251f406118ff50153f8a2111d  $MODELS_DIR/vehicle416.fp16.engine" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
+      - name: Write the counting settings
+        name_i18n: {zh: 写入计数设置}
+        env:
+          SITE_ID: '{{site_id}}'
+          CAMERA_ID: '{{camera_id}}'
+          RTSP_URL: '{{rtsp_url}}'
+          MQTT_HOST: '{{mqtt_host}}'
+          MQTT_PORT: '{{mqtt_port}}'
+          MQTT_USERNAME: '{{mqtt_username}}'
+          MQTT_PASSWORD: '{{mqtt_password}}'
+          CAPACITY: '{{capacity}}'
+          HTTP_PORT: '{{http_port}}'
+          HEALTH_PORT: '{{health_port}}'
+          MODEL_SHA256: '73363ee8c48eb80195f12dbf5958284e0200955251f406118ff50153f8a2111d'
+        run: |
+          set -e
+          CONFIG=""
+          for r in "/home/{{username}}/edge-parking-counting/jetson_counting" "assets"; do
+            if [ -f "$r/config/counting.json" ]; then CONFIG="$r/config/counting.json"; break; fi
+          done
+          if [ -z "$CONFIG" ]; then
+            echo "config/counting.json not found (tried /home/{{username}}/edge-parking-counting/jetson_counting and assets)" >&2
+            exit 1
+          fi
+          mkdir -p "$(dirname "$CONFIG")/../data"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+          if config.get("schema") != "vb.config/1":
+              raise SystemExit(f"{path} is not a vb.config/1 preset")
+
+
+          def env_int(name, low, high, label):
+              raw = os.environ.get(name, "").strip()
+              try:
+                  value = int(raw)
+              except ValueError:
+                  raise SystemExit(f"{label} must be a whole number, got {raw!r}")
+              if not low <= value <= high:
+                  raise SystemExit(f"{label} must be between {low} and {high}, got {value}")
+              return value
+
+
+          site_id = os.environ["SITE_ID"].strip()
+          camera_id = os.environ["CAMERA_ID"].strip()
+          device_id = f"{site_id}-{camera_id}"
+          if len(device_id) > 32:
+              raise SystemExit("Site ID + camera ID are too long together; keep them to 31 characters in total")
+          mqtt_port = env_int("MQTT_PORT", 1, 65535, "MQTT port")
+          http_port = env_int("HTTP_PORT", 1, 65535, "Counter port")
+          capacity = env_int("CAPACITY", 0, 100000, "Total spaces")
+          rtsp_url = os.environ["RTSP_URL"].strip()
+          if not rtsp_url.lower().startswith(("rtsp://", "rtsps://")):
+              raise SystemExit("Camera stream URL must start with rtsp://")
+
+          config["device_id"] = device_id
+          config["state_dir"] = "/data/edge-parking"
+          if os.environ.get("MODEL_SHA256"):
+              config.setdefault("backend", {})["model_sha256"] = os.environ["MODEL_SHA256"]
+          health = config.setdefault("health", {})
+          health["host"] = "0.0.0.0"
+          if os.environ.get("HEALTH_PORT"):
+              health["port"] = env_int("HEALTH_PORT", 1, 65535, "Status port")
+
+          mqtt = config.setdefault("mqtt", {})
+          mqtt["host"] = os.environ["MQTT_HOST"].strip()
+          mqtt["port"] = mqtt_port
+          mqtt["client_id"] = device_id
+          mqtt["username"] = os.environ.get("MQTT_USERNAME", "")
+          mqtt["password"] = os.environ.get("MQTT_PASSWORD", "")
+          mqtt["topic_root"] = f"{site_id}/parking/{device_id}"
+
+          template = (config.get("streams") or [{}])[0]
+          options = dict(template.get("options") or {})
+          if os.environ.get("STREAM_CODEC"):
+              options["codec"] = os.environ["STREAM_CODEC"]
+          config["streams_file"] = ""
+          config["streams"] = [{
+              "stream_id": camera_id,
+              "url": rtsp_url,
+              "name": "",
+              "transport": template.get("transport", "tcp"),
+              "score_threshold": None,
+              "options": options,
+          }]
+
+          app = config.setdefault("app", {}).setdefault("options", {})
+          app["site_id"] = site_id
+          app_mqtt = app.setdefault("mqtt", {})
+          app_mqtt["host"] = mqtt["host"]
+          app_mqtt["port"] = mqtt_port
+          app_mqtt["username"] = mqtt["username"]
+          app_mqtt["password"] = mqtt["password"]
+          app.setdefault("http", {})["port"] = http_port
+          app["state_dir"] = "/data/edge-parking"
+          counting = app.setdefault("counting", {})
+          # Line, entry side and vehicles already inside are set on /counting/editor after
+          # deploy; the app keeps them in state_dir (line and entry side in
+          # app-options.override.json, vehicles inside in the occupancy state), so a
+          # redeploy does not reset them. capacity and the other counting keys below
+          # apply on every deploy (the override holds only line / in_side since the
+          # 20261009b images). First-start defaults: vertical line through the
+          # middle, standard entry side, 0 vehicles inside.
+          counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
+          counting["in_side"] = "positive"
+          counting["capacity"] = capacity
+          counting["initial_occupancy"] = 0
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2, ensure_ascii=False)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"config  = {path}")
+          print(f"camera  = {camera_id} -> topics {site_id}/parking/{camera_id}/crossing and /occupancy")
+          print(f"line    = {counting['line']} in_side={counting['in_side']}")
+          PY
+    after:
+      - name: Wait for the counting service to start
+        name_i18n:
+          zh: 等待计数服务启动
+        timeout: 130
+        ignore_error: false
+        env:
+          PARKING_HEALTH_PORT: "{{health_port}}"
+          PARKING_HEALTH_DEADLINE_SECONDS: "120"
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json
+          import math
+          import os
+          import signal
+          import time
+          import urllib.error
+          import urllib.request
+
+          raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+          try:
+              port = int(raw_port)
+          except (TypeError, ValueError):
+              print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+              raise SystemExit(2)
+          if not 1 <= port <= 65535:
+              print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+              raise SystemExit(2)
+          try:
+              deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+          except ValueError:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+              raise SystemExit(2)
+          if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+              raise SystemExit(2)
+
+          url = f"http://127.0.0.1:{port}/healthz"
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          deadline = time.monotonic() + deadline_seconds
+          last_reason = "no response"
+
+          def request_timeout(_signum, _frame):
+              raise TimeoutError("request budget expired")
+
+          signal.signal(signal.SIGALRM, request_timeout)
+          while time.monotonic() < deadline:
+              request_budget = min(2.0, deadline - time.monotonic())
+              if request_budget <= 0:
+                  break
+              try:
+                  request = urllib.request.Request(url, method="GET")
+                  signal.setitimer(signal.ITIMER_REAL, request_budget)
+                  with opener.open(request, timeout=request_budget) as response:
+                      if response.status != 200:
+                          last_reason = f"HTTP {response.status}"
+                      else:
+                          try:
+                              payload = response.read(1024 * 1024 + 1)
+                              if len(payload) > 1024 * 1024:
+                                  last_reason = "HTTP 200 response exceeds 1 MiB"
+                                  continue
+                              body = json.loads(payload.decode("utf-8"))
+                          except (UnicodeDecodeError, json.JSONDecodeError):
+                              last_reason = "HTTP 200 with non-JSON response"
+                          else:
+                              if (time.monotonic() < deadline
+                                      and isinstance(body, dict)
+                                      and body.get("status") == "ok"):
+                                  print(f"Readiness confirmed at {url}", flush=True)
+                                  raise SystemExit(0)
+                              last_reason = "HTTP 200 JSON status is not ok"
+              except urllib.error.HTTPError as error:
+                  last_reason = f"HTTP {error.code}"
+              except (urllib.error.URLError, TimeoutError, OSError) as error:
+                  last_reason = f"connection error: {error.__class__.__name__}"
+              finally:
+                  signal.setitimer(signal.ITIMER_REAL, 0)
+              remaining = deadline - time.monotonic()
+              if remaining > 0:
+                  time.sleep(min(0.5, remaining))
+
+          print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+          raise SystemExit(1)
+          PY
   environment:
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting/models"
     PARKING_HEALTH_PORT: "{{health_port}}"

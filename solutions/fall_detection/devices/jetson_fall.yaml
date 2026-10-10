@@ -46,9 +46,10 @@ pre_checks:
 # 这里给到 6 倍余量，用于兜住卡死而不是限制正常构建。
 deploy_timeout: 3600
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: false
-  url: "http://{{host}}:{{panel_port}}/"
+  url: "http://localhost:{{panel_port}}/"
 
 name_i18n:
   zh: NVIDIA Jetson
@@ -67,6 +68,10 @@ files:
       sha256: 7fe8762007efd17976bdf140b99eac9a8069accd7020a5873ad20dd4caaf633c
 
 remote_overrides:
+  # Remote view: the panel is reached at the SSH target's address.
+  post_deployment:
+    open_browser: false
+    url: "http://{{host}}:{{panel_port}}/"
   remote_path: /home/{{username}}/fall-detection
   compose_dir: assets/jetson
   detection:

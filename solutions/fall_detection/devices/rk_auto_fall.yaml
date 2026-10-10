@@ -36,9 +36,10 @@ pre_checks:
 # 整轮实测约 2–3 分钟（拉取已缓存镜像 + 下载模型）。
 deploy_timeout: 1800
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: false
-  url: "http://{{host}}:{{panel_port}}/"
+  url: "http://localhost:{{panel_port}}/"
 
 name_i18n:
   zh: reComputer RK3576 / RK3588
@@ -65,6 +66,10 @@ files:
       sha256: dadcb916135e7dec284fe51a49432573e5451ba9c921325df119fbd2e33ebd82
 
 remote_overrides:
+  # Remote view: the panel is reached at the SSH target's address.
+  post_deployment:
+    open_browser: false
+    url: "http://{{host}}:{{panel_port}}/"
   remote_path: /home/{{username}}/fall-detection-rk
   compose_dir: assets/rk
   detection:
