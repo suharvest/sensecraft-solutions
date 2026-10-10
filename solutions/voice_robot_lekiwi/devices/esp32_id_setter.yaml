@@ -16,6 +16,12 @@ firmware:
     baud_rate: 921600
     flash_mode: dio
     flash_size: 8MB
+    # Reset otadata (Arduino layout: 0xe000, size 0x2000; same for the s3/c6
+    # variants) so the bootloader boots the freshly written app0 even if the
+    # board had OTA-switched to app1. NVS is left intact.
+    erase_regions:
+      - offset: "0xe000"
+        size: "0x2000"
     partitions:
       - name: bootloader
         offset: "0x0"
