@@ -54,6 +54,39 @@ files:
       sha256: b3680529cc0126ad739835894e689c294d6bb51ca9fcc994fcf7d75c75df6116
 actions:
   before:
+    - name: Fix Docker iptables for JetPack 6.x
+      # The jetson device profile applies this over SSH (remote view only).
+      # Run locally it needs passwordless sudo; without it the step prints the
+      # commands and continues, because this stack uses host networking and
+      # does not depend on Docker's iptables rules.
+      ignore_error: true
+      run: |
+        set -e
+        CONF="/etc/systemd/system/docker.service.d/disable-raw-table.conf"
+        if [ -f "$CONF" ] && grep -q "DOCKER_INSECURE_NO_IPTABLES_RAW=1" "$CONF" 2>/dev/null; then
+          echo "Docker iptables fix already applied"
+          exit 0
+        fi
+        if ! head -1 /etc/nv_tegra_release 2>/dev/null | grep -q "R36"; then
+          echo "Not JetPack 6.x — fix not needed"
+          exit 0
+        fi
+        if ! sudo -n true 2>/dev/null; then
+          echo "WARNING: Docker iptables fix not applied (needs sudo). To apply it, write" >&2
+          echo "  [Service]" >&2
+          echo "  Environment=\"DOCKER_INSECURE_NO_IPTABLES_RAW=1\"" >&2
+          echo "to $CONF, then run: sudo systemctl daemon-reload && sudo systemctl restart docker" >&2
+          exit 1
+        fi
+        echo "Applying Docker iptables raw table fix for JetPack 6.x..."
+        sudo mkdir -p /etc/systemd/system/docker.service.d
+        printf '[Service]\nEnvironment="DOCKER_INSECURE_NO_IPTABLES_RAW=1"\n' | sudo tee "$CONF" > /dev/null
+        sudo systemctl daemon-reload
+        sudo systemctl restart docker
+        sleep 2
+        echo "Docker iptables fix applied"
+      name_i18n:
+        zh: 修复 JetPack 6.x Docker 网络问题
     - name: Check the Jetson module and JetPack version
       name_i18n: {zh: 检查 Jetson 模组与 JetPack 版本}
       ignore_error: false
