@@ -26,6 +26,74 @@ docker:
 ssh:
   port: 22
   default_user: pi
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
+actions:
+  after_upload:
+    - name: Configure client transcription upload
+      # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
+      # in the deployment workspace. That copy keeps the values from the last
+      # deploy (the workspace sync does not overwrite a file the deploy has
+      # changed), so each field is set by its key rather than by its
+      # __PLACEHOLDER__ marker; a redeploy with new form values replaces the
+      # old ones. Same validation as the remote view.
+      env:
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        python3 - assets/docker/config/voice-client.yaml <<'PY'
+        import json, os, re, sys, tempfile
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path(sys.argv[1])
+        text = p.read_text()
+        fields = [
+            (r'^(  default_language: ).*$', json.dumps(language)),
+            (r'^(    card_id: ).*$', json.dumps(card)),
+            (r'^(  speaker:\n    enabled: ).*$', 'true' if speaker == '1' else 'false'),
+            (r'^(  base_url: ).*$', json.dumps(url.rstrip('/'))),
+            (r'^(      X-API-Token: ).*$', json.dumps(key)),
+        ]
+        for pattern, value in fields:
+            text, count = re.subn(pattern, lambda m: m.group(1) + value, text, flags=re.M)
+            if count != 1:
+                raise SystemExit('Client configuration layout not recognised: %r matched %d times.' % (pattern, count))
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        fd, tmp = tempfile.mkstemp(prefix='.voice-client.', dir=str(p.parent))
+        try:
+            with os.fdopen(fd, 'w') as handle:
+                handle.write(text)
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, p)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        print('Client text upload configured.')
+        PY
+      name_i18n:
+        zh: 配置客户端转写上传
+
 remote_overrides:
   remote_path: /home/{{username}}/retail_voice_r2000_hailo
   compose_dir: assets/docker
@@ -68,6 +136,32 @@ remote_overrides:
         os.chmod(p, 0o600)
         print('Client text upload configured.')
         PY
+  user_inputs:
+    - {id: host, name: Device IP, name_i18n: {zh: 设备 IP}, type: text, required: true}
+    - {id: username, name: SSH Username, name_i18n: {zh: SSH 用户名}, type: text, default: pi, required: true}
+    - {id: password, name: SSH Password, name_i18n: {zh: SSH 密码}, type: password, required: true}
+    - id: LANGUAGE
+      name: Recognition language
+      name_i18n: {zh: 识别语种}
+      type: select
+      default: zh
+      required: true
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英文}}
+    - {id: AUDIO_CARD_ID, name: Microphone card ID, name_i18n: {zh: 麦克风声卡编号}, type: text, default: "1", required: true}
+    - id: RETAIL_BACKEND_URL
+      name: Retail backend URL
+      name_i18n: {zh: 零售后台地址}
+      type: text
+      required: true
+      validation: {pattern: "^https?://[^[:space:]]+$"}
+    - id: RETAIL_BACKEND_API_KEY
+      name: Retail backend API key
+      name_i18n: {zh: 零售后台 API 密钥}
+      type: password
+      required: true
+      validation: {pattern: "^[A-Fa-f0-9]{64}$"}
 pre_checks:
   - type: disk_space
     min_gb: 6
@@ -85,9 +179,6 @@ pre_checks:
     description: HailoRT 4.21.0 host library is required
     description_i18n: {zh: 需要宿主机 HailoRT 4.21.0 库}
 user_inputs:
-  - {id: host, name: Device IP, name_i18n: {zh: 设备 IP}, type: text, required: true}
-  - {id: username, name: SSH Username, name_i18n: {zh: SSH 用户名}, type: text, default: pi, required: true}
-  - {id: password, name: SSH Password, name_i18n: {zh: SSH 密码}, type: password, required: true}
   - id: LANGUAGE
     name: Recognition language
     name_i18n: {zh: 识别语种}

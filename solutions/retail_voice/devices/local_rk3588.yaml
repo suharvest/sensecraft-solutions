@@ -29,7 +29,7 @@ docker:
     ASR_PLATFORM: rk3588
     RK_PLATFORM: rk3588
     SPEECH_IMAGE: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rk-stable
-    OUTPUT_DIR: "/home/recomputer/retail-voice"
+    OUTPUT_DIR: "~/retail-voice"
     AUDIO_CARD_ID: "{{AUDIO_CARD_ID}}"
     HF_ENDPOINT: "https://hf-mirror.com"
     OVS_SPEAKER_EMB: "1"
@@ -91,8 +91,48 @@ pre_checks:
 
 deploy_timeout: 2400
 
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
 actions:
   before:
+    - name: Fix iptables for Docker on RK3588
+      # The rk3588 device profile applies this over SSH (remote view only). In
+      # the local view the app already talks to this Docker daemon, and on
+      # kernels without nf_tables support Docker does not start at all, so a
+      # running daemon means there is nothing to fix. Otherwise the switch is
+      # applied only where sudo needs no password; without it the step stops
+      # with the commands to run.
+      run: |
+        set -e
+        if docker info >/dev/null 2>&1; then
+          echo "Docker is running; iptables backend left as is"
+          exit 0
+        fi
+        IPT=$(command -v iptables || echo /usr/sbin/iptables)
+        if ! "$IPT" --version 2>&1 | grep -q nf_tables; then
+          echo "iptables already in legacy mode; Docker is not reachable by user $(id -un)." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if ! sudo -n true 2>/dev/null; then
+          echo "Docker is not running and iptables uses nf_tables, which this kernel may not support. Run:" >&2
+          echo "  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy" >&2
+          echo "  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy" >&2
+          echo "  sudo systemctl restart docker" >&2
+          exit 1
+        fi
+        sudo update-alternatives --set iptables /usr/sbin/iptables-legacy
+        sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+        sudo systemctl restart docker 2>/dev/null || true
+        echo "Switched to iptables-legacy"
+      name_i18n:
+        zh: 修复 RK3588 上 Docker 的 iptables 兼容性
+
     - name: Verify the RKNPU driver is present
       # /dev/rknpu does NOT exist on the Seeed vendor kernel (6.1.115-vendor-
       # seeed-rk3576) — the NPU is reached through the DRM render node
@@ -107,6 +147,97 @@ actions:
         cat /sys/kernel/debug/rknpu/version 2>/dev/null || echo "RKNPU bound (version node not readable)"
       name_i18n:
         zh: 检查 RKNPU 驱动
+
+    - name: Create the output directory
+      # OUTPUT_DIR is ~/retail-voice in the local view: the home of the user
+      # the app runs as (/home/recomputer on a stock reComputer image).
+      run: mkdir -p "$HOME/retail-voice/cache/asr" "$HOME/retail-voice/voice" "$HOME/retail-voice/voiceprints"
+      name_i18n:
+        zh: "\u521B\u5EFA\u8F93\u51FA\u76EE\u5F55"
+
+    - name: Confirm the microphone array enumerated
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - move it to a USB-A host port"
+        arecord -l 2>/dev/null || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u786E\u8BA4\u9EA6\u514B\u98CE\u9635\u5217\u5DF2\u679A\u4E3E"
+
+  after_upload:
+    - name: Configure client transcription upload
+      # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
+      # in the deployment workspace. That copy keeps the values from the last
+      # deploy (the workspace sync does not overwrite a file the deploy has
+      # changed), so each field is set by its key rather than by its
+      # __PLACEHOLDER__ marker; a redeploy with new form values replaces the
+      # old ones. Same validation as the remote view.
+      env:
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '1'
+      run: |
+        set -eu
+        python3 - assets/docker/config/voice-client.yaml <<'PY'
+        import json, os, re, sys, tempfile
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path(sys.argv[1])
+        text = p.read_text()
+        fields = [
+            (r'^(  default_language: ).*$', json.dumps(language)),
+            (r'^(    card_id: ).*$', json.dumps(card)),
+            (r'^(  speaker:\n    enabled: ).*$', 'true' if speaker == '1' else 'false'),
+            (r'^(  base_url: ).*$', json.dumps(url.rstrip('/'))),
+            (r'^(      X-API-Token: ).*$', json.dumps(key)),
+        ]
+        for pattern, value in fields:
+            text, count = re.subn(pattern, lambda m: m.group(1) + value, text, flags=re.M)
+            if count != 1:
+                raise SystemExit('Client configuration layout not recognised: %r matched %d times.' % (pattern, count))
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        fd, tmp = tempfile.mkstemp(prefix='.voice-client.', dir=str(p.parent))
+        try:
+            with os.fdopen(fd, 'w') as handle:
+                handle.write(text)
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, p)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        print('Client text upload configured.')
+        PY
+      name_i18n:
+        zh: 配置客户端转写上传
+
+  after:
+    - name: Confirm the NPU backend actually loaded
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        for i in $(seq 1 60); do
+          if curl -fsS http://127.0.0.1:8621/readyz >/dev/null 2>&1; then break; fi
+          sleep 15
+        done
+        curl -fsS http://127.0.0.1:8621/readyz || echo "speech service not ready yet - first boot downloads ~825 MB"
+      ignore_error: true
+      name_i18n:
+        zh: "\u786E\u8BA4 NPU \u540E\u7AEF\u5DF2\u52A0\u8F7D"
 
 user_inputs:
   - id: LANGUAGE

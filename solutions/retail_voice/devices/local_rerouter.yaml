@@ -131,6 +131,112 @@ user_inputs:
     validation:
       pattern: "^[A-Fa-f0-9]{64}$"
 
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
+actions:
+  before:
+    - name: Create the output directory
+      run: mkdir -p "/data-iot/retail-voice/cache/asr" "/data-iot/retail-voice/voice" "/data-iot/retail-voice/voiceprints"
+      name_i18n:
+        zh: "\u521B\u5EFA\u8F93\u51FA\u76EE\u5F55"
+
+    - name: Confirm the microphone array enumerated
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        lsusb 2>/dev/null | grep -i '2886:001a' || echo "reSpeaker XVF3800 not seen on USB - check the port before verifying"
+        arecord -l 2>/dev/null || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u786E\u8BA4\u9EA6\u514B\u98CE\u9635\u5217\u5DF2\u679A\u4E3E"
+
+    - name: Open the ALSA device nodes to the container
+      run: chmod -R 666 /dev/snd/* || true
+      ignore_error: true
+      name_i18n:
+        zh: "\u653E\u5F00 ALSA \u8BBE\u5907\u8282\u70B9\u6743\u9650"
+
+  after_upload:
+    - name: Configure client transcription upload
+      # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
+      # in the deployment workspace. That copy keeps the values from the last
+      # deploy (the workspace sync does not overwrite a file the deploy has
+      # changed), so each field is set by its key rather than by its
+      # __PLACEHOLDER__ marker; a redeploy with new form values replaces the
+      # old ones. Same validation as the remote view.
+      env:
+        LANGUAGE: '{{LANGUAGE}}'
+        AUDIO_CARD_ID: '{{AUDIO_CARD_ID}}'
+        RETAIL_BACKEND_URL: '{{RETAIL_BACKEND_URL}}'
+        RETAIL_BACKEND_API_KEY: '{{RETAIL_BACKEND_API_KEY}}'
+        RETAIL_SPEAKER: '0'
+      run: |
+        set -eu
+        python3 - assets/docker/config/voice-client.yaml <<'PY'
+        import json, os, re, sys, tempfile
+        from pathlib import Path
+        url = os.environ['RETAIL_BACKEND_URL']
+        key = os.environ['RETAIL_BACKEND_API_KEY']
+        language = os.environ['LANGUAGE']
+        card = os.environ['AUDIO_CARD_ID']
+        speaker = os.environ['RETAIL_SPEAKER']
+        if not re.fullmatch(r'https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?', url):
+            raise SystemExit('Enter a backend origin URL without a path.')
+        if not re.fullmatch(r'[A-Fa-f0-9]{64}', key):
+            raise SystemExit('The backend access key must contain 64 hexadecimal characters.')
+        if language not in ('zh', 'en') or not re.fullmatch(r'[0-9]+', card) or speaker not in ('0', '1'):
+            raise SystemExit('Invalid language, microphone card or speaker setting.')
+        p = Path(sys.argv[1])
+        text = p.read_text()
+        fields = [
+            (r'^(  default_language: ).*$', json.dumps(language)),
+            (r'^(    card_id: ).*$', json.dumps(card)),
+            (r'^(  speaker:\n    enabled: ).*$', 'true' if speaker == '1' else 'false'),
+            (r'^(  base_url: ).*$', json.dumps(url.rstrip('/'))),
+            (r'^(      X-API-Token: ).*$', json.dumps(key)),
+        ]
+        for pattern, value in fields:
+            text, count = re.subn(pattern, lambda m: m.group(1) + value, text, flags=re.M)
+            if count != 1:
+                raise SystemExit('Client configuration layout not recognised: %r matched %d times.' % (pattern, count))
+        config_lines = '\n'.join(line for line in text.splitlines() if not line.lstrip().startswith('#'))
+        if re.search(r'__[A-Z_]+__', config_lines):
+            raise SystemExit('Client configuration has unresolved placeholders.')
+        fd, tmp = tempfile.mkstemp(prefix='.voice-client.', dir=str(p.parent))
+        try:
+            with os.fdopen(fd, 'w') as handle:
+                handle.write(text)
+            os.chmod(tmp, 0o600)
+            os.replace(tmp, p)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        print('Client text upload configured.')
+        PY
+      name_i18n:
+        zh: 配置客户端转写上传
+
+  after:
+    - name: Wait for the first transcript
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      run: |
+        for i in $(seq 1 12); do
+          if ls "/data-iot/retail-voice"/cache/asr/*.json >/dev/null 2>&1; then
+            echo "transcripts are being written"; exit 0
+          fi
+          sleep 5
+        done
+        echo "no transcript yet - speak near the array and re-check, see the verification step"
+      ignore_error: true
+      name_i18n:
+        zh: "\u7B49\u5F85\u7B2C\u4E00\u6761\u8F6C\u5199\u7ED3\u679C"
+
 remote_overrides:
   # Remote view: the dashboard is reached at the SSH target's address.
   post_deployment:
