@@ -132,6 +132,10 @@ user_inputs:
       pattern: "^[A-Fa-f0-9]{64}$"
 
 remote_overrides:
+  # Remote view: the dashboard is reached at the SSH target's address.
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8090"
   remote_path: /data-iot/retail-voice
   compose_dir: assets/docker
   detection:
@@ -239,9 +243,10 @@ remote_overrides:
     - {id: username, name: SSH Username, type: text, required: true, default: "root", name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: false, placeholder: "(empty on a stock OpenWrt image)", name_i18n: {zh: SSH 密码}, description_i18n: {zh: 出厂 OpenWrt 镜像默认为空}}
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: true
-  url: "http://{{host}}:8090"
+  url: "http://localhost:8090"
 
 # The retired smart_retail_voice_ai package carried `reboot_recommended` /
 # `reboot_message` here. Neither is a spec field (see

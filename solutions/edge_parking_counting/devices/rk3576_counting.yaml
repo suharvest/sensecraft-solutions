@@ -28,7 +28,7 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"
+    PARKING_MODELS_DIR: "./models"  # local: next to the compose file; remote: remote_overrides.environment
 ssh:
   port: 22
   default_user: recomputer
@@ -51,12 +51,11 @@ actions:
       name_i18n: {zh: 查找板载 AI 与视频解码库}
       run: |
         set -eu
-        ROOT=""
-        for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
-          if [ -f "$r/docker-compose.rk3576.yml" ]; then ROOT="$r"; break; fi
-        done
-        if [ -z "$ROOT" ]; then
-          echo "docker-compose.rk3576.yml not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+        # Local deploy: actions run from the solution directory and the compose
+        # file is in assets/ (the remote copy is in remote_overrides.actions).
+        ROOT="assets"
+        if [ ! -f "$ROOT/docker-compose.rk3576.yml" ]; then
+          echo "docker-compose.rk3576.yml not found in $PWD/$ROOT" >&2
           exit 1
         fi
         pick() {
@@ -101,7 +100,9 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        MODELS_DIR="/home/{{username}}/edge-parking-counting-rk3576/models"
+        # Local deploy: assets/models, which PARKING_MODELS_DIR (./models) mounts
+        # from the compose file's directory.
+        MODELS_DIR="assets/models"
         BUNDLE="count_vehicle416_rk3576-26acb5d42297.tar.gz"
         BUNDLE_SHA="26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd"
         URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz"
@@ -137,12 +138,11 @@ actions:
         HTTP_PORT: '{{http_port}}'
       run: |
         set -e
-        CONFIG=""
-        for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
-          if [ -f "$r/config/counting-rk3576.json" ]; then CONFIG="$r/config/counting-rk3576.json"; break; fi
-        done
-        if [ -z "$CONFIG" ]; then
-          echo "config/counting-rk3576.json not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+        # Local deploy: actions run from the solution directory; the preset is
+        # rendered in place next to the compose file in assets/.
+        CONFIG="assets/config/counting-rk3576.json"
+        if [ ! -f "$CONFIG" ]; then
+          echo "$CONFIG not found in $PWD" >&2
           exit 1
         fi
         python3 - "$CONFIG" <<'PY'
@@ -417,5 +417,289 @@ user_inputs:
     validation:
       pattern: "^[0-9]{1,5}$"
 remote_overrides:
+  # Remote deploy: the actions as they run over SSH, with absolute paths
+  # under the SSH user's home. A full copy, because remote_overrides.actions
+  # replaces the base actions wholesale.
+  actions:
+    after_upload:
+      - name: Find the board's AI and video libraries
+        name_i18n: {zh: 查找板载 AI 与视频解码库}
+        run: |
+          set -eu
+          ROOT=""
+          for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
+            if [ -f "$r/docker-compose.rk3576.yml" ]; then ROOT="$r"; break; fi
+          done
+          if [ -z "$ROOT" ]; then
+            echo "docker-compose.rk3576.yml not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+            exit 1
+          fi
+          pick() {
+            for c in "$@"; do
+              if [ -e "$c" ]; then echo "$c"; return 0; fi
+            done
+            return 1
+          }
+          missing=""
+          RKNNRT=$(pick /usr/lib/librknnrt.so /usr/lib/aarch64-linux-gnu/librknnrt.so /usr/lib/aarch64-linux-gnu/librknnrt.so.* /usr/lib/librknnrt.so.*) || missing="$missing RKNN-runtime(librknnrt)"
+          RGA=$(pick /usr/lib/aarch64-linux-gnu/librga.so.2 /usr/lib/aarch64-linux-gnu/librga.so.2.* /usr/lib/librga.so.2) || missing="$missing RGA(librga.so.2)"
+          MPP=$(pick /usr/lib/aarch64-linux-gnu/librockchip_mpp.so.1 /usr/lib/aarch64-linux-gnu/librockchip_mpp.so.0 /usr/lib/aarch64-linux-gnu/librockchip_mpp.so) || missing="$missing MPP(librockchip_mpp)"
+          MPP_PLUGIN=$(pick /lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgstrockchipmpp.so) || missing="$missing gstreamer1.0-rockchip(libgstrockchipmpp)"
+          DRI=$(pick /dev/dri) || missing="$missing /dev/dri"
+          LIBDIR=""
+          for d in /lib/aarch64-linux-gnu /usr/lib/aarch64-linux-gnu; do
+            ok=1
+            for f in libgstreamer-1.0.so.0 libgstbase-1.0.so.0 libgstvideo-1.0.so.0 libgstallocators-1.0.so.0 libgstcodecparsers-1.0.so.0 gstreamer-1.0/libgstvideoparsersbad.so; do
+              [ -e "$d/$f" ] || ok=0
+            done
+            if [ "$ok" -eq 1 ]; then LIBDIR="$d"; break; fi
+          done
+          [ -n "$LIBDIR" ] || missing="$missing gstreamer1.0-plugins-bad(libgstvideoparsersbad)"
+          if [ -n "$missing" ]; then
+            echo "MISSING_BOARD_LIBRARIES:$missing" >&2
+            echo "Install the board vendor's RKNN runtime, Rockchip MPP/RGA, gstreamer1.0-rockchip and gstreamer1.0-plugins-bad, then deploy again." >&2
+            exit 1
+          fi
+          cat > "$ROOT/.env" <<EOF_ENV
+          PARKING_RKNNRT_LIB=$RKNNRT
+          PARKING_RGA_LIB=$RGA
+          PARKING_MPP_LIB=$MPP
+          PARKING_MPP_PLUGIN=$MPP_PLUGIN
+          PARKING_DRI_DEVICE=$DRI
+          PARKING_HOST_LIB_DIR=$LIBDIR
+          EOF_ENV
+          mkdir -p "$ROOT/data"
+          echo "wrote $ROOT/.env"
+          cat "$ROOT/.env"
+      - name: Download the vehicle model
+        name_i18n: {zh: 下载车辆识别模型}
+        timeout: 1800
+        run: |
+          set -eu
+          MODELS_DIR="/home/{{username}}/edge-parking-counting-rk3576/models"
+          BUNDLE="count_vehicle416_rk3576-26acb5d42297.tar.gz"
+          BUNDLE_SHA="26acb5d42297d7ebabfa18b01c4076df4f7cd0180814732840b9c80e843516bd"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/count_vehicle416_rk3576-26acb5d42297.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+            echo "66bb1a5d29b1bdab7f49707d4d3141a7e846d51fbed428de4bdbbde83ef9d451  $MODELS_DIR/vehicle_416.rk3576.w8a8.rknn" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
+      - name: Write the counting settings
+        name_i18n: {zh: 写入计数设置}
+        env:
+          SITE_ID: '{{site_id}}'
+          CAMERA_ID: '{{camera_id}}'
+          RTSP_URL: '{{rtsp_url}}'
+          STREAM_CODEC: '{{stream_codec}}'
+          MQTT_HOST: '{{mqtt_host}}'
+          MQTT_PORT: '{{mqtt_port}}'
+          MQTT_USERNAME: '{{mqtt_username}}'
+          MQTT_PASSWORD: '{{mqtt_password}}'
+          CAPACITY: '{{capacity}}'
+          HTTP_PORT: '{{http_port}}'
+        run: |
+          set -e
+          CONFIG=""
+          for r in "/home/{{username}}/edge-parking-counting-rk3576/rk3576_counting" "assets"; do
+            if [ -f "$r/config/counting-rk3576.json" ]; then CONFIG="$r/config/counting-rk3576.json"; break; fi
+          done
+          if [ -z "$CONFIG" ]; then
+            echo "config/counting-rk3576.json not found (tried /home/{{username}}/edge-parking-counting-rk3576/rk3576_counting and assets)" >&2
+            exit 1
+          fi
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+          if config.get("schema") != "vb.config/1":
+              raise SystemExit(f"{path} is not a vb.config/1 preset")
+
+
+          def env_int(name, low, high, label):
+              raw = os.environ.get(name, "").strip()
+              try:
+                  value = int(raw)
+              except ValueError:
+                  raise SystemExit(f"{label} must be a whole number, got {raw!r}")
+              if not low <= value <= high:
+                  raise SystemExit(f"{label} must be between {low} and {high}, got {value}")
+              return value
+
+
+          site_id = os.environ["SITE_ID"].strip()
+          camera_id = os.environ["CAMERA_ID"].strip()
+          device_id = f"{site_id}-{camera_id}"
+          if len(device_id) > 32:
+              raise SystemExit("Site ID + camera ID are too long together; keep them to 31 characters in total")
+          mqtt_port = env_int("MQTT_PORT", 1, 65535, "MQTT port")
+          http_port = env_int("HTTP_PORT", 1, 65535, "Counter port")
+          capacity = env_int("CAPACITY", 0, 100000, "Total spaces")
+          rtsp_url = os.environ["RTSP_URL"].strip()
+          if not rtsp_url.lower().startswith(("rtsp://", "rtsps://")):
+              raise SystemExit("Camera stream URL must start with rtsp://")
+
+          config["device_id"] = device_id
+          config["state_dir"] = "/data/edge-parking"
+          if os.environ.get("MODEL_SHA256"):
+              config.setdefault("backend", {})["model_sha256"] = os.environ["MODEL_SHA256"]
+          health = config.setdefault("health", {})
+          health["host"] = "0.0.0.0"
+          if os.environ.get("HEALTH_PORT"):
+              health["port"] = env_int("HEALTH_PORT", 1, 65535, "Status port")
+
+          mqtt = config.setdefault("mqtt", {})
+          mqtt["host"] = os.environ["MQTT_HOST"].strip()
+          mqtt["port"] = mqtt_port
+          mqtt["client_id"] = device_id
+          mqtt["username"] = os.environ.get("MQTT_USERNAME", "")
+          mqtt["password"] = os.environ.get("MQTT_PASSWORD", "")
+          mqtt["topic_root"] = f"{site_id}/parking/{device_id}"
+
+          template = (config.get("streams") or [{}])[0]
+          options = dict(template.get("options") or {})
+          if os.environ.get("STREAM_CODEC"):
+              options["codec"] = os.environ["STREAM_CODEC"]
+          config["streams_file"] = ""
+          config["streams"] = [{
+              "stream_id": camera_id,
+              "url": rtsp_url,
+              "name": "",
+              "transport": template.get("transport", "tcp"),
+              "score_threshold": None,
+              "options": options,
+          }]
+
+          app = config.setdefault("app", {}).setdefault("options", {})
+          app["site_id"] = site_id
+          app_mqtt = app.setdefault("mqtt", {})
+          app_mqtt["host"] = mqtt["host"]
+          app_mqtt["port"] = mqtt_port
+          app_mqtt["username"] = mqtt["username"]
+          app_mqtt["password"] = mqtt["password"]
+          app.setdefault("http", {})["port"] = http_port
+          app["state_dir"] = "/data/edge-parking"
+          counting = app.setdefault("counting", {})
+          # Line, entry side and vehicles already inside are set on /counting/editor after
+          # deploy; the app keeps them in state_dir (line and entry side in
+          # app-options.override.json, vehicles inside in the occupancy state), so a
+          # redeploy does not reset them. capacity and the other counting keys below
+          # apply on every deploy (the override holds only line / in_side since the
+          # 20261009b images). First-start defaults: vertical line through the
+          # middle, standard entry side, 0 vehicles inside.
+          counting["line"] = {"a": [0.5, 0.05], "b": [0.5, 0.95]}
+          counting["in_side"] = "positive"
+          counting["capacity"] = capacity
+          counting["initial_occupancy"] = 0
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2, ensure_ascii=False)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"config  = {path}")
+          print(f"camera  = {camera_id} -> topics {site_id}/parking/{camera_id}/crossing and /occupancy")
+          print(f"line    = {counting['line']} in_side={counting['in_side']}")
+          PY
+    after:
+      - name: Wait for the counting service to start
+        name_i18n:
+          zh: 等待计数服务启动
+        timeout: 130
+        ignore_error: false
+        env:
+          PARKING_HEALTH_PORT: "8099"
+          PARKING_HEALTH_DEADLINE_SECONDS: "120"
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json
+          import math
+          import os
+          import signal
+          import time
+          import urllib.error
+          import urllib.request
+
+          raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+          try:
+              port = int(raw_port)
+          except (TypeError, ValueError):
+              print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+              raise SystemExit(2)
+          if not 1 <= port <= 65535:
+              print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+              raise SystemExit(2)
+          try:
+              deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+          except ValueError:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+              raise SystemExit(2)
+          if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+              raise SystemExit(2)
+
+          url = f"http://127.0.0.1:{port}/healthz"
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          deadline = time.monotonic() + deadline_seconds
+          last_reason = "no response"
+
+          def request_timeout(_signum, _frame):
+              raise TimeoutError("request budget expired")
+
+          signal.signal(signal.SIGALRM, request_timeout)
+          while time.monotonic() < deadline:
+              request_budget = min(2.0, deadline - time.monotonic())
+              if request_budget <= 0:
+                  break
+              try:
+                  request = urllib.request.Request(url, method="GET")
+                  signal.setitimer(signal.ITIMER_REAL, request_budget)
+                  with opener.open(request, timeout=request_budget) as response:
+                      if response.status != 200:
+                          last_reason = f"HTTP {response.status}"
+                      else:
+                          try:
+                              payload = response.read(1024 * 1024 + 1)
+                              if len(payload) > 1024 * 1024:
+                                  last_reason = "HTTP 200 response exceeds 1 MiB"
+                                  continue
+                              body = json.loads(payload.decode("utf-8"))
+                          except (UnicodeDecodeError, json.JSONDecodeError):
+                              last_reason = "HTTP 200 with non-JSON response"
+                          else:
+                              if (time.monotonic() < deadline
+                                      and isinstance(body, dict)
+                                      and body.get("status") == "ok"):
+                                  print(f"Readiness confirmed at {url}", flush=True)
+                                  raise SystemExit(0)
+                              last_reason = "HTTP 200 JSON status is not ok"
+              except urllib.error.HTTPError as error:
+                  last_reason = f"HTTP {error.code}"
+              except (urllib.error.URLError, TimeoutError, OSError) as error:
+                  last_reason = f"connection error: {error.__class__.__name__}"
+              finally:
+                  signal.setitimer(signal.ITIMER_REAL, 0)
+              remaining = deadline - time.monotonic()
+              if remaining > 0:
+                  time.sleep(min(0.5, remaining))
+
+          print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+          raise SystemExit(1)
+          PY
   environment:
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-counting-rk3576/models"

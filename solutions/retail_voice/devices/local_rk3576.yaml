@@ -146,6 +146,10 @@ user_inputs:
       pattern: "^[A-Fa-f0-9]{64}$"
 
 remote_overrides:
+  # Remote view: the dashboard is reached at the SSH target's address.
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8090"
   remote_path: /home/{{username}}/retail_voice
   compose_dir: assets/docker
   detection:
@@ -245,6 +249,7 @@ remote_overrides:
     - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: true
-  url: "http://{{host}}:8090"
+  url: "http://localhost:8090"

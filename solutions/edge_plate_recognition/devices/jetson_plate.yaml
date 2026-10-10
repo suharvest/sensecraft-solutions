@@ -193,14 +193,11 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        # Remote: compose_dir is uploaded to {remote_path}/{device id}; local: the
-        # solution's assets/jetson (actions run from the solution directory).
-        ROOT=""
-        for root in "/home/{{username}}/edge-parking/jetson_plate" "/home/{{username}}/edge-parking" "assets/jetson"; do
-          if [ -f "$root/docker-compose.yml" ]; then ROOT="$root"; break; fi
-        done
-        if [ -z "$ROOT" ]; then
-          echo "docker-compose.yml not found (tried /home/{{username}}/edge-parking/jetson_plate, /home/{{username}}/edge-parking and assets/jetson)" >&2
+        # Local deploy: actions run from the solution directory and the compose
+        # file is in assets/jetson (the remote copy is in remote_overrides.actions).
+        ROOT="assets/jetson"
+        if [ ! -f "$ROOT/docker-compose.yml" ]; then
+          echo "docker-compose.yml not found in $PWD/$ROOT" >&2
           exit 1
         fi
         MODELS_DIR="$ROOT/models"
@@ -240,16 +237,11 @@ actions:
       run: |
         set -e
         # The compose file mounts ./config/plate.json; render the vb.config/1
-        # preset in place next to it. Remote view: compose_dir is uploaded to
-        # /home/<user>/edge-parking/jetson_plate; local view: assets/jetson in the solution.
-        CONFIG=""
-        for root in "/home/{{username}}/edge-parking/jetson_plate" "/home/{{username}}/edge-parking" "assets/jetson"; do
-          if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
-            CONFIG="$root/config/plate.json"; break
-          fi
-        done
-        if [ -z "$CONFIG" ]; then
-          echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking/jetson_plate, /home/{{username}}/edge-parking and assets/jetson)" >&2
+        # preset in place next to it. Local deploy: actions run from the solution
+        # directory, so that is assets/jetson.
+        CONFIG="assets/jetson/config/plate.json"
+        if [ ! -f "assets/jetson/docker-compose.yml" ] || [ ! -f "$CONFIG" ]; then
+          echo "config/plate.json not found next to docker-compose.yml in $PWD/assets/jetson" >&2
           exit 1
         fi
         mkdir -p "$(dirname "$CONFIG")/../data"
@@ -384,6 +376,261 @@ user_inputs:
     description_i18n: {zh: 服务用来报告运行状态的端口。保持 8099，除非 Jetson 上已有别的程序占用。}
 
 remote_overrides:
+  # Remote deploy: the actions as they run over SSH, with absolute paths
+  # under the SSH user's home. A full copy, because remote_overrides.actions
+  # replaces the base actions wholesale.
+  actions:
+    before:
+      - name: Check the Jetson module and JetPack version
+        name_i18n: {zh: 检查 Jetson 模组与 JetPack 版本}
+        ignore_error: false
+        run: |
+          set -eu
+          # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
+          want="p3767-0000 p3767-0001 p3767-0003 p3767-0004"
+          compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
+          rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
+          trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
+          echo "module:   ${compat:-unknown}"
+          echo "L4T:      ${rel:-unknown}"
+          echo "TensorRT: ${trt:-not found}"
+          ok=0
+          for m in $want; do
+            case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "UNSUPPORTED_JETSON_MODULE: this solution supports Jetson Orin Nano or Orin NX (reComputer J30 / J40) only; this board reports '${compat:-unknown}'. Use one of those, or an RK3588 / RK3576 host." >&2
+            exit 1
+          fi
+          case "$rel" in
+            "# R36 (release), REVISION: 4."*) ;;
+            *) echo "UNSUPPORTED_JETPACK: this solution needs JetPack 6.2 (L4T R36.4); this board reports '${rel:-unknown}'. Flash JetPack 6.2." >&2; exit 1 ;;
+          esac
+          case "$trt" in
+            10.3.*) ;;
+            *) echo "UNSUPPORTED_TENSORRT: this solution needs TensorRT 10.3 as shipped with JetPack 6.2; this board has '${trt:-none}'." >&2; exit 1 ;;
+          esac
+          echo "Jetson module and JetPack version OK"
+      - name: Check the NVIDIA container runtime
+        run: |
+          set -e
+          if [ ! -f /etc/nv_tegra_release ]; then
+            echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+            exit 1
+          fi
+          head -1 /etc/nv_tegra_release
+          if ! docker info 2>/dev/null | grep -qi nvidia; then
+            echo "WARNING: nvidia runtime missing — inference will fail" >&2
+            echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+          fi
+          echo "Jetson runtime OK"
+        name_i18n:
+          zh: 检查 NVIDIA 容器运行时
+
+    after:
+      - name: Wait for the plate recognition service to start
+        name_i18n:
+          zh: 等待车牌识别服务启动
+        timeout: 130
+        ignore_error: false
+        env:
+          PARKING_HEALTH_PORT: "{{health_port}}"
+          PARKING_HEALTH_DEADLINE_SECONDS: "120"
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json
+          import math
+          import os
+          import signal
+          import time
+          import urllib.error
+          import urllib.request
+
+          raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+          try:
+              port = int(raw_port)
+          except (TypeError, ValueError):
+              print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+              raise SystemExit(2)
+          if not 1 <= port <= 65535:
+              print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+              raise SystemExit(2)
+          try:
+              deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+          except ValueError:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+              raise SystemExit(2)
+          if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+              raise SystemExit(2)
+
+          url = f"http://127.0.0.1:{port}/healthz"
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          deadline = time.monotonic() + deadline_seconds
+          last_reason = "no response"
+
+          def request_timeout(_signum, _frame):
+              raise TimeoutError("request budget expired")
+
+          signal.signal(signal.SIGALRM, request_timeout)
+          while time.monotonic() < deadline:
+              request_budget = min(2.0, deadline - time.monotonic())
+              if request_budget <= 0:
+                  break
+              try:
+                  request = urllib.request.Request(url, method="GET")
+                  signal.setitimer(signal.ITIMER_REAL, request_budget)
+                  with opener.open(request, timeout=request_budget) as response:
+                      if response.status != 200:
+                          last_reason = f"HTTP {response.status}"
+                      else:
+                          try:
+                              payload = response.read(1024 * 1024 + 1)
+                              if len(payload) > 1024 * 1024:
+                                  last_reason = "HTTP 200 response exceeds 1 MiB"
+                                  continue
+                              body = json.loads(payload.decode("utf-8"))
+                          except (UnicodeDecodeError, json.JSONDecodeError):
+                              last_reason = "HTTP 200 with non-JSON response"
+                          else:
+                              if (time.monotonic() < deadline
+                                      and isinstance(body, dict)
+                                      and body.get("status") == "ok"):
+                                  print(f"Readiness confirmed at {url}", flush=True)
+                                  raise SystemExit(0)
+                              last_reason = "HTTP 200 JSON status is not ok"
+              except urllib.error.HTTPError as error:
+                  last_reason = f"HTTP {error.code}"
+              except (urllib.error.URLError, TimeoutError, OSError) as error:
+                  last_reason = f"connection error: {error.__class__.__name__}"
+              finally:
+                  signal.setitimer(signal.ITIMER_REAL, 0)
+              remaining = deadline - time.monotonic()
+              if remaining > 0:
+                  time.sleep(min(0.5, remaining))
+
+          print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+          raise SystemExit(1)
+          PY
+
+    after_upload:
+      - name: Download the recognition models
+        name_i18n: {zh: 下载识别模型}
+        timeout: 1800
+        run: |
+          set -eu
+          # Remote: compose_dir is uploaded to {remote_path}/{device id}; local: the
+          # solution's assets/jetson (actions run from the solution directory).
+          ROOT=""
+          for root in "/home/{{username}}/edge-parking/jetson_plate" "/home/{{username}}/edge-parking" "assets/jetson"; do
+            if [ -f "$root/docker-compose.yml" ]; then ROOT="$root"; break; fi
+          done
+          if [ -z "$ROOT" ]; then
+            echo "docker-compose.yml not found (tried /home/{{username}}/edge-parking/jetson_plate, /home/{{username}}/edge-parking and assets/jetson)" >&2
+            exit 1
+          fi
+          MODELS_DIR="$ROOT/models"
+          BUNDLE="plate_jetson_orin_nano-b3680529cc01.tar.gz"
+          BUNDLE_SHA="b3680529cc0126ad739835894e689c294d6bb51ca9fcc994fcf7d75c75df6116"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261010/plate_jetson_orin_nano-b3680529cc01.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+            echo "d971442e14c9f38372a08d8e20325c8bb2082a22ea58096ce77bafdeb6b8ba34  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner --strip-components=1 -C "$MODELS_DIR"
+            echo "a4e92ac4f13f96fedd53d57454902aa7e0aaeb3cedc636cebddab7da384e2cef  $MODELS_DIR/plate_det_yolox_tiny_640_fp16.engine" | sha256sum -c -
+            echo "d971442e14c9f38372a08d8e20325c8bb2082a22ea58096ce77bafdeb6b8ba34  $MODELS_DIR/plate_rec_cn_96x32_fp16.engine" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
+      - name: Write the plate recognition config
+        # 改写随包 config/plate.json（vb.config/1 预设）：站点、流、broker、健康端口。
+        env:
+          SITE_ID: '{{site_id}}'
+          CAMERA_ID: '{{camera_id}}'
+          RTSP_URL: '{{rtsp_url}}'
+          MQTT_HOST: '{{mqtt_host}}'
+          MQTT_PORT: '{{mqtt_port}}'
+          MQTT_USERNAME: '{{mqtt_username}}'
+          MQTT_PASSWORD: '{{mqtt_password}}'
+          HEALTH_PORT: '{{health_port}}'
+        run: |
+          set -e
+          # The compose file mounts ./config/plate.json; render the vb.config/1
+          # preset in place next to it. Remote view: compose_dir is uploaded to
+          # /home/<user>/edge-parking/jetson_plate; local view: assets/jetson in the solution.
+          CONFIG=""
+          for root in "/home/{{username}}/edge-parking/jetson_plate" "/home/{{username}}/edge-parking" "assets/jetson"; do
+            if [ -f "$root/docker-compose.yml" ] && [ -f "$root/config/plate.json" ]; then
+              CONFIG="$root/config/plate.json"; break
+            fi
+          done
+          if [ -z "$CONFIG" ]; then
+            echo "config/plate.json not found next to docker-compose.yml (tried /home/{{username}}/edge-parking/jetson_plate, /home/{{username}}/edge-parking and assets/jetson)" >&2
+            exit 1
+          fi
+          mkdir -p "$(dirname "$CONFIG")/../data"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          with open(path) as handle:
+              config = json.load(handle)
+          if config.get("schema") != "vb.config/1":
+              raise SystemExit(f"{path} is not a vb.config/1 preset")
+
+          site_id = os.environ["SITE_ID"]
+          camera_id = os.environ["CAMERA_ID"]
+          mqtt_port = int(os.environ["MQTT_PORT"])
+          health_port = int(os.environ.get("HEALTH_PORT") or "8099")
+          device_id = f"{site_id}-{camera_id}"
+          app = config.setdefault("app", {}).setdefault("options", {})
+          config["device_id"] = device_id
+          config["state_dir"] = "/data/edge-parking"
+          app["site_id"] = site_id
+          config.setdefault("health", {})["port"] = health_port
+          mqtt = config.setdefault("mqtt", {})
+          mqtt["host"] = os.environ["MQTT_HOST"]
+          mqtt["port"] = mqtt_port
+          mqtt["client_id"] = device_id
+          mqtt["username"] = os.environ.get("MQTT_USERNAME", "")
+          mqtt["password"] = os.environ.get("MQTT_PASSWORD", "")
+          mqtt["topic_root"] = f"{site_id}/parking/{device_id}"
+          app.setdefault("mqtt", {})["host"] = os.environ["MQTT_HOST"]
+          app["mqtt"]["port"] = mqtt_port
+          app["mqtt"]["username"] = os.environ.get("MQTT_USERNAME", "")
+          app["mqtt"]["password"] = os.environ.get("MQTT_PASSWORD", "")
+          template = (config.get("streams") or [{}])[0]
+          config["streams"] = [{
+              "stream_id": camera_id,
+              "url": os.environ["RTSP_URL"],
+              "name": "",
+              "transport": template.get("transport", "tcp"),
+              "score_threshold": None,
+              "options": template.get("options", {}),
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2, ensure_ascii=False)
+              handle.write("\n")
+          os.replace(tmp, path)
+          print(f"config  = {path}")
+          print(f"site_id = {app['site_id']}")
+          print(f"stream  = {config['streams'][0]['stream_id']}")
+          PY
+        name_i18n:
+          zh: 写入车牌识别配置
   remote_path: /home/{{username}}/edge-parking
   compose_dir: assets/jetson
   environment:

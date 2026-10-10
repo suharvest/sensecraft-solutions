@@ -83,18 +83,12 @@ actions:
       env:
         INPUT_CAMERA_URLS: "{{camera_urls}}"
       run: |
-        # 引擎把上传内容放在 remote_path/<device_id>/，compose 的相对挂载
-        # （./go2rtc 等）也按 compose 所在目录解析。写 remote_path 根下会
-        # 落到一个没人读的位置，而 fail_fast: false 会把这个失败一并吞掉。
-        # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
-        # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
-        # 未命中的 {} 被静默替换成空串，路径会打到根目录上（非 root 直接
-        # Permission denied）。改为在已上传的内容里定位 compose 文件，不依赖
-        # 任何引擎变量；找不到就明确报错，而不是往错误的位置写。
-        ROOT="/home/{{username}}/recamera-heatmap"
-        COMPOSE=$(find "$ROOT" -maxdepth 3 -name 'docker-compose.yml' -print -quit 2>/dev/null || true)
-        if [ -z "$COMPOSE" ]; then
-          echo "在 $ROOT 下找不到已上传的 docker-compose.yml" >&2
+        # compose 的相对挂载（./go2rtc 等）按 compose 所在目录解析。
+        # 本地部署：action 的 cwd 是方案目录，compose 文件就是 docker.compose_file
+        # 指向的 docker/docker-compose.yml（远程版本在 remote_overrides.actions）。
+        COMPOSE="$PWD/docker/docker-compose.yml"
+        if [ ! -f "$COMPOSE" ]; then
+          echo "在 $PWD 下找不到 docker/docker-compose.yml" >&2
           exit 1
         fi
         COMPOSE_DIR="$(dirname "$COMPOSE")"
@@ -163,6 +157,100 @@ ssh:
   default_user: root
 
 remote_overrides:
+  # Remote deploy: the actions as they run over SSH, with absolute paths
+  # under the SSH user's home. A full copy, because remote_overrides.actions
+  # replaces the base actions wholesale.
+  actions:
+    after:
+      - name: Find the cameras
+        # go2rtc is both the gateway and an ONVIF client: GET /api/onvif runs a
+        # WS-Discovery probe and returns every camera that answered, with the
+        # RTSP URL it advertises. Anything discovery cannot see — a camera on
+        # another subnet, or a backend running off-site — comes from the manual
+        # field instead, and the two are merged.
+        #
+        # Stream names are the camera id the detector publishes, so the
+        # dashboard's $stream variable picks the matching video with no lookup.
+        # Discovered cameras are named by their address until a detector claims
+        # them, because ONVIF has no idea what the operator called the camera.
+        # fail_fast: false — a site with no ONVIF cameras at all is a valid
+        # deployment, not an error.
+        fail_fast: false
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_CAMERA_URLS: "{{camera_urls}}"
+        run: |
+          # 引擎把上传内容放在 remote_path/<device_id>/，compose 的相对挂载
+          # （./go2rtc 等）也按 compose 所在目录解析。写 remote_path 根下会
+          # 落到一个没人读的位置，而 fail_fast: false 会把这个失败一并吞掉。
+          # 不要用 {remote_path} / {device_id}：引擎 action 的模板上下文里
+          # 没有这两个变量（base.py:95-108 只放 user_inputs 默认值 + 连接信息），
+          # 未命中的 {} 被静默替换成空串，路径会打到根目录上（非 root 直接
+          # Permission denied）。改为在已上传的内容里定位 compose 文件，不依赖
+          # 任何引擎变量；找不到就明确报错，而不是往错误的位置写。
+          ROOT="/home/{{username}}/recamera-heatmap"
+          COMPOSE=$(find "$ROOT" -maxdepth 3 -name 'docker-compose.yml' -print -quit 2>/dev/null || true)
+          if [ -z "$COMPOSE" ]; then
+            echo "在 $ROOT 下找不到已上传的 docker-compose.yml" >&2
+            exit 1
+          fi
+          COMPOSE_DIR="$(dirname "$COMPOSE")"
+          CONF="$COMPOSE_DIR/go2rtc/go2rtc.yaml"
+          API=http://127.0.0.1:1984
+
+          # go2rtc has to be up before it can be asked anything.
+          for i in $(seq 1 30); do
+            curl -sf "$API/api" >/dev/null 2>&1 && break
+            sleep 1
+          done
+
+          python3 - "$CONF" "$INPUT_CAMERA_URLS" <<'PYEOF'
+          import json, sys, urllib.request
+
+          conf_path, manual = sys.argv[1], sys.argv[2]
+          streams = {}
+
+          try:
+              with urllib.request.urlopen("http://127.0.0.1:1984/api/onvif", timeout=20) as r:
+                  for dev in json.load(r) or []:
+                      url = dev.get("url") or dev.get("rtsp") or ""
+                      name = (dev.get("name") or "").strip()
+                      if not url:
+                          continue
+                      host = url.split("//")[-1].split("/")[0].split("@")[-1].split(":")[0]
+                      streams[name or host.replace(".", "-")] = url
+              print(f"ONVIF discovery found {len(streams)} camera(s)")
+          except Exception as exc:
+              print(f"ONVIF discovery unavailable ({exc}); using manual entries only")
+
+          for entry in [e.strip() for e in manual.split(",") if e.strip()]:
+              if "=" not in entry:
+                  print(f"skipping malformed entry (want id=url): {entry}")
+                  continue
+              cam_id, url = entry.split("=", 1)
+              streams[cam_id.strip()] = url.strip()
+
+          body = "streams:\n"
+          if streams:
+              for name, url in sorted(streams.items()):
+                  body += f"  {name}: {json.dumps(url, ensure_ascii=False)}\n"
+          else:
+              body += "  {}\n"
+              print("no cameras configured yet — add them at http://<host>:1984")
+
+          with open(conf_path) as fh:
+              text = fh.read()
+          head, _, tail = text.partition("streams: {}")
+          with open(conf_path, "w") as fh:
+              fh.write(head + body.rstrip("\n") + tail)
+          for name in sorted(streams):
+              print("stream:", name)
+          PYEOF
+
+          docker restart recamera-go2rtc >/dev/null 2>&1 || true
+        name_i18n:
+          zh: 查找摄像头
   compose_dir: docker
   remote_path: /home/{{username}}/recamera-heatmap
   detection:

@@ -37,9 +37,10 @@ pre_checks:
 # HEF 从 Hailo Model Zoo 下载，整轮通常在几分钟内完成。
 deploy_timeout: 1800
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: false
-  url: "http://{{host}}:{{panel_port}}/"
+  url: "http://localhost:{{panel_port}}/"
 
 name_i18n:
   zh: reComputer R2000（Hailo-8）
@@ -51,6 +52,10 @@ files:
       sha256: e19856699ed47cf866d23265827f960b263f287dab5e54e82c7ce37e12525a2d
 
 remote_overrides:
+  # Remote view: the panel is reached at the SSH target's address.
+  post_deployment:
+    open_browser: false
+    url: "http://{{host}}:{{panel_port}}/"
   remote_path: /home/{{username}}/fall-detection-hailo
   compose_dir: assets/hailo
   detection:

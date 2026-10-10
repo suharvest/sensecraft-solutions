@@ -42,14 +42,19 @@ pre_checks:
 
 deploy_timeout: 1200
 
+# Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
   open_browser: false
-  url: "http://{{host}}:{{panel_port}}/"
+  url: "http://localhost:{{panel_port}}/"
 
 name_i18n:
   zh: 告警面板主机
 
 remote_overrides:
+  # Remote view: the panel is reached at the SSH target's address.
+  post_deployment:
+    open_browser: false
+    url: "http://{{host}}:{{panel_port}}/"
   remote_path: /home/{{username}}/fall-detection-panel
   compose_dir: assets/panel
   detection:

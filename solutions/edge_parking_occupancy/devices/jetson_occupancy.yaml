@@ -83,8 +83,9 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        U="{{username}}"
-        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy"; else ROOT="$HOME/edge-parking-occupancy"; fi
+        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
+        # ~/edge-parking-occupancy/... (the remote copy is in remote_overrides.actions).
+        ROOT="$HOME/edge-parking-occupancy"
         MODELS_DIR="$ROOT/models"
         BUNDLE="slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
         BUNDLE_SHA="54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5"
@@ -120,17 +121,14 @@ actions:
       run: |
         set -eu
         # Renders config/slots.json (vb.config/1 preset) with the form values
-        # into $ROOT/config.json, the path PARKING_CONFIG points at. Remote: the
-        # compose_dir lands in remote_path/<device id>/; local: cwd is the
-        # solution directory.
-        U="{{username}}"
-        if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy"; else ROOT="$HOME/edge-parking-occupancy"; fi
-        SRC=""
-        for d in "$ROOT/jetson_occupancy" "$ROOT" "$PWD/assets"; do
-          if [ -f "$d/config/slots.json" ] && [ -f "$d/render_config.py" ]; then SRC="$d"; break; fi
-        done
-        if [ -z "$SRC" ]; then
-          echo "config/slots.json not found (looked in $ROOT/jetson_occupancy, $ROOT, $PWD/assets)" >&2
+        # into $ROOT/config.json, the path PARKING_CONFIG points at.
+        # cwd is the solution directory, so the preset is in assets/.
+        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
+        # ~/edge-parking-occupancy/... (the remote copy is in remote_overrides.actions).
+        ROOT="$HOME/edge-parking-occupancy"
+        SRC="$PWD/assets"
+        if [ ! -f "$SRC/config/slots.json" ] || [ ! -f "$SRC/render_config.py" ]; then
+          echo "config/slots.json or render_config.py not found in $SRC" >&2
           exit 1
         fi
         mkdir -p "$ROOT/data"
@@ -287,6 +285,185 @@ user_inputs:
     description: Port of the web page where you draw the bays. Change it if another service on this box already uses 8080. Do not use 8099.
     description_i18n: {zh: 画车位的网页所用端口。这台主机上已有服务占用 8080 时改成别的端口。不要用 8099。}
 remote_overrides:
+  # Remote deploy: the actions as they run over SSH, with absolute paths
+  # under the SSH user's home. A full copy, because remote_overrides.actions
+  # replaces the base actions wholesale.
+  actions:
+    before:
+      - name: Check this Jetson is an Orin Nano or Orin NX on JetPack 6.2
+        name_i18n: {zh: 检查这台 Jetson 是 Orin Nano 或 Orin NX 且系统为 JetPack 6.2}
+        ignore_error: false
+        run: |
+          set -eu
+          # The prebuilt TensorRT engines only load on the module/JetPack they were built on.
+          want="p3767-0000 p3767-0001 p3767-0003 p3767-0004"
+          compat=$(tr '\0' ' ' </proc/device-tree/compatible 2>/dev/null || true)
+          rel=$(head -1 /etc/nv_tegra_release 2>/dev/null || true)
+          trt=$(dpkg-query -W -f='${Version}' libnvinfer10 2>/dev/null || true)
+          echo "module:   ${compat:-unknown}"
+          echo "L4T:      ${rel:-unknown}"
+          echo "TensorRT: ${trt:-not found}"
+          ok=0
+          for m in $want; do
+            case " $compat " in *" nvidia,$m "*) ok=1 ;; esac
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "UNSUPPORTED_JETSON_MODULE: this solution runs on Jetson Orin Nano or Orin NX (reComputer J30 / J40) only; this board reports '${compat:-unknown}'." >&2
+            exit 1
+          fi
+          case "$rel" in
+            "# R36 (release), REVISION: 4."*) ;;
+            *) echo "UNSUPPORTED_JETPACK: this solution needs JetPack 6.2 (L4T R36.4); this board reports '${rel:-unknown}'. Reflash the Jetson with JetPack 6.2." >&2; exit 1 ;;
+          esac
+          case "$trt" in
+            10.3.*) ;;
+            *) echo "UNSUPPORTED_TENSORRT: this solution needs TensorRT 10.3 (part of JetPack 6.2); this board has '${trt:-none}'." >&2; exit 1 ;;
+          esac
+          echo "Jetson Orin Nano / Orin NX with JetPack 6.2: OK"
+    after_upload:
+      - name: Download the detection model
+        name_i18n: {zh: 下载识别模型}
+        timeout: 1800
+        run: |
+          set -eu
+          U="{{username}}"
+          if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy"; else ROOT="$HOME/edge-parking-occupancy"; fi
+          MODELS_DIR="$ROOT/models"
+          BUNDLE="slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+          BUNDLE_SHA="54a7a306d8be4b522a384f343405e1b5aca2d809969151087fd6c22d07b182a5"
+          URL="https://sensecraft-statics.seeed.cc/solution-app/nrd-artifacts/20261008/slots_vehicle640_orin_nano-54a7a306d8be.tar.gz"
+          mkdir -p "$MODELS_DIR"
+          have_models() {
+            echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c - >/dev/null 2>&1 || return 1
+          }
+          if have_models; then
+            echo "Model files already present"
+          else
+            if ! echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE" | sha256sum -c - >/dev/null 2>&1; then
+              # files: 字段在 after_upload 之前放好 bundle；本地部署与不认 files: 的老引擎走这里的下载兜底。
+              curl -fSL --retry 3 -o "$MODELS_DIR/$BUNDLE.part" "$URL"
+              echo "$BUNDLE_SHA  $MODELS_DIR/$BUNDLE.part" | sha256sum -c -
+              mv -f "$MODELS_DIR/$BUNDLE.part" "$MODELS_DIR/$BUNDLE"
+            fi
+            tar -xzf "$MODELS_DIR/$BUNDLE" --no-same-owner -C "$MODELS_DIR"
+            echo "20ed05cbb03f2072df6253675dcdf563de030a3bd845c511a244919eb8bac97b  $MODELS_DIR/vehicle640.fp16.engine" | sha256sum -c -
+          fi
+          ls -l "$MODELS_DIR"
+      - name: Write the parking config
+        name_i18n: {zh: 写入车位检测配置}
+        env:
+          RTSP_URLS: "{{rtsp_urls}}"
+          CAMERA_IDS: "{{camera_ids}}"
+          SITE_ID: "{{site_id}}"
+          MQTT_HOST: "{{mqtt_host}}"
+          MQTT_PORT: "{{mqtt_port}}"
+          MQTT_USERNAME: "{{mqtt_username}}"
+          MQTT_PASSWORD: "{{mqtt_password}}"
+          EDITOR_PORT: "{{editor_port}}"
+        run: |
+          set -eu
+          # Renders config/slots.json (vb.config/1 preset) with the form values
+          # into $ROOT/config.json, the path PARKING_CONFIG points at. Remote: the
+          # compose_dir lands in remote_path/<device id>/; local: cwd is the
+          # solution directory.
+          U="{{username}}"
+          if [ -n "$U" ]; then ROOT="/home/$U/edge-parking-occupancy"; else ROOT="$HOME/edge-parking-occupancy"; fi
+          SRC=""
+          for d in "$ROOT/jetson_occupancy" "$ROOT" "$PWD/assets"; do
+            if [ -f "$d/config/slots.json" ] && [ -f "$d/render_config.py" ]; then SRC="$d"; break; fi
+          done
+          if [ -z "$SRC" ]; then
+            echo "config/slots.json not found (looked in $ROOT/jetson_occupancy, $ROOT, $PWD/assets)" >&2
+            exit 1
+          fi
+          mkdir -p "$ROOT/data"
+          python3 "$SRC/render_config.py" "$SRC/config/slots.json" "$ROOT/config.json"
+    after:
+      - name: Wait for the parking service to start
+        name_i18n:
+          zh: 等待车位检测服务启动
+        timeout: 130
+        ignore_error: false
+        env:
+          PARKING_HEALTH_PORT: "8099"
+          PARKING_HEALTH_DEADLINE_SECONDS: "120"
+        run: |
+          set -e
+          python3 - <<'PY'
+          import json
+          import math
+          import os
+          import signal
+          import time
+          import urllib.error
+          import urllib.request
+
+          raw_port = os.environ.get("PARKING_HEALTH_PORT", "")
+          try:
+              port = int(raw_port)
+          except (TypeError, ValueError):
+              print("Invalid PARKING_HEALTH_PORT: expected an integer", flush=True)
+              raise SystemExit(2)
+          if not 1 <= port <= 65535:
+              print("Invalid PARKING_HEALTH_PORT: expected 1..65535", flush=True)
+              raise SystemExit(2)
+          try:
+              deadline_seconds = float(os.environ.get("PARKING_HEALTH_DEADLINE_SECONDS", "120"))
+          except ValueError:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS", flush=True)
+              raise SystemExit(2)
+          if not math.isfinite(deadline_seconds) or deadline_seconds <= 0:
+              print("Invalid PARKING_HEALTH_DEADLINE_SECONDS: expected a positive value", flush=True)
+              raise SystemExit(2)
+
+          url = f"http://127.0.0.1:{port}/healthz"
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          deadline = time.monotonic() + deadline_seconds
+          last_reason = "no response"
+
+          def request_timeout(_signum, _frame):
+              raise TimeoutError("request budget expired")
+
+          signal.signal(signal.SIGALRM, request_timeout)
+          while time.monotonic() < deadline:
+              request_budget = min(2.0, deadline - time.monotonic())
+              if request_budget <= 0:
+                  break
+              try:
+                  request = urllib.request.Request(url, method="GET")
+                  signal.setitimer(signal.ITIMER_REAL, request_budget)
+                  with opener.open(request, timeout=request_budget) as response:
+                      if response.status != 200:
+                          last_reason = f"HTTP {response.status}"
+                      else:
+                          try:
+                              payload = response.read(1024 * 1024 + 1)
+                              if len(payload) > 1024 * 1024:
+                                  last_reason = "HTTP 200 response exceeds 1 MiB"
+                                  continue
+                              body = json.loads(payload.decode("utf-8"))
+                          except (UnicodeDecodeError, json.JSONDecodeError):
+                              last_reason = "HTTP 200 with non-JSON response"
+                          else:
+                              if (time.monotonic() < deadline
+                                      and isinstance(body, dict)
+                                      and body.get("status") == "ok"):
+                                  print(f"Readiness confirmed at {url}", flush=True)
+                                  raise SystemExit(0)
+                              last_reason = "HTTP 200 JSON status is not ok"
+              except urllib.error.HTTPError as error:
+                  last_reason = f"HTTP {error.code}"
+              except (urllib.error.URLError, TimeoutError, OSError) as error:
+                  last_reason = f"connection error: {error.__class__.__name__}"
+              finally:
+                  signal.setitimer(signal.ITIMER_REAL, 0)
+              remaining = deadline - time.monotonic()
+              if remaining > 0:
+                  time.sleep(min(0.5, remaining))
+
+          print(f"Readiness check failed after {deadline_seconds:g}s: {last_reason}", flush=True)
+          raise SystemExit(1)
+          PY
   environment:
     PARKING_CONFIG: "/home/{{username}}/edge-parking-occupancy/config.json"
     PARKING_MODELS_DIR: "/home/{{username}}/edge-parking-occupancy/models"
