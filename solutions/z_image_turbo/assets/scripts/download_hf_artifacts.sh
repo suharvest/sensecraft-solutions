@@ -26,15 +26,12 @@ RESOLUTION="${2:?RESOLUTION required}"
 WEIGHTS_REPO="Tongyi-MAI/Z-Image-Turbo"
 ENGINES_REPO="harvestsu/z-image-turbo-jetson-trt-artifacts"
 
-# Source the shared HF download helper. It defines hf_download_file /
-# hf_download_subtree and respects $HF_ENDPOINT_HOST for mirror selection.
-#
-# Layout differs between local solution dir (nested under _shared/) and
-# remote deploy dir (flat, helper SCP'd alongside this script). Honor
-# HF_DOWNLOAD_HELPER env var so the remote deployer can point at the
-# flat location explicitly.
-# shellcheck source=../../../_shared/scripts/hf_download.sh
-HF_DOWNLOAD_HELPER="${HF_DOWNLOAD_HELPER:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../_shared/scripts/hf_download.sh}"
+# Source the HF download helper (hf_download.sh, same directory). It defines
+# hf_download_file / hf_download_subtree and respects $HF_ENDPOINT_HOST for
+# mirror selection. On the device the deployer uploads both scripts side by
+# side; HF_DOWNLOAD_HELPER may override the location.
+# shellcheck source=hf_download.sh
+HF_DOWNLOAD_HELPER="${HF_DOWNLOAD_HELPER:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hf_download.sh}"
 source "$HF_DOWNLOAD_HELPER"
 
 # Pick engine subdir from resolution.

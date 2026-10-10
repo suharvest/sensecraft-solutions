@@ -204,6 +204,7 @@ scp package.deb recamera@192.168.42.1:/tmp/ && ssh recamera@192.168.42.1 "opkg i
 
 - 下载脚本里不要硬编码 `huggingface.co`，用环境变量 `HF_ENDPOINT` / `HF_ENDPOINT_HOST` 控制 endpoint，受限网络下可切换镜像
 - 验收：下载脚本的 curl/wget 命令里不出现硬编码 `huggingface.co`（注释里写没关系）
+- 没有共享下载库：模型优先在容器内用 `HF_ENDPOINT` 环境变量下载（部署器会按地区注入镜像）；确需宿主机侧下载脚本时，把 `solutions/z_image_turbo/assets/scripts/hf_download.sh` 复制到本方案的 `assets/scripts/` 并随部署上传
 
 ### Phase 2.6: Docker 镜像与受限网络
 
