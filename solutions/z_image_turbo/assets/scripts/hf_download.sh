@@ -3,7 +3,7 @@
 #
 # This is a library, not an executable. Source it from a deployment script:
 #
-#     source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../../_shared/scripts/hf_download.sh"
+#     source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/hf_download.sh"
 #     hf_download_file  Tongyi-MAI/Z-Image-Turbo tokenizer/tokenizer.json /tmp/tokenizer.json
 #     hf_download_subtree harvestsu/some-repo trt-engines-bf16 /opt/models/engines
 #

@@ -1100,7 +1100,7 @@ def run(
     # --- 1. solution.yaml against solution.schema.json -----------------------
     sol_yaml = sol_path / "solution.yaml"
     if not sol_yaml.is_file():
-        # Not a solution directory (e.g. shared assets like ``_shared/``, or a
+        # Not a solution directory (e.g. a
         # container dir holding nested solutions). Skip rather than fail so
         # iterating ``solutions/*`` stays clean.
         print(f"⊘ {sol_path.name} skipped (no solution.yaml — not a solution directory)")
