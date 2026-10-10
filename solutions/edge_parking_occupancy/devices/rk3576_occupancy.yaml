@@ -26,9 +26,11 @@ docker:
     - name: parking
       required: true
   environment:
-    PARKING_CONFIG: "~/edge-parking-occupancy-rk3576/config.json"
-    PARKING_MODELS_DIR: "~/edge-parking-occupancy-rk3576/models"
-    PARKING_DATA_DIR: "~/edge-parking-occupancy-rk3576/data"
+    # Local deploy: relative to the compose directory (assets/ in the deployment
+    # workspace); remote: remote_overrides.environment.
+    PARKING_CONFIG: "./config.json"
+    PARKING_MODELS_DIR: "./models"
+    PARKING_DATA_DIR: "./data"
     PARKING_DRI_DEVICE: "/dev/dri"
     PARKING_MPP_PLUGIN: "{{mpp_plugin}}"
     PARKING_MPP_LIB: "{{mpp_lib}}"
@@ -92,9 +94,11 @@ actions:
       timeout: 1800
       run: |
         set -eu
-        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
-        # ~/edge-parking-occupancy-rk3576/... (the remote copy is in remote_overrides.actions).
-        ROOT="$HOME/edge-parking-occupancy-rk3576"
+        # Local deploy: models/, config.json and data/ go next to the compose file
+        # in assets/ of the deployment workspace, where PARKING_MODELS_DIR /
+        # PARKING_CONFIG / PARKING_DATA_DIR point (the remote copy is in
+        # remote_overrides.actions).
+        ROOT="assets"
         MODELS_DIR="$ROOT/models"
         BUNDLE="slots_vehicle640_rk3576-ca97c2bca5d1.tar.gz"
         BUNDLE_SHA="ca97c2bca5d1bad22ff72529d508ddad0607c1d2d49bbb205e00d9bcc6c9b10a"
@@ -132,10 +136,13 @@ actions:
         set -eu
         # Renders config/slots-rk3576.json (vb.config/1 preset) with the form
         # values into $ROOT/config.json, the path PARKING_CONFIG points at.
-        # cwd is the solution directory, so the preset is in assets/.
-        # Local deploy: PARKING_MODELS_DIR / PARKING_CONFIG / PARKING_DATA_DIR are
-        # ~/edge-parking-occupancy-rk3576/... (the remote copy is in remote_overrides.actions).
-        ROOT="$HOME/edge-parking-occupancy-rk3576"
+        # cwd is the deployment workspace (a mirror of the solution directory),
+        # so the preset is in assets/.
+        # Local deploy: models/, config.json and data/ go next to the compose file
+        # in assets/ of the deployment workspace, where PARKING_MODELS_DIR /
+        # PARKING_CONFIG / PARKING_DATA_DIR point (the remote copy is in
+        # remote_overrides.actions).
+        ROOT="assets"
         SRC="$PWD/assets"
         if [ ! -f "$SRC/config/slots-rk3576.json" ] || [ ! -f "$SRC/render_config.py" ]; then
           echo "config/slots-rk3576.json or render_config.py not found in $SRC" >&2
