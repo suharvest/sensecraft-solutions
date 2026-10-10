@@ -33,6 +33,21 @@ ssh:
 # after `before`. The remote view does not use this block:
 # remote_overrides.actions replaces it in full.
 actions:
+  before:
+    - name: Check that an ALSA capture device is present
+      # The remote form lists this as an `audio_device` pre-check. The app's
+      # local pre-check runner has no such check type and fails the deploy on
+      # it ("Unknown check type"), so the local view checks here instead.
+      run: |
+        set -e
+        if ! ls /dev/snd/pcmC*c >/dev/null 2>&1; then
+          echo "No ALSA capture device under /dev/snd. Connect the reSpeaker XVF3800 and deploy again." >&2
+          exit 1
+        fi
+        ls /dev/snd/pcmC*c
+      name_i18n:
+        zh: 检查 ALSA 采集设备是否存在
+
   after_upload:
     - name: Configure client transcription upload
       # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
@@ -181,15 +196,21 @@ remote_overrides:
       type: text
       default: "1"
       required: true
+  pre_checks:
+    - type: disk_space
+      min_gb: 6
+      description: At least 6GB for the CPU ASR image, models and recordings
+    - type: audio_device
+      device_path: /dev/snd
+      description: Check that the reSpeaker capture device is present
+      description_i18n:
+        zh: 检查 reSpeaker 采集设备是否存在
+
 pre_checks:
   - type: disk_space
     min_gb: 6
     description: At least 6GB for the CPU ASR image, models and recordings
-  - type: audio_device
-    device_path: /dev/snd
-    description: Check that the reSpeaker capture device is present
-    description_i18n:
-      zh: 检查 reSpeaker 采集设备是否存在
+
 user_inputs:
   - id: LANGUAGE
     name: Recognition language

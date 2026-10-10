@@ -46,6 +46,25 @@ ssh:
 # after `before`. The remote view does not use this block:
 # remote_overrides.actions replaces it in full.
 actions:
+  before:
+    - name: Check the Hailo-8 device and HailoRT library
+      # The remote form lists these as `command` pre-checks, a check type the
+      # app's local pre-check runner does not have, so the local view checks
+      # here instead.
+      run: |
+        set -e
+        if [ ! -e /dev/hailo0 ]; then
+          echo "Hailo-8 device is required for this target (/dev/hailo0 not found); choose the R2000 CPU target if it has none." >&2
+          exit 1
+        fi
+        if [ ! -e /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "HailoRT 4.21.0 host library is required (/usr/lib/libhailort.so.4.21.0 not found)." >&2
+          exit 1
+        fi
+        echo "Hailo-8 device and HailoRT 4.21.0 present"
+      name_i18n:
+        zh: 检查 Hailo-8 设备与 HailoRT 库
+
   after_upload:
     - name: Prepare the platform
       name_i18n:
@@ -191,17 +210,23 @@ remote_overrides:
       name_i18n: {zh: SSH 密码}
       type: password
       required: true
+  pre_checks:
+    - type: disk_space
+      min_gb: 20
+      description: At least 20GB of free space
+    - type: command
+      command: test -e /dev/hailo0
+      description: Hailo-8 device is required for this target; choose CPU capture if absent
+      description_i18n:
+        zh: 此目标需要 Hailo-8 设备；没有该设备时请选择 CPU 采集目标
+    - type: command
+      command: test -e /usr/lib/libhailort.so.4.21.0
+      description: HailoRT 4.21.0 host library is required
+      description_i18n:
+        zh: 需要宿主机 HailoRT 4.21.0 库
+
 pre_checks:
   - type: disk_space
     min_gb: 20
     description: At least 20GB of free space
-  - type: command
-    command: test -e /dev/hailo0
-    description: Hailo-8 device is required for this target; choose CPU capture if absent
-    description_i18n:
-      zh: 此目标需要 Hailo-8 设备；没有该设备时请选择 CPU 采集目标
-  - type: command
-    command: test -e /usr/lib/libhailort.so.4.21.0
-    description: HailoRT 4.21.0 host library is required
-    description_i18n:
-      zh: 需要宿主机 HailoRT 4.21.0 库
+

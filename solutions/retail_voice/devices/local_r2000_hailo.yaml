@@ -34,6 +34,39 @@ ssh:
 # after `before`. The remote view does not use this block:
 # remote_overrides.actions replaces it in full.
 actions:
+  before:
+    - name: Check that an ALSA capture device is present
+      # The remote form lists this as an `audio_device` pre-check. The app's
+      # local pre-check runner has no such check type and fails the deploy on
+      # it ("Unknown check type"), so the local view checks here instead.
+      run: |
+        set -e
+        if ! ls /dev/snd/pcmC*c >/dev/null 2>&1; then
+          echo "No ALSA capture device under /dev/snd. Connect the reSpeaker XVF3800 and deploy again." >&2
+          exit 1
+        fi
+        ls /dev/snd/pcmC*c
+      name_i18n:
+        zh: 检查 ALSA 采集设备是否存在
+
+    - name: Check the Hailo-8 device and HailoRT library
+      # The remote form lists these as `command` pre-checks, a check type the
+      # app's local pre-check runner does not have, so the local view checks
+      # here instead.
+      run: |
+        set -e
+        if [ ! -e /dev/hailo0 ]; then
+          echo "Hailo-8 device is required (/dev/hailo0 not found)." >&2
+          exit 1
+        fi
+        if [ ! -e /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "HailoRT 4.21.0 host library is required (/usr/lib/libhailort.so.4.21.0 not found)." >&2
+          exit 1
+        fi
+        echo "Hailo-8 device and HailoRT 4.21.0 present"
+      name_i18n:
+        zh: 检查 Hailo-8 设备与 HailoRT 库
+
   after_upload:
     - name: Configure client transcription upload
       # Local view: this edits the mirrored assets/docker/config/voice-client.yaml
@@ -162,22 +195,28 @@ remote_overrides:
       type: password
       required: true
       validation: {pattern: "^[A-Fa-f0-9]{64}$"}
+  pre_checks:
+    - type: disk_space
+      min_gb: 6
+      description: At least 6GB for the Hailo Whisper image, models and recordings
+    - type: audio_device
+      device_path: /dev/snd
+      description: Check that the reSpeaker capture device is present
+      description_i18n: {zh: 检查 reSpeaker 采集设备是否存在}
+    - type: command
+      command: test -e /dev/hailo0
+      description: Hailo-8 device is required
+      description_i18n: {zh: 需要 Hailo-8 设备}
+    - type: command
+      command: test -e /usr/lib/libhailort.so.4.21.0
+      description: HailoRT 4.21.0 host library is required
+      description_i18n: {zh: 需要宿主机 HailoRT 4.21.0 库}
+
 pre_checks:
   - type: disk_space
     min_gb: 6
     description: At least 6GB for the Hailo Whisper image, models and recordings
-  - type: audio_device
-    device_path: /dev/snd
-    description: Check that the reSpeaker capture device is present
-    description_i18n: {zh: 检查 reSpeaker 采集设备是否存在}
-  - type: command
-    command: test -e /dev/hailo0
-    description: Hailo-8 device is required
-    description_i18n: {zh: 需要 Hailo-8 设备}
-  - type: command
-    command: test -e /usr/lib/libhailort.so.4.21.0
-    description: HailoRT 4.21.0 host library is required
-    description_i18n: {zh: 需要宿主机 HailoRT 4.21.0 库}
+
 user_inputs:
   - id: LANGUAGE
     name: Recognition language
