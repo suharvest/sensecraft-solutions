@@ -379,6 +379,43 @@ remote_overrides:
     - {id: host, name: Device IP, type: text, required: true, default: "192.168.49.1", placeholder: "192.168.49.1", name_i18n: {zh: 设备 IP}, description: "Default OpenWrt LAN gateway of the reRouter", description_i18n: {zh: reRouter 默认的 OpenWrt LAN 网关地址}}
     - {id: username, name: SSH Username, type: text, required: true, default: "root", name_i18n: {zh: SSH 用户名}}
     - {id: password, name: SSH Password, type: password, required: false, placeholder: "(empty on a stock OpenWrt image)", name_i18n: {zh: SSH 密码}, description_i18n: {zh: 出厂 OpenWrt 镜像默认为空}}
+    - id: LANGUAGE
+      name: Recognition language
+      name_i18n: {zh: 识别语种}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: Primary language of the transcript. The CPU profile covers Chinese and English; pick the one spoken most in the store.
+      description_i18n: {zh: 转写的主要语种。CPU profile 覆盖中文和英文，选门店里说得最多的那个。}
+      options:
+        - {value: "zh", label: "Chinese", label_i18n: {zh: 中文}}
+        - {value: "en", label: "English", label_i18n: {zh: 英文}}
+    - id: AUDIO_CARD_ID
+      name: Microphone card ID
+      name_i18n: {zh: 麦克风声卡编号}
+      type: text
+      default: "1"
+      required: true
+      description: ALSA card number of the reSpeaker XVF3800. Run `arecord -l` on the device; the array shows as ArrayUAC10.
+      description_i18n: {zh: reSpeaker XVF3800 的 ALSA 声卡编号。在设备上运行 `arecord -l`，阵列显示为 ArrayUAC10。}
+      validation:
+        pattern: "^[0-9]+$"
+        message: Card ID is a number
+    - id: RETAIL_BACKEND_URL
+      name: Retail backend URL
+      name_i18n: {zh: 零售后台地址}
+      type: text
+      required: true
+      validation:
+        pattern: "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?/?$"
+    - id: RETAIL_BACKEND_API_KEY
+      name: Retail backend API key
+      name_i18n: {zh: 零售后台 API 密钥}
+      type: password
+      required: true
+      validation:
+        pattern: "^[A-Fa-f0-9]{64}$"
 
 # Local deploy (this machine). The remote view's URL is in remote_overrides.post_deployment.
 post_deployment:
