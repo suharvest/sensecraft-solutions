@@ -4,8 +4,8 @@
   "status_note": "Do not deploy or publish this inventory until the full 16-artifact list, HF revision, and SHA256 values receive final user approval.",
   "source": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-    "revision": "a79ddced7b04e97568d7fc397f99cb9b9e13b8b7",
-    "revision_status": "source frozen candidate; final browser-tested UI and Docker pins recorded; no publish",
+    "revision": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
+    "revision_status": "source frozen candidate; HTTP identity fix included; final image locally QA; no publish",
     "core_revision": "18dbd237d7d3156939549a3dceec16fa99c9b740",
     "docker_revision": "a66e843a90a6da51f4ecdc1dc0540dfdec2a40ab",
     "ui_revision": "a79ddced7b04e97568d7fc397f99cb9b9e13b8b7"
@@ -16,13 +16,13 @@
       {
         "platform": "linux/arm64",
         "tag": "edge-command-workbench:rockchip-rkllm-0.3.0",
-        "archive": "edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-a79ddc.tar",
-        "size_bytes": 291151360,
-        "sha256": "a48788cecc85388cff830c58fe9b56e0a94a9606b9c35176e3c11e5d09c6e70f",
-        "config_sha256": "28af5e39d849881ea8b1fb32b29d798f1c78e934121b331654423fa02a008e1f",
+        "archive": "edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+        "size_bytes": 291154432,
+        "sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
+        "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
         "status": "local_candidate_no_publish",
-        "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-a79ddc.tar",
-        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-a79ddc.tar"
+        "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar"
       }
     ],
     "note": "This is a local candidate archive. It is not a release artifact and has not been uploaded.",
@@ -34,9 +34,9 @@
     "compose_sha256": "ab3e40a114dac797160f83f4b400aa3cd102c649fece317056e3f7a75e62b5e3",
     "kev_helper_source_sha256": "ddad908b6bffb7cac599c43614cacd5eb95d0f668d79ff30278ea7e8c73a3131",
     "sdk_header_sha256": "4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c",
-    "app_web_docker_tree_sha256": "4ef2ef520163def9a74f612c66c4dfccf1606a1522fadcc6a61b48f63f3c56a2",
-    "app_sha256": "d4fa04bb7e0ea6a5e936f028681b10ce7ca6e343c5c43af3f593b6ce65d3338a",
-    "decision_sha256": "a980e8d060c95c4f7793e7ad124ec588ae4d30b0c6ed08d1b5c72a0d867e4341",
+    "app_web_docker_tree_sha256": "551c63260765ee24c7f21ab21e00bc2776c724e12fb77be1189c1f8074266c9f",
+    "app_sha256": "cf4522e6204d9a5124061e5b9c1e7d84c90044a24ca2f9d313b0fdb83c98a1a7",
+    "decision_sha256": "6f27b7e0204de4c85e6a872f7e80efc266f51affba96e9e0d8a962ec1e73aeec",
     "kev_sha256": "85f5ddf0f86bc25a2a4859b54904e4332196efd80cbb7870f5ae5727df588875",
     "uv_lock_sha256": "e1eb0eff3ecbee9e99c5d38c131b109d30d608a26e7e5d91f910bd48b87893e9",
     "ui_app_js_sha256": "52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206",
@@ -241,7 +241,9 @@
     "ui_switch_kev": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-kev-20261011.png",
     "ui_switch_gif": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-20261011.gif",
     "ui_switch_evidence": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-evidence-20261011.json",
-    "ui_switch_source_commit": "199583751f77068a9e1e0e987f80451aa22faec2"
+    "ui_switch_source_commit": "199583751f77068a9e1e0e987f80451aa22faec2",
+    "backend_identity_final_d870": "/dev/shm/kev-rkllm/backend-identity-final-d870-20261011.txt",
+    "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77"
   },
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
   "revision": null,
