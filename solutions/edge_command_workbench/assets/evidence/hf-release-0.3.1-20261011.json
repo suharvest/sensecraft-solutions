@@ -8,7 +8,10 @@
   "source": {
     "commit": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
     "ui_app_js_sha256": "02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e",
-    "candidate_tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review"
+    "candidate_tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+    "repository": "https://github.com/suharvest/laya-on-rk3588-jetson.git",
+    "image_source_commit": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "latest_test_commit": "1ca14e4e62a20d61c6781e2a384f98ca36995c5c"
   },
   "image": {
     "file": "edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",

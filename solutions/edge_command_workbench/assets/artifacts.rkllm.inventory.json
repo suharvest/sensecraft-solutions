@@ -3,13 +3,14 @@
   "status": "ready",
   "status_note": "Published RKLLM 0.3.1 ef82 image plus the existing 2 model and 13 shared artifacts under the existing release prefix; historical d870 image record is retained in image_history.",
   "source": {
-    "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
+    "repository": "https://github.com/suharvest/laya-on-rk3588-jetson.git",
     "revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
     "revision_status": "source/UI ef82; core and decision sources remain the previously verified files; RKLLM 0.3.1 image published at the recorded HF revision",
     "core_revision": "18dbd237d7d3156939549a3dceec16fa99c9b740",
     "docker_revision": "a66e843a90a6da51f4ecdc1dc0540dfdec2a40ab",
     "ui_revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
-    "published_image_note": "RKLLM 0.3.1 image contains the ef82 UI source; core/app.py and decision.py fingerprints remain unchanged from the prior verified source."
+    "published_image_note": "RKLLM 0.3.1 image contains the ef82 UI source; core/app.py and decision.py fingerprints remain unchanged from the prior verified source.",
+    "latest_test_commit": "1ca14e4e62a20d61c6781e2a384f98ca36995c5c"
   },
   "image": {
     "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
