@@ -63,6 +63,16 @@ example `_local`, `_remote`) is only a hint; confirm the type with `validate`
 (§3, dry run) before starting. Remote targets need `host`, `username`
 and either `password` or `key_file`:
 
+Windows native `local` Docker is unsupported by both deployers and returns the
+platform check failure; use a `remote` target over SSH to a Linux Docker host.
+WSL must use the Linux engine binary and is Linux-host evidence, not Windows
+native local Docker support. On macOS, the local target uses the literal
+`docker` executable visible to the new engine process. If Docker Desktop's CLI
+is only in its application bundle, provide that bundle's `bin` directory in a
+temporary engine-process `PATH`; do not alter global shell configuration or
+assume an already-running instance inherits the path. Docker Desktop being
+running is a prerequisite check, not a deployment result.
+
 - Password: `"password": "<the user's password>"`.
 - SSH key: `"key_file": "~/.ssh/id_ed25519"` and no `password` field. The key
   must be a regular file inside `~/.ssh` (or the engine's data directory); a

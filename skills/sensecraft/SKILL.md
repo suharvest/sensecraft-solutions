@@ -17,6 +17,24 @@ solution's configuration, the app's `/api/ai/context`, diagnosing through the
 app's logs) are in `references/app-only.md`. Use them only when the user has
 the app running.
 
+## Host platform boundary
+
+`docker_deploy` target `local` requires a supported Docker host. Windows native
+`docker_local` is intentionally unsupported by both the Python and Rust
+deployers; a Windows CLI can still use a `remote` target over SSH to a Linux
+Docker host. WSL uses the Linux engine binary and Linux host behavior; do not
+describe a WSL run as Windows-native local Docker support. USB device steps
+remain hardware-dependent and require the user to connect and confirm the
+device.
+
+On macOS, local Docker uses the literal `docker` command found by the engine's
+process environment. If Docker Desktop's CLI is only inside its application
+bundle, start a new engine process with a temporary `PATH` containing that
+bundle's `bin` directory; do not change global shell configuration or assume an
+existing engine daemon inherits the new path. Verify the new engine instance
+with `doctor --json` before selecting a local target. A running Docker Desktop
+daemon is a host prerequisite, not evidence that a deployment has passed.
+
 ## Rules
 
 1. **Credentials and secrets:** never invent a host, username or password —
