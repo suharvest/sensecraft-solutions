@@ -233,7 +233,7 @@
     "model_switch_final_chip": "/dev/shm/kev-rkllm/model-switch-final-ui-20261011.txt",
     "image_archive_verify_final_chip": "/dev/shm/kev-rkllm/image-archive-verify-final-chip-20261011.txt",
     "bootstrap_cached_rk3588": "/dev/shm/kev-bootstrap-cached-rk3588/bootstrap.log",
-    "bootstrap_cached_status": "all 13 cached artifact checksums matched; exact image config verified; no network download",
+    "bootstrap_cached_status": "historical RK3588 cached bootstrap log: 11 cached file checksums matched (1 image archive + 10 target-filtered files); exact image tag/config verified; no network download; log references prior final-chip archive/config, not the current final-d870 archive",
     "qa_final_a79_golden": "/dev/shm/kev-rkllm/qa-final-a79-golden.ndjson",
     "image_archive_verify_final_a79": "/dev/shm/kev-rkllm/image-archive-verify-final-a79ddc-20261011.txt",
     "served_ui_app_js_sha256": "52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206",
