@@ -72,6 +72,10 @@
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
+### RK3576 第二轮验证
+
+第二轮 cat-remote 验证使用相同固定版本镜像，5 个 golden 请求全部 HTTP 200，5/5 选择结果正确。2069 词边界请求编码为 2088 tokens，在进入 NPU 前以 HTTP 422 拒绝。该轮使用镜像内置 helper，没有 external helper、RKNN runtime 或 GOMP mount。原始证据见 [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/)。
+
 ## 套餐: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 此套餐在 Radxa RK3588 上部署已测试的 8K Kev 产物契约，已验证部署上下文为 8192 tokens；结果只适用于已测试设备，不推断其他可用内存不同的板卡。

@@ -72,6 +72,10 @@ Open `http://<device-ip>:18768`. Verification requires `/api/health` to report `
 
 Submit a request with candidate commands after the health check reports a ready Kev model.
 
+### RK3576 second validation
+
+The second cat-remote validation used the same pinned image and verified five HTTP 200 golden cases with 5/5 expected selections. The 2069-word boundary request encoded to 2088 tokens and was rejected with HTTP 422 before NPU execution. This run used the image-built helper and had no external helper, RKNN runtime, or GOMP mount. Raw evidence is [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/).
+
 ## Preset: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 This preset deploys the tested 8K Kev artifact contract on Radxa RK3588. The verified deployment context is 8192 tokens; the result applies to the tested device and does not generalize to other boards with different free memory.
