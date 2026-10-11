@@ -97,6 +97,46 @@ remote_overrides:
     manual_entry: true
   actions:
     before:
+      - name: Fix iptables for Docker on RK3576
+        # Same name as the action in the engine's rk3576 device profile, which
+        # the engine then skips (name-based dedup), so this copy replaces it.
+        # The profile switches to iptables-legacy and restarts Docker whenever
+        # iptables reports nf_tables. The failure it was written for is a
+        # Rockchip BSP kernel built without nf_tables support, where every
+        # nft call fails with "Failed to initialize nft: Protocol not
+        # supported" and Docker cannot start. Boards whose kernel does support
+        # nf_tables already work, so this copy only switches when an nft
+        # listing actually fails with that error.
+        ignore_error: false
+        sudo: true
+        run: |
+          set -e
+          IPT=$(command -v iptables || echo /usr/sbin/iptables)
+          if ! "$IPT" --version 2>&1 | grep -q nf_tables; then
+            echo "iptables already in legacy mode"
+            exit 0
+          fi
+          SUDO=""
+          [ "$(id -u)" -eq 0 ] || SUDO="sudo -n"
+          if OUT=$($SUDO "$IPT" -w -t filter -L -n 2>&1); then
+            echo "iptables uses nf_tables and this kernel supports it; backend and Docker left as is"
+            exit 0
+          fi
+          if ! echo "$OUT" | grep -qiE 'Failed to initialize nft|Protocol not supported'; then
+            echo "Could not check the iptables backend: $OUT" >&2
+            echo "Backend left as is. If Docker fails to start with 'Failed to initialize nft', run:" >&2
+            echo "  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy" >&2
+            echo "  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy" >&2
+            echo "  sudo systemctl restart docker" >&2
+            exit 0
+          fi
+          echo "This kernel has no nf_tables support ($OUT); switching iptables to legacy and restarting Docker"
+          $SUDO update-alternatives --set iptables /usr/sbin/iptables-legacy
+          $SUDO update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+          $SUDO systemctl restart docker 2>/dev/null || true
+          echo "Switched to iptables-legacy"
+        name_i18n:
+          zh: 修复 RK3576 上 Docker 的 iptables 兼容性
       - name: Check NPU availability
         run: |
           set -e
