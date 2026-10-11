@@ -1,57 +1,3 @@
-## 套餐: 远程 RK3576 {#rk3576_remote}
-
-通过 SSH 将本地命令工作台部署到一台 RK3576 Linux 设备。本套餐只面向 RK3576，不包含 Jetson 或 RK3588。
-
-## 步骤 1: 部署工作台 {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}
-
-部署过程会准备固定版本的应用归档、RKNN 模型和 tokenizer，然后在目标设备的 18768 端口启动单容器 Web 工作台。目标设备需要已有 Docker 和 RKNN 运行时库。
-
-### 部署目标 {#rk3576 type=remote device_name="RK3576" config=devices/rk3576_remote.yaml default=true}
-
-部署文件放在目标设备的 `/home/<username>/edge-command-workbench`。流程会跳过 Docker 安装和 Docker 镜像拉取；只有在目标设备没有精确的本地镜像标签时才加载镜像归档。部署前请保留至少 4GB 磁盘空间，安装 Docker 和 `/usr/lib/librknnrt.so`，并提供已测试的 RK3576 NPU DRM 节点 `/dev/dri/card1` 与 `/dev/dri/renderD129`。
-
-填写目标设备 IP 或主机名、SSH 用户名和 SSH 密码。已有兼容本地语音服务的地址为可选项，不需要语音时留空，然后点击 **部署**。
-
-### 接线
-
-1. 给 RK3576 上电，并接入运行 SenseCraft Solution 的电脑所在网络。
-2. 接好设备网络接口，部署期间保持物理连接稳定。
-
-### 部署完成
-
-打开 `http://<device-ip>:18768` 验证页面。页面由已部署的应用提供。浏览器在 localhost 或本地网络打开时可使用 HTTP；可选语音服务要使用浏览器麦克风时，需要 HTTPS 或 localhost。
-
-#### 可选语音服务
-
-只有目标设备已有兼容的本地语音服务时才填写 `VOICE_SERVICE_URL`；本方案不会自动安装语音服务。
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 缺少镜像归档或 tokenizer 校验值 | 在构建归档后补齐发布 manifest 的校验值；脚本会在启动 Docker 前停止。 |
-| 加载后没有目标镜像标签 | 确认归档是 RK3576 arm64 构建，并包含 `edge-command-workbench:rk3576-0.1.0`。 |
-| RKNN 库报错 | 检查目标设备的 `/usr/lib/librknnrt.so`，并保留 compose 中的只读挂载。 |
-| 18768 端口被占用 | 检查占用服务的归属，停止后再重试。 |
-| 工作台无法打开 | 检查目标设备 IP，并确认 `docker compose ps` 显示工作台容器为 healthy。 |
-
-## 步骤 2: 打开工作台 {#verify type=web_dashboard required=true config=devices/dashboard.yaml}
-
-打开已部署的 Web 工作台并提交带候选命令的请求。页面能加载且返回 JSON 决策响应时，表示容器、模型挂载、tokenizer 挂载和 RKNN 后端可访问。
-
-### 部署完成
-
-#### HTTP 检查
-
-打开 `http://<device-ip>:18768/api/health`，确认服务健康。主要决策接口是 18768 端口上的 `POST /api/decide`。
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 健康检查尚未就绪 | 等待模型加载，然后查看 `docker logs edge-command-workbench`。 |
-| 语音按钮不可用 | 保持语音关闭，或填写已有兼容的 `VOICE_SERVICE_URL`；本套餐不会安装 ASR。 |
-
 ## 套餐: RK3576 Kev RKLLM {#rk3576_rkllm_remote}
 
 此套餐在 cat-remote RK3576 上部署已测试的 Kev RKLLM 路径。engine 导出容量为 8192 tokens，但该设备上的部署 guard 和 metadata 将请求限制为 2048 tokens，因为 8K 配置触发了全局 OOM。运行时、engine、head、tokenizer 和 metadata 均作为固定版本外部产物记录。
@@ -109,3 +55,55 @@ RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d00
 image 内置 helper `/opt/kev/libkev_runtime.so` 已校验，SHA-256 为 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`；没有使用外部 helper mount。原始选定请求、响应、耗时、bootstrap、compose 与容器元数据见 [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/)。此前的 `a556`/`d870` 14 文件 bootstrap 记录保留为历史证据，不被替换。此次设备验证不包含 voice 和 ASR。
 
 可选已有语音集成要求浏览器录音页面使用 HTTPS 或 localhost，并获得麦克风权限。普通远端 HTTP 页面不能使用浏览器录音；文字决策不依赖语音。`VOICE_SERVICE_URL` 只连接已有兼容的 `/asr/stream` 服务，不安装或验证 ASR。部署字段提供 server default；当前 UI 配置此可选路径时还需要在 voice drawer 中填写 URL。
+## 套餐: 远程 RK3576 {#rk3576_remote}
+
+通过 SSH 将本地命令工作台部署到一台 RK3576 Linux 设备。本套餐只面向 RK3576，不包含 Jetson 或 RK3588。
+## 步骤 1: 部署工作台 {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}
+
+部署过程会准备固定版本的应用归档、RKNN 模型和 tokenizer，然后在目标设备的 18768 端口启动单容器 Web 工作台。目标设备需要已有 Docker 和 RKNN 运行时库。
+
+### 部署目标 {#rk3576 type=remote device_name="RK3576" config=devices/rk3576_remote.yaml default=true}
+
+部署文件放在目标设备的 `/home/<username>/edge-command-workbench`。流程会跳过 Docker 安装和 Docker 镜像拉取；只有在目标设备没有精确的本地镜像标签时才加载镜像归档。部署前请保留至少 4GB 磁盘空间，安装 Docker 和 `/usr/lib/librknnrt.so`，并提供已测试的 RK3576 NPU DRM 节点 `/dev/dri/card1` 与 `/dev/dri/renderD129`。
+
+填写目标设备 IP 或主机名、SSH 用户名和 SSH 密码。已有兼容本地语音服务的地址为可选项，不需要语音时留空，然后点击 **部署**。
+
+### 接线
+
+1. 给 RK3576 上电，并接入运行 SenseCraft Solution 的电脑所在网络。
+2. 接好设备网络接口，部署期间保持物理连接稳定。
+
+### 部署完成
+
+打开 `http://<device-ip>:18768` 验证页面。页面由已部署的应用提供。浏览器在 localhost 或本地网络打开时可使用 HTTP；可选语音服务要使用浏览器麦克风时，需要 HTTPS 或 localhost。
+
+#### 可选语音服务
+
+只有目标设备已有兼容的本地语音服务时才填写 `VOICE_SERVICE_URL`；本方案不会自动安装语音服务。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 缺少镜像归档或 tokenizer 校验值 | 在构建归档后补齐发布 manifest 的校验值；脚本会在启动 Docker 前停止。 |
+| 加载后没有目标镜像标签 | 确认归档是 RK3576 arm64 构建，并包含 `edge-command-workbench:rk3576-0.1.0`。 |
+| RKNN 库报错 | 检查目标设备的 `/usr/lib/librknnrt.so`，并保留 compose 中的只读挂载。 |
+| 18768 端口被占用 | 检查占用服务的归属，停止后再重试。 |
+| 工作台无法打开 | 检查目标设备 IP，并确认 `docker compose ps` 显示工作台容器为 healthy。 |
+
+## 步骤 2: 打开工作台 {#verify type=web_dashboard required=true config=devices/dashboard.yaml}
+
+打开已部署的 Web 工作台并提交带候选命令的请求。页面能加载且返回 JSON 决策响应时，表示容器、模型挂载、tokenizer 挂载和 RKNN 后端可访问。
+
+### 部署完成
+
+#### HTTP 检查
+
+打开 `http://<device-ip>:18768/api/health`，确认服务健康。主要决策接口是 18768 端口上的 `POST /api/decide`。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 健康检查尚未就绪 | 等待模型加载，然后查看 `docker logs edge-command-workbench`。 |
+| 语音按钮不可用 | 保持语音关闭，或填写已有兼容的 `VOICE_SERVICE_URL`；本套餐不会安装 ASR。 |

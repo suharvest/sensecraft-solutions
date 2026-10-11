@@ -64,23 +64,6 @@ intro:
       description_i18n:
         zh: 已在 Radxa RK3588 上使用固定版本 RKLLM 1.3.1 运行时和 Kev 产物完成 8192-token 部署上下文验证。
   presets:
-    - id: rk3576_remote
-      name: RK3576 Remote
-      name_i18n:
-        zh: 远程 RK3576
-      description: Install the historical RK3576 Laya/RKNN 0.1.0 workbench on one RK3576 device over SSH; its pinned 0.1.0 paths remain separate from the current Kev RKLLM presets.
-      description_i18n:
-        zh: 通过 SSH 将历史 RK3576 Laya/RKNN 0.1.0 工作台部署到一台 RK3576 设备；其固定的 0.1.0 路径与当前 Kev RKLLM 套餐保持独立。
-      device_groups:
-        - id: target
-          name: Target device
-          name_i18n:
-            zh: 目标设备
-          type: single
-          required: true
-          options:
-            - device_ref: rk3576
-          default: rk3576
     - id: rk3576_rkllm_remote
       name: RK3576 Kev RKLLM (2048-token deployment)
       name_i18n:
@@ -115,6 +98,23 @@ intro:
           options:
             - device_ref: rk3588_rkllm
           default: rk3588_rkllm
+    - id: rk3576_remote
+      name: RK3576 Remote
+      name_i18n:
+        zh: 远程 RK3576
+      description: Install the historical RK3576 Laya/RKNN 0.1.0 workbench on one RK3576 device over SSH; its pinned 0.1.0 paths remain separate from the current Kev RKLLM presets.
+      description_i18n:
+        zh: 通过 SSH 将历史 RK3576 Laya/RKNN 0.1.0 工作台部署到一台 RK3576 设备；其固定的 0.1.0 路径与当前 Kev RKLLM 套餐保持独立。
+      device_groups:
+        - id: target
+          name: Target device
+          name_i18n:
+            zh: 目标设备
+          type: single
+          required: true
+          options:
+            - device_ref: rk3576
+          default: rk3576
 
 deployment:
   guide_file: guide.md
