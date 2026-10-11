@@ -53,10 +53,14 @@ serial port, and any user inputs). Serial steps carry both `port` and
 For `docker_deploy` steps pick the target with `"target": "<target id>"` **and
 set `"target_type"` to that target's own type** (`local` / `remote`) — or
 remove `target_type`. Leaving the template's type while switching `target` is
-rejected. Each deploy-info target carries a `type` field: use it. On engine
-builds whose targets have no `type` yet, the target id suffix (for example
-`_local`, `_remote`) is only a hint; confirm the type with `validate` (§3,
-dry run) before starting. Remote targets need `host`, `username`
+rejected. Each deploy-info target carries `type` (`local` / `remote`) and,
+when the target is tied to a board, `device` / `device_name` /
+`device_class` (for example `rk3576`, `RK3576`): pick the target whose
+`type` and device match the user's hardware, and copy its `type` into
+`target_type`. `device` is null for targets that run on any Docker host. On
+engine builds whose targets have no `type` yet, the target id suffix (for
+example `_local`, `_remote`) is only a hint; confirm the type with `validate`
+(§3, dry run) before starting. Remote targets need `host`, `username`
 and either `password` or `key_file`:
 
 - Password: `"password": "<the user's password>"`.
@@ -93,13 +97,37 @@ sensecraft-engine validate --params ./.sensecraft-work/body.json
 ```
 
 It reports parameter errors and previews which verify steps will need the user
-(`verify_required`). It also lists, per device, the side effects the deployment
-will cause on the target (`side_effects`: for example Docker installation,
-Docker daemon restart, writes to `/etc/docker/daemon.json`, replacing
-containers). Read that list and tell the user what it contains. If the user
-forbade Docker restarts or daemon.json changes, or `side_effects` lists one of
-them and the user has not agreed, stop and ask before starting. Builds without
-a `side_effects` field: assume a remote Docker deploy may write
+(`verify_required`). It also lists the changes the deployment may make on each
+target beyond the solution's own files and containers, as
+`side_effects: {"<step_id>": [{"kind", "what", "when", "decided_in"}, ...]}`:
+
+| `kind` | Change on the target |
+|---|---|
+| `sudo` | Commands run with `sudo` (Docker through `sudo docker`, actions marked `sudo`) |
+| `daemon_json_write` | Merges `registry-mirrors` into `/etc/docker/daemon.json` (other keys kept) |
+| `docker_daemon_restart` | Restarts the Docker daemon (all containers on the device restart with it) |
+| `package_install` | Installs packages (Docker / Compose, `.deb`, apt / pip in an action) |
+| `system_config` | Changes system settings (`usermod`, `update-alternatives`, services) |
+| `reboot` | Reboots the device |
+| `firmware_flash` | Flashes firmware |
+| `local_script` | Runs a script on this computer |
+
+`what` says what happens in plain words, `when` the condition: `always`, a
+condition the engine checks during the deploy (for example "the device cannot
+reach Docker Hub"), or "the action's script decides". `decided_in` points at
+engine code; it is for bug reports, not something to read.
+
+Tell the user what the list contains. If the user forbade a kind that is
+listed (Docker restart, daemon.json changes, reboot, package installs) and
+has not agreed to it, stop and ask before starting, also when `when` is a
+condition: the deploy may meet it. Exception: when the action's script is in
+the solution's step file (`devices/<x>.yaml` under `actions` or
+`remote_overrides.actions` in `~/.sensecraft/content/solutions/<id>/`, or
+`$SC_HOME/content/solutions/<id>/` when `SC_HOME` is set), read
+it; if its condition can be checked read-only on the device and is not met,
+say so and continue. Actions that come from the engine's built-in device
+profile are not in that file: treat them as possible. Builds without a
+`side_effects` field: assume a remote Docker deploy may write
 `/etc/docker/daemon.json` and ask when the user restricted that.
 
 Before the deploy, save the target's current Docker daemon config so changes
@@ -168,18 +196,23 @@ as described in `verify.md` §1.
 `completed` is not enough. Check the result is actually usable:
 
 - `verify_required` events: handle each one with `verify.md`.
-- Docker steps: on the target the solution's containers are `Up` and, if they
-  define a health check, `(healthy)`:
-  `sensecraft-engine docker ps --json` (this computer) or
-  `SC_SSH_PASSWORD=<password> sensecraft-engine docker ps --host <ip> --username <user> --json`
-  (remote; `--password-stdin` reads the password from stdin instead). With an
-  SSH key, on engines that have `--key-file`:
+- Docker steps: on the target the solution's containers have `status`
+  `running` (and are `(healthy)` in `docker ps` when they define a health
+  check):
+  `sensecraft-engine docker ps --json` (this computer),
   `sensecraft-engine docker ps --host <ip> --username <user> --key-file ~/.ssh/id_ed25519 --json`
-  (same path rules as `key_file` in §3). Engines without `--key-file` accept
-  a password only; with a key-only device use `ssh <user>@<ip> docker ps`.
+  (remote with an SSH key; same path rules as `key_file` in §3), or
+  `SC_SSH_PASSWORD=<password> sensecraft-engine docker ps --host <ip> --username <user> --json`
+  (remote with a password; `--password-stdin` reads it from stdin instead).
+  `docker logs <container> --host ... --key-file ...` takes the same options.
+  Older engines without `--key-file` accept a password only; with a key-only
+  device use `ssh <user>@<ip> docker ps`.
 - Services with a port: `curl -s -o /dev/null -w "%{http_code}" http://<host>:<port>/`
   returns 2xx/3xx.
-- Stay running: `completed` can precede a crash loop. Run `docker ps` once,
+- Stay running: `completed` can precede a crash loop. CLI deploys already
+  watch each Docker service for about 60 seconds after its health check
+  answers and fail the step with `Service <name> is not healthy: ...` when a
+  container restarts, exits or disappears. Check once more yourself: run `docker ps` once,
   wait about 60 seconds, then run it again and read the container restart
   count (`docker inspect -f '{{.Name}} {{.RestartCount}} {{.State.Status}}' <container>`
   over SSH, or the `Restarting` / `Up Less than a second` status in `docker ps`).
