@@ -19,3 +19,14 @@ The completed-result screenshots and the two-frame language GIF show captured UI
 - [Completed ZH result](./interaction-review-ef82-20261011/ef82-completed-zh.png)
 - [Completed EN result](./interaction-review-ef82-20261011/ef82-completed-en.png)
 - [Completed ZH → EN montage](./interaction-review-ef82-20261011/ef82-completed-zh-en.gif)
+
+## Direct browser ef82 QA review · 2026-10-11
+
+本节是实际 QA 容器 `http://100.77.150.16:18775/` 的新浏览器复测，未使用 route 替换；实际 `app.js` SHA-256 为 `02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e`。候选只在当前 QA 容器复测，尚未 HF 发布；真实 ASR 未配置/未验证。GIF 是两张完成状态截图的非实时拼接。
+
+This section records a fresh direct-browser re-test against the QA container at `http://100.77.150.16:18775/`, with no route replacement. The actual `app.js` SHA-256 is `02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e`. The candidate was tested only in this QA container and was not published to HF; real ASR was not configured or validated. The GIF is a non-realtime montage of two completed screenshots.
+
+- [Direct browser evidence](./interaction-review-ef82-20261011/direct-browser/REVIEW.md)
+- [Direct Kev ZH completed result](./interaction-review-ef82-20261011/direct-browser/03-kev-zh-completed.png)
+- [Direct Kev EN completed result](./interaction-review-ef82-20261011/direct-browser/04-kev-en-completed.png)
+- [Direct ZH → EN non-realtime montage](./interaction-review-ef82-20261011/direct-browser/kev-zh-en-container-review.gif)

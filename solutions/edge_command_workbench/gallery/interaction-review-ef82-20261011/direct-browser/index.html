@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SenseCraft · 命令选择工作台</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" href="./state.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="masthead">
+      <a class="brand" href="#top" data-i18n-aria="brandHome" aria-label="SenseCraft 首页">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5 7.5h22M5 16h22M5 24.5h22" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M9 5v22M17 5v22M25 5v22" stroke="currentColor" stroke-width="1.4" opacity=".52"/></svg></span>
+        <span><strong>SenseCraft</strong><span class="brand-divider">/</span><span data-i18n="appName">命令选择工作台</span></span>
+      </a>
+      <div class="mast-actions">
+        <button class="device-status" id="deviceEntry" type="button"><span class="status-dot disabled"></span><span data-i18n="deviceUnbound">未绑定设备</span><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg></button>
+        <button class="lang-switch" id="langToggle" type="button" data-i18n-aria="switchLanguage" aria-label="切换语言"><span>中</span><span class="switch-sep">/</span><span>EN</span></button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="intro-row">
+        <div>
+          <h1 data-i18n="title">让边缘设备，快速响应现场指令</h1>
+          <p data-i18n="subtitle">用小型决策模型在设备本地完成命令选择，利用有限算力，缩短现场指令的响应路径。</p>
+        </div>
+        <div class="prototype-note"><span class="note-dot"></span><span data-i18n="serviceNote">真实服务 · 本地推理</span></div>
+      </section>
+
+      <div class="workspace-grid">
+        <section class="panel config-panel" aria-labelledby="configHeading">
+          <div class="panel-heading"><div><span class="section-label" data-i18n="configLabel">CONFIGURATION</span><h2 id="configHeading" data-i18n="configTitle">配置判断场景</h2></div><button class="text-button" id="resetConfig" type="button" data-i18n="reset">重置</button></div>
+          <label class="field-label" for="scenario" data-i18n="scenarioLabel">场景模板</label>
+          <select id="scenario" class="select-control"><option value="machine" data-i18n="scenarioMachine">设备控制 · 生产线</option><option value="quality" data-i18n="scenarioQuality">质量分流 · 视觉检查</option><option value="warehouse" data-i18n="scenarioWarehouse">仓储作业 · 物流节点</option></select>
+          <label class="field-label" for="prompt" data-i18n="promptLabel">判断提示词</label>
+          <textarea id="prompt" class="prompt-input" rows="4"></textarea>
+          <div class="field-row"><div><label class="field-label" data-i18n="commandsLabel">候选命令</label><span class="helper-text" data-i18n="commandsHelper">按现场习惯维护 2–16 个选项</span></div><button class="add-button" id="addCommand" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="add">增加</span></button></div>
+          <div id="commandList" class="command-list"></div>
+          <button id="saveConfig" class="primary-button save-button" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></svg><span data-i18n="save">保存配置</span></button>
+          <div id="saveFeedback" class="inline-feedback" role="status" aria-live="polite"></div>
+        </section>
+
+        <section class="panel input-panel" aria-labelledby="inputHeading">
+          <div class="panel-heading"><div><span class="section-label" data-i18n="inputLabel">INPUT & DECISION</span><h2 id="inputHeading" data-i18n="inputTitle">输入现场指令</h2></div><span class="model-chip" id="modelChip"><span class="status-dot disabled"></span><span data-i18n="modelChecking">检查模型状态…</span></span></div>
+          <div class="input-intent"><span class="intent-marker">01</span><p data-i18n="inputHint">说出你希望设备完成的动作，系统会给出候选命令排序。</p></div>
+          <label class="field-label" for="userInput" data-i18n="inputLabelText">文字或语音转写</label>
+          <div class="input-wrap"><textarea id="userInput" rows="4" maxlength="240" placeholder="例如：把三号输送带速度降到 60%" data-i18n-placeholder="inputPlaceholder"></textarea><span id="charCount" class="char-count">0 / 240</span></div>
+          <div class="input-actions"><button class="secondary-button" id="exampleBtn" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="M5 5h14v14H5zM8 9h8M8 13h5"/></svg><span data-i18n="example">填入示例</span></button><button class="record-button" id="recordBtn" type="button"><svg class="icon" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="13" rx="4"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3M8 21h8"/></svg><span data-i18n="record">开始录音</span><small id="levelMeter" data-i18n="voiceReady">连接语音服务后可用</small></button><label class="auto-toggle"><input id="autoDecide" type="checkbox" checked><span data-i18n="autoDecide">转写后自动判断</span></label></div>
+          <div class="decision-box"><div class="decision-header"><div><span class="section-label" data-i18n="decisionLabel">DECISION</span><h3 data-i18n="decisionTitle">判断结果</h3></div><span id="decisionState" class="state-badge disabled" data-i18n="waiting">等待输入</span></div><div id="resultArea" class="result-empty"><svg class="empty-icon" viewBox="0 0 40 40"><path d="M20 4v32M4 20h32"/><circle cx="20" cy="20" r="14"/></svg><p data-i18n="resultEmpty">输入一条指令，再开始判断</p></div></div><button id="analyzeBtn" class="primary-button analyze-button" type="button"><svg class="icon" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></svg><span data-i18n="analyze">开始判断</span></button>
+          <div class="analysis-foot"><span data-i18n="analysisBoundary">分数为模型返回的原始排序分数，不代表概率。</span><div class="state-tools"><button class="text-button" id="clearResult" type="button" data-i18n="clear">清除结果</button></div></div>
+        </section>
+      </div>
+
+      <section class="history-section"><div class="history-heading"><div><span class="section-label" data-i18n="historyLabel">RECENT TESTS</span><h2 data-i18n="historyTitle">最近测试</h2></div><span class="history-count" id="historyCount">0</span></div><div id="historyList" class="history-list"><div class="history-empty" data-i18n="historyEmpty">还没有测试记录。完成一次判断后，记录会显示在这里。</div></div></section>
+    </main>
+    <footer class="footer"><span>SenseCraft · Command Selection Workbench</span><span data-i18n="footerText">真实模型服务 · 仅执行选择请求</span></footer>
+  </div>
+
+  <aside id="deviceDrawer" class="drawer" aria-hidden="true"><div class="drawer-scrim" data-close-drawer></div><div class="drawer-panel"><div class="drawer-header"><div><span class="section-label" data-i18n="deviceLabel">DEVICE</span><h2 data-i18n="deviceTitle">设备与模型</h2></div><button class="close-button" type="button" data-close-drawer data-i18n-aria="close" aria-label="关闭"><svg class="icon" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="drawer-callout" id="connectionCallout"><span class="status-dot disabled"></span><div><strong data-i18n="notConnected">未连接</strong><p data-i18n="notConnectedText">设备名称仅用于配置标签，连接测试会请求模型服务。</p></div></div><label class="field-label" for="deviceSelect" data-i18n="deviceType">目标设备</label><select id="deviceSelect" class="select-control"><option value="RK3576">RK3576</option><option value="RK3588">RK3588</option><option value="Orin Nano">Orin Nano</option><option value="Orin NX">Orin NX</option></select><label class="field-label" for="modelSelect" data-i18n="modelType">决策模型</label><select id="modelSelect" class="select-control"></select><p id="modelMeta" class="model-meta" data-i18n="modelsLoading">正在读取模型配置…</p><label class="field-label" for="serviceUrl" data-i18n="serviceUrl">模型服务 Base URL（留空使用本机配置）</label><input id="serviceUrl" class="text-input" placeholder="https://model.example" data-i18n-placeholder="servicePlaceholder" /><p class="field-help" data-i18n="serviceUrlHelp">自定义地址会按当前模型保存，并在连接测试时核验服务身份。</p><label class="field-label" for="voiceUrl" data-i18n="voiceUrl">本地语音服务 Base URL</label><input id="voiceUrl" class="text-input" placeholder="http://device.local:8000" data-i18n-placeholder="voicePlaceholder" /><p class="field-help" data-i18n="voiceHelp">未配置语音服务时，文字判断仍可使用。</p><div class="drawer-actions"><button class="secondary-button" data-close-drawer type="button" data-i18n="close">关闭</button><button class="secondary-button" id="testConnection" type="button" data-i18n="testConnection">测试并连接</button><button class="primary-button" id="saveDevice" type="button" data-i18n="saveDevice">保存配置</button></div></div></aside>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js?v=20261011-qa3"></script>
+</body>
+</html>

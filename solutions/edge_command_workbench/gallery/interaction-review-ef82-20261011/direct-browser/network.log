@@ -1,0 +1,10 @@
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[POST] http://100.77.150.16:18775/api/decide => [200] OK
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[GET] http://100.77.150.16:18775/api/models => [200] OK
+[POST] http://100.77.150.16:18775/api/decide => [200] OK
+[POST] http://100.77.150.16:18775/api/decide => [200] OK
+[POST] http://100.77.150.16:18775/api/decide => [200] OK

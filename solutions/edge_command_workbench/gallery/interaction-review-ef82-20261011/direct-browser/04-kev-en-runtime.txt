@@ -1,0 +1,10 @@
+### Result
+{"before":"把三号输送带速度降到 60%\n\n降低输送带速度\n12:36","after":"把三号输送带速度降到 60%\n\n降低输送带速度\n12:36","historyUnchanged":true,"result":"Actual model: kev\nBackend: rkllm\nMax context: 8192\nSelected candidate\n降低输送带速度\nRaw score: 0.95\n1\n降低输送带速度\n0.95\n2\n暂停设备\n0.027\n3\n查询设备状态\n0.023\nTotal: 898.6 ms · Encoding: 0.0 ms · Inference: 898.4 ms · Relative bar for candidate comparison only"}
+### Ran Playwright code
+```js
+await (async page => { const before=await page.locator('#historyList').innerText(); await page.getByRole('button',{name:'切换语言'}).click(); await page.waitForTimeout(200); const after=await page.locator('#historyList').innerText(); return {before,after,historyUnchanged:before===after,result:await page.locator('#resultArea').innerText()}; })(page);
+```
+### Page
+- Page URL: http://100.77.150.16:18775/
+- Page Title: SenseCraft · Command Selection Workbench
+- Console: 1 errors, 0 warnings
