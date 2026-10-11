@@ -1,6 +1,6 @@
 ## Preset: RK3576 Kev RKLLM {#rk3576_rkllm_remote}
 
-This preset deploys the tested Kev RKLLM path on cat-remote RK3576. The engine export capacity is 8192 tokens, while the deployment guard and metadata limit requests to 2048 tokens because the 8K configuration caused global OOM on that device. The package records the runtime, engine, head, tokenizer, and metadata as separate pinned artifacts.
+This preset deploys the tested Kev RKLLM path on reComputer RK3576 series RK3576. The engine export capacity is 8192 tokens, while the deployment guard and metadata limit requests to 2048 tokens because the 8K configuration caused global OOM on that device. The package records the runtime, engine, head, tokenizer, and metadata as separate pinned artifacts.
 
 The 500-token reproducibility report for both RKLLM devices is archived at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/). It records 120 original and 120 reverse fixture cases per device; the fixture uses generated context and is not a general long-request accuracy claim.
 
@@ -22,11 +22,11 @@ Submit a request with candidate commands after the health check reports a ready 
 
 ### RK3576 second validation
 
-The second cat-remote validation used the same pinned image and verified five HTTP 200 golden cases with 5/5 expected selections. The 2069-word boundary request encoded to 2088 tokens and was rejected with HTTP 422 before NPU execution. This run used the image-built helper and had no external helper, RKNN runtime, or GOMP mount. Raw evidence is [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/).
+The second reComputer RK3576 series validation used the same pinned image and verified five HTTP 200 golden cases with 5/5 expected selections. The 2069-word boundary request encoded to 2088 tokens and was rejected with HTTP 422 before NPU execution. This run used the image-built helper and had no external helper, RKNN runtime, or GOMP mount. Raw evidence is [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/).
 
 ## Preset: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
-This preset deploys the tested 8K Kev artifact contract on Radxa RK3588. The verified deployment context is 8192 tokens; the result applies to the tested device and does not generalize to other boards with different free memory.
+This preset deploys the tested 8K Kev artifact contract on reComputer RK3588 series. The verified deployment context is 8192 tokens; the result applies to the tested device and does not generalize to other boards with different free memory.
 
 The same 500-token reproducibility report covers this preset at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/), with raw JSONL and machine-generated summaries under `rk3588/`.
 
@@ -48,7 +48,7 @@ Submit a request with candidate commands after the health check reports a ready 
 
 ### RK3588 0.3.1 release verification
 
-The RKLLM 0.3.1 ef82 image is published at Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199), under the existing prefix `releases/edge-workbench-0.3.0`. On the Radxa RK3588 stock deployment, bootstrap exited with code 0. Thirteen target-filtered model/shared files matched the SHA-verified cache and were reused; one new image archive was downloaded from `https://hf-mirror.com`. This is cache reuse plus one download, not a fresh fourteen-file download.
+The RKLLM 0.3.1 ef82 image is published at Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199), under the existing prefix `releases/edge-workbench-0.3.0`. On the reComputer RK3588 series stock deployment, bootstrap exited with code 0. Thirteen target-filtered model/shared files matched the SHA-verified cache and were reused; one new image archive was downloaded from `https://hf-mirror.com`. This is cache reuse plus one download, not a fresh fourteen-file download.
 
 The image tag was `edge-command-workbench:rockchip-rkllm-0.3.1-review`. The archive SHA-256 is `251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77`; the image config SHA-256 is `d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9`. The stock service was verified at `http://<device-ip>:18768`: health reported `model_ready=true`, `backend=rkllm`, `model_id=kev`, `max_sequence_tokens=8192`, and `max_options=16`. `/api/models` reported ready Kev (`rkllm`, 8192) and Laya (`rknn`, 90); the same short decision request returned HTTP 200 for both `model_id=kev` and `model_id=laya`. The Laya profile used the existing service at `http://127.0.0.1:18771`.
 

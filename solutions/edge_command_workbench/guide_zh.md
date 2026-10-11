@@ -1,6 +1,6 @@
 ## 套餐: RK3576 Kev RKLLM {#rk3576_rkllm_remote}
 
-此套餐在 cat-remote RK3576 上部署已测试的 Kev RKLLM 路径。engine 导出容量为 8192 tokens，但该设备上的部署 guard 和 metadata 将请求限制为 2048 tokens，因为 8K 配置触发了全局 OOM。运行时、engine、head、tokenizer 和 metadata 均作为固定版本外部产物记录。
+此套餐在 reComputer RK3576 series RK3576 上部署已测试的 Kev RKLLM 路径。engine 导出容量为 8192 tokens，但该设备上的部署 guard 和 metadata 将请求限制为 2048 tokens，因为 8K 配置触发了全局 OOM。运行时、engine、head、tokenizer 和 metadata 均作为固定版本外部产物记录。
 
 两台 RKLLM 设备的 500-token 可复现报告保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。每台设备包含 120 条 original 和 120 条 reverse fixture case；该 fixture 使用生成上下文，不能作为任意长请求的准确率结论。
 
@@ -22,11 +22,11 @@
 
 ### RK3576 第二轮验证
 
-第二轮 cat-remote 验证使用相同固定版本镜像，5 个 golden 请求全部 HTTP 200，5/5 选择结果正确。2069 词边界请求编码为 2088 tokens，在进入 NPU 前以 HTTP 422 拒绝。该轮使用镜像内置 helper，没有 external helper、RKNN runtime 或 GOMP mount。原始证据见 [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/)。
+第二轮 reComputer RK3576 series 验证使用相同固定版本镜像，5 个 golden 请求全部 HTTP 200，5/5 选择结果正确。2069 词边界请求编码为 2088 tokens，在进入 NPU 前以 HTTP 422 拒绝。该轮使用镜像内置 helper，没有 external helper、RKNN runtime 或 GOMP mount。原始证据见 [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/)。
 
 ## 套餐: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
-此套餐在 Radxa RK3588 上部署已测试的 8K Kev 产物契约，已验证部署上下文为 8192 tokens；结果只适用于已测试设备，不推断其他可用内存不同的板卡。
+此套餐在 reComputer RK3588 series 上部署已测试的 8K Kev 产物契约，已验证部署上下文为 8192 tokens；结果只适用于已测试设备，不推断其他可用内存不同的板卡。
 
 同一份 500-token 可复现报告覆盖此套餐，原始 JSONL 和机器生成 summary 位于该目录下的 `rk3588/` 子目录：[`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。
 
@@ -48,7 +48,7 @@
 
 ### RK3588 0.3.1 发布验证
 
-RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。Radxa RK3588 stock 部署的 bootstrap 退出码为 0。13 个目标筛选后的 model/shared 文件与已校验 SHA 的缓存一致并复用；另从 `https://hf-mirror.com` 下载 1 个新 image archive。这是缓存复用加 1 次下载，不是全新下载 14 个文件。
+RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。reComputer RK3588 series stock 部署的 bootstrap 退出码为 0。13 个目标筛选后的 model/shared 文件与已校验 SHA 的缓存一致并复用；另从 `https://hf-mirror.com` 下载 1 个新 image archive。这是缓存复用加 1 次下载，不是全新下载 14 个文件。
 
 镜像标签为 `edge-command-workbench:rockchip-rkllm-0.3.1-review`。archive SHA-256 为 `251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77`，image config SHA-256 为 `d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9`。stock 服务在 `http://<device-ip>:18768` 完成验证：health 返回 `model_ready=true`、`backend=rkllm`、`model_id=kev`、`max_sequence_tokens=8192` 和 `max_options=16`。`/api/models` 返回 ready 的 Kev（`rkllm`、8192）与 Laya（`rknn`、90）；相同短决策请求对 `model_id=kev` 和 `model_id=laya` 均返回 HTTP 200。Laya profile 使用已有服务 `http://127.0.0.1:18771`。
 

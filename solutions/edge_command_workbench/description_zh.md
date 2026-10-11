@@ -32,7 +32,7 @@
 |------|------|------|
 | RK3576 Linux 设备，例如 LubanCat3 | 运行单容器 Web 工作台和 RKNN 模型 | ✓ 必选 |
 
-现有已验证包面向 RK3576/RKNN。历史 `rk3576_remote` 套餐使用独立的 Laya/RKNN 0.1.0 路径，与当前 Kev RKLLM 套餐保持分离。RKLLM Kev 已在 cat-remote RK3576 和 Radxa RK3588 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
+现有已验证包面向 RK3576/RKNN。历史 `rk3576_remote` 套餐使用独立的 Laya/RKNN 0.1.0 路径，与当前 Kev RKLLM 套餐保持分离。RKLLM Kev 已在 reComputer RK3576 series RK3576 和 reComputer RK3588 series 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
 
 ### 网络和存储要求
 
@@ -54,13 +54,13 @@
 
 ## Kev QA 素材与支持矩阵
 
-`gallery/kev-final/` 保存了 2026-10-11 Radxa RK3588 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑只表示页面步骤，不表示模型耗时、实时录屏或准确率。截图中的语音配置仅为可选项，未进行语音测试。
+`gallery/kev-final/` 保存了 2026-10-11 reComputer RK3588 series 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑只表示页面步骤，不表示模型耗时、实时录屏或准确率。截图中的语音配置仅为可选项，未进行语音测试。
 
 | 硬件/后端 | 当前状态 |
 |---|---|
 | RK3576 / RKNN Laya | 既有已验证路径 |
-| RK3588 / RKLLM Kev | Radxa 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
-| RK3576 / RKLLM Kev | cat-remote 500-case fixture：240 条中正确 189 条（78.75%）；部署限制 2048 tokens，engine 容量 8192 |
+| RK3588 / RKLLM Kev | reComputer RK3588 series 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
+| RK3576 / RKLLM Kev | reComputer RK3576 series 500-case fixture：240 条中正确 189 条（78.75%）；部署限制 2048 tokens，engine 容量 8192 |
 
 ### 500-token 上下文 QA fixture
 
@@ -68,8 +68,8 @@
 
 | 设备 | 正确数 | HTTP 错误 | client p50 / p95 |
 |---|---:|---:|---:|
-| RK3576 cat-remote | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
-| RK3588 Radxa | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
+| RK3576 reComputer RK3576 series | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
+| RK3588 reComputer RK3588 series | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
 
 该 fixture 使用生成的文档上下文将输入固定为 500 tokens。表中数据只表示冻结 fixture 的测量结果，不能外推到任意长工业请求，也不保证选中的动作安全。source、generator、dataset SHA、runner SHA 和设备绑定均记录在证据目录中。
 | Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
