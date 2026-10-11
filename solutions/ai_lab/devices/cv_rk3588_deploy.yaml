@@ -21,6 +21,7 @@ docker:
   remote_path: /home/{{username}}/ai-lab-cv-rk3588
   environment:
     MODEL_VARIANT: "{{model_variant}}"
+    VIDEO_SOURCE: "{{video_source}}"
   options:
     project_name: ai_lab_cv_rk3588
     remove_orphans: true
@@ -58,6 +59,32 @@ user_inputs:
           zh: "YOLO 11m (精确版, ~20MB)"
     name_i18n:
       zh: 模型选择
+  # The app exits when it cannot open its video source, which also stops
+  # the image-upload predict API. Default to the sample clip bundled in the
+  # image so a board without a camera still deploys a working API.
+  - id: video_source
+    name: Video source
+    type: select
+    required: true
+    default: "sample"
+    description: Choose a USB camera only when one is plugged in; with no camera at that number the app stops and image detection stops with it.
+    description_i18n:
+      zh: 只有接了 USB 摄像头时才选摄像头；所选编号没有摄像头时应用会退出，图片检测也随之停止。
+    options:
+      - value: "sample"
+        label: "Sample video (no camera needed)"
+        label_i18n:
+          zh: "示例视频（无需摄像头）"
+      - value: "0"
+        label: "USB camera /dev/video0"
+        label_i18n:
+          zh: "USB 摄像头 /dev/video0"
+      - value: "1"
+        label: "USB camera /dev/video1"
+        label_i18n:
+          zh: "USB 摄像头 /dev/video1"
+    name_i18n:
+      zh: 视频来源
 
 data_channels:
   - type: http
