@@ -79,7 +79,7 @@ Deploy to a reComputer J40 device over SSH, with GPU-accelerated local AI model.
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
+1. Read the **Gateway Token** on the device: run `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw/*/.env` (the deployment log shows only this path, not the token)
 2. OpenClaw requires localhost access. **Option A**: Connect a display to the Jetson, open a browser, and visit `http://localhost:18789`; **Option B**: On your computer, run `ssh -L 18789:localhost:18789 <username>@<jetson-ip>`, then open `http://localhost:18789` in your local browser
 3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
 4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
@@ -174,7 +174,7 @@ Deploy to a reComputer R1100 series device over SSH.
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
+1. Read the **Gateway Token** on the device: run `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw_recomputer_r/*/.env` (the deployment log shows only this path, not the token)
 2. OpenClaw requires localhost access. **Option A**: Connect a display to the device, open a browser, and visit `http://localhost:18789`; **Option B**: On your computer, run `ssh -L 18789:localhost:18789 <username>@<device-ip>`, then open `http://localhost:18789` in your local browser
 3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
 4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
