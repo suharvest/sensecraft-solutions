@@ -117,6 +117,10 @@ remote_overrides:
         # UNVERIFIED: not executed against a running stack during packaging.
         ignore_error: true
         timeout: 900
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_ADMIN_PASSWORD: "{{admin_password}}"
         run: |
           set -e
           cd "/home/{{username}}/agri-env-monitor/tts_stack"
@@ -127,7 +131,7 @@ remote_overrides:
           done
           docker compose run --rm stack is-db migrate
           docker compose run --rm stack is-db create-admin-user \
-            --id admin --email "{{admin_email}}" --password "{{admin_password}}"
+            --id admin --email "{{admin_email}}" --password "$INPUT_ADMIN_PASSWORD"
           docker compose run --rm stack is-db create-oauth-client \
             --id console --name "Console" --owner admin --no-rights \
             --redirect-uri "http://{{host}}:1885/console/oauth/callback" \

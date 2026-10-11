@@ -180,7 +180,7 @@ remote_overrides:
         name_i18n:
           zh: 校验 Jetson 运行环境
       # The deployer only uploads compose_dir contents (assets/docker/) into
-      # remote_dir. The HF download script + its _shared/ helper are NOT
+      # remote_dir. The HF download script + its hf_download.sh helper are NOT
       # in compose_dir, so we SCP them explicitly here, side-by-side with
       # docker-compose.yml. download_hf_artifacts.sh respects
       # HF_DOWNLOAD_HELPER (see the export in the next action).
@@ -191,13 +191,13 @@ remote_overrides:
           mode: "0755"
         name_i18n:
           zh: 上传 HF 下载脚本
-      - name: Upload shared HF helper
+      - name: Upload HF helper
         copy:
-          src: ../_shared/scripts/hf_download.sh
+          src: assets/scripts/hf_download.sh
           dest: /home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh
           mode: "0755"
         name_i18n:
-          zh: 上传共享 HF 辅助脚本
+          zh: 上传 HF 辅助脚本
       # NOTE: "Resolve paths and patch compose" lives in `after_upload`
       # below, NOT in `before`. The sed step targets the remote
       # docker-compose.yml that the deployer uploads in its own
@@ -236,8 +236,8 @@ remote_overrides:
           # `Upload HF download scripts` action above copies the script
           # plus its shared helper alongside the compose file.
           SCRIPT="/home/{{username}}/z-image-turbo/jetson_deploy/download_hf_artifacts.sh"
-          # Tell the script where to find hf_download.sh on the remote (no
-          # _shared/ tree on the device; both files sit next to each other).
+          # Tell the script where to find hf_download.sh on the remote (both
+          # files sit next to each other on the device).
           export HF_DOWNLOAD_HELPER="/home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh"
           bash "$SCRIPT" "$MODEL_ROOT" "$RES"
 

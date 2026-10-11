@@ -25,7 +25,7 @@
 2. 用 reComputer RK3588 或 RK3576 时：系统需自带 Rockchip 的 AI 加速（RKNN）、视频解码（MPP）和 RGA 库。
 3. 每路摄像头的 RTSP 地址都已用 VLC 打开过，能看到画面。
 4. 知道 MQTT 服务器的地址和端口；服务器要求登录的话，准备好用户名和密码。
-5. 主机上 8080 端口（车位编辑页）和 8099 端口（状态检查）没有被其他服务占用。8080 被占用时，可以在表单里换一个车位编辑页端口。
+5. 主机上 8080 端口（车位编辑页）和 8099 端口（状态检查）没有被其他服务占用。端口被占用时，可以在表单里换一个车位编辑页端口或状态检查端口。
 
 ### 接线
 
@@ -47,7 +47,7 @@
 | 提示「Not an RTSP address」 | 摄像头地址要以 `rtsp://` 开头，多个地址之间用英文逗号分隔 |
 | 提示摄像头地址和编号数量不一致 | 摄像头编号要和地址一一对应，或者把编号留空让它自动编号 |
 | 下载识别模型失败 | 确认边缘主机能上网，然后重新部署 |
-| 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`，RK3576 为 `edge-parking-occupancy-rk3576`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口，或停掉占用 8099 的服务 |
+| 部署停在「等待车位检测服务启动」 | 在主机上运行 `docker logs edge-parking-occupancy-jetson`（RK3588 为 `edge-parking-occupancy-rk3588`，RK3576 为 `edge-parking-occupancy-rk3576`）查看原因；常见原因是 8080 或 8099 端口被占用，换一个车位编辑页端口或状态检查端口 |
 
 ### 部署目标 {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 

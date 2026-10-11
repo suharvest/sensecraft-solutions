@@ -5,7 +5,8 @@ Called by the "Write the parking config" after_upload action in
 devices/jetson_occupancy.yaml, devices/rk3588_occupancy.yaml and
 devices/rk3576_occupancy.yaml. It reads the board's shipped vb.config/1 preset
 (config/slots.json, slots-rk3588.json or slots-rk3576.json),
-replaces the site, cameras, MQTT broker and editor port with the form values,
+replaces the site, cameras, MQTT broker, editor port and status port with the
+form values,
 and writes the result to the path the compose file mounts.
 
 Bays are not part of the form: each camera gets one starter bay (P-01) so the
@@ -15,7 +16,8 @@ this file on every start.
 
 Usage: render_config.py TEMPLATE OUTPUT
 Inputs come from the environment: RTSP_URLS, CAMERA_IDS, SITE_ID, MQTT_HOST,
-MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, EDITOR_PORT, STREAM_CODEC (optional).
+MQTT_PORT, MQTT_USERNAME, MQTT_PASSWORD, EDITOR_PORT, HEALTH_PORT (default
+8099), STREAM_CODEC (optional).
 """
 from __future__ import annotations
 
@@ -76,10 +78,14 @@ def main() -> None:
     try:
         mqtt_port = int(os.environ.get("MQTT_PORT", "1883"))
         editor_port = int(os.environ.get("EDITOR_PORT", "8080"))
+        health_port = int(os.environ.get("HEALTH_PORT", "").strip() or "8099")
     except ValueError:
-        fail("MQTT port and slot editor port must be numbers.")
-    if editor_port == 8099:
-        fail("Port 8099 is used by the status check; pick another slot editor port.")
+        fail("MQTT port, slot editor port and status port must be numbers.")
+    for label, port in (("MQTT port", mqtt_port), ("Slot editor port", editor_port), ("Status port", health_port)):
+        if not 1 <= port <= 65535:
+            fail(f"{label} must be between 1 and 65535, got {port}.")
+    if editor_port == health_port:
+        fail(f"Port {health_port} is used by the status check; pick another slot editor port.")
     mqtt_user = os.environ.get("MQTT_USERNAME", "")
     mqtt_pass = os.environ.get("MQTT_PASSWORD", "")
     codec = os.environ.get("STREAM_CODEC", "").strip()
@@ -89,7 +95,7 @@ def main() -> None:
     client_id = f"{site_id}-{device_id}"
 
     config["device_id"] = device_id
-    config["health"] = {"host": "0.0.0.0", "port": 8099}
+    config["health"] = {"host": "0.0.0.0", "port": health_port}
     mqtt = config.setdefault("mqtt", {})
     mqtt.update({
         "host": mqtt_host,
@@ -140,6 +146,7 @@ def main() -> None:
     print(f"cameras     = {', '.join(ids)}")
     print(f"mqtt        = {mqtt_host}:{mqtt_port}")
     print(f"slot editor = port {editor_port}")
+    print(f"status      = port {health_port}")
 
 
 if __name__ == "__main__":

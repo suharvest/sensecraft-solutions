@@ -25,7 +25,7 @@ Install the bay detection service on the edge box. Enter the camera addresses an
 2. With a reComputer RK3588 or RK3576: its system must include Rockchip's AI accelerator (RKNN), video decode (MPP) and RGA libraries.
 3. Every camera's RTSP address has been opened in VLC and shows a picture.
 4. You know the MQTT server's address and port, plus a username and password if it requires login.
-5. Ports 8080 (slot editor) and 8099 (status check) are free on the box. If 8080 is taken, enter a different slot editor port in the form.
+5. Ports 8080 (slot editor) and 8099 (status check) are free on the box. If one is taken, enter a different slot editor port or status port in the form.
 
 ### Wiring
 
@@ -47,7 +47,7 @@ Each camera starts with one example bay, P-01 (a box in the lower middle of the 
 | "Not an RTSP address" | Camera addresses must start with `rtsp://`, with commas between addresses |
 | Camera addresses and camera IDs do not match in number | Give one ID per address, or leave the IDs empty to number them automatically |
 | Downloading the detection model fails | Make sure the edge box can reach the internet, then deploy again |
-| Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`, RK3576: `edge-parking-occupancy-rk3576`). The usual cause is port 8080 or 8099 in use: choose another slot editor port, or stop the service holding 8099 |
+| Deploy stops at "Wait for the parking service to start" | On the box, run `docker logs edge-parking-occupancy-jetson` (RK3588: `edge-parking-occupancy-rk3588`, RK3576: `edge-parking-occupancy-rk3576`). The usual cause is port 8080 or 8099 in use: choose another slot editor port or status port |
 
 ### Target {#occupancy_remote type=remote device=jetson device_name="reComputer J30 / J40" config=devices/jetson_occupancy.yaml default=true}
 
