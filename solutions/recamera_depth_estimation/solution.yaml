@@ -55,7 +55,7 @@ intro:
   presets:
     - id: default
       name: Depth Estimation
-      description: Install the depth app and its model onto a reCamera
+      description: Update the reCamera console, then install and enable the depth app
       device_groups:
         - id: camera
           name: reCamera
@@ -69,11 +69,11 @@ intro:
       name_i18n:
         zh: 单目深度估计
       description_i18n:
-        zh: 将深度应用与模型安装到 reCamera
+        zh: 升级 reCamera 控制台，再安装并启用深度应用
 
   stats:
     difficulty: beginner
-    estimated_time: 5min
+    estimated_time: 10min
 
   links:
     source: https://github.com/Seeed-Studio/sscma-example-sg200x
