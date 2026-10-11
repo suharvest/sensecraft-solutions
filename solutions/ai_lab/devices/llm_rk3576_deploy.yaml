@@ -140,9 +140,17 @@ remote_overrides:
       - name: Check NPU availability
         run: |
           set -e
-          if ! dmesg 2>/dev/null | grep -qi rknpu; then
-            echo "RKNPU kernel module not detected."
-            echo "This device may not support RK NPU inference."
+          # Unprivileged detection: dmesg is blocked by kernel.dmesg_restrict on some images
+          if ! tr '\0' '\n' < /proc/device-tree/compatible 2>/dev/null | grep -qi 'rockchip,rk3576'; then
+            echo "Rockchip RK3576 platform not detected (/proc/device-tree/compatible has no rockchip,rk3576)."
+            exit 1
+          fi
+          echo "RK3576 platform detected."
+          if [ ! -d /sys/module/rknpu ] \
+             && ! ls /sys/class/devfreq 2>/dev/null | grep -qi npu \
+             && ! ls -d /proc/device-tree/*npu* >/dev/null 2>&1 \
+             && ! dmesg 2>/dev/null | grep -qi rknpu; then
+            echo "RK3576 detected, but the RKNPU driver is not loaded (no rknpu module, NPU devfreq or device-tree NPU node)."
             exit 1
           fi
           echo "RKNPU detected."
