@@ -3,9 +3,9 @@ id: rk3588_rkllm_remote
 name: RK3588 Kev RKLLM Workbench
 name_i18n:
   zh: RK3588 Kev RKLLM 工作台
-type: docker_remote
+type: docker_deploy
 
-docker_remote:
+docker:
   compose_file: assets/docker/docker-compose.rkllm.yml
   compose_dir: assets/docker
   remote_path: /home/{{username}}/edge-command-workbench-rkllm
@@ -32,6 +32,7 @@ docker_remote:
 
 ssh:
   port: 22
+  connection_timeout: 30
   auth_methods: [password]
   command_timeout: 900
 

@@ -4,7 +4,7 @@ This preset deploys the tested Kev RKLLM path on RK3576 test platform. The engin
 
 The 500-token reproducibility report for both RKLLM devices is archived at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/). It records 120 original and 120 reverse fixture cases per device; the fixture uses generated context and is not a general long-request accuracy claim.
 
-## Step 1: Deploy the Kev Workbench {#deploy_rk3576_rkllm type=docker_remote required=true config=devices/rk3576_rkllm_remote.yaml}
+## Step 1: Deploy the Kev Workbench {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
 
 The container selects `DECISION_BACKEND=rkllm` and `MODEL_ID=kev`. Supply a complete model directory containing `model.rkllm`, `kev_head.npz`, `tokenizer/tokenizer.json`, and the pinned runtime at `runtime/librkllmrt.so`. The image contains the C helper only when built with the pinned RKLLM 1.3.1 headers.
 
@@ -15,6 +15,12 @@ Enter SSH credentials. Keep at least 3GB free for the RKLLM bootstrap; the measu
 ### Deployment Complete
 
 Open `http://<device-ip>:18768`. Verification requires `/api/health` to report `model_ready: true`, `backend: "rkllm"`, and `model_id: "kev"`.
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| The model is not ready | Check that `model.rkllm`, `kev_head.npz`, `tokenizer/tokenizer.json`, and `runtime/librkllmrt.so` are present in the supplied model directory, then deploy again. |
+| The health response has another backend or model ID | Check the deployment fields and confirm this preset uses `DECISION_BACKEND=rkllm` and `MODEL_ID=kev`. |
 
 ## Step 2: Open the Kev Workbench {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
 
@@ -24,15 +30,29 @@ Submit a request with candidate commands after the health check reports a ready 
 
 The second RK3576 test platform validation used the same pinned image and verified five HTTP 200 golden cases with 5/5 expected selections. The 2069-word boundary request encoded to 2088 tokens and was rejected with HTTP 422 before NPU execution. This run used the image-built helper and had no external helper, RKNN runtime, or GOMP mount. Raw evidence is [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/).
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| The workbench page does not open | Confirm the health endpoint is ready at port 18768 before opening the page. |
+| A request is rejected with HTTP 422 | Check the request size against the preset limit; the documented boundary case is rejected before NPU execution. |
+
 ## Preset: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 This preset deploys the tested 8K Kev artifact contract on RK3588 test platform. The verified deployment context is 8192 tokens; the result applies to the tested device and does not generalize to other boards with different free memory.
 
 The same 500-token reproducibility report covers this preset at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/), with raw JSONL and machine-generated summaries under `rk3588/`.
 
-## Step 1: Deploy the Kev Workbench {#deploy_rk3588_rkllm type=docker_remote required=true config=devices/rk3588_rkllm_remote.yaml}
+## Step 1: Deploy the Kev Workbench {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
 
 Provide the pinned engine, FP32 Q/K head, tokenizer, metadata, and RKLLM runtime directory for the target. The service does not download model weights at startup.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| The model is not ready | Check the supplied engine, head, tokenizer, metadata, and RKLLM runtime paths, then inspect `/api/health` again. |
+| A request is rejected before inference | Check the request against the verified 8192-token deployment context and the configured `MAX_OPTIONS`. |
 
 ### Target {#rk3588_rkllm type=remote device_name="RK3588" config=devices/rk3588_rkllm_remote.yaml default=true}
 
@@ -46,7 +66,9 @@ Open `http://<device-ip>:18768` and confirm the model-ready health response befo
 
 Submit a request with candidate commands after the health check reports a ready Kev model.
 
-### RK3588 0.3.1 release verification
+### Deployment Complete
+
+#### RK3588 0.3.1 release verification
 
 The RKLLM 0.3.1 ef82 image is published at Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199), under the existing prefix `releases/edge-workbench-0.3.0`. On the RK3588 test platform stock deployment, bootstrap exited with code 0. Thirteen target-filtered model/shared files matched the SHA-verified cache and were reused; one new image archive was downloaded from `https://hf-mirror.com`. This is cache reuse plus one download, not a fresh fourteen-file download.
 
@@ -54,11 +76,18 @@ The image tag was `edge-command-workbench:rockchip-rkllm-0.3.1-review`. The arch
 
 The helper was verified inside the image at `/opt/kev/libkev_runtime.so`, SHA-256 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`; no external helper mount was used. Raw selected request, response, timing, bootstrap, compose and container metadata are in [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/). The prior `a556`/`d870` fourteen-file bootstrap record remains historical and is not replaced. Voice and ASR were not part of this device validation.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Bootstrap fails before the service is healthy | Recheck the target-filtered cache and the image archive checksum, then rerun the documented bootstrap. |
+| Voice requests fail | This validation covers text decisions only; leave `VOICE_SERVICE_URL` empty or provide an existing compatible `/asr/stream` service. |
+
 For the optional existing voice integration, the browser recorder requires HTTPS or localhost and microphone permission. Plain remote HTTP pages cannot use browser recording; text decisions do not depend on voice. `VOICE_SERVICE_URL` connects an existing compatible `/asr/stream` service and does not install or validate ASR. The deployed field supplies the server default; the current UI also requires the voice drawer URL when configuring that optional path.
 ## Preset: Historical RK3576 Laya/RKNN (0.1.0) {#rk3576_remote}
 
 Deploy the local command workbench to one RK3576 Linux device over SSH. This preset is for RK3576 only; Jetson and RK3588 are not included in this package.
-## Step 1: Deploy the Workbench {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}
+## Step 1: Deploy the Workbench {#deploy type=docker_deploy required=true config=devices/rk3576_remote.yaml}
 
 The deployment prepares the pinned application archive, RKNN model, and tokenizer, then starts the one-container web workbench on port 18768. The target must already have Docker and the RKNN runtime library.
 

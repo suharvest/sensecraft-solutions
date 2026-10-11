@@ -3,9 +3,9 @@ id: rk3576_remote
 name: RK3576 Command Workbench
 name_i18n:
   zh: RK3576 命令工作台
-type: docker_remote
+type: docker_deploy
 
-docker_remote:
+docker:
   compose_file: assets/docker/docker-compose.yml
   compose_dir: assets/docker
   remote_path: /home/{{username}}/edge-command-workbench
@@ -28,6 +28,7 @@ docker_remote:
 
 ssh:
   port: 22
+  connection_timeout: 30
   auth_methods: [password]
   command_timeout: 900
 

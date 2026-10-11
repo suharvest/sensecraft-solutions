@@ -17,7 +17,7 @@
 #   2026-10-10 识别模型换为按运行时轴对齐裁切重训的版本（三个目标的模型包均已替换）；
 #   CCPD 静态图精度见 edge-parking-vision evaluation/results/plate_rec_axis_20261010。
 #   R2035（Hailo-8）目标已从 guide 移除：没有已发布的运行镜像，Hailo 后端还需补丁
-#   才能接受车牌检测模型的分层输出。devices/hailo_plate.yaml 与 assets/hailo/ 保留
+#   才能接受车牌检测模型的分层输出。assets/hailo/hailo_plate.draft.yaml 与 assets/hailo/ 其余草稿保留
 #   待后端补丁后恢复，当前不被任何步骤引用。
 #   reCamera Pro / reCamera 2002 两个 preset 已移除（应用未上架、二进制未发布）。
 #   验收细节只写在本文件注释和 acceptance 证据里，不写进用户可见文案。
