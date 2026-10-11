@@ -1008,13 +1008,21 @@ def _check_device_class(dev_data, label: str, known: list) -> list[str]:
     ]
 
 
+# Exactly the ``${DOCKER_REGISTRY_PREFIX}`` / ``$DOCKER_REGISTRY_PREFIX``
+# token: ``$DOCKER_REGISTRY_PREFIXED_IMAGE`` is a different variable.
+_MIRROR_PREFIX_TOKEN = r"(?:\$\{DOCKER_REGISTRY_PREFIX\}|\$DOCKER_REGISTRY_PREFIX(?![A-Za-z0-9_]))"
+_MIRROR_PREFIX_TOKEN_RE = re.compile(_MIRROR_PREFIX_TOKEN)
+_MIRROR_PREFIX_RE = re.compile(r"^" + _MIRROR_PREFIX_TOKEN + r"(?P<rest>.*)$")
+
+
 def _check_action_image_refs(dev_data, label: str) -> list[str]:
     """Error on Docker Hub images pulled by an action without the mirror prefix."""
     errors: list[str] = []
     for json_path, script in _iter_action_scripts(dev_data):
         for image in _extract_docker_images(script):
-            if "DOCKER_REGISTRY_PREFIX" in image:
-                rest = re.sub(r"^\$\{?DOCKER_REGISTRY_PREFIX\}?", "", image)
+            prefixed = _MIRROR_PREFIX_RE.match(image)
+            if prefixed:
+                rest = prefixed.group("rest")
                 if rest and not rest.startswith("$") and "/" not in rest:
                     errors.append(
                         f"{label}: at '{json_path}': '{image}' prefixes a bare "
@@ -1025,6 +1033,8 @@ def _check_action_image_refs(dev_data, label: str) -> list[str]:
                         f"different repository that the mirror serves "
                         f"unreliably (seen: 401/502 on docker.m.daocloud.io)."
                     )
+                continue
+            if _MIRROR_PREFIX_TOKEN_RE.search(image):
                 continue
             # A fully variable-driven reference (``$IMAGE``, ``${IMG}:$TAG``)
             # is resolved at runtime — the author may already be prefixing it

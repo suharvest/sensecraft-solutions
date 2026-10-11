@@ -480,6 +480,14 @@ def test_mirror_prefixed_bare_official_image_errors():
     assert "library/alpine" in errors[0]
 
 
+def test_variable_named_like_mirror_prefix_is_not_treated_as_prefix():
+    # $DOCKER_REGISTRY_PREFIXED_IMAGE is its own variable holding a full
+    # reference; it must not be read as the prefix followed by "ED_IMAGE".
+    for ref in ("${DOCKER_REGISTRY_PREFIXED_IMAGE}", "$DOCKER_REGISTRY_PREFIXED_IMAGE"):
+        script = f"docker run --rm {ref} true\n"
+        assert validate._check_action_image_refs(_device_with_action(script), "d") == [], ref
+
+
 def test_mirror_prefixed_namespaced_image_passes():
     script = "docker pull ${DOCKER_REGISTRY_PREFIX}ollama/ollama:0.32.5\n"
     assert validate._check_action_image_refs(_device_with_action(script), "d") == []
