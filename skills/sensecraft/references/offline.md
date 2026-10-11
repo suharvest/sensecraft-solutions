@@ -10,7 +10,7 @@ take several GB of disk space.
 
 ## 1. Plan: what is needed, what is already here
 
-Write the request to a file, e.g. `plan.json`:
+Write the request to a file, e.g. `./.sensecraft-work/plan.json`:
 
 ```json
 {
@@ -33,7 +33,7 @@ Write the request to a file, e.g. `plan.json`:
   you have to plan and prepare again with the right `params`.
 
 ```
-sensecraft-engine api POST /api/staging/plan --data "$(cat plan.json)"
+sensecraft-engine api POST /api/staging/plan --data "$(cat ./.sensecraft-work/plan.json)"
 ```
 
 The response lists each item and whether it is already here. Items marked
@@ -43,7 +43,7 @@ downloads at start); tell the user which.
 ## 2. Prepare: download it here
 
 ```
-sensecraft-engine api POST /api/staging/prepare --data "$(cat plan.json)"
+sensecraft-engine api POST /api/staging/prepare --data "$(cat ./.sensecraft-work/plan.json)"
 sensecraft-engine api GET /api/staging/jobs/<id>      # repeat every 5–10 s until status is not "running"
 ```
 

@@ -33,8 +33,8 @@ sensecraft-engine api GET "/api/deployments/<deployment_id>/logs?device_id=<devi
 If the logs are empty or end abruptly (status `interrupted`: the engine
 instance stopped during the deployment), read the engine log
 `~/.sensecraft/logs/engine.log` (Windows: `%USERPROFILE%\.sensecraft\logs\engine.log`),
-last ~200 lines. `sensecraft-engine daemon status` shows whether an instance is
-running.
+last ~200 lines. `sensecraft-engine daemon status` prints JSON (no `--json`
+needed; exit 1 when no instance is running).
 
 Note the failing device, step and the first error — later errors are usually
 consequences of the first.
@@ -51,6 +51,8 @@ Through the engine (no separate SSH client needed):
 ```
 SC_SSH_PASSWORD=<password> sensecraft-engine docker ps --host <ip> --username <user> --json
 SC_SSH_PASSWORD=<password> sensecraft-engine docker logs <container> --host <ip> --username <user> --tail 100
+# SSH key (engines with --key-file; older engines accept a password only):
+sensecraft-engine docker ps --host <ip> --username <user> --key-file ~/.ssh/id_ed25519 --json
 ```
 
 Omit `--host` for this computer's Docker. With an SSH client, the same
