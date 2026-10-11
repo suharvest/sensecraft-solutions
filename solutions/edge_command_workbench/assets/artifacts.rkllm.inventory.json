@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "published",
+  "status": "ready",
   "status_note": "Published RKLLM 0.3.1 ef82 image plus the existing 2 model and 13 shared artifacts under the existing release prefix; historical d870 image record is retained in image_history.",
   "source": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
@@ -37,7 +37,6 @@
     "compose_sha256": "ab3e40a114dac797160f83f4b400aa3cd102c649fece317056e3f7a75e62b5e3",
     "kev_helper_source_sha256": "ddad908b6bffb7cac599c43614cacd5eb95d0f668d79ff30278ea7e8c73a3131",
     "sdk_header_sha256": "4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c",
-    "app_web_docker_tree_sha256": "551c63260765ee24c7f21ab21e00bc2776c724e12fb77be1189c1f8074266c9f",
     "app_sha256": "cf4522e6204d9a5124061e5b9c1e7d84c90044a24ca2f9d313b0fdb83c98a1a7",
     "decision_sha256": "6f27b7e0204de4c85e6a872f7e80efc266f51affba96e9e0d8a962ec1e73aeec",
     "kev_sha256": "85f5ddf0f86bc25a2a4859b54904e4332196efd80cbb7870f5ae5727df588875",
@@ -261,12 +260,12 @@
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
   "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
   "path_prefix": "releases/edge-workbench-0.3.0",
-  "distribution_status": "published",
+  "distribution_status": "ready",
   "distribution": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
     "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
     "path_prefix": "releases/edge-workbench-0.3.0",
-    "status": "published"
+    "status": "ready"
   },
   "image_history": [
     {
@@ -288,7 +287,11 @@
       ],
       "note": "Published d870 archive; subsequent UI source ef82 is not included in this image.",
       "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
-      "helper_location": "/opt/kev/libkev_runtime.so (built into image)"
+      "helper_location": "/opt/kev/libkev_runtime.so (built into image)",
+      "source_fingerprint": {
+        "app_web_docker_tree_sha256": "551c63260765ee24c7f21ab21e00bc2776c724e12fb77be1189c1f8074266c9f",
+        "origin": "Historical d870 aggregate fingerprint; not an ef82 source fingerprint."
+      }
     }
   ]
 }
