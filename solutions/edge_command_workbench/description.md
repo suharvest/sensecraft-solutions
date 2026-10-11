@@ -1,0 +1,66 @@
+## What this solution does
+
+Edge Command Workbench gives a local browser a small, focused interface for choosing a machine command from a short request and a list of allowed options. The model and tokenizer run on an RK3576 device, so the request can stay on the local network.
+
+![Edge Command Workbench running on RK3576](gallery/workbench.jpg)
+
+![Command selection steps](gallery/demo/command-selection.gif)
+
+## Core value
+
+| Benefit | What you get |
+|---------|--------------|
+| Keep requests local | Candidate selection runs on the RK3576 instead of sending the request to a cloud service. |
+| Connect to existing controls | `POST /api/decide` returns the selected option and its ranking as JSON for a machine control or web application. |
+| Keep the action surface explicit | Your application supplies the allowed command options; the workbench ranks those options rather than inventing an unrestricted command. |
+| Keep the edge path short | On the validated RK3576 setup, a 120-iteration repeated single 43-token input benchmark measured 335.43 ms p50 total latency. This is a latency observation, not an accuracy claim. |
+| Connect voice when ready | An existing compatible local voice service can be connected through `VOICE_SERVICE_URL`; this solution does not automatically install a voice service. |
+
+## Use cases
+
+| Scenario | Example |
+|----------|---------|
+| Conveyor controls | Present “Set speed”, “Stop”, and “Read status”, then rank a request such as “Reduce conveyor 3 speed to 60%.” |
+| Factory status panels | Let an operator select the “Read status” action from a short English or Chinese request. |
+| Robot or gateway integration | Send the candidate list from an existing control system and consume the selected option from the JSON response. |
+
+## Usage notes
+
+### Required hardware
+
+| Device | Role | Required |
+|--------|------|----------|
+| RK3576 Linux device, such as LubanCat3 | Runs the one-container web workbench and RKNN model | Required |
+
+The existing validated package is prepared for RK3576/RKNN. RKLLM Kev has been device-tested on cat-remote RK3576 and Radxa RK3588: RK3576 deployment requests are guarded at 2048 tokens while the engine export capacity is 8192; RK3588 uses an 8192-token deployment context. Existing Jetson TensorRT deployment is maintained in the application Docker sources; this solution page does not claim native Kev support on Jetson.
+
+### Network and storage
+
+- SSH access is required for deployment.
+- Keep at least 4GB free on the target filesystem.
+- Docker and `/usr/lib/librknnrt.so` must already be installed on the target.
+- The container runs without `privileged` mode using the RK3576 NPU DRM nodes, read-only device-tree paths, and read-only RKNN runtime mounts.
+- The first deployment downloads the pinned archive, model, and tokenizer from the configured HF endpoint. The default is `https://hf-mirror.com`.
+
+### Kev RKLLM artifact set
+
+- RK3576 and RK3588 engines, the FP32 Q/K head, tokenizer, metadata, RKLLM 1.3.1 runtime, and license notice are separate pinned artifacts.
+- The container loads one local model family at a time. `MODEL_SERVICES_JSON` can point another model family to an existing HTTP service without loading both families into RAM.
+- The tested devices and context limits are listed in the support matrix; other devices with the same SoC are not assumed to have the same memory headroom or unlimited context.
+
+### Optional voice
+
+Voice input is available only when an existing compatible local voice service is supplied. The solution does not automatically install a voice service. Browser microphone access requires HTTPS or localhost.
+
+## Kev QA assets and support matrix
+
+`gallery/kev-final/` contains the Chinese and English result screenshots, the pending state, and a screenshot montage from the 2026-10-11 Radxa RK3588 candidate QA. SHA256 values, service URLs, health response, and request metadata are recorded in `gallery/kev-final/README.md` and `kev-final-evidence-20261011.json`. The montage shows page steps only; it is not model timing, a live recording, or an accuracy measurement. Voice configuration is optional and was not tested in this evidence set.
+
+| Hardware / backend | Current status |
+|---|---|
+| RK3576 / RKNN Laya | Existing validated path |
+| RK3588 / RKLLM Kev | Radxa verified with 8192 context, five golden cases, overlength error, and dual-model HTTP switching; release inventory remains draft |
+| RK3576 / RKLLM Kev | Tested on cat-remote; deployment guard 2048 tokens, engine capacity 8192 |
+| Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
+
+Real browser switch evidence is in `gallery/kev-final-switch/`: the Laya page chip/result both show `rknn / 90 tokens`, while the Kev page chip/result both show `rkllm / 8192 tokens`. The same English request was run after selecting each profile from the dropdown; `Test and connect` made a real `GET /api/models` request and received HTTP 200. The assets document the final UI readability rounding (score to three decimals and milliseconds to one decimal); raw API values remain in the evidence JSON.

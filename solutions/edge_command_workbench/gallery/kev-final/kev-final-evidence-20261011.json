@@ -1,0 +1,15 @@
+{
+  "url_zh": "http://100.77.150.16:18769/?lang=zh&qa=kev-final-zh-20261011",
+  "url_en": "http://100.77.150.16:18769/?lang=en&qa=kev-final-en-20261011",
+  "served_assets": {
+    "app_js_sha256": "7a72b7e63dc1bf1bde94fa7ecb4b60230da99308e6f21e83cdadda0032cfa923",
+    "index_html_sha256": "75f2779f55ba3b2af3030e3739986b8217af7e69c7bc691e2a4f99795e4676ff"
+  },
+  "health": {"status":"ok","model_ready":true,"backend":"rkllm","name":"model.rkllm","model_id":"kev","max_sequence_tokens":8192,"max_options":16},
+  "models": {"models":[{"id":"kev","name":"model.rkllm","service_url":"","local":true,"is_default":true,"model_ready":true,"backend":"rkllm","max_sequence_tokens":8192,"max_options":16}],"default_model_id":"kev"},
+  "cases": [
+    {"lang":"zh","request_submitted_at":"2026-10-11T01:49:15.3Z","input":"降低三号输送带速度","result_selector":"Actual model / selected candidate / total timing in /tmp/kev-final-zh-result.yml","actual_model_id":"kev","backend":"rkllm","max_sequence_tokens":8192,"selected":"降低输送带速度","scores":[0.9032248287821506,0.05575514768931477,0.04102002352853467],"total_ms":721.7322869691998,"inference_ms":721.5905349585228},
+    {"lang":"en","request_submitted_at":"2026-10-11T01:50:40.3Z","input":"Reduce conveyor 3 speed to 60%","pending_selector":"Running · 0s in /tmp/kev-final-en-pending-event.yml and screenshot","result_selector":"Actual model / selected candidate / total timing in /tmp/kev-final-en-result.yml","actual_model_id":"kev","backend":"rkllm","max_sequence_tokens":8192,"selected":"Reduce conveyor speed","scores":[0.9236911123535364,0.052264693130586244,0.024044194515877335],"total_ms":481.79490701295435,"inference_ms":481.5898619708605}
+  ],
+  "network": {"request_method":"POST","endpoint":"/api/decide","status":200,"body_capture":"playwright-cli network exposes method/url/status only; response body not claimed here"}
+}
