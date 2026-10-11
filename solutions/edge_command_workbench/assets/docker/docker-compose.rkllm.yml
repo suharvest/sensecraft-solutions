@@ -1,6 +1,6 @@
 services:
   edge-command-workbench:
-    image: ${EDGE_WORKBENCH_IMAGE:-edge-command-workbench:rockchip-rkllm-0.3.0}
+    image: ${EDGE_WORKBENCH_IMAGE:-edge-command-workbench:rockchip-rkllm-0.3.1-review}
     pull_policy: never
     container_name: edge-command-workbench-rkllm
     restart: unless-stopped

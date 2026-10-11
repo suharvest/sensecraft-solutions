@@ -59,7 +59,7 @@
 | 硬件/后端 | 当前状态 |
 |---|---|
 | RK3576 / RKNN Laya | 既有已验证路径 |
-| RK3588 / RKLLM Kev | Radxa 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；发布清单仍为 draft |
+| RK3588 / RKLLM Kev | Radxa 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
 | RK3576 / RKLLM Kev | cat-remote 已验证；部署限制 2048 tokens，engine 容量 8192 |
 | Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
 

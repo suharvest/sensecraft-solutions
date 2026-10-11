@@ -94,7 +94,7 @@ Submit a request with candidate commands after the health check reports a ready 
 
 ### Published artifact record
 
-The published artifact set is pinned to Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254) under `releases/edge-workbench-0.3.0`. The image archive is the verified d870 candidate. The 16-file list, sizes, SHA256 values, and remote verification record are in [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json). A later UI source identified as `ef82` is not included in this image.
+The RKLLM 0.3.1 ef82 image is published at Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199) under the existing prefix `releases/edge-workbench-0.3.0`. The active inventory contains the new image plus the existing 2 model and 13 shared artifacts; the prior d870 image remains a historical record. The new release evidence is [`assets/evidence/hf-release-0.3.1-20261011.json`](assets/evidence/hf-release-0.3.1-20261011.json).
 
 The recorded mirror check returned HTTP 308 to the Hugging Face origin; the evidence does not claim a mirror-native large-file download.
 

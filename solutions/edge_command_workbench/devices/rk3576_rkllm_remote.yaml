@@ -20,7 +20,7 @@ docker_remote:
     force_offline: true
     skip_docker_install: true
     images:
-      - edge-command-workbench:rockchip-rkllm-0.3.0
+      - edge-command-workbench:rockchip-rkllm-0.3.1-review
   options:
     project_name: edge-command-workbench-rkllm
     remove_orphans: true

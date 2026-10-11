@@ -94,7 +94,7 @@
 
 ### 已发布产物记录
 
-已发布产物固定使用 Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254)，路径为 `releases/edge-workbench-0.3.0`。镜像归档使用已核验的 d870 候选版本。16 项文件清单、大小、SHA256 和远端核验记录见 [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json)。后续标识为 `ef82` 的 UI 源未包含在此镜像中。
+RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。当前 active inventory 包含新镜像、原有 2 个模型和 13 个共享产物；旧 d870 镜像保留为历史记录。新版本证据见 [`assets/evidence/hf-release-0.3.1-20261011.json`](assets/evidence/hf-release-0.3.1-20261011.json)。
 
 记录的镜像检查返回 HTTP 308 并跳转到 Hugging Face 源站；证据不宣称已完成镜像原生大文件下载。
 

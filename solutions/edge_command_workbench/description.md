@@ -59,7 +59,7 @@ Voice input is available only when an existing compatible local voice service is
 | Hardware / backend | Current status |
 |---|---|
 | RK3576 / RKNN Laya | Existing validated path |
-| RK3588 / RKLLM Kev | Radxa verified with 8192 context, five golden cases, overlength error, and dual-model HTTP switching; release inventory remains draft |
+| RK3588 / RKLLM Kev | Radxa verified with 8192 context, five golden cases, overlength error, and dual-model HTTP switching; RKLLM 0.3.1 ef82 release published |
 | RK3576 / RKLLM Kev | Tested on cat-remote; deployment guard 2048 tokens, engine capacity 8192 |
 | Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
 

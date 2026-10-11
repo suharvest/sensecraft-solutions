@@ -1,34 +1,34 @@
 {
   "schema_version": 1,
-  "status": "ready",
-  "status_note": "Published 16-artifact set is pinned to the verified Hugging Face revision; subsequent UI source ef82 is not included in this d870 image.",
+  "status": "published",
+  "status_note": "Published RKLLM 0.3.1 ef82 image plus the existing 2 model and 13 shared artifacts under the existing release prefix; historical d870 image record is retained in image_history.",
   "source": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-    "revision": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
-    "revision_status": "source frozen candidate; HTTP identity fix included; final image locally QA; no publish",
+    "revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "revision_status": "source/UI ef82; core and decision sources remain the previously verified files; RKLLM 0.3.1 image published at the recorded HF revision",
     "core_revision": "18dbd237d7d3156939549a3dceec16fa99c9b740",
     "docker_revision": "a66e843a90a6da51f4ecdc1dc0540dfdec2a40ab",
-    "ui_revision": "a79ddced7b04e97568d7fc397f99cb9b9e13b8b7",
-    "published_image_note": "The published image is the d870 candidate. Subsequent UI source ef82 is not included; source revision remains the frozen d870 candidate recorded above."
+    "ui_revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "published_image_note": "RKLLM 0.3.1 image contains the ef82 UI source; core/app.py and decision.py fingerprints remain unchanged from the prior verified source."
   },
   "image": {
-    "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.0",
+    "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
     "archives": [
       {
         "platform": "linux/arm64",
-        "tag": "edge-command-workbench:rockchip-rkllm-0.3.0",
-        "archive": "edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
-        "size_bytes": 291154432,
-        "sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
-        "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+        "tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+        "archive": "edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "size_bytes": 291152384,
+        "sha256": "251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77",
+        "config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9",
         "status": "published",
-        "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
-        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
-        "expected_config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
-        "hf_revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254"
+        "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "expected_config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9",
+        "hf_revision": "db0545065d4da3598d009407fc3bd0c7632ca199"
       }
     ],
-    "note": "Published d870 archive; subsequent UI source ef82 is not included in this image.",
+    "note": "Published RKLLM 0.3.1 ef82 image; the prior d870 image is retained in image_history.",
     "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
     "helper_location": "/opt/kev/libkev_runtime.so (built into image)"
   },
@@ -42,10 +42,12 @@
     "decision_sha256": "6f27b7e0204de4c85e6a872f7e80efc266f51affba96e9e0d8a962ec1e73aeec",
     "kev_sha256": "85f5ddf0f86bc25a2a4859b54904e4332196efd80cbb7870f5ae5727df588875",
     "uv_lock_sha256": "e1eb0eff3ecbee9e99c5d38c131b109d30d608a26e7e5d91f910bd48b87893e9",
-    "ui_app_js_sha256": "52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206",
+    "ui_app_js_sha256": "02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e",
     "ui_index_html_sha256": "75f2779f55ba3b2af3030e3739986b8217af7e69c7bc691e2a4f99795e4676ff",
     "bootstrap_sha256": "593c1a1d973075c0fb5605436bec2a252c3272e4a7d34e0182bee3c099d4c827",
-    "ui_style_css_sha256": "478d8935c8939ffd9d865565d36a577e4256e8117937714b6e42eac8f9a52663"
+    "ui_style_css_sha256": "478d8935c8939ffd9d865565d36a577e4256e8117937714b6e42eac8f9a52663",
+    "deployment_compose_sha256": "2b8b143671e5c4448ad02a201a9eccb32a8513c8aab191d18b0ded26317b62cf",
+    "source_commit": "ef82f8360c2b787f97c958f89c92fe569c62ecb1"
   },
   "models": [
     {
@@ -247,20 +249,46 @@
     "ui_switch_source_commit": "199583751f77068a9e1e0e987f80451aa22faec2",
     "backend_identity_final_d870": "/dev/shm/kev-rkllm/backend-identity-final-d870-20261011.txt",
     "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
-    "hf_release_verification": "assets/evidence/hf-release-20261011.json",
-    "hf_release_verification_sha256": "1658b67cc8a660f1448b5ff3d5cd3175840afc3801f1f032e4bf3ae805d48203 (raw record on Spark)",
+    "hf_release_verification": "assets/evidence/hf-release-0.3.1-20261011.json",
+    "hf_release_verification_sha256": "48f8dad541e75d429151cb8741bf68acc96f4bca0bc4a3f6bff0889d4b79afb1",
     "radxa_rk3588_bootstrap_log": "assets/evidence/radxa-rk3588-bootstrap-20261011.log",
     "radxa_rk3588_bootstrap_log_sha256": "9dc32b6ac0c4783abfde64d357d683cb3e25d91a24573cac6a4b7d9a68ed8e0b",
-    "radxa_rk3588_bootstrap_summary": "assets/evidence/radxa-rk3588-bootstrap-20261011.json"
+    "radxa_rk3588_bootstrap_summary": "assets/evidence/radxa-rk3588-bootstrap-20261011.json",
+    "active_artifact_count": 16,
+    "active_artifact_selection": "new RKLLM image + 2 model files + 13 shared artifacts; historical d870 image excluded",
+    "hf_release_verification_note": "Raw upload verification record on Spark."
   },
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-  "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",
+  "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
   "path_prefix": "releases/edge-workbench-0.3.0",
-  "distribution_status": "ready",
+  "distribution_status": "published",
   "distribution": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-    "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",
+    "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
     "path_prefix": "releases/edge-workbench-0.3.0",
-    "status": "ready"
-  }
+    "status": "published"
+  },
+  "image_history": [
+    {
+      "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.0",
+      "archives": [
+        {
+          "platform": "linux/arm64",
+          "tag": "edge-command-workbench:rockchip-rkllm-0.3.0",
+          "archive": "edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "size_bytes": 291154432,
+          "sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
+          "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+          "status": "published",
+          "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "expected_config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+          "hf_revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254"
+        }
+      ],
+      "note": "Published d870 archive; subsequent UI source ef82 is not included in this image.",
+      "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
+      "helper_location": "/opt/kev/libkev_runtime.so (built into image)"
+    }
+  ]
 }
