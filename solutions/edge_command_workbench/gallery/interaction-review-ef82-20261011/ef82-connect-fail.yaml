@@ -1,0 +1,183 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "SenseCraft home" [ref=e196] [cursor=pointer]:
+        - /url: "#top"
+        - img [ref=e6]
+        - generic [ref=e9]:
+          - strong [ref=e10]: SenseCraft
+          - text: /Command Selection Workbench
+      - generic [ref=e11]:
+        - button "Model service offline" [ref=e325] [cursor=pointer]:
+          - generic [ref=e14]: Model service offline
+          - img [ref=e15]
+        - button "Switch language" [ref=e198] [cursor=pointer]:
+          - generic [ref=e18]: 中
+          - generic [ref=e19]: /
+          - generic [ref=e20]: EN
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Fast responses from edge devices" [level=1] [ref=e199]
+          - paragraph [ref=e25]: Use a small decision model to select commands on-device, put limited compute to work, and shorten the response path for on-site instructions.
+        - generic [ref=e28]: Live service · local inference
+      - generic [ref=e29]:
+        - region "Configure a decision scene" [ref=e200]:
+          - generic [ref=e31]:
+            - heading "Configure a decision scene" [level=2] [ref=e201]
+            - button "Reset" [ref=e202] [cursor=pointer]
+          - generic [ref=e35]: Scene template
+          - combobox "Scene template" [ref=e203]:
+            - option "Machine control · Production line" [selected]
+            - option "Quality routing · Vision check"
+            - option "Warehouse ops · Logistics node"
+          - generic [ref=e37]: Decision prompt
+          - textbox "Decision prompt" [ref=e204]: You route production line instructions. Choose the best matching candidate.
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: Candidate commands
+              - generic [ref=e42]: Keep 2–16 options for your site
+            - button "Add" [ref=e205] [cursor=pointer]:
+              - img [ref=e44]
+              - generic [ref=e46]: Add
+          - generic [ref=e47]:
+            - generic [ref=e206]:
+              - generic [ref=e207]: "01"
+              - generic [ref=e208]:
+                - textbox "Candidate commands 1" [ref=e209]: Reduce conveyor speed
+                - textbox "Candidate commands 1 Candidate description" [ref=e210]: Adjust the specified conveyor to the target speed
+              - button "Delete candidate command" [ref=e211] [cursor=pointer]:
+                - img [ref=e212]
+            - generic [ref=e214]:
+              - generic [ref=e215]: "02"
+              - generic [ref=e216]:
+                - textbox "Candidate commands 2" [ref=e217]: Pause equipment
+                - textbox "Candidate commands 2 Candidate description" [ref=e218]: Safely pause the current production equipment
+              - button "Delete candidate command" [ref=e219] [cursor=pointer]:
+                - img [ref=e220]
+            - generic [ref=e222]:
+              - generic [ref=e223]: "03"
+              - generic [ref=e224]:
+                - textbox "Candidate commands 3" [ref=e225]: Query equipment status
+                - textbox "Candidate commands 3 Candidate description" [ref=e226]: Return the current equipment status
+              - button "Delete candidate command" [ref=e227] [cursor=pointer]:
+                - img [ref=e228]
+          - button "Save configuration" [ref=e230] [cursor=pointer]:
+            - img [ref=e73]
+            - generic [ref=e75]: Save configuration
+          - status [ref=e76]
+        - region "Enter a site instruction" [ref=e231]:
+          - generic [ref=e78]:
+            - heading "Enter a site instruction" [level=2] [ref=e232]
+            - generic [ref=e83]: "remote health request failed: All connection attempts failed"
+          - generic [ref=e84]:
+            - generic [ref=e85]: "01"
+            - paragraph [ref=e86]: Describe the action you want. The model will rank candidate commands.
+          - generic [ref=e87]: Text or voice transcript
+          - generic [ref=e88]:
+            - textbox "Text or voice transcript" [ref=e233]:
+              - /placeholder: e.g. Reduce conveyor 3 speed to 60%
+              - text: 查询设备状态
+            - generic [ref=e90]: 6 / 240
+          - generic [ref=e91]:
+            - button "Use example" [ref=e234] [cursor=pointer]:
+              - img [ref=e93]
+              - generic [ref=e95]: Use example
+            - button "Start recording Text decisions remain available without a voice service." [disabled] [ref=e235] [cursor=pointer]:
+              - img [ref=e97]
+              - generic [ref=e100]: Start recording
+              - generic [ref=e101]: Text decisions remain available without a voice service.
+            - generic [ref=e102]:
+              - checkbox "Decide after transcript" [checked] [ref=e236]
+              - generic [ref=e104]: Decide after transcript
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - heading "Decision result" [level=3] [ref=e237]
+              - generic [ref=e109]: Model service connected
+            - generic [ref=e286]:
+              - generic [ref=e287]:
+                - generic [ref=e288]:
+                  - text: "Actual model:"
+                  - strong [ref=e289]: kev
+                - generic [ref=e290]: "Backend: rkllm"
+                - generic [ref=e291]: "Max context: 8192"
+              - generic [ref=e292]:
+                - generic [ref=e293]:
+                  - text: Selected candidate
+                  - strong [ref=e294]: Query equipment status
+                - generic [ref=e295]: "Raw score: 0.977"
+              - generic [ref=e296]:
+                - generic [ref=e297]:
+                  - generic [ref=e298]: "1"
+                  - strong [ref=e299]: Query equipment status
+                  - generic "Relative bar for candidate comparison only" [ref=e300]
+                  - generic [ref=e302]: "0.977"
+                - generic [ref=e303]:
+                  - generic [ref=e304]: "2"
+                  - strong [ref=e305]: Pause equipment
+                  - generic "Relative bar for candidate comparison only" [ref=e306]
+                  - generic [ref=e308]: "0.02"
+                - generic [ref=e309]:
+                  - generic [ref=e310]: "3"
+                  - strong [ref=e311]: Reduce conveyor speed
+                  - generic "Relative bar for candidate comparison only" [ref=e312]
+                  - generic [ref=e313]: "0.003"
+              - generic [ref=e314]: "Total: 454.1 ms · Encoding: 0.0 ms · Inference: 454.0 ms · Relative bar for candidate comparison only"
+          - button "Start decision" [ref=e267] [cursor=pointer]:
+            - img [ref=e116]
+            - generic [ref=e118]: Start decision
+          - generic [ref=e119]:
+            - generic [ref=e120]: Scores are raw model ranking scores, not probabilities.
+            - button "Clear result" [ref=e268] [cursor=pointer]
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - heading "Recent tests" [level=2] [ref=e269]
+          - generic [ref=e127]: "2"
+        - generic [ref=e128]:
+          - generic [ref=e315]:
+            - paragraph [ref=e316]: 查询设备状态
+            - generic [ref=e317]:
+              - generic [ref=e318]: Query equipment status
+              - generic [ref=e319]: 12:22 PM
+          - generic [ref=e320]:
+            - paragraph [ref=e321]: 查询设备状态
+            - generic [ref=e322]:
+              - generic [ref=e323]: 查询设备状态
+              - generic [ref=e324]: 12:21
+    - contentinfo [ref=e130]:
+      - generic [ref=e131]: SenseCraft · Command Selection Workbench
+      - generic [ref=e132]: Live model service · selection requests only
+  - complementary [ref=e133]:
+    - generic [ref=e135]:
+      - generic [ref=e136]:
+        - heading "Device & model" [level=2] [ref=e275]
+        - button "Close" [ref=e276] [cursor=pointer]:
+          - img [ref=e140]
+      - generic [ref=e144]:
+        - strong [ref=e145]: Connection failed
+        - paragraph [ref=e146]: "remote health request failed: All connection attempts failed"
+      - generic [ref=e147]: Target device
+      - combobox "Target device" [ref=e277]:
+        - option "RK3576" [selected]
+        - option "RK3588"
+        - option "Orin Nano"
+        - option "Orin NX"
+      - generic [ref=e149]: Decision model
+      - combobox "Decision model" [ref=e278]:
+        - option "model.rkllm" [selected]
+        - option "model.rknn"
+      - paragraph [ref=e151]: "Model ready · Backend: rkllm · Max context: 8192"
+      - generic [ref=e152]: Model service Base URL (blank uses this app)
+      - textbox "Model service Base URL (blank uses this app)" [ref=e279]:
+        - /placeholder: https://model.example
+        - text: http://100.77.150.16:1
+      - paragraph [ref=e154]: The custom URL is saved per model and checked for service identity.
+      - generic [ref=e155]: Local voice service Base URL
+      - textbox "Local voice service Base URL" [ref=e280]:
+        - /placeholder: http://device.local:8000
+      - paragraph [ref=e157]: Text decisions remain available without a voice service.
+      - generic [ref=e158]:
+        - button "Close" [ref=e281] [cursor=pointer]
+        - button "Test and connect" [active] [ref=e282] [cursor=pointer]
+        - button "Save configuration" [ref=e283] [cursor=pointer]
+  - status: Connection failed. Check the address and retry.

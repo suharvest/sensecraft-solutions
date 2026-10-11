@@ -1,0 +1,6 @@
+### Result
+{"elapsed":1011,"afterFirstDisabled":true,"afterSecondDisabled":true,"requestCount":1,"requests":[{"at":1791692566330,"url":"http://100.77.150.16:18772/api/decide"}]}
+### Ran Playwright code
+```js
+await (async page => { const req=[]; const h=r=>{if(r.method()==='POST'&&r.url().includes('/api/decide'))req.push({at:Date.now(),url:r.url()})}; page.on('request',h); const input=page.getByRole('textbox',{name:'Text or voice transcript'}); const btn=page.getByRole('button',{name:'Start decision'}); await input.fill('Query equipment status'); const t=Date.now(); await input.press('Control+Enter'); const d1=await btn.isDisabled(); await input.press('Control+Enter'); const d2=await btn.isDisabled(); await page.waitForTimeout(1000); page.off('request',h); return {elapsed:Date.now()-t,afterFirstDisabled:d1,afterSecondDisabled:d2,requestCount:req.length,requests:req}; })(page);
+```
