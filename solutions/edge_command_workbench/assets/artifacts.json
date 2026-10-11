@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-  "revision": "main",
+  "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
   "path_prefix": "releases/edge-workbench-0.1.0",
   "image": {
     "tag": "edge-command-workbench:rk3576-0.1.0",

@@ -32,7 +32,7 @@
 |------|------|------|
 | RK3576 Linux 设备，例如 LubanCat3 | 运行单容器 Web 工作台和 RKNN 模型 | ✓ 必选 |
 
-现有已验证包面向 RK3576/RKNN。RKLLM Kev 已在 cat-remote RK3576 和 Radxa RK3588 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
+现有已验证包面向 RK3576/RKNN。历史 `rk3576_remote` 套餐使用独立的 Laya/RKNN 0.1.0 路径，与当前 Kev RKLLM 套餐保持分离。RKLLM Kev 已在 cat-remote RK3576 和 Radxa RK3588 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
 
 ### 网络和存储要求
 
@@ -60,7 +60,18 @@
 |---|---|
 | RK3576 / RKNN Laya | 既有已验证路径 |
 | RK3588 / RKLLM Kev | Radxa 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
-| RK3576 / RKLLM Kev | cat-remote 已验证；部署限制 2048 tokens，engine 容量 8192 |
+| RK3576 / RKLLM Kev | cat-remote 500-case fixture：240 条中正确 189 条（78.75%）；部署限制 2048 tokens，engine 容量 8192 |
+
+### 500-token 上下文 QA fixture
+
+可复现的 context-500 fixture 保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。其中包含 120 条 original 和 120 条 reverse case，每条 assembled input 固定为 500 tokens。冻结 dataset、metadata、runner、逐请求 JSONL、summary、日志和监测记录按设备保存。
+
+| 设备 | 正确数 | HTTP 错误 | client p50 / p95 |
+|---|---:|---:|---:|
+| RK3576 cat-remote | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
+| RK3588 Radxa | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
+
+该 fixture 使用生成的文档上下文将输入固定为 500 tokens。表中数据只表示冻结 fixture 的测量结果，不能外推到任意长工业请求，也不保证选中的动作安全。source、generator、dataset SHA、runner SHA 和设备绑定均记录在证据目录中。
 | Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
 
 双模型切换的真实浏览器素材位于 `gallery/kev-final-switch/`：Laya 页面 chip/result 均显示 `rknn / 90 tokens`，Kev 页面 chip/result 均显示 `rkllm / 8192 tokens`。同一条英文指令分别通过下拉选择两个 profile；`Test and connect` 的真实 `GET /api/models` 返回 HTTP 200。素材说明了最终 UI 的可读性取整（score 三位小数、毫秒一位小数），raw API 数值保存在 evidence JSON 中。

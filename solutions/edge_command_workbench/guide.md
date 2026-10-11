@@ -56,6 +56,8 @@ Open `http://<device-ip>:18768/api/health` and confirm the service reports healt
 
 This preset deploys the tested Kev RKLLM path on cat-remote RK3576. The engine export capacity is 8192 tokens, while the deployment guard and metadata limit requests to 2048 tokens because the 8K configuration caused global OOM on that device. The package records the runtime, engine, head, tokenizer, and metadata as separate pinned artifacts.
 
+The 500-token reproducibility report for both RKLLM devices is archived at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/). It records 120 original and 120 reverse fixture cases per device; the fixture uses generated context and is not a general long-request accuracy claim.
+
 ## Step 1: Deploy the Kev Workbench {#deploy_rk3576_rkllm type=docker_remote required=true config=devices/rk3576_rkllm_remote.yaml}
 
 The container selects `DECISION_BACKEND=rkllm` and `MODEL_ID=kev`. Supply a complete model directory containing `model.rkllm`, `kev_head.npz`, `tokenizer/tokenizer.json`, and the pinned runtime at `runtime/librkllmrt.so`. The image contains the C helper only when built with the pinned RKLLM 1.3.1 headers.
@@ -79,6 +81,8 @@ The second cat-remote validation used the same pinned image and verified five HT
 ## Preset: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 This preset deploys the tested 8K Kev artifact contract on Radxa RK3588. The verified deployment context is 8192 tokens; the result applies to the tested device and does not generalize to other boards with different free memory.
+
+The same 500-token reproducibility report covers this preset at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/), with raw JSONL and machine-generated summaries under `rk3588/`.
 
 ## Step 1: Deploy the Kev Workbench {#deploy_rk3588_rkllm type=docker_remote required=true config=devices/rk3588_rkllm_remote.yaml}
 

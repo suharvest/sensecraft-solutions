@@ -5,9 +5,9 @@ name_i18n:
   zh: 边缘设备命令工作台
 
 intro:
-  summary: A local web workbench that turns short machine requests into a ranked command choice on RK3576.
+  summary: A local web workbench that turns short machine requests into a ranked command choice on RK3576 and RK3588.
   summary_i18n:
-    zh: 在 RK3576 本地运行的设备命令工作台，把简短的机器请求转换为排序后的命令选择。
+    zh: 在 RK3576 和 RK3588 本地运行的设备命令工作台，把简短的机器请求转换为排序后的命令选择。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -68,9 +68,9 @@ intro:
       name: RK3576 Remote
       name_i18n:
         zh: 远程 RK3576
-      description: Install the local command workbench on one RK3576 device over SSH.
+      description: Install the historical RK3576 Laya/RKNN 0.1.0 workbench on one RK3576 device over SSH; its pinned 0.1.0 paths remain separate from the current Kev RKLLM presets.
       description_i18n:
-        zh: 通过 SSH 将本地命令工作台部署到一台 RK3576 设备。
+        zh: 通过 SSH 将历史 RK3576 Laya/RKNN 0.1.0 工作台部署到一台 RK3576 设备；其固定的 0.1.0 路径与当前 Kev RKLLM 套餐保持独立。
       device_groups:
         - id: target
           name: Target device

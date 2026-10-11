@@ -32,7 +32,7 @@ Edge Command Workbench gives a local browser a small, focused interface for choo
 |--------|------|----------|
 | RK3576 Linux device, such as LubanCat3 | Runs the one-container web workbench and RKNN model | Required |
 
-The existing validated package is prepared for RK3576/RKNN. RKLLM Kev has been device-tested on cat-remote RK3576 and Radxa RK3588: RK3576 deployment requests are guarded at 2048 tokens while the engine export capacity is 8192; RK3588 uses an 8192-token deployment context. Existing Jetson TensorRT deployment is maintained in the application Docker sources; this solution page does not claim native Kev support on Jetson.
+The existing validated package is prepared for RK3576/RKNN. The historical `rk3576_remote` preset uses the independent Laya/RKNN 0.1.0 paths and remains separate from the current Kev RKLLM presets. RKLLM Kev has been device-tested on cat-remote RK3576 and Radxa RK3588: RK3576 deployment requests are guarded at 2048 tokens while the engine export capacity is 8192; RK3588 uses an 8192-token deployment context. Existing Jetson TensorRT deployment is maintained in the application Docker sources; this solution page does not claim native Kev support on Jetson.
 
 ### Network and storage
 
@@ -60,7 +60,18 @@ Voice input is available only when an existing compatible local voice service is
 |---|---|
 | RK3576 / RKNN Laya | Existing validated path |
 | RK3588 / RKLLM Kev | Radxa verified with 8192 context, five golden cases, overlength error, and dual-model HTTP switching; RKLLM 0.3.1 ef82 release published |
-| RK3576 / RKLLM Kev | Tested on cat-remote; deployment guard 2048 tokens, engine capacity 8192 |
+| RK3576 / RKLLM Kev | cat-remote 500-case fixture: 189/240 correct (78.75%); deployment guard 2048 tokens, engine capacity 8192 |
+
+### Context-500 QA fixture
+
+The reproducible context-500 fixture is archived in [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/). It contains 120 original and 120 reverse cases, each assembled to 500 tokens. The frozen dataset, metadata, runner, raw JSONL, summaries, logs, and monitoring records are included for both devices.
+
+| Device | Correct | HTTP errors | Client p50 / p95 |
+|---|---:|---:|---:|
+| RK3576 cat-remote | 189/240 (78.75%) | 0 | 7115.31 / 7574.56 ms |
+| RK3588 Radxa | 189/240 (78.75%) | 0 | 3946.52 / 4770.96 ms |
+
+The fixture uses generated documentation context to hold the assembled input at 500 tokens. These figures measure the frozen fixture and do not establish accuracy on arbitrary long industrial requests or guarantee that a selected action is safe. The source, generator, dataset SHA, runner SHA, and device bindings are recorded with the evidence.
 | Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
 
 Real browser switch evidence is in `gallery/kev-final-switch/`: the Laya page chip/result both show `rknn / 90 tokens`, while the Kev page chip/result both show `rkllm / 8192 tokens`. The same English request was run after selecting each profile from the dropdown; `Test and connect` made a real `GET /api/models` request and received HTTP 200. The assets document the final UI readability rounding (score to three decimals and milliseconds to one decimal); raw API values remain in the evidence JSON.

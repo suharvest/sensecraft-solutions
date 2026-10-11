@@ -56,6 +56,8 @@
 
 此套餐在 cat-remote RK3576 上部署已测试的 Kev RKLLM 路径。engine 导出容量为 8192 tokens，但该设备上的部署 guard 和 metadata 将请求限制为 2048 tokens，因为 8K 配置触发了全局 OOM。运行时、engine、head、tokenizer 和 metadata 均作为固定版本外部产物记录。
 
+两台 RKLLM 设备的 500-token 可复现报告保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。每台设备包含 120 条 original 和 120 条 reverse fixture case；该 fixture 使用生成上下文，不能作为任意长请求的准确率结论。
+
 ## 步骤 1: 部署 Kev 工作台 {#deploy_rk3576_rkllm type=docker_remote required=true config=devices/rk3576_rkllm_remote.yaml}
 
 容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。请准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
@@ -79,6 +81,8 @@
 ## 套餐: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 此套餐在 Radxa RK3588 上部署已测试的 8K Kev 产物契约，已验证部署上下文为 8192 tokens；结果只适用于已测试设备，不推断其他可用内存不同的板卡。
+
+同一份 500-token 可复现报告覆盖此套餐，原始 JSONL 和机器生成 summary 位于该目录下的 `rk3588/` 子目录：[`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。
 
 ## 步骤 1: 部署 Kev 工作台 {#deploy_rk3588_rkllm type=docker_remote required=true config=devices/rk3588_rkllm_remote.yaml}
 
