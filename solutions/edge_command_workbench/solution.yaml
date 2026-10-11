@@ -42,21 +42,21 @@ intro:
       description_i18n:
         zh: Kev 首次准备至少保留 3GB 可用空间；实测新鲜产物峰值约 1.94GB，并保留 1GB 余量。既有 RKNN 路径另行要求 4GB。
   device_catalog:
-    rk3576:
+    external_rk3576_laya_host:
       name: RK3576
       name_i18n:
         zh: RK3576
       description: LubanCat3 or another RK3576 Linux device with Docker and RKNN runtime access.
       description_i18n:
         zh: 安装 Docker 并可访问 RKNN 运行时的 LubanCat3 或其他 RK3576 Linux 设备。
-    rk3576_rkllm:
+    external_rk3576_rkllm_host:
       name: RK3576 with RKLLM 1.3.1
       name_i18n:
         zh: RK3576（RKLLM 1.3.1）
       description: Tested on RK3576 test platform with the pinned RKLLM 1.3.1 runtime and Kev artifacts. This deployment is guarded at 2048 input tokens; the engine export capacity is 8192.
       description_i18n:
         zh: 已在 RK3576 test platform 上使用固定版本 RKLLM 1.3.1 运行时和 Kev 产物完成验证。此部署将输入限制为 2048 tokens；engine 导出容量为 8192。
-    rk3588_rkllm:
+    external_rk3588_rkllm_host:
       name: RK3588 with RKLLM 1.3.1
       name_i18n:
         zh: RK3588（RKLLM 1.3.1）
@@ -79,8 +79,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: rk3576_rkllm
-          default: rk3576_rkllm
+            - device_ref: external_rk3576_rkllm_host
+          default: external_rk3576_rkllm_host
     - id: rk3588_rkllm_remote
       name: RK3588 Kev RKLLM (8192-token deployment)
       name_i18n:
@@ -96,8 +96,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: rk3588_rkllm
-          default: rk3588_rkllm
+            - device_ref: external_rk3588_rkllm_host
+          default: external_rk3588_rkllm_host
     - id: rk3576_remote
       name: RK3576 Remote
       name_i18n:
@@ -113,8 +113,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: rk3576
-          default: rk3576
+            - device_ref: external_rk3576_laya_host
+          default: external_rk3576_laya_host
 
 deployment:
   guide_file: guide.md
