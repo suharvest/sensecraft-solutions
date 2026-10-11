@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "device": "radxa",
+  "qa_root": "/home/radxa/edge-workbench-hf-download-qa-20261011",
+  "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
+  "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",
+  "endpoint": "https://hf-mirror.com",
+  "bootstrap": {
+    "pid": "1306057",
+    "log": "/home/radxa/edge-workbench-hf-download-qa-20261011/bootstrap.log",
+    "log_sha256": "9dc32b6ac0c4783abfde64d357d683cb3e25d91a24573cac6a4b7d9a68ed8e0b",
+    "terminal_marker": "Pinned artifacts ready under /home/radxa/edge-workbench-hf-download-qa-20261011",
+    "exit_status": "not captured by detached launcher; process exited after terminal success marker",
+    "method": "existing bootstrap_artifacts.sh with curl continuation/checksum logic; no --force-download"
+  },
+  "preflight": {
+    "status": "ONLINE",
+    "root_free_before": "4.1G",
+    "root_free_after": "2.6G",
+    "containers": "existing containers remained running; no stop/restart/prune",
+    "mirror_head": "HTTP 302 to cas-bridge.xethub.hf.co; x-linked-size=291154432; x-linked-etag=960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf; x-repo-commit=a556792cc663c0d9cfa7095e4263d3d706b4e254"
+  },
+  "image_verify": {
+    "downloaded_sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
+    "docker_save_archive_sha256": "9816760ad2a612c8cd6bf2cebc32019f867171974ba2e9434f3d72b585f1c202",
+    "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+    "tag": "edge-command-workbench:rockchip-rkllm-0.3.0",
+    "result": "exact image tag/config verified; docker load skipped"
+  },
+  "artifacts": [
+    [
+      ".cache/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+      291154432,
+      "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf"
+    ],
+    [
+      "model.rkllm",
+      1305332532,
+      "f53070dd831deedf137d7acf639553a8920c1e391cc6da0738f82a357d3a161d"
+    ],
+    [
+      "kev_head.npz",
+      2100464,
+      "533a21e940e69a570d5cf12f50f1bef27bdb2847395a288fa6cbfc3f9a1a7a7b"
+    ],
+    [
+      "head.metadata.json",
+      506,
+      "2bdc90c946e1a4f8681b5ad6ec70a04dbb5539aba9239a0305d069ee4aa93eb3"
+    ],
+    [
+      "tokenizer/tokenizer.json",
+      12807196,
+      "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927"
+    ],
+    [
+      "tokenizer/tokenizer_config.json",
+      16712,
+      "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de"
+    ],
+    [
+      "tokenizer/config.json",
+      2907,
+      "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204"
+    ],
+    [
+      "tokenizer/vocab.json",
+      6722759,
+      "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+    ],
+    [
+      "tokenizer/merges.txt",
+      3353259,
+      "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d"
+    ],
+    [
+      "runtime/librkllmrt.so",
+      7674816,
+      "f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c"
+    ],
+    [
+      "model_metadata.json",
+      605,
+      "18efe596b8e3386ecad3ee3ccda049bd8d3c945be1a9c5a31d45adcfde593e8c"
+    ],
+    [
+      "licenses/NOTICE",
+      2368,
+      "cbc03c8227e86ecafe4fcccfdf1a6b33fc07c95775f1fb91f76b5176ce8a80a7"
+    ],
+    [
+      "licenses/APACHE-2.0.txt",
+      10173,
+      "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+    ],
+    [
+      "licenses/RKLLM-SDK-LICENSE",
+      3310,
+      "8d670a646eb8cf28fb7c63a5c9126c224a3a3f8124b00a3b9184df9a2ed298b"
+    ]
+  ],
+  "network_note": "Radxa mirror path returned a mirror HTTP 302 with correct x-linked size/etag/revision and a signed cas-bridge CDN location. Spark showed a distinct 308-to-origin path; this record does not generalize the Spark behavior to all devices."
+}

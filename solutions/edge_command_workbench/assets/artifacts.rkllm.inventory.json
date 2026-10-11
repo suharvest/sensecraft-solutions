@@ -248,7 +248,10 @@
     "backend_identity_final_d870": "/dev/shm/kev-rkllm/backend-identity-final-d870-20261011.txt",
     "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
     "hf_release_verification": "assets/evidence/hf-release-20261011.json",
-    "hf_release_verification_sha256": "1658b67cc8a660f1448b5ff3d5cd3175840afc3801f1f032e4bf3ae805d48203 (raw record on Spark)"
+    "hf_release_verification_sha256": "1658b67cc8a660f1448b5ff3d5cd3175840afc3801f1f032e4bf3ae805d48203 (raw record on Spark)",
+    "radxa_rk3588_bootstrap_log": "assets/evidence/radxa-rk3588-bootstrap-20261011.log",
+    "radxa_rk3588_bootstrap_log_sha256": "9dc32b6ac0c4783abfde64d357d683cb3e25d91a24573cac6a4b7d9a68ed8e0b",
+    "radxa_rk3588_bootstrap_summary": "assets/evidence/radxa-rk3588-bootstrap-20261011.json"
   },
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
   "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",

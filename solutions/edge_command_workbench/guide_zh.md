@@ -97,3 +97,7 @@
 已发布产物固定使用 Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254)，路径为 `releases/edge-workbench-0.3.0`。镜像归档使用已核验的 d870 候选版本。16 项文件清单、大小、SHA256 和远端核验记录见 [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json)。后续标识为 `ef82` 的 UI 源未包含在此镜像中。
 
 记录的镜像检查返回 HTTP 308 并跳转到 Hugging Face 源站；证据不宣称已完成镜像原生大文件下载。
+
+### RK3588 镜像 bootstrap 证据
+
+Radxa 上按固定 revision fresh bootstrap 完成了 14 项 RK3588 目标文件校验。目标设备已有精确镜像标签和 config，因此跳过 Docker load，现有容器保持运行。原始 bootstrap 日志和校验摘要见 [`assets/evidence/radxa-rk3588-bootstrap-20261011.log`](assets/evidence/radxa-rk3588-bootstrap-20261011.log) 与 [`assets/evidence/radxa-rk3588-bootstrap-20261011.json`](assets/evidence/radxa-rk3588-bootstrap-20261011.json)。Radxa 镜像请求返回 mirror HTTP 302 并转到签名 CAS bridge；Spark 的独立 308-to-origin 行为已单独记录，不推广到所有设备。

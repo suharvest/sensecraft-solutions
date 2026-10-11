@@ -97,3 +97,7 @@ Submit a request with candidate commands after the health check reports a ready 
 The published artifact set is pinned to Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254) under `releases/edge-workbench-0.3.0`. The image archive is the verified d870 candidate. The 16-file list, sizes, SHA256 values, and remote verification record are in [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json). A later UI source identified as `ef82` is not included in this image.
 
 The recorded mirror check returned HTTP 308 to the Hugging Face origin; the evidence does not claim a mirror-native large-file download.
+
+### RK3588 mirror bootstrap evidence
+
+A fresh RK3588 artifact bootstrap on Radxa completed the 14 target file checks at the pinned revision. The exact local image tag and config were already present, so Docker load was skipped and existing containers were left running. The raw bootstrap log and checksum summary are [`assets/evidence/radxa-rk3588-bootstrap-20261011.log`](assets/evidence/radxa-rk3588-bootstrap-20261011.log) and [`assets/evidence/radxa-rk3588-bootstrap-20261011.json`](assets/evidence/radxa-rk3588-bootstrap-20261011.json). The Radxa mirror request returned a mirror HTTP 302 to the signed CAS bridge; Spark's separate 308-to-origin behavior is recorded without generalizing it to all devices.
