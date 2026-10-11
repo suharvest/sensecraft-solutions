@@ -90,6 +90,37 @@ avoids shell quoting problems, notably in PowerShell):
 
 Show the user the body with the password as `<REDACTED>` before starting.
 
+On Windows PowerShell 5.1, write the JSON as UTF-8 **without a BOM**. The
+default `Set-Content -Encoding UTF8` adds a BOM, which the Rust request reader
+rejects. Keep the request file under the current workspace and do not print it
+when it contains a password:
+
+```powershell
+$RequestPath = [System.IO.Path]::GetFullPath('.sensecraft-work/body.json')
+$RequestDir = [System.IO.Path]::GetDirectoryName($RequestPath)
+New-Item -ItemType Directory -Force -Path $RequestDir | Out-Null
+$body = @{
+  solution_id = '<id>'
+  preset_id = '<preset>'
+  selected_devices = @('<step_id>')
+  device_connections = @{
+    '<step_id>' = @{
+      target = '<target_id>'
+      target_type = 'remote'
+      host = '192.168.1.50'
+      username = '<user>'
+      password = '<password>'
+    }
+  }
+}
+$json = $body | ConvertTo-Json -Depth 50
+[System.IO.File]::WriteAllText($RequestPath, $json, [System.Text.UTF8Encoding]::new($false))
+```
+
+`-Depth 50` preserves nested `device_connections`; PowerShell's default depth
+of 2 is insufficient. Replace placeholders with user-provided values and keep
+the file protected; never print the password.
+
 Before a remote deploy, run the dry run (no changes on any device):
 
 ```
@@ -148,8 +179,11 @@ sensecraft-engine deploy --params ./.sensecraft-work/body.json --yes --detach --
 ```
 
 `--detach` prints `{"deployment_id": "...", "log": "..."}` and returns. Keep the
-`deployment_id`. Exit code 2 here means a parameter is missing: the
-`missing[]` list names it (`preset_id`, `device_connections.<id>.<key>`).
+`deployment_id`. Exit code 2 means the request or arguments are invalid. When
+the JSON error contains a `missing[]` list, ask for those fields
+(`preset_id`, `device_connections.<id>.<key>`); for `bad_request` without
+`missing[]`, inspect the solution ID, JSON shape, and parameter spelling before
+asking for another value.
 Exit code 3 with a 409 means the device is busy with another deployment.
 
 Follow progress in one of two ways:
