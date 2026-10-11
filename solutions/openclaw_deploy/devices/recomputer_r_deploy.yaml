@@ -244,9 +244,9 @@ remote_overrides:
       - name: Initialize OpenClaw config
         run: |
           set -e
-          VOL="openclaw_openclaw-config"
+          VOL="openclaw_recomputer_r_openclaw-config"
           docker volume create "$VOL" 2>/dev/null || true
-          WS_VOL="openclaw_openclaw-workspace"
+          WS_VOL="openclaw_recomputer_r_openclaw-workspace"
           docker volume create "$WS_VOL" 2>/dev/null || true
           docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '
             chown 1000:1000 /data /ws
@@ -391,34 +391,27 @@ remote_overrides:
 
         name_i18n:
           zh: 重启 OpenClaw 使配置生效
-      - name: Display gateway access token
+      - name: Show where the gateway token is stored
         run: |
           set -e
-          # Read the token back from the .env the after_upload step wrote.
-          # The upstream image keeps the token in its environment only — it
-          # never persists one into openclaw.json, which is where the previous
-          # third-party image put it.
+          # The token is a credential: do not echo it into the deployment log.
+          # Point to the file (mode 600) that holds it instead.
           BASE="/home/{{username}}/openclaw_recomputer_r"
           COMPOSE=$(find "$BASE" -maxdepth 2 -name docker-compose.yml 2>/dev/null | head -1)
           ENV_FILE=""
           [ -n "$COMPOSE" ] && ENV_FILE="$(dirname "$COMPOSE")/.env"
 
-          TOKEN=""
-          if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then
-            TOKEN=$(sed -n 's/^OPENCLAW_GATEWAY_TOKEN=//p' "$ENV_FILE" | head -1)
-          fi
-
-          if [ -z "$TOKEN" ]; then
-            echo "WARNING: Could not read gateway token from $ENV_FILE"
+          if [ -z "$ENV_FILE" ] || ! grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE" 2>/dev/null; then
+            echo "WARNING: Could not find the gateway token under $BASE"
           else
             echo ""
             echo "=========================================="
             echo "  OpenClaw Gateway Token / 网关访问令牌"
             echo "=========================================="
             echo ""
-            echo "  Token: $TOKEN"
-            echo ""
-            echo "=========================================="
+            echo "  The token is not printed in this log."
+            echo "  Token 未输出到日志。On the device run / 在设备上执行:"
+            echo "    grep OPENCLAW_GATEWAY_TOKEN $ENV_FILE"
             echo ""
             echo "  URL: http://{{host}}:18789"
             echo ""
@@ -426,6 +419,6 @@ remote_overrides:
         timeout: 30
 
         name_i18n:
-          zh: 显示网关访问令牌
+          zh: 提示网关访问令牌的位置
   post_deployment:
     open_browser: false

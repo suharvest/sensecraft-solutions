@@ -79,7 +79,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署完成
 
-1. 复制部署日志中显示的 **网关访问令牌（Token）**
+1. 在设备上读取 **网关访问令牌（Token）**：执行 `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw/*/.env`（部署日志只显示该路径，不输出 Token）
 2. OpenClaw 要求通过 localhost 访问管理界面，**方式 A**：在 Jetson 上接显示器，打开浏览器访问 `http://localhost:18789`；**方式 B**：在你的电脑上运行 `ssh -L 18789:localhost:18789 <用户名>@<Jetson IP>`，然后在本地浏览器打开 `http://localhost:18789`
 3. 进入 **概览** 页面（左侧菜单 → "控制" 下的 **概览**）
 4. 在 **网关访问** 区域，将 Token 粘贴到 **网关令牌** 输入框中
@@ -174,7 +174,7 @@ OpenClaw（龙虾机器人）AI 网关已部署完成。按照上方步骤中的
 
 ### 部署完成
 
-1. 复制部署日志中显示的 **网关访问令牌（Token）**
+1. 在设备上读取 **网关访问令牌（Token）**：执行 `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw_recomputer_r/*/.env`（部署日志只显示该路径，不输出 Token）
 2. OpenClaw 要求通过 localhost 访问管理界面，**方式 A**：在设备上接显示器，打开浏览器访问 `http://localhost:18789`；**方式 B**：在你的电脑上运行 `ssh -L 18789:localhost:18789 <用户名>@<设备 IP>`，然后在本地浏览器打开 `http://localhost:18789`
 3. 进入 **概览** 页面（左侧菜单 → "控制" 下的 **概览**）
 4. 在 **网关访问** 区域，将 Token 粘贴到 **网关令牌** 输入框中
