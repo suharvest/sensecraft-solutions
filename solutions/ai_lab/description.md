@@ -61,6 +61,6 @@ curl http://<device-ip>:8001/v1/chat/completions \
 
 - Each preset deploys independently — you can have all three running on the same RK3576 (they use different ports: 8000 / 8001 / 8002)
 - First startup downloads the Docker image (1–4GB) and loads the model — allow a few minutes
-- Object Detection works with or without a camera (image upload always works)
+- Object Detection works without a camera: keep **Video source** on **Sample video** and the video feed plays a bundled sample clip. Picking a camera number with no camera attached stops the detection service, image upload included
 - LLM and Vision Chat are RK3576-only because they require RKLLM NPU support not yet available on RK3588
 - All conversations and detections stay on-device — nothing is sent to a cloud
