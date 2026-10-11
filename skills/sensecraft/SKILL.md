@@ -19,8 +19,12 @@ the app running.
 
 ## Rules
 
-1. **Credentials:** never invent a host, username or password — ask the user.
-   Replace passwords with `<REDACTED>` in anything you show or log.
+1. **Credentials and secrets:** never invent a host, username or password —
+   ask the user. Replace passwords, tokens, API keys and any other secret a
+   deployment prints (for example a gateway token) with `<REDACTED>` in
+   anything you show or log. Tell the user where to find the value (on the
+   device, in the solution's page, in the file that holds it) instead of
+   printing it.
 2. **What you may do without asking, and what needs the user's OK:**
 
    | Action | Ask first? |
@@ -35,11 +39,22 @@ the app running.
    | Cancel a running deployment | **Yes** — it can leave a device half-configured |
    | Prepare an issue report (the user submits it) or open a pull request | **Yes** |
 
-3. **At most 3 fix-and-retry rounds** per problem. After that, stop and give the
-   user a report (what failed, what you checked, what you changed).
+3. **At most 3 fix-and-retry rounds** per problem for deterministic failures
+   (wrong parameter, missing file, port taken, bad credentials, a container
+   that exits). After that, stop and give the user a report (what failed, what
+   you checked, what you changed). Transient registry or network errors follow
+   the backoff rule in `references/deploy.md` §6 and do not use up a round.
 4. Never edit files under the engine's content directory
    (`~/.sensecraft/content/`) or the app's bundled solutions. Configuration
    changes go through the desktop app's edit copy (`references/app-only.md`).
+5. **Reading output:** read the CLI's JSON output directly; it is small. If a
+   filter is needed, use `jq` only when it is already installed. Do not start
+   python, node or any other interpreter to parse output. Where a command has
+   a flag that prints just what you need (`--json`, `--preset`, `--device`,
+   `--since`), use it.
+6. **Temp files:** keep request bodies and scratch files in the current
+   working directory under `./.sensecraft-work/`, never in `/tmp`. Remove the
+   directory when the task ends, also after a failure.
 
 ## Step 0 — Install the engine and the solutions (every task)
 
