@@ -170,7 +170,7 @@
       - generic [ref=e152]: Model service Base URL (blank uses this app)
       - textbox "Model service Base URL (blank uses this app)" [ref=e279]:
         - /placeholder: https://model.example
-        - text: http://100.77.150.16:1
+        - text: http://192.0.2.16:1
       - paragraph [ref=e154]: The custom URL is saved per model and checked for service identity.
       - generic [ref=e155]: Local voice service Base URL
       - textbox "Local voice service Base URL" [ref=e280]:

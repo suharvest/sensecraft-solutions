@@ -1,7 +1,7 @@
 # ef82 Independent Runtime Review
 
 Review time: 2026-10-11 12:20–12:25 (Asia/Shanghai)
-Runtime URL: <http://100.77.150.16:18772/>
+Runtime URL: <http://192.0.2.16:18772/>
 Deployment status: still d870; no container update or UI publication was performed.
 
 ## Version and route limitation

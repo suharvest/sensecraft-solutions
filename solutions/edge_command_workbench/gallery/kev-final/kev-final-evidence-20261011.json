@@ -1,6 +1,6 @@
 {
-  "url_zh": "http://100.77.150.16:18769/?lang=zh&qa=kev-final-zh-20261011",
-  "url_en": "http://100.77.150.16:18769/?lang=en&qa=kev-final-en-20261011",
+  "url_zh": "http://192.0.2.16:18769/?lang=zh&qa=kev-final-zh-20261011",
+  "url_en": "http://192.0.2.16:18769/?lang=en&qa=kev-final-en-20261011",
   "served_assets": {
     "app_js_sha256": "7a72b7e63dc1bf1bde94fa7ecb4b60230da99308e6f21e83cdadda0032cfa923",
     "index_html_sha256": "75f2779f55ba3b2af3030e3739986b8217af7e69c7bc691e2a4f99795e4676ff"

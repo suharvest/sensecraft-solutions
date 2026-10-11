@@ -1,7 +1,7 @@
 # ef82 container runtime review
 
-Review time: 2026-10-11 12:35–12:37 Asia/Shanghai  
-URL: `http://100.77.150.16:18775/`  
+Review time: 2026-10-11 12:35–12:37 Asia/Shanghai
+URL: `http://192.0.2.16:18775/`
 Container endpoint: direct browser session; no Playwright route replacement and no server/source mutation.
 
 ## Actual assets

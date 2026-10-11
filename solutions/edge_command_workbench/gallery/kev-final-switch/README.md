@@ -1,6 +1,6 @@
 # Kev / Laya real-device switch evidence
 
-These assets were captured on the Radxa staging shadow at `http://100.77.150.16:18772/` using the same English request and candidate options. The final browser-tested source served `app.js` SHA256 `52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206`.
+These assets were captured on the Radxa staging shadow at `http://192.0.2.16:18772/` using the same English request and candidate options. The final browser-tested source served `app.js` SHA256 `52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206`.
 
 | Profile | Screenshot SHA256 | Visible chip and result identity |
 |---|---|---|

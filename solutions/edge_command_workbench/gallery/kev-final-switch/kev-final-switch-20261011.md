@@ -1,6 +1,6 @@
 # Kev / Laya 实机切换证据（2026-10-11）
 
-最终 Radxa UI 地址：`http://100.77.150.16:18772/?lang=en&qa=dual-model-final2-20261011`。
+最终 Radxa UI 地址：`http://192.0.2.16:18772/?lang=en&qa=dual-model-final2-20261011`。
 served `app.js` SHA-256：`52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206`。
 
 使用同一英文短指令 `Reduce conveyor 3 speed to 60%` 和同一 3 个候选项，通过 Decision model 下拉分别选择 Laya 与 Kev。两张截图都同时包含顶部状态 chip 和结果卡片：
