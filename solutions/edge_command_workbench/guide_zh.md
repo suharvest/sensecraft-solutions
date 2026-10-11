@@ -92,12 +92,12 @@
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
-### 已发布产物记录
+### RK3588 0.3.1 发布验证
 
-RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。当前 active inventory 包含新镜像、原有 2 个模型和 13 个共享产物；旧 d870 镜像保留为历史记录。新版本证据见 [`assets/evidence/hf-release-0.3.1-20261011.json`](assets/evidence/hf-release-0.3.1-20261011.json)。
+RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。Radxa RK3588 stock 部署的 bootstrap 退出码为 0。13 个目标筛选后的 model/shared 文件与已校验 SHA 的缓存一致并复用；另从 `https://hf-mirror.com` 下载 1 个新 image archive。这是缓存复用加 1 次下载，不是全新下载 14 个文件。
 
-记录的镜像检查返回 HTTP 308 并跳转到 Hugging Face 源站；证据不宣称已完成镜像原生大文件下载。
+镜像标签为 `edge-command-workbench:rockchip-rkllm-0.3.1-review`。archive SHA-256 为 `251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77`，image config SHA-256 为 `d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9`。stock 服务在 `http://<device-ip>:18768` 完成验证：health 返回 `model_ready=true`、`backend=rkllm`、`model_id=kev`、`max_sequence_tokens=8192` 和 `max_options=16`。`/api/models` 返回 ready 的 Kev（`rkllm`、8192）与 Laya（`rknn`、90）；相同短决策请求对 `model_id=kev` 和 `model_id=laya` 均返回 HTTP 200。Laya profile 使用已有服务 `http://127.0.0.1:18771`。
 
-### RK3588 镜像 bootstrap 证据
+image 内置 helper `/opt/kev/libkev_runtime.so` 已校验，SHA-256 为 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`；没有使用外部 helper mount。原始选定请求、响应、耗时、bootstrap、compose 与容器元数据见 [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/)。此前的 `a556`/`d870` 14 文件 bootstrap 记录保留为历史证据，不被替换。此次设备验证不包含 voice 和 ASR。
 
-Radxa 上按固定 revision fresh bootstrap 完成了 14 项 RK3588 目标文件校验。目标设备已有精确镜像标签和 config，因此跳过 Docker load，现有容器保持运行。原始 bootstrap 日志和校验摘要见 [`assets/evidence/radxa-rk3588-bootstrap-20261011.log`](assets/evidence/radxa-rk3588-bootstrap-20261011.log) 与 [`assets/evidence/radxa-rk3588-bootstrap-20261011.json`](assets/evidence/radxa-rk3588-bootstrap-20261011.json)。Radxa 镜像请求返回 mirror HTTP 302 并转到签名 CAS bridge；Spark 的独立 308-to-origin 行为已单独记录，不推广到所有设备。
+可选已有语音集成要求浏览器录音页面使用 HTTPS 或 localhost，并获得麦克风权限。普通远端 HTTP 页面不能使用浏览器录音；文字决策不依赖语音。`VOICE_SERVICE_URL` 只连接已有兼容的 `/asr/stream` 服务，不安装或验证 ASR。部署字段提供 server default；当前 UI 配置此可选路径时还需要在 voice drawer 中填写 URL。
