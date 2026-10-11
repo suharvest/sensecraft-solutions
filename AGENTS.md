@@ -4,7 +4,7 @@ This document is for **AI agents** (Claude Code and similar assistants). It defi
 
 This open-source repository contains the **solution content** (YAML / Markdown / assets) and the **authoring & validation tooling** (`spec/`, `packages/`, `skills/`). The deployment engine is distributed separately, in two forms:
 
-- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `sensecraft` skill).
+- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `sensecraft` skill).
 - The **SenseCraft Solution desktop app** (Python backend `provisioning-station`). Content preview (Part A), the app HTTP API (Part C) and the legacy `solutionctl deploy` / `manage` / `stage` commands (Part D, appendix) need it.
 
 ## Four user roles, four workflows
@@ -304,7 +304,7 @@ else:
 
 ## Default: `sensecraft-engine`
 
-Install once (`curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content`; Windows: `install.ps1 -WithContent`), then:
+Install once (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`; Windows: `install.ps1 -WithContent`), then:
 
 ```bash
 sensecraft-engine content update                                # refresh solutions
