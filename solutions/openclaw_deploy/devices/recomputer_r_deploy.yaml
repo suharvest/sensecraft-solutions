@@ -244,9 +244,9 @@ remote_overrides:
       - name: Initialize OpenClaw config
         run: |
           set -e
-          VOL="openclaw_openclaw-config"
+          VOL="openclaw_recomputer_r_openclaw-config"
           docker volume create "$VOL" 2>/dev/null || true
-          WS_VOL="openclaw_openclaw-workspace"
+          WS_VOL="openclaw_recomputer_r_openclaw-workspace"
           docker volume create "$WS_VOL" 2>/dev/null || true
           docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '
             chown 1000:1000 /data /ws
