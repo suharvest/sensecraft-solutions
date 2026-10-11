@@ -54,7 +54,7 @@ Voice input is available only when an existing compatible local voice service is
 
 ## Kev QA assets and support matrix
 
-`gallery/kev-final/` contains the Chinese and English result screenshots, the pending state, and a screenshot montage from the 2026-10-11 RK3588 test platform candidate QA. SHA256 values, service URLs, health response, and request metadata are recorded in `gallery/kev-final/README.md` and `kev-final-evidence-20261011.json`. The montage shows page steps only; it is not model timing, a live recording, or an accuracy measurement. Voice configuration is optional and was not tested in this evidence set.
+`gallery/kev-final/` contains the Chinese and English result screenshots, the pending state, and a screenshot montage from the 2026-10-11 RK3588 test platform candidate QA. SHA256 values, service URLs, health response, and request metadata are recorded in `gallery/kev-final/README.md` and `kev-final-evidence-20261011.json`. The montage shows the text-decision flow. When voice is used, connect an existing compatible ASR service and authorize the microphone from HTTPS or localhost; the protocol evidence is in `assets/evidence/voice-proxy-contract-20261011/`.
 
 | Hardware / backend | Current status |
 |---|---|
@@ -71,7 +71,7 @@ The reproducible context-500 fixture is archived in [`assets/evidence/context500
 | RK3576 test platform | 189/240 (78.75%) | 0 | 7115.31 / 7574.56 ms |
 | RK3588 test platform | 189/240 (78.75%) | 0 | 3946.52 / 4770.96 ms |
 
-The fixture uses generated documentation context to hold the assembled input at 500 tokens. These figures measure the frozen fixture and do not establish accuracy on arbitrary long industrial requests or guarantee that a selected action is safe. The source, generator, dataset SHA, runner SHA, and device bindings are recorded with the evidence.
+The fixture uses generated documentation context to hold the assembled input at 500 tokens. The measurements cover this fixed generated background and candidate set; metrics for real business commands require a separately labeled test set. The workbench returns a candidate option ID for the calling system to process. The source, generator, dataset SHA, runner SHA, and device bindings are recorded with the evidence.
 | Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
 
 Real browser switch evidence is in `gallery/kev-final-switch/`: the Laya page chip/result both show `rknn / 90 tokens`, while the Kev page chip/result both show `rkllm / 8192 tokens`. The same English request was run after selecting each profile from the dropdown; `Test and connect` made a real `GET /api/models` request and received HTTP 200. The assets document the final UI readability rounding (score to three decimals and milliseconds to one decimal); raw API values remain in the evidence JSON.

@@ -54,7 +54,7 @@
 
 ## Kev QA 素材与支持矩阵
 
-`gallery/kev-final/` 保存了 2026-10-11 RK3588 test platform 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑只表示页面步骤，不表示模型耗时、实时录屏或准确率。截图中的语音配置仅为可选项，未进行语音测试。
+`gallery/kev-final/` 保存了 2026-10-11 RK3588 test platform 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑展示文字决策流程。使用语音时连接已有兼容 ASR，并在 HTTPS 或 localhost 页面授权麦克风；协议验证证据见 `assets/evidence/voice-proxy-contract-20261011/`。
 
 | 硬件/后端 | 当前状态 |
 |---|---|
@@ -71,7 +71,7 @@
 | RK3576 test platform | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
 | RK3588 test platform | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
 
-该 fixture 使用生成的文档上下文将输入固定为 500 tokens。表中数据只表示冻结 fixture 的测量结果，不能外推到任意长工业请求，也不保证选中的动作安全。source、generator、dataset SHA、runner SHA 和设备绑定均记录在证据目录中。
+该 fixture 使用生成的文档上下文将输入固定为 500 tokens。测量对象是这批固定生成背景与候选项；实际业务命令的指标需用对应标注测试集另行测量。工作台输出候选项 ID 供调用系统处理。source、generator、dataset SHA、runner SHA 和设备绑定均记录在证据目录中。
 | Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
 
 双模型切换的真实浏览器素材位于 `gallery/kev-final-switch/`：Laya 页面 chip/result 均显示 `rknn / 90 tokens`，Kev 页面 chip/result 均显示 `rkllm / 8192 tokens`。同一条英文指令分别通过下拉选择两个 profile；`Test and connect` 的真实 `GET /api/models` 返回 HTTP 200。素材说明了最终 UI 的可读性取整（score 三位小数、毫秒一位小数），raw API 数值保存在 evidence JSON 中。
