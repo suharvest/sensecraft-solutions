@@ -50,7 +50,7 @@
       "file": "kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
       "size_bytes": 1331932356,
       "sha256": "0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506",
-      "sha256_status": "full_hash_required_external_copy",
+      "sha256_status": "verified_on_spark",
       "destination": "model.rkllm",
       "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/publish/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
       "hf_destination": "releases/edge-workbench-0.3.0/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
