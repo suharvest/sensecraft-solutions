@@ -1,14 +1,15 @@
 {
   "schema_version": 1,
-  "status": "draft",
-  "status_note": "Do not deploy or publish this inventory until the full 16-artifact list, HF revision, and SHA256 values receive final user approval.",
+  "status": "ready",
+  "status_note": "Published 16-artifact set is pinned to the verified Hugging Face revision; subsequent UI source ef82 is not included in this d870 image.",
   "source": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
     "revision": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
     "revision_status": "source frozen candidate; HTTP identity fix included; final image locally QA; no publish",
     "core_revision": "18dbd237d7d3156939549a3dceec16fa99c9b740",
     "docker_revision": "a66e843a90a6da51f4ecdc1dc0540dfdec2a40ab",
-    "ui_revision": "a79ddced7b04e97568d7fc397f99cb9b9e13b8b7"
+    "ui_revision": "a79ddced7b04e97568d7fc397f99cb9b9e13b8b7",
+    "published_image_note": "The published image is the d870 candidate. Subsequent UI source ef82 is not included; source revision remains the frozen d870 candidate recorded above."
   },
   "image": {
     "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.0",
@@ -20,12 +21,14 @@
         "size_bytes": 291154432,
         "sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
         "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
-        "status": "local_candidate_no_publish",
+        "status": "published",
         "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
-        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar"
+        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+        "expected_config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+        "hf_revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254"
       }
     ],
-    "note": "This is a local candidate archive. It is not a release artifact and has not been uploaded.",
+    "note": "Published d870 archive; subsequent UI source ef82 is not included in this image.",
     "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
     "helper_location": "/opt/kev/libkev_runtime.so (built into image)"
   },
@@ -50,12 +53,12 @@
       "file": "kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
       "size_bytes": 1331932356,
       "sha256": "0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506",
-      "sha256_status": "verified_on_spark",
+      "sha256_status": "verified_external_and_hf",
       "destination": "model.rkllm",
       "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/publish/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
       "hf_destination": "releases/edge-workbench-0.3.0/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
       "engine_sha256_status": "verified_full_sha256_external_source",
-      "source_status": "full SHA verified on Spark publish copy"
+      "source_status": "Full SHA verified on Spark publish copy and matched the published HF LFS object."
     },
     {
       "target": "rk3588",
@@ -243,16 +246,18 @@
     "ui_switch_evidence": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-evidence-20261011.json",
     "ui_switch_source_commit": "199583751f77068a9e1e0e987f80451aa22faec2",
     "backend_identity_final_d870": "/dev/shm/kev-rkllm/backend-identity-final-d870-20261011.txt",
-    "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77"
+    "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
+    "hf_release_verification": "assets/evidence/hf-release-20261011.json",
+    "hf_release_verification_sha256": "1658b67cc8a660f1448b5ff3d5cd3175840afc3801f1f032e4bf3ae805d48203 (raw record on Spark)"
   },
   "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-  "revision": null,
+  "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",
   "path_prefix": "releases/edge-workbench-0.3.0",
-  "distribution_status": "hf_revision_pending_user_approval",
+  "distribution_status": "ready",
   "distribution": {
     "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
-    "revision": null,
+    "revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254",
     "path_prefix": "releases/edge-workbench-0.3.0",
-    "status": "pending_user_approved_hf_publish"
+    "status": "ready"
   }
 }

@@ -91,3 +91,9 @@
 ## 步骤 2: 打开 Kev 工作台 {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
+
+### 已发布产物记录
+
+已发布产物固定使用 Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254)，路径为 `releases/edge-workbench-0.3.0`。镜像归档使用已核验的 d870 候选版本。16 项文件清单、大小、SHA256 和远端核验记录见 [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json)。后续标识为 `ef82` 的 UI 源未包含在此镜像中。
+
+记录的镜像检查返回 HTTP 308 并跳转到 Hugging Face 源站；证据不宣称已完成镜像原生大文件下载。

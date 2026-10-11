@@ -91,3 +91,9 @@ Open `http://<device-ip>:18768` and confirm the model-ready health response befo
 ## Step 2: Open the Kev Workbench {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
 
 Submit a request with candidate commands after the health check reports a ready Kev model.
+
+### Published artifact record
+
+The published artifact set is pinned to Hugging Face revision [`a556792cc663c0d9cfa7095e4263d3d706b4e254`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/a556792cc663c0d9cfa7095e4263d3d706b4e254) under `releases/edge-workbench-0.3.0`. The image archive is the verified d870 candidate. The 16-file list, sizes, SHA256 values, and remote verification record are in [`assets/evidence/hf-release-20261011.json`](assets/evidence/hf-release-20261011.json). A later UI source identified as `ef82` is not included in this image.
+
+The recorded mirror check returned HTTP 308 to the Hugging Face origin; the evidence does not claim a mirror-native large-file download.
