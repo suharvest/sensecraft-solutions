@@ -70,7 +70,7 @@ This flow is a **local preview**, not a release. Changes land only on the curren
 - Change `bundled_hashes.json`
 - Trigger any git operation
 
-If the user actually wants "everyone to see it" — stop. That is a separate release flow that runs `scripts/generate_solution_manifest.py` and commits `bundled_hashes.json`, and requires explicit confirmation.
+If the user actually wants "everyone to see it" — stop. That is a separate release flow: the App Engine Build signs `manifest.json` and `bundled_hashes.json`, then an approved operator runs `scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload` to print and review the exact inventory before explicitly adding `--upload-signed`. The Python app release path still owns the committed `bundled_hashes.json` update.
 
 ## Standard flow
 
