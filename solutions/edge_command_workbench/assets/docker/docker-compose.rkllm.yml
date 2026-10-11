@@ -1,0 +1,43 @@
+services:
+  edge-command-workbench:
+    image: ${EDGE_WORKBENCH_IMAGE:-edge-command-workbench:rockchip-rkllm-0.3.1-review}
+    pull_policy: never
+    container_name: edge-command-workbench-rkllm
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      PORT: ${PORT:-18768}
+      DECISION_BACKEND: rkllm
+      MODEL_ID: kev
+      MODEL_PATH: /models/model.rkllm
+      TOKENIZER_PATH: /models/tokenizer
+      MODEL_METADATA_PATH: /models/model_metadata.json
+      KEV_HEAD_PATH: /models/kev_head.npz
+      RKLLM_LIB_PATH: /opt/kev/librkllmrt.so
+      RKLLM_HELPER_PATH: /opt/kev/libkev_runtime.so
+      MODEL_SERVICES_JSON: ${MODEL_SERVICES_JSON:-}
+      VOICE_SERVICE_URL: ${VOICE_SERVICE_URL:-}
+      SEQ_LEN: ${SEQ_LEN:-8192}
+      MAX_OPTIONS: ${MAX_OPTIONS:-16}
+      EXPECTED_BACKEND: rkllm
+      EXPECTED_SEQ_LEN: ${SEQ_LEN:-8192}
+      EXPECTED_MAX_OPTIONS: ${MAX_OPTIONS:-16}
+      LD_LIBRARY_PATH: /opt/kev
+    security_opt:
+      - systempaths=unconfined
+    volumes:
+      - ${MODEL_ROOT:?MODEL_ROOT must be set}/model.rkllm:/models/model.rkllm:ro
+      - ${MODEL_ROOT:?MODEL_ROOT must be set}/tokenizer:/models/tokenizer:ro
+      - ${MODEL_ROOT:?MODEL_ROOT must be set}/kev_head.npz:/models/kev_head.npz:ro
+      - ${MODEL_ROOT:?MODEL_ROOT must be set}/model_metadata.json:/models/model_metadata.json:ro
+      - ${RKLLM_RUNTIME_DIR:?RKLLM_RUNTIME_DIR must be set}/librkllmrt.so:/opt/kev/librkllmrt.so:ro
+      - /proc/device-tree/compatible:/proc/device-tree/compatible:ro
+      - /sys/firmware/devicetree/base:/sys/firmware/devicetree/base:ro
+    devices:
+      - /dev/dri:/dev/dri
+    healthcheck:
+      test: ["CMD", "python", "/app/docker/healthcheck.py"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s

@@ -1,0 +1,9 @@
+{
+  "base_url": "http://127.0.0.1:18768/api/decide",
+  "dataset_sha256": "e9d77a3c96a1d0645bc9561cdf9ead06cbd57d8ef081906c2d5094d55e54ba6e",
+  "log_birth_utc": "2026-10-11 07:47:56.106808507 +0000",
+  "metadata_sha256": "5c91321627f38b71f5e1dac408d34be5e8ada9538ae15c7780949888de4f996a",
+  "results_birth_utc": "2026-10-11 07:48:17.883429728 +0000",
+  "runner_command": "python3 /home/radxa/context500/jev-20261011/stable/run_context500.py --base-url http://127.0.0.1:18768/api/decide --dataset /home/radxa/context500/jev-20261011/stable/context500-cases.jsonl --out /home/radxa/context500/jev-20261011/stable/results-v2.jsonl --timeout 120 --warmup 5",
+  "runner_sha256": "be6b11eba6112e379c12d7c0c42811ddbba4644d9ed3c3dd327226f24ac54ba7"
+}

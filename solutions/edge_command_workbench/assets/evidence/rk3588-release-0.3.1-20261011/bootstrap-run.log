@@ -1,0 +1,23 @@
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0100  1174    0  1174    0     0    724      0 --:--:--  0:00:01 --:--:--   724
+  0     0    0     0    0     0      0      0 --:--:--  0:00:02 --:--:--     0  0     0    0     0    0     0      0      0 --:--:--  0:00:03 --:--:--     0  0  277M    0     0    0     0      0      0 --:--:--  0:00:04 --:--:--     0  0  277M    0 1109k    0     0   218k      0  0:21:42  0:00:05  0:21:37  368k  0  277M    0 2835k    0     0   467k      0  0:10:08  0:00:06  0:10:02  708k  1  277M    1 4819k    0     0   682k      0  0:06:56  0:00:07  0:06:49  965k  2  277M    2 6867k    0     0   845k      0  0:05:36  0:00:08  0:05:28 1583k  3  277M    3 9709k    0     0  1055k      0  0:04:29  0:00:09  0:04:20 1915k  4  277M    4 12.6M    0     0  1256k      0  0:03:46  0:00:10  0:03:36 2275k  5  277M    5 16.0M    0     0  1461k      0  0:03:14  0:00:11  0:03:03 2627k  6  277M    6 18.3M    0     0  1555k      0  0:03:02  0:00:12  0:02:50 2783k  8  277M    8 22.7M    0     0  1780k      0  0:02:39  0:00:13  0:02:26 3310k  9  277M    9 26.8M    0     0  1949k      0  0:02:25  0:00:14  0:02:11 3636k 11  277M   11 32.4M    0     0  2204k      0  0:02:08  0:00:15  0:01:53 4229k 14  277M   14 39.4M    0     0  2513k      0  0:01:53  0:00:16  0:01:37 4970k 17  277M   17 48.6M    0     0  2919k      0  0:01:37  0:00:17  0:01:20 6231k 22  277M   22 62.1M    0     0  3522k      0  0:01:20  0:00:18  0:01:02 8089k 28  277M   28 78.6M    0     0  4222k      0  0:01:07  0:00:19  0:00:48 10.3M 32  277M   32 90.6M    0     0  4619k      0  0:01:01  0:00:20  0:00:41 11.5M 37  277M   37  105M    0     0  5113k      0  0:00:55  0:00:21  0:00:34 13.1M 42  277M   42  119M    0     0  5522k      0  0:00:51  0:00:22  0:00:29 14.0M 49  277M   49  137M    0     0  6115k      0  0:00:46  0:00:23  0:00:23 15.1M 57  277M   57  161M    0     0  6851k      0  0:00:41  0:00:24  0:00:17 16.4M 63  277M   63  175M    0     0  7148k      0  0:00:39  0:00:25  0:00:14 16.9M 70  277M   70  195M    0     0  7679k      0  0:00:37  0:00:26  0:00:11 17.9M 77  277M   77  215M    0     0  8151k      0  0:00:34  0:00:27  0:00:07 19.2M 84  277M   84  233M    0     0  8530k      0  0:00:33  0:00:28  0:00:05 19.1M 90  277M   90  252M    0     0  8874k      0  0:00:32  0:00:29  0:00:03 18.0M 97  277M   97  269M    0     0  9185k      0  0:00:30  0:00:30 --:--:-- 18.9M100  277M  100  277M    0     0  9333k      0  0:00:30  0:00:30 --:--:-- 18.7M
+/home/radxa/edge-command-workbench-rkllm/.cache/edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar.part: OK
+Checksum already matches: kev-0.8b-w8a8-rk3588-context8192.rkllm
+Checksum already matches: kev_head.npz
+Checksum already matches: head.metadata.json
+Checksum already matches: tokenizer/tokenizer.json
+Checksum already matches: tokenizer/tokenizer_config.json
+Checksum already matches: tokenizer/config.json
+Checksum already matches: tokenizer/vocab.json
+Checksum already matches: tokenizer/merges.txt
+Checksum already matches: runtime/librkllmrt.so
+Checksum already matches: metadata/kev-rk3588.json
+Checksum already matches: licenses/NOTICE
+Checksum already matches: licenses/APACHE-2.0.txt
+Checksum already matches: licenses/RKLLM-SDK-LICENSE
+{"tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review", "archive_sha256": "251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77", "config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9"}
+Loaded image: edge-command-workbench:rockchip-rkllm-0.3.1-review
+{"tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review", "archive_sha256": "32c83291344d8d283c487bff77ee68b5f442e797c1f2b245d72375b451efe745", "config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9"}
+Pinned artifacts ready under /home/radxa/edge-command-workbench-rkllm
+bootstrap_exit=0
