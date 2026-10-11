@@ -70,7 +70,7 @@ This flow is a **local preview**, not a release. Changes land only on the curren
 - Change `bundled_hashes.json`
 - Trigger any git operation
 
-If the user actually wants "everyone to see it" — stop. That is a separate release flow: the App Engine Build signs `manifest.json` and `bundled_hashes.json`, then an approved operator runs `scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload` to print and review the exact inventory before explicitly adding `--upload-signed`. After the approved signed artifact is published, refresh the submodule's `solutions/bundled_hashes.json` from that same artifact at a reviewed content commit, then update the App pin and the root hashbook. Publication does not update any checkout.
+If the user actually wants "everyone to see it" — stop. That is a separate release flow: the App Engine Build signs `manifest.json` and `bundled_hashes.json`, with `manifest.base_url` set to the exact `https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/<40-hex-content-pin>` URL and `RELEASE_STATUS.content_pin` matching it. An approved operator runs `scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload` to print and review the exact inventory before explicitly adding `--upload-signed`; solution zips publish under that immutable URL prefix and the four metadata objects remain at the root. After the approved signed artifact is published, refresh the submodule's `solutions/bundled_hashes.json` from that same artifact at a reviewed content commit, then update the App pin and the root hashbook. Publication does not update any checkout.
 
 ## Standard flow
 
