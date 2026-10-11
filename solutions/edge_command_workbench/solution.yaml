@@ -99,9 +99,9 @@ intro:
             - device_ref: external_rk3588_rkllm_host
           default: external_rk3588_rkllm_host
     - id: rk3576_remote
-      name: RK3576 Remote
+      name: Historical RK3576 Laya/RKNN (0.1.0)
       name_i18n:
-        zh: 远程 RK3576
+        zh: 历史 RK3576 Laya/RKNN（0.1.0）
       description: Install the historical RK3576 Laya/RKNN 0.1.0 workbench on one RK3576 device over SSH; its pinned 0.1.0 paths remain separate from the current Kev RKLLM presets.
       description_i18n:
         zh: 通过 SSH 将历史 RK3576 Laya/RKNN 0.1.0 工作台部署到一台 RK3576 设备；其固定的 0.1.0 路径与当前 Kev RKLLM 套餐保持独立。

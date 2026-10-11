@@ -32,7 +32,7 @@
 |------|------|------|
 | RK3576 Linux 设备，例如 LubanCat3 | 运行单容器 Web 工作台和 RKNN 模型 | ✓ 必选 |
 
-现有已验证包面向 RK3576/RKNN。历史 `rk3576_remote` 套餐使用独立的 Laya/RKNN 0.1.0 路径，与当前 Kev RKLLM 套餐保持分离。RKLLM Kev 已在 RK3576 test platform 和 RK3588 test platform 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
+现有已验证包面向 RK3576/RKNN。历史 `rk3576_remote` 套餐使用独立的 Laya/RKNN 0.1.0 路径，与当前 Kev RKLLM 套餐保持分离。RKLLM Kev 已在 RK3576 测试平台 和 RK3588 测试平台 完成设备验证：RK3576 部署请求限制为 2048 tokens，engine 导出容量为 8192；RK3588 部署上下文为 8192。应用 Docker 源中保留现有 Jetson TensorRT 部署；本方案介绍页不宣称 Jetson 原生 Kev 支持。
 
 ### 网络和存储要求
 
@@ -54,13 +54,14 @@
 
 ## Kev QA 素材与支持矩阵
 
-`gallery/kev-final/` 保存了 2026-10-11 RK3588 test platform 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑展示文字决策流程。使用语音时连接已有兼容 ASR，并在 HTTPS 或 localhost 页面授权麦克风；协议验证证据见 `assets/evidence/voice-proxy-contract-20261011/`。
+`gallery/kev-final/` 保存了 2026-10-11 RK3588 测试平台 候选版本的中英文页面截图、pending 状态和截图剪辑。素材 SHA、服务地址、健康响应和请求元数据见 `gallery/kev-final/README.md` 与 `kev-final-evidence-20261011.json`。截图剪辑展示文字决策流程。使用语音时连接已有兼容 ASR，并在 HTTPS 或 localhost 页面授权麦克风；协议验证证据见 `assets/evidence/voice-proxy-contract-20261011/`。
 
 | 硬件/后端 | 当前状态 |
 |---|---|
 | RK3576 / RKNN Laya | 既有已验证路径 |
-| RK3588 / RKLLM Kev | RK3588 test platform 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
-| RK3576 / RKLLM Kev | RK3576 test platform 500-case fixture：240 条中正确 189 条（78.75%）；部署限制 2048 tokens，engine 容量 8192 |
+| RK3588 / RKLLM Kev | RK3588 测试平台 已验证 8192 context、5 条 golden、超长输入错误和双模型 HTTP 切换；RKLLM 0.3.1 ef82 已发布 |
+| RK3576 / RKLLM Kev | RK3576 测试平台 500-token fixture：240 条中正确 189 条（78.75%）；部署限制 2048 tokens，engine 容量 8192 |
+| Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
 
 ### 500-token 上下文 QA fixture
 
@@ -68,10 +69,9 @@
 
 | 设备 | 正确数 | HTTP 错误 | client p50 / p95 |
 |---|---:|---:|---:|
-| RK3576 test platform | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
-| RK3588 test platform | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
+| RK3576 测试平台 | 189/240（78.75%） | 0 | 7115.31 / 7574.56 ms |
+| RK3588 测试平台 | 189/240（78.75%） | 0 | 3946.52 / 4770.96 ms |
 
 该 fixture 使用生成的文档上下文将输入固定为 500 tokens。测量对象是这批固定生成背景与候选项；实际业务命令的指标需用对应标注测试集另行测量。工作台输出候选项 ID 供调用系统处理。source、generator、dataset SHA、runner SHA 和设备绑定均记录在证据目录中。
-| Jetson / TensorRT | 保留既有 TensorRT 路径；不宣称 Jetson 原生 Kev 支持 |
 
 双模型切换的真实浏览器素材位于 `gallery/kev-final-switch/`：Laya 页面 chip/result 均显示 `rknn / 90 tokens`，Kev 页面 chip/result 均显示 `rkllm / 8192 tokens`。同一条英文指令分别通过下拉选择两个 profile；`Test and connect` 的真实 `GET /api/models` 返回 HTTP 200。素材说明了最终 UI 的可读性取整（score 三位小数、毫秒一位小数），raw API 数值保存在 evidence JSON 中。

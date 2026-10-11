@@ -55,7 +55,7 @@ The image tag was `edge-command-workbench:rockchip-rkllm-0.3.1-review`. The arch
 The helper was verified inside the image at `/opt/kev/libkev_runtime.so`, SHA-256 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`; no external helper mount was used. Raw selected request, response, timing, bootstrap, compose and container metadata are in [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/). The prior `a556`/`d870` fourteen-file bootstrap record remains historical and is not replaced. Voice and ASR were not part of this device validation.
 
 For the optional existing voice integration, the browser recorder requires HTTPS or localhost and microphone permission. Plain remote HTTP pages cannot use browser recording; text decisions do not depend on voice. `VOICE_SERVICE_URL` connects an existing compatible `/asr/stream` service and does not install or validate ASR. The deployed field supplies the server default; the current UI also requires the voice drawer URL when configuring that optional path.
-## Preset: RK3576 Remote {#rk3576_remote}
+## Preset: Historical RK3576 Laya/RKNN (0.1.0) {#rk3576_remote}
 
 Deploy the local command workbench to one RK3576 Linux device over SSH. This preset is for RK3576 only; Jetson and RK3588 are not included in this package.
 ## Step 1: Deploy the Workbench {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}

@@ -60,7 +60,8 @@ Voice input is available only when an existing compatible local voice service is
 |---|---|
 | RK3576 / RKNN Laya | Existing validated path |
 | RK3588 / RKLLM Kev | RK3588 test platform verified with 8192 context, five golden cases, overlength error, and dual-model HTTP switching; RKLLM 0.3.1 ef82 release published |
-| RK3576 / RKLLM Kev | RK3576 test platform 500-case fixture: 189/240 correct (78.75%); deployment guard 2048 tokens, engine capacity 8192 |
+| RK3576 / RKLLM Kev | RK3576 test platform 500-token fixture: 189/240 correct (78.75%); deployment guard 2048 tokens, engine capacity 8192 |
+| Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
 
 ### Context-500 QA fixture
 
@@ -72,6 +73,5 @@ The reproducible context-500 fixture is archived in [`assets/evidence/context500
 | RK3588 test platform | 189/240 (78.75%) | 0 | 3946.52 / 4770.96 ms |
 
 The fixture uses generated documentation context to hold the assembled input at 500 tokens. The measurements cover this fixed generated background and candidate set; metrics for real business commands require a separately labeled test set. The workbench returns a candidate option ID for the calling system to process. The source, generator, dataset SHA, runner SHA, and device bindings are recorded with the evidence.
-| Jetson / TensorRT | Existing TensorRT path retained; native Jetson Kev support is not claimed |
 
 Real browser switch evidence is in `gallery/kev-final-switch/`: the Laya page chip/result both show `rknn / 90 tokens`, while the Kev page chip/result both show `rkllm / 8192 tokens`. The same English request was run after selecting each profile from the dropdown; `Test and connect` made a real `GET /api/models` request and received HTTP 200. The assets document the final UI readability rounding (score to three decimals and milliseconds to one decimal); raw API values remain in the evidence JSON.

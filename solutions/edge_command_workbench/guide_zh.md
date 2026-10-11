@@ -55,7 +55,7 @@ RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d00
 image 内置 helper `/opt/kev/libkev_runtime.so` 已校验，SHA-256 为 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`；没有使用外部 helper mount。原始选定请求、响应、耗时、bootstrap、compose 与容器元数据见 [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/)。此前的 `a556`/`d870` 14 文件 bootstrap 记录保留为历史证据，不被替换。此次设备验证不包含 voice 和 ASR。
 
 可选已有语音集成要求浏览器录音页面使用 HTTPS 或 localhost，并获得麦克风权限。普通远端 HTTP 页面不能使用浏览器录音；文字决策不依赖语音。`VOICE_SERVICE_URL` 只连接已有兼容的 `/asr/stream` 服务，不安装或验证 ASR。部署字段提供 server default；当前 UI 配置此可选路径时还需要在 voice drawer 中填写 URL。
-## 套餐: 远程 RK3576 {#rk3576_remote}
+## 套餐: 历史 RK3576 Laya/RKNN（0.1.0） {#rk3576_remote}
 
 通过 SSH 将本地命令工作台部署到一台 RK3576 Linux 设备。本套餐只面向 RK3576，不包含 Jetson 或 RK3588。
 ## 步骤 1: 部署工作台 {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}
