@@ -461,11 +461,28 @@ def test_action_image_without_mirror_prefix_errors():
     assert len(errors) == 1
     assert "'alpine'" in errors[0]
     assert "DOCKER_REGISTRY_PREFIX" in errors[0]
+    assert "library/alpine" in errors[0]
 
 
 def test_action_image_with_mirror_prefix_passes():
-    fixed = _OPENCLAW_ACTION.replace(" alpine ", " ${DOCKER_REGISTRY_PREFIX}alpine ")
+    fixed = _OPENCLAW_ACTION.replace(
+        " alpine ", " ${DOCKER_REGISTRY_PREFIX}library/alpine "
+    )
     assert validate._check_action_image_refs(_device_with_action(fixed), "d") == []
+
+
+def test_mirror_prefixed_bare_official_image_errors():
+    # docker.m.daocloud.io/alpine is not docker.m.daocloud.io/library/alpine:
+    # the implicit library/ namespace is only added for Docker Hub itself.
+    bare = _OPENCLAW_ACTION.replace(" alpine ", " ${DOCKER_REGISTRY_PREFIX}alpine ")
+    errors = validate._check_action_image_refs(_device_with_action(bare), "d")
+    assert len(errors) == 1
+    assert "library/alpine" in errors[0]
+
+
+def test_mirror_prefixed_namespaced_image_passes():
+    script = "docker pull ${DOCKER_REGISTRY_PREFIX}ollama/ollama:0.32.5\n"
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
 
 
 def test_private_registry_image_is_not_flagged():

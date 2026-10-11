@@ -935,6 +935,15 @@ def _is_registry_qualified(image: str) -> bool:
     return "." in head or ":" in head or head == "localhost"
 
 
+def _hub_path(image: str) -> str:
+    """Docker Hub repository path for ``image``: bare names get ``library/``.
+
+    Docker adds the implicit ``library/`` namespace only when talking to
+    Docker Hub itself, so a mirror-prefixed reference must spell it out.
+    """
+    return image if "/" in image else f"library/{image}"
+
+
 def _extract_docker_images(script: str) -> list[str]:
     """Return image references pulled by ``docker run``/``docker pull`` in ``script``."""
     images: list[str] = []
@@ -1005,6 +1014,17 @@ def _check_action_image_refs(dev_data, label: str) -> list[str]:
     for json_path, script in _iter_action_scripts(dev_data):
         for image in _extract_docker_images(script):
             if "DOCKER_REGISTRY_PREFIX" in image:
+                rest = re.sub(r"^\$\{?DOCKER_REGISTRY_PREFIX\}?", "", image)
+                if rest and not rest.startswith("$") and "/" not in rest:
+                    errors.append(
+                        f"{label}: at '{json_path}': '{image}' prefixes a bare "
+                        f"official image — write "
+                        f"'${{DOCKER_REGISTRY_PREFIX}}library/{rest}' instead. "
+                        f"Docker only adds the implicit 'library/' namespace "
+                        f"for Docker Hub; on a mirror the bare path is a "
+                        f"different repository that the mirror serves "
+                        f"unreliably (seen: 401/502 on docker.m.daocloud.io)."
+                    )
                 continue
             # A fully variable-driven reference (``$IMAGE``, ``${IMG}:$TAG``)
             # is resolved at runtime — the author may already be prefixing it
@@ -1016,7 +1036,7 @@ def _check_action_image_refs(dev_data, label: str) -> list[str]:
             errors.append(
                 f"{label}: at '{json_path}': action pulls Docker Hub image "
                 f"'{image}' without the mirror prefix — write "
-                f"'${{DOCKER_REGISTRY_PREFIX}}{image}' instead. The engine "
+                f"'${{DOCKER_REGISTRY_PREFIX}}{_hub_path(image)}' instead. The engine "
                 f"exports DOCKER_REGISTRY_PREFIX into every action step; "
                 f"without it this pull fails on CN-restricted networks."
             )
