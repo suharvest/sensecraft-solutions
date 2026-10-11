@@ -13,7 +13,9 @@ Fields every `verify_required` event has:
 | `device_id` / `step_id` | The step |
 | `kind` | The step type (`web_dashboard`, `serial_camera`, `serial_wizard`, `robot_inspect`, `preview`, `image_predict`, ...) |
 | `name`, `required` | Display name; whether the solution counts it as required |
-| `url`, `endpoint`, `sample_request` | Where to check, with `{{host}}` already filled in (may be null) |
+| `url`, `endpoint` | Where to check, with `{{host}}` already filled in (may be null) |
+| `sample_request` | Request to send to `endpoint`: `{method, url, headers?, content_type?, file_field?, body?, curl}`, `curl` being a ready command line (may be null) |
+| `mode` | Steps with several check modes: the mode the event describes (the step's default) |
 | `instructions` | What to check, in the solution's words |
 | `expected_status` | `web_dashboard` only: 200 |
 
@@ -45,8 +47,15 @@ General rules:
 
 - `web_dashboard`: `curl -s -o /dev/null -w "%{http_code}" <url>` must return
   `expected_status` (200). Then give the user the `url` to open.
-- `endpoint` + `sample_request` present: send the sample request to the
-  endpoint (`curl` with the sample body) and show the user the response.
+- `endpoint` + `sample_request` present: run `sample_request.curl` and show
+  the user the relevant part of the response. In a multipart request
+  (`-F <file_field>=@IMAGE.jpg`) replace `IMAGE.jpg` with a real picture
+  (a photo the user gave you, or one downloaded into `./.sensecraft-work/`);
+  a JSON response with results (for example detections with labels and
+  scores, possibly an empty list for a picture without matching objects)
+  means the service works. An HTTP error or no answer goes to `diagnose.md`.
+  These events also come for verify steps that only describe a check in the
+  guide (no separate config file), with the default mode's endpoint.
 - Otherwise follow `instructions`. When they say to run the check in the
   SenseCraft Solution app, tell the user: that check needs the desktop app.
 
