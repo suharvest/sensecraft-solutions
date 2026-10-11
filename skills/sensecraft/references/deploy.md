@@ -51,9 +51,12 @@ serial port, and any user inputs). Serial steps carry both `port` and
 `serial_port` placeholders; fill both with the port name from `device ports`.
 
 For `docker_deploy` steps pick the target with `"target": "<target id>"` **and
-set `"target_type"` to that target's own type** (`local` / `remote`, from
-deploy-info `targets`) — or remove `target_type`. Leaving the template's type
-while switching `target` is rejected. Remote targets need `host`, `username`
+set `"target_type"` to that target's own type** (`local` / `remote`) — or
+remove `target_type`. Leaving the template's type while switching `target` is
+rejected. Each deploy-info target carries a `type` field: use it. On engine
+builds whose targets have no `type` yet, the target id suffix (for example
+`_local`, `_remote`) is only a hint; confirm the type with `validate` (§3,
+dry run) before starting. Remote targets need `host`, `username`
 and either `password` or `key_file`:
 
 - Password: `"password": "<the user's password>"`.
@@ -64,8 +67,9 @@ and either `password` or `key_file`:
 Add `"auto_replace_containers": true` (or the `--replace-existing` flag) only if
 the user agrees to replace existing containers with the same name.
 
-Write the filled body to a file, e.g. `body.json` (a file keeps the password out
-of the process list and avoids shell quoting problems, notably in PowerShell):
+Write the filled body to `./.sensecraft-work/body.json` in the current working
+directory, not `/tmp` (a file keeps the password out of the process list and
+avoids shell quoting problems, notably in PowerShell):
 
 ```json
 {
@@ -82,19 +86,37 @@ of the process list and avoids shell quoting problems, notably in PowerShell):
 
 Show the user the body with the password as `<REDACTED>` before starting.
 
-Optional dry run, no changes on any device:
+Before a remote deploy, run the dry run (no changes on any device):
 
 ```
-sensecraft-engine validate --params body.json
+sensecraft-engine validate --params ./.sensecraft-work/body.json
 ```
 
 It reports parameter errors and previews which verify steps will need the user
-(`verify_required`).
+(`verify_required`). It also lists, per device, the side effects the deployment
+will cause on the target (`side_effects`: for example Docker installation,
+Docker daemon restart, writes to `/etc/docker/daemon.json`, replacing
+containers). Read that list and tell the user what it contains. If the user
+forbade Docker restarts or daemon.json changes, or `side_effects` lists one of
+them and the user has not agreed, stop and ask before starting. Builds without
+a `side_effects` field: assume a remote Docker deploy may write
+`/etc/docker/daemon.json` and ask when the user restricted that.
+
+Before the deploy, save the target's current Docker daemon config so changes
+can be shown and restored:
+
+```
+ssh <user>@<ip> cat /etc/docker/daemon.json > ./.sensecraft-work/daemon.json.before
+```
+
+(a missing file is fine: note that it did not exist). After the deploy, `cat`
+it again and show the user any difference; restoring it is a change on the
+device and needs the user's OK.
 
 ## 4. Start and follow
 
 ```
-sensecraft-engine deploy --params body.json --yes --detach --lang en
+sensecraft-engine deploy --params ./.sensecraft-work/body.json --yes --detach --lang en
 ```
 
 `--detach` prints `{"deployment_id": "...", "log": "..."}` and returns. Keep the
@@ -126,7 +148,8 @@ Event types to act on:
 | `device_completed` | One device finished |
 | `deployment_completed` | Last event; `status` is the final result |
 
-Parse the JSON instead of grepping it. Delete `body.json` afterwards (it holds a
+Read the JSON directly instead of grepping it (no interpreter, see `SKILL.md`
+rule 5). Delete `./.sensecraft-work/` afterwards (`body.json` holds a
 password).
 
 Without `--detach`, `deploy --json` streams the same events on stdout and ends
@@ -149,9 +172,21 @@ as described in `verify.md` §1.
   define a health check, `(healthy)`:
   `sensecraft-engine docker ps --json` (this computer) or
   `SC_SSH_PASSWORD=<password> sensecraft-engine docker ps --host <ip> --username <user> --json`
-  (remote; `--password-stdin` reads the password from stdin instead).
+  (remote; `--password-stdin` reads the password from stdin instead). With an
+  SSH key, on engines that have `--key-file`:
+  `sensecraft-engine docker ps --host <ip> --username <user> --key-file ~/.ssh/id_ed25519 --json`
+  (same path rules as `key_file` in §3). Engines without `--key-file` accept
+  a password only; with a key-only device use `ssh <user>@<ip> docker ps`.
 - Services with a port: `curl -s -o /dev/null -w "%{http_code}" http://<host>:<port>/`
   returns 2xx/3xx.
+- Stay running: `completed` can precede a crash loop. Run `docker ps` once,
+  wait about 60 seconds, then run it again and read the container restart
+  count (`docker inspect -f '{{.Name}} {{.RestartCount}} {{.State.Status}}' <container>`
+  over SSH, or the `Restarting` / `Up Less than a second` status in `docker ps`).
+  The counts must stay 0 and the verify endpoint (the step's `url`, or the
+  port check above) must still answer after the wait. If a container restarts
+  or the endpoint stops answering, report a crash loop, not success, and go to
+  `diagnose.md`.
 - Tell the user the URL to open and anything the guide says to do next.
 
 ## 6. If anything failed
@@ -161,8 +196,25 @@ Go straight to `diagnose.md` with the `deployment_id`. Do not stop to ask.
 To retry after a fix, send the same body again — same `preset_id` and
 `device_connections` — with `selected_devices` listing only the device(s) that
 failed (or `--device <step_id>` for one device); the others are already done.
-Leaving manual steps in is harmless (they are skipped). First retry without
-asking; later retries need the user's OK; at most 3 rounds.
+Leaving manual steps in is harmless (they are skipped).
+
+Two kinds of failure, two policies:
+
+- **Transient registry or network errors** (image pull answered 401 / 429 /
+  500 / 502 / 503 / 504, `TLS handshake timeout`, `i/o timeout`,
+  `connection reset`, a mirror that flaps): retry the same body without
+  asking, up to 5 times, waiting 15, 30, 60, 120, 240 seconds between tries.
+  These retries do not count as fix rounds. If the engine log shows the
+  mirror changing between tries, that is the same transient case. After the
+  5th failure, stop and report the error text, the waits and the registry host.
+- **Deterministic failures** (bad parameter or credentials, port taken, disk
+  full, missing file, a container that exits on start, the same error with the
+  same text after a fix): stop retrying blindly. First retry after a fix
+  without asking; later retries need the user's OK; at most 3 rounds, then
+  report.
+
+If you cannot tell which kind it is, treat the second occurrence of the same
+error after a wait as deterministic.
 
 ## Cancel
 
