@@ -75,7 +75,7 @@ remote_overrides:
         # nft call fails with "Failed to initialize nft: Protocol not
         # supported" and Docker cannot start. Boards whose kernel does support
         # nf_tables already work, so this copy only switches when an nft
-        # listing actually fails with that error.
+        # listing fails with "Protocol not supported".
         ignore_error: false
         sudo: true
         run: |
@@ -87,19 +87,19 @@ remote_overrides:
           fi
           SUDO=""
           [ "$(id -u)" -eq 0 ] || SUDO="sudo -n"
-          if OUT=$($SUDO "$IPT" -w -t filter -L -n 2>&1); then
+          if ERR=$($SUDO "$IPT" -w -t filter -L -n 2>&1 >/dev/null); then
             echo "iptables uses nf_tables and this kernel supports it; backend and Docker left as is"
             exit 0
           fi
-          if ! echo "$OUT" | grep -qiE 'Failed to initialize nft|Protocol not supported'; then
-            echo "Could not check the iptables backend: $OUT" >&2
+          if ! echo "$ERR" | grep -q 'Protocol not supported'; then
+            echo "Could not check the iptables backend: $ERR" >&2
             echo "Backend left as is. If Docker fails to start with 'Failed to initialize nft', run:" >&2
             echo "  sudo update-alternatives --set iptables /usr/sbin/iptables-legacy" >&2
             echo "  sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy" >&2
             echo "  sudo systemctl restart docker" >&2
             exit 0
           fi
-          echo "This kernel has no nf_tables support ($OUT); switching iptables to legacy and restarting Docker"
+          echo "The nf_tables backend isn't usable on this kernel (Protocol not supported); switching iptables to legacy and restarting Docker"
           $SUDO update-alternatives --set iptables /usr/sbin/iptables-legacy
           $SUDO update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
           $SUDO systemctl restart docker 2>/dev/null || true
