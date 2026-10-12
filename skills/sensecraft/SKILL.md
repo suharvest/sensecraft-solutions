@@ -19,6 +19,12 @@ the app running.
 
 ## Host platform boundary
 
+The standalone engine supports four host platforms: macOS ARM
+(`aarch64-apple-darwin`), Linux ARM (`aarch64-unknown-linux-musl`), Linux
+x86_64 (`x86_64-unknown-linux-musl`), and Windows x86_64
+(`x86_64-pc-windows-msvc`). macOS x86_64 is not maintained; under Rosetta,
+run the installer from a native ARM shell.
+
 `docker_deploy` target `local` requires a supported Docker host. Windows native
 `docker_local` is intentionally unsupported by both the Python and Rust
 deployers; a Windows CLI can still use a `remote` target over SSH to a Linux
