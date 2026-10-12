@@ -19,7 +19,7 @@ Agent 给用户部署方案、处理部署失败、处理验证步骤（`verify_
 `skills/sensecraft/SKILL.md`。它只用 `sensecraft-engine` 命令行引擎：
 
 ```bash
-curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+curl --compressed -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
 sensecraft-engine content pull
 sensecraft-engine solution list --json
 sensecraft-engine deploy-info <solution_id> --preset <preset>

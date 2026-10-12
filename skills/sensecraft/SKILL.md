@@ -102,14 +102,14 @@ daemon is a host prerequisite, not evidence that a deployment has passed.
    it downloads a program):
 
    ```
-   curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+   curl --compressed -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
    ```
 
    If `curl` is unavailable but `wget` passed the prerequisite check, use the
    equivalent command:
 
    ```
-   wget -qO- https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+   wget --compression=auto -qO- https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
    ```
 
    Windows PowerShell:
