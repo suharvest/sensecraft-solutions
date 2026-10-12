@@ -90,7 +90,9 @@ daemon is a host prerequisite, not evidence that a deployment has passed.
    installer puts it there and prints the `PATH` line to add.
 2. Before running an installer, check its local prerequisites. On Unix run
    `command -v curl || command -v wget`, `command -v sha256sum || command -v shasum`,
-   `command -v tar`, `command -v jq`, and `command -v minisign`. On Windows
+   `command -v tar`, `command -v jq`, and `command -v minisign`. If wget is the
+   selected downloader, also require `wget --help | grep -- --compression` to
+   succeed; otherwise stop because the CDN may return gzip content. On Windows
    PowerShell run `Get-Command irm`, `Get-Command Invoke-WebRequest`,
    `Get-Command Expand-Archive`, `Get-Command ConvertFrom-Json`, and
    `Get-Command minisign`. Windows uses PowerShell/.NET ZIP and JSON support;
