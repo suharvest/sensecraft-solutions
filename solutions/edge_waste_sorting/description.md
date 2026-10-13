@@ -54,6 +54,8 @@ Test data is photos of single items (full 7417-image validation set on Hailo-8 a
 
 Select with `model.track` at deploy time.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Edge Waste Sorting](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/).
+
 ## Output Interfaces
 
 | Interface | Content |

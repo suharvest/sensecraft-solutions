@@ -18,6 +18,9 @@ Jetson Orin 用 TensorRT 运行分类器，提供网页、触发接口和 MQTT �
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+
 - JetPack 6.x 的 Jetson Orin，已配置 NVIDIA container runtime。
 - 至少 10 GB 可用磁盘。
 - 使用 USB 摄像头时，在 `assets/jetson/docker-compose.yml` 里取消注释对应的 `/dev/videoN` 行，不要挂载整个 `/dev`。
@@ -25,6 +28,9 @@ Jetson Orin 用 TensorRT 运行分类器，提供网页、触发接口和 MQTT �
 - 分类器选项：默认 `baseline`；`open_vocab` 见步骤 4。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 传送带物料遮挡容限、分类置信度与 MQTT 事件，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |---|---|
@@ -65,17 +71,21 @@ Jetson Orin 用 TensorRT 运行分类器，提供网页、触发接口和 MQTT �
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+
 - 步骤 1 已完成，容器在运行。
 - 同网络的机器上有 `mosquitto_sub`，或使用 broker 容器：`docker exec edge-waste-mosquitto mosquitto_sub …`。
 - 一件非布料的待分类物品。
 
 ### 部署完成
 
+
 分类器已运行，并完成一次端到端分类。
 
 #### 快速验证
 
-1. 打开 `http://<设备IP>:8080/`，确认画面对准投放区，物品占满大部分画面。
+1. 打开 `http://<设备IP>:8080/panel`，确认画面对准投放区，物品占满大部分画面。
 2. 订阅：`mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/results' -v`。
 3. 触发一次：`curl -X POST http://<设备IP>:8080/trigger`。
 4. 确认收到一条消息，`category` 与 `top3[0]` 一致。
@@ -135,9 +145,12 @@ Jetson Orin 用 TensorRT 运行分类器，提供网页、触发接口和 MQTT �
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+
 - 步骤 1 已用 `model_track: baseline` 跑通。
 - 额外约 372 MB 放视觉模型，另需 engine 空间。
-- 原型库和 meta 文件需手工拷到设备，并用 `assets/models/SHA256SUMS.open_vocab` 执行 `sha256sum -c` 校验。
+- 原型库与 meta 文件已支持自动拉取校验（也可从 `assets/models/` 自行替换并校验）。
 - 仅 Orin 套餐支持。
 
 ### 故障排查
@@ -171,6 +184,9 @@ reComputer R2000 系列（Hailo-8）在 NPU 上运行 EfficientNet-Lite0 分类�
 填写设备和摄像头信息，部署步骤会检查 Hailo 环境，下载并校验模型，然后启动分类器。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
 
 - 装有 Docker 的 Raspberry Pi OS，Hailo-8 已插入，存在 `/dev/hailo0`。
 - 已安装 HailoRT 4.21.x，并执行 `sudo apt-mark hold hailort hailort-pcie-driver`。
@@ -218,6 +234,9 @@ reComputer R2000 系列（Hailo-8）在 NPU 上运行 EfficientNet-Lite0 分类�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+
 - 步骤 1 已完成，容器在运行。
 - 同网络的机器上有 `mosquitto_sub`，或使用 broker 容器：`docker exec edge-waste-mosquitto mosquitto_sub …`。
 - 一件非布料的待分类物品。
@@ -228,7 +247,7 @@ reComputer R2000 系列（Hailo-8）在 NPU 上运行 EfficientNet-Lite0 分类�
 
 #### 快速验证
 
-1. 打开 `http://<设备IP>:8080/`，确认画面对准投放区，物品占满大部分画面。
+1. 打开 `http://<设备IP>:8080/panel`，确认画面对准投放区，物品占满大部分画面。
 2. 订阅：`mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/results' -v`。
 3. 触发一次：`curl -X POST http://<设备IP>:8080/trigger`。
 4. 确认收到一条消息，`category` 与 `top3[0]` 一致。
@@ -278,6 +297,8 @@ reComputer R2000 系列（Hailo-8）在 NPU 上运行 EfficientNet-Lite0 分类�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
 1. 用 USB-C 连接 reCamera，或确认它在网络中可达
 2. 填入 IP 地址（USB 连接默认为 `192.168.42.1`）和 `recamera` 用户的 SSH 密码
 3. 部署
@@ -321,6 +342,9 @@ mosquitto_sub -h <相机IP> -t 'waste/<stream id>/results' -v
 需要：Web 控制台管理员凭据、`/userdata` 上约 10 MB 可用空间。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
 
 填写设备名称。需要把结果发到其他系统时再填 broker 地址，每次分类会以一条 JSON 发到 `waste/<设备名称>/results`；broker 留空时结果只在相机上的应用面板查看。
 
@@ -367,3 +391,6 @@ mosquitto_sub -h <broker IP> -t 'waste/<设备名>/results' -v
 |------|------|
 | `init_runtime` 处只抛一个 `RKNN_ERR_FAIL` | 安装与板卡上 `librknnrt` 同版本的 Python 绑定 |
 | 没有可核对的模型文件 | 在装有 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机上转换模型后拷到板卡 |
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/)

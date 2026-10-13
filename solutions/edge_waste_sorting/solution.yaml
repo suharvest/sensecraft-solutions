@@ -324,6 +324,11 @@ intro:
     difficulty: intermediate
     estimated_time: 35min
 
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-waste-sorting/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/
+
 deployment:
   guide_file: guide.md
   guide_file_i18n:
