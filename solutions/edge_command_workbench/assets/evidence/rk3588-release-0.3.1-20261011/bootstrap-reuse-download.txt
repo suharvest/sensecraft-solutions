@@ -1,0 +1,3 @@
+artifact_reuse=13 target-filtered model/shared files passed SHA checks and were hardlinked from /home/radxa/edge-workbench-hf-download-qa-20261011 on the same ext4 filesystem
+new_download=1 RKLLM archive fetched from https://hf-mirror.com at HF revision db0545065d4da3598d009407fc3bd0c7632ca199
+bootstrap_exit=0

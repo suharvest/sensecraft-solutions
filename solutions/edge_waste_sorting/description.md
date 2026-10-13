@@ -37,8 +37,8 @@ Not for: conveyor sorting, or detecting litter on the ground.
 | reCamera Pro, 1060-image subset | material top-1 **0.8764**, four-way top-1 **0.9566**, p50 **5.8 ms** / p95 **6.0 ms**; INT8 is **2.9x** the speed of fp16 on this camera and **4.2x** the reCamera figure; INT8/fp16/host fp32 agree within **0.2 pp** |
 | reComputer RK3588, full 7417-image validation set | material top-1 **0.8882**, p50 **3.2 ms** / p95 **3.9 ms**; fp16 gives the same top-1 at p50 **6.0 ms** (INT8 **1.9x** faster); both within **0.05 pp** of fp32 host |
 | reComputer J30/J40 (TensorRT), 1060-image subset | material top-1 **0.8755**, **99.91%** agreement vs CPU (first measured on J40, reproduces bit-identically on J30) |
-| reComputer R2000 (Hailo-8), inference steadiness | p50 **3.2 ms**, p95 only **0.06 ms** above the median |
-| reComputer R2000 (Hailo-8), INT8 quantization | **2.4** percentage points lower accuracy than the same model on a host |
+| reComputer R2000 (Hailo-8), inference steadiness | p50 **3.2 ms**, p95 only **0.08 ms** above the median (0.69 ms on RK3588) |
+| reComputer R2000 (Hailo-8), full 7417-image validation set | material top-1 **0.8889**, four-way top-1 **0.9507**; INT8 within **0.12 pp** of fp32 on the host for the same images |
 
 Test data is photos of single items (full 7417-image validation set on Hailo-8 and RK3588; a 1060-image subset on the two all-in-one cameras); wet, crushed, stacked or bagged waste is not included.
 

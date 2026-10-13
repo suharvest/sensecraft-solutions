@@ -14,13 +14,15 @@
 # never the whole dist-packages, because the host's numpy would shadow the
 # image's own pinned one.
 #
-# Image published 2026-09-08 (0.1.1-dev supersedes 0.1.0-dev: rebuilt from
-# origin/main@8b791fb, which fixes the file-source-EOF crash — see
+# Image published 2026-09-28 (0.1.2-dev supersedes 0.1.1-dev: rebuilt from
+# origin/main@a56b97c, which adds the web control panel the docs always
+# described — /preview.mjpg, /preview.jpg, /events — and drops the VLM path.
+# 0.1.1-dev had been origin/main@8b791fb, the file-source-EOF fix — see
 # ~/project/edge-waste-sorting evaluation/runs/2026-09-08-harvest-pi-acceptance
 # §"0.1.1-dev 断流回归"):
-#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.1-dev
-#   manifest digest sha256:60cb0a55b504587ef780f9efd09c7709f0ae7b30be0901500ba7db86bbd57e60
-#   259 MB local / 91.3 MB compressed over 8 layers.
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.2-dev
+#   manifest digest sha256:f2016480e88437ee9d198ff4ccfc017d891f62a34d8de981636d309d663c292b
+#   259 MB local.
 #
 # The TensorRT engine is not in the image and not in /models: build it once on
 # the Orin with
@@ -28,7 +30,7 @@
 #       /models/efficientnet_lite0_waste8.engine
 services:
   waste:
-    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.1-dev}
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.2-dev}
     container_name: edge-waste-app
     command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-orin-nx}"]
     restart: unless-stopped

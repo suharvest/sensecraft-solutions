@@ -1,0 +1,50 @@
+# RK3588 / RK3576 voice side: one OpenVoiceStream service (Qwen3-ASR + Matcha
+# TTS on the RK NPU; profile RK_VOICE_PROFILE = rk3588-default or
+# rk3576-default, the zh cells of the OVS language/device matrix) serving both
+# ASR and TTS, plus the Wyoming adapter (STT :10300, TTS :10200) that Home
+# Assistant connects to. No LLM here: Home Assistant's LiteLLM conversation
+# agent calls the cloud OpenAI-compatible API the user enters.
+# docker-compose.rk3588-rk1828-voice.yml extends these two services and adds
+# the RK1828 local LLM.
+# openvoicestream:rk-20261009
+#   linux/arm64 sha256:629912ed0e73b812ec127a372b7410a5db5d156f633eccb480743d4370ea1765
+services:
+  voice:
+    image: ${RK_VOICE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261009@sha256:629912ed0e73b812ec127a372b7410a5db5d156f633eccb480743d4370ea1765}
+    privileged: true
+    init: true
+    network_mode: host
+    command: ["/bin/sh", "-c", "exec python3 -m uvicorn server.main:app --host 0.0.0.0 --port ${VOICE_PORT:-8623}"]
+    environment:
+      OVS_PROFILE: ${RK_VOICE_PROFILE:?set RK_VOICE_PROFILE}
+      OVS_PROFILE_DEFAULT: ${RK_VOICE_PROFILE:?set RK_VOICE_PROFILE}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+    volumes:
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      - rk-tts-models:/opt/tts/models
+      - voice-data:/opt/seeed-local-voice/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:${VOICE_PORT:-8623}/health >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 600s
+  wyoming-adapter:
+    image: ${ADAPTER_IMAGE:-sensecraft-missionpack.seeed.cn/solution/wyoming-slv-adapter:20261008@sha256:50be4f9fdb6e8977d1ee5b110052fb607b4187707225b84479af246980509c3b}
+    network_mode: host
+    restart: unless-stopped
+    depends_on: [voice]
+    environment:
+      SLV_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      SLV_ASR_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      SLV_TTS_BASE_URL: http://127.0.0.1:${VOICE_PORT:-8623}
+      WYOMING_STT_PORT: ${WYOMING_STT_PORT:-10300}
+      WYOMING_TTS_PORT: ${WYOMING_TTS_PORT:-10200}
+
+volumes:
+  rk-asr-models:
+  rk-tts-models:
+  voice-data:

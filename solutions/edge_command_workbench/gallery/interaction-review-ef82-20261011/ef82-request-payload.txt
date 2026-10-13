@@ -1,0 +1,6 @@
+### Result
+[{"url":"http://192.0.2.16:18772/api/decide","method":"POST","postData":"{\"input_text\":\"查询设备状态\",\"prompt\":\"你是生产线命令分流助手。只从候选命令中选择最匹配的一项。\",\"options\":[{\"id\":\"cmd-1\",\"label\":\"降低输送带速度\",\"description\":\"将指定输送带调整到目标速度\"},{\"id\":\"cmd-2\",\"label\":\"暂停设备\",\"description\":\"安全暂停当前生产设备\"},{\"id\":\"cmd-3\",\"label\":\"查询设备状态\",\"description\":\"返回设备当前运行状态\"}],\"model_id\":\"kev\",\"model_service_url\":\"\"}"}]
+### Ran Playwright code
+```js
+await (async page => { const seen=[]; const h=r=>{if(r.method()==='POST'&&r.url().includes('/api/decide'))seen.push({url:r.url(),method:r.method(),postData:r.postData()})}; page.on('request',h); const input=page.getByRole('textbox',{name:'文字或语音转写'}); const btn=page.getByRole('button',{name:'开始判断'}); await input.fill('查询设备状态'); await btn.click(); await page.waitForTimeout(900); page.off('request',h); return seen; })(page);
+```

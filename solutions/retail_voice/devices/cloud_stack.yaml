@@ -68,6 +68,161 @@ deploy_timeout: 5400
 post_deployment:
   open_browser: false
 
+# ---------------------------------------------------------------- local view
+# Local deploy: the app runs on this device. Actions run with the deployment
+# workspace (a mirror of the solution directory) as their working directory,
+# so the paths below are relative to it, and compose runs from its
+# assets/docker/. There is no upload step, so `after_upload` runs straight
+# after `before`. The remote view does not use this block:
+# remote_overrides.actions replaces it in full.
+actions:
+  before:
+    - name: Check Docker and architecture
+      run: |
+        set -e
+        docker info >/dev/null 2>&1 || { echo "docker is not usable by this user" >&2; exit 1; }
+        ARCH=$(uname -m)
+        echo "arch: $ARCH"
+        if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
+          echo "The published images (voice-service, voice-web, ASR) are arm64 only; this host is $ARCH. Stopping before compose pulls fail obscurely." >&2
+          exit 1
+        fi
+      name_i18n:
+        zh: 检查 Docker 与主机架构
+
+    - name: Ensure docker compose command
+      # Local view: there is no SSH password to hand to sudo, so the fix is
+      # applied only where sudo works without a prompt; otherwise the step
+      # stops with the command to run.
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+  # Runs before `docker compose up`: .env and config/voice-service.yaml live
+  # in the mirrored compose directory.
+  after_upload:
+    - name: Write .env and the service configuration
+      run: |
+        set -e
+        # The compose directory of the deployment workspace.
+        WORKDIR="$(pwd)/assets/docker"
+        cd "$WORKDIR"
+
+        # .env 只在设备上生成，不进仓库、不进镜像层。
+        umask 077
+        gen() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
+        keep_or_make() { key="$1"; val=$(grep "^${key}=" .env 2>/dev/null | head -1 | cut -d= -f2- || true); [ -n "$val" ] || val=$(gen); printf '%s' "$val"; }
+        touch .env
+        ensure() { key="$1"; val="$2"; grep -q "^${key}=" .env || printf '%s=%s\n' "$key" "$val" >> .env; }
+        gen() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
+        get() { grep "^$1=" .env | head -1 | cut -d= -f2-; }
+        ensure TZ Asia/Shanghai
+        ensure MYSQL_ROOT_PASSWORD "$(gen)"
+        ensure MYSQL_DATABASE voice
+        ensure MYSQL_PORT 3306
+        ensure MINIO_ROOT_USER "$(gen | cut -c1-16)"
+        ensure MINIO_ROOT_PASSWORD "$(gen)"
+        ensure MINIO_PORT 9000
+        ensure MINIO_CONSOLE_PORT 9001
+        ensure JWT_SECRET "$(gen)"
+        ensure OPERATOR_TOKEN "$(gen)"
+        ensure ADMIN_TOKEN "$(gen)"
+        ensure OVS_API_KEYS "$(get OPERATOR_TOKEN)"
+        ensure VOICE_API_TOKENS "edge-client:operator:$(get OPERATOR_TOKEN),ops:admin:$(get ADMIN_TOKEN)"
+        ensure ASR_API_TOKENS "edge-client:operator:$(get OPERATOR_TOKEN),voice-service:admin:$(get ADMIN_TOKEN)"
+        ensure VOICE_SERVICE_PORT 8081
+        ensure VOICE_WEB_PORT 3000
+        ensure CLOUD_ANALYTICS_PORT 8082
+        ensure OVS_PROFILE_DEFAULT rk3576-default
+        ensure ASR_PLATFORM rk3576
+        ensure OVS_ADMIN_KEY ""
+        grep -v '^VOICE_CONFIG_GID=' .env > .env.voice-config-gid
+        printf 'VOICE_CONFIG_GID=%s\n' "$(id -g)" >> .env.voice-config-gid
+        mv .env.voice-config-gid .env
+        export MYSQL_ROOT_PASSWORD="$(get MYSQL_ROOT_PASSWORD)" MINIO_ROOT_USER="$(get MINIO_ROOT_USER)" MINIO_ROOT_PASSWORD="$(get MINIO_ROOT_PASSWORD)" JWT_SECRET="$(get JWT_SECRET)"
+
+        # 配置文件里的占位符换成本次部署的值。留着 CHANGE_ME_ 等于没有鉴权。
+        CFG=config/voice-service.yaml
+        python3 - "$CFG" <<'PY'
+        import os
+        import sys
+
+        path = sys.argv[1]
+        text = open(path, encoding="utf-8").read()
+        repl = {
+            "CHANGE_ME_JWT_KEY": os.environ["JWT_SECRET"],
+            "CHANGE_ME_MYSQL_PASSWORD": os.environ["MYSQL_ROOT_PASSWORD"],
+            "CHANGE_ME_MINIO_USER": os.environ["MINIO_ROOT_USER"],
+            "CHANGE_ME_MINIO_PASSWORD": os.environ["MINIO_ROOT_PASSWORD"],
+        }
+        for old, new in repl.items():
+            text = text.replace(old, new)
+        open(path, "w", encoding="utf-8").write(text)
+        leftover = [line for line in text.splitlines() if "CHANGE_ME_" in line]
+        if leftover:
+            raise SystemExit("placeholders left in config: %r" % leftover)
+        print("config written")
+        PY
+        chmod 600 .env
+        chmod 640 config/voice-service.yaml
+        echo ".env and config written"
+      name_i18n:
+        zh: 写入 .env 与服务配置
+
+  after:
+    - name: Wait for voice-service to report healthy
+      # Best-effort diagnostic: no implicit `set -e`.
+      fail_fast: false
+      ignore_error: true
+      timeout: 300
+      run: |
+        echo "Waiting for voice-service ..."
+        for i in $(seq 1 40); do
+          if curl -sf "http://127.0.0.1:8081/healthz" >/dev/null 2>&1; then
+            echo "voice-service healthy"
+            # 不用 docker ps --format：它的模板语法与本文件的 {{...}} 占位符会互相吞。
+            docker ps | grep ' c4-' || true
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "voice-service did not become healthy in time — check: docker logs c4-voice-service" >&2
+      name_i18n:
+        zh: 等待 voice-service 健康
+
 remote_overrides:
   remote_path: /home/{{username}}/sensecraft-voice-c4
   compose_dir: assets/docker

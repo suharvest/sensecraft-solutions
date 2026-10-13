@@ -109,6 +109,10 @@
 
 通过 SSH 部署到面板主机。
 
+### 部署目标 {#panel_host_recamera_local type=local device_name="告警面板主机" config=devices/panel_host.yaml}
+
+把告警面板安装在运行本应用的这台电脑上。
+
 ## 步骤 5: 打开告警面板 {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
 只有装了面板才需要这一步。
@@ -280,6 +284,10 @@
 ### 部署目标 {#panel_host_recamera_pro_remote type=remote device_name="告警面板主机" config=devices/panel_host.yaml default=true}
 
 通过 SSH 部署到面板主机。
+
+### 部署目标 {#panel_host_recamera_pro_local type=local device_name="告警面板主机" config=devices/panel_host.yaml}
+
+把告警面板安装在运行本应用的这台电脑上。
 
 ## 步骤 5: 打开告警面板 {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
 
