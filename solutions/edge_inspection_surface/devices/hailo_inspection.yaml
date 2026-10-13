@@ -54,6 +54,195 @@ post_deployment:
 name_i18n:
   zh: reComputer R2000（Hailo-8）
 
+actions:
+  before:
+    - name: Validate the Hailo runtime and the ABI lock
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "No /dev/hailo0 — the Hailo-8 is not present or hailo_pci is not loaded" >&2
+          exit 1
+        fi
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+          echo "Installed HailoRT:" >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        command -v hailortcli >/dev/null 2>&1 && hailortcli --version 2>/dev/null | head -2 || true
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+        if command -v apt-mark >/dev/null 2>&1; then
+          HELD=$(apt-mark showhold 2>/dev/null | grep -c hailo || true)
+          if [ "$HELD" -lt 2 ]; then
+            echo "WARNING: expected both hailort and hailort-pcie-driver on hold; found $HELD" >&2
+            echo "Run: sudo apt-mark hold hailort hailort-pcie-driver" >&2
+          fi
+        fi
+        if ! grep -rqs force_desc_page_size=4096 /etc/modprobe.d/; then
+          echo "hailo_pci is missing force_desc_page_size=4096 — configure(hef) will crash." >&2
+          echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+          exit 1
+        fi
+        echo "host python: $(python3 -V 2>&1)"
+        echo "Hailo runtime OK"
+      name_i18n:
+        zh: 校验 Hailo 运行环境与 ABI 锁
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
+
+    - name: Fetch and verify the HEF
+      timeout: 900
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        mkdir -p "$MODELS_DIR" "$WORKDIR/data"
+
+        case "{{hef_variant}}" in
+          level1)
+            HEF=yolox_tiny_neu6_o1.hef
+            SHA=02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565
+            ;;
+          level0)
+            HEF=yolox_tiny_neu6.hef
+            SHA=9638f2b210b49b10b44658d2e970b2822e0fac7d36ec8831f08ad4d0a10dac8f
+            ;;
+          *) echo "Unknown HEF variant: {{hef_variant}}" >&2; exit 1 ;;
+        esac
+
+        if [ -s "$MODELS_DIR/$HEF" ] && \
+           echo "$SHA  $MODELS_DIR/$HEF" | sha256sum -c - >/dev/null 2>&1; then
+          echo "HEF already present and verified: $HEF"
+          exit 0
+        fi
+
+        curl -fSL --retry 3 --continue-at - -o "$MODELS_DIR/$HEF.part" \
+          "https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_surface/models/$HEF"
+        echo "$SHA  $MODELS_DIR/$HEF.part" | sha256sum -c -
+        mv -f "$MODELS_DIR/$HEF.part" "$MODELS_DIR/$HEF"
+        ls -l "$MODELS_DIR/$HEF"
+        sha256sum "$MODELS_DIR/$HEF"
+      name_i18n:
+        zh: 下载并校验 HEF
+
+    - name: Write the source, MQTT and Modbus configuration
+      env:
+        INPUT_HEF_VARIANT: "{{hef_variant}}"
+        INPUT_MIN_SCORE: "{{min_score}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_MODBUS_UNIT_ID: "{{modbus_unit_id}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_SOURCE_FPS: "{{source_fps}}"
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        variant = os.environ["INPUT_HEF_VARIANT"]
+        hef = "yolox_tiny_neu6_o1.hef" if variant == "level1" else "yolox_tiny_neu6.hef"
+        config["model"]["path"] = f"/models/{hef}"
+        config["model"]["accelerator"] = "hailo"
+        config["rules"]["min_score"] = float(os.environ["INPUT_MIN_SCORE"])
+        config["mqtt"]["topic"] = os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
+        config["modbus"]["unit_id"] = int(os.environ["INPUT_MODBUS_UNIT_ID"])
+        config["sources"] = [{
+            "stream_id": os.environ["INPUT_STREAM_ID"],
+            "uri": os.environ["INPUT_SOURCE_URI"],
+            "kind": "rtsp",
+            "fps": int(os.environ["INPUT_SOURCE_FPS"]),
+        }]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+        print(f"model      = {config['model']['path']}")
+        print(f"min_score  = {config['rules']['min_score']}")
+        print(f"stream     = {config['sources'][0]['stream_id']} @ {config['sources'][0]['fps']} fps")
+        PY
+      name_i18n:
+        zh: 写入视频源、MQTT 与 Modbus 配置
+
+  after:
+    - name: Verify the inspector is publishing
+      timeout: 240
+      ignore_error: true
+      run: |
+        set -e
+        BROKER=edge-inspection-mosquitto
+        TOPIC="{{device_name}}/inspection/{{stream_id}}/results"
+        echo "Waiting for the health endpoint and the first MQTT result ..."
+        for i in $(seq 1 40); do
+          if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+            if docker exec "$BROKER" mosquitto_sub -h 127.0.0.1 -t "$TOPIC" -C 1 -W 10 >/dev/null 2>&1; then
+              echo "MQTT result received on $TOPIC"
+              cat /tmp/healthz.json
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result yet." >&2
+        docker logs --tail 40 edge-inspection-app 2>&1 || true
+        echo "An AssembleError here means the HEF output layout did not match; a" >&2
+        echo "python import error means the host/container Python minor differs." >&2
+      name_i18n:
+        zh: 验证检测器正在发布结果
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-surface
   compose_dir: assets/hailo

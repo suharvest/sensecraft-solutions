@@ -48,6 +48,200 @@ files:
     checksum:
       sha256: eed115a2d68866593a0d8f64a76db87325ab7fd8bcc6008d1b83101c86b7e3ce
 
+actions:
+  before:
+    - name: Validate the Hailo runtime
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "No /dev/hailo0 — the Hailo accelerator is not present or its driver is not loaded" >&2
+          exit 1
+        fi
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this HEF was compiled by Dataflow Compiler 3.31.0," >&2
+          echo "which pairs with HailoRT 4.21.x. Driver, user library and python bindings must all match." >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        command -v hailortcli >/dev/null 2>&1 && hailortcli --version || true
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+        if ! grep -qs force_desc_page_size=4096 /etc/modprobe.d/*.conf; then
+          echo "WARNING: hailo_pci is not configured with force_desc_page_size=4096." >&2
+          echo "On a Pi 5 the accelerator identifies fine without it and then fails at configure(hef)." >&2
+          echo "Fix: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+        fi
+        echo "Hailo runtime OK"
+      name_i18n:
+        zh: 校验 Hailo 运行环境
+
+    - name: Check the runtime image is available
+      run: |
+        set -e
+        IMAGE="${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-rpi-hailo:0.1.0-dev}"
+        if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+          echo "image present:"
+          docker images "$IMAGE"
+          exit 0
+        fi
+        echo "Image $IMAGE not local, pulling..."
+        if docker pull "$IMAGE"; then
+          docker images "$IMAGE"
+          exit 0
+        fi
+        echo "Could not pull $IMAGE." >&2
+        echo "Check this device can reach sensecraft-missionpack.seeed.cn, or build" >&2
+        echo "the tag from the upstream repository (on the board, or cross-built and" >&2
+        echo "loaded from a tar):" >&2
+        echo "  docker build -f platforms/rpi-hailo/Dockerfile -t $IMAGE ." >&2
+        echo "Its Python minor version must match this host's python3 --version." >&2
+        exit 1
+      name_i18n:
+        zh: 检查运行镜像是否可用
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Fetch the Hailo-8 HEF
+      timeout: 900
+      run: |
+        set -e
+        if [ -d "assets/rpi-hailo" ]; then WORKDIR="assets/rpi-hailo"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        HEF="$MODELS_DIR/yolox_tiny_deeppcb6.hef"
+        SHA=eed115a2d68866593a0d8f64a76db87325ab7fd8bcc6008d1b83101c86b7e3ce
+        URL=https://sensecraft-statics.seeed.cc/solution-app/edge_inspection_assembly/models/yolox_tiny_deeppcb6.hef
+
+        mkdir -p "$MODELS_DIR" "$WORKDIR/data"
+
+        if [ -s "$HEF" ] && echo "$SHA  $HEF" | sha256sum -c - >/dev/null 2>&1; then
+          echo "HEF already present and verified"
+          exit 0
+        fi
+        curl -fSL --retry 3 --continue-at - -o "$HEF.part" "$URL"
+        echo "$SHA  $HEF.part" | sha256sum -c -
+        mv -f "$HEF.part" "$HEF"
+        ls -l "$HEF"
+      name_i18n:
+        zh: 获取 Hailo-8 HEF
+
+    - name: Write the camera, MQTT and inspection configuration
+      env:
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_DIMENSION_SOURCE_URI: "{{dimension_source_uri}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+      run: |
+        set -e
+        if [ -d "assets/rpi-hailo" ]; then WORKDIR="assets/rpi-hailo"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        cat > "$WORKDIR/.env" <<EOF
+        DEVICE_NAME={{device_name}}
+        MODELS_DIR=./models
+        DATA_DIR=./data
+        EOF
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        def kind_of(uri: str) -> str:
+            if uri.startswith(("rtsp://", "rtsps://")):
+                return "rtsp"
+            if uri.startswith("/dev/video"):
+                return "usb"
+            return "file"
+
+        sources = config["sources"]
+        assembly_src = dict(sources[0])
+        assembly_src["stream_id"] = os.environ["INPUT_STREAM_ID"]
+        assembly_src["uri"] = os.environ["INPUT_SOURCE_URI"]
+        assembly_src["kind"] = kind_of(os.environ["INPUT_SOURCE_URI"])
+        new_sources = [assembly_src]
+
+        dimension_uri = os.environ["INPUT_DIMENSION_SOURCE_URI"].strip()
+        if dimension_uri:
+            dimension_src = dict(sources[1])
+            dimension_src["stream_id"] = os.environ["INPUT_STREAM_ID"] + "-gauge"
+            dimension_src["uri"] = dimension_uri
+            dimension_src["kind"] = kind_of(dimension_uri)
+            new_sources.append(dimension_src)
+
+        config["sources"] = new_sources
+        config["model"]["path"] = "/models/yolox_tiny_deeppcb6.hef"
+        config["model"]["accelerator"] = "hailo"
+        config.setdefault("mqtt", {})["topic"] = \
+            os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+        for source in config["sources"]:
+            print(f"source {source['stream_id']}: kind={source['kind']} "
+                  f"assembly={'assembly' in source} dimension={'dimension' in source}")
+        PY
+      name_i18n:
+        zh: 写入摄像头、MQTT 与质检配置
+
+  after:
+    - name: Wait for the first verdict
+      timeout: 300
+      ignore_error: true
+      run: |
+        echo "Waiting for the runtime to report healthy and publish ..."
+        for i in $(seq 1 40); do
+          HEALTH=$(curl -fsS http://127.0.0.1:8080/healthz 2>/dev/null || true)
+          if [ -n "$HEALTH" ]; then
+            echo "$HEALTH"
+            case "$HEALTH" in
+              *'"frames_processed"'*) echo "Runtime is processing frames."; exit 0 ;;
+            esac
+          fi
+          sleep 5
+        done
+        echo "No health report yet — check the camera URI and the container logs." >&2
+        docker logs --tail 40 edge-inspection-assembly-app 2>&1 || true
+      name_i18n:
+        zh: 等待首次判定
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-assembly-hailo
   compose_dir: assets/rpi-hailo

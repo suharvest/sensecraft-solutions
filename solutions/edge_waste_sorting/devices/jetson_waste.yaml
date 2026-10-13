@@ -72,6 +72,278 @@ files:
     checksum:
       sha256: e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
 
+actions:
+  before:
+    - name: Validate the Jetson runtime
+      run: |
+        set -e
+        if [ ! -f /etc/nv_tegra_release ]; then
+          echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+          exit 1
+        fi
+        head -1 /etc/nv_tegra_release
+        if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+          echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+          exit 1
+        fi
+        if ! docker info 2>/dev/null | grep -qi nvidia; then
+          echo "WARNING: nvidia runtime missing — inference will fail" >&2
+          echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+        fi
+        echo "Jetson runtime OK"
+      name_i18n:
+        zh: 校验 Jetson 运行环境
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
+
+    - name: Download the ONNX model and build the TensorRT engine
+      timeout: 2400
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        mkdir -p "$MODELS_DIR"
+
+        case "{{model_track}}" in
+          baseline)
+            MODEL_NAME=efficientnet_lite0_waste8
+            SHA=e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+            ;;
+          open_vocab)
+            MODEL_NAME=siglip2_vision_224
+            SHA=6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac
+            ;;
+          *) echo "Unknown model_track: {{model_track}}" >&2; exit 1 ;;
+        esac
+        ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
+        ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
+
+        if [ -s "$ENGINE" ]; then
+          echo "Engine already present, skipping build: $ENGINE"
+          exit 0
+        fi
+
+        if [ ! -s "$ONNX" ]; then
+          echo "Downloading $MODEL_NAME.onnx ..."
+          curl -fSL --retry 3 -o "$ONNX.part" \
+            "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
+          echo "$SHA  $ONNX.part" | sha256sum -c -
+          mv -f "$ONNX.part" "$ONNX"
+        fi
+        echo "$SHA  $ONNX" | sha256sum -c -
+
+        if [ "{{model_track}}" = "open_vocab" ]; then
+          for f in prototypes-en-material8.npz prompts/waste8-en-v1.json; do
+            mkdir -p "$(dirname "$MODELS_DIR/$f")"
+            if [ ! -s "$MODELS_DIR/$f" ]; then
+              echo "Downloading $f ..."
+              curl -fSL --retry 3 -o "$MODELS_DIR/$f.part" \
+                "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$f" || {
+                  echo "Prototype file $f is not available. Copy it onto the device at $MODELS_DIR/$f." >&2
+                  exit 1; }
+              mv -f "$MODELS_DIR/$f.part" "$MODELS_DIR/$f"
+            fi
+          done
+          grep -E "prototypes-en-material8" "$WORKDIR/../assets/models/SHA256SUMS.open_vocab" 2>/dev/null || true
+        fi
+
+        echo "Building the TensorRT engine for {{model_track}} ..."
+        /usr/src/tensorrt/bin/trtexec --version || true
+        START=$(date +%s)
+        /usr/src/tensorrt/bin/trtexec \
+          --onnx="$ONNX" \
+          --saveEngine="$ENGINE.part" \
+          --fp16 \
+          --skipInference \
+          --builderOptimizationLevel=3 \
+          --timingCacheFile="$ENGINE.timing.cache"
+        mv -f "$ENGINE.part" "$ENGINE"
+        echo "engine built in $(( $(date +%s) - START ))s"
+        ls -l "$ENGINE"
+        sha256sum "$ENGINE"
+      name_i18n:
+        zh: 下载 ONNX 模型并构建 TensorRT 引擎
+
+    - name: Write the source, trigger and MQTT configuration
+      env:
+        INPUT_SOURCE_URI: "{{source_uri}}"
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        track = "{{model_track}}"
+        model_names = {
+            "baseline": "efficientnet_lite0_waste8",
+            "open_vocab": "siglip2_vision_224",
+        }
+        onnx_sha = {
+            "baseline": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
+            "open_vocab": "6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac",
+        }
+        config["model"]["path"] = f"/models/{model_names[track]}.engine"
+        config["model"]["accelerator"] = "tensorrt"
+        config["model"]["track"] = track
+        config["model"]["onnx_sha256"] = onnx_sha[track]
+        if track == "open_vocab":
+            config["model"]["backbone"] = "siglip2_base_patch16_224"
+            config["model"]["prototypes"] = "/models/prototypes-en-material8.npz"
+            config["model"]["prompt_set"] = "/models/prompts/waste8-en-v1.json"
+            config["model"]["temperature"] = 0.0075
+        else:
+            config["model"]["backbone"] = "efficientnet_lite0"
+            config["model"].pop("prototypes", None)
+            config["model"].pop("prompt_set", None)
+            config["model"].pop("temperature", None)
+
+        config["rules"]["min_confidence"] = float("{{min_confidence}}")
+        config["trigger"]["mode"] = "on_demand"
+        config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
+        config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+        config["mqtt"]["host"] = "127.0.0.1"
+        config["mqtt"]["port"] = 1883
+        config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+        config["sources"] = [{
+            "stream_id": "{{stream_id}}",
+            "uri": os.environ["INPUT_SOURCE_URI"],
+            "kind": "{{source_kind}}",
+        }]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+
+        broker_conf = os.path.join(os.path.dirname(path), "mosquitto.conf")
+        if os.path.exists(broker_conf):
+            with open(broker_conf) as handle:
+                lines = handle.read().splitlines()
+            listener = f"listener {config['mqtt']['port']} 0.0.0.0"
+            if any(line.startswith("listener") for line in lines):
+                lines = [
+                    listener if line.startswith("listener") else line
+                    for line in lines
+                ]
+            else:
+                lines.append(listener)
+            with open(broker_conf, "w") as handle:
+                handle.write("\n".join(lines) + "\n")
+            print(f"broker   = {listener}")
+
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={{device_name}}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device   = {{device_name}} ({env_file})")
+
+        print(f"model    = {config['model']['path']} (track={track})")
+        print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+        print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        PY
+      name_i18n:
+        zh: 写入视频源、触发与 MQTT 配置
+
+  after:
+    - name: Verify the runtime is up and answering triggers
+      timeout: 240
+      ignore_error: true
+      run: |
+        set -e
+        BROKER=edge-waste-mosquitto
+        TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+        echo "Waiting for the health endpoint ..."
+        HZ="$(mktemp)"
+        trap 'rm -f "$HZ"' EXIT
+        for i in $(seq 1 40); do
+          if curl -fsS http://127.0.0.1:8080/healthz >"$HZ" 2>/dev/null; then
+            cat "$HZ"
+            docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -p 1883 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            SUB=$!
+            sleep 1
+            curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+            if wait $SUB; then
+              echo "MQTT result received on $TOPIC"
+              docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result yet." >&2
+        docker logs --tail 40 edge-waste-app 2>&1 || true
+        echo "Check the source URI and the container logs." >&2
+      name_i18n:
+        zh: 验证运行时已启动并能响应触发
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/jetson

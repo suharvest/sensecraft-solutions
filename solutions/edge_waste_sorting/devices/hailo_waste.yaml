@@ -73,6 +73,184 @@ files:
     checksum:
       sha256: c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1
 
+actions:
+  before:
+    - name: Validate the Hailo runtime and the ABI lock
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "No /dev/hailo0 — the Hailo-8 is not present or hailo_pci is not loaded" >&2
+          exit 1
+        fi
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+          echo "Installed HailoRT:" >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        command -v hailortcli >/dev/null 2>&1 && hailortcli --version 2>/dev/null | head -2 || true
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+        if command -v apt-mark >/dev/null 2>&1; then
+          HELD=$(apt-mark showhold 2>/dev/null | grep -c hailo || true)
+          if [ "$HELD" -lt 2 ]; then
+            echo "WARNING: expected both hailort and hailort-pcie-driver on hold; found $HELD" >&2
+            echo "Run: sudo apt-mark hold hailort hailort-pcie-driver" >&2
+          fi
+        fi
+        if ! grep -rqs force_desc_page_size=4096 /etc/modprobe.d/; then
+          echo "hailo_pci is missing force_desc_page_size=4096 — configure(hef) will crash." >&2
+          echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+          exit 1
+        fi
+        echo "Hailo runtime OK"
+      name_i18n:
+        zh: 校验 Hailo 运行环境与 ABI 锁
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version
+          exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
+
+    - name: Fetch and verify the HEF
+      timeout: 900
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        HEF="$MODELS_DIR/efficientnet_lite0_waste8_u8.hef"
+        SHA=c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1
+        URL="https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8_t2.hef"
+        mkdir -p "$MODELS_DIR"
+
+        if [ -s "$HEF" ] && echo "$SHA  $HEF" | sha256sum -c - >/dev/null 2>&1; then
+          echo "HEF already present and verified: $HEF"
+          exit 0
+        fi
+
+        echo "Downloading efficientnet_lite0_waste8_u8_t2.hef ..."
+        curl -fSL --retry 3 -o "$HEF.part" "$URL"
+        echo "$SHA  $HEF.part" | sha256sum -c -
+        mv -f "$HEF.part" "$HEF"
+        echo "HEF verified: $HEF"
+      name_i18n:
+        zh: 获取并校验 HEF
+
+    - name: Write the source, trigger and MQTT configuration
+      env:
+        INPUT_SOURCE_URI: "{{source_uri}}"
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+        python3 - "$CONFIG" <<'PY'
+        import json, os, sys
+
+        path = sys.argv[1]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        config["model"]["path"] = "/models/efficientnet_lite0_waste8_u8.hef"
+        config["model"]["accelerator"] = "hailo"
+        config["model"]["track"] = "baseline"
+        config["model"]["backbone"] = "efficientnet_lite0"
+        config["model"]["input_range"] = "uint8"
+        config["model"]["onnx_sha256"] = (
+            "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
+        config["rules"]["min_confidence"] = float("{{min_confidence}}")
+        config["trigger"]["mode"] = "on_demand"
+        config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
+        config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+        config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+        config["sources"] = [{
+            "stream_id": "{{stream_id}}",
+            "uri": os.environ["INPUT_SOURCE_URI"],
+            "kind": "{{source_kind}}",
+        }]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+        print(f"model    = {config['model']['path']} (track=baseline)")
+        print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+        print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        PY
+      name_i18n:
+        zh: 写入视频源、触发与 MQTT 配置
+
+  after:
+    - name: Verify the runtime is up and answering triggers
+      timeout: 240
+      ignore_error: true
+      run: |
+        set -e
+        BROKER=edge-waste-mosquitto
+        TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+        for i in $(seq 1 24); do
+          if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+            cat /tmp/healthz.json
+            docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            SUB=$!
+            sleep 1
+            curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+            if wait $SUB; then
+              echo "MQTT result received on $TOPIC"
+              docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result. Expected while no HEF exists." >&2
+        docker logs --tail 40 edge-waste-app 2>&1 || true
+      name_i18n:
+        zh: 验证运行时已启动并能响应触发
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/hailo
