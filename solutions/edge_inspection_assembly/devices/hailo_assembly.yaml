@@ -243,6 +243,52 @@ actions:
       name_i18n:
         zh: 等待首次判定
 
+user_inputs:
+  - id: device_name
+    name: Station Name
+    type: text
+    default: "line1"
+    required: true
+    description: First segment of the MQTT topic — name the station (line, cell or site) so several stations stay separable on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 工位名称
+    description_i18n:
+      zh: MQTT 主题的第一段——给这个工位取名（产线、工段或站点），一个 broker 上多个工位就不会混在一起
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "line1-pcb"
+    required: true
+    description: Identifies this camera in the MQTT topic and in every event
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 在 MQTT 主题和每条事件里标识这路摄像头
+  - id: source_uri
+    name: Inspection Camera URI
+    type: text
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: The camera looking at the board or assembly. An RTSP URL, a /dev/videoN device, or a path to a recorded file inside the container's /data.
+    name_i18n:
+      zh: 质检摄像头地址
+    description_i18n:
+      zh: 对着板件或装配体的摄像头。可以是 RTSP 地址、/dev/videoN 设备，或容器内 /data 下的录制文件路径。
+  - id: dimension_source_uri
+    name: Dimension Camera URI
+    type: text
+    required: false
+    placeholder: "rtsp://admin:password@192.168.1.65:554/Streaming/Channels/101"
+    description: Optional second camera for the dimension measurement, framed on the part together with its calibration reference. Leave empty to deploy the missing-part check only.
+    name_i18n:
+      zh: 尺寸测量摄像头地址
+    description_i18n:
+      zh: 可选的第二路摄像头，用于尺寸测量，画面里要同时有被测件和标定物。留空则只部署缺件检测。
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-assembly-hailo
   compose_dir: assets/rpi-hailo

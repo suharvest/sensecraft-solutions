@@ -123,6 +123,8 @@ actions:
       run: |
         set -e
         if [ -d "assets/tts" ]; then cd "assets/tts"; fi
+        echo "Starting database services ..."
+        docker compose up -d postgres redis 2>/dev/null || docker compose up -d tts-postgres tts-redis 2>/dev/null || true
         echo "Waiting for Postgres ..."
         for i in $(seq 1 30); do
           docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && break

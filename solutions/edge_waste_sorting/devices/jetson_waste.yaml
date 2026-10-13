@@ -344,6 +344,177 @@ actions:
       name_i18n:
         zh: 验证运行时已启动并能响应触发
 
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "orin-nx"
+    required: true
+    description: First segment of the MQTT topic — name this device after the bin or the drop-off point so several installations stay separable on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按垃圾桶或投放点命名，多台设备在同一个 broker 上就不会混
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "bin1-cam1"
+    required: true
+    description: Appended to the MQTT topic so several cameras on one box stay separable. It is also in the payload — consumers must read it there, not parse the topic.
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机。它同时也在 payload 里——消费者必须从 payload 读，不要解析 topic。
+  - id: source_kind
+    name: Camera Type
+    type: select
+    default: usb
+    required: true
+    options:
+      - value: usb
+        label: USB camera (/dev/videoN)
+        label_i18n:
+          zh: USB 摄像头（/dev/videoN）
+      - value: rtsp
+        label: IP camera (RTSP URL)
+        label_i18n:
+          zh: IP 摄像头（RTSP 地址）
+      - value: file
+        label: Video file — for bench testing without a camera
+        label_i18n:
+          zh: 视频文件——没有相机时的台面测试
+    name_i18n:
+      zh: 相机类型
+  - id: source_uri
+    name: Camera Address
+    type: text
+    required: true
+    default_template: "/dev/video0"
+    placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 用 USB 相机时还要在 assets/jetson/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释——否则容器里看不到视频节点。不要整个挂载 /dev。
+  - id: model_track
+    name: Classifier Track
+    type: select
+    default: baseline
+    required: true
+    description: >-
+      baseline is the closed-set EfficientNet-Lite0 head (m1c): higher top-1
+      on this taxonomy than open_vocab (0.8877 vs 0.8501 on the same val
+      split) and roughly 4-5x faster on CPU (no Jetson TensorRT figure
+      exists for either track). The prior baseline, MobileNetV3-Small
+      (m1b), was superseded because it collapsed under INT8 quantisation on
+      every edge chain tested (Hailo, RK3576, RK3588) -- see the solution
+      page. open_vocab is the SigLIP 2 vision tower scored against text
+      prototypes: better calibrated, able to score open-set rejection and to
+      answer in either language, and able to add a class without retraining —
+      but 372 MB, never engine-built on any board, and no Jetson latency
+      figure exists for it. Neither track has been measured on hardware.
+    options:
+      - value: baseline
+        label: Baseline EfficientNet-Lite0 (m1c) — higher top-1, 13.5 MB, the default
+        label_i18n:
+          zh: 基线 EfficientNet-Lite0（m1c）——top-1 更高，13.5 MB，默认项
+      - value: open_vocab
+        label: Open-vocabulary SigLIP 2 — better calibrated, adds classes without retraining, 372 MB, no timing on any board
+        label_i18n:
+          zh: 开放词汇 SigLIP 2——校准更好、不重训就能加类，372 MB，任何板卡上都无实测耗时
+    name_i18n:
+      zh: 分类器 Track
+    description_i18n:
+      zh: >-
+        baseline 是闭集 EfficientNet-Lite0 头（m1c）：在这套分类法上 top-1
+        比 open_vocab 更高（同一份 val 上 0.8877 对 0.8501），CPU 上大约快
+        4-5 倍（两条 track 都没有 Jetson TensorRT 实测数字）。原基线
+        MobileNetV3-Small（m1b）已被取代，因为它在每一条测过的边缘链路
+        （Hailo、RK3576、RK3588）上都出现 INT8 量化塌缩——详见方案页。
+        open_vocab 是 SigLIP 2 视觉塔对文本原型打分：校准更好、能给开放集
+        拒识分数、中英文都能回答、不重训就能加类——但 372 MB，从未在任何
+        板卡上构建过 engine，也没有任何 Jetson 时延数字。两条 track 都没有
+        上板实测过。
+  - id: trigger_sources
+    name: Trigger Sources
+    type: select
+    default: "http"
+    required: true
+    description: Which sources fire a capture. HTTP is POST /trigger on port 8080 and is the only one this deployment can exercise by itself; button and motion need wiring or a framed scene.
+    options:
+      - value: "http"
+        label: HTTP only — POST /trigger
+        label_i18n:
+          zh: 仅 HTTP——POST /trigger
+      - value: "http,button"
+        label: HTTP + physical button
+        label_i18n:
+          zh: HTTP + 实体按钮
+      - value: "http,motion"
+        label: HTTP + motion in frame
+        label_i18n:
+          zh: HTTP + 画面移动侦测
+      - value: "http,button,motion"
+        label: All three
+        label_i18n:
+          zh: 三者全开
+    name_i18n:
+      zh: 触发源
+    description_i18n:
+      zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger，也是本次部署唯一能自己验证的一个；按钮与移动侦测需要接线或布好画面。
+  - id: debounce_ms
+    name: Trigger Debounce (ms)
+    type: text
+    default: "800"
+    required: true
+    description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued. Below roughly 300 ms a bouncing button will fire twice per press.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 触发去抖（毫秒）
+    description_i18n:
+      zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队。低于约 300 ms 时，抖动的按钮一次按压会触发两次。
+  - id: min_confidence
+    name: Minimum Confidence
+    type: text
+    default: "0.5"
+    required: true
+    description: Below this the event carries rules.fallback_category (residual) instead of the argmax. On the val set 4.5% of images fall below 0.5 for the baseline track; raising it sends more items to the residual bin rather than guessing.
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 最低置信度
+    description_i18n:
+      zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。基线 track 在 val 上有 4.5% 的图低于 0.5；调高它意味着更多东西被送进其他垃圾档，而不是去猜。
+  - id: mqtt_host
+    name: MQTT Broker Address
+    type: text
+    default: "127.0.0.1"
+    required: true
+    description: The broker this stack brings runs on the device itself, so the default is loopback. Point it at another host to forward every classification to a bin controller, Home Assistant or your own consumer.
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,253}$"
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: 本方案自带的 broker 就跑在这台设备上，所以默认是回环地址。指向另一台主机就会把每一次分类转发出去——桶体控制器、Home Assistant 或你自己的消费方。
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    required: true
+    description: The port the bundled broker listens on. Set both this and the app to the same free port on a machine where another solution already owns 1883; the deployment rewrites the broker's listener to this value.
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: 自带 broker 的监听端口。在 1883 已被其他方案占用的机器上，把它和 app 一起换到同一个空闲端口——部署时会按这个值改写 broker 的 listener。
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/jetson

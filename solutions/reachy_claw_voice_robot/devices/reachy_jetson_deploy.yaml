@@ -63,6 +63,25 @@ user_inputs:
       zh: 语音助手主机
     description_i18n:
       zh: "语音助手（语音服务 + LLM）的 IP 地址。本机部署默认为 127.0.0.1。"
+  - id: ENABLE_KIOSK
+    name: Enable Kiosk Mode
+    type: select
+    default: "false"
+    reconfigurable: false
+    description: "Auto-launch dashboard in fullscreen on device boot (for exhibition/kiosk use)"
+    options:
+      - value: "true"
+        label: "Yes — auto-launch fullscreen dashboard on boot"
+        label_i18n:
+          zh: "是 — 开机自动全屏打开仪表盘"
+      - value: "false"
+        label: "No — manual access only"
+        label_i18n:
+          zh: "否 — 仅手动访问"
+    name_i18n:
+      zh: 启用全屏展示模式
+    description_i18n:
+      zh: "设备开机后自动全屏打开仪表盘（适用于展览/展示场景）"
 
 pre_checks:
   - type: disk_space

@@ -108,7 +108,9 @@ actions:
       ignore_error: true
       timeout: 60
       run: |
-        docker exec edge_security_hub-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_hub-hub-1 2>&1 | grep -iE "password" | tail -3 || true
+        echo "Initial admin password was generated and stored securely in container at /data/initial-password.txt."
+        echo "Run the following command to retrieve it when needed:"
+        echo "  docker exec edge_security_hub-hub-1 cat /data/initial-password.txt"
 
     - name: Print how to point detectors at this hub
       fail_fast: false

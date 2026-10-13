@@ -251,6 +251,114 @@ actions:
       name_i18n:
         zh: 验证运行时已启动并能响应触发
 
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "pi5-hailo"
+    required: true
+    description: First segment of the MQTT topic — name this device after the bin or the drop-off point
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按垃圾桶或投放点命名
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "bin1-cam1"
+    required: true
+    description: Appended to the MQTT topic and also carried in the payload — consumers must read it there, not parse the topic
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，同时也在 payload 里——消费者必须从 payload 读，不要解析 topic
+  - id: source_kind
+    name: Camera Type
+    type: select
+    default: usb
+    required: true
+    options:
+      - value: usb
+        label: USB camera (/dev/videoN)
+        label_i18n:
+          zh: USB 摄像头（/dev/videoN）
+      - value: rtsp
+        label: IP camera (RTSP URL)
+        label_i18n:
+          zh: IP 摄像头（RTSP 地址）
+      - value: file
+        label: Video file — for bench testing without a camera
+        label_i18n:
+          zh: 视频文件——没有相机时的台面测试
+    name_i18n:
+      zh: 相机类型
+  - id: source_uri
+    name: Camera Address
+    type: text
+    required: true
+    default_template: "/dev/video0"
+    placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: For a USB camera also uncomment the matching /dev/videoN line in assets/hailo/docker-compose.yml. Never mount all of /dev.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 用 USB 相机时还要在 assets/hailo/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释。不要整个挂载 /dev。
+  - id: trigger_sources
+    name: Trigger Sources
+    type: select
+    default: "http"
+    required: true
+    description: Which sources fire a capture. HTTP is POST /trigger on port 8080.
+    options:
+      - value: "http"
+        label: HTTP only — POST /trigger
+        label_i18n:
+          zh: 仅 HTTP——POST /trigger
+      - value: "http,button"
+        label: HTTP + physical button
+        label_i18n:
+          zh: HTTP + 实体按钮
+      - value: "http,motion"
+        label: HTTP + motion in frame
+        label_i18n:
+          zh: HTTP + 画面移动侦测
+      - value: "http,button,motion"
+        label: All three
+        label_i18n:
+          zh: 三者全开
+    name_i18n:
+      zh: 触发源
+    description_i18n:
+      zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger。
+  - id: debounce_ms
+    name: Trigger Debounce (ms)
+    type: text
+    default: "800"
+    required: true
+    description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 触发去抖（毫秒）
+    description_i18n:
+      zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队
+  - id: min_confidence
+    name: Minimum Confidence
+    type: text
+    default: "0.5"
+    required: true
+    description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0).
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 最低置信度
+    description_i18n:
+      zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测。
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/hailo

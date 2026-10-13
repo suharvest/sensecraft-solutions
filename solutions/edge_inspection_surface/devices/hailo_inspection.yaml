@@ -243,6 +243,108 @@ actions:
       name_i18n:
         zh: 验证检测器正在发布结果
 
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "rpi-hailo"
+    required: true
+    description: First segment of the MQTT topic — name this device after the line or cell so several installations stay separable on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按产线或工位命名，多台设备在同一个 broker 上就不会混
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "line1-cam1"
+    required: true
+    description: Appended to the MQTT topic so several cameras on one box stay separable
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机
+  - id: source_uri
+    name: Camera RTSP URL
+    type: text
+    required: true
+    placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: Test this address in VLC first — a wrong path or wrong credentials is the most common failure
+    name_i18n:
+      zh: 相机 RTSP 地址
+    description_i18n:
+      zh: 先用 VLC 测一下这个地址——路径或用户名密码写错是最常见的失败原因
+  - id: source_fps
+    name: Line Rate (FPS)
+    type: text
+    default: "10"
+    required: true
+    description: Frames per second pulled from the source. Start low, then raise it to this board's measured throughput.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 产线节拍（FPS）
+    description_i18n:
+      zh: 从视频源取帧的速率。先从低速率起，再按这块板卡的实际吞吐往上调。
+  - id: hef_variant
+    name: HEF Build
+    type: select
+    default: level1
+    required: true
+    description: Which quantized build to run. level-1 recovers most of the accuracy level-0 loses to INT8 quantisation and is the default.
+    options:
+      - value: level1
+        label: level-1 — Bias Correction, 1024 calibration images (default)
+        label_i18n:
+          zh: level-1——启用 Bias Correction，1024 张校准集（默认）
+      - value: level0
+        label: level-0 — 128 calibration images, kept for comparison
+        label_i18n:
+          zh: level-0——128 张校准集，保留用于对照
+    name_i18n:
+      zh: HEF 版本
+    description_i18n:
+      zh: 选择运行哪一版量化产物。level-1 把 level-0 因 INT8 量化损失的精度补回大半，是默认值。
+  - id: min_score
+    name: Verdict Threshold
+    type: select
+    default: "0.35"
+    required: true
+    description: Score above which a detection counts towards an NG verdict. The 0.35 figure was frozen on the TensorRT path; the Hailo path has no on-device measurement yet.
+    options:
+      - value: "0.25"
+        label: 0.25 — higher recall, more false alarms
+        label_i18n:
+          zh: 0.25——召回更高，误报更多
+      - value: "0.35"
+        label: 0.35 — the frozen deployment value
+        label_i18n:
+          zh: 0.35——部署冻结值
+      - value: "0.45"
+        label: 0.45 — higher precision, more misses
+        label_i18n:
+          zh: 0.45——精度更高，漏检更多
+    name_i18n:
+      zh: 判定阈值
+    description_i18n:
+      zh: 检测框计入 NG 判定的分数门限。0.35 是在 TensorRT 链路上冻结的，Hailo 链路尚无上板实测。
+  - id: modbus_unit_id
+    name: Modbus Unit ID
+    type: text
+    default: "1"
+    required: true
+    description: Modbus TCP unit id served on port 502. The register map in the guide assumes unit 1.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: Modbus 从站号
+    description_i18n:
+      zh: 502 端口上 Modbus TCP 的 unit id。指南里的寄存器表按 unit 1 写。
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-inspection-surface
   compose_dir: assets/hailo
