@@ -93,10 +93,17 @@ actions:
         [ -n "$OLD_BLOCK_KEY" ] || OLD_BLOCK_KEY=$(gen 32)
         [ -n "$OLD_HASH_KEY" ] || OLD_HASH_KEY=$(gen 64)
         [ -n "$OLD_CONSOLE_SECRET" ] || OLD_CONSOLE_SECRET=$(gen 16)
+        HOST_IP=""
+        if command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        HOST_IP="${HOST_IP:-127.0.0.1}"
         cat > "$WORKDIR/.env" <<'EOF'
         COMPOSE_PROJECT_NAME=agri-env-tts
         TZ={{timezone}}
-        TTS_HOST=127.0.0.1
         MQTT_OUT_HOST={{mqtt_host}}
         MQTT_OUT_PORT={{mqtt_port}}
         MQTT_USERNAME={{mqtt_username}}
@@ -107,6 +114,7 @@ actions:
         BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
         EOF
         {
+          printf 'TTS_HOST=%s\n' "$HOST_IP"
           printf 'TTS_DB_PASSWORD=%s\n' "$OLD_DB_PASS"
           printf 'TTS_COOKIE_BLOCK_KEY=%s\n' "$OLD_BLOCK_KEY"
           printf 'TTS_COOKIE_HASH_KEY=%s\n' "$OLD_HASH_KEY"
@@ -123,6 +131,19 @@ actions:
       run: |
         set -e
         if [ -d "assets/tts" ]; then cd "assets/tts"; fi
+        HOST_IP=""
+        if [ -f .env ]; then
+          HOST_IP=$(grep '^TTS_HOST=' .env | cut -d= -f2-)
+        fi
+        if [ -z "$HOST_IP" ]; then
+          if command -v ip >/dev/null 2>&1; then
+            HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          fi
+          if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+            HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+          fi
+          HOST_IP="${HOST_IP:-127.0.0.1}"
+        fi
         echo "Starting database services ..."
         docker compose up -d postgres redis 2>/dev/null || docker compose up -d tts-postgres tts-redis 2>/dev/null || true
         echo "Waiting for Postgres ..."
@@ -135,10 +156,10 @@ actions:
           --id admin --email "{{admin_email}}" --password "$INPUT_ADMIN_PASSWORD"
         docker compose run --rm stack is-db create-oauth-client \
           --id console --name "Console" --owner admin --no-rights \
-          --redirect-uri "http://127.0.0.1:1885/console/oauth/callback" \
-          --logout-redirect-uri "http://127.0.0.1:1885/console" \
+          --redirect-uri "http://${HOST_IP}:1885/console/oauth/callback" \
+          --logout-redirect-uri "http://${HOST_IP}:1885/console" \
           --secret "$(grep '^TTS_CONSOLE_SECRET=' .env | cut -d= -f2)"
-        echo "Stack initialised. Console: http://127.0.0.1:1885/console"
+        echo "Stack initialised. Console: http://${HOST_IP}:1885/console"
       name_i18n:
         zh: 初始化 stack 并创建管理员
   after:

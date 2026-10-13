@@ -156,19 +156,29 @@ actions:
       run: |
         set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
-        RULE_CONTENT='# Reachy Mini — keep USB peripherals powered (no autosuspend).
-        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
-        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
         if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
           echo "Installing udev rule: $RULE_FILE"
-          echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --subsystem-match=usb
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ]; then
+            SUDO="sudo"
+          fi
+          $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — keep USB peripherals powered (no autosuspend).
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        EOF
+          $SUDO udevadm control --reload-rules 2>/dev/null || true
+          $SUDO udevadm trigger --subsystem-match=usb 2>/dev/null || true
+        fi
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then
+          SUDO="sudo"
         fi
         for dev in /sys/bus/usb/devices/*/idVendor; do
           [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
           devdir=$(dirname "$dev")
-          echo on | sudo tee "$devdir/power/control" > /dev/null 2>&1 || true
+          printf 'on\n' | $SUDO tee "$devdir/power/control" >/dev/null 2>&1 || true
         done
         echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
       name_i18n:
@@ -177,14 +187,19 @@ actions:
       run: |
         set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
-        RULE_CONTENT='# Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
-        # Managed by sensecraft provisioning. Do not edit by hand.
-        ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"'
         if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
           echo "Installing udev rule: $RULE_FILE"
-          echo "$RULE_CONTENT" | sudo tee "$RULE_FILE" > /dev/null
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --subsystem-match=tty
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ]; then
+            SUDO="sudo"
+          fi
+          $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"
+        EOF
+          $SUDO udevadm control --reload-rules 2>/dev/null || true
+          $SUDO udevadm trigger --subsystem-match=tty 2>/dev/null || true
         fi
         if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
           echo "Reachy serial present — restarting reachy-daemon to (re)scan the port..."

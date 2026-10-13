@@ -214,8 +214,15 @@ actions:
           exit 1
         fi
         mkdir -p "$COMPOSE_DIR/data"
-        LAN_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
-        DEVICE_HOST="${LAN_IP:-127.0.0.1}"
+        HOST_IP=""
+        if command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        DEVICE_HOST="${HOST_IP:-127.0.0.1}"
         sed -e "s|__DEVICE_HOST__|${DEVICE_HOST}|g" \
             "$TPL" > "$COMPOSE_DIR/data/.config.yaml"
         echo "已生成 data/.config.yaml（secret 待回填）"
@@ -237,8 +244,15 @@ actions:
         VOICE_HOST="{{voice_ai_host}}"
         LLM_HOST="{{llm_host}}"
         DEPLOY_MODE="{{deploy_mode}}"
-        LAN_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
-        DEVICE_HOST="${LAN_IP:-127.0.0.1}"
+        HOST_IP=""
+        if command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        DEVICE_HOST="${HOST_IP:-127.0.0.1}"
         LLM_BASE_URL="$INPUT_LLM_BASE_URL"
         LLM_MODEL_NAME="{{llm_model_name}}"
         LLM_API_KEY="$INPUT_LLM_API_KEY"
@@ -290,7 +304,8 @@ actions:
         SECRET=$(echo "$SECRET" | tail -1 | tr -d '\r\n ')
         CONFIG_FILE="$COMPOSE_DIR/data/.config.yaml"
         if [ -n "$SECRET" ] && [ "$SECRET" != "null" ] && [ "$SECRET" != "param_value" ] \
-           && sed -i "s|^  secret: .*|  secret: \"$SECRET\"|" "$CONFIG_FILE"; then
+           && sed -e "s|^  secret: .*|  secret: \"$SECRET\"|" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" \
+           && mv -f "$CONFIG_FILE.tmp" "$CONFIG_FILE"; then
           echo "已回填 server.secret"
         else
           echo "未能从数据库读到 server.secret，xiaozhi-server 将无法读取配置。"
