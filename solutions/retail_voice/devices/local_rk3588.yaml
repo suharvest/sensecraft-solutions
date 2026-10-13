@@ -164,7 +164,7 @@ actions:
       name_i18n:
         zh: 修复 RK3588 上 Docker 的 iptables 兼容性
 
-    - name: Verify the RKNPU driver is present
+    - name: Verify the RK3588 RKNPU driver is present
       # /dev/rknpu does NOT exist on the Seeed vendor kernel (6.1.115-vendor-
       # seeed-rk3576) — the NPU is reached through the DRM render node
       # instead. Probing for the char device gives a false negative, so check
