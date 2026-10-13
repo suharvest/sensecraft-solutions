@@ -364,7 +364,20 @@ actions:
     - name: Align gateway token in config
       run: |
         set -e
-        docker exec openclaw-gateway node -e '
+        if [ -d "assets/local" ]; then COMPOSE_DIR="assets/local"; else COMPOSE_DIR="."; fi
+        ENV_FILE="$COMPOSE_DIR/.env"
+        TOKEN=""
+        if [ -f "$ENV_FILE" ]; then
+          TOKEN=$(grep '^OPENCLAW_GATEWAY_TOKEN=' "$ENV_FILE" | cut -d= -f2-)
+        fi
+        if [ -z "$TOKEN" ]; then
+          TOKEN=$(docker exec openclaw-gateway printenv OPENCLAW_GATEWAY_TOKEN 2>/dev/null || true)
+        fi
+        if [ -z "$TOKEN" ]; then
+          echo "ERROR: could not determine OPENCLAW_GATEWAY_TOKEN from $ENV_FILE or container"
+          exit 1
+        fi
+        docker exec -e OPENCLAW_GATEWAY_TOKEN="$TOKEN" openclaw-gateway node -e '
           const fs = require("fs");
           const p = "/home/node/.openclaw/openclaw.json";
           const tok = process.env.OPENCLAW_GATEWAY_TOKEN;

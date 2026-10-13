@@ -72,6 +72,17 @@ actions:
         if [ -d "assets/chirpstack" ]; then WORKDIR="assets/chirpstack"; else WORKDIR="."; fi
         umask 077
         gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        DB_PASS=""
+        if [ -f "$WORKDIR/.env" ]; then
+          DB_PASS=$(grep -E '^(POSTGRES_PASSWORD|CHIRPSTACK_DB_PASSWORD)=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+        fi
+        if [ -z "$DB_PASS" ]; then
+          if command -v openssl >/dev/null 2>&1; then
+            DB_PASS=$(openssl rand -hex 16)
+          else
+            DB_PASS=$(gen 16)
+          fi
+        fi
         cat > "$WORKDIR/.env" <<'EOF'
         COMPOSE_PROJECT_NAME=agri-env-chirpstack
         TZ={{timezone}}
@@ -87,7 +98,8 @@ actions:
         CHIRPSTACK_APPLICATION_ID={{lns_application_id}}
         BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
         EOF
-        printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$(gen 16)" >> "$WORKDIR/.env"
+        printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
+        printf 'POSTGRES_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 ChirpStack 与桥的配置

@@ -229,6 +229,7 @@ actions:
         zh: 自动配置 X11 权限
   after:
     - name: Verify RTSP stream
+      timeout: 720
       run: |
         set -e
 

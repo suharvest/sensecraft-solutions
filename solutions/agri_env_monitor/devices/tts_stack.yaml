@@ -73,6 +73,26 @@ actions:
         if [ -d "assets/tts" ]; then WORKDIR="assets/tts"; else WORKDIR="."; fi
         umask 077
         gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        OLD_DB_PASS=""
+        OLD_BLOCK_KEY=""
+        OLD_HASH_KEY=""
+        OLD_CONSOLE_SECRET=""
+        if [ -f "$WORKDIR/.env" ]; then
+          OLD_DB_PASS=$(grep -E '^(TTS_DB_PASSWORD|POSTGRES_PASSWORD)=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+          OLD_BLOCK_KEY=$(grep '^TTS_COOKIE_BLOCK_KEY=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+          OLD_HASH_KEY=$(grep '^TTS_COOKIE_HASH_KEY=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+          OLD_CONSOLE_SECRET=$(grep '^TTS_CONSOLE_SECRET=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+        fi
+        if [ -z "$OLD_DB_PASS" ]; then
+          if command -v openssl >/dev/null 2>&1; then
+            OLD_DB_PASS=$(openssl rand -hex 16)
+          else
+            OLD_DB_PASS=$(gen 16)
+          fi
+        fi
+        [ -n "$OLD_BLOCK_KEY" ] || OLD_BLOCK_KEY=$(gen 32)
+        [ -n "$OLD_HASH_KEY" ] || OLD_HASH_KEY=$(gen 64)
+        [ -n "$OLD_CONSOLE_SECRET" ] || OLD_CONSOLE_SECRET=$(gen 16)
         cat > "$WORKDIR/.env" <<'EOF'
         COMPOSE_PROJECT_NAME=agri-env-tts
         TZ={{timezone}}
@@ -87,12 +107,12 @@ actions:
         BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
         EOF
         {
-          printf 'TTS_DB_PASSWORD=%s\n' "$(gen 16)"
-          printf 'TTS_COOKIE_BLOCK_KEY=%s\n' "$(gen 32)"
-          printf 'TTS_COOKIE_HASH_KEY=%s\n' "$(gen 64)"
-          printf 'TTS_CONSOLE_SECRET=%s\n' "$(gen 16)"
+          printf 'TTS_DB_PASSWORD=%s\n' "$OLD_DB_PASS"
+          printf 'TTS_COOKIE_BLOCK_KEY=%s\n' "$OLD_BLOCK_KEY"
+          printf 'TTS_COOKIE_HASH_KEY=%s\n' "$OLD_HASH_KEY"
+          printf 'TTS_CONSOLE_SECRET=%s\n' "$OLD_CONSOLE_SECRET"
         } >> "$WORKDIR/.env"
-        echo "wrote $WORKDIR/.env with freshly generated database and cookie keys"
+        echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 stack 配置
     - name: Initialise the stack and create the admin user

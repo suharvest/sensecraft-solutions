@@ -214,7 +214,9 @@ actions:
           exit 1
         fi
         mkdir -p "$COMPOSE_DIR/data"
-        sed -e "s|__DEVICE_HOST__|127.0.0.1|g" \
+        LAN_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
+        DEVICE_HOST="${LAN_IP:-127.0.0.1}"
+        sed -e "s|__DEVICE_HOST__|${DEVICE_HOST}|g" \
             "$TPL" > "$COMPOSE_DIR/data/.config.yaml"
         echo "已生成 data/.config.yaml（secret 待回填）"
       name_i18n:
@@ -235,7 +237,8 @@ actions:
         VOICE_HOST="{{voice_ai_host}}"
         LLM_HOST="{{llm_host}}"
         DEPLOY_MODE="{{deploy_mode}}"
-        DEVICE_HOST="127.0.0.1"
+        LAN_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || hostname -I 2>/dev/null | awk '{print $1}')
+        DEVICE_HOST="${LAN_IP:-127.0.0.1}"
         LLM_BASE_URL="$INPUT_LLM_BASE_URL"
         LLM_MODEL_NAME="{{llm_model_name}}"
         LLM_API_KEY="$INPUT_LLM_API_KEY"

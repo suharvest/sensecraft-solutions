@@ -113,6 +113,11 @@ actions:
         # Double-quoted with \ " $ escaped: compose reads the token table
         # literally instead of expanding ${...} inside a token.
         dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        MANAGED_KEYS="RETAIL_SERVER_IMAGE|RETAIL_WEB_IMAGE|RETAIL_WEB_TOKENS|SERVER_PORT|WEB_PORT|MQTT_PORT"
+        PRESERVED_VARS=""
+        if [ -f "$WORKDIR/.env" ]; then
+          PRESERVED_VARS=$(grep -vE '^('"$MANAGED_KEYS"')=' "$WORKDIR/.env" | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' || true)
+        fi
         cat > "$WORKDIR/.env" <<EOF
         RETAIL_SERVER_IMAGE={{server_image}}
         RETAIL_WEB_IMAGE={{web_image}}
@@ -121,6 +126,9 @@ actions:
         WEB_PORT={{web_port}}
         MQTT_PORT={{mqtt_port}}
         EOF
+        if [ -n "$PRESERVED_VARS" ]; then
+          echo "$PRESERVED_VARS" >> "$WORKDIR/.env"
+        fi
         echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
       name_i18n:
         zh: 写入管理端环境文件
