@@ -66,6 +66,96 @@ deploy_timeout: 1800
 post_deployment:
   open_browser: false
 
+actions:
+  before:
+    - name: Check Docker and that both images are present or pullable
+      run: |
+        set -e
+        docker compose version >/dev/null 2>&1 || {
+          echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
+        # Default tags are published to sensecraft-missionpack.seeed.cn/solution/;
+        # a self-built override may only exist locally. Accept either: present
+        # locally, or pullable from wherever the tag resolves.
+        for IMG in "{{server_image}}" "{{web_image}}"; do
+          if docker image inspect "$IMG" >/dev/null 2>&1; then
+            echo "present: $IMG"
+          elif docker pull "$IMG" >/dev/null 2>&1; then
+            echo "pulled: $IMG"
+          else
+            echo "MISSING: $IMG — not present locally and not pullable. If this is a self-built tag, build it from the upstream repository on this host (see the compose file header); if it is the published default, check registry reachability from this host." >&2
+            exit 1
+          fi
+        done
+        echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      name_i18n:
+        zh: 检查 Docker 与两个镜像是否就位
+
+    - name: Write the console environment file
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_ADMIN_TOKEN: "{{admin_token}}"
+        INPUT_OPERATOR_TOKEN: "{{operator_token}}"
+        INPUT_VIEWER_TOKEN: "{{viewer_token}}"
+      run: |
+        set -e
+        if [ -d "assets/console" ]; then WORKDIR="assets/console"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+        umask 077
+        # The token table is the whole authorisation model: viewer reads,
+        # operator additionally publishes, admin registers, replaces and
+        # rolls back. Empty entries are dropped so an unused role does not
+        # become an empty token matching an empty header.
+        TOKENS="$INPUT_ADMIN_TOKEN:admin"
+        [ -n "$INPUT_OPERATOR_TOKEN" ] && TOKENS="$TOKENS,$INPUT_OPERATOR_TOKEN:operator"
+        [ -n "$INPUT_VIEWER_TOKEN" ] && TOKENS="$TOKENS,$INPUT_VIEWER_TOKEN:viewer"
+        # Double-quoted with \ " $ escaped: compose reads the token table
+        # literally instead of expanding ${...} inside a token.
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
+        RETAIL_SERVER_IMAGE={{server_image}}
+        RETAIL_WEB_IMAGE={{web_image}}
+        RETAIL_WEB_TOKENS="$(dotenv_quote "$TOKENS")"
+        SERVER_PORT={{server_port}}
+        WEB_PORT={{web_port}}
+        MQTT_PORT={{mqtt_port}}
+        EOF
+        echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
+      name_i18n:
+        zh: 写入管理端环境文件
+
+  after:
+    - name: Confirm the service answers and the token gate holds
+      timeout: 300
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_ADMIN_TOKEN: "{{admin_token}}"
+      run: |
+        set -e
+        API="http://127.0.0.1:{{server_port}}"
+        for i in $(seq 1 40); do
+          curl -s -o /dev/null "$API/v1/gallery" && break
+          sleep 5
+        done
+        # There is no anonymous read. A 200 here would be a finding, not a
+        # pass: it would mean the token gate is not in front of the gallery,
+        # and the gallery is the whole product catalogue.
+        ANON=$(curl -s -o /dev/null -w '%{http_code}' "$API/v1/gallery")
+        echo "anonymous GET /v1/gallery -> HTTP $ANON (401 or 403 expected — anything else means the token gate is not in front of the data)"
+        echo
+        AUTHED=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $INPUT_ADMIN_TOKEN" "$API/v1/gallery")
+        echo "admin GET /v1/gallery -> HTTP $AUTHED (200 expected; the gallery is empty until the first registration, which is correct, not an error)"
+        echo "--- containers ---"
+        docker ps --filter name=retail- --no-trunc
+        echo "--- server log tail ---"
+        docker logs --tail 30 retail-server 2>&1 || true
+      ignore_error: true
+      name_i18n:
+        zh: 确认服务已响应且 token 闸门生效
+
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-retail-recognition
   compose_dir: assets/console

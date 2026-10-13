@@ -43,6 +43,110 @@ deploy_timeout: 1800
 post_deployment:
   open_browser: false
 
+actions:
+  before:
+    - name: Check docker and the clock
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "Docker is not usable by this user. Install docker and add the user to the docker group." >&2
+          exit 1
+        fi
+        docker compose version >/dev/null 2>&1 || {
+          echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2
+          exit 1
+        }
+        echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        if command -v timedatectl >/dev/null 2>&1; then
+          timedatectl show -p NTPSynchronized --value | grep -q yes || \
+            echo "WARNING: NTP is not synchronised on this host. Door devices take their time correction from it." >&2
+        fi
+      name_i18n:
+        zh: 检查 docker 与时钟
+
+    - name: Clean macOS sidecar files and write the environment file
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
+        INPUT_WEB_ADMIN_TOKEN: "{{web_admin_token}}"
+        INPUT_FACE_REC_API_URL: "{{face_rec_api_url}}"
+      run: |
+        set -e
+        if [ -d "assets/cloud" ]; then WORKDIR="assets/cloud"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+        umask 077
+        # The compose file mounts this at /run/secrets/facedb.key.
+        mkdir -p "$WORKDIR/secret"
+        printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/secret/facedb.key"
+        chmod 600 "$WORKDIR/secret/facedb.key"
+        # The model tag and its sha are written into every library version and
+        # compared byte for byte on the device: a mismatch shows up as "nobody
+        # is recognised". The console refuses to start without them.
+        case "{{door_device}}" in
+          recamera_pro)
+            MODEL_TAG='rv1126b:scrfd500m+mbf512@fp16'
+            MODEL_SHA='cb1022b986dd46b33b389e484feceb482690cda0caf7bc8f7143c5e6862b2ea9' ;;
+          recamera_std)
+            MODEL_TAG='cvi:scrfd500m+mbf512@bf16'
+            MODEL_SHA='762c2509309cec8acb63339eea2be0a25d32359f3c57a0a8b9c21314750938ed' ;;
+          *)
+            MODEL_TAG='insightface:scrfd500m+mbf512@onnx-fp32'
+            MODEL_SHA='2e8bc48bb037cac6df950903542d9f7a158ec456aa05f5709d6f2607a92ae9a6' ;;
+        esac
+        # Double-quoted with \ " $ escaped: compose reads these values
+        # literally instead of expanding ${...} inside a password.
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
+        USA_FACEDB_KEY_ID=facedb-key-1
+        USA_MATCH_THRESHOLD={{match_threshold}}
+        USA_WEB_TOKENS="$(dotenv_quote "$INPUT_WEB_ADMIN_TOKEN:admin")"
+        USA_DEVICE_ENDPOINTS={{device_endpoints}}
+        USA_FACE_REC_API="$(dotenv_quote "$INPUT_FACE_REC_API_URL")"
+        USA_MODEL_TAG=$MODEL_TAG
+        USA_MODEL_SHA=$MODEL_SHA
+        # The console runs in the compose network; 127.0.0.1 there is itself.
+        MQTT_HOST=mosquitto
+        MQTT_PORT=1883
+        MQTT_TLS=0
+        FACEDB_PORT={{facedb_port}}
+        WEB_PORT={{web_port}}
+        USA_ALLOW_FAKE=$( [ -n "$INPUT_FACE_REC_API_URL" ] && echo 0 || echo 1 )
+        EOF
+        echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
+      name_i18n:
+        zh: 清理 macOS 附属文件并写入环境文件
+
+  after:
+    - name: Confirm the library, broker and console answer
+      timeout: 180
+      run: |
+        set -e
+        for i in $(seq 1 30); do
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:{{facedb_port}}/v1/facedb/current" || echo 000)
+          case "$CODE" in
+            200) echo "facedb server up, a version is already published"; break ;;
+            404) echo "facedb server up, no version published yet (expected before the first enrolment)"; break ;;
+            *)   sleep 5 ;;
+          esac
+        done
+        docker exec usa-mosquitto sh -c "mosquitto_sub -h 127.0.0.1 -t 'access/v1/#' -C 0 -W 2" >/dev/null 2>&1 || true
+        URL="http://127.0.0.1:{{web_port}}"
+        for i in $(seq 1 30); do
+          curl -fsS "$URL/api/health" >/dev/null 2>&1 && break
+          sleep 5
+        done
+        curl -fsS "$URL/api/health" || { echo "console did not come up" >&2; docker logs --tail 40 usa-web 2>&1 || true; exit 1; }
+        echo
+        ANON=$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/events")
+        echo "anonymous GET /api/events -> HTTP $ANON (401 or 403 expected)"
+        docker ps --filter name=usa- --no-trunc
+      ignore_error: true
+      name_i18n:
+        zh: 确认人脸库、broker 与管理界面已响应
+
+
 remote_overrides:
   remote_path: /home/{{username}}/unmanned-store-access
   compose_dir: assets/cloud
