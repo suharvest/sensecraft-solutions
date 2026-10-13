@@ -68,6 +68,41 @@ post_deployment:
 name_i18n:
   zh: Home Assistant 与 MQTT Broker
 
+actions:
+  before:
+    - name: Write the broker credentials
+      run: |
+        set -e
+        if [ -d "assets/docker" ]; then WORKDIR="assets/docker"; else WORKDIR="."; fi
+        umask 077
+        cat > "$WORKDIR/.env" <<'EOF'
+        COMPOSE_PROJECT_NAME=agri-env
+        TZ={{timezone}}
+        HA_PORT={{ha_port}}
+        MQTT_PORT={{mqtt_port}}
+        MQTT_USERNAME={{mqtt_username}}
+        MQTT_PASSWORD={{mqtt_password}}
+        EOF
+        echo "wrote $WORKDIR/.env (mode $(stat -c %a "$WORKDIR/.env" 2>/dev/null || stat -f %A "$WORKDIR/.env"))"
+      name_i18n:
+        zh: 写入 broker 凭据
+  after:
+    - name: Wait for Home Assistant to answer
+      ignore_error: true
+      timeout: 300
+      run: |
+        echo "Waiting for Home Assistant to finish first start ..."
+        for i in $(seq 1 60); do
+          if curl -fsS "http://127.0.0.1:{{ha_port}}/" >/dev/null 2>&1; then
+            echo "Home Assistant is answering on port {{ha_port}}."
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "Home Assistant did not answer within 5 minutes — check 'docker logs agri-env-homeassistant'." >&2
+      name_i18n:
+        zh: 等待 Home Assistant 就绪
+
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-monitor
   compose_dir: assets/docker

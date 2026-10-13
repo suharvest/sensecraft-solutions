@@ -65,6 +65,79 @@ post_deployment:
 name_i18n:
   zh: The Things Stack 与桥
 
+actions:
+  before:
+    - name: Write the stack configuration
+      run: |
+        set -e
+        if [ -d "assets/tts" ]; then WORKDIR="assets/tts"; else WORKDIR="."; fi
+        umask 077
+        gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        cat > "$WORKDIR/.env" <<'EOF'
+        COMPOSE_PROJECT_NAME=agri-env-tts
+        TZ={{timezone}}
+        TTS_HOST=127.0.0.1
+        MQTT_OUT_HOST={{mqtt_host}}
+        MQTT_OUT_PORT={{mqtt_port}}
+        MQTT_USERNAME={{mqtt_username}}
+        MQTT_PASSWORD={{mqtt_password}}
+        TTN_MQTT_USERNAME={{ttn_mqtt_username}}
+        TTN_MQTT_PASSWORD={{ttn_mqtt_password}}
+        TTN_APPLICATION_ID={{ttn_application_id}}
+        BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
+        EOF
+        {
+          printf 'TTS_DB_PASSWORD=%s\n' "$(gen 16)"
+          printf 'TTS_COOKIE_BLOCK_KEY=%s\n' "$(gen 32)"
+          printf 'TTS_COOKIE_HASH_KEY=%s\n' "$(gen 64)"
+          printf 'TTS_CONSOLE_SECRET=%s\n' "$(gen 16)"
+        } >> "$WORKDIR/.env"
+        echo "wrote $WORKDIR/.env with freshly generated database and cookie keys"
+      name_i18n:
+        zh: 写入 stack 配置
+    - name: Initialise the stack and create the admin user
+      ignore_error: true
+      timeout: 900
+      env:
+        INPUT_ADMIN_PASSWORD: "{{admin_password}}"
+      run: |
+        set -e
+        if [ -d "assets/tts" ]; then cd "assets/tts"; fi
+        echo "Waiting for Postgres ..."
+        for i in $(seq 1 30); do
+          docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && break
+          sleep 5
+        done
+        docker compose run --rm stack is-db migrate
+        docker compose run --rm stack is-db create-admin-user \
+          --id admin --email "{{admin_email}}" --password "$INPUT_ADMIN_PASSWORD"
+        docker compose run --rm stack is-db create-oauth-client \
+          --id console --name "Console" --owner admin --no-rights \
+          --redirect-uri "http://127.0.0.1:1885/console/oauth/callback" \
+          --logout-redirect-uri "http://127.0.0.1:1885/console" \
+          --secret "$(grep '^TTS_CONSOLE_SECRET=' .env | cut -d= -f2)"
+        echo "Stack initialised. Console: http://127.0.0.1:1885/console"
+      name_i18n:
+        zh: 初始化 stack 并创建管理员
+  after:
+    - name: Confirm the bridge reached both brokers
+      ignore_error: true
+      timeout: 300
+      run: |
+        for i in $(seq 1 30); do
+          if docker logs agri-env-bridge-tts 2>&1 | grep -q "TTS MQTT connected"; then
+            echo "Bridge is subscribed to the Application Server MQTT."
+            docker logs --tail 20 agri-env-bridge-tts 2>&1
+            exit 0
+          fi
+          sleep 10
+        done
+        echo "The bridge has not connected to the Application Server MQTT." >&2
+        echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then restart: docker compose restart bridge" >&2
+        docker logs --tail 40 agri-env-bridge-tts 2>&1 || true
+      name_i18n:
+        zh: 确认桥已连上两个 broker
+
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-monitor
   compose_dir: assets/tts

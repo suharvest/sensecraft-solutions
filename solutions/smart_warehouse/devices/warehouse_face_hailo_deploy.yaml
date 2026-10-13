@@ -69,6 +69,61 @@ post_deployment:
 name_i18n:
   zh: 仓库管理系统 + 人脸识别（Hailo）
 
+actions:
+  before:
+    - name: Configure device-facing base URL for face recognition
+      timeout: 60
+      run: |
+        if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
+        ENV_FILE="$COMPOSE_DIR/.env"
+        HOST_IP="127.0.0.1"
+        mkdir -p "$COMPOSE_DIR"
+        touch "$ENV_FILE"
+        if grep -q '^WAREHOUSE_DEVICE_BASE_URL=' "$ENV_FILE"; then
+          sed -i "s|^WAREHOUSE_DEVICE_BASE_URL=.*|WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device|" "$ENV_FILE"
+        else
+          echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device" >> "$ENV_FILE"
+        fi
+        echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device"
+      name_i18n:
+        zh: 配置人脸识别的设备回调地址
+    - name: Check and install HailoRT 4.21.0 driver
+      sudo: true
+      timeout: 600
+      run: |
+        REQUIRED="4.21.0"
+
+        MODVER=$(modinfo -F version hailo_pci 2>/dev/null || echo "none")
+        if echo "$MODVER" | grep -q "^${REQUIRED}"; then
+          echo "HailoRT ${REQUIRED} driver already installed"
+          exit 0
+        fi
+
+        echo "hailo_pci driver version: ${MODVER} (need ${REQUIRED})"
+        echo "Installing HailoRT ${REQUIRED} using Frigate's official script..."
+        echo "This may take 5-10 minutes (compiling kernel module)..."
+
+        curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh -o /tmp/install_hailort.sh
+        chmod +x /tmp/install_hailort.sh
+        bash /tmp/install_hailort.sh
+        rm -f /tmp/install_hailort.sh
+
+        if ! lsmod | grep -q hailo_pci; then
+          echo "HailoRT installed but kernel module not loaded."
+          echo "Please reboot the device and retry deployment."
+          exit 1
+        fi
+
+        NEWVER=$(modinfo -F version hailo_pci 2>/dev/null || echo "none")
+        if ! echo "$NEWVER" | grep -q "^${REQUIRED}"; then
+          echo "Driver built but running module is still ${NEWVER}."
+          echo "Please reboot the device and retry deployment."
+          exit 1
+        fi
+        echo "HailoRT ${REQUIRED} installed and loaded successfully"
+      name_i18n:
+        zh: 检查并安装 HailoRT 4.21.0 驱动
+
 remote_overrides:
   compose_dir: assets/docker
   user_inputs:

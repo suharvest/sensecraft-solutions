@@ -81,6 +81,64 @@ actions:
       timeout: 10
       name_i18n:
         zh: 校验工作目录
+    - name: Check system resources
+      run: |
+        set -e
+        FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+        [ "${FREE_GB:-0}" -ge 4 ] || {
+          echo "Need at least 4GB free disk, current: ${FREE_GB:-0}GB"
+          exit 1
+        }
+
+        MEM_GB=$(awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+        [ "${MEM_GB:-0}" -ge 2 ] || {
+          echo "Need at least 2GB system memory, current: ${MEM_GB:-0}GB"
+          exit 1
+        }
+        echo "System resources OK: ${FREE_GB}GB disk free, ${MEM_GB}GB RAM"
+      name_i18n:
+        zh: 检查系统资源
+    - name: Initialize OpenClaw config
+      run: |
+        set -e
+        VOL="openclaw_recomputer_r_openclaw-config"
+        docker volume create "$VOL" 2>/dev/null || true
+        WS_VOL="openclaw_recomputer_r_openclaw-workspace"
+        docker volume create "$WS_VOL" 2>/dev/null || true
+        docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '
+          chown 1000:1000 /data /ws
+          if [ ! -f /data/openclaw.json ]; then
+            cat > /data/openclaw.json <<VOLCFG
+        {"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}},"commands":{"native":"auto","nativeSkills":"auto"},"tools":{"profile":"coding","allow":["exec","bash"],"deny":[],"exec":{"host":"gateway","security":"full","ask":"off"}}}
+        VOLCFG
+            chown 1000:1000 /data/openclaw.json
+            echo "Initial config written"
+          else
+            echo "Config exists, skipping"
+          fi
+        '
+      name_i18n:
+        zh: 初始化 OpenClaw 配置
+    - name: Generate gateway access token
+      run: |
+        set -e
+        if [ -d "assets/recomputer_r" ]; then COMPOSE_DIR="assets/recomputer_r"; else COMPOSE_DIR="."; fi
+        ENV_FILE="$COMPOSE_DIR/.env"
+        if [ -f "$ENV_FILE" ] && grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE"; then
+          echo "Reusing existing gateway token from $ENV_FILE"
+          exit 0
+        fi
+        TOKEN=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
+        if [ -z "$TOKEN" ]; then
+          echo "ERROR: failed to generate a gateway token"
+          exit 1
+        fi
+        umask 077
+        printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$TOKEN" > "$ENV_FILE"
+        echo "Generated a new gateway token in $ENV_FILE"
+      timeout: 30
+      name_i18n:
+        zh: 生成网关访问令牌
   after:
     - name: Enable execution permissions
       run: |
@@ -113,9 +171,36 @@ actions:
           }
         '
       timeout: 30
-
       name_i18n:
         zh: 启用执行权限
+    - name: Align gateway token in config
+      run: |
+        set -e
+        docker exec openclaw-gateway node -e '
+          const fs = require("fs");
+          const p = "/home/node/.openclaw/openclaw.json";
+          const tok = process.env.OPENCLAW_GATEWAY_TOKEN;
+          if (!tok) {
+            console.log("No OPENCLAW_GATEWAY_TOKEN in container environment");
+            process.exit(0);
+          }
+          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+          cfg.gateway = cfg.gateway || {};
+          cfg.gateway.auth = cfg.gateway.auth || {};
+          cfg.gateway.remote = cfg.gateway.remote || {};
+          if (cfg.gateway.auth.token === tok && cfg.gateway.remote.token === tok) {
+            console.log("Gateway token already aligned");
+          } else {
+            cfg.gateway.auth.mode = "token";
+            cfg.gateway.auth.token = tok;
+            cfg.gateway.remote.token = tok;
+            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+            console.log("Aligned gateway.auth.token and gateway.remote.token with the deployment token");
+          }
+        '
+      timeout: 30
+      name_i18n:
+        zh: 对齐网关令牌配置
     - name: Restart OpenClaw to apply configuration
       run: |
         set -e
@@ -131,15 +216,34 @@ actions:
         done
         echo "WARNING: Gateway may still be starting up"
       timeout: 180
-
       name_i18n:
         zh: 重启 OpenClaw 使配置生效
+    - name: Show where the gateway token is stored
+      run: |
+        set -e
+        if [ -d "assets/recomputer_r" ]; then COMPOSE_DIR="assets/recomputer_r"; else COMPOSE_DIR="."; fi
+        ENV_FILE="$COMPOSE_DIR/.env"
+        if [ -z "$ENV_FILE" ] || ! grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE" 2>/dev/null; then
+          echo "WARNING: Could not find the gateway token under $COMPOSE_DIR"
+        else
+          echo ""
+          echo "=========================================="
+          echo "  OpenClaw Gateway Token / 网关访问令牌"
+          echo "=========================================="
+          echo ""
+          echo "  The token is not printed in this log."
+          echo "  Token 未输出到日志。On the device run / 在设备上执行:"
+          echo "    grep OPENCLAW_GATEWAY_TOKEN $ENV_FILE"
+          echo ""
+          echo "  URL: http://127.0.0.1:18789"
+          echo ""
+        fi
+      timeout: 30
+      name_i18n:
+        zh: 提示网关访问令牌的位置
     - name: Display gateway address
       run: |
         set -e
-        # No token on the local view: the gateway binds loopback only, so it
-        # is reachable from this machine's browser and nowhere else. The
-        # upstream image only demands a token for wider binds.
         echo ""
         echo "=========================================="
         echo "  OpenClaw / 访问地址"
@@ -151,7 +255,6 @@ actions:
         echo "  网关仅绑定本机回环地址，无需访问令牌。"
         echo ""
       timeout: 30
-
       name_i18n:
         zh: 显示访问地址
 
