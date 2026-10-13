@@ -249,6 +249,7 @@ actions:
       timeout: 300
       ignore_error: true
       run: |
+        set -e
         echo "Waiting for the runtime to report healthy and publish ..."
         for i in $(seq 1 40); do
           HEALTH=$(curl -fsS http://127.0.0.1:8080/healthz 2>/dev/null || true)

@@ -48,6 +48,7 @@ post_deployment:
 actions:
   before:
     - name: Check ports 8090 and 1883 are free
+      fail_fast: false
       name_i18n:
         zh: 检查 8090 与 1883 端口是否空闲
       ignore_error: true
@@ -79,6 +80,7 @@ actions:
 
   after:
     - name: Wait for the hub to answer
+      fail_fast: false
       name_i18n:
         zh: 等待 hub 响应
       ignore_error: true
@@ -109,6 +111,7 @@ actions:
         docker exec edge_security_hub-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_hub-hub-1 2>&1 | grep -iE "password" | tail -3 || true
 
     - name: Print how to point detectors at this hub
+      fail_fast: false
       name_i18n:
         zh: 输出检测器接入方式
       ignore_error: true

@@ -108,6 +108,7 @@ actions:
   before:
     - name: Check Speech service (port 8621)
       run: |
+        set -e
         HOST="{{VOICE_ASSISTANT_HOST}}"
         [ -n "$HOST" ] || HOST="127.0.0.1"
         if curl -sf "http://$HOST:8621/health" >/dev/null 2>&1; then
@@ -121,6 +122,7 @@ actions:
       name_i18n:
         zh: 检查语音服务（端口 8621）
     - name: Check LLM endpoint
+      fail_fast: false
       run: |
         URL="{{LLM_ENDPOINT}}"
         if [ -z "$URL" ]; then
@@ -224,6 +226,7 @@ actions:
         zh: 检测或安装 Hailo 软硬件栈（硬件 + 驱动 + 用户态）
     - name: Configure USB power (disable autosuspend on Reachy devices)
       run: |
+        set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
         RULE_CONTENT='# Reachy Mini — keep USB peripherals powered (no autosuspend).
         SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
@@ -244,6 +247,7 @@ actions:
         zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
     - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
       run: |
+        set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
         RULE_CONTENT='# Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
         # Managed by sensecraft provisioning. Do not edit by hand.
@@ -263,6 +267,7 @@ actions:
         zh: 机器人插入时自动重连 reachy-daemon（udev）
     - name: Create data directories
       run: |
+        set -e
         DATA_DIR="${DATA_DIR:-~/reachy-data}"
         mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
         echo "Data directories ready: $DATA_DIR"
@@ -270,6 +275,7 @@ actions:
         zh: 创建数据目录
     - name: Make Reachy voice entrypoint executable
       run: |
+        set -e
         if [ -f "assets/docker/reachy_hailo/entrypoint.sh" ]; then
           chmod +x "assets/docker/reachy_hailo/entrypoint.sh"
         elif [ -f "entrypoint.sh" ]; then
@@ -284,6 +290,7 @@ actions:
         field: ENABLE_KIOSK
         value: "true"
       run: |
+        set -e
         cat > ~/reachy-kiosk.sh << 'KIOSK_SCRIPT'
         #!/usr/bin/env bash
         DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"

@@ -56,6 +56,7 @@ actions:
     - name: Check the broker is reachable
       ignore_error: true
       run: |
+        set -e
         BROKER_HOST="{{mqtt_host}}"
         [ -n "$BROKER_HOST" ] || BROKER_HOST="127.0.0.1"
         if command -v nc >/dev/null 2>&1; then
@@ -92,6 +93,7 @@ actions:
         zh: 写入桥的配置
   after:
     - name: Wait for the first cloud message
+      fail_fast: false
       ignore_error: true
       timeout: 600
       run: |

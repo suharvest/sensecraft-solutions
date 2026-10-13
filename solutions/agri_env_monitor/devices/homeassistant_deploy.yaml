@@ -88,6 +88,7 @@ actions:
         zh: 写入 broker 凭据
   after:
     - name: Wait for Home Assistant to answer
+      fail_fast: false
       ignore_error: true
       timeout: 300
       run: |

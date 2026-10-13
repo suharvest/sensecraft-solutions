@@ -80,6 +80,7 @@ actions:
   before:
     - name: Check Speech service (port 8621)
       run: |
+        set -e
         if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:8621/health", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
           echo "Speech service is running"
         else
@@ -93,6 +94,7 @@ actions:
     - name: Check Edge LLM service (port 11435)
       timeout: 900
       run: |
+        set -e
         if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:11435/v1/models", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
           echo "Edge LLM service is running"
         else
@@ -106,6 +108,7 @@ actions:
     - name: Configure USB power (disable autosuspend on Reachy devices)
       sudo: true
       run: |
+        set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
         RULE_CONTENT='# Reachy Mini — keep USB peripherals powered (no autosuspend).
         # Managed by sensecraft provisioning. Do not edit by hand.
@@ -128,6 +131,7 @@ actions:
     - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
       sudo: true
       run: |
+        set -e
         RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
         RULE_CONTENT='# Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
         # Managed by sensecraft provisioning. Do not edit by hand.
@@ -147,6 +151,7 @@ actions:
         zh: 机器人插入时自动重连 reachy-daemon（udev）
     - name: Create data directories
       run: |
+        set -e
         DATA_DIR="${DATA_DIR:-~/reachy-data}"
         mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
         echo "Data directories ready: $DATA_DIR"
@@ -154,6 +159,7 @@ actions:
         zh: 创建数据目录
     - name: Make Reachy voice entrypoint executable
       run: |
+        set -e
         if [ -f "assets/docker/reachy_jetson/entrypoint.sh" ]; then
           chmod +x "assets/docker/reachy_jetson/entrypoint.sh"
         elif [ -f "entrypoint.sh" ]; then
@@ -169,6 +175,7 @@ actions:
         value: "true"
       ignore_error: true
       run: |
+        set -e
         cat > ~/reachy-kiosk.sh << 'KIOSK_SCRIPT'
         #!/usr/bin/env bash
         DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"

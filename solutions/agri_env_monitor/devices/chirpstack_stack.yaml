@@ -106,6 +106,7 @@ actions:
         zh: 本机作为网络服务器时启动 ChirpStack
   after:
     - name: Confirm the bridge reached the network server
+      fail_fast: false
       ignore_error: true
       timeout: 300
       run: |

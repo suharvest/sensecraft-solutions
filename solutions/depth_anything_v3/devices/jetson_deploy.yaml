@@ -178,6 +178,7 @@ actions:
       name_i18n:
         zh: 校验 Jetson 运行环境
     - name: Configure X11 permissions
+      fail_fast: false
       run: |
         # Prepare X11 auth for container EGL/GStreamer path.
         set +e
