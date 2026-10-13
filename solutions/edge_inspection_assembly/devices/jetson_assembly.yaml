@@ -211,6 +211,13 @@ actions:
                 return "usb"
             return "file"
 
+        if len(config["sources"]) < 2:
+            config["sources"].append({
+                "stream_id": "dimension",
+                "uri": "",
+                "kind": "usb",
+            })
+
         sources = config["sources"]
         assembly_src = dict(sources[0])
         assembly_src["stream_id"] = os.environ["INPUT_STREAM_ID"]

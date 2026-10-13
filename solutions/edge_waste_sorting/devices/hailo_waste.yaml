@@ -187,7 +187,7 @@ actions:
         CONFIG="$WORKDIR/config/config.json"
         mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
         python3 - "$CONFIG" <<'PY'
-        import json, os, sys
+        import json, os, re, sys
 
         path = sys.argv[1]
         with open(path) as handle:
@@ -218,7 +218,8 @@ actions:
         os.replace(tmp, path)
         print(f"model    = {config['model']['path']} (track=baseline)")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
-        print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
+        print(f"source   = {config['sources'][0]['stream_id']} <- {safe_uri}")
         PY
       name_i18n:
         zh: 写入视频源、触发与 MQTT 配置

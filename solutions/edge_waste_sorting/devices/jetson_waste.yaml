@@ -219,7 +219,7 @@ actions:
         CONFIG="$WORKDIR/config/config.json"
         mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
         python3 - "$CONFIG" <<'PY'
-        import json, os, sys
+        import json, os, re, sys
 
         path = sys.argv[1]
         with open(path) as handle:
@@ -253,8 +253,10 @@ actions:
         config["trigger"]["mode"] = "on_demand"
         config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
         config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
-        config["mqtt"]["host"] = "127.0.0.1"
-        config["mqtt"]["port"] = 1883
+        MQTT_HOST = "{{mqtt_host}}".strip()
+        MQTT_PORT = "{{mqtt_port}}".strip()
+        config["mqtt"]["host"] = MQTT_HOST or "127.0.0.1"
+        config["mqtt"]["port"] = int(MQTT_PORT) if MQTT_PORT else 1883
         config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
         config["sources"] = [{
             "stream_id": "{{stream_id}}",
@@ -307,7 +309,8 @@ actions:
 
         print(f"model    = {config['model']['path']} (track={track})")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
-        print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
+        print(f"source   = {config['sources'][0]['stream_id']} <- {safe_uri}")
         PY
       name_i18n:
         zh: 写入视频源、触发与 MQTT 配置
@@ -319,6 +322,10 @@ actions:
       run: |
         set -e
         BROKER=edge-waste-mosquitto
+        BROKER_HOST="{{mqtt_host}}"
+        BROKER_HOST="${BROKER_HOST:-127.0.0.1}"
+        BROKER_PORT="{{mqtt_port}}"
+        BROKER_PORT="${BROKER_PORT:-1883}"
         TOPIC="{{device_name}}/waste/{{stream_id}}/results"
         echo "Waiting for the health endpoint ..."
         HZ="$(mktemp)"
@@ -326,7 +333,7 @@ actions:
         for i in $(seq 1 40); do
           if curl -fsS http://127.0.0.1:8080/healthz >"$HZ" 2>/dev/null; then
             cat "$HZ"
-            docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -p 1883 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            docker exec "$BROKER" sh -c "mosquitto_sub -h $BROKER_HOST -p $BROKER_PORT -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
             SUB=$!
             sleep 1
             curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true

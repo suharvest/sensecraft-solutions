@@ -100,10 +100,12 @@ actions:
     - name: Check Speech service (port 8621)
       run: |
         set -e
-        if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:8621/health", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
+        HOST="{{VOICE_ASSISTANT_HOST}}"
+        HOST="${HOST:-127.0.0.1}"
+        if python3 -c "import sys, urllib.request; r = urllib.request.urlopen('http://${HOST}:8621/health', timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)"; then
           echo "Speech service is running"
         else
-          echo "ERROR: Speech service (port 8621) is not running."
+          echo "ERROR: Speech service (port 8621) is not running on $HOST."
           echo "Please deploy the 'Jetson Local Voice Assistant' solution first,"
           echo "then re-run this deployment."
           exit 1
@@ -114,10 +116,12 @@ actions:
       timeout: 900
       run: |
         set -e
-        if python3 -c 'import sys, urllib.request; r = urllib.request.urlopen("http://127.0.0.1:11435/v1/models", timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)'; then
+        HOST="{{VOICE_ASSISTANT_HOST}}"
+        HOST="${HOST:-127.0.0.1}"
+        if python3 -c "import sys, urllib.request; r = urllib.request.urlopen('http://${HOST}:11435/v1/models', timeout=5); sys.exit(0 if 200 <= r.status < 300 else 1)"; then
           echo "Edge LLM service is running"
         else
-          echo "ERROR: Edge LLM service (port 11435) is not running."
+          echo "ERROR: Edge LLM service (port 11435) is not running on $HOST."
           echo "Please deploy the 'Edge LLM Chat Service' step first,"
           echo "then re-run this deployment."
           exit 1
