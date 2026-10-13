@@ -150,7 +150,7 @@ Jetson Orin 用 TensorRT 运行分类器，提供网页、触发接口和 MQTT �
 
 - 步骤 1 已用 `model_track: baseline` 跑通。
 - 额外约 372 MB 放视觉模型，另需 engine 空间。
-- 原型库与 meta 文件已支持自动拉取校验（也可从 `assets/models/` 自行替换并校验）。
+- 原型库和 meta 文件需手工拷到设备，并用 `assets/models/SHA256SUMS.open_vocab` 执行 `sha256sum -c` 校验。
 - 仅 Orin 套餐支持。
 
 ### 故障排查

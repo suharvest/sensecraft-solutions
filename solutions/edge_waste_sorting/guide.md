@@ -150,7 +150,7 @@ Switches to the SigLIP 2 open-vocabulary classifier: it can reject out-of-vocabu
 
 - Step 1 working with `model_track: baseline`.
 - About 372 MB extra for the vision model, plus space for its engine.
-- The prototype bank and its meta file are automatically downloaded and verified (or can be customized from `assets/models/`).
+- The prototype bank and its meta file copied onto the device by hand and verified with `sha256sum -c` against `assets/models/SHA256SUMS.open_vocab`.
 - Orin preset only.
 
 ### Troubleshooting
