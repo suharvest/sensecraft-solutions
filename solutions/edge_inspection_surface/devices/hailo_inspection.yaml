@@ -117,8 +117,18 @@ actions:
           sudo apt-get install -y docker-compose-plugin || \
             sudo apt-get install -y docker-compose-v2 || \
             sudo apt-get install -y docker-compose
-          docker compose version
-          exit 0
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            docker-compose --version
+            exit 0
+          fi
         fi
         echo "Neither docker compose nor docker-compose is installed." >&2
         echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
