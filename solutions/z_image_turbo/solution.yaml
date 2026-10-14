@@ -1,6 +1,9 @@
 version: "1.0"
 id: z_image_turbo
 name: Z-Image-Turbo on Jetson
+name_i18n:
+  zh: Jetson 一键部署 Z-Image-Turbo
+  ja: Jetson 上の Z-Image-Turbo
 intro:
   summary: Run Z-Image-Turbo (6B) locally on Jetson Orin NX — text-to-image and img2img via HTTP API, fully offline.
   description_file: description.md
@@ -97,5 +100,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: Jetson 一键部署 Z-Image-Turbo
