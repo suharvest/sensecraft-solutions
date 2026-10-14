@@ -6,6 +6,6 @@ name_i18n:
 type: manual
 steps:
   - id: resource_pending
-    name: USB firmware flashing is not available yet
+    name: Ready-to-deploy firmware is not bundled in this candidate
     name_i18n:
-      zh: USB 固件写入入口暂未开放
+      zh: 本候选尚未提供可直接部署的固件资源

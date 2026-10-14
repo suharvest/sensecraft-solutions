@@ -6,7 +6,7 @@ cannot be executed directly.
 
 ## Step 1: Connect E1003 {#flash_panel type=manual required=true config=devices/review_flash.yaml}
 
-USB firmware flashing is not yet available. Before connecting the device,
+This candidate does not bundle a ready-to-deploy firmware resource. Before connecting the device,
 have a USB data cable ready and close any serial tools that might use the port.
 
 ### Prerequisites
@@ -24,7 +24,7 @@ The setup computer, E1003 panel, and Home Assistant must be on the same reachabl
 | Issue | Solution |
 | --- | --- |
 | Device port not found | Make sure the USB cable supports data transfer, and close other apps using the serial port |
-| Flashing options not showing | This feature is not integrated yet; the current candidate cannot be deployed directly |
+| Flashing options not showing | This candidate does not include a ready-to-deploy firmware resource |
 
 ## Step 2: Set Wi-Fi and light target {#configure_panel type=manual required=true config=devices/review_setup.yaml}
 

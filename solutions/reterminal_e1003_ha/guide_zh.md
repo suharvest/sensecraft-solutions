@@ -4,7 +4,7 @@
 
 ## 步骤 1: 连接 E1003 {#flash_panel type=manual required=true config=devices/review_flash.yaml}
 
-USB 固件写入入口暂未开放。连接设备前，请准备好 USB 数据线，并关闭电脑上可能占用串口的其它工具。
+本候选尚未提供可直接部署的固件资源。连接设备前，请准备好 USB 数据线，并关闭电脑上可能占用串口的其它工具。
 
 ### 前置条件
 
@@ -21,7 +21,7 @@ USB 固件写入入口暂未开放。连接设备前，请准备好 USB 数据�
 | 问题 | 解决办法 |
 | --- | --- |
 | 找不到设备端口 | 检查 USB 线是否支持数据传输，并关闭占用该串口的其它程序 |
-| 没有固件写入入口 | 该功能尚未开放，当前版本暂不能直接部署 |
+| 没有固件写入入口 | 本候选尚未提供可直接部署的固件资源 |
 
 ## 步骤 2: 设置 Wi-Fi 和灯光目标 {#configure_panel type=manual required=true config=devices/review_setup.yaml}
 

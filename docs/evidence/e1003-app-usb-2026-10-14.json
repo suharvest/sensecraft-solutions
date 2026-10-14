@@ -1,0 +1,22 @@
+{
+  "app_version": "0.7.3",
+  "app_base_url": "http://127.0.0.1:20116",
+  "solution_id": "reterminal_e1003_ha_local_usb",
+  "deployment_id": "d9140919-7b3e-4b38-83a0-f23daa1322d2",
+  "status": "completed",
+  "duration_seconds": 80.704458,
+  "firmware_sha256": "08d616e856cd4d48a0fef0b4e5782e3c4ac1b9efdc1e1647701707bec8bdc540",
+  "write_hash_verified": true,
+  "erase_range": "0x00000000..0x00150fff",
+  "nvs_offset": "0x003a0000",
+  "encrypted_reconnect_after_app_flash": "passed",
+  "runtime_target_readback_after_app_flash": "passed",
+  "app_configuration_handler": "not_implemented",
+  "ha_control_test": "awaiting_HA_address_and_light_entity",
+  "warnings": [
+    "Warning: Deprecated: Option '--flash_mode' is deprecated. Use '--flash-mode' instead.",
+    "Warning: Deprecated: Option '--flash_freq' is deprecated. Use '--flash-freq' instead.",
+    "Warning: Deprecated: Option '--flash_size' is deprecated. Use '--flash-size' instead.",
+    "Warning: Deprecated: Command 'write_flash' is deprecated. Use 'write-flash' instead."
+  ]
+}
