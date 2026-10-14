@@ -68,6 +68,7 @@ actions:
   before:
     - name: Write the ChirpStack and bridge configuration
       env:
+        INPUT_LNS_MODE: "{{lns_mode}}"
         INPUT_TIMEZONE: "{{timezone}}"
         INPUT_REGION: "{{region}}"
         INPUT_MQTT_HOST: "{{mqtt_host}}"
@@ -112,6 +113,9 @@ actions:
         CHIRPSTACK_APPLICATION_ID="$(dotenv_quote "$INPUT_LNS_APPLICATION_ID")"
         BRIDGE_UNAVAILABLE_AFTER="$(dotenv_quote "$INPUT_UNAVAILABLE_AFTER")"
         EOF
+        if [ "$INPUT_LNS_MODE" = "local" ]; then
+          printf 'COMPOSE_PROFILES=local-lns\n' >> "$WORKDIR/.env"
+        fi
         printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
         printf 'POSTGRES_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
         echo "wrote $WORKDIR/.env"
@@ -129,8 +133,7 @@ actions:
           if [ -f ".sensecraft-compose.yml" ]; then
             COMPOSE_FILE=".sensecraft-compose.yml"
           fi
-          echo "Starting the local ChirpStack services (profile local-lns) using $COMPOSE_FILE ..."
-          docker compose -p agri-env-chirpstack -f "$COMPOSE_FILE" --profile local-lns up -d
+          echo "Confirming local ChirpStack services (profile local-lns) using $COMPOSE_FILE ..."
           docker compose -p agri-env-chirpstack -f "$COMPOSE_FILE" --profile local-lns ps
         else
           echo "lns_mode=$INPUT_LNS_MODE — the network server runs on the M2, only the bridge starts here."

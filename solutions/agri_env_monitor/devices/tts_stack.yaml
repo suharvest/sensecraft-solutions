@@ -133,7 +133,6 @@ actions:
         zh: 写入 stack 配置
   after_upload:
     - name: Initialise the stack and create the admin user
-      ignore_error: true
       timeout: 900
       env:
         INPUT_HOST: "{{host}}"
@@ -142,26 +141,150 @@ actions:
       run: |
         set -e
         if [ -d "assets/tts" ]; then cd "assets/tts"; fi
-        # Load offline image tarballs if stack or DB images are not present
+        # Resolve engine offline cache and load required images if missing
         if ! docker image inspect thethingsnetwork/lorawan-stack:3.31.0 >/dev/null 2>&1 || \
            ! docker image inspect postgres:15-alpine >/dev/null 2>&1 || \
            ! docker image inspect redis:7-alpine >/dev/null 2>&1; then
-          for SEARCH_DIR in \
-            "data/cache/offline/images" \
-            "../data/cache/offline/images" \
-            "../../data/cache/offline/images" \
-            ".cache" \
-            "../.cache" \
-            "${HOME}/.sensecraft/cache/offline/images" \
-            "${HOME}/.cache/sensecraft/offline/images" \
-            "/var/cache/sensecraft/offline/images"; do
-            [ -d "$SEARCH_DIR" ] || continue
-            for tarball in "$SEARCH_DIR"/*stack*.tar* "$SEARCH_DIR"/*postgres*.tar* "$SEARCH_DIR"/*redis*.tar*; do
-              [ -f "$tarball" ] || continue
-              echo "Loading offline image tarball: $tarball"
-              docker load -i "$tarball" >/dev/null 2>&1 || true
+          echo "Resolving engine offline cache to load missing TTS images..."
+          if command -v python3 >/dev/null 2>&1; then
+            python3 - <<'PY'
+        import json, os, subprocess, sys
+        from pathlib import Path
+
+        required_images = [
+            ("postgres:15-alpine", ["postgres"]),
+            ("redis:7-alpine", ["redis"]),
+            ("thethingsnetwork/lorawan-stack:3.31.0", ["lorawan-stack", "stack", "tts"]),
+        ]
+
+        missing = []
+        for img, kws in required_images:
+            res = subprocess.run(["docker", "image", "inspect", img], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode != 0:
+                missing.append((img, kws))
+
+        if not missing:
+            sys.exit(0)
+
+        roots = []
+        try:
+            from provisioning_station.config import resolve_offline_root
+            r, _ = resolve_offline_root()
+            if r:
+                roots.append(Path(r))
+        except Exception:
+            pass
+
+        env_offline = os.environ.get("PS_OFFLINE_CACHE_DIR")
+        if env_offline:
+            roots.append(Path(env_offline))
+
+        choice_candidates = []
+        if os.environ.get("PS_APP_DATA_DIR"):
+            choice_candidates.append(Path(os.environ["PS_APP_DATA_DIR"]) / "offline-storage.json")
+        if os.environ.get("PS_CACHE_DIR"):
+            choice_candidates.append(Path(os.environ["PS_CACHE_DIR"]) / "offline-storage.json")
+        home = Path.home()
+        choice_candidates.extend([
+            home / ".sensecraft" / "offline-storage.json",
+            home / ".config" / "sensecraft" / "offline-storage.json",
+            Path("data/offline-storage.json"),
+            Path("../data/offline-storage.json"),
+            Path("../../data/offline-storage.json"),
+        ])
+
+        for c in choice_candidates:
+            if c.is_file():
+                try:
+                    val = json.loads(c.read_text(encoding="utf-8")).get("path")
+                    if val and os.path.isabs(val):
+                        roots.append(Path(val))
+                        break
+                except Exception:
+                    pass
+
+        if os.environ.get("PS_CACHE_DIR"):
+            roots.append(Path(os.environ["PS_CACHE_DIR"]))
+
+        roots.extend([
+            home / ".sensecraft" / "cache",
+            home / ".cache" / "sensecraft",
+            Path("data/cache"),
+            Path("../data/cache"),
+            Path("../../data/cache"),
+            Path("/var/cache/sensecraft"),
+        ])
+
+        unique_roots = []
+        for r in roots:
+            try:
+                p = r.resolve() if r.exists() else r
+                if p not in unique_roots and r.is_dir():
+                    unique_roots.append(r)
+            except Exception:
+                pass
+
+        for img, keywords in missing:
+            found = False
+            for root in unique_roots:
+                search_dirs = [root / "offline" / "images", root / "images", root]
+                for sdir in search_dirs:
+                    if not sdir.is_dir():
+                        continue
+                    for entry in sdir.iterdir():
+                        if entry.is_file() and (".tar" in entry.name):
+                            lower_name = entry.name.lower()
+                            if any(kw in lower_name for kw in keywords):
+                                print(f"Loading {img} from {entry} ...")
+                                ret = subprocess.run(["docker", "load", "-i", str(entry)])
+                                if ret.returncode == 0:
+                                    found = True
+                                    break
+                    if found:
+                        break
+                if found:
+                    break
+        PY
+          else
+            CACHE_DIRS=""
+            [ -n "$PS_OFFLINE_CACHE_DIR" ] && [ -d "$PS_OFFLINE_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_OFFLINE_CACHE_DIR"
+            for cf in \
+              "${PS_APP_DATA_DIR:-}/offline-storage.json" \
+              "${PS_CACHE_DIR:-}/offline-storage.json" \
+              "${HOME}/.sensecraft/offline-storage.json" \
+              "${HOME}/.config/sensecraft/offline-storage.json" \
+              "data/offline-storage.json" \
+              "../data/offline-storage.json" \
+              "../../data/offline-storage.json"; do
+              if [ -f "$cf" ]; then
+                CPATH=$(grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$cf" 2>/dev/null | head -n1 | cut -d'"' -f4)
+                if [ -n "$CPATH" ] && [ -d "$CPATH" ]; then
+                  CACHE_DIRS="$CACHE_DIRS $CPATH"
+                  break
+                fi
+              fi
             done
-          done
+            [ -n "$PS_CACHE_DIR" ] && [ -d "$PS_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_CACHE_DIR"
+            for def_dir in \
+              "${HOME}/.sensecraft/cache" \
+              "${HOME}/.cache/sensecraft" \
+              "data/cache" \
+              "../data/cache" \
+              "../../data/cache" \
+              "/var/cache/sensecraft"; do
+              [ -d "$def_dir" ] && CACHE_DIRS="$CACHE_DIRS $def_dir"
+            done
+            for cdir in $CACHE_DIRS; do
+              for sdir in "$cdir/offline/images" "$cdir/images" "$cdir"; do
+                [ -d "$sdir" ] || continue
+                for tarball in "$sdir"/*stack*.tar* "$sdir"/*postgres*.tar* "$sdir"/*redis*.tar*; do
+                  [ -f "$tarball" ] || continue
+                  echo "Loading offline image tarball: $tarball"
+                  docker load -i "$tarball" || true
+                done
+              done
+            done
+          fi
         fi
         HOST_IP=""
         if [ -f .env ]; then
@@ -172,7 +295,7 @@ actions:
         fi
         HOST_IP="${HOST_IP:-127.0.0.1}"
         echo "Starting database services ..."
-        docker compose up -d postgres redis 2>/dev/null || docker compose up -d tts-postgres tts-redis 2>/dev/null || true
+        docker compose up -d postgres redis
         echo "Waiting for Postgres ..."
         for i in $(seq 1 30); do
           docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && break
