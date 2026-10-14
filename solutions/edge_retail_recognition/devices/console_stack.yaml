@@ -69,21 +69,20 @@ post_deployment:
 actions:
   before:
     - name: Check Docker and that both images are present or pullable
+      env:
+        INPUT_SERVER_IMAGE: "{{server_image}}"
+        INPUT_WEB_IMAGE: "{{web_image}}"
       run: |
         set -e
         docker compose version >/dev/null 2>&1 || {
           echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
         # Default tags are published to sensecraft-missionpack.seeed.cn/solution/;
-        # a self-built override may only exist locally. Accept either: present
-        # locally, or pullable from wherever the tag resolves.
-        for IMG in "{{server_image}}" "{{web_image}}"; do
+        # offline tarballs or registry pulls run after actions.before in the deployer.
+        for IMG in "$INPUT_SERVER_IMAGE" "$INPUT_WEB_IMAGE"; do
           if docker image inspect "$IMG" >/dev/null 2>&1; then
             echo "present: $IMG"
-          elif docker pull "$IMG" >/dev/null 2>&1; then
-            echo "pulled: $IMG"
           else
-            echo "MISSING: $IMG — not present locally and not pullable. If this is a self-built tag, build it from the upstream repository on this host (see the compose file header); if it is the published default, check registry reachability from this host." >&2
-            exit 1
+            echo "image not yet loaded locally: $IMG (will be loaded from staged offline cache or pulled by the deployer)"
           fi
         done
         echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -145,9 +144,10 @@ actions:
       # a quote, $ or & in the value cannot change what runs.
       env:
         INPUT_ADMIN_TOKEN: "{{admin_token}}"
+        INPUT_SERVER_PORT: "{{server_port}}"
       run: |
         set -e
-        API="http://127.0.0.1:{{server_port}}"
+        API="http://127.0.0.1:${INPUT_SERVER_PORT:-8080}"
         for i in $(seq 1 40); do
           curl -s -o /dev/null "$API/v1/gallery" && break
           sleep 5

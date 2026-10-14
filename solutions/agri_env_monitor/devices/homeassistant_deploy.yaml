@@ -98,11 +98,14 @@ actions:
       fail_fast: false
       ignore_error: true
       timeout: 300
+      env:
+        INPUT_HA_PORT: "{{ha_port}}"
       run: |
+        HA_PORT="${INPUT_HA_PORT:-8123}"
         echo "Waiting for Home Assistant to finish first start ..."
         for i in $(seq 1 60); do
-          if curl -fsS "http://127.0.0.1:{{ha_port}}/" >/dev/null 2>&1; then
-            echo "Home Assistant is answering on port {{ha_port}}."
+          if curl -fsS "http://127.0.0.1:$HA_PORT/" >/dev/null 2>&1; then
+            echo "Home Assistant is answering on port $HA_PORT."
             exit 0
           fi
           sleep 5

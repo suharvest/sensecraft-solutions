@@ -138,13 +138,15 @@ actions:
 
     - name: Fetch and verify the HEF
       timeout: 900
+      env:
+        INPUT_HEF_VARIANT: "{{hef_variant}}"
       run: |
         set -e
         if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
         MODELS_DIR="$WORKDIR/models"
         mkdir -p "$MODELS_DIR" "$WORKDIR/data"
 
-        case "{{hef_variant}}" in
+        case "$INPUT_HEF_VARIANT" in
           level1)
             HEF=yolox_tiny_neu6_o1.hef
             SHA=02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565
@@ -153,7 +155,7 @@ actions:
             HEF=yolox_tiny_neu6.hef
             SHA=9638f2b210b49b10b44658d2e970b2822e0fac7d36ec8831f08ad4d0a10dac8f
             ;;
-          *) echo "Unknown HEF variant: {{hef_variant}}" >&2; exit 1 ;;
+          *) echo "Unknown HEF variant: $INPUT_HEF_VARIANT" >&2; exit 1 ;;
         esac
 
         if [ -s "$MODELS_DIR/$HEF" ] && \
@@ -244,10 +246,13 @@ actions:
     - name: Verify the inspector is publishing
       timeout: 240
       ignore_error: true
+      env:
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
       run: |
         set -e
         BROKER=edge-inspection-mosquitto
-        TOPIC="{{device_name}}/inspection/{{stream_id}}/results"
+        TOPIC="$INPUT_DEVICE_NAME/inspection/$INPUT_STREAM_ID/results"
         echo "Waiting for the health endpoint and the first MQTT result ..."
         for i in $(seq 1 40); do
           if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then

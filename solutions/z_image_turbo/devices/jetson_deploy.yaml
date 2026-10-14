@@ -101,11 +101,15 @@ actions:
       name_i18n:
         zh: 校验 Jetson 运行环境
     - name: Resolve paths and patch compose
+      env:
+        INPUT_MODEL_ROOT: "{{model_root}}"
+        INPUT_OUTPUT_DIR: "{{output_dir}}"
+        INPUT_RESOLUTION: "{{resolution}}"
       run: |
         set -e  # fail-fast: any step below (HF download, compose patch, mkdir) failing must abort deploy
-        MODEL_ROOT='{{model_root}}'
-        OUTPUT_DIR='{{output_dir}}'
-        RES='{{resolution}}'
+        MODEL_ROOT="$INPUT_MODEL_ROOT"
+        OUTPUT_DIR="$INPUT_OUTPUT_DIR"
+        RES="$INPUT_RESOLUTION"
 
         if [ "$RES" = "384" ]; then
           ENGINE_SUBDIR="trt-engines-384-bf16"

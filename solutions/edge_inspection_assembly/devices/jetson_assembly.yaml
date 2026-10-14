@@ -84,21 +84,11 @@ actions:
         set -e
         IMAGE="${INSPECTION_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-inspection-assembly-jetson:0.1.0-dev}"
         if docker image inspect "$IMAGE" >/dev/null 2>&1; then
-          echo "image present:"
+          echo "present: $IMAGE"
           docker images "$IMAGE"
-          exit 0
+        else
+          echo "image not yet loaded locally: $IMAGE (will be loaded from staged offline cache or pulled by the deployer)"
         fi
-        echo "Image $IMAGE not local, pulling..."
-        if docker pull "$IMAGE"; then
-          docker images "$IMAGE"
-          exit 0
-        fi
-        echo "Could not pull $IMAGE." >&2
-        echo "Check this device can reach sensecraft-missionpack.seeed.cn, or build" >&2
-        echo "the tag once from the upstream repository on this device:" >&2
-        echo "  docker build --network=host -f platforms/jetson/Dockerfile.slim -t $IMAGE ." >&2
-        echo "or set INSPECTION_IMAGE to a tag this device can pull." >&2
-        exit 1
       name_i18n:
         zh: 检查运行镜像是否可用
 

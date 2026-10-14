@@ -99,9 +99,11 @@ actions:
       name_i18n:
         zh: 验证 Jetson 环境
     - name: Validate workspace directory
+      env:
+        INPUT_WORKSPACE_DIR: "{{workspace_dir}}"
       run: |
         set -e
-        WORKSPACE="{{workspace_dir}}"
+        WORKSPACE="$INPUT_WORKSPACE_DIR"
         # Skip if empty (will use default named volume)
         if [ -z "$WORKSPACE" ]; then
           echo "No workspace directory specified, using default Docker volume"
@@ -188,6 +190,8 @@ actions:
       when:
         field: enable_ollama
         value: "true"
+      env:
+        INPUT_SOLUTION_DIR: "{{solution_dir}}"
       run: |
         set -e
         if docker exec ollama ollama list >/dev/null 2>&1; then
@@ -202,8 +206,8 @@ actions:
           COMPOSE_FILE="assets/jetson/docker-compose-ollama.yml"
         elif [ -f "assets/local/docker-compose-ollama.yml" ]; then
           COMPOSE_FILE="assets/local/docker-compose-ollama.yml"
-        elif [ -f "{{solution_dir}}/assets/local/docker-compose-ollama.yml" ]; then
-          COMPOSE_FILE="{{solution_dir}}/assets/local/docker-compose-ollama.yml"
+        elif [ -n "$INPUT_SOLUTION_DIR" ] && [ -f "$INPUT_SOLUTION_DIR/assets/local/docker-compose-ollama.yml" ]; then
+          COMPOSE_FILE="$INPUT_SOLUTION_DIR/assets/local/docker-compose-ollama.yml"
         else
           COMPOSE_FILE="docker-compose-ollama.yml"
         fi
@@ -226,11 +230,13 @@ actions:
       when:
         field: enable_ollama
         value: "true"
+      env:
+        INPUT_OLLAMA_MODEL: "{{ollama_model}}"
       run: |
         set -e
-        echo "Pulling model {{ollama_model}}..."
-        docker exec ollama ollama pull {{ollama_model}}
-        echo "Model {{ollama_model}} pulled successfully"
+        echo "Pulling model $INPUT_OLLAMA_MODEL..."
+        docker exec ollama ollama pull "$INPUT_OLLAMA_MODEL"
+        echo "Model $INPUT_OLLAMA_MODEL pulled successfully"
       timeout: 600
       name_i18n:
         zh: 拉取 Ollama 模型
@@ -238,12 +244,15 @@ actions:
       when:
         field: enable_ollama
         value: "true"
+      env:
+        INPUT_OLLAMA_MODEL: "{{ollama_model}}"
       run: |
         set -e
         echo "Configuring Ollama provider in OpenClaw..."
-        docker exec openclaw-gateway node -e '
+        docker exec -e OLLAMA_MODEL="$INPUT_OLLAMA_MODEL" openclaw-gateway node -e '
           const fs = require("fs");
           const home = "/home/node/.openclaw";
+          const model = process.env.OLLAMA_MODEL;
 
           // 1. Global config (openclaw.json)
           const p = home + "/openclaw.json";
@@ -254,11 +263,11 @@ actions:
             baseUrl: "http://localhost:11434/v1",
             apiKey: "ollama",
             api: "openai-completions",
-            models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+            models: [{ id: model, name: model, reasoning: false }]
           };
           if (!cfg.agents) cfg.agents = {};
           if (!cfg.agents.defaults) cfg.agents.defaults = {};
-          cfg.agents.defaults.model = "ollama/{{ollama_model}}";
+          cfg.agents.defaults.model = "ollama/" + model;
           fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
 
           // 2. Agent-level config (takes precedence over global)
@@ -272,11 +281,11 @@ actions:
             baseUrl: "http://localhost:11434/v1",
             apiKey: "ollama",
             api: "openai-completions",
-            models: [{ id: "{{ollama_model}}", name: "{{ollama_model}}", reasoning: false }]
+            models: [{ id: model, name: model, reasoning: false }]
           };
           fs.writeFileSync(mp, JSON.stringify(mcfg, null, 2));
 
-          console.log("Ollama provider configured (global + agent-level), default model: ollama/{{ollama_model}}");
+          console.log("Ollama provider configured (global + agent-level), default model: ollama/" + model);
         '
       timeout: 30
       name_i18n:

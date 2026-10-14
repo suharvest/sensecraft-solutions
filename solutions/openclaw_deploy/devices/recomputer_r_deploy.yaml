@@ -48,9 +48,11 @@ user_inputs:
 actions:
   before:
     - name: Validate workspace directory
+      env:
+        INPUT_WORKSPACE_DIR: "{{workspace_dir}}"
       run: |
         set -e
-        WORKSPACE="{{workspace_dir}}"
+        WORKSPACE="$INPUT_WORKSPACE_DIR"
         if [ -z "$WORKSPACE" ]; then
           echo "No workspace directory specified, using default Docker volume"
           exit 0

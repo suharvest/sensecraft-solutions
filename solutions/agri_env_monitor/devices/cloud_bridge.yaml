@@ -55,15 +55,18 @@ actions:
   before:
     - name: Check the broker is reachable
       ignore_error: true
+      env:
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
       run: |
         set -e
-        BROKER_HOST="{{mqtt_host}}"
-        [ -n "$BROKER_HOST" ] || BROKER_HOST="127.0.0.1"
+        BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+        BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
         if command -v nc >/dev/null 2>&1; then
-          if nc -z -w 5 "$BROKER_HOST" "{{mqtt_port}}"; then
-            echo "broker $BROKER_HOST:{{mqtt_port}} is reachable"
+          if nc -z -w 5 "$BROKER_HOST" "$BROKER_PORT"; then
+            echo "broker $BROKER_HOST:$BROKER_PORT is reachable"
           else
-            echo "WARNING: cannot open $BROKER_HOST:{{mqtt_port}} — deploy the Home Assistant step first, or check the address" >&2
+            echo "WARNING: cannot open $BROKER_HOST:$BROKER_PORT — deploy the Home Assistant step first, or check the address" >&2
           fi
         else
           echo "nc not available, skipping the reachability check"

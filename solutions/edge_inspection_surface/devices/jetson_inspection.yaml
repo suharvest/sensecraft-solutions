@@ -133,12 +133,14 @@ actions:
 
     - name: Download the ONNX model and build the TensorRT engine
       timeout: 2400
+      env:
+        INPUT_DETECTOR_TRACK: "{{detector_track}}"
       run: |
         set -e
         if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
         MODELS_DIR="$WORKDIR/models"
 
-        case "{{detector_track}}" in
+        case "$INPUT_DETECTOR_TRACK" in
           yolox)
             MODEL_NAME=yolox_tiny_neu6
             SHA=4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba
@@ -151,14 +153,14 @@ actions:
             MODEL_NAME=rtdetrv2_s_neu6
             SHA=a2aa56779a19ec952360da90503d20eae65b1d46bc7a3c14a06c2c10b822a36a
             ;;
-          *) echo "Unknown detector_track: {{detector_track}}" >&2; exit 1 ;;
+          *) echo "Unknown detector_track: $INPUT_DETECTOR_TRACK" >&2; exit 1 ;;
         esac
         ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
         ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
 
         mkdir -p "$MODELS_DIR"
 
-        if [ "{{detector_track}}" = "yolox" ] && [ -s "$ENGINE" ]; then
+        if [ "$INPUT_DETECTOR_TRACK" = "yolox" ] && [ -s "$ENGINE" ]; then
           echo "Engine already present, skipping build: $ENGINE"
           exit 0
         fi
@@ -172,12 +174,12 @@ actions:
         fi
         echo "$SHA  $ONNX" | sha256sum -c -
 
-        if [ "{{detector_track}}" != "yolox" ]; then
-          echo "Track {{detector_track}} uses ONNX runtime on CPU, skipping TensorRT engine build: $ONNX"
+        if [ "$INPUT_DETECTOR_TRACK" != "yolox" ]; then
+          echo "Track $INPUT_DETECTOR_TRACK uses ONNX runtime on CPU, skipping TensorRT engine build: $ONNX"
           exit 0
         fi
 
-        echo "Building the TensorRT engine for {{detector_track}} ..."
+        echo "Building the TensorRT engine for $INPUT_DETECTOR_TRACK ..."
         /usr/src/tensorrt/bin/trtexec --version || true
         START=$(date +%s)
         /usr/src/tensorrt/bin/trtexec \
@@ -277,10 +279,13 @@ actions:
     - name: Verify the inspector is publishing
       timeout: 240
       ignore_error: true
+      env:
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
       run: |
         set -e
         BROKER=edge-inspection-mosquitto
-        TOPIC="{{device_name}}/inspection/{{stream_id}}/results"
+        TOPIC="$INPUT_DEVICE_NAME/inspection/$INPUT_STREAM_ID/results"
         echo "Waiting for the health endpoint and the first MQTT result ..."
         for i in $(seq 1 40); do
           if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then

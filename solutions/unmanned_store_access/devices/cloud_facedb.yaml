@@ -126,10 +126,15 @@ actions:
   after:
     - name: Confirm the library, broker and console answer
       timeout: 180
+      env:
+        INPUT_FACEDB_PORT: "{{facedb_port}}"
+        INPUT_WEB_PORT: "{{web_port}}"
       run: |
         set -e
+        FACEDB_PORT="${INPUT_FACEDB_PORT:-8080}"
+        WEB_PORT="${INPUT_WEB_PORT:-5173}"
         for i in $(seq 1 30); do
-          CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:{{facedb_port}}/v1/facedb/current" || echo 000)
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$FACEDB_PORT/v1/facedb/current" || echo 000)
           case "$CODE" in
             200) echo "facedb server up, a version is already published"; break ;;
             404) echo "facedb server up, no version published yet (expected before the first enrolment)"; break ;;
@@ -137,7 +142,7 @@ actions:
           esac
         done
         docker exec usa-mosquitto sh -c "mosquitto_sub -h 127.0.0.1 -t 'access/v1/#' -C 0 -W 2" >/dev/null 2>&1 || true
-        URL="http://127.0.0.1:{{web_port}}"
+        URL="http://127.0.0.1:$WEB_PORT"
         for i in $(seq 1 30); do
           curl -fsS "$URL/api/health" >/dev/null 2>&1 && break
           sleep 5

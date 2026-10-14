@@ -149,13 +149,15 @@ actions:
 
     - name: Download the ONNX model and build the TensorRT engine
       timeout: 2400
+      env:
+        INPUT_MODEL_TRACK: "{{model_track}}"
       run: |
         set -e
         if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
         MODELS_DIR="$WORKDIR/models"
         mkdir -p "$MODELS_DIR"
 
-        case "{{model_track}}" in
+        case "$INPUT_MODEL_TRACK" in
           baseline)
             MODEL_NAME=efficientnet_lite0_waste8
             SHA=e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
@@ -164,12 +166,12 @@ actions:
             MODEL_NAME=siglip2_vision_224
             SHA=6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac
             ;;
-          *) echo "Unknown model_track: {{model_track}}" >&2; exit 1 ;;
+          *) echo "Unknown model_track: $INPUT_MODEL_TRACK" >&2; exit 1 ;;
         esac
         ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
         ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
 
-        if [ "{{model_track}}" = "open_vocab" ]; then
+        if [ "$INPUT_MODEL_TRACK" = "open_vocab" ]; then
           for f in prototypes-en-material8.npz prompts/waste8-en-v1.json; do
             mkdir -p "$(dirname "$MODELS_DIR/$f")"
             if [ ! -s "$MODELS_DIR/$f" ]; then
@@ -198,7 +200,7 @@ actions:
         fi
         echo "$SHA  $ONNX" | sha256sum -c -
 
-        echo "Building the TensorRT engine for {{model_track}} ..."
+        echo "Building the TensorRT engine for $INPUT_MODEL_TRACK ..."
         /usr/src/tensorrt/bin/trtexec --version || true
         START=$(date +%s)
         /usr/src/tensorrt/bin/trtexec \
@@ -275,7 +277,7 @@ actions:
         source_kind = os.environ["INPUT_SOURCE_KIND"]
         config["mqtt"]["host"] = MQTT_HOST or "127.0.0.1"
         config["mqtt"]["port"] = int(MQTT_PORT) if MQTT_PORT else 1883
-        config["mqtt"]["topic"] = f"{device_name}/waste/{{stream_id}}/results"
+        config["mqtt"]["topic"] = device_name + "/waste/{stream_id}/results"
         source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
         if not source_uri:
             sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
@@ -385,14 +387,17 @@ actions:
     - name: Verify the runtime is up and answering triggers
       timeout: 240
       ignore_error: true
+      env:
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
       run: |
         set -e
         BROKER=edge-waste-mosquitto
-        BROKER_HOST="{{mqtt_host}}"
-        BROKER_HOST="${BROKER_HOST:-127.0.0.1}"
-        BROKER_PORT="{{mqtt_port}}"
-        BROKER_PORT="${BROKER_PORT:-1883}"
-        TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+        BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+        BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
+        TOPIC="$INPUT_DEVICE_NAME/waste/$INPUT_STREAM_ID/results"
         echo "Waiting for the health endpoint ..."
         HZ="$(mktemp)"
         trap 'rm -f "$HZ"' EXIT

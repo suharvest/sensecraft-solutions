@@ -213,7 +213,7 @@ actions:
         device_name = os.environ["INPUT_DEVICE_NAME"]
         stream_id = os.environ["INPUT_STREAM_ID"]
         source_kind = os.environ["INPUT_SOURCE_KIND"]
-        config["mqtt"]["topic"] = f"{device_name}/waste/{{stream_id}}/results"
+        config["mqtt"]["topic"] = device_name + "/waste/{stream_id}/results"
         source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
         if not source_uri:
             sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
@@ -309,10 +309,13 @@ actions:
     - name: Verify the runtime is up and answering triggers
       timeout: 240
       ignore_error: true
+      env:
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
       run: |
         set -e
         BROKER=edge-waste-mosquitto
-        TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+        TOPIC="$INPUT_DEVICE_NAME/waste/$INPUT_STREAM_ID/results"
         for i in $(seq 1 24); do
           if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
             cat /tmp/healthz.json

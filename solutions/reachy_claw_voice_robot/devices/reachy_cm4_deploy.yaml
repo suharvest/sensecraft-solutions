@@ -103,10 +103,11 @@ user_inputs:
 actions:
   before:
     - name: Check Speech service (port 8621)
+      env:
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
       run: |
         set -e
-        HOST="{{VOICE_ASSISTANT_HOST}}"
-        [ -n "$HOST" ] || HOST="127.0.0.1"
+        HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
         if curl -sf "http://$HOST:8621/health" >/dev/null 2>&1; then
           echo "Speech service is running on $HOST"
         else
@@ -119,11 +120,13 @@ actions:
         zh: 检查语音服务（端口 8621）
     - name: Check LLM endpoint
       fail_fast: false
+      env:
+        INPUT_LLM_ENDPOINT: "{{LLM_ENDPOINT}}"
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
       run: |
-        URL="{{LLM_ENDPOINT}}"
+        URL="$INPUT_LLM_ENDPOINT"
         if [ -z "$URL" ]; then
-          HOST="{{VOICE_ASSISTANT_HOST}}"
-          [ -n "$HOST" ] || HOST="127.0.0.1"
+          HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
           URL="http://$HOST:11435"
           echo "LLM_ENDPOINT not set — defaulting to ${URL}"
         fi
@@ -316,8 +319,11 @@ actions:
 
         GDM_CONF="/etc/gdm3/custom.conf"
         if [ -f "$GDM_CONF" ]; then
-          if ! grep -q "AutomaticLoginEnable" "$GDM_CONF"; then
-            LOGIN_USER="${USER:-$(whoami)}"
+          LOGIN_USER="${USER:-$(whoami)}"
+          if grep -Eq '^[[:space:]]*AutomaticLoginEnable[[:space:]]*=[[:space:]]*(true|True|1)[[:space:]]*$' "$GDM_CONF" && \
+             grep -Eq "^[[:space:]]*AutomaticLogin[[:space:]]*=[[:space:]]*${LOGIN_USER}[[:space:]]*$" "$GDM_CONF"; then
+            echo "GDM auto-login already configured for $LOGIN_USER"
+          else
             SUDO=""
             CAN_SUDO=0
             if [ "$(id -u)" -eq 0 ]; then
@@ -327,14 +333,16 @@ actions:
               CAN_SUDO=1
             fi
             if [ "$CAN_SUDO" -eq 1 ]; then
-              $SUDO sed -i "/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" "$GDM_CONF"
+              $SUDO sed -i \
+                -e '/^[[:space:]]*AutomaticLoginEnable[[:space:]]*=/d' \
+                -e '/^[[:space:]]*AutomaticLogin[[:space:]]*=/d' \
+                -e "/^[[:space:]]*\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" \
+                "$GDM_CONF"
               echo "GDM auto-login enabled for $LOGIN_USER"
             else
               echo "WARNING: Non-interactive sudo is not available; skipping GDM auto-login update ($GDM_CONF)."
               echo "To enable manually, run: sudo sed -i '/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER' $GDM_CONF"
             fi
-          else
-            echo "GDM auto-login already configured"
           fi
         fi
 

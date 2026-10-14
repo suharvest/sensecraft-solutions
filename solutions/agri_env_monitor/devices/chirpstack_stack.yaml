@@ -118,15 +118,17 @@ actions:
       name_i18n:
         zh: 写入 ChirpStack 与桥的配置
     - name: Start ChirpStack when this host is the network server
+      env:
+        INPUT_LNS_MODE: "{{lns_mode}}"
       run: |
         set -e
         if [ -d "assets/chirpstack" ]; then cd "assets/chirpstack"; fi
-        if [ "{{lns_mode}}" = "local" ]; then
+        if [ "$INPUT_LNS_MODE" = "local" ]; then
           echo "Starting the local ChirpStack services (profile local-lns) ..."
           docker compose --profile local-lns up -d
           docker compose --profile local-lns ps
         else
-          echo "lns_mode={{lns_mode}} — the network server runs on the M2, only the bridge starts here."
+          echo "lns_mode=$INPUT_LNS_MODE — the network server runs on the M2, only the bridge starts here."
         fi
       name_i18n:
         zh: 本机作为网络服务器时启动 ChirpStack
