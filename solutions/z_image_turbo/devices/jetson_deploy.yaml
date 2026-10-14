@@ -126,8 +126,12 @@ actions:
         mkdir -p "$OUTPUT_DIR" "$UPLOAD_DIR"
 
         # Patch compose file defaults for derived paths not set via env
-        sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" assets/docker/docker-compose.yml
-        sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" assets/docker/docker-compose.yml
+        for COMPOSE_TARGET in assets/docker/docker-compose.yml assets/docker/.sensecraft-compose.yml; do
+          if [ -f "$COMPOSE_TARGET" ]; then
+            sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" "$COMPOSE_TARGET"
+            sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" "$COMPOSE_TARGET"
+          fi
+        done
 
         echo "Engine: $ENGINE_DIR"
         echo "Output: $OUTPUT_DIR"

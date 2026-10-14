@@ -132,31 +132,44 @@ actions:
       sudo: true
       run: |
         set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
         RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
         if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
-          echo "Installing udev rule: $RULE_FILE"
-          SUDO=""
-          if [ "$(id -u)" -ne 0 ]; then
-            SUDO="sudo"
-          fi
-          $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
         # Reachy Mini — keep USB peripherals powered (no autosuspend).
         # Managed by sensecraft provisioning. Do not edit by hand.
         SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
         SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
         EOF
-          $SUDO udevadm control --reload-rules 2>/dev/null || true
-          $SUDO udevadm trigger --subsystem-match=usb 2>/dev/null || true
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=usb 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  sudo tee $RULE_FILE <<'EOF'"
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo "EOF"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=usb"
+            exit 0
+          fi
         fi
-        SUDO=""
-        if [ "$(id -u)" -ne 0 ]; then
-          SUDO="sudo"
+        if [ "$CAN_SUDO" -eq 1 ]; then
+          for dev in /sys/bus/usb/devices/*/idVendor; do
+            [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
+            devdir=$(dirname "$dev")
+            printf 'on\n' | $SUDO tee "$devdir/power/control" >/dev/null 2>&1 || true
+          done
         fi
-        for dev in /sys/bus/usb/devices/*/idVendor; do
-          [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
-          devdir=$(dirname "$dev")
-          printf 'on\n' | $SUDO tee "$devdir/power/control" >/dev/null 2>&1 || true
-        done
         echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
       name_i18n:
         zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
@@ -164,26 +177,37 @@ actions:
       sudo: true
       run: |
         set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
         RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
         if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
-          echo "Installing udev rule: $RULE_FILE"
-          SUDO=""
-          if [ "$(id -u)" -ne 0 ]; then
-            SUDO="sudo"
-          fi
-          $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
         # Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
         # Managed by sensecraft provisioning. Do not edit by hand.
         ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"
         EOF
-          $SUDO udevadm control --reload-rules 2>/dev/null || true
-          $SUDO udevadm trigger --subsystem-match=tty 2>/dev/null || true
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=tty 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  echo 'ACTION==\"add\", SUBSYSTEM==\"tty\", ENV{ID_VENDOR_ID}==\"1a86\", ENV{ID_MODEL_ID}==\"55d3\", RUN+=\"/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon\"' | sudo tee $RULE_FILE"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=tty"
+          fi
         fi
         if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
           echo "Reachy serial present — restarting reachy-daemon to (re)scan the port..."
           docker restart reachy-daemon >/dev/null 2>&1 || true
         fi
-        echo "reachy-daemon auto-reconnect rule installed (serial VID 1a86/55d3)"
+        echo "reachy-daemon auto-reconnect rule checked (serial VID 1a86/55d3)"
       name_i18n:
         zh: 机器人插入时自动重连 reachy-daemon（udev）
     - name: Create data directories
@@ -274,11 +298,20 @@ actions:
           if ! grep -q "AutomaticLoginEnable" "$GDM_CONF"; then
             LOGIN_USER="${USER:-$(whoami)}"
             SUDO=""
-            if [ "$(id -u)" -ne 0 ]; then
-              SUDO="sudo"
+            CAN_SUDO=0
+            if [ "$(id -u)" -eq 0 ]; then
+              CAN_SUDO=1
+            elif sudo -n true 2>/dev/null; then
+              SUDO="sudo -n"
+              CAN_SUDO=1
             fi
-            $SUDO sed -i "/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" "$GDM_CONF"
-            echo "GDM auto-login enabled for $LOGIN_USER"
+            if [ "$CAN_SUDO" -eq 1 ]; then
+              $SUDO sed -i "/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" "$GDM_CONF"
+              echo "GDM auto-login enabled for $LOGIN_USER"
+            else
+              echo "WARNING: Non-interactive sudo is not available; skipping GDM auto-login update ($GDM_CONF)."
+              echo "To enable manually, run: sudo sed -i '/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER' $GDM_CONF"
+            fi
           else
             echo "GDM auto-login already configured"
           fi

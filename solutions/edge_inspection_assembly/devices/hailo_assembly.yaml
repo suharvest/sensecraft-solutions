@@ -252,8 +252,10 @@ actions:
         usb_devices = [d for d in usb_devices if not (d in seen or seen.add(d))]
         mapped_devices = ["/dev/hailo0:/dev/hailo0"] + [f"{d}:{d}" for d in usb_devices]
 
-        compose_file = os.path.join(workdir, "docker-compose.yml")
-        if os.path.exists(compose_file):
+        for compose_name in ("docker-compose.yml", ".sensecraft-compose.yml"):
+            compose_file = os.path.join(workdir, compose_name)
+            if not os.path.exists(compose_file):
+                continue
             with open(compose_file, "r") as f:
                 c_lines = f.read().splitlines()
             out_lines = []

@@ -113,12 +113,18 @@ actions:
         echo "Installing HailoRT ${REQUIRED} using Frigate's official script..."
         echo "This may take 5-10 minutes (compiling kernel module)..."
 
-        curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh -o /tmp/install_hailort.sh
-        chmod +x /tmp/install_hailort.sh
         SUDO=""
         if [ "$(id -u)" -ne 0 ]; then
-          SUDO="sudo"
+          if sudo -n true 2>/dev/null; then
+            SUDO="sudo -n"
+          else
+            echo "ERROR: Root privileges are required to install HailoRT ${REQUIRED}, and non-interactive sudo is unavailable." >&2
+            echo "Please install the HailoRT ${REQUIRED} driver manually in a terminal or configure passwordless sudo, then retry deployment." >&2
+            exit 1
+          fi
         fi
+        curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh -o /tmp/install_hailort.sh
+        chmod +x /tmp/install_hailort.sh
         $SUDO bash /tmp/install_hailort.sh
         rm -f /tmp/install_hailort.sh
 
