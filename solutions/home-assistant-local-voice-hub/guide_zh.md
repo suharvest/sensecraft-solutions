@@ -143,6 +143,21 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 5. 进入 **设置 → 语音助手**，打开语音助手，语言选中文或英文；「对话代理」选刚添加的 LiteLLM 对话代理，并打开「优先在本地处理命令」；「语音转文字」和「文字转语音」分别选刚添加的两个 Wyoming 服务，保存
 6. 点右上角的对话按钮，说或输入「打开客厅灯」，对应的灯被打开并收到回复；再问「今天适合开窗吗」，收到大模型的回答
 
+
+Home Assistant 和本地语音服务已就绪。
+
+### 初始设置
+
+1. **接入 Zigbee 设备**：进入 **设置 → 设备与服务 → 添加集成**，选择 **Zigbee Home Automation**，串口选 ZBT-2；之后在该集成里点「添加设备」，并让 Zigbee 设备进入配对模式
+2. **接入苹果「家庭」**：Home Assistant 的通知里会出现 HomeKit Bridge 的配对二维码，用 iPhone 的「家庭」App 扫码添加
+3. **接入语音终端**：按 Home Assistant Voice 预览版的说明连上 Wi-Fi 并加入 Home Assistant，在它的设备页把语音助手选为步骤 3 配置的那一个
+
+### 快速验证
+
+- 对语音终端说「打开客厅灯」，灯被打开并听到回复
+- 在 iPhone 的「家庭」App 里能看到并控制同一批设备
+- Zigbee 传感器的读数在 Home Assistant 里刷新
+
 ### 故障排查
 
 | 问题 | 解决方法 |
@@ -290,6 +305,21 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 5. 进入 **设置 → 语音助手**，打开语音助手，语言选中文或英文；「对话代理」选刚添加的 LiteLLM 对话代理，并打开「优先在本地处理命令」；「语音转文字」和「文字转语音」分别选刚添加的两个 Wyoming 服务，保存
 6. 点右上角的对话按钮，说或输入「打开客厅灯」，对应的灯被打开并收到回复；再问「今天适合开窗吗」，收到大模型的回答
 
+
+Home Assistant 和本地语音服务已就绪。
+
+### 初始设置
+
+1. **接入 Zigbee 设备**：进入 **设置 → 设备与服务 → 添加集成**，选择 **Zigbee Home Automation**，串口选 ZBT-2；之后在该集成里点「添加设备」，并让 Zigbee 设备进入配对模式
+2. **接入苹果「家庭」**：Home Assistant 的通知里会出现 HomeKit Bridge 的配对二维码，用 iPhone 的「家庭」App 扫码添加
+3. **接入语音终端**：按 Home Assistant Voice 预览版的说明连上 Wi-Fi 并加入 Home Assistant，在它的设备页把语音助手选为步骤 3 配置的那一个
+
+### 快速验证
+
+- 对语音终端说「打开客厅灯」，灯被打开并听到回复
+- 在 iPhone 的「家庭」App 里能看到并控制同一批设备
+- Zigbee 传感器的读数在 Home Assistant 里刷新
+
 ### 故障排查
 
 | 问题 | 解决方法 |
@@ -305,19 +335,3 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 
 
 ---
-
-# 部署完成
-
-Home Assistant 和本地语音服务已就绪。
-
-### 初始设置
-
-1. **接入 Zigbee 设备**：进入 **设置 → 设备与服务 → 添加集成**，选择 **Zigbee Home Automation**，串口选 ZBT-2；之后在该集成里点「添加设备」，并让 Zigbee 设备进入配对模式
-2. **接入苹果「家庭」**：Home Assistant 的通知里会出现 HomeKit Bridge 的配对二维码，用 iPhone 的「家庭」App 扫码添加
-3. **接入语音终端**：按 Home Assistant Voice 预览版的说明连上 Wi-Fi 并加入 Home Assistant，在它的设备页把语音助手选为步骤 3 配置的那一个
-
-### 快速验证
-
-- 对语音终端说「打开客厅灯」，灯被打开并听到回复
-- 在 iPhone 的「家庭」App 里能看到并控制同一批设备
-- Zigbee 传感器的读数在 Home Assistant 里刷新

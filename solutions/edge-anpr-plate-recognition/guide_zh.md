@@ -210,9 +210,14 @@
 1. 查 reComputer R1000 系列 Wiki，确认数字输出的类型和额定电压电流，选择线圈电压匹配的导轨式中间继电器
 2. 道闸控制器的 DO 输出接继电器线圈正极，DO 公共端 / GND 接线圈负极
 3. 继电器常开（NO）触点接道闸控制器的「开闸」端子，公共（COM）触点接道闸的公共端子；不要接关闸端子，关闸由道闸自己的地感或雷达负责
-4. 准备白名单 CSV，第一行必须是 `plate,label,valid_from,valid_until`，然后上传：`curl -X PUT --data-binary @whitelist.csv http://<道闸控制器IP>:8081/whitelist`
-5. 触发一次测试开闸：`curl -X POST http://<道闸控制器IP>:8081/gate/test`，继电器应吸合约 0.5 秒
-6. 先用万用表或继电器指示灯确认动作正常，再让车辆开到道闸前实测
+
+### 部署完成
+
+物理接线完成后，用下面的 API 上传白名单并验证道闸服务，再在车辆测试前确认继电器动作。
+
+1. 准备白名单 CSV，第一行必须是 `plate,label,valid_from,valid_until`，然后上传：`curl -X PUT --data-binary @whitelist.csv http://<道闸控制器IP>:8081/whitelist`
+2. 触发一次测试开闸：`curl -X POST http://<道闸控制器IP>:8081/gate/test`，继电器应吸合约 0.5 秒
+3. 先用万用表或继电器指示灯确认动作正常，再让车辆开到道闸前实测
 
 ### 故障排查
 

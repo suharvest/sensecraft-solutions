@@ -142,6 +142,21 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
 6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
 
+
+Home Assistant and the local voice services are ready.
+
+### Initial Setup
+
+1. **Add Zigbee devices**: go to **Settings → Devices & services → Add integration**, choose **Zigbee Home Automation** and select the ZBT-2 serial port; then click "Add device" in that integration and put the Zigbee device into pairing mode
+2. **Add to Apple Home**: a HomeKit Bridge pairing QR code appears in the Home Assistant notifications; scan it with the Home app on iPhone
+3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant configured in step 3 on its device page
+
+### Quick Verification
+
+- Say "Turn on the living room light" to the voice terminal; the light turns on and you hear a reply
+- The same devices are visible and controllable in the Home app on iPhone
+- Zigbee sensor readings update in Home Assistant
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -289,6 +304,21 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 5. Go to **Settings → Voice assistants**, open the assistant and set the language to Chinese or English; choose the new LiteLLM agent as "Conversation agent" and turn on "Prefer handling commands locally"; select the two new Wyoming services for "Speech-to-text" and "Text-to-speech", and save
 6. Click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply. Then ask "Is it a good day to open the windows?" and you get an answer from the LLM
 
+
+Home Assistant and the local voice services are ready.
+
+### Initial Setup
+
+1. **Add Zigbee devices**: go to **Settings → Devices & services → Add integration**, choose **Zigbee Home Automation** and select the ZBT-2 serial port; then click "Add device" in that integration and put the Zigbee device into pairing mode
+2. **Add to Apple Home**: a HomeKit Bridge pairing QR code appears in the Home Assistant notifications; scan it with the Home app on iPhone
+3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant configured in step 3 on its device page
+
+### Quick Verification
+
+- Say "Turn on the living room light" to the voice terminal; the light turns on and you hear a reply
+- The same devices are visible and controllable in the Home app on iPhone
+- Zigbee sensor readings update in Home Assistant
+
 ### Troubleshooting
 
 | Issue | Solution |
@@ -304,19 +334,3 @@ Add the voice services and the LLM conversation agent to Home Assistant, then te
 
 
 ---
-
-# Deployment Complete
-
-Home Assistant and the local voice services are ready.
-
-### Initial Setup
-
-1. **Add Zigbee devices**: go to **Settings → Devices & services → Add integration**, choose **Zigbee Home Automation** and select the ZBT-2 serial port; then click "Add device" in that integration and put the Zigbee device into pairing mode
-2. **Add to Apple Home**: a HomeKit Bridge pairing QR code appears in the Home Assistant notifications; scan it with the Home app on iPhone
-3. **Add the voice terminal**: follow the Home Assistant Voice Preview Edition instructions to connect it to Wi-Fi and add it to Home Assistant, then select the voice assistant configured in step 3 on its device page
-
-### Quick Verification
-
-- Say "Turn on the living room light" to the voice terminal; the light turns on and you hear a reply
-- The same devices are visible and controllable in the Home app on iPhone
-- Zigbee sensor readings update in Home Assistant

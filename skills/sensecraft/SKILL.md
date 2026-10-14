@@ -17,6 +17,30 @@ solution's configuration, the app's `/api/ai/context`, diagnosing through the
 app's logs) are in `references/app-only.md`. Use them only when the user has
 the app running.
 
+## Host platform boundary
+
+The standalone engine supports four host platforms: macOS ARM
+(`aarch64-apple-darwin`), Linux ARM (`aarch64-unknown-linux-musl`), Linux
+x86_64 (`x86_64-unknown-linux-musl`), and Windows x86_64
+(`x86_64-pc-windows-msvc`). macOS x86_64 is not maintained; under Rosetta,
+run the installer from a native ARM shell.
+
+`docker_deploy` target `local` requires a supported Docker host. Windows native
+`docker_local` is intentionally unsupported by both the Python and Rust
+deployers; a Windows CLI can still use a `remote` target over SSH to a Linux
+Docker host. WSL uses the Linux engine binary and Linux host behavior; do not
+describe a WSL run as Windows-native local Docker support. USB device steps
+remain hardware-dependent and require the user to connect and confirm the
+device.
+
+On macOS, local Docker uses the literal `docker` command found by the engine's
+process environment. If Docker Desktop's CLI is only inside its application
+bundle, start a new engine process with a temporary `PATH` containing that
+bundle's `bin` directory; do not change global shell configuration or assume an
+existing engine daemon inherits the new path. Verify the new engine instance
+with `doctor --json` before selecting a local target. A running Docker Desktop
+daemon is a host prerequisite, not evidence that a deployment has passed.
+
 ## Rules
 
 1. **Credentials and secrets:** never invent a host, username or password —
@@ -45,7 +69,9 @@ the app running.
    you checked, what you changed). Transient registry or network errors follow
    the backoff rule in `references/deploy.md` §6 and do not use up a round.
 4. Never edit files under the engine's content directory
-   (`~/.sensecraft/content/`) or the app's bundled solutions. Configuration
+   (`~/.sensecraft/content/`) or a resource solution directory. The binary
+   embeds the device catalog; solution files come from a pulled content
+   directory or an explicitly supplied resource/solutions directory. Configuration
    changes go through the desktop app's edit copy (`references/app-only.md`).
 5. **Reading output:** read the CLI's JSON output directly; it is small. If a
    filter is needed, use `jq` only when it is already installed. Do not start
@@ -62,32 +88,57 @@ the app running.
    is not found, also try `~/.sensecraft/bin/sensecraft-engine --version`
    (Windows: `%USERPROFILE%\.sensecraft\bin\sensecraft-engine.cmd`); the
    installer puts it there and prints the `PATH` line to add.
-2. Not installed → install it together with the solutions (ask the user first,
+2. Before running an installer, check its local prerequisites. On Unix run
+   `command -v curl || command -v wget`, `command -v sha256sum || command -v shasum`,
+   `command -v tar`, `command -v jq`, and `command -v minisign`. If wget is the
+   selected downloader, also require `wget --help | grep -- --compression` to
+   succeed; otherwise stop because the CDN may return gzip content. On Windows
+   PowerShell run `Get-Command irm`, `Get-Command Invoke-WebRequest`,
+   `Get-Command Expand-Archive`, `Get-Command ConvertFrom-Json`, and
+   `Get-Command minisign`. Windows uses PowerShell/.NET ZIP and JSON support;
+   it does not require `tar` or `jq`. If any check fails, report the missing
+   command and stop; do not install packages or start another interpreter.
+   `minisign` is required to verify the signed release manifest; Unix `jq` is
+   required by the shell installer to read it.
+3. Not installed → install it together with the solutions (ask the user first,
    it downloads a program):
 
    ```
-   curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content
+   curl --compressed -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+   ```
+
+   If `curl` is unavailable but `wget` passed the prerequisite check, use the
+   equivalent command:
+
+   ```
+   wget --compression=auto -qO- https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
    ```
 
    Windows PowerShell:
 
    ```
-   & ([scriptblock]::Create((irm https://sensecraft-statics.seeed.cc/engine/install.ps1))) -WithContent
+   & ([scriptblock]::Create((irm https://sensecraft-statics.seeed.cc/solution-app/engine/install.ps1))) -WithContent
    ```
 
-3. Solutions are downloaded separately from the engine:
+4. Solutions are downloaded separately from the engine:
 
    | Command | Does |
    |---|---|
-   | `sensecraft-engine content status --json` | Compares local solutions with the online list (`--offline`: local only) |
+   | `sensecraft-engine content status --offline --json` | Reads the local content store only; an empty store is a normal result with `installed: 0` and exit code 0 |
+   | `sensecraft-engine content status --json` | Compares local solutions with the online list |
    | `sensecraft-engine content pull` | Downloads every solution (first run), or only `--solution <id>` |
    | `sensecraft-engine content update` | Re-downloads installed solutions that changed online |
 
-   A command that finds no solutions exits with code 3 and says to run
-   `content pull`. After `content pull` / `update`, if an engine instance is
+   Run the offline status check before deciding whether content is installed.
+   If it returns exit code 0 with `installed: 0`, run `content pull`; do not
+   treat that status result as an error. A solution query such as `solution
+   list` or `deploy-info` exits with code 3 when no usable resource/solution
+   directory is available and tells you to run `content pull`. If a usable
+   directory exists but the requested solution ID is unknown, the query exits
+   with code 2. After `content pull` / `update`, if an engine instance is
    already running it keeps the solutions it loaded at start: run
    `sensecraft-engine daemon stop` when no deployment is running.
-4. Device pre-checks on this computer: `sensecraft-engine doctor --json`. Each
+5. Device pre-checks on this computer: `sensecraft-engine doctor --json`. Each
    check has `status` (`ok` / `warn` / `fail`) and a `fix` command. Show the
    user any `fail` and its `fix`; running a `fix` changes this computer and
    needs their OK.
@@ -101,8 +152,8 @@ Use `--lang zh` on commands that take `--lang` when the user writes in Chinese,
 |---|---|---|
 | 0 | Success / accepted | Continue |
 | 1 | Deployment failed, cancelled or interrupted; for `counting` / `face` / `wizard` / `robot`: the device did not confirm | `references/diagnose.md` |
-| 2 | Bad or missing parameters; stdout has `{"type":"error","code":"missing_params","missing":[...]}` | Ask the user for each `missing` field, run again |
-| 3 | Environment or conflict: no solutions (`content pull`), device busy with another deployment (409), engine instance shutting down or incompatible, serial port busy | Read the message; wait or fix, then run again |
+| 2 | Invalid arguments or request. A `missing_params` error includes `missing[]`; an unknown ID or malformed JSON is also code 2 and may have no `missing[]` | Ask for each field only when `missing[]` is present; otherwise inspect the ID, JSON shape and parameter spelling, then correct or ask for the specific value |
+| 3 | Environment or conflict: a solution query has no usable resource/solution directory (`content pull`), device busy with another deployment (409), engine instance shutting down or incompatible, serial port busy | Read the message; pull content or fix the environment, then run again. An empty `content status --offline` store is exit 0, not this case |
 | 4 | This step needs the desktop app (deployer not in the engine) | Tell the user to deploy this solution from the SenseCraft Solution app |
 | 5 | Internal engine error | Engine bug: `references/diagnose.md` §6 |
 

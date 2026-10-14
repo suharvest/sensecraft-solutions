@@ -210,9 +210,14 @@ Wire the gate controller's digital output through an interposing relay to the ba
 1. Check the reComputer R1000 Series wiki for the digital output type and rated voltage and current, and pick a DIN-rail interposing relay with a matching coil voltage
 2. Wire the gate controller's DO output to the relay coil (+) and DO common / GND to the coil (−)
 3. Wire the relay's normally open (NO) contact to the barrier controller's OPEN terminal and its COM contact to the barrier's common terminal; do not wire the close terminal, closing stays with the barrier's own loop detector or radar
-4. Prepare the whitelist CSV with the header `plate,label,valid_from,valid_until`, then upload it: `curl -X PUT --data-binary @whitelist.csv http://<gate-controller-ip>:8081/whitelist`
-5. Fire a test opening: `curl -X POST http://<gate-controller-ip>:8081/gate/test`; the relay should close for about 0.5 s
-6. Confirm the relay action with a multimeter or the relay indicator before testing with a vehicle at the barrier
+
+### Deployment Complete
+
+The physical wiring is complete; use these API calls to upload the whitelist and verify the gate service, then confirm the relay action before a vehicle test.
+
+1. Prepare the whitelist CSV with the header `plate,label,valid_from,valid_until`, then upload it: `curl -X PUT --data-binary @whitelist.csv http://<gate-controller-ip>:8081/whitelist`
+2. Fire a test opening: `curl -X POST http://<gate-controller-ip>:8081/gate/test`; the relay should close for about 0.5 s
+3. Confirm the relay action with a multimeter or the relay indicator before testing with a vehicle at the barrier
 
 ### Troubleshooting
 

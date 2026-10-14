@@ -248,6 +248,7 @@ actions:
       sudo: true
       ignore_error: true
       run: |
+        set -e
         echo "Results page: port 8631 on this host, e.g. http://<host-ip>:8631/"
         echo "API key (sign in to the results page and call the HTTP API with it):"
         cat /opt/clip-private-transcription/config/api_key
