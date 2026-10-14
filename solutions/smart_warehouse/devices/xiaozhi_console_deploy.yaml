@@ -323,7 +323,8 @@ actions:
           DB_PASS=$(grep '^MYSQL_ROOT_PASSWORD=' .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
         fi
         if [ -z "$DB_PASS" ]; then
-          DB_PASS=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$DB" 2>/dev/null | grep '^MYSQL_ROOT_PASSWORD=' | head -1 | cut -d= -f2-)
+          INSPECT_FMT='{{range .Config.Env}}{{println .}}'$(printf '{{%s}}' 'end')
+          DB_PASS=$(docker inspect --format "$INSPECT_FMT" "$DB" 2>/dev/null | grep '^MYSQL_ROOT_PASSWORD=' | head -1 | cut -d= -f2-)
         fi
         DB_PASS="${DB_PASS:-${MYSQL_ROOT_PASSWORD:-123456}}"
 
