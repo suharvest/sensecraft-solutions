@@ -185,6 +185,285 @@ user_inputs:
     description_i18n:
       zh: "LLM 服务的 API 密钥"
 
+actions:
+  before:
+    - name: xiaozhi-console-prepare-dirs
+      description: 准备工作目录
+      description_i18n:
+        zh: 准备工作目录
+      timeout: 120
+      run: |
+        set -e
+        if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
+        mkdir -p "$COMPOSE_DIR/data" "$COMPOSE_DIR/uploadfile"
+        echo "工作目录就绪：$COMPOSE_DIR"
+      name_i18n:
+        zh: 准备工作目录
+
+    - name: xiaozhi-console-render-config
+      description: 渲染 .config.yaml
+      description_i18n:
+        zh: 渲染 .config.yaml
+      timeout: 60
+      run: |
+        set -e
+        if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
+        TPL="$COMPOSE_DIR/configs/config-console.yaml"
+        if [ ! -f "$TPL" ]; then
+          echo "找不到配置模板：$TPL"
+          exit 1
+        fi
+        mkdir -p "$COMPOSE_DIR/data"
+        HOST_IP=""
+        if command -v python3 >/dev/null 2>&1; then
+          HOST_IP=$(python3 -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('1.1.1.1', 80)); print(s.getsockname()[0])" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v route >/dev/null 2>&1 && command -v ipconfig >/dev/null 2>&1; then
+          IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+          [ -n "$IFACE" ] && HOST_IP=$(ipconfig getifaddr "$IFACE" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        DEVICE_HOST="${HOST_IP:-127.0.0.1}"
+        if [ "$DEVICE_HOST" = "127.0.0.1" ] || [ "$DEVICE_HOST" = "localhost" ] || [ -z "$DEVICE_HOST" ]; then
+          echo "ERROR: Could not resolve a reachable LAN IP address for this machine (detected '${DEVICE_HOST}')." >&2
+          echo "  ESP32 devices and client containers require a reachable LAN IP to connect to the console." >&2
+          exit 1
+        fi
+        sed -e "s|__DEVICE_HOST__|${DEVICE_HOST}|g" \
+            "$TPL" > "$COMPOSE_DIR/data/.config.yaml"
+        echo "已生成 data/.config.yaml（secret 待回填）"
+      name_i18n:
+        zh: 渲染 .config.yaml
+
+  after:
+    - name: xiaozhi-console-apply-settings
+      description: 写入服务地址与 MCP 接入点
+      description_i18n:
+        zh: 写入服务地址与 MCP 接入点
+      timeout: 600
+      fail_fast: false
+      env:
+        INPUT_VOICE_HOST: "{{voice_ai_host}}"
+        INPUT_LLM_HOST: "{{llm_host}}"
+        INPUT_DEPLOY_MODE: "{{deploy_mode}}"
+        INPUT_LLM_BASE_URL: "{{llm_base_url}}"
+        INPUT_LLM_MODEL_NAME: "{{llm_model_name}}"
+        INPUT_LLM_API_KEY: "{{llm_api_key}}"
+      run: |
+        if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
+        VOICE_HOST="$INPUT_VOICE_HOST"
+        LLM_HOST="$INPUT_LLM_HOST"
+        DEPLOY_MODE="$INPUT_DEPLOY_MODE"
+        HOST_IP=""
+        if command -v python3 >/dev/null 2>&1; then
+          HOST_IP=$(python3 -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('1.1.1.1', 80)); print(s.getsockname()[0])" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v route >/dev/null 2>&1 && command -v ipconfig >/dev/null 2>&1; then
+          IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+          [ -n "$IFACE" ] && HOST_IP=$(ipconfig getifaddr "$IFACE" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        DEVICE_HOST="${HOST_IP:-127.0.0.1}"
+        if [ "$DEVICE_HOST" = "127.0.0.1" ] || [ "$DEVICE_HOST" = "localhost" ] || [ -z "$DEVICE_HOST" ]; then
+          echo "ERROR: Could not resolve a reachable LAN IP address for this machine (detected '${DEVICE_HOST}')." >&2
+          echo "  ESP32 devices and client containers require a reachable LAN IP to connect to the console." >&2
+          exit 1
+        fi
+        LLM_BASE_URL="$INPUT_LLM_BASE_URL"
+        LLM_MODEL_NAME="$INPUT_LLM_MODEL_NAME"
+        LLM_API_KEY="$INPUT_LLM_API_KEY"
+        sql_quote() { printf '%s' "$1" | sed -e "s/[\\']/&&/g"; }
+
+        for PAIR in "语音服务地址:$VOICE_HOST" "本地LLM地址:$LLM_HOST"; do
+          LABEL=${PAIR%%:*}
+          VAL=${PAIR#*:}
+          case "$VAL" in
+            127.0.0.1|localhost|::1|0.0.0.0)
+              echo "配置错误：$LABEL 填的是 $VAL。" >&2
+              echo "  该地址由容器读取，容器里的 127.0.0.1 指向容器自己，连不到宿主服务。" >&2
+              echo "  请改填这台机器的局域网 IP（例如 $DEVICE_HOST）后重新部署。" >&2
+              exit 1
+              ;;
+          esac
+        done
+
+        if [ -z "$VOICE_HOST" ]; then
+          echo "语音服务地址为空，跳过自动配置。请登录智控台在「模型配置」里手工填写。"
+          exit 0
+        fi
+        [ -n "$LLM_HOST" ] || LLM_HOST="$VOICE_HOST"
+
+        DB=xiaozhi-esp32-server-db
+        for i in $(seq 1 30); do
+          docker exec $DB mysqladmin ping -h localhost --silent >/dev/null 2>&1 && break
+          sleep 5
+        done
+        if ! docker exec $DB mysqladmin ping -h localhost --silent >/dev/null 2>&1; then
+          echo "数据库未就绪，跳过自动配置。部署本身已完成，请登录智控台手工填写地址。"
+          exit 0
+        fi
+
+        DB_PASS=""
+        if [ -f "$COMPOSE_DIR/.env" ]; then
+          DB_PASS=$(grep '^MYSQL_ROOT_PASSWORD=' "$COMPOSE_DIR/.env" | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        fi
+        if [ -z "$DB_PASS" ] && [ -f ".env" ]; then
+          DB_PASS=$(grep '^MYSQL_ROOT_PASSWORD=' .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        fi
+        if [ -z "$DB_PASS" ]; then
+          INSPECT_FMT='{{range .Config.Env}}{{println .}}'$(printf '{{%s}}' 'end')
+          DB_PASS=$(docker inspect --format "$INSPECT_FMT" "$DB" 2>/dev/null | grep '^MYSQL_ROOT_PASSWORD=' | head -1 | cut -d= -f2-)
+        fi
+        DB_PASS="${DB_PASS:-${MYSQL_ROOT_PASSWORD:-123456}}"
+
+        run_sql() {
+          SQLERR=$(mktemp)
+          docker exec -i $DB mysql -uroot -p"$DB_PASS" \
+            --default-character-set=utf8mb4 xiaozhi_esp32_server 2>"$SQLERR"
+          RC=$?
+          grep -v 'Using a password on the command line' "$SQLERR" >&2 || true
+          rm -f "$SQLERR"
+          return $RC
+        }
+
+        SECRET=$(run_sql <<SQL
+        SELECT param_value FROM sys_params WHERE param_code='server.secret';
+        SQL
+        )
+        SECRET=$(echo "$SECRET" | tail -1 | tr -d '\r\n ')
+        CONFIG_FILE="$COMPOSE_DIR/data/.config.yaml"
+        if [ -n "$SECRET" ] && [ "$SECRET" != "null" ] && [ "$SECRET" != "param_value" ] \
+           && sed -e "s|^  secret: .*|  secret: \"$SECRET\"|" "$CONFIG_FILE" > "$CONFIG_FILE.tmp" \
+           && mv -f "$CONFIG_FILE.tmp" "$CONFIG_FILE"; then
+          echo "已回填 server.secret"
+        else
+          echo "未能从数据库读到 server.secret，xiaozhi-server 将无法读取配置。"
+          echo "请检查智控台是否正常启动。"
+        fi
+
+        echo "写入语音服务地址：$VOICE_HOST:8621"
+        run_sql <<SQL
+        UPDATE ai_model_config
+           SET config_json = JSON_SET(config_json, '\$.ws_url', 'ws://$(sql_quote "$VOICE_HOST"):8621/asr/stream')
+         WHERE id = 'ASR_OpenVoiceStream' AND JSON_VALID(config_json);
+        UPDATE ai_model_config
+           SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$VOICE_HOST"):8621')
+         WHERE id = 'TTS_OpenVoiceStream' AND JSON_VALID(config_json);
+        SQL
+
+        if [ "$DEPLOY_MODE" = "edge_computing" ]; then
+          echo "写入本地 LLM 地址：$LLM_HOST:8000"
+          run_sql <<SQL
+          UPDATE ai_model_config
+             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$LLM_HOST"):8000/v1')
+           WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
+        SQL
+        else
+          if [ -n "$LLM_BASE_URL" ] && [ -n "$LLM_MODEL_NAME" ]; then
+            echo "写入云端 LLM：$LLM_MODEL_NAME @ $LLM_BASE_URL"
+            run_sql <<SQL
+            UPDATE ai_model_config
+               SET config_json = JSON_SET(config_json,
+                     '\$.base_url',   '$(sql_quote "$LLM_BASE_URL")',
+                     '\$.model_name', '$(sql_quote "$LLM_MODEL_NAME")',
+                     '\$.api_key',    '$(sql_quote "$LLM_API_KEY")'),
+                   model_name = '云端大模型'
+             WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
+        SQL
+          else
+            echo "未填写云端 LLM 信息，请登录智控台在「模型配置 → 大语言模型」里补充"
+          fi
+        fi
+
+        echo "写入设备接入地址：$DEVICE_HOST"
+        run_sql <<SQL
+        UPDATE sys_params SET param_value = 'ws://$DEVICE_HOST:18000/xiaozhi/v1/'
+         WHERE param_code = 'server.websocket';
+        UPDATE sys_params SET param_value = 'http://$DEVICE_HOST:18002/xiaozhi/ota/'
+         WHERE param_code = 'server.ota';
+        SQL
+
+        MCP_KEY=$(docker logs mcp-endpoint-server 2>&1 | grep -oE 'key=[a-f0-9]+' | head -1 | cut -d= -f2)
+        if [ -n "$MCP_KEY" ]; then
+          echo "写入 MCP 接入点参数"
+          run_sql <<SQL
+          UPDATE sys_params
+             SET param_value = 'http://$DEVICE_HOST:18004/mcp_endpoint/health?key=$MCP_KEY'
+           WHERE param_code = 'server.mcp_endpoint';
+        SQL
+        else
+          echo "未能从接入点容器日志里读到 key，server.mcp_endpoint 未配置。"
+          echo "请执行 docker logs mcp-endpoint-server 查看后手工填写。"
+        fi
+
+        for PAT in 'model:data:*' 'server:config' 'sys:params'; do
+          docker exec xiaozhi-esp32-server-redis redis-cli --scan --pattern "$PAT" 2>/dev/null \
+            | xargs -r -n50 docker exec -i xiaozhi-esp32-server-redis redis-cli DEL >/dev/null 2>&1 || true
+        done
+
+        docker restart xiaozhi-server >/dev/null 2>&1 || true
+
+        echo "等待语音服务端就绪..."
+        READY=0
+        N=0
+        while [ $N -lt 20 ]; do
+          CODE=$(docker exec xiaozhi-server python3 -c \
+            "import urllib.request;print(urllib.request.urlopen('http://localhost:8003/voiceprint/health',timeout=3).status)" \
+            2>/dev/null || echo 000)
+          if [ "$CODE" = "200" ]; then READY=1; break; fi
+          N=$((N+1)); sleep 3
+        done
+        if [ "$READY" = "1" ]; then
+          echo "语音服务端已就绪"
+        else
+          echo ""
+          echo "⚠️  语音服务端 60 秒内未就绪。配置已全部写入，但服务未起来。"
+          echo "    请执行以下命令查看原因："
+          echo "      docker logs xiaozhi-server --tail 50"
+          echo "    若日志显示「无效的服务器密钥」，说明 secret 回填未生效。"
+        fi
+
+        echo ""
+        echo "======================================================"
+        echo " 部署完成，已自动配置完毕"
+        echo "======================================================"
+        echo " 智控台:   http://$DEVICE_HOST:18002"
+        echo " 用户名:   admin"
+        echo " 初始密码: Seeed@2026   ← 请登录后立即修改"
+        echo ""
+        echo " 已自动写入："
+        echo "   语音服务(ASR/TTS/声纹)  $VOICE_HOST:8621"
+        if [ "$DEPLOY_MODE" = "edge_computing" ]; then
+          echo "   本地 LLM                $LLM_HOST:8000"
+        else
+          echo "   云端 LLM                ${LLM_MODEL_NAME:-（未填写，需在智控台补充）}"
+        fi
+        echo "   设备接入地址            ws://$DEVICE_HOST:18000/xiaozhi/v1/"
+        echo "   MCP 接入点              已配置"
+        echo ""
+        echo " 烧录固件时要填的 OTA 地址："
+        echo "   http://$DEVICE_HOST:18002/xiaozhi/ota/"
+        echo ""
+        echo " 还需手工完成："
+        echo "   1. 新建智能体，角色模板选「仓库智能助手」"
+        echo "   2. 在「编辑功能」里复制该智能体的 MCP 接入点地址"
+        echo "   3. 粘贴到仓管系统的「智能体配置」里"
+        echo "======================================================"
+      name_i18n:
+        zh: 写入服务地址与 MCP 接入点
+
 # ---------------------------------------------------------------------------
 # 远程部署视图
 # ---------------------------------------------------------------------------

@@ -72,6 +72,390 @@ files:
     remote_path: /home/{{username}}/edge-waste-sorting/hailo_waste/models/efficientnet_lite0_waste8_u8.hef
     checksum: "sha256:c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1"
 
+actions:
+  before:
+    - name: Validate the Hailo runtime and the ABI lock
+      run: |
+        set -e
+        if [ ! -c /dev/hailo0 ]; then
+          echo "No /dev/hailo0 — the Hailo-8 is not present or hailo_pci is not loaded" >&2
+          exit 1
+        fi
+        if [ ! -f /usr/lib/libhailort.so.4.21.0 ]; then
+          echo "libhailort.so.4.21.0 not found — this deployment is ABI-locked to HailoRT 4.21." >&2
+          echo "Installed HailoRT:" >&2
+          ls /usr/lib/libhailort.so.* 2>/dev/null >&2 || true
+          exit 1
+        fi
+        command -v hailortcli >/dev/null 2>&1 && hailortcli --version 2>/dev/null | head -2 || true
+        command -v hailortcli >/dev/null 2>&1 && hailortcli fw-control identify 2>/dev/null | head -4 || true
+        if command -v apt-mark >/dev/null 2>&1; then
+          HELD=$(apt-mark showhold 2>/dev/null | grep -c hailo || true)
+          if [ "$HELD" -lt 2 ]; then
+            echo "WARNING: expected both hailort and hailort-pcie-driver on hold; found $HELD" >&2
+            echo "Run: sudo apt-mark hold hailort hailort-pcie-driver" >&2
+          fi
+        fi
+        if ! grep -rqs force_desc_page_size=4096 /etc/modprobe.d/; then
+          echo "hailo_pci is missing force_desc_page_size=4096 — configure(hef) will crash." >&2
+          echo "Run: echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf && sudo reboot" >&2
+          exit 1
+        fi
+        echo "Hailo runtime OK"
+      name_i18n:
+        zh: 校验 Hailo 运行环境与 ABI 锁
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            docker-compose --version
+            exit 0
+          fi
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
+
+    - name: Fetch and verify the HEF
+      timeout: 900
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        HEF="$MODELS_DIR/efficientnet_lite0_waste8_u8.hef"
+        SHA=c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1
+        URL="https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8_u8_t2.hef"
+        mkdir -p "$MODELS_DIR"
+
+        if [ -s "$HEF" ] && echo "$SHA  $HEF" | sha256sum -c - >/dev/null 2>&1; then
+          echo "HEF already present and verified: $HEF"
+          exit 0
+        fi
+
+        echo "Downloading efficientnet_lite0_waste8_u8_t2.hef ..."
+        curl -fSL --retry 3 -o "$HEF.part" "$URL"
+        echo "$SHA  $HEF.part" | sha256sum -c -
+        mv -f "$HEF.part" "$HEF"
+        echo "HEF verified: $HEF"
+      name_i18n:
+        zh: 获取并校验 HEF
+
+    - name: Write the source, trigger and MQTT configuration
+      env:
+        INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_MIN_CONFIDENCE: "{{min_confidence}}"
+        INPUT_TRIGGER_SOURCES: "{{trigger_sources}}"
+        INPUT_DEBOUNCE_MS: "{{debounce_ms}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_KIND: "{{source_kind}}"
+      run: |
+        set -e
+        if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
+        import json, os, re, sys
+
+        path = sys.argv[1]
+        workdir = sys.argv[2]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        config["model"]["path"] = "/models/efficientnet_lite0_waste8_u8.hef"
+        config["model"]["accelerator"] = "hailo"
+        config["model"]["track"] = "baseline"
+        config["model"]["backbone"] = "efficientnet_lite0"
+        config["model"]["input_range"] = "uint8"
+        config["model"]["onnx_sha256"] = (
+            "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
+        config["rules"]["min_confidence"] = float(os.environ["INPUT_MIN_CONFIDENCE"])
+        config["trigger"]["mode"] = "on_demand"
+        config["trigger"]["sources"] = os.environ["INPUT_TRIGGER_SOURCES"].split(",")
+        config["trigger"]["debounce_ms"] = int(os.environ["INPUT_DEBOUNCE_MS"])
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        stream_id = os.environ["INPUT_STREAM_ID"]
+        source_kind = os.environ["INPUT_SOURCE_KIND"]
+        config["mqtt"]["topic"] = device_name + "/waste/{stream_id}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
+        if not source_uri:
+            sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
+        config["sources"] = [{
+            "stream_id": stream_id,
+            "uri": source_uri,
+            "kind": source_kind,
+        }]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+
+        mapped_devices = ["/dev/hailo0:/dev/hailo0"]
+        if source_kind == "usb" and source_uri.startswith("/dev/video"):
+            mapped_devices.append(f"{source_uri}:{source_uri}")
+        for compose_name in ("docker-compose.yml", ".sensecraft-compose.yml"):
+            compose_file = os.path.join(workdir, compose_name)
+            if not os.path.exists(compose_file):
+                continue
+            with open(compose_file, "r") as f:
+                c_lines = f.read().splitlines()
+            out_lines = []
+            in_svc = False
+            skipping_devs = False
+            inserted = False
+            for line in c_lines:
+                stripped = line.lstrip()
+                indent = len(line) - len(stripped)
+                if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                    in_svc = False
+                    skipping_devs = False
+                if not in_svc and indent == 2 and stripped == "waste:":
+                    in_svc = True
+                    out_lines.append(line)
+                    if mapped_devices and not inserted:
+                        out_lines.append("    devices:")
+                        for dev in mapped_devices:
+                            out_lines.append(f'      - "{dev}"')
+                        inserted = True
+                    continue
+                if in_svc:
+                    if indent == 4 and stripped.startswith("devices:"):
+                        skipping_devs = True
+                        continue
+                    if skipping_devs:
+                        if not stripped or (stripped.startswith("#") and indent >= 4):
+                            continue
+                        if indent > 4 or (indent == 4 and stripped.startswith("-")):
+                            continue
+                        skipping_devs = False
+                out_lines.append(line)
+            tmp_compose = compose_file + ".tmp"
+            with open(tmp_compose, "w") as f:
+                f.write("\n".join(out_lines) + "\n")
+            os.replace(tmp_compose, compose_file)
+            print(f"compose  = {compose_file} (devices={mapped_devices})")
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if os.path.exists(override_file):
+            os.remove(override_file)
+
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={device_name}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device   = {device_name} ({env_file})")
+
+        print(f"model    = {config['model']['path']} (track=baseline)")
+        print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
+        print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {safe_uri}")
+        PY
+      name_i18n:
+        zh: 写入视频源、触发与 MQTT 配置
+
+  after:
+    - name: Verify the runtime is up and answering triggers
+      timeout: 240
+      ignore_error: true
+      env:
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+      run: |
+        set -e
+        BROKER=edge-waste-mosquitto
+        TOPIC="$INPUT_DEVICE_NAME/waste/$INPUT_STREAM_ID/results"
+        for i in $(seq 1 24); do
+          if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+            cat /tmp/healthz.json
+            docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            SUB=$!
+            sleep 1
+            curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+            if wait $SUB; then
+              echo "MQTT result received on $TOPIC"
+              docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result. Expected while no HEF exists." >&2
+        docker logs --tail 40 edge-waste-app 2>&1 || true
+      name_i18n:
+        zh: 验证运行时已启动并能响应触发
+
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "pi5-hailo"
+    required: true
+    description: First segment of the MQTT topic — name this device after the bin or the drop-off point
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按垃圾桶或投放点命名
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "bin1-cam1"
+    required: true
+    description: Appended to the MQTT topic and also carried in the payload — consumers must read it there, not parse the topic
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，同时也在 payload 里——消费者必须从 payload 读，不要解析 topic
+  - id: source_kind
+    name: Camera Type
+    type: select
+    default: usb
+    required: true
+    options:
+      - value: usb
+        label: USB camera (/dev/videoN)
+        label_i18n:
+          zh: USB 摄像头（/dev/videoN）
+      - value: rtsp
+        label: IP camera (RTSP URL)
+        label_i18n:
+          zh: IP 摄像头（RTSP 地址）
+      - value: file
+        label: Video file — for bench testing without a camera
+        label_i18n:
+          zh: 视频文件——没有相机时的台面测试
+    name_i18n:
+      zh: 相机类型
+  - id: source_uri
+    name: Camera Address
+    type: text
+    required: true
+    default_template: "/dev/video0"
+    placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: For a USB camera also uncomment the matching /dev/videoN line in assets/hailo/docker-compose.yml. Never mount all of /dev.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 用 USB 相机时还要在 assets/hailo/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释。不要整个挂载 /dev。
+  - id: trigger_sources
+    name: Trigger Sources
+    type: select
+    default: "http"
+    required: true
+    description: Which sources fire a capture. HTTP is POST /trigger on port 8080.
+    options:
+      - value: "http"
+        label: HTTP only — POST /trigger
+        label_i18n:
+          zh: 仅 HTTP——POST /trigger
+      - value: "http,button"
+        label: HTTP + physical button
+        label_i18n:
+          zh: HTTP + 实体按钮
+      - value: "http,motion"
+        label: HTTP + motion in frame
+        label_i18n:
+          zh: HTTP + 画面移动侦测
+      - value: "http,button,motion"
+        label: All three
+        label_i18n:
+          zh: 三者全开
+    name_i18n:
+      zh: 触发源
+    description_i18n:
+      zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger。
+  - id: debounce_ms
+    name: Trigger Debounce (ms)
+    type: text
+    default: "800"
+    required: true
+    description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 触发去抖（毫秒）
+    description_i18n:
+      zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队
+  - id: min_confidence
+    name: Minimum Confidence
+    type: text
+    default: "0.5"
+    required: true
+    description: Below this the event carries rules.fallback_category (residual) instead of the argmax. The 4.3%-below-0.5 figure is a CPU FP32 measurement of the current baseline (EfficientNet-Lite0).
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 最低置信度
+    description_i18n:
+      zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。「4.3% 低于 0.5」是当前基线（EfficientNet-Lite0）在 CPU FP32 上的实测。
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
   compose_dir: assets/hailo

@@ -51,6 +51,82 @@ post_deployment:
 name_i18n:
   zh: SenseCAP 云桥接
 
+actions:
+  before:
+    - name: Check the broker is reachable
+      ignore_error: true
+      env:
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+      run: |
+        set -e
+        BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+        BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
+        if command -v nc >/dev/null 2>&1; then
+          if nc -z -w 5 "$BROKER_HOST" "$BROKER_PORT"; then
+            echo "broker $BROKER_HOST:$BROKER_PORT is reachable"
+          else
+            echo "WARNING: cannot open $BROKER_HOST:$BROKER_PORT — deploy the Home Assistant step first, or check the address" >&2
+          fi
+        else
+          echo "nc not available, skipping the reachability check"
+        fi
+      name_i18n:
+        zh: 检查 broker 可达
+    - name: Write the bridge configuration
+      env:
+        INPUT_TIMEZONE: "{{timezone}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
+        INPUT_ACCESS_ID: "{{access_id}}"
+        INPUT_ACCESS_KEY: "{{access_key}}"
+        INPUT_SENSECAP_MQTT_HOST: "{{sensecap_mqtt_host}}"
+        INPUT_BACKFILL_MONTHS: "{{backfill_months}}"
+        INPUT_UNAVAILABLE_AFTER: "{{unavailable_after}}"
+      run: |
+        set -e
+        if [ -d "assets/cloud" ]; then WORKDIR="assets/cloud"; else WORKDIR="."; fi
+        umask 077
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
+        COMPOSE_PROJECT_NAME=agri-env-cloud
+        TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
+        MQTT_OUT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
+        MQTT_OUT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
+        MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
+        SENSECAP_ACCESS_ID="$(dotenv_quote "$INPUT_ACCESS_ID")"
+        SENSECAP_ACCESS_KEY="$(dotenv_quote "$INPUT_ACCESS_KEY")"
+        SENSECAP_MQTT_HOST="$(dotenv_quote "$INPUT_SENSECAP_MQTT_HOST")"
+        SENSECAP_BACKFILL_MONTHS="$(dotenv_quote "$INPUT_BACKFILL_MONTHS")"
+        BRIDGE_UNAVAILABLE_AFTER="$(dotenv_quote "$INPUT_UNAVAILABLE_AFTER")"
+        EOF
+        echo "wrote $WORKDIR/.env"
+      name_i18n:
+        zh: 写入桥的配置
+  after:
+    - name: Wait for the first cloud message
+      fail_fast: false
+      ignore_error: true
+      timeout: 600
+      run: |
+        echo "Watching the bridge log for the cloud MQTT connection ..."
+        for i in $(seq 1 60); do
+          if docker logs agri-env-bridge-cloud 2>&1 | grep -q "cloud MQTT connected"; then
+            echo "Connected to the SenseCAP cloud MQTT stream."
+            docker logs --tail 20 agri-env-bridge-cloud 2>&1
+            exit 0
+          fi
+          sleep 10
+        done
+        echo "No cloud MQTT connection yet." >&2
+        echo "Two candidate hosts exist and neither is confirmed — if the log shows a DNS or auth failure, redeploy with the other one." >&2
+        docker logs --tail 40 agri-env-bridge-cloud 2>&1 || true
+      name_i18n:
+        zh: 等待第一条云端消息
+
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-monitor
   compose_dir: assets/cloud

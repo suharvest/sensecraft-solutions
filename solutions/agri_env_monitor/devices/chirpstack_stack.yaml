@@ -64,6 +64,106 @@ post_deployment:
 name_i18n:
   zh: ChirpStack 与桥
 
+actions:
+  before:
+    - name: Write the ChirpStack and bridge configuration
+      env:
+        INPUT_LNS_MODE: "{{lns_mode}}"
+        INPUT_TIMEZONE: "{{timezone}}"
+        INPUT_REGION: "{{region}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
+        INPUT_LNS_MQTT_HOST: "{{lns_mqtt_host}}"
+        INPUT_LNS_MQTT_PORT: "{{lns_mqtt_port}}"
+        INPUT_LNS_MQTT_USERNAME: "{{lns_mqtt_username}}"
+        INPUT_LNS_MQTT_PASSWORD: "{{lns_mqtt_password}}"
+        INPUT_LNS_APPLICATION_ID: "{{lns_application_id}}"
+        INPUT_UNAVAILABLE_AFTER: "{{unavailable_after}}"
+      run: |
+        set -e
+        if [ -d "assets/chirpstack" ]; then WORKDIR="assets/chirpstack"; else WORKDIR="."; fi
+        umask 077
+        gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        DB_PASS=""
+        if [ -f "$WORKDIR/.env" ]; then
+          DB_PASS=$(grep -E '^(POSTGRES_PASSWORD|CHIRPSTACK_DB_PASSWORD)=' "$WORKDIR/.env" | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        fi
+        if [ -z "$DB_PASS" ]; then
+          if command -v openssl >/dev/null 2>&1; then
+            DB_PASS=$(openssl rand -hex 16)
+          else
+            DB_PASS=$(gen 16)
+          fi
+        fi
+        TMP_ENV="$(mktemp "$WORKDIR/.env.tmp.XXXXXX")"
+        chmod 600 "$TMP_ENV"
+        cat > "$TMP_ENV" <<EOF
+        COMPOSE_PROJECT_NAME=agri-env-chirpstack
+        TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
+        CHIRPSTACK_REGION="$(dotenv_quote "$INPUT_REGION")"
+        MQTT_OUT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
+        MQTT_OUT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
+        MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
+        CHIRPSTACK_MQTT_HOST="$(dotenv_quote "$INPUT_LNS_MQTT_HOST")"
+        CHIRPSTACK_MQTT_INTERNAL_PORT="$(dotenv_quote "$INPUT_LNS_MQTT_PORT")"
+        CHIRPSTACK_MQTT_USERNAME="$(dotenv_quote "$INPUT_LNS_MQTT_USERNAME")"
+        CHIRPSTACK_MQTT_PASSWORD="$(dotenv_quote "$INPUT_LNS_MQTT_PASSWORD")"
+        CHIRPSTACK_APPLICATION_ID="$(dotenv_quote "$INPUT_LNS_APPLICATION_ID")"
+        BRIDGE_UNAVAILABLE_AFTER="$(dotenv_quote "$INPUT_UNAVAILABLE_AFTER")"
+        EOF
+        if [ "$INPUT_LNS_MODE" = "local" ]; then
+          printf 'COMPOSE_PROFILES=local-lns\n' >> "$TMP_ENV"
+        fi
+        printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$DB_PASS" >> "$TMP_ENV"
+        printf 'POSTGRES_PASSWORD=%s\n' "$DB_PASS" >> "$TMP_ENV"
+        mv -f "$TMP_ENV" "$WORKDIR/.env"
+        chmod 600 "$WORKDIR/.env"
+        echo "wrote $WORKDIR/.env"
+      name_i18n:
+        zh: 写入 ChirpStack 与桥的配置
+  after:
+    - name: Start ChirpStack when this host is the network server
+      env:
+        INPUT_LNS_MODE: "{{lns_mode}}"
+      run: |
+        set -e
+        if [ -d "assets/chirpstack" ]; then cd "assets/chirpstack"; fi
+        if [ "$INPUT_LNS_MODE" = "local" ]; then
+          COMPOSE_FILE="docker-compose.yml"
+          if [ -f ".sensecraft-compose.yml" ]; then
+            COMPOSE_FILE=".sensecraft-compose.yml"
+          fi
+          echo "Confirming local ChirpStack services (profile local-lns) using $COMPOSE_FILE ..."
+          docker compose -p agri-env-chirpstack -f "$COMPOSE_FILE" --profile local-lns ps
+        else
+          echo "lns_mode=$INPUT_LNS_MODE — the network server runs on the M2, only the bridge starts here."
+        fi
+      name_i18n:
+        zh: 本机作为网络服务器时启动 ChirpStack
+    - name: Confirm the bridge reached the network server
+      fail_fast: false
+      ignore_error: true
+      timeout: 300
+      run: |
+        for i in $(seq 1 30); do
+          if docker logs agri-env-bridge-chirpstack 2>&1 | grep -q "ChirpStack MQTT connected"; then
+            echo "Bridge is subscribed to application/+/device/+/event/up."
+            docker logs --tail 20 agri-env-bridge-chirpstack 2>&1
+            exit 0
+          fi
+          sleep 10
+        done
+        echo "The bridge has not connected to the ChirpStack broker." >&2
+        echo "M2 route: check the address, port and credentials shown on the gateway's LoRa Network page." >&2
+        echo "R1000 route: check 'docker compose --profile local-lns ps' — the broker may not have started." >&2
+        docker logs --tail 40 agri-env-bridge-chirpstack 2>&1 || true
+      name_i18n:
+        zh: 确认桥已连上网络服务器
+
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-monitor
   compose_dir: assets/chirpstack
