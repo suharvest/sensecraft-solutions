@@ -1,6 +1,9 @@
 version: '1.0'
 id: recamera_heatmap_grafana
 name: Smart Retail People Flow Heatmap
+name_i18n:
+  zh: 智慧零售人流热力图
+  ja: スマートリテール人流ヒートマップ
 intro:
   summary: See which shelves attract customers, which aisles get ignored — works with reCamera, IP cameras + AI boxes, pick the best fit for your store
   description_file: description.md
@@ -89,7 +92,10 @@ intro:
     likes_count: 0
     difficulty: beginner
     estimated_time: 15min
-  links: {}
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/
   presets:
     - id: recamera
       name: AI Camera Direct
@@ -118,7 +124,7 @@ intro:
       links:
         wiki: https://wiki.seeedstudio.com/integration_of_real-time_heat_map_with_grafana_data_dashboard/
         wiki_i18n:
-          zh: https://wiki.seeedstudio.com/cn/integration_of_real-time_heat_map_with_grafana_data_dashboard/
+          zh: https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/
         github: https://github.com/xr686/reCamera-with-Heatmap
       name_i18n:
         zh: AI 摄像头直连
@@ -261,5 +267,3 @@ deployment:
       url: http://localhost:3000
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 智慧零售人流热力图

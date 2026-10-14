@@ -1,6 +1,9 @@
 version: "1.0"
 id: gun_detection_frigate
 name: AI Gun Detection
+name_i18n:
+  zh: AI 视觉枪支检测
+  ja: AI 銃器検知
 intro:
   summary: Real-time gun detection using Frigate NVR with AI-accelerated video analysis on edge devices
   description_file: description.md
@@ -89,5 +92,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: AI 视觉枪支检测

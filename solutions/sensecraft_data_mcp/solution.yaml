@@ -1,6 +1,9 @@
 version: '1.0'
 id: sensecraft_data_mcp
 name: SenseCAP PaaS MCP Bridge
+name_i18n:
+  zh: SenseCAP PaaS MCP 数据桥
+  ja: SenseCAP PaaS MCP ブリッジ
 intro:
   summary: Give any MCP-compatible voice assistant or LLM a spoken, anomaly-first report on your SenseCAP PaaS device fleet — ask "how are my devices doing" or "what's the greenhouse reading right now" and get a real answer, no app or dashboard needed.
   summary_i18n:
@@ -70,5 +73,3 @@ deployment:
     zh: guide_zh.md
   selection_mode: sequential
 
-name_i18n:
-  zh: SenseCAP PaaS MCP 数据桥

@@ -1,6 +1,9 @@
 version: "1.0"
 id: voice_robot_lekiwi
 name: Voice-Controlled LeKiwi Robot
+name_i18n:
+  zh: 语音控制 LeKiwi 机器人
+  ja: 音声操縦 LeKiwi ロボット
 intro:
   summary: Control a 3-wheeled Kiwi-drive robot with your voice using Groq AI. Say "Hey Jarvis" and give natural language commands to drive, steer, and move hands-free.
   description_file: description.md
@@ -121,5 +124,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 语音控制 LeKiwi 机器人

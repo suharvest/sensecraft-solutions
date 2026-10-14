@@ -21,6 +21,7 @@ id: unmanned_store_access
 name: Unmanned Store Face Access
 name_i18n:
   zh: 无人门店人脸门禁
+  ja: 無人店舗向け顔認証入退室
 
 intro:
   summary: >-
@@ -609,6 +610,11 @@ intro:
   stats:
     difficulty: advanced
     estimated_time: 60min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/
 
 deployment:
   guide_file: guide.md
