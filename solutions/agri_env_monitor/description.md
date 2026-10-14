@@ -40,12 +40,14 @@ Tested by replaying uplinks from 3 devices on a local host, 13 uplinks across th
 
 ## Deployment Comparison
 
-| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack |
-|---|---|---|---|
-| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway |
-| Internet needed | Yes | No | No |
-| History from before install | Yes | No | No |
-| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 |
+| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack | Custom Ops Dashboard |
+|---|---|---|---|---|
+| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway | You want a focused ops console on top of the bridge |
+| Internet needed | Yes | No | No | No |
+| History from before install | Yes | No | No | No |
+| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 | Light; runs beside one of the other presets |
+
+The **Custom Ops Dashboard** preset adds a focused, receive-only console on top of the agri-env bridge: a single container subscribes to the bridge's normalized MQTT output and serves a purpose-built dashboard (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It runs beside any of the three ingest presets (or the bridge alone) and reads the bridge's state topics, so it works with any SenseCAP node the bridge decodes — a companion display, not a separate ingest path.
 
 ## Usage Notes
 

@@ -4,7 +4,7 @@ This document is for **AI agents** (Claude Code and similar assistants). It defi
 
 This open-source repository contains the **solution content** (YAML / Markdown / assets) and the **authoring & validation tooling** (`spec/`, `packages/`, `skills/`). The deployment engine is distributed separately, in two forms:
 
-- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `sensecraft` skill).
+- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `sensecraft` skill).
 - The **SenseCraft Solution desktop app** (Python backend `provisioning-station`). Content preview (Part A), the app HTTP API (Part C) and the legacy `solutionctl deploy` / `manage` / `stage` commands (Part D, appendix) need it.
 
 ## Four user roles, four workflows
@@ -70,7 +70,7 @@ This flow is a **local preview**, not a release. Changes land only on the curren
 - Change `bundled_hashes.json`
 - Trigger any git operation
 
-If the user actually wants "everyone to see it" — stop. That is a separate release flow that runs `scripts/generate_solution_manifest.py` and commits `bundled_hashes.json`, and requires explicit confirmation.
+If the user actually wants "everyone to see it" — stop. That is a separate release flow: the App Engine Build signs `manifest.json` and `bundled_hashes.json`, with `manifest.base_url` set to the exact `https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/<40-hex-content-pin>` URL and `RELEASE_STATUS.content_pin` matching it. An approved operator runs `scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload` to print and review the exact inventory before explicitly adding `--upload-signed`; solution zips publish under that immutable URL prefix and the four metadata objects remain at the root. After the approved signed artifact is published, refresh the submodule's `solutions/bundled_hashes.json` from that same artifact at a reviewed content commit, then update the App pin and the root hashbook. Publication does not update any checkout.
 
 ## Standard flow
 
@@ -304,7 +304,7 @@ else:
 
 ## Default: `sensecraft-engine`
 
-Install once (`curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content`; Windows: `install.ps1 -WithContent`), then:
+Install once (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`; Windows: `install.ps1 -WithContent`), then:
 
 ```bash
 sensecraft-engine content update                                # refresh solutions
