@@ -1,12 +1,12 @@
 version: "1.0"
 id: review_setup
-name: Wi-Fi and light target
+name: Connect and set buttons
 name_i18n:
-  zh: Wi-Fi 和灯光目标
+  zh: 联网并设置按钮
 type: manual
 # No user_inputs: none of the current deployers writes these E1003 settings.
 steps:
   - id: adapter_pending
-    name: App setup is not available yet
+    name: Set the network and the light controlled by the buttons using the setup client
     name_i18n:
-      zh: App 配置入口暂未开放
+      zh: 由联调客户端设置网络与按钮控制的灯

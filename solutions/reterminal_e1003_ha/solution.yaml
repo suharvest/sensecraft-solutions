@@ -6,9 +6,9 @@ name_i18n:
 # Review only. Enable only after the engine adapter and HA acceptance pass.
 enabled: false
 intro:
-  summary: Set up reTerminal E1003 over USB to control a dimmable light in Home Assistant.
+  summary: An E1003 dashboard with a clock, temperature and humidity, and buttons bound to a Home Assistant light.
   summary_i18n:
-    zh: 通过 USB 配置 reTerminal E1003，控制 Home Assistant 中的一盏可调光灯。
+    zh: 在 E1003 查看时间与温湿度，为灯光按钮绑定 Home Assistant 中的灯。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -30,12 +30,12 @@ intro:
           model: [e1003]
   presets:
     - id: usb_candidate
-      name: USB setup
+      name: Install and set up
       name_i18n:
-        zh: USB 配置
-      description: Connect the panel over USB, then set up Wi-Fi and the light target. App setup is not available yet.
+        zh: 安装与设置
+      description: Install over USB, then set the network and the light controlled by the buttons. A setup client handles these settings during local testing.
       description_i18n:
-        zh: 通过 USB 连接面板，设置 Wi-Fi 和灯光目标。App 配置入口尚未开放。
+        zh: 通过 USB 安装，再设置网络与按钮控制的灯。本地联调由客户端写入这些设置。
       device_groups:
         - id: panel
           name: Dashboard panel

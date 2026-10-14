@@ -1,35 +1,27 @@
-# Control Home Assistant Lighting with E1003
+# Put Home Assistant controls on E1003
 
-This solution is designed for homes or offices already running Home Assistant.
-Its goal is to let you control a dimmable light directly from the fixed touch
-screen on reTerminal E1003.
+The fixed layout includes a clock, temperature and humidity, and a lighting card.
+Choose the light for that card once; its on/off and four brightness buttons share the setting.
 
-> This is a candidate release and cannot be deployed through the App yet.
-> USB firmware distribution and device setup are still being integrated,
-> and state and brightness synchronization for arbitrary light targets is not yet complete.
+> Local integration testing: the App can install the panel firmware; the setup client handles networking and button settings. The formal solution remains disabled. Display state and brightness synchronization still need integration.
 
-## What you can use it for
-
-Once configured, the panel should let you switch the target light on or off and
-adjust its brightness. The planned App setup uses precompiled firmware so users
-will not need to edit configuration files or compile code.
+## What to set
 
 | Setting | Purpose |
 | --- | --- |
-| Wi-Fi | Connects the panel to your home or office local network |
-| Unique encryption key per device | Secures the connection between Home Assistant and the panel |
-| Light entity `light.xxx` | Specifies the light you want to control |
+| Wi-Fi name and password | Connect the panel to your LAN |
+| Light controlled by the buttons | Copy the light's entity ID from Home Assistant, such as `light.bedroom` |
+
+The client generates the device connection key during initial setup. Copy it when adding the panel to Home Assistant. Installation uses precompiled firmware; no configuration-file editing or compilation is needed.
 
 ## Where to use it
 
-- On a bedside table: turn bedroom lights on/off or dim them before sleeping.
-- By your desk: quickly adjust workspace lighting without opening an app.
+- At the bedside, check the time and use the lighting card to switch or dim the light.
+- By your desk, check temperature and humidity and operate workspace lighting.
 
 ## Before you start
 
-- Only works with reTerminal E1003 using the current fixed screen layout.
-- Requires an existing Home Assistant setup with at least one dimmable light.
-- The setup computer, E1003 panel, and Home Assistant must be on the same reachable local network.
-- Connects directly to Home Assistant via the ESPHome native API—no MQTT broker or web server required.
-- Updates are USB-only; wireless updates (OTA) are not supported.
-- Changing the light target only sets up the control binding; it does not automatically synchronize the panel display's state and brightness (requires a HA Blueprint or adapter).
+- Use reTerminal E1003 with the current fixed layout and a dimmable light already added to Home Assistant.
+- Keep the setup computer, panel and Home Assistant on the same reachable LAN.
+- The panel uses the ESPHome native API, with no MQTT or device web server required.
+- Installation and updates use USB; wireless updates (OTA) are not supported.

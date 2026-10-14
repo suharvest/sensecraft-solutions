@@ -3,9 +3,9 @@
 # This template is intentionally not registered as an executable device yet.
 version: "1.0"
 id: e1003_usb
-name: Flash E1003 USB candidate
+name: Install E1003 panel firmware
 name_i18n:
-  zh: 烧录 E1003 USB 候选固件
+  zh: 安装 E1003 面板程序
 type: esp32_usb
 detection:
   method: usb_serial
@@ -33,23 +33,23 @@ firmware:
         file: assets/firmware/firmware.factory.bin
 steps:
   - id: detect
-    name: Detect device
+    name: Identify panel
     name_i18n:
-      zh: 检测设备
+      zh: 识别面板
   - id: erase
-    name: Full-chip erase (keep disabled; destroys saved configuration)
+    name: Full-chip erase (keep off to retain saved settings)
     name_i18n:
-      zh: 全片擦除（保持关闭；会删除已保存配置）
+      zh: 全片擦除（关闭以保留已有配置）
     optional: true
     default: false
   - id: flash
-    name: Write factory image
+    name: Install panel firmware
     name_i18n:
-      zh: 写入 factory image
+      zh: 安装面板程序
   - id: verify
-    name: Verify flash write
+    name: Verify firmware write
     name_i18n:
-      zh: 校验烧录写入
+      zh: 校验程序写入
 post_deployment:
   reset_device: true
   wait_for_ready: 10

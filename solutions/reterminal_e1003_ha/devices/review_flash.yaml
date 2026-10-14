@@ -1,8 +1,8 @@
 version: "1.0"
 id: review_flash
-name: Connect E1003
+name: Install panel firmware
 name_i18n:
-  zh: 连接 E1003
+  zh: 安装面板程序
 type: manual
 steps:
   - id: resource_pending

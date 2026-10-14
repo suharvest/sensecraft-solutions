@@ -1,8 +1,8 @@
 version: "1.0"
 id: review_ha
-name: Confirm the device in Home Assistant
+name: Enable control in Home Assistant
 name_i18n:
-  zh: 在 Home Assistant 确认设备
+  zh: 在 Home Assistant 启用控制
 type: manual
 steps:
   - id: ha_acceptance
