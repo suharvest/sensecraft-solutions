@@ -1,11 +1,11 @@
 version: "1.0"
 id: review_ha
-name: Home Assistant acceptance checklist
+name: Confirm the device in Home Assistant
 name_i18n:
-  zh: Home Assistant 验收清单
+  zh: 在 Home Assistant 确认设备
 type: manual
 steps:
   - id: ha_acceptance
-    name: Confirm integration, action permission and real light behavior after adapter integration
+    name: Confirm the device, allow actions and test light control
     name_i18n:
-      zh: 适配接入后确认集成、动作权限和真实灯光行为
+      zh: 确认设备并开启动作权限，测试灯光控制

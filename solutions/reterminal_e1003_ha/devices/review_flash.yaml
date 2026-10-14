@@ -1,11 +1,11 @@
 version: "1.0"
 id: review_flash
-name: Firmware resource review (blocked)
+name: Connect E1003
 name_i18n:
-  zh: 固件资源审阅（阻塞）
+  zh: 连接 E1003
 type: manual
 steps:
   - id: resource_pending
-    name: Maintainer must stage the verified factory image before flash review
+    name: USB firmware flashing is not available yet
     name_i18n:
-      zh: 维护者须先准备校验通过的 factory image 才能审阅烧录
+      zh: USB 固件写入入口暂未开放

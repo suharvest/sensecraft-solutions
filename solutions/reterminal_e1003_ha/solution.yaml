@@ -1,41 +1,41 @@
 version: "1.0"
 id: reterminal_e1003_ha
-name: reTerminal E1003 Home Assistant Dashboard (Candidate)
+name: reTerminal E1003 Home Assistant Dashboard
 name_i18n:
-  zh: reTerminal E1003 Home Assistant 面板（候选）
+  zh: reTerminal E1003 Home Assistant 面板
 # Review only. Enable only after the engine adapter and HA acceptance pass.
 enabled: false
 intro:
-  summary: USB firmware candidate for a local Home Assistant light panel. App setup and dynamic display synchronization are pending.
+  summary: Set up reTerminal E1003 over USB to control a dimmable light in Home Assistant.
   summary_i18n:
-    zh: 面向本地 Home Assistant 灯光面板的 USB 固件候选方案。App 配置与动态显示同步尚待接入。
+    zh: 通过 USB 配置 reTerminal E1003，控制 Home Assistant 中的一盏可调光灯。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   category: sensing
   solution_type: solution
-  tags: [home-assistant, esphome, epaper, usb, candidate]
+  tags: [home-assistant, esphome, epaper, usb]
   input_requirements:
     - type: network
-      description: Setup computer, panel and Home Assistant on the same reachable LAN; one existing dimmable light entity.
+      description: The setup computer, panel, and Home Assistant must be on the same reachable LAN, with an existing dimmable light entity.
       description_i18n:
-        zh: 配置电脑、面板和 Home Assistant 在同一可达局域网；已有一个可调光的灯实体。
+        zh: 配置电脑、面板和 Home Assistant 需在同一可达局域网，且已有一盏可调光的灯。
   device_catalog:
     reterminal_e_series:
-      description: Runs the fixed E1003 display and touch layout.
+      description: Runs the fixed E1003 screen and touch interface.
       description_i18n:
-        zh: 运行固定的 E1003 显示与触摸布局。
+        zh: 运行固定的 E1003 屏幕与触控界面。
       purchase:
         require:
           model: [e1003]
   presets:
     - id: usb_candidate
-      name: USB integration review
+      name: USB setup
       name_i18n:
-        zh: USB 接入审阅
-      description: Disabled candidate; local artifact staging enables flash configuration review only. Provisioning requires an engine adapter.
+        zh: USB 配置
+      description: Connect the panel over USB, then set up Wi-Fi and the light target. App setup is not available yet.
       description_i18n:
-        zh: 禁用候选；本地准备固件后可审阅烧录配置。设备配置仍需 engine 适配器。
+        zh: 通过 USB 连接面板，设置 Wi-Fi 和灯光目标。App 配置入口尚未开放。
       device_groups:
         - id: panel
           name: Dashboard panel

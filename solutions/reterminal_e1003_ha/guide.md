@@ -1,90 +1,67 @@
-## Preset: USB integration review {#usb_candidate}
+## Preset: USB setup {#usb_candidate}
 
-## Step 1: Review USB firmware {#flash_panel type=manual required=true config=devices/review_flash.yaml}
+This candidate cannot yet be deployed through the App. The steps below describe
+the planned setup flow. Until device configuration is integrated, these steps
+cannot be executed directly.
 
-**Blocked in this source candidate:** no public firmware resource exists.
-A maintainer can stage the pinned local image using
-[the resource instructions](assets/firmware/README.md). Only that separate
-local review copy replaces this step with `esp32_usb`; the candidate stays
-disabled. This step does not flash anything in the source package.
+## Step 1: Connect E1003 {#flash_panel type=manual required=true config=devices/review_flash.yaml}
+
+USB firmware flashing is not yet available. Before connecting the device,
+have a USB data cable ready and close any serial tools that might use the port.
 
 ### Prerequisites
 
-Use the E1003 and the existing fixed layout only. Close serial monitors and
-coordinate exclusive device access before any hardware test. Select the actual
-port; VID/PID `1a86:7522` is a hint, not proof of device identity. The reviewed
-payload writes the factory image at 0x0, at 115200 baud, with full-chip erase
-disabled. Do not enable erase during a normal USB update.
+Have a reTerminal E1003, a running Home Assistant instance, and a dimmable light.
+The setup computer, E1003 panel, and Home Assistant must be on the same reachable local network.
 
 ### Wiring
 
-1. Connect the E1003 carrier USB-UART port to the computer with a data cable.
-2. Keep stable USB power during flashing and later configuration saving.
+1. Connect the USB-UART port on the E1003 carrier board to your computer using a USB data cable.
+2. Keep power connected and stable while writing firmware and saving settings.
 
 ### Troubleshooting
 
-| Issue | Action |
+| Issue | Solution |
 | --- | --- |
-| No flash control in this candidate | Maintainer must stage the exact local factory image; no download URL is available |
-| Port is busy | Coordinate with its owner and close the serial monitor; do not take another session's port |
-| Device does not restart on reopen | Adapter must perform an explicit WCH reset and allow ten seconds for boot |
-| Update offers full-chip erase | Keep it disabled; stop if the engine cannot preserve that choice |
+| Device port not found | Make sure the USB cable supports data transfer, and close other apps using the serial port |
+| Flashing options not showing | This feature is not integrated yet; the current candidate cannot be deployed directly |
 
-## Step 2: Review App configuration dependency {#configure_panel type=manual required=true config=devices/review_setup.yaml}
+## Step 2: Set Wi-Fi and light target {#configure_panel type=manual required=true config=devices/review_setup.yaml}
 
-**Blocked:** current content cannot write Wi-Fi, an API key or the light target.
-This manual review marker does not perform provisioning. Do not count a manual
-step completion as device setup success. Do not run a maintainer script as an
-end-user workaround.
+App configuration controls for this step are not yet available. Once integrated,
+users will enter their Wi-Fi credentials and paste the target entity ID (such as `light.bedroom`).
+Each panel will use its own encryption key.
 
-The future App adapter must collect Wi-Fi SSID/password, generate and privately
-save a separate API key for this device, then write/read back the pasted
-`light.xxx` target using the encrypted native API. It must verify device
-identity, retry key activation safely and show a saving countdown of at least
-65 seconds after the last target write before permitting a power-off check.
-No Wi-Fi/password/target form is supplied until these writes exist.
+After changing the light target, keep the device powered for at least 65 seconds
+to allow settings to save before disconnecting power or resetting the panel.
 
 ### Troubleshooting
 
-| Issue | Action |
+| Issue | Solution |
 | --- | --- |
-| Wi-Fi fails | Adapter must report the Improv error and allow correction without losing the saved key record |
-| Initial key setup expires | Reset and retry within the ten-minute setup window, reusing the private recovery record |
-| Key already installed | Reconnect with the saved key; never replace it with a newly generated key on retry |
-| Target readback matches | This proves the live value only; wait for saving, then verify again after reset |
+| Light entity ID unknown | Open the Entities list in Home Assistant, locate your light, and copy the ID starting with `light.` |
+| Not sure if settings saved | Wait past the 65-second window, then reboot the device to verify the target persists; immediate readback does not guarantee flash storage |
 
-## Step 3: Check Home Assistant acceptance {#verify_ha type=manual required=true verify=true config=devices/review_ha.yaml}
+## Step 3: Confirm the device in Home Assistant {#verify_ha type=manual required=true verify=true config=devices/review_ha.yaml}
 
-**Acceptance checklist for after the adapter is implemented.** This is a manual
-verify step, not automated proof. The current disabled candidate cannot finish
-the preceding setup.
+Complete device setup before performing these verification steps.
 
-1. In HA, confirm the discovered ESPHome device. If discovery is unavailable,
-   add ESPHome using the verified device IP and TCP 6053. The Improv response
-   URL contains address metadata; it is not a device web page.
-2. Copy the per-device encryption key using an explicit private App reveal/copy
-   action into the HA integration. Do not paste it into logs or reports.
-3. Enable **Allow the device to perform Home Assistant actions** in the ESPHome
-   integration options. Paste an existing dimmable `light.xxx` as the target
-   through the future App adapter.
-4. After the save interval, reset and check the same key and target. Test touch
-   on/off and dimming against the real light, then close App and repeat.
-5. Keep display synchronization marked incomplete until a HA Blueprint/adapter
-   passes state, brightness-only changes, target A→B, HA restart, panel reconnect
-   and unavailable-target tests. The old fixed-target example is insufficient.
+1. Confirm the discovered ESPHome device in Home Assistant. If it does not appear automatically,
+   add the ESPHome integration manually using the device IP and port `6053`.
+2. Enter the panel's encryption key (the App control to reveal or copy this key is still pending integration).
+3. In the ESPHome integration options, enable **Allow the device to perform Home Assistant actions**.
+4. Test light toggling and dimming from the touch panel, then close the App and test again.
 
 ### Troubleshooting
 
-| Issue | Action |
+| Issue | Solution |
 | --- | --- |
-| HA cannot reach the panel | Check LAN reachability and TCP 6053; use the verified IP if multicast discovery is unavailable |
-| Touch has no effect | Check the target exists, dimming support, integration connection and action permission |
-| Display follows an old light | Dynamic state push is pending; changing the control target does not implement display synchronization |
-| Lost the private key record | Stop and use an explicitly authorized recovery process; normal reset does not erase the installed key |
+| Home Assistant cannot connect | Check local network connectivity, and confirm the IP, port, and encryption key are correct |
+| Touching the panel has no effect | Verify the entity ID, ensure the light supports dimming, and check that device action permissions are enabled |
+| Display does not follow light state | State and brightness synchronization for arbitrary lights is not yet implemented and requires a HA Blueprint or adapter |
 
 ### Deployment Complete
 
-This candidate is ready for content review only. Flash write verification,
-encrypted API verification and HA/light/display acceptance are separate results.
-The manual renderer can mark a checklist complete without performing I/O;
-keep the solution disabled until the adapter and acceptance gates pass.
+Final acceptance will verify that settings persist after reboot, light control works
+with the App closed, and the display accurately tracks the target light's state and brightness.
+The current candidate cannot complete this deployment flow; checking off this list does not mean the device has been configured.

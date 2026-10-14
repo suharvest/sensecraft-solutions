@@ -1,12 +1,12 @@
 version: "1.0"
 id: review_setup
-name: App provisioning adapter (blocked)
+name: Wi-Fi and light target
 name_i18n:
-  zh: App 设备配置适配器（阻塞）
+  zh: Wi-Fi 和灯光目标
 type: manual
 # No user_inputs: none of the current deployers writes these E1003 settings.
 steps:
   - id: adapter_pending
-    name: Improv, private API key recovery and native API target writes need engine support
+    name: App setup is not available yet
     name_i18n:
-      zh: Improv、私有 API key 恢复和原生 API 目标写入需要 engine 支持
+      zh: App 配置入口暂未开放
