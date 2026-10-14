@@ -1,4 +1,4 @@
-> **Dataset license pending.** The bundled weights are trained on a repost of NEU-DET; retrain on your own images before external demos or commercial use.
+> **Dataset Attribution & Licence Notice**: The bundled weights are trained on the public academic NEU-DET (Northeastern University Surface Defect Database) for algorithm capability and edge throughput evaluation. Derived frames and model weights follow attribution guidelines (see gallery/ATTRIBUTION.md). For commercial deployment, retrain with your own production line imagery.
 
 ## What it does
 
