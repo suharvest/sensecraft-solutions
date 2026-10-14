@@ -112,9 +112,13 @@ actions:
         set -e
         VOL="openclaw_recomputer_r_openclaw-config"
         docker volume create "$VOL" 2>/dev/null || true
-        WS_VOL="openclaw_recomputer_r_openclaw-workspace"
-        docker volume create "$WS_VOL" 2>/dev/null || true
-        docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '
+        INIT_IMAGE="openclaw/openclaw:2026.6.33-slim"
+        if ! docker image inspect "$INIT_IMAGE" >/dev/null 2>&1; then
+          if docker image inspect "${DOCKER_REGISTRY_PREFIX}library/alpine" >/dev/null 2>&1; then
+            INIT_IMAGE="${DOCKER_REGISTRY_PREFIX}library/alpine"
+          fi
+        fi
+        docker run --rm --network none -u 0 -v "$VOL":/data -v "$WS_VOL":/ws "$INIT_IMAGE" sh -c '
           chown 1000:1000 /data /ws
           if [ ! -f /data/openclaw.json ]; then
             cat > /data/openclaw.json <<VOLCFG
