@@ -68,52 +68,6 @@ post_deployment:
 name_i18n:
   zh: Home Assistant 与 MQTT Broker
 
-actions:
-  before:
-    - name: Write the broker credentials
-      env:
-        INPUT_TIMEZONE: "{{timezone}}"
-        INPUT_HA_PORT: "{{ha_port}}"
-        INPUT_MQTT_PORT: "{{mqtt_port}}"
-        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
-        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
-      run: |
-        set -e
-        if [ -d "assets/docker" ]; then WORKDIR="assets/docker"; else WORKDIR="."; fi
-        umask 077
-        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
-        cat > "$WORKDIR/.env" <<EOF
-        COMPOSE_PROJECT_NAME=agri-env
-        TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
-        HA_PORT="$(dotenv_quote "$INPUT_HA_PORT")"
-        MQTT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
-        MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
-        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
-        EOF
-        echo "wrote $WORKDIR/.env (mode $(stat -c %a "$WORKDIR/.env" 2>/dev/null || stat -f %A "$WORKDIR/.env"))"
-      name_i18n:
-        zh: 写入 broker 凭据
-  after:
-    - name: Wait for Home Assistant to answer
-      fail_fast: false
-      ignore_error: true
-      timeout: 300
-      env:
-        INPUT_HA_PORT: "{{ha_port}}"
-      run: |
-        HA_PORT="${INPUT_HA_PORT:-8123}"
-        echo "Waiting for Home Assistant to finish first start ..."
-        for i in $(seq 1 60); do
-          if curl -fsS "http://127.0.0.1:$HA_PORT/" >/dev/null 2>&1; then
-            echo "Home Assistant is answering on port $HA_PORT."
-            exit 0
-          fi
-          sleep 5
-        done
-        echo "Home Assistant did not answer within 5 minutes — check 'docker logs agri-env-homeassistant'." >&2
-      name_i18n:
-        zh: 等待 Home Assistant 就绪
-
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-monitor
   compose_dir: assets/docker
