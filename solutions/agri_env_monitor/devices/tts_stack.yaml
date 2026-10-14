@@ -131,7 +131,7 @@ actions:
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 stack 配置
-  after:
+  after_upload:
     - name: Initialise the stack and create the admin user
       ignore_error: true
       timeout: 900
@@ -142,6 +142,27 @@ actions:
       run: |
         set -e
         if [ -d "assets/tts" ]; then cd "assets/tts"; fi
+        # Load offline image tarballs if stack or DB images are not present
+        if ! docker image inspect thethingsnetwork/lorawan-stack:3.31.0 >/dev/null 2>&1 || \
+           ! docker image inspect postgres:15-alpine >/dev/null 2>&1 || \
+           ! docker image inspect redis:7-alpine >/dev/null 2>&1; then
+          for SEARCH_DIR in \
+            "data/cache/offline/images" \
+            "../data/cache/offline/images" \
+            "../../data/cache/offline/images" \
+            ".cache" \
+            "../.cache" \
+            "${HOME}/.sensecraft/cache/offline/images" \
+            "${HOME}/.cache/sensecraft/offline/images" \
+            "/var/cache/sensecraft/offline/images"; do
+            [ -d "$SEARCH_DIR" ] || continue
+            for tarball in "$SEARCH_DIR"/*stack*.tar* "$SEARCH_DIR"/*postgres*.tar* "$SEARCH_DIR"/*redis*.tar*; do
+              [ -f "$tarball" ] || continue
+              echo "Loading offline image tarball: $tarball"
+              docker load -i "$tarball" >/dev/null 2>&1 || true
+            done
+          done
+        fi
         HOST_IP=""
         if [ -f .env ]; then
           HOST_IP=$(grep '^TTS_HOST=' .env | cut -d= -f2-)
@@ -170,6 +191,7 @@ actions:
         echo "Stack initialised. Console: http://${HOST_IP}:1885/console"
       name_i18n:
         zh: 初始化 stack 并创建管理员
+  after:
     - name: Confirm the bridge reached both brokers
       fail_fast: false
       ignore_error: true

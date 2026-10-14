@@ -219,7 +219,8 @@ actions:
       run: |
         set -e
         docker exec -u 0 openclaw-gateway sh -c '
-          chown -R 1000:1000 /home/node/.openclaw
+          chown 1000:1000 /home/node/.openclaw
+          find /home/node/.openclaw -mindepth 1 -maxdepth 1 ! -name workspace -exec chown -R 1000:1000 {} + 2>/dev/null || true
           if [ ! -f /home/node/.openclaw/openclaw.json ]; then
             printf "%s\n" "{\"gateway\":{\"controlUi\":{\"dangerouslyAllowHostHeaderOriginFallback\":true}},\"commands\":{\"native\":\"auto\",\"nativeSkills\":\"auto\"},\"tools\":{\"profile\":\"coding\",\"allow\":[\"exec\",\"bash\"],\"deny\":[],\"exec\":{\"host\":\"gateway\",\"security\":\"full\",\"ask\":\"off\"}}}" > /home/node/.openclaw/openclaw.json
             chown 1000:1000 /home/node/.openclaw/openclaw.json
