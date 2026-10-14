@@ -1,0 +1,160 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "SenseCraft home" [ref=e197] [cursor=pointer]:
+        - /url: "#top"
+        - img [ref=e6]
+        - generic [ref=e9]:
+          - strong [ref=e10]: SenseCraft
+          - text: /Command Selection Workbench
+      - generic [ref=e11]:
+        - button "Model service connected" [ref=e198] [cursor=pointer]:
+          - generic [ref=e14]: Model service connected
+          - img [ref=e15]
+        - button "Switch language" [ref=e199] [cursor=pointer]:
+          - generic [ref=e18]: 中
+          - generic [ref=e19]: /
+          - generic [ref=e20]: EN
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "Fast responses from edge devices" [level=1] [ref=e200]
+          - paragraph [ref=e25]: Use a small decision model to select commands on-device, put limited compute to work, and shorten the response path for on-site instructions.
+        - generic [ref=e28]: Live service · local inference
+      - generic [ref=e29]:
+        - region "Configure a decision scene" [ref=e201]:
+          - generic [ref=e31]:
+            - heading "Configure a decision scene" [level=2] [ref=e202]
+            - button "Reset" [ref=e203] [cursor=pointer]
+          - generic [ref=e35]: Scene template
+          - combobox "Scene template" [ref=e204]:
+            - option "Machine control · Production line" [selected]
+            - option "Quality routing · Vision check"
+            - option "Warehouse ops · Logistics node"
+          - generic [ref=e37]: Decision prompt
+          - textbox "Decision prompt" [ref=e205]: You route production line instructions. Choose the best matching candidate.
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: Candidate commands
+              - generic [ref=e42]: Keep 2–16 options for your site
+            - button "Add" [ref=e206] [cursor=pointer]:
+              - img [ref=e44]
+              - generic [ref=e46]: Add
+          - generic [ref=e47]:
+            - generic [ref=e207]:
+              - generic [ref=e208]: "01"
+              - generic [ref=e209]:
+                - textbox "Candidate commands 1" [ref=e210]: Reduce conveyor speed
+                - textbox "Candidate commands 1 Candidate description" [ref=e211]: Adjust the specified conveyor to the target speed
+              - button "Delete candidate command" [ref=e212] [cursor=pointer]:
+                - img [ref=e213]
+            - generic [ref=e215]:
+              - generic [ref=e216]: "02"
+              - generic [ref=e217]:
+                - textbox "Candidate commands 2" [ref=e218]: Pause equipment
+                - textbox "Candidate commands 2 Candidate description" [ref=e219]: Safely pause the current production equipment
+              - button "Delete candidate command" [ref=e220] [cursor=pointer]:
+                - img [ref=e221]
+            - generic [ref=e223]:
+              - generic [ref=e224]: "03"
+              - generic [ref=e225]:
+                - textbox "Candidate commands 3" [ref=e226]: Query equipment status
+                - textbox "Candidate commands 3 Candidate description" [ref=e227]: Return the current equipment status
+              - button "Delete candidate command" [ref=e228] [cursor=pointer]:
+                - img [ref=e229]
+          - button "Save configuration" [ref=e231] [cursor=pointer]:
+            - img [ref=e73]
+            - generic [ref=e75]: Save configuration
+          - status [ref=e76]
+        - region "Enter a site instruction" [ref=e232]:
+          - generic [ref=e78]:
+            - heading "Enter a site instruction" [level=2] [ref=e233]
+            - generic [ref=e83]: model.rknn · 90 tokens
+          - generic [ref=e84]:
+            - generic [ref=e85]: "01"
+            - paragraph [ref=e86]: Describe the action you want. The model will rank candidate commands.
+          - generic [ref=e87]: Text or voice transcript
+          - generic [ref=e88]:
+            - textbox "Text or voice transcript" [active] [ref=e234]:
+              - /placeholder: e.g. Reduce conveyor 3 speed to 60%
+              - text: 把三号输送带速度降到 60%
+            - generic [ref=e90]: 14 / 240
+          - generic [ref=e91]:
+            - button "Use example" [ref=e235] [cursor=pointer]:
+              - img [ref=e93]
+              - generic [ref=e95]: Use example
+            - button "Start recording Text decisions remain available without a voice service." [disabled] [ref=e236] [cursor=pointer]:
+              - img [ref=e97]
+              - generic [ref=e100]: Start recording
+              - generic [ref=e101]: Text decisions remain available without a voice service.
+            - generic [ref=e102]:
+              - checkbox "Decide after transcript" [checked] [ref=e237]
+              - generic [ref=e104]: Decide after transcript
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - heading "Decision result" [level=3] [ref=e238]
+              - generic [ref=e109]: Model service connected
+            - generic [ref=e370]:
+              - generic [ref=e371]:
+                - generic [ref=e372]:
+                  - text: "Actual model:"
+                  - strong [ref=e373]: laya
+                - generic [ref=e374]: "Backend: rknn"
+                - generic [ref=e375]: "Max context: 90"
+              - generic [ref=e376]:
+                - generic [ref=e377]:
+                  - text: Selected candidate
+                  - strong [ref=e378]: Reduce conveyor speed
+                - generic [ref=e379]: "Raw score: 5.07"
+              - generic [ref=e380]:
+                - generic [ref=e381]:
+                  - generic [ref=e382]: "1"
+                  - strong [ref=e383]: Reduce conveyor speed
+                  - generic "Relative bar for candidate comparison only" [ref=e384]
+                  - generic [ref=e386]: "5.07"
+                - generic [ref=e387]:
+                  - generic [ref=e388]: "2"
+                  - strong [ref=e389]: Pause equipment
+                  - generic "Relative bar for candidate comparison only" [ref=e390]
+                  - generic [ref=e392]: "-4.379"
+                - generic [ref=e393]:
+                  - generic [ref=e394]: "3"
+                  - strong [ref=e395]: Query equipment status
+                  - generic "Relative bar for candidate comparison only" [ref=e396]
+                  - generic [ref=e397]: "-4.566"
+              - generic [ref=e398]: "Total: 594.2 ms · Encoding: 0.0 ms · Inference: 503.8 ms · Relative bar for candidate comparison only"
+          - button "Start decision" [ref=e268] [cursor=pointer]:
+            - img [ref=e116]
+            - generic [ref=e118]: Start decision
+          - generic [ref=e119]:
+            - generic [ref=e120]: Scores are raw model ranking scores, not probabilities.
+            - button "Clear result" [ref=e269] [cursor=pointer]
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - heading "Recent tests" [level=2] [ref=e270]
+          - generic [ref=e127]: "4"
+        - generic [ref=e128]:
+          - generic [ref=e399]:
+            - paragraph [ref=e400]: 把三号输送带速度降到 60%
+            - generic [ref=e401]:
+              - generic [ref=e402]: Reduce conveyor speed
+              - generic [ref=e403]: 12:37 PM
+          - generic [ref=e404]:
+            - paragraph [ref=e405]: 把三号输送带速度降到 60%
+            - generic [ref=e406]:
+              - generic [ref=e407]: Reduce conveyor speed
+              - generic [ref=e408]: 12:37 PM
+          - generic [ref=e409]:
+            - paragraph [ref=e410]: 把三号输送带速度降到 60%
+            - generic [ref=e411]:
+              - generic [ref=e412]: Reduce conveyor speed
+              - generic [ref=e413]: 12:36 PM
+          - generic [ref=e414]:
+            - paragraph [ref=e415]: 把三号输送带速度降到 60%
+            - generic [ref=e416]:
+              - generic [ref=e417]: 降低输送带速度
+              - generic [ref=e418]: 12:36
+    - contentinfo [ref=e130]:
+      - generic [ref=e131]: SenseCraft · Command Selection Workbench
+      - generic [ref=e132]: Live model service · selection requests only
+  - status: Model service connected

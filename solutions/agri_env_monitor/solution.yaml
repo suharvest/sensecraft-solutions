@@ -3,6 +3,7 @@ id: agri_env_monitor
 name: Agricultural Environment Monitoring
 name_i18n:
   zh: 农业环境监测
+  ja: 農業環境モニタリング
 
 intro:
   summary: >-
@@ -284,6 +285,11 @@ intro:
   stats:
     difficulty: intermediate
     estimated_time: 45min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/agri-env-monitoring/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/agri-env-monitoring/
 
 deployment:
   guide_file: guide.md

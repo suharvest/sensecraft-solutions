@@ -73,6 +73,12 @@ remote_overrides:
 
     after_upload:
       - name: Clean macOS sidecar files and write the environment file
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
+          INPUT_WEB_ADMIN_TOKEN: "{{web_admin_token}}"
+          INPUT_FACE_REC_API_URL: "{{face_rec_api_url}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/unmanned-store-access/cloud_facedb"
@@ -81,7 +87,7 @@ remote_overrides:
           umask 077
           # The compose file mounts this at /run/secrets/facedb.key.
           mkdir -p "$WORKDIR/assets/cloud/secret"
-          printf '%s' '{{facedb_signing_key}}' > "$WORKDIR/assets/cloud/secret/facedb.key"
+          printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/assets/cloud/secret/facedb.key"
           chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
           # The model tag and its sha are written into every library version and
           # compared byte for byte on the device: a mismatch shows up as "nobody
@@ -97,12 +103,15 @@ remote_overrides:
               MODEL_TAG='insightface:scrfd500m+mbf512@onnx-fp32'
               MODEL_SHA='2e8bc48bb037cac6df950903542d9f7a158ec456aa05f5709d6f2607a92ae9a6' ;;
           esac
+          # Double-quoted with \ " $ escaped: compose reads these values
+          # literally instead of expanding ${...} inside a password.
+          dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
           cat > "$WORKDIR/.env" <<EOF
           USA_FACEDB_KEY_ID=facedb-key-1
           USA_MATCH_THRESHOLD={{match_threshold}}
-          USA_WEB_TOKENS={{web_admin_token}}:admin
+          USA_WEB_TOKENS="$(dotenv_quote "$INPUT_WEB_ADMIN_TOKEN:admin")"
           USA_DEVICE_ENDPOINTS={{device_endpoints}}
-          USA_FACE_REC_API={{face_rec_api_url}}
+          USA_FACE_REC_API="$(dotenv_quote "$INPUT_FACE_REC_API_URL")"
           USA_MODEL_TAG=$MODEL_TAG
           USA_MODEL_SHA=$MODEL_SHA
           # The console runs in the compose network; 127.0.0.1 there is itself.
@@ -111,7 +120,7 @@ remote_overrides:
           MQTT_TLS=0
           FACEDB_PORT={{facedb_port}}
           WEB_PORT={{web_port}}
-          USA_ALLOW_FAKE=$( [ -n "{{face_rec_api_url}}" ] && echo 0 || echo 1 )
+          USA_ALLOW_FAKE=$( [ -n "$INPUT_FACE_REC_API_URL" ] && echo 0 || echo 1 )
           EOF
           echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
         name_i18n:

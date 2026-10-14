@@ -1,0 +1,24 @@
+RKLLM 1.3.1 redistribution notice
+
+The complete Rockchip SDK redistribution terms are in licenses/RKLLM-SDK-LICENSE.
+That license includes the Rockchip attribution/disclaimer and the required ggml
+and llama.cpp MIT terms. The original source package is RKLLM SDK 1.3.1.
+
+Pinned source material:
+
+- Header: include/rkllm.h
+  SHA256: 4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c
+- Linux AArch64 runtime: runtime/librkllmrt.so
+  SHA256: f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c
+- Android AArch64 OpenMP runtime supplied by the SDK package (not used by the
+  Linux compose path): runtime/libomp.so
+  SHA256: 1c4db1866bef4228365dc2a44264f7452b9f7af35e100bcbecf05c24b02bfe6f
+
+The Linux AArch64 librkllmrt.so dynamic section requires libgomp.so.1,
+libstdc++.so.6, libgcc_s.so.1, libc.so.6, libdl.so.2, libm.so.6, and
+libpthread.so.0. The deployment image must provide compatible system C++/GOMP
+runtime libraries; it must not replace the host RKLLM runtime globally.
+
+The complete application/workbench notices are retained in
+licenses/WORKBENCH-NOTICE. Third-party model and head artifacts are external
+and must carry their own source and license records before distribution.

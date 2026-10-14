@@ -2,7 +2,7 @@
 
 Deploy YOLO 11 object detection to a reComputer RK3576 or RK3588, with an image detection REST API and an MJPEG live video feed covering the 80 COCO object classes.
 
-- **Devices:** reComputer RK3576 or RK3588; a USB camera for live video detection (optional).
+- **Devices:** reComputer RK3576 or RK3588; a USB camera for live video detection (optional — without one the video feed plays a bundled sample clip).
 - **Software:** Docker installed on the device, reachable over SSH.
 - **Models:** choose Nano, Small or Medium at deployment.
 
@@ -17,15 +17,16 @@ Deploy to the RK3576 over SSH.
 ### Wiring
 
 1. Connect the RK3576 to the same network as your computer
-2. Plug in a USB camera for live video detection
+2. Optional: plug in a USB camera for live video detection
 3. Select the model size (start with Nano)
-4. Fill in device IP, SSH username, and password
-5. Click **Deploy**
+4. Video source: keep **Sample video** unless a USB camera is plugged in; with a camera, pick its number (`ls /dev/video*` on the device)
+5. Fill in device IP, SSH username, and password
+6. Click **Deploy**
 
 ### Deployment Complete
 
 1. Detection API: `http://<device-ip>:8000/api/models/yolo11/predict`
-2. Live video feed: `http://<device-ip>:8000/api/video_feed` (requires camera)
+2. Live video feed: `http://<device-ip>:8000/api/video_feed` (the camera, or the sample clip when **Sample video** is selected)
 
 ### Troubleshooting
 
@@ -33,7 +34,7 @@ Deploy to the RK3576 over SSH.
 |---------|-----|
 | SSH connection failed | Verify IP address, username, password |
 | NPU not detected | Ensure device is RK3576 with RKNPU kernel module loaded |
-| No camera detected | Check USB camera is connected. Detection still works with image upload API |
+| Detection API and video feed both unreachable, container keeps restarting | The selected camera number has no camera (log: `Cannot open video source`). Plug the camera in, or redeploy with **Video source** set to **Sample video** |
 | Image pull slow | Check the network. Image is about 1-2GB |
 
 ### Target {#cv_rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/cv_rk3588_deploy.yaml}
@@ -43,15 +44,16 @@ Deploy to a reComputer RK3588 series device over SSH.
 ### Wiring
 
 1. Connect the RK3588 to the same network as your computer
-2. Plug in a USB camera for live video detection
+2. Optional: plug in a USB camera for live video detection
 3. Select the model size (start with Nano)
-4. Fill in device IP, SSH username, and password
-5. Click **Deploy**
+4. Video source: keep **Sample video** unless a USB camera is plugged in; with a camera, pick its number (`ls /dev/video*` on the device)
+5. Fill in device IP, SSH username, and password
+6. Click **Deploy**
 
 ### Deployment Complete
 
 1. Detection API: `http://<device-ip>:8000/api/models/yolo11/predict`
-2. Live video feed: `http://<device-ip>:8000/api/video_feed` (requires camera)
+2. Live video feed: `http://<device-ip>:8000/api/video_feed` (the camera, or the sample clip when **Sample video** is selected)
 
 ### Troubleshooting
 
@@ -59,7 +61,7 @@ Deploy to a reComputer RK3588 series device over SSH.
 |---------|-----|
 | SSH connection failed | Verify IP address, username, password |
 | RK3588 platform not detected | Ensure device is a reComputer RK3588 series unit |
-| No camera detected | Check USB camera is connected. Detection still works with image upload API |
+| Detection API and video feed both unreachable, container keeps restarting | The selected camera number has no camera (log: `Cannot open video source`). Plug the camera in, or redeploy with **Video source** set to **Sample video** |
 | Image pull slow | Check the network. Image is about 1-2GB |
 
 ### Target {#cv_rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/cv_rk3576_deploy.yaml}
@@ -119,12 +121,12 @@ Upload an image to test object detection.
 | Connection refused | Wait 15-30 seconds for service to start |
 
 ### Mode: Live Video {#cv_video_mode config=devices/cv_stream.yaml}
-View live camera feed with detection bounding boxes (requires USB camera).
+View the video feed with detection bounding boxes: the USB camera, or the bundled sample clip when **Video source** is **Sample video**.
 
 ### Troubleshooting
 | Symptom | Fix |
 |---------|-----|
-| Black screen | Check USB camera is connected |
+| Black screen | Check the USB camera is connected and its number matches **Video source** |
 | No video feed | Verify MJPEG URL is correct |
 ### Deployment Complete
 

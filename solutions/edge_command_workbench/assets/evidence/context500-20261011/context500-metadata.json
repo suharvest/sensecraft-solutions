@@ -1,0 +1,30 @@
+{
+  "dataset_path": "/home/harvest/worktrees/laya-edge-workbench/experiments/jev-20261011/context500/context500-cases.jsonl",
+  "dataset_sha256": "e9d77a3c96a1d0645bc9561cdf9ead06cbd57d8ef081906c2d5094d55e54ba6e",
+  "source_cases_path": "/home/harvest/worktrees/laya-edge-workbench/experiments/jev-20261010/shared/jev-shared-cases-20261010.jsonl",
+  "source_cases_sha256": "a1c18d3f86aa92eb11d06a5034ee1884de5b1228089b77648aeefa42fdd25a8a",
+  "tokenizer_path": "/home/harvest/worktrees/laya-edge-workbench/experiments/jev-20261011/context500/tokenizer.fe000.json",
+  "tokenizer_sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+  "kev_codec_source_path": "/home/harvest/worktrees/laya-edge-workbench/app/edge_workbench/kev.py",
+  "kev_codec_source_sha256": "85f5ddf0f86bc25a2a4859b54904e4332196efd80cbb7870f5ae5727df588875",
+  "codec_crosscheck": "KevCodec.encode called for every baseline, construction trial, original, and reverse request",
+  "delimiter_ids": [
+    248060,
+    248061,
+    248049,
+    248050,
+    248062
+  ],
+  "delimiter_tokens": [
+    "<|fim_prefix|>",
+    "<|fim_middle|>",
+    "<|box_start|>",
+    "<|box_end|>",
+    "<|fim_suffix|>"
+  ],
+  "target_assembled_tokens": 500,
+  "filler_source": "fixed natural industrial-document metadata sentences; synthetic length extension only",
+  "request_contract": "HTTP body contains input_text,prompt,options; expected/gold fields stay outside body",
+  "generator_sha256": "ba7095ba40dade99912f043f876cc2b60a81ce3081166626e1c0ee6b00e0c44d",
+  "runner_sha256": "be6b11eba6112e379c12d7c0c42811ddbba4644d9ed3c3dd327226f24ac54ba7"
+}

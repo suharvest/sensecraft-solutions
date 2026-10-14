@@ -1,0 +1,75 @@
+version: "1.0"
+id: gate_wiring
+name: Wire the Barrier Gate
+type: manual
+
+# 维护者注记（NRD-3 §6.9）：DO 的电气类型（源型/漏型/继电器）、额定电压电流
+# 尚待对照 R1000 系列 wiki 画定稿接线图；定稿图由人工核对道闸说明书后随 guide 发布。
+
+steps:
+  - id: check_do_spec
+    name: Choose the relay
+    name_i18n:
+      zh: 选择中间继电器
+    description: >-
+      Check the reComputer R1000 Series wiki for the R1124-10 digital output
+      type and its rated voltage and current, then pick a DIN-rail interposing
+      relay with a matching coil voltage.
+    description_i18n:
+      zh: >-
+        查 reComputer R1000 系列 Wiki，确认 R1124-10 数字输出的类型和额定电压
+        电流，选择线圈电压匹配的导轨式中间继电器。
+    optional: false
+
+  - id: wire_relay
+    name: Wire the output through the relay to the barrier
+    name_i18n:
+      zh: 经中间继电器把输出接到道闸
+    description: >-
+      R1124-10 DO output to the relay coil (+), DO common / GND to the coil
+      (−). Relay normally open (NO) contact to the barrier controller's OPEN
+      terminal, relay COM to the barrier's common terminal. Do not wire the
+      close terminal — closing stays with the barrier's own loop detector or
+      radar.
+    description_i18n:
+      zh: >-
+        R1124-10 的 DO 输出接继电器线圈正极，DO 公共端 / GND 接线圈负极；
+        继电器常开（NO）触点接道闸控制器的「开闸」端子，公共（COM）触点接
+        道闸的公共端子。不要接关闸端子，关闸由道闸自己的地感或雷达负责。
+    optional: false
+
+  - id: upload_whitelist
+    name: Upload the whitelist
+    name_i18n:
+      zh: 上传白名单
+    description: >-
+      Prepare a CSV whose first line is `plate,label,valid_from,valid_until`
+      and upload it: `curl -X PUT --data-binary @whitelist.csv
+      http://<gate-controller-ip>:8081/whitelist`. A 400 response names the failing
+      line. Plates must match exactly.
+    description_i18n:
+      zh: >-
+        准备白名单 CSV，第一行必须是 `plate,label,valid_from,valid_until`，然后
+        上传：`curl -X PUT --data-binary @whitelist.csv
+        http://<gate-controller-ip>:8081/whitelist`。返回 400 时会指出出错行号。车牌按
+        完全一致比对。
+    optional: false
+
+  - id: test_pulse
+    name: Test one opening
+    name_i18n:
+      zh: 测试一次开闸
+    description: >-
+      `curl -X POST http://<gate-controller-ip>:8081/gate/test` — the relay should
+      close for about 0.5 s and a gate record should be published. Confirm the
+      relay action with a multimeter or the relay indicator before testing
+      with a vehicle at the barrier.
+    description_i18n:
+      zh: >-
+        `curl -X POST http://<gate-controller-ip>:8081/gate/test`——继电器应吸合约
+        0.5 秒，同时发出一条开闸记录。先用万用表或继电器指示灯确认动作正常，
+        再让车辆开到道闸前实测。
+    optional: false
+
+name_i18n:
+  zh: 道闸接线

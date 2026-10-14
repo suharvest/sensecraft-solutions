@@ -88,7 +88,7 @@ remote_overrides:
           set -e
           WORKDIR="/home/{{username}}/agri-env-monitor/homeassistant_deploy"
           umask 077
-          cat > "$WORKDIR/.env" <<EOF
+          cat > "$WORKDIR/.env" <<'EOF'
           COMPOSE_PROJECT_NAME=agri-env
           TZ={{timezone}}
           HA_PORT={{ha_port}}

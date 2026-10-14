@@ -1,6 +1,9 @@
 version: "1.0"
 id: recamera_parking_monitor
 name: AI Parking Slot Monitor
+name_i18n:
+  zh: AI 停车位监控
+  ja: AI 駐車区画モニター
 intro:
   summary: See which parking spots are taken and which are free — real-time detection with reCamera, no server needed
   description_file: description.md
@@ -87,5 +90,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: AI 停车位监控

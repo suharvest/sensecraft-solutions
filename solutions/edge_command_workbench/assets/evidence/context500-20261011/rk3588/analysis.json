@@ -1,0 +1,1371 @@
+{
+  "dataset_sha256": "e9d77a3c96a1d0645bc9561cdf9ead06cbd57d8ef081906c2d5094d55e54ba6e",
+  "results_file_sha256": "5b49681b5e093202d9b184ac2fb94e471bde503669ba07c1f9573f665a73e782",
+  "paired_semantic_group_count": 60,
+  "language_sample_count": 120,
+  "dataset_cases": 120,
+  "scored_requests": 240,
+  "semantic_sample_denominator": 120,
+  "request_denominator": 240,
+  "overall": {
+    "n": 240,
+    "http_success": 240,
+    "correct": 189,
+    "accuracy": 0.7875
+  },
+  "by_pass": {
+    "original": {
+      "n": 120,
+      "http_success": 120,
+      "correct": 92,
+      "accuracy": 0.7666666666666667
+    },
+    "reverse": {
+      "n": 120,
+      "http_success": 120,
+      "correct": 97,
+      "accuracy": 0.8083333333333333
+    }
+  },
+  "by_language": {
+    "en": {
+      "n": 120,
+      "http_success": 120,
+      "correct": 94,
+      "accuracy": 0.7833333333333333
+    },
+    "zh": {
+      "n": 120,
+      "http_success": 120,
+      "correct": 95,
+      "accuracy": 0.7916666666666666
+    }
+  },
+  "by_category": {
+    "OOS": {
+      "n": 40,
+      "http_success": 40,
+      "correct": 21,
+      "accuracy": 0.525
+    },
+    "ambiguous": {
+      "n": 40,
+      "http_success": 40,
+      "correct": 12,
+      "accuracy": 0.3
+    },
+    "direct": {
+      "n": 80,
+      "http_success": 80,
+      "correct": 80,
+      "accuracy": 1.0
+    },
+    "negation": {
+      "n": 40,
+      "http_success": 40,
+      "correct": 38,
+      "accuracy": 0.95
+    },
+    "paraphrase": {
+      "n": 40,
+      "http_success": 40,
+      "correct": 38,
+      "accuracy": 0.95
+    }
+  },
+  "false_action": {
+    "definition": "HTTP 200 with expected clarify/reject and selected option outside {clarify,reject}; selected must be one of that request's candidate IDs; invalid/unknown selections are excluded and listed separately",
+    "by_expected": {
+      "clarify": {
+        "n": 40,
+        "false_action_count": 22,
+        "false_action_rate": 0.55,
+        "rows": [
+          {
+            "pass": "original",
+            "id": "jev-034-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "stop"
+          },
+          {
+            "pass": "original",
+            "id": "jev-035-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_temp"
+          },
+          {
+            "pass": "original",
+            "id": "jev-035-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_temp"
+          },
+          {
+            "pass": "original",
+            "id": "jev-037-en",
+            "expected_id": "clarify",
+            "selected_option_id": "ack_alarm"
+          },
+          {
+            "pass": "original",
+            "id": "jev-037-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "list_alarms"
+          },
+          {
+            "pass": "original",
+            "id": "jev-038-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_speed"
+          },
+          {
+            "pass": "original",
+            "id": "jev-038-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_speed"
+          },
+          {
+            "pass": "original",
+            "id": "jev-039-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_rate"
+          },
+          {
+            "pass": "original",
+            "id": "jev-039-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_rate"
+          },
+          {
+            "pass": "original",
+            "id": "jev-040-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "read_temp"
+          },
+          {
+            "pass": "original",
+            "id": "jev-041-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "camera_auto"
+          },
+          {
+            "pass": "original",
+            "id": "jev-042-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "list_alarms"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-034-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "stop"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-035-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_temp"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-035-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_temp"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-037-en",
+            "expected_id": "clarify",
+            "selected_option_id": "ack_alarm"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-038-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_speed"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-038-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_speed"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-039-en",
+            "expected_id": "clarify",
+            "selected_option_id": "set_rate"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-039-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_rate"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-040-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "set_temp"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-041-zh",
+            "expected_id": "clarify",
+            "selected_option_id": "camera_auto"
+          }
+        ]
+      },
+      "reject": {
+        "n": 40,
+        "false_action_count": 2,
+        "false_action_rate": 0.05,
+        "rows": [
+          {
+            "pass": "original",
+            "id": "jev-048-zh",
+            "expected_id": "reject",
+            "selected_option_id": "start"
+          },
+          {
+            "pass": "reverse",
+            "id": "jev-051-en",
+            "expected_id": "reject",
+            "selected_option_id": "start"
+          }
+        ]
+      }
+    },
+    "count": 24
+  },
+  "protocol_invalid": {
+    "count": 0,
+    "rows": []
+  },
+  "paired_option_order": {
+    "pairs": 120,
+    "selected_id_changed_count": 9,
+    "selected_id_changed_rate": 0.075,
+    "correctness_changed_count": 5,
+    "rows": [
+      {
+        "id": "jev-001-en",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-001-zh",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-002-en",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-002-zh",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-003-en",
+        "original_selected": "start",
+        "reverse_selected": "start",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-003-zh",
+        "original_selected": "start",
+        "reverse_selected": "start",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-004-en",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-004-zh",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-005-en",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-005-zh",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-006-en",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-006-zh",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-007-en",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-007-zh",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-008-en",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-008-zh",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-009-en",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-009-zh",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-010-en",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-010-zh",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-011-en",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-011-zh",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-012-en",
+        "original_selected": "camera_status",
+        "reverse_selected": "camera_status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-012-zh",
+        "original_selected": "camera_status",
+        "reverse_selected": "camera_status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-013-en",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-013-zh",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-014-en",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-014-zh",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-015-en",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-015-zh",
+        "original_selected": "clarify",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": true,
+        "correctness_changed": true
+      },
+      {
+        "id": "jev-016-en",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-016-zh",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-017-en",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-017-zh",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-018-en",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-018-zh",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-019-en",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-019-zh",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-020-en",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-020-zh",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-021-en",
+        "original_selected": "clarify",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": true,
+        "correctness_changed": true
+      },
+      {
+        "id": "jev-021-zh",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-022-en",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-022-zh",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-023-en",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-023-zh",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-024-en",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-024-zh",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-025-en",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-025-zh",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-026-en",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-026-zh",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-027-en",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-027-zh",
+        "original_selected": "list_alarms",
+        "reverse_selected": "list_alarms",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-028-en",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-028-zh",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-029-en",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-029-zh",
+        "original_selected": "status",
+        "reverse_selected": "status",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-030-en",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-030-zh",
+        "original_selected": "start_stream",
+        "reverse_selected": "start_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-031-en",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-031-zh",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-032-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-032-zh",
+        "original_selected": "read_temp",
+        "reverse_selected": "read_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-033-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-033-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-034-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-034-zh",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-035-en",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-035-zh",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-036-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-036-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-037-en",
+        "original_selected": "ack_alarm",
+        "reverse_selected": "ack_alarm",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-037-zh",
+        "original_selected": "list_alarms",
+        "reverse_selected": "reject",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-038-en",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-038-zh",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-039-en",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-039-zh",
+        "original_selected": "set_rate",
+        "reverse_selected": "set_rate",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-040-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-040-zh",
+        "original_selected": "read_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-041-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-041-zh",
+        "original_selected": "camera_auto",
+        "reverse_selected": "camera_auto",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-042-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-042-zh",
+        "original_selected": "list_alarms",
+        "reverse_selected": "reject",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-043-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-043-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-044-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-044-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-045-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-045-zh",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-046-en",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-046-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-047-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-047-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-048-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-048-zh",
+        "original_selected": "start",
+        "reverse_selected": "reject",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": true,
+        "correctness_changed": true
+      },
+      {
+        "id": "jev-049-en",
+        "original_selected": "clarify",
+        "reverse_selected": "clarify",
+        "selected_id_changed": false,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-049-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-050-en",
+        "original_selected": "clarify",
+        "reverse_selected": "reject",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": true,
+        "correctness_changed": true
+      },
+      {
+        "id": "jev-050-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-051-en",
+        "original_selected": "clarify",
+        "reverse_selected": "start",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": false,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-051-zh",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-052-en",
+        "original_selected": "reject",
+        "reverse_selected": "reject",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-052-zh",
+        "original_selected": "clarify",
+        "reverse_selected": "reject",
+        "selected_id_changed": true,
+        "original_correct": false,
+        "reverse_correct": true,
+        "correctness_changed": true
+      },
+      {
+        "id": "jev-053-en",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-053-zh",
+        "original_selected": "set_speed",
+        "reverse_selected": "set_speed",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-054-en",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-054-zh",
+        "original_selected": "stop",
+        "reverse_selected": "stop",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-055-en",
+        "original_selected": "read_rate",
+        "reverse_selected": "read_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-055-zh",
+        "original_selected": "read_rate",
+        "reverse_selected": "read_rate",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-056-en",
+        "original_selected": "camera_auto",
+        "reverse_selected": "camera_auto",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-056-zh",
+        "original_selected": "camera_auto",
+        "reverse_selected": "camera_auto",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-057-en",
+        "original_selected": "alarm_count",
+        "reverse_selected": "alarm_count",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-057-zh",
+        "original_selected": "alarm_count",
+        "reverse_selected": "alarm_count",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-058-en",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-058-zh",
+        "original_selected": "set_temp",
+        "reverse_selected": "set_temp",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-059-en",
+        "original_selected": "start",
+        "reverse_selected": "start",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-059-zh",
+        "original_selected": "start",
+        "reverse_selected": "start",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-060-en",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      },
+      {
+        "id": "jev-060-zh",
+        "original_selected": "stop_stream",
+        "reverse_selected": "stop_stream",
+        "selected_id_changed": false,
+        "original_correct": true,
+        "reverse_correct": true,
+        "correctness_changed": false
+      }
+    ]
+  },
+  "performance": {
+    "client_e2e_http200": {
+      "n": 240,
+      "mean_ms": 3958.6150235753544,
+      "min_ms": 3479.0707399952225,
+      "p50_ms": 3946.517052507261,
+      "p95_ms": 4770.961466012523,
+      "max_ms": 5371.2684999918565
+    },
+    "server_encoding_complete": {
+      "n": 240,
+      "mean_ms": 0.0,
+      "min_ms": 0.0,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "max_ms": 0.0
+    },
+    "server_inference_complete": {
+      "n": 240,
+      "mean_ms": 3955.264211025254,
+      "min_ms": 3475.5347640020773,
+      "p50_ms": 3943.2807720440906,
+      "p95_ms": 4767.695808026474,
+      "max_ms": 5368.082534987479
+    },
+    "server_total_complete": {
+      "n": 240,
+      "mean_ms": 3955.431768379882,
+      "min_ms": 3475.698976952117,
+      "p50_ms": 3943.448193516815,
+      "p95_ms": 4767.861775006168,
+      "max_ms": 5368.251122999936
+    },
+    "http200_count": 240,
+    "timings_complete_count": 240,
+    "timings_missing_count": 0
+  },
+  "timing_scope_note": "Kev NativeBackend currently sets encoding_ms=0.0 as instrumentation; decision.py measures KevCodec.encode inside infer_request together with RKLLM hidden inference and FP32 head, so encoding_ms must not be reported as tokenizer wall time or as a measured zero-cost claim.",
+  "method_note": "120 semantic cases are evaluated twice (original/reverse option order), not 240 independent semantic samples; five warmups are excluded by the runner."
+}

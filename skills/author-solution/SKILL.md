@@ -204,6 +204,7 @@ scp package.deb recamera@192.168.42.1:/tmp/ && ssh recamera@192.168.42.1 "opkg i
 
 - 下载脚本里不要硬编码 `huggingface.co`，用环境变量 `HF_ENDPOINT` / `HF_ENDPOINT_HOST` 控制 endpoint，受限网络下可切换镜像
 - 验收：下载脚本的 curl/wget 命令里不出现硬编码 `huggingface.co`（注释里写没关系）
+- 没有共享下载库：模型优先在容器内用 `HF_ENDPOINT` 环境变量下载（部署器会按地区注入镜像）；确需宿主机侧下载脚本时，把 `solutions/z_image_turbo/assets/scripts/hf_download.sh` 复制到本方案的 `assets/scripts/` 并随部署上传
 
 ### Phase 2.6: Docker 镜像与受限网络
 
@@ -233,10 +234,10 @@ CI 的 `scripts/check_compose_naming.py` 会拦住不合规的命名。
 `before` / `after` 动作里如果有 `docker run`/`docker pull`，compose 重写管不到，要显式加前缀变量：
 
 ```bash
-docker run --rm ${DOCKER_REGISTRY_PREFIX}alpine sh -c '...'
+docker run --rm ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '...'
 ```
 
-该变量由引擎按探测结果注入，非受限网络下为空串，不影响。
+该变量由引擎按探测结果注入，非受限网络下为空串，不影响。官方镜像必须写全 `library/<name>`：Docker 只在直连 Docker Hub 时自动补 `library/`，加了镜像源前缀后 `docker.m.daocloud.io/alpine` 与 `docker.m.daocloud.io/library/alpine` 是两个路径，前者实测间歇性 401/502。空前缀时 `library/alpine` 等同 `alpine`。`solutionctl validate` 会拦截 `${DOCKER_REGISTRY_PREFIX}<不带 / 的名字>`。
 
 ---
 
@@ -564,7 +565,7 @@ uv run python scripts/check_compose_naming.py
 - [ ] 产品硬件已从 `spec/product-family-manifest.json` 选择 family；能力要求只写 `purchase.require`，没有具体 SKU
 - [ ] `device_catalog` key、`device_ref` 和 default 使用同一 `family_id`；只有确无 family 时才使用并说明 `generic_` / `external_`
 - [ ] compose 文件名以 `docker-compose` / `compose` 开头（见 Phase 2.6）；否则镜像源重写被静默跳过，受限网络下拉公共镜像超时
-- [ ] action 脚本里自己 `docker run` / `docker pull` 的镜像带上 `${DOCKER_REGISTRY_PREFIX}` 前缀
+- [ ] action 脚本里自己 `docker run` / `docker pull` 的镜像带上 `${DOCKER_REGISTRY_PREFIX}` 前缀，官方镜像写 `library/<name>`
 - [ ] 自建 registry 的镜像国内可达（引擎不会给私有 registry 加镜像源前缀）
 
 ---

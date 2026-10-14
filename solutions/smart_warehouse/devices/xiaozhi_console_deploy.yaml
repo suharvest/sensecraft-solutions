@@ -293,6 +293,11 @@ remote_overrides:
         timeout: 600
         # curl/docker 单条失败不要中断整段，脚本内部自己判断并给出可读的错误
         fail_fast: false
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_LLM_BASE_URL: "{{llm_base_url}}"
+          INPUT_LLM_API_KEY: "{{llm_api_key}}"
         run: |
           # 同 before：引擎 0.6.11 的 run 上下文没有 {{remote_path}}/{{device_id}}。
           WORKDIR="$HOME/xiaozhi_voice"
@@ -301,9 +306,11 @@ remote_overrides:
           LLM_HOST="{{llm_host}}"
           DEPLOY_MODE="{{deploy_mode}}"
           DEVICE_HOST="{{host}}"
-          LLM_BASE_URL="{{llm_base_url}}"
+          LLM_BASE_URL="$INPUT_LLM_BASE_URL"
           LLM_MODEL_NAME="{{llm_model_name}}"
-          LLM_API_KEY="{{llm_api_key}}"
+          LLM_API_KEY="$INPUT_LLM_API_KEY"
+          # ' and \ doubled: the two values go into SQL string literals below.
+          sql_quote() { printf '%s' "$1" | sed -e "s/[\\\\']/&&/g"; }
 
           # 这些地址会写进数据库，由 xiaozhi-server 容器读取。compose 用的是默认
           # bridge 网络，容器里的 127.0.0.1 指向容器自己 —— 填了必然连不通，
@@ -410,9 +417,9 @@ remote_overrides:
               run_sql <<SQL
               UPDATE ai_model_config
                  SET config_json = JSON_SET(config_json,
-                       '\$.base_url',   '$LLM_BASE_URL',
+                       '\$.base_url',   '$(sql_quote "$LLM_BASE_URL")',
                        '\$.model_name', '$LLM_MODEL_NAME',
-                       '\$.api_key',    '$LLM_API_KEY'),
+                       '\$.api_key',    '$(sql_quote "$LLM_API_KEY")'),
                      model_name = '云端大模型'
                WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
           SQL

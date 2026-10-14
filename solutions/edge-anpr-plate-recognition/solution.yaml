@@ -1,0 +1,255 @@
+# ============================================================================
+# DRAFT / staging — edge_plate_recognition (NRD-3 上游交付物草稿)
+#
+# 上游应用仓库（待发布，NRD-2 §11 D1 推荐地址，尚未建库）：
+#   github.com/Seeed-Solution/edge-parking-vision
+# 所依赖的 vision-base tag：待回填（BASE-1 发布第一个 tag 后写入）。
+#
+# 模型与数据许可摘要（详见 LICENSES.md）：
+#   - 检测 YOLOX（Apache-2.0）；自训权重 plate_det_* 按 Apache-2.0 发布
+#   - 识别 PlateRecNet（本仓库自写，Apache-2.0）；plate_rec_* 权重 Apache-2.0
+#   - 训练数据 CCPD（MIT）；PP-OCRv5 仅基线评测、不随交付分发
+# gallery 来源说明：2026-10-08 Jetson Orin Nano Super 与 RK3588 真机 /preview 截图（v2），输入为
+#   CCPD2019/2020 测试集图（MIT）；2026-10-08 负责人决定直接使用，见 gallery/ATTRIBUTION.md。
+#
+# verified 状态：ip_camera_box preset 带 `verified: [hardware]`，依据是 Jetson /
+#   RK3588 / RK3576 三个部署目标 2026-10-08 的部署与输出链路验收（识别准确率未验收）。
+#   2026-10-10 识别模型换为按运行时轴对齐裁切重训的版本（三个目标的模型包均已替换）；
+#   CCPD 静态图精度见 edge-parking-vision evaluation/results/plate_rec_axis_20261010。
+#   R2035（Hailo-8）目标已从 guide 移除：没有已发布的运行镜像，Hailo 后端还需补丁
+#   才能接受车牌检测模型的分层输出。devices/hailo_plate.yaml 与 assets/hailo/ 保留
+#   待后端补丁后恢复，当前不被任何步骤引用。
+#   reCamera Pro / reCamera 2002 两个 preset 已移除（应用未上架、二进制未发布）。
+#   验收细节只写在本文件注释和 acceptance 证据里，不写进用户可见文案。
+#
+# `visibility` 不是 spec 字段（spec/solution.schema.json 无此键，加载时被
+# 静默丢弃，见 spec/CONTRACT.md「extra 字段处理」）。写在这里是作为草稿
+# 状态的书面记录，真正的发布门是 registry.yaml 的 review → live。
+# ============================================================================
+version: "1.0"
+id: edge-anpr-plate-recognition
+name: Edge License Plate Recognition
+name_i18n:
+  zh: 边缘车牌识别
+  ja: エッジナンバープレート認識
+
+intro:
+  # 见文件头注释：非 spec 字段，仅作草稿状态记录。
+  visibility: production
+  summary: >-
+    Read license plates from your existing gate cameras with one on-site
+    recognition host, and open the barrier automatically for whitelisted
+    vehicles. Every vehicle leaves a record with its plate number and a
+    snapshot; plates and images stay on site.
+  summary_i18n:
+    zh: >-
+      用现有出入口摄像头加一台现场识别主机读车牌，白名单车辆自动抬杆。每辆车
+      留下车牌号和截图记录，车牌和画面都留在现场。
+    ja: >-
+      既存のゲートカメラと現場の認識ホスト 1 台でナンバープレートを読み取り、
+      ホワイトリスト登録車両はゲートを自動で開きます。車両ごとにナンバーと
+      スナップショットを記録し、データは構内に留まります。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-plate-1-jetson-blue-oblique-20261009.jpg
+      caption: "Plate recognition on Jetson Orin Nano Super: blue plate 皖A62599 read at 0.98 from an oblique front view; the right panel lists the last five reads (CCPD test image)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 车牌识别：斜前方拍摄的蓝牌 皖A62599，置信度 0.98；右侧列出最近 5 次读牌（CCPD 测试图）"
+        ja: "Jetson Orin Nano Super のナンバー認識：斜め前方から撮影した青ナンバー 皖A62599 を信頼度 0.98 で認識。右側は直近 5 件の認識結果（CCPD テスト画像）"
+    - type: image
+      src: gallery/panel-plate-2-jetson-green-front-20261009.jpg
+      caption: "Plate recognition on Jetson Orin Nano Super: green new-energy plate 皖AF10528 read at 0.87 from the front (CCPD test image)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 车牌识别：车头新能源绿牌 皖AF10528，置信度 0.87（CCPD 测试图）"
+        ja: "Jetson Orin Nano Super のナンバー認識：フロントの新エネルギー車用グリーンナンバー 皖AF10528 を信頼度 0.87 で認識（CCPD テスト画像）"
+    - type: image
+      src: gallery/panel-plate-3-rk3588-blue-rear-20261009.jpg
+      caption: "Plate recognition on RK3588: blue plate 皖ALY625 read at 0.90 from the rear of the car (CCPD test image)"
+      caption_i18n:
+        zh: "RK3588 车牌识别：车尾蓝牌 皖ALY625，置信度 0.90（CCPD 测试图）"
+        ja: "RK3588 のナンバー認識：車両後部の青ナンバー 皖ALY625 を信頼度 0.90 で認識（CCPD テスト画像）"
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - parking
+    - license-plate
+    - anpr
+    - mqtt
+    - barrier-gate
+    - jetson
+    - rk3588
+    - rk3576
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<camera>/plate
+      description: One record per vehicle — plate number, plate type, confidence, position in the image and a snapshot link. Published to the MQTT broker you set in Step 1 (usually the reComputer R1124-10).
+      schema_type: json
+      payload_example: '{"schema":"parking.plate/1","event_id":"...","site_id":"demo-lot","camera_id":"gate-a","ts":1790000000789,"seq":2211,"replayed":false,"plate":"粤B12345","plate_normalized":"粤B12345","region":"cn","plate_type":"cn_blue","confidence":0.93,"votes":5,"frames":7,"bbox":[0.41,0.62,0.55,0.67],"track_id":77,"snapshot":{"url":"http://camera.local:8080/snapshots/2211.jpg","sha256":"...","width":1920,"height":1080}}'
+      description_i18n:
+        zh: 每辆车一条记录——车牌号、车牌类型、可信度、在画面中的位置和截图链接。发到步骤 1 填写的 MQTT 服务器（通常是 reComputer R1124-10）。
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<camera>/gate
+      description: Gate records from the R1124-10 — action open_pulse (barrier opened) or suppressed (same plate again within the cooldown), with the matching plate record and whitelist label.
+      schema_type: json
+      payload_example: '{"schema":"parking.gate/1","event_id":"...","site_id":"demo-lot","camera_id":"gate-a-barrier","ts":1790000000912,"seq":18,"replayed":false,"action":"open_pulse","trigger":"whitelist","plate_event_id":"...","plate_normalized":"粤B12345","whitelist_label":"员工-张","pulse_ms":500,"latency_ms":123}'
+      description_i18n:
+        zh: R1124-10 的开闸记录——action 为 open_pulse（已开闸）或 suppressed（同一车牌在冷却时间内再次到达），附对应的车牌记录和白名单标签。
+    - type: mqtt
+      port: 1883
+      topic: <root>/status
+      description: Status of the recognition service, published periodically; the last status is kept on the broker if the host goes offline.
+      schema_type: json
+      description_i18n:
+        zh: 识别服务运行状态，定时发布；识别主机离线时，MQTT 服务器上保留最后一条状态。
+    - type: http
+      port: 8080
+      endpoint: /snapshots/{seq}.jpg
+      method: GET
+      description: Snapshot linked from each plate record. Stored on the recognition host for 7 days by default; the image is never embedded in the record.
+      schema_type: binary
+      description_i18n:
+        zh: 车牌记录里链接的截图。默认在识别主机上保留 7 天，图片不放进记录本身。
+    - type: http
+      port: 8081
+      endpoint: /whitelist
+      method: GET
+      description: Whitelist on the R1124-10 — GET returns the current whitelist CSV, PUT replaces it (a 400 response names the failing line). POST /gate/test fires one test opening.
+      schema_type: csv
+      description_i18n:
+        zh: R1124-10 上的白名单——GET 返回当前白名单 CSV，PUT 上传新名单整体替换（格式有误返回 400 并指出行号）。POST /gate/test 触发一次测试开闸。
+    - type: http
+      port: 8099
+      endpoint: /healthz
+      method: GET
+      description: Status check of the recognition service, including recognition speed.
+      schema_type: json
+      description_i18n:
+        zh: 识别服务状态检查，含识别速度。
+
+  input_requirements:
+    - type: rtsp
+      description: A fixed view of the lane at 3–8 m where plates stay legible, delivered as an RTSP stream from your own IP camera (1080p or better).
+      required: true
+      description_i18n:
+        zh: 距车道 3–8 m 的固定机位，车牌保持清晰可辨，由你自己的 IP 摄像头通过 RTSP 供流（1080p 及以上）。
+
+  device_catalog:
+    recomputer_j30:
+      description: Reads plates from your gate camera; Jetson Orin Nano with JetPack 6.2
+      description_i18n:
+        zh: 读取出入口摄像头画面并识别车牌；Jetson Orin Nano + JetPack 6.2
+    recomputer_j40:
+      description: Reads plates from your gate camera; Jetson Orin NX with JetPack 6.2
+      description_i18n:
+        zh: 读取出入口摄像头画面并识别车牌；Jetson Orin NX + JetPack 6.2
+    recomputer_rk3588:
+      description: Reads plates from your gate camera on its built-in AI processor
+      description_i18n:
+        zh: 用板载 AI 处理器读取出入口摄像头画面并识别车牌
+    recomputer_rk3576:
+      description: Reads plates from your gate camera on its built-in AI processor
+      description_i18n:
+        zh: 用板载 AI 处理器读取出入口摄像头画面并识别车牌
+    recomputer_r11:
+      description: Checks plates against the whitelist and opens the barrier through an interposing relay on its digital output
+      description_i18n:
+        zh: 比对白名单，通过数字输出经中间继电器给道闸发开闸信号
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: The gate camera you already own, 1080p or better with an RTSP stream
+      description_i18n:
+        zh: 你已有的出入口摄像头，1080p 及以上，支持 RTSP 视频流
+
+  presets:
+    - id: ip_camera_box
+      name: IP Camera + Recognition Host
+      name_i18n:
+        zh: IP 摄像头 + 识别主机
+        ja: IP カメラ + 認識ホスト
+      description: Keeps your existing gate cameras. Choose a reComputer J30 / J40 (Jetson Orin Nano / Orin NX, JetPack 6.2), RK3588 or RK3576 recognition host; add a reComputer R1100 Series gate controller to open the barrier automatically.
+      description_i18n:
+        zh: 保留现有出入口摄像头。识别主机可选 reComputer J30 / J40（Jetson Orin Nano / Orin NX，JetPack 6.2）、RK3588 或 RK3576；需要自动抬杆时加一台 reComputer R1100 系列道闸控制器。
+        ja: 既存のゲートカメラをそのまま使用します。認識ホストは reComputer J30 / J40（Jetson Orin Nano / Orin NX、JetPack 6.2）、RK3588、RK3576 から選択。ゲートを自動で開くには reComputer R1100 シリーズのゲートコントローラーを追加します。
+      # `verified: [hardware]` covers the Jetson, RK3588 and RK3576 targets (maintainer
+      # notes below; not shown to users).
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano for the
+      #   DEPLOYMENT AND OUTPUT PATH only (acceptance receipt
+      #   orin-nano/edge_plate_recognition): package compose + locally built
+      #   image, RTSP 1080p 30 fps slideshow of 40 labelled CCPD stills -> NVDEC
+      #   -> TRT detector + CN recognizer -> vote -> MQTT parking.plate/1 + JPEG
+      #   snapshots. 29.86 fps at 1080p, detector p50 5.61 / p95 5.75 ms, 56
+      #   plate events, ready 5.4 s. Recognition accuracy is NOT accepted: the
+      #   formal CN corpus gate (day >=95 % N>=120 / night >=90 % N>=80) was not
+      #   run; frame-to-event p50 and the gate controller / relay steps were not
+      #   measured.
+      # - RK3588 (radxa) and RK3576 (cat-remote): hardware-verified 2026-10-08
+      #   for the DEPLOYMENT AND OUTPUT PATH (evidence
+      #   acceptance-20261008/fix4/<device>): device-yaml before/after_upload
+      #   steps + package compose + published nrd-parking-rk:20261008 image +
+      #   published plate_rk3588 / plate_rk3576 bundles, same 1080p slideshow;
+      #   36 (rk3588) / 44 (rk3576) parking.plate/1 events with snapshots.
+      #   Recognition accuracy not accepted.
+      # - R2035 / Hailo-8 (harvest-pi): removed from the guide and the host
+      #   options — no published runtime image; Hailo backend needs the YOLOX
+      #   split-output patch. Restore the targets and recomputer_r20_industrial
+      #   (purchase.require ai_accelerator: [hailo-8]) once it ships.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Recognition Host
+          name_i18n:
+            zh: 识别主机
+          type: single
+          required: true
+          description: The device that reads plates from your camera. Jetson supports the Orin Nano and Orin NX modules (reComputer J30 / J40).
+          description_i18n:
+            zh: 读取摄像头画面、识别车牌的设备。Jetson 支持 Orin Nano 和 Orin NX 模组（reComputer J30 / J40）。
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+        - id: gate_server
+          name: Gate Controller (optional)
+          name_i18n:
+            zh: 道闸控制器（可选）
+          type: single
+          required: false
+          description: Add a reComputer R1100 Series gate controller to open the barrier automatically for whitelisted vehicles, through an interposing relay.
+          description_i18n:
+            zh: 加一台 reComputer R1100 系列道闸控制器，白名单车辆到达时经中间继电器让道闸自动抬杆。
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+
+  # 待回填：应用仓库尚未建库（NRD-2 §11 D1 为推荐地址），建库后补 links.github。
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

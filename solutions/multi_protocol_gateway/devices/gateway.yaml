@@ -74,7 +74,7 @@ post_deployment:
 
 remote_overrides:
   compose_file: assets/docker/docker-compose.host.yml
-  remote_path: /opt/missionpack-industrial-gateway
+  remote_path: /home/{{username}}/missionpack-industrial-gateway
   detection:
     method: network_scan
     manual_entry: true

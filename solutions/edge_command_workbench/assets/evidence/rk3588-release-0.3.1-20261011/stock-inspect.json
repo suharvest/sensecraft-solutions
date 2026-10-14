@@ -1,0 +1,114 @@
+{
+  "Name": "/edge-command-workbench-rkllm",
+  "Image": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+  "ImageId": "sha256:8acbe96dc6548ef18eb424f405d68d812a0245e02006dbfd1f9801f600820f16",
+  "State": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 1355563,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-10-11T06:12:47.655413072Z",
+    "FinishedAt": "0001-01-01T00:00:00Z",
+    "Health": {
+      "Status": "healthy",
+      "FailingStreak": 0,
+      "Log": [
+        {
+          "Start": "2026-10-11T06:12:52.86447746Z",
+          "End": "2026-10-11T06:12:53.342341748Z",
+          "ExitCode": 1,
+          "Output": "healthcheck failed: <urlopen error [Errno 111] Connection refused>\n"
+        },
+        {
+          "Start": "2026-10-11T06:12:58.344092497Z",
+          "End": "2026-10-11T06:12:58.82295694Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-10-11T06:13:08.825824919Z",
+          "End": "2026-10-11T06:13:09.412557978Z",
+          "ExitCode": 0,
+          "Output": ""
+        },
+        {
+          "Start": "2026-10-11T06:13:19.415233162Z",
+          "End": "2026-10-11T06:13:19.921907993Z",
+          "ExitCode": 0,
+          "Output": ""
+        }
+      ]
+    }
+  },
+  "Mounts": [
+    {
+      "Type": "bind",
+      "Source": "/sys/firmware/devicetree/base",
+      "Destination": "/sys/firmware/devicetree/base",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/radxa/edge-command-workbench-rkllm/model.rkllm",
+      "Destination": "/models/model.rkllm",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/radxa/edge-command-workbench-rkllm/tokenizer",
+      "Destination": "/models/tokenizer",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/radxa/edge-command-workbench-rkllm/kev_head.npz",
+      "Destination": "/models/kev_head.npz",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/radxa/edge-command-workbench-rkllm/model_metadata.json",
+      "Destination": "/models/model_metadata.json",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/home/radxa/edge-command-workbench-rkllm/runtime/librkllmrt.so",
+      "Destination": "/opt/kev/librkllmrt.so",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    },
+    {
+      "Type": "bind",
+      "Source": "/proc/device-tree/compatible",
+      "Destination": "/proc/device-tree/compatible",
+      "Mode": "ro",
+      "RW": false,
+      "Propagation": "rprivate"
+    }
+  ],
+  "NetworkMode": "host",
+  "Devices": [
+    {
+      "PathOnHost": "/dev/dri",
+      "PathInContainer": "/dev/dri",
+      "CgroupPermissions": "rwm"
+    }
+  ]
+}

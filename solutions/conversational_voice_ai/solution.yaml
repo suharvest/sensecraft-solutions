@@ -3,6 +3,7 @@ id: conversational_voice_ai
 name: Interruptible Conversational Voice AI
 name_i18n:
   zh: 可打断对话式语音 AI
+  ja: 割り込み可能な対話型音声AI
 
 intro:
   summary: Plug in an AEC microphone array and build a hands-free voice application with Qwen3-ASR, Matcha-TTS, real barge-in, and either a cloud or local LLM across RK3576, RK3588, Jetson Orin Nano, Orin NX, and the reComputer Industrial R20 series. Pick the conversation language at deploy time and the speech models are selected for you.
@@ -135,6 +136,9 @@ intro:
     difficulty: intermediate
     estimated_time: 30min
   links:
+    wiki: https://wiki.seeedstudio.com/solutions/conversational-voice-ai/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/
     github: https://github.com/suharvest/openvoicestream
 
 deployment:
