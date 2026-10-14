@@ -1,0 +1,40 @@
+version: "1.0"
+id: custom_dashboard_verify
+name: Open the Ops Dashboard
+type: web_dashboard
+
+# The verify step for the custom_dashboard preset. Everything that has to be
+# checked is visible on one page the user can be sent to directly.
+#
+# inherit_host_from points at the deploy step so the address is filled in
+# automatically. The port input stays typeable for anyone who changed it.
+inherit_host_from: deploy_custom_dashboard
+
+user_inputs:
+  - id: http_port
+    name: Dashboard HTTP Port
+    type: text
+    required: true
+    default: "8000"
+    description: The port you set on the deploy step (8001 on a reComputer R1000)
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: 看板 HTTP 端口
+
+web_dashboard:
+  url: "http://{{deploy.host}}:{{http_port}}/ops"
+  title: Farm Ops Dashboard
+  description: >-
+    The ops console loads with live readings once the bridge has connected to
+    your MQTT broker and the first uplink arrives. Sensors that report hourly
+    may take up to an hour to populate; the demo data health dots on `/admin`
+    show each source as it comes online.
+  description_i18n:
+    zh: >-
+      桥连上你的 MQTT broker 并收到第一条上行后，运维控制台就会显示实时读数。
+      按小时上报的传感器可能要等最多一小时才有数据；`/admin` 上的数据健康指示
+      会显示每个来源上线的过程。
+
+name_i18n:
+  zh: 打开运维看板

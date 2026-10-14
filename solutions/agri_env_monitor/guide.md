@@ -406,3 +406,74 @@ Run this once the dashboard works:
 | Entities stop updating when the WAN is cut | Check the bridge log and the gateway's network page for whatever still reaches outward |
 | An entity has no unit | Add its `measurementId` to `assets/config/measurements.yaml` |
 | Old entity ids keep coming back | Clear the broker's retained messages and the entity registry together |
+
+---
+
+## Preset: Custom Ops Dashboard {#custom_dashboard}
+
+A dedicated ops console that renders the normalized data from the agri-env bridge as a purpose-built dashboard — a focused alternative view alongside Home Assistant. One container, no cloud account: it subscribes to the bridge's MQTT output and displays what the bridge decodes.
+
+- **Runs beside:** one of the three ingest presets above (or the bridge alone) — this dashboard reads the bridge's normalized state topics, it does not decode uplinks itself.
+- **Host:** A Linux host with Docker for the dashboard container. The reComputer R1000 Series works as a kiosk.
+- **Broker:** The MQTT broker the agri-env bridge publishes to, reachable from the host, with its username and password if it has any.
+- **Known limits:** The dashboard is receive-only and reads the bridge's normalized state topics; it does not use the Home Assistant entity naming from the other presets.
+- **Bare-metal option:** to run the dashboard directly on a reComputer with a kiosk display instead of Docker, see `assets/custom_dashboard/MISSION-PACK.md`.
+
+## Step 1: Deploy the Ops Dashboard {#deploy_custom_dashboard type=docker_deploy required=true config=devices/custom_dashboard.yaml}
+
+Deploys the dashboard bridge, subscribed to the agri-env bridge's normalized MQTT output. It serves the ops console over HTTP and pushes live updates over WebSocket.
+
+### Prerequisites
+
+1. One of the three ingest presets (or the agri-env bridge alone) already running and publishing to your broker — this dashboard reads its output.
+2. At least 2 GB free disk on the host.
+3. The HTTP and WebSocket ports free (defaults 8000 and 8765; on a reComputer R1000, port 8000 is taken, so use 8001).
+4. The MQTT broker's address, port, and credentials if it has any, plus the topic prefix if your relay uses one.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|-------|----------|
+| Dashboard log shows an MQTT authentication failure | Check the broker username and password, and that the account may read the sensor topic |
+| Dashboard log shows a connection refused or timeout | Check the broker address and port, and that the broker is reachable from this host (use the LAN IP, not `127.0.0.1`, if they are on different machines) |
+| Page loads but every source shows "no data" | Sensors that report hourly can take up to an hour to populate; check `/admin` for each source's data health |
+| `no such image` on deploy | With a self-built `OPS_DASHBOARD_IMAGE`, build it locally first and re-run |
+| Port already in use | Stop whatever holds the port, or set a different HTTP port in this step's inputs (8001 on a reComputer R1000) |
+
+### Target {#deploy_custom_dashboard_remote type=remote device_name="Dashboard Host" config=devices/custom_dashboard.yaml default=true}
+
+Deploy over SSH to a Linux host with Docker; amd64 and arm64 both work.
+
+### Target {#deploy_custom_dashboard_local type=local config=devices/custom_dashboard.yaml}
+
+Deploy to this machine, which must be a Linux host with Docker.
+
+---
+
+## Step 2: Open the Ops Dashboard {#verify_custom_dashboard type=web_dashboard required=false config=devices/custom_dashboard_verify.yaml}
+
+Open the ops console and confirm your sensors appear.
+
+### Deployment Complete
+
+The dashboard subscribes to your broker and renders every reading it decodes, with history kept on the host.
+
+#### Quick verification
+
+1. Open `http://<host>:<http_port>/ops`. The page loads with the ops console.
+2. Confirm the MQTT indicator shows connected (top of the page). If it shows disconnected, recheck the broker settings from step 1.
+3. Wait for the first uplink; sensors that report hourly can take up to an hour. Each source's live / delayed / silent status is on `/admin`.
+4. Optional kiosk: on a reComputer, open the same URL in the device's browser and leave it full-screen.
+
+#### Next steps
+
+- Set the broker to require authentication if it does not already, and keep the dashboard host on the same trusted network as the broker.
+- To run the dashboard on a different port, redeploy step 1 with a different HTTP port and open the new URL.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|-------|----------|
+| Page does not load | Confirm the container is running (`docker ps`) and the HTTP port is the one you set |
+| MQTT shows disconnected | Recheck the broker address, port, and credentials from step 1 |
+| Sources stay on "no data" | Confirm the sensors are reporting and the topic / prefix match what your relay publishes |
