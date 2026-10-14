@@ -158,7 +158,7 @@ actions:
 
         mkdir -p "$MODELS_DIR"
 
-        if [ -s "$ENGINE" ]; then
+        if [ "{{detector_track}}" = "yolox" ] && [ -s "$ENGINE" ]; then
           echo "Engine already present, skipping build: $ENGINE"
           exit 0
         fi
@@ -171,6 +171,11 @@ actions:
           mv -f "$ONNX.part" "$ONNX"
         fi
         echo "$SHA  $ONNX" | sha256sum -c -
+
+        if [ "{{detector_track}}" != "yolox" ]; then
+          echo "Track {{detector_track}} uses ONNX runtime on CPU, skipping TensorRT engine build: $ONNX"
+          exit 0
+        fi
 
         echo "Building the TensorRT engine for {{detector_track}} ..."
         /usr/src/tensorrt/bin/trtexec --version || true
@@ -216,8 +221,12 @@ actions:
             "dfine": "dfine_s_neu6",
             "rtdetrv2": "rtdetrv2_s_neu6",
         }
-        config["model"]["path"] = f"/models/{model_names[track]}.engine"
-        config["model"]["accelerator"] = "tensorrt"
+        if track == "yolox":
+            config["model"]["path"] = f"/models/{model_names[track]}.engine"
+            config["model"]["accelerator"] = "tensorrt"
+        else:
+            config["model"]["path"] = f"/models/{model_names[track]}.onnx"
+            config["model"]["accelerator"] = "cpu"
         config["model"]["track"] = track
         config["rules"]["min_score"] = float(os.environ["INPUT_MIN_SCORE"])
         config["mqtt"]["topic"] = os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
@@ -354,14 +363,6 @@ user_inputs:
         label: YOLOX-Tiny — the measured, deployed default
         label_i18n:
           zh: YOLOX-Tiny——有实测数据的默认部署项
-      - value: dfine
-        label: D-FINE-S — CPU golden shows higher recall at matched precision; no Orin engine timing yet
-        label_i18n:
-          zh: D-FINE-S——CPU 基准显示等精度下召回更高；尚无 Orin engine 实测耗时
-      - value: rtdetrv2
-        label: RT-DETRv2-S — CPU golden only, slower than D-FINE on CPU; no Orin engine timing yet
-        label_i18n:
-          zh: RT-DETRv2-S——仅有 CPU 基准，CPU 上比 D-FINE 慢；尚无 Orin engine 实测耗时
     name_i18n:
       zh: 检测器 Track
     description_i18n:
