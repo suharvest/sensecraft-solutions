@@ -137,7 +137,7 @@ actions:
         echo "Probing LLM endpoint: $URL"
         for path in "" "/api/tags" "/v1/models"; do
           code=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 5 "${URL}${path}" 2>/dev/null || echo "")
-          if [ -n "$code" ] && [ "$code" -lt 500 ] 2>/dev/null; then
+          if [ -n "$code" ] && [ "$code" -ge 200 ] && [ "$code" -lt 500 ] 2>/dev/null; then
             echo "LLM endpoint reachable (HTTP ${code} from ${URL}${path})"
             exit 0
           fi

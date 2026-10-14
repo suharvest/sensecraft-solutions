@@ -114,24 +114,59 @@ actions:
         docker volume create "$VOL" 2>/dev/null || true
         WS_VOL="openclaw_recomputer_r_openclaw-workspace"
         docker volume create "$WS_VOL" 2>/dev/null || true
-        INIT_IMAGE="openclaw/openclaw:2026.6.33-slim"
-        if ! docker image inspect "$INIT_IMAGE" >/dev/null 2>&1; then
-          if docker image inspect "${DOCKER_REGISTRY_PREFIX}library/alpine" >/dev/null 2>&1; then
-            INIT_IMAGE="${DOCKER_REGISTRY_PREFIX}library/alpine"
-          fi
+
+        # Candidates for config initialization image
+        CANDIDATES=(
+          "openclaw/openclaw:2026.6.33-slim"
+          "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim"
+          "${DOCKER_REGISTRY_PREFIX}library/alpine"
+          "alpine"
+        )
+        INIT_IMAGE=""
+        for img in "${CANDIDATES[@]}"; do
+          [ -n "$img" ] && docker image inspect "$img" >/dev/null 2>&1 && { INIT_IMAGE="$img"; break; }
+        done
+
+        # If not present in Docker, check offline cache for image tarballs
+        if [ -z "$INIT_IMAGE" ]; then
+          CACHE_DIRS=(
+            "data/cache/offline/images"
+            "../data/cache/offline/images"
+            "${HOME}/.sensecraft/cache/offline/images"
+            "${HOME}/.cache/sensecraft/offline/images"
+            "/var/cache/sensecraft/offline/images"
+          )
+          for cdir in "${CACHE_DIRS[@]}"; do
+            [ -d "$cdir" ] || continue
+            for tarball in "$cdir"/*openclaw*.tar* "$cdir"/*alpine*.tar*; do
+              [ -f "$tarball" ] || continue
+              echo "Loading offline image tarball: $tarball"
+              if docker load -i "$tarball" >/dev/null 2>&1; then
+                for img in "${CANDIDATES[@]}"; do
+                  [ -n "$img" ] && docker image inspect "$img" >/dev/null 2>&1 && { INIT_IMAGE="$img"; break 2; }
+                done
+                break 2
+              fi
+            done
+          done
         fi
-        docker run --rm --network none -u 0 -v "$VOL":/data -v "$WS_VOL":/ws "$INIT_IMAGE" sh -c '
-          chown 1000:1000 /data /ws
-          if [ ! -f /data/openclaw.json ]; then
-            cat > /data/openclaw.json <<VOLCFG
-        {"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}},"commands":{"native":"auto","nativeSkills":"auto"},"tools":{"profile":"coding","allow":["exec","bash"],"deny":[],"exec":{"host":"gateway","security":"full","ask":"off"}}}
-        VOLCFG
-            chown 1000:1000 /data/openclaw.json
-            echo "Initial config written"
-          else
-            echo "Config exists, skipping"
-          fi
-        '
+
+        if [ -n "$INIT_IMAGE" ]; then
+          echo "Initializing OpenClaw config using $INIT_IMAGE"
+          docker run --rm --network none -u 0 -v "$VOL":/data -v "$WS_VOL":/ws "$INIT_IMAGE" sh -c '
+            chown 1000:1000 /data /ws
+            if [ ! -f /data/openclaw.json ]; then
+              printf "%s\n" "{\"gateway\":{\"controlUi\":{\"dangerouslyAllowHostHeaderOriginFallback\":true}},\"commands\":{\"native\":\"auto\",\"nativeSkills\":\"auto\"},\"tools\":{\"profile\":\"coding\",\"allow\":[\"exec\",\"bash\"],\"deny\":[],\"exec\":{\"host\":\"gateway\",\"security\":\"full\",\"ask\":\"off\"}}}" > /data/openclaw.json
+              chown 1000:1000 /data/openclaw.json
+              echo "Initial config written"
+            else
+              echo "Config exists, skipping"
+            fi
+          '
+        else
+          echo "Notice: OpenClaw image not yet cached locally; skipping pre-initialization."
+          echo "Initial configuration will be completed after container launch."
+        fi
       name_i18n:
         zh: 初始化 OpenClaw 配置
     - name: Generate gateway access token
@@ -155,6 +190,22 @@ actions:
       name_i18n:
         zh: 生成网关访问令牌
   after:
+    - name: Ensure OpenClaw config initialized
+      run: |
+        set -e
+        docker exec -u 0 openclaw-gateway sh -c '
+          chown -R 1000:1000 /home/node/.openclaw
+          if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+            printf "%s\n" "{\"gateway\":{\"controlUi\":{\"dangerouslyAllowHostHeaderOriginFallback\":true}},\"commands\":{\"native\":\"auto\",\"nativeSkills\":\"auto\"},\"tools\":{\"profile\":\"coding\",\"allow\":[\"exec\",\"bash\"],\"deny\":[],\"exec\":{\"host\":\"gateway\",\"security\":\"full\",\"ask\":\"off\"}}}" > /home/node/.openclaw/openclaw.json
+            chown 1000:1000 /home/node/.openclaw/openclaw.json
+            echo "Initial OpenClaw config created in container"
+          else
+            echo "OpenClaw config already present"
+          fi
+        '
+      timeout: 30
+      name_i18n:
+        zh: 确保 OpenClaw 配置已初始化
     - name: Enable execution permissions
       run: |
         set -e
