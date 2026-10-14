@@ -31,6 +31,15 @@ ssh:
 #   - 引擎降级：其余 S92* 生态应用 → K92*（recamera_cpp_deployer 通用扫描）
 #   - 先停后起：S93sscma-supervisor 自身（引擎 DEFAULT_CONFLICT_SERVICES 先 stop，
 #     postinst 再 start；全程 stop→start，不用 restart，避开 download 态竞态）
+preconditions:
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.5' && [ -d /etc/recamera.conf ]"
+    description: Console already at 0.5.5 and config directory ready
+    description_i18n:
+      zh: 控制台已是 0.5.5 且配置目录正常
+    satisfied_message: Console is already at 0.5.5 — nothing to install.
+    satisfied_message_i18n:
+      zh: 控制台已是 0.5.5，无需重复安装。
+
 binary:
   # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
   # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
