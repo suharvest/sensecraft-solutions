@@ -224,6 +224,20 @@ remote_overrides:
         - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
   actions:
     before:
+      - name: Copy reSpeaker host fix
+        name_i18n: {zh: 拷贝 reSpeaker 主机侧修复脚本}
+        description: Copies the host-side fix for the reSpeaker XVF3800 (speaker level pinning and USB hub self-heal) to /tmp, because the app dir is rewritten by the deploy.
+        description_i18n: {zh: 将 reSpeaker XVF3800 主机侧修复（扬声器音量固定与 USB 集线器自恢复）脚本拷贝到 /tmp，因为应用目录会被部署重写。}
+        copy:
+          src: assets/rk3576/respeaker/respeaker-host-fix.sh
+          dest: /tmp/conversational-voice-ai-respeaker-fix.sh
+          mode: "0755"
+      - name: Install reSpeaker host fix
+        name_i18n: {zh: 安装 reSpeaker 主机侧修复}
+        description: Installs the mixer level fix (85%) and the USB hub reset self-heal before the containers start, because the voice agent takes over the ALSA device at start and the fix must be in place first.
+        description_i18n: {zh: 在容器启动前安装音量修复（85%）与 USB 集线器复位自恢复——语音 agent 启动时会独占 ALSA 设备，修复必须先就位。}
+        sudo: true
+        run: bash /tmp/conversational-voice-ai-respeaker-fix.sh
       - name: Lock RK clocks to maximum
         name_i18n: {zh: 将 RK 各计算域锁定到最高频率}
         description: Pins the available CPU, NPU, DDR, and GPU frequency domains before starting the voice services.
@@ -280,3 +294,12 @@ remote_overrides:
           [ "$npu_pinned" -eq 1 ] || { echo "ERROR: RK NPU could not be locked to maximum frequency"; exit 1; }
           [ "$failures" -eq 0 ] || { echo "ERROR: $failures RK frequency operation(s) failed"; exit 1; }
           echo "RK maximum-performance mode enabled. Ensure adequate cooling."
+    after:
+      - name: Show reSpeaker mixer state
+        name_i18n: {zh: 显示 reSpeaker 混音器状态}
+        description: Prints the reSpeaker speaker level and USB presence into the deploy log for support.
+        description_i18n: {zh: 将 reSpeaker 扬声器音量与 USB 在线状态打印到部署日志，便于支持排查。}
+        ignore_error: true
+        run: |
+          amixer -D hw:Array 2>/dev/null | grep -m1 "Front Left" || echo "reSpeaker card Array not present"
+          lsusb -d 2886:001a 2>/dev/null || echo "reSpeaker 2886:001a not on the USB bus"

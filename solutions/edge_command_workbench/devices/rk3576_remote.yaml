@@ -1,0 +1,164 @@
+version: "1.0"
+id: rk3576_remote
+name: RK3576 Command Workbench
+name_i18n:
+  zh: RK3576 命令工作台
+type: docker_deploy
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/edge-command-workbench
+  environment:
+    MODEL_ROOT: "/home/{{username}}/edge-command-workbench"
+    VOICE_SERVICE_URL: "{{voice_service_url}}"
+  offline:
+    force_offline: true
+    skip_docker_install: true
+    images:
+      - edge-command-workbench:rk3576-0.1.0
+  options:
+    project_name: edge-command-workbench
+    remove_orphans: true
+  services:
+    - name: edge-command-workbench
+      port: 18768
+      health_check_endpoint: /api/health
+      required: true
+
+ssh:
+  port: 22
+  connection_timeout: 30
+  auth_methods: [password]
+  command_timeout: 900
+
+user_inputs:
+  - id: host
+    name: Device IP or hostname
+    name_i18n:
+      zh: 设备 IP 或主机名
+    type: text
+    required: true
+    placeholder: 192.168.1.100
+  - id: username
+    name: SSH username
+    name_i18n:
+      zh: SSH 用户名
+    type: text
+    required: true
+    placeholder: cat
+  - id: password
+    name: SSH password
+    name_i18n:
+      zh: SSH 密码
+    type: password
+    required: true
+  - id: voice_service_url
+    name: Existing local voice service URL (optional)
+    name_i18n:
+      zh: 已有本地语音服务地址（可选）
+    type: text
+    required: false
+    default: ""
+    placeholder: http://127.0.0.1:8621
+    description: Only set this when an existing compatible local voice service is already running. This solution does not install ASR.
+    description_i18n:
+      zh: 仅在目标设备已有兼容的本地语音服务时填写。本方案不会安装 ASR。
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Docker must already be installed because offline mode skips Docker installation.
+  - type: disk_space
+    min_gb: 4
+    description: Keep at least 4GB free for the image archive and pinned artifacts.
+  - type: port_available
+    ports: [18768]
+    description: Port 18768 must be available on the target device.
+
+actions:
+  before:
+    - name: Copy artifact manifest
+      name_i18n:
+        zh: 复制产物清单
+      copy:
+        src: assets/artifacts.json
+        dest: /home/{{username}}/edge-command-workbench/artifacts.json
+        mode: "0644"
+    - name: Copy artifact bootstrap script
+      name_i18n:
+        zh: 复制产物准备脚本
+      copy:
+        src: assets/scripts/bootstrap_artifacts.sh
+        dest: /home/{{username}}/edge-command-workbench/bootstrap_artifacts.sh
+        mode: "0755"
+    - name: Copy archive verifier
+      name_i18n:
+        zh: 复制镜像归档校验器
+      copy:
+        src: assets/scripts/verify_image_archive.py
+        dest: /home/{{username}}/edge-command-workbench/verify_image_archive.py
+        mode: "0755"
+    - name: Prepare pinned image and model artifacts
+      name_i18n:
+        zh: 准备固定版本镜像和模型产物
+      run: |
+        set -eu
+        ROOT="/home/{{username}}/edge-command-workbench"
+        HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}" \
+          bash "$ROOT/bootstrap_artifacts.sh" "$ROOT" "$ROOT/artifacts.json"
+      sudo: true
+      timeout: 5400
+  after:
+    - name: Verify model readiness
+      name_i18n:
+        zh: 验证模型就绪状态
+      run: |
+        set -eu
+        CONTAINER=edge-command-workbench
+        ready=""
+        for _ in $(seq 1 60); do
+          status="$(docker inspect --format '{''{.State.Status}}' "$CONTAINER" 2>/dev/null || true)"
+          health="$(docker inspect --format '{''{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || true)"
+          if [ "$status" = exited ] || [ "$status" = dead ] || [ "$health" = unhealthy ]; then
+            echo "Container is not ready: status=$status health=$health" >&2
+            docker logs "$CONTAINER" >&2 || true
+            exit 1
+          fi
+          if [ "$health" = healthy ]; then
+            ready=healthy
+            break
+          fi
+          sleep 2
+        done
+        if [ "$ready" != healthy ]; then
+          echo "Timed out waiting for container health" >&2
+          docker logs "$CONTAINER" >&2 || true
+          exit 1
+        fi
+
+        python3 - <<'PY'
+        import json
+        import sys
+        import urllib.request
+
+        try:
+            with urllib.request.urlopen("http://127.0.0.1:18768/api/health", timeout=10) as response:
+                body = json.load(response)
+        except Exception as exc:
+            print(f"Health endpoint request failed: {exc}", file=sys.stderr)
+            raise SystemExit(1)
+        if body.get("model_ready") is not True or body.get("backend") != "rknn":
+            print(f"Service is not model-ready: {body}", file=sys.stderr)
+            raise SystemExit(1)
+        print("Model ready: backend=rknn")
+        PY
+      sudo: true
+      timeout: 180
+
+post_deployment:
+  open_browser: false
+  url: http://{{host}}:18768
+  service_name: edge-command-workbench
+  verify_service: true
+  wait_for_ready: 20

@@ -1,0 +1,1 @@
+name=/edge-command-workbench-rkllm id=1b6f903efb7eacacd8180b8c304a8499c7938680107716060d23391b3df7aa1b image=edge-command-workbench:rockchip-rkllm-0.3.1-review image_id=sha256:8acbe96dc6548ef18eb424f405d68d812a0245e02006dbfd1f9801f600820f16 state=running health=healthy port=18768 network=host

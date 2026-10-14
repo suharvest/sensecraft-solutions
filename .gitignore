@@ -11,3 +11,8 @@ uv.lock
 # playwright-cli run logs. Neither is repository content.
 solutions/.trash/
 .playwright-cli/
+
+# Per-session agent scratch (task briefs, one-off scripts, local deploy
+# bundles that can hold .env files and keys) and personal Claude settings.
+work/
+.claude/settings.local.json

@@ -20,7 +20,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PKG = ROOT / "solutions" / "home_assistant_whole_home"
+PKG = ROOT / "solutions" / "home-assistant-local-voice-hub"
 STEP = PKG / "devices" / "ha_connect_cloud.yaml"
 SECRET_INPUTS = {"llm_api_key", "ha_password"}
 

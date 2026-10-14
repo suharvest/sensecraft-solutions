@@ -1,0 +1,43 @@
+laya-on-rk3588-jetson
+Copyright 2026 suharvest
+
+This repository contains conversion recipes, measurement results and an acceptance
+protocol for running the laya decision model on edge NPUs. It redistributes no upstream
+weights directly; the artifacts its scripts produce are derivative works of the
+components listed below.
+
+
+Upstream components
+-------------------
+
+laya (source code)
+  https://github.com/NandhaKishorM/laya
+  Pinned revision: 6d942c92081fbc139e736bbd9ac0023223c29b7f  (2026-09-29, v0.3.22)
+  Copyright the laya authors.
+  Licensed under the Apache License, Version 2.0.
+
+laya-multilingual (model weights)
+  https://huggingface.co/convaiinnovations/laya-multilingual
+  Pinned revision: e4e9ddf21a7b1903b7acffd8814ad4307bf63a67
+  Copyright ConvAI Innovations.
+  Licensed under the Apache License, Version 2.0.
+
+
+Derivative artifacts
+--------------------
+
+The ONNX graphs, TensorRT engines, RKNN models, calibration sets and held-out sample
+sets produced by this recipe are derivative works of laya-multilingual. Where they are
+distributed, they are distributed under the Apache License, Version 2.0, with the
+upstream attribution above retained.
+
+
+Trademarks
+----------
+
+"Jev" is a product of TypeSafe AI, Inc. This project is not affiliated with, endorsed by,
+or sponsored by TypeSafe AI, Inc. References to Jev in this repository are descriptive:
+laya implements the same System One typed-decision request interface.
+
+"laya", "mmBERT", "Rockchip", "RK3588", "RKNN", "NVIDIA", "Jetson" and "TensorRT" are the
+property of their respective owners.

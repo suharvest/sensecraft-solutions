@@ -1,0 +1,12 @@
+timestamp=2026-10-11T14:15:17+08:00
+image_id=sha256:8acbe96dc6548ef18eb424f405d68d812a0245e02006dbfd1f9801f600820f16 size=291113842
+container_id=427626dee8d9e6a4fb39a31cc94efe7670e7889c27f1a50b494356d3f2931f43 status=running oom=false health=healthy image=edge-command-workbench:rockchip-rkllm-0.3.1-review
+{"status":"ok","model_ready":true,"backend":"rkllm","name":"kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm","model_id":"kev","max_sequence_tokens":2048,"max_options":16}
+0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506  /home/cat/kev-rkllm/persist/kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm
+f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c  /home/cat/kev-rkllm/persist/evidence/librkllmrt-v1.3.1.so
+MemAvailable:    3280820 kB
+文件系统        大小  已用  可用 已用% 挂载点
+/dev/mmcblk0p3   58G   53G  2.4G   96% /
+kev-app-final-qa-0.3.1-18771 edge-command-workbench:rockchip-rkllm-0.3.1-review Up 2 minutes (healthy)
+conversational-voice-speech openvoicestream:asr-windowcommit-20260922-piper-espeak-cache-20260926 Up 18 hours (healthy)
+xiaozhi-display sensecraft-missionpack.seeed.cn/solution/xiaozhi-display:0.3.3 Up 18 hours (healthy)

@@ -1,0 +1,877 @@
+{"pass": "original", "id": "jev-001-en", "status": 200, "correct": true, "client_elapsed_ms": 4293.724169954658}
+{"pass": "original", "id": "jev-001-zh", "status": 200, "correct": true, "client_elapsed_ms": 3549.365228973329}
+{"pass": "original", "id": "jev-002-en", "status": 200, "correct": true, "client_elapsed_ms": 3518.6862730188295}
+{"pass": "original", "id": "jev-002-zh", "status": 200, "correct": true, "client_elapsed_ms": 4522.0742000383325}
+{"pass": "original", "id": "jev-003-en", "status": 200, "correct": true, "client_elapsed_ms": 3522.9056520038284}
+{"pass": "original", "id": "jev-003-zh", "status": 200, "correct": true, "client_elapsed_ms": 3513.262297026813}
+{"pass": "original", "id": "jev-004-en", "status": 200, "correct": true, "client_elapsed_ms": 4368.668336013798}
+{"pass": "original", "id": "jev-004-zh", "status": 200, "correct": true, "client_elapsed_ms": 4247.217209020164}
+{"pass": "original", "id": "jev-005-en", "status": 200, "correct": true, "client_elapsed_ms": 4366.105690016411}
+{"pass": "original", "id": "jev-005-zh", "status": 200, "correct": true, "client_elapsed_ms": 3521.5085489908233}
+{"pass": "original", "id": "jev-006-en", "status": 200, "correct": true, "client_elapsed_ms": 3702.1889580064453}
+{"pass": "original", "id": "jev-006-zh", "status": 200, "correct": true, "client_elapsed_ms": 4305.205715994816}
+{"pass": "original", "id": "jev-007-en", "status": 200, "correct": true, "client_elapsed_ms": 3501.17326999316}
+{"pass": "original", "id": "jev-007-zh", "status": 200, "correct": true, "client_elapsed_ms": 3516.3532060105354}
+{"pass": "original", "id": "jev-008-en", "status": 200, "correct": true, "client_elapsed_ms": 4074.3948480230756}
+{"pass": "original", "id": "jev-008-zh", "status": 200, "correct": true, "client_elapsed_ms": 4292.139569006395}
+{"pass": "original", "id": "jev-009-en", "status": 200, "correct": true, "client_elapsed_ms": 4373.082300007809}
+{"pass": "original", "id": "jev-009-zh", "status": 200, "correct": true, "client_elapsed_ms": 3479.0707399952225}
+{"pass": "original", "id": "jev-010-en", "status": 200, "correct": true, "client_elapsed_ms": 3556.7531279521063}
+{"pass": "original", "id": "jev-010-zh", "status": 200, "correct": true, "client_elapsed_ms": 4393.45085399691}
+{"pass": "original", "id": "jev-011-en", "status": 200, "correct": true, "client_elapsed_ms": 3770.3890269622207}
+{"pass": "original", "id": "jev-011-zh", "status": 200, "correct": true, "client_elapsed_ms": 3528.2063229824416}
+{"pass": "original", "id": "jev-012-en", "status": 200, "correct": true, "client_elapsed_ms": 4506.353881035466}
+{"pass": "original", "id": "jev-012-zh", "status": 200, "correct": true, "client_elapsed_ms": 4783.811476023402}
+{"pass": "original", "id": "jev-013-en", "status": 200, "correct": true, "client_elapsed_ms": 3939.3476159893908}
+{"pass": "original", "id": "jev-013-zh", "status": 200, "correct": true, "client_elapsed_ms": 3510.5976259801537}
+{"pass": "original", "id": "jev-014-en", "status": 200, "correct": true, "client_elapsed_ms": 3509.4988890341483}
+{"pass": "original", "id": "jev-014-zh", "status": 200, "correct": true, "client_elapsed_ms": 4373.839827021584}
+{"pass": "original", "id": "jev-015-en", "status": 200, "correct": true, "client_elapsed_ms": 3635.7247509877197}
+{"pass": "original", "id": "jev-015-zh", "status": 200, "correct": false, "client_elapsed_ms": 3986.6036510211416}
+{"pass": "original", "id": "jev-016-en", "status": 200, "correct": true, "client_elapsed_ms": 4760.782306955662}
+{"pass": "original", "id": "jev-016-zh", "status": 200, "correct": true, "client_elapsed_ms": 3940.035703999456}
+{"pass": "original", "id": "jev-017-en", "status": 200, "correct": true, "client_elapsed_ms": 3937.681014998816}
+{"pass": "original", "id": "jev-017-zh", "status": 200, "correct": true, "client_elapsed_ms": 3508.184916980099}
+{"pass": "original", "id": "jev-018-en", "status": 200, "correct": true, "client_elapsed_ms": 3907.622163009364}
+{"pass": "original", "id": "jev-018-zh", "status": 200, "correct": true, "client_elapsed_ms": 3947.2260889597237}
+{"pass": "original", "id": "jev-019-en", "status": 200, "correct": true, "client_elapsed_ms": 3630.617838993203}
+{"pass": "original", "id": "jev-019-zh", "status": 200, "correct": true, "client_elapsed_ms": 3950.2227649791166}
+{"pass": "original", "id": "jev-020-en", "status": 200, "correct": true, "client_elapsed_ms": 4730.837527022231}
+{"pass": "original", "id": "jev-020-zh", "status": 200, "correct": true, "client_elapsed_ms": 4002.1563810296357}
+{"pass": "original", "id": "jev-021-en", "status": 200, "correct": false, "client_elapsed_ms": 3923.606847994961}
+{"pass": "original", "id": "jev-021-zh", "status": 200, "correct": true, "client_elapsed_ms": 3509.5846879994497}
+{"pass": "original", "id": "jev-022-en", "status": 200, "correct": true, "client_elapsed_ms": 3969.189240015112}
+{"pass": "original", "id": "jev-022-zh", "status": 200, "correct": true, "client_elapsed_ms": 3986.912583000958}
+{"pass": "original", "id": "jev-023-en", "status": 200, "correct": true, "client_elapsed_ms": 3684.9420409998856}
+{"pass": "original", "id": "jev-023-zh", "status": 200, "correct": true, "client_elapsed_ms": 3973.592083028052}
+{"pass": "original", "id": "jev-024-en", "status": 200, "correct": true, "client_elapsed_ms": 4999.00588800665}
+{"pass": "original", "id": "jev-024-zh", "status": 200, "correct": true, "client_elapsed_ms": 3495.317422959488}
+{"pass": "original", "id": "jev-025-en", "status": 200, "correct": true, "client_elapsed_ms": 3509.8825090099126}
+{"pass": "original", "id": "jev-025-zh", "status": 200, "correct": true, "client_elapsed_ms": 3953.951285977382}
+{"pass": "original", "id": "jev-026-en", "status": 200, "correct": true, "client_elapsed_ms": 3914.7942109848373}
+{"pass": "original", "id": "jev-026-zh", "status": 200, "correct": true, "client_elapsed_ms": 3900.812188978307}
+{"pass": "original", "id": "jev-027-en", "status": 200, "correct": true, "client_elapsed_ms": 3879.911927971989}
+{"pass": "original", "id": "jev-027-zh", "status": 200, "correct": true, "client_elapsed_ms": 3636.157089029439}
+{"pass": "original", "id": "jev-028-en", "status": 200, "correct": true, "client_elapsed_ms": 5221.393233980052}
+{"pass": "original", "id": "jev-028-zh", "status": 200, "correct": true, "client_elapsed_ms": 3529.779139033053}
+{"pass": "original", "id": "jev-029-en", "status": 200, "correct": true, "client_elapsed_ms": 3669.846436008811}
+{"pass": "original", "id": "jev-029-zh", "status": 200, "correct": true, "client_elapsed_ms": 4279.076476988848}
+{"pass": "original", "id": "jev-030-en", "status": 200, "correct": true, "client_elapsed_ms": 3607.1608159691095}
+{"pass": "original", "id": "jev-030-zh", "status": 200, "correct": true, "client_elapsed_ms": 3974.279604968615}
+{"pass": "original", "id": "jev-031-en", "status": 200, "correct": true, "client_elapsed_ms": 3971.7677020234987}
+{"pass": "original", "id": "jev-031-zh", "status": 200, "correct": true, "client_elapsed_ms": 4346.442040987313}
+{"pass": "original", "id": "jev-032-en", "status": 200, "correct": false, "client_elapsed_ms": 4174.060074961744}
+{"pass": "original", "id": "jev-032-zh", "status": 200, "correct": true, "client_elapsed_ms": 3611.7004589759745}
+{"pass": "original", "id": "jev-033-en", "status": 200, "correct": true, "client_elapsed_ms": 3666.4948189863935}
+{"pass": "original", "id": "jev-033-zh", "status": 200, "correct": false, "client_elapsed_ms": 4405.353696027305}
+{"pass": "original", "id": "jev-034-en", "status": 200, "correct": true, "client_elapsed_ms": 3562.729982950259}
+{"pass": "original", "id": "jev-034-zh", "status": 200, "correct": false, "client_elapsed_ms": 3525.3728330135345}
+{"pass": "original", "id": "jev-035-en", "status": 200, "correct": false, "client_elapsed_ms": 4357.723176013678}
+{"pass": "original", "id": "jev-035-zh", "status": 200, "correct": false, "client_elapsed_ms": 4366.063333989587}
+{"pass": "original", "id": "jev-036-en", "status": 200, "correct": true, "client_elapsed_ms": 4390.692375018261}
+{"pass": "original", "id": "jev-036-zh", "status": 200, "correct": false, "client_elapsed_ms": 3597.211523039732}
+{"pass": "original", "id": "jev-037-en", "status": 200, "correct": false, "client_elapsed_ms": 3519.1715430119075}
+{"pass": "original", "id": "jev-037-zh", "status": 200, "correct": false, "client_elapsed_ms": 4042.2151269740425}
+{"pass": "original", "id": "jev-038-en", "status": 200, "correct": false, "client_elapsed_ms": 3520.4374180175364}
+{"pass": "original", "id": "jev-038-zh", "status": 200, "correct": false, "client_elapsed_ms": 3492.247321002651}
+{"pass": "original", "id": "jev-039-en", "status": 200, "correct": false, "client_elapsed_ms": 4272.296546958387}
+{"pass": "original", "id": "jev-039-zh", "status": 200, "correct": false, "client_elapsed_ms": 4329.915197973605}
+{"pass": "original", "id": "jev-040-en", "status": 200, "correct": true, "client_elapsed_ms": 4505.135170009453}
+{"pass": "original", "id": "jev-040-zh", "status": 200, "correct": false, "client_elapsed_ms": 3551.8788280314766}
+{"pass": "original", "id": "jev-041-en", "status": 200, "correct": true, "client_elapsed_ms": 3542.105676024221}
+{"pass": "original", "id": "jev-041-zh", "status": 200, "correct": false, "client_elapsed_ms": 4353.504133003298}
+{"pass": "original", "id": "jev-042-en", "status": 200, "correct": true, "client_elapsed_ms": 3497.961250017397}
+{"pass": "original", "id": "jev-042-zh", "status": 200, "correct": false, "client_elapsed_ms": 3562.8633169690147}
+{"pass": "original", "id": "jev-043-en", "status": 200, "correct": false, "client_elapsed_ms": 5371.2684999918565}
+{"pass": "original", "id": "jev-043-zh", "status": 200, "correct": true, "client_elapsed_ms": 3951.023841043934}
+{"pass": "original", "id": "jev-044-en", "status": 200, "correct": false, "client_elapsed_ms": 4062.1248959796503}
+{"pass": "original", "id": "jev-044-zh", "status": 200, "correct": true, "client_elapsed_ms": 3495.133472024463}
+{"pass": "original", "id": "jev-045-en", "status": 200, "correct": false, "client_elapsed_ms": 3958.397682989016}
+{"pass": "original", "id": "jev-045-zh", "status": 200, "correct": false, "client_elapsed_ms": 3972.375044017099}
+{"pass": "original", "id": "jev-046-en", "status": 200, "correct": true, "client_elapsed_ms": 3522.0145390485413}
+{"pass": "original", "id": "jev-046-zh", "status": 200, "correct": true, "client_elapsed_ms": 3943.6940620071255}
+{"pass": "original", "id": "jev-047-en", "status": 200, "correct": false, "client_elapsed_ms": 4698.35211004829}
+{"pass": "original", "id": "jev-047-zh", "status": 200, "correct": true, "client_elapsed_ms": 3946.3109740172513}
+{"pass": "original", "id": "jev-048-en", "status": 200, "correct": false, "client_elapsed_ms": 3954.162868030835}
+{"pass": "original", "id": "jev-048-zh", "status": 200, "correct": false, "client_elapsed_ms": 3548.328300996218}
+{"pass": "original", "id": "jev-049-en", "status": 200, "correct": false, "client_elapsed_ms": 4020.2249280409887}
+{"pass": "original", "id": "jev-049-zh", "status": 200, "correct": true, "client_elapsed_ms": 4142.840730026364}
+{"pass": "original", "id": "jev-050-en", "status": 200, "correct": false, "client_elapsed_ms": 3538.3853979874402}
+{"pass": "original", "id": "jev-050-zh", "status": 200, "correct": true, "client_elapsed_ms": 4017.869950970635}
+{"pass": "original", "id": "jev-051-en", "status": 200, "correct": false, "client_elapsed_ms": 4684.083680040203}
+{"pass": "original", "id": "jev-051-zh", "status": 200, "correct": true, "client_elapsed_ms": 3806.671579950489}
+{"pass": "original", "id": "jev-052-en", "status": 200, "correct": true, "client_elapsed_ms": 3946.7231309972703}
+{"pass": "original", "id": "jev-052-zh", "status": 200, "correct": false, "client_elapsed_ms": 3525.570373982191}
+{"pass": "original", "id": "jev-053-en", "status": 200, "correct": true, "client_elapsed_ms": 3953.6285389913246}
+{"pass": "original", "id": "jev-053-zh", "status": 200, "correct": true, "client_elapsed_ms": 3935.8378250035457}
+{"pass": "original", "id": "jev-054-en", "status": 200, "correct": true, "client_elapsed_ms": 3549.1006770171225}
+{"pass": "original", "id": "jev-054-zh", "status": 200, "correct": true, "client_elapsed_ms": 3977.351931971498}
+{"pass": "original", "id": "jev-055-en", "status": 200, "correct": true, "client_elapsed_ms": 5203.036841005087}
+{"pass": "original", "id": "jev-055-zh", "status": 200, "correct": true, "client_elapsed_ms": 3507.1910669794306}
+{"pass": "original", "id": "jev-056-en", "status": 200, "correct": true, "client_elapsed_ms": 3520.4488649615087}
+{"pass": "original", "id": "jev-056-zh", "status": 200, "correct": true, "client_elapsed_ms": 4337.93721802067}
+{"pass": "original", "id": "jev-057-en", "status": 200, "correct": true, "client_elapsed_ms": 3494.577294040937}
+{"pass": "original", "id": "jev-057-zh", "status": 200, "correct": true, "client_elapsed_ms": 3975.332095986232}
+{"pass": "original", "id": "jev-058-en", "status": 200, "correct": true, "client_elapsed_ms": 3980.272489017807}
+{"pass": "original", "id": "jev-058-zh", "status": 200, "correct": true, "client_elapsed_ms": 4330.105751985684}
+{"pass": "original", "id": "jev-059-en", "status": 200, "correct": true, "client_elapsed_ms": 4332.372943987139}
+{"pass": "original", "id": "jev-059-zh", "status": 200, "correct": true, "client_elapsed_ms": 3497.823936981149}
+{"pass": "original", "id": "jev-060-en", "status": 200, "correct": true, "client_elapsed_ms": 3523.390419955831}
+{"pass": "original", "id": "jev-060-zh", "status": 200, "correct": true, "client_elapsed_ms": 4415.537371009123}
+{"pass": "reverse", "id": "jev-001-en", "status": 200, "correct": true, "client_elapsed_ms": 3533.6037160013802}
+{"pass": "reverse", "id": "jev-001-zh", "status": 200, "correct": true, "client_elapsed_ms": 3906.9150679861195}
+{"pass": "reverse", "id": "jev-002-en", "status": 200, "correct": true, "client_elapsed_ms": 3966.1408489919268}
+{"pass": "reverse", "id": "jev-002-zh", "status": 200, "correct": true, "client_elapsed_ms": 4312.034167000093}
+{"pass": "reverse", "id": "jev-003-en", "status": 200, "correct": true, "client_elapsed_ms": 4339.595708006527}
+{"pass": "reverse", "id": "jev-003-zh", "status": 200, "correct": true, "client_elapsed_ms": 3545.0178420287557}
+{"pass": "reverse", "id": "jev-004-en", "status": 200, "correct": true, "client_elapsed_ms": 3528.4139519790187}
+{"pass": "reverse", "id": "jev-004-zh", "status": 200, "correct": true, "client_elapsed_ms": 4360.021130996756}
+{"pass": "reverse", "id": "jev-005-en", "status": 200, "correct": true, "client_elapsed_ms": 3540.3877969947644}
+{"pass": "reverse", "id": "jev-005-zh", "status": 200, "correct": true, "client_elapsed_ms": 3541.8254649848677}
+{"pass": "reverse", "id": "jev-006-en", "status": 200, "correct": true, "client_elapsed_ms": 4449.42565402016}
+{"pass": "reverse", "id": "jev-006-zh", "status": 200, "correct": true, "client_elapsed_ms": 4366.674828983378}
+{"pass": "reverse", "id": "jev-007-en", "status": 200, "correct": true, "client_elapsed_ms": 4487.70187899936}
+{"pass": "reverse", "id": "jev-007-zh", "status": 200, "correct": true, "client_elapsed_ms": 3505.944776989054}
+{"pass": "reverse", "id": "jev-008-en", "status": 200, "correct": true, "client_elapsed_ms": 3539.44948699791}
+{"pass": "reverse", "id": "jev-008-zh", "status": 200, "correct": true, "client_elapsed_ms": 4417.545292002615}
+{"pass": "reverse", "id": "jev-009-en", "status": 200, "correct": true, "client_elapsed_ms": 3505.036797025241}
+{"pass": "reverse", "id": "jev-009-zh", "status": 200, "correct": true, "client_elapsed_ms": 3554.0845780051313}
+{"pass": "reverse", "id": "jev-010-en", "status": 200, "correct": true, "client_elapsed_ms": 4333.383638004307}
+{"pass": "reverse", "id": "jev-010-zh", "status": 200, "correct": true, "client_elapsed_ms": 4787.217132980004}
+{"pass": "reverse", "id": "jev-011-en", "status": 200, "correct": true, "client_elapsed_ms": 3995.201044017449}
+{"pass": "reverse", "id": "jev-011-zh", "status": 200, "correct": true, "client_elapsed_ms": 3516.8525599874556}
+{"pass": "reverse", "id": "jev-012-en", "status": 200, "correct": true, "client_elapsed_ms": 3944.68847499229}
+{"pass": "reverse", "id": "jev-012-zh", "status": 200, "correct": true, "client_elapsed_ms": 4015.4371699900366}
+{"pass": "reverse", "id": "jev-013-en", "status": 200, "correct": true, "client_elapsed_ms": 3517.218322958797}
+{"pass": "reverse", "id": "jev-013-zh", "status": 200, "correct": true, "client_elapsed_ms": 3933.4391580196097}
+{"pass": "reverse", "id": "jev-014-en", "status": 200, "correct": true, "client_elapsed_ms": 4749.397979001515}
+{"pass": "reverse", "id": "jev-014-zh", "status": 200, "correct": true, "client_elapsed_ms": 3935.1372929522768}
+{"pass": "reverse", "id": "jev-015-en", "status": 200, "correct": true, "client_elapsed_ms": 3980.1007489440963}
+{"pass": "reverse", "id": "jev-015-zh", "status": 200, "correct": true, "client_elapsed_ms": 3536.868476017844}
+{"pass": "reverse", "id": "jev-016-en", "status": 200, "correct": true, "client_elapsed_ms": 3960.572817013599}
+{"pass": "reverse", "id": "jev-016-zh", "status": 200, "correct": true, "client_elapsed_ms": 3995.1249330188148}
+{"pass": "reverse", "id": "jev-017-en", "status": 200, "correct": true, "client_elapsed_ms": 3537.4532880377956}
+{"pass": "reverse", "id": "jev-017-zh", "status": 200, "correct": true, "client_elapsed_ms": 4012.7712750108913}
+{"pass": "reverse", "id": "jev-018-en", "status": 200, "correct": true, "client_elapsed_ms": 4739.745591999963}
+{"pass": "reverse", "id": "jev-018-zh", "status": 200, "correct": true, "client_elapsed_ms": 3919.877742009703}
+{"pass": "reverse", "id": "jev-019-en", "status": 200, "correct": true, "client_elapsed_ms": 3977.8601119760424}
+{"pass": "reverse", "id": "jev-019-zh", "status": 200, "correct": true, "client_elapsed_ms": 3576.5663309721276}
+{"pass": "reverse", "id": "jev-020-en", "status": 200, "correct": true, "client_elapsed_ms": 3963.1319849868305}
+{"pass": "reverse", "id": "jev-020-zh", "status": 200, "correct": true, "client_elapsed_ms": 3959.978687984403}
+{"pass": "reverse", "id": "jev-021-en", "status": 200, "correct": true, "client_elapsed_ms": 3506.81633700151}
+{"pass": "reverse", "id": "jev-021-zh", "status": 200, "correct": true, "client_elapsed_ms": 4002.8852520044893}
+{"pass": "reverse", "id": "jev-022-en", "status": 200, "correct": true, "client_elapsed_ms": 4929.642084054649}
+{"pass": "reverse", "id": "jev-022-zh", "status": 200, "correct": true, "client_elapsed_ms": 3508.9374990202487}
+{"pass": "reverse", "id": "jev-023-en", "status": 200, "correct": true, "client_elapsed_ms": 3943.1354769621976}
+{"pass": "reverse", "id": "jev-023-zh", "status": 200, "correct": true, "client_elapsed_ms": 3531.2662349897437}
+{"pass": "reverse", "id": "jev-024-en", "status": 200, "correct": true, "client_elapsed_ms": 3940.457205986604}
+{"pass": "reverse", "id": "jev-024-zh", "status": 200, "correct": true, "client_elapsed_ms": 3987.3960569966584}
+{"pass": "reverse", "id": "jev-025-en", "status": 200, "correct": true, "client_elapsed_ms": 3552.9995569959283}
+{"pass": "reverse", "id": "jev-025-zh", "status": 200, "correct": true, "client_elapsed_ms": 4306.336875015404}
+{"pass": "reverse", "id": "jev-026-en", "status": 200, "correct": true, "client_elapsed_ms": 4869.7321669897065}
+{"pass": "reverse", "id": "jev-026-zh", "status": 200, "correct": true, "client_elapsed_ms": 3534.52876402298}
+{"pass": "reverse", "id": "jev-027-en", "status": 200, "correct": true, "client_elapsed_ms": 3550.981159962248}
+{"pass": "reverse", "id": "jev-027-zh", "status": 200, "correct": true, "client_elapsed_ms": 4326.712748967111}
+{"pass": "reverse", "id": "jev-028-en", "status": 200, "correct": true, "client_elapsed_ms": 3504.827312019188}
+{"pass": "reverse", "id": "jev-028-zh", "status": 200, "correct": true, "client_elapsed_ms": 4019.479267008137}
+{"pass": "reverse", "id": "jev-029-en", "status": 200, "correct": true, "client_elapsed_ms": 3987.4549490050413}
+{"pass": "reverse", "id": "jev-029-zh", "status": 200, "correct": true, "client_elapsed_ms": 4464.232366997749}
+{"pass": "reverse", "id": "jev-030-en", "status": 200, "correct": true, "client_elapsed_ms": 4062.071312975604}
+{"pass": "reverse", "id": "jev-030-zh", "status": 200, "correct": true, "client_elapsed_ms": 3526.734015031252}
+{"pass": "reverse", "id": "jev-031-en", "status": 200, "correct": true, "client_elapsed_ms": 3640.3816190431826}
+{"pass": "reverse", "id": "jev-031-zh", "status": 200, "correct": true, "client_elapsed_ms": 4365.046791033819}
+{"pass": "reverse", "id": "jev-032-en", "status": 200, "correct": false, "client_elapsed_ms": 3518.8542200485244}
+{"pass": "reverse", "id": "jev-032-zh", "status": 200, "correct": true, "client_elapsed_ms": 3920.8662229939364}
+{"pass": "reverse", "id": "jev-033-en", "status": 200, "correct": true, "client_elapsed_ms": 4017.911476024892}
+{"pass": "reverse", "id": "jev-033-zh", "status": 200, "correct": false, "client_elapsed_ms": 4346.889216976706}
+{"pass": "reverse", "id": "jev-034-en", "status": 200, "correct": true, "client_elapsed_ms": 4603.331861959305}
+{"pass": "reverse", "id": "jev-034-zh", "status": 200, "correct": false, "client_elapsed_ms": 3547.266365028918}
+{"pass": "reverse", "id": "jev-035-en", "status": 200, "correct": false, "client_elapsed_ms": 3576.7977469949983}
+{"pass": "reverse", "id": "jev-035-zh", "status": 200, "correct": false, "client_elapsed_ms": 4131.605580972973}
+{"pass": "reverse", "id": "jev-036-en", "status": 200, "correct": true, "client_elapsed_ms": 3562.1182559989393}
+{"pass": "reverse", "id": "jev-036-zh", "status": 200, "correct": false, "client_elapsed_ms": 3554.928483965341}
+{"pass": "reverse", "id": "jev-037-en", "status": 200, "correct": false, "client_elapsed_ms": 4315.38535701111}
+{"pass": "reverse", "id": "jev-037-zh", "status": 200, "correct": false, "client_elapsed_ms": 4770.961466012523}
+{"pass": "reverse", "id": "jev-038-en", "status": 200, "correct": false, "client_elapsed_ms": 3952.2815569653176}
+{"pass": "reverse", "id": "jev-038-zh", "status": 200, "correct": false, "client_elapsed_ms": 3542.6167210098356}
+{"pass": "reverse", "id": "jev-039-en", "status": 200, "correct": false, "client_elapsed_ms": 3538.9358929824084}
+{"pass": "reverse", "id": "jev-039-zh", "status": 200, "correct": false, "client_elapsed_ms": 4310.869628039654}
+{"pass": "reverse", "id": "jev-040-en", "status": 200, "correct": true, "client_elapsed_ms": 3525.8131670416333}
+{"pass": "reverse", "id": "jev-040-zh", "status": 200, "correct": false, "client_elapsed_ms": 3531.2776929931715}
+{"pass": "reverse", "id": "jev-041-en", "status": 200, "correct": true, "client_elapsed_ms": 5185.267521010246}
+{"pass": "reverse", "id": "jev-041-zh", "status": 200, "correct": false, "client_elapsed_ms": 3991.1261100205593}
+{"pass": "reverse", "id": "jev-042-en", "status": 200, "correct": true, "client_elapsed_ms": 4012.2094430262223}
+{"pass": "reverse", "id": "jev-042-zh", "status": 200, "correct": false, "client_elapsed_ms": 3505.8177019818686}
+{"pass": "reverse", "id": "jev-043-en", "status": 200, "correct": false, "client_elapsed_ms": 3948.109138989821}
+{"pass": "reverse", "id": "jev-043-zh", "status": 200, "correct": true, "client_elapsed_ms": 3922.319461009465}
+{"pass": "reverse", "id": "jev-044-en", "status": 200, "correct": false, "client_elapsed_ms": 3541.6648680111393}
+{"pass": "reverse", "id": "jev-044-zh", "status": 200, "correct": true, "client_elapsed_ms": 3548.522775003221}
+{"pass": "reverse", "id": "jev-045-en", "status": 200, "correct": false, "client_elapsed_ms": 5109.432959987316}
+{"pass": "reverse", "id": "jev-045-zh", "status": 200, "correct": false, "client_elapsed_ms": 3942.503014986869}
+{"pass": "reverse", "id": "jev-046-en", "status": 200, "correct": true, "client_elapsed_ms": 3965.332948951982}
+{"pass": "reverse", "id": "jev-046-zh", "status": 200, "correct": true, "client_elapsed_ms": 3603.6666730069555}
+{"pass": "reverse", "id": "jev-047-en", "status": 200, "correct": false, "client_elapsed_ms": 3994.605384999886}
+{"pass": "reverse", "id": "jev-047-zh", "status": 200, "correct": true, "client_elapsed_ms": 3984.762480016798}
+{"pass": "reverse", "id": "jev-048-en", "status": 200, "correct": false, "client_elapsed_ms": 3557.432452973444}
+{"pass": "reverse", "id": "jev-048-zh", "status": 200, "correct": true, "client_elapsed_ms": 3974.143314990215}
+{"pass": "reverse", "id": "jev-049-en", "status": 200, "correct": false, "client_elapsed_ms": 5177.234219037928}
+{"pass": "reverse", "id": "jev-049-zh", "status": 200, "correct": true, "client_elapsed_ms": 3578.7433729856275}
+{"pass": "reverse", "id": "jev-050-en", "status": 200, "correct": true, "client_elapsed_ms": 3898.416280047968}
+{"pass": "reverse", "id": "jev-050-zh", "status": 200, "correct": true, "client_elapsed_ms": 3558.5105560021475}
+{"pass": "reverse", "id": "jev-051-en", "status": 200, "correct": false, "client_elapsed_ms": 3918.90104097547}
+{"pass": "reverse", "id": "jev-051-zh", "status": 200, "correct": true, "client_elapsed_ms": 4042.038790008519}
+{"pass": "reverse", "id": "jev-052-en", "status": 200, "correct": true, "client_elapsed_ms": 3499.997920996975}
+{"pass": "reverse", "id": "jev-052-zh", "status": 200, "correct": true, "client_elapsed_ms": 4093.4491580119357}
+{"pass": "reverse", "id": "jev-053-en", "status": 200, "correct": true, "client_elapsed_ms": 5054.864919977263}
+{"pass": "reverse", "id": "jev-053-zh", "status": 200, "correct": true, "client_elapsed_ms": 3532.2075259755366}
+{"pass": "reverse", "id": "jev-054-en", "status": 200, "correct": true, "client_elapsed_ms": 3918.3017780305818}
+{"pass": "reverse", "id": "jev-054-zh", "status": 200, "correct": true, "client_elapsed_ms": 3982.072754006367}
+{"pass": "reverse", "id": "jev-055-en", "status": 200, "correct": true, "client_elapsed_ms": 3532.184913987294}
+{"pass": "reverse", "id": "jev-055-zh", "status": 200, "correct": true, "client_elapsed_ms": 3935.945213015657}
+{"pass": "reverse", "id": "jev-056-en", "status": 200, "correct": true, "client_elapsed_ms": 3690.9958670148626}
+{"pass": "reverse", "id": "jev-056-zh", "status": 200, "correct": true, "client_elapsed_ms": 4764.5539559889585}
+{"pass": "reverse", "id": "jev-057-en", "status": 200, "correct": true, "client_elapsed_ms": 4344.906011014245}
+{"pass": "reverse", "id": "jev-057-zh", "status": 200, "correct": true, "client_elapsed_ms": 3529.926704999525}
+{"pass": "reverse", "id": "jev-058-en", "status": 200, "correct": true, "client_elapsed_ms": 3963.2561080507003}
+{"pass": "reverse", "id": "jev-058-zh", "status": 200, "correct": true, "client_elapsed_ms": 3905.8990260236897}
+{"pass": "reverse", "id": "jev-059-en", "status": 200, "correct": true, "client_elapsed_ms": 3513.9595030341297}
+{"pass": "reverse", "id": "jev-059-zh", "status": 200, "correct": true, "client_elapsed_ms": 3972.4050129880197}
+{"pass": "reverse", "id": "jev-060-en", "status": 200, "correct": true, "client_elapsed_ms": 4017.180621973239}
+{"pass": "reverse", "id": "jev-060-zh", "status": 200, "correct": true, "client_elapsed_ms": 4335.017887002323}
+{
+  "dataset_sha256": "e9d77a3c96a1d0645bc9561cdf9ead06cbd57d8ef081906c2d5094d55e54ba6e",
+  "base_url": "http://127.0.0.1:18768/api/decide",
+  "timeout_seconds": 120.0,
+  "warmup_count": 5,
+  "warmups": [
+    {
+      "index": 0,
+      "status": 200,
+      "client_elapsed_ms": 5336.419344006572,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 5307.882447028533,
+        "total_ms": 5308.088953024708
+      }
+    },
+    {
+      "index": 1,
+      "status": 200,
+      "client_elapsed_ms": 4043.0782079929486,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 4034.1284519527107,
+        "total_ms": 4034.3644180102274
+      }
+    },
+    {
+      "index": 2,
+      "status": 200,
+      "client_elapsed_ms": 3535.975870967377,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 3531.884254014585,
+        "total_ms": 3531.9895489956252
+      }
+    },
+    {
+      "index": 3,
+      "status": 200,
+      "client_elapsed_ms": 4440.611099009402,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 4436.870660050772,
+        "total_ms": 4437.010664027184
+      }
+    },
+    {
+      "index": 4,
+      "status": 200,
+      "client_elapsed_ms": 4293.042229022831,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 4287.974375998601,
+        "total_ms": 4288.148506020661
+      }
+    }
+  ],
+  "scored_total": 240,
+  "success_count": 240,
+  "error_count": 0,
+  "timings_complete_count": 240,
+  "timings_missing_count": 0,
+  "correct_count": 189,
+  "accuracy_over_240_rows": 0.7875,
+  "client_e2e_ms_success": {
+    "n": 240,
+    "mean_ms": 3958.6150235753544,
+    "min_ms": 3479.0707399952225,
+    "p50_ms": 3946.517052507261,
+    "p95_ms": 4770.961466012523,
+    "max_ms": 5371.2684999918565
+  },
+  "server_encoding_ms_success": {
+    "n": 240,
+    "mean_ms": 0.0,
+    "min_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "max_ms": 0.0
+  },
+  "server_total_ms_success": {
+    "n": 240,
+    "mean_ms": 3955.431768379882,
+    "min_ms": 3475.698976952117,
+    "p50_ms": 3943.448193516815,
+    "p95_ms": 4767.861775006168,
+    "max_ms": 5368.251122999936
+  },
+  "server_inference_ms_success": {
+    "n": 240,
+    "mean_ms": 3955.264211025254,
+    "min_ms": 3475.5347640020773,
+    "p50_ms": 3943.2807720440906,
+    "p95_ms": 4767.695808026474,
+    "max_ms": 5368.082534987479
+  },
+  "by_pass": {
+    "original": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 92,
+      "accuracy_over_rows": 0.7666666666666667
+    },
+    "reverse": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 97,
+      "accuracy_over_rows": 0.8083333333333333
+    }
+  },
+  "by_language": {
+    "en": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 94,
+      "accuracy_over_rows": 0.7833333333333333
+    },
+    "zh": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 95,
+      "accuracy_over_rows": 0.7916666666666666
+    }
+  },
+  "by_category": {
+    "OOS": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 21,
+      "accuracy_over_rows": 0.525
+    },
+    "ambiguous": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 12,
+      "accuracy_over_rows": 0.3
+    },
+    "direct": {
+      "rows": 80,
+      "success": 80,
+      "errors": 0,
+      "correct": 80,
+      "accuracy_over_rows": 1.0
+    },
+    "negation": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 38,
+      "accuracy_over_rows": 0.95
+    },
+    "paraphrase": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 38,
+      "accuracy_over_rows": 0.95
+    }
+  },
+  "errors": [],
+  "wrong_predictions": [
+    {
+      "pass": "original",
+      "id": "jev-015-zh",
+      "language": "zh",
+      "category": "paraphrase",
+      "expected_id": "read_temp",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-021-en",
+      "language": "en",
+      "category": "paraphrase",
+      "expected_id": "stop_stream",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-032-en",
+      "language": "en",
+      "category": "negation",
+      "expected_id": "read_temp",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-033-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-034-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "stop",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-035-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-035-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-036-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-037-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "ack_alarm",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-037-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "list_alarms",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-038-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-038-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-039-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-039-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-040-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "read_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-041-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "camera_auto",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-042-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "list_alarms",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-043-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-044-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-045-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-045-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-047-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-048-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-048-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "start",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-049-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-050-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-051-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-052-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-032-en",
+      "language": "en",
+      "category": "negation",
+      "expected_id": "read_temp",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-033-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-034-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "stop",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-035-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-035-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-036-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-037-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "ack_alarm",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-037-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-038-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-038-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-039-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-039-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-040-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-041-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "camera_auto",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-042-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-043-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-044-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-045-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-045-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-047-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-048-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-049-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-051-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "start",
+      "status": 200
+    }
+  ],
+  "raw_jsonl": "/home/radxa/context500/jev-20261011/stable/results-v2.jsonl",
+  "request_contract": "expected/gold fields are excluded from HTTP body; each request contains input_text,prompt,options only",
+  "cache_contract": "service-side Kev infer clears RKLLM KV cache per request and keep_history=0; runner sends sequential requests without retries",
+  "synthetic_context": "fixed natural documentation metadata sentences appended to original prompt; exact assembled token count 500, not a natural long-task accuracy claim"
+}

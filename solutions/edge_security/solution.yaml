@@ -15,15 +15,16 @@ id: edge_security
 replaces: industrial_security_jetson
 # 名字写这套方案判什么，不写它跑在哪儿——现场的人搜的是「禁区入侵报警」「越线检测」，
 # 没有人搜「多平台边缘部署」。多平台是选型信息，归 summary 和硬件选型段。
-name: Intrusion and Loitering Alerts
+name: Intrusion and Line-Crossing Alerts
 name_i18n:
-  zh: 闯入与滞留告警
-  ja: 侵入と滞留のアラート
+  zh: 禁区入侵与越线告警
+  ja: エッジセキュリティ・侵入検知
 
 intro:
-  summary: Restricted-zone, line-crossing and loitering alerts from an RTSP camera, judged on the edge box itself and worked through in a browser. Jetson and RK3588 presets each run the whole stack on one machine.
+  summary: Draw a line or a zone, and anyone crossing it raises an alert decided on site.
   summary_i18n:
-    zh: 一路 RTSP 摄像头，判出禁区入侵、越线和滞留告警，在浏览器里逐条处理。判定就在边缘盒子上完成，Jetson 与 RK3588 套餐各自一台机器跑完整套。
+    zh: 画一条线或圈一块区域，有人越界就在本地判定并告警，视频不出场地。
+    ja: 線かエリアを描けば、越えた人をその場で知らせます。映像は現場から出ません。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -363,6 +364,11 @@ intro:
   stats:
     difficulty: intermediate
     estimated_time: 20min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-security/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-security/
 
 deployment:
   guide_file: guide.md

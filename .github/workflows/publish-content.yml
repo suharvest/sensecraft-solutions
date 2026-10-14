@@ -16,7 +16,7 @@ on:
       no_upload:
         description: "Dry run: generate manifest/zips but skip the OSS upload"
         type: boolean
-        default: false
+        default: true
 
 jobs:
   publish:
@@ -32,6 +32,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      # This public workflow cannot fetch the private App Engine Build artifact.
+      # Fail before installing upload tooling or resolving CDN credentials.
+      - name: Reject unsigned source-tree publication
+        if: ${{ !inputs.no_upload }}
+        run: |
+          echo 'Refusing unsigned source-tree publication.' >&2
+          echo 'Download the signed content-cdn artifact produced by the App Engine Build,' >&2
+          echo 'validate it with scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload,' >&2
+          echo 'then run the same command with --upload-signed only after the publication inventory is approved.' >&2
+          exit 1
+
       - name: Install ossutil v2
         if: ${{ !inputs.no_upload }}
         env:
@@ -43,8 +54,8 @@ jobs:
           chmod +x ossutil-tmp/*/ossutil && sudo mv ossutil-tmp/*/ossutil /usr/local/bin/
           rm -rf ossutil.zip ossutil-tmp
 
-      # OSS_ACCESS_KEY_ID/OSS_ACCESS_KEY_SECRET are only injected on the real
-      # upload path. The dry run must not see them at all: create_solution_zip
+      # OSS_ACCESS_KEY_ID/OSS_ACCESS_KEY_SECRET are only injected after the
+      # signed-artifact gate. The dry run must not see them at all: create_solution_zip
       # follows symlinks (Path.rglob + read_bytes), so a committed solution
       # symlinking into something like /proc/self/environ would otherwise let
       # a dry run leak these secrets into the uploaded dist/ artifact.
@@ -55,17 +66,6 @@ jobs:
             --solutions-dir solutions \
             --output-dir dist \
             --no-upload
-
-      - name: Generate manifest and publish
-        if: ${{ !inputs.no_upload }}
-        env:
-          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
-          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
-          OSS_REGION: us-east-1
-        run: |
-          python3 scripts/generate_solution_manifest.py \
-            --solutions-dir solutions \
-            --output-dir dist
 
       # main is protected (required "guard"/"validate" checks) so this opens
       # a PR rather than pushing straight to main — the bump still goes

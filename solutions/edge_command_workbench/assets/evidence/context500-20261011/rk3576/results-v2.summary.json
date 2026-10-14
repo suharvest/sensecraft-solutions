@@ -1,0 +1,637 @@
+{
+  "dataset_sha256": "e9d77a3c96a1d0645bc9561cdf9ead06cbd57d8ef081906c2d5094d55e54ba6e",
+  "base_url": "http://127.0.0.1:18771/api/decide",
+  "timeout_seconds": 120.0,
+  "warmup_count": 5,
+  "warmups": [
+    {
+      "index": 0,
+      "status": 200,
+      "client_elapsed_ms": 7796.715093994862,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 7787.942132999888,
+        "total_ms": 7788.144607999129
+      }
+    },
+    {
+      "index": 1,
+      "status": 200,
+      "client_elapsed_ms": 7129.994967006496,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 7126.351054001134,
+        "total_ms": 7126.522405000287
+      }
+    },
+    {
+      "index": 2,
+      "status": 200,
+      "client_elapsed_ms": 7724.18922399811,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 7720.667191999382,
+        "total_ms": 7720.8268429967575
+      }
+    },
+    {
+      "index": 3,
+      "status": 200,
+      "client_elapsed_ms": 7087.053299997933,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 7083.467415999621,
+        "total_ms": 7083.6279159993865
+      }
+    },
+    {
+      "index": 4,
+      "status": 200,
+      "client_elapsed_ms": 7101.187605003361,
+      "error": null,
+      "server_timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 7097.5600730016595,
+        "total_ms": 7097.732498004916
+      }
+    }
+  ],
+  "scored_total": 240,
+  "success_count": 240,
+  "error_count": 0,
+  "timings_complete_count": 240,
+  "timings_missing_count": 0,
+  "correct_count": 189,
+  "accuracy_over_240_rows": 0.7875,
+  "client_e2e_ms_success": {
+    "n": 240,
+    "mean_ms": 7220.981883112351,
+    "min_ms": 7067.253874993185,
+    "p50_ms": 7115.3067229970475,
+    "p95_ms": 7574.560162000125,
+    "max_ms": 7773.2369790028315
+  },
+  "server_encoding_ms_success": {
+    "n": 240,
+    "mean_ms": 0.0,
+    "min_ms": 0.0,
+    "p50_ms": 0.0,
+    "p95_ms": 0.0,
+    "max_ms": 0.0
+  },
+  "server_total_ms_success": {
+    "n": 240,
+    "mean_ms": 7217.304806212573,
+    "min_ms": 7063.657153004897,
+    "p50_ms": 7111.868207502994,
+    "p95_ms": 7570.654012000887,
+    "max_ms": 7769.753246000619
+  },
+  "server_inference_ms_success": {
+    "n": 240,
+    "mean_ms": 7217.131434687143,
+    "min_ms": 7063.4915759874275,
+    "p50_ms": 7111.6389259987045,
+    "p95_ms": 7570.439885996166,
+    "max_ms": 7769.592119992012
+  },
+  "by_pass": {
+    "original": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 95,
+      "accuracy_over_rows": 0.7916666666666666
+    },
+    "reverse": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 94,
+      "accuracy_over_rows": 0.7833333333333333
+    }
+  },
+  "by_language": {
+    "en": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 93,
+      "accuracy_over_rows": 0.775
+    },
+    "zh": {
+      "rows": 120,
+      "success": 120,
+      "errors": 0,
+      "correct": 96,
+      "accuracy_over_rows": 0.8
+    }
+  },
+  "by_category": {
+    "OOS": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 19,
+      "accuracy_over_rows": 0.475
+    },
+    "ambiguous": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 14,
+      "accuracy_over_rows": 0.35
+    },
+    "direct": {
+      "rows": 80,
+      "success": 80,
+      "errors": 0,
+      "correct": 80,
+      "accuracy_over_rows": 1.0
+    },
+    "negation": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 37,
+      "accuracy_over_rows": 0.925
+    },
+    "paraphrase": {
+      "rows": 40,
+      "success": 40,
+      "errors": 0,
+      "correct": 39,
+      "accuracy_over_rows": 0.975
+    }
+  },
+  "errors": [],
+  "wrong_predictions": [
+    {
+      "pass": "original",
+      "id": "jev-021-en",
+      "language": "en",
+      "category": "paraphrase",
+      "expected_id": "stop_stream",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-032-en",
+      "language": "en",
+      "category": "negation",
+      "expected_id": "read_temp",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-033-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-034-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "stop",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-035-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-035-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-036-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-037-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "ack_alarm",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-037-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "list_alarms",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-038-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-038-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-039-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-040-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-041-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-042-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-043-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-044-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-045-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-045-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-046-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-047-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-048-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-048-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "start",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-049-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "original",
+      "id": "jev-050-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-024-en",
+      "language": "en",
+      "category": "negation",
+      "expected_id": "status",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-032-en",
+      "language": "en",
+      "category": "negation",
+      "expected_id": "read_temp",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-033-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-034-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-035-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-035-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-036-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-037-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "ack_alarm",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-037-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-038-en",
+      "language": "en",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-038-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_speed",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-039-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_rate",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-040-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "set_temp",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-041-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-042-zh",
+      "language": "zh",
+      "category": "ambiguous",
+      "expected_id": "clarify",
+      "selected_option_id": "reject",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-043-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-044-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-045-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-045-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-046-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-047-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-048-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-048-zh",
+      "language": "zh",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "start",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-049-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-050-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "clarify",
+      "status": 200
+    },
+    {
+      "pass": "reverse",
+      "id": "jev-051-en",
+      "language": "en",
+      "category": "OOS",
+      "expected_id": "reject",
+      "selected_option_id": "start",
+      "status": 200
+    }
+  ],
+  "raw_jsonl": "/home/cat/context500/jev-20261011/stable/results-v2.jsonl",
+  "request_contract": "expected/gold fields are excluded from HTTP body; each request contains input_text,prompt,options only",
+  "cache_contract": "service-side Kev infer clears RKLLM KV cache per request and keep_history=0; runner sends sequential requests without retries",
+  "synthetic_context": "fixed natural documentation metadata sentences appended to original prompt; exact assembled token count 500, not a natural long-task accuracy claim"
+}

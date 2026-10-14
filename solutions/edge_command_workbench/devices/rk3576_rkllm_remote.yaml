@@ -1,0 +1,139 @@
+version: "1.0"
+id: rk3576_rkllm_remote
+name: RK3576 Kev RKLLM Workbench
+name_i18n:
+  zh: RK3576 Kev RKLLM 工作台
+type: docker_deploy
+
+docker:
+  compose_file: assets/docker/docker-compose.rkllm.yml
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/edge-command-workbench-rkllm
+  environment:
+    MODEL_ROOT: /home/{{username}}/edge-command-workbench-rkllm
+    RKLLM_RUNTIME_DIR: /home/{{username}}/edge-command-workbench-rkllm/runtime
+    MODEL_SERVICES_JSON: "{{model_services_json}}"
+    VOICE_SERVICE_URL: "{{voice_service_url}}"
+    SEQ_LEN: "2048"
+    MAX_OPTIONS: "16"
+  offline:
+    force_offline: true
+    skip_docker_install: true
+    images:
+      - edge-command-workbench:rockchip-rkllm-0.3.1-review
+  options:
+    project_name: edge-command-workbench-rkllm
+    remove_orphans: true
+  services:
+    - name: edge-command-workbench
+      port: 18768
+      health_check_endpoint: /api/health
+      required: true
+
+ssh:
+  port: 22
+  connection_timeout: 30
+  auth_methods: [password]
+  command_timeout: 900
+
+user_inputs:
+  - id: host
+    name: Device IP or hostname
+    name_i18n: {zh: 设备 IP 或主机名}
+    type: text
+    required: true
+  - id: username
+    name: SSH username
+    name_i18n: {zh: SSH 用户名}
+    type: text
+    required: true
+  - id: password
+    name: SSH password
+    name_i18n: {zh: SSH 密码}
+    type: password
+    required: true
+  - id: model_services_json
+    name: Remote model profiles JSON (optional)
+    name_i18n: {zh: 远程模型配置 JSON（可选）}
+    type: text
+    required: false
+    default: ""
+    description: Map another model id to an existing HTTP model service; leave blank to use local Kev. RK3576 deployment context is limited to 2048 tokens.
+    description_i18n: {zh: 将其他模型 ID 映射到已有 HTTP 模型服务；留空使用本地 Kev。}
+  - id: voice_service_url
+    name: Existing local voice service URL (optional)
+    name_i18n: {zh: 已有本地语音服务地址（可选）}
+    type: text
+    required: false
+    default: ""
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+  - type: disk_space
+    min_gb: 3
+    description: Measured fresh artifact peak is about 1.94GB; keep 1GB reserve for Docker/bootstrap operations.
+  - type: port_available
+    ports: [18768]
+
+actions:
+  before:
+    - name: Copy Kev artifact manifest
+      name_i18n: {zh: 复制 Kev 产物清单}
+      copy:
+        src: assets/artifacts.rkllm.inventory.json
+        dest: /home/{{username}}/edge-command-workbench-rkllm/artifacts.rkllm.inventory.json
+        mode: "0644"
+    - name: Copy artifact bootstrap and verifier
+      name_i18n: {zh: 复制产物准备脚本和校验器}
+      copy:
+        src: assets/scripts/bootstrap_artifacts.sh
+        dest: /home/{{username}}/edge-command-workbench-rkllm/bootstrap_artifacts.sh
+        mode: "0755"
+    - name: Copy archive verifier
+      name_i18n: {zh: 复制镜像归档校验器}
+      copy:
+        src: assets/scripts/verify_image_archive.py
+        dest: /home/{{username}}/edge-command-workbench-rkllm/verify_image_archive.py
+        mode: "0755"
+    - name: Prepare pinned Kev image and model artifacts
+      name_i18n: {zh: 准备固定版本 Kev 镜像和模型产物}
+      run: |
+        set -eu
+        ROOT="/home/{{username}}/edge-command-workbench-rkllm"
+        HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}" \
+          MODEL_TARGET=rk3576 bash "$ROOT/bootstrap_artifacts.sh" "$ROOT" "$ROOT/artifacts.rkllm.inventory.json"
+      sudo: true
+      timeout: 5400
+    - name: Prepare model and runtime directories
+      name_i18n: {zh: 准备模型和运行时目录}
+      run: |
+        set -eu
+        mkdir -p /home/{{username}}/edge-command-workbench-rkllm/runtime
+        test -f /home/{{username}}/edge-command-workbench-rkllm/model.rkllm
+        test -f /home/{{username}}/edge-command-workbench-rkllm/kev_head.npz
+        test -f /home/{{username}}/edge-command-workbench-rkllm/model_metadata.json
+        test -f /home/{{username}}/edge-command-workbench-rkllm/runtime/librkllmrt.so
+        test -f /home/{{username}}/edge-command-workbench-rkllm/tokenizer/tokenizer.json
+      sudo: false
+  after:
+    - name: Verify Kev model readiness
+      name_i18n: {zh: 验证 Kev 模型就绪}
+      run: |
+        set -eu
+        python3 - <<'PY'
+        import json, urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:18768/api/health", timeout=10) as response:
+            body = json.load(response)
+        if body.get("model_ready") is not True or body.get("backend") != "rkllm" or body.get("model_id") != "kev":
+            raise SystemExit(f"Kev model is not ready: {body}")
+        print("Model ready: backend=rkllm model_id=kev")
+        PY
+      sudo: false
+
+post_deployment:
+  open_browser: false
+  url: http://{{host}}:18768
+  service_name: edge-command-workbench-rkllm
+  verify_service: true
+  wait_for_ready: 70
