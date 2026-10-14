@@ -218,19 +218,29 @@ actions:
     - name: Write the source, trigger and MQTT configuration
       env:
         INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_MODEL_TRACK: "{{model_track}}"
+        INPUT_MIN_CONFIDENCE: "{{min_confidence}}"
+        INPUT_TRIGGER_SOURCES: "{{trigger_sources}}"
+        INPUT_DEBOUNCE_MS: "{{debounce_ms}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_KIND: "{{source_kind}}"
       run: |
         set -e
         if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
         CONFIG="$WORKDIR/config/config.json"
         mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
-        python3 - "$CONFIG" <<'PY'
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
         import json, os, re, sys
 
         path = sys.argv[1]
+        workdir = sys.argv[2]
         with open(path) as handle:
             config = json.load(handle)
 
-        track = "{{model_track}}"
+        track = os.environ["INPUT_MODEL_TRACK"]
         model_names = {
             "baseline": "efficientnet_lite0_waste8",
             "open_vocab": "siglip2_vision_224",
@@ -254,22 +264,25 @@ actions:
             config["model"].pop("prompt_set", None)
             config["model"].pop("temperature", None)
 
-        config["rules"]["min_confidence"] = float("{{min_confidence}}")
+        config["rules"]["min_confidence"] = float(os.environ["INPUT_MIN_CONFIDENCE"])
         config["trigger"]["mode"] = "on_demand"
-        config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
-        config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
-        MQTT_HOST = "{{mqtt_host}}".strip()
-        MQTT_PORT = "{{mqtt_port}}".strip()
+        config["trigger"]["sources"] = os.environ["INPUT_TRIGGER_SOURCES"].split(",")
+        config["trigger"]["debounce_ms"] = int(os.environ["INPUT_DEBOUNCE_MS"])
+        MQTT_HOST = os.environ.get("INPUT_MQTT_HOST", "").strip()
+        MQTT_PORT = os.environ.get("INPUT_MQTT_PORT", "").strip()
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        stream_id = os.environ["INPUT_STREAM_ID"]
+        source_kind = os.environ["INPUT_SOURCE_KIND"]
         config["mqtt"]["host"] = MQTT_HOST or "127.0.0.1"
         config["mqtt"]["port"] = int(MQTT_PORT) if MQTT_PORT else 1883
-        config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
-        source_uri = os.environ.get("INPUT_SOURCE_URI", "{{source_uri}}").strip()
+        config["mqtt"]["topic"] = f"{device_name}/waste/{{stream_id}}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
         if not source_uri:
             sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
         config["sources"] = [{
-            "stream_id": "{{stream_id}}",
+            "stream_id": stream_id,
             "uri": source_uri,
-            "kind": "{{source_kind}}",
+            "kind": source_kind,
         }]
 
         tmp = path + ".tmp"
@@ -277,6 +290,24 @@ actions:
             json.dump(config, handle, indent=2)
             handle.write("\n")
         os.replace(tmp, path)
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if source_kind == "usb" and source_uri.startswith("/dev/video"):
+            override_content = (
+                "services:\n"
+                "  waste:\n"
+                "    devices:\n"
+                f'      - "{source_uri}:{source_uri}"\n'
+            )
+            tmp_override = override_file + ".tmp"
+            with open(tmp_override, "w") as f:
+                f.write(override_content)
+            os.replace(tmp_override, override_file)
+            print(f"override = {override_file} (devices={[source_uri]})")
+        else:
+            if os.path.exists(override_file):
+                os.remove(override_file)
+                print(f"override = removed stale {override_file}")
 
         broker_conf = os.path.join(os.path.dirname(path), "mosquitto.conf")
         if os.path.exists(broker_conf):
@@ -310,10 +341,10 @@ actions:
                     line for line in handle.read().splitlines()
                     if not _is_device_name(line)
                 ]
-        env_lines.append(f"DEVICE_NAME={{device_name}}")
+        env_lines.append(f"DEVICE_NAME={device_name}")
         with open(env_file, "w") as handle:
             handle.write("\n".join(env_lines) + "\n")
-        print(f"device   = {{device_name}} ({env_file})")
+        print(f"device   = {device_name} ({env_file})")
 
         print(f"model    = {config['model']['path']} (track={track})")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")

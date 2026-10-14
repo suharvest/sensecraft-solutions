@@ -180,15 +180,22 @@ actions:
     - name: Write the source, trigger and MQTT configuration
       env:
         INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_MIN_CONFIDENCE: "{{min_confidence}}"
+        INPUT_TRIGGER_SOURCES: "{{trigger_sources}}"
+        INPUT_DEBOUNCE_MS: "{{debounce_ms}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_KIND: "{{source_kind}}"
       run: |
         set -e
         if [ -d "assets/hailo" ]; then WORKDIR="assets/hailo"; else WORKDIR="."; fi
         CONFIG="$WORKDIR/config/config.json"
         mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
-        python3 - "$CONFIG" <<'PY'
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
         import json, os, re, sys
 
         path = sys.argv[1]
+        workdir = sys.argv[2]
         with open(path) as handle:
             config = json.load(handle)
 
@@ -199,15 +206,21 @@ actions:
         config["model"]["input_range"] = "uint8"
         config["model"]["onnx_sha256"] = (
             "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
-        config["rules"]["min_confidence"] = float("{{min_confidence}}")
+        config["rules"]["min_confidence"] = float(os.environ["INPUT_MIN_CONFIDENCE"])
         config["trigger"]["mode"] = "on_demand"
-        config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
-        config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
-        config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+        config["trigger"]["sources"] = os.environ["INPUT_TRIGGER_SOURCES"].split(",")
+        config["trigger"]["debounce_ms"] = int(os.environ["INPUT_DEBOUNCE_MS"])
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        stream_id = os.environ["INPUT_STREAM_ID"]
+        source_kind = os.environ["INPUT_SOURCE_KIND"]
+        config["mqtt"]["topic"] = f"{device_name}/waste/{{stream_id}}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
+        if not source_uri:
+            sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
         config["sources"] = [{
-            "stream_id": "{{stream_id}}",
-            "uri": os.environ["INPUT_SOURCE_URI"],
-            "kind": "{{source_kind}}",
+            "stream_id": stream_id,
+            "uri": source_uri,
+            "kind": source_kind,
         }]
 
         tmp = path + ".tmp"
@@ -215,10 +228,29 @@ actions:
             json.dump(config, handle, indent=2)
             handle.write("\n")
         os.replace(tmp, path)
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if source_kind == "usb" and source_uri.startswith("/dev/video"):
+            override_content = (
+                "services:\n"
+                "  waste:\n"
+                "    devices:\n"
+                f'      - "{source_uri}:{source_uri}"\n'
+            )
+            tmp_override = override_file + ".tmp"
+            with open(tmp_override, "w") as f:
+                f.write(override_content)
+            os.replace(tmp_override, override_file)
+            print(f"override = {override_file} (devices={[source_uri]})")
+        else:
+            if os.path.exists(override_file):
+                os.remove(override_file)
+                print(f"override = removed stale {override_file}")
+
         print(f"model    = {config['model']['path']} (track=baseline)")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
         safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
-        print(f"source   = {config['sources'][0]['stream_id']} <- {safe_uri}")
+        print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {safe_uri}")
         PY
       name_i18n:
         zh: 写入视频源、触发与 MQTT 配置

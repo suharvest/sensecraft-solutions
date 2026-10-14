@@ -67,14 +67,20 @@ name_i18n:
 actions:
   before:
     - name: Write the ChirpStack and bridge configuration
+      env:
+        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
+        INPUT_LNS_MQTT_USERNAME: "{{lns_mqtt_username}}"
+        INPUT_LNS_MQTT_PASSWORD: "{{lns_mqtt_password}}"
       run: |
         set -e
         if [ -d "assets/chirpstack" ]; then WORKDIR="assets/chirpstack"; else WORKDIR="."; fi
         umask 077
         gen() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
         DB_PASS=""
         if [ -f "$WORKDIR/.env" ]; then
-          DB_PASS=$(grep -E '^(POSTGRES_PASSWORD|CHIRPSTACK_DB_PASSWORD)=' "$WORKDIR/.env" | head -1 | cut -d= -f2-)
+          DB_PASS=$(grep -E '^(POSTGRES_PASSWORD|CHIRPSTACK_DB_PASSWORD)=' "$WORKDIR/.env" | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
         fi
         if [ -z "$DB_PASS" ]; then
           if command -v openssl >/dev/null 2>&1; then
@@ -83,18 +89,18 @@ actions:
             DB_PASS=$(gen 16)
           fi
         fi
-        cat > "$WORKDIR/.env" <<'EOF'
+        cat > "$WORKDIR/.env" <<EOF
         COMPOSE_PROJECT_NAME=agri-env-chirpstack
         TZ={{timezone}}
         CHIRPSTACK_REGION={{region}}
         MQTT_OUT_HOST={{mqtt_host}}
         MQTT_OUT_PORT={{mqtt_port}}
-        MQTT_USERNAME={{mqtt_username}}
-        MQTT_PASSWORD={{mqtt_password}}
+        MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
         CHIRPSTACK_MQTT_HOST={{lns_mqtt_host}}
         CHIRPSTACK_MQTT_INTERNAL_PORT={{lns_mqtt_port}}
-        CHIRPSTACK_MQTT_USERNAME={{lns_mqtt_username}}
-        CHIRPSTACK_MQTT_PASSWORD={{lns_mqtt_password}}
+        CHIRPSTACK_MQTT_USERNAME="$(dotenv_quote "$INPUT_LNS_MQTT_USERNAME")"
+        CHIRPSTACK_MQTT_PASSWORD="$(dotenv_quote "$INPUT_LNS_MQTT_PASSWORD")"
         CHIRPSTACK_APPLICATION_ID={{lns_application_id}}
         BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
         EOF

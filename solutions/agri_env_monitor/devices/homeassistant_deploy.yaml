@@ -71,17 +71,21 @@ name_i18n:
 actions:
   before:
     - name: Write the broker credentials
+      env:
+        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
       run: |
         set -e
         if [ -d "assets/docker" ]; then WORKDIR="assets/docker"; else WORKDIR="."; fi
         umask 077
-        cat > "$WORKDIR/.env" <<'EOF'
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
         COMPOSE_PROJECT_NAME=agri-env
         TZ={{timezone}}
         HA_PORT={{ha_port}}
         MQTT_PORT={{mqtt_port}}
-        MQTT_USERNAME={{mqtt_username}}
-        MQTT_PASSWORD={{mqtt_password}}
+        MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
         EOF
         echo "wrote $WORKDIR/.env (mode $(stat -c %a "$WORKDIR/.env" 2>/dev/null || stat -f %A "$WORKDIR/.env"))"
       name_i18n:

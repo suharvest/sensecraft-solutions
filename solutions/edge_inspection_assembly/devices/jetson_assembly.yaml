@@ -197,10 +197,11 @@ actions:
         MODELS_DIR=./models
         DATA_DIR=./data
         EOF
-        python3 - "$CONFIG" <<'PY'
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
         import json, os, sys
 
         path = sys.argv[1]
+        workdir = sys.argv[2]
         with open(path) as handle:
             config = json.load(handle)
 
@@ -246,6 +247,33 @@ actions:
             json.dump(config, handle, indent=2)
             handle.write("\n")
         os.replace(tmp, path)
+
+        usb_devices = [
+            s["uri"] for s in config["sources"]
+            if not s.get("disabled") and s.get("kind") == "usb" and s.get("uri", "").startswith("/dev/video")
+        ]
+        seen = set()
+        usb_devices = [d for d in usb_devices if not (d in seen or seen.add(d))]
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if usb_devices:
+            dev_lines = "\n".join(f'      - "{dev}:{dev}"' for dev in usb_devices)
+            override_content = (
+                "services:\n"
+                "  inspection:\n"
+                "    devices:\n"
+                f"{dev_lines}\n"
+            )
+            tmp_override = override_file + ".tmp"
+            with open(tmp_override, "w") as f:
+                f.write(override_content)
+            os.replace(tmp_override, override_file)
+            print(f"override = {override_file} (devices={usb_devices})")
+        else:
+            if os.path.exists(override_file):
+                os.remove(override_file)
+                print(f"override = removed stale {override_file}")
+
         for source in config["sources"]:
             print(f"source {source['stream_id']}: kind={source.get('kind')} "
                   f"assembly={'assembly' in source} dimension={'dimension' in source} "
