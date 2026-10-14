@@ -72,10 +72,16 @@ actions:
         zh: 检查 broker 可达
     - name: Write the bridge configuration
       env:
+        INPUT_TIMEZONE: "{{timezone}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
         INPUT_MQTT_USERNAME: "{{mqtt_username}}"
         INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
         INPUT_ACCESS_ID: "{{access_id}}"
         INPUT_ACCESS_KEY: "{{access_key}}"
+        INPUT_SENSECAP_MQTT_HOST: "{{sensecap_mqtt_host}}"
+        INPUT_BACKFILL_MONTHS: "{{backfill_months}}"
+        INPUT_UNAVAILABLE_AFTER: "{{unavailable_after}}"
       run: |
         set -e
         if [ -d "assets/cloud" ]; then WORKDIR="assets/cloud"; else WORKDIR="."; fi
@@ -83,16 +89,16 @@ actions:
         dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
         cat > "$WORKDIR/.env" <<EOF
         COMPOSE_PROJECT_NAME=agri-env-cloud
-        TZ={{timezone}}
-        MQTT_OUT_HOST={{mqtt_host}}
-        MQTT_OUT_PORT={{mqtt_port}}
+        TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
+        MQTT_OUT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
+        MQTT_OUT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
         MQTT_USERNAME="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
         MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
         SENSECAP_ACCESS_ID="$(dotenv_quote "$INPUT_ACCESS_ID")"
         SENSECAP_ACCESS_KEY="$(dotenv_quote "$INPUT_ACCESS_KEY")"
-        SENSECAP_MQTT_HOST={{sensecap_mqtt_host}}
-        SENSECAP_BACKFILL_MONTHS={{backfill_months}}
-        BRIDGE_UNAVAILABLE_AFTER={{unavailable_after}}
+        SENSECAP_MQTT_HOST="$(dotenv_quote "$INPUT_SENSECAP_MQTT_HOST")"
+        SENSECAP_BACKFILL_MONTHS="$(dotenv_quote "$INPUT_BACKFILL_MONTHS")"
+        BRIDGE_UNAVAILABLE_AFTER="$(dotenv_quote "$INPUT_UNAVAILABLE_AFTER")"
         EOF
         echo "wrote $WORKDIR/.env"
       name_i18n:

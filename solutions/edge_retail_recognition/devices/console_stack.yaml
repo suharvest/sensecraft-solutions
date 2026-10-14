@@ -97,6 +97,11 @@ actions:
         INPUT_ADMIN_TOKEN: "{{admin_token}}"
         INPUT_OPERATOR_TOKEN: "{{operator_token}}"
         INPUT_VIEWER_TOKEN: "{{viewer_token}}"
+        INPUT_SERVER_IMAGE: "{{server_image}}"
+        INPUT_WEB_IMAGE: "{{web_image}}"
+        INPUT_SERVER_PORT: "{{server_port}}"
+        INPUT_WEB_PORT: "{{web_port}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
       run: |
         set -e
         if [ -d "assets/console" ]; then WORKDIR="assets/console"; else WORKDIR="."; fi
@@ -119,12 +124,12 @@ actions:
           PRESERVED_VARS=$(grep -vE '^('"$MANAGED_KEYS"')=' "$WORKDIR/.env" | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' || true)
         fi
         cat > "$WORKDIR/.env" <<EOF
-        RETAIL_SERVER_IMAGE={{server_image}}
-        RETAIL_WEB_IMAGE={{web_image}}
+        RETAIL_SERVER_IMAGE="$(dotenv_quote "$INPUT_SERVER_IMAGE")"
+        RETAIL_WEB_IMAGE="$(dotenv_quote "$INPUT_WEB_IMAGE")"
         RETAIL_WEB_TOKENS="$(dotenv_quote "$TOKENS")"
-        SERVER_PORT={{server_port}}
-        WEB_PORT={{web_port}}
-        MQTT_PORT={{mqtt_port}}
+        SERVER_PORT="$(dotenv_quote "$INPUT_SERVER_PORT")"
+        WEB_PORT="$(dotenv_quote "$INPUT_WEB_PORT")"
+        MQTT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
         EOF
         if [ -n "$PRESERVED_VARS" ]; then
           echo "$PRESERVED_VARS" >> "$WORKDIR/.env"

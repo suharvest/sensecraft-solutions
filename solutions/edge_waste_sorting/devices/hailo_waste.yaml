@@ -229,23 +229,71 @@ actions:
             handle.write("\n")
         os.replace(tmp, path)
 
-        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        mapped_devices = ["/dev/hailo0:/dev/hailo0"]
         if source_kind == "usb" and source_uri.startswith("/dev/video"):
-            override_content = (
-                "services:\n"
-                "  waste:\n"
-                "    devices:\n"
-                f'      - "{source_uri}:{source_uri}"\n'
-            )
-            tmp_override = override_file + ".tmp"
-            with open(tmp_override, "w") as f:
-                f.write(override_content)
-            os.replace(tmp_override, override_file)
-            print(f"override = {override_file} (devices={[source_uri]})")
-        else:
-            if os.path.exists(override_file):
-                os.remove(override_file)
-                print(f"override = removed stale {override_file}")
+            mapped_devices.append(f"{source_uri}:{source_uri}")
+        compose_file = os.path.join(workdir, "docker-compose.yml")
+        if os.path.exists(compose_file):
+            with open(compose_file, "r") as f:
+                c_lines = f.read().splitlines()
+            out_lines = []
+            in_svc = False
+            skipping_devs = False
+            inserted = False
+            for line in c_lines:
+                stripped = line.lstrip()
+                indent = len(line) - len(stripped)
+                if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                    in_svc = False
+                    skipping_devs = False
+                if not in_svc and indent == 2 and stripped == "waste:":
+                    in_svc = True
+                    out_lines.append(line)
+                    if mapped_devices and not inserted:
+                        out_lines.append("    devices:")
+                        for dev in mapped_devices:
+                            out_lines.append(f'      - "{dev}"')
+                        inserted = True
+                    continue
+                if in_svc:
+                    if indent == 4 and stripped.startswith("devices:"):
+                        skipping_devs = True
+                        continue
+                    if skipping_devs:
+                        if not stripped or (stripped.startswith("#") and indent >= 6) or indent > 4:
+                            continue
+                        skipping_devs = False
+                out_lines.append(line)
+            tmp_compose = compose_file + ".tmp"
+            with open(tmp_compose, "w") as f:
+                f.write("\n".join(out_lines) + "\n")
+            os.replace(tmp_compose, compose_file)
+            print(f"compose  = {compose_file} (devices={mapped_devices})")
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if os.path.exists(override_file):
+            os.remove(override_file)
+
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={device_name}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device   = {device_name} ({env_file})")
 
         print(f"model    = {config['model']['path']} (track=baseline)")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")

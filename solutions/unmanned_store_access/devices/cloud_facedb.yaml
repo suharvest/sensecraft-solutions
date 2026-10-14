@@ -71,6 +71,11 @@ actions:
         INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
         INPUT_WEB_ADMIN_TOKEN: "{{web_admin_token}}"
         INPUT_FACE_REC_API_URL: "{{face_rec_api_url}}"
+        INPUT_DOOR_DEVICE: "{{door_device}}"
+        INPUT_MATCH_THRESHOLD: "{{match_threshold}}"
+        INPUT_DEVICE_ENDPOINTS: "{{device_endpoints}}"
+        INPUT_FACEDB_PORT: "{{facedb_port}}"
+        INPUT_WEB_PORT: "{{web_port}}"
       run: |
         set -e
         if [ -d "assets/cloud" ]; then WORKDIR="assets/cloud"; else WORKDIR="."; fi
@@ -84,7 +89,7 @@ actions:
         # The model tag and its sha are written into every library version and
         # compared byte for byte on the device: a mismatch shows up as "nobody
         # is recognised". The console refuses to start without them.
-        case "{{door_device}}" in
+        case "$INPUT_DOOR_DEVICE" in
           recamera_pro)
             MODEL_TAG='rv1126b:scrfd500m+mbf512@fp16'
             MODEL_SHA='cb1022b986dd46b33b389e484feceb482690cda0caf7bc8f7143c5e6862b2ea9' ;;
@@ -100,9 +105,9 @@ actions:
         dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
         cat > "$WORKDIR/.env" <<EOF
         USA_FACEDB_KEY_ID=facedb-key-1
-        USA_MATCH_THRESHOLD={{match_threshold}}
+        USA_MATCH_THRESHOLD="$(dotenv_quote "$INPUT_MATCH_THRESHOLD")"
         USA_WEB_TOKENS="$(dotenv_quote "$INPUT_WEB_ADMIN_TOKEN:admin")"
-        USA_DEVICE_ENDPOINTS={{device_endpoints}}
+        USA_DEVICE_ENDPOINTS="$(dotenv_quote "$INPUT_DEVICE_ENDPOINTS")"
         USA_FACE_REC_API="$(dotenv_quote "$INPUT_FACE_REC_API_URL")"
         USA_MODEL_TAG=$MODEL_TAG
         USA_MODEL_SHA=$MODEL_SHA
@@ -110,8 +115,8 @@ actions:
         MQTT_HOST=mosquitto
         MQTT_PORT=1883
         MQTT_TLS=0
-        FACEDB_PORT={{facedb_port}}
-        WEB_PORT={{web_port}}
+        FACEDB_PORT="$(dotenv_quote "$INPUT_FACEDB_PORT")"
+        WEB_PORT="$(dotenv_quote "$INPUT_WEB_PORT")"
         USA_ALLOW_FAKE=$( [ -n "$INPUT_FACE_REC_API_URL" ] && echo 0 || echo 1 )
         EOF
         echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"

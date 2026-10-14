@@ -192,11 +192,6 @@ actions:
         set -e
         if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
         CONFIG="$WORKDIR/config/config.json"
-        cat > "$WORKDIR/.env" <<EOF
-        DEVICE_NAME={{device_name}}
-        MODELS_DIR=./models
-        DATA_DIR=./data
-        EOF
         python3 - "$CONFIG" "$WORKDIR" <<'PY'
         import json, os, sys
 
@@ -236,11 +231,12 @@ actions:
             dimension_src["uri"] = ""
             dimension_src["disabled"] = True
 
+        device_name = os.environ["INPUT_DEVICE_NAME"]
         config["sources"] = [assembly_src, dimension_src]
         config["model"]["path"] = "/models/yolox_tiny_deeppcb6.engine"
         config["model"]["accelerator"] = "tensorrt"
         config.setdefault("mqtt", {})["topic"] = \
-            os.environ["INPUT_DEVICE_NAME"] + "/inspection/{stream_id}/results"
+            device_name + "/inspection/{stream_id}/results"
 
         tmp = path + ".tmp"
         with open(tmp, "w") as handle:
@@ -248,31 +244,78 @@ actions:
             handle.write("\n")
         os.replace(tmp, path)
 
+        env_file = os.path.join(workdir, ".env")
+        managed = {"DEVICE_NAME", "MODELS_DIR", "DATA_DIR"}
+        def _env_key(line: str) -> str:
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() if "=" in text else ""
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if _env_key(line) not in managed
+                ]
+        env_lines.extend([
+            f"DEVICE_NAME={device_name}",
+            "MODELS_DIR=./models",
+            "DATA_DIR=./data",
+        ])
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+
         usb_devices = [
             s["uri"] for s in config["sources"]
             if not s.get("disabled") and s.get("kind") == "usb" and s.get("uri", "").startswith("/dev/video")
         ]
         seen = set()
         usb_devices = [d for d in usb_devices if not (d in seen or seen.add(d))]
+        mapped_devices = [f"{d}:{d}" for d in usb_devices]
+
+        compose_file = os.path.join(workdir, "docker-compose.yml")
+        if os.path.exists(compose_file):
+            with open(compose_file, "r") as f:
+                c_lines = f.read().splitlines()
+            out_lines = []
+            in_svc = False
+            skipping_devs = False
+            inserted = False
+            for line in c_lines:
+                stripped = line.lstrip()
+                indent = len(line) - len(stripped)
+                if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                    in_svc = False
+                    skipping_devs = False
+                if not in_svc and indent == 2 and stripped == "inspection:":
+                    in_svc = True
+                    out_lines.append(line)
+                    if mapped_devices and not inserted:
+                        out_lines.append("    devices:")
+                        for dev in mapped_devices:
+                            out_lines.append(f'      - "{dev}"')
+                        inserted = True
+                    continue
+                if in_svc:
+                    if indent == 4 and stripped.startswith("devices:"):
+                        skipping_devs = True
+                        continue
+                    if skipping_devs:
+                        if not stripped or (stripped.startswith("#") and indent >= 6) or indent > 4:
+                            continue
+                        skipping_devs = False
+                out_lines.append(line)
+            tmp_compose = compose_file + ".tmp"
+            with open(tmp_compose, "w") as f:
+                f.write("\n".join(out_lines) + "\n")
+            os.replace(tmp_compose, compose_file)
+            print(f"compose  = {compose_file} (devices={mapped_devices})")
 
         override_file = os.path.join(workdir, "docker-compose.override.yml")
-        if usb_devices:
-            dev_lines = "\n".join(f'      - "{dev}:{dev}"' for dev in usb_devices)
-            override_content = (
-                "services:\n"
-                "  inspection:\n"
-                "    devices:\n"
-                f"{dev_lines}\n"
-            )
-            tmp_override = override_file + ".tmp"
-            with open(tmp_override, "w") as f:
-                f.write(override_content)
-            os.replace(tmp_override, override_file)
-            print(f"override = {override_file} (devices={usb_devices})")
-        else:
-            if os.path.exists(override_file):
-                os.remove(override_file)
-                print(f"override = removed stale {override_file}")
+        if os.path.exists(override_file):
+            os.remove(override_file)
 
         for source in config["sources"]:
             print(f"source {source['stream_id']}: kind={source.get('kind')} "

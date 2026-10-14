@@ -237,13 +237,17 @@ actions:
       timeout: 600
       fail_fast: false
       env:
+        INPUT_VOICE_HOST: "{{voice_ai_host}}"
+        INPUT_LLM_HOST: "{{llm_host}}"
+        INPUT_DEPLOY_MODE: "{{deploy_mode}}"
         INPUT_LLM_BASE_URL: "{{llm_base_url}}"
+        INPUT_LLM_MODEL_NAME: "{{llm_model_name}}"
         INPUT_LLM_API_KEY: "{{llm_api_key}}"
       run: |
         if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
-        VOICE_HOST="{{voice_ai_host}}"
-        LLM_HOST="{{llm_host}}"
-        DEPLOY_MODE="{{deploy_mode}}"
+        VOICE_HOST="$INPUT_VOICE_HOST"
+        LLM_HOST="$INPUT_LLM_HOST"
+        DEPLOY_MODE="$INPUT_DEPLOY_MODE"
         HOST_IP=""
         if command -v ip >/dev/null 2>&1; then
           HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
@@ -254,7 +258,7 @@ actions:
         fi
         DEVICE_HOST="${HOST_IP:-127.0.0.1}"
         LLM_BASE_URL="$INPUT_LLM_BASE_URL"
-        LLM_MODEL_NAME="{{llm_model_name}}"
+        LLM_MODEL_NAME="$INPUT_LLM_MODEL_NAME"
         LLM_API_KEY="$INPUT_LLM_API_KEY"
         sql_quote() { printf '%s' "$1" | sed -e "s/[\\']/&&/g"; }
 
@@ -315,10 +319,10 @@ actions:
         echo "写入语音服务地址：$VOICE_HOST:8621"
         run_sql <<SQL
         UPDATE ai_model_config
-           SET config_json = JSON_SET(config_json, '\$.ws_url', 'ws://$VOICE_HOST:8621/asr/stream')
+           SET config_json = JSON_SET(config_json, '\$.ws_url', 'ws://$(sql_quote "$VOICE_HOST"):8621/asr/stream')
          WHERE id = 'ASR_OpenVoiceStream' AND JSON_VALID(config_json);
         UPDATE ai_model_config
-           SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$VOICE_HOST:8621')
+           SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$VOICE_HOST"):8621')
          WHERE id = 'TTS_OpenVoiceStream' AND JSON_VALID(config_json);
         SQL
 
@@ -326,7 +330,7 @@ actions:
           echo "写入本地 LLM 地址：$LLM_HOST:8000"
           run_sql <<SQL
           UPDATE ai_model_config
-             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$LLM_HOST:8000/v1')
+             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$LLM_HOST"):8000/v1')
            WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
         SQL
         else
@@ -336,7 +340,7 @@ actions:
             UPDATE ai_model_config
                SET config_json = JSON_SET(config_json,
                      '\$.base_url',   '$(sql_quote "$LLM_BASE_URL")',
-                     '\$.model_name', '$LLM_MODEL_NAME',
+                     '\$.model_name', '$(sql_quote "$LLM_MODEL_NAME")',
                      '\$.api_key',    '$(sql_quote "$LLM_API_KEY")'),
                    model_name = '云端大模型'
              WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);

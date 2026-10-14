@@ -234,6 +234,29 @@ actions:
             json.dump(config, handle, indent=2)
             handle.write("\n")
         os.replace(tmp, path)
+
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={device_name}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device     = {device_name} ({env_file})")
+
         print(f"model      = {config['model']['path']} (track={track})")
         print(f"min_score  = {config['rules']['min_score']}")
         print(f"stream     = {config['sources'][0]['stream_id']} @ {config['sources'][0]['fps']} fps")
