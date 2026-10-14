@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "status": "ready",
+  "status_note": "Published RKLLM 0.3.1 ef82 image plus the existing 2 model and 13 shared artifacts under the existing release prefix; historical d870 image record is retained in image_history.",
+  "source": {
+    "repository": "https://github.com/suharvest/laya-on-rk3588-jetson.git",
+    "revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "revision_status": "source/UI ef82; core and decision sources remain the previously verified files; RKLLM 0.3.1 image published at the recorded HF revision",
+    "core_revision": "18dbd237d7d3156939549a3dceec16fa99c9b740",
+    "docker_revision": "a66e843a90a6da51f4ecdc1dc0540dfdec2a40ab",
+    "ui_revision": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "published_image_note": "RKLLM 0.3.1 image contains the ef82 UI source; core/app.py and decision.py fingerprints remain unchanged from the prior verified source.",
+    "latest_test_commit": "1ca14e4e62a20d61c6781e2a384f98ca36995c5c"
+  },
+  "image": {
+    "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+    "archives": [
+      {
+        "platform": "linux/arm64",
+        "tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+        "archive": "edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "size_bytes": 291152384,
+        "sha256": "251cb7fef080f489bf311b37c5bddbba1cd72e887e71f10ce12fc25a1fe64f77",
+        "config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9",
+        "status": "published",
+        "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.1-arm64-ef82.tar",
+        "expected_config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9",
+        "hf_revision": "db0545065d4da3598d009407fc3bd0c7632ca199"
+      }
+    ],
+    "note": "Published RKLLM 0.3.1 ef82 image; the prior d870 image is retained in image_history.",
+    "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
+    "helper_location": "/opt/kev/libkev_runtime.so (built into image)"
+  },
+  "source_fingerprint": {
+    "dockerfile_sha256": "7214ffa79c9787df1cb08f7e54187af466b482a9de491b7327b8ce7bdd99e94c",
+    "compose_sha256": "ab3e40a114dac797160f83f4b400aa3cd102c649fece317056e3f7a75e62b5e3",
+    "kev_helper_source_sha256": "ddad908b6bffb7cac599c43614cacd5eb95d0f668d79ff30278ea7e8c73a3131",
+    "sdk_header_sha256": "4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c",
+    "app_sha256": "cf4522e6204d9a5124061e5b9c1e7d84c90044a24ca2f9d313b0fdb83c98a1a7",
+    "decision_sha256": "6f27b7e0204de4c85e6a872f7e80efc266f51affba96e9e0d8a962ec1e73aeec",
+    "kev_sha256": "85f5ddf0f86bc25a2a4859b54904e4332196efd80cbb7870f5ae5727df588875",
+    "uv_lock_sha256": "e1eb0eff3ecbee9e99c5d38c131b109d30d608a26e7e5d91f910bd48b87893e9",
+    "ui_app_js_sha256": "02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e",
+    "ui_index_html_sha256": "75f2779f55ba3b2af3030e3739986b8217af7e69c7bc691e2a4f99795e4676ff",
+    "bootstrap_sha256": "593c1a1d973075c0fb5605436bec2a252c3272e4a7d34e0182bee3c099d4c827",
+    "ui_style_css_sha256": "478d8935c8939ffd9d865565d36a577e4256e8117937714b6e42eac8f9a52663",
+    "deployment_compose_sha256": "2b8b143671e5c4448ad02a201a9eccb32a8513c8aab191d18b0ded26317b62cf",
+    "source_commit": "ef82f8360c2b787f97c958f89c92fe569c62ecb1"
+  },
+  "models": [
+    {
+      "target": "rk3576",
+      "file": "kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
+      "size_bytes": 1331932356,
+      "sha256": "0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506",
+      "sha256_status": "verified_external_and_hf",
+      "destination": "model.rkllm",
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/publish/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
+      "hf_destination": "releases/edge-workbench-0.3.0/kev-0.8b-w4a16-g128-rk3576-context8192.rkllm",
+      "engine_sha256_status": "verified_full_sha256_external_source",
+      "source_status": "Full SHA verified on Spark publish copy and matched the published HF LFS object."
+    },
+    {
+      "target": "rk3588",
+      "file": "kev-0.8b-w8a8-rk3588-context8192.rkllm",
+      "size_bytes": 1305332532,
+      "sha256": "f53070dd831deedf137d7acf639553a8920c1e391cc6da0738f82a357d3a161d",
+      "sha256_status": "verified_on_spark",
+      "destination": "model.rkllm",
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/context-8k/kev-0.8b-w8a8-rk3588-context8192-shortcalib.rkllm",
+      "hf_destination": "releases/edge-workbench-0.3.0/kev-0.8b-w8a8-rk3588-context8192.rkllm",
+      "engine_sha256_status": "verified_full_sha256_external_source"
+    }
+  ],
+  "shared_artifacts": [
+    {
+      "file": "kev_head.npz",
+      "format": "FP32 NPZ",
+      "shape": "Q/K 256x1024, bias 256, temperature 2.3510958125672174",
+      "sha256": "533a21e940e69a570d5cf12f50f1bef27bdb2847395a288fa6cbfc3f9a1a7a7b",
+      "source_sha256": "f400bd12802b2b105ae45d6b03774a158a3db4fccff42413734ddca2e5c920b6",
+      "destination": "kev_head.npz",
+      "size_bytes": 2100464,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/app-artifacts/head.npz",
+      "hf_destination": "releases/edge-workbench-0.3.0/kev_head.npz"
+    },
+    {
+      "file": "head.metadata.json",
+      "sha256": "2bdc90c946e1a4f8681b5ad6ec70a04dbb5539aba9239a0305d069ee4aa93eb3",
+      "destination": "head.metadata.json",
+      "size_bytes": 506,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/app-artifacts/head.metadata.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/head.metadata.json"
+    },
+    {
+      "file": "tokenizer/tokenizer.json",
+      "sha256": "fe000e3ed39ed12b8d2481d527d44f93c65d37e87645d2dcc80d1bf9d50d2927",
+      "sha256_status": "verified_on_spark",
+      "destination": "tokenizer/tokenizer.json",
+      "size_bytes": 12807196,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev/base/tokenizer.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/tokenizer/tokenizer.json"
+    },
+    {
+      "file": "tokenizer/tokenizer_config.json",
+      "sha256": "e611fbccc7c29ef3b1cafb1cb7ea548d189968632901d678fd62be68c47885de",
+      "sha256_status": "verified_on_spark",
+      "destination": "tokenizer/tokenizer_config.json",
+      "size_bytes": 16712,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev/base/tokenizer_config.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/tokenizer/tokenizer_config.json"
+    },
+    {
+      "file": "tokenizer/config.json",
+      "sha256": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+      "sha256_status": "verified_on_spark",
+      "destination": "tokenizer/config.json",
+      "size_bytes": 2907,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev/base/config.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/tokenizer/config.json"
+    },
+    {
+      "file": "tokenizer/vocab.json",
+      "sha256": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003",
+      "sha256_status": "verified_on_spark",
+      "destination": "tokenizer/vocab.json",
+      "size_bytes": 6722759,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev/base/vocab.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/tokenizer/vocab.json"
+    },
+    {
+      "file": "tokenizer/merges.txt",
+      "sha256": "a9d356d7bdf1ef4949e3e748e95b8e10ad9d4e2e838eddc38a0a7b6b94d1db8d",
+      "sha256_status": "verified_on_spark",
+      "destination": "tokenizer/merges.txt",
+      "size_bytes": 3353259,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev/base/merges.txt",
+      "hf_destination": "releases/edge-workbench-0.3.0/tokenizer/merges.txt"
+    },
+    {
+      "file": "runtime/librkllmrt.so",
+      "sdk": "RKLLM 1.3.1",
+      "sha256": "f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c",
+      "sha256_status": "verified_on_spark",
+      "destination": "runtime/librkllmrt.so",
+      "size_bytes": 7674816,
+      "source_path": "spark:/home/harvest/tmp/jev-20261010/kev-rkllm/rknn-llm-v1.3.1/rkllm-runtime/Linux/librkllm_api/aarch64/librkllmrt.so",
+      "hf_destination": "releases/edge-workbench-0.3.0/runtime/librkllmrt.so"
+    },
+    {
+      "file": "metadata/kev-rk3588.json",
+      "target": "rk3588",
+      "destination": "model_metadata.json",
+      "sha256": "18efe596b8e3386ecad3ee3ccda049bd8d3c945be1a9c5a31d45adcfde593e8c",
+      "sha256_status": "verified_on_radxa_rk3588",
+      "size_bytes": 605,
+      "source_path": "solutions/edge_command_workbench/assets/metadata/kev-rk3588.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/metadata/kev-rk3588.json"
+    },
+    {
+      "file": "metadata/kev-rk3576.json",
+      "target": "rk3576",
+      "destination": "model_metadata.json",
+      "sha256": "eab92551efb8624ff8217d1ed18ab897868a08b1f446f1335d112071f00284f5",
+      "sha256_status": "verified_local_solution_metadata",
+      "size_bytes": 791,
+      "source_path": "solutions/edge_command_workbench/assets/metadata/kev-rk3576.json",
+      "hf_destination": "releases/edge-workbench-0.3.0/metadata/kev-rk3576.json"
+    },
+    {
+      "file": "licenses/NOTICE",
+      "destination": "licenses/NOTICE",
+      "sha256": "cbc03c8227e86ecafe4fcccfdf1a6b33fc07c95775f1fb91f76b5176ce8a80a7",
+      "sha256_status": "verified_local_text",
+      "size_bytes": 2368,
+      "source_path": "solutions/edge_command_workbench/assets/licenses/NOTICE",
+      "hf_destination": "releases/edge-workbench-0.3.0/licenses/NOTICE"
+    },
+    {
+      "file": "licenses/APACHE-2.0.txt",
+      "destination": "licenses/APACHE-2.0.txt",
+      "sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9",
+      "sha256_status": "verified_local_text",
+      "size_bytes": 10173,
+      "source_path": "solutions/edge_command_workbench/assets/licenses/APACHE-2.0.txt",
+      "hf_destination": "releases/edge-workbench-0.3.0/licenses/APACHE-2.0.txt"
+    },
+    {
+      "file": "licenses/RKLLM-SDK-LICENSE",
+      "destination": "licenses/RKLLM-SDK-LICENSE",
+      "sha256": "8d670a646eb8cf28fb7c63a5c9126c224a3a3f8124b00a3b9184df9a2ed298b8",
+      "sha256_status": "verified_local_text",
+      "size_bytes": 3310,
+      "source_path": "solutions/edge_command_workbench/assets/licenses/RKLLM-SDK-LICENSE",
+      "hf_destination": "releases/edge-workbench-0.3.0/licenses/RKLLM-SDK-LICENSE"
+    }
+  ],
+  "sdk": {
+    "version": "1.3.1",
+    "source_commit": "f7390530443bf84f0394255a449d7cbe81e69d1c",
+    "header_sha256": "4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c",
+    "sha256_status": "verified_on_spark"
+  },
+  "licenses": {
+    "notice_file": "assets/licenses/NOTICE",
+    "required_contents": [
+      "RKLLM SDK license",
+      "runtime license",
+      "ggml MIT",
+      "llama MIT",
+      "source hashes"
+    ],
+    "sha256": "cbc03c8227e86ecafe4fcccfdf1a6b33fc07c95775f1fb91f76b5176ce8a80a7",
+    "sdk_license_sha256": "8d670a646eb8cf28fb7c63a5c9126c224a3a3f8124b00a3b9184df9a2ed298b8",
+    "notice_size_bytes": 2368,
+    "apache_license_file": "assets/licenses/APACHE-2.0.txt",
+    "apache_license_sha256": "a6cba85bc92e0cff7a450b1d873c0eaa2e9fc96bf472df0247a26bec77bf3ff9"
+  },
+  "excluded": [
+    "experiments/jev-20261010/kev/rk3576-rkllm/context-8k/kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm (458739136-byte partial)"
+  ],
+  "evidence": {
+    "radxa_archive_verify": "/dev/shm/kev-rkllm/image-archive-verify-20261011.txt",
+    "qa_raw": "/dev/shm/kev-rkllm/qa-final-snapshot.ndjson",
+    "qa_golden": "/dev/shm/kev-rkllm/qa-final-golden.ndjson",
+    "model_switch": "/dev/shm/kev-rkllm/model-switch-20261011.txt",
+    "image_archive_verify_output": "/dev/shm/kev-rkllm/image-archive-verify-20261011.txt",
+    "model_switch_real": "/dev/shm/kev-rkllm/model-switch-real-20261011.txt",
+    "qa_golden_final_ui": "/dev/shm/kev-rkllm/qa-final-ui-golden.ndjson",
+    "model_switch_final_ui": "/dev/shm/kev-rkllm/model-switch-final-ui-20261011.txt",
+    "image_archive_verify_final_ui": "/dev/shm/kev-rkllm/image-archive-verify-final-ui-20261011.txt",
+    "rk3576_quality_summary": "/home/cat/kev-app/kev-quality-final-240.summary.json",
+    "rk3576_8k_oom_note": "8K global OOM observed on cat-remote; deployment guard is 2048 tokens",
+    "rk3588_quality_note": "Radxa RK3588 8192-context QA verified",
+    "qa_final_chip_golden": "/dev/shm/kev-rkllm/qa-final-chip-golden.ndjson",
+    "model_switch_final_chip": "/dev/shm/kev-rkllm/model-switch-final-ui-20261011.txt",
+    "image_archive_verify_final_chip": "/dev/shm/kev-rkllm/image-archive-verify-final-chip-20261011.txt",
+    "bootstrap_cached_rk3588": "/dev/shm/kev-bootstrap-cached-rk3588/bootstrap.log",
+    "bootstrap_cached_status": "historical RK3588 cached bootstrap log: 11 cached file checksums matched (1 image archive + 10 target-filtered files); exact image tag/config verified; no network download; log references prior final-chip archive/config, not the current final-d870 archive",
+    "qa_final_a79_golden": "/dev/shm/kev-rkllm/qa-final-a79-golden.ndjson",
+    "image_archive_verify_final_a79": "/dev/shm/kev-rkllm/image-archive-verify-final-a79ddc-20261011.txt",
+    "served_ui_app_js_sha256": "52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206",
+    "ui_switch_laya": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-laya-20261011.png",
+    "ui_switch_kev": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-kev-20261011.png",
+    "ui_switch_gif": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-20261011.gif",
+    "ui_switch_evidence": "solutions/edge_command_workbench/gallery/kev-final-switch/kev-final-switch-evidence-20261011.json",
+    "ui_switch_source_commit": "199583751f77068a9e1e0e987f80451aa22faec2",
+    "backend_identity_final_d870": "/dev/shm/kev-rkllm/backend-identity-final-d870-20261011.txt",
+    "core_commit": "d870a2a3823d82b991b031cd8e17d25e4e846a77",
+    "hf_release_verification": "assets/evidence/hf-release-0.3.1-20261011.json",
+    "hf_release_verification_sha256": "48f8dad541e75d429151cb8741bf68acc96f4bca0bc4a3f6bff0889d4b79afb1",
+    "radxa_rk3588_bootstrap_log": "assets/evidence/radxa-rk3588-bootstrap-20261011.log",
+    "radxa_rk3588_bootstrap_log_sha256": "9dc32b6ac0c4783abfde64d357d683cb3e25d91a24573cac6a4b7d9a68ed8e0b",
+    "radxa_rk3588_bootstrap_summary": "assets/evidence/radxa-rk3588-bootstrap-20261011.json",
+    "active_artifact_count": 16,
+    "active_artifact_selection": "new RKLLM image + 2 model files + 13 shared artifacts; historical d870 image excluded",
+    "hf_release_verification_note": "Raw upload verification record on Spark."
+  },
+  "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
+  "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
+  "path_prefix": "releases/edge-workbench-0.3.0",
+  "distribution_status": "ready",
+  "distribution": {
+    "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
+    "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
+    "path_prefix": "releases/edge-workbench-0.3.0",
+    "status": "ready"
+  },
+  "image_history": [
+    {
+      "logical_image": "edge-command-workbench:rockchip-rkllm-0.3.0",
+      "archives": [
+        {
+          "platform": "linux/arm64",
+          "tag": "edge-command-workbench:rockchip-rkllm-0.3.0",
+          "archive": "edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "size_bytes": 291154432,
+          "sha256": "960a9cefc1a5994830427a48ad99d7d77637ffa6fe1ce63fccd3aae2c8f753bf",
+          "config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+          "status": "published",
+          "source_path": "spark:/home/harvest/edge-workbench-candidate-20261011/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "hf_destination": "releases/edge-workbench-0.3.0/edge-command-workbench-rockchip-rkllm-0.3.0-arm64-final-d870.tar",
+          "expected_config_sha256": "143ef9bc3219dba0775d5b6f604619f24e6f4fe95bdbcc72bc9dc2073e499f0d",
+          "hf_revision": "a556792cc663c0d9cfa7095e4263d3d706b4e254"
+        }
+      ],
+      "note": "Published d870 archive; subsequent UI source ef82 is not included in this image.",
+      "helper_sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919",
+      "helper_location": "/opt/kev/libkev_runtime.so (built into image)",
+      "source_fingerprint": {
+        "app_web_docker_tree_sha256": "551c63260765ee24c7f21ab21e00bc2776c724e12fb77be1189c1f8074266c9f",
+        "origin": "Historical d870 aggregate fingerprint; not an ef82 source fingerprint."
+      }
+    }
+  ]
+}

@@ -1,0 +1,97 @@
+{
+  "capture_url": "http://192.0.2.16:18772/?lang=en&qa=dual-model-final2-20261011",
+  "served_app_js_sha256": "52abe5f783b2b6eed767bf63d69fe7ddc638271ae97a011233f8584a69757206",
+  "browser_console_errors": [],
+  "screenshots": {
+    "laya": {
+      "path": "docs/kev-final-switch-laya-20261011.png",
+      "sha256": "f3fff601ed0fce8e1a00aabe6afb95021cd77055210e6aada5e6391efaf3bbea",
+      "visible_chip": "model.rknn · 90 tokens",
+      "visible_result": "Actual model: laya · Backend: rknn · Max context: 90",
+      "visible_total_ms": "374.2"
+    },
+    "kev": {
+      "path": "docs/kev-final-switch-kev-20261011.png",
+      "sha256": "7b9a6da80ee26e0eba68c997e498d4100eccf5b0bc5a98ea9feeab488d30b0d5",
+      "visible_chip": "model.rkllm · 8192 tokens",
+      "visible_result": "Actual model: kev · Backend: rkllm · Max context: 8192",
+      "visible_total_ms": "478.8"
+    }
+  },
+  "api_samples": {
+    "laya": {
+      "request_id": "45b81f81b8044f26acc0fe4c00e933ae",
+      "selected_option_id": "cmd-1",
+      "ranking": [
+        {
+          "option_id": "cmd-1",
+          "score": 17.328125
+        },
+        {
+          "option_id": "cmd-3",
+          "score": -4.5390625
+        },
+        {
+          "option_id": "cmd-2",
+          "score": -4.5703125
+        }
+      ],
+      "timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 314.3644540105015,
+        "total_ms": 404.5104620163329
+      },
+      "model": {
+        "status": "ok",
+        "model_ready": true,
+        "backend": "rknn",
+        "name": "model.rknn",
+        "model_id": "laya",
+        "max_sequence_tokens": 90,
+        "max_options": 16,
+        "runtime_version": "2.3.2 (429f97ae6b@2025-04-09T09:09:27)"
+      },
+      "rejected": false
+    },
+    "kev": {
+      "request_id": "e7748ce03b904c8fb3d33f6ced49a94e",
+      "selected_option_id": "cmd-1",
+      "ranking": [
+        {
+          "option_id": "cmd-1",
+          "score": 0.9236911123535364
+        },
+        {
+          "option_id": "cmd-2",
+          "score": 0.052264693130586244
+        },
+        {
+          "option_id": "cmd-3",
+          "score": 0.024044194515877335
+        }
+      ],
+      "timings": {
+        "encoding_ms": 0.0,
+        "inference_ms": 448.1440510135144,
+        "total_ms": 448.26859701424837
+      },
+      "model": {
+        "status": "ok",
+        "model_ready": true,
+        "backend": "rkllm",
+        "name": "model.rkllm",
+        "model_id": "kev",
+        "max_sequence_tokens": 8192,
+        "max_options": 16
+      },
+      "rejected": false
+    }
+  },
+  "api_sample_note": "The CUA browser path exposes visible UI state and console logs but not response bodies. The API samples above were captured separately with the same payload shape, input, options, and model_id; raw scores and request IDs are preserved.",
+  "ui_actions": [
+    "Loaded final Radxa image",
+    "Selected laya in the Decision model dropdown and submitted the short instruction",
+    "Selected kev in the same dropdown and submitted the same instruction",
+    "Clicked Test and connect for the selected Kev profile; UI reported Model service connected"
+  ]
+}

@@ -167,7 +167,7 @@ fallback_message: "无法连接到机械臂状态服务，请确认 voice_arm �
   - 装 lerobot[feetech] / openwakeword / groq / pyaudio / **fastapi + uvicorn**（~5MB）
   - apt 装 `libportaudio2 alsa-utils portaudio19-dev`（抄 lekiwi）
   - 预下载 "hey jarvis" wake word 模型
-  - **不装 huggingface_hub**（按规范，模型走 `solutions/_shared/scripts/hf_download.sh`）
+  - **不装 huggingface_hub**（按规范，模型在容器内用 `HF_ENDPOINT` 环境变量下载）
 - [ ] `docker-compose.yml`（抄 lekiwi 模板）：
   - `devices: ['/dev/ttyACM0', '/dev/snd:/dev/snd']`
   - `device_cgroup_rules: ['c 166:* rmw']`

@@ -1,6 +1,9 @@
 version: "1.0"
 id: reachy_claw_voice_robot
 name: Conversational Desktop Robot
+name_i18n:
+  zh: 对话式桌面机器人
+  ja: 対話型デスクトップロボット
 intro:
   summary: "Turn a desktop robot into a voice companion — listens, thinks, speaks, and expresses emotions in under 1 second. Works with Reachy Mini. Three deployment options: Jetson all-in-one, reComputer AI Industrial R21 with Hailo-8 NPU, or CM4 wireless."
   description_file: description.md
@@ -111,5 +114,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 对话式桌面机器人

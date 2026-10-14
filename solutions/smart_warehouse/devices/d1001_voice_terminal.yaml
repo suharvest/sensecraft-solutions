@@ -29,6 +29,9 @@ firmware:
     flash_mode: dio
     flash_freq: 80m
     flash_size: 32MB
+    # Opted in to targeted erasing: no full-chip erase. The image rewrites
+    # otadata (0x10d000) itself, so nothing else needs erasing.
+    erase_regions: []
     partitions:
       - name: bootloader
         offset: "0x2000"

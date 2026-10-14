@@ -1,0 +1,144 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - link "SenseCraft 首页" [ref=e4] [cursor=pointer]:
+        - /url: "#top"
+        - img [ref=e6]
+        - generic [ref=e9]:
+          - strong [ref=e10]: SenseCraft
+          - text: /命令选择工作台
+      - generic [ref=e11]:
+        - button "模型服务已连接" [ref=e133] [cursor=pointer]:
+          - generic [ref=e14]: 模型服务已连接
+          - img [ref=e15]
+        - button "切换语言" [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: 中
+          - generic [ref=e19]: /
+          - generic [ref=e20]: EN
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - heading "让边缘设备，快速响应现场指令" [level=1] [ref=e24]
+          - paragraph [ref=e25]: 用小型决策模型在设备本地完成命令选择，利用有限算力，缩短现场指令的响应路径。
+        - generic [ref=e28]: 真实服务 · 本地推理
+      - generic [ref=e29]:
+        - region "配置判断场景" [ref=e30]:
+          - generic [ref=e31]:
+            - heading "配置判断场景" [level=2] [ref=e33]
+            - button "重置" [ref=e34] [cursor=pointer]
+          - generic [ref=e35]: 场景模板
+          - combobox "场景模板" [ref=e36]:
+            - option "设备控制 · 生产线" [selected]
+            - option "质量分流 · 视觉检查"
+            - option "仓储作业 · 物流节点"
+          - generic [ref=e37]: 判断提示词
+          - textbox "判断提示词" [ref=e38]: 你是生产线命令分流助手。只从候选命令中选择最匹配的一项。
+          - generic [ref=e39]:
+            - generic [ref=e40]:
+              - generic [ref=e41]: 候选命令
+              - generic [ref=e42]: 按现场习惯维护 2–16 个选项
+            - button "增加" [ref=e43] [cursor=pointer]:
+              - img [ref=e44]
+              - generic [ref=e46]: 增加
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - generic [ref=e49]: "01"
+              - generic [ref=e50]:
+                - textbox "候选命令 1" [ref=e51]: 降低输送带速度
+                - textbox "候选命令 1 候选说明" [ref=e52]: 将指定输送带调整到目标速度
+              - button "删除候选命令" [ref=e53] [cursor=pointer]:
+                - img [ref=e54]
+            - generic [ref=e56]:
+              - generic [ref=e57]: "02"
+              - generic [ref=e58]:
+                - textbox "候选命令 2" [ref=e59]: 暂停设备
+                - textbox "候选命令 2 候选说明" [ref=e60]: 安全暂停当前生产设备
+              - button "删除候选命令" [ref=e61] [cursor=pointer]:
+                - img [ref=e62]
+            - generic [ref=e64]:
+              - generic [ref=e65]: "03"
+              - generic [ref=e66]:
+                - textbox "候选命令 3" [ref=e67]: 查询设备状态
+                - textbox "候选命令 3 候选说明" [ref=e68]: 返回设备当前运行状态
+              - button "删除候选命令" [ref=e69] [cursor=pointer]:
+                - img [ref=e70]
+          - button "保存配置" [ref=e72] [cursor=pointer]:
+            - img [ref=e73]
+            - generic [ref=e75]: 保存配置
+          - status [ref=e76]
+        - region "输入现场指令" [ref=e77]:
+          - generic [ref=e78]:
+            - heading "输入现场指令" [level=2] [ref=e80]
+            - generic [ref=e83]: model.rkllm · 8192 tokens
+          - generic [ref=e84]:
+            - generic [ref=e85]: "01"
+            - paragraph [ref=e86]: 说出你希望设备完成的动作，系统会给出候选命令排序。
+          - generic [ref=e87]: 文字或语音转写
+          - generic [ref=e88]:
+            - textbox "文字或语音转写" [ref=e89]:
+              - /placeholder: 例如：把三号输送带速度降到 60%
+              - text: 把三号输送带速度降到 60%
+            - generic [ref=e90]: 14 / 240
+          - generic [ref=e91]:
+            - button "填入示例" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+              - generic [ref=e95]: 填入示例
+            - button "开始录音 未配置语音服务时，文字判断仍可使用。" [disabled] [ref=e96] [cursor=pointer]:
+              - img [ref=e97]
+              - generic [ref=e100]: 开始录音
+              - generic [ref=e101]: 未配置语音服务时，文字判断仍可使用。
+            - generic [ref=e102]:
+              - checkbox "转写后自动判断" [checked] [ref=e103]
+              - generic [ref=e104]: 转写后自动判断
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - heading "判断结果" [level=3] [ref=e108]
+              - generic [ref=e109]: 模型服务已连接
+            - generic [ref=e163]:
+              - generic [ref=e164]:
+                - generic [ref=e165]:
+                  - text: "实际模型:"
+                  - strong [ref=e166]: kev
+                - generic [ref=e167]: "后端: rkllm"
+                - generic [ref=e168]: "最大上下文: 8192"
+              - generic [ref=e169]:
+                - generic [ref=e170]:
+                  - text: 已选候选项
+                  - strong [ref=e171]: 降低输送带速度
+                - generic [ref=e172]: "原始分数: 0.95"
+              - generic [ref=e173]:
+                - generic [ref=e174]:
+                  - generic [ref=e175]: "1"
+                  - strong [ref=e176]: 降低输送带速度
+                  - generic "相对条形，仅用于候选比较" [ref=e177]
+                  - generic [ref=e179]: "0.95"
+                - generic [ref=e180]:
+                  - generic [ref=e181]: "2"
+                  - strong [ref=e182]: 暂停设备
+                  - generic "相对条形，仅用于候选比较" [ref=e183]
+                  - generic [ref=e185]: "0.027"
+                - generic [ref=e186]:
+                  - generic [ref=e187]: "3"
+                  - strong [ref=e188]: 查询设备状态
+                  - generic "相对条形，仅用于候选比较" [ref=e189]
+                  - generic [ref=e190]: "0.023"
+              - generic [ref=e191]: "总耗时: 898.6 ms · 编码: 0.0 ms · 推理: 898.4 ms · 相对条形，仅用于候选比较"
+          - button "开始判断" [ref=e115] [cursor=pointer]:
+            - img [ref=e116]
+            - generic [ref=e118]: 开始判断
+          - generic [ref=e119]:
+            - generic [ref=e120]: 分数为模型返回的原始排序分数，不代表概率。
+            - button "清除结果" [ref=e122] [cursor=pointer]
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - heading "最近测试" [level=2] [ref=e126]
+          - generic [ref=e127]: "1"
+        - generic [ref=e192]:
+          - paragraph [ref=e193]: 把三号输送带速度降到 60%
+          - generic [ref=e194]:
+            - generic [ref=e195]: 降低输送带速度
+            - generic [ref=e196]: 12:36
+    - contentinfo [ref=e130]:
+      - generic [ref=e131]: SenseCraft · Command Selection Workbench
+      - generic [ref=e132]: 真实模型服务 · 仅执行选择请求
+  - status: 模型服务已连接

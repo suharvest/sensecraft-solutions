@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "repository": "harvestsu/laya-multilingual-rknn-tensorrt",
+  "revision": "db0545065d4da3598d009407fc3bd0c7632ca199",
+  "path_prefix": "releases/edge-workbench-0.1.0",
+  "image": {
+    "tag": "edge-command-workbench:rk3576-0.1.0",
+    "archive": "app-rk3576-arm64.tar.gz",
+    "sha256": "16f2e3d850dbad5392770480c6dbb1e9623e8ed33181d243e6f5346d4b95bf22",
+    "size_bytes": 83497492,
+    "expected_config_sha256": "62889e38063b454276d497338c07f3e94814204590b73c3706b0731e09ac9230"
+  },
+  "model": {
+    "file": "model.rknn",
+    "sha256": "fe2300f034b11d98a69f686ea35b7889db813f5cf227bac4afcd27a0e77c7405"
+  },
+  "tokenizer": [
+    {
+      "file": "tokenizer.json",
+      "sha256": "609d8f4c067cd3950f88594c5a802616cea245823836ef5848ee4fc40aab5b6f"
+    },
+    {
+      "file": "tokenizer_config.json",
+      "sha256": "6c6b2d8e3c84ce0e671c129cd6b374b235d6f9863042a5836358d00a89bbb5a1"
+    }
+  ],
+  "remote_layout": {
+    "model_path": "model.rknn",
+    "tokenizer_dir": "tokenizer"
+  }
+}

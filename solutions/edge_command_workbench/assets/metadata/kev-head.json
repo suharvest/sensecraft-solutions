@@ -1,0 +1,14 @@
+{
+  "family": "kev",
+  "format": "kev-fp32-qk-v1",
+  "temperature": 2.3510958125672174,
+  "dtype": "float32",
+  "shapes": {
+    "q.weight": [256, 1024],
+    "q.bias": [256],
+    "k.weight": [256, 1024],
+    "k.bias": [256]
+  },
+  "head_sha256": "533a21e940e69a570d5cf12f50f1bef27bdb2847395a288fa6cbfc3f9a1a7a7b",
+  "source_sha256": "f400bd12802b2b105ae45d6b03774a158a3db4fccff42413734ddca2e5c920b6"
+}

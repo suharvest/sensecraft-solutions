@@ -1,0 +1,1 @@
+{"tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review", "archive_sha256": "32c83291344d8d283c487bff77ee68b5f442e797c1f2b245d72375b451efe745", "config_sha256": "d7a81c4f8ef3eaa2c21560b2d37939c6088357ec0c1d41c3089ff5fbc3836de9"}

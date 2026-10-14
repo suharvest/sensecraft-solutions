@@ -1,0 +1,17 @@
+{
+  "family": "kev",
+  "backend": "rkllm",
+  "model_id": "kev",
+  "target": "rk3576",
+  "device_quantization": "w4a16-g128",
+  "max_sequence_tokens": 2048,
+  "max_options": 16,
+  "runtime_sdk": "RKLLM 1.3.1",
+  "runtime_sha256": "f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c",
+  "helper_header_sha256": "4ad19442de58df1b7d1ed0884ed75b8d4b5107cc4e75b7e44900b1f95a32c57c",
+  "head_sha256": "533a21e940e69a570d5cf12f50f1bef27bdb2847395a288fa6cbfc3f9a1a7a7b",
+  "engine_sha256": "0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506",
+  "engine_sha256_status": "full_hash_required_external_copy",
+  "engine_capacity_tokens": 8192,
+  "deployment_context_note": "RK3576 guard limits this deployment to 2048 tokens; the RKLLM engine export capacity remains 8192."
+}

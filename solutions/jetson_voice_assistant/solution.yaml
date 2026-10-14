@@ -1,6 +1,9 @@
 version: "1.0"
 id: jetson_voice_assistant
 name: Local Voice Service
+name_i18n:
+  zh: 本地语音服务
+  ja: ローカル音声サービス
 intro:
   summary: Streaming ASR + TTS on edge hardware — sub-180ms latency on Jetson, fully offline, no cloud dependency. Supports Jetson Orin, RK3576, RK3588, and Raspberry Pi.
   description_file: description.md
@@ -109,5 +112,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 本地语音服务

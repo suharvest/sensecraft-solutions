@@ -93,6 +93,12 @@ remote_overrides:
 
     after_upload:
       - name: Write the door configuration
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_RTSP_URL: "{{rtsp_url}}"
+          INPUT_FACEDB_URL: "{{facedb_url}}"
+          INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/unmanned-store-access/p3_mqtt_relay"
@@ -134,8 +140,8 @@ remote_overrides:
           else:
               act["modbus_point_id"] = "{{modbus_point_id}}"
           fdb = cfg["facedb"]
-          fdb["url"] = "{{facedb_url}}"
-          fdb["signature_key"] = "{{facedb_signing_key}}" or None
+          fdb["url"] = os.environ["INPUT_FACEDB_URL"]
+          fdb["signature_key"] = os.environ["INPUT_FACEDB_SIGNING_KEY"] or None
           fdb["signature_key_id"] = "facedb-key-1"
           fdb["poll_interval_s"] = int("{{facedb_poll_s}}")
           mq = cfg["mqtt"]
@@ -143,7 +149,7 @@ remote_overrides:
           mq["port"] = int("{{mqtt_port}}")
           mq["tls"] = "{{mqtt_tls}}" == "true"
           cfg["policy"]["threshold"] = float("{{threshold}}")
-          cfg.setdefault("camera", {})["rtsp_url"] = "{{rtsp_url}}"
+          cfg.setdefault("camera", {})["rtsp_url"] = os.environ["INPUT_RTSP_URL"]
           cfg["door_id"] = "{{door_id}}"
           tmp = path + ".tmp"
           with open(tmp, "w") as fh:
@@ -156,6 +162,9 @@ remote_overrides:
               print("REFUSING: a plaintext library URL with no signing key. The node will not start.")
               raise SystemExit(1)
           PY
+          # Double-quoted with \ " $ escaped: compose reads these values
+          # literally instead of expanding ${...} inside a password.
+          dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
           cat > "$WORKDIR/.env" <<EOF
           FACE_REC_API_IMAGE={{face_rec_api_image}}
           ACCESS_NODE_IMAGE={{access_node_image}}
@@ -164,8 +173,8 @@ remote_overrides:
           MQTT_TLS=$([ "{{mqtt_tls}}" = "true" ] && echo 1 || echo 0)
           DEVICE_ID={{device_id}}
           DOOR_ID={{door_id}}
-          RTSP_URL={{rtsp_url}}
-          FACEDB_URL={{facedb_url}}
+          RTSP_URL="$(dotenv_quote "$INPUT_RTSP_URL")"
+          FACEDB_URL="$(dotenv_quote "$INPUT_FACEDB_URL")"
           EOF
         name_i18n:
           zh: 写入门禁配置

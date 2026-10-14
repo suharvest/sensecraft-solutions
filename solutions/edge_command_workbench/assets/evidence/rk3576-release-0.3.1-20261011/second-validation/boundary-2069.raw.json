@@ -1,0 +1,8 @@
+{
+  "target_words": 2069,
+  "input_chars": 12413,
+  "t0": 1791699967.135981,
+  "status": 422,
+  "body": "{\"detail\":{\"code\":\"input_too_long\",\"message\":\"assembled input has 2088 tokens; maximum is 2048\",\"max_tokens\":2048,\"actual_tokens\":2088}}",
+  "elapsed_ms": 40.5583381652832
+}

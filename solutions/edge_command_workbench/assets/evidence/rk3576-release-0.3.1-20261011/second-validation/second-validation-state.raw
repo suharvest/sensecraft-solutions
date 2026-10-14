@@ -1,0 +1,7 @@
+de6dea3c72446f75c6ce634bdb55db059c74fcca3c8631f72c4761e7e2282947 running false healthy
+/home/cat/kev-rkllm/persist  ->  /persist   ro
+/home/cat/kev-rkllm/persist/evidence/librkllmrt-v1.3.1.so  ->  /opt/kev/librkllmrt.so   ro
+/home/cat/kev-app/models  ->  /models   ro
+
+{"status":"ok","model_ready":true,"backend":"rkllm","name":"kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm","model_id":"kev","max_sequence_tokens":2048,"max_options":16}
+MemAvailable:    3285668 kB
