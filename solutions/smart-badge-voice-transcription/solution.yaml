@@ -42,7 +42,7 @@
 # Clip BLE / Wi-Fi hop (no physical Clip was available) and the packaged deploy path end
 # to end.
 version: "1.0"
-id: clip_private_transcription
+id: smart-badge-voice-transcription
 name: Private Clip Transcription
 name_i18n: {zh: Clip 本地私有转写}
 enabled: true
