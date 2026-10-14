@@ -147,5 +147,12 @@
       "category": "verify",
       "required": []
     }
-  }
+  },
+  "device_classes": [
+    "hailo",
+    "jetson",
+    "recamera",
+    "rk3576",
+    "rk3588"
+  ]
 }

@@ -142,11 +142,11 @@ services:
       start_period: 300s
 
   agent:
-    # voiceagent-20260921-bargein.3: index
-    # sha256:44edad9f9e80de12a71848a419a85274e6afeb28748954d08d295e104d879352
-    # (linux/arm64 sha256:1e576dd2dfd2bd6f923b9884f8d9bfa87586d67292ab524ef88bbe9cf9d4db41).
-    # Thin overlay on voiceagent-20260914-runtimekws, four files from
-    # openvoicestream 03bc82a (PRs #110, #111, #113):
+    # voiceagent-20260921-bargein.4: index
+    # sha256:cfe9c644496402db0c690e7604866500f1c05af908f0d39b381fb89833485d7b
+    # (linux/arm64 sha256:ac60410f2258fa5b2ac6afb07d6a1966f1f742e1529e2cab1e8f4ccd5efd2619).
+    # Thin overlay on voiceagent-20260914-runtimekws, five files from
+    # openvoicestream a6aa094 (PRs #110, #111, #113, #115, #116):
     #   * barge-in keeps the utterance the user interrupts with (abort keep_asr)
     #   * "Stop, <new instruction>" reaches the LLM instead of ending the turn
     #   * a new user turn cuts the previous reply that is still playing
@@ -156,7 +156,12 @@ services:
     #   * the LLM warmup no longer registers tools the conversation never uses
     #     (with the local RK1828 LLM they stuck and the model sometimes
     #     answered with raw <tool_call> text)
-    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.3}
+    #   * a barge-in that fires after the user's speech already ended now
+    #     closes the utterance itself, instead of waiting for the server's
+    #     45 s per-turn deadline ("asr: per-turn deadline 45s exceeded")
+    #   * OVS_AGENT_SESSION_MAX_INPUT_TOKENS sets the history trim budget
+    #     (used by the RK1828 local-LLM overlay)
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.4}
     container_name: conversational-voice-agent
     init: true
     network_mode: host

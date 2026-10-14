@@ -1,0 +1,6 @@
+### Result
+{"firstDisabled":true,"secondClick":"rejected","requestCount":1}
+### Ran Playwright code
+```js
+await (async page => { const req=[]; const h=r=>{if(r.method()==='POST'&&r.url().includes('/api/decide'))req.push(r.url())}; page.on('request',h); const input=page.getByRole('textbox',{name:'文字或语音转写'}); const btn=page.getByRole('button',{name:'开始判断'}); await input.fill('查询设备状态'); await btn.click(); const first=await btn.isDisabled(); let second=''; try { await btn.click({timeout:500}); second='accepted'; } catch(e) { second='rejected'; } await page.waitForTimeout(900); page.off('request',h); return {firstDisabled:first,secondClick:second,requestCount:req.length}; })(page);
+```

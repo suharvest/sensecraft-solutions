@@ -1,0 +1,6 @@
+### Result
+{"elapsed":1013,"pendingBadge":"Running · 0s","disabledAfterFirst":true,"disabledAfterSecond":true,"requestCount":1,"requests":[{"at":1791693421362,"url":"http://192.0.2.16:18775/api/decide"}],"result":"Actual model: laya\nBackend: rknn\nMax context: 90\nSelected candidate\nReduce conveyor speed\nRaw score: 5.07\n1\nReduce conveyor speed\n5.07\n2\nPause equipment\n-4.379\n3\nQuery equipment status\n-4.566\nTotal: 618.7 ms · Encoding: 0.0 ms · Inference: 568.5 ms · Relative bar for candidate comparison only"}
+### Ran Playwright code
+```js
+await (async page => { const req=[]; const h=r=>{if(r.method()==='POST'&&r.url().includes('/api/decide'))req.push({at:Date.now(),url:r.url()})}; page.on('request',h); const input=page.getByRole('textbox',{name:'Text or voice transcript'}); const btn=page.getByRole('button',{name:'Start decision'}); const t=Date.now(); await input.press('Control+Enter'); const pendingBadge=await page.locator('#decisionState').innerText(); const disabledAfterFirst=await btn.isDisabled(); await input.press('Control+Enter'); const disabledAfterSecond=await btn.isDisabled(); await page.waitForTimeout(1000); page.off('request',h); return {elapsed:Date.now()-t,pendingBadge,disabledAfterFirst,disabledAfterSecond,requestCount:req.length,requests:req,result:await page.locator('#resultArea').innerText()}; })(page);
+```

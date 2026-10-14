@@ -1,6 +1,9 @@
 version: "1.0"
 id: recamera_depth_estimation
 name: Monocular Depth Estimation on reCamera
+name_i18n:
+  zh: reCamera 单目深度估计
+  ja: reCamera による単眼深度推定
 intro:
   summary: >-
     See which parts of the scene are near and which are far from one reCamera, without a depth camera.
@@ -91,5 +94,3 @@ deployment:
   guide_file_i18n:
     zh: guide_zh.md
 
-name_i18n:
-  zh: reCamera 单目深度估计

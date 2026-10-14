@@ -3,6 +3,7 @@ id: multi_protocol_gateway
 name: Multi-Protocol Industrial Gateway
 name_i18n:
   zh: 多协议工业网关
+  ja: マルチプロトコル産業用ゲートウェイ
 
 intro:
   summary: Bring OPC UA, Modbus, BACnet/IP, and MQTT devices into one point model, then read and control them through one MQTT interface.
@@ -184,8 +185,13 @@ intro:
     difficulty: intermediate
     estimated_time: 15min
 
+  # links.github 暂不填：实现仓库 Seeed-Solution/Solution_HVAC_SmartControl 目前私有，
+  # 对外是 404；仓库公开后再加回 `links: { github: <url> }`。
+
   links:
-    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
+    wiki: https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/
 
 deployment:
   guide_file: guide.md

@@ -935,6 +935,15 @@ def _is_registry_qualified(image: str) -> bool:
     return "." in head or ":" in head or head == "localhost"
 
 
+def _hub_path(image: str) -> str:
+    """Docker Hub repository path for ``image``: bare names get ``library/``.
+
+    Docker adds the implicit ``library/`` namespace only when talking to
+    Docker Hub itself, so a mirror-prefixed reference must spell it out.
+    """
+    return image if "/" in image else f"library/{image}"
+
+
 def _extract_docker_images(script: str) -> list[str]:
     """Return image references pulled by ``docker run``/``docker pull`` in ``script``."""
     images: list[str] = []
@@ -978,12 +987,54 @@ def _iter_action_scripts(node, path: str = ""):
             yield from _iter_action_scripts(value, f"{path}[{i}]")
 
 
+def _check_device_class(dev_data, label: str, known: list) -> list[str]:
+    """Error on a ``device_class`` the engine has no profile for.
+
+    The engine raises when loading such a device YAML (no
+    ``devices/profiles/<class>.yaml``), so the step fails at deploy time.
+    ``known`` comes from ``capabilities.json``; an older spec without the
+    list skips the check rather than guessing.
+    """
+    if not isinstance(dev_data, dict) or not known:
+        return []
+    declared = dev_data.get("device_class")
+    if not declared or declared in known:
+        return []
+    return [
+        f"{label}: unknown device_class {declared!r} — the engine has no "
+        f"profile for it and the deploy fails when loading this file. "
+        f"Use one of {sorted(known)}, or drop the key if this solution "
+        f"needs no device-class behavior."
+    ]
+
+
+# Exactly the ``${DOCKER_REGISTRY_PREFIX}`` / ``$DOCKER_REGISTRY_PREFIX``
+# token: ``$DOCKER_REGISTRY_PREFIXED_IMAGE`` is a different variable.
+_MIRROR_PREFIX_TOKEN = r"(?:\$\{DOCKER_REGISTRY_PREFIX\}|\$DOCKER_REGISTRY_PREFIX(?![A-Za-z0-9_]))"
+_MIRROR_PREFIX_TOKEN_RE = re.compile(_MIRROR_PREFIX_TOKEN)
+_MIRROR_PREFIX_RE = re.compile(r"^" + _MIRROR_PREFIX_TOKEN + r"(?P<rest>.*)$")
+
+
 def _check_action_image_refs(dev_data, label: str) -> list[str]:
     """Error on Docker Hub images pulled by an action without the mirror prefix."""
     errors: list[str] = []
     for json_path, script in _iter_action_scripts(dev_data):
         for image in _extract_docker_images(script):
-            if "DOCKER_REGISTRY_PREFIX" in image:
+            prefixed = _MIRROR_PREFIX_RE.match(image)
+            if prefixed:
+                rest = prefixed.group("rest")
+                if rest and not rest.startswith("$") and "/" not in rest:
+                    errors.append(
+                        f"{label}: at '{json_path}': '{image}' prefixes a bare "
+                        f"official image — write "
+                        f"'${{DOCKER_REGISTRY_PREFIX}}library/{rest}' instead. "
+                        f"Docker only adds the implicit 'library/' namespace "
+                        f"for Docker Hub; on a mirror the bare path is a "
+                        f"different repository that the mirror serves "
+                        f"unreliably (seen: 401/502 on docker.m.daocloud.io)."
+                    )
+                continue
+            if _MIRROR_PREFIX_TOKEN_RE.search(image):
                 continue
             # A fully variable-driven reference (``$IMAGE``, ``${IMG}:$TAG``)
             # is resolved at runtime — the author may already be prefixing it
@@ -995,7 +1046,7 @@ def _check_action_image_refs(dev_data, label: str) -> list[str]:
             errors.append(
                 f"{label}: at '{json_path}': action pulls Docker Hub image "
                 f"'{image}' without the mirror prefix — write "
-                f"'${{DOCKER_REGISTRY_PREFIX}}{image}' instead. The engine "
+                f"'${{DOCKER_REGISTRY_PREFIX}}{_hub_path(image)}' instead. The engine "
                 f"exports DOCKER_REGISTRY_PREFIX into every action step; "
                 f"without it this pull fails on CN-restricted networks."
             )
@@ -1079,7 +1130,7 @@ def run(
     # --- 1. solution.yaml against solution.schema.json -----------------------
     sol_yaml = sol_path / "solution.yaml"
     if not sol_yaml.is_file():
-        # Not a solution directory (e.g. shared assets like ``_shared/``, or a
+        # Not a solution directory (e.g. a
         # container dir holding nested solutions). Skip rather than fail so
         # iterating ``solutions/*`` stays clean.
         print(f"⊘ {sol_path.name} skipped (no solution.yaml — not a solution directory)")
@@ -1096,6 +1147,13 @@ def run(
         )
 
     # --- 2. devices/*.yaml against device.schema.json ------------------------
+    caps_path = spec / "capabilities.json"
+    caps = (
+        json.loads(caps_path.read_text(encoding="utf-8"))
+        if caps_path.is_file()
+        else {}
+    )
+    known_device_classes = caps.get("device_classes") or []
     devices_dir = sol_path / "devices"
     if devices_dir.is_dir():
         dev_schema_path = spec / "device.schema.json"
@@ -1118,15 +1176,16 @@ def run(
                     _format_jsonschema_errors(validator_cls, dev_data, dev_schema, label)
                 )
                 errors.extend(_check_action_image_refs(dev_data, label))
+                errors.extend(
+                    _check_device_class(dev_data, label, known_device_classes)
+                )
 
     # --- 3. guide step-type validation via the parser subpackage -------------
-    caps_path = spec / "capabilities.json"
     if not caps_path.is_file():
         errors.append("capabilities.json not found in spec/ — cannot validate step types")
     else:
         from sensecraft_solution_spec import markdown_parser as mp
 
-        caps = json.loads(caps_path.read_text(encoding="utf-8"))
         deployers_info = caps.get("deployers", {})
         deployer_keys = set(deployers_info.keys())
         # Verify step types = deployers with category == "verify" (no drift).

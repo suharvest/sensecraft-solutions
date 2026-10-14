@@ -1,0 +1,27 @@
+services:
+  homeassistant:
+    image: ${HA_IMAGE}@${HA_DIGEST}
+    network_mode: host
+    privileged: true
+    environment:
+      TZ: ${TZ}
+      # HA 2026.9+ reads the HTTP port from .storage/http. SETUP_PORT sets the
+      # default port that the first boot writes there as the stable config;
+      # later boots use the stored value. Do not use YAML `http: server_port`.
+      SETUP_PORT: ${HA_PORT:-8123}
+    restart: unless-stopped
+    volumes:
+      - ${HA_CONFIG_DIR}:/config
+      - /run/dbus:/run/dbus:ro
+    # ZBT-2 is optional at install time: with ZBT_DEVICE empty the mapping
+    # falls back to /dev/null so HA can be installed before the dongle arrives.
+    # (An empty ZBT_DEVICE previously rendered a device entry with no source.)
+    devices:
+      - ${ZBT_DEVICE:-/dev/null}:${ZBT_DEVICE:-/dev/null}
+  esphome:
+    profiles: [esphome]
+    image: ${ESPHOME_IMAGE}@${ESPHOME_DIGEST}
+    network_mode: host
+    restart: "no"
+    volumes:
+      - ${ESPHOME_CONFIG_DIR}:/config

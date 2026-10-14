@@ -3,6 +3,7 @@ id: smart_hvac_control
 name: HVAC Automation Control
 name_i18n:
   zh: 暖通自动化控制
+  ja: HVAC 自動化制御
 
 intro:
   summary: >-
@@ -197,8 +198,8 @@ intro:
     difficulty: intermediate
     estimated_time: 60min
 
-  links:
-    github: https://github.com/Seeed-Solution/Solution_HVAC_SmartControl
+  # links.github 暂不填：实现仓库 Seeed-Solution/Solution_HVAC_SmartControl 目前私有，
+  # 对外是 404；仓库公开后再加回 `links: { github: <url> }`。
 
   presets:
     - id: default
@@ -221,6 +222,11 @@ intro:
           options:
             - device_ref: recomputer_r11
           default: recomputer_r11
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/
 
 deployment:
   guide_file: guide.md
