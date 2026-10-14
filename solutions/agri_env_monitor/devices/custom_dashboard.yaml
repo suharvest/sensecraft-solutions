@@ -83,7 +83,7 @@ remote_overrides:
           set -e
           WORKDIR="/home/{{username}}/agri-env-ops-dashboard/custom_dashboard"
           umask 077
-          cat > "$WORKDIR/.env" <<EOF
+          cat > "$WORKDIR/.env" <<'EOF'
           COMPOSE_PROJECT_NAME=agri-env-ops-dashboard
           TZ={{timezone}}
           FARM_BIND=0.0.0.0
@@ -126,129 +126,129 @@ remote_overrides:
         name_i18n:
           zh: 等待看板就绪
 
-  user_inputs:
-    - id: host
-      name: Dashboard Host Address
-      type: text
-      required: true
-      placeholder: "192.168.1.50"
-      description: Where the dashboard container runs — usually the reComputer or any Linux host with Docker
-      name_i18n:
-        zh: 看板主机地址
-      description_i18n:
-        zh: 运行看板容器的机器——通常是 reComputer 或任意装了 Docker 的 Linux 主机
-    - id: username
-      name: SSH Username
-      type: text
-      default: recomputer
-      required: true
-      name_i18n:
-        zh: SSH 用户名
-    - id: password
-      name: SSH Password
-      type: password
-      required: true
-      name_i18n:
-        zh: SSH 密码
-    - id: timezone
-      name: Time Zone
-      type: text
-      default: "Asia/Shanghai"
-      required: true
-      name_i18n:
-        zh: 时区
-    - id: http_port
-      name: Dashboard HTTP Port
-      type: text
-      default: "8000"
-      required: true
-      description: The port the ops console is served on. On a reComputer R1000, 8000 is taken by another service, so use 8001.
-      validation:
-        pattern: "^[0-9]{2,5}$"
-      name_i18n:
-        zh: 看板 HTTP 端口
-      description_i18n:
-        zh: 运维控制台对外服务的端口。在 reComputer R1000 上 8000 被占用，请改用 8001。
-    - id: ws_port
-      name: Live Updates WebSocket Port
-      type: text
-      default: "8765"
-      required: true
-      validation:
-        pattern: "^[0-9]{2,5}$"
-      name_i18n:
-        zh: 实时更新 WebSocket 端口
-    - id: mqtt_host
-      name: MQTT Broker Address
-      type: text
-      required: true
-      placeholder: "broker.example.com"
-      description: The broker your sensor gateway already publishes to. Use a LAN IP or hostname reachable from this host.
-      name_i18n:
-        zh: MQTT Broker 地址
-      description_i18n:
-        zh: 你的传感网关已经在上报的那个 broker。填这台主机能访问到的局域网 IP 或域名。
-    - id: mqtt_port
-      name: MQTT Port
-      type: text
-      default: "1883"
-      required: true
-      validation:
-        pattern: "^[0-9]{2,5}$"
-      name_i18n:
-        zh: MQTT 端口
-    - id: mqtt_tls
-      name: MQTT over TLS
-      type: select
-      default: "0"
-      required: true
-      options:
-        - value: "0"
-          label: No — plain TCP (1883)
-          label_i18n:
-            zh: 否——明文 TCP（1883）
-        - value: "1"
-          label: Yes — TLS (8883)
-          label_i18n:
-            zh: 是——TLS（8883）
-      name_i18n:
-        zh: MQTT 使用 TLS
-    - id: mqtt_username
-      name: MQTT Username
-      type: text
-      required: false
-      description: Leave empty if your broker allows anonymous reads
-      name_i18n:
-        zh: MQTT 用户名
-      description_i18n:
-        zh: 如果 broker 允许匿名读取可留空
-    - id: mqtt_password
-      name: MQTT Password
-      type: password
-      required: false
-      description: Written only to a mode-600 .env file on the target host
-      name_i18n:
-        zh: MQTT 密码
-      description_i18n:
-        zh: 只写入目标主机上权限 600 的 .env 文件
-    - id: mqtt_prefix
-      name: MQTT Topic Prefix
-      type: text
-      required: false
-      default: ""
-      placeholder: "myfarm/"
-      description: Prepended to the sensor topic, if your relay uses one. Leave empty for none.
-      name_i18n:
-        zh: MQTT 主题前缀
-      description_i18n:
-        zh: 如果你的 relay 使用前缀，会加在传感器主题前面。没有则留空。
-    - id: mqtt_topic
-      name: Sensor State Topic
-      type: text
-      required: true
-      default: "agri_env/+/+/state"
-      description: The normalized state topic the agri-env bridge publishes. One of the three ingest presets (or the bridge alone) must be running — this dashboard reads its output.
-      name_i18n:
-        zh: 传感器状态主题
-      description_i18n:
-        zh: agri-env 桥发布的规范化状态主题。三个接入套餐（或单独的桥）之一必须在运行——本看板读取它的输出。
+user_inputs:
+  - id: host
+    name: Dashboard Host Address
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: Where the dashboard container runs — usually the reComputer or any Linux host with Docker
+    name_i18n:
+      zh: 看板主机地址
+    description_i18n:
+      zh: 运行看板容器的机器——通常是 reComputer 或任意装了 Docker 的 Linux 主机
+  - id: username
+    name: SSH Username
+    type: text
+    default: recomputer
+    required: true
+    name_i18n:
+      zh: SSH 用户名
+  - id: password
+    name: SSH Password
+    type: password
+    required: true
+    name_i18n:
+      zh: SSH 密码
+  - id: timezone
+    name: Time Zone
+    type: text
+    default: "Asia/Shanghai"
+    required: true
+    name_i18n:
+      zh: 时区
+  - id: http_port
+    name: Dashboard HTTP Port
+    type: text
+    default: "8000"
+    required: true
+    description: The port the ops console is served on. On a reComputer R1000, 8000 is taken by another service, so use 8001.
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: 看板 HTTP 端口
+    description_i18n:
+      zh: 运维控制台对外服务的端口。在 reComputer R1000 上 8000 被占用，请改用 8001。
+  - id: ws_port
+    name: Live Updates WebSocket Port
+    type: text
+    default: "8765"
+    required: true
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: 实时更新 WebSocket 端口
+  - id: mqtt_host
+    name: MQTT Broker Address
+    type: text
+    required: true
+    placeholder: "broker.example.com"
+    description: The broker your sensor gateway already publishes to. Use a LAN IP or hostname reachable from this host.
+    name_i18n:
+      zh: MQTT Broker 地址
+    description_i18n:
+      zh: 你的传感网关已经在上报的那个 broker。填这台主机能访问到的局域网 IP 或域名。
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^[0-9]{2,5}$"
+    name_i18n:
+      zh: MQTT 端口
+  - id: mqtt_tls
+    name: MQTT over TLS
+    type: select
+    default: "0"
+    required: true
+    options:
+      - value: "0"
+        label: No — plain TCP (1883)
+        label_i18n:
+          zh: 否——明文 TCP（1883）
+      - value: "1"
+        label: Yes — TLS (8883)
+        label_i18n:
+          zh: 是——TLS（8883）
+    name_i18n:
+      zh: MQTT 使用 TLS
+  - id: mqtt_username
+    name: MQTT Username
+    type: text
+    required: false
+    description: Leave empty if your broker allows anonymous reads
+    name_i18n:
+      zh: MQTT 用户名
+    description_i18n:
+      zh: 如果 broker 允许匿名读取可留空
+  - id: mqtt_password
+    name: MQTT Password
+    type: password
+    required: false
+    description: Written only to a mode-600 .env file on the target host
+    name_i18n:
+      zh: MQTT 密码
+    description_i18n:
+      zh: 只写入目标主机上权限 600 的 .env 文件
+  - id: mqtt_prefix
+    name: MQTT Topic Prefix
+    type: text
+    required: false
+    default: ""
+    placeholder: "myfarm/"
+    description: Prepended to the sensor topic, if your relay uses one. Leave empty for none.
+    name_i18n:
+      zh: MQTT 主题前缀
+    description_i18n:
+      zh: 如果你的 relay 使用前缀，会加在传感器主题前面。没有则留空。
+  - id: mqtt_topic
+    name: Sensor State Topic
+    type: text
+    required: true
+    default: "agri_env/+/+/state"
+    description: The normalized state topic the agri-env bridge publishes. One of the three ingest presets (or the bridge alone) must be running — this dashboard reads its output.
+    name_i18n:
+      zh: 传感器状态主题
+    description_i18n:
+      zh: agri-env 桥发布的规范化状态主题。三个接入套餐（或单独的桥）之一必须在运行——本看板读取它的输出。
