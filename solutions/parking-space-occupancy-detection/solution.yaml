@@ -49,7 +49,7 @@ name_i18n:
   zh: 边缘多摄像头停车位占用检测
 enabled: true
 intro:
-  visibility: staging
+  visibility: production
   summary: Use the IP cameras already in your car park to see which bays are taken. An edge box analyses every camera on site and reports each bay as occupied or free over MQTT — no video leaves the site.
   summary_i18n:
     zh: 用停车场现有的 IP 摄像头看哪些车位有车。边缘主机在现场分析每路画面，逐个车位报告「占用 / 空闲」，通过 MQTT 发给你的系统，视频不出场地。
