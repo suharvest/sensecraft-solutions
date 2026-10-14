@@ -109,7 +109,9 @@ actions:
         if [ -z "$HOST_IP" ]; then
           HOST_IP="127.0.0.1"
         fi
-        cat > "$WORKDIR/.env" <<EOF
+        TMP_ENV="$(mktemp "$WORKDIR/.env.tmp.XXXXXX")"
+        chmod 600 "$TMP_ENV"
+        cat > "$TMP_ENV" <<EOF
         COMPOSE_PROJECT_NAME=agri-env-tts
         TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
         MQTT_OUT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
@@ -127,7 +129,9 @@ actions:
           printf 'TTS_COOKIE_BLOCK_KEY=%s\n' "$OLD_BLOCK_KEY"
           printf 'TTS_COOKIE_HASH_KEY=%s\n' "$OLD_HASH_KEY"
           printf 'TTS_CONSOLE_SECRET=%s\n' "$OLD_CONSOLE_SECRET"
-        } >> "$WORKDIR/.env"
+        } >> "$TMP_ENV"
+        mv -f "$TMP_ENV" "$WORKDIR/.env"
+        chmod 600 "$WORKDIR/.env"
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 stack 配置

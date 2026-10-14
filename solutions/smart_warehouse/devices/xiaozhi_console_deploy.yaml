@@ -315,9 +315,21 @@ actions:
           exit 0
         fi
 
+        DB_PASS=""
+        if [ -f "$COMPOSE_DIR/.env" ]; then
+          DB_PASS=$(grep '^MYSQL_ROOT_PASSWORD=' "$COMPOSE_DIR/.env" | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        fi
+        if [ -z "$DB_PASS" ] && [ -f ".env" ]; then
+          DB_PASS=$(grep '^MYSQL_ROOT_PASSWORD=' .env | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+        fi
+        if [ -z "$DB_PASS" ]; then
+          DB_PASS=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$DB" 2>/dev/null | grep '^MYSQL_ROOT_PASSWORD=' | head -1 | cut -d= -f2-)
+        fi
+        DB_PASS="${DB_PASS:-${MYSQL_ROOT_PASSWORD:-123456}}"
+
         run_sql() {
           SQLERR=$(mktemp)
-          docker exec -i $DB mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-123456}" \
+          docker exec -i $DB mysql -uroot -p"$DB_PASS" \
             --default-character-set=utf8mb4 xiaozhi_esp32_server 2>"$SQLERR"
           RC=$?
           grep -v 'Using a password on the command line' "$SQLERR" >&2 || true

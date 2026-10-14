@@ -133,7 +133,10 @@ actions:
         if [ -n "$PRESERVED_VARS" ]; then
           echo "$PRESERVED_VARS" >> "$WORKDIR/.env"
         fi
-        echo "roles configured: $(echo "$TOKENS" | tr ',' '\n' | sed 's/^[^:]*://' | paste -sd, -)"
+        ROLES="admin"
+        [ -n "$INPUT_OPERATOR_TOKEN" ] && ROLES="$ROLES,operator"
+        [ -n "$INPUT_VIEWER_TOKEN" ] && ROLES="$ROLES,viewer"
+        echo "roles configured: $ROLES"
       name_i18n:
         zh: 写入管理端环境文件
 

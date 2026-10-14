@@ -98,7 +98,9 @@ actions:
             DB_PASS=$(gen 16)
           fi
         fi
-        cat > "$WORKDIR/.env" <<EOF
+        TMP_ENV="$(mktemp "$WORKDIR/.env.tmp.XXXXXX")"
+        chmod 600 "$TMP_ENV"
+        cat > "$TMP_ENV" <<EOF
         COMPOSE_PROJECT_NAME=agri-env-chirpstack
         TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
         CHIRPSTACK_REGION="$(dotenv_quote "$INPUT_REGION")"
@@ -114,10 +116,12 @@ actions:
         BRIDGE_UNAVAILABLE_AFTER="$(dotenv_quote "$INPUT_UNAVAILABLE_AFTER")"
         EOF
         if [ "$INPUT_LNS_MODE" = "local" ]; then
-          printf 'COMPOSE_PROFILES=local-lns\n' >> "$WORKDIR/.env"
+          printf 'COMPOSE_PROFILES=local-lns\n' >> "$TMP_ENV"
         fi
-        printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
-        printf 'POSTGRES_PASSWORD=%s\n' "$DB_PASS" >> "$WORKDIR/.env"
+        printf 'CHIRPSTACK_DB_PASSWORD=%s\n' "$DB_PASS" >> "$TMP_ENV"
+        printf 'POSTGRES_PASSWORD=%s\n' "$DB_PASS" >> "$TMP_ENV"
+        mv -f "$TMP_ENV" "$WORKDIR/.env"
+        chmod 600 "$WORKDIR/.env"
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 ChirpStack 与桥的配置
