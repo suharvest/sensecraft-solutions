@@ -2,12 +2,12 @@
 # (HomeKit pairing, ZHA with ZBT-2, Voice PE, offline) are incomplete; see
 # LICENSES.md. Customer copy omits these internal status notes.
 version: "1.0"
-id: home_assistant_whole_home
+id: home-assistant-local-voice-hub
 name: Whole-Home Home Assistant with Local Voice
 name_i18n: {zh: 全屋 Home Assistant 接入与本地语音}
 enabled: true
 intro:
-  visibility: staging
+  visibility: production
   summary: Bring HomeKit and Zigbee devices such as Aqara into Home Assistant and control them by voice, with speech recognition and speech synthesis running locally on a Jetson.
   summary_i18n: {zh: 把 HomeKit 和 Aqara 等 Zigbee 设备接入 Home Assistant，用语音控制；语音识别和语音合成在本地 Jetson 上完成。}
   description_file: description.md

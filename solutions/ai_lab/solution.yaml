@@ -1,6 +1,9 @@
 version: "1.0"
 id: ai_lab
 name: "AI Lab — Edge AI Model Hub on Rockchip"
+name_i18n:
+  zh: AI Lab — 瑞芯微边缘 AI 模型中心
+  ja: AI Lab — Rockchip 版エッジ AI モデルハブ
 intro:
   summary: One place to try popular AI models on reComputer RK3576/RK3588 — object detection, chat, and image understanding, all running locally.
   description_file: description.md
@@ -140,5 +143,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: "AI Lab — Rockchip 边缘 AI 模型库"

@@ -17,6 +17,7 @@ replaces: eldercare_alarm
 name: Fall Detection
 name_i18n:
   zh: 跌倒检测
+  ja: 転倒検知
 
 intro:
   summary: >-
@@ -390,6 +391,9 @@ intro:
 
   links:
     github: https://github.com/suharvest/edgefallkit
+    wiki: https://wiki.seeedstudio.com/solutions/edge-fall-detection/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_overview&utm_campaign=fall_detection&utm_content=intro_wiki_btn
 
 deployment:
   guide_file: guide.md

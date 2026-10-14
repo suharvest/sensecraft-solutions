@@ -1,6 +1,9 @@
 version: '1.0'
 id: indoor_positioning_ble_lorawan
 name: Campus-level BLE Beacon Positioning System
+name_i18n:
+  zh: 园区级蓝牙信标定位系统
+  ja: 園区レベルの BLE ビーコン測位システム
 intro:
   summary: Track assets and people indoors and outdoors on one map — BLE beacons inside, GNSS outside, with floor-plan georeferencing, geofence alarms and an offline basemap option.
   description_file: description.md
@@ -102,9 +105,9 @@ intro:
     difficulty: intermediate
     estimated_time: 60min
   links:
-    wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+    wiki: https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/
     wiki_i18n:
-      zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+      zh: https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/
     wiki_en: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
     github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
     demo: https://indoorpositioning-demo.seeed.cc/
@@ -156,7 +159,7 @@ intro:
       links:
         wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         wiki_i18n:
-          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 入门套件
@@ -209,7 +212,7 @@ intro:
       links:
         wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         wiki_i18n:
-          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 标准配置
@@ -260,7 +263,7 @@ intro:
       links:
         wiki: https://wiki.seeedstudio.com/solutions/indoor-positioning-bluetooth-lorawan-tracker/
         wiki_i18n:
-          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/
+          zh: https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/
         github: https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5
       name_i18n:
         zh: 企业版
@@ -276,5 +279,3 @@ deployment:
   guide_file_i18n:
     zh: guide_zh.md
 enabled: true
-name_i18n:
-  zh: 园区级蓝牙信标定位系统

@@ -1,87 +1,91 @@
 ## Preset: Depth Estimation {#default}
 
-Run a monocular depth model on the reCamera's own TPU. One ordinary image in, a
-dense relative depth map out — no stereo pair, no depth camera.
+Run a monocular depth model on the reCamera. An ordinary image in, relative
+near/far out — no stereo pair, no depth camera.
 
 | Device | Purpose |
 |--------|---------|
-| reCamera | Runs the depth model and streams the result |
+| reCamera | Runs the console and the depth app; outputs the RTSP stream and MQTT data |
 
 **What you'll get:**
-- RTSP stream with a colour depth preview in the corner
-- MQTT with per-frame percentiles, near-area ratio and a 3x3 proximity grid
+- RTSP stream with a colour depth preview in the corner (red near, blue far)
+- MQTT with per-frame relative depth statistics and a 3x3 proximity grid
 - Home Assistant entities for near-area and near-presence
 
-**Requirements:** a reCamera reachable over USB or the network, and a scene with
-objects at clearly different distances. A blank wall or ceiling produces a flat,
-uninformative map — that is this model's known weak case, not a fault.
+**Scene:** objects at clearly different distances. Blank walls, ceilings, glass
+and sky produce a flat depth map.
 
-## Step 1: Install the app and model {#deploy type=recamera_cpp required=true config=devices/recamera_depth.yaml}
+## Step 1: Update the reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-Installs the `.deb` and places the depth model at `/userdata/local/models/`.
+Install console 0.5.5, which manages the camera's apps. Already current? It's skipped.
 
-### Wiring
+### Prerequisites
 
-1. Connect the reCamera over USB-C, or make sure it is reachable on your network
-2. Enter its IP address (USB gives it `192.168.42.1`) and the SSH password for
-   the `recamera` user
-3. Deploy
-
-### What lands on the device
-
-| Path | What |
-|------|------|
-| `/usr/local/bin/depth-estimation` | The application |
-| `/etc/init.d/K92depth-estimation` | Its init script, parked |
-| `/userdata/local/models/fastdepth_224_bf16.cvimodel` | The model, 2.9 MB |
-
-The init script is installed parked (`K92`, not `S92`) on purpose. Only one
-application may hold the camera at a time, so starting it is the console's job.
+1. Connect the camera over USB, or put it on the same network as this computer.
+2. Over USB the address is `192.168.42.1`; over Wi-Fi use the IP your router shows.
+3. Username `recamera`, default password `recamera` (older units use `recamera.2`).
+4. New devices need SSH enabled first — connect over USB, wait about two minutes for boot, open `http://192.168.42.1/#/security`, sign in, and turn on the SSH toggle.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| The deploy cannot reach the camera | It must be reachable over USB-C (`192.168.42.1`) or the network, with the `recamera` user's SSH password |
-| The app exits right after starting | The model failed to load — confirm the deploy placed `fastdepth_224_bf16.cvimodel` under `/userdata/local/models/` |
-| The app does not come back after a reboot | Expected — the init script is installed parked (`K92`). Starting it is the console's job; see Step 2 |
+| Cannot connect | USB: use `192.168.42.1`; network: check your router for the IP |
+| Password rejected | Default is `recamera`; units shipped with older firmware use `recamera.2` |
+| Install failed | Restart the camera and run the step again |
+| Node-RED stopped working | Expected — the console takes over the camera. Switch back from the console's system settings; nothing is uninstalled |
 
-## Step 2: Start it from the console {#start type=manual required=true}
+---
 
-Open the camera's console in a browser and enable **Monocular Depth Estimation**
-in the app gallery.
+## Step 2: Install the Depth Estimation App {#deploy_depth type=recamera_cpp required=true config=devices/recamera_depth.yaml}
 
-If a **Node-RED mode** banner is shown, switch back to Console mode first. In
-Node-RED mode gallery apps are stopped and disabled. Node-RED is also watched by
-a supervisor script that restarts it, so stopping it by hand does not stick —
-and a revived Node-RED will contend with the app for the camera.
+Install the depth app and its model onto the camera. Address and password are
+the same as the previous step.
 
 ### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| The app cannot be enabled and a **Node-RED mode** banner is shown | Switch back to Console mode — in Node-RED mode gallery apps are stopped and disabled |
-| The app loses the camera again right after you enable it | Node-RED was stopped by hand and its supervisor script restarted it; a revived Node-RED contends with the app for the camera. Switch to Console mode instead |
+| Cannot connect or password rejected | Use the same address and password as Step 1 |
+| Install failed | Make sure this computer is online (the package is downloaded from the cloud), restart the camera and run the step again |
 
-## Step 3: Check the output {#verify type=manual required=false verify=true}
+---
 
-### The stream
+## Step 3: Enable the App in the Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
 
-Open `rtsp://<camera-ip>:8554/live0` in VLC or any VMS. The depth preview sits
-in the bottom-right corner: red is near, blue is far.
+Open the camera's console and enable Monocular Depth Estimation.
 
-### Sanity-check it once
+### Prerequisites
 
-Stand near one side of the frame and confirm that side reads nearer.
+1. Sign in with the camera's account — the same password as Step 1.
+2. On the **Applications** page, enable **Monocular Depth Estimation**. The camera runs one app at a time; enabling it stops whatever else was running.
 
-**Do not convert these numbers into distances.** They are relative ordering and
-have no metric meaning.
+### Deployment Complete
+
+Open the app's **Debug** page for the live view, with the depth preview in the
+bottom-right corner.
 
 ### Troubleshooting
 
-#### The numbers
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Wait a minute for the camera to finish starting, then refresh |
+| Monocular Depth Estimation is not in the list | Run Step 2 again |
+| A **Node-RED mode** banner is shown and the app cannot be enabled | Switch back to Console mode in the console |
+| Picture freezes | Restart the camera |
 
-Subscribe to `recamera/depth-estimation/results`:
+---
+
+## Step 4: Check the Output {#verify type=manual required=false verify=true}
+
+### Deployment Complete
+
+**Video stream:** open `rtsp://<camera-ip>:8554/live0` in VLC
+(`rtsp://192.168.42.1:8554/live0` over USB). The depth preview is in the
+bottom-right corner, red near and blue far. Stand on one side of the frame and
+that side should turn red.
+
+**MQTT data:** subscribe to `recamera/depth-estimation/results`:
 
 ```json
 {
@@ -98,15 +102,15 @@ Subscribe to `recamera/depth-estimation/results`:
 }
 ```
 
-`zones` is the 3x3 grid in reading order, each cell 0 (far) to 1 (nearest in
-frame). In the sample above the right column is nearest.
+- `near_ratio`: share of the frame that is near
+- `near_present`: whether something is close to the camera
+- `zones`: 3x3 grid, left to right and top to bottom, 0 far to 1 nearest in frame. In the sample above the right column is nearest
 
-If the whole map looks flat, look at the scene before the model — large
-untextured surfaces genuinely do not give it enough to work with.
+The values are relative near/far, not metres, and cannot be converted to distance.
+
+### Troubleshooting
 
 | Issue | Solution |
 |-------|----------|
-| App exits right after starting | The model file is missing or at another path. Check `/userdata/local/models/`. |
-| Stream stalls, log shows `get chn frame fail` | The VPSS pipeline wedged. Restarting the app does not clear it — reboot the camera. The usual trigger is two things holding the camera at once, most often Node-RED coming back. |
-| Depth map looks flat | Point the camera at a scene with real depth. Blank walls, ceilings, glass and sky are the documented weak cases. |
-| App not in the gallery | The console only scans `/userdata/local/apps/`. Re-run the deployment. |
+| Depth map looks flat | Point the camera at a scene with real depth; avoid blank walls, ceilings, glass and sky |
+| Stream does not open | Check that the app is enabled in Step 3 |

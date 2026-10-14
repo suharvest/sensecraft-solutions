@@ -27,7 +27,7 @@
 # 状态的书面记录，真正的发布门是 registry.yaml 的 review → live。
 # ============================================================================
 version: "1.0"
-id: edge_plate_recognition
+id: edge-anpr-plate-recognition
 name: Edge License Plate Recognition
 name_i18n:
   zh: 边缘车牌识别
@@ -35,7 +35,7 @@ name_i18n:
 
 intro:
   # 见文件头注释：非 spec 字段，仅作草稿状态记录。
-  visibility: staging
+  visibility: production
   summary: >-
     Read license plates from your existing gate cameras with one on-site
     recognition host, and open the barrier automatically for whitelisted

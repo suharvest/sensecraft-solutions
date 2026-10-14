@@ -54,6 +54,8 @@
 
 部署时用 `model.track` 选择。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 边缘垃圾分类视觉识别](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/)。
+
 ## 输出接口
 
 | 接口 | 内容 |

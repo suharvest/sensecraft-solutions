@@ -1,6 +1,9 @@
 version: "1.0"
 id: respeaker_flex_soarm
 name: Voice-Controlled SO-ARM Robotic Arm
+name_i18n:
+  zh: 语音控制 SO-ARM 机械臂
+  ja: 音声操作 SO-ARM ロボットアーム
 intro:
   summary: Speak natural language commands to control a SO-ARM101 6-DoF robotic arm. Fully on-device voice stack — Paraformer/Matcha ASR/TTS + Qwen3-4B-AWQ on TensorRT-Edge-LLM — running on Jetson Orin NX. Exposes a HTTP observation endpoint so other solutions can read live joint state.
   description_file: description.md
@@ -129,5 +132,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 语音控制 SO-ARM 机械臂
