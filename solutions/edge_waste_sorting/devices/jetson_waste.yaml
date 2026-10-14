@@ -324,7 +324,9 @@ actions:
                         skipping_devs = True
                         continue
                     if skipping_devs:
-                        if not stripped or (stripped.startswith("#") and indent >= 6) or indent > 4:
+                        if not stripped or (stripped.startswith("#") and indent >= 4):
+                            continue
+                        if indent > 4 or (indent == 4 and stripped.startswith("-")):
                             continue
                         skipping_devs = False
                 out_lines.append(line)

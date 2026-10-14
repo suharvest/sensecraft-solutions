@@ -173,32 +173,27 @@ actions:
                 return "usb"
             return "file"
 
-        if len(config["sources"]) < 2:
-            config["sources"].append({
-                "stream_id": "dimension",
-                "uri": "",
-                "kind": "usb",
-            })
-
         sources = config["sources"]
         assembly_src = dict(sources[0])
         assembly_src["stream_id"] = os.environ["INPUT_STREAM_ID"]
         assembly_src["uri"] = os.environ["INPUT_SOURCE_URI"]
         assembly_src["kind"] = kind_of(os.environ["INPUT_SOURCE_URI"])
 
-        dimension_src = dict(sources[1])
-        dimension_src["stream_id"] = os.environ["INPUT_STREAM_ID"] + "-gauge"
-        dimension_uri = os.environ["INPUT_DIMENSION_SOURCE_URI"].strip()
+        dimension_uri = os.environ.get("INPUT_DIMENSION_SOURCE_URI", "").strip()
         if dimension_uri:
+            dimension_src = dict(sources[1]) if len(sources) > 1 else {
+                "stream_id": "gauge-cam",
+                "kind": "usb",
+            }
+            dimension_src["stream_id"] = os.environ["INPUT_STREAM_ID"] + "-gauge"
             dimension_src["uri"] = dimension_uri
             dimension_src["kind"] = kind_of(dimension_uri)
-            dimension_src["disabled"] = False
+            dimension_src.pop("disabled", None)
+            config["sources"] = [assembly_src, dimension_src]
         else:
-            dimension_src["uri"] = ""
-            dimension_src["disabled"] = True
+            config["sources"] = [assembly_src]
 
         device_name = os.environ["INPUT_DEVICE_NAME"]
-        config["sources"] = [assembly_src, dimension_src]
         config["model"]["path"] = "/models/yolox_tiny_deeppcb6.hef"
         config["model"]["accelerator"] = "hailo"
         config.setdefault("mqtt", {})["topic"] = \
@@ -271,7 +266,9 @@ actions:
                         skipping_devs = True
                         continue
                     if skipping_devs:
-                        if not stripped or (stripped.startswith("#") and indent >= 6) or indent > 4:
+                        if not stripped or (stripped.startswith("#") and indent >= 4):
+                            continue
+                        if indent > 4 or (indent == 4 and stripped.startswith("-")):
                             continue
                         skipping_devs = False
                 out_lines.append(line)
