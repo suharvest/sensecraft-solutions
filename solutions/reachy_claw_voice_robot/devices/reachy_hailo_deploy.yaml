@@ -172,31 +172,39 @@ actions:
         if ! apt-cache policy hailo-all 2>/dev/null | grep -q "Candidate:" \
            || apt-cache policy hailo-all 2>/dev/null | grep -q "Candidate: (none)"; then
           echo "Raspberry Pi apt source not active — adding it..."
-          sudo apt-get install -y --no-install-recommends gnupg curl ca-certificates
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ]; then
+            SUDO="sudo"
+          fi
+          $SUDO apt-get install -y --no-install-recommends gnupg curl ca-certificates
           curl -fsSL http://archive.raspberrypi.com/debian/raspberrypi.gpg.key \
-            | sudo gpg --dearmor -o /usr/share/keyrings/raspberrypi-archive-keyring.gpg
+            | $SUDO gpg --dearmor -o /usr/share/keyrings/raspberrypi-archive-keyring.gpg
           echo "deb [signed-by=/usr/share/keyrings/raspberrypi-archive-keyring.gpg] http://archive.raspberrypi.com/debian bookworm main" \
-            | sudo tee /etc/apt/sources.list.d/raspberrypi.list >/dev/null
-          sudo apt-get update
+            | $SUDO tee /etc/apt/sources.list.d/raspberrypi.list >/dev/null
+          $SUDO apt-get update
         fi
 
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then
+          SUDO="sudo"
+        fi
         echo "Running: sudo apt-get install -y hailo-all  (this may take 5-10 min for DKMS build)"
-        sudo apt-get install -y hailo-all || {
+        $SUDO apt-get install -y hailo-all || {
           echo "ERROR: hailo-all install failed."
           echo "Check: apt-cache policy hailo-all"
           exit 1
         }
 
-        sudo apt-mark hold hailort hailort-pcie-driver || true
+        $SUDO apt-mark hold hailort hailort-pcie-driver || true
 
         HAILO_MODPROBE_CONF=/etc/modprobe.d/hailo.conf
         if [ ! -f "$HAILO_MODPROBE_CONF" ] || ! grep -q "force_desc_page_size=4096" "$HAILO_MODPROBE_CONF" 2>/dev/null; then
           echo "Setting hailo_pci kernel module option: force_desc_page_size=4096"
-          sudo mkdir -p /etc/modprobe.d
-          echo 'options hailo_pci force_desc_page_size=4096' | sudo tee "$HAILO_MODPROBE_CONF" >/dev/null
+          $SUDO mkdir -p /etc/modprobe.d
+          echo 'options hailo_pci force_desc_page_size=4096' | $SUDO tee "$HAILO_MODPROBE_CONF" >/dev/null
         fi
-        sudo rmmod hailo_pci 2>/dev/null || true
-        sudo modprobe hailo_pci
+        $SUDO rmmod hailo_pci 2>/dev/null || true
+        $SUDO modprobe hailo_pci
         if ! lsmod | grep -q "^hailo_pci"; then
           echo "WARN: hailo_pci kernel module not loaded after install."
           echo "  This usually means a reboot is required for DKMS to finalize."
@@ -281,9 +289,15 @@ actions:
       name_i18n:
         zh: 机器人插入时自动重连 reachy-daemon（udev）
     - name: Create data directories
+      env:
+        DATA_DIR: "{{DATA_DIR}}"
       run: |
         set -e
-        DATA_DIR="${DATA_DIR:-~/reachy-data}"
+        DATA_DIR="${DATA_DIR:-$HOME/reachy-data}"
+        case "$DATA_DIR" in
+          "~") DATA_DIR="$HOME" ;;
+          "~/"*) DATA_DIR="$HOME/${DATA_DIR#\~/}" ;;
+        esac
         mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
         echo "Data directories ready: $DATA_DIR"
       name_i18n:
@@ -306,7 +320,7 @@ actions:
         value: "true"
       run: |
         set -e
-        cat > ~/reachy-kiosk.sh << 'KIOSK_SCRIPT'
+        cat > "$HOME/reachy-kiosk.sh" << 'KIOSK_SCRIPT'
         #!/usr/bin/env bash
         DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"
         MAX_WAIT=300
@@ -343,10 +357,10 @@ actions:
                 ;;
         esac
         KIOSK_SCRIPT
-        chmod +x ~/reachy-kiosk.sh
+        chmod +x "$HOME/reachy-kiosk.sh"
 
-        mkdir -p ~/.config/autostart
-        cat > ~/.config/autostart/reachy-kiosk.desktop << DESKTOP_EOF
+        mkdir -p "$HOME/.config/autostart"
+        cat > "$HOME/.config/autostart/reachy-kiosk.desktop" << DESKTOP_EOF
         [Desktop Entry]
         Type=Application
         Name=Reachy Dashboard Kiosk
@@ -360,7 +374,11 @@ actions:
         if [ -f "$GDM_CONF" ]; then
           if ! grep -q "AutomaticLoginEnable" "$GDM_CONF"; then
             LOGIN_USER="${USER:-$(whoami)}"
-            sudo sed -i "/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" "$GDM_CONF"
+            SUDO=""
+            if [ "$(id -u)" -ne 0 ]; then
+              SUDO="sudo"
+            fi
+            $SUDO sed -i "/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" "$GDM_CONF"
             echo "GDM auto-login enabled for $LOGIN_USER"
           else
             echo "GDM auto-login already configured"

@@ -179,6 +179,10 @@ actions:
         zh: 校验 Jetson 运行环境
     - name: Configure X11 permissions
       fail_fast: false
+      env:
+        ENCODER: "{{encoder}}"
+        DISPLAY: "{{display}}"
+        HOST_XAUTHORITY_FILE: /tmp/depth_anything_v3.xauth
       run: |
         # Prepare X11 auth for container EGL/GStreamer path.
         set +e
