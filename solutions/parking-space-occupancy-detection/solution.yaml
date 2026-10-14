@@ -1,0 +1,131 @@
+# DRAFT / blocked: NRD-4. No public image/model artifact or platform acceptance
+# evidence is available. This package remains disabled.
+version: "1.0"
+id: parking-space-occupancy-detection
+name: Parking Space Occupancy Detection
+name_i18n:
+  zh: 停车场车位占用检测与空闲引导
+  ja: 駐車場スペース占有検知・空き案内
+enabled: true
+intro:
+  visibility: staging
+  summary: Use the cameras already in your car park to tell which bays are taken, with free spaces always up to date.
+  summary_i18n:
+    zh: 用停车场现有摄像头逐个车位判断有没有车，余位实时可查。
+    ja: 駐車場の既存カメラで区画ごとに車の有無を判定し、空き状況をいつでも確認できます。
+  description_file: description.md
+  description_file_i18n: {zh: description_zh.md}
+  cover_image: gallery/cover-20261008.jpg
+  gallery:
+    - type: image
+      src: gallery/panel-slot-editor-20261008.jpg
+      caption: "Slot editor on Jetson Orin Nano Super: two parking-slot polygons (B1-023, B1-024) drawn over the live snapshot; both reported occupied over MQTT (test clip, 2026-10-08)"
+      caption_i18n:
+        zh: "Jetson Orin Nano Super 上的车位编辑页：在实时快照上绘制的两个车位多边形（B1-023、B1-024）；当时 MQTT 上报两个车位均为占用（测试片段，2026-10-08）"
+        ja: "Jetson Orin Nano Super の駐車枠エディタ：ライブスナップショット上に描いた 2 つの枠（B1-023、B1-024）。その時点で MQTT は両枠とも占有と報告（テスト映像、2026-10-08）"
+  category: vision_video_ai
+  solution_type: solution
+  tags: [parking, occupancy, rtsp, multi-camera, mqtt, yolox, jetson]
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <site>/parking/<camera>/slots
+      schema_type: json
+      description: Retained slot state messages from the external MQTT broker.
+      description_i18n: {zh: 外部 MQTT broker 上保留的车位状态消息。}
+    - type: http
+      port: 8080
+      endpoint: /slots/editor
+      method: GET
+      schema_type: binary
+      description: Slot polygon editor supplied by the parking app.
+      description_i18n: {zh: 停车应用提供的车位多边形编辑页。}
+    - type: http
+      port: 8099
+      endpoint: /healthz
+      method: GET
+      schema_type: json
+      description: Native runtime and SlotsApp health.
+      description_i18n: {zh: 原生运行时与 SlotsApp 健康状态。}
+  input_requirements:
+    - type: rtsp
+      description: One or more stable H.264/H.265 RTSP camera streams with configured slot polygons.
+      description_i18n: {zh: 一路或多路稳定的 H.264/H.265 RTSP 摄像头，并已配置车位多边形。}
+  device_catalog:
+    recomputer_j30:
+      description: JetPack 6 Jetson host for native TensorRT SlotsApp.
+      description_i18n: {zh: 运行原生 TensorRT SlotsApp 的 JetPack 6 Jetson 主机。}
+    recomputer_rk3576:
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    recomputer_rk3588:
+      description: Staging RKNN host; device ABI and model paths must be supplied locally.
+      description_i18n: {zh: 暂存 RKNN 主机；必须由用户提供本地设备 ABI 和模型路径。}
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n: {zh: IP 摄像头}
+      description: Existing parking-lot RTSP camera.
+      description_i18n: {zh: 现场已有的停车场 RTSP 摄像头。}
+  presets:
+    - id: ip_camera_box
+      name: IP Cameras + Edge Compute Box
+      name_i18n:
+        zh: IP 摄像头 + 边缘算力盒子
+        ja: IP カメラ + エッジコンピューティングボックス
+      badge: Beta
+      badge_i18n: {zh: 公测, ja: ベータ版}
+      description: Pick a Jetson, RK3588 or RK3576 host in the deploy step; every target uses the published SlotsApp image, target-device models, and bay configuration.
+      description_i18n:
+        zh: 在部署步骤里选择 Jetson、RK3588 或 RK3576 主机；每个部署目标都使用已发布的 SlotsApp 镜像、对应目标设备的模型包和车位配置。
+        ja: デプロイ手順で Jetson、RK3588、RK3576 からホストを選択します。SlotsApp イメージ、モデル、駐車枠設定を使用します。
+      # `verified: [hardware]` reflects the Jetson and RK3588 targets; per-target
+      # status is written into each target's description in the guides.
+      # - Jetson: hardware-verified 2026-10-08 on Jetson Orin Nano (acceptance
+      #   receipt orin-nano/edge_parking_occupancy): package compose + locally
+      #   built image, 1 stream at 1 fps, synthetic 640x360 clip (still 20 s /
+      #   black 20 s). 0.988 fps processed, inference p50 6.48 / p95 6.69 ms,
+      #   0 dropped, 15 occupied/free transitions per slot over 300 s. Not
+      #   covered: slot accuracy on real video, multi-stream capacity re-run,
+      #   one-click path.
+      # - RK3588: hardware-verified 2026-10-08 on Radxa Rock 5T (acceptance
+      #   receipt radxa/edge_parking_occupancy): package compose with the
+      #   librga.so.2 and host GStreamer mounts, locally built image 6a5c781d,
+      #   synthetic occupied/empty fixture, 1 stream at 1 fps, single-car ROI.
+      #   17 state changes, RKNN p50 36.6 / p95 40.5 ms, 0 dropped, MPP decode.
+      #   Not covered: slot accuracy, multi-stream capacity, r2 image, public
+      #   artifact.
+      # - RK3576 (cat-remote): not verified — r2 image could not be loaded
+      #   (root disk), package compose not exercised; substitute-image run only.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Edge Host
+          name_i18n: {zh: 边缘主机}
+          type: single
+          required: true
+          description: Choose the edge host. The deploy step offers one target per host.
+          description_i18n: {zh: 选择边缘主机。部署步骤为每种主机提供一个部署目标。}
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_j30
+        - id: cameras
+          name: Parking Cameras
+          name_i18n: {zh: 停车场摄像头}
+          type: single
+          required: true
+          options: [{device_ref: generic_ip_camera}]
+          default: generic_ip_camera
+  stats:
+    difficulty: advanced
+    estimated_time: 90min
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-parking-occupancy/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-parking-occupancy/
+deployment:
+  guide_file: guide.md
+  guide_file_i18n: {zh: guide_zh.md}
+  selection_mode: sequential
