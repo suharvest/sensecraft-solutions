@@ -6,6 +6,7 @@ name_i18n:
   ja: マルチプロトコル産業用ゲートウェイ
 
 intro:
+  replaces: missionpack_industrial_gateway
   summary: Bring OPC UA, Modbus, BACnet/IP, and MQTT devices into one point model, then read and control them through one MQTT interface.
   summary_i18n:
     zh: 把 OPC UA、Modbus、BACnet/IP 和 MQTT 设备汇入一套点位模型，再通过统一 MQTT 接口读取与控制。
