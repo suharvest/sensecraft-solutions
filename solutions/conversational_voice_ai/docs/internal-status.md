@@ -53,3 +53,59 @@ transcripts. The VAD endpoint, not the decoder, ends the turn early.
 
 Open work: tune the VAD endpoint to tolerate a mid-utterance pause in
 conversation. Not done.
+
+## RK3576 reSpeaker host fix (2026-09-22, mitigation — not a root-cause fix)
+
+Two field problems on the reComputer RK3576 devkit with the reSpeaker XVF3800
+4-Mic Array (USB `2886:001a`, ALSA card id `Array`), diagnosed and the fix
+verified on-device 2026-09-22. Shipped via
+`assets/rk3576/respeaker/respeaker-host-fix.sh`, installed by the
+`cloud_rk3576.yaml` pre-deploy actions.
+
+### Speaker too quiet
+
+`ovs-agent` opens `/dev/snd/pcmC?D0{p,c}` directly and holds them exclusively,
+so PipeWire never creates a sink for the card and the desktop volume slider has
+no effect on the assistant's audio. The real knob is the UAC feature unit
+(`amixer -D hw:Array`, `'PCM',0` stereo and `'PCM',1` mono, range 0-60).
+Measured: raw 37 = 62% = **-23.00 dB** (the bad shipped default state), raw 51
+= 85% = -9.00 dB, raw 60 = 100% = 0.00 dB. The fix pins **85%** and re-applies
+it on every USB sound-card add event (udev rule) plus after recovery.
+
+### Mic array sometimes not on the bus after boot
+
+Root cause chain: a long capture stream makes the vendor xHCI
+(`6.1.115-vendor-seeed-rk3576`) emit a storm of
+`WARN: buffer overrun event for slot N ep 2` (ep index 2 = EP 0x81 IN =
+capture; 2729 lines observed within ~5 ms), the device drops ~250 ms later,
+and the onboard Genesys hub chain (`1-1` -> `1-1.4`, self-powered, always-on
+5 V) latches a bad downstream-port state: every later enumeration fails with
+`Cannot enable. Maybe the USB cable is bad?` / `error -71` /
+`unable to enumerate`.
+
+Tested recovery matrix: warm reboot **fails**, xHCI controller rebind
+**fails**, pulsing the DT `usb_hub_reset` line **works**. Because the hubs are
+self-powered and the DT line is only a `gpio-hog` driven high once at boot, the
+latch survives reboots — "sometimes not online after boot" is really "still
+wedged from last time".
+
+The upstream isoc fix (`906dec15b9b3`) is not in `6.1.115-vendor-seeed-rk3576`,
+and RK3576's naneng-combphy has known `Cannot enable` issues, so this is a
+mitigation + self-heal, not a root-cause fix.
+
+What ships: `hub-reset.py` (auto-detects the gpio controller base and line — on
+the devkit base `0x27320000`, line 19, never hardcoded; refuses to poke unless
+the line is an output driven high; masked write `0xFFFF0000|value` works under
+both Rockchip register semantics), `respeaker-recover.service` (boot self-heal,
+up to 3 hub-reset tries) and `respeaker-watch.timer` (60 s watchdog, 2
+consecutive misses, 600 s cooldown). Detection reads the kernel's resolved
+`/sys/kernel/debug/gpio` first and only falls back to the device tree, because a
+`gpio-hog`'s `gpios` property is controller-local `<line flags>` pairs with no
+phandle — taking the second cell (the flags) instead of the first silently
+points the recovery at the wrong line, where the out/high guard then refuses to
+poke and the whole self-heal goes quiet. Recovery and the watchdog timer are also
+started during installation, not only enabled, so a first deploy onto an already
+wedged device repairs itself before the containers start. Boards without the
+`usb_hub_reset` line get the volume fix only. Runtime PM
+is disabled for `2886:001a` and the `05e3:0610` hub chain (observed
+`usb 1-1: Failed to suspend device, error -71`).
