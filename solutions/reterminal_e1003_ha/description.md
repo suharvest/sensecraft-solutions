@@ -3,16 +3,16 @@
 The fixed layout includes a clock, temperature and humidity, and a lighting card.
 Choose the light for that card once; its on/off and four brightness buttons share the setting.
 
-> Local integration testing: the App can install the panel firmware; the setup client handles networking and button settings. The formal solution remains disabled. Display state and brightness synchronization still need integration.
+> Local testing now has installation and configuration entries: open the settings form from the App to change the light controlled by the buttons, without manual commands. The formal solution remains disabled. Real HA control, new-network setup through this form and display synchronization still need acceptance.
 
 ## What to set
 
 | Setting | Purpose |
 | --- | --- |
-| Wi-Fi name and password | Connect the panel to your LAN |
+| Wi-Fi name and password (optional) | Leave blank to retain an existing connection; enter them for initial setup or a network change |
 | Light controlled by the buttons | Copy the light's entity ID from Home Assistant, such as `light.bedroom` |
 
-The client generates the device connection key during initial setup. Copy it when adding the panel to Home Assistant. Installation uses precompiled firmware; no configuration-file editing or compilation is needed.
+The device connection key is generated during initial setup and reused afterward. Select the form’s local copy option when you need to paste it into Home Assistant. Installation uses precompiled firmware; no configuration-file editing or compilation is needed.
 
 ## Where to use it
 

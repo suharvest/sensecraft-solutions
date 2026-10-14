@@ -2,11 +2,12 @@
 
 本交付属于 AGENTS.md Part F 的内容作者流程。方案位于
 [`solutions/reterminal_e1003_ha`](../solutions/reterminal_e1003_ha/solution.yaml)，
-保持 `enabled: false`，没有 `verified: [hardware]` 声明。它可做内容校验、资源校验、
-生成本地烧录审阅包；尚不能从 App 完成配网、key 和目标写入。
-这里的人工步骤只供审阅，不是可执行配置的替代品，不能凭其完成状态放行部署。
-后续主会话已在已安装 App 0.7.3 完成独立本地副本的 USB 实机烧录，并由父客户端
-验证原 key 与 target 保留，见[检查报告](e1003-ha-usb-checks.md#app-本地实机测试)。
+保持 `enabled: false`，没有 `verified: [hardware]` 声明。正式候选不包含本机运行时路径。
+主会话已分别完成 App USB 烧录及真实浏览器配置表单测试：既有 `script` 类型可通过
+`start_command.env` 调用本地适配器完成 Improv / native API 配置，无需先新增 deployer。
+已安装 0.7.3 的输入传递存在缺口，目前由隔离源码预览承载可编辑表单，旧 App 提供打开入口。
+本地用户可以提交配置，无需手动 CLI；这不代表跨机器发行或真实 HA 控灯已经验收。
+正式候选中的人工步骤仍是说明，不等于已打包的执行器。证据见[检查报告](e1003-ha-usb-checks.md)。
 
 ## 固件与资源来源
 
@@ -17,6 +18,9 @@
 - 实际读取了该 commit 工作树的 `e1003-release.yaml`、`tools/provision_device.py`、
   `docs/provisioning.md`、`docs/provisioning-verification.md` 和
   `docs/sensecraft-release-plan.md`。另查了 `packages/ha-bridge.yaml` 的目标文本实体约束。
+- 配置适配器源码：固件 PR #2 commit `27b8b34406dd64a1d92db46fef50d590f5dd6c0c`，新增
+  `tools/app_configure_device.py`，复用 `configure_device` / `wait_for_network`，16 tests 通过。
+  该适配器提交没有重新编译或烧录固件，下面的二进制来源及 SHA 不变。
 - factory image 大小 **1,378,512 bytes**，SHA-256：
   `08d616e856cd4d48a0fef0b4e5782e3c4ac1b9efdc1e1647701707bec8bdc540`。
   本轮直接重新计算了真实构建产物的哈希，结果一致。
@@ -38,7 +42,7 @@
 本轮没有手改。另只读审查了本机 `app_collaboration` 的 Python engine 与 frontend，
 HEAD `39aee2da23b2604d2d2cde6bcf3c20c0aecbd16f`；所查文件没有未提交改动。
 该源码快照不代表用户已安装 App 或独立 `sensecraft-engine` 二进制的能力。
-本轮没有启动 engine、连接串口或改动独立项目。
+本次证据更新未访问运行中的预览或真实设备，也未改动独立 App 源码仓库。
 
 | 能力 | schema / 实际源码证据 | 结论与候选处理 |
 | --- | --- | --- |
@@ -47,11 +51,11 @@ HEAD `39aee2da23b2604d2d2cde6bcf3c20c0aecbd16f`；所查文件没有未提交改
 | 资源完整性 | `services/resource_resolver.py:resolve()`、`_download_and_cache()` | 远程下载分支检查 checksum；本地路径分支只解析路径。本地打包工具先验 hash；正式接入应在每次烧录前再次校验本地实际文件 |
 | 全片擦除 | `esp32_deployer.py:full_erase_by_default()`、`deploy()`；`DeviceConfig.get_step_option()` | 默认可能全擦；`steps[id=erase].default: false` 是公开 schema 可表达且实际 deploy() 会读取的覆盖。候选显式设置，不依赖 UI 默认 |
 | schema 漂移 | 本机 `FlashConfig.erase_regions` 可改变擦除默认值，但公开 schema 未导出它 | 不把未知字段当安全保障；候选不用它。engine 后续更新该字段时应从真源重新导出 spec |
-| 用户输入 | `UserInputConfig`；`deployers/base.py:_build_action_context()` 与 ESP32 deployer 的 actions 调用 | 输入可进入模板上下文，不能自动变成协议写入。ESP32 deployer 没有消费 Wi-Fi/target 的专用操作；候选不放空表单 |
+| 用户输入 | `UserInputConfig`；frontend `pages/deploy/devices.js` 的 generic 收集；`script_deployer.py:_build_action_context()` | 源码 HEAD 39aee2d 已将表单值送入连接字典和 script 上下文；installed 0.7.3 缺这两层传递。`light_entity` 可用于适配器输入，不能命名为部署位置 selector 的保留键 `target` |
 | key 生成 | `UserInputConfig.generate` 只声明 `hex32` | 不能据此声称已生成 ESPHome Noise 所需的 base64 编码 32 字节随机 key；必须由适配器生成并私密保存 |
 | 串口向导 | `SerialWizardConfig` 只有 baud、port、welcome、字符串按钮；`deployers/serial_wizard_deployer.py` 只检查配置后返回 ready | 不构成 Improv 配置器 |
 | 实际串口传输 | `routers/serial_wizard.py:_reader_loop()` 按 UTF-8 replacement 解码；`send_line` / `action_click` 按 UTF-8 编码并回显 | 二进制帧可能损坏，且敏感数据可能回显；不复用它发送 Wi-Fi/Noise 配置 |
-| 原生 API | 在所查 engine 的 `provisioning_station/`、`frontend/src/` 和 `pyproject.toml` 未找到 Improv、`noise_encryption_set_key` 或 `aioesphomeapi` 实现/依赖 | 此快照没有所需配置链路；CLI 二进制能力仍需单独验证，不能由现有 schema 推断 |
+| 原生 API / script 适配 | engine 无内建 Improv/native API 客户端；`ScriptStartCommand.env` 已在公开 schema 内，源码 script deployer 可传值 | 可用固定平台命令运行外部适配器，环境变量承载输入，已有浏览器实机证据。无内建客户端不等于必须新增 deployer；独立 CLI 的配置入口未在本轮验证 |
 | 人工 verify | 公开契约允许 `manual verify=true`；实际 `manual_deployer.py` 不执行设备 I/O 即返回成功 | 可渲染验收清单，不能强制验证；整个候选保持禁用，不能把此步骤当成发布 gate |
 
 ### 烧录参数及保存范围
@@ -80,12 +84,32 @@ WCH 提示为 `1a86:7522`，不使用其他芯片产品的 VID/PID。
 误开擦除，并在验收中检查真实 esptool argv。跨版本迁移、其他 erase policy 不在
 固件原有保留配置证据内。
 
-## 最小 engine / App 接入任务
+## 现有 script 配置适配与发行任务
 
-以下均是**待实现契约**，不是当前已支持的 YAML 或 HTTP API；不放入活动方案配置。
-建议复用 `esp32_usb`，增加一个明确的 `esphome_provision` 部署类型及 App 配置组件，
-而不是让内容脚本承担用户配置。engine owner 应从模型真源导出 schema/capabilities，
-增加能力探测，旧版 App/CLI 缺能力时在烧录前拒绝整个流程。
+本地路径已实现：复用 `script.start_command.env` 与 `user_inputs`，以固定命令调用
+`tools/app_configure_device.py`。命令本身不插值用户输入，密码不进入 argv 或生成配置文件。
+适配器复用私有 key 记录或首次生成 key；等待 65 秒后复位、加密读回通过，才输出
+`E1003_CONFIGURATION_SAVED`，作为 `log_pattern` 健康检查信号。
+
+已安装 App **0.7.3** 的真实请求丢弃 script 输入，仅提交 host/target_type，旧 script
+后端上下文也未传入用户值。App 源码 HEAD **39aee2d** 已包含前后端传值修复，
+主会话在独立副本构建前端并启动源码后端；运行数据和 runtime pointer 均隔离，
+未替换安装包、未修改独立 App 源码仓库。
+旧 App 的本地配置步骤使用 `web_dashboard` 打开源码预览的可编辑表单，弹窗已验证。
+正式内容不写入该本机运行时、venv 或适配器的绝对路径，不照搬 local-only 测试包。
+
+### 表单值到环境变量
+
+| 用户可见项 | `user_inputs` id | 环境变量 | 行为 |
+| --- | --- | --- | --- |
+| USB 端口 | `usb_port` | `E1003_USB_PORT` | 必填，串口身份检查与配置 |
+| 按钮控制的灯 | `light_entity` | `E1003_TARGET` | 必填，校验后写入设备绑定 |
+| Wi-Fi 名称 | `wifi_ssid` | `E1003_WIFI_SSID` | 可选；已联网时留空以保留当前网络，否则须填写 |
+| Wi-Fi 密码 | `wifi_password` | `E1003_WIFI_PASSWORD` | 可选密码输入；更换网络时使用，不进入命令行或配置模板 |
+| 复制设备连接密钥 | `copy_api_key` | `E1003_COPY_KEY` | 可选布尔值；成功后本机复制 key，不是输入 key 的文本框 |
+
+`target` 是 engine 的部署位置选择字段，不能用作灯光表单 id。
+对外保持 `light_entity`，由 env 映射到适配器内部 `E1003_TARGET`；固件实体标识不变。
 
 ### 输入与实际设备写入映射
 
@@ -93,16 +117,16 @@ WCH 提示为 `1a86:7522`，不使用其他芯片产品的 VID/PID。
 | --- | --- | --- |
 | USB port | 用户选择；独占串口，不自动抢占其他进程 | 打开 UART0 115200，DTR/RTS 初始关闭；必要时显式 WCH HardReset，等十秒启动；Improv identity RPC 3 |
 | Wi-Fi SSID | 1–32 UTF-8 bytes | Improv RPC 1 的第一个字符串 |
-| Wi-Fi password | 空表示开放网络；否则 8–63 UTF-8 bytes；仅内存，不写部署参数历史/日志 | Improv RPC 1 的第二个字符串；解析返回 IP，再连 TCP 6053 |
+| Wi-Fi password | 空表示开放网络；否则 8–63 UTF-8 bytes；不进 argv 或生成配置文件，发行时仍须确认日志/持久化脱敏 | Improv RPC 1 的第二个字符串；解析返回 IP，再连 TCP 6053 |
 | device identity | project 精确匹配，name 匹配 `reterminal-e1003-[0-9a-f]{6}`；API 再查 MAC | 串口身份与 API device_info 对照；已有恢复记录时 MAC 必须相同 |
 | API key | OS CSPRNG 32 bytes，base64；拒绝全零；每设备独立 | 初始零 PSK 仅用于未配置设备的 Noise provisioning handshake；确认可 provision 后调用 `noise_encryption_set_key`；随后用真实 key 加密重连 |
 | light target | `^light\.[a-z0-9_]+$`，总长 ≤63；不要求 HA 登录/枚举 | `list_entities_services` 发现唯一 TextInfo `Main light target`（允许设备名称前缀），按原生实体 key 发 `text_command`，订阅 TextState 读回同值 |
 | IP override | 仅连通性兜底；不能替代身份检查 | mDNS 不通时用 Improv 返回 IP；仍核对 project/name/MAC，不访问其 URL |
 | HA confirmation / action permission | 用户到 HA 界面确认；App 单独记录为待确认 | 真实 HA 集成、加密连接、触摸灯光测试，不以烧录完成代替 |
 
-可参考固件 PR 中 `provision_device.py` 的 wire client 和公开 tests；不要复制私有记录，
-也不要把维护者脚本作为 App 运行依赖。Python App 可封装最小逻辑并随应用打包
-`aioesphomeapi` 兼容版本；独立 CLI 需等效实现或明确返回缺能力，不启动用户编译工具。
+本地已由 `app_configure_device.py` 复用 wire client，无需用户安装编译器或手动执行命令。
+发行仍需打包兼容的运行时、`aioesphomeapi` / serial 等依赖及适配器，改用可分发的入口；
+不能依赖维护者本机 venv。是否另做内建 deployer 可后续评估，不作为本地联调前提。
 
 ### 传输与恢复必须保留的行为
 
@@ -133,24 +157,24 @@ API key 只通过明确的本机私密 reveal/copy 操作交给用户填入 HA�
 复用现有 deployment status/progress/logs 通道，阶段按顺序为：
 `identity_checked → wifi_connected → recovery_saved → key_installed → encrypted_verified
 → target_readback → saving → persisted_verified → ha_confirmation_required`。
-App 可以在已有部署页面承载配置组件，不需要为此新建一组通用串口 API。
+现有源码部署页面已可承载 script 表单，不需要为此新建一组通用串口 API。
 持久化验证失败、用户未确认 HA、Blueprint 尚未接入时，不能给整体部署成功。
 失败/取消须保留安全恢复记录；串口锁在结束后释放，不能调用自动抢占端口操作。
 
-### 最小补丁拆分与完成证据
+### 发行前剩余任务
 
-| 接入任务 | 最小改动范围 | 完成证据 |
-| --- | --- | --- |
-| 能力与输入契约 | engine 模型、注册表、能力探测、生成 spec | 不支持的 engine 在烧录前拒绝；每个输入有上述写入映射 |
-| 配置执行器 | Improv parser/transport、native API client、私有恢复存储 | 碎帧/日志/坏 checksum/footer/newline、丢 key 响应、100 ms 激活重试、身份不符及零 key 拒绝测试 |
-| App 组件 | 端口选择、内存密码表单、保存倒计时、私密 key 复制、失败续接 | 不要求用户装 Python/ESPHome、编译或运行维护者脚本 |
-| 烧录防护 | 实际文件 SHA、擦除策略、端口独占 | 错误文件触碰设备前失败；正常更新无 erase_flash；NVS 不在写入范围 |
-| HA 适配 | 动态目标 Blueprint/等效适配，HA 导入/选择实体引导 | 目标 A→B 后控制和状态均跟随 B，A 不再驱动；亮度变化、重启、重连、不可用目标测试 |
-| 整体验收 | 两台同硬件/布局设备、相同 SHA、独立 Wi-Fi/key/target | App 关闭后独立运行；支持的 Windows/macOS 安装与实际 App 部署，另记录中国大陆资源下载验证 |
+| 任务 | 当前证据与剩余工作 |
+| --- | --- |
+| 输入传递 | 源码前后端修复已随真实表单验证；installed 0.7.3 不能直接提交，仍需 App 更新或受支持的入口衔接 |
+| 适配器与依赖 | 本机固定命令 + env 已可执行；发行前完成 runtime/dependency bundle、平台支持及无本机路径的入口 |
+| 失败与恢复 | 原 key 复用、目标保存及独立读回已验证；继续验证中断恢复、首次生成与不同主机的私有记录权限 |
+| 新 Wi-Fi | 既有 USB/Improv 配网证据保留；经这份新表单配置新网络的硬件测试仍待执行 |
+| HA 与显示 | 真实灯控制等待 HA 地址和实体；动作权限、触摸、动态状态/亮度 Blueprint 仍需验收 |
+| 整体交付 | 同图像两台面板隔离、支持的安装平台、资源可达性及正式资源发布另行验收 |
 
 ## 证据边界与当前检查
 
-固件公开验证记录报告：11 项软件测试；一台 E1003 的 USB/Improv 配网、独立 key
+初始固件公开验证记录报告 11 项软件测试；新增配置适配器后为 16 tests。单台 E1003 的 USB/Improv 配网、独立 key
 激活/加密重连、零 key 拒绝、目标写入读回、等待保存后两次复位，以及同图像同分区 USB
 覆盖更新后保留配置。这些证据属于固件维护者流程；测试目标并非真实 HA 灯。
 `docs/provisioning.md` 仍有「USB 更新未验证」旧措辞，本候选采用较新的公开验证记录及
@@ -164,8 +188,12 @@ NVS/flash 备份或私密日志，没有使用 `/dev/cu.wchusbserial2120`。
 部署 `d9140919-7b3e-4b38-83a0-f23daa1322d2` 用时 80.704458 秒，写入哈希校验通过，
 擦除未触及 NVS；父客户端随后使用原 key 加密重连并读回原 target。
 详情及公开证据见[检查报告](e1003-ha-usb-checks.md)。
-这不代表 App 已具备配网、key 或目标配置表单，真实 HA 控灯和动态显示同步仍待验收。
-正式公开资源、engine 配置接入和剩余整体验收完成前，正式候选保持禁用。
+后续源码预览已在 `127.0.0.1:54359` 通过真实表单执行配置；任务
+`b1eaa2b8-94b4-45b9-933a-3208b1e90efd` 用时 88.620004 秒，复用原 key、
+写入新的测试绑定，等待 65 秒后复位并加密读回；独立 CLI verify 也通过。
+没有重编译或重烧录固件。它证明 local adapter 可执行，不代表 installed 0.7.3
+原生表单传值已修复、发行依赖已打包或真实 HA 控灯已通过。
+正式资源、适配器 bundle、App 更新和剩余验收完成前，正式候选保持禁用。
 
 ## 部署页注意力与参数布局
 
@@ -181,26 +209,28 @@ NVS/flash 备份或私密日志，没有使用 `/dev/cu.wchusbserial2120`。
 | 联网并设置按钮 | Wi-Fi 名称、密码、按钮控制的灯 | 加密重连与读回一致；通电 65 秒后复位仍保留 | HA 动作权限 |
 | 在 Home Assistant 启用控制 | 设备确认、连接密钥、动作权限 | 开关与四档亮度实际控制同一盏灯 | 显示同步单独验收 |
 
-开始前只准备好灯的实体 ID。当前 App 只执行安装；第二阶段由联调客户端执行，
-表中参数不表示当前已有 App 表单。时钟或温湿度正常显示不能证明按钮绑定成功。
+先准备好灯的实体 ID。第二阶段现在可由已安装 App 打开本地源码预览表单，用户提交即可
+运行适配器，不需手动 CLI。已有固件时选 `configure_only`，不重复安装。
+时钟或温湿度正常显示不能证明按钮绑定成功。
 
 ### 字段排版与单行用词
 
-以下是后续配置表单的设计约定，**尚未实现**。采用单列，按「连接网络」和
-「设置灯光按钮」分组。每个字段独占一行，标签在上、辅助说明在下；
+源码预览已有可编辑表单；以下是正式文案及后续排版约定，不改动活动预览。
+USB 端口和「按钮控制的灯」为必填，网络更换及本机密钥复制为可选。
+采用单列，按「连接网络」和「设置灯光按钮」分组。每个字段独占一行，标签在上、辅助说明在下；
 输入框留足完整实体 ID 的宽度，不把多个技术名词塞在同一行。
 
 | 原词 | 主标签 | 一行辅助说明 / 出现位置 |
 | --- | --- | --- |
-| SSID | Wi-Fi 名称 | 面板要连接的网络 |
-| password | Wi-Fi 密码 | 该网络的连接密码；默认遮蔽 |
+| SSID | Wi-Fi 名称（可选） | 留空沿用当前网络；首次联网或更换网络时填写 |
+| password | Wi-Fi 密码（可选） | 所选网络的密码；默认遮蔽 |
 | 目标灯 entity_id | 按钮控制的灯 | 从 HA 复制灯的实体 ID，如 `light.bedroom`；开关和四档亮度共用此灯 |
-| API key | 设备连接密钥 | 首次自动生成、后续复用；只在 HA 接入阶段提供明确的复制操作 |
+| copy API key | 复制设备连接密钥（可选） | 复用或首次生成；成功后通过勾选项复制到本机，供 HA 接入 |
 | flash | 安装面板程序 | 写入预编译程序，无需编译 |
 | erase=false | 不全片擦除 | 固定安全选项，不作为普通必填项；不等于完全不擦写扇区 |
 
-115200、offset 0、4 MB 布局留在高级说明中。当前 App 按钮仍由 engine 渲染，
-内容修改不会自行改变该按钮或新增表单；未来主操作建议为「安装并设置」。
+115200、offset 0、4 MB 布局留在高级说明中。灯光字段 id 使用 `light_entity`，
+不使用保留键 `target`。配置执行在现有 script 步骤内；未来连续主操作可叫「安装并设置」。
 
 ### 从配置到安装
 
@@ -208,7 +238,9 @@ NVS/flash 备份或私密日志，没有使用 `/dev/cu.wchusbserial2120`。
 编译，Wi-Fi 密码只保留在本次会话内。点击「安装并设置」后，依次显示
 **正在安装程序 → 正在联网并设置按钮 → 正在保存设置，请保持通电**。
 最后一次写入后等待至少 65 秒并复位验证，再引导到 HA；不能在安装完成时直接
-宣告整个方案成功。此自动衔接仍需 engine 配置执行器，不增加空 `user_inputs`。
+宣告整个方案成功。当前已通过单独的 `configure_only` 表单连接真实适配器；
+安装与配置的一次连续提交仍属后续体验，不需要把新增 deployer 作为前置条件。
+正式候选不附带本机绝对路径的 script 配置，待运行时 bundle 就绪再接入。
 
 本节来自两轮指定角色讨论：文案角色 `6bf9a301-244b-4001-94d3-d77236908b60`
 （会话 `0669726b-d5b3-4e95-8504-6fe0c2de8d12`）与高级工程师

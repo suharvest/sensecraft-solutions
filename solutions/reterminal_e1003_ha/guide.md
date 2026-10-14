@@ -1,11 +1,11 @@
 ## Preset: Install and set up {#usb_candidate}
 
 For local testing, follow **install firmware → connect and set buttons → test in Home Assistant**.
-The App currently handles USB installation; the coordinating session uses the setup client for the remaining settings. The formal candidate is disabled.
+The local App configuration entry opens an editable settings page; no manual command is needed. The formal candidate is disabled.
 
 ## Step 1: Install panel firmware {#flash_panel type=manual required=true config=devices/review_flash.yaml}
 
-Choose the light first, then connect the panel. The firmware is precompiled; no compilation or configuration-file editing is needed.
+If the panel firmware is already installed, go straight to Step 2; no reflash is needed. Initial installation uses precompiled firmware, with no compilation or configuration-file editing.
 For local testing, use the imported test solution. The formal candidate does not bundle a ready-to-deploy firmware resource.
 
 ### Prerequisites
@@ -27,27 +27,29 @@ Keep the setup computer, panel and Home Assistant on the same reachable LAN.
 
 ## Step 2: Connect and set buttons {#configure_panel type=manual required=true config=devices/review_setup.yaml}
 
-Write settings after installation. The setup client currently handles these three values; the App has no corresponding form yet.
+Open the local settings page from the App configuration entry, select the configuration preset and fill in the form. Submitting runs the adapter to write settings to the device.
 
 | Setting | What to enter |
 | --- | --- |
-| Wi-Fi name | The network the panel will join |
-| Wi-Fi password | The password for that network |
+| USB port | Select the connected E1003 |
 | Light controlled by the buttons | Paste the light's entity ID, such as `light.bedroom`; on/off and all four brightness buttons share this light |
+| Wi-Fi name (optional) | Leave blank if connected; enter it for initial setup or a network change |
+| Wi-Fi password (optional) | The password for the selected network |
+| Copy device connection key (optional) | Copy locally after success for use in Home Assistant |
 
-Keep power connected for at least 65 seconds after writing settings, then reset and verify they remain. The client generates a key during initial setup and reuses it afterward; you do not enter one here.
+Keep USB connected after submitting. The adapter waits at least 65 seconds, resets the panel and performs encrypted readback before reporting success. It reuses a private key record or generates a key during initial setup; you do not enter one here.
 
 ### Troubleshooting
 
 | Issue | Action |
 | --- | --- |
 | Light entity ID unknown | Find the light in Home Assistant's entity list and copy its ID starting with `light.` |
-| Unsure whether settings saved | Wait 65 seconds, reset and read them back; immediate readback only confirms the live setting |
+| Unsure whether settings saved | Wait for configuration success; do not disconnect during saving or reset |
 
 ## Step 3: Enable control in Home Assistant {#verify_ha type=manual required=true verify=true config=devices/review_ha.yaml}
 
 1. Confirm the discovered ESPHome device. If it is not discovered, add it manually using the device IP and port `6053`.
-2. Enter the **device connection key** supplied by the setup client.
+2. Select the form’s **device connection key** copy option, then paste it into Home Assistant after configuration succeeds.
 3. Enable **Allow the device to perform Home Assistant actions**.
 4. Test on/off and all four brightness buttons, then close the App and test again.
 
@@ -62,4 +64,4 @@ Keep power connected for at least 65 seconds after writing settings, then reset 
 ### Deployment Complete
 
 Confirm each result separately: firmware installed, settings retained after reset, and the real light responds to the buttons.
-Real HA control and display synchronization still need acceptance; installation success does not complete the whole solution.
+New-network setup through this form, real HA control and display synchronization still need acceptance; installation or configuration success does not complete the whole solution.

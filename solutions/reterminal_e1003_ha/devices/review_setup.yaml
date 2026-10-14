@@ -7,6 +7,6 @@ type: manual
 # No user_inputs: none of the current deployers writes these E1003 settings.
 steps:
   - id: adapter_pending
-    name: Set the network and the light controlled by the buttons using the setup client
+    name: Open the local form to set the network and the light controlled by the buttons
     name_i18n:
-      zh: 由联调客户端设置网络与按钮控制的灯
+      zh: 打开本地表单，设置网络与按钮控制的灯

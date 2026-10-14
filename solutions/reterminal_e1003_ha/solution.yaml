@@ -33,9 +33,9 @@ intro:
       name: Install and set up
       name_i18n:
         zh: 安装与设置
-      description: Install over USB, then set the network and the light controlled by the buttons. A setup client handles these settings during local testing.
+      description: Install over USB, then open the local configuration form to set the network and the light controlled by the buttons.
       description_i18n:
-        zh: 通过 USB 安装，再设置网络与按钮控制的灯。本地联调由客户端写入这些设置。
+        zh: 通过 USB 安装，再打开本地配置表单，设置网络与按钮控制的灯。
       device_groups:
         - id: panel
           name: Dashboard panel
