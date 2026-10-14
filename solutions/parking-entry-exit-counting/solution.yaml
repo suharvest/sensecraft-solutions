@@ -4,13 +4,13 @@
 # substitute image) and restored 2026-10-08 after a package-compose run on
 # cat-remote (LubanCat RK3576), see the preset comment below.
 version: "1.0"
-id: edge_parking_counting
+id: parking-entry-exit-counting
 name: Edge Parking Vehicle Counting
 name_i18n:
   zh: 边缘停车场车辆进出计数
 enabled: true
 intro:
-  visibility: staging
+  visibility: production
   summary: Count vehicles in and out at a car park entrance with the existing IP camera, and publish vehicles inside and free spaces over MQTT.
   summary_i18n:
     zh: 用出入口现有的网络摄像头统计车辆进出，并通过 MQTT 实时发布场内车辆数和剩余车位。

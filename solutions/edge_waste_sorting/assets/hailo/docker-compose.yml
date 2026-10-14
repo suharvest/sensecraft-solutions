@@ -18,7 +18,7 @@
 # 0.1.1-dev had been origin/main@8b791fb, the file-source-EOF fix — see
 # ~/project/edge-waste-sorting evaluation/runs/2026-09-08-harvest-pi-acceptance
 # §"0.1.1-dev 断流回归"):
-#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2-dev
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2
 #   manifest digest sha256:1fb24d7cf9a9bf5f89ae8bcccb8e8f06f4a67e285223ce052cd6cd67cd91f187
 #   355 MB local.
 #
@@ -31,7 +31,7 @@
 # not exist and docker would create an empty directory on the host.
 services:
   waste:
-    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2-dev}
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2}
     container_name: edge-waste-app
     command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-pi5-hailo}"]
     restart: unless-stopped

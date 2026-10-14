@@ -69,8 +69,7 @@ name_i18n:
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.onnx
     remote_path: /home/{{username}}/edge-waste-sorting/jetson_waste/models/efficientnet_lite0_waste8.onnx
-    checksum:
-      sha256: e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+    checksum: "sha256:e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391"
 
 actions:
   before:
@@ -81,7 +80,13 @@ actions:
           echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
           exit 1
         fi
-        head -1 /etc/nv_tegra_release
+        L4T_RELEASE=$(head -1 /etc/nv_tegra_release)
+        echo "$L4T_RELEASE"
+        L4T_MAJOR=$(echo "$L4T_RELEASE" | grep -o 'R[0-9]\+' | head -1 | tr -d 'R')
+        if [ -n "$L4T_MAJOR" ] && [ "$L4T_MAJOR" -lt 36 ]; then
+          echo "ERROR: JetPack 6.x (L4T R36+) is required; current is R$L4T_MAJOR. Please upgrade to JetPack 6.x." >&2
+          exit 1
+        fi
         if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
           echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
           exit 1
@@ -258,9 +263,12 @@ actions:
         config["mqtt"]["host"] = MQTT_HOST or "127.0.0.1"
         config["mqtt"]["port"] = int(MQTT_PORT) if MQTT_PORT else 1883
         config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "{{source_uri}}").strip()
+        if not source_uri:
+            sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
         config["sources"] = [{
             "stream_id": "{{stream_id}}",
-            "uri": os.environ["INPUT_SOURCE_URI"],
+            "uri": source_uri,
             "kind": "{{source_kind}}",
         }]
 
@@ -310,7 +318,7 @@ actions:
         print(f"model    = {config['model']['path']} (track={track})")
         print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
         safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
-        print(f"source   = {config['sources'][0]['stream_id']} <- {safe_uri}")
+        print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {safe_uri}")
         PY
       name_i18n:
         zh: 写入视频源、触发与 MQTT 配置
@@ -399,8 +407,8 @@ user_inputs:
   - id: source_uri
     name: Camera Address
     type: text
+    default: "/dev/video0"
     required: true
-    default_template: "/dev/video0"
     placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
     description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
     name_i18n:
@@ -538,7 +546,13 @@ remote_overrides:
             echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
             exit 1
           fi
-          head -1 /etc/nv_tegra_release
+          L4T_RELEASE=$(head -1 /etc/nv_tegra_release)
+          echo "$L4T_RELEASE"
+          L4T_MAJOR=$(echo "$L4T_RELEASE" | grep -o 'R[0-9]\+' | head -1 | tr -d 'R')
+          if [ -n "$L4T_MAJOR" ] && [ "$L4T_MAJOR" -lt 36 ]; then
+            echo "ERROR: JetPack 6.x (L4T R36+) is required; current is R$L4T_MAJOR. Please upgrade to JetPack 6.x." >&2
+            exit 1
+          fi
           if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
             echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
             exit 1
@@ -749,9 +763,12 @@ remote_overrides:
           # The topic prefix is the device name the user chose, so one broker
           # can carry several bins without collisions.
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+          source_uri = os.environ.get("INPUT_SOURCE_URI", "{{source_uri}}").strip()
+          if not source_uri:
+              sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
           config["sources"] = [{
               "stream_id": "{{stream_id}}",
-              "uri": os.environ["INPUT_SOURCE_URI"],
+              "uri": source_uri,
               "kind": "{{source_kind}}",
           }]
 
@@ -819,7 +836,7 @@ remote_overrides:
 
           print(f"model    = {config['model']['path']} (track={track})")
           print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
-          print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+          print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {config['sources'][0]['uri']}")
         name_i18n:
           zh: 写入视频源、触发与 MQTT 配置
 
@@ -936,8 +953,8 @@ remote_overrides:
     - id: source_uri
       name: Camera Address
       type: text
+      default: "/dev/video0"
       required: true
-      default_template: "/dev/video0"
       placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
       description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
       name_i18n:

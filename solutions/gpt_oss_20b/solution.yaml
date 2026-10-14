@@ -1,6 +1,9 @@
 version: "1.0"
 id: gpt_oss_20b
 name: GPT OSS 20B on Jetson
+name_i18n:
+  zh: Jetson 部署 GPT OSS 20B
+  ja: Jetson 上の GPT OSS 20B
 intro:
   summary: One-click SSH deployment of GPT OSS 20B on NVIDIA Jetson with a prebuilt Docker image.
   description_file: description.md
@@ -62,5 +65,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: Jetson 部署 GPT OSS 20B
