@@ -47,7 +47,7 @@ name: Private Clip Transcription
 name_i18n: {zh: Clip 本地私有转写}
 enabled: true
 intro:
-  visibility: staging
+  visibility: production
   summary: Sync reSpeaker Clip recordings to your own reComputer (Jetson Orin NX or RK3576) and get speaker-labelled transcripts without uploading anything to the cloud.
   summary_i18n: {zh: 把 reSpeaker Clip 的录音同步到你自己的 reComputer（Jetson Orin NX 或 RK3576）上转写，分出说话人，录音不上传云端。}
   description_file: description.md
