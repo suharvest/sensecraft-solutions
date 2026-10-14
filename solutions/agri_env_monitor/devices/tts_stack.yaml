@@ -141,30 +141,79 @@ actions:
       run: |
         set -e
         if [ -d "assets/tts" ]; then cd "assets/tts"; fi
-        # Resolve engine offline cache and load required images if missing
-        if ! docker image inspect thethingsnetwork/lorawan-stack:3.31.0 >/dev/null 2>&1 || \
-           ! docker image inspect postgres:15-alpine >/dev/null 2>&1 || \
-           ! docker image inspect redis:7-alpine >/dev/null 2>&1; then
-          echo "Resolving engine offline cache to load missing TTS images..."
-          if command -v python3 >/dev/null 2>&1; then
-            python3 - <<'PY'
-        import json, os, subprocess, sys
+        COMPOSE_FILE="docker-compose.yml"
+        if [ -f ".sensecraft-compose.yml" ]; then
+          COMPOSE_FILE=".sensecraft-compose.yml"
+        fi
+        echo "Using effective Compose file: $COMPOSE_FILE"
+        if command -v python3 >/dev/null 2>&1; then
+          python3 - "$COMPOSE_FILE" <<'PY'
+        import json, os, re, subprocess, sys
         from pathlib import Path
+        try:
+            import yaml
+        except ImportError:
+            yaml = None
 
-        required_images = [
-            ("postgres:15-alpine", ["postgres"]),
-            ("redis:7-alpine", ["redis"]),
-            ("thethingsnetwork/lorawan-stack:3.31.0", ["lorawan-stack", "stack", "tts"]),
+        compose_file = sys.argv[1]
+        images_map = {}
+        if yaml and os.path.exists(compose_file):
+            try:
+                with open(compose_file, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+                services = data.get("services") or {}
+                for svc in ["postgres", "redis", "stack"]:
+                    info = services.get(svc) or {}
+                    if isinstance(info, dict) and info.get("image"):
+                        images_map[svc] = str(info["image"])
+            except Exception:
+                pass
+
+        if not images_map and os.path.exists(compose_file):
+            current_svc = None
+            try:
+                with open(compose_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line_s = line.strip()
+                        if re.match(r"^(postgres|redis|stack):", line_s):
+                            current_svc = line_s.split(":")[0]
+                        elif current_svc and line_s.startswith("image:"):
+                            images_map[current_svc] = line_s.split(":", 1)[1].strip().strip("'\"")
+                            current_svc = None
+            except Exception:
+                pass
+
+        def resolve_img(s, default_val):
+            if not s:
+                return default_val
+            m = re.match(r"^\$\{([A-Za-z0-9_]+):-(.+)\}$", s)
+            if m:
+                return os.environ.get(m.group(1)) or m.group(2)
+            m = re.match(r"^\$\{([A-Za-z0-9_]+)\}$", s)
+            if m:
+                return os.environ.get(m.group(1)) or default_val
+            return s
+
+        postgres_img = resolve_img(images_map.get("postgres"), "postgres:15-alpine")
+        redis_img = resolve_img(images_map.get("redis"), "redis:7-alpine")
+        stack_img = resolve_img(images_map.get("stack"), "thethingsnetwork/lorawan-stack:3.31.0")
+
+        required = [
+            ("postgres", postgres_img),
+            ("redis", redis_img),
+            ("stack", stack_img),
         ]
 
         missing = []
-        for img, kws in required_images:
+        for name, img in required:
             res = subprocess.run(["docker", "image", "inspect", img], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if res.returncode != 0:
-                missing.append((img, kws))
+                missing.append((name, img))
 
         if not missing:
             sys.exit(0)
+
+        print(f"Resolving missing images in Docker daemon: {[m[1] for m in missing]}")
 
         roots = []
         try:
@@ -224,7 +273,9 @@ actions:
             except Exception:
                 pass
 
-        for img, keywords in missing:
+        for name, img in missing:
+            safe_name = re.sub(r"[/:@]", "_", img)
+            kw = name
             found = False
             for root in unique_roots:
                 search_dirs = [root / "offline" / "images", root / "images", root]
@@ -233,8 +284,8 @@ actions:
                         continue
                     for entry in sdir.iterdir():
                         if entry.is_file() and (".tar" in entry.name):
-                            lower_name = entry.name.lower()
-                            if any(kw in lower_name for kw in keywords):
+                            ename = entry.name.lower()
+                            if safe_name.lower() in ename or kw in ename or (kw == "stack" and "lorawan" in ename):
                                 print(f"Loading {img} from {entry} ...")
                                 ret = subprocess.run(["docker", "load", "-i", str(entry)])
                                 if ret.returncode == 0:
@@ -245,46 +296,45 @@ actions:
                 if found:
                     break
         PY
-          else
-            CACHE_DIRS=""
-            [ -n "$PS_OFFLINE_CACHE_DIR" ] && [ -d "$PS_OFFLINE_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_OFFLINE_CACHE_DIR"
-            for cf in \
-              "${PS_APP_DATA_DIR:-}/offline-storage.json" \
-              "${PS_CACHE_DIR:-}/offline-storage.json" \
-              "${HOME}/.sensecraft/offline-storage.json" \
-              "${HOME}/.config/sensecraft/offline-storage.json" \
-              "data/offline-storage.json" \
-              "../data/offline-storage.json" \
-              "../../data/offline-storage.json"; do
-              if [ -f "$cf" ]; then
-                CPATH=$(grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$cf" 2>/dev/null | head -n1 | cut -d'"' -f4)
-                if [ -n "$CPATH" ] && [ -d "$CPATH" ]; then
-                  CACHE_DIRS="$CACHE_DIRS $CPATH"
-                  break
-                fi
+        else
+          CACHE_DIRS=""
+          [ -n "$PS_OFFLINE_CACHE_DIR" ] && [ -d "$PS_OFFLINE_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_OFFLINE_CACHE_DIR"
+          for cf in \
+            "${PS_APP_DATA_DIR:-}/offline-storage.json" \
+            "${PS_CACHE_DIR:-}/offline-storage.json" \
+            "${HOME}/.sensecraft/offline-storage.json" \
+            "${HOME}/.config/sensecraft/offline-storage.json" \
+            "data/offline-storage.json" \
+            "../data/offline-storage.json" \
+            "../../data/offline-storage.json"; do
+            if [ -f "$cf" ]; then
+              CPATH=$(grep -o '"path"[[:space:]]*:[[:space:]]*"[^"]*"' "$cf" 2>/dev/null | head -n1 | cut -d'"' -f4)
+              if [ -n "$CPATH" ] && [ -d "$CPATH" ]; then
+                CACHE_DIRS="$CACHE_DIRS $CPATH"
+                break
               fi
-            done
-            [ -n "$PS_CACHE_DIR" ] && [ -d "$PS_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_CACHE_DIR"
-            for def_dir in \
-              "${HOME}/.sensecraft/cache" \
-              "${HOME}/.cache/sensecraft" \
-              "data/cache" \
-              "../data/cache" \
-              "../../data/cache" \
-              "/var/cache/sensecraft"; do
-              [ -d "$def_dir" ] && CACHE_DIRS="$CACHE_DIRS $def_dir"
-            done
-            for cdir in $CACHE_DIRS; do
-              for sdir in "$cdir/offline/images" "$cdir/images" "$cdir"; do
-                [ -d "$sdir" ] || continue
-                for tarball in "$sdir"/*stack*.tar* "$sdir"/*postgres*.tar* "$sdir"/*redis*.tar*; do
-                  [ -f "$tarball" ] || continue
-                  echo "Loading offline image tarball: $tarball"
-                  docker load -i "$tarball" || true
-                done
+            fi
+          done
+          [ -n "$PS_CACHE_DIR" ] && [ -d "$PS_CACHE_DIR" ] && CACHE_DIRS="$CACHE_DIRS $PS_CACHE_DIR"
+          for def_dir in \
+            "${HOME}/.sensecraft/cache" \
+            "${HOME}/.cache/sensecraft" \
+            "data/cache" \
+            "../data/cache" \
+            "../../data/cache" \
+            "/var/cache/sensecraft"; do
+            [ -d "$def_dir" ] && CACHE_DIRS="$CACHE_DIRS $def_dir"
+          done
+          for cdir in $CACHE_DIRS; do
+            for sdir in "$cdir/offline/images" "$cdir/images" "$cdir"; do
+              [ -d "$sdir" ] || continue
+              for tarball in "$sdir"/*stack*.tar* "$sdir"/*postgres*.tar* "$sdir"/*redis*.tar* "$sdir"/*lorawan*.tar*; do
+                [ -f "$tarball" ] || continue
+                echo "Loading offline image tarball: $tarball"
+                docker load -i "$tarball" || true
               done
             done
-          fi
+          done
         fi
         HOST_IP=""
         if [ -f .env ]; then
@@ -294,18 +344,18 @@ actions:
           HOST_IP="$INPUT_HOST"
         fi
         HOST_IP="${HOST_IP:-127.0.0.1}"
-        echo "Starting database services ..."
-        docker compose up -d postgres redis
+        echo "Starting database services using $COMPOSE_FILE ..."
+        docker compose -f "$COMPOSE_FILE" up -d postgres redis
         echo "Waiting for Postgres ..."
         for i in $(seq 1 30); do
-          docker compose exec -T postgres pg_isready -U root >/dev/null 2>&1 && break
+          docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U root >/dev/null 2>&1 && break
           sleep 5
         done
-        docker compose run --rm stack is-db migrate
-        docker compose run --rm stack is-db create-admin-user \
+        docker compose -f "$COMPOSE_FILE" run --rm stack is-db migrate
+        docker compose -f "$COMPOSE_FILE" run --rm stack is-db create-admin-user \
           --id admin --email "$INPUT_ADMIN_EMAIL" --password "$INPUT_ADMIN_PASSWORD" \
           || echo "Admin user already exists or creation skipped, continuing..."
-        docker compose run --rm stack is-db create-oauth-client \
+        docker compose -f "$COMPOSE_FILE" run --rm stack is-db create-oauth-client \
           --id console --name "Console" --owner admin --no-rights \
           --redirect-uri "http://${HOST_IP}:1885/console/oauth/callback" \
           --logout-redirect-uri "http://${HOST_IP}:1885/console" \
