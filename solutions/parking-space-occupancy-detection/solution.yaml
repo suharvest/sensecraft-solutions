@@ -43,7 +43,7 @@
 # `visibility` is not a spec field (dropped on load); it records the staging
 # state. The release gate is the hub registry.
 version: "1.0"
-id: edge_parking_occupancy
+id: parking-space-occupancy-detection
 name: Edge Multi-Camera Parking Occupancy
 name_i18n:
   zh: 边缘多摄像头停车位占用检测

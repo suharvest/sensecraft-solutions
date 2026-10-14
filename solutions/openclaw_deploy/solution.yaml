@@ -1,6 +1,9 @@
 version: "1.0"
 id: openclaw_deploy
 name: OpenClaw AI Gateway
+name_i18n:
+  zh: OpenClaw（龙虾机器人）AI 网关
+  ja: OpenClaw AI ゲートウェイ
 intro:
   summary: Deploy OpenClaw AI messaging gateway on reComputer, with optional local AI model for privacy-first conversations.
   description_file: description.md
@@ -84,5 +87,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: OpenClaw（龙虾机器人）AI 网关
