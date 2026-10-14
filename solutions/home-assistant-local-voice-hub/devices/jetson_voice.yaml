@@ -139,17 +139,8 @@ actions:
           SUDO="sudo -n"
           CAN_SUDO=1
         fi
-        FW_SCRIPT=/usr/local/sbin/ha-whole-home-llm-firewall.sh
-        FW_SERVICE=/etc/systemd/system/ha-whole-home-llm.service
         if [ "$CAN_SUDO" -eq 0 ]; then
-          if [ -f "$FW_SCRIPT" ] && [ -f "$FW_SERVICE" ] \
-             && grep -qx "HA_HOST=$HA_HOST" "$FW_SCRIPT" 2>/dev/null \
-             && grep -qx "LLM_PORT=$LLM_PORT" "$FW_SCRIPT" 2>/dev/null \
-             && systemctl is-enabled ha-whole-home-llm.service >/dev/null 2>&1; then
-            echo "Local LLM firewall and boot unit already configured for $HA_HOST:$LLM_PORT"
-            exit 0
-          fi
-          echo "ERROR: Root privileges are required to configure the LLM host firewall, and non-interactive sudo is unavailable. Configure passwordless sudo or run as root." >&2
+          echo "ERROR: Root privileges are required to configure and enforce the LLM host firewall, and non-interactive sudo is unavailable. Configure passwordless sudo or run as root." >&2
           exit 1
         fi
         $SUDO tee /usr/local/sbin/ha-whole-home-llm-firewall.sh >/dev/null <<EOF
