@@ -116,34 +116,42 @@ actions:
         docker volume create "$WS_VOL" 2>/dev/null || true
 
         # Candidates for config initialization image
-        CANDIDATES=(
-          "openclaw/openclaw:2026.6.33-slim"
-          "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim"
-          "${DOCKER_REGISTRY_PREFIX}library/alpine"
-          "alpine"
-        )
         INIT_IMAGE=""
-        for img in "${CANDIDATES[@]}"; do
-          [ -n "$img" ] && docker image inspect "$img" >/dev/null 2>&1 && { INIT_IMAGE="$img"; break; }
+        for CANDIDATE in \
+          "openclaw/openclaw:2026.6.33-slim" \
+          "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim" \
+          "${DOCKER_REGISTRY_PREFIX}library/alpine" \
+          "alpine"; do
+          [ -z "$CANDIDATE" ] && continue
+          if docker image inspect "$CANDIDATE" >/dev/null 2>&1; then
+            INIT_IMAGE="$CANDIDATE"
+            break
+          fi
         done
 
         # If not present in Docker, check offline cache for image tarballs
         if [ -z "$INIT_IMAGE" ]; then
-          CACHE_DIRS=(
-            "data/cache/offline/images"
-            "../data/cache/offline/images"
-            "${HOME}/.sensecraft/cache/offline/images"
-            "${HOME}/.cache/sensecraft/offline/images"
-            "/var/cache/sensecraft/offline/images"
-          )
-          for cdir in "${CACHE_DIRS[@]}"; do
-            [ -d "$cdir" ] || continue
-            for tarball in "$cdir"/*openclaw*.tar* "$cdir"/*alpine*.tar*; do
+          for SEARCH_DIR in \
+            "data/cache/offline/images" \
+            "../data/cache/offline/images" \
+            "${HOME}/.sensecraft/cache/offline/images" \
+            "${HOME}/.cache/sensecraft/offline/images" \
+            "/var/cache/sensecraft/offline/images"; do
+            [ -d "$SEARCH_DIR" ] || continue
+            for tarball in "$SEARCH_DIR"/*openclaw*.tar* "$SEARCH_DIR"/*alpine*.tar*; do
               [ -f "$tarball" ] || continue
               echo "Loading offline image tarball: $tarball"
               if docker load -i "$tarball" >/dev/null 2>&1; then
-                for img in "${CANDIDATES[@]}"; do
-                  [ -n "$img" ] && docker image inspect "$img" >/dev/null 2>&1 && { INIT_IMAGE="$img"; break 2; }
+                for CANDIDATE in \
+                  "openclaw/openclaw:2026.6.33-slim" \
+                  "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim" \
+                  "${DOCKER_REGISTRY_PREFIX}library/alpine" \
+                  "alpine"; do
+                  [ -z "$CANDIDATE" ] && continue
+                  if docker image inspect "$CANDIDATE" >/dev/null 2>&1; then
+                    INIT_IMAGE="$CANDIDATE"
+                    break 2
+                  fi
                 done
                 break 2
               fi
