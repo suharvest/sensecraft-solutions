@@ -1,0 +1,19 @@
+{
+  "status": "local-candidate-unpublished",
+  "project": "love4yzp.e1003-dashboard",
+  "firmware_version": "0.1.0",
+  "source_repository": "https://github.com/Love4yzp/esphome-reterminal-e1003-workspace",
+  "source_pr": "https://github.com/Love4yzp/esphome-reterminal-e1003-workspace/pull/2",
+  "source_commit": "981616a9e7bb47398bde63ad283776346f5f57ed",
+  "build_profile": "e1003-release.yaml",
+  "build_artifact": ".esphome/build/reterminal-e1003/build/firmware.factory.bin",
+  "package_path": "assets/firmware/firmware.factory.bin",
+  "size_bytes": 1378512,
+  "sha256": "08d616e856cd4d48a0fef0b4e5782e3c4ac1b9efdc1e1647701707bec8bdc540",
+  "download_url": null,
+  "chip": "esp32s3",
+  "flash_offset": "0x0",
+  "flash_layout_bytes": 4194304,
+  "full_chip_erase": false,
+  "ota_supported": false
+}

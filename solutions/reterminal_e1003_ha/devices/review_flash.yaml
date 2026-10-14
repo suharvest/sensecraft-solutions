@@ -1,0 +1,11 @@
+version: "1.0"
+id: review_flash
+name: Firmware resource review (blocked)
+name_i18n:
+  zh: 固件资源审阅（阻塞）
+type: manual
+steps:
+  - id: resource_pending
+    name: Maintainer must stage the verified factory image before flash review
+    name_i18n:
+      zh: 维护者须先准备校验通过的 factory image 才能审阅烧录

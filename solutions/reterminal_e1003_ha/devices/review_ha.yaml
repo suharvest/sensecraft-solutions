@@ -1,0 +1,11 @@
+version: "1.0"
+id: review_ha
+name: Home Assistant acceptance checklist
+name_i18n:
+  zh: Home Assistant 验收清单
+type: manual
+steps:
+  - id: ha_acceptance
+    name: Confirm integration, action permission and real light behavior after adapter integration
+    name_i18n:
+      zh: 适配接入后确认集成、动作权限和真实灯光行为
