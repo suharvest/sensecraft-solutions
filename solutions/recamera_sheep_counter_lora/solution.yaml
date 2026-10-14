@@ -3,6 +3,7 @@ id: recamera_sheep_counter_lora
 name: Sheep Counter with LoRa / Meshtastic
 name_i18n:
   zh: 基于 LoRa/Meshtastic 的绵羊计数器
+  ja: LoRa / Meshtastic 対応羊カウンター
 
 intro:
   summary: Count sheep moving through a gate and send live IN / OUT / INSIDE totals over LoRa — all the way to your phone and a Home Assistant dashboard, no WiFi needed in the field.

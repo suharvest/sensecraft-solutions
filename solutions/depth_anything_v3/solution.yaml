@@ -1,6 +1,9 @@
 version: "1.0"
 id: depth_anything_v3
 name: Depth Anything V3 on Jetson
+name_i18n:
+  zh: Jetson 部署 Depth Anything V3
+  ja: Jetson 上の Depth Anything V3
 intro:
   summary: One-click SSH deployment of Depth Anything V3 on NVIDIA Jetson with a prebuilt Docker image.
   description_file: description.md
@@ -81,5 +84,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: Jetson 一键部署 Depth Anything V3

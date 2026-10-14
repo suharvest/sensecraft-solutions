@@ -4,7 +4,7 @@
 # substitute image) and restored 2026-10-08 after a package-compose run on
 # cat-remote (LubanCat RK3576), see the preset comment below.
 version: "1.0"
-id: edge_parking_counting
+id: parking-entry-exit-counting
 name: Edge Parking Vehicle Counting
 name_i18n:
   zh: 边缘停车场车辆进出计数

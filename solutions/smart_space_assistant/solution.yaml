@@ -1,6 +1,9 @@
 version: '1.0'
 id: smart_space_assistant
 name: Build Your Space AI Agent
+name_i18n:
+  zh: 打造空间AI智能体
+  ja: 空間 AI エージェントを構築する
 intro:
   summary: Make your AI assistant see faces, remember people, and serve you proactively
   description_file: description.md
@@ -138,5 +141,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 打造空间AI智能体

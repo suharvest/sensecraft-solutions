@@ -12,7 +12,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260815-7330af9}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:4a61834fdc2862ec8d61c4748898fb02694a06bfea07c4ba166bee49d811a39a}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -31,20 +31,15 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.9.0-ondemand-20260815-7330af9}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:4a61834fdc2862ec8d61c4748898fb02694a06bfea07c4ba166bee49d811a39a}
     container_name: conversational-voice-speech
     runtime: nvidia
     ipc: host
     network_mode: host
-    command:
+    entrypoint:
       - /bin/sh
       - -c
-      # Internal service: the on-device agent is its only client (loopback).
-      # Keep it on 127.0.0.1 — the session limiter allows ONE /v2v session, so
-      # a LAN client connecting first makes the agent's reconnect fail with
-      # 4429 too_many_sessions and silences the assistant. Re-expose
-      # deliberately with OVS_SPEECH_BIND=0.0.0.0 (e.g. for a browser client).
-      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-127.0.0.1} --port 8621'
+      - 'unset EDGE_LLM_ASR_WORKER_BIN EDGE_LLM_ASR_ENGINE_DIR EDGE_LLM_ASR_AUDIO_ENC_DIR EDGELLM_PLUGIN_PATH; set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-127.0.0.1} --port 8621'
     depends_on:
       profile-init:
         condition: service_completed_successfully
@@ -54,6 +49,7 @@ services:
       # profile is not silently overridden by a value pinned in compose.
       # The removed keys were byte-identical to the default profile's env.
       OVS_PROFILE: ${OVS_PROFILE:-jetson-qwen3asr-matcha}
+      LANGUAGE_MODE: ${LANGUAGE_MODE:-multilanguage}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
       # Deploy-time ASR endpoint threshold override (ms); 0/unset keeps the
       # profile value. See the rk3588 compose for why the key is OVS_V2V_*.
@@ -65,6 +61,7 @@ services:
       - resolved-profile:/opt/voice/resolved:ro
       - speech-models:/opt/models
       - voice-data:/opt/seeed-local-voice/data
+      - /etc/nv_tegra_release:/etc/nv_tegra_release:ro
       - /usr/local/cuda/lib64:/host-cuda:ro
       - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
       - /lib/aarch64-linux-gnu:/host-libs:ro
@@ -72,7 +69,7 @@ services:
       - /usr/src/tensorrt:/usr/src/tensorrt:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8621/health | grep -q '\"asr\":true' || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
