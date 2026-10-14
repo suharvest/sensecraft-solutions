@@ -125,9 +125,13 @@ actions:
         set -e
         if [ -d "assets/chirpstack" ]; then cd "assets/chirpstack"; fi
         if [ "$INPUT_LNS_MODE" = "local" ]; then
-          echo "Starting the local ChirpStack services (profile local-lns) ..."
-          docker compose --profile local-lns up -d
-          docker compose --profile local-lns ps
+          COMPOSE_FILE="docker-compose.yml"
+          if [ -f ".sensecraft-compose.yml" ]; then
+            COMPOSE_FILE=".sensecraft-compose.yml"
+          fi
+          echo "Starting the local ChirpStack services (profile local-lns) using $COMPOSE_FILE ..."
+          docker compose -p agri-env-chirpstack -f "$COMPOSE_FILE" --profile local-lns up -d
+          docker compose -p agri-env-chirpstack -f "$COMPOSE_FILE" --profile local-lns ps
         else
           echo "lns_mode=$INPUT_LNS_MODE — the network server runs on the M2, only the bridge starts here."
         fi
