@@ -16,7 +16,7 @@ type: web_dashboard
 # deploy step to inherit from.
 
 web_dashboard:
-  url: "http://{{host}}:8080/"
+  url: "http://{{host}}:8080/panel"
   title: Waste Sorting Preview
   description: >-
     The runtime's own page. It carries the live view (/preview.mjpg), a trigger
