@@ -377,7 +377,12 @@ present() {
 for i in $(seq 1 "$TRIES"); do
     if present; then
         echo "reSpeaker already present (attempt $i)"
-        exec "$VOLUME"
+        if [ -x "$VOLUME" ]; then
+            exec "$VOLUME"
+        else
+            echo "volume script ($VOLUME) not installed, skipping mixer level"
+            exit 0
+        fi
     fi
     echo "attempt $i: reSpeaker missing -> pulsing usb_hub_reset"
     /usr/local/sbin/hub-reset.py || exit 1
@@ -388,7 +393,12 @@ for i in $(seq 1 "$TRIES"); do
 done
 
 if present; then
-    exec "$VOLUME"
+    if [ -x "$VOLUME" ]; then
+        exec "$VOLUME"
+    else
+        echo "volume script ($VOLUME) not installed, skipping mixer level"
+        exit 0
+    fi
 fi
 echo "reSpeaker still missing after $TRIES hub resets - check the cable / USB port"
 exit 1
@@ -454,7 +464,9 @@ done
 if present; then
     log "reSpeaker recovered from the bus"
     rm -f "$MISS"
-    /usr/local/sbin/respeaker-volume.sh
+    if [ -x /usr/local/sbin/respeaker-volume.sh ]; then
+        /usr/local/sbin/respeaker-volume.sh || log "WARN: mixer restore failed"
+    fi
 else
     log "still missing after hub reset - check cable / USB port"
 fi
@@ -464,7 +476,7 @@ EOF
     cat > "$STAGE/respeaker-recover.service" <<'EOF'
 [Unit]
 Description=Recover reSpeaker XVF3800 USB audio at boot (hub reset + mixer level)
-After=multi-user.target
+After=sound.target
 
 [Service]
 Type=oneshot
