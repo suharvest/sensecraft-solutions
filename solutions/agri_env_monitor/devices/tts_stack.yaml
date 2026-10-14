@@ -69,6 +69,7 @@ actions:
   before:
     - name: Write the stack configuration
       env:
+        INPUT_HOST: "{{host}}"
         INPUT_TIMEZONE: "{{timezone}}"
         INPUT_MQTT_HOST: "{{mqtt_host}}"
         INPUT_MQTT_PORT: "{{mqtt_port}}"
@@ -104,14 +105,10 @@ actions:
         [ -n "$OLD_BLOCK_KEY" ] || OLD_BLOCK_KEY=$(gen 32)
         [ -n "$OLD_HASH_KEY" ] || OLD_HASH_KEY=$(gen 64)
         [ -n "$OLD_CONSOLE_SECRET" ] || OLD_CONSOLE_SECRET=$(gen 16)
-        HOST_IP=""
-        if command -v ip >/dev/null 2>&1; then
-          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+        HOST_IP="$(dotenv_quote "$INPUT_HOST")"
+        if [ -z "$HOST_IP" ]; then
+          HOST_IP="127.0.0.1"
         fi
-        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
-          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-        fi
-        HOST_IP="${HOST_IP:-127.0.0.1}"
         cat > "$WORKDIR/.env" <<EOF
         COMPOSE_PROJECT_NAME=agri-env-tts
         TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
@@ -139,6 +136,7 @@ actions:
       ignore_error: true
       timeout: 900
       env:
+        INPUT_HOST: "{{host}}"
         INPUT_ADMIN_EMAIL: "{{admin_email}}"
         INPUT_ADMIN_PASSWORD: "{{admin_password}}"
       run: |
@@ -149,14 +147,9 @@ actions:
           HOST_IP=$(grep '^TTS_HOST=' .env | cut -d= -f2-)
         fi
         if [ -z "$HOST_IP" ]; then
-          if command -v ip >/dev/null 2>&1; then
-            HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
-          fi
-          if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
-            HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-          fi
-          HOST_IP="${HOST_IP:-127.0.0.1}"
+          HOST_IP="$INPUT_HOST"
         fi
+        HOST_IP="${HOST_IP:-127.0.0.1}"
         echo "Starting database services ..."
         docker compose up -d postgres redis 2>/dev/null || docker compose up -d tts-postgres tts-redis 2>/dev/null || true
         echo "Waiting for Postgres ..."
