@@ -29,9 +29,7 @@
     "ha_integration": {
       "category": "deploy",
       "required": [
-        "ha_integration",
-        "ha_integration.domain",
-        "ha_integration.components_dir"
+        "ha_integration"
       ]
     },
     "himax_usb": {
