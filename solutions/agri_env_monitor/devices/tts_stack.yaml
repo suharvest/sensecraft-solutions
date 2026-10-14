@@ -134,6 +134,7 @@ actions:
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 stack 配置
+  after:
     - name: Initialise the stack and create the admin user
       ignore_error: true
       timeout: 900
@@ -176,7 +177,6 @@ actions:
         echo "Stack initialised. Console: http://${HOST_IP}:1885/console"
       name_i18n:
         zh: 初始化 stack 并创建管理员
-  after:
     - name: Confirm the bridge reached both brokers
       fail_fast: false
       ignore_error: true

@@ -117,6 +117,7 @@ actions:
         echo "wrote $WORKDIR/.env"
       name_i18n:
         zh: 写入 ChirpStack 与桥的配置
+  after:
     - name: Start ChirpStack when this host is the network server
       env:
         INPUT_LNS_MODE: "{{lns_mode}}"
@@ -132,7 +133,6 @@ actions:
         fi
       name_i18n:
         zh: 本机作为网络服务器时启动 ChirpStack
-  after:
     - name: Confirm the bridge reached the network server
       fail_fast: false
       ignore_error: true

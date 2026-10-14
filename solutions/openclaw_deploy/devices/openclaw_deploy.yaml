@@ -214,26 +214,6 @@ actions:
         fi
       name_i18n:
         zh: 初始化 OpenClaw 配置
-    - name: Generate gateway access token
-      run: |
-        set -e
-        if [ -d "assets/local" ]; then COMPOSE_DIR="assets/local"; else COMPOSE_DIR="."; fi
-        ENV_FILE="$COMPOSE_DIR/.env"
-        if [ -f "$ENV_FILE" ] && grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE"; then
-          echo "Reusing existing gateway token from $ENV_FILE"
-          exit 0
-        fi
-        TOKEN=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
-        if [ -z "$TOKEN" ]; then
-          echo "ERROR: failed to generate a gateway token"
-          exit 1
-        fi
-        umask 077
-        printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$TOKEN" > "$ENV_FILE"
-        echo "Generated a new gateway token in $ENV_FILE"
-      timeout: 30
-      name_i18n:
-        zh: 生成网关访问令牌
   after:
     - name: Ensure OpenClaw config initialized
       run: |
@@ -435,47 +415,6 @@ actions:
       timeout: 30
       name_i18n:
         zh: 优化 Workspace（适配小模型）
-    - name: Align gateway token in config
-      run: |
-        set -e
-        if [ -d "assets/local" ]; then COMPOSE_DIR="assets/local"; else COMPOSE_DIR="."; fi
-        ENV_FILE="$COMPOSE_DIR/.env"
-        TOKEN=""
-        if [ -f "$ENV_FILE" ]; then
-          TOKEN=$(grep '^OPENCLAW_GATEWAY_TOKEN=' "$ENV_FILE" | cut -d= -f2-)
-        fi
-        if [ -z "$TOKEN" ]; then
-          TOKEN=$(docker exec openclaw-gateway printenv OPENCLAW_GATEWAY_TOKEN 2>/dev/null || true)
-        fi
-        if [ -z "$TOKEN" ]; then
-          echo "ERROR: could not determine OPENCLAW_GATEWAY_TOKEN from $ENV_FILE or container"
-          exit 1
-        fi
-        docker exec -e OPENCLAW_GATEWAY_TOKEN="$TOKEN" openclaw-gateway node -e '
-          const fs = require("fs");
-          const p = "/home/node/.openclaw/openclaw.json";
-          const tok = process.env.OPENCLAW_GATEWAY_TOKEN;
-          if (!tok) {
-            console.log("No OPENCLAW_GATEWAY_TOKEN in container environment");
-            process.exit(0);
-          }
-          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
-          cfg.gateway = cfg.gateway || {};
-          cfg.gateway.auth = cfg.gateway.auth || {};
-          cfg.gateway.remote = cfg.gateway.remote || {};
-          if (cfg.gateway.auth.token === tok && cfg.gateway.remote.token === tok) {
-            console.log("Gateway token already aligned");
-          } else {
-            cfg.gateway.auth.mode = "token";
-            cfg.gateway.auth.token = tok;
-            cfg.gateway.remote.token = tok;
-            fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
-            console.log("Aligned gateway.auth.token and gateway.remote.token with the deployment token");
-          }
-        '
-      timeout: 30
-      name_i18n:
-        zh: 对齐网关令牌配置
     - name: Restart OpenClaw to apply configuration
       run: |
         set -e
@@ -493,29 +432,6 @@ actions:
       timeout: 180
       name_i18n:
         zh: 重启 OpenClaw 使配置生效
-    - name: Show where the gateway token is stored
-      run: |
-        set -e
-        if [ -d "assets/local" ]; then COMPOSE_DIR="assets/local"; else COMPOSE_DIR="."; fi
-        ENV_FILE="$COMPOSE_DIR/.env"
-        if [ -z "$ENV_FILE" ] || ! grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE" 2>/dev/null; then
-          echo "WARNING: Could not find the gateway token under $COMPOSE_DIR"
-        else
-          echo ""
-          echo "=========================================="
-          echo "  OpenClaw Gateway Token / 网关访问令牌"
-          echo "=========================================="
-          echo ""
-          echo "  The token is not printed in this log."
-          echo "  Token 未输出到日志。On the device run / 在设备上执行:"
-          echo "    grep OPENCLAW_GATEWAY_TOKEN $ENV_FILE"
-          echo ""
-          echo "  URL: http://127.0.0.1:18789"
-          echo ""
-        fi
-      timeout: 30
-      name_i18n:
-        zh: 提示网关访问令牌的位置
     - name: Display gateway address
       run: |
         set -e
