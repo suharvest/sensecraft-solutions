@@ -218,8 +218,6 @@ actions:
         if command -v xhost >/dev/null 2>&1; then
           if xhost +SI:localuser:root >/dev/null 2>&1; then
             echo "xhost permission updated: +SI:localuser:root"
-          elif xhost + >/dev/null 2>&1; then
-            echo "xhost fallback applied: +"
           else
             echo "Warning: xhost update failed; EGL path may still fail."
           fi

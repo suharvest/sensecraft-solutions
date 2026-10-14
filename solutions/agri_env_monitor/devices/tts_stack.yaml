@@ -138,6 +138,7 @@ actions:
       ignore_error: true
       timeout: 900
       env:
+        INPUT_ADMIN_EMAIL: "{{admin_email}}"
         INPUT_ADMIN_PASSWORD: "{{admin_password}}"
       run: |
         set -e
@@ -164,12 +165,14 @@ actions:
         done
         docker compose run --rm stack is-db migrate
         docker compose run --rm stack is-db create-admin-user \
-          --id admin --email "{{admin_email}}" --password "$INPUT_ADMIN_PASSWORD"
+          --id admin --email "$INPUT_ADMIN_EMAIL" --password "$INPUT_ADMIN_PASSWORD" \
+          || echo "Admin user already exists or creation skipped, continuing..."
         docker compose run --rm stack is-db create-oauth-client \
           --id console --name "Console" --owner admin --no-rights \
           --redirect-uri "http://${HOST_IP}:1885/console/oauth/callback" \
           --logout-redirect-uri "http://${HOST_IP}:1885/console" \
-          --secret "$(grep '^TTS_CONSOLE_SECRET=' .env | cut -d= -f2)"
+          --secret "$(grep '^TTS_CONSOLE_SECRET=' .env | cut -d= -f2)" \
+          || echo "OAuth client already exists or creation skipped, continuing..."
         echo "Stack initialised. Console: http://${HOST_IP}:1885/console"
       name_i18n:
         zh: 初始化 stack 并创建管理员

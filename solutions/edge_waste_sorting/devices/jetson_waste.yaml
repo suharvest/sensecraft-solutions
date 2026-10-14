@@ -169,20 +169,6 @@ actions:
         ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
         ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
 
-        if [ -s "$ENGINE" ]; then
-          echo "Engine already present, skipping build: $ENGINE"
-          exit 0
-        fi
-
-        if [ ! -s "$ONNX" ]; then
-          echo "Downloading $MODEL_NAME.onnx ..."
-          curl -fSL --retry 3 -o "$ONNX.part" \
-            "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
-          echo "$SHA  $ONNX.part" | sha256sum -c -
-          mv -f "$ONNX.part" "$ONNX"
-        fi
-        echo "$SHA  $ONNX" | sha256sum -c -
-
         if [ "{{model_track}}" = "open_vocab" ]; then
           for f in prototypes-en-material8.npz prompts/waste8-en-v1.json; do
             mkdir -p "$(dirname "$MODELS_DIR/$f")"
@@ -197,6 +183,20 @@ actions:
           done
           grep -E "prototypes-en-material8" "$WORKDIR/../assets/models/SHA256SUMS.open_vocab" 2>/dev/null || true
         fi
+
+        if [ -s "$ENGINE" ]; then
+          echo "Engine already present, skipping build: $ENGINE"
+          exit 0
+        fi
+
+        if [ ! -s "$ONNX" ]; then
+          echo "Downloading $MODEL_NAME.onnx ..."
+          curl -fSL --retry 3 -o "$ONNX.part" \
+            "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
+          echo "$SHA  $ONNX.part" | sha256sum -c -
+          mv -f "$ONNX.part" "$ONNX"
+        fi
+        echo "$SHA  $ONNX" | sha256sum -c -
 
         echo "Building the TensorRT engine for {{model_track}} ..."
         /usr/src/tensorrt/bin/trtexec --version || true
