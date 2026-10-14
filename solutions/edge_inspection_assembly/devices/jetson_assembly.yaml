@@ -203,12 +203,48 @@ actions:
         assembly_src["uri"] = os.environ["INPUT_SOURCE_URI"]
         assembly_src["kind"] = kind_of(os.environ["INPUT_SOURCE_URI"])
 
+        dimension_backup_path = os.path.join(os.path.dirname(path), ".dimension_source.json")
+        if len(sources) > 1 and "dimension" in sources[1]:
+            try:
+                with open(dimension_backup_path, "w") as f:
+                    json.dump(sources[1], f, indent=2)
+            except Exception:
+                pass
+
         dimension_uri = os.environ.get("INPUT_DIMENSION_SOURCE_URI", "").strip()
         if dimension_uri:
-            dimension_src = dict(sources[1]) if len(sources) > 1 else {
-                "stream_id": "gauge-cam",
-                "kind": "usb",
-            }
+            dimension_src = None
+            if len(sources) > 1 and "dimension" in sources[1]:
+                dimension_src = dict(sources[1])
+            elif os.path.exists(dimension_backup_path):
+                try:
+                    with open(dimension_backup_path) as f:
+                        dimension_src = json.load(f)
+                except Exception:
+                    dimension_src = None
+            if not dimension_src:
+                dimension_src = {
+                    "stream_id": "gauge-cam",
+                    "kind": "usb",
+                    "dimension": {
+                        "calibration": {
+                            "ref_object_width_mm": 25.0,
+                            "detect": "aruco",
+                            "roi": [0.020695, 0.320312, 0.245305, 0.679688],
+                            "aruco_dict": "DICT_4X4_50",
+                            "aruco_id": 7,
+                        },
+                        "measurements": [
+                            {
+                                "name": "gauge-block",
+                                "roi": [0.401906, 0.2375, 0.894094, 0.7625],
+                                "nominal_width_mm": 60.0,
+                                "nominal_height_mm": 40.0,
+                                "tolerance_mm": 1.0,
+                            }
+                        ],
+                    },
+                }
             dimension_src["stream_id"] = os.environ["INPUT_STREAM_ID"] + "-gauge"
             dimension_src["uri"] = dimension_uri
             dimension_src["kind"] = kind_of(dimension_uri)
