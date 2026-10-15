@@ -1,6 +1,16 @@
 #!/bin/bash
-# reSpeaker XVF3800 host fix for the reComputer RK3576 devkit (Seeed reSpeaker
-# 4-Mic Array, USB 2886:001a, ALSA card id "Array").
+# reSpeaker XVF3800 host fix for the reComputer RK3576 devkit.
+#
+# Covers both XVF3800 USB variants seen in the field. Naming only one of them
+# does something worse than doing nothing: the presence check fails on the
+# other, so the boot self-heal pulses usb_hub_reset at a box where the array is
+# present, and the 60 s watchdog repeats that reset every cooldown — cutting
+# power to a working microphone mid-sentence.
+#
+#   4-Mic Array  2886:001a  ALSA card id "Array"
+#   4-Mic 44mm   2886:0024  ALSA card id "r44mm"
+#
+# `RESPEAKER_IDS` and `RESPEAKER_CARDS` override both lists (space separated).
 #
 # Two field problems this solves:
 #
@@ -90,35 +100,44 @@ trap 'if [ -n "${KEEP_STAGE:-}" ]; then echo "stage kept: $STAGE"; else rm -rf "
 # ---------------------------------------------------------------------------
 cat > "$STAGE/respeaker-volume.sh" <<'EOF'
 #!/bin/bash
-# reSpeaker XVF3800 (USB 2886:001a, ALSA card id "Array") playback level.
+# reSpeaker XVF3800 playback level.
 #
 # Why a script: the voice agent (ovs-agent) opens /dev/snd/pcmC?D0{p,c} directly
 # and holds it exclusively, so PipeWire can never create a sink for this card and
 # the desktop volume slider has no effect on the assistant's audio.  The UAC
 # feature unit ('PCM',0 / 'PCM',1) is the real knob.
 #
-# Use the card *id* "hw:Array", never an index: the index moves around with
-# enumeration order, and when the device is absent `amixer -c 3` fails with the
-# misleading "Invalid card number" while `-D hw:Array` is simply "no such card"
-# and starts working the moment the device re-enumerates.
+# Use the card *id*, never an index: the index moves around with enumeration
+# order, and when the device is absent `amixer -c 3` fails with the misleading
+# "Invalid card number" while `-D hw:<id>` is simply "no such card" and starts
+# working the moment the device re-enumerates.
+#
+# Both variants are tried because the card id tracks the product id:
+# 2886:001a enumerates as "Array", 2886:0024 as "r44mm".
 #
 # Override with RESPEAKER_VOLUME (e.g. "90%") if the pinned 85% is not right.
 LEVEL="${RESPEAKER_VOLUME:-85%}"
-CARD="hw:Array"
+CARDS="${RESPEAKER_CARDS:-Array r44mm}"
+
+apply_to() {   # $1 = card id
+    amixer -q -D "hw:$1" sset "PCM",0 "$LEVEL" unmute >/dev/null 2>&1 || return 1
+    amixer -q -D "hw:$1" sset "PCM",1 "$LEVEL" unmute >/dev/null 2>&1
+    return 0
+}
 
 for _ in $(seq 1 30); do
-    if amixer -q -D "$CARD" sset "PCM",0 "$LEVEL" unmute >/dev/null 2>&1; then
-        amixer -q -D "$CARD" sset "PCM",1 "$LEVEL" unmute >/dev/null 2>&1
-        sleep 5          # let wireplumber / the voice agent settle
-        amixer -q -D "$CARD" sset "PCM",0 "$LEVEL" unmute >/dev/null 2>&1
-        amixer -q -D "$CARD" sset "PCM",1 "$LEVEL" unmute >/dev/null 2>&1
-        echo "reSpeaker mixer -> $LEVEL ($(amixer -D "$CARD" | grep -m1 'Front Left' | sed 's/^ *//'))"
-        exit 0
-    fi
+    for CARD in $CARDS; do
+        if apply_to "$CARD"; then
+            sleep 5          # let wireplumber / the voice agent settle
+            apply_to "$CARD"
+            echo "reSpeaker mixer -> $LEVEL on hw:$CARD ($(amixer -D "hw:$CARD" | grep -m1 'Front Left' | sed 's/^ *//'))"
+            exit 0
+        fi
+    done
     sleep 1
 done
 
-echo 'reSpeaker card "Array" did not show up within 30s'
+echo "reSpeaker card ($CARDS) did not show up within 30s"
 exit 1
 EOF
 
@@ -126,8 +145,11 @@ EOF
 # udev rules
 # ---------------------------------------------------------------------------
 cat > "$STAGE/89-respeaker-volume.rules" <<'EOF'
-# reSpeaker XVF3800 -> (re)apply the mixer level on every enumeration
+# reSpeaker XVF3800 -> (re)apply the mixer level on every enumeration.
+# One line per variant: udev matches a single literal value, and matching the
+# vendor alone would also fire on unrelated Seeed USB audio devices.
 ACTION=="add", SUBSYSTEM=="sound", ATTRS{idVendor}=="2886", ATTRS{idProduct}=="001a", TAG+="systemd", ENV{SYSTEMD_WANTS}+="respeaker-volume.service"
+ACTION=="add", SUBSYSTEM=="sound", ATTRS{idVendor}=="2886", ATTRS{idProduct}=="0024", TAG+="systemd", ENV{SYSTEMD_WANTS}+="respeaker-volume.service"
 EOF
 
 cat > "$STAGE/90-usb-no-autosuspend.rules" <<'EOF'
@@ -135,6 +157,7 @@ cat > "$STAGE/90-usb-no-autosuspend.rules" <<'EOF'
 # shown "Failed to suspend device, error -71" and suspend/resume churn on a bus that
 # already drops this device under load.
 ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{idVendor}=="2886", ATTR{idProduct}=="001a", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{idVendor}=="2886", ATTR{idProduct}=="0024", ATTR{power/control}="on"
 ACTION=="add", SUBSYSTEM=="usb", TEST=="power/control", ATTR{idVendor}=="05e3", ATTR{idProduct}=="0610", ATTR{power/control}="on"
 EOF
 
@@ -357,19 +380,27 @@ EOF
 # Completely harmless when the device is simply unplugged: it just logs and exits.
 TRIES="${TRIES:-3}"
 VOLUME=/usr/local/sbin/respeaker-volume.sh
-ID="${RESPEAKER_ID:-2886:001a}"
+# Space-separated vid:pid list. Both XVF3800 USB variants belong here: matching
+# only one makes this report "absent" on a box where the array is present, and
+# the caller then pulses usb_hub_reset at a device that was never broken.
+# RESPEAKER_ID is still honoured as a single-value override.
+IDS="${RESPEAKER_IDS:-${RESPEAKER_ID:-2886:001a 2886:0024}}"
 USB_SYSFS="${USB_SYSFS:-/sys/bus/usb/devices}"   # overridable for off-device testing
 
 # Scan sysfs instead of calling lsusb: usbutils is not guaranteed to be
 # installed, and a missing lsusb makes every presence check report "absent",
 # which would pulse a perfectly healthy bus on every boot.
 present() {
-    local d="${USB_SYSFS%/}" vid="${ID%%:*}" pid="${ID##*:}"
+    local d="${USB_SYSFS%/}" id vid pid
     for d in "$d"/*/; do
         [ -f "$d/idVendor" ] || continue
-        [ "$(cat "$d/idVendor")" = "$vid" ] || continue
-        [ "$(cat "$d/idProduct" 2>/dev/null)" = "$pid" ] || continue
-        return 0
+        vid="$(cat "$d/idVendor")"
+        pid="$(cat "$d/idProduct" 2>/dev/null)"
+        for id in $IDS; do
+            if [ "$vid" = "${id%%:*}" ] && [ "$pid" = "${id##*:}" ]; then
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -409,7 +440,12 @@ EOF
 # Runtime watchdog: if the reSpeaker XVF3800 disappears from the USB bus, pulse the
 # devkit usb_hub_reset line to un-wedge the hub port and re-apply the mixer level.
 # Rate limited, log-only when it can't help. Runs from respeaker-watch.timer (60s).
-ID="${RESPEAKER_ID:-2886:001a}"
+# Space-separated vid:pid list. Both XVF3800 USB variants belong here. Watching
+# only one is actively harmful on a box that carries the other: this watchdog
+# then reads a present, working microphone as "missing" and pulses usb_hub_reset
+# every cooldown, cutting its power mid-sentence. RESPEAKER_ID still works as a
+# single-value override.
+IDS="${RESPEAKER_IDS:-${RESPEAKER_ID:-2886:001a 2886:0024}}"
 DRY_RUN="${DRY_RUN:-0}"
 USB_SYSFS="${USB_SYSFS:-/sys/bus/usb/devices}"   # overridable for off-device testing
 MISS=/run/respeaker-watch.miss
@@ -421,12 +457,16 @@ COOLDOWN="${COOLDOWN:-600}"        # at most one hub reset per 10 min
 # installed, and a missing lsusb makes every presence check report "absent",
 # which would make this watchdog pulse a healthy bus every cooldown.
 present() {
-    local d="${USB_SYSFS%/}" vid="${ID%%:*}" pid="${ID##*:}"
+    local d="${USB_SYSFS%/}" id vid pid
     for d in "$d"/*/; do
         [ -f "$d/idVendor" ] || continue
-        [ "$(cat "$d/idVendor")" = "$vid" ] || continue
-        [ "$(cat "$d/idProduct" 2>/dev/null)" = "$pid" ] || continue
-        return 0
+        vid="$(cat "$d/idVendor")"
+        pid="$(cat "$d/idProduct" 2>/dev/null)"
+        for id in $IDS; do
+            if [ "$vid" = "${id%%:*}" ] && [ "$pid" = "${id##*:}" ]; then
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -439,7 +479,7 @@ fi
 
 n=$(( $(cat "$MISS" 2>/dev/null || echo 0) + 1 ))
 echo "$n" > "$MISS"
-log "reSpeaker $ID missing (miss $n/$MIN_MISS)"
+log "reSpeaker $IDS missing (miss $n/$MIN_MISS)"
 [ "$n" -lt "$MIN_MISS" ] && exit 0
 
 now=$(date +%s)
@@ -578,12 +618,18 @@ fi
 # dependency. USB_SYSFS is overridable for off-device testing.
 usb_present() {
     local d="${USB_SYSFS:-/sys/bus/usb/devices}"
+    local ids="${RESPEAKER_IDS:-${RESPEAKER_ID:-2886:001a 2886:0024}}"
+    local id vid pid
     d="${d%/}"
     for d in "$d"/*/; do
         [ -f "$d/idVendor" ] || continue
-        [ "$(cat "$d/idVendor")" = 2886 ] || continue
-        [ "$(cat "$d/idProduct" 2>/dev/null)" = 001a ] || continue
-        return 0
+        vid="$(cat "$d/idVendor")"
+        pid="$(cat "$d/idProduct" 2>/dev/null)"
+        for id in $ids; do
+            if [ "$vid" = "${id%%:*}" ] && [ "$pid" = "${id##*:}" ]; then
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -593,8 +639,13 @@ REPEAKER_PRESENT=false
 usb_present && REPEAKER_PRESENT=true
 if [ "$DRY_RUN" = 1 ]; then
     SPEAKER_LEVEL="dry-run"
-elif [ "$HAVE_MIXER" = 1 ] && line="$(amixer -D hw:Array 2>/dev/null | grep -m1 'Front Left')"; then
-    SPEAKER_LEVEL="$(echo "$line" | sed 's/^ *//;s/  */ /g')"
+elif [ "$HAVE_MIXER" = 1 ]; then
+    for _card in ${RESPEAKER_CARDS:-Array r44mm}; do
+        line="$(amixer -D "hw:$_card" 2>/dev/null | grep -m1 'Front Left')" || continue
+        [ -n "$line" ] || continue
+        SPEAKER_LEVEL="$(echo "$line" | sed 's/^ *//;s/  */ /g') (hw:$_card)"
+        break
+    done
 fi
 
 echo ""
