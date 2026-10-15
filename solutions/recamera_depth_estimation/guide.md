@@ -17,7 +17,7 @@ and sky produce a flat depth map.
 
 ## Step 1: Update the reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-Install console 0.5.5, which manages the camera's apps. Already current? It's skipped.
+Install console 0.5.6, which manages the camera's apps. Already current? It's skipped.
 
 ### Prerequisites
 

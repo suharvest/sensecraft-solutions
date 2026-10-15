@@ -6,7 +6,7 @@ A reCamera 2002 decides on-device whether someone fell and publishes the event o
 
 ## Step 1: Update the reCamera Console {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-Install console 0.5.5, which manages the camera apps. Already current? It's skipped.
+Install console 0.5.6, which manages the camera apps. Already current? It's skipped.
 
 ### Prerequisites
 

@@ -17,7 +17,7 @@ type: manual
 #
 # Making this automatic is a small engine change — wrap the manager in a
 # deployer with a precondition probe, the way the 2002 preset skips its console
-# update when supervisor is already 0.5.5.
+# update when supervisor is already 0.5.6.
 
 steps:
   - id: check_needed

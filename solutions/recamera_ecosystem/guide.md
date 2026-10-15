@@ -8,7 +8,7 @@ Install object detection, text reading, face analysis, fall detection or people 
 
 ## Step 1: Update the reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-Install console 0.5.5. The step is skipped if the camera is already on that version.
+Install console 0.5.6. The step is skipped if the camera is already on that version.
 
 ### Prerequisites
 

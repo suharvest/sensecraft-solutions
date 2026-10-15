@@ -8,7 +8,7 @@
 
 ## 步骤 1: 升级 reCamera 控制台 {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-安装 0.5.5 版控制台，已经是这个版本会自动跳过。
+安装 0.5.6 版控制台，已经是这个版本会自动跳过。
 
 ### 前置条件
 
