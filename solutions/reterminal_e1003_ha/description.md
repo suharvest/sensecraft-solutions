@@ -12,6 +12,16 @@ Test how one firmware image serves different E1003 panels: install over USB, the
 
 The lighting card's on/off and four brightness buttons share one setting: “Light controlled by the buttons.” Saving it proves that the binding persists; test actual light control separately in Home Assistant.
 
+## Product and connection layout
+
+![Official reTerminal E1003 product photo with Seeed's demonstration interface](gallery/e1003-product-official.jpg)
+
+This E1003 photograph comes from Seeed's official product page. Its screen shows the stock demonstration interface, rather than this firmware's layout or a hardware acceptance result.
+
+![Generated architecture illustration: desktop App configures E1003 over USB; Home Assistant validation pending](gallery/e1003-architecture-cover.png)
+
+USB handles device identification and network setup. Once the panel is connected, the App writes the light binding and verifies persistence over an encrypted LAN connection. Home Assistant connects over the LAN in the subsequent test. This generated architecture illustration uses schematic device and App appearances; real light control and state synchronization still need acceptance.
+
 ## How to test
 
 1. Install firmware over USB for first use; skip flashing if this image is already installed.

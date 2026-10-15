@@ -159,3 +159,18 @@ manual 执行类型、固定固件 SHA 和安全烧录参数，等待 App PR 与
 schema、引用和双语属性由实际 `solutionctl validate` 检查。
 产品族检查、文案 lint、公开边界 guard、Markdown 本地链接及 `git diff --check` 通过。
 产品名称 lint 为 0 errors、24 条其他内容的既有 warning。本轮未导入、预览、烧录、发布或合并。
+
+### 产品图片与架构封面
+
+按主控提供的公开素材复制三份文件至候选 `gallery/`：官方产品原图（1800×1200）、
+生成的架构封面（1672×941）和来源 README。只读取用户点名的三份文件，没有访问其上层
+运行目录的其他内容；未操作 App、串口或上传资源。
+
+`intro.cover_image` 指向架构图；`intro.gallery` 和双语正文引用本地图片并标明官方展示界面、
+生成示意及 HA 验收边界。`device_catalog` / `purchase.require`、禁用状态、固件清单及执行
+配置不变。作者侧打包白名单加入三份素材，既有测试增加图片随审阅包原样保留的检查。
+
+本轮 `solutionctl validate --check-urls`、产品族检查、文案 lint、公开边界 guard 通过；
+现有测试为 **101 passed、14 skipped**，跳过原因同前。内容导出 zip 为 14 个文件，CRC 检查
+通过，三份图库素材与源文件逐字节一致，包中无固件二进制。15 处本地链接与锚点有效；
+另核对产品族选择、候选禁用状态、固件和执行字段未变。未执行本地 App 导入或 UI 验收。

@@ -12,6 +12,18 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+  cover_image: gallery/e1003-architecture-cover.png
+  gallery:
+    - type: image
+      src: gallery/e1003-product-official.jpg
+      caption: Official E1003 product photo showing Seeed's demonstration interface, not hardware acceptance of this firmware.
+      caption_i18n:
+        zh: E1003 官方产品照片；屏幕为 Seeed 官方展示界面，并非本固件实机验收画面。
+    - type: image
+      src: gallery/e1003-architecture-cover.png
+      caption: Generated architecture illustration showing USB setup and LAN connectivity; Home Assistant validation is pending.
+      caption_i18n:
+        zh: 生成的架构示意：USB 配置与局域网连接；Home Assistant 控灯验收待完成。
   category: sensing
   solution_type: technical
   tags: [home-assistant, esphome, epaper, usb]

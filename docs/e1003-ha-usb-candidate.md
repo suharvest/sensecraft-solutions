@@ -10,6 +10,14 @@
 无需外部网页、本机脚本路径或用户安装 Python。打包后端与共享前端已通过单机保存验证；
 主控已在原生 macOS 测试窗口完成仅配置流程，验证显式密钥复制，并确认窗口显示 technical 分类和完整中文介绍。双语介绍此前已由 App 后端完整返回。证据范围见[检查报告](e1003-ha-usb-checks.md)。
 
+## 封面与产品实物图
+
+封面使用生成的架构示意；图库与双语正文引用 E1003 官方实物照片。照片中的官方展示界面
+不是本固件验收画面，架构图也不是实际 App 截图；HA 控灯与状态同步待验收。
+素材来源和生成提示见[图库说明](../solutions/reterminal_e1003_ha/gallery/README.md)。
+本地素材随内容导出及作者审阅打包保留；未上传 CDN。`device_catalog` 仍只声明产品族与
+`purchase.require`，不硬编码 SKU 图片或购买地址，不绕过运行时 `purchase_profile`。
+
 ## 固件与资源来源
 
 - [固件 PR #2](https://github.com/Love4yzp/esphome-reterminal-e1003-workspace/pull/2)，

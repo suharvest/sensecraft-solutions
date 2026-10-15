@@ -47,6 +47,13 @@ class CandidatePackagingTests(unittest.TestCase):
             (self.output / "assets/firmware/firmware.factory.bin").read_bytes(),
             self.payload,
         )
+        # Local review exports must retain the newly referenced visual assets.
+        for name in ("e1003-product-official.jpg", "e1003-architecture-cover.png", "README.md"):
+            relative = Path("gallery") / name
+            self.assertEqual(
+                (self.output / relative).read_bytes(),
+                (self.source / relative).read_bytes(),
+            )
         for lang in ("guide.md", "guide_zh.md"):
             self.assertIn(staging.NEW_STEP, (self.output / lang).read_text())
             self.assertNotIn(staging.OLD_STEP, (self.output / lang).read_text())
