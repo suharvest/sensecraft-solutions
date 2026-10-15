@@ -1,8 +1,8 @@
 ## What this solution does
 
-Edge Command Workbench gives a local browser a small, focused interface for choosing a machine command from a short request and a list of allowed options. The model and tokenizer run on an RK3576 device, so the request can stay on the local network.
+Edge Command Router gives a local browser a small, focused interface for choosing a machine command from a short request and a list of allowed options. The model and tokenizer run on an RK3576 device, so the request can stay on the local network.
 
-![Edge Command Workbench running on RK3576](gallery/workbench.jpg)
+![Edge Command Router running on RK3576](gallery/workbench.jpg)
 
 ![Command selection steps](gallery/demo/command-selection.gif)
 

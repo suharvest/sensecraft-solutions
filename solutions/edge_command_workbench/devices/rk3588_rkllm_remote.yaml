@@ -1,8 +1,8 @@
 version: "1.0"
 id: rk3588_rkllm_remote
-name: RK3588 Kev RKLLM Workbench
+name: RK3588 Kev RKLLM Edge Command Router
 name_i18n:
-  zh: RK3588 Kev RKLLM 工作台
+  zh: RK3588 Kev RKLLM 边缘命令路由
 type: docker_deploy
 
 docker:

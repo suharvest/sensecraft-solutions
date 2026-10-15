@@ -4,7 +4,7 @@ This preset deploys the tested Kev RKLLM path on RK3576 test platform. The engin
 
 The 500-token reproducibility report for both RKLLM devices is archived at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/). It records 120 original and 120 reverse fixture cases per device; the fixture uses generated context and is not a general long-request accuracy claim.
 
-## Step 1: Deploy the Kev Workbench {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
+## Step 1: Deploy Edge Command Router (Kev) {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
 
 The container selects `DECISION_BACKEND=rkllm` and `MODEL_ID=kev`. Supply a complete model directory containing `model.rkllm`, `kev_head.npz`, `tokenizer/tokenizer.json`, and the pinned runtime at `runtime/librkllmrt.so`. The image contains the C helper only when built with the pinned RKLLM 1.3.1 headers.
 
@@ -22,7 +22,7 @@ Open `http://<device-ip>:18768`. Verification requires `/api/health` to report `
 | The model is not ready | Check that `model.rkllm`, `kev_head.npz`, `tokenizer/tokenizer.json`, and `runtime/librkllmrt.so` are present in the supplied model directory, then deploy again. |
 | The health response has another backend or model ID | Check the deployment fields and confirm this preset uses `DECISION_BACKEND=rkllm` and `MODEL_ID=kev`. |
 
-## Step 2: Open the Kev Workbench {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
+## Step 2: Open Edge Command Router (Kev) {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
 
 Submit a request with candidate commands after the health check reports a ready Kev model.
 
@@ -43,7 +43,7 @@ This preset deploys the tested 8K Kev artifact contract on RK3588 test platform.
 
 The same 500-token reproducibility report covers this preset at [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/), with raw JSONL and machine-generated summaries under `rk3588/`.
 
-## Step 1: Deploy the Kev Workbench {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
+## Step 1: Deploy Edge Command Router (Kev) {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
 
 Provide the pinned engine, FP32 Q/K head, tokenizer, metadata, and RKLLM runtime directory for the target. The service does not download model weights at startup.
 
@@ -62,7 +62,7 @@ Optional remote model profiles and an existing voice service can be configured t
 
 Open `http://<device-ip>:18768` and confirm the model-ready health response before sending a decision request.
 
-## Step 2: Open the Kev Workbench {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
+## Step 2: Open Edge Command Router (Kev) {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
 
 Submit a request with candidate commands after the health check reports a ready Kev model.
 

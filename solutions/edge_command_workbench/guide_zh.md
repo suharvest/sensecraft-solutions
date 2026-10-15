@@ -4,7 +4,7 @@
 
 两台 RKLLM 设备的 500-token 可复现报告保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。每台设备包含 120 条 original 和 120 条 reverse fixture case；该 fixture 使用生成上下文，不能作为任意长请求的准确率结论。
 
-## 步骤 1: 部署 Kev 工作台 {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
+## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
 
 容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。请准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
 
@@ -22,7 +22,7 @@
 | 模型没有就绪 | 检查提供的模型目录是否包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 和 `runtime/librkllmrt.so`，然后重新部署。 |
 | 健康接口返回了其他 backend 或 model ID | 检查部署字段，确认本套餐使用 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。 |
 
-## 步骤 2: 打开 Kev 工作台 {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
+## 步骤 2: 打开边缘命令路由（Kev） {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
@@ -43,7 +43,7 @@
 
 同一份 500-token 可复现报告覆盖此套餐，原始 JSONL 和机器生成 summary 位于该目录下的 `rk3588/` 子目录：[`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。
 
-## 步骤 1: 部署 Kev 工作台 {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
+## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
 
 为目标设备提供固定版本 engine、FP32 Q/K head、tokenizer、metadata 和 RKLLM 运行时目录。服务启动时不会下载模型权重。
 
@@ -62,7 +62,7 @@
 
 打开 `http://<设备 IP>:18768`，确认健康接口报告模型就绪后再发送决策请求。
 
-## 步骤 2: 打开 Kev 工作台 {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
+## 步骤 2: 打开边缘命令路由（Kev） {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
