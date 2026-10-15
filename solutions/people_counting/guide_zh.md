@@ -113,15 +113,15 @@
 
 ## 步骤 3: 选配：加装 XIAO ESP32-S3 实现 Wi-Fi 与 MQTT 无线上报 {#xiao_wifi type=manual required=false}
 
-如果你希望脱离电脑独立部署，将人流数据无线推送到 Home Assistant、自有看板或云端系统，可以为模组加装一块预焊接排针的 **Seeed Studio XIAO ESP32-S3**。
+如果需要脱离电脑运行并通过 Wi-Fi 或 MQTT 上报人流数据，可以加装预焊接排针的 **Seeed Studio XIAO ESP32-S3**。
 
-### 1. 硬件组装
+### 接线
 
 1. 断开模组供电。
 2. 将 **XIAO ESP32-S3（已焊接排针版本）** 对准 Grove Vision AI Module V2 背面的母座排针插入。
 3. **特别注意朝向**：XIAO 的 Type-C 接口应与 Grove Vision AI V2 的 Type-C 接口保持同一朝向。两者通过底板的 UART 接口直连。
 
-### 2. Wi-Fi 配网方法（AP 热点 Web 配网）
+### 部署完成
 
 XIAO 刷入无线上报固件后，通过内置的 Web 门户完成现场配网，免装任何 IDE 或调试驱动：
 
@@ -134,9 +134,7 @@ XIAO 刷入无线上报固件后，通过内置的 Web 门户完成现场配网�
    - **认证账号**：若启用鉴权，填入用户名和密码；可选勾选 Home Assistant 自动发现。
 5. **保存生效**：点击「Save & Reboot」。配置自动写入 Flash，XIAO 关闭临时热点并连接现场 Wi-Fi。
 
-### 3. 上报数据格式与断网回退
-
-- **MQTT 消息示例**（人员越线或区域人数变动时推送）：
+**MQTT 消息示例**（人员越线或区域人数变动时推送）：
   ```json
   {
     "device_id": "xiao_esp32s3_a1b2",
@@ -150,7 +148,7 @@ XIAO 刷入无线上报固件后，通过内置的 Web 门户完成现场配网�
     "status": "online"
   }
   ```
-- **断网回退保护**：当现场 Wi-Fi 闪断时，Grove Vision AI 依然在本地持续运算并累计人流计数，XIAO 会在后台静默重试。Wi-Fi 恢复后自动重连并补发最新计数值，绝不阻塞视觉推理。
+当现场 Wi-Fi 闪断时，Grove Vision AI 依然在本地持续运算并累计人流计数，XIAO 会在后台重试。Wi-Fi 恢复后自动重连并补发最新计数值，不阻塞视觉推理。
 
 ### 故障排查
 
