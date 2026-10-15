@@ -276,7 +276,7 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 | 提示缺少 iptables | 在语音主机上安装 iptables 后重新部署；本地大模型靠它只对 Home Assistant 主机开放 |
 | 连接设备失败 | 检查 IP 地址、用户名和密码，确认设备已开机并接入局域网 |
 
-### 部署目标: RK3588（云端大模型，本机部署） {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml}
+### 部署目标 {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml}
 
 在当前这台不带加速卡的 reComputer RK3588 上安装，设备控制之外的问题由你填写的云端大模型回答。
 
@@ -284,7 +284,7 @@ ARM64 Linux 主机运行 Home Assistant，语音主机负责听懂语音、生�
 
 通过网络连接不带加速卡的 reComputer RK3588 安装，设备控制之外的问题由你填写的云端大模型回答。
 
-### 部署目标: RK3576（云端大模型，本机部署） {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576（8GB）" config=devices/rk3576_voice.yaml}
+### 部署目标 {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/rk3576_voice.yaml}
 
 在当前这台 reComputer RK3576 上安装，设备控制之外的问题由你填写的云端大模型回答。
 
