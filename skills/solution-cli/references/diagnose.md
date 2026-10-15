@@ -81,7 +81,7 @@ three classes:
 | Class | Example | What you do |
 |---|---|---|
 | **Device / environment** | port taken, disk full, Docker missing, network blocked, wrong password, serial permission | Propose the exact fix commands → user OK → run them → retry |
-| **Solution configuration** | wrong port in compose, health check hits an auth endpoint, missing env var, bad image tag | Desktop app running: fix it in the edit copy (`app-only.md` §4) → validate → apply → retry. Engine only: report the evidence and the file change you propose; the user decides whether to file it (issue report below) |
+| **Solution configuration** | timeout too short, wrong port/env in compose, health check endpoint 404, minor syntax/transfer glitch | **CLI / Engine mode (Auto-healing patch)**: Copy the solution from `~/.sensecraft/content/solutions/<id>` to `./.sensecraft-work/solutions/<id>`, apply the minimal required fix, and redeploy with `sensecraft-engine deploy --params <params-file> --solutions-dir ./.sensecraft-work/solutions --yes --detach` (preserving parameters, restricted to failed devices) so the user succeeds immediately! Show the user the patch diff. Desktop app running: fix it in the edit copy (`app-only.md` §4) → validate → apply → retry. |
 | **Engine bug** | exit code 5, a panic in `engine.log`, a step that fails the same way on any device, behaviour contradicting the solution's own config | Stop. Prepare the issue report below |
 
 If the evidence does not fit any row, say so and show the user the first error
@@ -131,3 +131,18 @@ a link to open in the browser and submit with their own GitHub account.
    separately to paste into the form.
 3. Show the user the filled fields and the link, and say the report will be
    public.
+
+---
+
+## 7. 本地自动打补丁 (Auto-patching) 成功后的脱敏建议回流
+
+当通过 `./.sensecraft-work/solutions/<id>` 本地修复（如解决健康检查超时、 Compose 端口冲突或环境变量微调）并最终验证成功后，Agent **必须主动询问用户是否将脱敏修复 Diff 反馈给 Seeed 官方工程团队**，以实现官方方案库的持续演进：
+
+1. **主动交互询问**：
+   > *“💡 提示：本次部署通过本地热补丁修复了官方方案配置中的轻微缺陷，当前系统已稳定运行。是否同意将已脱敏的修复 Diff 生成建议提交给 Seeed 官方团队？[生成提交链接 / 忽略]”*
+2. **生成预填充建议链接**：
+   若用户同意，生成带脱敏 Diff 的官方 GitHub 方案优化建议链接（已去除所有局域网 IP、密码、密钥和私有路径）：
+   ```
+   https://github.com/suharvest/sensecraft-solutions/issues/new?template=solution-enhancement.yml&title=%5BPatch%5D+<solution_id>+configuration+fix&solution=<solution_id>&diff=<encoded_sanitized_diff>
+   ```
+   用户一键即可直达提交，完成从“端侧自愈”到“云端反哺”的商业与技术生态闭环。

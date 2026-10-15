@@ -1,6 +1,6 @@
 ---
 name: deploy-solution
-description: Deploy an IoT solution via the provisioning station API. Use this skill whenever the user asks to deploy, flash, install, or set up any solution on devices — even if they don't say "deploy" explicitly. Also use it when troubleshooting a failed deployment or checking deployment status.
+description: Compatibility skill for deployments and troubleshooting through an already running SenseCraft desktop App provisioning-station backend. For an independent Agent deployment, use the solution-cli skill and sensecraft-engine instead; do not use this skill as the default standalone deployment path.
 user_invocable: true
 arguments:
   - name: solution_id
@@ -8,9 +8,12 @@ arguments:
     required: false
 ---
 
-# Deploy Solution Skill
+# Deploy Solution Skill (desktop App compatibility)
 
-Deploy IoT solutions through the provisioning station backend API. The core workflow is:
+Use this skill only when the user has the SenseCraft desktop App running and needs
+to inspect or troubleshoot its provisioning-station backend. Independent Agent
+deployments use `skills/solution-cli/SKILL.md` and `sensecraft-engine`; this document
+keeps the App API workflow for compatibility with existing App sessions. The core workflow is:
 **discover backend → pick solution → get deploy-info → fill parameters → start → monitor → verify**.
 
 ## 1. Discover Backend

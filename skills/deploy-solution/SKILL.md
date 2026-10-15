@@ -1,6 +1,6 @@
 ---
 name: deploy-solution
-description: Compatibility skill for deployments and troubleshooting through an already running SenseCraft desktop App provisioning-station backend. For an independent Agent deployment, use the sensecraft skill and sensecraft-engine instead; do not use this skill as the default standalone deployment path.
+description: Compatibility skill for deployments and troubleshooting through an already running SenseCraft desktop App provisioning-station backend. For an independent Agent deployment, use the solution-cli skill and sensecraft-engine instead; do not use this skill as the default standalone deployment path.
 user_invocable: true
 arguments:
   - name: solution_id
@@ -12,7 +12,7 @@ arguments:
 
 Use this skill only when the user has the SenseCraft desktop App running and needs
 to inspect or troubleshoot its provisioning-station backend. Independent Agent
-deployments use `skills/sensecraft/SKILL.md` and `sensecraft-engine`; this document
+deployments use `skills/solution-cli/SKILL.md` and `sensecraft-engine`; this document
 keeps the App API workflow for compatibility with existing App sessions. The core workflow is:
 **discover backend → pick solution → get deploy-info → fill parameters → start → monitor → verify**.
 
