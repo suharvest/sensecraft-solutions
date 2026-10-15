@@ -1,39 +1,39 @@
 # E1003 unified deployment technical demo
 
-Connect E1003 and enter settings in one desktop App form. The App checks the installed firmware, skips installation when it matches, or installs the shared precompiled image when needed, then saves network settings, a device-specific key and a light-button binding. No flash-mode choice, compilation or `secrets.yaml` editing is needed.
+Select the device and enter light settings in one desktop App form. The App checks firmware, installs 0.2.0 when needed and saves configuration. **No API key is required by default; encryption is optional.** Saved Wi-Fi can be reused without a prior local key record. No compilation or `secrets.yaml` editing is needed.
 
-**Verified:** The packaged backend and shared frontend completed matching-firmware skip, a 65-second save wait, reset and encrypted readback. A controlled installation test also performed real writing and verification: only the first identity probe was forced to return no response, and the device retained its key and binding. This did not test a factory-blank device. New Wi-Fi, real Home Assistant light control and display synchronization still need acceptance.
+**Verified:** The packaged backend and shared desktop frontend upgraded 0.1.0 to 0.2.0, reused Wi-Fi, cleared prior encryption, waited 65 seconds, reset and read the target without a key. This was not a native-window submission test. The check after ten minutes, new Wi-Fi through the form, physical touch, real HA control and display synchronization remain pending.
 
 ## What the demo provides
 
 - One precompiled image with a fixed clock, temperature/humidity and lighting-card layout.
-- A separate connection key for each device and a light binding retained after reset; changing the binding requires no rebuild.
-- Save progress, encrypted readback results and a key-copy button inside the App.
+- Configuration and readback without an API key by default; optional encryption exposes key copying only after completion.
+- A light binding retained after reset and App progress for checks, installation and saving.
 
-The lighting card's on/off and four brightness buttons share one setting: “Light controlled by the buttons.” Saving it proves that the binding persists; test actual light control separately in Home Assistant.
+The firmware defines only five touch zones: light on/off and 25%, 50%, 75% and 100% brightness, sharing “Light controlled by the buttons.” Other graphics have no click binding. Physical touch and real light control have not passed acceptance.
 
 ## Product and connection layout
 
 ![Official reTerminal E1003 product photo with Seeed's demonstration interface](gallery/e1003-product-official.jpg)
 
-This E1003 photograph comes from Seeed's official product page. Its screen shows the stock demonstration interface, rather than this firmware's layout or a hardware acceptance result.
+This photograph comes from Seeed's official product page. Its stock screen is not this firmware's layout or a hardware acceptance result.
 
-![Generated architecture illustration: desktop App configures E1003 over USB; Home Assistant validation pending](gallery/e1003-architecture-cover.png)
+![Generated architecture illustration: USB setup and LAN connectivity, with an optional device key](gallery/e1003-architecture-cover.png)
 
-USB handles device identification and network setup. Once the panel is connected, the App writes the light binding and verifies persistence over an encrypted LAN connection. Home Assistant connects over the LAN in the subsequent test. This generated architecture illustration uses schematic device and App appearances; real light control and state synchronization still need acceptance.
+USB handles device identification and network setup; the App writes and reads the light binding over the LAN. **Device key is an optional encryption capability**, unused by default. This is a generated illustration; HA control and state synchronization still need acceptance.
 
 ## How to test
 
-1. Connect E1003 over USB. In the single App form, select the port and enter “Light controlled by the buttons,” such as `light.bedroom`. Enter Wi-Fi for first connection; leave it blank only when this App has the device record and the panel is connected.
-2. Click **Deploy and save settings**. The App checks project identity, version and hardware. A match skips flashing; otherwise the image is verified before installation. There is no preset switch or manual flash decision.
-3. Keep power connected through configuration, the 65-second save wait, reset and encrypted readback. Copy the key inside the App, confirm the device and allow actions in Home Assistant, then test actual light control separately.
+1. Connect USB, select the port in the App and enter “Light controlled by the buttons,” such as `light.bedroom`. Leave Wi-Fi blank to reuse a saved network; enter credentials for first connection.
+2. Leave **Enable API encryption (optional)** unchecked and click **Deploy and save settings**. The App checks project identity, version and hardware, skipping a match or verifying the image before installation.
+3. Keep power connected through the 65-second save wait, reset and readback. Confirm the device directly in Home Assistant in default mode; copy a key only when encryption was enabled. Allow HA actions, then test the five touch zones separately.
 
 ## Interfaces and requirements
 
-USB uses Improv Serial for network setup. The LAN connection uses encrypted ESPHome native API (TCP 6053) for configuration and readback. No MQTT or device web server is required. The computer, panel and Home Assistant must be mutually reachable; light-control testing requires an existing dimmable light entity.
+Uses Improv Serial and ESPHome native API (TCP 6053), with no MQTT or device web server. API access is unencrypted by default with optional encryption. The computer, device and HA must share a reachable LAN.
 
-This demo supports only the current E1003 layout and USB updates, with no OTA. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
+Supports only the current E1003 layout and USB updates, with no OTA. State and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
 
-> This technical demo candidate is disabled. The unified flow requires an App with automatic firmware checks (contract 12). Public contract synchronization and a public firmware download are pending; this candidate cannot yet execute installation and configuration directly.
+> The formal technical candidate remains disabled pending public contract 13 and a firmware download. The native window confirmed an unchecked encryption default and no key-copy button; the full upgrade/configuration evidence comes from the packaged backend and shared frontend.
 
-The native configuration implementation is in [App draft PR #162](https://github.com/suharvest/app_collaboration/pull/162).
+See [App draft PR #162](https://github.com/suharvest/app_collaboration/pull/162) for the native implementation.

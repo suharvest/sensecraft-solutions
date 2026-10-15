@@ -64,6 +64,19 @@ class CandidatePackagingTests(unittest.TestCase):
         for path in (self.output / "devices").glob("*.yaml"):
             self.assertFalse(yaml.safe_load(path.read_text()).get("user_inputs"))
 
+    def test_release_manifest_and_review_template_reference_the_same_image(self):
+        manifest = json.loads((staging.SOURCE / "assets/firmware/manifest.json").read_text())
+        flash = yaml.safe_load((staging.SOURCE / "assets/firmware/esp32_usb.yaml.in").read_text())
+        self.assertEqual(flash["firmware"]["source"]["checksum"]["sha256"], manifest["sha256"])
+        self.assertEqual(flash["firmware"]["source"]["path"], manifest["package_path"])
+        self.assertEqual(flash["firmware"]["flash_config"]["chip"], manifest["chip"])
+        self.assertEqual(
+            flash["firmware"]["flash_config"]["partitions"][0]["offset"],
+            manifest["flash_offset"],
+        )
+        self.assertIs(manifest["full_chip_erase"], False)
+        self.assertIsNone(manifest["download_url"])
+
     def test_rejects_same_size_corruption_before_creating_output(self):
         self.firmware.write_bytes(b"x" * len(self.payload))
         with self.assertRaisesRegex(ValueError, "SHA-256"):

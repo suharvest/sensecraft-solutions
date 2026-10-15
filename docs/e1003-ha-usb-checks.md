@@ -3,7 +3,33 @@
 日期：2026-10-15。结论：**分类已改为 technical；App USB 烧录和内置表单保存均有实机证据。正式候选仍禁用，公开契约同步、固件资源与 HA 验收待完成。**
 接入条件见[技术演示与接入契约](e1003-ha-usb-candidate.md)。
 
-## 当前统一部署验收（contract 12）
+## 当前 0.2.0 默认免密验收（contract 13）
+
+固件 [PR #2](https://github.com/Love4yzp/esphome-reterminal-e1003-workspace/pull/2) 为
+`a7116ee153158505faeec225d691c0cdef85a6da`；App [PR #162](https://github.com/suharvest/app_collaboration/pull/162)
+为 `68328f90`、contract 13。`encrypt_api=false` 为默认，开启加密才提供完成后的密钥复制。
+
+| 检查 | 当前证据与边界 |
+| --- | --- |
+| 固件资源 | 0.2.0；factory 1,377,472 B；SHA `45cbf1ec46d5a00e8362e6d920cd9318841c58f2a081cfae809d9e38e64ccebb`；manifest 和模板同步，无公网 URL |
+| 实际升级 | 任务 `56899ea5f4c441aab0bf1ea227c50473` 检测 0.1.0，真实安装 0.2.0；写入校验和身份校验通过，本次无 probe 故障注入 |
+| 默认配置 | Wi-Fi 留空复用；旧恢复 key 授权清除加密、写同一 target、等待 65 秒、复位免密读回；`encrypted=false`，记录不含 `api_key` |
+| 记录边界 | 无 key 设备可在没有本机旧记录时复用网络；旧加密设备仍用原 key 授权清除，免密重连前不删记录 key，不擦 NVS。无本机记录的复用路径有工具测试，不与本次旧 key 迁移混为同一硬件起始状态 |
+| 操作面 | 打包后端 + 桌面共享前端经 browser QA 提交，不是本次 native-window 提交验收；原生实际窗口只确认 checkbox AXValue=0、无 key 复制按钮 |
+| 视口 | 桌面和 375×812 截图审查无横向溢出；不把截图审查当硬件触摸证明 |
+| 软件检查 | 19 固件工具检查、54 App 聚焦检查 + 5 subtests、956 前端通过；config/compile 通过，无新增 compiler warning |
+| 构建体积 | RAM 112,639 B，app flash 1,311,819 B；factory 相比 0.1.0 少 1,040 B |
+| API 生命周期 | 移除 10 分钟初始 provisioning timer，关闭等待 API 客户端的 reboot；十分钟后免密实机复查尚未完成 |
+| 触摸 | 灯开关和 25/50/75/100 五个触摸区，其它图形无点击绑定；坐标未改，只新增 INFO 诊断。触摸、HA 控灯和同步尚未验收，不宣称按钮已修复 |
+| App CI（主控报告） | `24bb0256` parity 修复后的完整 CI 已全绿；`68328f90` 新 CI 待跟进。与下文旧全套测试限制、内容仓库无关 404 分开记录 |
+| 正式内容 | 仍为一个 preset、`enabled:false`、公开 contract 5 可验证的 review stub，等待公开 contract 13 和资源分发 |
+
+公开依据为固件 `docs/keyless-reference-verification.md`、用户点名的 keyless JSON 和 manifest。
+[本轮公开证据](evidence/e1003-keyless-reference-2026-10-15.json)原样复制无 key/密码的记录。
+没有读取 AppSupport、恢复记录、其他 `.local-*` 文件或设备日志；没有操作 App/串口。
+真实 factory 仅用于作者侧既有打包检查，不提交二进制。0.1 加密证据及相应旧 SHA/任务继续保留如下。
+
+## 历史阶段：0.1.0 统一部署验收（contract 12）
 
 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162) 已推送 `689789d9`，
 标题为 `feat: deploy E1003 in-App with automatic firmware checks`。实际本地 App 页面只有
@@ -50,7 +76,7 @@
 本内容会话仅采纳上述公开结论，没有重跑设备操作或访问 `.local-*`。
 本地 debug 包未公证或发布。打包后端、共享前端 QA 与原生窗口实机流程分别记录，
 不合并为“完整安装版已发行/整体验收通过”。正式内容仍使用公开 contract 5 可验证的人工 stub，
-待从 App 真源同步 contract 12 后接入统一执行类型；未擅自修改生成的 spec。
+当前待从 App 真源同步 contract 13 后接入统一执行类型；未擅自修改生成的 spec。
 
 ## 初始内容检查
 
@@ -151,11 +177,11 @@ argv 或生成配置文件；复用已有私有 key 记录或首次生成，用�
 
 ## 尚未完成的验收
 
-1. App 草稿 PR #162（`689789d9`）的后续审查与兼容功能分发；公开契约由 5 同步至 12，随后替换候选 review stub。
+1. App 草稿 PR #162（`68328f90`）的 CI/后续审查与兼容功能分发；公开契约由 5 同步至 13，随后替换候选 review stub。
 2. 真实固件缺公开下载地址；未发布资源或修改发布清单。
 3. 新原生表单配置新 Wi-Fi 的物理验证；旧客户端配网通过不能代替新表单验收。
 4. HA 设备确认、动作权限、真实灯控制及触摸；任意目标状态和亮度显示同步还需 Blueprint/适配。
-5. 出厂空白设备、两面板隔离、支持平台安装与下载、跨版本迁移；OTA 继续关闭。
+5. 十分钟后免密复查、出厂空白设备、两面板隔离、支持平台安装与下载、其他版本迁移；本次仅接受已验证的 0.1.0→0.2.0 场景，OTA 继续关闭。
 
 本次不重复硬件操作，不读取 key/NVS/私密备份。人工清单返回成功不能作为部署通过；
 正式候选继续 `enabled: false`。
@@ -176,7 +202,7 @@ argv 或生成配置文件；复用已有私有 key 记录或首次生成，用�
 TCP 6053 与绑定读回在正文说明，不伪造 HTTP、MQTT 或设备网页接口。
 
 双语指南改为 App 内置表单、保存进度及成功后的密钥复制按钮。保留原 guide 属性块、
-manual 执行类型、固定固件 SHA 和安全烧录参数；当时等待 contract 11，当前统一部署依赖已升级为 12。
+manual 执行类型、固定固件 SHA 和安全烧录参数；当时等待 contract 11，该轮统一部署依赖升级为 12；当前默认免密依赖为 13。
 本轮复核：`solutionctl validate --check-urls` 通过；现有测试 **101 passed、14 skipped**，
 其中 5 项为候选打包测试。格式用例因既有目录定位而跳过，不能视为渲染证明；候选的
 schema、引用和双语属性由实际 `solutionctl validate` 检查。
@@ -224,3 +250,16 @@ schema、引用和双语属性由实际 `solutionctl validate` 检查。
 本次内容校验（`--check-urls`）、5 项既有打包测试、文案 lint、公开仓库边界与差异检查通过；
 16 处本地链接/锚点有效。证据中的 SHA 与 canonical manifest 一致；单一 preset、禁用状态、
 guide 属性块、固件版本/哈希/NVS 策略、产品族与图片未变。未重跑 App 测试或设备操作。
+
+### 0.2.0 默认免 API 密钥修订
+
+本轮替换当前文案中的强制加密、必需本机 key 记录和总是复制密钥的引导；旧 0.1 加密证据保持历史含义。
+保留单入口和图像，Device key 图注改为可选能力；更新 manifest 与 flash-review 模板 SHA，
+新增二者资源引用一致性的打包回归检查。固件版本、大小与 SHA 仅按新构建同步，安全烧录/NVS 策略不变。
+
+本轮 `solutionctl validate --check-urls`、产品族检查、文案 lint、公开边界与差异检查通过；
+现有测试 **102 passed、14 skipped**（含 6 项打包检查；既有格式目录定位的跳过限制同前）。
+使用唯一获准的新 factory 路径执行既有作者打包：stage 校验 size/SHA，生成副本仍禁用，
+实际 `esp32_usb` 配置再次校验通过；导出包 14 个文件、CRC 有效，包内新固件大小与 SHA 一致。
+临时含 bin 的审阅包在检查结束清理，未提交二进制。15 处本地链接/锚点有效；产品族、图片、
+单一入口、guide 属性块及 115200/0x0/erase=false 保持。没有为测试启动 App、读取实际 key 或操作设备。

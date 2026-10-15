@@ -1,9 +1,10 @@
 # Factory image resource
 
-The binary is deliberately absent from Git. There is no public download URL
-and no release has been created. `manifest.json` pins the exact local artifact;
-`esp32_usb.yaml.in` is the deployment configuration to review, not an active
-device configuration in the source candidate.
+Git does not contain the binary, and no public download URL or release exists.
+`manifest.json` pins release **0.2.0**, source
+`a7116ee153158505faeec225d691c0cdef85a6da`, 1,377,472 bytes, SHA-256
+`45cbf1ec46d5a00e8362e6d920cd9318841c58f2a081cfae809d9e38e64ccebb`.
+`esp32_usb.yaml.in` references that image but is not an active candidate step.
 
 From the repository root, a maintainer can materialize a **local review copy**:
 
@@ -20,40 +21,30 @@ uv run --package sensecraft-solutionctl solutionctl export reterminal_e1003_ha \
   --output-dir /private/tmp/e1003-review/packages
 ```
 
-The tool checks size and SHA-256 before creating output, copies only the
-allowlisted solution files and the supplied factory image, and replaces the
-first review step with the real `esp32_usb` configuration. It keeps
-`enabled: false`. It does not connect to hardware, import into App, configure
-Wi-Fi or keys, or publish anything. End users will not run this authoring tool.
+The tool checks size/SHA, copies only allowlisted files and materializes the
+flash-review step. It keeps `enabled: false` and never connects to hardware,
+imports into the App, configures devices or publishes. End users do not run it.
+It is not the unified end-user flow: the contract 13 App checks project,
+version, hardware and name, then installs only when needed in the same form.
 
-The factory image goes at **0x0**, never 0x10000. It contains the bootloader,
-partition table, initial OTA data and app; do not add a second bootloader/app
-write. The pinned image uses a 4 MB layout on a panel with 32 MB physical flash.
-The NVS partition lies beyond this merged image's write range. Keep the
-`erase` substep **false** for normal USB updates. Same-image, same-partition
-retention was verified in the firmware project and the local App USB test;
-cross-version migration remains unverified. Evidence is recorded in the content
-repository at `docs/e1003-ha-usb-checks.md`.
+Write the merged factory image at **0x0**, never 0x10000; do not add duplicate
+bootloader/app writes. Keep 115200, the built 4 MB layout and full-chip erase
+off. NVS starts at 0x3a0000, beyond this image's write range. The local actual
+0.1.0→0.2.0 upgrade retained Wi-Fi and the light target without erasing NVS.
+It then used the prior private key to clear encryption and confirmed keyless
+readback. Other migrations and factory-blank devices are not accepted by this
+single test. Earlier encrypted 0.1 evidence remains in `docs/e1003-ha-usb-checks.md`.
 
-For eventual distribution, a maintainer must separately authorize publication,
-upload the reviewed binary, verify its downloaded hash, replace the local
-resource reference with that real URL, synchronize the public contract for the
-native App configuration step, and complete the remaining acceptance before
-enabling this technical demo. Do not generate a URL from a guessed release tag.
+0.2.0 uses no API key by default; encryption is optional. It removes the initial
+10-minute API provisioning timer and disables API-client-wait rebooting. The
+check after ten minutes is still pending. Native-window inspection confirmed
+an unchecked encryption option and no copy button; this release's complete
+upgrade/configuration test used the packaged backend and shared frontend.
 
-The unified App flow (contract 12) loads this canonical manifest using the
-solution ID, checks the device's project/version/hardware/name, and installs
-only if needed before applying settings. Users do not choose between flashing
-and configuration presets. The authoring tool above remains an isolated
-flash-review utility, not that unified end-user flow. The packaged-backend/shared-frontend job completed the matching-firmware skip
-and configuration persistence flow. A controlled installation test forced only
-the first identity probe to return no response, then performed actual writing
-and `verify_flash` via the same esptool Python API path as PyInstaller, checked
-USB identity again and verified key/target retention. This does not accept
-factory-blank devices or new Wi-Fi setup through the native form.
+Every different build must use a different firmware `project.version`, with
+matching manifest version, size and SHA. The skip decision checks identity,
+not an on-device image hash. A content version bump alone is insufficient.
 
-Each different firmware build must have a different firmware `project.version`
-and matching `firmware_version`, size and SHA in this manifest. The skip decision
-uses device identity/version, not an on-device image hash. Never replace the
-pinned image with a different build carrying the same project/version; changing
-only the solution content version does not distinguish firmware builds.
+Distribution still needs a separately authorized public binary URL, a verified
+download hash, compatible App distribution and generated public contract 13
+synchronization. No URL may be invented and the candidate stays disabled.
