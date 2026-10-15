@@ -1,8 +1,8 @@
 version: "1.0"
 id: edge_command_workbench
-name: Edge Command Workbench
+name: Edge Command Router
 name_i18n:
-  zh: 边缘设备命令工作台
+  zh: 边缘命令路由
 
 intro:
   summary: A local web workbench that turns short machine requests into a ranked command choice on RK3576 and RK3588.

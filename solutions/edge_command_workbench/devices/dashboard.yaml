@@ -1,15 +1,15 @@
 version: "1.0"
 id: dashboard
-name: Open Command Workbench
+name: Open Edge Command Router
 name_i18n:
-  zh: 打开命令工作台
+  zh: 打开边缘命令路由
 type: web_dashboard
 inherit_host_from: deploy
 web_dashboard:
   url: http://{{deploy.host}}:18768
-  title: Edge Command Workbench
+  title: Edge Command Router
   title_i18n:
-    zh: 边缘设备命令工作台
+    zh: 边缘命令路由
   description: Open the local workbench and submit a candidate-command request.
   description_i18n:
     zh: 打开本地工作台并提交候选命令请求。
