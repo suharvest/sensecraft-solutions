@@ -45,9 +45,12 @@ The unified App flow (contract 12) loads this canonical manifest using the
 solution ID, checks the device's project/version/hardware/name, and installs
 only if needed before applying settings. Users do not choose between flashing
 and configuration presets. The authoring tool above remains an isolated
-flash-review utility, not that unified end-user flow. A matching hardware probe
-selected skip; the new installation branch and complete flow still need
-hardware acceptance.
+flash-review utility, not that unified end-user flow. The packaged-backend/shared-frontend job completed the matching-firmware skip
+and configuration persistence flow. A controlled installation test forced only
+the first identity probe to return no response, then performed actual writing
+and `verify_flash` via the same esptool Python API path as PyInstaller, checked
+USB identity again and verified key/target retention. This does not accept
+factory-blank devices or new Wi-Fi setup through the native form.
 
 Each different firmware build must have a different firmware `project.version`
 and matching `firmware_version`, size and SHA in this manifest. The skip decision

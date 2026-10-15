@@ -2,7 +2,7 @@
 
 Connect E1003 and enter settings in one desktop App form. The App checks the installed firmware, skips installation when it matches, or installs the shared precompiled image when needed, then saves network settings, a device-specific key and a light-button binding. No flash-mode choice, compilation or `secrets.yaml` editing is needed.
 
-**Evidence:** A real-device identity probe matched the release and selected skip. Earlier native-window configuration persistence and key copying also passed. The new installation branch and complete unified flow still need acceptance, as do new Wi-Fi, real Home Assistant light control and display synchronization.
+**Verified:** The packaged backend and shared frontend completed matching-firmware skip, a 65-second save wait, reset and encrypted readback. A controlled installation test also performed real writing and verification: only the first identity probe was forced to return no response, and the device retained its key and binding. This did not test a factory-blank device. New Wi-Fi, real Home Assistant light control and display synchronization still need acceptance.
 
 ## What the demo provides
 

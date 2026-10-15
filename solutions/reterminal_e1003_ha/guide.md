@@ -67,4 +67,4 @@ This step requires a real Home Assistant instance and light; hardware acceptance
 
 ### Deployment Complete
 
-Record the automatic decision, installation or skip, configuration persistence and real light control separately. New hardware evidence covers a matching probe selecting skip; native configuration persistence has separate earlier evidence. The new installation branch and complete unified flow still need acceptance, as do new Wi-Fi, real HA control and dynamic display synchronization.
+Record the automatic decision, installation or skip, configuration persistence and real light control separately. The packaged backend and shared frontend completed matching-firmware skip, a 65-second save wait, reset and encrypted readback. In the controlled installation test, only the first probe was forced to return no response; real writing, verification, a second identity check and retention of the key/binding then passed. Factory-blank devices, new Wi-Fi through the form, real HA control and dynamic display synchronization still need acceptance.

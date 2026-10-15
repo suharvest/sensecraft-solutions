@@ -3,23 +3,28 @@
 日期：2026-10-15。结论：**分类已改为 technical；App USB 烧录和内置表单保存均有实机证据。正式候选仍禁用，公开契约同步、固件资源与 HA 验收待完成。**
 接入条件见[技术演示与接入契约](e1003-ha-usb-candidate.md)。
 
-## 当前统一部署进度（contract 12）
+## 当前统一部署验收（contract 12）
 
-用户入口收敛为一个 preset、一张表单和一次“部署并保存配置”提交。主控已实现前端传
-`solution_id`，后端按 canonical manifest 自动检查固件、匹配跳过或按需安装，再配置及验证保存。
-本内容会话只读核对 `e1003_firmware.py` / `e1003_setup.py` 等公开源码，未运行它们。
+[App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162) 已推送 `689789d9`，
+标题为 `feat: deploy E1003 in-App with automatic firmware checks`。实际本地 App 页面只有
+一个 deploy preset 和一个 `e1003_config` 步骤，同一表单提交后执行固件检查与配置。
 
 | 检查 | 证据与边界 |
 | --- | --- |
-| 身份匹配 | Improv 的 project、version、hardware、name 全部核对；目标为 `love4yzp.e1003-dashboard` / `0.1.0` / `ESP32-S3` 及设备名称规则 |
-| 真机自动判定 | 主控报告实际探测匹配并判定 skip 已通过；不扩大为完整统一 job 已通过 |
-| 需要安装的路径 | 源码校验镜像大小/SHA，经已捆绑 esptool 写 `0x0`、`verify_flash`，再查固件身份；不全片擦除、保留 NVS，租约覆盖全部阶段。该分支尚无本轮真机验收证据 |
-| 配置阶段 | 继续使用独立 key、65 秒保存、复位与加密读回；旧原生窗口配置证据见下节，不能代替新安装分支或完整任务验收 |
-| 提交与契约 | App 草稿 PR #162 尚未提交本批统一任务/contract 12；`6efdf2ee` 只对应此前 contract 11 证据。正式内容仍按公开 contract 5 保留禁用 review stub，等待 12 同步 |
-| 版本约束 | 清单和镜像未改；以后不同构建必须变更固件 `project.version`，不得用同版本掩盖不同镜像，否则身份匹配无法判别 |
+| 身份匹配 | Improv 核对 project/version/hardware/name；目标为 `love4yzp.e1003-dashboard` / `0.1.0` / `ESP32-S3` 及设备名称规则 |
+| 完整匹配流程 | 打包后端 + 共享前端任务 `2aceff876f334cd4bd480a859b005dfd` 为 `completed`，固件 `action=skipped`；保存 65 秒、复位后加密目标读回完整通过 |
+| 受控实际安装 | 仅首次 probe 故障注入为 `None`，随后通过实际 PyInstaller 同路 esptool Python API 写固定 SHA 的 factory image、`verify_flash`；真实 USB 二次读取匹配 `0.1.0`，`action=installed` |
+| 配置保留 | 受控安装后原 key 与保存 target 的加密读回通过；不全片擦除，NVS 策略不变 |
+| 测试条件 | 此为故障注入触发的实际写入测试，不是出厂空白设备、版本升级迁移或新 Wi-Fi 原生表单验收；不把它描述为整个安装分支从所有初态均已通过 |
+| App 检查（主控报告） | 955 前端、49 Python + 5 subtests、3 项本机目录配置、7 Rust verify 检查通过；PyInstaller/Rust/Tauri 构建通过。不同于下节历史全套 Python 的结果，不宣称全套重跑绿色 |
+| 提交与内容契约 | 统一实现已提交 `689789d9`、contract 12；正式内容仍为公开 contract 5 可验证的禁用 review stub，待 12 同步后接入原生执行 |
+| 版本约束 | canonical manifest 和镜像未改；未来不同构建必须变更固件 `project.version`，不能同版本复用不同镜像 |
 
-主控仍在执行本地完整统一流程，本内容更新不等待或推定其结果。新 Wi-Fi、真实 HA 控灯、
-触摸和动态状态同步也继续待验收；未操作 App/串口或读取 `.local-*` 私密记录。
+本内容会话只读取了用户逐一点名、明确不含 key/密码的 `single-flow-hardware-result.json`
+和 `controlled-install-result.json`，没有枚举目录或读取其他 `.local-*` 文件，也未操作 App/串口。
+[公开证据摘要](evidence/e1003-unified-flow-2026-10-15.json) 保留任务状态、固件动作与受控安装结果，
+移除了设备名称、局域网地址与测试 target 值；65 秒/复位读回及 App 检查数量明确来自主控补充。
+新 Wi-Fi、真实 HA 控灯、触摸与动态状态同步继续待验收。
 
 ## 历史阶段：contract 11 原生 App 配置证据
 
@@ -146,11 +151,11 @@ argv 或生成配置文件；复用已有私有 key 记录或首次生成，用�
 
 ## 尚未完成的验收
 
-1. App 草稿 PR #162 的后续审查与兼容功能正式分发；统一任务提交/审查和公开契约由 5 同步至 12，随后替换候选 review stub。
+1. App 草稿 PR #162（`689789d9`）的后续审查与兼容功能分发；公开契约由 5 同步至 12，随后替换候选 review stub。
 2. 真实固件缺公开下载地址；未发布资源或修改发布清单。
 3. 新原生表单配置新 Wi-Fi 的物理验证；旧客户端配网通过不能代替新表单验收。
 4. HA 设备确认、动作权限、真实灯控制及触摸；任意目标状态和亮度显示同步还需 Blueprint/适配。
-5. 两面板隔离、支持平台安装与下载、跨版本迁移；OTA 继续关闭。
+5. 出厂空白设备、两面板隔离、支持平台安装与下载、跨版本迁移；OTA 继续关闭。
 
 本次不重复硬件操作，不读取 key/NVS/私密备份。人工清单返回成功不能作为部署通过；
 正式候选继续 `enabled: false`。
@@ -209,3 +214,13 @@ schema、引用和双语属性由实际 `solutionctl validate` 检查。
 **101 passed、14 skipped**（既有目录定位限制同前）。15 处本地链接/锚点及导出 ZIP CRC 通过；
 额外确认仍只有 `usb_candidate` 一个 preset、候选禁用、guide 属性块不变，固件清单和镜像参数、
 图片及产品族选择未变。没有启动或调用 App，也没有执行任何设备测试。
+
+### 统一流程最终证据补充
+
+已用 `689789d9` 的完整匹配任务和受控实际安装结果替换上一轮“仍在测试/尚未提交”的当前结论。
+保留原生窗口、独立 USB 烧录和图像展示的历史证据，并明确安装测试故障注入的范围。
+本次只修改文案与公开检查记录；入口仍为一个，候选仍禁用，manifest 版本/哈希、NVS 策略与图片不变。
+
+本次内容校验（`--check-urls`）、5 项既有打包测试、文案 lint、公开仓库边界与差异检查通过；
+16 处本地链接/锚点有效。证据中的 SHA 与 canonical manifest 一致；单一 preset、禁用状态、
+guide 属性块、固件版本/哈希/NVS 策略、产品族与图片未变。未重跑 App 测试或设备操作。
