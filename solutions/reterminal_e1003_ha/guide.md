@@ -2,7 +2,7 @@
 
 Connect the device and enter the light to control. The App checks and installs firmware when needed.
 
-> Disabled technical demo candidate. This manual review step does not configure hardware; formal execution awaits the public App contract (cleanup target: 15), a compatible App and firmware download URL.
+> Disabled technical demo candidate. This manual review step does not configure hardware; formal execution awaits public App contract 15 synchronization, a compatible App and firmware download URL.
 
 ## Step 1: Configure E1003 {#review_setup type=manual required=true verify=true config=devices/review_setup.yaml}
 
@@ -21,7 +21,7 @@ In a compatible test App, click **Save settings** and wait for **Settings saved 
 
 <details>
 <summary>Technical details and release dependencies</summary>
-<p>Reference firmware 0.2.1 is fixed plaintext-only, with no encryption or API key controls. Public contract 5 provides only this manual review step; the App cleanup target is contract 15, pending finalization and public synchronization.</p>
+<p>Reference firmware 0.2.1 is fixed plaintext-only, with no encryption or API key controls. Public contract 5 provides only this manual review step; App contract 15 is committed at a597ccad, pending public content synchronization.</p>
 <p>Factory size: 1,337,072 B. SHA-256: <code>23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528</code>. Use 115200, offset 0x0, no full-chip erase and retain NVS. Formal execution also needs a compatible App and public firmware URL.</p>
 <p>Build/software and UI checks passed; final 0.2.1 hardware upload, new Wi-Fi, upgrade/migration, sustained plaintext operation, physical touch, real HA control and display synchronization remain pending acceptance.</p>
 </details>

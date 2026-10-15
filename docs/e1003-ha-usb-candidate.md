@@ -14,7 +14,7 @@
 5. 仅成功后显示设备地址和 HA 下一步：添加 ESPHome 设备、允许执行动作，再验证实际控灯。
 
 参考固件 0.2.1 固定明文 native API，无 API 密钥控件、MQTT 或设备 web server，仅支持 USB 更新。
-先前可选加密不能保证始终免密，因此参考构建已移除加密编译能力；开发者固件独立保留加密。
+开发者固件独立保留加密，不属于本参考构建。
 
 ## 固件资源约束
 
@@ -35,11 +35,11 @@
 
 ## 当前验证与发行依赖
 
-- App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 已实现单表单、共享状态、后端保存倒计时、失败重试及成功后才显示 HA 下一步；空日志隐藏，提交清空密码、成功清空 SSID。
-- 当前软件证据：964 前端、54 Python + 5 subtests 通过；Black/Ruff、production/PyInstaller/Tauri 构建通过。Ego 模拟与桌面/375×812 视口检查通过；Playwright 本地未运行。
+- App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 最终精简提交 `a597ccad`，contract 15：`solution_id` 必填；移除 `encrypt_api`、key-copy 端点、加密迁移及磁盘 key/state 记录。协议只在 App 实现；固件仓库 `9e6ab75` 已删除重复 CLI/adapter 和历史报告。
+- 当前软件检查：60 backend + 5 subtests、964 frontend、contract freeze/route checks、Black/Ruff、PyInstaller 和 contract 15 Rust sidecar 构建通过。已有 Ego 模拟与桌面/375×812 视口检查通过；Playwright 本地未运行。
 - 原生 macOS 窗口已核对默认折叠、无密钥控件和成功前显隐；未点击保存、未创建真实 setup job。
 - **0.2.1 最终硬件上传未验收**；触摸、真实 HA 控灯、新 Wi-Fi、升级迁移、持续免密与动态状态/亮度同步均未验收。五个灯光区域定义动作不等于实测通过；同步仍需 HA Blueprint 或适配。
-- 本轮 App 清理目标为 contract 15（移除未发布 key API / `encrypt_api`），最终提交与公开契约同步仍是依赖；正式候选不引入未发布类型。兼容 App 分发和固件公网 URL 也尚未就绪。
+- App contract 15 已提交；内容仓库公开契约仍为 5，需同步后才能替换原生步骤。兼容 App 分发、固件公网 URL 与实机验收仍是发行依赖。
 - App 完整 CI 尚有 Rust 方案快照差异；内容 CI 曾因无关方案的 `supervisor_0.5.6_riscv64.deb` 返回 404，见[原日志](https://github.com/suharvest/sensecraft-solutions/actions/runs/38673057418/job/116220379050)。不宣称完整 CI 全绿。
 
 ## 离线检查

@@ -1,8 +1,8 @@
 # 0.2.1 plaintext-only factory resource
 
 The reference build at firmware `09b3bbb` compiles out API encryption.
-The App cleanup targets contract 15; formal content still uses public contract
-5 and remains disabled until contract synchronization and compatible App distribution.
+App `a597ccad` implements contract 15; formal content still uses public
+contract 5 and remains disabled pending synchronization and compatible App distribution.
 
 `manifest.json` and `esp32_usb.yaml.in` pin the actual **0.2.1** image:
 1,337,072 bytes, SHA-256

@@ -5,7 +5,7 @@ name_i18n:
   zh: 配置 E1003
 type: manual
 # Public contract 5 review only; replace with one e1003_config step after
-# the App cleanup target (contract 15) is finalized and publicly synchronized.
+# App contract 15 (a597ccad) is synchronized to public content schemas.
 steps:
   - id: review_setup
     name: Review the setup flow and acceptance requirements

@@ -2,7 +2,7 @@
 
 连接设备，填写要控制的灯。App 会自动检查并按需安装固件。
 
-> 技术演示候选仍禁用；本人工审阅步骤不配置设备。正式执行等待 App 公开契约（本轮清理目标为 15）、兼容 App 与固件下载 URL。
+> 技术演示候选仍禁用；本人工审阅步骤不配置设备。正式执行等待 App contract 15 公开同步、兼容 App 与固件下载 URL。
 
 ## 步骤 1: 配置 E1003 {#review_setup type=manual required=true verify=true config=devices/review_setup.yaml}
 
@@ -21,7 +21,7 @@
 
 <details>
 <summary>技术详情与接入依赖</summary>
-<p>参考固件 0.2.1 固定明文，不提供加密或 API 密钥控件。公开 contract 5 仅支持当前人工审阅步骤；本轮 App 清理目标为 contract 15，尚待最终确认与公开同步。</p>
+<p>参考固件 0.2.1 固定明文，不提供加密或 API 密钥控件。公开 contract 5 仅支持当前人工审阅步骤；App contract 15 已提交 a597ccad，尚待内容公开契约同步。</p>
 <p>固件大小 1,337,072 B；SHA-256：<code>23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528</code>。使用 115200、offset 0x0、不全片擦除并保留 NVS。正式执行还需兼容 App 与固件公网 URL。</p>
 <p>构建、软件与 UI 检查通过；0.2.1 最终硬件上传、新 Wi-Fi、升级迁移、持续免密、实际触摸、真实 HA 控灯与屏幕同步均未验收。</p>
 </details>
