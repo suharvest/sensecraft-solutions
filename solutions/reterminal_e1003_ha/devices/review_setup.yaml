@@ -4,10 +4,10 @@ name: Configure E1003
 name_i18n:
   zh: 配置 E1003
 type: manual
-# Native e1003_config requires App contract 14; public content contract is still 5.
-# Keep this review stub until generated public schemas and compatible App are available.
+# Public contract 5 review only; replace with one e1003_config step after
+# the App cleanup target (contract 15) is finalized and publicly synchronized.
 steps:
-  - id: adapter_pending
-    name: Click Save settings and wait for verification
+  - id: review_setup
+    name: Review the setup flow and acceptance requirements
     name_i18n:
-      zh: 点击保存配置，等待验证
+      zh: 审阅配置流程与验收条件

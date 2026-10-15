@@ -64,7 +64,11 @@ class CandidatePackagingTests(unittest.TestCase):
         flash = yaml.safe_load((self.output / "devices/e1003_usb.yaml").read_text())
         self.assertEqual(flash["firmware"]["flash_config"]["partitions"][0]["offset"], "0x0")
         self.assertFalse(next(s for s in flash["steps"] if s["id"] == "erase")["default"])
-        self.assertFalse((self.output / "devices/review_flash.yaml").exists())
+        self.assertEqual(
+            {p.name for p in (self.output / "devices").glob("*.yaml")},
+            {"e1003_usb.yaml"},
+        )
+        self.assertEqual(flash["firmware"]["flash_config"]["baud_rate"], 115200)
         for path in (self.output / "devices").glob("*.yaml"):
             self.assertFalse(yaml.safe_load(path.read_text()).get("user_inputs"))
 
@@ -80,6 +84,14 @@ class CandidatePackagingTests(unittest.TestCase):
         )
         self.assertIs(manifest["full_chip_erase"], False)
         self.assertIsNone(manifest["download_url"])
+        solution = yaml.safe_load((staging.SOURCE / "solution.yaml").read_text())
+        self.assertFalse(solution["enabled"])
+        self.assertEqual(solution["intro"]["solution_type"], "technical")
+        self.assertEqual(len(solution["intro"]["presets"]), 1)
+        for lang in ("guide.md", "guide_zh.md"):
+            guide = (staging.SOURCE / lang).read_text()
+            self.assertEqual(guide.count("type=manual"), 1)
+            self.assertEqual(guide.count(staging.OLD_STEP), 1)
 
     def test_rejects_same_size_corruption_before_creating_output(self):
         self.firmware.write_bytes(b"x" * len(self.payload))

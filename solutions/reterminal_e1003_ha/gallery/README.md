@@ -1,18 +1,11 @@
 # E1003 visual assets
 
-- `e1003-product-official.jpg`: unmodified official reTerminal E1003 product photo, 1800×1200. Model/SKU checked with `solution-cli product query reterminal_e_series --json` (E1003, 100090602). Source: [Seeed product page](https://www.seeedstudio.com/reTerminal-E1003-p-6731.html), [original image](https://media-cdn.seeedstudio.com/media/catalog/product/1/-/1-reterminal-e1003-epaper-display.jpg). The screen is Seeed's stock demonstration, not an acceptance photo of this firmware. Rights remain with Seeed Studio.
-- `e1003-architecture-cover.png`: generated with Codex's built-in imagegen, then inspected. This is an architecture illustration, not a product photograph or a live App screenshot. It distinguishes USB setup, Wi-Fi/LAN and pending HA validation.
+## Current cover
 
-## Generation prompt
+`e1003-keyless-cover.png` (1774×887) was generated with Codex's built-in imagegen and visually reviewed. It illustrates USB setup, a fixed plaintext reference firmware with **No API key**, LAN connectivity and pending Home Assistant validation. It is not an App screenshot or evidence of real light control.
 
-Create a polished wide 16:9 cover for an E1003 ESPHome runtime-configuration technical demo. Off-white background, charcoal text and green accent. Headline `E1003`, subtitle `One firmware. Runtime configuration.` Four schematic nodes: `DESKTOP APP`, `E1003`, `LOCAL NETWORK`, `HOME ASSISTANT`. Connect App to panel with `USB setup`, panel to network with `Wi-Fi`, network to HA with a dashed `HA validation pending` line. Show settings `Wi-Fi`, `Light entity`, `Device key`. Footer `Technical demo • No MQTT • No user compilation`. No real-time numeric data, cloud service or success badge.
+Generation instructions: use an off-white background, charcoal text and green accents. Headline `E1003`, subtitle `One firmware. Runtime configuration.` Connect `DESKTOP APP`, `E1003`, `LOCAL NETWORK` and `HOME ASSISTANT` with `USB setup`, `Wi-Fi` and a dashed `HA validation pending` link. Show `Wi-Fi`, `Light entity`, `No API key`; footer `Technical demo • No MQTT • No user compilation`. Use a neutral e-paper schematic, no invented branding, live values or success badge. Keep labels in the central 60% of image height with empty top/bottom margins for the App's 21:9 object-cover crop.
 
-Final refinement: use a simple neutral landscape e-paper schematic, remove invented leaf branding/tagline and decorative plants, preserve the original labels and connectors. The schematic does not assert the physical device geometry.
+## Official product photograph
 
-App-hero refinement: adapt for the App's 21:9 crop, compact the headline and diagram, and keep all labels within the central 60% of image height with generous empty top/bottom margins. This prevents the App from cropping the headline/footer. Final output: 1774×887.
-
-
-The sibling `e1003-keyless-cover.png` updates the generated schematic's laptop
-row to `No API key` for fixed plaintext reference firmware 0.2.1. Other
-architecture labels, central crop composition and the official product photo
-are preserved. This remains a generated schematic, not an actual App screenshot.
+`e1003-product-official.jpg` is an unmodified official reTerminal E1003 photo (1800×1200). Model/SKU was checked with `solution-cli product query reterminal_e_series --json` (E1003, 100090602). Source: [Seeed product page](https://www.seeedstudio.com/reTerminal-E1003-p-6731.html), [original image](https://media-cdn.seeedstudio.com/media/catalog/product/1/-/1-reterminal-e1003-epaper-display.jpg). The screen shows Seeed's demonstration interface, not acceptance of this firmware. Rights remain with Seeed Studio.

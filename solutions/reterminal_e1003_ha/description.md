@@ -26,5 +26,5 @@ USB handles device checks and network setup; the LAN carries settings and readba
 <summary>Technical details and verification status</summary>
 <p>Reference firmware 0.2.1 is fixed plaintext-only, with no API encryption option or key copying. It uses ESPHome native API (TCP 6053), no MQTT or device web server, and USB-only updates.</p>
 <p>Build and software checks passed, but final hardware upload has not begun. Earlier firmware results do not verify this release. E-paper retention after power-off does not prove touch-circuit power.</p>
-<p>The formal candidate remains disabled pending public contract 14, compatible App distribution, a firmware download URL and hardware acceptance. The developer firmware retains encryption separately. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.</p>
+<p>The formal candidate remains disabled pending the public App contract (cleanup target: 15), compatible App distribution, a firmware download URL and hardware acceptance. The developer firmware retains encryption separately. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.</p>
 </details>

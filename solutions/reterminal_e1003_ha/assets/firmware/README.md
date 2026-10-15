@@ -1,10 +1,8 @@
 # 0.2.1 plaintext-only factory resource
 
-The reference build is committed at firmware `09b3bbb`, App `9235b5e6`, contract
-14. It removes compiled `api.encryption`: USE_API_PLAINTEXT is present while
-USE_API_NOISE and USE_PROVISIONING are absent. The separate developer entry
-retains encryption. App encryption/key-copy controls are removed; a legacy
-`encrypt_api=true` request fails before hardware access.
+The reference build at firmware `09b3bbb` compiles out API encryption.
+The App cleanup targets contract 15; formal content still uses public contract
+5 and remains disabled until contract synchronization and compatible App distribution.
 
 `manifest.json` and `esp32_usb.yaml.in` pin the actual **0.2.1** image:
 1,337,072 bytes, SHA-256
@@ -37,14 +35,7 @@ bootloader/app writes or erase NVS to bypass a migration issue. Different
 builds must use different firmware project.version values and synchronized
 manifest version/size/SHA; changing only content version is insufficient.
 
-The WCH port disappeared before selection/upload, so **0.2.1 has not been
-flashed or verified on hardware**. The hardware API flag showing encryption
-unsupported is still unobserved. Old key/record migration, sustained keyless
-readback and new Wi-Fi setup remain pending. Prior 0.1/0.2 results remain
-historical in `docs/e1003-ha-usb-checks.md`: even the successful 610-second
-0.2.0 recheck was followed by RequiresEncryptionAPIError, with its initiator
-unknown. It does not establish fixed plaintext behavior for the new release.
-
-The candidate remains disabled pending public contract 14 synchronization,
-compatible App distribution, a separately authorized public firmware URL and
-remaining acceptance. No guessed download URL or publication is included.
+Final 0.2.1 hardware upload and device acceptance remain unverified. Packaging
+is only an integrity check of the USB payload; it does not supply native App
+configuration. See the [single integration note](../../../../docs/e1003-ha-usb-candidate.md)
+for current software checks, acceptance limits and release dependencies.

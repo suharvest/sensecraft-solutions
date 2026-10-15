@@ -26,13 +26,11 @@ FILES = (
     "gallery/e1003-product-official.jpg",
     "gallery/e1003-keyless-cover.png",
     "gallery/README.md",
-    "devices/review_setup.yaml",
-    "devices/review_ha.yaml",
     "assets/firmware/README.md",
     "assets/firmware/manifest.json",
 )
-OLD_STEP = "type=manual required=true config=devices/review_flash.yaml"
-NEW_STEP = "type=esp32_usb required=true config=devices/e1003_usb.yaml"
+OLD_STEP = "type=manual required=true verify=true config=devices/review_setup.yaml"
+NEW_STEP = "type=esp32_usb required=true verify=true config=devices/e1003_usb.yaml"
 
 
 def stage(firmware: Path, output: Path, *, source: Path = SOURCE) -> Path:
@@ -70,6 +68,7 @@ def stage(firmware: Path, output: Path, *, source: Path = SOURCE) -> Path:
             shutil.copyfile(origin, target)
         (candidate / "assets/firmware/firmware.factory.bin").write_bytes(payload)
         template = source / "assets/firmware/esp32_usb.yaml.in"
+        (candidate / "devices").mkdir()
         (candidate / "devices/e1003_usb.yaml").write_text(template.read_text())
         for lang in ("guide.md", "guide_zh.md"):
             guide = candidate / lang
