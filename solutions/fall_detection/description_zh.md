@@ -28,7 +28,7 @@
 | 各平台准确率 / 平均告警时延 | **74.1%–88.9%** / **1.22–1.75 秒** |
 | 独立外部数据集（RealBiomFall）召回 | **52.9%–58.8%** |
 
-测试设备为 reComputer R2000（Hailo-8），数据集为 GMDCSA-24 留出集 27 段（12 段跌倒 / 15 段日常动作），15 FPS 室内中近距离画面。
+测试设备为 reComputer R2000（Hailo-8），数据集为 GMDCSA-24 留出集 27 段（12 段跌倒 / 15 段日常动作），15 FPS 室内中近距离画面。各平台完整实测报表、算法时序参数与评测方法请参阅 [工程 Wiki 详细评测与实测数据](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_description&utm_campaign=fall_detection&utm_content=benchmarks_deepdive#附录实测数据)。
 
 ## 输出接口
 
@@ -50,7 +50,7 @@
 | reCamera 2002 | 一体化 | — | 需另加一台主机（reComputer R1000 或已有机器） |
 | reCamera Pro | 一体化 | 1 路 | 需另加一台主机（reComputer R1000 或已有机器） |
 | IP 摄像头 + reComputer J30 / J40 | 现有 RTSP 摄像头 | J30 8 路 / J40 9 路 | 同机运行，8080 端口 |
-| reComputer RK3576 / RK3588 | 现有 RTSP 摄像头 | RK3576 1 路 / RK3588 5 路 | 同机运行，8080 端口 |
+| reComputer RK3576 / RK3588 | 现有 RTSP 摄像头 | RK3576 1–3 路 / RK3588 3–5 路 | 同机运行，8080 端口 |
 | reComputer R2000（Hailo-8） | 现有 RTSP 摄像头 | 16 路 | 同机运行，8080 端口 |
 
 **单个房间、最快跑通**选 reCamera 2002；**已有摄像头或需要多个视角**选 reComputer 套餐。

@@ -28,7 +28,7 @@ A camera watches an indoor area, decides on the device whether someone has falle
 | Accuracy / mean alert latency across platforms | **74.1%–88.9%** / **1.22–1.75 s** |
 | Recall on an independent external set (RealBiomFall) | **52.9%–58.8%** |
 
-Tested on reComputer R2000 (Hailo-8) with the GMDCSA-24 held-out set of 27 clips (12 falls / 15 everyday activities), 15 FPS, indoor close-to-medium range.
+Tested on reComputer R2000 (Hailo-8) with the GMDCSA-24 held-out set of 27 clips (12 falls / 15 everyday activities), 15 FPS, indoor close-to-medium range. For complete multi-platform benchmark reports, temporal parameters and evaluation methodology, see the [Engineering Wiki Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_description&utm_campaign=fall_detection&utm_content=benchmarks_deepdive#appendix-measured-data).
 
 ## Output Interfaces
 
@@ -50,7 +50,7 @@ Tested on reComputer R2000 (Hailo-8) with the GMDCSA-24 held-out set of 27 clips
 | reCamera 2002 | All-in-one | — | Needs a separate host (reComputer R1000 or an existing machine) |
 | reCamera Pro | All-in-one | 1 | Needs a separate host (reComputer R1000 or an existing machine) |
 | IP camera + reComputer J30 / J40 | Existing RTSP cameras | J30 8 / J40 9 | Same device, port 8080 |
-| reComputer RK3576 / RK3588 | Existing RTSP cameras | RK3576 1 / RK3588 5 | Same device, port 8080 |
+| reComputer RK3576 / RK3588 | Existing RTSP cameras | RK3576 1–3 / RK3588 3–5 | Same device, port 8080 |
 | reComputer R2000 (Hailo-8) | Existing RTSP cameras | 16 | Same device, port 8080 |
 
 **For one room and the fastest setup**, choose reCamera 2002; **with existing cameras or multiple views**, choose a reComputer preset.

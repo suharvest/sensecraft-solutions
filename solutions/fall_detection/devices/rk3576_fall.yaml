@@ -44,10 +44,10 @@ name_i18n:
   zh: reComputer RK3576
 
 files:
-  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11n_pose_rawhead_fp16.rk3576.rknn
-    remote_path: /home/{{username}}/fall-detection-rk3576/rk3576_fall/models/yolo11n_pose_rawhead_fp16.rk3576.rknn
+  - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/yolo11n_pose_rawhead_int8.rk3576.rknn
+    remote_path: /home/{{username}}/fall-detection-rk3576/rk3576_fall/models/yolo11n_pose_rawhead_int8.rk3576.rknn
     checksum:
-      sha256: 659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
+      sha256: 5f7d3f00f232a2a0f19bec14cf3fd4271f556e65f7cba1102904373880e6a028
   - url: https://sensecraft-statics.seeed.cc/solution-app/fall_detection/models/temporal-rk3576.npz
     remote_path: /home/{{username}}/fall-detection-rk3576/rk3576_fall/models/temporal-rk3576.npz
     checksum:
@@ -76,23 +76,6 @@ remote_overrides:
           # The user-space library must match the kernel NPU driver, which is why
           # the compose file mounts the host copy instead of baking one in.
           strings /usr/lib/librknnrt.so 2>/dev/null | grep -m1 "librknnrt version" || true
-          # Hard failure, not a warning. Rockchip ships rknn_toolkit_lite2 as a
-          # wheel, so it often lives in ~/.local or a venv rather than
-          # /usr/lib/python3/dist-packages. If the container cannot import it the
-          # app crash-loops, and a warning here is not enough to notice that.
-          SITE=$(python3 - <<'PY'
-          import importlib.util, os, sys
-          spec = importlib.util.find_spec("rknnlite")
-          if spec is None or not spec.origin:
-              sys.exit(1)
-          print(os.path.dirname(os.path.dirname(spec.origin)))
-          PY
-          ) || {
-            echo "rknnlite (rknn_toolkit_lite2) is not importable by python3 on this board." >&2
-            echo "Install it first, e.g.: pip3 install rknn_toolkit_lite2" >&2
-            exit 1
-          }
-          echo "rknnlite site-packages: $SITE"
           echo "RKNN runtime OK"
         name_i18n:
           zh: 校验 RKNN 运行环境
@@ -124,55 +107,6 @@ remote_overrides:
     # before `docker compose up` — config/config.json does not exist on the
     # device until the upload finishes.
     after_upload:
-
-      - name: Stage the board's RKNN Lite packages
-        run: |
-          set -e
-          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
-          DEST="$WORKDIR/rknnsite"
-          SITE=$(python3 - <<'PY'
-          import importlib.util, os
-          spec = importlib.util.find_spec("rknnlite")
-          print(os.path.dirname(os.path.dirname(spec.origin)))
-          PY
-          )
-          echo "rknnlite found in: $SITE"
-          rm -rf "$DEST"
-          mkdir -p "$DEST"
-          # Copy ONLY the RKNN packages. Exposing the whole site-packages on
-          # PYTHONPATH takes precedence over the image's own packages, and the
-          # board's Debian numpy then shadows the image's and fails on a libblas
-          # the image does not ship. rknnlite's own deps that are absent from the
-          # image are copied alongside it; anything the image already provides is
-          # deliberately left behind.
-          cp -a "$SITE/rknnlite" "$DEST/"
-          for pkg in ruamel ruamel.yaml psutil; do
-            [ -e "$SITE/$pkg" ] && cp -a "$SITE/$pkg" "$DEST/" || true
-          done
-          ls -1 "$DEST"
-        name_i18n:
-          zh: 准备板卡的 RKNN Lite 依赖
-      - name: Stage the board's GStreamer MPP plugin
-        run: |
-          set -e
-          WORKDIR="/home/{{username}}/fall-detection-rk3576/rk3576_fall"
-          DEST="$WORKDIR/gstmpp"
-          rm -rf "$DEST"; mkdir -p "$DEST"
-          # Copied rather than bind-mounted per file: a board without these would
-          # otherwise get empty directories created by Docker at the mount points.
-          # If nothing is found the app falls back to CPU decode and still runs.
-          # h264parse lives in gstreamer1.0-plugins-bad, which the runtime image does
-          # not carry; without it the MPP branch cannot link and drops to CPU decode.
-          for f in $(find /usr/lib -name 'libgstrockchipmpp.so' 2>/dev/null | head -1) \
-                   $(find /usr/lib -name 'libgstvideoparsersbad.so' 2>/dev/null | head -1) \
-                   $(find /usr/lib /lib -name 'libgstcodecparsers-1.0.so.*' 2>/dev/null) \
-                   $(find /usr/lib /lib -name 'librockchip_mpp.so.*' 2>/dev/null) \
-                   $(find /usr/lib /lib -name 'librga.so.*' 2>/dev/null); do
-            [ -e "$f" ] && cp -aL "$f" "$DEST/" || true
-          done
-          ls -1 "$DEST" || true
-        name_i18n:
-          zh: 准备板卡的 GStreamer MPP 插件
       - name: Download the pose model for this board
         timeout: 900
         run: |
@@ -185,8 +119,8 @@ remote_overrides:
           # An RKNN artifact built for one target is not portable to the other.
           # The board is fixed by the deployment target that selected this file,
           # so the model is pinned here rather than chosen at run time.
-          MODEL=yolo11n_pose_rawhead_fp16.rk3576.rknn
-          SHA=659519ae8179749925c3f15d978b760f6040a00ae01666c9050036077bac8bbd
+          MODEL=yolo11n_pose_rawhead_int8.rk3576.rknn
+          SHA=5f7d3f00f232a2a0f19bec14cf3fd4271f556e65f7cba1102904373880e6a028
           TEMPORAL=temporal-rk3576.npz
           TEMPORAL_SHA=dadcb916135e7dec284fe51a49432573e5451ba9c921325df119fbd2e33ebd82
 
@@ -222,20 +156,17 @@ remote_overrides:
           with open(path) as handle:
               config = json.load(handle)
 
-          config["model_path"] = "/models/yolo11n_pose_rawhead_fp16.rk3576.rknn"
-          # The topic prefix is the device name the user chose, so the same
-          # broker can carry several installations without collisions.
-          config.setdefault("mqtt", {})["topic"] = \
-              "{{device_name}}/fall-detection/results/{stream_id}"
+          config["backend"]["model_path"] = "/models/yolo11n_pose_rawhead_int8.rk3576.rknn"
           # Board-native temporal profile, trained and frozen on this SoC's own
           # pose traces. Do not substitute another board's file.
-          config["temporal_model"] = "/models/temporal-rk3576.npz"
+          config["app"]["options"]["temporal_model"] = "/models/temporal-rk3576.npz"
+          # The topic prefix is the device name the user chose, so the same
+          # broker can carry several installations without collisions.
+          config["mqtt"]["topic_root"] = "{{device_name}}/fall-detection"
           config["streams"] = [{
-              "id": "{{stream_id}}",
-              "rtsp_url": "{{rtsp_url}}",
-              "enabled": True,
+              "stream_id": "{{stream_id}}",
+              "url": "{{rtsp_url}}",
               "transport": "tcp",
-              "reconnect_delay_ms": 1000,
           }]
 
           tmp = path + ".tmp"
@@ -243,8 +174,8 @@ remote_overrides:
               json.dump(config, handle, indent=2)
               handle.write("\n")
           os.replace(tmp, path)
-          print(f"model_path = {config['model_path']}")
-          print(f"stream     = {config['streams'][0]['id']}")
+          print(f"model_path = {config['backend']['model_path']}")
+          print(f"stream     = {config['streams'][0]['stream_id']}")
           PY
         name_i18n:
           zh: 写入摄像头与 MQTT 配置

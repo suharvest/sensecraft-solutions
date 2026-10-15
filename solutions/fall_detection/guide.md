@@ -10,6 +10,9 @@ Install console 0.5.5, which manages the camera apps. Already current? It's skip
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 1. Connect the reCamera over USB, or put it on the same network as this computer.
 2. Over USB the address is `192.168.42.1`; over Wi-Fi use the IP your router shows.
 3. The default password is `recamera` (older units use `recamera.2`).
@@ -31,6 +34,9 @@ Install the pose model and the fall detector, then start it on the camera.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 
 1. Mount the camera rigidly with a clear, wide view of the area you want covered.
@@ -38,6 +44,7 @@ Install the pose model and the fall detector, then start it on the camera.
 3. Aim for a side or corner view of the floor area rather than looking straight down.
 4. Point it at circulation space, not primarily at a bed or an exercise area — everyday floor activities there read as falls until you have validated them separately.
 5. Expect it to detect the fall itself, not the aftermath: starting it while someone is already lying down reports the posture but raises no event.
+6. Camera placement & blindspot constraints: For field of view calculation, floor occlusion tolerance, and restricted environments, see the [On-Site Camera Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=siting_constraints#step-1-mount-the-camera).
 
 ### Troubleshooting
 
@@ -46,7 +53,7 @@ Install the pose model and the fall detector, then start it on the camera.
 | Service exits immediately | Another camera app is still running; only one app can hold the camera, so reboot and retry |
 | Node-RED stopped working after install | Expected — installing takes the camera from Node-RED and any other vision app |
 | Falls are missed | Widen the view, improve lighting, keep shoulders and hips visible before and after impact |
-| Push-ups trigger an alert | A known fall-like activity; change the view or add downstream human confirmation |
+| Push-ups trigger an alert | A known fall-like activity; change the view or add downstream human confirmation (tuning reference: [Temporal State Machine & Tuning Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=troubleshoot_tuning#decision-logic-why-sitting-down-fast-wont-trigger-a-false-alarm)) |
 | No MQTT messages | Confirm port 1883 is reachable from your computer and the topic is `recamera/fall-detection/results` |
 
 ---
@@ -73,6 +80,7 @@ Alerts go to `recamera/fall-detection/results`, and Home Assistant discovery cre
   broker is shared with it.
 - Run a site acceptance test with representative falls and normal activity before
   enabling any notification workflow.
+- To integrate alerts into your custom business system, NVR or nurse call center, refer to the [Full Protocol and MQTT Payload Specifications](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=mqtt_payload_spec#full-topics-and-payload).
 
 ### Troubleshooting
 
@@ -92,6 +100,9 @@ events and nothing else changes.
 Take it and you install an alarm panel on a separate host: a site overview, zones drawn on the live picture, a no-person and a no-motion timeout per zone, operator confirm or dismiss for each alarm, an audit trail, and a webhook that carries no video.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
 
 The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
 
@@ -158,6 +169,9 @@ What the answer does:
 | "I'm fine" | Default `on_ok: needs_review` — the alarm keeps its normal timing and is flagged for a person to look at. Set `on_ok: dismiss` to close it instead |
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
@@ -269,6 +283,9 @@ Take it and you install an alarm panel on a separate host: a site overview, zone
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
 
 - A x86_64 or arm64 Linux host on the camera's network, with Docker and the
@@ -335,6 +352,9 @@ What the answer does:
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
@@ -371,25 +391,28 @@ Deploy the detector and build its inference engine on the Jetson. Allow 10–20 
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
 2. At least 10 GB free disk.
 3. Your IP camera's RTSP URL, including credentials if it requires them, for
    example `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`.
-4. The first deploy spends most of its time building the inference engine on the device; later deployments reuse it.
+4. The first deploy spends most of its time building the inference engine on the device; later deployments reuse it (for engine build times and runtime dependencies across platforms, see the [Four Hardware Runtimes Comparison](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#recognition-one-model-four-runtimes)).
 5. Match the pose model to the board: **YOLO11s** for Orin Nano, **YOLO11m** for Orin NX.
 
 ### Troubleshooting
 
 | Symptom | Action |
 |-------|----------|
-| Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and the disk has 10 GB free |
+| Engine build fails | Confirm `/usr/src/tensorrt/bin/trtexec` exists and the disk has 10 GB free (see [Four Hardware Runtimes Comparison](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#recognition-one-model-four-runtimes)) |
 | No video from the camera | Test the RTSP URL in VLC first; most failures are a wrong path or wrong credentials |
 | Container restarts repeatedly | Check the logs for the engine path; a half-built engine from an interrupted run must be deleted |
 | Deploy cannot connect | Confirm SSH is reachable and the username is right — Seeed images use `recomputer` or `nvidia` |
 
 ### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_fall.yaml default=true}
 
-Deploy to the Jetson over SSH from this computer.
+Deploy to the Jetson over SSH from this computer. Building the inference engine on the device takes 10–20 min on first run (see [Four Hardware Runtimes Comparison](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#recognition-one-model-four-runtimes) for engine build times and runtime dependencies).
 
 ### Target {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_fall.yaml}
 
@@ -415,14 +438,11 @@ Results go to `recamera/fall-detection/results/<stream-id>`, one topic per camer
 
 #### Adding more cameras
 
-The detector handles several streams at once. Add them to the `streams` list in
-the configuration on the device and restart the container; each stream keeps its
-own tracking state and gets its own MQTT topic.
+The detector handles several streams at once. Add them to the `streams` list in the configuration on the device and restart the container; each stream keeps its own tracking state and gets its own MQTT topic. For stream scaling limits and per-frame latency benchmarks on each platform, see [Detailed Performance Benchmarks and Stream Sizing](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=stream_capacity#appendix-measured-data).
 
 #### Next steps
 
-- Point your alerting system at the MQTT topic, or add the broker to Home
-  Assistant to pick up the discovery entities.
+- Point your alerting system at the MQTT topic, or add the broker to Home Assistant to pick up the discovery entities; for custom system integration, refer to the [Full Protocol and MQTT Payload Specifications](https://wiki.seeedstudio.com/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=mqtt_payload_spec#full-topics-and-payload).
 - Measure the actual frame rate on site before adding streams.
 
 ### Troubleshooting
@@ -481,6 +501,9 @@ What the answer does:
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
@@ -516,6 +539,9 @@ The detector runs on the NPU of a reComputer RK3576 / RK3588, with the same MQTT
 Deploy the detector to your Rockchip board. Allow about 5 minutes.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
 
 1. The board runs a vendor image with the NPU driver and `librknnrt.so` present, plus Docker.
 2. At least 6 GB free disk for the runtime image and the pose model.
@@ -616,6 +642,9 @@ What the answer does:
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
@@ -651,6 +680,9 @@ The detector runs on a reComputer R2000 with a Hailo-8 accelerator, with the sam
 Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
 
 1. A Hailo-8 accelerator present as `/dev/hailo0`, with **HailoRT 4.21** installed (GStreamer plugin, user library and kernel driver all at that version).
 2. Docker, and at least 4 GB free disk.
@@ -753,6 +785,9 @@ What the answer does:
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+
+
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
 
 ### Deployment Complete
@@ -775,3 +810,5 @@ A distress word beats a safe word in the same sentence.
 | Alarms close by themselves | `on_ok` is set to `dismiss`. Put it back to `needs_review` unless a person really is reviewing the dismissals. |
 | The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
+## Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/)

@@ -1,14 +1,54 @@
 {
-  "model_path": "/models/yolo11n_pose_rawhead_fp16.rk3588.rknn",
-  "temporal_model": "/models/temporal-rk3588.npz",
-  "input_size": 640,
-  "score_threshold": 0.35,
-  "keypoint_threshold": 0.25,
-  "nms_threshold": 0.45,
-  "video": {"backend": "gstreamer_mpp", "strict": false, "fallback": "opencv_ffmpeg", "codec": "h264", "latency_ms": 100, "appsink_timeout_ms": 2000, "failure_limit": 3},
-  "postprocess": {"backend": "cpp", "strict": false, "fallback": "numpy"},
-  "tracker": {"iou_threshold": 0.2, "max_lost_sec": 0.75},
-  "fall": {"temporal_confirmation_required": true},
-  "mqtt": {"host": "127.0.0.1", "port": 1883, "topic": "recomputer/fall-detection/results/{stream_id}", "username": "", "password": "", "tls": false},
-  "streams": [{"id": "cam-01", "rtsp_url": "rtsp://192.168.1.10:554/stream1", "enabled": true, "transport": "tcp", "reconnect_delay_ms": 1000}]
+  "$schema": "https://seeed.studio/schemas/vision-base/vb-config-v1.json",
+  "schema": "vb.config/1",
+  "device_id": "rk-fall-01",
+  "backend": {
+    "name": "rknn",
+    "model_path": "/models/yolo11n_pose_rawhead_int8.rk3576.rknn",
+    "input_size": [640, 640],
+    "align": "center",
+    "score_threshold": 0.35,
+    "nms_threshold": 0.45,
+    "decoder": {
+      "type": "yolo_pose",
+      "keypoints": 17,
+      "reg_max": 16,
+      "strides": [8, 16, 32]
+    }
+  },
+  "runtime": {
+    "workers": 1,
+    "max_streams_per_worker": 4,
+    "contexts_per_worker": 2
+  },
+  "tracker": {
+    "enabled": true,
+    "iou_threshold": 0.2,
+    "dist_threshold": 0.15,
+    "max_misses": 15,
+    "class_aware": true
+  },
+  "mqtt": {
+    "host": "127.0.0.1",
+    "port": 1883,
+    "topic_root": "recomputer/fall-detection"
+  },
+  "app": {
+    "module": "fall_app:FallApp",
+    "options": {
+      "temporal_model": "/models/temporal-rk3576.npz",
+      "topic_template": "results/{stream_id}",
+      "keypoint_threshold": 0.25,
+      "fall": {
+        "temporal_confirmation_required": true
+      }
+    }
+  },
+  "streams": [
+    {
+      "stream_id": "cam-01",
+      "url": "rtsp://192.168.1.10:554/stream1",
+      "transport": "tcp"
+    }
+  ]
 }
