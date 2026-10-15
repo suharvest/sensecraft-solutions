@@ -14,13 +14,7 @@
 
 ## 设备与连接
 
-![E1003 官方产品照片，屏幕为官方展示界面](gallery/e1003-product-official.jpg)
-
-官方照片中的界面不是本固件的验收画面。
-
-![生成的架构示意：USB 配置、No API key 与局域网连接](gallery/e1003-keyless-cover.png)
-
-USB 用于检查设备与配网，局域网用于写入设置和读回。封面是生成示意，不代表实机控灯已通过。
+USB 用于检查设备与配网，局域网用于写入设置和读回。
 
 <details>
 <summary>技术详情与验证状态</summary>

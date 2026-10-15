@@ -3,6 +3,7 @@
 正式候选为 technical、`enabled:false`、一个 `usb_candidate` preset。
 公开 contract 5 下仅保留一个 `review_setup` manual 步骤，标记 `verify=true`；人工确认不执行设备 I/O。
 待公开契约同步后，用单个原生 `e1003_config` 替换，不增加“烧录 / 仅配置”套餐。
+正文无图片，仅保留一张卡片封面；设备产品图由产品目录按 `purchase.require.model=[e1003]` 提供，不在方案中硬编码图片或 SKU 链接。
 
 ## 单一配置流程
 

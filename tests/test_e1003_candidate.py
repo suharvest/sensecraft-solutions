@@ -45,14 +45,19 @@ class CandidatePackagingTests(unittest.TestCase):
         solution = yaml.safe_load((self.output / "solution.yaml").read_text())
         self.assertFalse(solution["enabled"])
         self.assertTrue((self.output / solution["intro"]["cover_image"]).is_file())
-        for item in solution["intro"]["gallery"]:
-            self.assertTrue((self.output / item["src"]).is_file())
+        self.assertFalse(solution["intro"].get("gallery"))
+        images = {
+            p.relative_to(self.output).as_posix()
+            for p in self.output.rglob("*")
+            if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+        }
+        self.assertEqual(images, {solution["intro"]["cover_image"]})
         self.assertEqual(
             (self.output / "assets/firmware/firmware.factory.bin").read_bytes(),
             self.payload,
         )
-        # Local review exports must retain the newly referenced visual assets.
-        for name in ("e1003-product-official.jpg", "e1003-keyless-cover.png", "README.md"):
+        # Local review exports carry one cover image and its source note.
+        for name in ("e1003-keyless-cover.png", "README.md"):
             relative = Path("gallery") / name
             self.assertEqual(
                 (self.output / relative).read_bytes(),

@@ -14,13 +14,7 @@ Only five zones define touch actions: on/off and 25%, 50%, 75% and 100% brightne
 
 ## Device and connection
 
-![Official E1003 product photo with Seeed's stock demonstration screen](gallery/e1003-product-official.jpg)
-
-The official photograph does not show acceptance of this firmware.
-
-![Generated architecture illustration: USB setup, No API key and LAN connectivity](gallery/e1003-keyless-cover.png)
-
-USB handles device checks and network setup; the LAN carries settings and readback. The cover is a generated illustration, not proof of real light control.
+USB handles device checks and network setup; the LAN carries settings and readback.
 
 <details>
 <summary>Technical details and verification status</summary>
