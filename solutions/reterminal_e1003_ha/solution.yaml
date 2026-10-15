@@ -1,14 +1,14 @@
 version: "1.0"
 id: reterminal_e1003_ha
-name: reTerminal E1003 — Precompiled Firmware and Runtime Configuration Demo
+name: reTerminal E1003 — Unified Deployment Technical Demo
 name_i18n:
-  zh: reTerminal E1003 — 预编译固件与运行时配置演示
+  zh: reTerminal E1003 — 统一部署技术演示
 # Technical review only. Requires compatible App/contract, public firmware and acceptance.
 enabled: false
 intro:
-  summary: Test one precompiled E1003 image with per-device network, encryption key and light binding configured in the desktop App.
+  summary: One App form checks E1003 firmware, installs the precompiled image when needed and saves per-device runtime settings.
   summary_i18n:
-    zh: 演示同一份 E1003 预编译固件，通过桌面 App 配置网络、独立连接密钥与灯光按钮绑定。
+    zh: 在同一 App 表单中自动检查 E1003 固件、按需安装预编译镜像，并保存每台设备的网络、独立密钥与灯光绑定。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -48,12 +48,12 @@ intro:
           model: [e1003]
   presets:
     - id: usb_candidate
-      name: Install and set up
+      name: Deploy E1003
       name_i18n:
-        zh: 安装与设置
-      description: Test USB installation, runtime configuration in the desktop App and persistence after reset.
+        zh: 部署 E1003
+      description: Submit one form; the App checks firmware, installs only when needed and verifies saved settings after reset.
       description_i18n:
-        zh: 测试 USB 安装、桌面 App 内运行时配置，以及复位后的设置保留。
+        zh: 提交同一表单，由 App 检查固件、按需安装，并在复位后验证配置保留。
       device_groups:
         - id: panel
           name: Dashboard panel

@@ -40,3 +40,17 @@ upload the reviewed binary, verify its downloaded hash, replace the local
 resource reference with that real URL, synchronize the public contract for the
 native App configuration step, and complete the remaining acceptance before
 enabling this technical demo. Do not generate a URL from a guessed release tag.
+
+The unified App flow (contract 12) loads this canonical manifest using the
+solution ID, checks the device's project/version/hardware/name, and installs
+only if needed before applying settings. Users do not choose between flashing
+and configuration presets. The authoring tool above remains an isolated
+flash-review utility, not that unified end-user flow. A matching hardware probe
+selected skip; the new installation branch and complete flow still need
+hardware acceptance.
+
+Each different firmware build must have a different firmware `project.version`
+and matching `firmware_version`, size and SHA in this manifest. The skip decision
+uses device identity/version, not an on-device image hash. Never replace the
+pinned image with a different build carrying the same project/version; changing
+only the solution content version does not distinguish firmware builds.

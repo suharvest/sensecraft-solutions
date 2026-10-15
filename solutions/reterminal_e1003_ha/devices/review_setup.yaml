@@ -1,13 +1,13 @@
 version: "1.0"
 id: review_setup
-name: Save configuration inside the App
+name: Deploy and save settings in one form
 name_i18n:
-  zh: 在 App 内保存配置
+  zh: 在同一表单部署并保存配置
 type: manual
-# Native e1003_config requires App contract 11; public content contract is still 5.
+# Native e1003_config requires App contract 12; public content contract is still 5.
 # Keep this review stub until generated public schemas and compatible App are available.
 steps:
   - id: adapter_pending
-    name: Review the embedded E1003 form; native step awaits public contract synchronization
+    name: Review unified E1003 deployment; native step awaits public contract synchronization
     name_i18n:
-      zh: 审阅 App 内置 E1003 表单；原生步骤等待公开契约同步
+      zh: 审阅 E1003 统一部署；原生步骤等待公开契约同步

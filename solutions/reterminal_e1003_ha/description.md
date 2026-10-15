@@ -1,8 +1,8 @@
-# E1003 precompiled firmware and runtime configuration demo
+# E1003 unified deployment technical demo
 
-Test how one firmware image serves different E1003 panels: install over USB, then configure the network, a device-specific connection key and a light-button binding inside the desktop App. No compilation, `secrets.yaml` editing or maintainer scripts are needed.
+Connect E1003 and enter settings in one desktop App form. The App checks the installed firmware, skips installation when it matches, or installs the shared precompiled image when needed, then saves network settings, a device-specific key and a light-button binding. No flash-mode choice, compilation or `secrets.yaml` editing is needed.
 
-**Verified:** App flashing, plus saving a test light ID through the embedded form in the native macOS window, waiting 65 seconds, resetting and performing encrypted readback. The window’s key-copy action also passed verification. New Wi-Fi setup through this form, real Home Assistant light control and display synchronization still need hardware acceptance.
+**Evidence:** A real-device identity probe matched the release and selected skip. Earlier native-window configuration persistence and key copying also passed. The new installation branch and complete unified flow still need acceptance, as do new Wi-Fi, real Home Assistant light control and display synchronization.
 
 ## What the demo provides
 
@@ -24,9 +24,9 @@ USB handles device identification and network setup. Once the panel is connected
 
 ## How to test
 
-1. Install firmware over USB for first use; skip flashing if this image is already installed.
-2. In the embedded App form, select the USB port and enter the light's entity ID, such as `light.bedroom`. Enter Wi-Fi for first connection; leave it blank only when this App has the device record and the device is already connected.
-3. Save and keep power connected until reset and encrypted readback pass. Copy the key inside the App, confirm the device and allow actions in Home Assistant, then test the panel buttons.
+1. Connect E1003 over USB. In the single App form, select the port and enter “Light controlled by the buttons,” such as `light.bedroom`. Enter Wi-Fi for first connection; leave it blank only when this App has the device record and the panel is connected.
+2. Click **Deploy and save settings**. The App checks project identity, version and hardware. A match skips flashing; otherwise the image is verified before installation. There is no preset switch or manual flash decision.
+3. Keep power connected through configuration, the 65-second save wait, reset and encrypted readback. Copy the key inside the App, confirm the device and allow actions in Home Assistant, then test actual light control separately.
 
 ## Interfaces and requirements
 
@@ -34,6 +34,6 @@ USB uses Improv Serial for network setup. The LAN connection uses encrypted ESPH
 
 This demo supports only the current E1003 layout and USB updates, with no OTA. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
 
-> This technical demo candidate is disabled. The embedded form has been tested in a local App build and requires an App containing this feature (contract 11). Public contract synchronization and a public firmware download are pending; this candidate cannot yet execute installation and configuration directly.
+> This technical demo candidate is disabled. The unified flow requires an App with automatic firmware checks (contract 12). Public contract synchronization and a public firmware download are pending; this candidate cannot yet execute installation and configuration directly.
 
 The native configuration implementation is in [App draft PR #162](https://github.com/suharvest/app_collaboration/pull/162).

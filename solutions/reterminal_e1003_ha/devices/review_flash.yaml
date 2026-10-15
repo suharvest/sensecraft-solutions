@@ -1,8 +1,8 @@
 version: "1.0"
 id: review_flash
-name: Install panel firmware
+name: Connect and review automatic firmware checking
 name_i18n:
-  zh: 安装面板程序
+  zh: 连接设备并审阅自动固件检查
 type: manual
 steps:
   - id: resource_pending
