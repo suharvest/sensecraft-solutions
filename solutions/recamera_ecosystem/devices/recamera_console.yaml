@@ -35,11 +35,11 @@ binary:
   # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
   # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.5_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.6_riscv64.deb
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: a2c877f17583b65b5349efb7616a9d3a8fea70b3495dc6bfd2e394df534ccfd3
+      sha256: 957f253b7b790a3f3f18f5d8b31490cb651adcfae80f46e9b183a2af983ad17d
 
   # 服务配置
   #
@@ -77,6 +77,44 @@ actions:
       sudo: true
       name_i18n:
         zh: 恢复控制台配置目录
+
+    - name: Ensure network gateway and hardware acceleration patch
+      run: |
+        # 1. 压制所有 dnsmasq 配置中的 Option 3 网关
+        for f in /etc/dnsmasq/*.conf; do
+          if [ -f "$f" ] && grep -q '^dhcp-option=set:usb0,3,' "$f"; then
+            sed -i 's|^dhcp-option=set:usb0,3,.*|dhcp-option=set:usb0,3 # suppress gateway: USB link is host-local|' "$f"
+          fi
+        done
+        /etc/init.d/S80dnsmasq restart >/dev/null 2>&1 || true
+
+        # 2. 硬件加速打码驱动部署
+        PKG_KO_DIR="/usr/share/supervisor/ko"
+        SYS_KO_DIR="/mnt/system/ko"
+        BAK_KO_DIR="/userdata/ko-backup"
+        if [ -d "$PKG_KO_DIR" ] && [ -d "$SYS_KO_DIR" ] && [ -f "$PKG_KO_DIR/cv181x_vpss.ko" ] && [ -f "$PKG_KO_DIR/cv181x_rgn.ko" ]; then
+          if ! grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null; then
+            KREL="$(uname -r 2>/dev/null || true)"
+            if [ -n "$KREL" ] && grep -q "$KREL" "$PKG_KO_DIR/cv181x_vpss.ko" 2>/dev/null && grep -q "$KREL" "$PKG_KO_DIR/cv181x_rgn.ko" 2>/dev/null; then
+              mkdir -p "$BAK_KO_DIR" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_vpss.ko" ] || cp -f "$SYS_KO_DIR/cv181x_vpss.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_rgn.ko" ] || cp -f "$SYS_KO_DIR/cv181x_rgn.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              mount -o remount,rw / 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_vpss.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              sync 2>/dev/null || true
+              mount -o remount,ro / 2>/dev/null || true
+              # 校验驱动双模块一致性
+              if grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null && cmp -s "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/cv181x_rgn.ko"; then
+                echo "Hardware masking drivers installed (reboot recommended to activate in kernel)"
+              fi
+            fi
+          fi
+        fi
+        true
+      sudo: true
+      name_i18n:
+        zh: 修复 USB 网络并部署硬件加速
 
 user_inputs:
   - id: host
