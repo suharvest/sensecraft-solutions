@@ -2,7 +2,7 @@
 
 Test how one firmware image serves different E1003 panels: install over USB, then configure the network, a device-specific connection key and a light-button binding inside the desktop App. No compilation, `secrets.yaml` editing or maintainer scripts are needed.
 
-**Verified:** App flashing, plus saving a light ID through the embedded form, waiting 65 seconds, resetting and reading it back over an encrypted connection. New Wi-Fi setup through this form, real Home Assistant light control and display synchronization still need hardware acceptance.
+**Verified:** App flashing, plus saving a test light ID through the embedded form in the native macOS window, waiting 65 seconds, resetting and performing encrypted readback. The window’s key-copy action also passed verification. New Wi-Fi setup through this form, real Home Assistant light control and display synchronization still need hardware acceptance.
 
 ## What the demo provides
 

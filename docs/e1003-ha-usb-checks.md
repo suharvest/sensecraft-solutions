@@ -8,21 +8,24 @@
 依据 App 工作基线 `50fc49df` 上新增功能的公开文档
 `docs/e1003-desktop-configuration.md` 和 `docs/reports/e1003-desktop-configuration.md`，
 本内容会话只读核对源码与公开报告，未访问运行中的 App、串口或 `.local-*` 私有目录。
-原生实现见 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)，commit `e3ef932d`，contract 11；未合并或发布。
+原生实现见 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)，最新证据对应 commit `6efdf2ee`，contract 11；未合并或发布。
 
 | 检查 | 结果与范围 |
 | --- | --- |
 | 交互入口 | 桌面 App 内置 `e1003_config` 步骤，contract 11；内建 Improv / aioesphomeapi，不依赖外部网页、本机脚本路径或用户 Python |
 | 实机配置 | 打包 PyInstaller 后端 + 与桌面壳共享的前端提交，任务 `71f687f325a14929bddb47cce847ddf1` 完成目标写入、65 秒保存等待、硬件复位、加密重连和持久化读回；独立加密读回也通过 |
 | 配置保留 | 复用已有网络与设备 key；该次未重编译或重烧录固件 |
-| 密钥处理 | 普通任务输出及后端日志未出现私有 key；复制为成功后的显式操作，使用 Tauri clipboard；浏览器 QA 不能单独证明原生壳剪贴板实际操作通过 |
+| 密钥处理 | 早期打包后端验证中，普通任务输出及后端日志未出现私有 key。主控最新在原生窗口显式点击复制，私下比较剪贴板与本机设备记录相等，仅输出布尔结果 `true`，并清空此次复制值；未公开密钥。本内容会话未读取剪贴板或私有记录 |
 | UI 与原生启动 | 共享前端桌面/375×812 视口已检查，无横向溢出；本地隔离 Tauri debug App 成功启动、contract 11 并加载原生步骤；引擎代理及租约 smoke 通过 |
 | 自动检查（App 报告） | 955 前端测试、93 项聚焦 Python 检查通过；前端生产构建、路由分组、Rust schema freshness 通过；6 项 Rust verify emulation 通过 |
 | 全套 Python 限制 | 报告为 7,169 passed、288 skipped、3 failed、3 setup errors；受 macOS Bash、Linux `/proc` 与 Rust 工具链影响，工具链相关三项后续通过；不宣称全套绿色 |
-| 介绍内容入口（主控补充） | 本地测试副本已改为 technical，双语完整介绍由 Tauri App 后端确认返回，中文 HTML 约 1,357 字符；测试版通过 `PS_FOCUS_SOLUTION_ID` 直接打开演示介绍。本内容会话未操作 App；后端返回不单独证明视觉排版验收 |
+| 原生窗口完整配置（主控最新补充） | 实际 macOS「SenseCraft E1003 Test」窗口通过 Accessibility 完成仅配置预设、串口选择、虚拟灯实体输入及点击保存；真实设备完成目标写入、65 秒保存、复位和加密读回，窗口显示“配置已保存”。虚拟 ID 用于配置验证，不代表真实 HA 灯控通过 |
+| 介绍内容显示（主控补充） | 原生窗口已显示 technical 分类和完整中文介绍。此前已确认双语完整介绍由 Tauri App 后端返回，中文 HTML 约 1,357 字符；测试版用 `PS_FOCUS_SOLUTION_ID` 直接打开介绍。中文窗口显示与双语后端返回分别记录，不扩大为所有语言/布局均已视觉验收 |
 | 尚未物理验收 | 原生表单新 Wi-Fi、真实 HA 灯控和触摸效果、动态状态/亮度同步 |
 
-本地 debug 包未公证或发布。打包后端的硬件路径、共享前端 QA 和原生壳启动分别记录，
+主控最新补充对应 App commit `6efdf2ee`，补齐了原生窗口操作与显式密钥复制证据；
+本内容会话仅采纳上述公开结论，没有重跑设备操作或访问 `.local-*`。
+本地 debug 包未公证或发布。打包后端、共享前端 QA 与原生窗口实机流程分别记录，
 不合并为“完整安装版已发行/整体验收通过”。正式内容仍使用公开 contract 5 可验证的人工 stub，
 待从 App 真源同步 contract 11 后接入执行类型；未擅自修改生成的 spec。
 
