@@ -8,3 +8,5 @@
 Create a polished wide 16:9 cover for an E1003 ESPHome runtime-configuration technical demo. Off-white background, charcoal text and green accent. Headline `E1003`, subtitle `One firmware. Runtime configuration.` Four schematic nodes: `DESKTOP APP`, `E1003`, `LOCAL NETWORK`, `HOME ASSISTANT`. Connect App to panel with `USB setup`, panel to network with `Wi-Fi`, network to HA with a dashed `HA validation pending` line. Show settings `Wi-Fi`, `Light entity`, `Device key`. Footer `Technical demo • No MQTT • No user compilation`. No real-time numeric data, cloud service or success badge.
 
 Final refinement: use a simple neutral landscape e-paper schematic, remove invented leaf branding/tagline and decorative plants, preserve the original labels and connectors. The schematic does not assert the physical device geometry.
+
+App-hero refinement: adapt for the App's 21:9 crop, compact the headline and diagram, and keep all labels within the central 60% of image height with generous empty top/bottom margins. This prevents the App from cropping the headline/footer. Final output: 1774×887.
