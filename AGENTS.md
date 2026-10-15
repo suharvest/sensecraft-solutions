@@ -41,10 +41,13 @@ a skill when its job comes up:
 
 > **Using `solution-cli` without cloning this repo:** in the SenseCraft Solution
 > app open **Settings → Advanced → AI agent skill** and click Install for your agent (the
-> app ships the skill matching its own version). Or copy the `skills/solution-cli/`
-> folder into your agent's skills directory — Claude Code: `~/.claude/skills/`;
-> CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check
-> your version's settings); other agents: point them at `skills/solution-cli/SKILL.md`.
+> app ships the skill matching its own version). Or install via npm:
+> `npm install -g @seeed-studio/solution-cli && solution-cli install --agent <doubao|claude|codex|all>`.
+> For manual setup, copy the `skills/solution-cli/` folder into your agent's skills directory:
+> - 豆包工作 (Doubao Work): `~/Doubao/skills/` (Windows: `%USERPROFILE%\Doubao\skills`；及 `~/.agents/skills`)
+> - Claude Code: `~/.claude/skills/`
+> - CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check your version's settings)
+> - Other agents: point them at `skills/solution-cli/SKILL.md`.
 > It installs `sensecraft-engine` on first use (SKILL.md Step 0) and does not
 > need the app. Only `references/app-only.md` (config editing, the app's API)
 > needs the SenseCraft Solution app running on the same computer (app contract
