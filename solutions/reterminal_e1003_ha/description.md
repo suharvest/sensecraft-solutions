@@ -2,13 +2,14 @@
 
 Connect reTerminal E1003 to your computer via USB and specify the Home Assistant dimmable light you want to control. The App checks the device, installs prebuilt firmware when needed, and saves light bindings and network settings.
 
-Everything is handled in a single form—no firmware compilation, configuration editing, or API key setup required.
+Everything is handled in a single form, with no firmware compilation, configuration editing, or API key setup required.
 
 ## What it does and what you need
 
 Bind touch controls on the E1003 panel to a dimmable light (`light.*`) in Home Assistant.
 
 Before starting, make sure you have:
+
 - A reTerminal E1003 panel and a USB data cable.
 - A computer running the App, and a Home Assistant instance on the same reachable LAN.
 - The entity ID of your dimmable light (such as `light.bedroom`).
@@ -20,7 +21,7 @@ Before starting, make sure you have:
 3. Click **Save settings**. The App automatically checks firmware, saves settings, and verifies after reboot.
 4. Once verified, follow the on-screen instructions to add the ESPHome device in Home Assistant and enable action execution.
 
-> **Functional note**: Only five touch areas are active: on/off and 25%, 50%, 75%, and 100% brightness. Other screen graphics are static. Physical touch control and bi-directional display synchronization are still pending acceptance.
+> **Functional note**: Only five touch areas have actions defined: on/off and 25%, 50%, 75%, and 100% brightness. Other screen graphics are static. Physical touch control and bi-directional display synchronization are still pending acceptance.
 
 <details>
 <summary>Technical details and verification status</summary>

@@ -23,7 +23,7 @@ In a compatible test App, enter your settings, click **Save settings**, and wait
 
 1. **Enter the light to control**: In the “Light controlled by the buttons” field, enter the Home Assistant dimmable light entity ID (such as `light.bedroom`). Input is manual; the App does not automatically discover lights.
 2. **Wi-Fi setup (optional)**: For first-time networking or network changes, enter the 2.4 GHz Wi-Fi SSID and password. If the device has previously connected to this Wi-Fi, leave both blank to reuse saved credentials (leaving them blank does not imply the App detected the network).
-3. **Save and verify**: Click **Save settings**. The App verifies the firmware version, downloads and installs the prebuilt image if there is a mismatch, and writes the light bindings.
+3. **Save and verify**: Click **Save settings**. The App verifies the firmware version, installs the prebuilt image if there is a mismatch, and writes the light bindings.
 4. **Wait for completion**: After writing, the device reboots and verifies readback. Keep power connected for at least 65 seconds. Setup is complete only when the screen displays **Settings saved and verified** (do not disconnect while the countdown reaches zero or while showing “Restarting”).
 
 <details>
@@ -33,7 +33,7 @@ In a compatible test App, enter your settings, click **Save settings**, and wait
 <p>Current build, software, and UI checks passed; final 0.2.1 hardware upload, new Wi-Fi, upgrade migration, sustained plaintext operation, physical touch, real HA control, and display synchronization remain pending acceptance.</p>
 </details>
 
-### Deployment Complete
+### After setup
 
 Proceed only after the App displays **Settings saved and verified**:
 
@@ -41,6 +41,7 @@ Proceed only after the App displays **Settings saved and verified**:
 2. In Home Assistant, navigate to Settings → Devices & Services → Integrations, add an ESPHome device, and enter the device address (no API key required).
 3. In the device options, check “Allow the device to perform Home Assistant actions”.
 4. Test the on/off touch zone and the 25%, 50%, 75%, and 100% brightness zones. Close the App and retest.
+
 > **Note**: Only these five touch zones have actions defined; other screen elements are static. Saved settings do not imply physical control or two-way display synchronization have completed acceptance.
 
 ### Troubleshooting
