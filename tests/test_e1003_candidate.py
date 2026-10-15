@@ -42,13 +42,17 @@ class CandidatePackagingTests(unittest.TestCase):
 
     def test_materializes_flash_payload_without_enabling_or_adding_setup_forms(self):
         staging.stage(self.firmware, self.output, source=self.source)
-        self.assertFalse(yaml.safe_load((self.output / "solution.yaml").read_text())["enabled"])
+        solution = yaml.safe_load((self.output / "solution.yaml").read_text())
+        self.assertFalse(solution["enabled"])
+        self.assertTrue((self.output / solution["intro"]["cover_image"]).is_file())
+        for item in solution["intro"]["gallery"]:
+            self.assertTrue((self.output / item["src"]).is_file())
         self.assertEqual(
             (self.output / "assets/firmware/firmware.factory.bin").read_bytes(),
             self.payload,
         )
         # Local review exports must retain the newly referenced visual assets.
-        for name in ("e1003-product-official.jpg", "e1003-architecture-cover.png", "README.md"):
+        for name in ("e1003-product-official.jpg", "e1003-keyless-cover.png", "README.md"):
             relative = Path("gallery") / name
             self.assertEqual(
                 (self.output / relative).read_bytes(),

@@ -24,7 +24,7 @@ FILES = (
     "guide.md",
     "guide_zh.md",
     "gallery/e1003-product-official.jpg",
-    "gallery/e1003-architecture-cover.png",
+    "gallery/e1003-keyless-cover.png",
     "gallery/README.md",
     "devices/review_setup.yaml",
     "devices/review_ha.yaml",

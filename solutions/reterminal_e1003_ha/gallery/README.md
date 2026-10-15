@@ -10,3 +10,9 @@ Create a polished wide 16:9 cover for an E1003 ESPHome runtime-configuration tec
 Final refinement: use a simple neutral landscape e-paper schematic, remove invented leaf branding/tagline and decorative plants, preserve the original labels and connectors. The schematic does not assert the physical device geometry.
 
 App-hero refinement: adapt for the App's 21:9 crop, compact the headline and diagram, and keep all labels within the central 60% of image height with generous empty top/bottom margins. This prevents the App from cropping the headline/footer. Final output: 1774×887.
+
+
+The sibling `e1003-keyless-cover.png` updates the generated schematic's laptop
+row to `No API key` for fixed plaintext reference firmware 0.2.1. Other
+architecture labels, central crop composition and the official product photo
+are preserved. This remains a generated schematic, not an actual App screenshot.

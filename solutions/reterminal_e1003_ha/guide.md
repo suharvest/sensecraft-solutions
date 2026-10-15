@@ -1,7 +1,7 @@
 ## Preset: Deploy E1003 {#usb_candidate}
 
 One form, one submission: **enter settings → automatic check and installation when needed → save and read back after reset**. The target 0.2.1 reference firmware is plaintext-only, with no encryption choice or key copying.
-These instructions describe the pending 0.2.1 / contract 14 target flow; the new build and final evidence are not available yet. The formal candidate remains disabled pending the public contract and firmware download; its manual review steps do not write to devices.
+These instructions describe the hardware-pending 0.2.1 / contract 14 flow. Build and software checks passed, but the WCH port disappeared before upload, so flashing has not begun. The formal candidate remains disabled pending the public contract and firmware download; its manual review steps do not write to devices.
 
 ## Step 1: Connect and enter settings {#flash_panel type=manual required=true config=devices/review_flash.yaml}
 
@@ -34,7 +34,7 @@ Have a compatible test App, USB data cable and HA light entity ID. Keep the comp
 
 Click **Deploy and save settings** and keep USB power connected. The App automatically:
 
-1. Checks project, version, hardware and name. Once final resources are synchronized, a 0.2.1 match skips flashing; otherwise it verifies image size/SHA, installs and checks identity again. No full-chip erase is used; NVS is preserved.
+1. Checks project, version, hardware and name. A match to manifest version 0.2.1 skips flashing; otherwise it verifies image size/SHA, installs and checks identity again. No full-chip erase is used; NVS is preserved.
 2. Reuses or configures Wi-Fi and writes the light binding through the plaintext-only API, without setting encryption. Migration from older firmware must follow the final 0.2.1 acceptance results.
 3. Waits at least 65 seconds, resets and reads back without a key. No key-copy control is provided.
 
@@ -62,9 +62,9 @@ Real HA control and physical touch still need acceptance.
 | Issue | Action |
 | --- | --- |
 | Cannot connect | Check the network, address and firmware version; do not follow the older encryption instructions |
-| Touch or light does not respond | Check the five zones, light entity and action permission. Coordinates are unchanged; no touch fix is claimed |
+| Touch or light does not respond | Check the five zones, light entity and action permission. Coordinates are unchanged; no touch fix is claimed. E-paper retention does not prove touch-circuit power |
 | Display does not follow the light | Dynamic state and brightness synchronization still need a HA Blueprint or adapter |
 
 ### Deployment Complete
 
-Record checks, installation, saving, reset/keyless readback and real light control separately. The 0.2.1 build, upgrade, sustained keyless behavior and final App flow still need acceptance; transitional 0.2.0 results do not prove them. New Wi-Fi, touch, HA control and display synchronization remain pending.
+Record checks, installation, saving, reset/keyless readback and real light control separately. The 0.2.1 build and software checks passed, but hardware upload has not begun. Upgrade, sustained keyless behavior and the full App hardware flow still need acceptance; transitional 0.2.0 results do not prove them. New Wi-Fi, touch, HA control and display synchronization remain pending.

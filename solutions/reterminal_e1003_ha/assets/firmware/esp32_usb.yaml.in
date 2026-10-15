@@ -19,7 +19,7 @@ firmware:
   source:
     path: assets/firmware/firmware.factory.bin
     checksum:
-      sha256: 45cbf1ec46d5a00e8362e6d920cd9318841c58f2a081cfae809d9e38e64ccebb
+      sha256: 23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528
   flash_config:
     chip: esp32s3
     baud_rate: 115200
