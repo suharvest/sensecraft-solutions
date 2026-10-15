@@ -41,6 +41,8 @@ the dashboard.
 | Fitness Trainer | Rep counting and form flags for squats, push-ups and curls |
 | Fall Detection | Rapid falls from an on-device pose timeline, for fixed indoor views |
 | Retail People Counting | Entry / exit counts plus browsing, engaged and assistance states |
+| Monocular Depth Estimation | FastDepth per-pixel relative distance (red-near blue-far), 3x3 proximity grid |
+| ONVIF & RTSP Gateway | Standard ONVIF WS-Discovery and authenticated RTSP stream for NVR / VMS |
 
 The reCamera Pro's App Center carries its own build of most of these, plus
 voice transcription. Weather classification is reCamera only.
