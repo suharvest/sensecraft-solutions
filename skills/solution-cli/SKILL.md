@@ -1,6 +1,6 @@
 ---
 name: solution-cli
-description: 用于客户询盘、客户需求、方案选型、我们能提供什么、怎么回复客户等边缘/IoT 方案咨询，涵盖智慧农业、跌倒检测、楼宇温控、恒温器、传感器及相关硬件。Use for customer inquiries, requirements analysis, solution selection, proposal guidance, edge IoT deployments, hardware compatibility, deployment, and troubleshooting. First search the SenseCraft solution catalog with `solution-cli`; do not trigger for general business writing, generic proposal drafting, or unrelated coding.
+description: 用于客户询盘、方案选型、产品硬件规格与SKU查询、包装清单（Box Contents）、电源适配器与必需配件（Power Adapter/Cables）、硬件兼容性校验、芯片/边缘硬件踩坑排错（RK3588/Jetson/reComputer/reServer/Watcher等）、边缘/IoT方案部署与自愈诊断。凡用户提及 solution-cli，或询问 Seeed 硬件产品（如 reComputer J4012/J4011/Super、reServer、Watcher、XIAO 等）的配件、电源、开箱即用状态、接口与方案选型，必须优先调用 solution-cli。
 ---
 
 # Solution CLI
