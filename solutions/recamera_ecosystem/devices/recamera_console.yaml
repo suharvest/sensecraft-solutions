@@ -80,6 +80,7 @@ actions:
 
     - name: Ensure network gateway and hardware acceleration patch
       run: |
+        set -e
         # 1. 压制所有 dnsmasq 配置中的 Option 3 网关
         for f in /etc/dnsmasq/*.conf; do
           if [ -f "$f" ] && grep -q '^dhcp-option=set:usb0,3,' "$f"; then

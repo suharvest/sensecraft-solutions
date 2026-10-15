@@ -151,3 +151,12 @@ Once the wireless bridge firmware is flashed onto the XIAO, configure Wi-Fi and 
   }
   ```
 - **Network Outage Resilience**: If the site Wi-Fi drops, the Grove Vision AI V2 module continues counting on-device without interruption. The XIAO silently retries in the background, flushing the latest aggregate counts as soon as connection is restored without blocking vision inference.
+
+### Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Setup AP `XIAO-Counter-XXXX` does not appear | Check the XIAO orientation and ensure the Grove Vision AI module has power |
+| Captive portal does not open automatically | Open a browser manually and navigate to `http://192.168.4.1` |
+| Cannot connect to site Wi-Fi | Verify the 2.4GHz Wi-Fi SSID and password |
+| MQTT broker does not receive events | Verify the broker IP address, port, and authentication credentials |

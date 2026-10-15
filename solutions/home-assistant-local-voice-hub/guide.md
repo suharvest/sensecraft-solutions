@@ -287,20 +287,12 @@ Install on a reComputer RK3576 over the network; questions other than device con
 
 ## Step 3: Connect the voice host to Home Assistant {#rk_ha_connect type=ha_integration required=true config=devices/ha_connect_cloud.yaml}
 
-Add the speech services from step 2 and the LLM to Home Assistant and set up the voice assistant. Nothing is installed on the devices in this step.
+Add the speech services from step 2 and the LLM to Home Assistant and set up the voice assistant. Check the connection parameters, choose the assistant language, and click Deploy. Nothing is installed on the devices in this step.
 
 ### Prerequisites
 
 - Steps 1 and 2 are deployed, and you have created the Home Assistant administrator account
 - To finish the setup in this step: the API key and model name from your LLM provider
-
-### Wiring
-
-1. Enter the Home Assistant host's IP address and the administrator username and password
-2. The voice host address, ports and LLM address are filled in from steps 1 and 2; check them
-3. Choose the voice assistant language
-4. API key and model name: enter them to talk to the voice assistant right after this step; leave the API key empty to enter it later in Home Assistant (step 4)
-5. Click Deploy
 
 ### Troubleshooting
 
@@ -336,22 +328,6 @@ Test the voice assistant in Home Assistant.
 1. Open Home Assistant, click the conversation button at the top right and say or type "Turn on the living room light"; the light turns on and you get a reply
 2. Ask "Is it a good day to open the windows?" and you get an answer from the LLM
 
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Adding LiteLLM fails to connect or reports an invalid key | Check the address and key, and that the Home Assistant host can reach the internet |
-| Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
-| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the agent's "Instructions" as shown above and the LLM asks you to repeat the exact name |
-| Other questions only get "I don't understand" | The API key was left empty in step 3: add the LLM as described above, or deploy step 3 again with the key |
-| Voice stopped working after redeploying step 2 with different ports | Deploy step 3 again with the new ports |
-| The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
-
-
----
-
-# Deployment Complete
-
 Home Assistant and the local voice services are ready.
 
 ### Initial Setup
@@ -365,4 +341,15 @@ Home Assistant and the local voice services are ready.
 - Say "Turn on the living room light" to the voice terminal; the light turns on and you hear a reply
 - The same devices are visible and controllable in the Home app on iPhone
 - Zigbee sensor readings update in Home Assistant
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Adding LiteLLM fails to connect or reports an invalid key | Check the address and key, and that the Home Assistant host can reach the internet |
+| Device commands are answered by the LLM | Turn on "Prefer handling commands locally" in the voice assistant |
+| A light command was not carried out but the LLM says it was | The device name was misheard and the command went to the LLM; set the agent's "Instructions" as shown above and the LLM asks you to repeat the exact name |
+| Other questions only get "I don't understand" | The API key was left empty in step 3: add the LLM as described above, or deploy step 3 again with the key |
+| Voice stopped working after redeploying step 2 with different ports | Deploy step 3 again with the new ports |
+| The command is recognized but nothing happens | Make sure the name in the command matches the device or area name in Home Assistant |
 
