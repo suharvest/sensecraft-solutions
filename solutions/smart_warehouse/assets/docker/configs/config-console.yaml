@@ -41,3 +41,13 @@ mcp_endpoint: null
 
 delete_audio: true
 close_connection_no_voice_time: 120
+
+# 性能优化参数 (由 config/local_overrides.py 合并生效)
+server_plugins_exclude:
+  - "get_lunar"
+
+# ASR 静默超时缩短（原 3.0s 降至 1.2s，说完话后少等 1.8 秒）
+asr_listen_timeout_quiet_sec: 1.2
+
+# LLM 前缀预热去抖时间（原 1.5s 增至 2.5s，等待设备端 MCP 工具全部到达后再预热）
+llm_prefix_warmup_debounce_sec: 2.5

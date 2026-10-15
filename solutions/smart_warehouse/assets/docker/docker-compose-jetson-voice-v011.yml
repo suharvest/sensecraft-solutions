@@ -1,0 +1,60 @@
+# Jetson Orin NX 语音 AI 栈：OpenVoiceStream v0.11 Candidate（Qwen3-ASR IFB B2 + Matcha zh/en TRT TTS）
+#
+# 基础镜像: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.11.0-candidate-voice-dfd6aae
+# Profile: jetson-edgellm-v011-matcha.json
+# ASR: Qwen3-ASR 0.6B IFB B2（双槽并发流式）
+# TTS: Matcha-icefall-zh-en（极速低延迟 16kHz TRT 合成，首包延迟 <100ms，0 额外下载）
+#
+# 注意：Orin NX (16GB RAM) 显存预算紧张，启动前需停止 seeed-voice-v091 容器。
+
+services:
+  speech:
+    container_name: ${SPEECH_CONTAINER_NAME:-seeed-voice-v011}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.11.0-candidate-voice-dfd6aae}
+    runtime: nvidia
+    ipc: host
+    restart: unless-stopped
+    environment:
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      LANGUAGE_MODE: multilanguage
+      OVS_PROFILE: ${OVS_V011_PROFILE:-${OVS_PROFILE:-jetson-edgellm-v011-matcha}}
+      OVS_PROFILE_JSON: ${OVS_PROFILE_JSON:-/opt/voice-profile/${OVS_V011_PROFILE:-${OVS_PROFILE:-jetson-edgellm-v011-matcha}}.json}
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+      HF_MODEL_CACHE_ROOT: /opt/models
+      HF_HOME: /opt/models/huggingface
+      HUGGINGFACE_HUB_CACHE: /opt/models/huggingface/hub
+      TRANSFORMERS_CACHE: /opt/models/huggingface/transformers
+      TTS_PROVIDER: cuda
+      STREAMING_ASR_PROVIDER: cuda
+      OVS_TTS_SPEAKERS_FILE: /opt/seeed-local-voice/data/speakers.json
+      SPARKTTS_VOICES_DIR: /opt/seeed-local-voice/data/sparktts_voices
+      CUDA_MODULE_LOADING: LAZY
+      OVS_RELEASE_STATE: candidate_unpublished
+      PYTHONPATH: /opt/speech:/usr/lib/python3.10/dist-packages
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+    ports:
+      - "${OVS_V011_PORT:-${OVS_PORT:-8621}}:8000"
+    volumes:
+      - ${OVS_PROFILES_DIR:-./profiles}:/opt/voice-profile:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - speech-models-v011:/opt/models
+      - seeed-local-voice-data:/opt/seeed-local-voice/data
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /etc/nv_tegra_release:/etc/nv_tegra_release:ro
+    mem_limit: 8g
+    memswap_limit: 14g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/readyz >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15m
+
+volumes:
+  speech-models-v011:
+    name: ${SPEECH_MODEL_VOLUME:-speech-models-v011-candidate}
+  seeed-local-voice-data:
+    name: seeed-local-voice-data
