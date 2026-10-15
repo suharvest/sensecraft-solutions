@@ -1,12 +1,13 @@
 version: "1.0"
 id: review_setup
-name: Connect and set buttons
+name: Save configuration inside the App
 name_i18n:
-  zh: 联网并设置按钮
+  zh: 在 App 内保存配置
 type: manual
-# No user_inputs: none of the current deployers writes these E1003 settings.
+# Native e1003_config requires App contract 11; public content contract is still 5.
+# Keep this review stub until generated public schemas and compatible App are available.
 steps:
   - id: adapter_pending
-    name: Open the local form to set the network and the light controlled by the buttons
+    name: Review the embedded E1003 form; native step awaits public contract synchronization
     name_i18n:
-      zh: 打开本地表单，设置网络与按钮控制的灯
+      zh: 审阅 App 内置 E1003 表单；原生步骤等待公开契约同步

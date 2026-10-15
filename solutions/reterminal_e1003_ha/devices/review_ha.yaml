@@ -1,8 +1,8 @@
 version: "1.0"
 id: review_ha
-name: Enable control in Home Assistant
+name: Verify light control in Home Assistant
 name_i18n:
-  zh: 在 Home Assistant 启用控制
+  zh: 在 Home Assistant 验证控灯
 type: manual
 steps:
   - id: ha_acceptance

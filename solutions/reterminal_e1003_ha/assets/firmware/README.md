@@ -31,10 +31,12 @@ partition table, initial OTA data and app; do not add a second bootloader/app
 write. The pinned image uses a 4 MB layout on a panel with 32 MB physical flash.
 The NVS partition lies beyond this merged image's write range. Keep the
 `erase` substep **false** for normal USB updates. Same-image, same-partition
-retention was verified in the firmware project; cross-version migration and
-the App flasher remain unverified.
+retention was verified in the firmware project and the local App USB test;
+cross-version migration remains unverified. Evidence is recorded in the content
+repository at `docs/e1003-ha-usb-checks.md`.
 
 For eventual distribution, a maintainer must separately authorize publication,
 upload the reviewed binary, verify its downloaded hash, replace the local
-resource reference with that real URL, and complete engine/HA acceptance before
-enabling the solution. Do not generate a URL from a guessed release tag.
+resource reference with that real URL, synchronize the public contract for the
+native App configuration step, and complete the remaining acceptance before
+enabling this technical demo. Do not generate a URL from a guessed release tag.

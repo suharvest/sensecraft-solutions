@@ -1,67 +1,66 @@
 ## Preset: Install and set up {#usb_candidate}
 
-For local testing, follow **install firmware → connect and set buttons → test in Home Assistant**.
-The local App configuration entry opens an editable settings page; no manual command is needed. The formal candidate is disabled.
+Test in this order: **install firmware → save configuration inside the App → verify light control in Home Assistant**.
+The configuration instructions require a desktop App with the embedded E1003 form (contract 11). The formal candidate remains disabled pending public contract and firmware resources; its manual steps are review instructions and do not write to devices.
 
 ## Step 1: Install panel firmware {#flash_panel type=manual required=true config=devices/review_flash.yaml}
 
-If the panel firmware is already installed, go straight to Step 2; no reflash is needed. Initial installation uses precompiled firmware, with no compilation or configuration-file editing.
-For local testing, use the imported test solution. The formal candidate does not bundle a ready-to-deploy firmware resource.
+Initial installation uses one precompiled image, with no configuration-file editing or compilation. If this image is already installed, go straight to Step 2.
 
 ### Prerequisites
 
-Have a dimmable light already added to Home Assistant and copy its entity ID.
-Keep the setup computer, panel and Home Assistant on the same reachable LAN.
+Use a compatible local test App and verified firmware resource. Copy the entity ID of an existing dimmable light in Home Assistant. Keep the computer, panel and Home Assistant on the same reachable LAN.
 
 ### Wiring
 
 1. Connect the E1003 carrier's USB-UART port to the computer with a data cable. Close tools using that port.
-2. Select the connected panel's port in the App and run installation. Keep full-chip erase off and maintain stable power.
+2. Select the panel port in the App and install. Keep full-chip erase off and power stable; installation passes only after write verification.
 
 ### Troubleshooting
 
 | Issue | Action |
 | --- | --- |
 | Port not found | Check the data cable and close tools using the port |
-| No installation control | Confirm you opened the imported local test solution |
+| No installation control | The formal candidate has no installation entry yet; use the prepared package for local testing |
 
-## Step 2: Connect and set buttons {#configure_panel type=manual required=true config=devices/review_setup.yaml}
+## Step 2: Save configuration inside the App {#configure_panel type=manual required=true config=devices/review_setup.yaml}
 
-Open the local settings page from the App configuration entry, select the configuration preset and fill in the form. Submitting runs the adapter to write settings to the device.
+Fill in the embedded E1003 form on the App deployment page. No external webpage or script path selection is needed.
 
 | Setting | What to enter |
 | --- | --- |
 | USB port | Select the connected E1003 |
 | Light controlled by the buttons | Paste the light's entity ID, such as `light.bedroom`; on/off and all four brightness buttons share this light |
-| Wi-Fi name (optional) | Leave blank if connected; enter it for initial setup or a network change |
-| Wi-Fi password (optional) | The password for the selected network |
-| Copy device connection key (optional) | Copy locally after success for use in Home Assistant |
+| Wi-Fi name | Required for first connection; leave blank only when this App has the device record and the device is already connected |
+| Wi-Fi password | Enter the selected network's password; input is masked |
 
-Keep USB connected after submitting. The adapter waits at least 65 seconds, resets the panel and performs encrypted readback before reporting success. It reuses a private key record or generates a key during initial setup; you do not enter one here.
+Click **Save device configuration** and keep USB connected. The App checks identity, generates or reuses a device-specific connection key, writes the binding, waits at least 65 seconds, resets and performs encrypted readback. Configuration passes only after all checks succeed. You do not enter a key; a copy button becomes available after success.
 
 ### Troubleshooting
 
 | Issue | Action |
 | --- | --- |
-| Light entity ID unknown | Find the light in Home Assistant's entity list and copy its ID starting with `light.` |
-| Unsure whether settings saved | Wait for configuration success; do not disconnect during saving or reset |
+| Light entity ID unknown | Copy the light's ID starting with `light.` from Home Assistant's entity list |
+| Unsure whether settings saved | Wait for reset and encrypted readback; keep power connected during saving |
+| Configured device has no key record | Return to the App that saved its record; do not erase configuration to attempt recovery |
 
-## Step 3: Enable control in Home Assistant {#verify_ha type=manual required=true verify=true config=devices/review_ha.yaml}
+## Step 3: Verify light control in Home Assistant {#verify_ha type=manual required=true verify=true config=devices/review_ha.yaml}
 
-1. Confirm the discovered ESPHome device. If it is not discovered, add it manually using the device IP and port `6053`.
-2. Select the form’s **device connection key** copy option, then paste it into Home Assistant after configuration succeeds.
+This step requires a real Home Assistant instance and light; hardware acceptance is still pending.
+
+1. Confirm the discovered ESPHome device. If needed, add it manually using the device IP and port `6053`.
+2. Click **Copy encryption key for Home Assistant** in the App configuration panel and paste it into Home Assistant.
 3. Enable **Allow the device to perform Home Assistant actions**.
-4. Test on/off and all four brightness buttons, then close the App and test again.
+4. Test on/off and 25%, 50%, 75% and 100% brightness, then close the App and repeat. Record whether the light actually responds.
 
 ### Troubleshooting
 
 | Issue | Action |
 | --- | --- |
 | Cannot connect | Check the LAN, device IP and connection key |
-| Light does not respond | Check the selected light, its dimming support and the action permission |
-| Display does not follow the light | State and brightness synchronization still need a HA Blueprint or adapter; button binding alone does not synchronize the display |
+| Light does not respond | Check the chosen light, dimming support and action permission |
+| Display does not follow the light | Dynamic state and brightness synchronization still need a HA Blueprint or adapter; hardware acceptance is pending |
 
 ### Deployment Complete
 
-Confirm each result separately: firmware installed, settings retained after reset, and the real light responds to the buttons.
-New-network setup through this form, real HA control and display synchronization still need acceptance; installation or configuration success does not complete the whole solution.
+Record installation verification, persistence after reset and real light control separately. The first two have passed; new Wi-Fi through this form, real HA control and dynamic display synchronization still need hardware acceptance. Configuration success does not verify light control.

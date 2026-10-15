@@ -1,20 +1,26 @@
 version: "1.0"
 id: reterminal_e1003_ha
-name: reTerminal E1003 Home Assistant Dashboard
+name: reTerminal E1003 — Precompiled Firmware and Runtime Configuration Demo
 name_i18n:
-  zh: reTerminal E1003 Home Assistant 面板
-# Review only. Enable only after the engine adapter and HA acceptance pass.
+  zh: reTerminal E1003 — 预编译固件与运行时配置演示
+# Technical review only. Requires compatible App/contract, public firmware and acceptance.
 enabled: false
 intro:
-  summary: An E1003 dashboard with a clock, temperature and humidity, and buttons bound to a Home Assistant light.
+  summary: Test one precompiled E1003 image with per-device network, encryption key and light binding configured in the desktop App.
   summary_i18n:
-    zh: 在 E1003 查看时间与温湿度，为灯光按钮绑定 Home Assistant 中的灯。
+    zh: 演示同一份 E1003 预编译固件，通过桌面 App 配置网络、独立连接密钥与灯光按钮绑定。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   category: sensing
-  solution_type: solution
+  solution_type: technical
   tags: [home-assistant, esphome, epaper, usb]
+  output_interfaces:
+    - type: serial
+      endpoint: UART0
+      description: Improv Serial at 115200 baud returns device identity and network status.
+      description_i18n:
+        zh: UART0 以 115200 波特率运行 Improv Serial，返回设备身份和联网状态。
   input_requirements:
     - type: network
       description: The setup computer, panel, and Home Assistant must be on the same reachable LAN, with an existing dimmable light entity.
@@ -33,9 +39,9 @@ intro:
       name: Install and set up
       name_i18n:
         zh: 安装与设置
-      description: Install over USB, then open the local configuration form to set the network and the light controlled by the buttons.
+      description: Test USB installation, runtime configuration in the desktop App and persistence after reset.
       description_i18n:
-        zh: 通过 USB 安装，再打开本地配置表单，设置网络与按钮控制的灯。
+        zh: 测试 USB 安装、桌面 App 内运行时配置，以及复位后的设置保留。
       device_groups:
         - id: panel
           name: Dashboard panel

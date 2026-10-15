@@ -1,27 +1,27 @@
-# Put Home Assistant controls on E1003
+# E1003 precompiled firmware and runtime configuration demo
 
-The fixed layout includes a clock, temperature and humidity, and a lighting card.
-Choose the light for that card once; its on/off and four brightness buttons share the setting.
+Test how one firmware image serves different E1003 panels: install over USB, then configure the network, a device-specific connection key and a light-button binding inside the desktop App. No compilation, `secrets.yaml` editing or maintainer scripts are needed.
 
-> Local testing now has installation and configuration entries: open the settings form from the App to change the light controlled by the buttons, without manual commands. The formal solution remains disabled. Real HA control, new-network setup through this form and display synchronization still need acceptance.
+**Verified:** App flashing, plus saving a light ID through the embedded form, waiting 65 seconds, resetting and reading it back over an encrypted connection. New Wi-Fi setup through this form, real Home Assistant light control and display synchronization still need hardware acceptance.
 
-## What to set
+## What the demo provides
 
-| Setting | Purpose |
-| --- | --- |
-| Wi-Fi name and password (optional) | Leave blank to retain an existing connection; enter them for initial setup or a network change |
-| Light controlled by the buttons | Copy the light's entity ID from Home Assistant, such as `light.bedroom` |
+- One precompiled image with a fixed clock, temperature/humidity and lighting-card layout.
+- A separate connection key for each device and a light binding retained after reset; changing the binding requires no rebuild.
+- Save progress, encrypted readback results and a key-copy button inside the App.
 
-The device connection key is generated during initial setup and reused afterward. Select the form’s local copy option when you need to paste it into Home Assistant. Installation uses precompiled firmware; no configuration-file editing or compilation is needed.
+The lighting card's on/off and four brightness buttons share one setting: “Light controlled by the buttons.” Saving it proves that the binding persists; test actual light control separately in Home Assistant.
 
-## Where to use it
+## How to test
 
-- At the bedside, check the time and use the lighting card to switch or dim the light.
-- By your desk, check temperature and humidity and operate workspace lighting.
+1. Install firmware over USB for first use; skip flashing if this image is already installed.
+2. In the embedded App form, select the USB port and enter the light's entity ID, such as `light.bedroom`. Enter Wi-Fi for first connection; leave it blank only when this App has the device record and the device is already connected.
+3. Save and keep power connected until reset and encrypted readback pass. Copy the key inside the App, confirm the device and allow actions in Home Assistant, then test the panel buttons.
 
-## Before you start
+## Interfaces and requirements
 
-- Use reTerminal E1003 with the current fixed layout and a dimmable light already added to Home Assistant.
-- Keep the setup computer, panel and Home Assistant on the same reachable LAN.
-- The panel uses the ESPHome native API, with no MQTT or device web server required.
-- Installation and updates use USB; wireless updates (OTA) are not supported.
+USB uses Improv Serial for network setup. The LAN connection uses encrypted ESPHome native API (TCP 6053) for configuration and readback. No MQTT or device web server is required. The computer, panel and Home Assistant must be mutually reachable; light-control testing requires an existing dimmable light entity.
+
+This demo supports only the current E1003 layout and USB updates, with no OTA. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
+
+> This technical demo candidate is disabled. The embedded form has been tested in a local App build and requires an App containing this feature (contract 11). Public contract synchronization and a public firmware download are pending; this candidate cannot yet execute installation and configuration directly.
