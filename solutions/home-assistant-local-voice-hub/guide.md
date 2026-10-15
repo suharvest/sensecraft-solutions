@@ -275,9 +275,17 @@ Install the speech recognition and speech synthesis services on the voice host f
 | iptables is missing | Install iptables on the voice host and deploy again; it limits the local LLM to the Home Assistant host |
 | Cannot connect to the device | Check the IP address, username and password, and that the device is powered on and on the network |
 
+### Target: RK3588 (cloud LLM, local deployment) {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml}
+
+Install on this reComputer RK3588 without the card; questions other than device control are answered by the cloud LLM you enter.
+
 ### Target: RK3588 (cloud LLM) {#rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/rk3588_voice.yaml default=true}
 
 Install on a reComputer RK3588 without the card over the network; questions other than device control are answered by the cloud LLM you enter.
+
+### Target: RK3576 (cloud LLM, local deployment) {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576 (8GB)" config=devices/rk3576_voice.yaml}
+
+Install on this reComputer RK3576; questions other than device control are answered by the cloud LLM you enter.
 
 ### Target: RK3576 (cloud LLM) {#rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576 (8GB)" config=devices/rk3576_voice.yaml}
 
