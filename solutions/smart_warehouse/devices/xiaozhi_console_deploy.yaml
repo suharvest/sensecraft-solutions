@@ -563,6 +563,12 @@ remote_overrides:
               "$TPL" > "$COMPOSE_DIR/data/.config.yaml"
           echo "已生成 data/.config.yaml（secret 待回填）"
 
+          if [ -f "$COMPOSE_DIR/scripts/switch_language.sh" ]; then
+            chmod +x "$COMPOSE_DIR/scripts/switch_language.sh"
+            cp "$COMPOSE_DIR/scripts/switch_language.sh" "$WORKDIR/switch_language.sh"
+            echo "已就绪语种切换脚本：$WORKDIR/switch_language.sh"
+          fi
+
     after:
       - name: xiaozhi-console-apply-settings
         description: 写入服务地址与 MCP 接入点
