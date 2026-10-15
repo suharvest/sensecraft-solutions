@@ -13,7 +13,8 @@
 最终方向是 **0.2.1 plaintext-only**：彻底移除参考固件 `api.encryption` 的编译能力。
 App 移除可选加密 checkbox 和所有 key 复制入口，`encrypt_api` 仅兼容 false 请求，
 新契约为 14。开发者入口 `e1003-dashboard.yaml` 独立保留加密，不属于此参考候选。
-固件 `09b3bbb` 和 App `9235b5e6` 已提交，构建与软件检查通过；真实设备上传尚未开始，
+固件 `09b3bbb` 已提交；App UI 实现为 `475caa01`，原生验收文档为 `f65d0b36`，
+构建与软件检查通过；0.2.1 真实设备上传尚未开始，
 不能声明新固件已烧录或新 App 的设备流程已通过。
 
 ## 资源与提交状态
@@ -23,7 +24,7 @@ App 移除可选加密 checkbox 和所有 key 复制入口，`encrypt_api` 仅�
 - Factory **1,337,072 bytes**，SHA-256
   `23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528`。
   [manifest](../solutions/reterminal_e1003_ha/assets/firmware/manifest.json) 与模板已同步真实资源，公网 URL 仍为空。
-- [App PR #162](https://github.com/suharvest/app_collaboration/pull/162)：`9235b5e6`，contract 14。
+- [App PR #162](https://github.com/suharvest/app_collaboration/pull/162)：代码 `475caa01`，原生验收文档 `f65d0b36`，contract 14。
   加密 checkbox、所有 key 复制入口已删除；`encrypt_api=true` 在硬件访问前被拒绝，旧字段仅接受 false。
 - 编译产物：`USE_API_PLAINTEXT` 存在，`USE_API_NOISE` / `USE_PROVISIONING` 不存在。
   这是构建证据，不能替代设备 API 报告 `api_encryption_supported=false` 的实测。
@@ -57,11 +58,22 @@ App 移除可选加密 checkbox 和所有 key 复制入口，`encrypt_api` 仅�
 - 连接：串口选择与刷新同一行；灯字段手动粘贴 HA 实体设置中的 `light.*`，不声称自动发现。
 - 网络：Wi-Fi 说明默认关闭折叠；已有网络可留空，首次或换网填写 2.4 GHz 名称/密码；不声称已探测到网络。
 - 保存：短步骤名“配置 E1003”，按钮“保存配置”；查看检查、保存、重启验证三个阶段，成功标志为“配置已保存并验证”。倒计时只引用后端状态，不在内容层造计时器或另一套完成状态。
-- 完成：HA 添加 ESPHome、设备地址和动作权限只写入 guide 的 `post_deploy` 内容；实际成功前隐藏由主控修改的原生 handler 控制。
+- 完成：HA 添加 ESPHome、设备地址和动作权限只写入 guide 的 `post_deploy` 内容；App 原生 handler 已实现成功前隐藏，成功后才显示设备地址和 HA 下一步。
 - 详情：使用默认关闭的 HTML `details/summary` 收纳版本、SHA、擦除策略和验证状态。仓库 `md_to_html` 及 guide parser 已验证保留这些元素；块内使用原生 HTML，不依赖未启用的 `md_in_html` 扩展。
 
-本轮直接修改双语介绍/指南、preset/步骤显示名；单状态源、真实倒计时、成功显隐和空日志隐藏
-由主控在 App PR #162 同步实现。本内容 PR 不新增 engine 字段或伪造这些运行时行为，也不访问 App。
+内容文案已在 `2bd1052` 完成，本轮不重写。App PR #162 的 `475caa01` 已实现上述交互：
+USB 刷新复用共享 `pickSerialPort`；顶部 badge 与共享 `deploymentStatus` 使用同一状态源；
+保存倒计时恢复后端剩余秒数，零秒不代表成功；保留三个阶段、失败原因和重试。
+空日志隐藏，密码提交即清空，成功后 SSID 也清空，避免下次误改网络。
+这些是 App 已实现的行为；正式内容仍为人工审阅步骤，不新增公开 schema 不支持的执行字段。
+
+主控提供的无密钥 `ui-implementation-evidence.json` 与原生验收文档
+[`f65d0b36`](https://github.com/suharvest/app_collaboration/commit/f65d0b36) 分别记录软件与窗口检查：
+Ego 浏览器模拟在阻止真实请求的条件下通过倒计时、失败重试和成功下一步流程，
+桌面及 375×812 视口无横向溢出。实际 macOS 原生窗口经 AX 和仅该窗口截图核对，
+短标题、同栏 USB 刷新、实体 ID 帮助、默认折叠、无密钥控件、成功前隐藏 HA 内容和空日志均符合要求。
+设备已由用户移除，USB 未选；**未点击保存、未创建真实 setup job**。Playwright 文件已更新但未本地运行。
+本内容会话只采纳指定公开证据，不操作 App 或设备。
 
 ## 触摸、图像与网络
 
@@ -76,13 +88,15 @@ USB Improv、ESPHome native API、同一可达 LAN、无 MQTT/设备 web server 
 
 ## 证据与下一步
 
-[当前公开证据](e1003-ha-usb-checks.md)包括 19 固件工具检查、53 App 聚焦检查 + 5 subtests、
-955 前端检查，以及 config/compile、Black/Ruff、PyInstaller/Rust/Tauri 构建通过，无新 compiler warning。
+[检查报告](e1003-ha-usb-checks.md)保留此前 19 固件工具检查及 config/compile 证据，无新 compiler warning。
+本轮主控报告 964 前端测试、54 Python + 5 subtests、Black（181 文件）、Ruff、production /
+PyInstaller / Tauri 构建通过；lint 为 0 errors / 107 existing warnings。
+App 完整 CI 仍需处理已有 Rust 方案快照差异，不能将这些聚焦检查称为完整 CI 全绿。
 RAM 112,583 B，app flash 1,271,415 B，factory 比 0.1.0 少 41,440 B。
-桌面/375×812 共享前端截图确认无密钥控件、无横溢；这不是最终设备配置或原生窗口提交验收。
+软件与原生窗口检查不等于最终设备配置提交验收。
 
-主控在选择串口时发现 WCH 设备消失，端口列表无 WCH；**0.2.1 最终真机上传尚未开始**，
-等待用户重连。不能写已烧录或 `api_encryption_supported=false` 实机通过，也不能从墨水屏
+此前 WCH 端口消失，**0.2.1 最终真机上传尚未开始**。用户已移除设备并明确排除本轮实体测试，
+本轮不等待硬件。不能写已烧录或 `api_encryption_supported=false` 实机通过，也不能从墨水屏
 断电留图推断触摸电路有电。五个灯光触摸区、真实 HA 控灯和动态同步仍待确认。
 
 0.1 加密证据、0.2.0 实际升级/免密复位读回/610 秒曾通过及后续再次要求加密的记录均为历史；

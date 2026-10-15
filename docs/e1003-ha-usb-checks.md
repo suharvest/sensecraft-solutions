@@ -3,10 +3,11 @@
 日期：2026-10-15。结论：**0.2.1 构建与软件检查通过，最终真机上传尚未开始；0.1/0.2 实机结果仅为历史。technical 候选继续禁用，等待公开 contract 14、固件下载资源和实机验收。**
 接入条件见[技术演示与接入契约](e1003-ha-usb-candidate.md)。
 
-## 当前 0.2.1 plaintext-only / contract 14：构建通过，实机待验收
+## 0.2.1 plaintext-only / contract 14 构建快照：实机待验收
 
 固件 [PR #2](https://github.com/Love4yzp/esphome-reterminal-e1003-workspace/pull/2) 提交 `09b3bbb`，
-App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 提交 `9235b5e6`。
+App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 当时提交 `9235b5e6`；
+最新 UI 代码 `475caa01` 与原生验收文档 `f65d0b36` 见下节。
 参考固件彻底移除 API 加密编译能力；开发者 `e1003-dashboard.yaml` 独立保留加密。
 
 | 检查 | 当前结论与范围 |
@@ -17,7 +18,7 @@ App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 提交 `9
 | 软件/构建 | 19 固件工具、53 App 聚焦 + 5 subtests、955 前端通过；config/compile、Black/Ruff、PyInstaller/Rust/Tauri 构建通过，无新 compiler warning |
 | 体积 | RAM 112,583 B，app flash 1,271,415 B，factory 比 0.1.0 少 41,440 B |
 | UI | 桌面/375×812 共享前端截图已审查，无密钥控件、无横向溢出；不等于设备流程或最终原生窗口提交通过 |
-| 真机 | 主控选择串口时发现 WCH 设备消失，列表无 WCH，等待用户重连；**最终 0.2.1 上传尚未开始** |
+| 真机 | 主控选择串口时发现 WCH 设备消失，列表无 WCH；**最终 0.2.1 上传尚未开始**。用户随后移除设备并排除本轮实体测试 |
 | 硬件断言 | `api_encryption_supported=false` 尚未实机确认；公开 JSON 该项为 null。旧加密迁移、持续免密与最终完整任务仍待验证 |
 | 图像 | 新生成 1774×887 封面改为 No API key，其余构图不改；官方 1800×1200 实体图不改，无实际控灯证据 |
 | 正式内容 | technical、一个入口、`enabled:false`、public contract 5 review stub；待公开 contract 14/兼容 App/固件 URL 后再接原生执行 |
@@ -25,6 +26,33 @@ App [PR #162](https://github.com/suharvest/app_collaboration/pull/162) 提交 `9
 [本轮公开记录](evidence/e1003-plaintext-reference-2026-10-15.json)原样复制用户点名的
 `plain-only-reference-evidence.json`；只读/复制指定 manifest、封面及 README，factory 只用于打包验证。
 没有枚举其它 `.local-*`、访问恢复记录、操作 App/串口或上传资源。
+
+## App UI 已实现与原生窗口检查（475caa01 / f65d0b36）
+
+[App PR #162](https://github.com/suharvest/app_collaboration/pull/162) 的 UI 代码为
+[`475caa01`](https://github.com/suharvest/app_collaboration/commit/475caa01)，原生验收文档为
+[`f65d0b36`](https://github.com/suharvest/app_collaboration/commit/f65d0b36)，contract 仍为 14。
+依据为主控指定的无密钥 `ui-implementation-evidence.json` 及本轮公开补充；本内容会话仅读取该 JSON，
+不读取其它运行文件、截图或恢复记录，不重复 App/设备操作。
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| 表单入口 | “配置 E1003”短标题；USB 选择与刷新同栏，复用共享 `pickSerialPort`；“按钮控制的灯”附从 HA 实体设置复制 ID 的帮助，手动输入，无自动实体发现 |
+| 折叠与状态 | Wi-Fi/技术详情默认折叠；顶部 badge 与共享 `deploymentStatus` 同源；三个阶段；倒计时恢复后端剩余秒数，零秒不代表成功；失败原因与重试已实现 |
+| 成功与清理 | 成功后才显示设备地址、HA 添加 ESPHome 及动作权限；空日志隐藏；密码提交即清空、SSID 成功后清空，避免下次误改网络；无密钥控件 |
+| 浏览器模拟 | Ego 在阻止真实请求的条件下跑通保存倒计时、失败重试和成功下一步；桌面及 375×812 截图无横向溢出；不等于真实后端或设备任务通过 |
+| 原生窗口 | 实际 macOS 测试窗口已打开新版表单，经 AX 与仅该窗口截图确认短标题、同栏刷新、实体 ID 帮助、默认折叠、无 key 控件、HA 下一步及空日志隐藏；设备已移除，USB 未选；**未点击保存、未创建真实 setup job** |
+| 软件检查（主控报告） | 964 前端测试、54 Python + 5 subtests、Black 181 文件、Ruff 通过；lint 0 errors / 107 existing warnings；production、PyInstaller、Tauri 构建通过 |
+| 自动化范围 | Playwright 文件已更新但本地未运行；实际浏览器检查使用 Ego。上述窗口核对与模拟均不计为 0.2.1 设备上传、触摸、HA 控灯或屏幕同步通过 |
+| App CI | 仍需跟进已有 Rust 方案快照差异，不宣称完整 CI 全绿；与内容仓库既有无关 404 CI 问题分别记录 |
+| 正式候选 | `2bd1052` 双语文案不重写；technical、disabled、单 preset、manual 审阅配置、0.2.1 manifest/SHA 与图片均保持。公开 contract 14 和固件下载 URL 仍是发行依赖 |
+
+用户明确不再实体测试，本轮无需等待硬件。旧 0.1/0.2 硬件证据不提升为 0.2.1 验收。
+本轮只补充两份接入/检查文档及 PR 验证状态；不导入、不部署、不发布。
+
+内容侧复核：`solutionctl validate --check-urls`、6 项既有打包测试、公开边界检查和差异检查通过；
+这两份文档的 11 处本地链接/锚点有效，两个 App 提交链接经 GitHub API 核验可访问。
+差异仅限这两份文档，方案目录未变；本轮未重新打包含 bin 资源或执行 App 测试。
 
 ## 0.2.0 过渡实验的持续免密限制
 
