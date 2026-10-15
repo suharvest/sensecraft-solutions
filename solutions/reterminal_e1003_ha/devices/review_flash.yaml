@@ -1,11 +1,11 @@
 version: "1.0"
 id: review_flash
-name: Connect and review automatic firmware checking
+name: Connect the device
 name_i18n:
-  zh: 连接设备并审阅自动固件检查
+  zh: 连接设备
 type: manual
 steps:
   - id: resource_pending
-    name: Ready-to-deploy firmware is not bundled in this candidate
+    name: Connect USB and select the port
     name_i18n:
-      zh: 本候选尚未提供可直接部署的固件资源
+      zh: 连接 USB，选择串口

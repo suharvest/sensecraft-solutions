@@ -320,3 +320,29 @@ guide 属性块、固件版本/哈希/NVS 策略、产品族与图片未变。�
 含 bin 临时包在检查后清理，不提交二进制。15 处本地链接/锚点有效，复制素材与源文件一致。
 单入口、guide 属性块、产品族、官方实体图片与 115200/0x0/erase=false/NVS 策略不变。
 上述均为内容/资源打包检查；**本内容会话未执行设备上传，0.2.1 硬件结果仍为 pending**。
+
+### UI 评审文案落实（本轮无实体测试）
+
+直接更新 `solution.yaml`、双语 description/guide 和三个 review 设备文件：方案名缩为
+E1003 灯光面板配置演示，唯一 preset 叫“配置 E1003”，短步骤名“配置 E1003”，按钮文字为
+“保存配置 / Save settings”。首屏改为操作句，移除大段构建/串口故障/哈希说明。
+
+通过公开 contract 5 注册 step 类型后，用本仓库 `markdown_parser.md_to_html` 与
+`parse_single_language_guide` 实际确认：默认关闭的 `details/summary` 在步骤 HTML 中保留；
+Wi-Fi 折叠块保留在 wiring notes，技术折叠块保留在配置步骤 description。块内用 HTML，
+避免依赖未启用的 Markdown-in-HTML 扩展。
+
+灯的 ID 明确为手动从 HA 实体设置复制，不做自动发现承诺。Wi-Fi 说明注明已有网络可留空、
+首次/换网填 2.4 GHz 网络，不假装已识别现网。保存阶段只引导看后端进度与可用倒计时，
+以“配置已保存并验证”为成功；HA 设备地址、ESPHome 添加和动作权限放入解析后的
+`post_deploy` 成功内容。成功前显隐、单状态源、倒计时和空日志隐藏由主控 App handler 落实，
+不是本轮内容层新增的运行时能力。本轮不做 App 导入、UI 或实体操作。
+
+manifest、真实 SHA、0.2.1 fixed plaintext、contract 14 依赖、图片、产品族和单一禁用入口保留；
+已有固件/硬件证据不改写，触摸、真实控灯与屏幕同步边界继续保留。旧无关 404 CI 说明保留在 PR 正文。
+
+本轮 `solutionctl validate --check-urls`、产品族、文案 lint、公开边界和差异检查通过；现有测试
+**102 passed、14 skipped**，既有目录定位跳过限制同前。双语实际解析确认折叠默认关闭、SHA 仅在
+技术详情、Wi-Fi 位于 wiring notes、HA 操作位于 post_deploy；15 处链接/锚点有效。内容导出 CRC
+通过且无 bin。manifest/SHA、图片、执行字段、guide 属性块、technical/disabled/单 preset 均保留。
+未读取外部运行目录或操作 App/串口，无本轮实体测试或发布。

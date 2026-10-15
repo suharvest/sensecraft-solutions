@@ -1,39 +1,30 @@
-# E1003 unified deployment technical demo
+# E1003 Light Panel Setup Demo
 
-Select the device and enter light settings in one desktop App form. The intended flow checks firmware, installs 0.2.1 when needed and saves configuration. **The reference firmware uses plaintext-only API access, with no encryption option.** Saved Wi-Fi can be reused without a prior local key record. No compilation or `secrets.yaml` editing is needed.
+Connect the device and enter the light to control. The App checks and installs firmware when needed.
 
-**Current status:** 0.2.1 is built without API encryption support. The App removes encryption and key-copy controls, requiring contract 14. Software checks and shared-frontend screenshot review passed, but the WCH port disappeared before upload: 0.2.1 has not been flashed to hardware. Historical 0.2.0 results do not verify this release.
+This technical demo uses one form to set the light binding, with no compilation, configuration-file editing or API key entry.
 
-## What the demo provides
+## What to test
 
-- One precompiled image with a fixed clock, temperature/humidity and lighting-card layout.
-- Reference firmware with plaintext-only API access; no API key generation, entry or copying.
-- A light binding retained after reset and App progress for checks, installation and saving.
+- Bind E1003 to one HA dimmable light.
+- Check saving, restart and readback results.
+- After saving succeeds, connect to HA and test panel control.
 
-The firmware defines only five touch zones: light on/off and 25%, 50%, 75% and 100% brightness, sharing “Light controlled by the buttons.” Other graphics have no click binding. Physical touch and real light control have not passed acceptance. An e-paper image remaining after power-off does not prove that the touch circuitry has power.
+Only five zones define touch actions: on/off and 25%, 50%, 75% and 100% brightness. Other graphics have no click binding. Physical touch, HA control and display synchronization still need acceptance.
 
-## Product and connection layout
+## Device and connection
 
-![Official reTerminal E1003 product photo with Seeed's demonstration interface](gallery/e1003-product-official.jpg)
+![Official E1003 product photo with Seeed's stock demonstration screen](gallery/e1003-product-official.jpg)
 
-This photograph comes from Seeed's official product page. Its stock screen is not this firmware's layout or a hardware acceptance result.
+The official photograph does not show acceptance of this firmware.
 
-![Generated architecture illustration: USB setup and LAN connectivity, with No API key](gallery/e1003-keyless-cover.png)
+![Generated architecture illustration: USB setup, No API key and LAN connectivity](gallery/e1003-keyless-cover.png)
 
-USB handles device identification and network setup; the App writes and reads the light binding over the LAN. **No API key describes the fixed plaintext design**, not completed hardware acceptance. This is a generated illustration; HA control and state synchronization still need acceptance.
+USB handles device checks and network setup; the LAN carries settings and readback. The cover is a generated illustration, not proof of real light control.
 
-## How to test
-
-1. Connect USB, select the port in the App and enter “Light controlled by the buttons,” such as `light.bedroom`. Leave Wi-Fi blank to reuse a saved network; enter credentials for first connection.
-2. Once final resources and the compatible App are ready, click **Deploy and save settings**, with no encryption choice or key input. The App checks project identity, version and hardware, skipping a match or verifying the image before installation.
-3. Keep power connected through the 65-second save wait, reset and readback. Confirm the device in Home Assistant without an API key; no key copying is needed. Allow HA actions, then test the five touch zones separately.
-
-## Interfaces and requirements
-
-Uses Improv Serial and ESPHome native API (TCP 6053), with no MQTT or device web server. The 0.2.1 reference design uses plaintext-only API access. The computer, device and HA must share a reachable LAN.
-
-Supports only the current E1003 layout and USB updates, with no OTA. State and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
-
-> The actual 0.2.1 artifact is now pinned; device upload has not begun. The formal candidate stays disabled pending public contract 14, compatible App distribution, a firmware download URL and hardware acceptance. Encryption remains in a separate developer entry, outside this reference firmware.
-
-See [App draft PR #162](https://github.com/suharvest/app_collaboration/pull/162) for the native implementation.
+<details>
+<summary>Technical details and verification status</summary>
+<p>Reference firmware 0.2.1 is fixed plaintext-only, with no API encryption option or key copying. It uses ESPHome native API (TCP 6053), no MQTT or device web server, and USB-only updates.</p>
+<p>Build and software checks passed, but final hardware upload has not begun. Earlier firmware results do not verify this release. E-paper retention after power-off does not prove touch-circuit power.</p>
+<p>The formal candidate remains disabled pending public contract 14, compatible App distribution, a firmware download URL and hardware acceptance. The developer firmware retains encryption separately. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.</p>
+</details>

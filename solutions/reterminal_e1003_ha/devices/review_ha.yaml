@@ -1,11 +1,11 @@
 version: "1.0"
 id: review_ha
-name: Verify light control in Home Assistant
+name: Verify after saving
 name_i18n:
-  zh: 在 Home Assistant 验证控灯
+  zh: 完成后验证
 type: manual
 steps:
   - id: ha_acceptance
-    name: Confirm the device, allow actions and test light control
+    name: Verify only after settings are saved
     name_i18n:
-      zh: 确认设备并开启动作权限，测试灯光控制
+      zh: 仅在配置已保存后验证
