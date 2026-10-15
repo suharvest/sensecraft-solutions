@@ -8,7 +8,7 @@
 依据 App 工作基线 `50fc49df` 上新增功能的公开文档
 `docs/e1003-desktop-configuration.md` 和 `docs/reports/e1003-desktop-configuration.md`，
 本内容会话只读核对源码与公开报告，未访问运行中的 App、串口或 `.local-*` 私有目录。
-App PR 由主控创建，链接待补充。
+原生实现见 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)，commit `e3ef932d`，contract 11；未合并或发布。
 
 | 检查 | 结果与范围 |
 | --- | --- |
@@ -19,6 +19,7 @@ App PR 由主控创建，链接待补充。
 | UI 与原生启动 | 共享前端桌面/375×812 视口已检查，无横向溢出；本地隔离 Tauri debug App 成功启动、contract 11 并加载原生步骤；引擎代理及租约 smoke 通过 |
 | 自动检查（App 报告） | 955 前端测试、93 项聚焦 Python 检查通过；前端生产构建、路由分组、Rust schema freshness 通过；6 项 Rust verify emulation 通过 |
 | 全套 Python 限制 | 报告为 7,169 passed、288 skipped、3 failed、3 setup errors；受 macOS Bash、Linux `/proc` 与 Rust 工具链影响，工具链相关三项后续通过；不宣称全套绿色 |
+| 介绍内容入口（主控补充） | 本地测试副本已改为 technical，双语完整介绍由 Tauri App 后端确认返回，中文 HTML 约 1,357 字符；测试版通过 `PS_FOCUS_SOLUTION_ID` 直接打开演示介绍。本内容会话未操作 App；后端返回不单独证明视觉排版验收 |
 | 尚未物理验收 | 原生表单新 Wi-Fi、真实 HA 灯控和触摸效果、动态状态/亮度同步 |
 
 本地 debug 包未公证或发布。打包后端的硬件路径、共享前端 QA 和原生壳启动分别记录，
@@ -124,7 +125,7 @@ argv 或生成配置文件；复用已有私有 key 记录或首次生成，用�
 
 ## 尚未完成的验收
 
-1. App PR 链接与兼容功能正式分发；公开契约由 5 同步至 11，随后替换候选配置 stub。
+1. App 草稿 PR #162 的后续审查与兼容功能正式分发；公开契约由 5 同步至 11，随后替换候选配置 stub。
 2. 真实固件缺公开下载地址；未发布资源或修改发布清单。
 3. 新原生表单配置新 Wi-Fi 的物理验证；旧客户端配网通过不能代替新表单验收。
 4. HA 设备确认、动作权限、真实灯控制及触摸；任意目标状态和亮度显示同步还需 Blueprint/适配。

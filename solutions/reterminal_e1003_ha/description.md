@@ -25,3 +25,5 @@ USB uses Improv Serial for network setup. The LAN connection uses encrypted ESPH
 This demo supports only the current E1003 layout and USB updates, with no OTA. Display state and brightness synchronization for arbitrary lights still need a HA Blueprint or adapter.
 
 > This technical demo candidate is disabled. The embedded form has been tested in a local App build and requires an App containing this feature (contract 11). Public contract synchronization and a public firmware download are pending; this candidate cannot yet execute installation and configuration directly.
+
+The native configuration implementation is in [App draft PR #162](https://github.com/suharvest/app_collaboration/pull/162).

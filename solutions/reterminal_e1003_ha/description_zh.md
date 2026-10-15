@@ -25,3 +25,5 @@ USB 使用 Improv Serial 配网；局域网使用加密 ESPHome 原生 API（TCP
 仅适用于 E1003 当前固定布局，通过 USB 更新，不支持 OTA。任意灯的状态与亮度显示同步仍需 HA Blueprint 或适配。
 
 > 当前为禁用的技术演示候选。内置表单已在本地测试 App 验证，需包含该功能的 App（contract 11）；本仓库公开契约和正式固件下载资源尚待同步，当前候选不能直接执行安装与配置。
+
+原生配置实现见 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)。

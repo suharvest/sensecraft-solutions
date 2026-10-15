@@ -8,7 +8,7 @@
 当前配置路径是**桌面 App 内置 E1003 表单**：内建 Improv / aioesphomeapi 后端完成写入、
 65 秒保存等待、复位及加密读回，成功后在 App 内点击按钮复制密钥。
 无需外部网页、本机脚本路径或用户安装 Python。打包后端与共享前端已通过单机保存验证；
-本地 Tauri App 已启动并加载原生步骤。证据范围见[检查报告](e1003-ha-usb-checks.md)。
+本地 Tauri App 已启动并加载原生步骤；主控已确认 technical 测试副本的双语介绍由该 App 后端完整返回。证据范围见[检查报告](e1003-ha-usb-checks.md)。
 
 ## 固件与资源来源
 
@@ -35,7 +35,7 @@
 人工步骤返回成功不能证明设备配置或真实控灯通过。
 
 App 工作基线为主线 `50fc49df`，其上新增原生实现；这不是该基线已发布此功能的声明。
-App PR 由主控会话创建，链接待补充，不猜测 PR 编号。
+原生实现已提交 [App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)，commit `e3ef932d`，导出 contract 11；尚未合并或发布。
 本内容会话只读核对以下源码及公开文档，没有修改独立 App 仓库：
 
 | 材料 | 已实现行为 |
@@ -147,7 +147,7 @@ App 当前中文字段仍标为“目标灯 entity_id”，英文为“Light ent
 
 | 项目 | 当前状态 / 后续任务 |
 | --- | --- |
-| App PR 与安装包 | 内建后端已打包并实机通过，Tauri 本地测试 App 已启动；App PR 链接待主控补充，兼容功能尚待正式分发 |
+| App PR 与安装包 | 内建后端已打包并实机通过，Tauri 本地测试 App 已启动；[App 草稿 PR #162](https://github.com/suharvest/app_collaboration/pull/162)（`e3ef932d`）已创建，兼容功能尚待正式分发 |
 | 公开契约 | 本仓库仍为 contract 5；从 App 真源同步 contract 11 后才替换人工配置步骤 |
 | 固件资源 | 已有真实镜像与 SHA，缺公开下载地址；发布另行授权，不在本任务执行 |
 | 新 Wi-Fi | 旧 Improv 配网证据存在；通过新原生表单配置新网络尚未物理验收 |
