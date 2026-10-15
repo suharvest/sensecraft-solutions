@@ -4,9 +4,11 @@
 
 两台 RKLLM 设备的 500-token 可复现报告保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。每台设备包含 120 条 original 和 120 条 reverse fixture case；该 fixture 使用生成上下文，不能作为任意长请求的准确率结论。
 
+套餐 bootstrap 会自动准备固定版本的本地归档和模型输入，不需要手动准备归档目录。`network_region: global` 只用于加载本地归档时保持 Docker 镜像名称不被改写；Hugging Face bootstrap 下载仍使用 `hf-mirror.com`。
+
 ## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
 
-容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。请准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
+容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。bootstrap 会自动下载并校验固定版本产物，然后准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的目标目录；无需手动提供预先准备的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
 
 ### 部署目标 {#rk3576_rkllm type=remote device_name="RK3576" config=devices/rk3576_rkllm_remote.yaml default=true}
 
@@ -19,7 +21,7 @@
 
 | 现象 | 处理 |
 |------|------|
-| 模型没有就绪 | 检查提供的模型目录是否包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 和 `runtime/librkllmrt.so`，然后重新部署。 |
+| 模型没有就绪 | 检查 bootstrap 校验日志是否成功，并确认目标目录包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 和 `runtime/librkllmrt.so`，然后重新部署。 |
 | 健康接口返回了其他 backend 或 model ID | 检查部署字段，确认本套餐使用 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。 |
 
 ## 步骤 2: 打开边缘命令路由（Kev） {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
@@ -43,15 +45,17 @@
 
 同一份 500-token 可复现报告覆盖此套餐，原始 JSONL 和机器生成 summary 位于该目录下的 `rk3588/` 子目录：[`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。
 
+此套餐的 bootstrap 会自动下载并校验固定版本产物，然后准备目标目录；无需手动提供预先准备的模型目录。`network_region: global` 只用于加载本地归档时保持 Docker 镜像名称不被改写；Hugging Face bootstrap 下载仍使用 `hf-mirror.com`。
+
 ## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
 
-为目标设备提供固定版本 engine、FP32 Q/K head、tokenizer、metadata 和 RKLLM 运行时目录。服务启动时不会下载模型权重。
+bootstrap 会自动下载并校验固定版本 engine、FP32 Q/K head、tokenizer、metadata 和 RKLLM 运行时，然后准备目标目录；无需手动提供预先准备的模型目录。服务启动时不会下载模型权重。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |------|------|
-| 模型没有就绪 | 检查提供的 engine、head、tokenizer、metadata 和 RKLLM runtime 路径，再检查 `/api/health`。 |
+| 模型没有就绪 | 检查 bootstrap 校验日志是否成功，并确认目标目录包含固定版本 engine、head、tokenizer、metadata 和 RKLLM runtime，再检查 `/api/health`。 |
 | 请求在推理前被拒绝 | 按已验证的 8192-token 部署上下文和 `MAX_OPTIONS` 检查请求。 |
 
 ### 部署目标 {#rk3588_rkllm type=remote device_name="RK3588" config=devices/rk3588_rkllm_remote.yaml default=true}

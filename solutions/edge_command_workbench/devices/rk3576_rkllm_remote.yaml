@@ -4,6 +4,8 @@ name: RK3576 Kev RKLLM Edge Command Router
 name_i18n:
   zh: RK3576 Kev RKLLM 边缘命令路由
 type: docker_deploy
+# Keep Docker image names unchanged while loading the pinned local archive; HF bootstrap mirroring remains independent.
+network_region: global
 
 docker:
   compose_file: assets/docker/docker-compose.rkllm.yml
@@ -17,7 +19,8 @@ docker:
     SEQ_LEN: "2048"
     MAX_OPTIONS: "16"
   offline:
-    force_offline: true
+    # Bootstrap may fetch from the declared HF mirror; do not require a staged offline kit.
+    force_offline: false
     skip_docker_install: true
     images:
       - edge-command-workbench:rockchip-rkllm-0.3.1-review
