@@ -113,15 +113,15 @@ The module is counting. Everything below runs on the module itself — the app i
 
 ## Step 3: Optional — Add XIAO ESP32-S3 for Wireless Wi-Fi & MQTT Reporting {#xiao_wifi type=manual required=false}
 
-If you want to deploy the counter standalone without a host PC, forwarding counts over Wi-Fi to Home Assistant, a custom dashboard, or a cloud MQTT broker, add a **Seeed Studio XIAO ESP32-S3 (Pre-Soldered)**.
+Add a **Seeed Studio XIAO ESP32-S3 (Pre-Soldered)** when the counter must run without a host PC and report counts over Wi-Fi or MQTT.
 
-### 1. Hardware Assembly
+### Wiring
 
 1. Disconnect USB power from the Grove Vision AI Module V2.
 2. Align and insert the **XIAO ESP32-S3 (Pre-Soldered version)** into the female pin headers on the back of the Grove Vision AI Module V2.
 3. **Check orientation**: The Type-C connector on the XIAO must face the same direction as the Type-C connector on the Grove Vision AI V2. The boards communicate directly over onboard UART pins.
 
-### 2. Wi-Fi Provisioning via AP Web Portal
+### Deployment Complete
 
 Once the wireless bridge firmware is flashed onto the XIAO, configure Wi-Fi and MQTT without needing an IDE or serial drivers:
 
@@ -133,8 +133,6 @@ Once the wireless bridge firmware is flashed onto the XIAO, configure Wi-Fi and 
    - **Topic Prefix**: Defaults to `people_counter`; events publish to `people_counter/{device_id}/events`.
    - **Credentials**: Enter username/password if authentication is enabled; optional Home Assistant discovery toggle.
 5. **Save & Connect**: Click "Save & Reboot". Configuration is encrypted to internal flash, the setup AP shuts down, and the XIAO connects to site Wi-Fi.
-
-### 3. Payload Format and Network Fallback
 
 - **Sample MQTT Event Message** (published whenever a line crossing occurs or zone occupancy changes):
   ```json
@@ -150,7 +148,7 @@ Once the wireless bridge firmware is flashed onto the XIAO, configure Wi-Fi and 
     "status": "online"
   }
   ```
-- **Network Outage Resilience**: If the site Wi-Fi drops, the Grove Vision AI V2 module continues counting on-device without interruption. The XIAO silently retries in the background, flushing the latest aggregate counts as soon as connection is restored without blocking vision inference.
+If site Wi-Fi drops, the Grove Vision AI V2 keeps counting locally. The XIAO retries in the background and publishes the latest aggregate counts after the connection returns, without blocking vision inference.
 
 ### Troubleshooting
 
