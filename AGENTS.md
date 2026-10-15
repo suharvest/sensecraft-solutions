@@ -4,7 +4,7 @@ This document is for **AI agents** (Claude Code and similar assistants). It defi
 
 This open-source repository contains the **solution content** (YAML / Markdown / assets) and the **authoring & validation tooling** (`spec/`, `packages/`, `skills/`). The deployment engine is distributed separately, in two forms:
 
-- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `sensecraft` skill).
+- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `solution-cli` skill).
 - The **SenseCraft Solution desktop app** (Python backend `provisioning-station`). Content preview (Part A), the app HTTP API (Part C) and the legacy `solutionctl deploy` / `manage` / `stage` commands (Part D, appendix) need it.
 
 ## Four user roles, four workflows
@@ -12,10 +12,10 @@ This open-source repository contains the **solution content** (YAML / Markdown /
 | Part | User role | Typical need | Key artifact |
 |---|---|---|---|
 | **A** | Non-technical user (operations, AE, marketing) | Edit copy, add images, tweak intro/guide, then **preview** in the app | Solution import API (preview flow) |
-| **C** | End user, deploying with an agent | "One-click deploy a solution" | **`sensecraft` skill** + `sensecraft-engine` CLI; the desktop app's HTTP API boost flow is the app-only alternative |
+| **C** | End user, deploying with an agent | "One-click deploy a solution" | **`solution-cli` skill** + `sensecraft-engine` CLI; the desktop app's HTTP API boost flow is the app-only alternative |
 | **D** | DevOps / CI / scripted | Headless batch deploy, CI automation, single-device debugging | **`sensecraft-engine` CLI** (`deploy --detach`, `status`, `logs`); legacy: `solutionctl deploy` (starts the Python backend) |
 | **E** | DevOps / agent operating deployed devices | List deployed apps, start/stop/update, firmware OTA, factory restore, content updates, Docker ops | `sensecraft-engine docker` / `content` / `api`; the remaining endpoints need `serve --headless` (Python backend) or the desktop app |
-| **F** | Solution author / AE turning a project into a solution | Convert an existing project into a one-click solution, then submit it | `author-solution` skill + `solutionctl validate` / `steps` (offline) + PR |
+| **F** | Solution author / AE turning a project into a solution | Convert an existing project into a one-click solution, then submit it | `author-solution` / `author-cli` skills + `solutionctl validate` / `steps` (offline) + PR |
 
 > Note: a sixth role — second-development of the engine itself (adding deployers / frontend handlers / plugins) — lives in the closed-source engine repository and is intentionally out of scope here.
 
@@ -30,8 +30,8 @@ a skill when its job comes up:
 
 | Skill | Load it when… |
 |---|---|
-| `sensecraft` | **Agent-neutral entry point for deploying** (any agent that can run shell commands): install `sensecraft-engine`, pull solutions, deploy, follow status / logs, finish `verify_required` steps (counting lines, face enrollment, servo setup, robot arm), diagnose failures. No desktop app and no Python process. Editing a solution's configuration in an edit copy needs the desktop app (`references/app-only.md`). |
-| `solution-cli` | **Content authors:** `solutionctl validate` / `steps` / `export` (offline, no engine). Not for deploying — use `sensecraft`. |
+| `solution-cli` | **Agent-neutral entry point for deploying** (any agent that can run shell commands): consultation & hardware BOM selection, install `sensecraft-engine`, pull solutions, deploy, follow status / logs, finish `verify_required` steps (counting lines, face enrollment, servo setup, robot arm), diagnose failures. No desktop app and no Python process. Editing a solution's configuration in an edit copy needs the desktop app (`references/app-only.md`). |
+| `author-cli` | **Content authors:** `solutionctl validate` / `steps` / `export` (offline, no engine). Not for deploying — use `solution-cli`. |
 | `deploy-solution` | Deploying via the desktop app's REST API (Part C app flow; requires the desktop app). |
 | `author-solution` | Creating a new solution from source material (reproduce → validate → document). |
 | `solution-copywriting` | Polishing a solution's intro / guide copy. |
@@ -39,12 +39,12 @@ a skill when its job comes up:
 | `prepare-docker-images` / `prepare-deb-package` / `prepare-esp32-firmware` / `prepare-himax-firmware` / `prepare-recamera-nodered` | Preparing the deploy artifacts for the matching deployer type. |
 | `integrate-jetson-solution` | Building a Jetson `docker_remote` solution package. |
 
-> **Using `sensecraft` without cloning this repo:** in the SenseCraft Solution
+> **Using `solution-cli` without cloning this repo:** in the SenseCraft Solution
 > app open **Settings → Advanced → AI agent skill** and click Install for your agent (the
-> app ships the skill matching its own version). Or copy the `skills/sensecraft/`
+> app ships the skill matching its own version). Or copy the `skills/solution-cli/`
 > folder into your agent's skills directory — Claude Code: `~/.claude/skills/`;
 > CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check
-> your version's settings); other agents: point them at `skills/sensecraft/SKILL.md`.
+> your version's settings); other agents: point them at `skills/solution-cli/SKILL.md`.
 > It installs `sensecraft-engine` on first use (SKILL.md Step 0) and does not
 > need the app. Only `references/app-only.md` (config editing, the app's API)
 > needs the SenseCraft Solution app running on the same computer (app contract
@@ -110,7 +110,7 @@ Invoke the skill `preview-solution-content`. Full steps:
 
 # Part C — AI-driven deployment (boost flow)
 
-> **Agents deploying for a user: load the `sensecraft` skill** (`skills/sensecraft/SKILL.md`). It uses only the `sensecraft-engine` CLI: `content pull` → `solution list` → `deploy-info` → `deploy --detach` → `status` / `logs` → `verify_required` handling → cancel / retry. The rest of this Part documents the **desktop app's HTTP API** and **requires the desktop app**.
+> **Agents deploying for a user: load the `solution-cli` skill** (`skills/solution-cli/SKILL.md`). It uses only the `sensecraft-engine` CLI: `content pull` → `solution list` → `deploy-info` → `deploy --detach` → `status` / `logs` → `verify_required` handling → cancel / retry. The rest of this Part documents the **desktop app's HTTP API** and **requires the desktop app**.
 
 This Part tells an AI agent how to drive a **one-shot deployment ("boost")** of a solution through the SenseCraft Solution app's HTTP backend, after the app has been installed on the user's machine.
 
@@ -314,7 +314,7 @@ sensecraft-engine status <deployment_id> --json                 # exit 1 on fail
 sensecraft-engine logs <deployment_id> --since <N> [--follow]   # NDJSON events, resume by seq
 ```
 
-For unattended CI add `--skip-verify` (verify steps are reported as `step_skipped`, `reason: ui_only`). Exit codes: `0` success, `1` deployment failed / cancelled / interrupted, `2` missing parameters (`missing[]` on stdout), `3` environment or conflict (no solutions, device busy), `4` step needs the desktop app, `5` internal error. Full flow, verify handling and offline packages: `skills/sensecraft/`.
+For unattended CI add `--skip-verify` (verify steps are reported as `step_skipped`, `reason: ui_only`). Exit codes: `0` success, `1` deployment failed / cancelled / interrupted, `2` missing parameters (`missing[]` on stdout), `3` environment or conflict (no solutions, device busy), `4` step needs the desktop app, `5` internal error. Full flow, verify handling and offline packages: `skills/solution-cli/`.
 
 The sections below (usage ① and ②) describe **`solutionctl` with the `provisioning-station` Python backend**. They start a Python process; agents deploying for a user use `sensecraft-engine` instead.
 

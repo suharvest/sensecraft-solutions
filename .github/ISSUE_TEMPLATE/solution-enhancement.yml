@@ -1,0 +1,37 @@
+name: Solution enhancement / patch
+description: Suggest a configuration fix, timeout adjustment, or patch for an official solution.
+title: "[Patch] "
+labels: ["enhancement", "solution-patch"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve SenseCraft official solutions!
+        Please make sure all passwords, tokens, private API keys, and local IP addresses are removed from the diff.
+  - type: input
+    id: solution
+    attributes:
+      label: Solution ID
+      placeholder: e.g. conversational_voice_ai, smart_warehouse
+    validations:
+      required: true
+  - type: textarea
+    id: diff
+    attributes:
+      label: Sanitized Diff / Patch
+      description: The minimal git diff applied locally to resolve the issue.
+      render: diff
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem & Solution Description
+      description: What failed with the official configuration, and why this patch fixes it.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification Results
+      description: Evidence that the deployment succeeded with this patch (container health, logs, verify step confirmation).

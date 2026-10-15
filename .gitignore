@@ -15,4 +15,5 @@ solutions/.trash/
 # Per-session agent scratch (task briefs, one-off scripts, local deploy
 # bundles that can hold .env files and keys) and personal Claude settings.
 work/
+.sensecraft-work/
 .claude/settings.local.json

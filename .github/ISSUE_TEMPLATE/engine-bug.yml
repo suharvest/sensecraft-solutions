@@ -1,5 +1,5 @@
 name: App / engine bug
-description: A deployment step fails because of the SenseCraft Solution app itself, not the device or the solution's configuration. AI agents using the `sensecraft` skill fill this in for you.
+description: A deployment step fails because of the SenseCraft Solution app itself, not the device or the solution's configuration. AI agents using the `solution-cli` skill fill this in for you.
 title: "[engine] "
 labels: ["bug", "engine"]
 body:
