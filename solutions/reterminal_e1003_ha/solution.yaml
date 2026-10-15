@@ -6,9 +6,9 @@ name_i18n:
 # Technical review only. Requires compatible App/contract, public firmware and acceptance.
 enabled: false
 intro:
-  summary: Connect the device and enter the light to control. The App checks and installs firmware when needed.
+  summary: Connect E1003 and specify a Home Assistant light; the App handles firmware checks and setup.
   summary_i18n:
-    zh: 连接设备，填写要控制的灯。App 会自动检查并按需安装固件。
+    zh: 连接 E1003 并指定 Home Assistant 调光灯，App 会自动检查固件并完成配置。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -40,9 +40,9 @@ intro:
       name: Configure E1003
       name_i18n:
         zh: 配置 E1003
-      description: Select USB, enter the light and click Save settings. Keep power connected until saving and verification finish.
+      description: Select the USB serial port, enter the light entity ID, click Save settings, and keep power connected until verification completes.
       description_i18n:
-        zh: 选择 USB、填写灯，点击保存配置；保持通电，等待保存与验证完成。
+        zh: 选择 USB 串口并填写灯实体 ID，点击保存配置，保持通电直到验证完成。
       device_groups:
         - id: panel
           name: Dashboard panel

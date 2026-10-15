@@ -1,53 +1,53 @@
 ## Preset: Configure E1003 {#usb_candidate}
 
-Connect the device and enter the light to control. The App checks and installs firmware when needed.
+Connect the E1003 panel via USB and specify the light to control. The App checks firmware, installs it when needed, and saves your settings.
 
-> Disabled technical demo candidate. This manual review step does not configure hardware; formal execution awaits public App contract 15 synchronization, a compatible App and firmware download URL.
+> This solution candidate is currently in technical review and remains disabled. This manual review step does not write to hardware; full execution requires App contract synchronization and a public firmware URL.
 
 ## Step 1: Configure E1003 {#review_setup type=manual required=true verify=true config=devices/review_setup.yaml}
 
-In a compatible test App, click **Save settings** and wait for **Settings saved and verified**.
-
-### Setup
-
-1. Enter “Light controlled by the buttons”: copy its <code>light.*</code> ID from HA entity settings, such as <code>light.bedroom</code>. Input is manual; there is no automatic light discovery.
-2. Click **Save settings**. The App checks firmware and installs it only when needed, then saves and verifies settings. There is one flow with no compilation or flash-mode choice.
-3. Keep power connected through “Check device → Save settings → Restart and verify.” Saving requires at least 65 seconds; zero seconds or “Restarting” is not success.
-
-<details>
-<summary>Wi-Fi: leave blank to keep a saved network</summary>
-<p>Leave the name and password blank to reuse the saved network. This does not mean the App detected the device's current network. For first setup or a network change, enter the 2.4 GHz Wi-Fi name and password.</p>
-</details>
-
-<details>
-<summary>Technical details and release dependencies</summary>
-<p>Reference firmware 0.2.1 is fixed plaintext-only, with no encryption or API key controls. Public contract 5 provides only this manual review step; App contract 15 is committed at a597ccad, pending public content synchronization.</p>
-<p>Factory size: 1,337,072 B. SHA-256: <code>23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528</code>. Use 115200, offset 0x0, no full-chip erase and retain NVS. Formal execution also needs a compatible App and public firmware URL.</p>
-<p>Build/software and UI checks passed; final 0.2.1 hardware upload, new Wi-Fi, upgrade/migration, sustained plaintext operation, physical touch, real HA control and display synchronization remain pending acceptance.</p>
-</details>
+In a compatible test App, enter your settings, click **Save settings**, and wait for **Settings saved and verified**.
 
 ### Prerequisites
 
-Have a USB data cable and an HA dimmable light. Keep the computer, device and HA on the same reachable LAN.
+- A reTerminal E1003 panel and a USB data cable.
+- A dimmable light already added to Home Assistant, with its entity ID ready (such as `light.bedroom`).
+- The computer, E1003 panel, and Home Assistant on the same reachable LAN.
 
 ### Wiring
 
-1. Connect the E1003 carrier's USB-UART port to the computer.
-2. Select the device port; use “Refresh” in the same row if needed.
+1. Connect the E1003 carrier's USB-UART port to your computer with the USB cable.
+2. Select the device serial port in the App (click “Refresh” in the same row if it does not appear).
+
+### Setup
+
+1. **Enter the light to control**: In the “Light controlled by the buttons” field, enter the Home Assistant dimmable light entity ID (such as `light.bedroom`). Input is manual; the App does not automatically discover lights.
+2. **Wi-Fi setup (optional)**: For first-time networking or network changes, enter the 2.4 GHz Wi-Fi SSID and password. If the device has previously connected to this Wi-Fi, leave both blank to reuse saved credentials (leaving them blank does not imply the App detected the network).
+3. **Save and verify**: Click **Save settings**. The App verifies the firmware version, downloads and installs the prebuilt image if there is a mismatch, and writes the light bindings.
+4. **Wait for completion**: After writing, the device reboots and verifies readback. Keep power connected for at least 65 seconds. Setup is complete only when the screen displays **Settings saved and verified** (do not disconnect while the countdown reaches zero or while showing “Restarting”).
+
+<details>
+<summary>Technical details and release dependencies</summary>
+<p>Reference firmware 0.2.1 uses plaintext native API without API encryption options or key export. Public contract 5 currently provides only this manual review step; App contract 15 code is committed (a597ccad) pending public content schema synchronization.</p>
+<p>Factory firmware size is 1,337,072 bytes with SHA-256 <code>23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528</code>. Flashing uses 115200 baud, offset 0x0, no full-chip erase, and preserves NVS. Formal execution also requires a compatible App build and a public firmware download URL.</p>
+<p>Current build, software, and UI checks passed; final 0.2.1 hardware upload, new Wi-Fi, upgrade migration, sustained plaintext operation, physical touch, real HA control, and display synchronization remain pending acceptance.</p>
+</details>
+
+### Deployment Complete
+
+Proceed only after the App displays **Settings saved and verified**:
+
+1. Note the **Device address** shown on the completion screen.
+2. In Home Assistant, navigate to Settings → Devices & Services → Integrations, add an ESPHome device, and enter the device address (no API key required).
+3. In the device options, check “Allow the device to perform Home Assistant actions”.
+4. Test the on/off touch zone and the 25%, 50%, 75%, and 100% brightness zones. Close the App and retest.
+> **Note**: Only these five touch zones have actions defined; other screen elements are static. Saved settings do not imply physical control or two-way display synchronization have completed acceptance.
 
 ### Troubleshooting
 
 | Issue | Action |
 | --- | --- |
-| Device missing | Refresh, check the data cable and close tools using the port |
-| Setup failed | Resolve the displayed error and retry; do not erase NVS |
-| Saving or verification continues | Keep power connected until the final result |
-| Light or display does not respond | Check the light ID, dimming support and HA action permission; touch/control remain pending acceptance and state synchronization needs a Blueprint or adapter |
-
-### Deployment Complete
-
-Continue only after **Settings saved and verified** appears in the compatible App.
-
-1. Use the displayed **Device address** to add an ESPHome device in HA, without an API key.
-2. Allow the device to perform Home Assistant actions.
-3. Test on/off and 25/50/75/100% brightness, then close the App and repeat. Only these five zones have bindings; saved settings do not verify real control or display synchronization.
+| Device serial port not found | Click Refresh; verify the USB cable supports data transfer; close other programs using the serial port |
+| Setup or write failed | Check the displayed error message, resolve the issue, and retry; do not erase NVS |
+| Saving or verification in progress | Keep the device powered and wait for the final verification status |
+| Button or light does not respond | Confirm the light entity ID is correct and dimmable; ensure “Allow the device to perform Home Assistant actions” is enabled in Home Assistant |
