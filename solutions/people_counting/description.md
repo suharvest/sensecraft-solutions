@@ -12,7 +12,7 @@ This solution does it with one camera module and a USB cable. The Grove Vision A
 | No network, no cloud | Counts, detection coordinates and the preview image all travel over the USB cable only — nothing is uploaded |
 | Draw your own geometry | Up to 4 counting lines with In/Out totals, up to 4 zones with live occupancy |
 | No infrastructure | No network, no server, no account — a USB cable is the whole install |
-| Open data out | SSCMA JSON over serial, easy to pipe into your own script or gateway |
+| Flexible output | USB serial SSCMA JSON by default; optional XIAO ESP32-S3 for standalone Wi-Fi/MQTT reporting |
 
 ## Application Scenarios
 
@@ -38,7 +38,7 @@ Tested on the Grove Vision AI Module V2 at 240 x 240 input; real counting accura
 
 | Condition | Details |
 |-----------|---------|
-| Hardware | Grove Vision AI Module V2 and a USB-C data cable — nothing else |
+| Hardware | Grove Vision AI Module V2 and a USB-C data cable (optional XIAO ESP32-S3 for standalone Wi-Fi) |
 | Counting lines | Up to 4, each with its own In and Out totals |
 | Counting zones | Up to 4, each with a live occupancy number |
 | Lighting | Normal indoor lighting. Strong backlight behind the subject is the common failure case |

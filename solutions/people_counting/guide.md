@@ -108,3 +108,46 @@ The module is counting. Everything below runs on the module itself — the app i
 3. Have a second person join you to see multi-target tracking
 
 **Where the data goes:** counting events and per-frame detections come out of the USB serial port as SSCMA JSON, so you can pipe them into your own script, dashboard, or gateway. The live preview shares that same USB serial link — the module sends a JPEG with each result so the app can draw your lines and zones over the real scene. Everything stays between the module and this computer: nothing is uploaded, and no image reaches a network or a cloud service.
+
+---
+
+## Step 3: Optional — Add XIAO ESP32-S3 for Wireless Wi-Fi & MQTT Reporting {#xiao_wifi type=manual required=false}
+
+If you want to deploy the counter standalone without a host PC, forwarding counts over Wi-Fi to Home Assistant, a custom dashboard, or a cloud MQTT broker, add a **Seeed Studio XIAO ESP32-S3 (Pre-Soldered)**.
+
+### 1. Hardware Assembly
+
+1. Disconnect USB power from the Grove Vision AI Module V2.
+2. Align and insert the **XIAO ESP32-S3 (Pre-Soldered version)** into the female pin headers on the back of the Grove Vision AI Module V2.
+3. **Check orientation**: The Type-C connector on the XIAO must face the same direction as the Type-C connector on the Grove Vision AI V2. The boards communicate directly over onboard UART pins.
+
+### 2. Wi-Fi Provisioning via AP Web Portal
+
+Once the wireless bridge firmware is flashed onto the XIAO, configure Wi-Fi and MQTT without needing an IDE or serial drivers:
+
+1. **Connect to Setup AP**: On first boot or when disconnected, the XIAO broadcasts an open Wi-Fi network named `XIAO-Counter-XXXX`.
+2. **Open Web Portal**: Connect your phone or laptop to `XIAO-Counter-XXXX`. A captive portal will pop up automatically (or open your browser to `http://192.168.4.1`).
+3. **Select Wi-Fi**: Scan for nearby 2.4GHz networks, choose your site Wi-Fi, and enter the password.
+4. **Configure MQTT / Endpoint**:
+   - **Broker IP / Host**: Enter your MQTT server address (e.g. Home Assistant IP, port `1883`).
+   - **Topic Prefix**: Defaults to `people_counter`; events publish to `people_counter/{device_id}/events`.
+   - **Credentials**: Enter username/password if authentication is enabled; optional Home Assistant discovery toggle.
+5. **Save & Connect**: Click "Save & Reboot". Configuration is encrypted to internal flash, the setup AP shuts down, and the XIAO connects to site Wi-Fi.
+
+### 3. Payload Format and Network Fallback
+
+- **Sample MQTT Event Message** (published whenever a line crossing occurs or zone occupancy changes):
+  ```json
+  {
+    "device_id": "xiao_esp32s3_a1b2",
+    "timestamp": 1789881234,
+    "line_crossings": [
+      { "line_id": 1, "in": 42, "out": 35 }
+    ],
+    "zones": [
+      { "zone_id": 1, "occupancy": 3 }
+    ],
+    "status": "online"
+  }
+  ```
+- **Network Outage Resilience**: If the site Wi-Fi drops, the Grove Vision AI V2 module continues counting on-device without interruption. The XIAO silently retries in the background, flushing the latest aggregate counts as soon as connection is restored without blocking vision inference.

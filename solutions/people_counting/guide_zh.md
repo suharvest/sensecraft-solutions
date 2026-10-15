@@ -108,3 +108,46 @@
 3. 叫上第二个人一起进画面，看多目标跟踪
 
 **数据去哪了：** 计数事件和逐帧检测结果以 SSCMA JSON 从 USB 串口输出，你可以接进自己的脚本、看板或网关。实时预览走的是同一条 USB 串口：模组随每次结果附带一张 JPEG，应用才能把你画的线和区域叠在真实画面上。这些都只在模组和这台电脑之间传输：不上传任何数据，画面也不会进入网络或云端。
+
+---
+
+## 步骤 3: 选配：加装 XIAO ESP32-S3 实现 Wi-Fi 与 MQTT 无线上报 {#xiao_wifi type=manual required=false}
+
+如果你希望脱离电脑独立部署，将人流数据无线推送到 Home Assistant、自有看板或云端系统，可以为模组加装一块预焊接排针的 **Seeed Studio XIAO ESP32-S3**。
+
+### 1. 硬件组装
+
+1. 断开模组供电。
+2. 将 **XIAO ESP32-S3（已焊接排针版本）** 对准 Grove Vision AI Module V2 背面的母座排针插入。
+3. **特别注意朝向**：XIAO 的 Type-C 接口应与 Grove Vision AI V2 的 Type-C 接口保持同一朝向。两者通过底板的 UART 接口直连。
+
+### 2. Wi-Fi 配网方法（AP 热点 Web 配网）
+
+XIAO 刷入无线上报固件后，通过内置的 Web 门户完成现场配网，免装任何 IDE 或调试驱动：
+
+1. **连接配网热点**：模组上电后，XIAO 首次启动或未连上网络时会自动广播开放热点 `XIAO-Counter-XXXX`。
+2. **打开配网页面**：用手机或笔记本连接该热点，浏览器会自动弹出配网界面（或手动访问 `http://192.168.4.1`）。
+3. **扫描并连接现场 Wi-Fi**：在列表里选中现场 2.4GHz Wi-Fi 并输入密码。
+4. **配置 MQTT / 数据接收端**：
+   - **Broker 地址**：填入 MQTT 服务器 IP 或域名（如 Home Assistant IP，默认端口 `1883`）。
+   - **Topic 前缀**：默认为 `people_counter`，设备会发布至 `people_counter/{device_id}/events`。
+   - **认证账号**：若启用鉴权，填入用户名和密码；可选勾选 Home Assistant 自动发现。
+5. **保存生效**：点击「Save & Reboot」。配置自动写入 Flash，XIAO 关闭临时热点并连接现场 Wi-Fi。
+
+### 3. 上报数据格式与断网回退
+
+- **MQTT 消息示例**（人员越线或区域人数变动时推送）：
+  ```json
+  {
+    "device_id": "xiao_esp32s3_a1b2",
+    "timestamp": 1789881234,
+    "line_crossings": [
+      { "line_id": 1, "in": 42, "out": 35 }
+    ],
+    "zones": [
+      { "zone_id": 1, "occupancy": 3 }
+    ],
+    "status": "online"
+  }
+  ```
+- **断网回退保护**：当现场 Wi-Fi 闪断时，Grove Vision AI 依然在本地持续运算并累计人流计数，XIAO 会在后台静默重试。Wi-Fi 恢复后自动重连并补发最新计数值，绝不阻塞视觉推理。
