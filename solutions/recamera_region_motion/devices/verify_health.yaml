@@ -1,0 +1,22 @@
+version: "1.0"
+id: verify_health
+name: Check motion detection service
+name_i18n:
+  zh: 检查运动检测服务
+type: http_debug
+http_debug:
+  endpoints:
+    - id: health
+      name: Service health
+      name_i18n:
+        zh: 服务健康状态
+      url_template: "http://{{host}}:8080/api/health"
+      expected_status: 200
+user_inputs:
+  - id: host
+    name: Device IP Address
+    name_i18n:
+      zh: 设备 IP 地址
+    type: text
+    default: 192.168.42.1
+    required: true

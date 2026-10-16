@@ -1,0 +1,51 @@
+version: "1.0"
+id: recamera_motion
+name: reCamera Region Motion Detection
+name_i18n:
+  zh: reCamera 选区运动检测
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  deb_package:
+    path: https://github.com/yyling0101-a11y/recamera_motion_detection/releases/download/v2.1.2/recamera-motion_2.1.2_riscv64.deb
+    name: recamera-motion
+    includes_init_script: true
+    checksum:
+      sha256: 3dab55239994156f315557676b1957200378b2e44ef4d10e26ce59711f98428b
+  service_name: recamera-motion
+  service_priority: 92
+  auto_start: true
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    name_i18n:
+      zh: 设备 IP 地址
+    type: text
+    default: 192.168.42.1
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+  - id: password
+    name: SSH Password
+    name_i18n:
+      zh: SSH 密码
+    type: password
+    default: recamera
+    required: true
+
+post_deployment:
+  open_browser: false
