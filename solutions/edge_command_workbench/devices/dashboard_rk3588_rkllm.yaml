@@ -1,12 +1,12 @@
 version: "1.0"
 id: dashboard_rk3588_rkllm
-name: Open Kev Workbench
-name_i18n: {zh: 打开 Kev 工作台}
+name: Open Edge Command Router (Kev)
+name_i18n: {zh: 打开边缘命令路由（Kev）}
 type: web_dashboard
 inherit_host_from: deploy_rk3588_rkllm
 web_dashboard:
   url: http://{{deploy_rk3588_rkllm.host}}:18768
-  title: Edge Command Workbench (Kev)
-  title_i18n: {zh: 边缘设备命令工作台（Kev）}
+  title: Edge Command Router (Kev)
+  title_i18n: {zh: 边缘命令路由（Kev）}
   description: Open the RKLLM Kev workbench after model-ready health passes.
   description_i18n: {zh: 模型就绪健康检查通过后打开 RKLLM Kev 工作台。}

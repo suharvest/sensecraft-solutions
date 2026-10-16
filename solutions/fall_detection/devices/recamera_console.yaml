@@ -24,28 +24,28 @@ ssh:
 # 编排者，相机应用降级为 K92 由画廊 appMgr 管理，跌倒检测才能在画廊里
 # 被开关。
 #
-# 已经是 0.5.5 的设备不会被重装：下面的 preconditions 探针退出码为 0 就
+# 已经是 0.5.6 的设备不会被重装：下面的 preconditions 探针退出码为 0 就
 # 表示「这一步没事可做」，引擎把该步骤标成 skipped 直接跳过。探针在任何
 # 改动设备状态的操作之前求值，所以「无需重复」这个判断是可信的。
 #
 # 注意语义与 device_detection 相反：device_detection 退出非 0 会中止部署，
 # 而 precondition 退出非 0 只是「尚未满足，正常安装」，不算失败。
 preconditions:
-  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.5'"
-    description: Console already at 0.5.5
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.6'"
+    description: Console already at 0.5.6
     description_i18n:
-      zh: 控制台已是 0.5.5
-    satisfied_message: Console is already at 0.5.5 — nothing to install.
+      zh: 控制台已是 0.5.6
+    satisfied_message: Console is already at 0.5.6 — nothing to install.
     satisfied_message_i18n:
-      zh: 控制台已是 0.5.5，无需重复安装。
+      zh: 控制台已是 0.5.6，无需重复安装。
 
 binary:
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.5_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.6_riscv64.deb
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: a2c877f17583b65b5349efb7616a9d3a8fea70b3495dc6bfd2e394df534ccfd3
+      sha256: 957f253b7b790a3f3f18f5d8b31490cb651adcfae80f46e9b183a2af983ad17d
 
   # service_name 是 init 脚本名 S93sscma-supervisor 去掉 S93 的部分，
   # 与 deb 包名 supervisor 不同，必须显式写出，否则会回落到包名拼出
@@ -63,9 +63,9 @@ actions:
       run: |
         CURRENT=$(opkg list-installed 2>/dev/null | awk '$1=="supervisor"{print $3}')
         if [ -n "$CURRENT" ]; then
-          echo "Installed console version: $CURRENT (this step installs 0.5.5)"
+          echo "Installed console version: $CURRENT (this step installs 0.5.6)"
         else
-          echo "Console not installed yet (this step installs 0.5.5)"
+          echo "Console not installed yet (this step installs 0.5.6)"
         fi
         true
       name_i18n:
@@ -89,6 +89,45 @@ actions:
       sudo: true
       name_i18n:
         zh: 恢复控制台配置目录
+
+    - name: Ensure network gateway and hardware acceleration patch
+      run: |
+        set -e
+        # 1. 压制所有 dnsmasq 配置中的 Option 3 网关
+        for f in /etc/dnsmasq/*.conf; do
+          if [ -f "$f" ] && grep -q '^dhcp-option=set:usb0,3,' "$f"; then
+            sed -i 's|^dhcp-option=set:usb0,3,.*|dhcp-option=set:usb0,3 # suppress gateway: USB link is host-local|' "$f"
+          fi
+        done
+        /etc/init.d/S80dnsmasq restart >/dev/null 2>&1 || true
+
+        # 2. 硬件加速打码驱动部署
+        PKG_KO_DIR="/usr/share/supervisor/ko"
+        SYS_KO_DIR="/mnt/system/ko"
+        BAK_KO_DIR="/userdata/ko-backup"
+        if [ -d "$PKG_KO_DIR" ] && [ -d "$SYS_KO_DIR" ] && [ -f "$PKG_KO_DIR/cv181x_vpss.ko" ] && [ -f "$PKG_KO_DIR/cv181x_rgn.ko" ]; then
+          if ! grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null; then
+            KREL="$(uname -r 2>/dev/null || true)"
+            if [ -n "$KREL" ] && grep -q "$KREL" "$PKG_KO_DIR/cv181x_vpss.ko" 2>/dev/null && grep -q "$KREL" "$PKG_KO_DIR/cv181x_rgn.ko" 2>/dev/null; then
+              mkdir -p "$BAK_KO_DIR" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_vpss.ko" ] || cp -f "$SYS_KO_DIR/cv181x_vpss.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_rgn.ko" ] || cp -f "$SYS_KO_DIR/cv181x_rgn.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              mount -o remount,rw / 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_vpss.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              sync 2>/dev/null || true
+              mount -o remount,ro / 2>/dev/null || true
+              # 校验驱动双模块一致性
+              if grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null && cmp -s "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/cv181x_rgn.ko"; then
+                echo "Hardware masking drivers installed (reboot recommended to activate in kernel)"
+              fi
+            fi
+          fi
+        fi
+        true
+      sudo: true
+      name_i18n:
+        zh: 修复 USB 网络并部署硬件加速
 
 user_inputs:
   - id: host

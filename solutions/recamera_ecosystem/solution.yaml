@@ -3,6 +3,7 @@ id: recamera_ecosystem
 name: Plug & Play AI Camera
 name_i18n:
   zh: 即插即用 AI 摄像头
+  ja: プラグ&プレイ AI カメラ
 intro:
   summary: One AI camera, a gallery of apps — install object detection, text reading, face analysis or people counting from the camera's own console, and forward the results to Home Assistant
   summary_i18n:

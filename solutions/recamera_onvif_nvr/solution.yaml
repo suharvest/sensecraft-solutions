@@ -3,6 +3,7 @@ id: recamera_onvif_nvr
 name: reCamera ONVIF Gateway
 name_i18n:
   zh: reCamera ONVIF 网关
+  ja: reCamera ONVIF ゲートウェイ
 intro:
   summary: Add a reCamera to NVRs, VMS platforms, and Home Assistant through standard ONVIF discovery and an authenticated RTSP stream.
   summary_i18n:

@@ -90,6 +90,41 @@ post_deployment:
 name_i18n:
   zh: reComputer RK3576
 
+actions:
+  before:
+    - name: Check NPU availability
+      run: |
+        set -e
+        # Unprivileged detection: dmesg is blocked by kernel.dmesg_restrict on some images
+        if ! tr '\0' '\n' < /proc/device-tree/compatible 2>/dev/null | grep -qi 'rockchip,rk3576'; then
+          echo "Rockchip RK3576 platform not detected (/proc/device-tree/compatible has no rockchip,rk3576)."
+          exit 1
+        fi
+        echo "RK3576 platform detected."
+        if [ ! -d /sys/module/rknpu ] \
+           && ! ls /sys/class/devfreq 2>/dev/null | grep -qi npu \
+           && ! ls -d /proc/device-tree/*npu* >/dev/null 2>&1 \
+           && ! dmesg 2>/dev/null | grep -qi rknpu; then
+          echo "RK3576 detected, but the RKNPU driver is not loaded (no rknpu module, NPU devfreq or device-tree NPU node)."
+          exit 1
+        fi
+        echo "RKNPU detected."
+
+        if ! command -v docker >/dev/null 2>&1; then
+          echo "Docker is not installed."
+          exit 1
+        fi
+        echo "Docker available."
+
+        FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+        [ "${FREE_GB:-0}" -ge 5 ] || {
+          echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+          exit 1
+        }
+        echo "Disk space OK: ${FREE_GB}GB free."
+      name_i18n:
+        zh: 检查 NPU 是否可用
+
 remote_overrides:
   compose_dir: assets/docker
   detection:

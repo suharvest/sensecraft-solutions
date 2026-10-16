@@ -1,25 +1,38 @@
 version: '1.0'
 id: people_counting
-name: On-Device People Counting
+name: Low-Cost On-Device People Counting
 name_i18n:
-  zh: 本地人流计数
+  zh: 低成本本地人流计数
+  ja: 低コスト・オンデバイス人流カウント
 intro:
   summary: >-
-    Count people going in and out across a line and how many are in a zone, with one camera module and a USB cable and no video leaving the site.
+    Count entries, exits, and zone occupancy entirely on a low-cost micro vision AI module, with zero video leaving the site.
   summary_i18n:
     zh: >-
-      统计越线进出人数和区域内实时人数，一块摄像头模组加一根 USB 线即可，画面不离开现场。
+      一块十几美元的微型 AI 视觉模组，本地完成双向过线计数与区域人数统计，画面零上云。
+    ja: >-
+      低価格な超小型ビジョン AI モジュール 1 枚で、ライン跨ぎ出入りカウントとエリア内滞在人数を完全ローカル計測。映像は外部に出ず安全。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
+    ja: description_ja.md
+  cover_image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-101021112-grove-vision-ai-module-v2-45font.jpg
   gallery:
+    - type: image
+      src: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-101021112-grove-vision-ai-module-v2-45font.jpg
+      caption: Grove Vision AI Module V2 — Arm Cortex-M55 + Ethos-U55 NPU micro vision AI module
+      caption_i18n:
+        zh: Grove Vision AI Module V2——Arm Cortex-M55 + Ethos-U55 NPU 微型视觉 AI 模组
+        ja: Grove Vision AI Module V2 —— Arm Cortex-M55 + Ethos-U55 NPU 搭載の超小型ビジョン AI モジュール
     - type: image
       src: gallery/architecture.png
       src_i18n:
         zh: gallery/architecture_zh.png
+        ja: gallery/architecture_ja.png
       caption: System architecture — the Grove Vision AI V2 counts on the module and sends counts, detections and preview frames over USB-C serial to the counting panel on your computer; your own script or dashboard can read the same SSCMA JSON
       caption_i18n:
         zh: 系统架构——Grove Vision AI V2 在模组上完成计数，经 USB-C 串口把计数、检测结果和预览画面交给电脑上的计数面板；自有脚本或看板可读取同一份 SSCMA JSON
+        ja: システム構成——Grove Vision AI V2 がモジュール単体で人物検出と計数を完结。USB-C シリアル経由でプレビューと SSCMA JSON データを PC に送信
   category: vision_video_ai
   solution_type: solution
   tags:
@@ -28,6 +41,11 @@ intro:
     - tracking
     - edge_ai
     - grove_vision_ai
+    - low_cost
+    - himax_we2
+    - xiao_esp32s3
+    - wifi
+    - mqtt
 
   output_interfaces:
     - type: serial
@@ -35,20 +53,39 @@ intro:
       schema_type: json
       description_i18n:
         zh: 通过 USB 串口输出计数事件与逐帧检测结果（SSCMA JSON）
+        ja: USB シリアル経由でカウントイベントと毎フレームの検出結果を出力（SSCMA JSON）
+    - type: mqtt
+      port: 1883
+      topic: people_counter/{device_id}/events
+      description: Optional wireless MQTT reporting via XIAO ESP32-S3 Wi-Fi add-on (JSON line crossings and zone occupancy)
+      schema_type: json
+      description_i18n:
+        zh: 可选的 MQTT 无线上报（加装 XIAO ESP32-S3 Wi-Fi 扩展），发布越线进出与区域在场人数 JSON
+        ja: XIAO ESP32-S3 Wi-Fi 拡張による任意の MQTT 送信。ライン通過およびエリア滞在人数を JSON 出力
   input_requirements:
     - type: usb
       description: Grove Vision AI Module V2 connected over USB-C
       description_i18n:
         zh: 通过 USB-C 连接的 Grove Vision AI Module V2
+        ja: USB-C で接続された Grove Vision AI Module V2
 
   device_catalog:
     grove_vision_ai:
       description: Himax WE2 module (Cortex-M55+Ethos-U55); on-device tracking
       description_i18n:
         zh: Himax WE2 模组，机载完成检测、跟踪与计数
+        ja: Himax WE2 モジュール（Cortex-M55 + Ethos-U55 NPU）、オンデバイスで検出・追跡・計数を完結
       purchase:
         require:
           version: [v2]
+    xiao_esp32s3:
+      description: XIAO ESP32-S3 wireless Wi-Fi and MQTT reporting module; plugs into Grove Vision AI V2 back socket
+      description_i18n:
+        zh: XIAO ESP32-S3 无线上报扩展模块，直插 Grove Vision AI V2 背面插座，提供 Wi-Fi/MQTT 上报与 Web 配网
+        ja: XIAO ESP32-S3 ワイヤレス送信拡張モジュール。Grove Vision AI V2 背面ソケットに直挿しし、Wi-Fi/MQTT 送信と Web 設定を提供
+      purchase:
+        require:
+          soldering: [presoldered]
 
   stats:
     deployed_count: 0
@@ -61,23 +98,36 @@ intro:
       name: Grove Vision AI Module V2
       name_i18n:
         zh: Grove Vision AI Module V2
-      description: Flash the counting firmware, draw your lines and zones, and watch the counts update live
+        ja: Grove Vision AI Module V2
+      description: Flash the counting firmware, draw your lines and zones, and watch the counts update live. Optionally plug in a XIAO ESP32-S3 for Wi-Fi and MQTT reporting.
       description_i18n:
-        zh: 烧录计数固件，画好越线和区域，实时看计数结果
+        zh: 烧录计数固件，画好越线和区域，实时看计数结果；可选加装 XIAO ESP32-S3 实现 Wi-Fi 与 MQTT 无线上报。
+        ja: カウント用ファームウェアを書き込み、ラインやエリアを描画してリアルタイムにカウント更新を確認。任意で XIAO ESP32-S3 を追加して Wi-Fi / MQTT 送信可能。
       device_groups:
         - id: camera_module
           name: Camera Module
           name_i18n:
             zh: 摄像头模组
+            ja: カメラモジュール
           type: single
           required: true
           options:
             - device_ref: grove_vision_ai
           default: grove_vision_ai
+        - id: wireless_addon
+          name: Wireless Wi-Fi Add-on (Optional)
+          name_i18n:
+            zh: Wi-Fi 无线上报扩展（选配）
+            ja: Wi-Fi ワイヤレス送信拡張（任意）
+          type: single
+          required: false
+          options:
+            - device_ref: xiao_esp32s3
 
 deployment:
   auto_detect: true
   guide_file: guide.md
   guide_file_i18n:
     zh: guide_zh.md
+    ja: guide_ja.md
   selection_mode: sequential

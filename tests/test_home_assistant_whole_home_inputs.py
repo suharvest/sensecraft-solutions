@@ -20,7 +20,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PKG = ROOT / "solutions" / "home_assistant_whole_home"
+PKG = ROOT / "solutions" / "home-assistant-local-voice-hub"
 DEVICE_FILES = sorted((PKG / "devices").glob("*_voice.yaml"))
 ALL_DEVICE_FILES = sorted((PKG / "devices").glob("*.yaml"))
 # Filled in by the engine from the SSH connection form, not a package input;

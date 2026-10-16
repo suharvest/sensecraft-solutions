@@ -69,6 +69,41 @@ post_deployment:
 name_i18n:
   zh: 仓库管理系统 + 人脸识别（Jetson）
 
+actions:
+  before:
+    - name: Configure device-facing base URL for face recognition
+      timeout: 60
+      run: |
+        set -e
+        if [ -d "assets/docker" ]; then COMPOSE_DIR="assets/docker"; else COMPOSE_DIR="."; fi
+        ENV_FILE="$COMPOSE_DIR/.env"
+        HOST_IP=""
+        if command -v python3 >/dev/null 2>&1; then
+          HOST_IP=$(python3 -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('1.1.1.1', 80)); print(s.getsockname()[0])" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v ip >/dev/null 2>&1; then
+          HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+          [ -z "$HOST_IP" ] && HOST_IP=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+        fi
+        if [ -z "$HOST_IP" ] && command -v route >/dev/null 2>&1 && command -v ipconfig >/dev/null 2>&1; then
+          IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+          [ -n "$IFACE" ] && HOST_IP=$(ipconfig getifaddr "$IFACE" 2>/dev/null || true)
+        fi
+        if [ -z "$HOST_IP" ] && command -v hostname >/dev/null 2>&1; then
+          HOST_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        HOST_IP="${HOST_IP:-127.0.0.1}"
+        mkdir -p "$COMPOSE_DIR"
+        touch "$ENV_FILE"
+        if grep -q '^WAREHOUSE_DEVICE_BASE_URL=' "$ENV_FILE"; then
+          sed -i "s|^WAREHOUSE_DEVICE_BASE_URL=.*|WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device|" "$ENV_FILE"
+        else
+          echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device" >> "$ENV_FILE"
+        fi
+        echo "WAREHOUSE_DEVICE_BASE_URL=http://${HOST_IP}:2125/api/face/device"
+      name_i18n:
+        zh: 配置人脸识别的设备回调地址
+
 remote_overrides:
   compose_dir: assets/docker
   user_inputs:

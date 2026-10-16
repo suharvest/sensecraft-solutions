@@ -1,11 +1,13 @@
 version: "1.0"
 id: rk3576_rkllm_remote
-name: RK3576 Kev RKLLM Workbench
+name: RK3576 Kev RKLLM Edge Command Router
 name_i18n:
-  zh: RK3576 Kev RKLLM 工作台
-type: docker_remote
+  zh: RK3576 Kev RKLLM 边缘命令路由
+type: docker_deploy
+# Keep Docker image names unchanged while loading the pinned local archive; HF bootstrap mirroring remains independent.
+network_region: global
 
-docker_remote:
+docker:
   compose_file: assets/docker/docker-compose.rkllm.yml
   compose_dir: assets/docker
   remote_path: /home/{{username}}/edge-command-workbench-rkllm
@@ -17,7 +19,8 @@ docker_remote:
     SEQ_LEN: "2048"
     MAX_OPTIONS: "16"
   offline:
-    force_offline: true
+    # Bootstrap may fetch from the declared HF mirror; do not require a staged offline kit.
+    force_offline: false
     skip_docker_install: true
     images:
       - edge-command-workbench:rockchip-rkllm-0.3.1-review
@@ -32,6 +35,7 @@ docker_remote:
 
 ssh:
   port: 22
+  connection_timeout: 30
   auth_methods: [password]
   command_timeout: 900
 

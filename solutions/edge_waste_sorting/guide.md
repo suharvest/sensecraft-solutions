@@ -18,6 +18,9 @@ Fill in the device, camera and classifier options. The step downloads the model,
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
+
 - A Jetson Orin on JetPack 6.x with the NVIDIA container runtime configured.
 - At least 10 GB of free disk.
 - For a USB camera, uncomment the matching `/dev/videoN` line in `assets/jetson/docker-compose.yml`. Do not mount all of `/dev`.
@@ -25,6 +28,9 @@ Fill in the device, camera and classifier options. The step downloads the model,
 - Classifier option: `baseline` by default; for `open_vocab` see Step 4.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Conveyor occlusion limits, classification confidence, and MQTT events, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#performance-and-measured-data).
+
 
 | Symptom | Action |
 |---|---|
@@ -65,17 +71,21 @@ Put an item under the camera, fire one trigger, and confirm one classification r
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
+
 - Step 1 finished and the container running.
 - `mosquitto_sub` on a machine on the same network, or use the broker container: `docker exec edge-waste-mosquitto mosquitto_sub …`.
 - One item to classify that is not textile.
 
 ### Deployment Complete
 
+
 The classifier is running and one classification has completed end to end.
 
 #### Quick verification
 
-1. Open `http://<device-ip>:8080/` and confirm the view covers the drop area with the item filling most of the frame.
+1. Open `http://<device-ip>:8080/panel` and confirm the view covers the drop area with the item filling most of the frame.
 2. Subscribe: `mosquitto_sub -h <device-ip> -t '<device-name>/waste/+/results' -v`.
 3. Fire one trigger: `curl -X POST http://<device-ip>:8080/trigger`.
 4. Confirm one message arrives and `category` matches `top3[0]`.
@@ -135,6 +145,9 @@ Switches to the SigLIP 2 open-vocabulary classifier: it can reject out-of-vocabu
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
+
 - Step 1 working with `model_track: baseline`.
 - About 372 MB extra for the vision model, plus space for its engine.
 - The prototype bank and its meta file copied onto the device by hand and verified with `sha256sum -c` against `assets/models/SHA256SUMS.open_vocab`.
@@ -171,6 +184,9 @@ The reComputer R2000 series (Hailo-8) runs the EfficientNet-Lite0 classifier on 
 Fill in the device and camera details. The step checks the Hailo environment, downloads and verifies the model, and starts the classifier.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
 
 - Raspberry Pi OS with Docker, a Hailo-8 installed, and `/dev/hailo0` present.
 - HailoRT 4.21.x installed, with `sudo apt-mark hold hailort hailort-pcie-driver` applied.
@@ -218,6 +234,9 @@ Put an item under the camera, fire one trigger, and confirm one classification r
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
+
 - Step 1 finished and the container running.
 - `mosquitto_sub` on a machine on the same network, or use the broker container: `docker exec edge-waste-mosquitto mosquitto_sub …`.
 - One item to classify that is not textile.
@@ -228,7 +247,7 @@ The classifier is running on the Hailo-8 and one classification has completed en
 
 #### Quick verification
 
-1. Open `http://<device-ip>:8080/` and confirm the view covers the drop area with the item filling most of the frame.
+1. Open `http://<device-ip>:8080/panel` and confirm the view covers the drop area with the item filling most of the frame.
 2. Subscribe: `mosquitto_sub -h <device-ip> -t '<device-name>/waste/+/results' -v`.
 3. Fire one trigger: `curl -X POST http://<device-ip>:8080/trigger`.
 4. Confirm one message arrives and `category` matches `top3[0]`.
@@ -278,6 +297,8 @@ You need the camera reachable over USB or the network, the SSH password for the 
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
+
 1. Connect the reCamera over USB-C, or make sure it is reachable on your network
 2. Enter its IP address (`192.168.42.1` over USB) and the SSH password for the `recamera` user
 3. Deploy
@@ -321,6 +342,9 @@ Install the `waste-sorting` app from the App Center on the camera's web console 
 You need the web console's admin credentials and about 10 MB free on `/userdata`.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+
 
 Fill in a device name. To send results to another system, also fill in a broker address; each classification is published as one JSON record on `waste/<device name>/results`. With the broker left empty, results are shown only in the app's panel on the camera.
 
@@ -367,3 +391,6 @@ You need SSH access to the board, a few hundred MB free, and the converted model
 |------|------|
 | A bare `RKNN_ERR_FAIL` at `init_runtime` | Install the Python binding version that matches the board's `librknnrt` |
 | No model file to check | Convert the model on an x86_64 Linux host with `rknn-toolkit2` 2.3.2 and copy it to the board |
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/)

@@ -124,6 +124,153 @@ post_deployment:
 name_i18n:
   zh: NVIDIA Jetson
 
+actions:
+  before:
+    - name: Validate Jetson runtime
+      run: |
+        set -e
+
+        [ -f /etc/nv_tegra_release ] || {
+          echo "Not a Jetson device: /etc/nv_tegra_release is missing"
+          exit 1
+        }
+
+        if ! command -v docker >/dev/null 2>&1; then
+          echo "Docker is not installed on this device."
+          echo "Install Docker first, then retry deployment."
+          exit 1
+        fi
+
+        if ! DOCKER_INFO="$(docker info 2>&1)"; then
+          if echo "$DOCKER_INFO" | grep -qi "permission denied"; then
+            CURRENT_USER="$(whoami)"
+            echo "Docker permission denied for user '$CURRENT_USER'."
+            echo "Run these commands on Jetson, then retry deployment:"
+            echo "  sudo usermod -aG docker $CURRENT_USER"
+            echo "  newgrp docker    # or log out and log back in"
+            echo "  docker info"
+          else
+            echo "Docker is not available: $DOCKER_INFO"
+          fi
+          exit 1
+        fi
+
+        echo "$DOCKER_INFO" | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+          echo "NVIDIA docker runtime is not detected"
+          exit 1
+        }
+
+        L4T=$(sed -n 's/^# R\([0-9]\+\) (release), REVISION: \([0-9]\+\)\.\([0-9]\+\).*/\1.\2.\3/p' /etc/nv_tegra_release)
+        case "$L4T" in
+          36.4.0|36.4.3|36.4.4|"")
+            ;;
+          *)
+            echo "Unsupported L4T version: $L4T (expected 36.4.0/36.4.3/36.4.4)"
+            exit 1
+            ;;
+        esac
+
+        FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+        [ "${FREE_GB:-0}" -ge 5 ] || {
+          echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+          exit 1
+        }
+      name_i18n:
+        zh: 校验 Jetson 运行环境
+    - name: Configure X11 permissions
+      fail_fast: false
+      env:
+        ENCODER: "{{encoder}}"
+        DISPLAY: "{{display}}"
+        HOST_XAUTHORITY_FILE: /tmp/depth_anything_v3.xauth
+      run: |
+        # Prepare X11 auth for container EGL/GStreamer path.
+        set +e
+
+        HOST_XAUTH="${HOST_XAUTHORITY_FILE:-/tmp/depth_anything_v3.xauth}"
+        mkdir -p "$(dirname "$HOST_XAUTH")"
+
+        # In default headless mode (x264enc + empty DISPLAY), X11 ACL is unnecessary.
+        if [ "${ENCODER:-x264enc}" = "x264enc" ] && [ -z "${DISPLAY:-}" ]; then
+          touch "$HOST_XAUTH"
+          chmod 644 "$HOST_XAUTH" 2>/dev/null || true
+          echo "Headless mode detected (x264enc + empty DISPLAY), skipped xhost."
+          exit 0
+        fi
+
+        export DISPLAY="${DISPLAY:-:0}"
+
+        USER_HOME="$(eval echo ~$(whoami))"
+        if [ -n "${XAUTHORITY:-}" ] && [ -f "${XAUTHORITY}" ]; then
+          cp -f "${XAUTHORITY}" "$HOST_XAUTH" 2>/dev/null || true
+          echo "Prepared Xauthority from \$XAUTHORITY: $HOST_XAUTH"
+        elif [ -f "$USER_HOME/.Xauthority" ]; then
+          cp -f "$USER_HOME/.Xauthority" "$HOST_XAUTH" 2>/dev/null || true
+          echo "Prepared Xauthority from $USER_HOME/.Xauthority -> $HOST_XAUTH"
+        else
+          # Keep file present to avoid compose bind-mount failure.
+          touch "$HOST_XAUTH"
+          echo "No Xauthority source found; created placeholder: $HOST_XAUTH"
+        fi
+        chmod 644 "$HOST_XAUTH" 2>/dev/null || true
+
+        # Best-effort X11 permission update for container root.
+        if command -v xhost >/dev/null 2>&1; then
+          if xhost +SI:localuser:root >/dev/null 2>&1; then
+            echo "xhost permission updated: +SI:localuser:root"
+          else
+            echo "Warning: xhost update failed; EGL path may still fail."
+          fi
+        else
+          echo "Info: xhost not found; skipped X11 ACL update."
+        fi
+
+        # Never block deployment only because X11 prep failed.
+        exit 0
+      name_i18n:
+        zh: 自动配置 X11 权限
+  after:
+    - name: Verify RTSP stream
+      timeout: 720
+      run: |
+        set -e
+
+        echo "Checking container status..."
+        if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3 2>/dev/null)" != "true" ]; then
+          echo "Container depth_anything_v3 is not running."
+          docker logs --tail 120 depth_anything_v3 || true
+          exit 1
+        fi
+
+        echo "Waiting for TRT engine init (first run may take ~8 min)..."
+        STARTUP_MARKER_READY=0
+        for i in $(seq 1 120); do
+          # Check for depth estimator ready (appears after TRT engine load/build)
+          if docker logs --since 15m depth_anything_v3 2>&1 | grep -qE 'Depth estimator initialized|Using camera device:|Video depth node started'; then
+            STARTUP_MARKER_READY=1
+            break
+          fi
+          # Early exit if container crashed
+          if [ "$(docker inspect -f '{{.State.Running}}' depth_anything_v3 2>/dev/null)" != "true" ]; then
+            echo "Container stopped during TRT init."
+            docker logs --tail 60 depth_anything_v3 || true
+            exit 1
+          fi
+          # Show progress every 30s
+          if [ $((i % 15)) -eq 0 ]; then
+            echo "  Still waiting... (${i}x5s elapsed)"
+            docker logs --since 2m depth_anything_v3 2>&1 | grep -E 'Engine|TRT|engine|Building' | tail -1 || true
+          fi
+          sleep 5
+        done
+        if [ "$STARTUP_MARKER_READY" -ne 1 ]; then
+          echo "TRT engine init timed out after 10 minutes."
+          docker logs --tail 60 depth_anything_v3 || true
+          exit 1
+        fi
+      name_i18n:
+        zh: 验证 RTSP 推流服务
+
 remote_overrides:
   remote_path: /home/{{username}}/depth-anything-v3
   compose_dir: assets/jetson

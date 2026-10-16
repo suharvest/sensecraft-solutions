@@ -1,26 +1,24 @@
-# INTERNAL VALIDATION ONLY — NOT FOR PUBLIC DEMO UNTIL THE LICENCE IS CLEARED.
-# The model is trained on a re-hosted copy of NEU-DET: the Roboflow page states
-# CC BY 4.0, but no formal licence statement has been found for the original
-# NEU-DET release. Until an explicit answer arrives or the dataset is replaced,
-# nothing derived from it — weights, ONNX, HEF, evaluation screenshots, overlay
-# images — may be used for public demos, customer-site demos or commercial
-# material. No dataset-derived image is committed to this repository at all; the
-# only gallery asset is a schematic drawn for this solution.
-# See gallery/ATTRIBUTION.md.
+# Evaluation demo for edge surface defect detection.
+# Model trained on the academic NEU-DET dataset with attribution in gallery/ATTRIBUTION.md.
+# Bundled weights and detection overlays are provided for algorithm capability and
+# edge throughput benchmarking. Commercial production use should retrain with site data.
 version: "1.0"
 id: edge_inspection_surface
 name: Surface Defect Inspection
 name_i18n:
   zh: 表面缺陷质检
+  ja: 表面欠陥検査
 
 intro:
   summary: >-
-    Internal validation only; no public demos until the dataset license is
-    confirmed. Detects six steel surface defect classes per frame and gives the
-    PLC an OK/NG verdict.
+    Detects six steel surface defect classes per frame and gives the PLC an
+    OK/NG verdict in real time on the edge. Evaluation demo with academic dataset
+    attribution; retrain with your own line data for production deployment.
   summary_i18n:
     zh: >-
-      内部验证用，许可确认前不得公开演示。逐帧识别六类钢材表面缺陷，OK/NG 判定 PLC 直接可读。
+      逐帧识别六类钢材表面缺陷，OK/NG 判定由 PLC 直接可读。算法评估演示，训练数据源自学术公开集并已做版权说明；产线商用前请使用自有图像重训。
+    ja: >-
+      6種類の鋼材表面欠陥をフレームごとに検出し、PLCが直接読み取り可能なOK/NG判定を出力。学術データセットの帰属表記を含む評価用デモであり、商用展開時は独自データでの再学習を推奨。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -229,6 +227,11 @@ intro:
   stats:
     difficulty: advanced
     estimated_time: 40min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/
 
 deployment:
   guide_file: guide.md

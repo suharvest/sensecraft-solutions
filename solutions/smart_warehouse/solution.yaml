@@ -1,6 +1,9 @@
 version: '1.0'
 id: smart_warehouse
-name: Smart Warehouse Management
+name: Voice-Controlled Warehouse Management
+name_i18n:
+  zh: 语音操作仓储管理系统
+  ja: 音声操作 倉庫管理システム
 intro:
   summary: Voice-controlled warehouse - zero learning curve, real-time data, fully local deployment available.
   description_file: description.md
@@ -83,9 +86,9 @@ intro:
     difficulty: beginner
     estimated_time: 30min
   links:
-    wiki: https://wiki.seeedstudio.com/mcp_external_system_integration/
+    wiki: https://wiki.seeedstudio.com/solutions/voice-warehouse-management/
     wiki_i18n:
-      zh: https://wiki.seeedstudio.com/cn/mcp_external_system_integration/
+      zh: https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/
     github: https://github.com/suharvest/warehouse_system
   presets:
     - id: trial
@@ -290,5 +293,3 @@ deployment:
       url: http://localhost:2125
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: 智慧仓管方案

@@ -69,8 +69,541 @@ name_i18n:
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.onnx
     remote_path: /home/{{username}}/edge-waste-sorting/jetson_waste/models/efficientnet_lite0_waste8.onnx
-    checksum:
-      sha256: e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+    checksum: "sha256:e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391"
+
+actions:
+  before:
+    - name: Validate the Jetson runtime
+      run: |
+        set -e
+        if [ ! -f /etc/nv_tegra_release ]; then
+          echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
+          exit 1
+        fi
+        L4T_RELEASE=$(head -1 /etc/nv_tegra_release)
+        echo "$L4T_RELEASE"
+        L4T_MAJOR=$(echo "$L4T_RELEASE" | grep -o 'R[0-9]\+' | head -1 | tr -d 'R')
+        if [ -n "$L4T_MAJOR" ] && [ "$L4T_MAJOR" -lt 36 ]; then
+          echo "ERROR: JetPack 6.x (L4T R36+) is required; current is R$L4T_MAJOR. Please upgrade to JetPack 6.x." >&2
+          exit 1
+        fi
+        if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
+          echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
+          exit 1
+        fi
+        if ! docker info 2>/dev/null | grep -qi nvidia; then
+          echo "WARNING: nvidia runtime missing — inference will fail" >&2
+          echo "Run: sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker" >&2
+        fi
+        echo "Jetson runtime OK"
+      name_i18n:
+        zh: 校验 Jetson 运行环境
+
+    - name: Ensure docker compose command
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then restart the app." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into the cli-plugins path"
+          else
+            echo "docker compose plugin missing; the standalone docker-compose will be used"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          if docker compose version >/dev/null 2>&1; then
+            docker compose version
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            docker-compose --version
+            exit 0
+          fi
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        echo "Run: sudo apt-get install -y docker-compose-plugin" >&2
+        exit 1
+      name_i18n:
+        zh: 确保 docker compose 可用
+
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
+
+    - name: Download the ONNX model and build the TensorRT engine
+      timeout: 2400
+      env:
+        INPUT_MODEL_TRACK: "{{model_track}}"
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        mkdir -p "$MODELS_DIR"
+
+        case "$INPUT_MODEL_TRACK" in
+          baseline)
+            MODEL_NAME=efficientnet_lite0_waste8
+            SHA=e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
+            ;;
+          open_vocab)
+            MODEL_NAME=siglip2_vision_224
+            SHA=6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac
+            ;;
+          *) echo "Unknown model_track: $INPUT_MODEL_TRACK" >&2; exit 1 ;;
+        esac
+        ONNX="$MODELS_DIR/$MODEL_NAME.onnx"
+        ENGINE="$MODELS_DIR/$MODEL_NAME.engine"
+
+        if [ "$INPUT_MODEL_TRACK" = "open_vocab" ]; then
+          for f in prototypes-en-material8.npz prompts/waste8-en-v1.json; do
+            mkdir -p "$(dirname "$MODELS_DIR/$f")"
+            if [ ! -s "$MODELS_DIR/$f" ]; then
+              echo "Downloading $f ..."
+              curl -fSL --retry 3 -o "$MODELS_DIR/$f.part" \
+                "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$f" || {
+                  echo "Prototype file $f is not available. Copy it onto the device at $MODELS_DIR/$f." >&2
+                  exit 1; }
+              mv -f "$MODELS_DIR/$f.part" "$MODELS_DIR/$f"
+            fi
+          done
+          grep -E "prototypes-en-material8" "$WORKDIR/../assets/models/SHA256SUMS.open_vocab" 2>/dev/null || true
+        fi
+
+        if [ -s "$ENGINE" ]; then
+          echo "Engine already present, skipping build: $ENGINE"
+          exit 0
+        fi
+
+        if [ ! -s "$ONNX" ]; then
+          echo "Downloading $MODEL_NAME.onnx ..."
+          curl -fSL --retry 3 -o "$ONNX.part" \
+            "https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/$MODEL_NAME.onnx"
+          echo "$SHA  $ONNX.part" | sha256sum -c -
+          mv -f "$ONNX.part" "$ONNX"
+        fi
+        echo "$SHA  $ONNX" | sha256sum -c -
+
+        echo "Building the TensorRT engine for $INPUT_MODEL_TRACK ..."
+        /usr/src/tensorrt/bin/trtexec --version || true
+        START=$(date +%s)
+        /usr/src/tensorrt/bin/trtexec \
+          --onnx="$ONNX" \
+          --saveEngine="$ENGINE.part" \
+          --fp16 \
+          --skipInference \
+          --builderOptimizationLevel=3 \
+          --timingCacheFile="$ENGINE.timing.cache"
+        mv -f "$ENGINE.part" "$ENGINE"
+        echo "engine built in $(( $(date +%s) - START ))s"
+        ls -l "$ENGINE"
+        sha256sum "$ENGINE"
+      name_i18n:
+        zh: 下载 ONNX 模型并构建 TensorRT 引擎
+
+    - name: Write the source, trigger and MQTT configuration
+      env:
+        INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_MODEL_TRACK: "{{model_track}}"
+        INPUT_MIN_CONFIDENCE: "{{min_confidence}}"
+        INPUT_TRIGGER_SOURCES: "{{trigger_sources}}"
+        INPUT_DEBOUNCE_MS: "{{debounce_ms}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_KIND: "{{source_kind}}"
+      run: |
+        set -e
+        if [ -d "assets/jetson" ]; then WORKDIR="assets/jetson"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
+        import json, os, re, sys
+
+        path = sys.argv[1]
+        workdir = sys.argv[2]
+        with open(path) as handle:
+            config = json.load(handle)
+
+        track = os.environ["INPUT_MODEL_TRACK"]
+        model_names = {
+            "baseline": "efficientnet_lite0_waste8",
+            "open_vocab": "siglip2_vision_224",
+        }
+        onnx_sha = {
+            "baseline": "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391",
+            "open_vocab": "6f664af0d57bf038ef07236b43a178e081784002495a0e6564ff5189de480cac",
+        }
+        config["model"]["path"] = f"/models/{model_names[track]}.engine"
+        config["model"]["accelerator"] = "tensorrt"
+        config["model"]["track"] = track
+        config["model"]["onnx_sha256"] = onnx_sha[track]
+        if track == "open_vocab":
+            config["model"]["backbone"] = "siglip2_base_patch16_224"
+            config["model"]["prototypes"] = "/models/prototypes-en-material8.npz"
+            config["model"]["prompt_set"] = "/models/prompts/waste8-en-v1.json"
+            config["model"]["temperature"] = 0.0075
+        else:
+            config["model"]["backbone"] = "efficientnet_lite0"
+            config["model"].pop("prototypes", None)
+            config["model"].pop("prompt_set", None)
+            config["model"].pop("temperature", None)
+
+        config["rules"]["min_confidence"] = float(os.environ["INPUT_MIN_CONFIDENCE"])
+        config["trigger"]["mode"] = "on_demand"
+        config["trigger"]["sources"] = os.environ["INPUT_TRIGGER_SOURCES"].split(",")
+        config["trigger"]["debounce_ms"] = int(os.environ["INPUT_DEBOUNCE_MS"])
+        MQTT_HOST = os.environ.get("INPUT_MQTT_HOST", "").strip()
+        MQTT_PORT = os.environ.get("INPUT_MQTT_PORT", "").strip()
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        stream_id = os.environ["INPUT_STREAM_ID"]
+        source_kind = os.environ["INPUT_SOURCE_KIND"]
+        config["mqtt"]["host"] = MQTT_HOST or "127.0.0.1"
+        config["mqtt"]["port"] = int(MQTT_PORT) if MQTT_PORT else 1883
+        config["mqtt"]["topic"] = device_name + "/waste/{stream_id}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
+        if not source_uri:
+            sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
+        config["sources"] = [{
+            "stream_id": stream_id,
+            "uri": source_uri,
+            "kind": source_kind,
+        }]
+
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
+
+        mapped_devices = [f"{source_uri}:{source_uri}"] if (source_kind == "usb" and source_uri.startswith("/dev/video")) else []
+        for compose_name in ("docker-compose.yml", ".sensecraft-compose.yml"):
+            compose_file = os.path.join(workdir, compose_name)
+            if not os.path.exists(compose_file):
+                continue
+            with open(compose_file, "r") as f:
+                c_lines = f.read().splitlines()
+            out_lines = []
+            in_svc = False
+            skipping_devs = False
+            inserted = False
+            for line in c_lines:
+                stripped = line.lstrip()
+                indent = len(line) - len(stripped)
+                if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                    in_svc = False
+                    skipping_devs = False
+                if not in_svc and indent == 2 and stripped == "waste:":
+                    in_svc = True
+                    out_lines.append(line)
+                    if mapped_devices and not inserted:
+                        out_lines.append("    devices:")
+                        for dev in mapped_devices:
+                            out_lines.append(f'      - "{dev}"')
+                        inserted = True
+                    continue
+                if in_svc:
+                    if indent == 4 and stripped.startswith("devices:"):
+                        skipping_devs = True
+                        continue
+                    if skipping_devs:
+                        if not stripped or (stripped.startswith("#") and indent >= 4):
+                            continue
+                        if indent > 4 or (indent == 4 and stripped.startswith("-")):
+                            continue
+                        skipping_devs = False
+                out_lines.append(line)
+            tmp_compose = compose_file + ".tmp"
+            with open(tmp_compose, "w") as f:
+                f.write("\n".join(out_lines) + "\n")
+            os.replace(tmp_compose, compose_file)
+            print(f"compose  = {compose_file} (devices={mapped_devices})")
+
+        override_file = os.path.join(workdir, "docker-compose.override.yml")
+        if os.path.exists(override_file):
+            os.remove(override_file)
+
+        broker_conf = os.path.join(os.path.dirname(path), "mosquitto.conf")
+        if os.path.exists(broker_conf):
+            with open(broker_conf) as handle:
+                lines = handle.read().splitlines()
+            listener = f"listener {config['mqtt']['port']} 0.0.0.0"
+            if any(line.startswith("listener") for line in lines):
+                lines = [
+                    listener if line.startswith("listener") else line
+                    for line in lines
+                ]
+            else:
+                lines.append(listener)
+            with open(broker_conf, "w") as handle:
+                handle.write("\n".join(lines) + "\n")
+            print(f"broker   = {listener}")
+
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
+
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={device_name}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device   = {device_name} ({env_file})")
+
+        print(f"model    = {config['model']['path']} (track={track})")
+        print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
+        print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {safe_uri}")
+        PY
+      name_i18n:
+        zh: 写入视频源、触发与 MQTT 配置
+
+  after:
+    - name: Verify the runtime is up and answering triggers
+      timeout: 240
+      ignore_error: true
+      env:
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+      run: |
+        set -e
+        BROKER=edge-waste-mosquitto
+        BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+        BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
+        TOPIC="$INPUT_DEVICE_NAME/waste/$INPUT_STREAM_ID/results"
+        echo "Waiting for the health endpoint ..."
+        HZ="$(mktemp)"
+        trap 'rm -f "$HZ"' EXIT
+        for i in $(seq 1 40); do
+          if curl -fsS http://127.0.0.1:8080/healthz >"$HZ" 2>/dev/null; then
+            cat "$HZ"
+            docker exec "$BROKER" sh -c "mosquitto_sub -h $BROKER_HOST -p $BROKER_PORT -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            SUB=$!
+            sleep 1
+            curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+            if wait $SUB; then
+              echo "MQTT result received on $TOPIC"
+              docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result yet." >&2
+        docker logs --tail 40 edge-waste-app 2>&1 || true
+        echo "Check the source URI and the container logs." >&2
+      name_i18n:
+        zh: 验证运行时已启动并能响应触发
+
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "orin-nx"
+    required: true
+    description: First segment of the MQTT topic — name this device after the bin or the drop-off point so several installations stay separable on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
+    description_i18n:
+      zh: MQTT 主题的第一段——按垃圾桶或投放点命名，多台设备在同一个 broker 上就不会混
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "bin1-cam1"
+    required: true
+    description: Appended to the MQTT topic so several cameras on one box stay separable. It is also in the payload — consumers must read it there, not parse the topic.
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，用于区分同一台设备上的多路相机。它同时也在 payload 里——消费者必须从 payload 读，不要解析 topic。
+  - id: source_kind
+    name: Camera Type
+    type: select
+    default: usb
+    required: true
+    options:
+      - value: usb
+        label: USB camera (/dev/videoN)
+        label_i18n:
+          zh: USB 摄像头（/dev/videoN）
+      - value: rtsp
+        label: IP camera (RTSP URL)
+        label_i18n:
+          zh: IP 摄像头（RTSP 地址）
+      - value: file
+        label: Video file — for bench testing without a camera
+        label_i18n:
+          zh: 视频文件——没有相机时的台面测试
+    name_i18n:
+      zh: 相机类型
+  - id: source_uri
+    name: Camera Address
+    type: text
+    default: "/dev/video0"
+    required: true
+    placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 用 USB 相机时还要在 assets/jetson/docker-compose.yml 里把对应的 /dev/videoN 那行取消注释——否则容器里看不到视频节点。不要整个挂载 /dev。
+  - id: model_track
+    name: Classifier Track
+    type: select
+    default: baseline
+    required: true
+    description: >-
+      baseline is the closed-set EfficientNet-Lite0 head (m1c): higher top-1
+      on this taxonomy than open_vocab (0.8877 vs 0.8501 on the same val
+      split) and roughly 4-5x faster on CPU (no Jetson TensorRT figure
+      exists for either track). The prior baseline, MobileNetV3-Small
+      (m1b), was superseded because it collapsed under INT8 quantisation on
+      every edge chain tested (Hailo, RK3576, RK3588) -- see the solution
+      page. open_vocab is the SigLIP 2 vision tower scored against text
+      prototypes: better calibrated, able to score open-set rejection and to
+      answer in either language, and able to add a class without retraining —
+      but 372 MB, never engine-built on any board, and no Jetson latency
+      figure exists for it. Neither track has been measured on hardware.
+    options:
+      - value: baseline
+        label: Baseline EfficientNet-Lite0 (m1c) — higher top-1, 13.5 MB, the default
+        label_i18n:
+          zh: 基线 EfficientNet-Lite0（m1c）——top-1 更高，13.5 MB，默认项
+      - value: open_vocab
+        label: Open-vocabulary SigLIP 2 — better calibrated, adds classes without retraining, 372 MB, no timing on any board
+        label_i18n:
+          zh: 开放词汇 SigLIP 2——校准更好、不重训就能加类，372 MB，任何板卡上都无实测耗时
+    name_i18n:
+      zh: 分类器 Track
+    description_i18n:
+      zh: >-
+        baseline 是闭集 EfficientNet-Lite0 头（m1c）：在这套分类法上 top-1
+        比 open_vocab 更高（同一份 val 上 0.8877 对 0.8501），CPU 上大约快
+        4-5 倍（两条 track 都没有 Jetson TensorRT 实测数字）。原基线
+        MobileNetV3-Small（m1b）已被取代，因为它在每一条测过的边缘链路
+        （Hailo、RK3576、RK3588）上都出现 INT8 量化塌缩——详见方案页。
+        open_vocab 是 SigLIP 2 视觉塔对文本原型打分：校准更好、能给开放集
+        拒识分数、中英文都能回答、不重训就能加类——但 372 MB，从未在任何
+        板卡上构建过 engine，也没有任何 Jetson 时延数字。两条 track 都没有
+        上板实测过。
+  - id: trigger_sources
+    name: Trigger Sources
+    type: select
+    default: "http"
+    required: true
+    description: Which sources fire a capture. HTTP is POST /trigger on port 8080 and is the only one this deployment can exercise by itself; button and motion need wiring or a framed scene.
+    options:
+      - value: "http"
+        label: HTTP only — POST /trigger
+        label_i18n:
+          zh: 仅 HTTP——POST /trigger
+      - value: "http,button"
+        label: HTTP + physical button
+        label_i18n:
+          zh: HTTP + 实体按钮
+      - value: "http,motion"
+        label: HTTP + motion in frame
+        label_i18n:
+          zh: HTTP + 画面移动侦测
+      - value: "http,button,motion"
+        label: All three
+        label_i18n:
+          zh: 三者全开
+    name_i18n:
+      zh: 触发源
+    description_i18n:
+      zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger，也是本次部署唯一能自己验证的一个；按钮与移动侦测需要接线或布好画面。
+  - id: debounce_ms
+    name: Trigger Debounce (ms)
+    type: text
+    default: "800"
+    required: true
+    description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued. Below roughly 300 ms a bouncing button will fire twice per press.
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 触发去抖（毫秒）
+    description_i18n:
+      zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队。低于约 300 ms 时，抖动的按钮一次按压会触发两次。
+  - id: min_confidence
+    name: Minimum Confidence
+    type: text
+    default: "0.5"
+    required: true
+    description: Below this the event carries rules.fallback_category (residual) instead of the argmax. On the val set 4.5% of images fall below 0.5 for the baseline track; raising it sends more items to the residual bin rather than guessing.
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 最低置信度
+    description_i18n:
+      zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。基线 track 在 val 上有 4.5% 的图低于 0.5；调高它意味着更多东西被送进其他垃圾档，而不是去猜。
+  - id: mqtt_host
+    name: MQTT Broker Address
+    type: text
+    default: "127.0.0.1"
+    required: true
+    description: The broker this stack brings runs on the device itself, so the default is loopback. Point it at another host to forward every classification to a bin controller, Home Assistant or your own consumer.
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,253}$"
+    name_i18n:
+      zh: MQTT 服务器地址
+    description_i18n:
+      zh: 本方案自带的 broker 就跑在这台设备上，所以默认是回环地址。指向另一台主机就会把每一次分类转发出去——桶体控制器、Home Assistant 或你自己的消费方。
+  - id: mqtt_port
+    name: MQTT Broker Port
+    type: text
+    default: "1883"
+    required: true
+    description: The port the bundled broker listens on. Set both this and the app to the same free port on a machine where another solution already owns 1883; the deployment rewrites the broker's listener to this value.
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    name_i18n:
+      zh: MQTT 端口
+    description_i18n:
+      zh: 自带 broker 的监听端口。在 1883 已被其他方案占用的机器上，把它和 app 一起换到同一个空闲端口——部署时会按这个值改写 broker 的 listener。
 
 remote_overrides:
   remote_path: /home/{{username}}/edge-waste-sorting
@@ -88,7 +621,13 @@ remote_overrides:
             echo "This target is not a NVIDIA Jetson (no /etc/nv_tegra_release)" >&2
             exit 1
           fi
-          head -1 /etc/nv_tegra_release
+          L4T_RELEASE=$(head -1 /etc/nv_tegra_release)
+          echo "$L4T_RELEASE"
+          L4T_MAJOR=$(echo "$L4T_RELEASE" | grep -o 'R[0-9]\+' | head -1 | tr -d 'R')
+          if [ -n "$L4T_MAJOR" ] && [ "$L4T_MAJOR" -lt 36 ]; then
+            echo "ERROR: JetPack 6.x (L4T R36+) is required; current is R$L4T_MAJOR. Please upgrade to JetPack 6.x." >&2
+            exit 1
+          fi
           if [ ! -x /usr/src/tensorrt/bin/trtexec ]; then
             echo "trtexec not found at /usr/src/tensorrt/bin/trtexec — install the TensorRT dev packages" >&2
             exit 1
@@ -299,9 +838,12 @@ remote_overrides:
           # The topic prefix is the device name the user chose, so one broker
           # can carry several bins without collisions.
           config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+          source_uri = os.environ.get("INPUT_SOURCE_URI", "{{source_uri}}").strip()
+          if not source_uri:
+              sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
           config["sources"] = [{
               "stream_id": "{{stream_id}}",
-              "uri": os.environ["INPUT_SOURCE_URI"],
+              "uri": source_uri,
               "kind": "{{source_kind}}",
           }]
 
@@ -369,7 +911,7 @@ remote_overrides:
 
           print(f"model    = {config['model']['path']} (track={track})")
           print(f"trigger  = {config['trigger']['sources']} debounce={config['trigger']['debounce_ms']}ms")
-          print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
+          print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {config['sources'][0]['uri']}")
         name_i18n:
           zh: 写入视频源、触发与 MQTT 配置
 
@@ -486,8 +1028,8 @@ remote_overrides:
     - id: source_uri
       name: Camera Address
       type: text
+      default: "/dev/video0"
       required: true
-      default_template: "/dev/video0"
       placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
       description: For a USB camera also uncomment the matching /dev/videoN line in assets/jetson/docker-compose.yml — the container sees no video node otherwise. Never mount all of /dev.
       name_i18n:

@@ -92,7 +92,7 @@ actions:
         # 不自动删 —— 删掉别人的容器不是本步骤该做的决定。
         CONFLICT=""
         CONFLICT_NAMES=""
-        for NAME in seeed-voice-v091 edge-llm-chat-service-v091; do
+        for NAME in seeed-voice-v011 seeed-voice-v091 edge-llm-chat-service-v091; do
           # `|| true`：set -e 下命令替换失败会直接中断脚本。容器不存在、
           # 或 docker 短暂不可用，都应该当作「无冲突」继续，而不是让整个
           # 部署炸在检查环节。

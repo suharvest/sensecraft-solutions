@@ -17,6 +17,7 @@ replaces: smart_retail_voice_ai
 name: Retail Voice
 name_i18n:
   zh: 零售语音
+  ja: 小売音声
 
 intro:
   summary: >-
@@ -289,9 +290,9 @@ intro:
   # smart_retail_voice_ai package: both describe the reRouter CM4 + reSpeaker
   # XVF3800 capture kit that the local_transcribe preset deploys.
   links:
-    wiki: https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/
+    wiki: https://wiki.seeedstudio.com/solutions/retail-voice/
     wiki_i18n:
-      zh: https://wiki.seeedstudio.com/cn/solutions/smart-retail-voice-ai-solution-1/
+      zh: https://wiki.seeedstudio.com/cn/solutions/retail-voice/
     purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
 
 deployment:

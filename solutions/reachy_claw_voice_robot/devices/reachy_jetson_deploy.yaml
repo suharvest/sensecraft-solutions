@@ -63,6 +63,25 @@ user_inputs:
       zh: 语音助手主机
     description_i18n:
       zh: "语音助手（语音服务 + LLM）的 IP 地址。本机部署默认为 127.0.0.1。"
+  - id: ENABLE_KIOSK
+    name: Enable Kiosk Mode
+    type: select
+    default: "false"
+    reconfigurable: false
+    description: "Auto-launch dashboard in fullscreen on device boot (for exhibition/kiosk use)"
+    options:
+      - value: "true"
+        label: "Yes — auto-launch fullscreen dashboard on boot"
+        label_i18n:
+          zh: "是 — 开机自动全屏打开仪表盘"
+      - value: "false"
+        label: "No — manual access only"
+        label_i18n:
+          zh: "否 — 仅手动访问"
+    name_i18n:
+      zh: 启用全屏展示模式
+    description_i18n:
+      zh: "设备开机后自动全屏打开仪表盘（适用于展览/展示场景）"
 
 pre_checks:
   - type: disk_space
@@ -75,6 +94,251 @@ post_deployment:
 
 name_i18n:
   zh: Reachy 语音机器人栈
+
+actions:
+  before:
+    - name: Check Speech service (port 8621)
+      env:
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
+      run: |
+        set -e
+        HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
+        if python3 - "$HOST" <<'PY'
+        import sys, urllib.request
+        host = sys.argv[1]
+        r = urllib.request.urlopen(f"http://{host}:8621/health", timeout=5)
+        sys.exit(0 if 200 <= r.status < 300 else 1)
+        PY
+        then
+          echo "Speech service is running"
+        else
+          echo "ERROR: Speech service (port 8621) is not running on $HOST."
+          echo "Please deploy the 'Jetson Local Voice Assistant' solution first,"
+          echo "then re-run this deployment."
+          exit 1
+        fi
+      name_i18n:
+        zh: 检查语音服务（端口 8621）
+    - name: Check Edge LLM service (port 11435)
+      timeout: 900
+      env:
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
+      run: |
+        set -e
+        HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
+        if python3 - "$HOST" <<'PY'
+        import sys, urllib.request
+        host = sys.argv[1]
+        r = urllib.request.urlopen(f"http://{host}:11435/v1/models", timeout=5)
+        sys.exit(0 if 200 <= r.status < 300 else 1)
+        PY
+        then
+          echo "Edge LLM service is running"
+        else
+          echo "ERROR: Edge LLM service (port 11435) is not running on $HOST."
+          echo "Please deploy the 'Edge LLM Chat Service' step first,"
+          echo "then re-run this deployment."
+          exit 1
+        fi
+      name_i18n:
+        zh: 检查 Edge LLM 服务（端口 11435）
+    - name: Configure USB power (disable autosuspend on Reachy devices)
+      sudo: true
+      run: |
+        set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
+        RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
+        if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — keep USB peripherals powered (no autosuspend).
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        EOF
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=usb 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  sudo tee $RULE_FILE <<'EOF'"
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo "EOF"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=usb"
+            exit 0
+          fi
+        fi
+        if [ "$CAN_SUDO" -eq 1 ]; then
+          for dev in /sys/bus/usb/devices/*/idVendor; do
+            [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
+            devdir=$(dirname "$dev")
+            printf 'on\n' | $SUDO tee "$devdir/power/control" >/dev/null 2>&1 || true
+          done
+        fi
+        echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
+      name_i18n:
+        zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
+    - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
+      sudo: true
+      run: |
+        set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
+        RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
+        if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"
+        EOF
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=tty 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  echo 'ACTION==\"add\", SUBSYSTEM==\"tty\", ENV{ID_VENDOR_ID}==\"1a86\", ENV{ID_MODEL_ID}==\"55d3\", RUN+=\"/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon\"' | sudo tee $RULE_FILE"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=tty"
+          fi
+        fi
+        if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
+          echo "Reachy serial present — restarting reachy-daemon to (re)scan the port..."
+          docker restart reachy-daemon >/dev/null 2>&1 || true
+        fi
+        echo "reachy-daemon auto-reconnect rule checked (serial VID 1a86/55d3)"
+      name_i18n:
+        zh: 机器人插入时自动重连 reachy-daemon（udev）
+    - name: Create data directories
+      env:
+        DATA_DIR: "{{DATA_DIR}}"
+      run: |
+        set -e
+        DATA_DIR="${DATA_DIR:-$HOME/reachy-data}"
+        case "$DATA_DIR" in
+          "~") DATA_DIR="$HOME" ;;
+          "~/"*) DATA_DIR="$HOME/${DATA_DIR#\~/}" ;;
+        esac
+        mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
+        echo "Data directories ready: $DATA_DIR"
+      name_i18n:
+        zh: 创建数据目录
+    - name: Make Reachy voice entrypoint executable
+      run: |
+        set -e
+        if [ -f "assets/docker/reachy_jetson/entrypoint.sh" ]; then
+          chmod +x "assets/docker/reachy_jetson/entrypoint.sh"
+        elif [ -f "entrypoint.sh" ]; then
+          chmod +x "entrypoint.sh"
+        fi
+        echo "Entrypoint executable set"
+      name_i18n:
+        zh: 设置 Reachy voice 启动脚本可执行
+  after:
+    - name: Install kiosk auto-start
+      when:
+        field: ENABLE_KIOSK
+        value: "true"
+      ignore_error: true
+      run: |
+        set -e
+        cat > "$HOME/reachy-kiosk.sh" << 'KIOSK_SCRIPT'
+        #!/usr/bin/env bash
+        DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"
+        MAX_WAIT=300
+
+        echo "Waiting for dashboard at $DASHBOARD_URL ..."
+        for ((i=1; i<=MAX_WAIT/5; i++)); do
+            curl -s --max-time 2 "$DASHBOARD_URL/" > /dev/null 2>&1 && break
+            sleep 5
+        done
+
+        echo "Launching kiosk: $DASHBOARD_URL"
+        BROWSER=""
+        for cmd in chromium-browser chromium google-chrome firefox; do
+            if command -v "$cmd" > /dev/null 2>&1; then
+                BROWSER="$cmd"
+                break
+            fi
+        done
+
+        if [ -z "$BROWSER" ]; then
+            echo "ERROR: No browser found"
+            exit 1
+        fi
+
+        case "$BROWSER" in
+            *chromium*|*chrome*)
+                exec "$BROWSER" --kiosk --no-first-run --disable-translate --disable-infobars \
+                    --disable-session-crashed-bubble --noerrdialogs \
+                    --disable-features=TranslateUI \
+                    "$DASHBOARD_URL"
+                ;;
+            *firefox*)
+                exec "$BROWSER" --kiosk "$DASHBOARD_URL"
+                ;;
+        esac
+        KIOSK_SCRIPT
+        chmod +x "$HOME/reachy-kiosk.sh"
+
+        mkdir -p "$HOME/.config/autostart"
+        cat > "$HOME/.config/autostart/reachy-kiosk.desktop" << DESKTOP_EOF
+        [Desktop Entry]
+        Type=Application
+        Name=Reachy Dashboard Kiosk
+        Comment=Auto-launch Reachy dashboard in fullscreen on login
+        Exec=$HOME/reachy-kiosk.sh
+        X-GNOME-Autostart-enabled=true
+        X-GNOME-Autostart-Delay=10
+        DESKTOP_EOF
+
+        GDM_CONF="/etc/gdm3/custom.conf"
+        if [ -f "$GDM_CONF" ]; then
+          LOGIN_USER="${USER:-$(whoami)}"
+          if grep -Eq '^[[:space:]]*AutomaticLoginEnable[[:space:]]*=[[:space:]]*(true|True|1)[[:space:]]*$' "$GDM_CONF" && \
+             grep -Eq "^[[:space:]]*AutomaticLogin[[:space:]]*=[[:space:]]*${LOGIN_USER}[[:space:]]*$" "$GDM_CONF"; then
+            echo "GDM auto-login already configured for $LOGIN_USER"
+          else
+            SUDO=""
+            CAN_SUDO=0
+            if [ "$(id -u)" -eq 0 ]; then
+              CAN_SUDO=1
+            elif sudo -n true 2>/dev/null; then
+              SUDO="sudo -n"
+              CAN_SUDO=1
+            fi
+            if [ "$CAN_SUDO" -eq 1 ]; then
+              $SUDO sed -i \
+                -e '/^[[:space:]]*AutomaticLoginEnable[[:space:]]*=/d' \
+                -e '/^[[:space:]]*AutomaticLogin[[:space:]]*=/d' \
+                -e "/^[[:space:]]*\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" \
+                "$GDM_CONF"
+              echo "GDM auto-login enabled for $LOGIN_USER"
+            else
+              echo "WARNING: Non-interactive sudo is not available; skipping GDM auto-login update ($GDM_CONF)."
+              echo "To enable manually, run: sudo sed -i '/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER' $GDM_CONF"
+            fi
+          fi
+        fi
+
+        echo "Kiosk auto-start installed"
+      name_i18n:
+        zh: 安装全屏展示模式自启动
 
 remote_overrides:
   compose_dir: assets/docker/reachy_jetson

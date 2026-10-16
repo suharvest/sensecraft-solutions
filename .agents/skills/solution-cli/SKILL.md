@@ -1,197 +1,317 @@
 ---
 name: solution-cli
-description: 方案内容作者用的 solutionctl CLI——离线校验方案（validate）、查看每个 preset 的步骤与产物（steps）、打包给 App 预览（export）。给 Agent 部署方案不要用它，改用 sensecraft skill（sensecraft-engine 命令行引擎，不启动 Python 进程）。
-allowed-tools: Read, Bash
+description: 用于客户询盘、客户需求、方案选型、我们能提供什么、怎么回复客户等边缘/IoT 方案咨询，涵盖智慧农业、跌倒检测、楼宇温控、恒温器、传感器及相关硬件。Use for customer inquiries, requirements analysis, solution selection, proposal guidance, edge IoT deployments, hardware compatibility, deployment, and troubleshooting. First search the SenseCraft solution catalog with `solution-cli`; do not trigger for general business writing, generic proposal drafting, or unrelated coding.
 ---
 
-# solution-cli — 方案作者用的 solutionctl
+# Solution CLI
 
-`solutionctl` 是 `packages/solutionctl/` 里的命令行工具，分两类命令：
+This skill drives the `sensecraft-engine` execution engine and `solution-cli` toolset. It operates across the complete lifecycle: **Solution Consultation ➔ Hardware & Accessory BOM Selection ➔ Local Deployment ➔ Self-Healing Diagnostics**. For Engine-only operations, use the injected absolute Engine path. If the wrapper is not on `PATH`, invoke the CLI as `npx -y --registry=https://registry.npmjs.org/ --package=@seeed-studio/solution-cli@latest solution-cli <args>`. Keep catalog queries such as `hub` and `product` on `solution-cli`; do not forward them to the Engine.
 
-| 类别 | 命令 | 需要什么 |
+## Catalog model and production pages
+
+Treat the catalog as a graph with distinct content types. A **Scenario** is a
+business landing page. It owns links to one or more **Tech** pages and/or
+**Reference Designs (RDs)**. A Tech page is an independently published
+technology or ownership page; it is not a Wiki page and must not be inferred
+from an RD. An RD is the concrete design that can contain architecture,
+products, and a deployment mapping. A deployable RD maps to the executable
+deployment document and presets exposed by the Engine; a website RD without
+that mapping remains informative and is not deployable.
+
+Use the catalog commands progressively:
+
+```bash
+solution-cli hub list --type scenario --locale <en|zh|ja> --page 1 --limit 50 --json
+solution-cli hub get <id> --locale <en|zh|ja> --section overview --json
+solution-cli hub get <id> --locale <en|zh|ja> --section links --json
+solution-cli hub get <id> --locale <en|zh|ja> --section architecture --json
+solution-cli hub get <id> --locale <en|zh|ja> --section products --json
+solution-cli hub get <id> --locale <en|zh|ja> --section playbook --json
+solution-cli hub get <id> --locale <en|zh|ja> --section integration --json
+solution-cli hub get <id> --locale <en|zh|ja> --section deployment [--preset <id>] --json
+```
+
+For a catalog-wide request, page through `hub list` until `has_more` is
+false. For a specific request, search first, then use `hub get` on the chosen
+IDs. For links, call `hub get --section links`; do not scan manifests or write
+an ad-hoc parser. `hub get --section links` returns the production landing
+mapping for all three locales when published, plus separately declared Wiki,
+repository, and document links. The verified landing hosts are:
+
+| Locale | Production host |
+|---|---|
+| English (`en`) | `www.seeed.cc` |
+| Chinese (`zh`) | `www.seeedstudio.com.cn` |
+| Japanese (`ja`) | `www.seeed.co.jp` |
+
+The path and availability must come from the CLI record. Do not construct a
+Wiki route, CDN asset URL, or translated URL from an ID. A missing translation
+may still have a published production route; report the returned content
+locale/fallback separately. A catalog record is not proof that the local
+Engine has the matching content: before deployment, read the actual Engine
+`deploy-info` for the mapped solution ID.
+
+A metadata or links response is not evidence that the content was read. When
+the user asks what a solution does, how it is built, or which products it
+uses, call `hub get` for the chosen `description`, `architecture`, or
+`products` section and use that returned body. When a returned production page
+or architecture image is material to the answer, open that exact returned
+URL and state what was checked. When a solution includes an architecture diagram
+(from `architecture_preview` or `hub get --section architecture`), present the
+official architecture image to the user, render an editable Mermaid flowchart
+based on its topology summary, and offer to customize the topology. A relative asset
+path is usable only when the matching signed local content is present; otherwise
+report the source asset as unavailable instead of treating the URL as an image that
+has been reviewed.
+
+## Workflow Routing & Intent Classification
+
+```mermaid
+flowchart TD
+  User["用户提问: 'J4012 Super 包含电源吗？买回去能直接用吗？'"] --> AgentIntent{"意图识别 (SKILL.md)"}
+  AgentIntent -- "问行业/业务方案 (跌倒/农业/质检/选型)" --> HubSearch["hub search '<方案关键词>'"]
+  AgentIntent -- "问硬件单品/型号/包装清单/电源/接口/能干嘛" --> ProdSearch["product search '<型号/SKU>'"]
+  HubSearch -- "误把硬件当方案搜" --> Fallback["Fallback: 检测到硬件型号，引导使用 product search"]
+  ProdSearch --> ClearOutput["直出: 电源随附情况 + 开箱即用判定 + 必选配件 + 接口 + 落地场景"]
+```
+
+Do NOT read all reference files at once. Determine the user's workflow state and intent, then execute the corresponding command and load **at most ONE** reference file on demand:
+
+| User State & Intent | Reference to Load | Primary CLI Tool to Call | Guardrails & Forbidden Actions |
+|---|---|---|---|
+| **HARDWARE_SPEC / BOX_CONTENTS / POWER_READINESS**<br>“J4012 Super 包含电源吗？”、“盒子里有什么”、“带不带电源”、“买回去能否直接用/能否开箱即用”、“发货清单”、“有哪些接口”、“能干嘛” | `references/hardware-bom.md` | `solution-cli product search "<型号/SKU/关键词>" --json` | **STRICT HARD REDLINE**: 严禁凭常识臆测硬件包材（如擅自推测 Super 版本带电源）或谎称没有清单。包装随附情况、电源线适配器状态、开箱即用性必须严格以 `product search` 返回的 `package_profile`、`package_contents` 和 `interfaces` 为准！回答“设备能干嘛”直接使用返回的 `supported_scenarios`。 |
+| **DISCOVERY / CONSULT**<br>“我想做防跌倒监控”、“有智慧农场方案吗”、“怎么做园区安防” | `references/consult-and-select.md` | `solution-cli hub search "<keyword>" --json`, then `hub get <id> --sections architecture,playbook --json` | **DO NOT run deploy**; search exposes `available_sections` and evidence status (`documented`/`generic`/`inferred`). 若返回 warning 提示包含硬件关键词，立即按提示切换至 `product search`。 |
+| **PROCUREMENT / VERIFY_BOM**<br>“买什么硬件？”、“J4012 需要配什么配件？”、“推荐镜头/天线” | `references/hardware-bom.md` | `solution-cli product accessories <id> [--category <power,camera>] --compact --json` | **DO NOT fabricate** third-party SKUs or prices. Always distinguish REQUIRED vs OPTIONAL accessories. Use `--compact` and `--category` to save tokens. |
+| **ONBOARDING / PRECHECK**<br>“设备到了，插上了网线/USB”、“环境自检”、“发现新设备” | `references/diagnose.md` & `references/device-management.md#0` | `solution-cli doctor` / `sensecraft-engine device scan` | **Early & Proactive**: Check device firmware & drivers early. Intercept and prompt for reCamera firmware/patch or SBC env fixes before deploy. |
+| **DEPLOYING / APPLY**<br>“开始安装”、“部署 fall_detection” | `references/deploy.md` | `solution-cli hub get <id> --section deployment --preset <id> --json` then `sensecraft-engine deploy <id>` | **DEPLOYMENT CRITICAL SECTION**: Zero external commercial queries allowed during apply. Filter guide with `--preset` to reduce token bloat. |
+| **INTEGRATION / INGESTION**<br>“怎么接到我们系统”、“MQTT主题是什么”、“Webhook格式”、“接入 Home Assistant” | `references/device-management.md#5` | `solution-cli hub get <id> --section integration --json` | **System Ingestion**: Provide exact MQTT topics, payload schemas, Webhook endpoints, and port mappings directly from verified integration contract. Batch with `--sections architecture,integration` if needed. |
+| **MANAGE / RECONFIG**<br>“改一下 MQTT 地址”、“换模型/业务流”、“重启服务”、“修改配置”、“打本地补丁”、“换应用镜像” | `references/device-management.md` | `curl BASE/api/docker-devices/local/config/<id>` / `solution-cli doctor` | **On-Demand (JIT)**: Only query when user requests application-layer modifications. Apply tiered hotpatches without touching underlying OS. |
+| **FEASIBILITY / SALES_EVAL**<br>“我们能不能做这个？”、“非标需求评估”、“需求匹配度如何”、“做这个要多久” | `references/sales-feasibility.md` | `solution-cli hub search "<keyword>" --json` / `product query <family>` | **DO NOT make blind promises**. Strictly follow the 4-tier feasibility matrix and scoring criteria. |
+| **CUSTOMIZE / SECONDARY_DEV**<br>“我想改源码”、“换成自研模型”、“改前端看板”、“GitHub 仓库” | `references/secondary-development.md` | `git clone <repo_url>` / `sensecraft-engine --solutions-dir` | **Never edit cached content**: Clone to user workspace, pair-program, test locally with `--solutions-dir`. |
+| **EDGE_GOTCHAS / HARDWARE_DEBUG**<br>“3576/3588编译报错”、“/dev/rknn打不开”、“recamera崩溃”、“VPSS overflow”、“fork风暴”、“高卡/踩坑” | `references/edge-gotchas.md` | `solution-cli gotchas "<keyword>" [--chip <chip>] --json` / `dmesg \| grep -i -E "rknpu\|vpss\|fifo\|oom"` | **Brand-agnostic**: Focus on generic 3576, 3588, reCamera, reCamera Pro, and MCU gotchas and hardware traps. |
+| **TROUBLESHOOTING**<br>“部署报错”、“黑屏”、“无视频流” | `references/error-catalog.md` | `sensecraft-engine logs` / `solution-cli gotchas "<symptom>" --json` | Max 3 fix-and-retry rounds. Follow local auto-patching rule. |
+
+### Progressive Disclosure & Multi-Section Fetch
+During discovery, `hub search` returns records with `available_sections` and their status (`section_status`: `documented`, `inherited`, `generic`, `inferred`).
+Instead of multiple roundtrips, retrieve multiple sections at once:
+`solution-cli hub get <id> --sections architecture,integration --json`
+To retrieve single sections:
+- `overview`: basic metadata, tags, and progressive directory navigation
+- `links`: landing pages, wiki, repo, and declared documents
+- `description`: deep solution background and functional breakdown
+- `architecture`: modules, block diagrams, topology, and gallery
+- `products`: bill of materials (BOM), required vs optional hardware
+- `deployment`: deployment steps (use `--preset <id>` to filter and reduce token usage)
+- `playbook`: field diagnostic questions and engineering rationales
+- `integration`: system ingestion contracts (MQTT topics, Webhooks, REST endpoints)
+
+Capabilities that need the **SenseCraft Solution desktop app** (editing a
+solution's configuration, the app's `/api/ai/context`, diagnosing through the
+app's logs) are in `references/app-only.md`. Use them only when the user has
+the app running.
+
+## Host platform boundary
+
+The standalone engine supports four host platforms: macOS ARM
+(`aarch64-apple-darwin`), Linux ARM (`aarch64-unknown-linux-musl`), Linux
+x86_64 (`x86_64-unknown-linux-musl`), and Windows x86_64
+(`x86_64-pc-windows-msvc`). macOS x86_64 is not maintained; under Rosetta,
+run the installer from a native ARM shell.
+
+`docker_deploy` target `local` requires a supported Docker host. Windows native
+`docker_local` is intentionally unsupported by both the Python and Rust
+deployers; a Windows CLI can still use a `remote` target over SSH to a Linux
+Docker host. WSL uses the Linux engine binary and Linux host behavior; do not
+describe a WSL run as Windows-native local Docker support. USB device steps
+remain hardware-dependent and require the user to connect and confirm the
+device.
+
+On macOS, local Docker uses the literal `docker` command found by the engine's
+process environment. If Docker Desktop's CLI is only inside its application
+bundle, start a new engine process with a temporary `PATH` containing that
+bundle's `bin` directory; do not change global shell configuration or assume an
+existing engine daemon inherits the new path. Verify the new engine instance
+with `doctor --json` before selecting a local target. A running Docker Desktop
+daemon is a host prerequisite, not evidence that a deployment has passed.
+
+## Rules
+
+1. **Credentials and secrets (Zero-Plaintext-Password):** NEVER ask the user to send raw passwords, API keys, or private tokens into the chat context (this triggers LLM safety refusal guardrails and risks credential leakage). Always prefer SSH Key-based authentication (defaulting to `~/.ssh/id_ed25519` or `~/.ssh/id_rsa`). If the remote target lacks key-trust, guide the user to run `ssh-copy-id -i ~/.ssh/id_ed25519.pub <user>@<host>` in their local terminal. Replace any echoed secrets with `<REDACTED>`. Never invent hosts or usernames.
+2. **What you may do without asking, and what needs the user's OK:**
+
+   | Action | Ask first? |
+   |---|---|
+   | Read deployment status and logs (`status`, `logs`), engine log files, `doctor`, `device list/ports/scan` | No |
+   | Read-only checks on a device over SSH (`docker ps`, `docker logs`, `df -h`, `ss -ltnp`, `ping`) | No |
+   | Edit the solution's edit copy (desktop app only, see `references/app-only.md`) | No — show the diff afterwards; the user sees it in the app as "locally modified" and can restore the official version in one click |
+   | Anything a person does with their hands: plug in or swap a cable, connect a servo, sit in front of a camera, walk across a counting line, move or stand near a robot arm | **Yes** — tell the user what to do and wait for them to confirm it is done |
+   | Commands that move hardware (`robot torque`, `robot actions test`) | **Yes** — the user confirms nobody is within reach first |
+   | Change anything on a device: stop/remove containers, delete files, install packages, change system settings; `--replace-existing` | **Yes** |
+   | Redeploy | First retry: no. Every later retry: **yes** |
+   | Cancel a running deployment | **Yes** — it can leave a device half-configured |
+   | Prepare an issue report (the user submits it) or open a pull request | **Yes** |
+
+3. **At most 3 fix-and-retry rounds** per problem for deterministic failures
+   (wrong parameter, missing file, port taken, bad credentials, a container
+   that exits). After that, stop and give the user a report (what failed, what
+   you checked, what you changed). Transient registry or network errors follow
+   the backoff rule in `references/deploy.md` §6 and do not use up a round.
+4. **Preserving official cache & Local auto-patching**: Never edit files directly under the official content cache directory (`~/.sensecraft/content/`). When fixing a solution-level bug (timeout too short, wrong port/env var, minor syntax/transfer glitch, broken health check):
+   - In CLI / Engine mode: copy the solution from `~/.sensecraft/content/solutions/<id>` into `./.sensecraft-work/solutions/<id>`, apply the minimal fix in that copy. Then re-run deployment with `sensecraft-engine deploy --params <params-file> --solutions-dir ./.sensecraft-work/solutions --yes --detach` (preserving the original preset, connection, and target parameters) so the engine picks up the patched files. Show the user the patch diff.
+   - If running with the Desktop App: use the app's edit copy mechanism (`references/app-only.md` §4).
+5. **Reading output:** read the CLI's JSON output directly; it is small. If a
+   filter is needed, use `jq` only when it is already installed. Do not start
+   python, node or any other interpreter to parse output. Where a command has
+   a flag that prints just what you need (`--json`, `--preset`, `--device`,
+   `--since`), use it.
+6. **Temp files:** keep request bodies and scratch files in the current
+   working directory under `./.sensecraft-work/`, never in `/tmp`. Remove the
+   directory when the task ends, also after a failure.
+7. **Conversational tone & soft referral:** Agent is an IoT domain expert and
+   answers technical, business, hardware, and configuration questions directly
+   and thoroughly using local knowledge and tools. Do NOT dump raw link lists
+   or write pushy sales pitches. External links (`landing_url`, `wiki_url`,
+   product purchase URLs, `repo_url`) must be smoothly integrated as
+   supplemental reading / procurement / code exploration. Search and product
+   results may include attribution parameters when the CLI adds them; links
+   returned by `hub get --section links` are declared URLs and must be used as
+   returned.
+8. **Proactive diagnosis & domain-specific questioning:** During solution consultation,
+   Agent must avoid one-way monologues. Use a returned `diagnostic_playbook` only
+   when the selected search result actually contains one; otherwise use the
+   domain matrix in `references/consult-and-select.md` §3 and label the questions
+   as general engineering checks. Ask 2–3 targeted questions explaining the
+   rationale (topology, asset reuse, power/cabling, inspection speed/materials).
+
+## Step 0 — Install the engine and the solutions (when needed)
+
+1. Check whether it is installed: `sensecraft-engine --version`. If the command
+   is not found, also try `~/.sensecraft/bin/sensecraft-engine --version`
+   (Windows: `%USERPROFILE%\.sensecraft\bin\sensecraft-engine.cmd`); the
+   installer puts it there and prints the `PATH` line to add.
+2. Before running an installer, check its local prerequisites. On Unix run
+   `command -v curl || command -v wget`, `command -v sha256sum || command -v shasum`,
+   `command -v tar`, `command -v jq`, and `command -v minisign`. If wget is the
+   selected downloader, also require `wget --help | grep -- --compression` to
+   succeed; otherwise stop because the CDN may return gzip content. On Windows
+   PowerShell run `Get-Command irm`, `Get-Command Invoke-WebRequest`,
+   `Get-Command Expand-Archive`, `Get-Command ConvertFrom-Json`, and
+   `Get-Command minisign`. Windows uses PowerShell/.NET ZIP and JSON support;
+   it does not require `tar` or `jq`. If any check fails, report the missing
+   command and stop; do not install packages or start another interpreter.
+   `minisign` is required to verify the signed release manifest; Unix `jq` is
+   required by the shell installer to read it.
+3. If it is not installed, install it together with the solutions (ask the user
+   first, it downloads a program). If the user explicitly asks to upgrade or
+   reinstall, use the same solution-cli command; do not reinstall on every
+   deployment:
+
+   **Recommended (Zero-friction via solution-cli, target the current Agent explicitly)**:
+   ```bash
+   npx -y --registry=https://registry.npmjs.org/ @seeed-studio/solution-cli@latest install --agent <current-agent-id> -y
+   ```
+
+   Fill `<current-agent-id>` with the actual host ID: `workbuddy`, `claude`,
+   `codex`, `codebuddy`, or `antigravity`. The WorkBuddy example is:
+   ```bash
+   npx -y --registry=https://registry.npmjs.org/ @seeed-studio/solution-cli@latest install --agent workbuddy -y
+   ```
+   An AI agent must use its current host ID; Codex must not hardcode WorkBuddy.
+   Use `npx -y --registry=https://registry.npmjs.org/ @seeed-studio/solution-cli@latest install` for interactive
+   selection. When one or more Agents are detected, pressing Enter selects all
+   detected Agents; entering the matching number selects one host. In
+   non-interactive mode, `install -y` without `--agent` also selects all detected
+   Agents when any are detected. If none are detected, these defaults still use
+   the CLI's default target set; pass `--agent <agent-id>` to control the scope
+   explicitly.
+
+   **Routine Update & Skill Synchronization**:
+   ```bash
+   solution-cli update -y
+   ```
+   (Automatically checks signed stable Engine, increments content definitions with `content update`, and synchronizes skills for all managed agents).
+
+   **Custom or Third-party Agent Extension**:
+   ```bash
+   solution-cli install --skills-dir <path> -y
+   ```
+   (Injects Solution CLI skills into any custom, internal, or proprietary AI Agent skill directory).
+
+   The command checks the signed stable Engine on fresh and repeat runs, reuses
+   an equal or newer local version, and upgrades an older one. It preserves
+   modified/unregistered skills and protected symlinks. Add `--agent ...` for an
+   explicit agent selection or `--engine-path <path>` for a valid custom pin.
+   `--force` can re-download equal/older versions and overwrite existing skill
+   files, including user modifications; use it only when that overwrite is
+   intended. Protected external symlinks are not followed, and it never
+   downgrades a newer discovered Engine. Automatic reuse/upgrade rules start with
+   publicly published solution-cli 0.3.1. Latest/signature failure
+   stops before writes; offline use requires a valid explicit local Engine path.
+
+   **Fallback (Standalone shell script when Node.js is not present)**:
+   ```bash
+   curl --compressed -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+   ```
+
+   If `curl` is unavailable but `wget` passed the prerequisite check, use the
+   equivalent command:
+
+   ```
+   wget --compression=auto -qO- https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content
+   ```
+
+   Windows PowerShell:
+
+   ```
+   & ([scriptblock]::Create((irm https://sensecraft-statics.seeed.cc/solution-app/engine/install.ps1))) -WithContent
+   ```
+
+4. Solutions are downloaded separately from the engine:
+
+   | Command | Does |
+   |---|---|
+   | `sensecraft-engine content status --offline --json` | Reads the local content store only; an empty store is a normal result with `installed: 0` and exit code 0 |
+   | `sensecraft-engine content status --json` | Compares local solutions with the online list |
+   | `sensecraft-engine content pull` | Downloads every solution (first run), or only `--solution <id>` |
+   | `sensecraft-engine content update` | Re-downloads installed solutions that changed online |
+
+   Run the offline status check before deciding whether content is installed.
+   If it returns exit code 0 with `installed: 0`, run `content pull`; do not
+   treat that status result as an error. A solution query such as `solution
+   list` or `deploy-info` exits with code 3 when no usable resource/solution
+   directory is available and tells you to run `content pull`. If a usable
+   directory exists but the requested solution ID is unknown, the query exits
+   with code 2. After `content pull` / `update`, newly downloaded or updated
+   solutions are available to subsequent deployment and query commands.
+5. Device pre-checks on this computer: `sensecraft-engine doctor --json`. Each
+   check has `status` (`ok` / `warn` / `fail`) and a `fix` command. Show the
+   user any `fail` and its `fix`; running a `fix` changes this computer and
+   needs their OK.
+
+Use `--lang zh` on commands that take `--lang` when the user writes in Chinese,
+`--lang en` otherwise.
+
+## Exit codes (all commands)
+
+| Code | Meaning | Next step |
 |---|---|---|
-| **作者离线工具**（本 skill 的主要用途） | `validate`、`steps`、`export` | 只要本仓库 clone，不需要引擎、不需要 App |
-| 需要 Python 引擎的命令 | `meta`、`solution list/show`、`deploy-info`、`deploy`、`manage`、`stage` | 定位并启动 `provisioning-station`（桌面 App 的 Python 后端），见文末附录 |
+| 0 | Success / accepted | Continue |
+| 1 | Deployment failed, cancelled or interrupted; for `counting` / `face` / `wizard` / `robot`: the device did not confirm | `references/diagnose.md` |
+| 2 | Invalid arguments or request. A `missing_params` error includes `missing[]`; an unknown ID or malformed JSON is also code 2 and may have no `missing[]` | Ask for each field only when `missing[]` is present; otherwise inspect the ID, JSON shape and parameter spelling, then correct or ask for the specific value |
+| 3 | Environment or conflict: a solution query has no usable resource/solution directory (`content pull`), device busy with another deployment (409), engine instance shutting down or incompatible, serial port busy | Read the message; pull content or fix the environment, then run again. An empty `content status --offline` store is exit 0, not this case |
+| 4 | This step needs the desktop app (deployer not in the engine) | Tell the user to deploy this solution from the SenseCraft Solution app |
+| 5 | Internal engine error | Engine bug: `references/diagnose.md` §6 |
 
-## 部署方案：用 sensecraft skill，不用 solutionctl
+## Pick the task
 
-Agent 给用户部署方案、处理部署失败、处理验证步骤（`verify_required`）时，加载
-`skills/sensecraft/SKILL.md`。它只用 `sensecraft-engine` 命令行引擎：
+| The user wants to... | Read |
+|---|---|
+| Deploy a solution | `references/deploy.md` |
+| Finish a step that reported `verify_required` (dashboards, counting lines, face enrollment, servo setup, robot arm) | `references/verify.md` |
+| Find out why a deployment failed or a deployed solution misbehaves | `references/diagnose.md` |
+| Deploy on a site without internet (prepare an offline package first) | `references/offline.md` |
+| Change a solution's configuration, or use the desktop app's API | `references/app-only.md` (requires the desktop app) |
 
-```bash
-curl -fsSL https://sensecraft-statics.seeed.cc/engine/install.sh | sh -s -- --with-content
-sensecraft-engine content pull
-sensecraft-engine solution list --json
-sensecraft-engine deploy-info <solution_id> --preset <preset>
-sensecraft-engine deploy --params body.json --yes --detach
-sensecraft-engine status <deployment_id> --json
-sensecraft-engine logs <deployment_id> --since <N>
-```
-
-`solutionctl deploy` / `manage` / `stage` 会启动 Python 后端，不在 Agent 部署路径上。
-
-## 作者离线工具（不需要引擎）
-
-从仓库 clone 内运行：`uv run --package sensecraft-solutionctl solutionctl <...>`
-（已全局安装时直接 `solutionctl`）。
-
-```bash
-# 校验一个方案目录是否符合 spec 契约（CI 对每个方案跑同一条命令）
-solutionctl validate solutions/<id> --spec-dir spec --check-urls
-
-# 每个 preset 的步骤：guide 标题与它指向的 devices/*.yaml 产物合在一起显示
-#（固件来源与校验和、compose 文件、烧录参数等），发布前核对用
-solutionctl steps solutions/<id> [--lang en|zh]
-
-# 打包成 App 可导入的 zip（本地预览，见 preview-solution-content skill）
-solutionctl export <id> [--output-dir dist]
-```
-
-`validate` 失败时按输出逐条修改再跑，直到通过。
-
-## 附录：需要 Python 引擎的命令（作者调试用，会启动 Python 后端）
-
-以下命令通过子进程调用 `provisioning-station`（桌面 App 的 Python 后端）。定位顺序：
-
-1. 环境变量 `$SENSECRAFT_ENGINE_BIN`
-2. `~/.sensecraft/engine.json` 握手文件（App 首次启动写入）
-3. 平台原生查找（macOS `mdfind` / Windows 注册表 / Linux `dpkg`）
-
-定位失败时 `solutionctl` 会提示装 App，或 `export SENSECRAFT_ENGINE_BIN=<引擎绝对路径>`。
-作者用它们在本机验证改过的方案能否部署；给用户部署请用 sensecraft skill。
-
-### 命令速查
-
-> **从仓库 clone 内跑命令即可**，`solutionctl` 会自动把 `PS_SOLUTIONS_DIR` 指向这个
-> clone 的 `solutions/`（cwd 在 repo 根下任意位置都行），无需 `--solutions-dir`；同时
-> best-effort 把 `PS_DEVICES_DIR` 指向已装桌面 App 的 `devices/` 目录（含 `device_class` 的方案需要）。
-> 命令行不用加 `uv run` 前缀的话直接 `solutionctl`；在 clone 里用
-> `uv run --package sensecraft-solutionctl solutionctl <...>`。
-
-```bash
-# 看引擎能力 / 契约元数据（版本、支持的 deployer 类型等）
-solutionctl meta
-
-# 发现方案：列出所有方案 ID
-solutionctl solution list
-```
-
-#### 部署三步法（deploy-info → 填 → deploy）
-
-**别凭空猜 preset 名，也别啃 `solution show` 的原始 JSON。** 走 `deploy-info`：
-
-```bash
-# 1. 看这个方案怎么部署：有哪些 preset、每步要填什么、local/remote 怎么选
-solutionctl deploy-info <solution_id> [--preset <p>] [--lang en|zh]
-#   → JSON 输出：
-#     presets            : 每个 preset 的 id + name（按用户意图选一个，再 --preset 收窄）
-#     steps              : 每步的 device_id / type / 必填参数；
-#                          has_targets=true 的步骤（如 docker_deploy）提供 local vs remote 两种 target
-#                            local  = 部署到本机 Docker（免 SSH）
-#                            remote = SSH 部署到边缘设备
-#     request_template   : 每个 device 预填好的连接骨架，<REQUIRED: ...> 是用户必须补的空
-
-# 2. 从 request_template 拷出来，填好空，组成 --connection（嵌套 dict）
-#    本机 Docker（免 SSH）：选 local target，零凭据
-#      {"<device_id>":{"target":"<...>_local","target_type":"local"}}
-#    远程 SSH：选 remote target，补 host/username/password/port
-#      {"<device_id>":{"target":"<...>_remote","target_type":"remote","host":"...","username":"...","password":"<REDACTED>","port":22}}
-
-# 3. 部署（一次性，跑完即退）—— 注意：不要自己加 --json！
-solutionctl deploy <solution_id> \
-    --preset <preset_id> \
-    --device <device_id> \
-    --connection '<填好的 JSON>' \
-    --yes
-#   device_id 必须和 deploy-info 里的一致；--device 省略 = 部署该 preset 的全部步骤（CI 场景）
-#   --verbose 看完整事件流（docker 拉层 + 轮询）；默认只渲染生命周期骨架 + 错误日志
-#   --replace-existing 同名容器已存在时自动停掉重建（默认会报错让用户确认）
-```
-
-**可复制的本机 Docker 实例**（已实跑验证）：
-
-```bash
-# 从 sensecraft-solutions clone 内
-uv run --package sensecraft-solutionctl solutionctl deploy-info smart_warehouse --preset sensecraft_cloud
-
-uv run --package sensecraft-solutionctl solutionctl deploy smart_warehouse \
-  --preset sensecraft_cloud --device warehouse \
-  --connection '{"warehouse":{"target":"warehouse_local","target_type":"local","auto_replace_containers":true}}' \
-  --yes
-
-docker ps --filter name=mcp_warehouse        # → Up X seconds (healthy)
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:2125/healthz   # → 200
-```
-
-```bash
-# 列出已部署的 app（起 headless 服务）
-solutionctl manage list-apps
-```
-
-### 去没网的现场部署：`stage`
-
-先在有网的地方把方案要用的东西下到本机，到现场再部署。单位是**步骤 × 目标设备**：
-可以只备某一步，也可以给同一步备多个型号。
-
-```bash
-# 1. 看这个套餐每一步需要什么、能不能完全离线、本机已经有哪些
-solutionctl stage plan <solution_id> --preset <preset>
-
-# 2. 下到本机（--target 只备指定步骤；--arch 用于推不出架构的目标）
-solutionctl stage prepare <solution_id> --preset <preset> \
-    --target <step>=<target> --arch <step>=aarch64 --params '{"board":"rk3588"}'
-
-# 3. 看本机备了什么、占多少（--check 顺带报哪些有更新）
-solutionctl stage list --check
-
-# 4. 带到另一台电脑
-solutionctl stage export kit.tar
-solutionctl stage import kit.tar          # 在现场那台执行
-
-# 5. 腾空间
-solutionctl stage delete --entry <solution>/<preset>/<step>[/<target>[/<arch>]]
-```
-
-现场部署时在连接里传 `force_offline`，引擎会在**连接设备之前**核对离线包，缺件就直接
-停下并说明缺什么：
-
-```bash
-solutionctl deploy <solution_id> --preset <preset> --device <step> \
-    --connection '{"<step>":{"host":"<ip>","username":"<user>","password":"<REDACTED>",
-                   "target":"<target>","target_type":"remote","force_offline":true}}' --yes
-```
-
-**退出码**：`0` = 清单里的东西都在本机；`1` = 有缺的；`2` = 清单推不出来（比如目标没写
-设备类型、架构需要用 `--arch` 指定）。加 `--require-full` 后，方案未声明"服务启动后不再
-联网下载"时也会失败（`3`）——目前还没有方案声明，所以默认不开。
-
-**能离线到什么程度取决于方案**：镜像启动后自己去拉模型这类内容，清单推导不出来，
-`plan` 会标成 `partial` 并写明现场仍需联网的是什么。
-
-#### 凭据红线（必须遵守）
-
-- **绝不编造凭据**。SSH 主机 / 用户名 / 密码一律向用户索取。
-- 日志、示例、回显里**把密码 redact 成 `<REDACTED>`**，永远不要明文打印。
-
-### deploy 输出怎么读
-
-`solutionctl deploy` **内部已经加了 `--json`**——你**不要**再自己传 `--json`（会 exit 2）。
-默认输出是**收敛过的**人类可读流：只渲染生命周期骨架
-（`device_started` / `pre_check_*` / `device_completed` / `deployment_completed`）+ 错误日志，
-docker 拉层进度和 httpx 轮询噪声被过滤掉。需要全量看用 `--verbose`。
-流的结尾会打印一个结构化的**结果 dict**（`status` + 每个设备的 `steps`）。进程**退出码**：
-`0 = 成功`，`非零 = 失败`。判断真成功：`status: completed/success` 且 `docker ps` 显示容器
-`(healthy)`。容器明明 `(healthy)` 但报失败 → 多半是 healthcheck 配置 bug（如探了个返回 401 的鉴权端点），
-**不是**部署失败。
-
-### 能力边界（诚实写清）
-
-CLI **一把梭覆盖**：方案发现（`solution list`）、部署信息（`deploy-info`）、部署（`deploy`）、
-离线校验（`validate`）、引擎元数据（`meta`）、离线预备（`stage`）。
-
-**设备管理那一大块**——启停 / 更新 / OTA / 恢复出厂 / docker 操作（详见 `AGENTS.md` **Part E**）——
-目前 CLI **只有 `manage list-apps`**，其余全部走 **`serve --headless` + REST 端点**。
-`solutionctl manage` 内部就是起这个 headless server，所以任何 REST 端点都够得着；
-完整端点表见 `AGENTS.md` **Part D / Part E**。
-
-> 简言之：**部署 / 校验 / 发现 / meta 用 CLI；细粒度设备运维走 REST。**
+They connect: **a failed deployment goes straight to `diagnose.md`** without
+stopping to ask; a `verify_required` event goes to `verify.md`; the retry goes
+back to `deploy.md` for the failed device only.

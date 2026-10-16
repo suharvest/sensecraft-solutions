@@ -6,7 +6,7 @@
 
 ## 步骤 1: 更新 reCamera 控制台 {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-安装 0.5.5 控制台，它负责管理相机应用。已经是该版本会自动跳过。
+安装 0.5.6 控制台，它负责管理相机应用。已经是该版本会自动跳过。
 
 ### 前置条件
 

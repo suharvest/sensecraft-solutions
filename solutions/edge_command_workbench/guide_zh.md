@@ -4,9 +4,11 @@
 
 两台 RKLLM 设备的 500-token 可复现报告保存在 [`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。每台设备包含 120 条 original 和 120 条 reverse fixture case；该 fixture 使用生成上下文，不能作为任意长请求的准确率结论。
 
-## 步骤 1: 部署 Kev 工作台 {#deploy_rk3576_rkllm type=docker_remote required=true config=devices/rk3576_rkllm_remote.yaml}
+套餐 bootstrap 会自动准备固定版本的本地归档和模型输入，不需要手动准备归档目录。`network_region: global` 只用于加载本地归档时保持 Docker 镜像名称不被改写；Hugging Face bootstrap 下载仍使用 `hf-mirror.com`。
 
-容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。请准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
+## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3576_rkllm type=docker_deploy required=true config=devices/rk3576_rkllm_remote.yaml}
+
+容器选择 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。bootstrap 会自动下载并校验固定版本产物，然后准备包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 以及固定版本运行时 `runtime/librkllmrt.so` 的目标目录；无需手动提供预先准备的模型目录。只有使用固定版本 RKLLM 1.3.1 头文件构建时，镜像才包含 C helper。
 
 ### 部署目标 {#rk3576_rkllm type=remote device_name="RK3576" config=devices/rk3576_rkllm_remote.yaml default=true}
 
@@ -15,8 +17,14 @@
 ### 部署完成
 
 打开 `http://<设备 IP>:18768`。验证要求 `/api/health` 返回 `model_ready: true`、`backend: "rkllm"` 和 `model_id: "kev"`。
+### 故障排查
 
-## 步骤 2: 打开 Kev 工作台 {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
+| 现象 | 处理 |
+|------|------|
+| 模型没有就绪 | 检查 bootstrap 校验日志是否成功，并确认目标目录包含 `model.rkllm`、`kev_head.npz`、`tokenizer/tokenizer.json` 和 `runtime/librkllmrt.so`，然后重新部署。 |
+| 健康接口返回了其他 backend 或 model ID | 检查部署字段，确认本套餐使用 `DECISION_BACKEND=rkllm` 和 `MODEL_ID=kev`。 |
+
+## 步骤 2: 打开边缘命令路由（Kev） {#verify_rk3576_rkllm type=web_dashboard required=true config=devices/dashboard_rk3576_rkllm.yaml}
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
@@ -24,15 +32,31 @@
 
 第二轮 RK3576 test platform 验证使用相同固定版本镜像，5 个 golden 请求全部 HTTP 200，5/5 选择结果正确。2069 词边界请求编码为 2088 tokens，在进入 NPU 前以 HTTP 422 拒绝。该轮使用镜像内置 helper，没有 external helper、RKNN runtime 或 GOMP mount。原始证据见 [`assets/evidence/rk3576-release-0.3.1-20261011/second-validation/`](assets/evidence/rk3576-release-0.3.1-20261011/second-validation/)。
 
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 工作台页面打不开 | 先确认 18768 端口的健康接口已就绪，再打开页面。 |
+| 请求返回 HTTP 422 | 按套餐限制检查请求大小；文档中的边界请求会在进入 NPU 前被拒绝。 |
+
 ## 套餐: RK3588 Kev RKLLM {#rk3588_rkllm_remote}
 
 此套餐在 RK3588 test platform 上部署已测试的 8K Kev 产物契约，已验证部署上下文为 8192 tokens；结果只适用于已测试设备，不推断其他可用内存不同的板卡。
 
 同一份 500-token 可复现报告覆盖此套餐，原始 JSONL 和机器生成 summary 位于该目录下的 `rk3588/` 子目录：[`assets/evidence/context500-20261011/`](assets/evidence/context500-20261011/)。
 
-## 步骤 1: 部署 Kev 工作台 {#deploy_rk3588_rkllm type=docker_remote required=true config=devices/rk3588_rkllm_remote.yaml}
+此套餐的 bootstrap 会自动下载并校验固定版本产物，然后准备目标目录；无需手动提供预先准备的模型目录。`network_region: global` 只用于加载本地归档时保持 Docker 镜像名称不被改写；Hugging Face bootstrap 下载仍使用 `hf-mirror.com`。
 
-为目标设备提供固定版本 engine、FP32 Q/K head、tokenizer、metadata 和 RKLLM 运行时目录。服务启动时不会下载模型权重。
+## 步骤 1: 部署边缘命令路由（Kev） {#deploy_rk3588_rkllm type=docker_deploy required=true config=devices/rk3588_rkllm_remote.yaml}
+
+bootstrap 会自动下载并校验固定版本 engine、FP32 Q/K head、tokenizer、metadata 和 RKLLM 运行时，然后准备目标目录；无需手动提供预先准备的模型目录。服务启动时不会下载模型权重。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 模型没有就绪 | 检查 bootstrap 校验日志是否成功，并确认目标目录包含固定版本 engine、head、tokenizer、metadata 和 RKLLM runtime，再检查 `/api/health`。 |
+| 请求在推理前被拒绝 | 按已验证的 8192-token 部署上下文和 `MAX_OPTIONS` 检查请求。 |
 
 ### 部署目标 {#rk3588_rkllm type=remote device_name="RK3588" config=devices/rk3588_rkllm_remote.yaml default=true}
 
@@ -42,11 +66,13 @@
 
 打开 `http://<设备 IP>:18768`，确认健康接口报告模型就绪后再发送决策请求。
 
-## 步骤 2: 打开 Kev 工作台 {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
+## 步骤 2: 打开边缘命令路由（Kev） {#verify_rk3588_rkllm type=web_dashboard required=true config=devices/dashboard_rk3588_rkllm.yaml}
 
 健康检查确认 Kev 模型就绪后，提交带候选命令的请求。
 
-### RK3588 0.3.1 发布验证
+### 部署完成
+
+#### RK3588 0.3.1 发布验证
 
 RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d009407fc3bd0c7632ca199`](https://huggingface.co/harvestsu/laya-multilingual-rknn-tensorrt/commit/db0545065d4da3598d009407fc3bd0c7632ca199)，沿用路径前缀 `releases/edge-workbench-0.3.0`。RK3588 test platform stock 部署的 bootstrap 退出码为 0。13 个目标筛选后的 model/shared 文件与已校验 SHA 的缓存一致并复用；另从 `https://hf-mirror.com` 下载 1 个新 image archive。这是缓存复用加 1 次下载，不是全新下载 14 个文件。
 
@@ -54,11 +80,18 @@ RKLLM 0.3.1 ef82 镜像已发布到 Hugging Face revision [`db0545065d4da3598d00
 
 image 内置 helper `/opt/kev/libkev_runtime.so` 已校验，SHA-256 为 `022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919`；没有使用外部 helper mount。原始选定请求、响应、耗时、bootstrap、compose 与容器元数据见 [`assets/evidence/rk3588-release-0.3.1-20261011/`](assets/evidence/rk3588-release-0.3.1-20261011/)。此前的 `a556`/`d870` 14 文件 bootstrap 记录保留为历史证据，不被替换。此次设备验证不包含 voice 和 ASR。
 
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| bootstrap 在服务健康前失败 | 重新检查目标筛选缓存和镜像归档校验值，再按文档重新执行 bootstrap。 |
+| 语音请求失败 | 本次验证只覆盖文字决策；留空 `VOICE_SERVICE_URL`，或提供已有兼容 `/asr/stream` 服务。 |
+
 可选已有语音集成要求浏览器录音页面使用 HTTPS 或 localhost，并获得麦克风权限。普通远端 HTTP 页面不能使用浏览器录音；文字决策不依赖语音。`VOICE_SERVICE_URL` 只连接已有兼容的 `/asr/stream` 服务，不安装或验证 ASR。部署字段提供 server default；当前 UI 配置此可选路径时还需要在 voice drawer 中填写 URL。
 ## 套餐: 历史 RK3576 Laya/RKNN（0.1.0） {#rk3576_remote}
 
 通过 SSH 将本地命令工作台部署到一台 RK3576 Linux 设备。本套餐只面向 RK3576，不包含 Jetson 或 RK3588。
-## 步骤 1: 部署工作台 {#deploy type=docker_remote required=true config=devices/rk3576_remote.yaml}
+## 步骤 1: 部署工作台 {#deploy type=docker_deploy required=true config=devices/rk3576_remote.yaml}
 
 部署过程会准备固定版本的应用归档、RKNN 模型和 tokenizer，然后在目标设备的 18768 端口启动单容器 Web 工作台。目标设备需要已有 Docker 和 RKNN 运行时库。
 

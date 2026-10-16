@@ -45,6 +45,116 @@ pre_checks:
 post_deployment:
   open_browser: false
 
+actions:
+  before:
+    - name: Check ports 8090 and 1883 are free
+      fail_fast: false
+      name_i18n:
+        zh: 检查 8090 与 1883 端口是否空闲
+      ignore_error: true
+      run: |
+        # A redeploy sees its own containers holding the ports, so only complain
+        # about a listener that is not part of this stack.
+        mine=$(docker ps --filter "label=com.docker.compose.project=edge_security_hub" -q 2>/dev/null | wc -l)
+        for p in 8090 1883; do
+          if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
+            if [ "$mine" -gt 0 ]; then
+              echo "Port $p is held by this stack's own containers; redeploy will replace them."
+            else
+              echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+            fi
+          fi
+        done
+        echo "port check done"
+
+    - name: Prepare the data directories
+      name_i18n:
+        zh: 准备数据目录
+      run: |
+        set -e
+        if [ -d "assets/hub" ]; then WORKDIR="assets/hub"; else WORKDIR="."; fi
+        mkdir -p "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+        # The alert database, the snapshot files and the rule configuration
+        # all live in ./data. Back that directory up, not the container.
+        ls -ld "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+
+  after:
+    - name: Wait for the hub to answer
+      fail_fast: false
+      name_i18n:
+        zh: 等待 hub 响应
+      ignore_error: true
+      timeout: 180
+      run: |
+        echo "Waiting for the hub API ..."
+        # Deadline-driven rather than a fixed iteration count: without
+        # --max-time a stalled connection makes each pass take as long as
+        # curl's own default, and the loop then overruns the step timeout and
+        # is killed mid-way instead of reporting anything useful.
+        deadline=$(( $(date +%s) + 150 ))
+        while [ "$(date +%s)" -lt "$deadline" ]; do
+          if curl -fsS --max-time 4 "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+            curl -sS --max-time 4 "http://127.0.0.1:8090/api/health"
+            echo
+            exit 0
+          fi
+          sleep 5
+        done
+        echo "Hub did not answer on 8090 — check: docker compose logs hub" >&2
+
+    - name: Report the admin credential
+      name_i18n:
+        zh: 输出管理员登录信息
+      ignore_error: true
+      timeout: 60
+      run: |
+        set -e
+        echo "Initial admin password was generated and stored securely in container at /data/initial-password.txt."
+        echo "Run the following command to retrieve it when needed:"
+        echo "  docker exec edge_security_hub-hub-1 cat /data/initial-password.txt"
+
+    - name: Print how to point detectors at this hub
+      fail_fast: false
+      name_i18n:
+        zh: 输出检测器接入方式
+      ignore_error: true
+      timeout: 60
+      run: |
+        # This preset only installs the hub. Nothing here reaches the detector
+        # machines, so the operator has to repoint each one by hand - print
+        # exactly what to change rather than leaving them to work it out.
+        ip=""
+        if command -v python3 >/dev/null 2>&1; then
+          ip=$(python3 -c "import socket; s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM); s.connect(('1.1.1.1', 80)); print(s.getsockname()[0])" 2>/dev/null || true)
+        fi
+        if [ -z "$ip" ] && command -v ip >/dev/null 2>&1; then
+          ip=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1); exit}')
+        fi
+        if [ -z "$ip" ] && command -v route >/dev/null 2>&1 && command -v ipconfig >/dev/null 2>&1; then
+          IFACE=$(route -n get default 2>/dev/null | awk '/interface:/{print $2}')
+          [ -n "$IFACE" ] && ip=$(ipconfig getifaddr "$IFACE" 2>/dev/null || true)
+        fi
+        if [ -z "$ip" ] && command -v hostname >/dev/null 2>&1; then
+          ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        fi
+        echo "-------------------------------------------------------------"
+        if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ] && [ "$ip" != "localhost" ]; then
+          echo "Broker for detectors:  ${ip}:1883"
+          echo "On EACH detector machine, set mqtt_host in its detector.yaml:"
+          echo "    mqtt_host: ${ip}"
+        else
+          echo "Broker for detectors:  <HUB_LAN_IP>:1883"
+          echo "Notice: Could not automatically detect this hub's LAN IP address."
+          echo "On EACH detector machine, manually set mqtt_host to this host's LAN IP address:"
+          echo "    mqtt_host: <HUB_LAN_IP>"
+        fi
+        echo "then restart that detector, e.g.:"
+        echo "    docker compose -p <its project> up -d detector"
+        echo "Detectors may be any mix of platforms; they appear on the"
+        echo "Devices page within a few seconds of reconnecting."
+        echo "-------------------------------------------------------------"
+
+
 remote_overrides:
   remote_path: /home/{{username}}/edge-security-hub
   compose_dir: assets/hub
